@@ -5,6 +5,7 @@
 #include "LongBaseSequence.hpp"
 #include "MultitreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
+#include "splitRange.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
@@ -28,6 +29,14 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("smallDataPageSize") = 4096,
             arg("largeDataPageSize") = 2*1024*1024)
 
+        .def("addReadsFromFasta",
+            &Assembler::addReadsFromFasta,
+            "Add reads from a fasta file.",
+            arg("fileName"),
+            arg("blockSize") = 64 * 1024 * 1024,
+            arg("threadCountForReading") = 1,
+            arg("threadCountForProcessing") = 0)
+
     // Definition of class_<Assembler> ends here.
     ;
 
@@ -45,6 +54,9 @@ PYBIND11_MODULE(Nanopore2, module)
         );
     module.def("testLongBaseSequence",
         testLongBaseSequence
+        );
+    module.def("testSplitRange",
+        testSplitRange
         );
 
 }

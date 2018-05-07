@@ -2,6 +2,7 @@
 #define CZI_NANOPORE2_ASSEMBLER_HPP
 
 // Nanopore2
+#include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 
@@ -53,7 +54,19 @@ public:
         size_t smallDataPageSize,
         size_t largeDataPageSize
         );
+
+
+    // Add reads from a fasta file.
+    // The reads are added to those already previously present.
+    void addReadsFromFasta(
+        const string& fileName,
+        size_t blockSize,
+        size_t threadCountForReading,
+        size_t threadCountForProcessing);
+
 private:
+
+    // Data filled in by the constructor.
     string smallDataFileNamePrefix;
     string largeDataFileNamePrefix;
     size_t smallDataPageSize;
@@ -69,11 +82,21 @@ private:
         return largeDataFileNamePrefix + name;
     }
 
-
-
     // Various pieces of assembler information stored in shared memory.
+    // See class AssemblerInfo for more information.
     MemoryMapped::Object<AssemblerInfo> assemblerInfo;
 
+    // The reads used for this assembly.
+    // Indexed by ReadId.
+    LongBaseSequences reads;
+
+    // The names of the reads from the input fasta or fastq files.
+    // Indexed by ReadId.
+    // Note that we don't enforce uniqueness of read names.
+    // We don't use read names to identify reads.
+    // These names are only used as an aid in tracing each read
+    // back to its origin.
+    MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
 
 };
 
