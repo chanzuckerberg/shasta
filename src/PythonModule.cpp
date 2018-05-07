@@ -1,7 +1,10 @@
 
 // Nanopore2.
 #include "Assembler.hpp"
+#include "Base.hpp"
+#include "LongBaseSequence.hpp"
 #include "MultitreadedObject.hpp"
+#include "ShortBaseSequence.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
@@ -33,6 +36,15 @@ PYBIND11_MODULE(Nanopore2, module)
     // Non-member functions exposed to Python.
     module.def("testMultithreadedObject",
         testMultithreadedObject
+        );
+    module.def("testBase",
+        testBase
+        );
+    module.def("testShortBaseSequence",
+        testShortBaseSequence
+        );
+    module.def("testLongBaseSequence",
+        testLongBaseSequence
         );
 
 }
