@@ -1,5 +1,6 @@
 
 // Nanopore2.
+#include "Assembler.hpp"
 #include "MultitreadedObject.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
@@ -14,6 +15,20 @@ using namespace pybind11;
 
 PYBIND11_MODULE(Nanopore2, module)
 {
+    class_<Assembler>(module, "Assembler")
+
+        // Constructor.
+        .def(init<string, string, size_t, size_t>(),
+            "Access an existing Assembler or create a new one.",
+            arg("smallDataFileNamePrefix") = "data/",
+            arg("largeDataFileNamePrefix") = "Data/",
+            arg("smallDataPageSize") = 4096,
+            arg("largeDataPageSize") = 2*1024*1024)
+
+    // Definition of class_<Assembler> ends here.
+    ;
+
+
 
     // Non-member functions exposed to Python.
     module.def("testMultithreadedObject",

@@ -2,6 +2,7 @@
 #define CZI_NANOPORE2_ASSEMBLER_HPP
 
 // Nanopore2
+#include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 
 // Standard library.
@@ -55,6 +56,10 @@ public:
 private:
     string smallDataFileNamePrefix;
     string largeDataFileNamePrefix;
+    size_t smallDataPageSize;
+    size_t largeDataPageSize;
+
+    // Functions to construct names for small and large binary objects.
     string smallDataName(const string& name) const
     {
         return smallDataFileNamePrefix + name;
@@ -63,8 +68,12 @@ private:
     {
         return largeDataFileNamePrefix + name;
     }
-    size_t smallDataPageSize;
-    size_t largeDataPageSize;
+
+
+
+    // Various pieces of assembler information stored in shared memory.
+    MemoryMapped::Object<AssemblerInfo> assemblerInfo;
+
 
 };
 
