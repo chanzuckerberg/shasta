@@ -65,6 +65,12 @@ public:
         size_t threadCountForReading,
         size_t threadCountForProcessing);
 
+    // Access the reads and read names.
+    void accessReadsReadOnly();
+    void accessReadsReadWrite();
+    void accessReadNamesReadOnly();
+    void accessReadNamesReadWrite();
+
     // Create a histogram of read lengths.
     void histogramReadLength(const string& fileName);
 
@@ -110,6 +116,8 @@ private:
     // back to its origin.
     MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
 
+    // Function a read in Fasta format.
+    void writeRead(ReadId, ostream&);
 
 };
 

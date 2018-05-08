@@ -44,6 +44,7 @@ inline std::pair<size_t, size_t> ChanZuckerberg::Nanopore2::splitRange(
     size_t i
     )
 {
+    CZI_ASSERT(m > 0);
     const size_t n = end - begin;
     const size_t a = n / m;
     const size_t b = n % m;

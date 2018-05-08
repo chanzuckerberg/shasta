@@ -180,6 +180,7 @@ public:
     void accessExistingReadWriteOrCreateNew(const string& name, size_t pageSize);
     void clear();
     void remove();
+    void close();
 
     bool isOpen() const
     {

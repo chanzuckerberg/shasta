@@ -33,9 +33,18 @@ PYBIND11_MODULE(Nanopore2, module)
             &Assembler::addReadsFromFasta,
             "Add reads from a fasta file.",
             arg("fileName"),
-            arg("blockSize") = 64 * 1024 * 1024,
+            arg("blockSize") = 256 * 1024 * 1024,
             arg("threadCountForReading") = 1,
             arg("threadCountForProcessing") = 0)
+
+        .def("accessReadsReadOnly",
+            &Assembler::accessReadsReadOnly)
+        .def("accessReadsReadWrite",
+            &Assembler::accessReadsReadWrite)
+        .def("accessReadNamesReadOnly",
+            &Assembler::accessReadNamesReadOnly)
+        .def("accessReadNamesReadWrite",
+            &Assembler::accessReadNamesReadWrite)
 
         .def("histogramReadLength",
             &Assembler::histogramReadLength,
@@ -46,6 +55,10 @@ PYBIND11_MODULE(Nanopore2, module)
             "Write all reads to a file in fasta format.",
             arg("fileName"))
         .def("writeRead",
+            (
+                void (Assembler::*)
+                (ReadId, const string&)
+            )
             &Assembler::writeRead,
             "Write one read to a file in fasta format.",
             arg("readId"),

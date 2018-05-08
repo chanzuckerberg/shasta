@@ -50,6 +50,11 @@ void LongBaseSequences::remove()
     baseCount.remove();
     data.remove();
 }
+void LongBaseSequences::close()
+{
+    baseCount.close();
+    data.close();
+}
 
 void LongBaseSequences::clear()
 {

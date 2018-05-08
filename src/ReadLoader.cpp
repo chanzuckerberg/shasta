@@ -15,7 +15,7 @@ ReadLoader::ReadLoader(
     const string& fileName,
     size_t blockSize,
     size_t threadCountForReading,
-    size_t threadCountForProcessing,
+    size_t threadCountForProcessingArgument,
     const string& dataNamePrefix,
     size_t pageSize,
     LongBaseSequences& reads,
@@ -23,10 +23,11 @@ ReadLoader::ReadLoader(
 
     MultithreadedObject(*this),
     blockSize(blockSize),
-    threadCountForProcessing(threadCountForProcessing)
+    threadCountForProcessing(threadCountForProcessingArgument)
 {
     cout << timestamp << "Loading reads from " << fileName << "." << endl;
     cout << "Input file block size: " << blockSize << " bytes." << endl;
+    const auto tBegin = std::chrono::steady_clock::now();
 
     // Adjust the numbers of threads, if necessary.
     if(threadCountForReading == 0) {
@@ -69,16 +70,25 @@ ReadLoader::ReadLoader(
 
         // Read this block.
         blockEnd = min(blockBegin+blockSize, fileSize);
-        cout << "Reading block " << blockBegin << " " << blockEnd << " of size " << blockEnd-blockBegin << endl;
+        cout << timestamp << "Reading block " << blockBegin << " " << blockEnd << ", " << blockEnd-blockBegin << " bytes." << endl;
+        const auto t0 = std::chrono::steady_clock::now();
         readBlock(threadCountForReading);
+        const auto t1 = std::chrono::steady_clock::now();
+        const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
+        cout << "Block read in " << t01 << " s at " << double(blockEnd-blockBegin)/t01 << " bytes/s." << endl;
         // cout << leftOver.size() << " characters in this block will be processed with the next block." << endl;
 
         // Process this block in parallel.
         cout << "Processing " << buffer.size() << " input characters." << endl;
+        const auto t2 = std::chrono::steady_clock::now();
         runThreads(&ReadLoader::threadFunction, threadCountForProcessing);
+        const auto t3 = std::chrono::steady_clock::now();
+        const double t23 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2)).count());
+        cout << "Block processed in " << t23 << " s." << endl;
 
         // Permanently store the reads found by each thread.
-        cout << "Storing reads for this block." << endl;
+        // cout << timestamp << "Storing reads for this block." << endl;
+        const auto t4 = std::chrono::steady_clock::now();
         for(size_t threadId=0; threadId<threadCountForProcessing; threadId++) {
             MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames = *(threadReadNames[threadId]);
             LongBaseSequences& thisThreadReads = *(threadReads[threadId]);
@@ -91,10 +101,14 @@ ReadLoader::ReadLoader(
             thisThreadReadNames.clear();
             thisThreadReads.clear();
         }
+        const auto t5 = std::chrono::steady_clock::now();
+        const double t45 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t5 - t4)).count());
+        cout << "Reads for this block stored in " << t45 << " s." << endl;
 
         // Prepare to process the next block.
         blockBegin = blockEnd;
     }
+    cout << timestamp << "Done processing fasta file." << endl;
 
 
     // Close the input file.
@@ -105,7 +119,10 @@ ReadLoader::ReadLoader(
         threadReadNames[threadId]->remove();
         threadReads[threadId]->remove();
     }
-
+    const auto tEnd = std::chrono::steady_clock::now();
+    const double tTotal = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tBegin)).count());
+    cout << "Processed " << fileSize << " bytes in " << tTotal;
+    cout << "s, " << double(fileSize)/tTotal << " bytes/s." << endl;
     cout << timestamp << "Done loading reads." << endl;
 }
 
@@ -205,11 +222,14 @@ void ReadLoader::threadFunction(size_t threadId)
     // Locate the first read that begins in the slice assigned to this thread.
     // We only process reads that begin in this slice.
     size_t bufferIndex = sliceBegin;
-    while(bufferIndex<buffer.size() && !readBeginsHere(bufferIndex)) {
+    while(bufferIndex<sliceEnd && !readBeginsHere(bufferIndex)) {
         ++bufferIndex;
     }
     if(threadId == 0) {
         CZI_ASSERT(bufferIndex == 0);
+    }
+    if(bufferIndex == sliceEnd) {
+        return;
     }
 
     // Access the data structures that this thread will use to store reads
@@ -220,7 +240,7 @@ void ReadLoader::threadFunction(size_t threadId)
     // Main loop over the buffer slice assigned to this thread.
     string readName;
     vector<Base> read;
-    while(bufferIndex < buffer.size()) {
+    while(bufferIndex < sliceEnd) {
 
         // Skip the '>' that introduces the new read.
         CZI_ASSERT(buffer[bufferIndex++] == '>');

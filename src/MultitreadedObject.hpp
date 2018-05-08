@@ -153,6 +153,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>:
     }
     CZI_ASSERT(threadLogs.empty());
 
+    // __sync_synchronize (); A full memory barrier is probably not needed here.
     exceptionsOccurred = false;
     threadLogs.resize(threadCount);
     for(size_t threadId=0; threadId<threadCount; threadId++) {
@@ -187,6 +188,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>:
         throw runtime_error("Exceptions occurred in at least one thread.");
     }
     exceptionsOccurred = false;
+    // __sync_synchronize (); A full memory barrier is probably not needed here.
 }
 
 
