@@ -37,6 +37,20 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("threadCountForReading") = 1,
             arg("threadCountForProcessing") = 0)
 
+        .def("histogramReadLength",
+            &Assembler::histogramReadLength,
+            "Create a histogram of read length and write it to a csv file.",
+            arg("fileName"))
+        .def("writeReads",
+            &Assembler::writeReads,
+            "Write all reads to a file in fasta format.",
+            arg("fileName"))
+        .def("writeRead",
+            &Assembler::writeRead,
+            "Write one read to a file in fasta format.",
+            arg("readId"),
+            arg("fileName"))
+
     // Definition of class_<Assembler> ends here.
     ;
 

@@ -52,3 +52,54 @@ void Assembler::addReadsFromFasta(
 
 }
 
+
+// Create a histogram of read lengths.
+void Assembler::histogramReadLength(const string& fileName)
+{
+    // Access the reads.
+    reads.accessExistingReadWriteOrCreateNew(largeDataName("Reads"), largeDataPageSize);
+
+    // Create the histogram.
+    vector<size_t> histogram;
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        const size_t length = reads[readId].baseCount;
+        if(histogram.size() <= length) {
+            histogram.resize(length+1, 0);
+        }
+        ++(histogram[length]);
+    }
+
+    // Write it out.
+    ofstream csv(fileName);
+    csv << "Length,Frequency,Bases,CumulativeFrequency,CumulativeBases\n";
+    size_t cumulativeFrequency = 0;
+    size_t cumulativeBaseCount = 0;
+    for(size_t length=0; length<histogram.size(); length++) {
+        const size_t frequency = histogram[length];
+        if(frequency) {
+            const  size_t baseCount = frequency * length;
+            cumulativeFrequency += frequency;
+            cumulativeBaseCount += baseCount;
+            csv << length << "," << frequency << "," << baseCount << ",";
+            csv<< cumulativeFrequency << "," << cumulativeBaseCount << "\n";
+        }
+    }
+
+}
+
+
+
+// Function to write one or all reads in Fasta format.
+void Assembler::writeReads(const string& fileName)
+{
+
+}
+
+
+
+void Assembler::writeRead(ReadId, const string& fileName)
+{
+
+}
+
+

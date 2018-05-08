@@ -5,6 +5,7 @@
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
+#include "ReadId.hpp"
 
 // Standard library.
 #include "string.hpp"
@@ -64,6 +65,13 @@ public:
         size_t threadCountForReading,
         size_t threadCountForProcessing);
 
+    // Create a histogram of read lengths.
+    void histogramReadLength(const string& fileName);
+
+    // Function to write one or all reads in Fasta format.
+    void writeReads(const string& fileName);
+    void writeRead(ReadId, const string& fileName);
+
 private:
 
     // Data filled in by the constructor.
@@ -89,6 +97,10 @@ private:
     // The reads used for this assembly.
     // Indexed by ReadId.
     LongBaseSequences reads;
+    ReadId readCount() const
+    {
+        return ReadId(reads.size());
+    }
 
     // The names of the reads from the input fasta or fastq files.
     // Indexed by ReadId.
@@ -97,6 +109,7 @@ private:
     // These names are only used as an aid in tracing each read
     // back to its origin.
     MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
+
 
 };
 
