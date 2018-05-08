@@ -95,11 +95,16 @@ public:
     // This is automatically called by the destructor.
     void close();
 
+
     // Close and remove the supporting file.
     void remove();
 
     // Resize works as for std::vector;
     void resize(size_t);
+    void clear()
+    {
+        resize(0);
+    }
 
     // Touch a range of memory in order to cause the
     // supporting pages of virtual memory to be loaded in real memory.

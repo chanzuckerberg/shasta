@@ -37,12 +37,16 @@ void Assembler::addReadsFromFasta(
     const size_t threadCountForReading,
     const size_t threadCountForProcessing)
 {
+    reads.accessExistingReadWriteOrCreateNew(largeDataName("Reads"), largeDataPageSize);
+    readNames.accessExistingReadWriteOrCreateNew(largeDataName("ReadNames"), largeDataPageSize);
 
     ReadLoader(
         fileName,
         blockSize,
         threadCountForReading,
         threadCountForProcessing,
+        largeDataFileNamePrefix,
+        largeDataPageSize,
         reads,
         readNames);
 

@@ -63,6 +63,12 @@ public:
         }
     }
 
+    void clear()
+    {
+        toc.clear();
+        toc.push_back(0);
+        data.clear();
+    }
 
     void remove()
     {

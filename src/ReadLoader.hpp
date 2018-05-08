@@ -7,12 +7,12 @@
 #include "MultitreadedObject.hpp"
 
 // Standard library.
+#include "memory.hpp"
 #include "string.hpp"
 
 namespace ChanZuckerberg {
     namespace Nanopore2 {
         class ReadLoader;
-        class AssemblerInfo;
     }
 }
 
@@ -29,6 +29,8 @@ public:
         size_t blockSize,
         size_t threadCountForReading,
         size_t threadCountForProcessing,
+        const string& dataNamePrefix,
+        size_t pageSize,
         LongBaseSequences& reads,
         MemoryMapped::VectorOfVectors<char, uint64_t>& readNames);
 private:
@@ -43,11 +45,11 @@ private:
     // The block size we are using.
     size_t blockSize;
 
-    // The begin/end offset of the block being processed.
+    // The begin/end offset of the block being read.
     size_t blockBegin;
     size_t blockEnd;
 
-    // Buffer to keep a block of the input file.
+    // Buffer to keep the the input file being processed.
     vector<char> buffer;
 
     // Characters left over from the previous block.
@@ -57,10 +59,12 @@ private:
     size_t threadCountForProcessing;
 
     // Read one block into the above buffer.
-    // This reads into the buffer the portion of the input file
+    // This copies the leftOver data to buffer, then
+    // reads into the rest of the buffer the portion of the input file
     // at offset in [blockBegin, blockEnd).
-    // It then reads the rest of the last read in the block
-    // and updates blockEnd accordingly.
+    // It finally moves to the leftOver data the
+    // final, possibly partial, read in the buffer
+    // (this is not done for the final block).
     void readBlock(size_t threadCount);
     void readBlockSequential();
     void readBlockParallel(size_t threadCount);
@@ -71,6 +75,10 @@ private:
     // Return true if a read begins at this position in the buffer.
     bool readBeginsHere(size_t bufferIndex) const;
 
+    // Vectors where each thread stores the reads it found.
+    // Indexed by threadId.
+    vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadNames;
+    vector< shared_ptr<LongBaseSequences> > threadReads;
 };
 
 

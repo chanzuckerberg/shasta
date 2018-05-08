@@ -51,12 +51,17 @@ void LongBaseSequences::remove()
     data.remove();
 }
 
+void LongBaseSequences::clear()
+{
+    baseCount.clear();
+    data.clear();
+}
 
 // Append a new sequence at the end.
-void LongBaseSequences::append(const LongBaseSequence& s)
+void LongBaseSequences::append(const LongBaseSequenceView& s)
 {
     baseCount.push_back(s.baseCount);
-    data.appendVector(s.data.begin(), s.data.end());
+    data.appendVector(s.begin, s.begin+LongBaseSequenceView::wordCount(s.baseCount));
 }
 void LongBaseSequences::append(const vector<Base>& s)
 {

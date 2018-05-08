@@ -178,6 +178,7 @@ public:
     void accessExistingReadOnly(const string& name);
     void accessExistingReadWrite(const string& name);
     void accessExistingReadWriteOrCreateNew(const string& name, size_t pageSize);
+    void clear();
     void remove();
 
     bool isOpen() const
@@ -203,7 +204,7 @@ public:
     }
 
     // Append a new sequence at the end.
-    void append(const LongBaseSequence&);
+    void append(const LongBaseSequenceView&);
     void append(const vector<Base>&);
     void append(size_t baseCount);
 
