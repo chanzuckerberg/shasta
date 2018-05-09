@@ -2,6 +2,7 @@
 #define CZI_NANOPORE2_ASSEMBLER_HPP
 
 // Nanopore2
+#include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
@@ -78,6 +79,15 @@ public:
     void writeReads(const string& fileName);
     void writeRead(ReadId, const string& fileName);
 
+    // Functions related to the k-mer table.
+    void accessKmers();
+    void writeKmers(const string& fileName) const;
+    void randomlySelectKmers(
+        size_t k,           // k-mer length.
+        double probability, // The probability that a k-mer is selected as a marker.
+        int seed            // For random number generator.
+    );
+
 private:
 
     // Data filled in by the constructor.
@@ -116,8 +126,29 @@ private:
     // back to its origin.
     MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
 
-    // Function a read in Fasta format.
+    // Function to write a read in Fasta format.
     void writeRead(ReadId, ostream&);
+
+
+
+    // Table of all k-mers of length k.
+    // Among all 4^k k-mers of length k, we choose a subset
+    // that we call "markers".
+    // The value of k used is stored in assemblerInfo.
+    // The k-mer table is a vector of 4^k pairs,
+    // indexed by k-mer id as computed using Kmer::id(k).
+    // The markers are selected at the beginning of an assembly
+    // and never changed, and selected in such a way that,
+    // if (and only if) a k-mer is a marker, its reverse complement
+    // is also a marker. That is, for all permitted values of i, 0 <= i < 4^k:
+    // kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarker
+    class KmerInfo {
+    public:
+        KmerId reverseComplementedKmerId;
+        bool isMarker;
+    };
+    MemoryMapped::Vector<KmerInfo> kmerTable;
+
 
 };
 
