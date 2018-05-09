@@ -2,6 +2,7 @@
 #define CZI_NANOPORE2_BASE_HPP
 
 
+#include "array.hpp"
 #include "iostream.hpp"
 #include "stdexcept.hpp"
 #include "string.hpp"
@@ -9,10 +10,22 @@
 namespace ChanZuckerberg {
     namespace Nanopore2 {
         class Base;
+        class BaseInitializer;
         inline ostream& operator<<(ostream&, Base);
         void testBase();
     }
 }
+
+
+// Class used only to store a static look up table
+// use by the Base constructors toc convert
+// chacters to bases.
+class ChanZuckerberg::Nanopore2::BaseInitializer{
+public:
+    BaseInitializer();
+    static array<uint8_t, 256> table;
+    static BaseInitializer singleton;
+};
 
 
 
@@ -31,34 +44,16 @@ public:
     class FromCharacterNoException {};
     class FromInteger {};
     Base() : value(0) {}
-    Base(uint8_t c, FromCharacter)
+    Base(char c, FromCharacter)
     {
-        switch(c) {
-        case 'A': value = 0; return;
-        case 'C': value = 1; return;
-        case 'G': value = 2; return;
-        case 'T': value = 3; return;
-        case 'a': value = 0; return;
-        case 'c': value = 1; return;
-        case 'g': value = 2; return;
-        case 't': value = 3; return;
-        default:
-            throw runtime_error("Invalid base character " + c);
+        value = BaseInitializer::table[uint8_t(c)];
+        if(value == 255) {
+            throw runtime_error("Invalid base character " + to_string(c));
         }
     }
-    Base(uint8_t c, FromCharacterNoException)
+    Base(char c, FromCharacterNoException)
     {
-        switch(c) {
-        case 'A': value =   0; return;
-        case 'C': value =   1; return;
-        case 'G': value =   2; return;
-        case 'T': value =   3; return;
-        case 'a': value =   0; return;
-        case 'c': value =   1; return;
-        case 'g': value =   2; return;
-        case 't': value =   3; return;
-        default : value = 255; return;
-        }
+        value = BaseInitializer::table[uint8_t(c)];
     }
     Base(uint8_t value, FromInteger) : value(value)
     {

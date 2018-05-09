@@ -2,6 +2,27 @@
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
+#include "algorithm.hpp"
+
+
+
+BaseInitializer BaseInitializer::singleton;
+std::array<uint8_t, 256> BaseInitializer::table;
+BaseInitializer::BaseInitializer()
+{
+    cout << "***A" << endl;
+    fill(table.begin(), table.end(), 255);
+    cout << "***B" << endl;
+    table['A'] = 0;
+    table['C'] = 1;
+    table['G'] = 2;
+    table['T'] = 3;
+    table['a'] = 0;
+    table['c'] = 1;
+    table['g'] = 2;
+    table['t'] = 3;
+}
+
 
 void ChanZuckerberg::Nanopore2::testBase()
 {

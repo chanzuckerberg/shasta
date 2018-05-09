@@ -88,6 +88,8 @@ ReadLoader::ReadLoader(
         cout << "Block processed in " << t23 << " s." << endl;
 
         // Permanently store the reads found by each thread.
+        // We could speed this up by just making space in single threaded code,
+        // then copying the data in multi threaded code.
         // cout << timestamp << "Storing reads for this block." << endl;
         const auto t4 = std::chrono::steady_clock::now();
         for(size_t threadId=0; threadId<threadCountForProcessing; threadId++) {
