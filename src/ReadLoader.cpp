@@ -14,7 +14,7 @@ using namespace Nanopore2;
 ReadLoader::ReadLoader(
     const string& fileName,
     size_t blockSize,
-    size_t threadCountForReading,
+    size_t threadCountForReadingArgument,
     size_t threadCountForProcessingArgument,
     const string& dataNamePrefix,
     size_t pageSize,
@@ -23,6 +23,7 @@ ReadLoader::ReadLoader(
 
     MultithreadedObject(*this),
     blockSize(blockSize),
+    threadCountForReading(threadCountForReadingArgument),
     threadCountForProcessing(threadCountForProcessingArgument)
 {
     cout << timestamp << "Loading reads from " << fileName << "." << endl;
@@ -81,7 +82,7 @@ ReadLoader::ReadLoader(
         // Process this block in parallel.
         cout << "Processing " << buffer.size() << " input characters." << endl;
         const auto t2 = std::chrono::steady_clock::now();
-        runThreads(&ReadLoader::threadFunction, threadCountForProcessing);
+        runThreads(&ReadLoader::processThreadFunction, threadCountForProcessing);
         const auto t3 = std::chrono::steady_clock::now();
         const double t23 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2)).count());
         cout << "Block processed in " << t23 << " s." << endl;
@@ -206,12 +207,12 @@ void ReadLoader::readBlockSequential()
 
 void ReadLoader::readBlockParallel(size_t threadCount)
 {
-    CZI_ASSERT(0);
+    runThreads(&ReadLoader::readThreadFunction, threadCountForReading);
 }
 
 
 
-void ReadLoader::threadFunction(size_t threadId)
+void ReadLoader::processThreadFunction(size_t threadId)
 {
 
     // Get the slice of the buffer assigned to this thread.
@@ -279,6 +280,29 @@ void ReadLoader::threadFunction(size_t threadId)
         thisThreadReads.append(read);
         read.clear();
 
+    }
+}
+
+
+
+void ReadLoader::readThreadFunction(size_t threadId)
+{
+    // Get the slice of the block assigned to this thread.
+    size_t sliceBegin, sliceEnd;
+    tie(sliceBegin, sliceEnd) = splitRange(blockBegin, blockEnd, threadCountForReading, threadId);
+
+    // Read all the data in the slice.
+    size_t bytesToRead = sliceEnd - sliceBegin;
+    char* bufferPointer = buffer.data() + leftOver.size() + sliceBegin;
+    size_t offset = sliceBegin;
+    while(bytesToRead) {
+        const ssize_t byteCount = ::pread(fileDescriptor, bufferPointer, bytesToRead, offset);
+        if(byteCount <= 0) {
+            throw runtime_error("Error during read.");
+        }
+        bytesToRead -= byteCount;
+        bufferPointer += byteCount;
+        offset += byteCount;
     }
 }
 

@@ -55,7 +55,8 @@ private:
     // Characters left over from the previous block.
     vector<char> leftOver;
 
-    // The number of threads to be used for processing.
+    // The number of threads to be used for read and for processing.
+    size_t threadCountForReading;
     size_t threadCountForProcessing;
 
     // Read one block into the above buffer.
@@ -69,8 +70,9 @@ private:
     void readBlockSequential();
     void readBlockParallel(size_t threadCount);
 
-    // Function called by each thread.
-    void threadFunction(size_t threadId);
+    // Functions called by each thread.
+    void readThreadFunction(size_t threadId);
+    void processThreadFunction(size_t threadId);
 
     // Return true if a read begins at this position in the buffer.
     bool readBeginsHere(size_t bufferIndex) const;
