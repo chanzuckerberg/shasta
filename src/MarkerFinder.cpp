@@ -34,7 +34,7 @@ MarkerFinder::MarkerFinder(
     }
     cout << "Using " << threadCount << " threads." << endl;
 
-    const size_t batchSize = 10000;
+    const size_t batchSize = 100000;
     markers.beginPass1(reads.size());
     setupLoadBalancing(reads.size(), batchSize);
     pass = 1;
