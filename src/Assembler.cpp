@@ -1,5 +1,6 @@
 // Nanopore2.
 #include "Assembler.hpp"
+#include "MarkerFinder.hpp"
 #include "ReadLoader.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
@@ -132,11 +133,9 @@ void Assembler::writeRead(ReadId readId, const string& fileName)
 
 void Assembler::writeRead(ReadId readId, ostream& file)
 {
-    const auto& readName = readNames[readId];
     const auto readSequence = reads[readId];
 
-    file << ">";
-    copy(readName.begin(), readName.end(), ostream_iterator<char>(file));
+    file << ">" << readId;
     file << " " << readSequence.baseCount << "\n";
     file << readSequence << "\n";
 
@@ -268,3 +267,57 @@ void Assembler::writeKmers(const string& fileName) const
     }
 }
 
+
+void Assembler::findMarkers(size_t threadCount)
+{
+    markers.createNew(largeDataName("Markers"), largeDataPageSize);
+    MarkerFinder markerFinder(
+        assemblerInfo->k,
+        kmerTable,
+        reads,
+        markers,
+        threadCount);
+
+}
+
+
+
+void Assembler::accessMarkers()
+{
+    markers.accessExistingReadOnly(largeDataName("Markers"));
+}
+
+
+
+void Assembler::writeMarkers(ReadId readId, const string& fileName)
+{
+    vector<Marker> markers;
+    getMarkers(readId, markers);
+
+    ofstream csv(fileName);
+    csv << "Ordinal,KmerId,Kmer,Position\n";
+    for(const Marker& marker: markers) {
+        csv << marker.ordinal << ",";
+        csv << marker.kmerId << ",";
+        csv << Kmer(marker.kmerId, assemblerInfo->k) << ",";
+        csv << marker.position << "\n";
+    }
+}
+
+
+void Assembler::getMarkers(ReadId readId, vector<Marker>& readMarkers) const
+{
+    const auto readCompressedMarkers = markers[readId];
+    const uint32_t n = uint32_t(readCompressedMarkers.size());
+
+    readMarkers.clear();
+
+    Marker marker;
+    marker.position = 0;
+    for(marker.ordinal=0; marker.ordinal<n; marker.ordinal++) {
+        const CompressedMarker& compressedMarker = readCompressedMarkers[marker.ordinal];
+        marker.position += compressedMarker.shift;
+        marker.kmerId = compressedMarker.kmerId;
+        readMarkers.push_back(marker);
+    }
+}

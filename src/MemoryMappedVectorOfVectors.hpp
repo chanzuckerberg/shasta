@@ -217,7 +217,7 @@ public:
     void incrementCount(Int index, Int m=1);  // Called during pass 1.
     void beginPass2();
     void store(Int index, const T&);            // Called during pass 2.
-    void endPass2();
+    void endPass2(bool check = true);
 
     // Touch the memory in order to cause the
     // supporting pages of virtual memory to be loaded in real memory.
@@ -266,12 +266,14 @@ template<class T, class Int>
 
 
 template<class T, class Int>
-    void ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors<T, Int>::endPass2()
+    void ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors<T, Int>::endPass2(bool check)
 {
     // Verify that all counts are now zero.
-    const Int n = count.size();
-    for(Int i=0; i<n; i++) {
-        CZI_ASSERT(count[i] == 0);;
+    if(check) {
+        const Int n = count.size();
+        for(Int i=0; i<n; i++) {
+            CZI_ASSERT(count[i] == 0);;
+        }
     }
 
     // Free the memory of the count vector.

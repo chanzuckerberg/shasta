@@ -4,6 +4,7 @@
 // Nanopore2
 #include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
+#include "Marker.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 #include "ReadId.hpp"
@@ -88,6 +89,12 @@ public:
         int seed            // For random number generator.
     );
 
+    // Functions related to markers.
+    // See the beginning of Marker.hpp for more information.
+    void findMarkers(size_t threadCount);
+    void accessMarkers();
+    void writeMarkers(ReadId, const string& fileName);
+
 private:
 
     // Data filled in by the constructor.
@@ -142,12 +149,13 @@ private:
     // if (and only if) a k-mer is a marker, its reverse complement
     // is also a marker. That is, for all permitted values of i, 0 <= i < 4^k:
     // kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarker
-    class KmerInfo {
-    public:
-        KmerId reverseComplementedKmerId;
-        bool isMarker;
-    };
     MemoryMapped::Vector<KmerInfo> kmerTable;
+
+
+    // The markers on all reads. Indexed by ReadId.
+    MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t> markers;
+    void getMarkers(ReadId, vector<Marker>&) const;
+
 
 
 };

@@ -60,10 +60,10 @@ PYBIND11_MODULE(Nanopore2, module)
                 void (Assembler::*)
                 (ReadId, const string&)
             )
-        &Assembler::writeRead,
-        "Write one read to a file in fasta format.",
-        arg("readId"),
-        arg("fileName"))
+            &Assembler::writeRead,
+            "Write one read to a file in fasta format.",
+            arg("readId"),
+            arg("fileName"))
 
 
 
@@ -78,6 +78,27 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("k"),
             arg("probability"),
             arg("seed") = 231)
+        .def("writeMarkers",
+            (
+                void (Assembler::*)
+                (ReadId, const string&)
+            )
+            &Assembler::writeMarkers,
+            "Write the markers of a read.",
+            arg("readId"),
+            arg("fileName"))
+
+
+
+        // Markers.
+        .def("accessMarkers",
+            &Assembler::accessMarkers)
+        .def("findMarkers",
+            &Assembler::findMarkers,
+            "Find markers in reads.",
+            arg("threadCount") = 0)
+
+
 
     // Definition of class_<Assembler> ends here.
     ;

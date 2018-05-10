@@ -17,7 +17,17 @@ namespace ChanZuckerberg {
         static_assert(
             std::numeric_limits<KmerId>::digits == 2*Kmer::capacity,
             "Kmer and KmerId types are inconsistent.");
+
+        class KmerInfo;
     }
 }
+
+
+
+class ChanZuckerberg::Nanopore2::KmerInfo {
+public:
+    KmerId reverseComplementedKmerId;
+    bool isMarker;
+};
 
 #endif
