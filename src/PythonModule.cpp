@@ -3,6 +3,7 @@
 #include "Assembler.hpp"
 #include "Base.hpp"
 #include "LongBaseSequence.hpp"
+#include "mappedCopy.hpp"
 #include "MultitreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
@@ -120,6 +121,9 @@ PYBIND11_MODULE(Nanopore2, module)
         );
     module.def("testSplitRange",
         testSplitRange
+        );
+    module.def("mappedCopy",
+        mappedCopy
         );
 
 }
