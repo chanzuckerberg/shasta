@@ -7,6 +7,7 @@
 #include "Marker.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
+#include "Overlap.hpp"
 #include "ReadId.hpp"
 
 // Standard library.
@@ -95,6 +96,17 @@ public:
     void accessMarkers();
     void writeMarkers(ReadId, const string& fileName);
 
+    // Use the minHash algorithm to find pairs of overlapping oriented reads.
+    // Use as features sequences of m consecutive special k-mers.
+    void findOverlaps(
+        size_t m,                       // Number of consecutive k-mers that define a feature.
+        size_t minHashIterationCount,   // Number of minHash iterations.
+        size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
+        size_t minFrequency,            // Minimum number of minHash hits for a pair to become a candidate.
+        size_t threadCount
+    );
+    void accessOverlaps();
+
 private:
 
     // Data filled in by the constructor.
@@ -150,12 +162,26 @@ private:
     // is also a marker. That is, for all permitted values of i, 0 <= i < 4^k:
     // kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarker
     MemoryMapped::Vector<KmerInfo> kmerTable;
+    void checkKmersAreOpen();
 
 
     // The markers on all reads. Indexed by ReadId.
     MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t> markers;
     void getMarkers(ReadId, vector<Marker>&) const;
+    void checkMarkersAreOpen() const;
 
+
+
+    // Pairs of overlapping oriented reads.
+    // This is a global vector that stores all the overlaps.
+    // The overlap table defined below can be used to locate
+    // all the overlaps that an oriented read is involved in.
+    MemoryMapped::Vector<Overlap> overlaps;
+
+    // The overlap table stores the overlaps that each oriented read is involved in.
+    // Stores, for each OrientedReadId, a vector of indexes into the overlaps vector.
+    // Indexed by OrientedReadId::getValue(),
+    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> overlapTable;
 
 
 };

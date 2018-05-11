@@ -41,6 +41,7 @@ public:
     {
         CZI_ASSERT(strand < 2);
     }
+    OrientedReadId(ReadId value) : value(value) {}
     ReadId getReadId() const
     {
         return value >> 1;

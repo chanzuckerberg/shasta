@@ -258,7 +258,7 @@ template<class T, class Int>
     for(Int i=0; i<n; i++) {
         toc[i+1] = toc[i] + count[i];
     }
-    const size_t  dataSize = toc.back() - 1ULL;
+    const size_t  dataSize = toc.back();
     data.reserve(dataSize);
     data.resize(dataSize);
 }

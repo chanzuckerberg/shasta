@@ -91,7 +91,7 @@ PYBIND11_MODULE(Nanopore2, module)
 
 
 
-        // Markers.
+         // Markers.
         .def("accessMarkers",
             &Assembler::accessMarkers)
         .def("findMarkers",
@@ -99,6 +99,18 @@ PYBIND11_MODULE(Nanopore2, module)
             "Find markers in reads.",
             arg("threadCount") = 0)
 
+
+
+        // Overlaps
+        .def("findOverlaps",
+            &Assembler::findOverlaps,
+            arg("m"),
+            arg("minHashIterationCount"),
+            arg("log2MinHashBucketCount"),
+            arg("minFrequency"),
+            arg("threadCount") = 0)
+        .def("accessOverlaps",
+            &Assembler::accessOverlaps)
 
 
     // Definition of class_<Assembler> ends here.

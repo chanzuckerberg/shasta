@@ -1,6 +1,7 @@
 // Nanopore2.
 #include "Assembler.hpp"
 #include "MarkerFinder.hpp"
+#include "OverlapFinder.hpp"
 #include "ReadLoader.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
@@ -151,6 +152,13 @@ void Assembler::accessKmers()
     }
 }
 
+void Assembler::checkKmersAreOpen()
+{
+    if(!kmerTable.isOpen) {
+        throw runtime_error("Kmers are not accessible.");
+    }
+}
+
 
 
 // Randomly select the k-mers to be used as markers.
@@ -287,6 +295,12 @@ void Assembler::accessMarkers()
     markers.accessExistingReadOnly(largeDataName("Markers"));
 }
 
+void Assembler::checkMarkersAreOpen() const
+{
+    if(!markers.isOpen()) {
+        throw runtime_error("Markers are not accessible.");
+    }
+}
 
 
 void Assembler::writeMarkers(ReadId readId, const string& fileName)
@@ -320,4 +334,53 @@ void Assembler::getMarkers(ReadId readId, vector<Marker>& readMarkers) const
         marker.kmerId = compressedMarker.kmerId;
         readMarkers.push_back(marker);
     }
+}
+
+
+
+// Use the minHash algorithm to find pairs of overlapping oriented reads.
+// Use as features sequences of m consecutive special k-mers.
+void Assembler::findOverlaps(
+    size_t m,                       // Number of consecutive k-mers that define a feature.
+    size_t minHashIterationCount,   // Number of minHash iterations.
+    size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
+    size_t minFrequency,            // Minimum number of minHash hits for a pair to become a candidate.
+    size_t threadCount
+)
+{
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
+    const ReadId readCount = ReadId(markers.size());
+
+    // Check that log2MinHashBucketCount is not unreasonably small.
+    if((1ULL << (log2MinHashBucketCount-3ULL)) < readCount) {
+        throw runtime_error("log2MinHashBucketCount is unreasonably small.\n"
+            "Must at least equal base 2 log of number of reads plus 3.");
+    }
+
+    // Create the overlaps and overlap table.
+    overlaps.createNew(largeDataName("Overlaps"), largeDataPageSize);
+    overlapTable.createNew(largeDataName("OverlapTable"), largeDataPageSize);
+
+    // Call the OverlapFinder to do the MinHash computation.
+    OverlapFinder overlapFinder(
+        m,
+        minHashIterationCount,
+        log2MinHashBucketCount,
+        minFrequency,
+        threadCount,
+        kmerTable,
+        markers,
+        overlaps,
+        overlapTable,
+        largeDataFileNamePrefix,
+        largeDataPageSize);
+}
+
+
+
+void Assembler::accessOverlaps()
+{
+    overlaps.accessExistingReadOnly(largeDataName("Overlaps"));
+    overlapTable.accessExistingReadOnly(largeDataName("OverlapTable"));
 }
