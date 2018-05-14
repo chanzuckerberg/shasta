@@ -27,6 +27,7 @@ public:
         size_t m,                       // Number of consecutive markers that define a feature.
         size_t minHashIterationCount,   // Number of minHash iterations.
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
+        size_t maxBucketSize,           // The maximum size for a bucket to be used.
         size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
         size_t threadCount,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
@@ -41,6 +42,7 @@ private:
 
     // Store some of the arguments passed to the constructor.
     size_t m;                       // Number of consecutive markers that define a feature.
+    size_t maxBucketSize;           // The maximum size for a bucket to be used.
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& compressedMarkers;
     const string& largeDataFileNamePrefix;

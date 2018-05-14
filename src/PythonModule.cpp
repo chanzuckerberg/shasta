@@ -107,6 +107,7 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("m"),
             arg("minHashIterationCount"),
             arg("log2MinHashBucketCount"),
+            arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)
         .def("accessOverlaps",

@@ -48,7 +48,8 @@ if not os.path.exists('/usr/bin/hugeadm'):
     os.system('sudo apt install hugepages')
 
 # Allocate the requested number of pages.
-os.system('sudo hugeadm --pool-pages-min=2M:%dG --add-temp-swap' % gigaBytes)
+# Consider adding --add-temp-swap option.
+os.system('sudo hugeadm --pool-pages-min=2M:%dG' % gigaBytes)
 
 # Create the mount point for the huge page filesystem.
 os.system('sudo mkdir %s' % largePagesMountPoint)

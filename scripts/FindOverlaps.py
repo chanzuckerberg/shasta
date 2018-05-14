@@ -25,5 +25,6 @@ a.findOverlaps(
     m=5, 
     minHashIterationCount=100, 
     log2MinHashBucketCount=log2MinHashBucketCount,
+    maxBucketSize = 50,
     minFrequency = 5)
 

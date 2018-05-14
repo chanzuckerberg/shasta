@@ -102,6 +102,7 @@ public:
         size_t m,                       // Number of consecutive k-mers that define a feature.
         size_t minHashIterationCount,   // Number of minHash iterations.
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
+        size_t maxBucketSize,           // The maximum size for a bucket to be used.
         size_t minFrequency,            // Minimum number of minHash hits for a pair to become a candidate.
         size_t threadCount
     );

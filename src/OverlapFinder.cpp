@@ -19,6 +19,7 @@ OverlapFinder::OverlapFinder(
     size_t m,                       // Number of consecutive markers that define a feature.
     size_t minHashIterationCount,   // Number of minHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
+    size_t maxBucketSize,           // The maximum size for a bucket to be used.
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
     size_t threadCount,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
@@ -30,6 +31,7 @@ OverlapFinder::OverlapFinder(
     ) :
     MultithreadedObject(*this),
     m(m),
+    maxBucketSize(maxBucketSize),
     kmerTable(kmerTable),
     compressedMarkers(compressedMarkers),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
@@ -258,6 +260,11 @@ void OverlapFinder::inspectBuckets(size_t threadId)
             // Locate the bucket that contains this oriented read.
             const auto& bucket = buckets[bucketId];
 
+            // If the bucket is too big, ignore it.
+            if(bucket.size() > maxBucketSize) {
+                continue;
+            }
+
             // Loop over bucket entries.
             for(const auto j: bucket) {
                 if(j >= i) {
@@ -277,12 +284,6 @@ void OverlapFinder::inspectBuckets(size_t threadId)
                     candidates.push_back(make_pair(j, 1));
                 }
             }
-
-            out << OrientedReadId(uint32_t(i)) << " " << candidates.size() << "\n";
-            for(const auto& candidate: candidates) {
-                out << OrientedReadId(candidate.first) << " " << candidate.second << "\n";
-            }
-            out << flush;
         }
     }
 
