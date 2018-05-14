@@ -108,7 +108,7 @@ OverlapFinder::OverlapFinder(
         const size_t totalOverlapCount =
             accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0);
         cout << "Found " << totalOverlapCount;
-        cout << " overlap with frequency at least " << minFrequency << " so far." << endl;
+        cout << " overlaps with frequency at least " << minFrequency << " so far." << endl;
 
     }
 
