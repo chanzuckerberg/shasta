@@ -112,6 +112,12 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("threadCount") = 0)
         .def("accessOverlaps",
             &Assembler::accessOverlaps)
+        .def("writeOverlappingReads",
+            &Assembler::writeOverlappingReads,
+            "Write in fasta format the reads that overlap a given read.",
+            arg("readId"),
+            arg("strand"),
+            arg("fileName") = "OverlappingReads.fasta")
         .def("computeOverlapGraphComponents",
             &Assembler::computeOverlapGraphComponents,
             arg("minFrequency"),

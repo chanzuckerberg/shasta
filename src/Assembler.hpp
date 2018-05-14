@@ -108,6 +108,9 @@ public:
     );
     void accessOverlaps();
 
+    // Write the reads that overlap a given read.
+    void writeOverlappingReads(ReadId, Strand, const string& fileName);
+
     // Compute connected components of the global overlap graph.
     void computeOverlapGraphComponents(
         size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
@@ -155,6 +158,7 @@ private:
 
     // Function to write a read in Fasta format.
     void writeRead(ReadId, ostream&);
+    void writeOrientedRead(OrientedReadId, ostream&);
 
 
 

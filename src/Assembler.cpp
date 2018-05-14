@@ -155,6 +155,23 @@ void Assembler::writeRead(ReadId readId, ostream& file)
 
 
 
+void Assembler::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
+{
+    const ReadId readId = orientedReadId.getReadId();
+    const Strand strand = orientedReadId.getStrand();
+    const auto readSequence = reads[readId];
+
+    file << ">" << readId << "-" << strand;
+    file << " " << readSequence.baseCount << "\n";
+    readSequence.write(file, strand==1);
+    file << "\n";
+
+}
+
+
+
+
+
 void Assembler::accessKmers()
 {
     kmerTable.accessExistingReadOnly(smallDataName("Kmers"));
@@ -408,6 +425,43 @@ void Assembler::checkOverlapsAreOpen() const
 
 
 
+// Write the reads that overlap a given read.
+void Assembler::writeOverlappingReads(
+    ReadId readId0,
+    Strand strand0,
+    const string& fileName)
+{
+    // Check that we have what we need.
+    checkReadsAreOpen();
+    checkOverlapsAreOpen();
+
+    // Open the output file and write the oriented read we were given.
+    ofstream file(fileName);
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    writeOrientedRead(orientedReadId0, file);
+
+    // Loop over all overlaps involving this oriented read.
+    for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
+        const Overlap& overlap = overlaps[i];
+
+        // Get the other oriented read involved in this overlap.
+        OrientedReadId orientedReadId1;
+        if(overlap.orientedReadIds[0] == orientedReadId0) {
+            orientedReadId1 = overlap.orientedReadIds[1];
+        } else if(overlap.orientedReadIds[1] == orientedReadId0) {
+            orientedReadId1 = overlap.orientedReadIds[0];
+        } else {
+            CZI_ASSERT(0);
+        }
+
+        // Write it out.
+        writeOrientedRead(orientedReadId1, file);
+    }
+
+}
+
+
+
 // Compute connected components of the global overlap graph.
 void Assembler::computeOverlapGraphComponents(
     size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
@@ -468,7 +522,6 @@ void Assembler::computeOverlapGraphComponents(
     for(ReadId newComponentId=0; newComponentId<componentTable.size(); newComponentId++) {
         const auto& p = componentTable[newComponentId];
         const auto oldComponentId = p.first;
-        const ReadId componentSize = p.second;
         componentNumberMap.insert(make_pair(oldComponentId, newComponentId));
     }
     for(ReadId i=0; i<n; i++) {
