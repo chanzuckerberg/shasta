@@ -68,7 +68,6 @@ OverlapFinder::OverlapFinder(
     }
     const uint32_t bucketCount = 1 << log2MinHashBucketCount;
     mask = bucketCount - 1;
-    buckets.resize(bucketCount);
 
     // Make space to count the number of overlaps found so far.
     totalOverlapCountByThread.resize(threadCount);
@@ -86,9 +85,14 @@ OverlapFinder::OverlapFinder(
 
         // Construct the buckets.
         cout << timestamp << "Initializing the buckets." << endl;
+        buckets.clear();
+        buckets.resize(bucketCount);
+        /*
+        // This does not reallocate. Faster, But total bucket capacity increases a lot.
         for(auto& bucket: buckets) {
             bucket.clear();
         }
+        */
         cout << timestamp << "Filling in the buckets." << endl;
         for(ReadId i=0; i<n; i++) {
             buckets[orientedReadBucket[i]].push_back(i);
@@ -109,6 +113,21 @@ OverlapFinder::OverlapFinder(
             accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0);
         cout << "Found " << totalOverlapCount;
         cout << " overlaps with frequency at least " << minFrequency << " so far." << endl;
+
+        // Write out total capacity for buckets and overlap candidates.
+        size_t totalBucketCapacity = 0;
+        for(const auto& bucket: buckets) {
+            totalBucketCapacity += bucket.capacity();
+        }
+        size_t totalCandidateCapacity = 0;
+        size_t totalCandidateSize = 0;
+        for(const auto& v: overlapCandidates) {
+            totalCandidateCapacity += v.capacity();
+            totalCandidateSize += v.size();
+        }
+        cout << "Total bucket capacity: " << totalBucketCapacity << endl;
+        cout << "Overlap candidates: total size " << totalCandidateSize;
+        cout << ", total capacity  " << totalCandidateCapacity << endl;
 
     }
 
