@@ -43,6 +43,7 @@ private:
     // Store some of the arguments passed to the constructor.
     size_t m;                       // Number of consecutive markers that define a feature.
     size_t maxBucketSize;           // The maximum size for a bucket to be used.
+    size_t minFrequency;            // Minimum number of minHash hits for a pair to be considered an overlap.
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& compressedMarkers;
     const string& largeDataFileNamePrefix;
@@ -83,6 +84,12 @@ private:
     // Each of these will generate two overlaps, if the
     // frequency is sufficiently high.
     vector< vector< pair<ReadId, uint32_t> > > overlapCandidates;
+
+    // The total number of overlaps found so far,
+    // as seen by each thread.
+    // This only counts overlaps with frequency
+    // at least equal to minFrequency.
+    vector<size_t> totalOverlapCountByThread;
 };
 
 #endif

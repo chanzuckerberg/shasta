@@ -32,6 +32,7 @@ OverlapFinder::OverlapFinder(
     MultithreadedObject(*this),
     m(m),
     maxBucketSize(maxBucketSize),
+    minFrequency(minFrequency),
     kmerTable(kmerTable),
     compressedMarkers(compressedMarkers),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
@@ -53,7 +54,10 @@ OverlapFinder::OverlapFinder(
     createMarkers();
 
     // The number of oriented reads, each with its own vector of markers.
+    const ReadId readCount = ReadId(compressedMarkers.size());
     const size_t n = markers.size();
+    cout << "There are " << readCount << " reads, " << n << " oriented reads." << endl;
+    CZI_ASSERT(n == 2*readCount);
     orientedReadBucket.resize(n);
     overlapCandidates.resize(n);
 
@@ -65,6 +69,9 @@ OverlapFinder::OverlapFinder(
     const uint32_t bucketCount = 1 << log2MinHashBucketCount;
     mask = bucketCount - 1;
     buckets.resize(bucketCount);
+
+    // Make space to count the number of overlaps found so far.
+    totalOverlapCountByThread.resize(threadCount);
 
     // MinHash iteration loop.
     for(iteration=0; iteration<minHashIterationCount; iteration++) {
@@ -86,10 +93,10 @@ OverlapFinder::OverlapFinder(
         for(ReadId i=0; i<n; i++) {
             buckets[orientedReadBucket[i]].push_back(i);
         }
-        const auto t2 = std::chrono::steady_clock::now();
 
         // Inspect the buckets to find overlap candidates.
         cout << timestamp << "Inspecting the buckets." << endl;
+        const auto t2 = std::chrono::steady_clock::now();
         setupLoadBalancing(n, batchSize);
         runThreads(&OverlapFinder::inspectBuckets, threadCount, "threadLogs/inspectBuckets");
         const auto t3 = std::chrono::steady_clock::now();
@@ -98,6 +105,10 @@ OverlapFinder::OverlapFinder(
         const double t12 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1)).count());
         const double t23 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2)).count());
         cout << "Times for this iteration: " << t01 << " " << t12 << " " << t23 << endl;
+        const size_t totalOverlapCount =
+            accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0);
+        cout << "Found " << totalOverlapCount;
+        cout << " overlap with frequency at least " << minFrequency << " so far." << endl;
 
     }
 
@@ -105,7 +116,6 @@ OverlapFinder::OverlapFinder(
 
     // Create the overlaps.
     cout << timestamp << "Storing overlaps." << endl;
-    const ReadId readCount = ReadId(compressedMarkers.size());
     CZI_ASSERT(n == 2*readCount);
     for(ReadId readId0=0; readId0<readCount; readId0++) {
         for(Strand strand0=0; strand0<2; strand0++) {
@@ -237,11 +247,13 @@ void OverlapFinder::computeBuckets(size_t threadId)
 void OverlapFinder::inspectBuckets(size_t threadId)
 {
     ostream& out = getLog(threadId);
+    size_t& totalCountForThread = totalOverlapCountByThread[threadId];
+    totalCountForThread = 0;
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << timestamp << begin << " " << end << endl;
+        out << timestamp << "Working on block " << begin << " " << end << endl;
 
         // Loop over oriented reads assigned to this batch.
         for(size_t i=begin; i!=end; i++) {
@@ -253,35 +265,40 @@ void OverlapFinder::inspectBuckets(size_t threadId)
 
             // Ignore the last bucket.
             // It contains (mostly) reads with less than m markers.
-            if(bucketId == mask) {
-                continue;
-            }
+            if(bucketId != mask) {
 
-            // Locate the bucket that contains this oriented read.
-            const auto& bucket = buckets[bucketId];
+                // Locate the bucket that contains this oriented read.
+                const auto& bucket = buckets[bucketId];
 
-            // If the bucket is too big, ignore it.
-            if(bucket.size() > maxBucketSize) {
-                continue;
-            }
 
-            // Loop over bucket entries.
-            for(const auto j: bucket) {
-                if(j >= i) {
-                    break;
-                }
+                // Loop over bucket entries, but do nothing if the bucket is too big.
+                if(bucket.size() <= maxBucketSize) {
+                    for(const auto j: bucket) {
+                        if(j >= i) {
+                            break;
+                        }
 
-                bool found = false;
-                for(auto& candidate: candidates) {
-                    if(candidate.first == j) {
-                        // We found it. Increment the frequency.
-                        ++candidate.second;
-                        found = true;
-                        break;
+                        bool found = false;
+                        for(auto& candidate: candidates) {
+                            if(candidate.first == j) {
+                                // We found it. Increment the frequency.
+                                ++candidate.second;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if(!found) {
+                            candidates.push_back(make_pair(j, 1));
+                        }
                     }
                 }
-                if(!found) {
-                    candidates.push_back(make_pair(j, 1));
+            }
+
+            // Increment the total number of overlaps
+            // (used for statistics only).
+            for(const auto& candidate: candidates) {
+                if(candidate.second >= minFrequency) {
+                    ++totalCountForThread;
                 }
             }
         }
