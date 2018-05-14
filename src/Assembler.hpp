@@ -108,6 +108,12 @@ public:
     );
     void accessOverlaps();
 
+    // Compute connected components of the global overlap graph.
+    void computeOverlapGraphComponents(
+        size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
+        size_t minComponentSize         // MInimum size for a connected component to be kept.
+        );
+
 private:
 
     // Data filled in by the constructor.
@@ -137,6 +143,7 @@ private:
     {
         return ReadId(reads.size());
     }
+    void checkReadsAreOpen() const;
 
     // The names of the reads from the input fasta or fastq files.
     // Indexed by ReadId.
@@ -183,6 +190,28 @@ private:
     // Stores, for each OrientedReadId, a vector of indexes into the overlaps vector.
     // Indexed by OrientedReadId::getValue(),
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t> overlapTable;
+    void checkOverlapsAreOpen() const;
+
+
+
+    // The overlaps define a global overlap graph,
+    // an undirected graph in which each vertex corresponds to
+    // an oriented read. Two vertices are joined by an edge
+    // if there is an overlap between the corresponding
+    // oriented reads. We want to process each connected
+    // component seperately, so we compute connected components
+    // of the overlap graph.
+
+    // The connected component that each oriented read belongs to,
+    // or std::numeric_limits<ReadId>::max() if the oriented read
+    // belongs to a connected component that was discarded
+    // because it was too small.
+    // Indexed by OrientedReadId::getValue().
+    MemoryMapped::Vector<ReadId> overlapGraphComponent;
+
+    // The OrientedReadId's of each connected component.
+    // Sorted by decreasing component size.
+    MemoryMapped::VectorOfVectors<OrientedReadId, ReadId> overlapGraphComponents;
 
 
 };

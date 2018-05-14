@@ -112,6 +112,11 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("threadCount") = 0)
         .def("accessOverlaps",
             &Assembler::accessOverlaps)
+        .def("computeOverlapGraphComponents",
+            &Assembler::computeOverlapGraphComponents,
+            arg("minFrequency"),
+            arg("minComponentSize"))
+
 
 
     // Definition of class_<Assembler> ends here.

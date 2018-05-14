@@ -1,13 +1,18 @@
 // Nanopore2.
 #include "Assembler.hpp"
 #include "MarkerFinder.hpp"
+#include "orderPairs.hpp"
 #include "OverlapFinder.hpp"
 #include "ReadLoader.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
+// Boost libraries.
+#include <boost/pending/disjoint_sets.hpp>
+
 // Standard libraries.
 #include "iterator.hpp"
+#include <map>
 #include "stdexcept.hpp"
 
 
@@ -53,6 +58,12 @@ void Assembler::accessReadNamesReadOnly()
 void Assembler::accessReadNamesReadWrite()
 {
     readNames.accessExistingReadWrite(largeDataName("ReadNames"));
+}
+void Assembler::checkReadsAreOpen() const
+{
+    if(!reads.isOpen()) {
+        throw runtime_error("Reads are not accessible.");
+    }
 }
 
 
@@ -385,4 +396,108 @@ void Assembler::accessOverlaps()
 {
     overlaps.accessExistingReadOnly(largeDataName("Overlaps"));
     overlapTable.accessExistingReadOnly(largeDataName("OverlapTable"));
+}
+
+
+void Assembler::checkOverlapsAreOpen() const
+{
+    if(!overlaps.isOpen || !overlapTable.isOpen()) {
+        throw runtime_error("Overlaps are not accessible.");
+    }
+}
+
+
+
+// Compute connected components of the global overlap graph.
+void Assembler::computeOverlapGraphComponents(
+    size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
+    size_t minComponentSize         // Minimum size for a connected component to be kept.
+    )
+{
+    checkReadsAreOpen();
+    checkOverlapsAreOpen();
+    const ReadId n = ReadId(2*reads.size());
+
+    // Initialize the disjoint set data structures.
+    vector<ReadId> rank(n);
+    vector<ReadId> parent(n);
+    boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
+    for(ReadId i=0; i<n; i++) {
+        disjointSets.make_set(i);
+    }
+
+    // Loop over overlaps with frequency at least minFrequency.
+    for(const Overlap& overlap: overlaps) {
+        if(overlap.minHashFrequency >= minFrequency) {
+            disjointSets.union_set(
+                overlap.orientedReadIds[0].getValue(),
+                overlap.orientedReadIds[1].getValue());
+        }
+    }
+
+    // Store the component that each oriented read belongs to.
+    overlapGraphComponent.createNew(largeDataName("OverlapGraphComponent"), largeDataPageSize);
+    overlapGraphComponent.resize(n);
+    for(ReadId i=0; i<n; i++) {
+        overlapGraphComponent[i] = disjointSets.find_set(i);
+    }
+
+    // Gather the vertices of each component.
+    std::map<ReadId, vector<ReadId> > componentMap;
+    for(ReadId i=0; i<n; i++) {
+        componentMap[overlapGraphComponent[i]].push_back(i);
+    }
+
+    // Sort the components by decreasing size, keeping only the ones
+    // that are big enough.
+    vector< pair<ReadId, ReadId> > componentTable;
+    for(const auto& p: componentMap) {
+        const auto componentId = p.first;
+        const auto componentSize = p.second.size();
+        if(componentSize >= minComponentSize) {
+            componentTable.push_back(make_pair(componentId, componentSize));
+        }
+    }
+    sort(componentTable.begin(), componentTable.end(),
+        OrderPairsBySecondOnlyGreater<ReadId, ReadId>());
+
+
+
+    // Renumber the components.
+    std::map<ReadId, ReadId> componentNumberMap;
+    for(ReadId newComponentId=0; newComponentId<componentTable.size(); newComponentId++) {
+        const auto& p = componentTable[newComponentId];
+        const auto oldComponentId = p.first;
+        const ReadId componentSize = p.second;
+        componentNumberMap.insert(make_pair(oldComponentId, newComponentId));
+    }
+    for(ReadId i=0; i<n; i++) {
+        ReadId& readComponentId = overlapGraphComponent[i];
+        const auto it = componentNumberMap.find(readComponentId);
+        if(it == componentNumberMap.end()) {
+            readComponentId = std::numeric_limits<ReadId>::max();
+        } else {
+            readComponentId = it->second;
+        }
+    }
+
+    // Permanently store the renumbered components.
+    overlapGraphComponents.createNew(largeDataName("OverlapGraphComponents"), largeDataPageSize);
+    for(ReadId newComponentId=0; newComponentId<componentTable.size(); newComponentId++) {
+        const auto& p = componentTable[newComponentId];
+        const auto oldComponentId = p.first;
+        const auto& component = componentMap[oldComponentId];
+        CZI_ASSERT(component.size() == p.second);
+        overlapGraphComponents.appendVector();
+        for(const auto& orientedRead: component) {
+            overlapGraphComponents.append(OrientedReadId(orientedRead));
+        }
+    }
+    for(ReadId newComponentId=0; newComponentId<overlapGraphComponents.size(); newComponentId++) {
+        cout << "Component " << newComponentId << " has size ";
+        cout << overlapGraphComponents.size(newComponentId) << endl;
+
+    }
+
+
 }
