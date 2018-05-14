@@ -33,6 +33,10 @@ void ChanZuckerberg::Nanopore2::mappedCopy(
         throw runtime_error("Error opening " + inputPath);
     }
 
+    // Let the system know that we wil be accessing this file sequentially.
+    // This improves performance in some cases.
+    posix_fadvise(inputFileDescriptor, 0, 0, POSIX_FADV_SEQUENTIAL);
+
     // Open the output file.
     const int outputFileDescriptor = ::open(outputPath.c_str(),
         O_CREAT | O_TRUNC | O_RDWR,
