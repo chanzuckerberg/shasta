@@ -58,8 +58,6 @@ OverlapFinder::OverlapFinder(
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
     cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
     CZI_ASSERT(orientedReadCount == 2*readCount);
-    orientedReadBucket.resize(orientedReadCount);
-    overlapCandidates.resize(readCount);
 
     // Compute the number of buckets and the corresponding mask
     // used to convert a hash value to a bucket index.
@@ -69,7 +67,12 @@ OverlapFinder::OverlapFinder(
     const uint32_t bucketCount = 1 << log2MinHashBucketCount;
     mask = bucketCount - 1;
 
-    // Make space to count the number of overlaps found so far.
+    // Prepare work areas.
+    buckets.createNew(
+            largeDataFileNamePrefix + "tmp-OverlapFinder-Buckets",
+            largeDataPageSize);
+    orientedReadBucket.resize(orientedReadCount);
+    overlapCandidates.resize(readCount);
     totalOverlapCountByThread.resize(threadCount);
 
     // MinHash iteration loop.
@@ -89,11 +92,15 @@ OverlapFinder::OverlapFinder(
         // which cause large buckets).
         // cout << timestamp << "Initializing the buckets." << endl;
         buckets.clear();
-        buckets.resize(bucketCount);
-        // cout << timestamp << "Filling in the buckets." << endl;
+        buckets.beginPass1(bucketCount);
         for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
-            buckets[orientedReadBucket[orientedReadId]].push_back(orientedReadId);
+            buckets.incrementCount(orientedReadBucket[orientedReadId]);
         }
+        buckets.beginPass2();
+        for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
+            buckets.store(orientedReadBucket[orientedReadId], orientedReadId);
+        }
+        buckets.endPass2();
 
         // Inspect the buckets to find overlap candidates.
         // cout << timestamp << "Inspecting the buckets." << endl;
@@ -111,18 +118,13 @@ OverlapFinder::OverlapFinder(
         cout << "Found " << totalOverlapCount;
         cout << " overlaps with frequency at least " << minFrequency << " so far." << endl;
 
-        // Write out total capacity for buckets and overlap candidates.
-        size_t totalBucketCapacity = 0;
-        for(const auto& bucket: buckets) {
-            totalBucketCapacity += bucket.capacity();
-        }
+        // Write out total capacity for overlap candidates.
         size_t totalCandidateCapacity = 0;
         size_t totalCandidateSize = 0;
         for(const auto& v: overlapCandidates) {
             totalCandidateCapacity += v.capacity();
             totalCandidateSize += v.size();
         }
-        cout << "Total bucket capacity: " << totalBucketCapacity << endl;
         cout << "Overlap candidates: total size " << totalCandidateSize;
         cout << ", total capacity  " << totalCandidateCapacity << endl;
 

@@ -6,6 +6,7 @@
 #include "Overlap.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultitreadedObject.hpp"
+#include "ReadId.hpp"
 
 namespace ChanZuckerberg {
     namespace Nanopore2 {
@@ -70,7 +71,7 @@ private:
     uint32_t mask;
 
     // The buckets containing oriented read ids.
-    vector< vector<OrientedReadId::Int> > buckets;
+    MemoryMapped::VectorOfVectors<OrientedReadId::Int, uint64_t> buckets;
 
     // Inspect the buckets to find overlap candidates.
     void inspectBuckets(size_t threadId);
