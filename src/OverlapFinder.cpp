@@ -55,11 +55,11 @@ OverlapFinder::OverlapFinder(
 
     // The number of oriented reads, each with its own vector of markers.
     const ReadId readCount = ReadId(compressedMarkers.size());
-    const size_t n = markers.size();
-    cout << "There are " << readCount << " reads, " << n << " oriented reads." << endl;
-    CZI_ASSERT(n == 2*readCount);
-    orientedReadBucket.resize(n);
-    overlapCandidates.resize(n);
+    const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
+    cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
+    CZI_ASSERT(orientedReadCount == 2*readCount);
+    orientedReadBucket.resize(orientedReadCount);
+    overlapCandidates.resize(readCount);
 
     // Compute the number of buckets and the corresponding mask
     // used to convert a hash value to a bucket index.
@@ -77,31 +77,28 @@ OverlapFinder::OverlapFinder(
         cout << timestamp << "MinHash iteration " << iteration << " begins." << endl;
         const auto t0 = std::chrono::steady_clock::now();
 
-        // Compute the bucket that each read belongs to.
+        // Compute the bucket that each oriented read belongs to.
         const size_t batchSize = 10000;
-        setupLoadBalancing(n, batchSize);
+        setupLoadBalancing(orientedReadCount, batchSize);
         runThreads(&OverlapFinder::computeBuckets, threadCount);
         const auto t1 = std::chrono::steady_clock::now();
 
         // Construct the buckets.
-        cout << timestamp << "Initializing the buckets." << endl;
+        // We need to reallocate the buckets completely at each iteration,
+        // Otherwise memory usage quickly increases (because of repeats
+        // which cause large buckets).
+        // cout << timestamp << "Initializing the buckets." << endl;
         buckets.clear();
         buckets.resize(bucketCount);
-        /*
-        // This does not reallocate. Faster, But total bucket capacity increases a lot.
-        for(auto& bucket: buckets) {
-            bucket.clear();
-        }
-        */
-        cout << timestamp << "Filling in the buckets." << endl;
-        for(ReadId i=0; i<n; i++) {
-            buckets[orientedReadBucket[i]].push_back(i);
+        // cout << timestamp << "Filling in the buckets." << endl;
+        for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
+            buckets[orientedReadBucket[orientedReadId]].push_back(orientedReadId);
         }
 
         // Inspect the buckets to find overlap candidates.
-        cout << timestamp << "Inspecting the buckets." << endl;
+        // cout << timestamp << "Inspecting the buckets." << endl;
         const auto t2 = std::chrono::steady_clock::now();
-        setupLoadBalancing(n, batchSize);
+        setupLoadBalancing(readCount, batchSize);
         runThreads(&OverlapFinder::inspectBuckets, threadCount, "threadLogs/inspectBuckets");
         const auto t3 = std::chrono::steady_clock::now();
 
@@ -135,33 +132,33 @@ OverlapFinder::OverlapFinder(
 
     // Create the overlaps.
     cout << timestamp << "Storing overlaps." << endl;
-    CZI_ASSERT(n == 2*readCount);
+    CZI_ASSERT(orientedReadCount == 2*readCount);
     for(ReadId readId0=0; readId0<readCount; readId0++) {
-        for(Strand strand0=0; strand0<2; strand0++) {
-            const OrientedReadId orientedReadId0(readId0, strand0);
-            const auto& candidates = overlapCandidates[orientedReadId0.getValue()];
-            for(const auto& candidate: candidates) {
-                if(candidate.second >= minFrequency) {
-                    const OrientedReadId orientedReadId1(candidate.first);
-                    CZI_ASSERT(orientedReadId1.getValue() == candidate.first);
-                    CZI_ASSERT(orientedReadId1 < orientedReadId0);
-                    overlaps.push_back(Overlap(orientedReadId1, orientedReadId0, candidate.second));
+        const auto& candidates = overlapCandidates[readId0];
+        for(const OverlapCandidate& candidate: candidates) {
+            if(candidate.frequency >= minFrequency) {
+                const ReadId readId1 = candidate.readId1;
+                CZI_ASSERT(readId0 < readId1);
+                for(Strand strand0=0; strand0<2; strand0++) {
+                    const Strand strand1 = candidate.isSameStrand ? strand0 : (1-strand0);
+                    const OrientedReadId orientedReadId0(readId0, strand0);
+                    const OrientedReadId orientedReadId1(readId1, strand1);
+                    overlaps.push_back(Overlap(orientedReadId0, orientedReadId1, candidate.frequency));
                 }
             }
-
         }
     }
     cout << "Found " << overlaps.size() << " overlaps."<< endl;
     cout << "Average number of overlaps per oriented read is ";
-    cout << (2.* double(overlaps.size())) / double(n)  << endl;
+    cout << (2.* double(overlaps.size())) / double(orientedReadCount)  << endl;
 
 
     // Create the overlap table.
     cout << timestamp << "Creating overlap table." << endl;
-    overlapTable.beginPass1(n);
+    overlapTable.beginPass1(orientedReadCount);
     for(const Overlap& overlap: overlaps) {
-        CZI_ASSERT(overlap.orientedReadIds[0].getValue() < n);
-        CZI_ASSERT(overlap.orientedReadIds[1].getValue() < n);
+        CZI_ASSERT(overlap.orientedReadIds[0].getValue() < orientedReadCount);
+        CZI_ASSERT(overlap.orientedReadIds[1].getValue() < orientedReadCount);
         overlapTable.incrementCount(overlap.orientedReadIds[0].getValue());
         overlapTable.incrementCount(overlap.orientedReadIds[1].getValue());
     }
@@ -274,40 +271,56 @@ void OverlapFinder::inspectBuckets(size_t threadId)
     while(getNextBatch(begin, end)) {
         out << timestamp << "Working on block " << begin << " " << end << endl;
 
-        // Loop over oriented reads assigned to this batch.
-        for(size_t i=begin; i!=end; i++) {
+        // Loop over reads assigned to this batch.
+        for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {
 
             // Locate the candidate overlaps for this oriented read.
-            auto& candidates = overlapCandidates[i];
+            auto& candidates = overlapCandidates[readId0];
 
-            const uint32_t bucketId = orientedReadBucket[i];
+            // Loop over two strands.
+            for(Strand strand0=0; strand0<2; strand0++) {
+                const OrientedReadId orientedReadId0(readId0, strand0);
+                const OrientedReadId::Int orientedReadIdInt0 = orientedReadId0.getValue();
 
-            // Ignore the last bucket.
-            // It contains (mostly) reads with less than m markers.
-            if(bucketId != mask) {
+                const uint32_t bucketId = orientedReadBucket[orientedReadIdInt0];
 
-                // Locate the bucket that contains this oriented read.
-                const auto& bucket = buckets[bucketId];
+                // Ignore the last bucket.
+                // It contains (mostly) reads with less than m markers.
+                if(bucketId != mask) {
+
+                    // Locate the bucket that contains this oriented read.
+                    const auto& bucket = buckets[bucketId];
 
 
-                // Loop over bucket entries, but do nothing if the bucket is too big.
-                if(bucket.size() <= maxBucketSize) {
-                    for(const auto j: bucket) {
-                        if(j >= i) {
-                            break;
-                        }
+                    // Loop over bucket entries, but do nothing if the bucket is too big.
+                    if(bucket.size() <= maxBucketSize) {
+                        for(const OrientedReadId::Int orientedReadIdInt1: bucket) {
+                            const OrientedReadId orientedReadId1 = OrientedReadId(orientedReadIdInt1);
+                            const ReadId readId1 = orientedReadId1.getReadId();
+                            const Strand strand1 = orientedReadId1.getStrand();
+                            const bool isSameStrand = (strand1 == strand0);
 
-                        bool found = false;
-                        for(auto& candidate: candidates) {
-                            if(candidate.first == j) {
-                                // We found it. Increment the frequency.
-                                ++candidate.second;
-                                found = true;
-                                break;
+                            // Only consider pairs with readId0 < readId1.
+                            // Ignore overlaps with self, on either strand.
+                            if(readId1 <= readId0) {
+                                continue;
                             }
-                        }
-                        if(!found) {
-                            candidates.push_back(make_pair(j, 1));
+
+                            // Look for this candidate.
+                            // If found, increase its frequency.
+                            // Otherwise, add it with frequency 1.
+                            bool found = false;
+                            for(OverlapCandidate& candidate: candidates) {
+                                if(candidate.readId1==readId1 && candidate.isSameStrand==isSameStrand) {
+                                    // We found it. Increment the frequency.
+                                    ++candidate.frequency;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if(!found) {
+                                candidates.push_back(OverlapCandidate(readId1, 1, isSameStrand));
+                            }
                         }
                     }
                 }
@@ -316,7 +329,7 @@ void OverlapFinder::inspectBuckets(size_t threadId)
             // Increment the total number of overlaps
             // (used for statistics only).
             for(const auto& candidate: candidates) {
-                if(candidate.second >= minFrequency) {
+                if(candidate.frequency >= minFrequency) {
                     ++totalCountForThread;
                 }
             }

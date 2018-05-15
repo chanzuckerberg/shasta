@@ -69,21 +69,24 @@ private:
     // The mask used to compute a bucket.
     uint32_t mask;
 
-    // The buckets containing oriented read ids (stored as read ids).
-    vector< vector<ReadId> > buckets;
+    // The buckets containing oriented read ids.
+    vector< vector<OrientedReadId::Int> > buckets;
 
     // Inspect the buckets to find overlap candidates.
     void inspectBuckets(size_t threadId);
 
-    // Data structure used to store overlap candidates.
-    // Indexed by oriented read id of the lower numbered
-    // oriented read in the pair.
-    // It contains the oriented read id of the higher
-    // numbered oriented read in the pair, and the number of
-    // MinHash iteration that found this pair.
-    // Each of these will generate two overlaps, if the
-    // frequency is sufficiently high.
-    vector< vector< pair<ReadId, uint32_t> > > overlapCandidates;
+    // Data structure used to store overlap candidate pairs.
+    // Indexed by readId0, the read id of the lower numbered
+    // read in the pair.
+    class OverlapCandidate {
+    public:
+        ReadId readId1;      // The higher numbered read in the pair, readId1 > readId0.
+        uint16_t frequency;  // Number of times this pair was found during MinHash.
+        bool isSameStrand;   // True if the two reads are on the same strand.
+        OverlapCandidate(ReadId readId1, uint16_t frequency, bool isSameStrand) :
+            readId1(readId1), frequency(frequency), isSameStrand(isSameStrand) {}
+    };
+    vector< vector<OverlapCandidate> > overlapCandidates;
 
     // The total number of overlaps found so far,
     // as seen by each thread.

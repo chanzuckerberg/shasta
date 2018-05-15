@@ -72,8 +72,9 @@ public:
         return value < that.value;
     }
 
+    using Int = ReadId;
 private:
-    ReadId value;
+    Int value;
 };
 
 
