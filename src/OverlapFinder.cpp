@@ -21,7 +21,7 @@ OverlapFinder::OverlapFinder(
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
     size_t maxBucketSize,           // The maximum size for a bucket to be used.
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
-    size_t threadCount,
+    size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& compressedMarkers,
     MemoryMapped::Vector<Overlap>& overlaps,
@@ -33,6 +33,7 @@ OverlapFinder::OverlapFinder(
     m(m),
     maxBucketSize(maxBucketSize),
     minFrequency(minFrequency),
+    threadCount(threadCountArgument),
     kmerTable(kmerTable),
     compressedMarkers(compressedMarkers),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
@@ -165,12 +166,14 @@ OverlapFinder::OverlapFinder(
         overlapTable.incrementCount(overlap.orientedReadIds[1].getValue());
     }
     overlapTable.beginPass2();
-    for(size_t i=overlaps.size()-1; ; i--) {
-        const Overlap& overlap = overlaps[i];
-        overlapTable.store(overlap.orientedReadIds[0].getValue(), i);
-        overlapTable.store(overlap.orientedReadIds[1].getValue(), i);
-        if(i==0) {
-            break;
+    if(overlaps.size() > 0) {
+        for(size_t i=overlaps.size()-1; ; i--) {
+            const Overlap& overlap = overlaps[i];
+            overlapTable.store(overlap.orientedReadIds[0].getValue(), i);
+            overlapTable.store(overlap.orientedReadIds[1].getValue(), i);
+            if(i==0) {
+                break;
+            }
         }
     }
     overlapTable.endPass2();
@@ -179,7 +182,8 @@ OverlapFinder::OverlapFinder(
 
 
     // Cleanup.
-    markers.remove();
+    buckets.remove();
+    // markers.remove();
     const auto tEnd = std::chrono::steady_clock::now();
     const double tTotal = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tBegin)).count());
     cout << timestamp << "MinHash completed in " << tTotal << " s." << endl;
@@ -187,7 +191,7 @@ OverlapFinder::OverlapFinder(
 }
 
 
-
+#if 0
 void OverlapFinder::createMarkers()
 {
     markers.createNew(
@@ -217,7 +221,67 @@ void OverlapFinder::createMarkers()
     }
     CZI_ASSERT(markers.size() == 2*compressedMarkers.size());
 }
+#else
 
+
+
+void OverlapFinder::createMarkers()
+{
+    markers.createNew(
+        largeDataFileNamePrefix + "tmp-OverlapFinder-Markers",
+        largeDataPageSize);
+    const ReadId readCount = ReadId(compressedMarkers.size());
+    markers.beginPass1(2*readCount);
+    for(ReadId readId=0; readId!=readCount; readId++) {
+        const auto markerCount = compressedMarkers.size(readId);
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            markers.incrementCount(orientedReadId.getValue(), markerCount);
+        }
+    }
+    markers.beginPass2();
+    markers.endPass2(false);
+    const size_t batchSize = 10000;
+    setupLoadBalancing(readCount, batchSize);
+    runThreads(&OverlapFinder::createMarkers, threadCount, "threadLogs/createMarkers");
+}
+
+
+
+// Thread function for createMarkers.
+void OverlapFinder::createMarkers(size_t threadId)
+{
+    ostream& out = getLog(threadId);
+
+    // Loop over batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+        out << begin << " " << end << endl;
+
+        // Loop over reads assigned to this batch.
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            const auto readCompressedMarkers = compressedMarkers[readId];
+            const OrientedReadId orientedReadIdStrand0(readId, 0);
+            const OrientedReadId orientedReadIdStrand1(readId, 1);
+
+            CZI_ASSERT(markers.size(orientedReadIdStrand0.getValue()) == readCompressedMarkers.size());
+            CZI_ASSERT(markers.size(orientedReadIdStrand1.getValue()) == readCompressedMarkers.size());
+
+            auto pointer = markers.begin(orientedReadIdStrand0.getValue());
+            for(const CompressedMarker& compressedMarker: readCompressedMarkers) {
+                *pointer++ = compressedMarker.kmerId;
+            }
+
+            pointer = markers.begin(orientedReadIdStrand1.getValue());
+            for(auto it=readCompressedMarkers.end()-1; it>=readCompressedMarkers.begin(); --it) {
+                *pointer++ = kmerTable[it->kmerId].reverseComplementedKmerId;
+            }
+
+        }
+    }
+
+}
+#endif
 
 
 // Thread function used to compute the bucket that each

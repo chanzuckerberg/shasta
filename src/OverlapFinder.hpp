@@ -45,6 +45,7 @@ private:
     size_t m;                       // Number of consecutive markers that define a feature.
     size_t maxBucketSize;           // The maximum size for a bucket to be used.
     size_t minFrequency;            // Minimum number of minHash hits for a pair to be considered an overlap.
+    size_t threadCount;
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& compressedMarkers;
     const string& largeDataFileNamePrefix;
@@ -56,6 +57,7 @@ private:
     // This is used to speed up the computation of hash functions.
     MemoryMapped::VectorOfVectors<KmerId, uint64_t> markers;
     void createMarkers();
+    void createMarkers(size_t threadId);
 
     // The current MinHash iteration.
     // This is used to compute a different MurmurHash function
