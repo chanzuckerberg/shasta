@@ -463,6 +463,11 @@ void Assembler::writeOverlappingReads(
 
 
 // Compute connected components of the global overlap graph.
+// We only keep components that are large enough.
+// For each pair of complementary connected component
+// we only keep the one in which
+// the lowest numbered read in on the positive strand.
+// Self-complementary connected components are kept.
 void Assembler::computeOverlapGraphComponents(
     size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
     size_t minComponentSize         // Minimum size for a connected component to be kept.
@@ -470,14 +475,14 @@ void Assembler::computeOverlapGraphComponents(
 {
     checkReadsAreOpen();
     checkOverlapsAreOpen();
-    const ReadId n = ReadId(2*reads.size());
+    const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(2*reads.size());
 
     // Initialize the disjoint set data structures.
-    vector<ReadId> rank(n);
-    vector<ReadId> parent(n);
+    vector<ReadId> rank(orientedReadCount);
+    vector<ReadId> parent(orientedReadCount);
     boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
-    for(ReadId i=0; i<n; i++) {
-        disjointSets.make_set(i);
+    for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
+        disjointSets.make_set(orientedReadId);
     }
 
     // Loop over overlaps with frequency at least minFrequency.
@@ -491,27 +496,60 @@ void Assembler::computeOverlapGraphComponents(
 
     // Store the component that each oriented read belongs to.
     overlapGraphComponent.createNew(largeDataName("OverlapGraphComponent"), largeDataPageSize);
-    overlapGraphComponent.resize(n);
-    for(ReadId i=0; i<n; i++) {
-        overlapGraphComponent[i] = disjointSets.find_set(i);
+    overlapGraphComponent.resize(orientedReadCount);
+    for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
+        overlapGraphComponent[orientedReadId] = disjointSets.find_set(orientedReadId);
     }
 
-    // Gather the vertices of each component.
-    std::map<ReadId, vector<ReadId> > componentMap;
-    for(ReadId i=0; i<n; i++) {
-        componentMap[overlapGraphComponent[i]].push_back(i);
+    // Gather the vertices (oriented read ids) of each component.
+    // The vertices of each component are sorted by construction.
+    std::map<OrientedReadId::Int, vector<OrientedReadId::Int> > componentMap;
+    for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
+        componentMap[overlapGraphComponent[orientedReadId]].push_back(orientedReadId);
     }
 
-    // Sort the components by decreasing size, keeping only the ones
-    // that are big enough.
-    vector< pair<ReadId, ReadId> > componentTable;
+
+
+    // Sort the components by decreasing size.
+    // We only keep components that are large enough.
+    // For each pair of complementary connected component
+    // we only keep the one in which
+    // the lowest numbered read in on the positive strand.
+    // Self-complementary connected components are kept.
+    vector< pair<OrientedReadId::Int, OrientedReadId::Int> > componentTable;
+    size_t selfComplementaryComponentCount = 0;
     for(const auto& p: componentMap) {
         const auto componentId = p.first;
-        const auto componentSize = p.second.size();
+        const auto& component = p.second;
+        const auto componentSize = component.size();
+        CZI_ASSERT(componentSize > 0);
         if(componentSize >= minComponentSize) {
+            const OrientedReadId firstOrientedReadId = OrientedReadId(component.front());
+            if(firstOrientedReadId.getStrand() == 1) {
+                continue;   // Keep the other component in this self-complementary pair.
+            }
+            // Keep this component.
             componentTable.push_back(make_pair(componentId, componentSize));
+
+            // Just for counting, see if it was self-complmentary.
+            if(componentSize > 1) {
+                const OrientedReadId secondOrientedReadId = OrientedReadId(component[1]);
+                if(secondOrientedReadId.getReadId() == firstOrientedReadId.getReadId()) {
+                    CZI_ASSERT((componentSize%2) == 0);
+                    for(size_t i=0; i<componentSize; i+=2) {
+                        const OrientedReadId orientedReadId0  = OrientedReadId(component[i]);
+                        const OrientedReadId orientedReadId1  = OrientedReadId(component[i+1]);
+                        CZI_ASSERT(orientedReadId0.getReadId() == orientedReadId1.getReadId());
+                        CZI_ASSERT(orientedReadId0.getStrand() == 0);
+                        CZI_ASSERT(orientedReadId1.getStrand() == 1);
+                    }
+                    ++selfComplementaryComponentCount;
+                }
+
+            }
         }
     }
+    cout << "Found " << selfComplementaryComponentCount << " self-complementary component." << endl;
     sort(componentTable.begin(), componentTable.end(),
         OrderPairsBySecondOnlyGreater<ReadId, ReadId>());
 
@@ -524,7 +562,7 @@ void Assembler::computeOverlapGraphComponents(
         const auto oldComponentId = p.first;
         componentNumberMap.insert(make_pair(oldComponentId, newComponentId));
     }
-    for(ReadId i=0; i<n; i++) {
+    for(ReadId i=0; i<orientedReadCount; i++) {
         ReadId& readComponentId = overlapGraphComponent[i];
         const auto it = componentNumberMap.find(readComponentId);
         if(it == componentNumberMap.end()) {
