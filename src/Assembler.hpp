@@ -121,7 +121,8 @@ public:
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
         ReadId, Strand,
-        ReadId, Strand
+        ReadId, Strand,
+        int maxSkip // Maximum ordinal skip allowed.
     );
 
 private:
@@ -231,13 +232,15 @@ private:
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
         OrientedReadId,
-        OrientedReadId
+        OrientedReadId,
+        int maxSkip // Maximum ordinal skip allowed.
     );
     // This lower level version takes as input vectors of
     // markers already sorted by kmerId.
     void alignOrientedReads(
         const vector<Marker>&,
-        const vector<Marker>&
+        const vector<Marker>&,
+        int maxSkip // Maximum ordinal skip allowed.
     );
 
 };

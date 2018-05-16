@@ -2,6 +2,7 @@
 // Nanopore2.
 #include "Assembler.hpp"
 #include "Base.hpp"
+#include "CompactUndirectedGraph.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
 #include "MultitreadedObject.hpp"
@@ -139,13 +140,14 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand)
+                (ReadId, Strand, ReadId, Strand, int)
             )
             &Assembler::alignOrientedReads,
             arg("readId0"),
             arg("strand0"),
             arg("readId1"),
-            arg("strand1"))
+            arg("strand1"),
+            arg("maxSkip"))
 
 
 
@@ -169,6 +171,12 @@ PYBIND11_MODULE(Nanopore2, module)
         );
     module.def("testSplitRange",
         testSplitRange
+        );
+    module.def("testCompactUndirectedGraph1",
+        testCompactUndirectedGraph1
+        );
+    module.def("testCompactUndirectedGraph2",
+        testCompactUndirectedGraph1
         );
     module.def("mappedCopy",
         mappedCopy

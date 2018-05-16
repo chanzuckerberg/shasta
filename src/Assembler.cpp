@@ -1,5 +1,6 @@
 // Nanopore2.
 #include "Assembler.hpp"
+#include "AlignmentGraph.hpp"
 #include "MarkerFinder.hpp"
 #include "orderPairs.hpp"
 #include "OverlapFinder.hpp"
@@ -707,17 +708,20 @@ void Assembler::computeOverlapGraphComponents(
 // Compute a marker alignment of two oriented reads.
 void Assembler::alignOrientedReads(
     ReadId readId0, Strand strand0,
-    ReadId readId1, Strand strand1
+    ReadId readId1, Strand strand1,
+    int maxSkip // Maximum ordinal skip allowed.
 )
 {
     alignOrientedReads(
         OrientedReadId(readId0, strand0),
-        OrientedReadId(readId1, strand1)
+        OrientedReadId(readId1, strand1),
+        maxSkip
         );
 }
 void Assembler::alignOrientedReads(
     OrientedReadId orientedReadId0,
-    OrientedReadId orientedReadId1
+    OrientedReadId orientedReadId1,
+    int maxSkip // Maximum ordinal skip allowed.
 )
 {
     // Get the markers for the two oriented reads and
@@ -731,7 +735,7 @@ void Assembler::alignOrientedReads(
     sort(markers1.begin(), markers1.end(), OrderMarkersByKmerId());
 
     // Call the lower level function.
-    alignOrientedReads(markers0, markers1);
+    alignOrientedReads(markers0, markers1, maxSkip);
 }
 
 
@@ -740,8 +744,12 @@ void Assembler::alignOrientedReads(
 // markers already sorted by kmerId.
 void Assembler::alignOrientedReads(
     const vector<Marker>& markers0,
-    const vector<Marker>& markers1
+    const vector<Marker>& markers1,
+    int maxSkip // maximum ordinal skip allowed.
 )
 {
-
+    AlignmentGraph graph;
+    Alignment alignment;
+    const bool debug = true;
+    align(markers0, markers1, maxSkip, graph, debug, alignment);
 }
