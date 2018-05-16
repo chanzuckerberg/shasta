@@ -19,6 +19,7 @@ strand= int(sys.argv[2])
 
 a = Nanopore2.Assembler()
 a.accessReadsReadOnly()
+a.accessReadNamesReadOnly()
 a.accessOverlaps()
 a.writeOverlappingReads(readId=readId, strand=strand)
 
