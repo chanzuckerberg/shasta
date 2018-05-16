@@ -382,14 +382,20 @@ void Assembler::checkMarkersAreOpen() const
 }
 
 
-void Assembler::writeMarkers(ReadId readId, const string& fileName)
+void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileName)
 {
+    // Check that we have what we need.
+    checkKmersAreOpen();
+    checkReadsAreOpen();
     checkMarkersAreOpen();
     checkReadId(readId);
 
+    // Get the markers.
+    const OrientedReadId orientedReadId(readId, strand);
     vector<Marker> markers;
-    getMarkers(readId, markers);
+    getMarkers(orientedReadId, markers);
 
+    // Write them out.
     ofstream csv(fileName);
     csv << "Ordinal,KmerId,Kmer,Position\n";
     for(const Marker& marker: markers) {
@@ -401,12 +407,15 @@ void Assembler::writeMarkers(ReadId readId, const string& fileName)
 }
 
 
+
 void Assembler::getMarkers(ReadId readId, vector<Marker>& readMarkers) const
 {
+    checkMarkersAreOpen();
     const auto readCompressedMarkers = markers[readId];
     const uint32_t n = uint32_t(readCompressedMarkers.size());
 
     readMarkers.clear();
+    readMarkers.reserve(n);
 
     Marker marker;
     marker.position = 0;
@@ -416,6 +425,37 @@ void Assembler::getMarkers(ReadId readId, vector<Marker>& readMarkers) const
         marker.kmerId = compressedMarker.kmerId;
         readMarkers.push_back(marker);
     }
+}
+
+
+
+void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker>& markers)
+{
+    checkReadsAreOpen();
+    checkKmersAreOpen();
+
+    // Get uncompressed markers for this read.
+    const ReadId readId = orientedReadId.getReadId();
+    const Strand strand = orientedReadId.getStrand();
+    getMarkers(readId, markers);
+
+    // For strand 0, we are done.
+    if(strand == 0) {
+        return;
+    }
+
+    // For strand 1, we have to reverse complement the markers
+    // and their ordinals and positions.
+    const uint32_t k = uint32_t(assemblerInfo->k);
+    const uint32_t readLength = uint32_t(reads[readId].baseCount);
+    reverse(markers.begin(), markers.end());
+    for(uint32_t ordinal=0; ordinal<markers.size(); ordinal++) {
+     Marker& marker = markers[ordinal];
+        marker.ordinal = ordinal;
+        marker.position = readLength - k - marker.position;
+        marker.kmerId = kmerTable[marker.kmerId].reverseComplementedKmerId;
+    }
+
 }
 
 
@@ -659,5 +699,49 @@ void Assembler::computeOverlapGraphComponents(
     }
     cout << "Found " << selfComplementaryComponentCount << " self-complementary components." << endl;
 
+
+}
+
+
+
+// Compute a marker alignment of two oriented reads.
+void Assembler::alignOrientedReads(
+    ReadId readId0, Strand strand0,
+    ReadId readId1, Strand strand1
+)
+{
+    alignOrientedReads(
+        OrientedReadId(readId0, strand0),
+        OrientedReadId(readId1, strand1)
+        );
+}
+void Assembler::alignOrientedReads(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1
+)
+{
+    // Get the markers for the two oriented reads and
+    // sort them by kmer id.
+    checkMarkersAreOpen();
+    vector<Marker> markers0;
+    vector<Marker> markers1;
+    getMarkers(orientedReadId0, markers0);
+    getMarkers(orientedReadId1, markers1);
+    sort(markers0.begin(), markers0.end(), OrderMarkersByKmerId());
+    sort(markers1.begin(), markers1.end(), OrderMarkersByKmerId());
+
+    // Call the lower level function.
+    alignOrientedReads(markers0, markers1);
+}
+
+
+
+// This lower level version takes as input vectors of
+// markers already sorted by kmerId.
+void Assembler::alignOrientedReads(
+    const vector<Marker>& markers0,
+    const vector<Marker>& markers1
+)
+{
 
 }

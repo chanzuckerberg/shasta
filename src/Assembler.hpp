@@ -95,7 +95,7 @@ public:
     // See the beginning of Marker.hpp for more information.
     void findMarkers(size_t threadCount);
     void accessMarkers();
-    void writeMarkers(ReadId, const string& fileName);
+    void writeMarkers(ReadId, Strand, const string& fileName);
 
     // Use the minHash algorithm to find pairs of overlapping oriented reads.
     // Use as features sequences of m consecutive special k-mers.
@@ -117,6 +117,12 @@ public:
         size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
         size_t minComponentSize         // MInimum size for a connected component to be kept.
         );
+
+    // Compute a marker alignment of two oriented reads.
+    void alignOrientedReads(
+        ReadId, Strand,
+        ReadId, Strand
+    );
 
 private:
 
@@ -184,6 +190,7 @@ private:
     // The markers on all reads. Indexed by ReadId.
     MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t> markers;
     void getMarkers(ReadId, vector<Marker>&) const;
+    void getMarkers(OrientedReadId, vector<Marker>&);
     void checkMarkersAreOpen() const;
 
 
@@ -221,6 +228,17 @@ private:
     // Sorted by decreasing component size.
     MemoryMapped::VectorOfVectors<OrientedReadId, ReadId> overlapGraphComponents;
 
+    // Compute a marker alignment of two oriented reads.
+    void alignOrientedReads(
+        OrientedReadId,
+        OrientedReadId
+    );
+    // This lower level version takes as input vectors of
+    // markers already sorted by kmerId.
+    void alignOrientedReads(
+        const vector<Marker>&,
+        const vector<Marker>&
+    );
 
 };
 

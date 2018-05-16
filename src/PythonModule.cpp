@@ -92,11 +92,12 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("writeMarkers",
             (
                 void (Assembler::*)
-                (ReadId, const string&)
+                (ReadId, Strand, const string&)
             )
             &Assembler::writeMarkers,
-            "Write the markers of a read.",
+            "Write the markers of an oriented read.",
             arg("readId"),
+            arg("strand"),
             arg("fileName"))
 
 
@@ -132,6 +133,19 @@ PYBIND11_MODULE(Nanopore2, module)
             &Assembler::computeOverlapGraphComponents,
             arg("minFrequency"),
             arg("minComponentSize"))
+
+
+        // Alignments.
+        .def("alignOrientedReads",
+            (
+                void (Assembler::*)
+                (ReadId, Strand, ReadId, Strand)
+            )
+            &Assembler::alignOrientedReads,
+            arg("readId0"),
+            arg("strand0"),
+            arg("readId1"),
+            arg("strand1"))
 
 
 

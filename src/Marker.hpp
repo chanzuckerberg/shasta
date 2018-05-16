@@ -45,6 +45,7 @@ namespace ChanZuckerberg {
 
         class CompressedMarker;
         class Marker;
+        class OrderMarkersByKmerId;
     }
 }
 
@@ -75,6 +76,19 @@ public:
     // That is, the leftmost marker has ordinal=0,
     // the next 1, and so on.
     uint32_t ordinal;
+};
+
+
+
+// Class used to order markers by kmer id.
+class ChanZuckerberg::Nanopore2::OrderMarkersByKmerId {
+public:
+    bool operator()(
+        const Marker& x,
+        const Marker& y) const
+    {
+        return x.kmerId < y.kmerId;
+    }
 };
 
 
