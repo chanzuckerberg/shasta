@@ -571,7 +571,6 @@ void Assembler::computeOverlapGraphComponents(
     // the lowest numbered read in on the positive strand.
     // Self-complementary connected components are kept.
     vector< pair<OrientedReadId::Int, OrientedReadId::Int> > componentTable;
-    size_t selfComplementaryComponentCount = 0;
     for(const auto& p: componentMap) {
         const auto componentId = p.first;
         const auto& component = p.second;
@@ -585,25 +584,8 @@ void Assembler::computeOverlapGraphComponents(
             // Keep this component.
             componentTable.push_back(make_pair(componentId, componentSize));
 
-            // Just for counting, see if it was self-complmentary.
-            if(componentSize > 1) {
-                const OrientedReadId secondOrientedReadId = OrientedReadId(component[1]);
-                if(secondOrientedReadId.getReadId() == firstOrientedReadId.getReadId()) {
-                    CZI_ASSERT((componentSize%2) == 0);
-                    for(size_t i=0; i<componentSize; i+=2) {
-                        const OrientedReadId orientedReadId0  = OrientedReadId(component[i]);
-                        const OrientedReadId orientedReadId1  = OrientedReadId(component[i+1]);
-                        CZI_ASSERT(orientedReadId0.getReadId() == orientedReadId1.getReadId());
-                        CZI_ASSERT(orientedReadId0.getStrand() == 0);
-                        CZI_ASSERT(orientedReadId1.getStrand() == 1);
-                    }
-                    ++selfComplementaryComponentCount;
-                }
-
-            }
         }
     }
-    cout << "Found " << selfComplementaryComponentCount << " self-complementary component." << endl;
     sort(componentTable.begin(), componentTable.end(),
         OrderPairsBySecondOnlyGreater<ReadId, ReadId>());
 
@@ -638,11 +620,44 @@ void Assembler::computeOverlapGraphComponents(
             overlapGraphComponents.append(OrientedReadId(orientedRead));
         }
     }
+
+
+
+    // Write out the size of each component we kept,
+    // and whether it is self-complementary.
+    size_t selfComplementaryComponentCount = 0;
     for(ReadId newComponentId=0; newComponentId<overlapGraphComponents.size(); newComponentId++) {
+        const auto component = overlapGraphComponents[newComponentId];
+
+        //See if it is self-complementary.
+        bool isSelfComplementary = false;
+        const auto componentSize = component.size();
+        if(componentSize > 1) {
+            const OrientedReadId firstOrientedReadId = OrientedReadId(component[0]);
+            const OrientedReadId secondOrientedReadId = OrientedReadId(component[1]);
+            if(secondOrientedReadId.getReadId() == firstOrientedReadId.getReadId()) {
+                CZI_ASSERT((componentSize%2) == 0);
+                for(size_t i=0; i<componentSize; i+=2) {
+                    const OrientedReadId orientedReadId0  = OrientedReadId(component[i]);
+                    const OrientedReadId orientedReadId1  = OrientedReadId(component[i+1]);
+                    CZI_ASSERT(orientedReadId0.getReadId() == orientedReadId1.getReadId());
+                    CZI_ASSERT(orientedReadId0.getStrand() == 0);
+                    CZI_ASSERT(orientedReadId1.getStrand() == 1);
+                }
+                ++selfComplementaryComponentCount;
+                isSelfComplementary = true;
+            }
+
+        }
         cout << "Component " << newComponentId << " has size ";
-        cout << overlapGraphComponents.size(newComponentId) << endl;
+        cout << componentSize;
+        if(isSelfComplementary) {
+            cout << " and is self-complementary";
+        }
+        cout << "." << endl;
 
     }
+    cout << "Found " << selfComplementaryComponentCount << " self-complementary components." << endl;
 
 
 }
