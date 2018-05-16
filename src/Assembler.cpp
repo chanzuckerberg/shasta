@@ -65,6 +65,20 @@ void Assembler::checkReadsAreOpen() const
         throw runtime_error("Reads are not accessible.");
     }
 }
+void Assembler::checkReadNamesAreOpen() const
+{
+    if(!readNames.isOpen()) {
+        throw runtime_error("Read names are not accessible.");
+    }
+}
+void Assembler::checkReadId(ReadId readId) const
+{
+    if(readId >= reads.size()) {
+        throw runtime_error("Read id " + to_string(readId) +
+            " is not valid. Must be between 0 and " + to_string(reads.size()) +
+            " inclusive.");
+    }
+}
 
 
 
@@ -76,6 +90,8 @@ void Assembler::addReadsFromFasta(
     const size_t threadCountForReading,
     const size_t threadCountForProcessing)
 {
+    checkReadsAreOpen();
+    checkReadNamesAreOpen();
 
     ReadLoader(
         fileName,
@@ -93,6 +109,7 @@ void Assembler::addReadsFromFasta(
 // Create a histogram of read lengths.
 void Assembler::histogramReadLength(const string& fileName)
 {
+    checkReadsAreOpen();
 
     // Create the histogram.
     vector<size_t> histogram;
@@ -145,24 +162,53 @@ void Assembler::writeRead(ReadId readId, const string& fileName)
 
 void Assembler::writeRead(ReadId readId, ostream& file)
 {
+    checkReadsAreOpen();
+    checkReadNamesAreOpen();
+    checkReadId(readId);
+
     const auto readSequence = reads[readId];
+    const auto readName = readNames[readId];
 
     file << ">" << readId;
-    file << " " << readSequence.baseCount << "\n";
+    file << " " << readSequence.baseCount << " ";
+    copy(readName.begin(), readName.end(), ostream_iterator<char>(file));
+    file << "\n";
     file << readSequence << "\n";
 
 }
 
 
 
+void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fileName)
+{
+    writeOrientedRead(OrientedReadId(readId, strand), fileName);
+}
+
+
+
+void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& fileName)
+{
+    ofstream file(fileName);
+    writeOrientedRead(orientedReadId, file);
+}
+
+
+
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
 {
+    checkReadsAreOpen();
+    checkReadNamesAreOpen();
+
     const ReadId readId = orientedReadId.getReadId();
+    checkReadId(readId);
     const Strand strand = orientedReadId.getStrand();
     const auto readSequence = reads[readId];
+    const auto readName = readNames[readId];
 
     file << ">" << readId << "-" << strand;
-    file << " " << readSequence.baseCount << "\n";
+    file << " " << readSequence.baseCount << " ";
+    copy(readName.begin(), readName.end(), ostream_iterator<char>(file));
+    file << "\n";
     readSequence.write(file, strand==1);
     file << "\n";
 
@@ -180,7 +226,7 @@ void Assembler::accessKmers()
     }
 }
 
-void Assembler::checkKmersAreOpen()
+void Assembler::checkKmersAreOpen()const
 {
     if(!kmerTable.isOpen) {
         throw runtime_error("Kmers are not accessible.");
@@ -284,6 +330,8 @@ void Assembler::randomlySelectKmers(
 
 void Assembler::writeKmers(const string& fileName) const
 {
+    checkKmersAreOpen();
+
     // Get the k-mer length.
     const size_t k = assemblerInfo->k;
     const size_t kmerCount = 1ULL << (2ULL*k);
@@ -306,6 +354,9 @@ void Assembler::writeKmers(const string& fileName) const
 
 void Assembler::findMarkers(size_t threadCount)
 {
+    checkReadsAreOpen();
+    checkKmersAreOpen();
+
     markers.createNew(largeDataName("Markers"), largeDataPageSize);
     MarkerFinder markerFinder(
         assemblerInfo->k,
@@ -333,6 +384,9 @@ void Assembler::checkMarkersAreOpen() const
 
 void Assembler::writeMarkers(ReadId readId, const string& fileName)
 {
+    checkMarkersAreOpen();
+    checkReadId(readId);
+
     vector<Marker> markers;
     getMarkers(readId, markers);
 

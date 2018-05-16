@@ -80,6 +80,7 @@ public:
     // Function to write one or all reads in Fasta format.
     void writeReads(const string& fileName);
     void writeRead(ReadId, const string& fileName);
+    void writeOrientedRead(ReadId, Strand, const string& fileName);
 
     // Functions related to the k-mer table.
     void accessKmers();
@@ -147,6 +148,8 @@ private:
         return ReadId(reads.size());
     }
     void checkReadsAreOpen() const;
+    void checkReadNamesAreOpen() const;
+    void checkReadId(ReadId) const;
 
     // The names of the reads from the input fasta or fastq files.
     // Indexed by ReadId.
@@ -159,6 +162,7 @@ private:
     // Function to write a read in Fasta format.
     void writeRead(ReadId, ostream&);
     void writeOrientedRead(OrientedReadId, ostream&);
+    void writeOrientedRead(OrientedReadId, const string& fileName);
 
 
 
@@ -174,7 +178,7 @@ private:
     // is also a marker. That is, for all permitted values of i, 0 <= i < 4^k:
     // kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarker
     MemoryMapped::Vector<KmerInfo> kmerTable;
-    void checkKmersAreOpen();
+    void checkKmersAreOpen() const;
 
 
     // The markers on all reads. Indexed by ReadId.
