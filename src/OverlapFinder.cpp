@@ -72,7 +72,7 @@ OverlapFinder::OverlapFinder(
     buckets.createNew(
             largeDataFileNamePrefix + "tmp-OverlapFinder-Buckets",
             largeDataPageSize);
-    orientedReadBucket.resize(orientedReadCount);
+    minHash.resize(orientedReadCount);
     overlapCandidates.resize(readCount);
     totalOverlapCountByThread.resize(threadCount);
 
@@ -81,10 +81,10 @@ OverlapFinder::OverlapFinder(
         cout << timestamp << "MinHash iteration " << iteration << " begins." << endl;
         const auto t0 = std::chrono::steady_clock::now();
 
-        // Compute the bucket that each oriented read belongs to.
+        // Compute the min hash of each oriented read.
         const size_t batchSize = 10000;
         setupLoadBalancing(orientedReadCount, batchSize);
-        runThreads(&OverlapFinder::computeBuckets, threadCount);
+        runThreads(&OverlapFinder::computeMinHash, threadCount);
         const auto t1 = std::chrono::steady_clock::now();
 
         // Construct the buckets.
@@ -95,11 +95,13 @@ OverlapFinder::OverlapFinder(
         buckets.clear();
         buckets.beginPass1(bucketCount);
         for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
-            buckets.incrementCount(orientedReadBucket[orientedReadId]);
+            const uint64_t bucketId = minHash[orientedReadId] & mask;
+            buckets.incrementCount(bucketId);
         }
         buckets.beginPass2();
         for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
-            buckets.store(orientedReadBucket[orientedReadId], orientedReadId);
+            const uint64_t bucketId = minHash[orientedReadId] & mask;
+            buckets.store(bucketId, orientedReadId);
         }
         buckets.endPass2();
 
@@ -284,12 +286,11 @@ void OverlapFinder::createMarkers(size_t threadId)
 #endif
 
 
-// Thread function used to compute the bucket that each
-// oriented read belongs to.
-void OverlapFinder::computeBuckets(size_t threadId)
+// Thread function used to compute the min hash of each oriented read.
+void OverlapFinder::computeMinHash(size_t threadId)
 {
     const int featureByteCount = int(m * sizeof(KmerId));
-    const uint32_t seed = uint32_t(iteration*37);
+    const uint64_t seed = iteration * 37;
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
@@ -298,7 +299,7 @@ void OverlapFinder::computeBuckets(size_t threadId)
         // Loop over oriented reads assigned to this batch.
         for(size_t i=begin; i!=end; i++) {
             const size_t markerCount = markers.size(i);
-            uint32_t minHash = std::numeric_limits<uint32_t>::max();
+            uint64_t minHashValue = std::numeric_limits<uint64_t>::max();
 
             // If there are not enough markers, the minHash
             // stays to this initial value and the oriented read
@@ -313,11 +314,11 @@ void OverlapFinder::computeBuckets(size_t threadId)
                 // Loop over features of this oriented read.
                 // Features are sequences of m consecutive markers.
                 for(size_t j=0; j<featureCount; j++, kmerIds++) {
-                    const uint32_t hash = MurmurHash2(kmerIds, featureByteCount, seed);
-                    minHash = min(hash, minHash);
+                    const uint64_t hash = MurmurHash64A(kmerIds, featureByteCount, seed);
+                    minHashValue = min(hash, minHashValue);
                 }
             }
-            orientedReadBucket[i] = minHash & mask;
+            minHash[i] = minHashValue;
         }
     }
 
@@ -347,8 +348,9 @@ void OverlapFinder::inspectBuckets(size_t threadId)
             for(Strand strand0=0; strand0<2; strand0++) {
                 const OrientedReadId orientedReadId0(readId0, strand0);
                 const OrientedReadId::Int orientedReadIdInt0 = orientedReadId0.getValue();
+                const uint64_t minHash0 = minHash[orientedReadIdInt0];
 
-                const uint32_t bucketId = orientedReadBucket[orientedReadIdInt0];
+                const uint64_t bucketId = minHash0 & mask;
 
                 // Ignore the last bucket.
                 // It contains (mostly) reads with less than m markers.
@@ -372,20 +374,25 @@ void OverlapFinder::inspectBuckets(size_t threadId)
                                 continue;
                             }
 
-                            // Look for this candidate.
-                            // If found, increase its frequency.
-                            // Otherwise, add it with frequency 1.
-                            bool found = false;
-                            for(OverlapCandidate& candidate: candidates) {
-                                if(candidate.readId1==readId1 && candidate.isSameStrand==isSameStrand) {
-                                    // We found it. Increment the frequency.
-                                    ++candidate.frequency;
-                                    found = true;
-                                    break;
+                            // To avoid most collision, only consider it
+                            // if not the min hash values are the same.
+                            if(minHash[orientedReadIdInt1] == minHash[orientedReadIdInt0]) {
+
+                                // Look for this candidate.
+                                // If found, increase its frequency.
+                                // Otherwise, add it with frequency 1.
+                                bool found = false;
+                                for(OverlapCandidate& candidate: candidates) {
+                                    if(candidate.readId1==readId1 && candidate.isSameStrand==isSameStrand) {
+                                        // We found it. Increment the frequency.
+                                        ++candidate.frequency;
+                                        found = true;
+                                        break;
+                                    }
                                 }
-                            }
-                            if(!found) {
-                                candidates.push_back(OverlapCandidate(readId1, 1, isSameStrand));
+                                if(!found) {
+                                    candidates.push_back(OverlapCandidate(readId1, 1, isSameStrand));
+                                }
                             }
                         }
                     }

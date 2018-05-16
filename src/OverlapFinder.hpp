@@ -64,13 +64,14 @@ private:
     // at each iteration.
     size_t iteration;
 
-    // The bucket that each oriented read belongs to
-    // at the current MinHash iteration.
-    vector<uint32_t> orientedReadBucket;
-    void computeBuckets(size_t threadId);
+    // The min hash of each oriented read, at the current MinHash iteration.
+    // Indexed by OrientedReadId::getValue().
+    vector<uint64_t> minHash;
+    void computeMinHash(size_t threadId);
 
-    // The mask used to compute a bucket.
-    uint32_t mask;
+    // The mask used to compute to compute the bucket
+    // corresponding to a min hash value.
+    uint64_t mask;
 
     // The buckets containing oriented read ids.
     MemoryMapped::VectorOfVectors<OrientedReadId::Int, uint64_t> buckets;
