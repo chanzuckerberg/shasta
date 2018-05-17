@@ -550,8 +550,11 @@ void Assembler::writeOverlappingReads(
         }
 
         // Write it out.
+        cout << orientedReadId1 << endl;
         writeOrientedRead(orientedReadId1, file);
     }
+    cout << "Found " << overlapTable[orientedReadId0.getValue()].size();
+    cout << " overlapping oriented reads." << endl;
 
 }
 
