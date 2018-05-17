@@ -141,7 +141,7 @@ private:
     vertex_descriptor vStart;
     vertex_descriptor vFinish;
 
-    static void writeKmers(
+    static void writeMarkers(
         const vector<Marker>&,
         const string& fileName
         );
@@ -154,6 +154,17 @@ private:
         uint32_t MarkerCount1,
         int maxSkip);
     void writeEdges(const string& fileName) const;
+
+    // Write in graphviz format, without the start and finish vertices.
+    void writeGraphviz(const string& fileName) const;
+
+    // Write an image representing the markers and the computed alignment
+    // in 2-D ordinal space.
+    void writeImage(
+        const vector<Marker>&,
+        const vector<Marker>&,
+        const Alignment&,
+        const string& fileName) const;
 
     // Data members used to find the shortest path.
     vector<vertex_descriptor> shortestPath;

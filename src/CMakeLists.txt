@@ -25,9 +25,7 @@ include_directories(/usr/include/python3.5m)
 include_directories(/usr/local/include/python3.5)
 
 # Libraries to link with.
-# Currently none needed. Uncomment the next line and 
-# add them here, before the closed parenthesis.
-# target_link_libraries(Nanopore2)
+target_link_libraries(Nanopore2 png)
 
 
 

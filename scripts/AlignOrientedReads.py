@@ -23,7 +23,15 @@ a = Nanopore2.Assembler()
 a.accessKmers()
 a.accessReadsReadOnly()
 a.accessMarkers()
+
+# For convenience, write the markers sorted by position.
+a.writeMarkers(readId=readId0, strand=strand0, 
+    fileName = 'Markers-ByPosition-0.csv')
+a.writeMarkers(readId=readId1, strand=strand1, 
+    fileName = 'Markers-ByPosition-1.csv')
+
 a.alignOrientedReads(
     readId0=readId0, strand0=strand0,
-    readId1=readId1, strand1=strand1)
+    readId1=readId1, strand1=strand1,
+    maxSkip=30)
 
