@@ -1,10 +1,16 @@
+// Nanopore2.
 #include "AlignmentGraph.hpp"
-#include "fstream.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
+// Boost libraries.
 #include <boost/gil/gil_all.hpp>
 #include <boost/gil/extension/io/png_dynamic_io.hpp>
+
+// Standard library.
+#include "algorithm.hpp"
+#include "fstream.hpp"
+
 
 // Ccompute an alignment of the markers of two oriented reads.
 void ChanZuckerberg::Nanopore2::align(
@@ -260,7 +266,8 @@ void AlignmentGraph::createEdges(
             // We need to compute the weight.
             const int delta0 = ordinalB0 - ordinalA0;
             const int delta1 = ordinalB1 - ordinalA1;
-            const size_t weight = delta0*delta0 + delta1*delta1;
+            // const size_t weight = delta0*delta0 + delta1*delta1;
+            const size_t weight = abs(delta0-1) + abs(delta1-1);
 
             // Add the edge.
             addEdge(vA, vB, AlignmentGraphEdge(weight));
@@ -280,12 +287,20 @@ void AlignmentGraph::createEdges(
         const int deltaFinish0 = int(markerCount0) - ordinal0;
         const int deltaFinish1 = int(markerCount1) - ordinal1;
 
+        /*
         addEdge(v, vStart,  AlignmentGraphEdge(
             ordinal0 * ordinal0 +
             ordinal1 * ordinal1));
         addEdge(v, vFinish, AlignmentGraphEdge(
             deltaFinish0 * deltaFinish0 +
             deltaFinish1 * deltaFinish1));
+        */
+        addEdge(v, vStart,  AlignmentGraphEdge(
+            abs(ordinal0) +
+            abs(ordinal1)));
+        addEdge(v, vFinish, AlignmentGraphEdge(
+            abs(deltaFinish0) +
+            abs(deltaFinish1)));
     }
 
 
