@@ -530,10 +530,15 @@ void Assembler::writeOverlappingReads(
     checkReadsAreOpen();
     checkOverlapsAreOpen();
 
+
+
     // Open the output file and write the oriented read we were given.
     ofstream file(fileName);
     const OrientedReadId orientedReadId0(readId0, strand0);
     writeOrientedRead(orientedReadId0, file);
+
+    const uint64_t length0 = reads[orientedReadId0.getReadId()].baseCount;
+    cout << "Reads overlapping " << orientedReadId0 << " length " << length0 << endl;
 
     // Loop over all overlaps involving this oriented read.
     for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
@@ -550,7 +555,8 @@ void Assembler::writeOverlappingReads(
         }
 
         // Write it out.
-        cout << orientedReadId1 << endl;
+        const uint64_t length1 = reads[orientedReadId1.getReadId()].baseCount;
+        cout << orientedReadId1 << " length " << length1 << " frequency " << overlap.minHashFrequency << endl;
         writeOrientedRead(orientedReadId1, file);
     }
     cout << "Found " << overlapTable[orientedReadId0.getValue()].size();
