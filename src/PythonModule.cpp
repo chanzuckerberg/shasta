@@ -149,6 +149,20 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("strand1"),
             arg("maxSkip"))
 
+        // Local marker graph for a set of oriented reads.
+        .def("createLocalMarkerGraph",
+            (
+                void (Assembler::*)
+                (const vector< pair<ReadId, Strand> >&, bool, size_t,  size_t, size_t, size_t)
+            )
+            &Assembler::createLocalMarkerGraph,
+            arg("readIdsAndStrands"),
+            arg("alignAllPairs"),
+            arg("alignmentMaxSkip"),
+            arg("minAlignmentLength"),
+            arg("minCoverage"),
+            arg("minConsensus"))
+
 
 
     // Definition of class_<Assembler> ends here.

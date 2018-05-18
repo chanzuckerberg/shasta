@@ -73,7 +73,7 @@ namespace ChanZuckerberg {
 class ChanZuckerberg::Nanopore2::Alignment {
 public:
 
-    // The ordinals in each of the two iriented reads of the
+    // The ordinals in each of the two oriented reads of the
     // markers in the alignment.
     vector< pair<uint32_t, uint32_t> > ordinals;
 };

@@ -1,6 +1,7 @@
 // Nanopore2.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "LocalMarkerGraph.hpp"
 #include "MarkerFinder.hpp"
 #include "orderPairs.hpp"
 #include "OverlapFinder.hpp"
@@ -761,4 +762,151 @@ void Assembler::alignOrientedReads(
     Alignment alignment;
     const bool debug = true;
     align(markers0, markers1, maxSkip, graph, debug, alignment);
+}
+
+
+
+// Compute a local marker graph for a set of oriented reads.
+void Assembler::createLocalMarkerGraph(
+    const vector< pair<ReadId, Strand> >& readIdsAndStrands,
+    bool alignAllPairs,
+    size_t alignmentMaxSkip,
+    size_t minAlignmentLength,
+    size_t minCoverage,
+    size_t minConsensus)
+{
+    vector<OrientedReadId> orientedReadIds;
+    for(const auto& p: readIdsAndStrands) {
+        checkReadId(p.first);
+        orientedReadIds.push_back(OrientedReadId(p.first, p.second));
+    }
+    createLocalMarkerGraph(orientedReadIds, alignAllPairs,
+        alignmentMaxSkip, minAlignmentLength, minCoverage, minConsensus);
+}
+void Assembler::createLocalMarkerGraph(
+    const vector<OrientedReadId>& orientedReadIds,
+    bool alignAllPairs,
+    size_t alignmentMaxSkip,
+    size_t minAlignmentLength,
+    size_t minCoverage,
+    size_t minConsensus)
+{
+    checkReadsAreOpen();
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
+    if(!alignAllPairs) {
+        checkOverlapsAreOpen();
+    }
+
+    // Flag to control debug output.
+    const bool debug = true;
+
+
+    if(debug) {
+        cout << "Creating a local marker graph the following ";
+        cout << orientedReadIds.size() << " oriented reads:\n";
+        for(size_t i=0; i<orientedReadIds.size(); i++) {
+            const OrientedReadId orientedReadId = orientedReadIds[i];
+            cout << i << " " << orientedReadId << "\n";
+        }
+        cout << flush;
+    }
+
+    // Extract the sequences of the oriented reads.
+    vector<LongBaseSequence> sequences;
+    for(const OrientedReadId orientedReadId: orientedReadIds) {
+        sequences.push_back(reads[orientedReadId.getReadId()]);
+        if(orientedReadId.getStrand() == 1) {
+            sequences.back().reverseComplement();
+        }
+    }
+
+    // Extract the k-mer occurrences sorted by position
+    // for these oriented reads.
+    vector< vector<Marker> > markersInGraphSortedByPosition(orientedReadIds.size());
+    vector< vector<Marker> > markersInGraphSortedByKmerId(orientedReadIds.size());
+    for(size_t localOrientedReadId=0; localOrientedReadId!=orientedReadIds.size(); ++localOrientedReadId) {
+        const OrientedReadId orientedReadId = orientedReadIds[localOrientedReadId];
+        getMarkers(orientedReadId, markersInGraphSortedByPosition[localOrientedReadId]);
+        markersInGraphSortedByKmerId[localOrientedReadId] = markersInGraphSortedByPosition[localOrientedReadId];
+        sort(
+            markersInGraphSortedByKmerId[localOrientedReadId].begin(),
+            markersInGraphSortedByKmerId[localOrientedReadId].end(),
+            OrderMarkersByKmerId());
+    }
+
+    // Construct the initial local marker graph.
+    LocalMarkerGraph graph(assemblerInfo->k, orientedReadIds, sequences, markersInGraphSortedByPosition,
+        minCoverage, minConsensus);
+
+
+
+    // Add the alignments. This merges vertices whose markers are aligned.
+    Alignment alignment;
+    AlignmentGraph alignmentGraph;
+    const bool alignDebug = false;
+    if(alignAllPairs) {
+
+        // Align all pairs of oriented reads in the graph.
+        for(uint32_t i0=0; i0<uint32_t(orientedReadIds.size()-1); i0++) {
+            for(uint32_t i1=i0+1; i1<uint32_t(orientedReadIds.size()); i1++) {
+
+                // Compute the alignment.
+                align(
+                    markersInGraphSortedByKmerId[i0],
+                    markersInGraphSortedByKmerId[i1],
+                    int(alignmentMaxSkip),
+                    alignmentGraph,
+                    alignDebug,
+                    alignment);
+
+
+                // Merge alignment vertices.
+                cout << "Alignment of " << orientedReadIds[i0] << " " << orientedReadIds[i1] << endl;
+                for(const auto& ordinals: alignment.ordinals) {
+                    graph.mergeVertices(
+                        i0, ordinals.first,
+                        i1, ordinals.second);
+                    // cout << ordinals.first << " " << ordinals.second << endl;
+                }
+            }
+        }
+
+    } else {
+        // Only align pairs of oriented reads in the graph
+        // for which we have an overlap.
+        CZI_ASSERT(0);
+    }
+
+
+
+    graph.sortAndSplitAmbiguousVertices();
+    graph.fillEdgeData();
+    // graph.computeOptimalSpanningTree();
+    // graph.removeWeakNonSpanningTreeEdges();
+    // graph.pruneWeakLeaves();
+    if(debug) {
+        cout << "The local marker graph graph  has ";
+        cout << boost::num_vertices(graph) << " vertices and ";
+        cout << boost::num_edges(graph) << " edges." << endl;
+        const bool addEdgeLabels = true;
+        graph.write("LocalMarkerGraph.dot", addEdgeLabels);
+    }
+    const vector< pair<Base, int> > longestSequence = graph.extractLongestSequence();
+
+    // Write out the sequence.
+    ofstream fastaOut("LongestSequence.txt");
+    for(const auto& p: longestSequence) {
+        fastaOut << p.first;
+    }
+    fastaOut << endl;
+    for(const auto& p: longestSequence) {
+        const int coverage = p.second;
+        if(coverage < 10) {
+            fastaOut << coverage;
+        } else {
+            fastaOut << "*";
+        }
+    }
+    fastaOut << endl;
 }

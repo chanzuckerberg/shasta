@@ -20,7 +20,10 @@ This results in a graph that is a representation of
 the alignment of the oriented reads.
 
 This class can only handle a small number of oriented reads,
-and therefore can only be used for local assemblies.
+and therefore can only be used for local assemblies,
+for testing/debugging. Separate code will be necessary to handle
+the global marker graph.
+
 The given oriented reads are indexed using a local oriented read id.
 
 *******************************************************************************/
@@ -54,7 +57,7 @@ namespace ChanZuckerberg {
             >;
 
         // Forward declarations of types defined elsewhere.
-        class LongBaseSequenceView;
+        class LongBaseSequence;
         class Marker;
     }
 }
@@ -133,7 +136,7 @@ public:
     LocalMarkerGraph(
         size_t k,
         const vector<OrientedReadId>&,
-        const vector<LongBaseSequenceView>& sequences,
+        const vector<LongBaseSequence>& sequences,
         const vector< vector<Marker> >&,
         size_t minCoverage,     // For a vertex to be considered strong.
         size_t minConsensus     // For an edge to be considered strong.
@@ -210,7 +213,7 @@ private:
     vector<OrientedReadId>  orientedReadIds;
 
     // Their base sequences.
-    const vector<LongBaseSequenceView> sequences;
+    const vector<LongBaseSequence> sequences;
 
     // The markers the input oriented reads, sorted by position.
     vector< vector<Marker> > markers;

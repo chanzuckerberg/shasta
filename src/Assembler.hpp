@@ -125,6 +125,22 @@ public:
         int maxSkip // Maximum ordinal skip allowed.
     );
 
+    // Compute a local marker graph for a set of oriented reads.
+    void createLocalMarkerGraph(
+        const vector< pair<ReadId, Strand> >&,
+        bool alignAllPairs,
+        size_t alignmentMaxSkip,
+        size_t minAlignmentLength,
+        size_t minCoverage,
+        size_t minConsensus);
+    void createLocalMarkerGraph(
+        const vector<OrientedReadId>&,
+        bool alignAllPairs,
+        size_t alignmentMaxSkip,
+        size_t minAlignmentLength,
+        size_t minCoverage,
+        size_t minConsensus);
+
 private:
 
     // Data filled in by the constructor.

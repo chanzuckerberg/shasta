@@ -69,6 +69,10 @@ public:
         const uint8_t value = uint8_t((bit1 << 1ULL) + bit0);
         return Base(value, Base::FromInteger());
     }
+    Base get(uint64_t i) const
+    {
+        return (*this)[i];
+    }
 
     // Set the base at a given position.
     void set(uint64_t i, Base base) {
@@ -95,6 +99,27 @@ public:
         }
 
     }
+
+
+
+    // In-place reverse complement.
+    void reverseComplement()
+    {
+        for(uint64_t i=0; i<baseCount/2; i++) {
+            const uint64_t j = baseCount - 1 - i;
+            const Base b = get(i);
+            set(i, get(j).complement());
+            set(j, b.complement());
+        }
+
+        // If the number of bases is odd, also complement
+        // the central base.
+        if(baseCount & 1ULL) {
+            set(baseCount/2, get(baseCount/2).complement());
+        }
+    }
+
+
 
     // Compute the number of uint64_t words given the number of bases.
     static uint64_t wordCount(uint64_t baseCount)
@@ -161,6 +186,30 @@ public:
         for(size_t i=0; i<baseCount; i++) {
             set(i, s[i]);
         }
+    }
+
+    LongBaseSequence(const LongBaseSequenceView& view)
+    {
+        baseCount = view.baseCount;
+        const uint64_t dataWordCount = wordCount(baseCount);
+        data.resize(dataWordCount);
+        begin = data.data();
+        copy(view.begin, view.begin+dataWordCount, begin);
+    }
+
+    LongBaseSequence(const LongBaseSequence& that) :
+        data(that.data)
+    {
+        baseCount = that.baseCount;
+        begin = data.data();
+    }
+
+    LongBaseSequence& operator=(const LongBaseSequence& that)
+    {
+        data = that.data;
+        baseCount = that.baseCount;
+        begin = data.data();
+        return *this;
     }
 
 private:

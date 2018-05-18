@@ -31,7 +31,7 @@ using namespace Nanopore2;
 LocalMarkerGraph::LocalMarkerGraph(
     size_t k,
     const vector<OrientedReadId>& orientedReadIds,
-    const vector<LongBaseSequenceView>& sequences,
+    const vector<LongBaseSequence>& sequences,
     const vector< vector<Marker> >& markers,
     size_t minCoverage,     // For a vertex to be considered strong.
     size_t minConsensus     // For an edge to be considered strong.
@@ -861,9 +861,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
     s << "[";
     s << "tooltip=" << n;
-    if(n < graph.minCoverage) {
-        s << " color=red";
-    }
+    s << " style=filled fillcolor=pink";
 
 
     // Write the label using Graphviz html-like functionality.
@@ -895,7 +893,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         s << "<td align=\"right\"><b>" << markerId.ordinal << "</b></td>";
         // Position.
         const auto& markers = graph.markers[markerId.localOrientedReadId];
-        const int position = markers[markerId.localOrientedReadId].position;
+        const int position = markers[markerId.ordinal].position;
         s << "<td align=\"right\"><b>" << position << "</b></td></tr>";
     }
     s << "</table></font>>";
@@ -939,7 +937,13 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     if(addEdgeLabels) {
 
         s << " label=<<font color=\"black\">";
-        s << "<table color=\"black\" border=\"0\" cellborder=\"1\" cellspacing=\"0\">";
+        s << "<table";
+        s << " color=\"black\"";
+        s << " bgcolor=\"cadetblue1\"";
+        s << " border=\"0\"";
+        s << " cellborder=\"1\"";
+        s << " cellspacing=\"0\"";
+        s << ">";
 
         for(const auto& p: sequenceMap) {
             const string& sequenceString = p.first;
