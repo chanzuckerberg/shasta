@@ -127,7 +127,7 @@ OverlapFinder::OverlapFinder(
         const double t23 = seconds(t3 - t2);
         cout << "Times for this iteration: hash " << t01 << ", fill " << t12 << ", inspect " << t23 << endl;
         const size_t totalOverlapCount =
-            accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0);
+            accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0ULL);
         cout << "Found " << totalOverlapCount;
         cout << " overlaps with frequency at least " << minFrequency << " so far." << endl;
 
