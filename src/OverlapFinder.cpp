@@ -165,6 +165,14 @@ OverlapFinder::OverlapFinder(
                     const OrientedReadId orientedReadId0(readId0, strand0);
                     const OrientedReadId orientedReadId1(readId1, strand1);
                     overlaps.push_back(Overlap(orientedReadId0, orientedReadId1, candidate.frequency));
+
+                    // Also add the reverse complemented overlap.
+                    const OrientedReadId reverseComplementedOrientedReadId0(readId0, 1-strand0);
+                    const OrientedReadId reverseComplementedOrientedReadId1(readId1, 1-strand1);
+                    overlaps.push_back(Overlap(
+                        reverseComplementedOrientedReadId0,
+                        reverseComplementedOrientedReadId1,
+                        candidate.frequency));
                 }
             }
         }
