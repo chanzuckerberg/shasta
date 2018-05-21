@@ -145,6 +145,12 @@ OverlapFinder::OverlapFinder(
 
 
 
+    // Remove the buckets and the markers. They are no longer needed.
+    buckets.remove();
+    markers.remove();
+
+
+
     // Create the overlaps.
     cout << timestamp << "Storing overlaps." << endl;
     CZI_ASSERT(orientedReadCount == 2*readCount);
@@ -193,9 +199,7 @@ OverlapFinder::OverlapFinder(
 
 
 
-    // Cleanup.
-    buckets.remove();
-    // markers.remove();
+    // Done.
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
     cout << timestamp << "MinHash completed in " << tTotal << " s." << endl;
