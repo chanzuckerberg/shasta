@@ -38,9 +38,9 @@ a.createLocalMarkerGraph(
     readIdsAndStrands = orientedReads, 
     alignAllPairs = True,
     alignmentMaxSkip = 30,
-    minAlignmentLength = 0,
-    minCoverage = 0,
-    minConsensus = 0
+    minAlignmentLength = 30,
+    minCoverage = 3,
+    minConsensus = 3
     )
 
 

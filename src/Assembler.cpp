@@ -860,9 +860,14 @@ void Assembler::createLocalMarkerGraph(
                     alignDebug,
                     alignment);
 
+                // If the alignment is too short, skip.
+                if(alignment.ordinals.size() < minAlignmentLength) {
+                    continue;
+                }
 
                 // Merge alignment vertices.
-                cout << "Alignment of " << orientedReadIds[i0] << " " << orientedReadIds[i1] << endl;
+                cout << "Alignment of " << orientedReadIds[i0] << " " << orientedReadIds[i1];
+                cout << " of length " << alignment.ordinals.size() << endl;
                 for(const auto& ordinals: alignment.ordinals) {
                     graph.mergeVertices(
                         i0, ordinals.first,
@@ -877,6 +882,11 @@ void Assembler::createLocalMarkerGraph(
         // for which we have an overlap.
         CZI_ASSERT(0);
     }
+    if(debug) {
+        cout << "The initial local marker graph graph  has ";
+        cout << boost::num_vertices(graph) << " vertices and ";
+        cout << boost::num_edges(graph) << " edges." << endl;
+    }
 
 
 
@@ -884,7 +894,7 @@ void Assembler::createLocalMarkerGraph(
     graph.fillEdgeData();
     // graph.computeOptimalSpanningTree();
     // graph.removeWeakNonSpanningTreeEdges();
-    // graph.pruneWeakLeaves();
+    graph.pruneWeakLeaves();
     if(debug) {
         cout << "The local marker graph graph  has ";
         cout << boost::num_vertices(graph) << " vertices and ";
@@ -892,8 +902,9 @@ void Assembler::createLocalMarkerGraph(
         const bool addEdgeLabels = true;
         graph.write("LocalMarkerGraph.dot", addEdgeLabels);
     }
-    const vector< pair<Base, int> > longestSequence = graph.extractLongestSequence();
 
+#if 0
+    const vector< pair<Base, int> > longestSequence = graph.extractLongestSequence();
     // Write out the sequence.
     ofstream fastaOut("LongestSequence.txt");
     for(const auto& p: longestSequence) {
@@ -909,4 +920,5 @@ void Assembler::createLocalMarkerGraph(
         }
     }
     fastaOut << endl;
+#endif
 }
