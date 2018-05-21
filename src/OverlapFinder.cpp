@@ -125,7 +125,7 @@ OverlapFinder::OverlapFinder(
         const double t01 = seconds(t1 - t0);
         const double t12 = seconds(t2 - t1);
         const double t23 = seconds(t3 - t2);
-        cout << "Times for this iteration: " << t01 << " " << t12 << " " << t23 << endl;
+        cout << "Times for this iteration: hash " << t01 << ", fill " << t12 << ", inspect " << t23 << endl;
         const size_t totalOverlapCount =
             accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0);
         cout << "Found " << totalOverlapCount;
