@@ -5,7 +5,7 @@ using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
 // Standard library.
-#include <chrono>
+#include "chrono.hpp"
 
 
 
@@ -41,7 +41,7 @@ OverlapFinder::OverlapFinder(
 
 {
     cout << timestamp << "MinHash begins." << endl;
-    const auto tBegin = std::chrono::steady_clock::now();
+    const auto tBegin = steady_clock::now();
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -79,42 +79,52 @@ OverlapFinder::OverlapFinder(
     // MinHash iteration loop.
     for(iteration=0; iteration<minHashIterationCount; iteration++) {
         cout << timestamp << "MinHash iteration " << iteration << " begins." << endl;
-        const auto t0 = std::chrono::steady_clock::now();
+        const auto t0 = steady_clock::now();
 
         // Compute the min hash of each oriented read.
         const size_t batchSize = 10000;
         setupLoadBalancing(orientedReadCount, batchSize);
         runThreads(&OverlapFinder::computeMinHash, threadCount);
-        const auto t1 = std::chrono::steady_clock::now();
+        const auto t1 = steady_clock::now();
 
         // Construct the buckets.
-        // We need to reallocate the buckets completely at each iteration,
-        // Otherwise memory usage quickly increases (because of repeats
-        // which cause large buckets).
-        // cout << timestamp << "Initializing the buckets." << endl;
+        const auto tb0 = steady_clock::now();
         buckets.clear();
+        const auto tb1 = steady_clock::now();
         buckets.beginPass1(bucketCount);
+        const auto tb2 = steady_clock::now();
         for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
             const uint64_t bucketId = minHash[orientedReadId] & mask;
             buckets.incrementCount(bucketId);
         }
+        const auto tb3 = steady_clock::now();
         buckets.beginPass2();
+        const auto tb4 = steady_clock::now();
         for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadCount; orientedReadId++) {
             const uint64_t bucketId = minHash[orientedReadId] & mask;
             buckets.store(bucketId, orientedReadId);
         }
-        buckets.endPass2();
+        const auto tb5 = steady_clock::now();
+        buckets.endPass2(false, false);
+        const auto tb6 = steady_clock::now();
+        cout << "Bucket filling times: ";
+        cout << seconds(tb1-tb0) << " ";
+        cout << seconds(tb2-tb1) << " ";
+        cout << seconds(tb3-tb2) << " ";
+        cout << seconds(tb4-tb3) << " ";
+        cout << seconds(tb5-tb4) << " ";
+        cout << seconds(tb6-tb5) << " ";
+        cout << endl;
 
         // Inspect the buckets to find overlap candidates.
-        // cout << timestamp << "Inspecting the buckets." << endl;
-        const auto t2 = std::chrono::steady_clock::now();
+        const auto t2 = steady_clock::now();
         setupLoadBalancing(readCount, batchSize);
         runThreads(&OverlapFinder::inspectBuckets, threadCount, "threadLogs/inspectBuckets");
-        const auto t3 = std::chrono::steady_clock::now();
+        const auto t3 = steady_clock::now();
 
-        const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
-        const double t12 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1)).count());
-        const double t23 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2)).count());
+        const double t01 = seconds(t1 - t0);
+        const double t12 = seconds(t2 - t1);
+        const double t23 = seconds(t3 - t2);
         cout << "Times for this iteration: " << t01 << " " << t12 << " " << t23 << endl;
         const size_t totalOverlapCount =
             accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0);
@@ -186,8 +196,8 @@ OverlapFinder::OverlapFinder(
     // Cleanup.
     buckets.remove();
     // markers.remove();
-    const auto tEnd = std::chrono::steady_clock::now();
-    const double tTotal = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tBegin)).count());
+    const auto tEnd = steady_clock::now();
+    const double tTotal = seconds(tEnd - tBegin);
     cout << timestamp << "MinHash completed in " << tTotal << " s." << endl;
 
 }
