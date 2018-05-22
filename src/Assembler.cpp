@@ -734,8 +734,11 @@ void Assembler::alignOrientedReads(
     int maxSkip // Maximum ordinal skip allowed.
 )
 {
-    // Get the markers sorted by position.
+    checkReadsAreOpen();
+    checkReadNamesAreOpen();
     checkMarkersAreOpen();
+
+    // Get the markers sorted by position.
     vector<Marker> markers0SortedByPosition;
     vector<Marker> markers1SortedByPosition;
     getMarkers(orientedReadId0, markers0SortedByPosition);
@@ -773,6 +776,11 @@ void Assembler::alignOrientedReads(
     cout << "The alignment has " << alignmentInfo.markerCount;
     cout << " markers. Left trim " << leftTrim;
     cout << " bases, right trim " << rightTrim << " bases." << endl;
+
+    // For convenience, also write the two oriented reads.
+    ofstream fasta("AlignedOrientedReads.fasta");
+    writeOrientedRead(orientedReadId0, fasta);
+    writeOrientedRead(orientedReadId1, fasta);
 }
 
 

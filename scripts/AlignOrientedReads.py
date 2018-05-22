@@ -22,6 +22,7 @@ strand1 = int(sys.argv[4]);
 a = Nanopore2.Assembler()
 a.accessKmers()
 a.accessReadsReadOnly()
+a.accessReadNamesReadOnly()
 a.accessMarkers()
 
 # For convenience, write the markers sorted by position.
