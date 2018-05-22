@@ -140,7 +140,7 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand, int)
+                (ReadId, Strand, ReadId, Strand, size_t)
             )
             &Assembler::alignOrientedReads,
             arg("readId0"),
@@ -148,6 +148,18 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("readId1"),
             arg("strand1"),
             arg("maxSkip"))
+        .def("alignOverlappingOrientedReads",
+            (
+                void (Assembler::*)
+                (ReadId, Strand, size_t, size_t, size_t)
+            )
+            &Assembler::alignOverlappingOrientedReads,
+            arg("readId"),
+            arg("strand"),
+            arg("maxSkip"),
+            arg("minAlignedMarkerCount"),
+            arg("maxTrim")
+            )
 
         // Local marker graph for a set of oriented reads.
         .def("createLocalMarkerGraph",

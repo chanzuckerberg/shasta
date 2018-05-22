@@ -719,7 +719,7 @@ void Assembler::computeOverlapGraphComponents(
 void Assembler::alignOrientedReads(
     ReadId readId0, Strand strand0,
     ReadId readId1, Strand strand1,
-    int maxSkip // Maximum ordinal skip allowed.
+    size_t maxSkip // Maximum ordinal skip allowed.
 )
 {
     alignOrientedReads(
@@ -731,7 +731,7 @@ void Assembler::alignOrientedReads(
 void Assembler::alignOrientedReads(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    int maxSkip // Maximum ordinal skip allowed.
+    size_t maxSkip // Maximum ordinal skip allowed.
 )
 {
     checkReadsAreOpen();
@@ -790,7 +790,7 @@ void Assembler::alignOrientedReads(
 void Assembler::alignOrientedReads(
     const vector<Marker>& markers0SortedByKmerId,
     const vector<Marker>& markers1SortedByKmerId,
-    int maxSkip             // Maximum ordinal skip allowed.
+    size_t maxSkip             // Maximum ordinal skip allowed.
 )
 {
     // Compute the alignment.
@@ -808,13 +808,108 @@ void Assembler::alignOrientedReads(
 void Assembler::alignOrientedReads(
     const vector<Marker>& markers0SortedByKmerId,
     const vector<Marker>& markers1SortedByKmerId,
-    int maxSkip,             // Maximum ordinal skip allowed.
+    size_t maxSkip,             // Maximum ordinal skip allowed.
     bool debug,
     AlignmentGraph& graph,
     Alignment& alignment
 )
 {
     align(markers0SortedByKmerId, markers1SortedByKmerId, maxSkip, graph, debug, alignment);
+}
+
+
+
+// Compute marker alignments of an oriented read with all reads
+// for which we have an Overlap.
+void Assembler::alignOverlappingOrientedReads(
+    ReadId readId, Strand strand,
+    size_t maxSkip,                 // Maximum ordinal skip allowed.
+    size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
+    size_t maxTrim                  // Maximum trim allowed in an alignment.
+)
+{
+    alignOverlappingOrientedReads(
+        OrientedReadId(readId, strand),
+        maxSkip, minAlignedMarkerCount, maxTrim);
+}
+
+
+
+void Assembler::alignOverlappingOrientedReads(
+    OrientedReadId orientedReadId0,
+    size_t maxSkip,                 // Maximum ordinal skip allowed.
+    size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
+    size_t maxTrim                  // Maximum trim allowed in an alignment.
+)
+{
+    // Check that we have what we need.
+    checkReadsAreOpen();
+    checkMarkersAreOpen();
+    checkOverlapsAreOpen();
+
+    // Get the markers for orientedReadId0.
+    vector<Marker> markers0SortedByPosition;
+    getMarkers(orientedReadId0, markers0SortedByPosition);
+    vector<Marker> markers0SortedByKmerId = markers0SortedByPosition;
+    sort(markers0SortedByKmerId.begin(), markers0SortedByKmerId.end(), OrderMarkersByKmerId());
+
+    // Loop over all overlaps involving this oriented read.
+    vector<Marker> markers1SortedByPosition;
+    vector<Marker> markers1SortedByKmerId;
+    size_t goodAlignmentCount = 0;
+    for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
+        const Overlap& overlap = overlaps[i];
+
+        // Get the other oriented read involved in this overlap.
+        OrientedReadId orientedReadId1;
+        if(overlap.orientedReadIds[0] == orientedReadId0) {
+            orientedReadId1 = overlap.orientedReadIds[1];
+        } else if(overlap.orientedReadIds[1] == orientedReadId0) {
+            orientedReadId1 = overlap.orientedReadIds[0];
+        } else {
+            CZI_ASSERT(0);
+        }
+
+
+        // Get the markers for orientedReadId1.
+        getMarkers(orientedReadId1, markers1SortedByPosition);
+        markers1SortedByKmerId = markers1SortedByPosition;
+        sort(markers1SortedByKmerId.begin(), markers1SortedByKmerId.end(), OrderMarkersByKmerId());
+
+        // Compute the alignment.
+        AlignmentGraph graph;
+        Alignment alignment;
+        const bool debug = false;
+        alignOrientedReads(
+            markers0SortedByKmerId,
+            markers1SortedByKmerId,
+            maxSkip, debug, graph, alignment);
+
+        // Compute the AlignmentInfo.
+        const AlignmentInfo alignmentInfo(alignment);
+        uint32_t leftTrim;
+        uint32_t rightTrim;
+        tie(leftTrim, rightTrim) = computeTrim(
+            orientedReadId0,
+            orientedReadId1,
+            markers0SortedByPosition,
+            markers1SortedByPosition,
+            alignmentInfo);
+
+        cout << orientedReadId0 << " " << orientedReadId1 << " " << alignmentInfo.markerCount;
+        if(alignmentInfo.markerCount) {
+            cout << " " << leftTrim << " " << rightTrim;
+            if(alignmentInfo.markerCount >= minAlignedMarkerCount && leftTrim<=maxTrim && rightTrim<=maxTrim) {
+                cout << " good";
+                ++goodAlignmentCount;
+            }
+        }
+        cout << endl;
+
+    }
+    cout << "Found " << goodAlignmentCount << " good alignments among ";
+    cout << overlapTable[orientedReadId0.getValue()].size() << " overlaps." << endl;
+
 }
 
 

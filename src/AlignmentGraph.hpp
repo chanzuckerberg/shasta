@@ -51,7 +51,7 @@ namespace ChanZuckerberg {
 
             // The maximum ordinal skip to be tolerated between successive markers
             // in the alignment.
-            int maxSkip,
+            size_t maxSkip,
 
             // The AlignmentGraph can be reused.
             // For performance, it should be reused when doing many alignments.
@@ -155,7 +155,7 @@ public:
     void create(
         const vector<Marker>& kmers0,
         const vector<Marker>& kmers1,
-        int maxSkip,
+        size_t maxSkip,
         bool debug,
         Alignment&);
 
@@ -177,7 +177,7 @@ private:
     void createEdges(
         uint32_t markerCount0,
         uint32_t MarkerCount1,
-        int maxSkip);
+        size_t maxSkip);
     void writeEdges(const string& fileName) const;
 
     // Write in graphviz format, without the start and finish vertices.

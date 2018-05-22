@@ -129,7 +129,16 @@ public:
     void alignOrientedReads(
         ReadId, Strand,
         ReadId, Strand,
-        int maxSkip // Maximum ordinal skip allowed.
+        size_t maxSkip // Maximum ordinal skip allowed.
+    );
+
+    // Compute marker alignments of an oriented read with all reads
+    // for which we have an Overlap.
+    void alignOverlappingOrientedReads(
+        ReadId, Strand,
+        size_t maxSkip,                 // Maximum ordinal skip allowed.
+        size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
+        size_t maxTrim                  // Maximum trim allowed in an alignment.
     );
 
     // Compute a local marker graph for a set of oriented reads.
@@ -238,7 +247,7 @@ private:
     // an oriented read. Two vertices are joined by an edge
     // if there is an overlap between the corresponding
     // oriented reads. We want to process each connected
-    // component seperately, so we compute connected components
+    // component separately, so we compute connected components
     // of the overlap graph.
 
     // The connected component that each oriented read belongs to,
@@ -256,25 +265,33 @@ private:
     void alignOrientedReads(
         OrientedReadId,
         OrientedReadId,
-        int maxSkip // Maximum ordinal skip allowed.
+        size_t maxSkip // Maximum ordinal skip allowed.
     );
     // This lower level version takes as input vectors of
     // markers already sorted by kmerId.
     void alignOrientedReads(
         const vector<Marker>& markers0SortedByKmerId,
         const vector<Marker>& markers1SortedByKmerId,
-        int maxSkip // Maximum ordinal skip allowed.
+        size_t maxSkip // Maximum ordinal skip allowed.
     );
     // This version allows reusingf the AlignmentGraph and Alignment
     void alignOrientedReads(
         const vector<Marker>& markers0SortedByKmerId,
         const vector<Marker>& markers1SortedByKmerId,
-        int maxSkip,             // Maximum ordinal skip allowed.
+        size_t maxSkip,             // Maximum ordinal skip allowed.
         bool debug,
         AlignmentGraph& graph,
         Alignment& alignment
     );
 
+    // Compute marker alignments of an oriented read with all reads
+    // for which we have an Overlap.
+    void alignOverlappingOrientedReads(
+        OrientedReadId,
+        size_t maxSkip,                 // Maximum ordinal skip allowed.
+        size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
+        size_t maxTrim                  // Maximum trim allowed in an alignment.
+    );
 
 
     // Given two oriented reads and their computed AlignmentInfo,

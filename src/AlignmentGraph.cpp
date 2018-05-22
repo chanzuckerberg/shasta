@@ -21,7 +21,7 @@ void ChanZuckerberg::Nanopore2::align(
 
     // The maximum ordinal skip to be tolerated between successive markers
     // in the alignment.
-    int maxSkip,
+    size_t maxSkip,
 
     // The AlignmentGraph can be reused.
     // For performance, it should be reused when doing many alignments.
@@ -44,7 +44,7 @@ void ChanZuckerberg::Nanopore2::align(
 void AlignmentGraph::create(
     const vector<Marker>& markers0,
     const vector<Marker>& markers1,
-    int maxSkip,
+    size_t maxSkip,
     bool debug,
     Alignment& alignment)
 {
@@ -227,7 +227,7 @@ void AlignmentGraph::writeVertices(const string& fileName) const
 void AlignmentGraph::createEdges(
     uint32_t markerCount0,
     uint32_t markerCount1,
-    int maxSkip)
+    size_t maxSkip)
 {
     AlignmentGraph& graph = *this;
 
@@ -259,7 +259,7 @@ void AlignmentGraph::createEdges(
 
             // If we got too far, we can end the inner loop,
             // because vertices are sorted by position in sequence 0.
-            if(ordinalB0 > ordinalA0 + maxSkip) {
+            if(ordinalB0 > ordinalA0 + int(maxSkip)) {
                 break;
             }
             const int ordinalB1 = int(vertexB.ordinals[1]);
