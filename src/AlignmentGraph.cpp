@@ -81,6 +81,13 @@ void AlignmentGraph::create(
 
     // Look for the shortest path between vStart and vFinish.
     findShortestPath(*this, vStart, vFinish, shortestPath, queue);
+    if(shortestPath.empty()) {
+        alignment.ordinals.clear();
+        if(debug) {
+            cout << "The shortest path is empty." << endl;
+        }
+        return;
+    }
     if(debug) {
         cout << "The shortest path has " << shortestPath.size()-2;
         cout << " k-mer vertices." << endl;

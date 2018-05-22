@@ -734,18 +734,45 @@ void Assembler::alignOrientedReads(
     int maxSkip // Maximum ordinal skip allowed.
 )
 {
-    // Get the markers for the two oriented reads and
-    // sort them by kmer id.
+    // Get the markers sorted by position.
     checkMarkersAreOpen();
-    vector<Marker> markers0;
-    vector<Marker> markers1;
-    getMarkers(orientedReadId0, markers0);
-    getMarkers(orientedReadId1, markers1);
-    sort(markers0.begin(), markers0.end(), OrderMarkersByKmerId());
-    sort(markers1.begin(), markers1.end(), OrderMarkersByKmerId());
+    vector<Marker> markers0SortedByPosition;
+    vector<Marker> markers1SortedByPosition;
+    getMarkers(orientedReadId0, markers0SortedByPosition);
+    getMarkers(orientedReadId1, markers1SortedByPosition);
+
+    // Get the markers sorted by kmerId.
+    vector<Marker> markers0SortedByKmerId = markers0SortedByPosition;
+    vector<Marker> markers1SortedByKmerId = markers1SortedByPosition;
+    sort(markers0SortedByKmerId.begin(), markers0SortedByKmerId.end(), OrderMarkersByKmerId());
+    sort(markers1SortedByKmerId.begin(), markers1SortedByKmerId.end(), OrderMarkersByKmerId());
 
     // Call the lower level function.
-    alignOrientedReads(markers0, markers1, maxSkip);
+    AlignmentGraph graph;
+    Alignment alignment;
+    const bool debug = true;
+    alignOrientedReads(
+        markers0SortedByKmerId,
+        markers1SortedByKmerId,
+        maxSkip, debug, graph, alignment);
+
+    // Compute the AlignmentInfo.
+    const AlignmentInfo alignmentInfo(alignment);
+    uint32_t leftTrim;
+    uint32_t rightTrim;
+    tie(leftTrim, rightTrim) = computeTrim(
+        orientedReadId0,
+        orientedReadId1,
+        markers0SortedByPosition,
+        markers1SortedByPosition,
+        alignmentInfo);
+    cout << orientedReadId0 << " has " << reads[orientedReadId0.getReadId()].baseCount;
+    cout << " bases and " << markers0SortedByPosition.size() << " markers." << endl;
+    cout << orientedReadId1 << " has " << reads[orientedReadId1.getReadId()].baseCount;
+    cout << " bases and " << markers1SortedByPosition.size() << " markers." << endl;
+    cout << "The alignment has " << alignmentInfo.markerCount;
+    cout << " markers. Left trim " << leftTrim;
+    cout << " bases, right trim " << rightTrim << " bases." << endl;
 }
 
 
@@ -753,15 +780,69 @@ void Assembler::alignOrientedReads(
 // This lower level version takes as input vectors of
 // markers already sorted by kmerId.
 void Assembler::alignOrientedReads(
-    const vector<Marker>& markers0,
-    const vector<Marker>& markers1,
-    int maxSkip // maximum ordinal skip allowed.
+    const vector<Marker>& markers0SortedByKmerId,
+    const vector<Marker>& markers1SortedByKmerId,
+    int maxSkip             // Maximum ordinal skip allowed.
 )
 {
+    // Compute the alignment.
     AlignmentGraph graph;
     Alignment alignment;
     const bool debug = true;
-    align(markers0, markers1, maxSkip, graph, debug, alignment);
+    alignOrientedReads(
+        markers0SortedByKmerId,
+        markers1SortedByKmerId,
+        maxSkip, debug, graph, alignment);
+}
+
+
+
+void Assembler::alignOrientedReads(
+    const vector<Marker>& markers0SortedByKmerId,
+    const vector<Marker>& markers1SortedByKmerId,
+    int maxSkip,             // Maximum ordinal skip allowed.
+    bool debug,
+    AlignmentGraph& graph,
+    Alignment& alignment
+)
+{
+    align(markers0SortedByKmerId, markers1SortedByKmerId, maxSkip, graph, debug, alignment);
+}
+
+
+
+// Given two oriented reads and their computed AlignmentInfo,
+// compute the left and right trim.
+// This is the minimum number of bases (over the two reads)
+// that are excluded from the alignment on each size.
+// This takes as input markers sorted by position.
+pair<uint32_t, uint32_t> Assembler::computeTrim(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    vector<Marker>& markers0,
+    vector<Marker>& markers1,
+    const AlignmentInfo& alignmentInfo)
+{
+    const uint32_t baseCount0 = uint32_t(reads[orientedReadId0.getReadId()].baseCount);
+    const uint32_t baseCount1 = uint32_t(reads[orientedReadId1.getReadId()].baseCount);
+
+    if(alignmentInfo.markerCount) {
+        const Marker& firstMarker0 = markers0[alignmentInfo.firstOrdinals.first];
+        const Marker& firstMarker1 = markers1[alignmentInfo.firstOrdinals.second];
+        const Marker& lastMarker0 = markers0[alignmentInfo.lastOrdinals.first];
+        const Marker& lastMarker1 = markers1[alignmentInfo.lastOrdinals.second];
+        return make_pair(
+            min(firstMarker0.position, firstMarker1.position),
+            min(baseCount0-1-lastMarker0.position, baseCount1-1-lastMarker1.position)
+            );
+    } else {
+        // The alignment is empty.
+        // The trim equal the entire lenght of the shortest read.
+        const uint32_t trim = min(baseCount0, baseCount1);
+        return make_pair(trim, trim);
+
+    }
+
 }
 
 

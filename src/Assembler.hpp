@@ -15,8 +15,15 @@
 
 namespace ChanZuckerberg {
     namespace Nanopore2 {
+
+        // Forward declarations of classes defined here.
         class Assembler;
         class AssemblerInfo;
+
+        // Forward declarations of classes defined elsewhere.
+        class Alignment;
+        class AlignmentGraph;
+        class AlignmentInfo;
     }
 }
 
@@ -254,10 +261,34 @@ private:
     // This lower level version takes as input vectors of
     // markers already sorted by kmerId.
     void alignOrientedReads(
-        const vector<Marker>&,
-        const vector<Marker>&,
+        const vector<Marker>& markers0SortedByKmerId,
+        const vector<Marker>& markers1SortedByKmerId,
         int maxSkip // Maximum ordinal skip allowed.
     );
+    // This version allows reusingf the AlignmentGraph and Alignment
+    void alignOrientedReads(
+        const vector<Marker>& markers0SortedByKmerId,
+        const vector<Marker>& markers1SortedByKmerId,
+        int maxSkip,             // Maximum ordinal skip allowed.
+        bool debug,
+        AlignmentGraph& graph,
+        Alignment& alignment
+    );
+
+
+
+    // Given two oriented reads and their computed AlignmentInfo,
+    // compute the left and right trim.
+    // This is the minimum number of bases (over the two reads)
+    // that are excluded from the alignment on each size.
+    // This takes as input markers sorted by position.
+    pair<uint32_t, uint32_t> computeTrim(
+        OrientedReadId orientedReadIds0,
+        OrientedReadId orientedReadIds1,
+        vector<Marker>& markers0,
+        vector<Marker>& markers1,
+        const AlignmentInfo&);
+
 
 };
 
