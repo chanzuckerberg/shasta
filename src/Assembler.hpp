@@ -123,7 +123,9 @@ public:
     // Compute connected components of the global overlap graph.
     void computeOverlapGraphComponents(
         size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
-        size_t minComponentSize         // MInimum size for a connected component to be kept.
+        size_t minComponentSize,        // MInimum size for a connected component to be kept.
+        size_t minAlignedMarkerCount,
+        size_t maxTrim
         );
 
     // Compute a marker alignment of two oriented reads.

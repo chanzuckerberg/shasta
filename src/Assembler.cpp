@@ -577,12 +577,18 @@ void Assembler::writeOverlappingReads(
 // Self-complementary connected components are kept.
 void Assembler::computeOverlapGraphComponents(
     size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
-    size_t minComponentSize         // Minimum size for a connected component to be kept.
+    size_t minComponentSize,        // Minimum size for a connected component to be kept.
+    size_t minAlignedMarkerCount,
+    size_t maxTrim
     )
 {
     checkReadsAreOpen();
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
     checkOverlapsAreOpen();
+    checkAlignmentInfosAreOpen();
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(2*reads.size());
+    CZI_ASSERT(overlaps.size() == alignmentInfos.size());
 
     // Initialize the disjoint set data structures.
     vector<ReadId> rank(orientedReadCount);
@@ -592,14 +598,54 @@ void Assembler::computeOverlapGraphComponents(
         disjointSets.make_set(orientedReadId);
     }
 
-    // Loop over overlaps with frequency at least minFrequency.
-    for(const Overlap& overlap: overlaps) {
-        if(overlap.minHashFrequency >= minFrequency) {
-            disjointSets.union_set(
-                overlap.orientedReadIds[0].getValue(),
-                overlap.orientedReadIds[1].getValue());
+    vector<Marker> markers0SortedByPosition;
+    vector<Marker> markers1SortedByPosition;
+
+
+    // Loop over overlaps, and the corresponding alignments,
+    // which satisfy our criteria.
+    for(size_t i=0; i<overlaps.size(); i++) {
+        const Overlap& overlap = overlaps[i];
+        const AlignmentInfo& alignmentInfo = alignmentInfos[i];
+
+        // If the MinHash frequency is not sufficient, skip.
+        if(overlap.minHashFrequency < minFrequency) {
+            continue;
         }
+
+        // If the number of markers in the alignment is too small, skip.
+        if(alignmentInfo.markerCount < minAlignedMarkerCount) {
+            continue;
+        }
+
+        // Compute the left and right trim (bases excluded from
+        // the alignment).
+        const OrientedReadId orientedReadId0 = overlap.orientedReadIds[0];
+        const OrientedReadId orientedReadId1 = overlap.orientedReadIds[1];
+        getMarkers(orientedReadId0, markers0SortedByPosition);
+        getMarkers(orientedReadId1, markers1SortedByPosition);
+        uint32_t leftTrim;
+        uint32_t rightTrim;
+        tie(leftTrim, rightTrim) = computeTrim(
+            orientedReadId0,
+            orientedReadId1,
+            markers0SortedByPosition,
+            markers1SortedByPosition,
+            alignmentInfo);
+
+        // If the trim is too high, skip.
+        if(leftTrim>maxTrim || rightTrim>maxTrim) {
+            continue;
+        }
+
+        // Join the connected components that these two
+        // oriented reas belong to.
+        disjointSets.union_set(
+            overlap.orientedReadIds[0].getValue(),
+            overlap.orientedReadIds[1].getValue());
     }
+
+
 
     // Store the component that each oriented read belongs to.
     overlapGraphComponent.createNew(largeDataName("OverlapGraphComponent"), largeDataPageSize);
@@ -619,10 +665,6 @@ void Assembler::computeOverlapGraphComponents(
 
     // Sort the components by decreasing size.
     // We only keep components that are large enough.
-    // For each pair of complementary connected component
-    // we only keep the one in which
-    // the lowest numbered read in on the positive strand.
-    // Self-complementary connected components are kept.
     vector< pair<OrientedReadId::Int, OrientedReadId::Int> > componentTable;
     for(const auto& p: componentMap) {
         const auto componentId = p.first;
@@ -630,10 +672,6 @@ void Assembler::computeOverlapGraphComponents(
         const auto componentSize = component.size();
         CZI_ASSERT(componentSize > 0);
         if(componentSize >= minComponentSize) {
-            const OrientedReadId firstOrientedReadId = OrientedReadId(component.front());
-            if(firstOrientedReadId.getStrand() == 1) {
-                continue;   // Keep the other component in this self-complementary pair.
-            }
             // Keep this component.
             componentTable.push_back(make_pair(componentId, componentSize));
 
@@ -676,41 +714,13 @@ void Assembler::computeOverlapGraphComponents(
 
 
 
-    // Write out the size of each component we kept,
-    // and whether it is self-complementary.
-    size_t selfComplementaryComponentCount = 0;
+    // Write out the size of each component we kept.
     for(ReadId newComponentId=0; newComponentId<overlapGraphComponents.size(); newComponentId++) {
-        const auto component = overlapGraphComponents[newComponentId];
-
-        //See if it is self-complementary.
-        bool isSelfComplementary = false;
-        const auto componentSize = component.size();
-        if(componentSize > 1) {
-            const OrientedReadId firstOrientedReadId = OrientedReadId(component[0]);
-            const OrientedReadId secondOrientedReadId = OrientedReadId(component[1]);
-            if(secondOrientedReadId.getReadId() == firstOrientedReadId.getReadId()) {
-                CZI_ASSERT((componentSize%2) == 0);
-                for(size_t i=0; i<componentSize; i+=2) {
-                    const OrientedReadId orientedReadId0  = OrientedReadId(component[i]);
-                    const OrientedReadId orientedReadId1  = OrientedReadId(component[i+1]);
-                    CZI_ASSERT(orientedReadId0.getReadId() == orientedReadId1.getReadId());
-                    CZI_ASSERT(orientedReadId0.getStrand() == 0);
-                    CZI_ASSERT(orientedReadId1.getStrand() == 1);
-                }
-                ++selfComplementaryComponentCount;
-                isSelfComplementary = true;
-            }
-
-        }
         cout << "Component " << newComponentId << " has size ";
-        cout << componentSize;
-        if(isSelfComplementary) {
-            cout << " and is self-complementary";
-        }
+        cout << overlapGraphComponents.size(newComponentId);
         cout << "." << endl;
 
     }
-    cout << "Found " << selfComplementaryComponentCount << " self-complementary components." << endl;
 
 
 }

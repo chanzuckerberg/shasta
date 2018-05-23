@@ -133,7 +133,9 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("computeOverlapGraphComponents",
             &Assembler::computeOverlapGraphComponents,
             arg("minFrequency"),
-            arg("minComponentSize"))
+            arg("minComponentSize"),
+            arg("minAlignedMarkerCount"),
+            arg("maxTrim"))
 
 
         // Alignments.
