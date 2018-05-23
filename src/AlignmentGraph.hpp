@@ -53,6 +53,10 @@ namespace ChanZuckerberg {
             // in the alignment.
             size_t maxSkip,
 
+            // The  maximum number of vertices in the alignment graph
+            // that we allow a single k-mer to generate.
+            size_t maxVertexCountPerKmer,
+
             // The AlignmentGraph can be reused.
             // For performance, it should be reused when doing many alignments.
             AlignmentGraph& graph,
@@ -68,40 +72,6 @@ namespace ChanZuckerberg {
 
     }
 }
-
-
-
-class ChanZuckerberg::Nanopore2::Alignment {
-public:
-
-    // The ordinals in each of the two oriented reads of the
-    // markers in the alignment.
-    vector< pair<uint32_t, uint32_t> > ordinals;
-};
-
-
-
-class ChanZuckerberg::Nanopore2::AlignmentInfo {
-public:
-
-    // The first and last ordinals in each of the two oriented reads.
-    // These are not filled in if markerCount is zero.
-    pair<uint32_t, uint32_t> firstOrdinals;
-    pair<uint32_t, uint32_t> lastOrdinals;
-
-    // The number of markers in the alignment.
-    uint32_t markerCount;
-
-    AlignmentInfo(const Alignment& alignment)
-    {
-        markerCount = uint32_t(alignment.ordinals.size());
-        if(markerCount) {
-            firstOrdinals = alignment.ordinals.front();
-            lastOrdinals  = alignment.ordinals.back();
-        }
-    }
-
-};
 
 
 
@@ -156,6 +126,7 @@ public:
         const vector<Marker>& kmers0,
         const vector<Marker>& kmers1,
         size_t maxSkip,
+        size_t maxVertexCountPerKmer,
         bool debug,
         Alignment&);
 
@@ -172,7 +143,8 @@ private:
         );
     void createVertices(
         const vector<Marker>&,
-        const vector<Marker>&);
+        const vector<Marker>&,
+        size_t maxVertexCountPerKmer);
     void writeVertices(const string& fileName) const;
     void createEdges(
         uint32_t markerCount0,

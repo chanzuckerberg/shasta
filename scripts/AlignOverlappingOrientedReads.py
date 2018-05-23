@@ -28,7 +28,8 @@ a.accessOverlaps()
 
 a.alignOverlappingOrientedReads(
     readId=readId, strand=strand,
-    maxSkip=30,
+    maxSkip = 30,
+    maxVertexCountPerKmer = 100,
     minAlignedMarkerCount = 40,
     maxTrim = 200)
 

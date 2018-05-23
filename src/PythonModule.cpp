@@ -140,23 +140,25 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand, size_t)
+                (ReadId, Strand, ReadId, Strand, size_t, size_t)
             )
             &Assembler::alignOrientedReads,
             arg("readId0"),
             arg("strand0"),
             arg("readId1"),
             arg("strand1"),
-            arg("maxSkip"))
+            arg("maxSkip"),
+            arg("maxVertexCountPerKmer"))
         .def("alignOverlappingOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, size_t, size_t, size_t)
+                (ReadId, Strand, size_t, size_t, size_t, size_t)
             )
             &Assembler::alignOverlappingOrientedReads,
             arg("readId"),
             arg("strand"),
             arg("maxSkip"),
+            arg("maxVertexCountPerKmer"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim")
             )
@@ -165,17 +167,25 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("createLocalMarkerGraph",
             (
                 void (Assembler::*)
-                (const vector< pair<ReadId, Strand> >&, bool, size_t,  size_t, size_t, size_t)
+                (const vector< pair<ReadId, Strand> >&, bool, size_t, size_t, size_t, size_t, size_t)
             )
             &Assembler::createLocalMarkerGraph,
             arg("readIdsAndStrands"),
             arg("alignAllPairs"),
             arg("alignmentMaxSkip"),
+            arg("alignmentMaxVertexCountPerKmer"),
             arg("minAlignmentLength"),
             arg("minCoverage"),
             arg("minConsensus"))
 
-
+        // Alignment infos.
+        .def("computeAllAlignments",
+            &Assembler::computeAllAlignments,
+            arg("maxSkip"),
+            arg("maxVertexCountPerKmer"),
+            arg("threadCount") = 0)
+        .def("accessAlignmentInfos",
+            &Assembler::accessAlignmentInfos)
 
     // Definition of class_<Assembler> ends here.
     ;

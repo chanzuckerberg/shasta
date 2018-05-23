@@ -2,6 +2,7 @@
 #define CZI_NANOPORE2_ASSEMBLER_HPP
 
 // Nanopore2
+#include "Alignment.hpp"
 #include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
@@ -129,7 +130,8 @@ public:
     void alignOrientedReads(
         ReadId, Strand,
         ReadId, Strand,
-        size_t maxSkip // Maximum ordinal skip allowed.
+        size_t maxSkip, // Maximum ordinal skip allowed.
+        size_t maxVertexCountPerKmer
     );
 
     // Compute marker alignments of an oriented read with all reads
@@ -137,6 +139,7 @@ public:
     void alignOverlappingOrientedReads(
         ReadId, Strand,
         size_t maxSkip,                 // Maximum ordinal skip allowed.
+        size_t maxVertexCountPerKmer,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
         size_t maxTrim                  // Maximum trim allowed in an alignment.
     );
@@ -146,6 +149,7 @@ public:
         const vector< pair<ReadId, Strand> >&,
         bool alignAllPairs,
         size_t alignmentMaxSkip,
+        size_t alignmentMaxVertexCountPerKmer,
         size_t minAlignmentLength,
         size_t minCoverage,
         size_t minConsensus);
@@ -153,9 +157,19 @@ public:
         const vector<OrientedReadId>&,
         bool alignAllPairs,
         size_t alignmentMaxSkip,
+        size_t alignmentMaxVertexCountPerKmer,
         size_t minAlignmentLength,
         size_t minCoverage,
         size_t minConsensus);
+
+    // Compute an Alignment for each Overlap.
+    // Only store the AlignmentInfo.
+    void computeAllAlignments(
+        size_t maxSkip, // Maximum ordinal skip allowed.
+        size_t maxVertexCountPerKmer,
+        size_t threadCount
+    );
+    void accessAlignmentInfos();
 
 private:
 
@@ -265,20 +279,23 @@ private:
     void alignOrientedReads(
         OrientedReadId,
         OrientedReadId,
-        size_t maxSkip // Maximum ordinal skip allowed.
+        size_t maxSkip, // Maximum ordinal skip allowed.
+        size_t maxVertexCountPerKmer
     );
     // This lower level version takes as input vectors of
     // markers already sorted by kmerId.
     void alignOrientedReads(
         const vector<Marker>& markers0SortedByKmerId,
         const vector<Marker>& markers1SortedByKmerId,
-        size_t maxSkip // Maximum ordinal skip allowed.
+        size_t maxSkip,  // Maximum ordinal skip allowed.
+        size_t maxVertexCountPerKmer
     );
-    // This version allows reusingf the AlignmentGraph and Alignment
+    // This version allows reusing the AlignmentGraph and Alignment
     void alignOrientedReads(
         const vector<Marker>& markers0SortedByKmerId,
         const vector<Marker>& markers1SortedByKmerId,
         size_t maxSkip,             // Maximum ordinal skip allowed.
+        size_t maxVertexCountPerKmer,
         bool debug,
         AlignmentGraph& graph,
         Alignment& alignment
@@ -289,6 +306,7 @@ private:
     void alignOverlappingOrientedReads(
         OrientedReadId,
         size_t maxSkip,                 // Maximum ordinal skip allowed.
+        size_t maxVertexCountPerKmer,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
         size_t maxTrim                  // Maximum trim allowed in an alignment.
     );
@@ -305,6 +323,18 @@ private:
         vector<Marker>& markers0,
         vector<Marker>& markers1,
         const AlignmentInfo&);
+
+    // The AlignmentInfo corresponding to each overlap.
+    MemoryMapped::Vector<AlignmentInfo> alignmentInfos;
+    void checkAlignmentInfosAreOpen();
+    void computeAllAlignmentsThreadFunction(size_t threadId);
+    class ComputeAllAlignmentsData {
+    public:
+        size_t maxSkip;
+        size_t maxVertexCountPerKmer;
+    };
+    ComputeAllAlignmentsData computeAllAlignmentsData;
+
 
 
 };

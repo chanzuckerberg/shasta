@@ -34,5 +34,6 @@ a.writeMarkers(readId=readId1, strand=strand1,
 a.alignOrientedReads(
     readId0=readId0, strand0=strand0,
     readId1=readId1, strand1=strand1,
-    maxSkip=30)
+    maxSkip=30,
+    maxVertexCountPerKmer=100)
 

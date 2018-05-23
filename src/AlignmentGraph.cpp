@@ -1,5 +1,6 @@
 // Nanopore2.
 #include "AlignmentGraph.hpp"
+#include "Alignment.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
@@ -23,6 +24,10 @@ void ChanZuckerberg::Nanopore2::align(
     // in the alignment.
     size_t maxSkip,
 
+    // The  maximum number of vertices in the alignment graph
+    // that we allow a single k-mer to generate.
+    size_t maxVertexCountPerKmer,
+
     // The AlignmentGraph can be reused.
     // For performance, it should be reused when doing many alignments.
     AlignmentGraph& graph,
@@ -35,7 +40,7 @@ void ChanZuckerberg::Nanopore2::align(
     Alignment& alignment
     )
 {
-    graph.create(markers0, markers1, maxSkip, debug, alignment);
+    graph.create(markers0, markers1, maxSkip, maxVertexCountPerKmer, debug, alignment);
 }
 
 
@@ -45,6 +50,7 @@ void AlignmentGraph::create(
     const vector<Marker>& markers0,
     const vector<Marker>& markers1,
     size_t maxSkip,
+    size_t maxVertexCountPerKmer,
     bool debug,
     Alignment& alignment)
 {
@@ -59,7 +65,7 @@ void AlignmentGraph::create(
     }
 
     // Create the vertices - one for each pair of common markers.
-    createVertices(markers0, markers1);
+    createVertices(markers0, markers1, maxVertexCountPerKmer);
     sortVertices();
     doneAddingVertices();
     if(debug) {
@@ -130,7 +136,8 @@ void AlignmentGraph::writeMarkers(
 
 void AlignmentGraph::createVertices(
     const vector<Marker>& markers0,
-    const vector<Marker>& markers1)
+    const vector<Marker>& markers1,
+    size_t maxVertexCountPerKmer)
 {
 
     // Add the start and finish vertices.
@@ -172,21 +179,28 @@ void AlignmentGraph::createVertices(
                 ++it1End;
             }
 
-            // Loop over pairs in the streak.
-            for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
-                for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
+            // Only do it if don't generate an excessive number of vertices.
+            const size_t streakLength0 = it0End - it0Begin;
+            const size_t streakLength1 = it1End - it1Begin;
+            const size_t streakVertexCount = streakLength0 * streakLength1;
+            if(streakVertexCount < maxVertexCountPerKmer) {
 
-                    // Generate a vertex corresponding to this pair
-                    // of occurrences of this common k-mer.
-                    AlignmentGraphVertex vertex;
-                    vertex.kmerId = kmerId;
-                    vertex.indexes[0] = jt0 - begin0;
-                    vertex.indexes[1] = jt1 - begin1;
-                    vertex.positions[0] = jt0->position;
-                    vertex.positions[1] = jt1->position;
-                    vertex.ordinals[0] = jt0->ordinal;
-                    vertex.ordinals[1] = jt1->ordinal;
-                    addVertex(vertex);
+                // Loop over pairs in the streak.
+                for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
+                    for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
+
+                        // Generate a vertex corresponding to this pair
+                        // of occurrences of this common k-mer.
+                        AlignmentGraphVertex vertex;
+                        vertex.kmerId = kmerId;
+                        vertex.indexes[0] = jt0 - begin0;
+                        vertex.indexes[1] = jt1 - begin1;
+                        vertex.positions[0] = jt0->position;
+                        vertex.positions[1] = jt1->position;
+                        vertex.ordinals[0] = jt0->ordinal;
+                        vertex.ordinals[1] = jt1->ordinal;
+                        addVertex(vertex);
+                    }
                 }
             }
 
