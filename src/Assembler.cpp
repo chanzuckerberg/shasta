@@ -605,6 +605,9 @@ void Assembler::computeOverlapGraphComponents(
     // Loop over overlaps, and the corresponding alignments,
     // which satisfy our criteria.
     for(size_t i=0; i<overlaps.size(); i++) {
+        if((i%1000000) == 0) {
+            cout << timestamp << i << " of " << overlaps.size() << endl;
+        }
         const Overlap& overlap = overlaps[i];
         const AlignmentInfo& alignmentInfo = alignmentInfos[i];
 
