@@ -11,7 +11,7 @@ a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessOverlaps()
 a.accessAlignmentInfos()
-a.computeOverlapGraphComponents(
+a.computeReadGraphComponents(
     minFrequency = 1,
     minComponentSize = 100,
     minAlignedMarkerCount = 40,

@@ -569,13 +569,9 @@ void Assembler::writeOverlappingReads(
 
 
 
-// Compute connected components of the global overlap graph.
+// Compute connected components of the global read graph.
 // We only keep components that are large enough.
-// For each pair of complementary connected component
-// we only keep the one in which
-// the lowest numbered read in on the positive strand.
-// Self-complementary connected components are kept.
-void Assembler::computeOverlapGraphComponents(
+void Assembler::computeReadGraphComponents(
     size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
     size_t minComponentSize,        // Minimum size for a connected component to be kept.
     size_t minAlignedMarkerCount,
