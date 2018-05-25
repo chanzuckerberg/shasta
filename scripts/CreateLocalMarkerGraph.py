@@ -38,6 +38,7 @@ a.createLocalMarkerGraph(
     readIdsAndStrands = orientedReads, 
     alignAllPairs = True,
     alignmentMaxSkip = 30,
+    alignmentMaxVertexCountPerKmer = 100,
     minAlignmentLength = 40,
     minCoverage = 3,
     minConsensus = 3
