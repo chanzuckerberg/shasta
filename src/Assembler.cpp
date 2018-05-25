@@ -1,6 +1,7 @@
 // Nanopore2.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "LocalReadGraph.hpp"
 #include "LocalMarkerGraph.hpp"
 #include "MarkerFinder.hpp"
 #include "orderPairs.hpp"
@@ -17,6 +18,7 @@ using namespace Nanopore2;
 #include "chrono.hpp"
 #include "iterator.hpp"
 #include <map>
+#include <queue>
 #include "stdexcept.hpp"
 
 
@@ -1236,4 +1238,128 @@ void Assembler::checkAlignmentInfosAreOpen()
     if(!alignmentInfos.isOpen) {
         throw runtime_error("Alignment infos are not accessible.");
     }
+}
+
+
+
+// Create a local read graph starting from a given oriented read.
+void Assembler::createLocalReadGraph(
+    ReadId readId,
+    Strand strand,
+    size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+    size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+    size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+    size_t distance                 // How far to go from starting oriented read.
+)
+{
+    createLocalReadGraph(OrientedReadId(readId, strand),
+        minFrequency, minAlignedMarkerCount, maxTrim,
+        distance);
+}
+void Assembler::createLocalReadGraph(
+    OrientedReadId orientedReadIdStart,
+    size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+    size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+    size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+    size_t maxDistance                // How far to go from starting oriented read.
+)
+{
+    // Check that we have what we need.
+    checkReadsAreOpen();
+    checkReadNamesAreOpen();
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
+    checkOverlapsAreOpen();
+    checkAlignmentInfosAreOpen();
+    CZI_ASSERT(overlaps.size() == alignmentInfos.size());
+
+    vector<Marker> markers0SortedByPosition;
+    vector<Marker> markers1SortedByPosition;
+
+    ofstream fasta("LocalReadGraph.fasta");
+    writeOrientedRead(orientedReadIdStart, fasta);
+
+    // Create the LocalReadGraph and add the starting vertex.
+    LocalReadGraph graph;
+    graph.addVertex(orientedReadIdStart, 0);
+
+    // Initialize a BFS starting at the start vertex.
+    std::queue<OrientedReadId> q;
+    q.push(orientedReadIdStart);
+
+
+
+    // Do the BFS.
+    while(!q.empty()) {
+
+        // Dequeue a vertex.
+        const OrientedReadId orientedReadId0 = q.front();
+        q.pop();
+        const size_t distance0 = graph.getDistance(orientedReadId0);
+        const size_t distance1 = distance0 + 1;
+        getMarkers(orientedReadId0, markers0SortedByPosition);
+
+        // Loop over overlaps/alignments involving this vertex.
+        for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
+            CZI_ASSERT(i < overlaps.size());
+            const Overlap& overlap = overlaps[i];
+            AlignmentInfo alignmentInfo = alignmentInfos[i];
+
+            // Get the other oriented read involved in this overlap.
+            OrientedReadId orientedReadId1;
+            if(overlap.orientedReadIds[0] == orientedReadId0) {
+                orientedReadId1 = overlap.orientedReadIds[1];
+            } else if(overlap.orientedReadIds[1] == orientedReadId0) {
+                orientedReadId1 = overlap.orientedReadIds[0];
+                // The following swaps are necessary for the computation
+                // of left and right trim below.
+                swap(alignmentInfo.firstOrdinals.first, alignmentInfo.firstOrdinals.second);
+                swap(alignmentInfo.lastOrdinals.first, alignmentInfo.lastOrdinals.second);
+            } else {
+                CZI_ASSERT(0);
+            }
+
+            // If the overlap or the alignment don't satisfy our criteria, skip.
+            if(overlap.minHashFrequency < minFrequency) {
+                continue;
+            }
+            if(alignmentInfo.markerCount < minAlignedMarkerCount) {
+                continue;
+            }
+            getMarkers(orientedReadId1, markers1SortedByPosition);
+            uint32_t leftTrim;
+            uint32_t rightTrim;
+            tie(leftTrim, rightTrim) = computeTrim(
+                orientedReadId0,
+                orientedReadId1,
+                markers0SortedByPosition,
+                markers1SortedByPosition,
+                alignmentInfo);
+            if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                continue;
+            }
+
+            // The overlap and the alignment satisfy our criteria.
+
+            // Add the vertex for orientedReadId1, if necessary.
+            // Also add orientedReadId1 to the queue, unless
+            // we already reached the maximum distance.
+            if(!graph.vertexExists(orientedReadId1)) {
+                graph.addVertex(orientedReadId1, distance1);
+                writeOrientedRead(orientedReadId1, fasta);
+                if(distance1 < maxDistance) {
+                    q.push(orientedReadId1);
+                }
+            }
+
+            // Add the edge.
+            graph.addEdge(orientedReadId0, orientedReadId1,
+                overlap, alignmentInfo);
+        }
+
+    }
+
+    cout << "The local read graph has " << num_vertices(graph);
+    cout << " vertices and " << num_edges(graph) << " edges." << endl;
+    graph.write("LocalReadGraph.dot");
 }

@@ -120,12 +120,21 @@ public:
     // Write the reads that overlap a given read.
     void writeOverlappingReads(ReadId, Strand, const string& fileName);
 
+    // Create a local read graph starting from a given oriented read.
+    void createLocalReadGraph(
+        ReadId, Strand,
+        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+        size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+        size_t distance                 // How far to go from starting oriented read.
+    );
+
     // Compute connected components of the global read graph.
     void computeReadGraphComponents(
-        size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
-        size_t minComponentSize,        // MInimum size for a connected component to be kept.
-        size_t minAlignedMarkerCount,
-        size_t maxTrim
+        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+        size_t minComponentSize,        // Minimum size for a connected component to be kept.
+        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+        size_t maxTrim                  // Maximum left/right trim to generate an edge
         );
 
     // Compute a marker alignment of two oriented reads.
@@ -301,6 +310,15 @@ private:
         bool debug,
         AlignmentGraph& graph,
         Alignment& alignment
+    );
+
+    // Create a local read graph starting from a given oriented read.
+    void createLocalReadGraph(
+        OrientedReadId,
+        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+        size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+        size_t distance                 // How far to go from starting oriented read.
     );
 
     // Compute marker alignments of an oriented read with all reads

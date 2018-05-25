@@ -130,12 +130,27 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("readId"),
             arg("strand"),
             arg("fileName") = "OverlappingReads.fasta")
+
+        // Read graph.
         .def("computeReadGraphComponents",
             &Assembler::computeReadGraphComponents,
             arg("minFrequency"),
             arg("minComponentSize"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"))
+        .def("createLocalReadGraph",
+            (
+                void (Assembler::*)
+                (ReadId, Strand, size_t, size_t, size_t, size_t)
+            )
+            &Assembler::createLocalReadGraph,
+            arg("readId"),
+            arg("strand"),
+            arg("minFrequency"),
+            arg("minAlignedMarkerCount"),
+            arg("maxTrim"),
+            arg("distance"))
+
 
 
         // Alignments.

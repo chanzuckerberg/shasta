@@ -3,6 +3,8 @@
 
 #include "ReadId.hpp"
 
+#include "array.hpp"
+
 namespace ChanZuckerberg {
     namespace Nanopore2 {
         class Overlap;
