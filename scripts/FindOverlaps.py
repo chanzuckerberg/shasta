@@ -1,30 +1,33 @@
 #!/usr/bin/python3
 
 import Nanopore2
+import Nanopore2GetConfig
 import sys
 
 helpMessage="""
 This uses the MinHash method to find overlapping reads.
 
-Invoke with one argument, log2MinHashBucketCount.
-
-To avoid too many collisions, this should be greater
-than the base 2 log of the number of reads plus 3.
+Invoke without arguments.
 """
 
-if not len(sys.argv)==2:
+# Check that there are no arguments.
+if not len(sys.argv)==1:
     print(helpMessage)
     exit(1)
     
-log2MinHashBucketCount = int(sys.argv[1])    
+# Read the config file.
+config = Nanopore2GetConfig.getConfig()
 
+# Initialize the assembler and access what we need.
 a = Nanopore2.Assembler()
 a.accessKmers()
 a.accessMarkers()
+
+# Do the computation.
 a.findOverlaps(
-    m=5, 
-    minHashIterationCount=100, 
-    log2MinHashBucketCount=log2MinHashBucketCount,
-    maxBucketSize = 30,
-    minFrequency = 1)
+    m = int(config['MinHash']['m']), 
+    minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
+    log2MinHashBucketCount = int(config['MinHash']['log2MinHashBucketCount']),
+    maxBucketSize = int(config['MinHash']['maxBucketSize']),
+    minFrequency = int(config['MinHash']['minFrequency']))
 

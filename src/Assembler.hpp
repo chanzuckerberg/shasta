@@ -161,7 +161,7 @@ public:
         bool alignAllPairs,
         size_t alignmentMaxSkip,
         size_t alignmentMaxVertexCountPerKmer,
-        size_t minAlignmentLength,
+        size_t minAlignedMarkerCount,
         size_t minCoverage,
         size_t minConsensus);
     void createLocalMarkerGraph(
@@ -169,7 +169,7 @@ public:
         bool alignAllPairs,
         size_t alignmentMaxSkip,
         size_t alignmentMaxVertexCountPerKmer,
-        size_t minAlignmentLength,
+        size_t minAlignedMarkerCount,
         size_t minCoverage,
         size_t minConsensus);
 

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import Nanopore2
+import Nanopore2GetConfig
 import sys
 
 helpMessage = """
@@ -10,15 +11,19 @@ specified as (ReadId, Strand) pairs (Python tuples)..
 The (ReadId, Strand) pairs are read one per line from file 
 OrientedReads.txt.
 
-Invoke with one argument: the minimum coverage for a leaf to be kept.
+Invoke without arguments.
 """
 
-if not len(sys.argv) == 2:
+# Get the arguments.
+if not len(sys.argv) == 1:
     print(helpMessage)
     exit(1)
-minCoverage = int(sys.argv[1])
 
-# Read the oriented reads.
+# Read the config file.
+config = Nanopore2GetConfig.getConfig()
+
+# Read the oriented reads that will be used to create
+# the local marker graph.
 orientedReads = []
 for line in open('OrientedReads.txt', 'r'):
     tokens = line.split(' ')
@@ -32,19 +37,21 @@ for line in open('OrientedReads.txt', 'r'):
         exit(2)
     orientedReads.append((readId, strand))    
 
-
+# Initialize the assembler and access what we need.
 a = Nanopore2.Assembler()
 a.accessKmers()
 a.accessReadsReadOnly()
 a.accessMarkers()
+
+# Do the computation.
 a.createLocalMarkerGraph(
     readIdsAndStrands = orientedReads, 
     alignAllPairs = True,
-    alignmentMaxSkip = 30,
-    alignmentMaxVertexCountPerKmer = 100,
-    minAlignmentLength = 40,
-    minCoverage = minCoverage,
-    minConsensus = 3
+    alignmentMaxSkip = int(config['Align']['maxSkip']),
+    alignmentMaxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
+    minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
+    minCoverage = int(config['MarkerGraph']['minCoverage']),
+    minConsensus = int(config['MarkerGraph']['minConsensus'])
     )
 
 

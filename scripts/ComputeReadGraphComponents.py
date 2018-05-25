@@ -1,20 +1,25 @@
 #!/usr/bin/python3
 
 import Nanopore2
+import Nanopore2GetConfig
 import sys
+ 
+# Read the config file.
+config = Nanopore2GetConfig.getConfig()
 
-   
-
+# Initialize the assembler and access what we need.
 a = Nanopore2.Assembler()
 a.accessKmers()
 a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessOverlaps()
 a.accessAlignmentInfos()
+
+# Do the computation.
 a.computeReadGraphComponents(
-    minFrequency = 1,
-    minComponentSize = 100,
-    minAlignedMarkerCount = 40,
-    maxTrim = 200
+    minFrequency = int(config['MinHash']['minFrequency']),
+    minComponentSize = int(config['ReadGraph']['minComponentSize']),
+    minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
+    maxTrim = int(config['Align']['maxTrim'])
     )
 

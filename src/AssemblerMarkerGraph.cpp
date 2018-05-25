@@ -12,7 +12,7 @@ void Assembler::createLocalMarkerGraph(
     bool alignAllPairs,
     size_t alignmentMaxSkip,
     size_t alignmentMaxVertexCountPerKmer,
-    size_t minAlignmentLength,
+    size_t minAlignedMarkerCount,
     size_t minCoverage,
     size_t minConsensus)
 {
@@ -23,14 +23,14 @@ void Assembler::createLocalMarkerGraph(
     }
     createLocalMarkerGraph(orientedReadIds, alignAllPairs,
         alignmentMaxSkip, alignmentMaxVertexCountPerKmer,
-        minAlignmentLength, minCoverage, minConsensus);
+        minAlignedMarkerCount, minCoverage, minConsensus);
 }
 void Assembler::createLocalMarkerGraph(
     const vector<OrientedReadId>& orientedReadIds,
     bool alignAllPairs,
     size_t alignmentMaxSkip,
     size_t alignmentMaxVertexCountPerKmer,
-    size_t minAlignmentLength,
+    size_t minAlignedMarkerCount,
     size_t minCoverage,
     size_t minConsensus)
 {
@@ -105,7 +105,7 @@ void Assembler::createLocalMarkerGraph(
                     alignment);
 
                 // If the alignment is too short, skip.
-                if(alignment.ordinals.size() < minAlignmentLength) {
+                if(alignment.ordinals.size() < minAlignedMarkerCount) {
                     continue;
                 }
 

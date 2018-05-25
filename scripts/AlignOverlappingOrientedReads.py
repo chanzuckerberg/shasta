@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import Nanopore2
+import Nanopore2GetConfig
 import sys
 
 helpMessage = """
@@ -10,14 +11,17 @@ for which we have an Overlap.
 Invoke with two arguments: readId, strand.
 """
 
+# Get the arguments.
 if not len(sys.argv) == 3:
     print(helpMessage)
     exit(1)
-
 readId = int(sys.argv[1]);
 strand = int(sys.argv[2]);
 
+# Read the config file.
+config = Nanopore2GetConfig.getConfig()
 
+# Initialize the assembler and access what we need.
 a = Nanopore2.Assembler()
 a.accessKmers()
 a.accessReadsReadOnly()
@@ -25,11 +29,12 @@ a.accessReadNamesReadOnly()
 a.accessMarkers()
 a.accessOverlaps()
 
-
+# Compute the alignments.
 a.alignOverlappingOrientedReads(
     readId=readId, strand=strand,
-    maxSkip = 30,
-    maxVertexCountPerKmer = 100,
-    minAlignedMarkerCount = 40,
-    maxTrim = 200)
+    maxSkip = int(config['Align']['maxSkip']),
+    maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
+    minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
+    maxTrim = int(config['Align']['maxTrim'])
+    )
 

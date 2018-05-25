@@ -191,7 +191,7 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("alignAllPairs"),
             arg("alignmentMaxSkip"),
             arg("alignmentMaxVertexCountPerKmer"),
-            arg("minAlignmentLength"),
+            arg("minAlignedMarkerCount"),
             arg("minCoverage"),
             arg("minConsensus"))
 
