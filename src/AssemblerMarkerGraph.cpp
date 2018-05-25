@@ -167,3 +167,22 @@ void Assembler::createLocalMarkerGraph(
 #endif
 }
 
+
+
+// Create the local marker graph that corresponds to a local read graph
+// constructed starting at a given oriented read and extending out
+// up to a specified distance.
+void Assembler::createLocalMarkerGraph(
+    ReadId readId,
+    Strand strand,
+    size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+    size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+    size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+    size_t distance,                // How far to go from starting oriented read.
+    size_t alignmentMaxSkip,
+    size_t alignmentMaxVertexCountPerKmer,
+    size_t minCoverage,
+    size_t minConsensus)
+{
+    CZI_ASSERT(0);
+}

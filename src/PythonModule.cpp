@@ -180,7 +180,9 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("maxTrim")
             )
 
-        // Local marker graph for a set of oriented reads.
+
+
+        // Local marker graph.
         .def("createLocalMarkerGraph",
             (
                 void (Assembler::*)
@@ -194,6 +196,24 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("minAlignedMarkerCount"),
             arg("minCoverage"),
             arg("minConsensus"))
+        .def("createLocalMarkerGraph",
+            (
+                void (Assembler::*)
+                (ReadId, Strand, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t)
+            )
+            &Assembler::createLocalMarkerGraph,
+            arg("readId"),
+            arg("strand"),
+            arg("minFrequency"),
+            arg("minAlignedMarkerCount"),
+            arg("maxTrim"),
+            arg("distance"),
+            arg("alignmentMaxSkip"),
+            arg("alignmentMaxVertexCountPerKmer"),
+            arg("minCoverage"),
+            arg("minConsensus"))
+
+
 
         // Alignment infos.
         .def("computeAllAlignments",
