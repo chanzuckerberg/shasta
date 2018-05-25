@@ -164,14 +164,6 @@ public:
         size_t minAlignedMarkerCount,
         size_t minCoverage,
         size_t minConsensus);
-    void createLocalMarkerGraph(
-        const vector<OrientedReadId>&,
-        bool alignAllPairs,
-        size_t alignmentMaxSkip,
-        size_t alignmentMaxVertexCountPerKmer,
-        size_t minAlignedMarkerCount,
-        size_t minCoverage,
-        size_t minConsensus);
 
     // Compute an Alignment for each Overlap.
     // Only store the AlignmentInfo.
@@ -356,6 +348,15 @@ private:
     ComputeAllAlignmentsData computeAllAlignmentsData;
 
 
+    // Compute a local marker graph for a set of oriented reads.
+    void createLocalMarkerGraph(
+        const vector<OrientedReadId>&,
+        bool alignAllPairs,
+        size_t alignmentMaxSkip,
+        size_t alignmentMaxVertexCountPerKmer,
+        size_t minAlignedMarkerCount,
+        size_t minCoverage,
+        size_t minConsensus);
 
 };
 
