@@ -9,11 +9,14 @@ specified as (ReadId, Strand) pairs (Python tuples)..
 
 The (ReadId, Strand) pairs are read one per line from file 
 OrientedReads.txt.
+
+Invoke with one argument: the minimum coverage for a leaf to be kept.
 """
 
-if not len(sys.argv) == 1:
+if not len(sys.argv) == 2:
     print(helpMessage)
     exit(1)
+minCoverage = int(sys.argv[1])
 
 # Read the oriented reads.
 orientedReads = []
@@ -40,7 +43,7 @@ a.createLocalMarkerGraph(
     alignmentMaxSkip = 30,
     alignmentMaxVertexCountPerKmer = 100,
     minAlignmentLength = 40,
-    minCoverage = 3,
+    minCoverage = minCoverage,
     minConsensus = 3
     )
 
