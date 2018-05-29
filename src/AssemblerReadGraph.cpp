@@ -8,6 +8,7 @@ using namespace Nanopore2;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
+#include <boost/graph/iteration_macros.hpp>
 
 // Standard libraries.
 #include <queue>
@@ -172,7 +173,8 @@ void Assembler::computeReadGraphComponents(
 
 
 
-// Create a local read graph starting from a given oriented read.
+// Create a local read graph starting from a given oriented read
+// and walking out a given distance on the global read graph.
 void Assembler::createLocalReadGraph(
     ReadId readId,
     Strand strand,
@@ -187,7 +189,7 @@ void Assembler::createLocalReadGraph(
         distance);
 }
 void Assembler::createLocalReadGraph(
-    OrientedReadId orientedReadIdStart,
+    OrientedReadId orientedReadId,
     size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
@@ -203,20 +205,40 @@ void Assembler::createLocalReadGraph(
     checkAlignmentInfosAreOpen();
     CZI_ASSERT(overlaps.size() == alignmentInfos.size());
 
-    vector<Marker> markers0SortedByPosition;
-    vector<Marker> markers1SortedByPosition;
-
-    ofstream fasta("LocalReadGraph.fasta");
-    writeOrientedRead(orientedReadIdStart, fasta);
-
-    // Create the LocalReadGraph and add the starting vertex.
+    // Create the LocalReadGraph.
     LocalReadGraph graph;
+    createLocalReadGraph(orientedReadId,
+        minFrequency, minAlignedMarkerCount, maxTrim, maxDistance,
+        graph);
+
+    cout << "The local read graph has " << num_vertices(graph);
+    cout << " vertices and " << num_edges(graph) << " edges." << endl;
+    graph.write("LocalReadGraph.dot");
+    writeLocalReadGraphToFasta(graph, "LocalReadGraph.fasta");
+
+}
+
+
+
+// Create a local read graph starting from a given oriented read
+// and walking out a given distance on the global read graph.
+void Assembler::createLocalReadGraph(
+    OrientedReadId orientedReadIdStart,
+    size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+    size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+    size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+    size_t maxDistance,             // How far to go from starting oriented read.
+    LocalReadGraph& graph)
+{
+    // Add the starting vertex.
     graph.addVertex(orientedReadIdStart, 0);
 
     // Initialize a BFS starting at the start vertex.
     std::queue<OrientedReadId> q;
     q.push(orientedReadIdStart);
 
+    vector<Marker> markers0SortedByPosition;
+    vector<Marker> markers1SortedByPosition;
 
 
     // Do the BFS.
@@ -276,7 +298,6 @@ void Assembler::createLocalReadGraph(
             // we already reached the maximum distance.
             if(!graph.vertexExists(orientedReadId1)) {
                 graph.addVertex(orientedReadId1, distance1);
-                writeOrientedRead(orientedReadId1, fasta);
                 if(distance1 < maxDistance) {
                     q.push(orientedReadId1);
                 }
@@ -289,7 +310,18 @@ void Assembler::createLocalReadGraph(
 
     }
 
-    cout << "The local read graph has " << num_vertices(graph);
-    cout << " vertices and " << num_edges(graph) << " edges." << endl;
-    graph.write("LocalReadGraph.dot");
+}
+
+
+
+// Write in fasta format the sequences of the vertices of a local read graph.
+void Assembler::writeLocalReadGraphToFasta(
+    const LocalReadGraph& graph,
+    const string& fileName)
+{
+    ofstream fasta(fileName);
+    BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+        const OrientedReadId orientedReadId(graph[v].orientedReadId);
+        writeOrientedRead(orientedReadId, fasta);
+    }
 }

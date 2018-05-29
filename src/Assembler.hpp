@@ -25,6 +25,7 @@ namespace ChanZuckerberg {
         class Alignment;
         class AlignmentGraph;
         class AlignmentInfo;
+        class LocalReadGraph;
     }
 }
 
@@ -318,7 +319,8 @@ private:
         Alignment& alignment
     );
 
-    // Create a local read graph starting from a given oriented read.
+    // Create a local read graph starting from a given oriented read
+    // and walking out a given distance on the global read graph.
     void createLocalReadGraph(
         OrientedReadId,
         size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
@@ -326,6 +328,19 @@ private:
         size_t maxTrim,                 // Maximum left/right trim to generate an edge.
         size_t distance                 // How far to go from starting oriented read.
     );
+    void createLocalReadGraph(
+        OrientedReadId,
+        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
+        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
+        size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+        size_t distance,                // How far to go from starting oriented read.
+        LocalReadGraph&
+    );
+
+    // Write in fasta format the sequences of the vertices of a local read graph.
+    void writeLocalReadGraphToFasta(
+        const LocalReadGraph&,
+        const string& fileName);
 
     // Compute marker alignments of an oriented read with all reads
     // for which we have an Overlap.
