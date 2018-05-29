@@ -861,7 +861,39 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
     s << "[";
     s << "tooltip=" << n;
-    s << " style=filled fillcolor=pink";
+    s << " style=filled";
+
+
+
+    // Color.
+    if(addEdgeLabels) {
+        string color;
+        if(n == 1) {
+            color = "#ff0000";  // Red
+        } else if(n == 2) {
+            color = "#ff8000";  // Orange
+        } else if(n < graph.minCoverage) {
+            color = "#ff80ff";  // Purple
+        } else {
+            color = "#00ff00";  // Green
+        }
+        s << " fillcolor=\"" << color << "\"";
+    } else {
+        string color;
+        if(n == 1) {
+            color = "#ff000080";  // Red, half way transparent
+        } else if(n == 2) {
+            color = "#ff800080";  // Orange, half way transparent
+        } else if(n < graph.minCoverage) {
+            color = "#ff80ff80";  // Purple, half way transparent
+        } else {
+            color = "#00ff00";    // Green.
+        }
+        if(!color.empty()) {
+            s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
+        }
+    }
+
 
 
     // Write the label using Graphviz html-like functionality.
@@ -923,14 +955,31 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     s << "tooltip=\"" << consensus << "/" << edge.data.size() << "\" penwidth=" << consensus;
 
     // Color.
-    if(consensus < graph.minConsensus) {
-        s << " color=red";
+    string color;
+    if(addEdgeLabels) {
+        if(consensus == 1) {
+            color = "#ff0000";  // Red
+        } else if(consensus == 2) {
+            color = "#ff8000";  // Orange
+        } else if(consensus < graph.minCoverage) {
+            color = "#ff80ff";  // Purple
+        } else {
+            color = "#00ff00";  // Green
+        }
+        s << " fillcolor=\"" << color << "\"";
+    } else {
+        if(consensus == 1) {
+            color = "#ff000080";  // Red, half way transparent
+        } else if(consensus == 2) {
+            color = "#ff800080";  // Orange, half way transparent
+        } else if(consensus < graph.minCoverage) {
+            color = "#ff80ff80";  // Purple, half way transparent
+        } else {
+            color = "#00ff00";    // Green
+        }
     }
+    s << " color=\"" << color << "\"";
 
-    // Style (type of line used to draw the edge)
-    if(!edge.isInOptimalSpanningTree) {
-        s << " style=dashed";
-    }
 
 
     // Label.
@@ -939,7 +988,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << " label=<<font color=\"black\">";
         s << "<table";
         s << " color=\"black\"";
-        s << " bgcolor=\"cadetblue1\"";
+        s << " bgcolor=\"" << color << "\"";
         s << " border=\"0\"";
         s << " cellborder=\"1\"";
         s << " cellspacing=\"0\"";

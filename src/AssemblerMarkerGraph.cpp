@@ -195,14 +195,133 @@ void Assembler::createLocalMarkerGraph(
     CZI_ASSERT(overlaps.size() == alignmentInfos.size());
 
     // Create the local read graph.
-    LocalReadGraph graph;
+    LocalReadGraph localReadGraph;
     createLocalReadGraph(OrientedReadId(readId, strand),
         minFrequency, minAlignedMarkerCount, maxTrim, distance,
-        graph);
-    cout << "The local read graph has " << num_vertices(graph);
-    cout << " vertices and " << num_edges(graph) << " edges." << endl;
-    graph.write("LocalReadGraph.dot");
-    writeLocalReadGraphToFasta(graph, "LocalReadGraph.fasta");
+        localReadGraph);
+    const size_t orientedReadIdCount = num_vertices(localReadGraph);
+    cout << "The local read graph has " << num_vertices(localReadGraph);
+    cout << " vertices and " << num_edges(localReadGraph) << " edges." << endl;
+    localReadGraph.write("LocalReadGraph.dot");
+    writeLocalReadGraphToFasta(localReadGraph, "LocalReadGraph.fasta");
 
-    CZI_ASSERT(0);
+
+
+    // Gather the oriented read ids, sequences, and markers
+    // (sorted by position) of the oriented reads in the local read graph.
+    // These vectors are indexed by the local oriented read id,
+    // an index that runs from 0 through orientedReadIdCount (excluded).
+    vector<OrientedReadId> orientedReadIds(orientedReadIdCount);
+    vector<LongBaseSequence> sequences(orientedReadIdCount);
+    vector< vector<Marker> > markersInGraphSortedByPosition(orientedReadIdCount);
+    vector< vector<Marker> > markersInGraphSortedByKmerId(orientedReadIdCount);
+    std::map<OrientedReadId, uint32_t> orientedReadIdMap;    // Mapo global to local oriented read id.
+    uint32_t localOrientedReadId = 0;
+    BGL_FORALL_VERTICES(v, localReadGraph, LocalReadGraph) {
+
+        // Oriented read id.
+        const OrientedReadId orientedReadId = OrientedReadId(localReadGraph[v].orientedReadId);
+        orientedReadIds[localOrientedReadId] = orientedReadId;
+        orientedReadIdMap.insert(make_pair(orientedReadId, localOrientedReadId));
+
+        // Sequence.
+        sequences[localOrientedReadId] = reads[orientedReadId.getReadId()];
+        if(orientedReadId.getStrand() == 1) {
+            sequences[localOrientedReadId].reverseComplement();
+        }
+
+        // Markers sorted by position.
+        getMarkers(orientedReadId, markersInGraphSortedByPosition[localOrientedReadId]);
+
+        // Markers sorted by kmer id.
+        markersInGraphSortedByKmerId[localOrientedReadId] = markersInGraphSortedByPosition[localOrientedReadId];
+        sort(
+            markersInGraphSortedByKmerId[localOrientedReadId].begin(),
+            markersInGraphSortedByKmerId[localOrientedReadId].end(),
+            OrderMarkersByKmerId());
+
+        ++localOrientedReadId;
+    }
+
+
+
+    // Construct the initial local marker graph.
+    // The initial local marker graph has a linear chain corresponding
+    // to each oriented read.
+    LocalMarkerGraph localMarkerGraph(assemblerInfo->k,
+        orientedReadIds, sequences, markersInGraphSortedByPosition,
+        minCoverage, minConsensus);
+    cout << "The initial local marker graph has " << num_vertices(localMarkerGraph);
+    cout << " vertices and " << num_edges(localMarkerGraph) << " edges." << endl;
+
+
+
+    // Merge vertices of the marker graph corresponding to aligned markers.
+    // We loop over all edges of the local read graph.
+    // For each edge we compute the alignment between the two oriented read,
+    // then merge pairs of marker graph vertices corresponding to aligned markers.
+    Alignment alignment;
+    AlignmentInfo alignmentInfo;
+    AlignmentGraph alignmentGraph;
+    const bool alignDebug = false;
+    BGL_FORALL_EDGES(e, localReadGraph, LocalReadGraph) {
+        CZI_ASSERT(localReadGraph[e].overlap.minHashFrequency >= minFrequency);
+
+        // Get the global and local ids of the oriented reads to align.
+        const LocalReadGraph::vertex_descriptor v0 = source(e, localReadGraph);
+        const LocalReadGraph::vertex_descriptor v1 = target(e, localReadGraph);
+        const OrientedReadId orientedReadId0 = OrientedReadId(localReadGraph[v0].orientedReadId);
+        const OrientedReadId orientedReadId1 = OrientedReadId(localReadGraph[v1].orientedReadId);
+        const uint32_t localOrientedReadId0 = orientedReadIdMap[orientedReadId0];
+        const uint32_t localOrientedReadId1 = orientedReadIdMap[orientedReadId1];
+
+        // Compute the alignment.
+        align(
+            markersInGraphSortedByKmerId[localOrientedReadId0],
+            markersInGraphSortedByKmerId[localOrientedReadId1],
+            int(alignmentMaxSkip),
+            alignmentMaxVertexCountPerKmer,
+            alignmentGraph,
+            alignDebug,
+            alignment);
+        alignmentInfo.create(alignment);
+
+        // If the alignment has too few markers, skip it.
+        if(alignment.ordinals.size() < minAlignedMarkerCount) {
+            continue;
+        }
+
+        // If the alignment has too much trim, skip it.
+        uint32_t leftTrim;
+        uint32_t rightTrim;
+        tie(leftTrim, rightTrim) = computeTrim(
+            orientedReadId0,
+            orientedReadId1,
+            markersInGraphSortedByPosition[localOrientedReadId0],
+            markersInGraphSortedByPosition[localOrientedReadId1],
+            alignmentInfo);
+        if(leftTrim>maxTrim || rightTrim>maxTrim) {
+            continue;
+        }
+
+        // Merge aligned vertices.
+        for(const auto& ordinals: alignment.ordinals) {
+            localMarkerGraph.mergeVertices(
+                localOrientedReadId0, ordinals.first,
+                localOrientedReadId1, ordinals.second);
+        }
+    }
+
+    // Clean up the local marker graph.
+    localMarkerGraph.sortAndSplitAmbiguousVertices();
+    localMarkerGraph.fillEdgeData();
+    // localMarkerGraph.computeOptimalSpanningTree();
+    // localMarkerGraph.removeWeakNonSpanningTreeEdges();
+    localMarkerGraph.pruneWeakLeaves();
+
+    cout << "The local marker graph has " << num_vertices(localMarkerGraph);
+    cout << " vertices and " << num_edges(localMarkerGraph) << " edges." << endl;
+    localMarkerGraph.write("LocalMarkerGraph.dot", true);
+    localMarkerGraph.write("LocalMarkerGraphNoEdgeLabels.dot", false);
+
 }
