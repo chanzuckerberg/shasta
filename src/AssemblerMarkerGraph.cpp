@@ -1,6 +1,7 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "LocalMarkerGraph.hpp"
+#include "LocalReadGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
@@ -184,5 +185,24 @@ void Assembler::createLocalMarkerGraph(
     size_t minCoverage,
     size_t minConsensus)
 {
+    // Check that we have what we need.
+    checkReadsAreOpen();
+    checkReadNamesAreOpen();
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
+    checkOverlapsAreOpen();
+    checkAlignmentInfosAreOpen();
+    CZI_ASSERT(overlaps.size() == alignmentInfos.size());
+
+    // Create the local read graph.
+    LocalReadGraph graph;
+    createLocalReadGraph(OrientedReadId(readId, strand),
+        minFrequency, minAlignedMarkerCount, maxTrim, distance,
+        graph);
+    cout << "The local read graph has " << num_vertices(graph);
+    cout << " vertices and " << num_edges(graph) << " edges." << endl;
+    graph.write("LocalReadGraph.dot");
+    writeLocalReadGraphToFasta(graph, "LocalReadGraph.fasta");
+
     CZI_ASSERT(0);
 }

@@ -28,7 +28,10 @@ config = Nanopore2GetConfig.getConfig()
 a = Nanopore2.Assembler()
 a.accessKmers()
 a.accessReadsReadOnly()
+a.accessReadNamesReadOnly()
 a.accessMarkers()
+a.accessOverlaps()
+a.accessAlignmentInfos()
 
 
 
