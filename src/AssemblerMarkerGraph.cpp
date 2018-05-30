@@ -321,7 +321,7 @@ void Assembler::createLocalMarkerGraph(
 
     cout << "The local marker graph has " << num_vertices(localMarkerGraph);
     cout << " vertices and " << num_edges(localMarkerGraph) << " edges." << endl;
-    localMarkerGraph.write("LocalMarkerGraph.dot", true);
-    localMarkerGraph.write("LocalMarkerGraphNoEdgeLabels.dot", false);
+    localMarkerGraph.write("MarkerGraph.dot", false);
+    localMarkerGraph.write("DetailedMarkerGraph.dot", true);
 
 }

@@ -197,9 +197,27 @@ public:
     using Base = Nanopore2::Base;   // Override boost::graph definition.
     vector< pair<Base, int> > extractLongestSequence();
 
+
+
     // Write in Graphviz format.
-    void write(ostream&, bool addEdgeLabels) const;
-    void write(const string& fileName, bool addEdgeLabels) const;
+    // There are two types of Graphviz output:
+    // - Detailed: includes vertex and edge labels. Uses dot layout.
+    //   Because of dot layout performance limitations can
+    //   only be used for small subgraphs.
+    //   Use scripts/CreateLocalSubgraph.py to create a local subgraph
+    //   that includes all vertices within a given distance
+    //   from a chosen starting vertex.
+    // - Compact: no labels, vertices rendered as points,
+    //   uses sfdp layout. This is suitable for displaying the entire
+    //   graph, up to around 100000 vertices.
+    // Typical graphviz command for rendering:
+    // dot -O -T svg fileName -Gsize=200
+    // The graph contains a layout attribute, so this will invoke
+    // the correct layout algorithm automatically.
+    void write(ostream&, bool detailed) const;
+    void write(const string& fileName, bool detailed) const;
+
+
 
     // Check that the graph and the vertex map are consistent.
     void check();
@@ -289,12 +307,12 @@ private:
 
     class Writer {
     public:
-        Writer(const LocalMarkerGraph&, bool addEdgeLabels);
+        Writer(const LocalMarkerGraph&, bool detailed);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalMarkerGraph& graph;
-        bool addEdgeLabels;
+        bool detailed;
     };
     friend class Writer;
 };

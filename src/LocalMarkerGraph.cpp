@@ -823,24 +823,24 @@ vector<pair<Nanopore2::Base, int> > LocalMarkerGraph::getPathSequence(
 
 
 // Write the graph in Graphviz format.
-void LocalMarkerGraph::write(const string& fileName, bool addEdgeLabels) const
+void LocalMarkerGraph::write(const string& fileName, bool detailed) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, addEdgeLabels);
+    write(outputFileStream, detailed);
 }
-void LocalMarkerGraph::write(ostream& s, bool addEdgeLabels) const
+void LocalMarkerGraph::write(ostream& s, bool detailed) const
 {
-    Writer writer(*this, addEdgeLabels);
+    Writer writer(*this, detailed);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
 
-LocalMarkerGraph::Writer::Writer(const LocalMarkerGraph& graph, bool addEdgeLabels) :
+LocalMarkerGraph::Writer::Writer(const LocalMarkerGraph& graph, bool detailed) :
     graph(graph),
-    addEdgeLabels(addEdgeLabels)
+    detailed(detailed)
 {
 }
 
@@ -848,52 +848,84 @@ LocalMarkerGraph::Writer::Writer(const LocalMarkerGraph& graph, bool addEdgeLabe
 
 void LocalMarkerGraph::Writer::operator()(std::ostream& s) const
 {
-    s << "node [fontname = \"Courier New\" shape=rectangle];";
-    s << "edge [fontname = \"Courier New\"];";
+    if(detailed) {
+        s << "layout=dot;\n";
+        s << "ratio=expand;\n";
+        s << "node [fontname = \"Courier New\" shape=rectangle];\n";
+        s << "edge [fontname = \"Courier New\"];\n";
+    } else {
+        s << "layout=sfdp;\n";
+        s << "ratio=expand;\n";
+        s << "node [shape=point];\n";
+    }
 }
 
 
 void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
     const LocalMarkerGraphVertex& vertex = graph[v];
-    const auto n = vertex.markerIds.size();
-    const Kmer kmer(vertex.kmerId, graph.k);
-
-    s << "[";
-    s << "tooltip=" << n;
-    s << " style=filled";
+    const auto coverage = vertex.markerIds.size();
 
 
 
-    // Color.
-    if(addEdgeLabels) {
+    // For compact output, the node shape is already defaulted to point,
+    // and we don't write a label. The tooltip contains the vertex id,
+    // which can be used to create a local subgraph to be looked at
+    // in detailed format (use scripts/CreateLocalSubgraph.py).
+    if(!detailed) {
+
+        // Begin vertex attributes.
+        s << "[";
+
+        // Tooltip.
+        s << "tooltip=\"" << coverage << " " << vertex.vertexId << "\"";
+
         string color;
-        if(n == 1) {
-            color = "#ff0000";  // Red
-        } else if(n == 2) {
-            color = "#ff8000";  // Orange
-        } else if(n < graph.minCoverage) {
-            color = "#ff80ff";  // Purple
-        } else {
-            color = "#00ff00";  // Green
-        }
-        s << " fillcolor=\"" << color << "\"";
-    } else {
-        string color;
-        if(n == 1) {
+        if(coverage == 1) {
             color = "#ff000080";  // Red, half way transparent
-        } else if(n == 2) {
+        } else if(coverage == 2) {
             color = "#ff800080";  // Orange, half way transparent
-        } else if(n < graph.minCoverage) {
+        } else if(coverage < graph.minCoverage) {
             color = "#ff80ff80";  // Purple, half way transparent
-        } else {
-            color = "#00ff00";    // Green.
         }
         if(!color.empty()) {
             s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
         }
+
+        // Vertex size.
+        s << " width=\"";
+        const auto oldPrecision = s.precision(4);
+        s << 0.05 * sqrt(double(coverage));
+        s.precision(oldPrecision);
+        s << "\"";
+
+        // End vertex attributes.
+        s << "]";
+        return;
     }
 
+
+
+    // If getting here, we are doing detailed output.
+    const Kmer kmer(vertex.kmerId, graph.k);
+
+    // Begin vertex attributes.
+    s << "[";
+
+
+    // Color.
+    string color;
+    if(coverage == 1) {
+        color = "#ff0000";  // Red
+    } else if(coverage == 2) {
+        color = "#ff8000";  // Orange
+    } else if(coverage < graph.minCoverage) {
+        color = "#ff80ff";  // Purple
+    } else {
+        color = "#00ff00";  // Green
+    }
+    s << " style=filled";
+    s << " fillcolor=\"" << color << "\"";
 
 
     // Write the label using Graphviz html-like functionality.
@@ -930,6 +962,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
     }
     s << "</table></font>>";
 
+    // End vertex attributes.
     s << "]";
 }
 
@@ -939,83 +972,103 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 {
     const LocalMarkerGraphEdge& edge = graph[e];
 
-    // Get the sequence strings.
-    std::map<string, vector<LocalMarkerGraphEdge::Data> > sequenceMap;
-    for(const auto& data: edge.data) {
-        sequenceMap[graph.getSequence(data)].push_back(data);
-    }
-
     // Find the maximum number of oriented reads that agree.
     const size_t consensus = graph.edgeConsensus(e);
 
-    // Begin edge attributes.
-    s << "[";
 
-    // Tooltip.
-    s << "tooltip=\"" << consensus << "/" << edge.data.size() << "\" penwidth=" << consensus;
+    // Compact output.
+    if(!detailed) {
+        // Begin edge attributes.
+        s << "[";
 
-    // Color.
-    string color;
-    if(addEdgeLabels) {
-        if(consensus == 1) {
-            color = "#ff0000";  // Red
-        } else if(consensus == 2) {
-            color = "#ff8000";  // Orange
-        } else if(consensus < graph.minCoverage) {
-            color = "#ff80ff";  // Purple
-        } else {
-            color = "#00ff00";  // Green
-        }
-        s << " fillcolor=\"" << color << "\"";
-    } else {
+        s << "tooltip=\"" << consensus << "/" << edge.data.size() << "\"";
+
+        s << " penwidth=";
+        const auto oldPrecision = s.precision(4);
+        s <<  0.5 * double(consensus);
+        s.precision(oldPrecision);
+
+        // Color.
+        string color;
         if(consensus == 1) {
             color = "#ff000080";  // Red, half way transparent
         } else if(consensus == 2) {
             color = "#ff800080";  // Orange, half way transparent
         } else if(consensus < graph.minCoverage) {
             color = "#ff80ff80";  // Purple, half way transparent
-        } else {
-            color = "#00ff00";    // Green
         }
+        if(!color.empty()) {
+            s << " color=\"" << color << "\"";
+        }
+
+        // End edge attributes.
+        s << "]";
+        return;
     }
+
+
+
+    // If getting here, we are doing detailed output.
+
+    // Get the sequence strings.
+    std::map<string, vector<LocalMarkerGraphEdge::Data> > sequenceMap;
+    for(const auto& data: edge.data) {
+        sequenceMap[graph.getSequence(data)].push_back(data);
+    }
+
+
+    // Begin edge attributes.
+    s << "[";
+
+    // Tooltip.
+    s << "tooltip=\"" << consensus << "/" << edge.data.size() << "\"";
+    s << " penwidth=" << consensus;
+
+    // Color.
+    string color;
+    if(consensus == 1) {
+        color = "#ff0000";  // Red
+    } else if(consensus == 2) {
+        color = "#ff8000";  // Orange
+    } else if(consensus < graph.minCoverage) {
+        color = "#ff80ff";  // Purple
+    }
+    string fillColor = color;
+    if(fillColor.empty()) {
+        fillColor = "#00ff00";  // Green
+    }
+    s << " fillcolor=\"" << fillColor << "\"";
     s << " color=\"" << color << "\"";
 
 
-
     // Label.
-    if(addEdgeLabels) {
+    s << " label=<<font color=\"black\">";
+    s << "<table";
+    s << " color=\"black\"";
+    s << " bgcolor=\"" << fillColor << "\"";
+    s << " border=\"0\"";
+    s << " cellborder=\"1\"";
+    s << " cellspacing=\"0\"";
+    s << ">";
 
-        s << " label=<<font color=\"black\">";
-        s << "<table";
-        s << " color=\"black\"";
-        s << " bgcolor=\"" << color << "\"";
-        s << " border=\"0\"";
-        s << " cellborder=\"1\"";
-        s << " cellspacing=\"0\"";
-        s << ">";
-
-        for(const auto& p: sequenceMap) {
-            const string& sequenceString = p.first;
-            const auto& data = p.second;
-            for(auto it=data.begin(); it!=data.end(); ++it) {
-                s << "<tr><td align=\"right\"><b>" << graph.orientedReadIds[it->localOrientedReadId] << "</b></td>";
-                s << "<td align=\"right\"><b>" << it->shift() << "</b></td>";
-                if(it!=data.begin()) {
-                    s << "<td><b>";
-                    s << "=";
-                } else {
-                    s << "<td align=\"left\"><b>";
-                    s << sequenceString;
-                }
-                s << "</b></td></tr>";
+    for(const auto& p: sequenceMap) {
+        const string& sequenceString = p.first;
+        const auto& data = p.second;
+        for(auto it=data.begin(); it!=data.end(); ++it) {
+            s << "<tr><td align=\"right\"><b>" << graph.orientedReadIds[it->localOrientedReadId] << "</b></td>";
+            s << "<td align=\"right\"><b>" << it->shift() << "</b></td>";
+            if(it!=data.begin()) {
+                s << "<td><b>";
+                s << "=";
+            } else {
+                s << "<td align=\"left\"><b>";
+                s << sequenceString;
             }
-
+            s << "</b></td></tr>";
         }
 
-        s << "</table></font>> decorate=true";
-
     }
-
+    s << "</table></font>> decorate=true";
 
 
     // End edge attributes.
