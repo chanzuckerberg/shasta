@@ -881,7 +881,9 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         s << "tooltip=\"" << coverage << " " << vertex.vertexId << "\"";
 
         string color;
-        if(coverage == 1) {
+        if(coverage >= graph.minCoverage) {
+            color = "black";
+        } else if(coverage == 1) {
             color = "#ff000080";  // Red, half way transparent
         } else if(coverage == 2) {
             color = "#ff800080";  // Orange, half way transparent
@@ -915,14 +917,14 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
     // Color.
     string color;
-    if(coverage == 1) {
+    if(coverage >= graph.minCoverage) {
+        color = "green";
+    } else if(coverage == 1) {
         color = "#ff0000";  // Red
     } else if(coverage == 2) {
         color = "#ff8000";  // Orange
-    } else if(coverage < graph.minCoverage) {
-        color = "#ff80ff";  // Purple
     } else {
-        color = "#00ff00";  // Green
+        color = "#ff80ff";  // Purple
     }
     s << " style=filled";
     s << " fillcolor=\"" << color << "\"";
@@ -990,16 +992,16 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
         // Color.
         string color;
-        if(consensus == 1) {
+        if(consensus >= graph.minConsensus) {
+            color = "black";
+        } else if(consensus == 1) {
             color = "#ff000080";  // Red, half way transparent
         } else if(consensus == 2) {
             color = "#ff800080";  // Orange, half way transparent
-        } else if(consensus < graph.minCoverage) {
+        } else {
             color = "#ff80ff80";  // Purple, half way transparent
         }
-        if(!color.empty()) {
-            s << " color=\"" << color << "\"";
-        }
+        s << " color=\"" << color << "\"";
 
         // End edge attributes.
         s << "]";
@@ -1026,16 +1028,19 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
     // Color.
     string color;
-    if(consensus == 1) {
-        color = "#ff0000";  // Red
+    string fillColor;
+    if(consensus >= graph.minConsensus) {
+        color = "black";
+        fillColor = "green";
+    } else if(consensus == 1) {
+        color = "red";
+        fillColor = color;
     } else if(consensus == 2) {
         color = "#ff8000";  // Orange
-    } else if(consensus < graph.minCoverage) {
+        fillColor = color;
+    } else {
         color = "#ff80ff";  // Purple
-    }
-    string fillColor = color;
-    if(fillColor.empty()) {
-        fillColor = "#00ff00";  // Green
+        fillColor = color;
     }
     s << " fillcolor=\"" << fillColor << "\"";
     s << " color=\"" << color << "\"";

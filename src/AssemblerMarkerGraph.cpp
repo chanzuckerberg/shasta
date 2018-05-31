@@ -107,6 +107,8 @@ void Assembler::createLocalMarkerGraph(
 
                 // If the alignment is too short, skip.
                 if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                    cout << "Alignment of " << orientedReadIds[i0] << " " << orientedReadIds[i1];
+                    cout << " of length " << alignment.ordinals.size() << " skipped. " << endl;
                     continue;
                 }
 
@@ -144,8 +146,8 @@ void Assembler::createLocalMarkerGraph(
         cout << "The local marker graph graph  has ";
         cout << boost::num_vertices(graph) << " vertices and ";
         cout << boost::num_edges(graph) << " edges." << endl;
-        const bool addEdgeLabels = true;
-        graph.write("LocalMarkerGraph.dot", addEdgeLabels);
+        graph.write("MarkerGraph.dot", false);
+        graph.write("DetailedMarkerGraph.dot", true);
     }
 
 #if 0
