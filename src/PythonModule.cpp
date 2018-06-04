@@ -253,7 +253,12 @@ PYBIND11_MODULE(Nanopore2, module)
         testCompactUndirectedGraph1
         );
     module.def("dset64Test",
-        dset64Test
+        dset64Test,
+        arg("n"),
+        arg("m"),
+        arg("threadCount"),
+        arg("batchSize"),
+        arg("seed")
         );
     module.def("mappedCopy",
         mappedCopy
