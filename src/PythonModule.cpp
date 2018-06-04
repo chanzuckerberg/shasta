@@ -3,6 +3,7 @@
 #include "Assembler.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
+#include "dset64Test.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
 #include "MultitreadedObject.hpp"
@@ -250,6 +251,9 @@ PYBIND11_MODULE(Nanopore2, module)
         );
     module.def("testCompactUndirectedGraph2",
         testCompactUndirectedGraph1
+        );
+    module.def("dset64Test",
+        dset64Test
         );
     module.def("mappedCopy",
         mappedCopy

@@ -9,6 +9,11 @@ add_definitions(-ggdb3)
 add_definitions(-O3 -msse4.2)
 add_definitions(-Wall -Wconversion -Wno-unused-result)
 
+# This is required by dset64.hpp.
+# It allows std::atomic<__uint128_t>::is_lock_free()
+# to return true.
+add_definitions(-mcx16)
+
 # Define our shared library.
 file(GLOB SOURCES *.cpp)
 add_library(Nanopore2 SHARED ${SOURCES})
