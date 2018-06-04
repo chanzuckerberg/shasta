@@ -2,7 +2,7 @@
 
 De novo assembly from Nanopore sequencing data.
 This repository is at an early stage and
-o additional documentation is available.
+no additional documentation is available.
 
 
 ### Acknowledgment
