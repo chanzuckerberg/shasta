@@ -366,6 +366,7 @@ private:
         const AlignmentInfo&);
 
     // The AlignmentInfo corresponding to each overlap.
+    // These are computed with the first oriented read on strand 0.
     MemoryMapped::Vector<AlignmentInfo> alignmentInfos;
     void checkAlignmentInfosAreOpen();
     void computeAllAlignmentsThreadFunction(size_t threadId);
@@ -375,6 +376,7 @@ private:
         size_t maxVertexCountPerKmer;
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
+
 
 
     // Compute a local marker graph for a set of oriented reads.

@@ -66,8 +66,8 @@ void Assembler::computeReadGraphComponents(
 
         // Compute the left and right trim (bases excluded from
         // the alignment).
-        const OrientedReadId orientedReadId0 = overlap.orientedReadIds[0];
-        const OrientedReadId orientedReadId1 = overlap.orientedReadIds[1];
+        OrientedReadId orientedReadId0(overlap.readIds[0], 0);
+        OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
         getMarkers(orientedReadId0, markers0SortedByPosition);
         getMarkers(orientedReadId1, markers1SortedByPosition);
         uint32_t leftTrim;
@@ -87,8 +87,13 @@ void Assembler::computeReadGraphComponents(
         // Join the connected components that these two
         // oriented reas belong to.
         disjointSets.union_set(
-            overlap.orientedReadIds[0].getValue(),
-            overlap.orientedReadIds[1].getValue());
+            orientedReadId0.getValue(),
+            orientedReadId1.getValue());
+        orientedReadId0.switchStrand();
+        orientedReadId1.switchStrand();
+        disjointSets.union_set(
+            orientedReadId0.getValue(),
+            orientedReadId1.getValue());
     }
 
 
@@ -249,41 +254,36 @@ void Assembler::createLocalReadGraph(
         q.pop();
         const size_t distance0 = graph.getDistance(orientedReadId0);
         const size_t distance1 = distance0 + 1;
-        getMarkers(orientedReadId0, markers0SortedByPosition);
 
         // Loop over overlaps/alignments involving this vertex.
         for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
             CZI_ASSERT(i < overlaps.size());
             const Overlap& overlap = overlaps[i];
-            AlignmentInfo alignmentInfo = alignmentInfos[i];
 
-            // Get the other oriented read involved in this overlap.
-            OrientedReadId orientedReadId1;
-            if(overlap.orientedReadIds[0] == orientedReadId0) {
-                orientedReadId1 = overlap.orientedReadIds[1];
-            } else if(overlap.orientedReadIds[1] == orientedReadId0) {
-                orientedReadId1 = overlap.orientedReadIds[0];
-                // The following swaps are necessary for the computation
-                // of left and right trim below.
-                swap(alignmentInfo.firstOrdinals.first, alignmentInfo.firstOrdinals.second);
-                swap(alignmentInfo.lastOrdinals.first, alignmentInfo.lastOrdinals.second);
-            } else {
-                CZI_ASSERT(0);
-            }
-
-            // If the overlap or the alignment don't satisfy our criteria, skip.
+            // If the overlap was found by too few minHash iterations, skip.
             if(overlap.minHashFrequency < minFrequency) {
                 continue;
             }
+
+
+            // If the alignment involves too few markers, skip.
+            const AlignmentInfo& alignmentInfo = alignmentInfos[i];
             if(alignmentInfo.markerCount < minAlignedMarkerCount) {
                 continue;
             }
-            getMarkers(orientedReadId1, markers1SortedByPosition);
+
+            // To compute the trim, keep into account the fact
+            // that the stored AlignmentInfo was computed for
+            // the ReadId's stored in the Overlap, with the first one on strand 0.
+            const OrientedReadId overlapOrientedReadId0(overlap.readIds[0], 0);
+            const OrientedReadId overlapOrientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
+            getMarkers(overlapOrientedReadId0, markers0SortedByPosition);
+            getMarkers(overlapOrientedReadId1, markers1SortedByPosition);
             uint32_t leftTrim;
             uint32_t rightTrim;
             tie(leftTrim, rightTrim) = computeTrim(
-                orientedReadId0,
-                orientedReadId1,
+                overlapOrientedReadId0,
+                overlapOrientedReadId1,
                 markers0SortedByPosition,
                 markers1SortedByPosition,
                 alignmentInfo);
@@ -292,6 +292,8 @@ void Assembler::createLocalReadGraph(
             }
 
             // The overlap and the alignment satisfy our criteria.
+            // Get the other oriented read involved in this overlap.
+            const OrientedReadId orientedReadId1 = overlap.getOther(orientedReadId0);
 
             // Add the vertex for orientedReadId1, if necessary.
             // Also add orientedReadId1 to the queue, unless

@@ -51,6 +51,11 @@ public:
         return value & 1;
     }
 
+    void switchStrand()
+    {
+        value ^= Int(1);
+    }
+
     // Return the integer value, which can be used as an index intoi Assembler::orientedReadIds.
     ReadId getValue() const
     {

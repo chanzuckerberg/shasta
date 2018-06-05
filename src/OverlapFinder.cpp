@@ -160,12 +160,7 @@ OverlapFinder::OverlapFinder(
             if(candidate.frequency >= minFrequency) {
                 const ReadId readId1 = candidate.readId1;
                 CZI_ASSERT(readId0 < readId1);
-                for(Strand strand0=0; strand0<2; strand0++) {
-                    const Strand strand1 = candidate.isSameStrand ? strand0 : (1-strand0);
-                    const OrientedReadId orientedReadId0(readId0, strand0);
-                    const OrientedReadId orientedReadId1(readId1, strand1);
-                    overlaps.push_back(Overlap(orientedReadId0, orientedReadId1, candidate.frequency));
-                }
+                    overlaps.push_back(Overlap(readId0, readId1, candidate.isSameStrand, candidate.frequency));
             }
         }
     }
@@ -174,28 +169,41 @@ OverlapFinder::OverlapFinder(
     cout << (2.* double(overlaps.size())) / double(orientedReadCount)  << endl;
 
 
+
     // Create the overlap table.
+    // It contains indexes of the overlaps that each OrientedReadId
+    // is involved in.
     cout << timestamp << "Creating overlap table." << endl;
     overlapTable.beginPass1(orientedReadCount);
     for(const Overlap& overlap: overlaps) {
-        CZI_ASSERT(overlap.orientedReadIds[0].getValue() < orientedReadCount);
-        CZI_ASSERT(overlap.orientedReadIds[1].getValue() < orientedReadCount);
-        overlapTable.incrementCount(overlap.orientedReadIds[0].getValue());
-        overlapTable.incrementCount(overlap.orientedReadIds[1].getValue());
+        OrientedReadId orientedReadId0(overlap.readIds[0], 0);
+        OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
+        overlapTable.incrementCount(orientedReadId0.getValue());
+        overlapTable.incrementCount(orientedReadId1.getValue());
+        orientedReadId0.switchStrand();
+        orientedReadId1.switchStrand();
+        overlapTable.incrementCount(orientedReadId0.getValue());
+        overlapTable.incrementCount(orientedReadId1.getValue());
     }
     overlapTable.beginPass2();
     if(overlaps.size() > 0) {
         for(size_t i=overlaps.size()-1; ; i--) {
             const Overlap& overlap = overlaps[i];
-            overlapTable.store(overlap.orientedReadIds[0].getValue(), i);
-            overlapTable.store(overlap.orientedReadIds[1].getValue(), i);
+            OrientedReadId orientedReadId0(overlap.readIds[0], 0);
+            OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
+            overlapTable.store(orientedReadId0.getValue(), i);
+            overlapTable.store(orientedReadId1.getValue(), i);
+            orientedReadId0.switchStrand();
+            orientedReadId1.switchStrand();
+            overlapTable.store(orientedReadId0.getValue(), i);
+            overlapTable.store(orientedReadId1.getValue(), i);
             if(i==0) {
                 break;
             }
         }
     }
     overlapTable.endPass2();
-    CZI_ASSERT(overlapTable.totalSize() == 2*overlaps.size());
+    CZI_ASSERT(overlapTable.totalSize() == 4*overlaps.size());
 
 
 

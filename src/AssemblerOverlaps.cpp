@@ -90,14 +90,7 @@ void Assembler::writeOverlappingReads(
         const Overlap& overlap = overlaps[i];
 
         // Get the other oriented read involved in this overlap.
-        OrientedReadId orientedReadId1;
-        if(overlap.orientedReadIds[0] == orientedReadId0) {
-            orientedReadId1 = overlap.orientedReadIds[1];
-        } else if(overlap.orientedReadIds[1] == orientedReadId0) {
-            orientedReadId1 = overlap.orientedReadIds[0];
-        } else {
-            CZI_ASSERT(0);
-        }
+        const OrientedReadId orientedReadId1 = overlap.getOther(orientedReadId0);
 
         // Write it out.
         const uint64_t length1 = reads[orientedReadId1.getReadId()].baseCount;

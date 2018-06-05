@@ -164,15 +164,7 @@ void Assembler::alignOverlappingOrientedReads(
         const Overlap& overlap = overlaps[i];
 
         // Get the other oriented read involved in this overlap.
-        OrientedReadId orientedReadId1;
-        if(overlap.orientedReadIds[0] == orientedReadId0) {
-            orientedReadId1 = overlap.orientedReadIds[1];
-        } else if(overlap.orientedReadIds[1] == orientedReadId0) {
-            orientedReadId1 = overlap.orientedReadIds[0];
-        } else {
-            CZI_ASSERT(0);
-        }
-
+        const OrientedReadId orientedReadId1 = overlap.getOther(orientedReadId0);
 
         // Get the markers for orientedReadId1.
         getMarkers(orientedReadId1, markers1SortedByPosition);
@@ -318,7 +310,9 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
         for(size_t i=begin; i!=end; i++) {
             const Overlap& overlap = overlaps[i];
             AlignmentInfo& alignmentInfo = alignmentInfos[i];
-            orientedReadIds = overlap.orientedReadIds;
+
+            orientedReadIds[0] = OrientedReadId(overlap.readIds[0], 0);
+            orientedReadIds[1] = OrientedReadId(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
 
             // out << timestamp << "Working on " << i << " " << orientedReadIds[0] << " " << orientedReadIds[1] << endl;
 
