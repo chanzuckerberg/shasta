@@ -24,7 +24,7 @@ for more information on the sequential version of the algorithm.
 The original implementation by Wenzel Jacob uses 64-bit
 atomic primitives, and implements the union-find 
 algorithm for 32-bit item ids, which allows up to 
-2^32^ items. The modified version in src/dset64.hpp
+2<sup>32</sup> items. The modified version in src/dset64.hpp
 uses 128-bit primitives for 64-bit item ids,
 which brings the maximum number of items to 2^64^.
 
