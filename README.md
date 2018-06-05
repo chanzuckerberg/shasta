@@ -26,7 +26,7 @@ atomic primitives, and implements the union-find
 algorithm for 32-bit item ids, which allows up to 
 2<sup>32</sup> items. The modified version in src/dset64.hpp
 uses 128-bit primitives for 64-bit item ids,
-which brings the maximum number of items to 2^64^.
+which brings the maximum number of items to 2<sup>64</sup>.
 
 Many thanks to Wenzel Jacob for making his implementation
 available as open source software, and for providing 
