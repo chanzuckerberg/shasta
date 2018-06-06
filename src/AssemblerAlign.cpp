@@ -285,9 +285,13 @@ void Assembler::computeAllAlignments(
     checkMarkersAreOpen();
     checkOverlapsAreOpen();
 
-    // Store alignment parameters so they are accessible to the threads.
-    computeAllAlignmentsData.maxSkip = maxSkip;
-    computeAllAlignmentsData.maxVertexCountPerKmer = alignmentMaxVertexCountPerKmer;
+    // Store parameters so they are accessible to the threads.
+    auto& data = computeAllAlignmentsData;
+    data.maxSkip = maxSkip;
+    data.maxVertexCountPerKmer = alignmentMaxVertexCountPerKmer;
+    data.minAlignedMarkerCount = minAlignedMarkerCount;
+    data.maxTrim = maxTrim;
+    data.computeGlobalMarkerGraph = computeGlobalMarkerGraph;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -299,15 +303,146 @@ void Assembler::computeAllAlignments(
     alignmentInfos.createNew(largeDataName("AlignmentInfos"), largeDataPageSize);
     alignmentInfos.resize(overlaps.size());
 
+    // If requested, initialize computation of the global marker graph.
+    if(computeGlobalMarkerGraph) {
+        data.orientedMarkerCount = 2 * markers.totalSize();
+        data.disjointSetsData.createNew(
+            largeDataName("tmp-DisjointSetData"),
+            largeDataPageSize);
+        data.disjointSetsData.resize(data.orientedMarkerCount);
+        data.disjointSetsPointer = std::make_shared<DisjointSets>(
+            data.disjointSetsData.begin(),
+            data.orientedMarkerCount
+            );
+    }
+
     // Do the computation.
     const size_t batchSize = 10000;
     setupLoadBalancing(overlaps.size(), batchSize);
     runThreads(&Assembler::computeAllAlignmentsThreadFunction,
         threadCount, "threadLogs/computeAllAlignments");
+    cout << timestamp << "Multithreaded portion completed." << endl;
+
+
+
+
+    // Use the disjiont sets to find the vertex of the global
+    // marker graph that each oriented marker belongs to.
+    if(computeGlobalMarkerGraph) {
+
+        // Compute the global marker graph vertex corresponding
+        // to each global OrientedMarkerId.
+        globalMarkerGraphVertex.createNew(
+            largeDataName("GlobalMarkerGraphVertex"),
+            largeDataPageSize);
+        globalMarkerGraphVertex.resize(2 * markers.totalSize());
+        DisjointSets& disjointSets = *data.disjointSetsPointer;
+        for(MarkerId i=0; i<globalMarkerGraphVertex.size(); i++) {
+            globalMarkerGraphVertex[i] = disjointSets.find(i);
+        }
+
+        // Clean up.
+        data.disjointSetsPointer = 0;
+        data.disjointSetsData.remove();
+
+
+
+        // Now we want to replace the vertices with contiguous ids
+        // beginning at 0 and sorted by decreasing size.
+
+        // First, we have to count the number of oriented markers for each
+        // vertex, with the current numbering.
+        MemoryMapped::Vector<MarkerId> count;
+        count.createNew(
+            largeDataName("tmp-Count"),
+            largeDataPageSize);
+        count.resize(globalMarkerGraphVertex.size());
+        for(const auto i: globalMarkerGraphVertex) {
+            ++count[i];
+        }
+
+        // Gather the ones with non-zero count.
+        MemoryMapped::Vector< pair<MarkerId, MarkerId> > countTable;
+        countTable.createNew(
+            largeDataName("tmp-CountTable"),
+            largeDataPageSize);
+        for(MarkerId i=0; i<count.size(); i++) {
+            const MarkerId n = count[i];
+            if(n > 0) {
+                countTable.push_back(make_pair(i, n));
+            }
+        }
+        sort(countTable.begin(), countTable.end(),
+            OrderPairsBySecondGreaterThenByFirstLess<MarkerId, MarkerId>());
+        cout << "The global marker graph has " << countTable.size();
+        cout << " vertices  for " << count.size() << " oriented markers." << endl;
+
+        // Now we can remove the count vector.
+        count.remove();
+
+        // Create a histogram of number of markers per vertex.
+        vector<uint64_t> histogram(countTable.front().second + 1, 0ULL);
+        for(const auto& p: countTable) {
+            ++histogram[p.second];
+        }
+        ofstream csv("GlobalMarkerGraphHistogram.csv");
+        csv << "MarkerCount,Frequency\n";
+        for(size_t i=0; i<histogram.size(); i++) {
+            const auto n = histogram[i];
+            if(n) {
+                csv << i << "," << n << "\n";
+            }
+        }
+
+        // In the count table, replace the count by the rank,
+        // (the rank becomes the new vertex id),
+        // then sort by first (the old vertex id).
+        for(MarkerId i=0; i<countTable.size(); i++) {
+            countTable[i].second = i;
+        }
+        sort(countTable.begin(), countTable.end(),
+            OrderPairsByFirstOnly<MarkerId, MarkerId>());
+
+        // Redefine globalMarkerGraphVertex using this count table.
+        for(MarkerId& v: globalMarkerGraphVertex) {
+            const auto it = std::lower_bound(countTable.begin(), countTable.end(),
+                make_pair(v, 0),
+                OrderPairsByFirstOnly<MarkerId, MarkerId>());
+                CZI_ASSERT(it != countTable.end());
+                CZI_ASSERT(it->first == v);
+                v = it->second;
+        }
+        const MarkerId vertexCount = countTable.size();
+        countTable.remove();
+
+        // Gather the oriented marker ids of each vertex of the global marker graph.
+        globalMarkerGraphVertices.createNew(
+            largeDataName("globalMarkerGraphVertices"),
+            largeDataPageSize);
+        globalMarkerGraphVertices.beginPass1(vertexCount);
+        for(const MarkerId& v: globalMarkerGraphVertex) {
+            globalMarkerGraphVertices.incrementCount(v);
+        }
+        globalMarkerGraphVertices.beginPass2();
+        for(MarkerId i=0; i<globalMarkerGraphVertex.size(); i++) {
+            globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], OrientedMarkerId(i));
+        }
+        globalMarkerGraphVertices.endPass2();
+
+        // Sort the markers in each vertex.
+        for(MarkerId i=0; i<globalMarkerGraphVertices.size(); i++) {
+            sort(globalMarkerGraphVertices.begin(i), globalMarkerGraphVertices.end(i));
+        }
+    }
+
 
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
-    cout << timestamp << "Computation of alignments completed in " << tTotal << " s." << endl;
+    cout << timestamp << "Computation of alignments ";
+    if(computeGlobalMarkerGraph) {
+        cout << "and global marker graph ";
+    }
+    cout << "completed in " << tTotal << " s." << endl;
 }
 
 
@@ -321,9 +456,15 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     array<vector<Marker>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
     Alignment alignment;
+
     const bool debug = false;
-    const size_t maxSkip = computeAllAlignmentsData.maxSkip;
-    const size_t maxVertexCountPerKmer = computeAllAlignmentsData.maxVertexCountPerKmer;
+    const auto& data = computeAllAlignmentsData;
+    const size_t maxSkip = data.maxSkip;
+    const size_t maxVertexCountPerKmer = data.maxVertexCountPerKmer;
+    const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
+    const size_t maxTrim = data.maxTrim;
+
+    const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
 
     size_t begin, end;
     while(getNextBatch(begin, end)) {
@@ -354,6 +495,47 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
 
             // Store the AlignmentInfo.
             alignmentInfo.create(alignment);
+
+            // If not doing the global marker graph, we are done here.
+            if(!data.computeGlobalMarkerGraph) {
+                continue;
+            }
+
+            // If the alignment has too few markers, don't use it
+            // for the global marker graph.
+            if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                continue;
+            }
+
+            // If the alignment has too much trim, skip it.
+            uint32_t leftTrim;
+            uint32_t rightTrim;
+            tie(leftTrim, rightTrim) = computeTrim(
+                orientedReadIds[0],
+                orientedReadIds[1],
+                markersSortedByPosition[0],
+                markersSortedByPosition[1],
+                alignmentInfo);
+            if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                continue;
+            }
+
+
+
+            // If getting here, this is a good alignment.
+            // In the global marker graph, merge pairs
+            // of aligned markers.
+            for(const auto& p: alignment.ordinals) {
+                const uint32_t ordinal0 = p.first;
+                const uint32_t ordinal1 = p.second;
+                const OrientedMarkerId orientedMarkerId0 =
+                    getGlobalOrientedMarkerId(orientedReadIds[0], ordinal0);
+                const OrientedMarkerId orientedMarkerId1 =
+                    getGlobalOrientedMarkerId(orientedReadIds[1], ordinal1);
+                disjointSetsPointer->unite(
+                    orientedMarkerId0.getValue(),
+                    orientedMarkerId1.getValue());
+            }
         }
     }
 

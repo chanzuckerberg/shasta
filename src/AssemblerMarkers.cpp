@@ -114,3 +114,25 @@ void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker>& marker
 
 
 
+// Given a marker by its OrientedReadId and ordinal,
+// return the corresponding global marker id.
+OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
+    OrientedReadId orientedReadId, uint32_t ordinal) const
+{
+
+    if(orientedReadId.getStrand() == 0) {
+        // Cout forward from the first marker of the read.
+        return OrientedMarkerId(
+            (markers.begin(orientedReadId.getReadId()) - markers.begin()) + ordinal,
+            0);
+
+    } else {
+        // Count backwards from the last marker of the read
+        // (which is the marker preceding the first marker of the next read).
+        return OrientedMarkerId(
+            (markers.begin(orientedReadId.getReadId()+1ULL) - markers.begin()) - 1ULL - ordinal,
+            1);
+    }
+
+}
+

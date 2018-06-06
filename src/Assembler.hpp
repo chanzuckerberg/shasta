@@ -3,9 +3,11 @@
 
 // Nanopore2
 #include "Alignment.hpp"
+#include "dset64.hpp"
 #include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
+#include "MarkerId.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 #include "Overlap.hpp"
@@ -26,6 +28,9 @@ namespace ChanZuckerberg {
         class AlignmentGraph;
         class AlignmentInfo;
         class LocalReadGraph;
+        namespace MemoryMapped {
+            template<class Int, class T> class VectorOfVectors;
+        }
     }
 }
 
@@ -284,6 +289,11 @@ private:
     void getMarkers(OrientedReadId, vector<Marker>&);
     void checkMarkersAreOpen() const;
 
+    // Given a marker by its OrientedReadId and ordinal,
+    // return the corresponding global marker id.
+    OrientedMarkerId getGlobalOrientedMarkerId(
+        OrientedReadId, uint32_t ordinal) const;
+
 
 
     // Pairs of overlapping oriented reads.
@@ -400,8 +410,21 @@ private:
     public:
         size_t maxSkip;
         size_t maxVertexCountPerKmer;
+        size_t minAlignedMarkerCount;
+        size_t maxTrim;
+        bool computeGlobalMarkerGraph;
+        uint64_t orientedMarkerCount;
+        MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
+        std::shared_ptr<DisjointSets> disjointSetsPointer;
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
+
+    // The global marker graph vertex corresponding to each global
+    // OrientedMarkerId. Indexed by orientedMarkedId::getValue();
+    MemoryMapped::Vector<MarkerId> globalMarkerGraphVertex;
+
+    // The oriented marker ids of each vertex of the global marker graph.
+    MemoryMapped::VectorOfVectors<OrientedMarkerId, MarkerId> globalMarkerGraphVertices;
 
 
 

@@ -397,7 +397,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
     const int ftruncateReturnCode = ::ftruncate(fileDescriptor, fileSize);
     if(ftruncateReturnCode == -1) {
         ::close(fileDescriptor);
-        throw runtime_error("Error during ftruncate.");
+        throw runtime_error("Error " + to_string(errno) + " during ftruncate to size " + to_string(fileSize));
     }
 }
 
