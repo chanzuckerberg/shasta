@@ -126,7 +126,7 @@ public:
         ReadId, Strand,
         size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-        size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+        size_t maxTrim,                 // Maximum left/right trim (in bases) to generate an edge.
         size_t distance                 // How far to go from starting oriented read.
     );
 
@@ -180,14 +180,40 @@ public:
         size_t minCoverage,
         size_t minConsensus);
 
-    // Compute an Alignment for each Overlap.
-    // Only store the AlignmentInfo.
+
+
+    // Compute an Alignment for each Overlap, but  only store the AlignmentInfo.
+    // Optionally, the alignments are used for creation of the global marker graph.
     void computeAllAlignments(
-        size_t maxSkip, // Maximum ordinal skip allowed.
-        size_t maxVertexCountPerKmer,
-        size_t threadCount
+
+        // Minimum number of MinHash hits for an alignment to be computed.
+        size_t minFrequency,
+
+        // The  maximum number of vertices in the alignment graph
+        // that we allow a single k-mer to generate.
+        size_t alignmentMaxVertexCountPerKmer,
+
+        // The maximum ordinal skip to be tolerated between successive markers
+        // in the alignment.
+        size_t maxSkip,
+
+        // Minimum number of alignment markers for an alignment to be used.
+        size_t minAlignedMarkerCount,
+
+        // Maximum left/right trim (in bases) for an alignment to be used.
+        size_t maxTrim,
+
+        // Number of threads. If zero, a number of threads equal to
+        // the number of virtual processors is used.
+        size_t threadCount,
+
+        // Flag to control computation of the global marker graph.
+        // This should normally be true.
+        bool computeGlobalMarkerGraph
     );
     void accessAlignmentInfos();
+
+
 
 private:
 

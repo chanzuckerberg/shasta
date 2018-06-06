@@ -245,12 +245,34 @@ pair<uint32_t, uint32_t> Assembler::computeTrim(
 
 
 
-// Compute an Alignment for each Overlap.
-// Only store the AlignmentInfo.
+// Compute an Alignment for each Overlap, but  only store the AlignmentInfo.
+// Optionally, the alignments are used for creation of the global marker graph.
 void Assembler::computeAllAlignments(
-    size_t maxSkip,     // Maximum ordinal skip allowed.
-    size_t maxVertexCountPerKmer,
-    size_t threadCount
+
+    // Minimum number of MinHash hits for an alignment to be computed.
+    size_t minFrequency,
+
+    // The  maximum number of vertices in the alignment graph
+    // that we allow a single k-mer to generate.
+    size_t alignmentMaxVertexCountPerKmer,
+
+    // The maximum ordinal skip to be tolerated between successive markers
+    // in the alignment.
+    size_t maxSkip,
+
+    // Minimum number of alignment markers for an alignment to be used.
+    size_t minAlignedMarkerCount,
+
+    // Maximum left/right trim (in bases) for an alignment to be used.
+    size_t maxTrim,
+
+    // Number of threads. If zero, a number of threads equal to
+    // the number of virtual processors is used.
+    size_t threadCount,
+
+    // Flag to control computation of the global marker graph.
+    // This should normally be true.
+    bool computeGlobalMarkerGraph
 )
 {
     const auto tBegin = steady_clock::now();
@@ -265,7 +287,7 @@ void Assembler::computeAllAlignments(
 
     // Store alignment parameters so they are accessible to the threads.
     computeAllAlignmentsData.maxSkip = maxSkip;
-    computeAllAlignmentsData.maxVertexCountPerKmer = maxVertexCountPerKmer;
+    computeAllAlignmentsData.maxVertexCountPerKmer = alignmentMaxVertexCountPerKmer;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {

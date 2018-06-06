@@ -16,6 +16,11 @@ a.accessOverlaps()
 
 # Do the computation.
 a.computeAllAlignments(
-    maxSkip = int(config['Align']['maxSkip']), 
-    maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']))
+    minFrequency = int(config['MinHash']['minFrequency']),
+    maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
+    maxSkip = int(config['Align']['maxSkip']),
+    minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
+    maxTrim = int(config['Align']['minAlignedMarkerCount']))
+
+
 

@@ -216,12 +216,16 @@ PYBIND11_MODULE(Nanopore2, module)
 
 
 
-        // Alignment infos.
+        // Compute all alignments and, optionally, the global marker graph.
         .def("computeAllAlignments",
             &Assembler::computeAllAlignments,
-            arg("maxSkip"),
+            arg("minFrequency"),
             arg("maxVertexCountPerKmer"),
-            arg("threadCount") = 0)
+            arg("maxSkip"),
+            arg("minAlignedMarkerCount"),
+            arg("maxTrim"),
+            arg("threadCount") = 0,
+            arg("computeGlobalMarkerGraph") = true)
         .def("accessAlignmentInfos",
             &Assembler::accessAlignmentInfos)
 
