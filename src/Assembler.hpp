@@ -238,6 +238,12 @@ public:
     vector< tuple<ReadId, Strand, uint32_t> >
         getGlobalMarkerGraphVertexMarkers(GlobalMarkerGraphVertexId) const;
 
+    // Find the children or parents of a vertex of the global marker graph.
+    vector<GlobalMarkerGraphVertexId>
+        getGlobalMarkerGraphVertexChildren(GlobalMarkerGraphVertexId) const;
+    vector<GlobalMarkerGraphVertexId>
+        getGlobalMarkerGraphVertexParents(GlobalMarkerGraphVertexId) const;
+
 
 
 private:
@@ -473,6 +479,13 @@ private:
         GlobalMarkerGraphVertexId,
         vector< pair<OrientedReadId, uint32_t> >&) const;
 
+    // Find the children or parents of a vertex of the global marker graph.
+    void getGlobalMarkerGraphVertexChildren(
+        GlobalMarkerGraphVertexId,
+        vector<GlobalMarkerGraphVertexId>&) const;
+    void getGlobalMarkerGraphVertexParents(
+        GlobalMarkerGraphVertexId,
+        vector<GlobalMarkerGraphVertexId>&) const;
 
 
 

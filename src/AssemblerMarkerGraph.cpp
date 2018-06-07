@@ -394,3 +394,101 @@ void Assembler::getGlobalMarkerGraphVertexMarkers(
         markers.push_back(make_pair(orientedReadId, ordinal));
     }
 }
+
+
+
+// Find the children of a vertex of the global marker graph.
+vector<GlobalMarkerGraphVertexId>
+    Assembler::getGlobalMarkerGraphVertexChildren(
+    GlobalMarkerGraphVertexId vertexId) const
+{
+    vector<GlobalMarkerGraphVertexId> children;
+    getGlobalMarkerGraphVertexChildren(vertexId, children);
+    return children;
+}
+void Assembler::getGlobalMarkerGraphVertexChildren(
+    GlobalMarkerGraphVertexId vertexId,
+    vector<GlobalMarkerGraphVertexId>& children) const
+{
+    children.clear();
+
+    // Loop over the markers of this vertex.
+    for(const OrientedMarkerId orientedMarkerId:
+        globalMarkerGraphVertices[vertexId]) {
+
+        // Find the OrientedReadId and ordinal.
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+        tie(orientedReadId, ordinal) =
+            findGlobalOrientedMarkerId(orientedMarkerId);
+
+        // Go to the next marker.
+        ++ordinal;
+        if(ordinal >= markers.size(orientedReadId.getReadId())) {
+            continue;
+        }
+
+        // Find the vertex id.
+        const OrientedMarkerId childOrientedMarkerId =  getGlobalOrientedMarkerId(
+            orientedReadId, ordinal);
+        const GlobalMarkerGraphVertexId childVertexId =
+            globalMarkerGraphVertex[childOrientedMarkerId.getValue()];
+
+        // Add it to our vector.
+        children.push_back(childVertexId);
+    }
+
+    // Deduplicate.
+    sort(children.begin(), children.end());
+    children.resize(std::unique(children.begin(), children.end()) - children.begin());
+}
+
+
+
+// Find the parents of a vertex of the global marker graph.
+vector<GlobalMarkerGraphVertexId>
+    Assembler::getGlobalMarkerGraphVertexParents(
+    GlobalMarkerGraphVertexId vertexId) const
+{
+    vector<GlobalMarkerGraphVertexId> parents;
+    getGlobalMarkerGraphVertexParents(vertexId, parents);
+    return parents;
+}
+void Assembler::getGlobalMarkerGraphVertexParents(
+    GlobalMarkerGraphVertexId vertexId,
+    vector<GlobalMarkerGraphVertexId>& parents) const
+{
+    parents.clear();
+
+    // Loop over the markers of this vertex.
+    for(const OrientedMarkerId orientedMarkerId:
+        globalMarkerGraphVertices[vertexId]) {
+
+        // Find the OrientedReadId and ordinal.
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+        tie(orientedReadId, ordinal) =
+            findGlobalOrientedMarkerId(orientedMarkerId);
+
+        // Go to the next marker.
+        if(ordinal  == 0) {
+            continue;
+        }
+        --ordinal;
+
+
+        // Find the vertex id.
+        const OrientedMarkerId parentOrientedMarkerId =  getGlobalOrientedMarkerId(
+            orientedReadId, ordinal);
+        const GlobalMarkerGraphVertexId parentVertexId =
+            globalMarkerGraphVertex[parentOrientedMarkerId.getValue()];
+
+        // Add it to our vector.
+        parents.push_back(parentVertexId);
+    }
+
+    // Deduplicate.
+    sort(parents.begin(), parents.end());
+    parents.resize(std::unique(parents.begin(), parents.end()) - parents.begin());
+}
+

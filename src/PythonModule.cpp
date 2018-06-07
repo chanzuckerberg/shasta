@@ -249,6 +249,20 @@ PYBIND11_MODULE(Nanopore2, module)
             )
             &Assembler::getGlobalMarkerGraphVertexMarkers,
             arg("globalMarkerGraphVertexId"))
+        .def("getGlobalMarkerGraphVertexChildren",
+            (
+                vector<GlobalMarkerGraphVertexId> (Assembler::*)
+                (GlobalMarkerGraphVertexId) const
+            )
+            &Assembler::getGlobalMarkerGraphVertexChildren,
+            arg("globalMarkerGraphVertexId"))
+        .def("getGlobalMarkerGraphVertexParents",
+            (
+                vector<GlobalMarkerGraphVertexId> (Assembler::*)
+                (GlobalMarkerGraphVertexId) const
+            )
+            &Assembler::getGlobalMarkerGraphVertexParents,
+            arg("globalMarkerGraphVertexId"))
 
 
 
