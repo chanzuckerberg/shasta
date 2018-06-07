@@ -10,6 +10,7 @@
 
 // Standard libraries, partially injected into the ChanZuckerberg::Rna1 namespace.
 #include "algorithm.hpp"
+#include "utility.hpp"
 #include "vector.hpp"
 
 // Forward declarations.
@@ -231,6 +232,11 @@ public:
         return toc.isOpen && data.isOpen;
     }
 
+    // Given a global index k in a VectorOfVectors v,
+    // find i and j such that v[i][j] (aka v.begin(i)[j]) is the same
+    // (stored at the same position) as v.begin()[k].
+    // This requires a binary search in the toc.
+    pair<Int, Int> find(Int k) const;
 
 private:
     Vector<Int> toc;
@@ -304,5 +310,20 @@ template<class T, class Int>
 }
 
 
+
+// Given a global index k in a VectorOfVectors v,
+// find i and j such that v[i][j] (aka v.begin(i)[j]) is the same
+// (stored at the same position) as v.begin()[k].
+// This requires a binary search in the toc.
+template<class T, class Int>
+    std::pair<Int, Int> ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors<T, Int>::find(Int k) const
+{
+    const auto it = std::upper_bound(toc.begin(), toc.end(), k) - 1;
+    const Int i = it - toc.begin();
+    const Int j = k - *it;
+    CZI_ASSERT(i < size());
+    CZI_ASSERT(j < size(i));
+    return make_pair(i, j);
+}
 
 #endif

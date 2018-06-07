@@ -15,6 +15,7 @@
 
 // Standard library.
 #include "string.hpp"
+#include "tuple.hpp"
 
 namespace ChanZuckerberg {
     namespace Nanopore2 {
@@ -220,6 +221,25 @@ public:
 
 
 
+    // Python-callable access functions for the global marker graph.
+    // See the private section for some more not callable from Python.
+    void accessGlobalMarkerGraph();
+
+    // Find the vertex of the global marker graph that contains a given marker.
+    // The marker is specified by the ReadId and Strand of the oriented read
+    // it belongs to, plus the ordinal of the marker in the oriented read.
+    GlobalMarkerGraphVertexId getGlobalMarkerGraphVertex(
+        ReadId,
+        Strand,
+        uint32_t ordinal) const;
+
+    // Find the markers contained in a given vertex of the global marker graph.
+    // Returns the markers as tuples(read id, strand, ordinal).
+    vector< tuple<ReadId, Strand, uint32_t> >
+        getGlobalMarkerGraphVertexMarkers(GlobalMarkerGraphVertexId) const;
+
+
+
 private:
 
     // Data filled in by the constructor.
@@ -293,6 +313,14 @@ private:
     // return the corresponding global marker id.
     OrientedMarkerId getGlobalOrientedMarkerId(
         OrientedReadId, uint32_t ordinal) const;
+
+    // Inverse of the above: given a global marker id,
+    // return its OrientedReadId and ordinal.
+    // This requires a binary search in the markers toc.
+    // This could be avoided, at the cost of storing
+    // an additional 4 bytes per marker.
+    pair<OrientedReadId, uint32_t>
+        findGlobalOrientedMarkerId(OrientedMarkerId) const;
 
 
 
@@ -420,15 +448,36 @@ private:
     ComputeAllAlignmentsData computeAllAlignmentsData;
 
     // The global marker graph vertex corresponding to each global
-    // OrientedMarkerId. Indexed by orientedMarkedId::getValue();
-    MemoryMapped::Vector<MarkerId> globalMarkerGraphVertex;
+    // OrientedMarkerId. Indexed by OrientedMarkedId::getValue();
+    MemoryMapped::Vector<GlobalMarkerGraphVertexId> globalMarkerGraphVertex;
 
     // The oriented marker ids of each vertex of the global marker graph.
-    MemoryMapped::VectorOfVectors<OrientedMarkerId, MarkerId> globalMarkerGraphVertices;
+    // Indexed by GlobalMarkerGraphVertexId.
+    MemoryMapped::VectorOfVectors<OrientedMarkerId, GlobalMarkerGraphVertexId> globalMarkerGraphVertices;
+
+
+
+    // Private access functions for the global marker graph.
+    // See the public section for some more that are callable from Python.
+
+    // Find the vertex of the global marker graph that contains a given marker.
+    // The marker is specified by the ReadId and Strand of the oriented read
+    // it belongs to, plus the ordinal of the marker in the oriented read.
+    GlobalMarkerGraphVertexId getGlobalMarkerGraphVertex(
+        OrientedReadId,
+        uint32_t ordinal) const;
+
+    // Find the markers contained in a given vertex of the global marker graph.
+    // The markers are stored as pairs(oriented read id, ordinal).
+    void getGlobalMarkerGraphVertexMarkers(
+        GlobalMarkerGraphVertexId,
+        vector< pair<OrientedReadId, uint32_t> >&) const;
+
 
 
 
     // Compute a local marker graph for a set of oriented reads.
+    // This creates it from scratch and does not use the global marker graph.
     void createLocalMarkerGraph(
         const vector<OrientedReadId>&,
         bool alignAllPairs,
@@ -437,6 +486,28 @@ private:
         size_t minAlignedMarkerCount,
         size_t minCoverage,
         size_t minConsensus);
+
+
+
+    // Extract a local marker graph from the global marker graph.
+    void extractLocalMarkerGraph(
+
+        // The OrientedReadId and ordinal that identify the
+        // marker corresponding to the start vertex
+        // for the local marker graph to be created.
+        OrientedReadId,
+        uint32_t ordinal,
+        bool alignAllPairs,
+
+        // Maximum distance from the start vertex (number of edges).
+        int distance,
+
+        // Minimum coverage for a strong vertex.
+        size_t minCoverage,
+
+        // Minimum consensus for a strong edge.
+        size_t minConsensus
+        );
 
 };
 

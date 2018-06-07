@@ -51,8 +51,13 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 
     // Write them out.
     ofstream csv(fileName);
-    csv << "Ordinal,KmerId,Kmer,Position\n";
+    csv << "GlobalMarkerId,GlobalOrientedMarkerId,Ordinal,KmerId,Kmer,Position\n";
     for(const Marker& marker: markers) {
+        const OrientedMarkerId orientedMarkerId =
+            getGlobalOrientedMarkerId(orientedReadId, marker.ordinal);
+        CZI_ASSERT(orientedMarkerId.getStrand() == strand);
+        csv << orientedMarkerId.getMarkerId() << ",";
+        csv << orientedMarkerId.getValue() << ",";
         csv << marker.ordinal << ",";
         csv << marker.kmerId << ",";
         csv << Kmer(marker.kmerId, assemblerInfo->k) << ",";
@@ -121,7 +126,7 @@ OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
 {
 
     if(orientedReadId.getStrand() == 0) {
-        // Cout forward from the first marker of the read.
+        // Count forward from the first marker of the read.
         return OrientedMarkerId(
             (markers.begin(orientedReadId.getReadId()) - markers.begin()) + ordinal,
             0);
@@ -134,5 +139,27 @@ OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
             1);
     }
 
+}
+
+
+// Inverse of the above: given a global marker id,
+// return its OrientedReadId and ordinal.
+// This requires a binary search in the markers toc.
+// This could be avoided, at the cost of storing
+// an additional 4 bytes per marker.
+pair<OrientedReadId, uint32_t>
+    Assembler::findGlobalOrientedMarkerId(OrientedMarkerId orientedMarkerId) const
+{
+    const MarkerId markerId = orientedMarkerId.getMarkerId();
+    const Strand strand = Strand(orientedMarkerId.getStrand());
+    ReadId readId;
+    uint32_t ordinal;
+    tie(readId, ordinal) = markers.find(markerId);
+
+    if(strand == 1) {
+        ordinal = uint32_t(markers.size(readId)) - 1 - ordinal;
+    }
+
+    return make_pair(OrientedReadId(readId, strand), ordinal);
 }
 

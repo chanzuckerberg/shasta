@@ -23,9 +23,12 @@ namespace ChanZuckerberg {
         // where uint32_t is sufficient.
         using MarkerId = uint64_t;
 
-        // Class used to globally identify identify a marker on an oriented read,
+        // Class used to globally identify a marker on an oriented read,
         // that is a on read, possibly reverse complemented.
         class OrientedMarkerId;
+
+        // Type used to identify a vertex of the global marker graph.
+        using GlobalMarkerGraphVertexId = MarkerId;
 
     }
 }

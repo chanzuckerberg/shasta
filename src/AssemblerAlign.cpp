@@ -352,7 +352,8 @@ void Assembler::computeAllAlignments(
 
         // First, we have to count the number of oriented markers for each
         // vertex, with the current numbering.
-        MemoryMapped::Vector<MarkerId> count;
+        using VertexId = GlobalMarkerGraphVertexId;
+        MemoryMapped::Vector<VertexId> count;
         count.createNew(
             largeDataName("tmp-Count"),
             largeDataPageSize);
@@ -362,18 +363,18 @@ void Assembler::computeAllAlignments(
         }
 
         // Gather the ones with non-zero count.
-        MemoryMapped::Vector< pair<MarkerId, MarkerId> > countTable;
+        MemoryMapped::Vector< pair<VertexId, VertexId> > countTable;
         countTable.createNew(
             largeDataName("tmp-CountTable"),
             largeDataPageSize);
-        for(MarkerId i=0; i<count.size(); i++) {
-            const MarkerId n = count[i];
+        for(VertexId i=0; i<count.size(); i++) {
+            const VertexId n = count[i];
             if(n > 0) {
                 countTable.push_back(make_pair(i, n));
             }
         }
         sort(countTable.begin(), countTable.end(),
-            OrderPairsBySecondGreaterThenByFirstLess<MarkerId, MarkerId>());
+            OrderPairsBySecondGreaterThenByFirstLess<VertexId, VertexId>());
         cout << "The global marker graph has " << countTable.size();
         cout << " vertices  for " << count.size() << " oriented markers." << endl;
 
@@ -397,40 +398,40 @@ void Assembler::computeAllAlignments(
         // In the count table, replace the count by the rank,
         // (the rank becomes the new vertex id),
         // then sort by first (the old vertex id).
-        for(MarkerId i=0; i<countTable.size(); i++) {
+        for(VertexId i=0; i<countTable.size(); i++) {
             countTable[i].second = i;
         }
         sort(countTable.begin(), countTable.end(),
-            OrderPairsByFirstOnly<MarkerId, MarkerId>());
+            OrderPairsByFirstOnly<VertexId, VertexId>());
 
         // Redefine globalMarkerGraphVertex using this count table.
-        for(MarkerId& v: globalMarkerGraphVertex) {
+        for(VertexId& v: globalMarkerGraphVertex) {
             const auto it = std::lower_bound(countTable.begin(), countTable.end(),
                 make_pair(v, 0),
-                OrderPairsByFirstOnly<MarkerId, MarkerId>());
+                OrderPairsByFirstOnly<VertexId, VertexId>());
                 CZI_ASSERT(it != countTable.end());
                 CZI_ASSERT(it->first == v);
                 v = it->second;
         }
-        const MarkerId vertexCount = countTable.size();
+        const VertexId vertexCount = countTable.size();
         countTable.remove();
 
         // Gather the oriented marker ids of each vertex of the global marker graph.
         globalMarkerGraphVertices.createNew(
-            largeDataName("globalMarkerGraphVertices"),
+            largeDataName("GlobalMarkerGraphVertices"),
             largeDataPageSize);
         globalMarkerGraphVertices.beginPass1(vertexCount);
-        for(const MarkerId& v: globalMarkerGraphVertex) {
+        for(const VertexId& v: globalMarkerGraphVertex) {
             globalMarkerGraphVertices.incrementCount(v);
         }
         globalMarkerGraphVertices.beginPass2();
-        for(MarkerId i=0; i<globalMarkerGraphVertex.size(); i++) {
+        for(VertexId i=0; i<globalMarkerGraphVertex.size(); i++) {
             globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], OrientedMarkerId(i));
         }
         globalMarkerGraphVertices.endPass2();
 
         // Sort the markers in each vertex.
-        for(MarkerId i=0; i<globalMarkerGraphVertices.size(); i++) {
+        for(VertexId i=0; i<globalMarkerGraphVertices.size(); i++) {
             sort(globalMarkerGraphVertices.begin(i), globalMarkerGraphVertices.end(i));
         }
     }

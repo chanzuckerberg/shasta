@@ -91,16 +91,6 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("k"),
             arg("probability"),
             arg("seed") = 231)
-        .def("writeMarkers",
-            (
-                void (Assembler::*)
-                (ReadId, Strand, const string&)
-            )
-            &Assembler::writeMarkers,
-            "Write the markers of an oriented read.",
-            arg("readId"),
-            arg("strand"),
-            arg("fileName"))
 
 
 
@@ -111,6 +101,16 @@ PYBIND11_MODULE(Nanopore2, module)
             &Assembler::findMarkers,
             "Find markers in reads.",
             arg("threadCount") = 0)
+        .def("writeMarkers",
+            (
+                void (Assembler::*)
+                (ReadId, Strand, const string&)
+            )
+            &Assembler::writeMarkers,
+            "Write the markers of an oriented read.",
+            arg("readId"),
+            arg("strand"),
+            arg("fileName"))
 
 
 
@@ -215,7 +215,6 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("minConsensus"))
 
 
-
         // Compute all alignments and, optionally, the global marker graph.
         .def("computeAllAlignments",
             &Assembler::computeAllAlignments,
@@ -229,7 +228,31 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("accessAlignmentInfos",
             &Assembler::accessAlignmentInfos)
 
-    // Definition of class_<Assembler> ends here.
+
+
+        // Global marker graph.
+        .def("accessGlobalMarkerGraph",
+             &Assembler::accessGlobalMarkerGraph)
+        .def("getGlobalMarkerGraphVertex",
+            (
+                GlobalMarkerGraphVertexId (Assembler::*)
+                (ReadId, Strand, uint32_t) const
+            )
+            &Assembler::getGlobalMarkerGraphVertex,
+            arg("readId"),
+            arg("strand"),
+            arg("ordinal"))
+        .def("getGlobalMarkerGraphVertexMarkers",
+            (
+                vector< std::tuple<ReadId, Strand, uint32_t> > (Assembler::*)
+                (GlobalMarkerGraphVertexId) const
+            )
+            &Assembler::getGlobalMarkerGraphVertexMarkers,
+            arg("globalMarkerGraphVertexId"))
+
+
+
+        // Definition of class_<Assembler> ends here.
     ;
 
 

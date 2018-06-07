@@ -327,3 +327,70 @@ void Assembler::createLocalMarkerGraph(
     localMarkerGraph.write("DetailedMarkerGraph.dot", true);
 
 }
+
+
+
+void Assembler::accessGlobalMarkerGraph()
+{
+    globalMarkerGraphVertex.accessExistingReadOnly(
+        largeDataName("GlobalMarkerGraphVertex"));
+
+    globalMarkerGraphVertices.accessExistingReadOnly(
+        largeDataName("GlobalMarkerGraphVertices"));
+}
+
+
+
+// Find the vertex of the global marker graph that contains a given marker.
+GlobalMarkerGraphVertexId Assembler::getGlobalMarkerGraphVertex(
+    ReadId readId,
+    Strand strand,
+    uint32_t ordinal) const
+{
+    return getGlobalMarkerGraphVertex(OrientedReadId(readId, strand), ordinal);
+
+}
+GlobalMarkerGraphVertexId Assembler::getGlobalMarkerGraphVertex(
+    OrientedReadId orientedReadId,
+    uint32_t ordinal) const
+{
+    const OrientedMarkerId orientedMarkerId =
+        getGlobalOrientedMarkerId(orientedReadId, ordinal);
+    return globalMarkerGraphVertex[orientedMarkerId.getValue()];
+
+}
+
+
+// Find the markers contained in a given vertex of the global marker graph.
+// Returns the markers as tuples(read id, strand, ordinal).
+vector< tuple<ReadId, Strand, uint32_t> >
+    Assembler::getGlobalMarkerGraphVertexMarkers(
+        GlobalMarkerGraphVertexId globalMarkerGraphVertexId) const
+{
+    // Call the lower level function.
+    vector< pair<OrientedReadId, uint32_t> > markers;
+    getGlobalMarkerGraphVertexMarkers(globalMarkerGraphVertexId, markers);
+
+    // Create the return vector.
+    vector< tuple<ReadId, Strand, uint32_t> > returnVector;
+    for(const auto& marker: markers) {
+        const OrientedReadId orientedReadId = marker.first;
+        const uint32_t ordinal = marker.second;
+        returnVector.push_back(make_tuple(orientedReadId.getReadId(), orientedReadId.getStrand(), ordinal));
+    }
+    return returnVector;
+}
+void Assembler::getGlobalMarkerGraphVertexMarkers(
+    GlobalMarkerGraphVertexId globalMarkerGraphVertexId,
+    vector< pair<OrientedReadId, uint32_t> >& markers) const
+{
+    markers.clear();
+    for(const OrientedMarkerId orientedMarkerId:
+        globalMarkerGraphVertices[globalMarkerGraphVertexId]) {
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+        tie(orientedReadId, ordinal) =
+            findGlobalOrientedMarkerId(orientedMarkerId);
+        markers.push_back(make_pair(orientedReadId, ordinal));
+    }
+}
