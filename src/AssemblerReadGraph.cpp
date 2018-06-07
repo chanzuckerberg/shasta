@@ -85,12 +85,12 @@ void Assembler::computeReadGraphComponents(
         }
 
         // Join the connected components that these two
-        // oriented reas belong to.
+        // oriented reads belong to.
         disjointSets.union_set(
             orientedReadId0.getValue(),
             orientedReadId1.getValue());
-        orientedReadId0.switchStrand();
-        orientedReadId1.switchStrand();
+        orientedReadId0.flipStrand();
+        orientedReadId1.flipStrand();
         disjointSets.union_set(
             orientedReadId0.getValue(),
             orientedReadId1.getValue());

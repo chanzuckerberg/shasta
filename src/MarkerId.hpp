@@ -57,7 +57,7 @@ public:
         return value & 1ULL;
     }
 
-    void switchStrand()
+    void flipStrand()
     {
         value ^= 1ULL;
     }

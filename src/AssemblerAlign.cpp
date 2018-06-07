@@ -326,7 +326,7 @@ void Assembler::computeAllAlignments(
 
 
 
-    // Use the disjiont sets to find the vertex of the global
+    // Use the disjoint sets to find the vertex of the global
     // marker graph that each oriented marker belongs to.
     if(computeGlobalMarkerGraph) {
 
@@ -529,10 +529,18 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
             for(const auto& p: alignment.ordinals) {
                 const uint32_t ordinal0 = p.first;
                 const uint32_t ordinal1 = p.second;
-                const OrientedMarkerId orientedMarkerId0 =
+                OrientedMarkerId orientedMarkerId0 =
                     getGlobalOrientedMarkerId(orientedReadIds[0], ordinal0);
-                const OrientedMarkerId orientedMarkerId1 =
+                OrientedMarkerId orientedMarkerId1 =
                     getGlobalOrientedMarkerId(orientedReadIds[1], ordinal1);
+                disjointSetsPointer->unite(
+                    orientedMarkerId0.getValue(),
+                    orientedMarkerId1.getValue());
+
+                // Also do it for the corresponding oriented markers on
+                // the opposite strand.
+                orientedMarkerId0.flipStrand();
+                orientedMarkerId1.flipStrand();
                 disjointSetsPointer->unite(
                     orientedMarkerId0.getValue(),
                     orientedMarkerId1.getValue());

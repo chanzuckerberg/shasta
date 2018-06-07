@@ -180,8 +180,8 @@ OverlapFinder::OverlapFinder(
         OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
         overlapTable.incrementCount(orientedReadId0.getValue());
         overlapTable.incrementCount(orientedReadId1.getValue());
-        orientedReadId0.switchStrand();
-        orientedReadId1.switchStrand();
+        orientedReadId0.flipStrand();
+        orientedReadId1.flipStrand();
         overlapTable.incrementCount(orientedReadId0.getValue());
         overlapTable.incrementCount(orientedReadId1.getValue());
     }
@@ -193,8 +193,8 @@ OverlapFinder::OverlapFinder(
             OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
             overlapTable.store(orientedReadId0.getValue(), i);
             overlapTable.store(orientedReadId1.getValue(), i);
-            orientedReadId0.switchStrand();
-            orientedReadId1.switchStrand();
+            orientedReadId0.flipStrand();
+            orientedReadId1.flipStrand();
             overlapTable.store(orientedReadId0.getValue(), i);
             overlapTable.store(orientedReadId1.getValue(), i);
             if(i==0) {

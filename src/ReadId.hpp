@@ -51,7 +51,7 @@ public:
         return value & 1;
     }
 
-    void switchStrand()
+    void flipStrand()
     {
         value ^= Int(1);
     }
