@@ -188,6 +188,28 @@ public:
 
 
 
+    // Extract a local marker graph from the global marker graph.
+    void extractLocalMarkerGraph(
+
+        // The ReadId, Strand, and ordinal that identify the
+        // marker corresponding to the start vertex
+        // for the local marker graph to be created.
+        ReadId,
+        Strand,
+        uint32_t ordinal,
+
+        // Maximum distance from the start vertex (number of edges in the global marker graph).
+        int distance,
+
+        // Minimum coverage for a strong vertex.
+        size_t minCoverage,
+
+        // Minimum consensus for a strong edge.
+        size_t minConsensus
+        );
+
+
+
     // Compute an Alignment for each Overlap, but  only store the AlignmentInfo.
     // Optionally, the alignments are used for creation of the global marker graph.
     void computeAllAlignments(
@@ -482,10 +504,12 @@ private:
     // Find the children or parents of a vertex of the global marker graph.
     void getGlobalMarkerGraphVertexChildren(
         GlobalMarkerGraphVertexId,
-        vector<GlobalMarkerGraphVertexId>&) const;
+        vector<GlobalMarkerGraphVertexId>&,
+        bool append = false) const;
     void getGlobalMarkerGraphVertexParents(
         GlobalMarkerGraphVertexId,
-        vector<GlobalMarkerGraphVertexId>&) const;
+        vector<GlobalMarkerGraphVertexId>&,
+        bool append = false) const;
 
 
 
@@ -510,7 +534,6 @@ private:
         // for the local marker graph to be created.
         OrientedReadId,
         uint32_t ordinal,
-        bool alignAllPairs,
 
         // Maximum distance from the start vertex (number of edges).
         int distance,

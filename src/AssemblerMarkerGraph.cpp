@@ -1,9 +1,14 @@
+// Nanopore2.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "LocalMarkerGraph.hpp"
+#include "LocalMarkerGraph2.hpp"
 #include "LocalReadGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
+
+// Standard library.
+#include <queue>
 
 
 
@@ -408,9 +413,12 @@ vector<GlobalMarkerGraphVertexId>
 }
 void Assembler::getGlobalMarkerGraphVertexChildren(
     GlobalMarkerGraphVertexId vertexId,
-    vector<GlobalMarkerGraphVertexId>& children) const
+    vector<GlobalMarkerGraphVertexId>& children,
+    bool append) const
 {
-    children.clear();
+    if(!append) {
+        children.clear();
+    }
 
     // Loop over the markers of this vertex.
     for(const OrientedMarkerId orientedMarkerId:
@@ -456,9 +464,12 @@ vector<GlobalMarkerGraphVertexId>
 }
 void Assembler::getGlobalMarkerGraphVertexParents(
     GlobalMarkerGraphVertexId vertexId,
-    vector<GlobalMarkerGraphVertexId>& parents) const
+    vector<GlobalMarkerGraphVertexId>& parents,
+    bool append) const
 {
-    parents.clear();
+    if(!append) {
+        parents.clear();
+    }
 
     // Loop over the markers of this vertex.
     for(const OrientedMarkerId orientedMarkerId:
@@ -492,3 +503,87 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     parents.resize(std::unique(parents.begin(), parents.end()) - parents.begin());
 }
 
+
+
+void Assembler::extractLocalMarkerGraph(
+
+    // The ReadId, Strand, and ordinal that identify the
+    // marker corresponding to the start vertex
+    // for the local marker graph to be created.
+    ReadId readId,
+    Strand strand,
+    uint32_t ordinal,
+
+    // Maximum distance from the start vertex (number of edges in the global marker graph).
+    int distance,
+
+    // Minimum coverage for a strong vertex.
+    size_t minCoverage,
+
+    // Minimum consensus for a strong edge.
+    size_t minConsensus
+    )
+{
+    // Create the local marker graph and add the start vertex.
+    const GlobalMarkerGraphVertexId startVertexId =
+        getGlobalMarkerGraphVertex(readId, strand, ordinal);
+    LocalMarkerGraph2 graph;
+    using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
+    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
+
+    // Do the BFS. Do not add the edges now.
+    // We will add the edges later.
+    std::queue<vertex_descriptor> q;
+    if(distance > 0) {
+        q.push(vStart);
+    }
+    vector<GlobalMarkerGraphVertexId> neighbors;
+    while(!q.empty()) {
+
+        // Dequeue a vertex.
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
+        const int distance0 = vertex0.distance;
+        const int distance1 = distance0 + 1;
+
+        // Get the neighbors.
+        neighbors.clear();
+        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, true);
+        getGlobalMarkerGraphVertexParents (vertexId0, neighbors, true);
+
+        // Loop over the neighbors.
+        for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
+            bool vertexExists;
+            tie(vertexExists, ignore) = graph.findVertex(vertexId1);
+            if(!vertexExists) {
+                const vertex_descriptor v1 = graph.addVertex(
+                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                if(distance1 < distance) {
+                    q.push(v1);
+                }
+            }
+        }
+    }
+
+
+    // Now we can add the edges.
+    BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph2) {
+        getGlobalMarkerGraphVertexChildren(graph[v0].vertexId, neighbors);
+        for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            if(vertexExists) {
+                add_edge(v0, v1, graph);
+            }
+        }
+    }
+
+    cout << "The local marker graph has " << num_vertices(graph);
+    cout << " vertices and " << num_edges(graph) << " edges." << endl;
+    graph.write("MarkerGraph.dot", minCoverage, minConsensus, distance, false);
+    graph.write("DetailedMarkerGraph.dot", minCoverage, minConsensus, distance, true);
+
+}

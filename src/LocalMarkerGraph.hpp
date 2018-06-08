@@ -26,6 +26,21 @@ the global marker graph.
 
 The given oriented reads are indexed using a local oriented read id.
 
+
+
+CLASS LocalMarkerGraph VERSUS CLASS LocalMarkerGraph2.
+
+Assembler::createLocalMarkerGraph uses class LocalMarkerGraph
+to create a local marker graph from a set of oriented reads,
+without using the global marker graph.
+This is computationally expensive as it requires
+computations of alignments and merging of vertices.
+
+Assembler::extractLocalMarkerGraph uses class LocalMarkerGraph2
+to create a subgraph of the global marker graph.
+This is computationally inexpensive as most of the computing
+was done when the global marker graph was created.
+
 *******************************************************************************/
 
 // Nanopore2.
