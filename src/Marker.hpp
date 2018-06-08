@@ -39,6 +39,7 @@ which is needed when computing alignments.
 *******************************************************************************/
 
 #include "Kmer.hpp"
+#include "Uint.hpp"
 
 namespace ChanZuckerberg {
     namespace Nanopore2 {
