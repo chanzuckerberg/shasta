@@ -36,6 +36,9 @@ void Assembler::checkMarkersAreOpen() const
     if(!markers0.isOpen()) {
         throw runtime_error("Markers are not accessible.");
     }
+    if(!markers.isOpen()) {
+        throw runtime_error("Markers are not accessible.");
+    }
 }
 
 
@@ -49,19 +52,19 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 
     // Get the markers.
     const OrientedReadId orientedReadId(readId, strand);
-    vector<Marker0> markers;
-    getMarkers(orientedReadId, markers);
+    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
     // Write them out.
     ofstream csv(fileName);
     csv << "GlobalMarkerId,GlobalOrientedMarkerId,Ordinal,KmerId,Kmer,Position\n";
-    for(const Marker0& marker: markers) {
+    for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
+        const CompressedMarker& marker = orientedReadMarkers[ordinal];
         const OrientedMarkerId orientedMarkerId =
-            getGlobalOrientedMarkerId(orientedReadId, marker.ordinal);
+            getGlobalOrientedMarkerId(orientedReadId, ordinal);
         CZI_ASSERT(orientedMarkerId.getStrand() == strand);
         csv << orientedMarkerId.getMarkerId() << ",";
         csv << orientedMarkerId.getValue() << ",";
-        csv << marker.ordinal << ",";
+        csv << ordinal << ",";
         csv << marker.kmerId << ",";
         csv << Kmer(marker.kmerId, assemblerInfo->k) << ",";
         csv << marker.position << "\n";
