@@ -33,6 +33,7 @@ public:
         size_t threadCount,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
         const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>&,
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>&,
         MemoryMapped::Vector<Overlap>& overlaps,
         MemoryMapped::VectorOfVectors<uint64_t, uint64_t>& overlapTable,
         const string& largeDataFileNamePrefix,
@@ -48,17 +49,17 @@ private:
     size_t threadCount;
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& markers0;
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
 
     // Vectors containing only the k-mer ids of all markers
-    // for all oriented reads (not just for reads).
+    // for all oriented reads.
     // Indexed by OrientedReadId.getValue().
     // This is used to speed up the computation of hash functions.
-    // This will be phased out.
-    MemoryMapped::VectorOfVectors<KmerId, uint64_t> markers1;
-    void createMarkers();
-    void createMarkers(size_t threadId);
+    MemoryMapped::VectorOfVectors<KmerId, uint64_t> kmerIds;
+    void createKmerIds();
+    void createKmerIds(size_t threadId);
 
     // The current MinHash iteration.
     // This is used to compute a different MurmurHash function

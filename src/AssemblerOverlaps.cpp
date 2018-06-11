@@ -41,6 +41,7 @@ void Assembler::findOverlaps(
         threadCount,
         kmerTable,
         markers0,
+        markers,
         overlaps,
         overlapTable,
         largeDataFileNamePrefix,
