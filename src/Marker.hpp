@@ -28,6 +28,12 @@ namespace ChanZuckerberg {
         class CompressedMarker0;
         class Marker0;
         class OrderMarkers0ByKmerId;
+
+        // Classes that will be used to represent markers
+        // when the restructuring of marker storage is complete.
+        class CompressedMarker;
+        class Marker;
+        class MarkerWithOrdinal;
     }
 }
 
@@ -72,6 +78,68 @@ public:
         return x.kmerId < y.kmerId;
     }
 };
+
+
+
+// Markers in shared memory are stored using this format
+// which requires only 5 bytes per marker.
+// For a run with 120 Gb of coverage and 10% of k-mers
+// used as markers, storing all the 24 G markers requires
+// 120 GB (we store markers for each read on both strands).
+// This compares with 30 GB to store the reads
+// (we store reads on one strand only).
+// This layout results in unaligned memory accesses.
+// This is not a problem as modern processors (beginning with Nehalem)
+// have fast unaligned memory access.
+class ChanZuckerberg::Nanopore2::CompressedMarker {
+public:
+
+    // The id of the k-mer for this marker.
+    KmerId kmerId __attribute__ ((packed));
+
+    // The position of this marker in the oriented read.
+    // This limits the length of a read to 2^24=16Mib bases.
+    Uint24 position;
+};
+static_assert(sizeof(ChanZuckerberg::Nanopore2::CompressedMarker) == 5,
+    "Unexpected size of class CompressedMarker.");
+
+
+
+// This stores the same information as CompressedMarker,
+// but using built-in, aligned integers.
+class ChanZuckerberg::Nanopore2::Marker {
+public:
+
+    // The id of the k-mer for this marker.
+    KmerId kmerId;
+
+    // The position of this marker in the oriented read.
+    uint32_t position;
+
+    // Constructor from a CompressedMarker.
+    Marker(const CompressedMarker& compressedMarker) :
+        kmerId(compressedMarker.kmerId),
+        position(compressedMarker.position)
+    {}
+};
+
+
+
+// This also stores the ordinal, that is the index
+// of the marker in the oriented read, when the markers
+// are sorted by position in the read.
+class ChanZuckerberg::Nanopore2::MarkerWithOrdinal : public Marker {
+public:
+    uint32_t ordinal;
+
+    // Constructor from a marker and an ordinal.
+    MarkerWithOrdinal(const Marker& marker, uint32_t ordinal) :
+        Marker(marker),
+        ordinal(ordinal)
+    {}
+};
+
 
 
 #endif
