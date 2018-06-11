@@ -17,8 +17,8 @@ using namespace Nanopore2;
 void ChanZuckerberg::Nanopore2::align(
 
     // Markers of the two oriented reads to be aligned, sorted by KmerId.
-    const vector<Marker>& markers0,
-    const vector<Marker>& markers1,
+    const vector<Marker0>& markers0,
+    const vector<Marker0>& markers1,
 
     // The maximum ordinal skip to be tolerated between successive markers
     // in the alignment.
@@ -47,8 +47,8 @@ void ChanZuckerberg::Nanopore2::align(
 
 
 void AlignmentGraph::create(
-    const vector<Marker>& markers0,
-    const vector<Marker>& markers1,
+    const vector<Marker0>& markers0,
+    const vector<Marker0>& markers1,
     size_t maxSkip,
     size_t maxVertexCountPerKmer,
     bool debug,
@@ -118,7 +118,7 @@ void AlignmentGraph::create(
 
 
 void AlignmentGraph::writeMarkers(
-    const vector<Marker>& markers,
+    const vector<Marker0>& markers,
     const string& fileName
     )
 {
@@ -126,7 +126,7 @@ void AlignmentGraph::writeMarkers(
     csv << "Index,KmerId,Ordinal,Position\n";
 
     for(size_t i=0; i<markers.size(); i++) {
-        const Marker& marker = markers[i];
+        const Marker0& marker = markers[i];
         csv << i << "," << marker.kmerId << "," << marker.ordinal << "," << marker.position << "\n";
     }
 
@@ -135,8 +135,8 @@ void AlignmentGraph::writeMarkers(
 
 
 void AlignmentGraph::createVertices(
-    const vector<Marker>& markers0,
-    const vector<Marker>& markers1,
+    const vector<Marker0>& markers0,
+    const vector<Marker0>& markers1,
     size_t maxVertexCountPerKmer)
 {
 
@@ -145,7 +145,7 @@ void AlignmentGraph::createVertices(
     vFinish = addVertex();
 
     // Some iterators we will need.
-    using MarkerIterator = vector<Marker>::const_iterator;
+    using MarkerIterator = vector<Marker0>::const_iterator;
     const MarkerIterator begin0 = markers0.begin();
     const MarkerIterator end0   = markers0.end();
     const MarkerIterator begin1 = markers1.begin();
@@ -427,8 +427,8 @@ void AlignmentGraph::writeShortestPath(const string& fileName) const
 // Write an image representing the markers and the computed alignment
 // in 2-D ordinal space.
 void AlignmentGraph::writeImage(
-    const vector<Marker>& markers0,
-    const vector<Marker>& markers1,
+    const vector<Marker0>& markers0,
+    const vector<Marker0>& markers1,
     const Alignment& alignment,
     const string& fileName) const
 {
@@ -469,9 +469,9 @@ void AlignmentGraph::writeImage(
     // Write the markers.
     const rgb8_pixel_t red(255, 0, 0);
     for(size_t i0=0; i0<n0; i0++) {
-        const Marker& marker0 = markers0[i0];
+        const Marker0& marker0 = markers0[i0];
         for(size_t i1=0; i1<n1; i1++) {
-            const Marker& marker1 = markers1[i1];
+            const Marker0& marker1 = markers1[i1];
             if(marker0.kmerId == marker1.kmerId) {
                 imageView(marker0.ordinal, marker1.ordinal) = red;
             }

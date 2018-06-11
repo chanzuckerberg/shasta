@@ -41,8 +41,8 @@ void Assembler::computeReadGraphComponents(
         disjointSets.make_set(orientedReadId);
     }
 
-    vector<Marker> markers0SortedByPosition;
-    vector<Marker> markers1SortedByPosition;
+    vector<Marker0> markers0SortedByPosition;
+    vector<Marker0> markers1SortedByPosition;
 
 
     // Loop over overlaps, and the corresponding alignments,
@@ -242,8 +242,8 @@ void Assembler::createLocalReadGraph(
     std::queue<OrientedReadId> q;
     q.push(orientedReadIdStart);
 
-    vector<Marker> markers0SortedByPosition;
-    vector<Marker> markers1SortedByPosition;
+    vector<Marker0> markers0SortedByPosition;
+    vector<Marker0> markers1SortedByPosition;
 
 
     // Do the BFS.

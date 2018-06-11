@@ -32,40 +32,40 @@ LocalMarkerGraph::LocalMarkerGraph(
     size_t k,
     const vector<OrientedReadId>& orientedReadIds,
     const vector<LongBaseSequence>& sequences,
-    const vector< vector<Marker> >& markers,
+    const vector< vector<Marker0> >& markers0,
     size_t minCoverage,     // For a vertex to be considered strong.
     size_t minConsensus     // For an edge to be considered strong.
     ) :
     k(k),
     orientedReadIds(orientedReadIds),
     sequences(sequences),
-    markers(markers),
+    markers0(markers0),
     minCoverage(minCoverage),
     minConsensus(minConsensus)
 {
 
     // Sanity check on the input.
-    CZI_ASSERT(orientedReadIds.size() == markers.size());
+    CZI_ASSERT(orientedReadIds.size() == markers0.size());
 
     // Shorthand for readability.
     LocalMarkerGraph& graph = *this;
 
     // Prepare the vertex map. It stores a vector of vertex descriptor
     // for each of the input reads.
-    vertexMap.resize(markers.size());
+    vertexMap.resize(markers0.size());
 
     // Loop over all input oriented reads to generate
     // a linear chain for each.
-    for(size_t localOrientedReadId=0; localOrientedReadId<markers.size(); localOrientedReadId++) {
+    for(size_t localOrientedReadId=0; localOrientedReadId<markers0.size(); localOrientedReadId++) {
 
         // Access information about this oriented read.
-        const auto& orientedReadMarkers = markers[localOrientedReadId];
+        const auto& orientedReadMarkers = markers0[localOrientedReadId];
         auto& orientedReadVertexMap = vertexMap[localOrientedReadId];
-        orientedReadVertexMap.reserve(markers.size());
+        orientedReadVertexMap.reserve(markers0.size());
 
         // Generate the vertices for this oriented read.
         for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
-            const Marker& marker = orientedReadMarkers[ordinal];
+            const Marker0& marker = orientedReadMarkers[ordinal];
             CZI_ASSERT(marker.ordinal == ordinal);
             const KmerId kmerId = marker.kmerId;
 
@@ -352,7 +352,7 @@ void LocalMarkerGraph::split(vertex_descriptor vOld)
         newVertex.markerIds.push_back(markerId);
 
         // Add the edges.
-        if(ordinal != markers[localOrientedReadId].size()-1) {
+        if(ordinal != markers0[localOrientedReadId].size()-1) {
             add_edge(vNew, vertexMap[localOrientedReadId][ordinal+1], graph);
         }
         if(ordinal != 0) {
@@ -467,7 +467,7 @@ void LocalMarkerGraph::addMissingEdges()
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
         for(const auto& markerId: vertex0.markerIds) {
             const uint32_t localOrientedReadId = markerId.localOrientedReadId;
-            const auto& orientedReadMarkers = markers[localOrientedReadId];
+            const auto& orientedReadMarkers = markers0[localOrientedReadId];
             const auto& orientedReadVertexMap = vertexMap[localOrientedReadId];
             const uint32_t ordinal0 = markerId.ordinal;
             for(uint32_t ordinal1=ordinal0+1; ordinal1!=orientedReadMarkers.size(); ordinal1++) {
@@ -516,8 +516,8 @@ string LocalMarkerGraph::getSequence(const LocalMarkerGraphEdge::Data& data) con
     const uint32_t ordinal0 = data.ordinals[0];
     const uint32_t ordinal1 = data.ordinals[1];
 
-    const uint32_t beginPosition0 = markers[localOrientedReadId][ordinal0].position;
-    const uint32_t beginPosition1 = markers[localOrientedReadId][ordinal1].position;
+    const uint32_t beginPosition0 = markers0[localOrientedReadId][ordinal0].position;
+    const uint32_t beginPosition1 = markers0[localOrientedReadId][ordinal1].position;
     const uint32_t endPosition0 = beginPosition0 + uint32_t(k);
 
     string s;
@@ -540,8 +540,8 @@ LocalMarkerGraph::EdgeSequence LocalMarkerGraph::getEdgeSequence(
     const uint32_t ordinal0 = data.ordinals[0];
     const uint32_t ordinal1 = data.ordinals[1];
 
-    const uint32_t beginPosition0 = markers[localOrientedReadId][ordinal0].position;
-    const uint32_t beginPosition1 = markers[localOrientedReadId][ordinal1].position;
+    const uint32_t beginPosition0 = markers0[localOrientedReadId][ordinal0].position;
+    const uint32_t beginPosition1 = markers0[localOrientedReadId][ordinal1].position;
     const uint32_t endPosition0 = beginPosition0 + uint32_t(k);
 
     EdgeSequence s;
@@ -958,8 +958,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Ordinal.
         s << "<td align=\"right\"><b>" << markerId.ordinal << "</b></td>";
         // Position.
-        const auto& markers = graph.markers[markerId.localOrientedReadId];
-        const int position = markers[markerId.ordinal].position;
+        const auto& markers0 = graph.markers0[markerId.localOrientedReadId];
+        const int position = markers0[markerId.ordinal].position;
         s << "<td align=\"right\"><b>" << position << "</b></td></tr>";
     }
     s << "</table></font>>";

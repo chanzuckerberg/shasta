@@ -72,8 +72,8 @@ void Assembler::createLocalMarkerGraph(
 
     // Extract the k-mer occurrences sorted by position
     // for these oriented reads.
-    vector< vector<Marker> > markersInGraphSortedByPosition(orientedReadIds.size());
-    vector< vector<Marker> > markersInGraphSortedByKmerId(orientedReadIds.size());
+    vector< vector<Marker0> > markersInGraphSortedByPosition(orientedReadIds.size());
+    vector< vector<Marker0> > markersInGraphSortedByKmerId(orientedReadIds.size());
     for(size_t localOrientedReadId=0; localOrientedReadId!=orientedReadIds.size(); ++localOrientedReadId) {
         const OrientedReadId orientedReadId = orientedReadIds[localOrientedReadId];
         getMarkers(orientedReadId, markersInGraphSortedByPosition[localOrientedReadId]);
@@ -81,7 +81,7 @@ void Assembler::createLocalMarkerGraph(
         sort(
             markersInGraphSortedByKmerId[localOrientedReadId].begin(),
             markersInGraphSortedByKmerId[localOrientedReadId].end(),
-            OrderMarkersByKmerId());
+            OrderMarkers0ByKmerId());
     }
 
     // Construct the initial local marker graph.
@@ -220,8 +220,8 @@ void Assembler::createLocalMarkerGraph(
     // an index that runs from 0 through orientedReadIdCount (excluded).
     vector<OrientedReadId> orientedReadIds(orientedReadIdCount);
     vector<LongBaseSequence> sequences(orientedReadIdCount);
-    vector< vector<Marker> > markersInGraphSortedByPosition(orientedReadIdCount);
-    vector< vector<Marker> > markersInGraphSortedByKmerId(orientedReadIdCount);
+    vector< vector<Marker0> > markersInGraphSortedByPosition(orientedReadIdCount);
+    vector< vector<Marker0> > markersInGraphSortedByKmerId(orientedReadIdCount);
     std::map<OrientedReadId, uint32_t> orientedReadIdMap;    // Mapo global to local oriented read id.
     uint32_t localOrientedReadId = 0;
     BGL_FORALL_VERTICES(v, localReadGraph, LocalReadGraph) {
@@ -245,7 +245,7 @@ void Assembler::createLocalMarkerGraph(
         sort(
             markersInGraphSortedByKmerId[localOrientedReadId].begin(),
             markersInGraphSortedByKmerId[localOrientedReadId].end(),
-            OrderMarkersByKmerId());
+            OrderMarkers0ByKmerId());
 
         ++localOrientedReadId;
     }
@@ -432,7 +432,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
         // Go to the next marker.
         ++ordinal;
-        if(ordinal >= markers.size(orientedReadId.getReadId())) {
+        if(ordinal >= markers0.size(orientedReadId.getReadId())) {
             continue;
         }
 

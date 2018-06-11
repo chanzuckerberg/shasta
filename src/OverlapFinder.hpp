@@ -32,7 +32,7 @@ public:
         size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
         size_t threadCount,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
-        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& compressedMarkers,
+        const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& compressedMarkers,
         MemoryMapped::Vector<Overlap>& overlaps,
         MemoryMapped::VectorOfVectors<uint64_t, uint64_t>& overlapTable,
         const string& largeDataFileNamePrefix,
@@ -47,7 +47,7 @@ private:
     size_t minFrequency;            // Minimum number of minHash hits for a pair to be considered an overlap.
     size_t threadCount;
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
-    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& compressedMarkers;
+    const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& compressedMarkers;
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
 

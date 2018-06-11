@@ -332,9 +332,9 @@ private:
 
 
     // The markers on all reads. Indexed by ReadId.
-    MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t> markers;
-    void getMarkers(ReadId, vector<Marker>&) const;
-    void getMarkers(OrientedReadId, vector<Marker>&);
+    MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t> markers0;
+    void getMarkers(ReadId, vector<Marker0>&) const;
+    void getMarkers(OrientedReadId, vector<Marker0>&);
     void checkMarkersAreOpen() const;
 
     // Given a marker by its OrientedReadId and ordinal,
@@ -395,15 +395,15 @@ private:
     // This lower level version takes as input vectors of
     // markers already sorted by kmerId.
     void alignOrientedReads(
-        const vector<Marker>& markers0SortedByKmerId,
-        const vector<Marker>& markers1SortedByKmerId,
+        const vector<Marker0>& markers0SortedByKmerId,
+        const vector<Marker0>& markers1SortedByKmerId,
         size_t maxSkip,  // Maximum ordinal skip allowed.
         size_t maxVertexCountPerKmer
     );
     // This version allows reusing the AlignmentGraph and Alignment
     void alignOrientedReads(
-        const vector<Marker>& markers0SortedByKmerId,
-        const vector<Marker>& markers1SortedByKmerId,
+        const vector<Marker0>& markers0SortedByKmerId,
+        const vector<Marker0>& markers1SortedByKmerId,
         size_t maxSkip,             // Maximum ordinal skip allowed.
         size_t maxVertexCountPerKmer,
         bool debug,
@@ -453,8 +453,8 @@ private:
     pair<uint32_t, uint32_t> computeTrim(
         OrientedReadId orientedReadIds0,
         OrientedReadId orientedReadIds1,
-        vector<Marker>& markers0,
-        vector<Marker>& markers1,
+        vector<Marker0>& markers0,
+        vector<Marker0>& markers1,
         const AlignmentInfo&);
 
     // The AlignmentInfo corresponding to each overlap.

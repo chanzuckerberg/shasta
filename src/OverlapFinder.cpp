@@ -23,7 +23,7 @@ OverlapFinder::OverlapFinder(
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
-    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& compressedMarkers,
+    const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& compressedMarkers,
     MemoryMapped::Vector<Overlap>& overlaps,
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t>& overlapTable,
     const string& largeDataFileNamePrefix,
@@ -231,7 +231,7 @@ void OverlapFinder::createMarkers()
 
         // Add the markers of the read without reverse complementing.
         markers.appendVector();
-        for(const CompressedMarker& compressedMarker: readCompressedMarkers) {
+        for(const CompressedMarker0& compressedMarker: readCompressedMarkers) {
             const KmerId kmerId = compressedMarker.kmerId;
             markers.append(kmerId);
             kmerIds.push_back(kmerId);
@@ -292,7 +292,7 @@ void OverlapFinder::createMarkers(size_t threadId)
             CZI_ASSERT(markers.size(orientedReadIdStrand1.getValue()) == readCompressedMarkers.size());
 
             auto pointer = markers.begin(orientedReadIdStrand0.getValue());
-            for(const CompressedMarker& compressedMarker: readCompressedMarkers) {
+            for(const CompressedMarker0& compressedMarker: readCompressedMarkers) {
                 *pointer++ = compressedMarker.kmerId;
             }
 

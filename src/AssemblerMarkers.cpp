@@ -11,12 +11,12 @@ void Assembler::findMarkers(size_t threadCount)
     checkReadsAreOpen();
     checkKmersAreOpen();
 
-    markers.createNew(largeDataName("Markers"), largeDataPageSize);
+    markers0.createNew(largeDataName("Markers0"), largeDataPageSize);
     MarkerFinder markerFinder(
         assemblerInfo->k,
         kmerTable,
         reads,
-        markers,
+        markers0,
         threadCount);
 
 }
@@ -25,12 +25,12 @@ void Assembler::findMarkers(size_t threadCount)
 
 void Assembler::accessMarkers()
 {
-    markers.accessExistingReadOnly(largeDataName("Markers"));
+    markers0.accessExistingReadOnly(largeDataName("Markers0"));
 }
 
 void Assembler::checkMarkersAreOpen() const
 {
-    if(!markers.isOpen()) {
+    if(!markers0.isOpen()) {
         throw runtime_error("Markers are not accessible.");
     }
 }
@@ -46,13 +46,13 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 
     // Get the markers.
     const OrientedReadId orientedReadId(readId, strand);
-    vector<Marker> markers;
+    vector<Marker0> markers;
     getMarkers(orientedReadId, markers);
 
     // Write them out.
     ofstream csv(fileName);
     csv << "GlobalMarkerId,GlobalOrientedMarkerId,Ordinal,KmerId,Kmer,Position\n";
-    for(const Marker& marker: markers) {
+    for(const Marker0& marker: markers) {
         const OrientedMarkerId orientedMarkerId =
             getGlobalOrientedMarkerId(orientedReadId, marker.ordinal);
         CZI_ASSERT(orientedMarkerId.getStrand() == strand);
@@ -67,19 +67,19 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 
 
 
-void Assembler::getMarkers(ReadId readId, vector<Marker>& readMarkers) const
+void Assembler::getMarkers(ReadId readId, vector<Marker0>& readMarkers) const
 {
     checkMarkersAreOpen();
-    const auto readCompressedMarkers = markers[readId];
+    const auto readCompressedMarkers = markers0[readId];
     const uint32_t n = uint32_t(readCompressedMarkers.size());
 
     readMarkers.clear();
     readMarkers.reserve(n);
 
-    Marker marker;
+    Marker0 marker;
     marker.position = 0;
     for(marker.ordinal=0; marker.ordinal<n; marker.ordinal++) {
-        const CompressedMarker& compressedMarker = readCompressedMarkers[marker.ordinal];
+        const CompressedMarker0& compressedMarker = readCompressedMarkers[marker.ordinal];
         marker.position += compressedMarker.shift;
         marker.kmerId = compressedMarker.kmerId;
         readMarkers.push_back(marker);
@@ -88,7 +88,7 @@ void Assembler::getMarkers(ReadId readId, vector<Marker>& readMarkers) const
 
 
 
-void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker>& markers)
+void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker0>& markers)
 {
     checkReadsAreOpen();
     checkKmersAreOpen();
@@ -109,7 +109,7 @@ void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker>& marker
     const uint32_t readLength = uint32_t(reads[readId].baseCount);
     reverse(markers.begin(), markers.end());
     for(uint32_t ordinal=0; ordinal<markers.size(); ordinal++) {
-     Marker& marker = markers[ordinal];
+        Marker0& marker = markers[ordinal];
         marker.ordinal = ordinal;
         marker.position = readLength - k - marker.position;
         marker.kmerId = kmerTable[marker.kmerId].reverseComplementedKmerId;
@@ -128,14 +128,14 @@ OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
     if(orientedReadId.getStrand() == 0) {
         // Count forward from the first marker of the read.
         return OrientedMarkerId(
-            (markers.begin(orientedReadId.getReadId()) - markers.begin()) + ordinal,
+            (markers0.begin(orientedReadId.getReadId()) - markers0.begin()) + ordinal,
             0);
 
     } else {
         // Count backwards from the last marker of the read
         // (which is the marker preceding the first marker of the next read).
         return OrientedMarkerId(
-            (markers.begin(orientedReadId.getReadId()+1ULL) - markers.begin()) - 1ULL - ordinal,
+            (markers0.begin(orientedReadId.getReadId()+1ULL) - markers0.begin()) - 1ULL - ordinal,
             1);
     }
 
@@ -154,10 +154,10 @@ pair<OrientedReadId, uint32_t>
     const Strand strand = Strand(orientedMarkerId.getStrand());
     ReadId readId;
     uint32_t ordinal;
-    tie(readId, ordinal) = markers.find(markerId);
+    tie(readId, ordinal) = markers0.find(markerId);
 
     if(strand == 1) {
-        ordinal = uint32_t(markers.size(readId)) - 1 - ordinal;
+        ordinal = uint32_t(markers0.size(readId)) - 1 - ordinal;
     }
 
     return make_pair(OrientedReadId(readId, strand), ordinal);

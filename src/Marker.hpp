@@ -16,26 +16,6 @@ Because of the way markers are selected, the following is
 true for all permitted values of i, 0 <= i < 4^k:
 kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarker
 
-We need to find and store all markers in all reads.
-For memory economy, markers on all reads are stored in
-a compressed format (class CompressedMarker)
-that takes only 4 bytes for each occurrence of a marker in a read
-(assuming the Kmer type is ShortBaseSequence8).
-This is achieved by storing position offsets
-of markers instead of actual positions.
-
-This results in reasonable memory usage in typical cases.
-For example, if we randomly choose 10% of all k-mers as markers,
-this will require an average of 4 bytes per 10 bases or 0.4 bytes per base.
-By comparison, storing the reads requires 0.25 bytes per base.
-If the read take 30 GB, the compressed markers take 48 GB.
-
-We also use an uncompressed format for markers (class Marker).
-This contains an absolute position in the read rather than
-an offset, and it also contains the ordinal of the marker in the read.
-This permits storing by KmerId while keeping ordinal and position information,
-which is needed when computing alignments.
-
 *******************************************************************************/
 
 #include "Kmer.hpp"
@@ -44,15 +24,16 @@ which is needed when computing alignments.
 namespace ChanZuckerberg {
     namespace Nanopore2 {
 
-        class CompressedMarker;
-        class Marker;
-        class OrderMarkersByKmerId;
+        // The classes with a 0 suffix will be phased out.
+        class CompressedMarker0;
+        class Marker0;
+        class OrderMarkers0ByKmerId;
     }
 }
 
 
 
-class ChanZuckerberg::Nanopore2::CompressedMarker {
+class ChanZuckerberg::Nanopore2::CompressedMarker0 {
 public:
     KmerId kmerId;
 
@@ -66,7 +47,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::Marker {
+class ChanZuckerberg::Nanopore2::Marker0 {
 public:
     KmerId kmerId;
 
@@ -82,11 +63,11 @@ public:
 
 
 // Class used to order markers by kmer id.
-class ChanZuckerberg::Nanopore2::OrderMarkersByKmerId {
+class ChanZuckerberg::Nanopore2::OrderMarkers0ByKmerId {
 public:
     bool operator()(
-        const Marker& x,
-        const Marker& y) const
+        const Marker0& x,
+        const Marker0& y) const
     {
         return x.kmerId < y.kmerId;
     }

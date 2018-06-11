@@ -19,7 +19,7 @@ void Assembler::findOverlaps(
 {
     checkKmersAreOpen();
     checkMarkersAreOpen();
-    const ReadId readCount = ReadId(markers.size());
+    const ReadId readCount = ReadId(markers0.size());
 
     // Check that log2MinHashBucketCount is not unreasonably small.
     if((1ULL << (log2MinHashBucketCount-3ULL)) < readCount) {
@@ -40,7 +40,7 @@ void Assembler::findOverlaps(
         minFrequency,
         threadCount,
         kmerTable,
-        markers,
+        markers0,
         overlaps,
         overlapTable,
         largeDataFileNamePrefix,

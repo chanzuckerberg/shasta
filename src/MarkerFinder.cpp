@@ -15,7 +15,7 @@ MarkerFinder::MarkerFinder(
     size_t k,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
     LongBaseSequences& reads,
-    MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+    MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& markers,
     size_t threadCountArgument) :
     MultithreadedObject(*this),
     k(k),
@@ -68,7 +68,7 @@ void MarkerFinder::threadFunction(size_t threadId)
 
             const LongBaseSequenceView read = reads[readId];
             size_t markerCount = 0; // For this read.
-            CompressedMarker* markerPointer = 0;
+            CompressedMarker0* markerPointer = 0;
             if(pass == 2) {
                 markerPointer = markers.begin(readId);
             }
@@ -91,8 +91,8 @@ void MarkerFinder::threadFunction(size_t threadId)
                         } else {
                             markerPointer->kmerId = kmerId;
                             const uint32_t shift = position - oldPosition;
-                            CZI_ASSERT(shift <= std::numeric_limits<CompressedMarker::Shift>::max());   // We may have to handle this.
-                            markerPointer->shift = CompressedMarker::Shift(shift);
+                            CZI_ASSERT(shift <= std::numeric_limits<CompressedMarker0::Shift>::max());   // We may have to handle this.
+                            markerPointer->shift = CompressedMarker0::Shift(shift);
                             ++markerPointer;
                             oldPosition = position;
                         }

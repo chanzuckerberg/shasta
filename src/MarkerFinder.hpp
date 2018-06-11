@@ -27,7 +27,7 @@ public:
         size_t k,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
         LongBaseSequences& reads,
-        MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+        MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& markers,
         size_t threadCount);
 
 private:
@@ -36,7 +36,7 @@ private:
     size_t k;
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     LongBaseSequences& reads;
-    MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
+    MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& markers;
     size_t threadCount;
 
     void threadFunction(size_t threadId);
