@@ -81,16 +81,21 @@ public:
 
 
 
-// Markers in shared memory are stored using this format
+// Markers in shared memory are stored using class CompressedMarker
 // which requires only 5 bytes per marker.
+
 // For a run with 120 Gb of coverage and 10% of k-mers
 // used as markers, storing all the 24 G markers requires
 // 120 GB (we store markers for each read on both strands).
 // This compares with 30 GB to store the reads
 // (we store reads on one strand only).
+
 // This layout results in unaligned memory accesses.
 // This is not a problem as modern processors (beginning with Nehalem)
-// have fast unaligned memory access.
+// have a much lower performance penalty for unaligned memory access
+// than older processors did:
+// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.455.4198&rep=rep1&type=pdf
+
 class ChanZuckerberg::Nanopore2::CompressedMarker {
 public:
 
