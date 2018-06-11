@@ -79,7 +79,7 @@ void MarkerFinder::threadFunction(size_t threadId)
             if(pass == 2) {
                 marker0Pointer = markers0.begin(readId);
                 markerPointerStrand0 = markers.begin(OrientedReadId(readId, 0).getValue());
-                markerPointerStrand1 = markers.end(OrientedReadId(readId, 1).getValue() - 1ULL);
+                markerPointerStrand1 = markers.end(OrientedReadId(readId, 1).getValue()) - 1ULL;
             }
 
             if(read.baseCount >= k) {   // Avoid pathological case.
@@ -137,7 +137,7 @@ void MarkerFinder::threadFunction(size_t threadId)
                 CZI_ASSERT(markerPointerStrand0 ==
                     markers.end(OrientedReadId(readId, 0).getValue()));
                 CZI_ASSERT(markerPointerStrand1 ==
-                    markers.begin(OrientedReadId(readId, 1).getValue() - 1ULL));
+                    markers.begin(OrientedReadId(readId, 1).getValue()) - 1ULL);
             }
         }
     }
