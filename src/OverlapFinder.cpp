@@ -23,7 +23,7 @@ OverlapFinder::OverlapFinder(
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
-    const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& compressedMarkers,
+    const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& markers0,
     MemoryMapped::Vector<Overlap>& overlaps,
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t>& overlapTable,
     const string& largeDataFileNamePrefix,
@@ -35,7 +35,7 @@ OverlapFinder::OverlapFinder(
     minFrequency(minFrequency),
     threadCount(threadCountArgument),
     kmerTable(kmerTable),
-    compressedMarkers(compressedMarkers),
+    markers0(markers0),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize)
 
@@ -55,8 +55,8 @@ OverlapFinder::OverlapFinder(
     createMarkers();
 
     // The number of oriented reads, each with its own vector of markers.
-    const ReadId readCount = ReadId(compressedMarkers.size());
-    const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
+    const ReadId readCount = ReadId(markers0.size());
+    const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers1.size());
     cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
     CZI_ASSERT(orientedReadCount == 2*readCount);
 
@@ -147,7 +147,7 @@ OverlapFinder::OverlapFinder(
 
     // Remove the buckets and the markers. They are no longer needed.
     buckets.remove();
-    markers.remove();
+    markers1.remove();
 
 
 
@@ -215,56 +215,26 @@ OverlapFinder::OverlapFinder(
 }
 
 
-#if 0
-void OverlapFinder::createMarkers()
-{
-    markers.createNew(
-        largeDataFileNamePrefix + "tmp-OverlapFinder-Markers",
-        largeDataPageSize);
 
-    vector<KmerId> kmerIds;
-
-    const ReadId readCount = ReadId(compressedMarkers.size());
-    for(ReadId readId=0; readId!=readCount; readId++) {
-        const auto readCompressedMarkers = compressedMarkers[readId];
-        kmerIds.clear();
-
-        // Add the markers of the read without reverse complementing.
-        markers.appendVector();
-        for(const CompressedMarker0& compressedMarker: readCompressedMarkers) {
-            const KmerId kmerId = compressedMarker.kmerId;
-            markers.append(kmerId);
-            kmerIds.push_back(kmerId);
-        }
-
-        // Add the markers of the read with reverse complementing.
-        markers.appendVector();
-        for(auto it=kmerIds.rbegin(); it!=kmerIds.rend(); ++it) {
-            markers.append(kmerTable[*it].reverseComplementedKmerId);
-        }
-    }
-    CZI_ASSERT(markers.size() == 2*compressedMarkers.size());
-}
-#else
 
 
 
 void OverlapFinder::createMarkers()
 {
-    markers.createNew(
+    markers1.createNew(
         largeDataFileNamePrefix + "tmp-OverlapFinder-Markers",
         largeDataPageSize);
-    const ReadId readCount = ReadId(compressedMarkers.size());
-    markers.beginPass1(2*readCount);
+    const ReadId readCount = ReadId(markers0.size());
+    markers1.beginPass1(2*readCount);
     for(ReadId readId=0; readId!=readCount; readId++) {
-        const auto markerCount = compressedMarkers.size(readId);
+        const auto markerCount = markers0.size(readId);
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            markers.incrementCount(orientedReadId.getValue(), markerCount);
+            markers1.incrementCount(orientedReadId.getValue(), markerCount);
         }
     }
-    markers.beginPass2();
-    markers.endPass2(false);
+    markers1.beginPass2();
+    markers1.endPass2(false);
     const size_t batchSize = 10000;
     setupLoadBalancing(readCount, batchSize);
     runThreads(&OverlapFinder::createMarkers, threadCount, "threadLogs/createMarkers");
@@ -284,19 +254,19 @@ void OverlapFinder::createMarkers(size_t threadId)
 
         // Loop over reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            const auto readCompressedMarkers = compressedMarkers[readId];
+            const auto readCompressedMarkers = markers0[readId];
             const OrientedReadId orientedReadIdStrand0(readId, 0);
             const OrientedReadId orientedReadIdStrand1(readId, 1);
 
-            CZI_ASSERT(markers.size(orientedReadIdStrand0.getValue()) == readCompressedMarkers.size());
-            CZI_ASSERT(markers.size(orientedReadIdStrand1.getValue()) == readCompressedMarkers.size());
+            CZI_ASSERT(markers1.size(orientedReadIdStrand0.getValue()) == readCompressedMarkers.size());
+            CZI_ASSERT(markers1.size(orientedReadIdStrand1.getValue()) == readCompressedMarkers.size());
 
-            auto pointer = markers.begin(orientedReadIdStrand0.getValue());
+            auto pointer = markers1.begin(orientedReadIdStrand0.getValue());
             for(const CompressedMarker0& compressedMarker: readCompressedMarkers) {
                 *pointer++ = compressedMarker.kmerId;
             }
 
-            pointer = markers.begin(orientedReadIdStrand1.getValue());
+            pointer = markers1.begin(orientedReadIdStrand1.getValue());
             for(auto it=readCompressedMarkers.end()-1; it>=readCompressedMarkers.begin(); --it) {
                 *pointer++ = kmerTable[it->kmerId].reverseComplementedKmerId;
             }
@@ -305,7 +275,6 @@ void OverlapFinder::createMarkers(size_t threadId)
     }
 
 }
-#endif
 
 
 // Thread function used to compute the min hash of each oriented read.
@@ -320,7 +289,7 @@ void OverlapFinder::computeMinHash(size_t threadId)
 
         // Loop over oriented reads assigned to this batch.
         for(size_t i=begin; i!=end; i++) {
-            const size_t markerCount = markers.size(i);
+            const size_t markerCount = markers1.size(i);
             uint64_t minHashValue = std::numeric_limits<uint64_t>::max();
 
             // If there are not enough markers, the minHash
@@ -330,8 +299,8 @@ void OverlapFinder::computeMinHash(size_t threadId)
             if(markerCount >= m) {
 
                 // Get the markers for this oriented read.
-                KmerId* kmerIds = markers.begin(i);
-                const size_t featureCount = markers.size(i) - m + 1;
+                KmerId* kmerIds = markers1.begin(i);
+                const size_t featureCount = markers1.size(i) - m + 1;
 
                 // Loop over features of this oriented read.
                 // Features are sequences of m consecutive markers.
