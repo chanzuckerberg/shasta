@@ -100,6 +100,7 @@ public:
     // The position of this marker in the oriented read.
     // This limits the length of a read to 2^24=16Mib bases.
     Uint24 position;
+
 };
 static_assert(sizeof(ChanZuckerberg::Nanopore2::CompressedMarker) == 5,
     "Unexpected size of class CompressedMarker.");

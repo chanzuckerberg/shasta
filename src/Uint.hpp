@@ -44,6 +44,7 @@ public:
     {
         memcpy(&data, &i, N);
     }
+    Uint() {}
 
     operator UintHelper() const
     {

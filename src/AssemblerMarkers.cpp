@@ -12,11 +12,13 @@ void Assembler::findMarkers(size_t threadCount)
     checkKmersAreOpen();
 
     markers0.createNew(largeDataName("Markers0"), largeDataPageSize);
+    markers.createNew(largeDataName("Markers"), largeDataPageSize);
     MarkerFinder markerFinder(
         assemblerInfo->k,
         kmerTable,
         reads,
         markers0,
+        markers,
         threadCount);
 
 }
@@ -26,6 +28,7 @@ void Assembler::findMarkers(size_t threadCount)
 void Assembler::accessMarkers()
 {
     markers0.accessExistingReadOnly(largeDataName("Markers0"));
+    markers.accessExistingReadOnly(largeDataName("Markers"));
 }
 
 void Assembler::checkMarkersAreOpen() const
