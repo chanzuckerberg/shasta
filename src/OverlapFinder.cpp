@@ -23,7 +23,6 @@ OverlapFinder::OverlapFinder(
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
-    const MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t>& markers0,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     MemoryMapped::Vector<Overlap>& overlaps,
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t>& overlapTable,
@@ -36,7 +35,6 @@ OverlapFinder::OverlapFinder(
     minFrequency(minFrequency),
     threadCount(threadCountArgument),
     kmerTable(kmerTable),
-    markers0(markers0),
     markers(markers),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize)
@@ -53,7 +51,7 @@ OverlapFinder::OverlapFinder(
 
     // Create vectors containing only the k-mer ids of all markers.
     // This is used to speed up the computation of hash functions.
-    cout << timestamp << "Creating markers for oriented reads." << endl;
+    cout << timestamp << "Creating kmer ids for oriented reads." << endl;
     createKmerIds();
 
     // The number of oriented reads, each with its own vector of markers.
@@ -218,20 +216,18 @@ OverlapFinder::OverlapFinder(
 
 
 
-
-
-
 void OverlapFinder::createKmerIds()
 {
     kmerIds.createNew(
         largeDataFileNamePrefix + "tmp-OverlapFinder-Markers",
         largeDataPageSize);
-    const ReadId readCount = ReadId(markers0.size());
-    kmerIds.beginPass1(2*readCount);
+    const ReadId orientedReadCount = ReadId(markers.size());
+    const ReadId readCount = orientedReadCount / 2;
+    kmerIds.beginPass1(orientedReadCount);
     for(ReadId readId=0; readId!=readCount; readId++) {
-        const auto markerCount = markers0.size(readId);
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
+            const auto markerCount = markers.size(orientedReadId.getValue());
             kmerIds.incrementCount(orientedReadId.getValue(), markerCount);
         }
     }
@@ -244,7 +240,7 @@ void OverlapFinder::createKmerIds()
 
 
 
-// Thread function for createMarkers.
+// Thread function for createKmerIds.
 void OverlapFinder::createKmerIds(size_t threadId)
 {
     ostream& out = getLog(threadId);
@@ -256,27 +252,21 @@ void OverlapFinder::createKmerIds(size_t threadId)
 
         // Loop over reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            const auto readCompressedMarkers = markers0[readId];
-            const OrientedReadId orientedReadIdStrand0(readId, 0);
-            const OrientedReadId orientedReadIdStrand1(readId, 1);
+            for(Strand strand=0; strand<2; strand++) {
+                const OrientedReadId orientedReadId(readId, strand);
+                const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
-            CZI_ASSERT(kmerIds.size(orientedReadIdStrand0.getValue()) == readCompressedMarkers.size());
-            CZI_ASSERT(kmerIds.size(orientedReadIdStrand1.getValue()) == readCompressedMarkers.size());
+                CZI_ASSERT(kmerIds.size(orientedReadId.getValue()) == orientedReadMarkers.size());
 
-            auto pointer = kmerIds.begin(orientedReadIdStrand0.getValue());
-            for(const CompressedMarker0& compressedMarker: readCompressedMarkers) {
-                *pointer++ = compressedMarker.kmerId;
+                auto pointer = kmerIds.begin(orientedReadId.getValue());
+                for(const CompressedMarker& marker: orientedReadMarkers) {
+                    *pointer++ = marker.kmerId;
+                }
             }
-
-            pointer = kmerIds.begin(orientedReadIdStrand1.getValue());
-            for(auto it=readCompressedMarkers.end()-1; it>=readCompressedMarkers.begin(); --it) {
-                *pointer++ = kmerTable[it->kmerId].reverseComplementedKmerId;
-            }
-
         }
     }
-
 }
+
 
 
 // Thread function used to compute the min hash of each oriented read.

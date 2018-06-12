@@ -40,7 +40,6 @@ void Assembler::findOverlaps(
         minFrequency,
         threadCount,
         kmerTable,
-        markers0,
         markers,
         overlaps,
         overlapTable,
