@@ -11,13 +11,11 @@ void Assembler::findMarkers(size_t threadCount)
     checkReadsAreOpen();
     checkKmersAreOpen();
 
-    markers0.createNew(largeDataName("Markers0"), largeDataPageSize);
     markers.createNew(largeDataName("Markers"), largeDataPageSize);
     MarkerFinder markerFinder(
         assemblerInfo->k,
         kmerTable,
         reads,
-        markers0,
         markers,
         threadCount);
 
@@ -27,15 +25,11 @@ void Assembler::findMarkers(size_t threadCount)
 
 void Assembler::accessMarkers()
 {
-    markers0.accessExistingReadOnly(largeDataName("Markers0"));
     markers.accessExistingReadOnly(largeDataName("Markers"));
 }
 
 void Assembler::checkMarkersAreOpen() const
 {
-    if(!markers0.isOpen()) {
-        throw runtime_error("Markers are not accessible.");
-    }
     if(!markers.isOpen()) {
         throw runtime_error("Markers are not accessible.");
     }
@@ -98,21 +92,9 @@ void Assembler::getMarkersSortedByKmerId(
 OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
     OrientedReadId orientedReadId, uint32_t ordinal) const
 {
-
-    if(orientedReadId.getStrand() == 0) {
-        // Count forward from the first marker of the read.
-        return OrientedMarkerId(
-            (markers0.begin(orientedReadId.getReadId()) - markers0.begin()) + ordinal,
-            0);
-
-    } else {
-        // Count backwards from the last marker of the read
-        // (which is the marker preceding the first marker of the next read).
-        return OrientedMarkerId(
-            (markers0.begin(orientedReadId.getReadId()+1ULL) - markers0.begin()) - 1ULL - ordinal,
-            1);
-    }
-
+    return OrientedMarkerId(
+        (markers.begin(orientedReadId.getValue()) - markers.begin())
+        + ordinal);
 }
 
 
@@ -124,16 +106,9 @@ OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
 pair<OrientedReadId, uint32_t>
     Assembler::findGlobalOrientedMarkerId(OrientedMarkerId orientedMarkerId) const
 {
-    const MarkerId markerId = orientedMarkerId.getMarkerId();
-    const Strand strand = Strand(orientedMarkerId.getStrand());
-    ReadId readId;
+    OrientedReadId::Int orientedReadIdValue;
     uint32_t ordinal;
-    tie(readId, ordinal) = markers0.find(markerId);
-
-    if(strand == 1) {
-        ordinal = uint32_t(markers0.size(readId)) - 1 - ordinal;
-    }
-
-    return make_pair(OrientedReadId(readId, strand), ordinal);
+    tie(orientedReadIdValue, ordinal) = markers.find(orientedMarkerId.getValue());
+    return make_pair(OrientedReadId(orientedReadIdValue), ordinal);
 }
 

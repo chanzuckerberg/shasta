@@ -292,7 +292,7 @@ void Assembler::computeAllAlignments(
 
     // If requested, initialize computation of the global marker graph.
     if(computeGlobalMarkerGraph) {
-        data.orientedMarkerCount = 2 * markers0.totalSize();
+        data.orientedMarkerCount = markers.totalSize();
         data.disjointSetsData.createNew(
             largeDataName("tmp-DisjointSetData"),
             largeDataPageSize);
@@ -322,7 +322,7 @@ void Assembler::computeAllAlignments(
         globalMarkerGraphVertex.createNew(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
-        globalMarkerGraphVertex.resize(2 * markers0.totalSize());
+        globalMarkerGraphVertex.resize(markers.totalSize());
         DisjointSets& disjointSets = *data.disjointSetsPointer;
         for(MarkerId i=0; i<globalMarkerGraphVertex.size(); i++) {
             globalMarkerGraphVertex[i] = disjointSets.find(i);
@@ -440,6 +440,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     ostream& out = getLog(threadId);
 
     array<OrientedReadId, 2> orientedReadIds;
+    array<OrientedReadId, 2> orientedReadIdsOppositeStrand;
     array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
     Alignment alignment;
@@ -461,8 +462,15 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
             const Overlap& overlap = overlaps[i];
             AlignmentInfo& alignmentInfo = alignmentInfos[i];
 
+            // Get the oriented read ids.
             orientedReadIds[0] = OrientedReadId(overlap.readIds[0], 0);
             orientedReadIds[1] = OrientedReadId(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
+
+            // Get the oriented read ids for the opposite strand.
+            orientedReadIdsOppositeStrand = orientedReadIds;
+            orientedReadIdsOppositeStrand[0].flipStrand();
+            orientedReadIdsOppositeStrand[1].flipStrand();
+
 
             // out << timestamp << "Working on " << i << " " << orientedReadIds[0] << " " << orientedReadIds[1] << endl;
 
@@ -520,11 +528,15 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
 
                 // Also do it for the corresponding oriented markers on
                 // the opposite strand.
-                orientedMarkerId0.flipStrand();
-                orientedMarkerId1.flipStrand();
+                const uint32_t ordinal0OppositeStrand = uint32_t(markersSortedByKmerId[0].size()) - 1 - ordinal0;
+                const uint32_t ordinal1OppositeStrand = uint32_t(markersSortedByKmerId[1].size()) - 1 - ordinal1;
+                const OrientedMarkerId orientedMarkerId0OppositeStrand =
+                    getGlobalOrientedMarkerId(orientedReadIdsOppositeStrand[0], ordinal0OppositeStrand);
+                const OrientedMarkerId orientedMarkerId1OppositeStrand =
+                    getGlobalOrientedMarkerId(orientedReadIdsOppositeStrand[1], ordinal1OppositeStrand);
                 disjointSetsPointer->unite(
-                    orientedMarkerId0.getValue(),
-                    orientedMarkerId1.getValue());
+                    orientedMarkerId0OppositeStrand.getValue(),
+                    orientedMarkerId1OppositeStrand.getValue());
             }
         }
     }
