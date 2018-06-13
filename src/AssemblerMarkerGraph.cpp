@@ -430,7 +430,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
         // Go to the next marker.
         ++ordinal;
-        if(ordinal >= markers0.size(orientedReadId.getReadId())) {
+        if(ordinal >= markers.size(orientedReadId.getValue())) {
             continue;
         }
 
