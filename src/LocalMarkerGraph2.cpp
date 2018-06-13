@@ -120,7 +120,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "[";
 
         // Tooltip.
-        s << "tooltip=\"" << vertex.vertexId << " " << vertex.markers.size() << " " << vertex.distance << "\"";
+        s << "tooltip=\"Marker " << vertex.vertexId << ", coverage " << vertex.markers.size() << ", distance " << vertex.distance << "\"";
 
         // Vertex size.
         s << " width=\"";
@@ -175,9 +175,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << " fillcolor=\"" << color << "\"";
 
         // Label.
-        s << "label=\"Id " << vertex.vertexId;
-        s << "\\nCov " << coverage;
-        s << "\\nDist " << vertex.distance << "\"";
+        s << "label=\"Marker " << vertex.vertexId;
+        s << "\\nCoverage " << coverage;
+        s << "\\nDistance " << vertex.distance << "\"";
 
         // End vertex attributes.
         s << "]";
