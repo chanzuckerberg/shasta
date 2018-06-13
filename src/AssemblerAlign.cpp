@@ -64,8 +64,6 @@ void Assembler::alignOrientedReads(
     tie(leftTrim, rightTrim) = computeTrim(
         orientedReadId0,
         orientedReadId1,
-        markers0SortedByPosition,
-        markers1SortedByPosition,
         alignmentInfo);
     cout << orientedReadId0 << " has " << reads[orientedReadId0.getReadId()].baseCount;
     cout << " bases and " << markers0SortedByPosition.size() << " markers." << endl;
@@ -188,8 +186,6 @@ void Assembler::alignOverlappingOrientedReads(
         tie(leftTrim, rightTrim) = computeTrim(
             orientedReadId0,
             orientedReadId1,
-            markers0SortedByPosition,
-            markers1SortedByPosition,
             alignmentInfo);
 
         cout << orientedReadId0 << " " << orientedReadId1 << " " << alignmentInfo.markerCount;
@@ -218,18 +214,19 @@ void Assembler::alignOverlappingOrientedReads(
 pair<uint32_t, uint32_t> Assembler::computeTrim(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    vector<Marker0>& markers0,
-    vector<Marker0>& markers1,
     const AlignmentInfo& alignmentInfo)
 {
     const uint32_t baseCount0 = uint32_t(reads[orientedReadId0.getReadId()].baseCount);
     const uint32_t baseCount1 = uint32_t(reads[orientedReadId1.getReadId()].baseCount);
 
+    const auto markers0 = markers[orientedReadId0.getValue()];
+    const auto markers1 = markers[orientedReadId1.getValue()];
+
     if(alignmentInfo.markerCount) {
-        const Marker0& firstMarker0 = markers0[alignmentInfo.firstOrdinals.first];
-        const Marker0& firstMarker1 = markers1[alignmentInfo.firstOrdinals.second];
-        const Marker0& lastMarker0 = markers0[alignmentInfo.lastOrdinals.first];
-        const Marker0& lastMarker1 = markers1[alignmentInfo.lastOrdinals.second];
+        const CompressedMarker& firstMarker0 = markers0[alignmentInfo.firstOrdinals.first];
+        const CompressedMarker& firstMarker1 = markers1[alignmentInfo.firstOrdinals.second];
+        const CompressedMarker& lastMarker0 = markers0[alignmentInfo.lastOrdinals.first];
+        const CompressedMarker& lastMarker1 = markers1[alignmentInfo.lastOrdinals.second];
         return make_pair(
             min(firstMarker0.position, firstMarker1.position),
             min(baseCount0-1-lastMarker0.position, baseCount1-1-lastMarker1.position)
@@ -515,8 +512,6 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
             tie(leftTrim, rightTrim) = computeTrim(
                 orientedReadIds[0],
                 orientedReadIds[1],
-                markersSortedByPosition[0],
-                markersSortedByPosition[1],
                 alignmentInfo);
             if(leftTrim>maxTrim || rightTrim>maxTrim) {
                 continue;

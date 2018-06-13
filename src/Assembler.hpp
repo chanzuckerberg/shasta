@@ -457,12 +457,9 @@ private:
     // compute the left and right trim.
     // This is the minimum number of bases (over the two reads)
     // that are excluded from the alignment on each size.
-    // This takes as input markers sorted by position.
     pair<uint32_t, uint32_t> computeTrim(
         OrientedReadId orientedReadIds0,
         OrientedReadId orientedReadIds1,
-        vector<Marker0>& markers0,
-        vector<Marker0>& markers1,
         const AlignmentInfo&);
 
     // The AlignmentInfo corresponding to each overlap.

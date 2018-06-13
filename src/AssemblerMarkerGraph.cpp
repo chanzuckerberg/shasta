@@ -304,8 +304,6 @@ void Assembler::createLocalMarkerGraph(
         tie(leftTrim, rightTrim) = computeTrim(
             orientedReadId0,
             orientedReadId1,
-            markersInGraphSortedByPosition[localOrientedReadId0],
-            markersInGraphSortedByPosition[localOrientedReadId1],
             alignmentInfo);
         if(leftTrim>maxTrim || rightTrim>maxTrim) {
             continue;

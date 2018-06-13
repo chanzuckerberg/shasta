@@ -41,8 +41,6 @@ void Assembler::computeReadGraphComponents(
         disjointSets.make_set(orientedReadId);
     }
 
-    vector<Marker0> markers0SortedByPosition;
-    vector<Marker0> markers1SortedByPosition;
 
 
     // Loop over overlaps, and the corresponding alignments,
@@ -68,15 +66,11 @@ void Assembler::computeReadGraphComponents(
         // the alignment).
         OrientedReadId orientedReadId0(overlap.readIds[0], 0);
         OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
-        getMarkers(orientedReadId0, markers0SortedByPosition);
-        getMarkers(orientedReadId1, markers1SortedByPosition);
         uint32_t leftTrim;
         uint32_t rightTrim;
         tie(leftTrim, rightTrim) = computeTrim(
             orientedReadId0,
             orientedReadId1,
-            markers0SortedByPosition,
-            markers1SortedByPosition,
             alignmentInfo);
 
         // If the trim is too high, skip.
@@ -242,8 +236,6 @@ void Assembler::createLocalReadGraph(
     std::queue<OrientedReadId> q;
     q.push(orientedReadIdStart);
 
-    vector<Marker0> markers0SortedByPosition;
-    vector<Marker0> markers1SortedByPosition;
 
 
     // Do the BFS.
@@ -277,15 +269,11 @@ void Assembler::createLocalReadGraph(
             // the ReadId's stored in the Overlap, with the first one on strand 0.
             const OrientedReadId overlapOrientedReadId0(overlap.readIds[0], 0);
             const OrientedReadId overlapOrientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
-            getMarkers(overlapOrientedReadId0, markers0SortedByPosition);
-            getMarkers(overlapOrientedReadId1, markers1SortedByPosition);
             uint32_t leftTrim;
             uint32_t rightTrim;
             tie(leftTrim, rightTrim) = computeTrim(
                 overlapOrientedReadId0,
                 overlapOrientedReadId1,
-                markers0SortedByPosition,
-                markers1SortedByPosition,
                 alignmentInfo);
             if(leftTrim>maxTrim || rightTrim>maxTrim) {
                 continue;
