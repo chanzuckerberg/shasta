@@ -128,6 +128,9 @@ public:
         kmerId(compressedMarker.kmerId),
         position(compressedMarker.position)
     {}
+
+    // Default constructor.
+    Marker() {}
 };
 
 
@@ -144,6 +147,9 @@ public:
         Marker(marker),
         ordinal(ordinal)
     {}
+
+    // Default constructor.
+    MarkerWithOrdinal() {}
 
     // Order by kmerId.
     bool operator<(const MarkerWithOrdinal& that) const

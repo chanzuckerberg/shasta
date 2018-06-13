@@ -130,11 +130,11 @@ void Assembler::getMarkersSortedByKmerId(
 {
     const auto compressedMarkers = markers[orientedReadId.getValue()];
     markersSortedByKmerId.clear();
-    markersSortedByKmerId.resize(compressedMarkers);
+    markersSortedByKmerId.resize(compressedMarkers.size());
 
     for(uint32_t ordinal=0; ordinal<compressedMarkers.size(); ordinal++) {
         const CompressedMarker& compressedMarker = compressedMarkers[ordinal];
-        markersSortedByKmerId[ordinal] = MarkerWithOrdinal(compressedMarker, ordinal));
+        markersSortedByKmerId[ordinal] = MarkerWithOrdinal(compressedMarker, ordinal);
     }
 
     // Sort by kmerId.
