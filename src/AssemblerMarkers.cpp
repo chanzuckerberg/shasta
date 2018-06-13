@@ -73,56 +73,6 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 
 
 
-void Assembler::getMarkers(ReadId readId, vector<Marker0>& readMarkers) const
-{
-    checkMarkersAreOpen();
-    const auto readCompressedMarkers = markers0[readId];
-    const uint32_t n = uint32_t(readCompressedMarkers.size());
-
-    readMarkers.clear();
-    readMarkers.reserve(n);
-
-    Marker0 marker;
-    marker.position = 0;
-    for(marker.ordinal=0; marker.ordinal<n; marker.ordinal++) {
-        const CompressedMarker0& compressedMarker = readCompressedMarkers[marker.ordinal];
-        marker.position += compressedMarker.shift;
-        marker.kmerId = compressedMarker.kmerId;
-        readMarkers.push_back(marker);
-    }
-}
-
-
-
-void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker0>& markers)
-{
-
-    // Get uncompressed markers for this read.
-    const ReadId readId = orientedReadId.getReadId();
-    const Strand strand = orientedReadId.getStrand();
-    getMarkers(readId, markers);
-
-    // For strand 0, we are done.
-    if(strand == 0) {
-        return;
-    }
-
-    // For strand 1, we have to reverse complement the markers
-    // and their ordinals and positions.
-    const uint32_t k = uint32_t(assemblerInfo->k);
-    const uint32_t readLength = uint32_t(reads[readId].baseCount);
-    reverse(markers.begin(), markers.end());
-    for(uint32_t ordinal=0; ordinal<markers.size(); ordinal++) {
-        Marker0& marker = markers[ordinal];
-        marker.ordinal = ordinal;
-        marker.position = readLength - k - marker.position;
-        marker.kmerId = kmerTable[marker.kmerId].reverseComplementedKmerId;
-    }
-
-}
-
-
-
 // Get markers sorted by KmerId for a given OrientedReadId.
 void Assembler::getMarkersSortedByKmerId(
     OrientedReadId orientedReadId,

@@ -336,11 +336,6 @@ private:
     // This will be phased out.
     MemoryMapped::VectorOfVectors<CompressedMarker0, uint64_t> markers0;
 
-    // Get a vector of Marker0 for a read or oriented read.
-    // These will be phased out.
-    void getMarkers(ReadId, vector<Marker0>&) const;
-    void getMarkers(OrientedReadId, vector<Marker0>&);
-
     // The markers on all oriented reads. Indexed by OrientedReadId::getValue().
     MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t> markers;
     void checkMarkersAreOpen() const;
