@@ -96,8 +96,6 @@ void Assembler::getMarkers(ReadId readId, vector<Marker0>& readMarkers) const
 
 void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker0>& markers)
 {
-    checkReadsAreOpen();
-    checkKmersAreOpen();
 
     // Get uncompressed markers for this read.
     const ReadId readId = orientedReadId.getReadId();
@@ -121,6 +119,26 @@ void Assembler::getMarkers(OrientedReadId orientedReadId, vector<Marker0>& marke
         marker.kmerId = kmerTable[marker.kmerId].reverseComplementedKmerId;
     }
 
+}
+
+
+
+// Get markers sorted by KmerId for a given OrientedReadId.
+void Assembler::getMarkersSortedByKmerId(
+    OrientedReadId orientedReadId,
+    vector<MarkerWithOrdinal>& markersSortedByKmerId) const
+{
+    const auto compressedMarkers = markers[orientedReadId.getValue()];
+    markersSortedByKmerId.clear();
+    markersSortedByKmerId.resize(compressedMarkers);
+
+    for(uint32_t ordinal=0; ordinal<compressedMarkers.size(); ordinal++) {
+        const CompressedMarker& compressedMarker = compressedMarkers[ordinal];
+        markersSortedByKmerId[ordinal] = MarkerWithOrdinal(compressedMarker, ordinal));
+    }
+
+    // Sort by kmerId.
+    sort(markersSortedByKmerId.begin(), markersSortedByKmerId.end());
 }
 
 

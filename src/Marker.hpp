@@ -144,6 +144,12 @@ public:
         Marker(marker),
         ordinal(ordinal)
     {}
+
+    // Order by kmerId.
+    bool operator<(const MarkerWithOrdinal& that) const
+    {
+        return kmerId < that.kmerId;
+    }
 };
 
 

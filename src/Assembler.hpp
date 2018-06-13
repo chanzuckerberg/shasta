@@ -345,6 +345,11 @@ private:
     MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t> markers;
     void checkMarkersAreOpen() const;
 
+    // Get markers sorted by KmerId for a given OrientedReadId.
+    void getMarkersSortedByKmerId(
+        OrientedReadId,
+        vector<MarkerWithOrdinal>&) const;
+
     // Given a marker by its OrientedReadId and ordinal,
     // return the corresponding global marker id.
     OrientedMarkerId getGlobalOrientedMarkerId(
