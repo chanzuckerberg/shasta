@@ -45,6 +45,7 @@ was done when the global marker graph was created.
 
 // Nanopore2.
 #include "Kmer.hpp"
+#include "MemoryAsContainer.hpp"
 #include "ReadId.hpp"
 
 // Boost libraries.
@@ -73,7 +74,7 @@ namespace ChanZuckerberg {
 
         // Forward declarations of types defined elsewhere.
         class LongBaseSequence;
-        class Marker0;
+        class CompressedMarker;
     }
 }
 
@@ -152,7 +153,7 @@ public:
         size_t k,
         const vector<OrientedReadId>&,
         const vector<LongBaseSequence>& sequences,
-        const vector< vector<Marker0> >&,
+        const vector< MemoryAsContainer<CompressedMarker> >&,
         size_t minCoverage,     // For a vertex to be considered strong.
         size_t minConsensus     // For an edge to be considered strong.
         );
@@ -249,7 +250,7 @@ private:
     const vector<LongBaseSequence> sequences;
 
     // The markers the input oriented reads, sorted by position.
-    vector< vector<Marker0> > markers0;
+    vector< MemoryAsContainer<CompressedMarker> > markers;
 
     // Minimum coverage for a vertex to be considered strong.
     size_t minCoverage;

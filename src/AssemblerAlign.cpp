@@ -36,17 +36,12 @@ void Assembler::alignOrientedReads(
     checkReadNamesAreOpen();
     checkMarkersAreOpen();
 
-    // Get the markers sorted by position.
-    vector<Marker0> markers0SortedByPosition;
-    vector<Marker0> markers1SortedByPosition;
-    getMarkers(orientedReadId0, markers0SortedByPosition);
-    getMarkers(orientedReadId1, markers1SortedByPosition);
 
     // Get the markers sorted by kmerId.
-    vector<Marker0> markers0SortedByKmerId = markers0SortedByPosition;
-    vector<Marker0> markers1SortedByKmerId = markers1SortedByPosition;
-    sort(markers0SortedByKmerId.begin(), markers0SortedByKmerId.end(), OrderMarkers0ByKmerId());
-    sort(markers1SortedByKmerId.begin(), markers1SortedByKmerId.end(), OrderMarkers0ByKmerId());
+    vector<MarkerWithOrdinal> markers0SortedByKmerId;
+    vector<MarkerWithOrdinal> markers1SortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
+    getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
 
     // Call the lower level function.
     AlignmentGraph graph;
@@ -66,9 +61,9 @@ void Assembler::alignOrientedReads(
         orientedReadId1,
         alignmentInfo);
     cout << orientedReadId0 << " has " << reads[orientedReadId0.getReadId()].baseCount;
-    cout << " bases and " << markers0SortedByPosition.size() << " markers." << endl;
+    cout << " bases and " << markers0SortedByKmerId.size() << " markers." << endl;
     cout << orientedReadId1 << " has " << reads[orientedReadId1.getReadId()].baseCount;
-    cout << " bases and " << markers1SortedByPosition.size() << " markers." << endl;
+    cout << " bases and " << markers1SortedByKmerId.size() << " markers." << endl;
     cout << "The alignment has " << alignmentInfo.markerCount;
     cout << " markers. Left trim " << leftTrim;
     cout << " bases, right trim " << rightTrim << " bases." << endl;
@@ -84,8 +79,8 @@ void Assembler::alignOrientedReads(
 // This lower level version takes as input vectors of
 // markers already sorted by kmerId.
 void Assembler::alignOrientedReads(
-    const vector<Marker0>& markers0SortedByKmerId,
-    const vector<Marker0>& markers1SortedByKmerId,
+    const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
+    const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
     size_t maxSkip,             // Maximum ordinal skip allowed.
     size_t maxVertexCountPerKmer
 )
@@ -103,8 +98,8 @@ void Assembler::alignOrientedReads(
 
 
 void Assembler::alignOrientedReads(
-    const vector<Marker0>& markers0SortedByKmerId,
-    const vector<Marker0>& markers1SortedByKmerId,
+    const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
+    const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
     size_t maxSkip,             // Maximum ordinal skip allowed.
     size_t maxVertexCountPerKmer,
     bool debug,
@@ -149,15 +144,11 @@ void Assembler::alignOverlappingOrientedReads(
     checkOverlapsAreOpen();
 
     // Get the markers for orientedReadId0.
-    vector<Marker0> markers0SortedByPosition;
-    getMarkers(orientedReadId0, markers0SortedByPosition);
-    vector<Marker0> markers0SortedByKmerId = markers0SortedByPosition;
-    sort(markers0SortedByKmerId.begin(), markers0SortedByKmerId.end(),
-        OrderMarkers0ByKmerId());
+    vector<MarkerWithOrdinal> markers0SortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
 
     // Loop over all overlaps involving this oriented read.
-    vector<Marker0> markers1SortedByPosition;
-    vector<Marker0> markers1SortedByKmerId;
+    vector<MarkerWithOrdinal> markers1SortedByKmerId;
     size_t goodAlignmentCount = 0;
     for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
         const Overlap& overlap = overlaps[i];
@@ -166,9 +157,7 @@ void Assembler::alignOverlappingOrientedReads(
         const OrientedReadId orientedReadId1 = overlap.getOther(orientedReadId0);
 
         // Get the markers for orientedReadId1.
-        getMarkers(orientedReadId1, markers1SortedByPosition);
-        markers1SortedByKmerId = markers1SortedByPosition;
-        sort(markers1SortedByKmerId.begin(), markers1SortedByKmerId.end(), OrderMarkers0ByKmerId());
+        getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
 
         // Compute the alignment.
         AlignmentGraph graph;
@@ -451,8 +440,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     ostream& out = getLog(threadId);
 
     array<OrientedReadId, 2> orientedReadIds;
-    array<vector<Marker0>, 2> markersSortedByPosition;
-    array<vector<Marker0>, 2> markersSortedByKmerId;
+    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
     Alignment alignment;
 
@@ -480,10 +468,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
 
             // Get the markers for the two oriented reads in this Overlap.
             for(size_t j=0; j<2; j++) {
-                getMarkers(orientedReadIds[j], markersSortedByPosition[j]);
-                markersSortedByKmerId[j] = markersSortedByPosition[j];
-                sort(markersSortedByKmerId[j].begin(), markersSortedByKmerId[j].end(),
-                    OrderMarkers0ByKmerId());
+                getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
             }
 
             // Compute the alignment.

@@ -22,6 +22,8 @@ public:
     {
     }
 
+    MemoryAsContainer() : dataBegin(0), dataEnd(0) {}
+
     size_t size() const
     {
         return dataEnd - dataBegin;

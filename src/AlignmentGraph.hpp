@@ -46,8 +46,8 @@ namespace ChanZuckerberg {
         void align(
 
             // Markers of the two oriented reads to be aligned, sorted by KmerId.
-            const vector<Marker0>& markers0,
-            const vector<Marker0>& markers1,
+            const vector<MarkerWithOrdinal>& markers0,
+            const vector<MarkerWithOrdinal>& markers1,
 
             // The maximum ordinal skip to be tolerated between successive markers
             // in the alignment.
@@ -123,8 +123,8 @@ class ChanZuckerberg::Nanopore2::AlignmentGraph : public AlignmentGraphBaseClass
 public:
 
     void create(
-        const vector<Marker0>& kmers0,
-        const vector<Marker0>& kmers1,
+        const vector<MarkerWithOrdinal>& kmers0,
+        const vector<MarkerWithOrdinal>& kmers1,
         size_t maxSkip,
         size_t maxVertexCountPerKmer,
         bool debug,
@@ -138,12 +138,12 @@ private:
     vertex_descriptor vFinish;
 
     static void writeMarkers(
-        const vector<Marker0>&,
+        const vector<MarkerWithOrdinal>&,
         const string& fileName
         );
     void createVertices(
-        const vector<Marker0>&,
-        const vector<Marker0>&,
+        const vector<MarkerWithOrdinal>&,
+        const vector<MarkerWithOrdinal>&,
         size_t maxVertexCountPerKmer);
     void writeVertices(const string& fileName) const;
     void createEdges(
@@ -158,8 +158,8 @@ private:
     // Write an image representing the markers and the computed alignment
     // in 2-D ordinal space.
     void writeImage(
-        const vector<Marker0>&,
-        const vector<Marker0>&,
+        const vector<MarkerWithOrdinal>&,
+        const vector<MarkerWithOrdinal>&,
         const Alignment&,
         const string& fileName) const;
 

@@ -408,15 +408,15 @@ private:
     // This lower level version takes as input vectors of
     // markers already sorted by kmerId.
     void alignOrientedReads(
-        const vector<Marker0>& markers0SortedByKmerId,
-        const vector<Marker0>& markers1SortedByKmerId,
+        const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
+        const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
         size_t maxSkip,  // Maximum ordinal skip allowed.
         size_t maxVertexCountPerKmer
     );
     // This version allows reusing the AlignmentGraph and Alignment
     void alignOrientedReads(
-        const vector<Marker0>& markers0SortedByKmerId,
-        const vector<Marker0>& markers1SortedByKmerId,
+        const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
+        const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
         size_t maxSkip,             // Maximum ordinal skip allowed.
         size_t maxVertexCountPerKmer,
         bool debug,
