@@ -102,7 +102,7 @@ MarkerId Assembler::getMarkerId(
 // This could be avoided, at the cost of storing
 // an additional 4 bytes per marker.
 pair<OrientedReadId, uint32_t>
-    Assembler::findGlobalOrientedMarkerId(MarkerId orientedMarkerId) const
+    Assembler::findMarkerId(MarkerId orientedMarkerId) const
 {
     OrientedReadId::Int orientedReadIdValue;
     uint32_t ordinal;

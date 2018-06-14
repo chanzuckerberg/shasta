@@ -383,7 +383,7 @@ void Assembler::getGlobalMarkerGraphVertexMarkers(
         OrientedReadId orientedReadId;
         uint32_t ordinal;
         tie(orientedReadId, ordinal) =
-            findGlobalOrientedMarkerId(orientedMarkerId);
+            findMarkerId(orientedMarkerId);
         markers.push_back(make_pair(orientedReadId, ordinal));
     }
 }
@@ -415,8 +415,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
         // Find the OrientedReadId and ordinal.
         OrientedReadId orientedReadId;
         uint32_t ordinal;
-        tie(orientedReadId, ordinal) =
-            findGlobalOrientedMarkerId(orientedMarkerId);
+        tie(orientedReadId, ordinal) = findMarkerId(orientedMarkerId);
 
         // Go to the next marker.
         ++ordinal;
@@ -465,8 +464,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
         // Find the OrientedReadId and ordinal.
         OrientedReadId orientedReadId;
         uint32_t ordinal;
-        tie(orientedReadId, ordinal) =
-            findGlobalOrientedMarkerId(orientedMarkerId);
+        tie(orientedReadId, ordinal) = findMarkerId(orientedMarkerId);
 
         // Go to the previous marker.
         if(ordinal  == 0) {

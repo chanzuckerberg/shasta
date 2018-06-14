@@ -350,8 +350,7 @@ private:
     // This requires a binary search in the markers toc.
     // This could be avoided, at the cost of storing
     // an additional 4 bytes per marker.
-    pair<OrientedReadId, uint32_t>
-        findGlobalOrientedMarkerId(MarkerId) const;
+    pair<OrientedReadId, uint32_t> findMarkerId(MarkerId) const;
 
 
 
