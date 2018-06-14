@@ -2,6 +2,7 @@
 #include "LocalMarkerGraph2.hpp"
 #include "CZI_ASSERT.hpp"
 #include "findMarkerId.hpp"
+#include "LongBaseSequence.hpp"
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "ReadId.hpp"
@@ -19,8 +20,8 @@ using namespace Nanopore2;
 
 
 LocalMarkerGraph2::LocalMarkerGraph2(
-    size_t k,
-    const LongBaseSequences& reads,
+    uint32_t k,
+    LongBaseSequences& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers
     ) :
     k(k),
@@ -96,6 +97,70 @@ KmerId LocalMarkerGraph2::getKmerId(vertex_descriptor v) const
     }
 
     return kmerId;
+}
+
+
+
+void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
+{
+    // Access the graph, the edge, and its vertices.
+    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph2Edge& edge = graph[e];
+    const vertex_descriptor v0 = source(e, graph);
+    const vertex_descriptor v1 = target(e, graph);
+    const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+    const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+
+    // Find pairs of consecutive markers in the two vertices.
+    // We exploit the fact that the markers in each
+    // of the vertices are sorted.
+    cout << "***A " << vertex0.markerInfos.size() << " " << vertex1.markerInfos.size() << endl;
+    auto it0 = vertex0.markerInfos.begin();
+    auto it1 = vertex1.markerInfos.begin();
+    while(it0!=vertex0.markerInfos.end() && it1!=vertex1.markerInfos.end()) {
+        const MarkerId markerId0 = it0->markerId;
+        const MarkerId markerId1 = it1->markerId;
+        const MarkerId markerId0Next = markerId0 + 1;
+        if(markerId0Next < markerId1) {
+            ++it0;
+            continue;
+        }
+        if(markerId0Next > markerId1) {
+            ++it1;
+            continue;
+        }
+        const OrientedReadId orientedReadId = it0->orientedReadId;
+        if(it1->orientedReadId == orientedReadId) {
+            edge.infos.push_back(LocalMarkerGraph2Edge::Info(orientedReadId, it0->ordinal));
+
+            // Fill in the sequence information.
+            LocalMarkerGraph2Edge::Info& info = edge.infos.back();
+            const CompressedMarker& marker0 = markers.begin()[markerId0];
+            const CompressedMarker& marker1 = markers.begin()[markerId1];
+
+            if(marker1.position <= marker0.position + k) {
+                info.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
+            } else {
+                info.overlappingBaseCount = 0;
+                const auto read = reads[orientedReadId.getReadId()];
+                const uint32_t readLength = uint32_t(read.baseCount);
+                for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
+                    Nanopore2::Base base;
+                    if(orientedReadId.getStrand() == 0) {
+                        base = read.get(position);
+                    } else {
+                        base = read.get(readLength - 1 - position);
+                        base.complementInPlace();
+                    }
+                    info.sequence.push_back(base);
+                }
+
+            }
+        }
+        ++it0;
+        ++it1;
+    }
+
 }
 
 
@@ -296,7 +361,6 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
 
-#if 0
     const LocalMarkerGraph2Edge& edge = graph[e];
 
     if(!detailed) {
@@ -306,8 +370,14 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Begin edge attributes.
         s << "[";
 
+        s << " penwidth=";
+        const auto oldPrecision = s.precision(4);
+        s <<  0.5 * double(edge.infos.size());
+        s.precision(oldPrecision);
+
         // End edge attributes.
         s << "]";
+
     } else {
 
         // Detailed output.
@@ -317,10 +387,14 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Begin edge attributes.
         s << "[";
 
+        s << " penwidth=";
+        const auto oldPrecision = s.precision(4);
+        s <<  0.5 * double(edge.infos.size());
+        s.precision(oldPrecision);
+
         // End edge attributes.
         s << "]";
     }
-#endif
 
 }
 

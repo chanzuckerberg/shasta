@@ -507,7 +507,7 @@ void Assembler::extractLocalMarkerGraph(
     // Create the local marker graph and add the start vertex.
     const GlobalMarkerGraphVertexId startVertexId =
         getGlobalMarkerGraphVertex(readId, strand, ordinal);
-    LocalMarkerGraph2 graph(assemblerInfo->k, reads, markers);
+    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers);
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
 
@@ -556,7 +556,11 @@ void Assembler::extractLocalMarkerGraph(
             vertex_descriptor v1;
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(vertexExists) {
-                add_edge(v0, v1, graph);
+                LocalMarkerGraph2::edge_descriptor  e;
+                bool edgeWasAdded = false;
+                tie(e, edgeWasAdded) = add_edge(v0, v1, graph);
+                CZI_ASSERT(edgeWasAdded);
+                graph.storeEdgeInfo(e);
             }
         }
     }

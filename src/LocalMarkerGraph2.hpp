@@ -102,6 +102,32 @@ public:
 
 class ChanZuckerberg::Nanopore2::LocalMarkerGraph2Edge {
 public:
+
+    // Each Info object corresponds to an oriented read
+    // that appears at startOrdinal in the source vertex
+    // of this edge and at startOrdinal+1 in the target vertex.
+    class Info {
+    public:
+        OrientedReadId orientedReadId;
+
+        // The ordinal in the source vertex.
+        // Thr ordinal in the target vertex is one larger.
+        uint32_t startOrdinal;
+
+        // The number of overlapping bases between the
+        // marker of the source vertex and the
+        // marker of the target vertex.
+        uint8_t overlappingBaseCount;
+
+        // The intervening sequence between the two markers.
+        vector<Base> sequence;
+
+        Info(OrientedReadId orientedReadId, uint32_t startOrdinal) :
+            orientedReadId(orientedReadId),
+            startOrdinal(startOrdinal),
+            overlappingBaseCount(0) {}
+    };
+    vector<Info> infos;
 };
 
 
@@ -111,8 +137,8 @@ class ChanZuckerberg::Nanopore2::LocalMarkerGraph2 :
 public:
 
     LocalMarkerGraph2(
-        size_t k,
-        const LongBaseSequences& reads,
+        uint32_t k,
+        LongBaseSequences& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers
         );
 
@@ -132,6 +158,8 @@ public:
     // Get the KmerId for a vertex.
     KmerId getKmerId(vertex_descriptor) const;
 
+    // Store sequence information in the edge.
+    void storeEdgeInfo(edge_descriptor);
 
     // Write in Graphviz format.
     // There are two types of Graphviz output:
@@ -164,13 +192,12 @@ private:
     std::map<GlobalMarkerGraphVertexId, vertex_descriptor> vertexMap;
 
     // The length of k-mers used as markers.
-    size_t k;
+    uint32_t k;
 
     // Reference to the global data structure containing all reads and markers
     // (not just those in this local marker graph).
-    const LongBaseSequences& reads;
+    LongBaseSequences& reads;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
-
 
     class Writer {
     public:
