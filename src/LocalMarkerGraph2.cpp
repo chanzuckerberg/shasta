@@ -103,10 +103,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
 }
 
 
+
 void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
     const LocalMarkerGraph2Vertex& vertex = graph[v];
     const auto coverage = vertex.markers.size();
+    CZI_ASSERT(coverage > 0);
 
 
     // For compact output, the node shape is already defaulted to point,
@@ -179,6 +181,42 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "label=\"Marker " << vertex.vertexId;
         s << "\\nCoverage " << coverage;
         s << "\\nDistance " << vertex.distance << "\"";
+
+        // Write the label using Graphviz html-like functionality.
+        s << " label=<<font><table border=\"0\">";
+
+        // Vertex id.
+        s << "<tr><td colspan=\"3\"><b>";
+        s << "Vertex " << vertex.vertexId;
+        s << "</b></td></tr>";
+
+        // Coverage.
+        s << "<tr><td colspan=\"3\"><b>";
+        s << "Coverage " << coverage;
+        s << "</b></td></tr>";
+
+        // Distance.
+        s << "<tr><td colspan=\"3\"><b>";
+        s << "Distance " << vertex.distance;
+        s << "</b></td></tr>";
+
+#if 0
+        // k-mer sequence.
+        s << "<tr><td colspan=\"3\"><b>";
+        kmer.write(s, graph.k);
+        s << "</b></td></tr>";
+
+        // k-mer id.
+        s << "<tr><td colspan=\"3\"><b>";
+        s << vertex.kmerId;
+        s << "</b></td></tr>";
+#endif
+
+        // Column headers.
+        s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td></tr>";
+
+        // End the table.
+        s << "</table></font>>";
 
         // End vertex attributes.
         s << "]";
