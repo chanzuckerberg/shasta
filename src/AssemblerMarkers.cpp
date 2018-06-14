@@ -1,5 +1,6 @@
 // Nanopore2.
 #include "Assembler.hpp"
+#include "findMarkerId.hpp"
 #include "MarkerFinder.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
@@ -104,9 +105,6 @@ MarkerId Assembler::getMarkerId(
 pair<OrientedReadId, uint32_t>
     Assembler::findMarkerId(MarkerId markerId) const
 {
-    OrientedReadId::Int orientedReadIdValue;
-    uint32_t ordinal;
-    tie(orientedReadIdValue, ordinal) = markers.find(markerId);
-    return make_pair(OrientedReadId(orientedReadIdValue), ordinal);
+    return Nanopore2::findMarkerId(markerId, markers);
 }
 

@@ -507,7 +507,7 @@ void Assembler::extractLocalMarkerGraph(
     // Create the local marker graph and add the start vertex.
     const GlobalMarkerGraphVertexId startVertexId =
         getGlobalMarkerGraphVertex(readId, strand, ordinal);
-    LocalMarkerGraph2 graph;
+    LocalMarkerGraph2 graph(assemblerInfo->k, reads, markers);
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
 

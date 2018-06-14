@@ -28,6 +28,10 @@ public:
     {
         return dataEnd - dataBegin;
     }
+    bool empty() const
+    {
+        return dataBegin == dataEnd;
+    }
     T* begin() const
     {
         return dataBegin;

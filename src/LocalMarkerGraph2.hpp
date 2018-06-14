@@ -30,6 +30,7 @@ was done when the global marker graph was created.
 *******************************************************************************/
 
 // Nanopore2.
+#include "Kmer.hpp"
 #include "MarkerId.hpp"
 #include "MemoryAsContainer.hpp"
 
@@ -57,6 +58,12 @@ namespace ChanZuckerberg {
             LocalMarkerGraph2Edge
             >;
 
+        // Forward declarations of classes defined elsewhere.
+        class CompressedMarker;
+        class LongBaseSequences;
+        namespace MemoryMapped {
+            template<class Int, class T> class VectorOfVectors;
+        }
     }
 }
 
@@ -96,6 +103,12 @@ class ChanZuckerberg::Nanopore2::LocalMarkerGraph2 :
     public LocalMarkerGraph2BaseClass {
 public:
 
+    LocalMarkerGraph2(
+        size_t k,
+        const LongBaseSequences& reads,
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers
+        );
+
     // Find out if a vertex with the given GlobalMarkerGraphVertexId exists.
     // If it exists, return make_pair(true, v).
     // Otherwise, return make_pair(false, null_vertex());
@@ -109,6 +122,8 @@ public:
         int distance,
         MemoryAsContainer<MarkerId> markers);
 
+    // Get the KmerId for a vertex.
+    KmerId getKmerId(vertex_descriptor) const;
 
 
     // Write in Graphviz format.
@@ -140,6 +155,14 @@ private:
 
     // Map a global vertex id to a vertex descriptor for the local graph.
     std::map<GlobalMarkerGraphVertexId, vertex_descriptor> vertexMap;
+
+    // The length of k-mers used as markers.
+    size_t k;
+
+    // Reference to the global data structure containing all reads and markers
+    // (not just those in this local marker graph).
+    const LongBaseSequences& reads;
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
 
 
     class Writer {

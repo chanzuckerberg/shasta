@@ -1,6 +1,10 @@
 // Nanopore2
 #include "LocalMarkerGraph2.hpp"
 #include "CZI_ASSERT.hpp"
+#include "findMarkerId.hpp"
+#include "Marker.hpp"
+#include "MemoryMappedVectorOfVectors.hpp"
+#include "ReadId.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
@@ -10,7 +14,21 @@ using namespace Nanopore2;
 // Standard libraries.
 #include "fstream.hpp"
 #include "stdexcept.hpp"
+#include "tuple.hpp"
 #include "utility.hpp"
+
+
+LocalMarkerGraph2::LocalMarkerGraph2(
+    size_t k,
+    const LongBaseSequences& reads,
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers
+    ) :
+    k(k),
+    reads(reads),
+    markers(markers)
+{
+
+}
 
 
 // Find out if a vertex with the given GlobalMarkerGraphVertexId exists.
@@ -42,6 +60,27 @@ LocalMarkerGraph2::vertex_descriptor
     const vertex_descriptor v = add_vertex(LocalMarkerGraph2Vertex(vertexId, distance, markers), *this);
     vertexMap.insert(make_pair(vertexId, v));
     return v;
+}
+
+
+
+// Get the KmerId for a vertex.
+KmerId LocalMarkerGraph2::getKmerId(vertex_descriptor v) const
+{
+    const LocalMarkerGraph2Vertex& vertex = (*this)[v];
+    CZI_ASSERT(!vertex.markers.empty());
+    const MarkerId firstMarkerId = vertex.markers[0];
+    const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
+    const KmerId kmerId = firstMarker.kmerId;
+
+    // Sanity check that all markers have the same kmerId.
+    // At some point thsi can be removed.
+    for(const MarkerId markerId: vertex.markers){
+        const CompressedMarker& marker = markers.begin()[markerId];
+        CZI_ASSERT(marker.kmerId == kmerId);
+    }
+
+    return kmerId;
 }
 
 
@@ -155,6 +194,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
     } else {
 
         // Detailed output.
+        const size_t k = graph.k;
+        const KmerId kmerId = graph.getKmerId(v);
+        const Kmer kmer(kmerId, k);
 
         // Begin vertex attributes.
         s << "[";
@@ -190,6 +232,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "Vertex " << vertex.vertexId;
         s << "</b></td></tr>";
 
+        // Kmer.
+        s << "<tr><td colspan=\"3\"><b>";
+        kmer.write(s, k);
+        s << "</b></td></tr>";
+
         // Coverage.
         s << "<tr><td colspan=\"3\"><b>";
         s << "Coverage " << coverage;
@@ -200,20 +247,26 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "Distance " << vertex.distance;
         s << "</b></td></tr>";
 
-#if 0
-        // k-mer sequence.
-        s << "<tr><td colspan=\"3\"><b>";
-        kmer.write(s, graph.k);
-        s << "</b></td></tr>";
-
-        // k-mer id.
-        s << "<tr><td colspan=\"3\"><b>";
-        s << vertex.kmerId;
-        s << "</b></td></tr>";
-#endif
-
         // Column headers.
         s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td></tr>";
+
+        // A row for each marker of this vertex.
+        for(const MarkerId markerId: vertex.markers) {
+            const CompressedMarker& marker = graph.markers.begin()[markerId];
+            OrientedReadId orientedReadId;
+            uint32_t ordinal;
+            tie(orientedReadId, ordinal) = findMarkerId(markerId, graph.markers);
+
+            // OrientedReadId
+            s << "<tr><td align=\"right\"><b>" << orientedReadId << "</b></td>";
+
+            // Ordinal.
+            s << "<td align=\"right\"><b>" << ordinal << "</b></td>";
+
+            // Position.
+            s << "<td align=\"right\"><b>" << marker.position << "</b></td></tr>";
+        }
+
 
         // End the table.
         s << "</table></font>>";
