@@ -6,7 +6,7 @@ import sys
 helpMessage = "Invoke with the one argument, the name of the Fasta file."
 
 if not len(sys.argv)==2:
-    print(helpmessage)
+    print(helpMessage)
     exit(1)
     
 fileName = sys.argv[1]
