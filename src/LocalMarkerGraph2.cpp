@@ -1,5 +1,6 @@
 // Nanopore2
 #include "LocalMarkerGraph2.hpp"
+#include "CZI_ASSERT.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
@@ -35,7 +36,7 @@ LocalMarkerGraph2::vertex_descriptor
     LocalMarkerGraph2::addVertex(
     GlobalMarkerGraphVertexId vertexId,
     int distance,
-    MemoryAsContainer<OrientedMarkerId> markers)
+    MemoryAsContainer<MarkerId> markers)
 {
     CZI_ASSERT(vertexMap.find(vertexId) == vertexMap.end());
     const vertex_descriptor v = add_vertex(LocalMarkerGraph2Vertex(vertexId, distance, markers), *this);

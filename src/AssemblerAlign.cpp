@@ -413,7 +413,7 @@ void Assembler::computeAllAlignments(
         }
         globalMarkerGraphVertices.beginPass2();
         for(VertexId i=0; i<globalMarkerGraphVertex.size(); i++) {
-            globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], OrientedMarkerId(i));
+            globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], i);
         }
         globalMarkerGraphVertices.endPass2();
 
@@ -518,25 +518,23 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
             for(const auto& p: alignment.ordinals) {
                 const uint32_t ordinal0 = p.first;
                 const uint32_t ordinal1 = p.second;
-                OrientedMarkerId orientedMarkerId0 =
+                MarkerId orientedMarkerId0 =
                     getGlobalOrientedMarkerId(orientedReadIds[0], ordinal0);
-                OrientedMarkerId orientedMarkerId1 =
+                MarkerId orientedMarkerId1 =
                     getGlobalOrientedMarkerId(orientedReadIds[1], ordinal1);
-                disjointSetsPointer->unite(
-                    orientedMarkerId0.getValue(),
-                    orientedMarkerId1.getValue());
+                disjointSetsPointer->unite(orientedMarkerId0, orientedMarkerId1);
 
                 // Also do it for the corresponding oriented markers on
                 // the opposite strand.
                 const uint32_t ordinal0OppositeStrand = uint32_t(markersSortedByKmerId[0].size()) - 1 - ordinal0;
                 const uint32_t ordinal1OppositeStrand = uint32_t(markersSortedByKmerId[1].size()) - 1 - ordinal1;
-                const OrientedMarkerId orientedMarkerId0OppositeStrand =
+                const MarkerId orientedMarkerId0OppositeStrand =
                     getGlobalOrientedMarkerId(orientedReadIdsOppositeStrand[0], ordinal0OppositeStrand);
-                const OrientedMarkerId orientedMarkerId1OppositeStrand =
+                const MarkerId orientedMarkerId1OppositeStrand =
                     getGlobalOrientedMarkerId(orientedReadIdsOppositeStrand[1], ordinal1OppositeStrand);
                 disjointSetsPointer->unite(
-                    orientedMarkerId0OppositeStrand.getValue(),
-                    orientedMarkerId1OppositeStrand.getValue());
+                    orientedMarkerId0OppositeStrand,
+                    orientedMarkerId1OppositeStrand);
             }
         }
     }

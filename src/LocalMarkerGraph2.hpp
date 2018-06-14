@@ -37,7 +37,9 @@ was done when the global marker graph was created.
 #include <boost/graph/adjacency_list.hpp>
 
 // Standard library.
+#include "iostream.hpp"
 #include <map>
+#include "string.hpp"
 #include "utility.hpp"
 
 namespace ChanZuckerberg {
@@ -71,12 +73,12 @@ public:
     int distance;
 
     // The markers of this vertex.
-    MemoryAsContainer<OrientedMarkerId> markers;
+    MemoryAsContainer<MarkerId> markers;
 
     LocalMarkerGraph2Vertex(
         GlobalMarkerGraphVertexId vertexId,
         int distance,
-        MemoryAsContainer<OrientedMarkerId> markers) :
+        MemoryAsContainer<MarkerId> markers) :
         vertexId(vertexId),
         distance(distance),
         markers(markers){}
@@ -105,7 +107,7 @@ public:
     vertex_descriptor addVertex(
         GlobalMarkerGraphVertexId,
         int distance,
-        MemoryAsContainer<OrientedMarkerId> markers);
+        MemoryAsContainer<MarkerId> markers);
 
 
 

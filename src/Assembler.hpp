@@ -343,7 +343,7 @@ private:
 
     // Given a marker by its OrientedReadId and ordinal,
     // return the corresponding global marker id.
-    OrientedMarkerId getGlobalOrientedMarkerId(
+    MarkerId getGlobalOrientedMarkerId(
         OrientedReadId, uint32_t ordinal) const;
 
     // Inverse of the above: given a global marker id,
@@ -352,7 +352,7 @@ private:
     // This could be avoided, at the cost of storing
     // an additional 4 bytes per marker.
     pair<OrientedReadId, uint32_t>
-        findGlobalOrientedMarkerId(OrientedMarkerId) const;
+        findGlobalOrientedMarkerId(MarkerId) const;
 
 
 
@@ -477,12 +477,13 @@ private:
     ComputeAllAlignmentsData computeAllAlignmentsData;
 
     // The global marker graph vertex corresponding to each global
-    // OrientedMarkerId. Indexed by OrientedMarkedId::getValue();
+    // OrientedMarkerId. Indexed by OrientedMarkerId.
     MemoryMapped::Vector<GlobalMarkerGraphVertexId> globalMarkerGraphVertex;
 
-    // The oriented marker ids of each vertex of the global marker graph.
+    // The oriented marker ids of the markers corresponding to
+    // each vertex of the global marker graph.
     // Indexed by GlobalMarkerGraphVertexId.
-    MemoryMapped::VectorOfVectors<OrientedMarkerId, GlobalMarkerGraphVertexId> globalMarkerGraphVertices;
+    MemoryMapped::VectorOfVectors<MarkerId, GlobalMarkerGraphVertexId> globalMarkerGraphVertices;
 
 
 

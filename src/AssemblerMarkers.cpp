@@ -50,14 +50,12 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 
     // Write them out.
     ofstream csv(fileName);
-    csv << "GlobalMarkerId,GlobalOrientedMarkerId,Ordinal,KmerId,Kmer,Position\n";
+    csv << "MarkerId,Ordinal,KmerId,Kmer,Position\n";
     for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
         const CompressedMarker& marker = orientedReadMarkers[ordinal];
-        const OrientedMarkerId orientedMarkerId =
+        const MarkerId markerId =
             getGlobalOrientedMarkerId(orientedReadId, ordinal);
-        CZI_ASSERT(orientedMarkerId.getStrand() == strand);
-        csv << orientedMarkerId.getMarkerId() << ",";
-        csv << orientedMarkerId.getValue() << ",";
+        csv << markerId << ",";
         csv << ordinal << ",";
         csv << marker.kmerId << ",";
         csv << Kmer(marker.kmerId, assemblerInfo->k) << ",";
@@ -89,12 +87,12 @@ void Assembler::getMarkersSortedByKmerId(
 
 // Given a marker by its OrientedReadId and ordinal,
 // return the corresponding global marker id.
-OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
+MarkerId Assembler::getGlobalOrientedMarkerId(
     OrientedReadId orientedReadId, uint32_t ordinal) const
 {
-    return OrientedMarkerId(
+    return
         (markers.begin(orientedReadId.getValue()) - markers.begin())
-        + ordinal);
+        + ordinal;
 }
 
 
@@ -104,11 +102,11 @@ OrientedMarkerId Assembler::getGlobalOrientedMarkerId(
 // This could be avoided, at the cost of storing
 // an additional 4 bytes per marker.
 pair<OrientedReadId, uint32_t>
-    Assembler::findGlobalOrientedMarkerId(OrientedMarkerId orientedMarkerId) const
+    Assembler::findGlobalOrientedMarkerId(MarkerId orientedMarkerId) const
 {
     OrientedReadId::Int orientedReadIdValue;
     uint32_t ordinal;
-    tie(orientedReadIdValue, ordinal) = markers.find(orientedMarkerId.getValue());
+    tie(orientedReadIdValue, ordinal) = markers.find(orientedMarkerId);
     return make_pair(OrientedReadId(orientedReadIdValue), ordinal);
 }
 
