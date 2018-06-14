@@ -227,10 +227,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
 
+        /*
         // Vertex id.
         s << "<tr><td colspan=\"3\"><b>";
         s << "Vertex " << vertex.vertexId;
         s << "</b></td></tr>";
+        */
 
         // Kmer.
         s << "<tr><td colspan=\"3\"><b>";
