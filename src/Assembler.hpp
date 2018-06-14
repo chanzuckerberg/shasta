@@ -474,8 +474,8 @@ private:
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
 
-    // The global marker graph vertex corresponding to each global
-    // OrientedMarkerId. Indexed by OrientedMarkerId.
+    // The global marker graph vertex corresponding to each marker.
+    // Indexed by MarkerId.
     MemoryMapped::Vector<GlobalMarkerGraphVertexId> globalMarkerGraphVertex;
 
     // The oriented marker ids of the markers corresponding to

@@ -318,7 +318,7 @@ void Assembler::computeAllAlignments(
     if(computeGlobalMarkerGraph) {
 
         // Compute the global marker graph vertex corresponding
-        // to each global OrientedMarkerId.
+        // to each MarkerId.
         globalMarkerGraphVertex.createNew(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
@@ -518,23 +518,21 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
             for(const auto& p: alignment.ordinals) {
                 const uint32_t ordinal0 = p.first;
                 const uint32_t ordinal1 = p.second;
-                MarkerId orientedMarkerId0 =
-                    getMarkerId(orientedReadIds[0], ordinal0);
-                MarkerId orientedMarkerId1 =
-                    getMarkerId(orientedReadIds[1], ordinal1);
-                disjointSetsPointer->unite(orientedMarkerId0, orientedMarkerId1);
+                const MarkerId markerId0 = getMarkerId(orientedReadIds[0], ordinal0);
+                const MarkerId markerId1 = getMarkerId(orientedReadIds[1], ordinal1);
+                disjointSetsPointer->unite(markerId0, markerId1);
 
                 // Also do it for the corresponding oriented markers on
                 // the opposite strand.
                 const uint32_t ordinal0OppositeStrand = uint32_t(markersSortedByKmerId[0].size()) - 1 - ordinal0;
                 const uint32_t ordinal1OppositeStrand = uint32_t(markersSortedByKmerId[1].size()) - 1 - ordinal1;
-                const MarkerId orientedMarkerId0OppositeStrand =
+                const MarkerId markerId0OppositeStrand =
                     getMarkerId(orientedReadIdsOppositeStrand[0], ordinal0OppositeStrand);
-                const MarkerId orientedMarkerId1OppositeStrand =
+                const MarkerId markerId1OppositeStrand =
                     getMarkerId(orientedReadIdsOppositeStrand[1], ordinal1OppositeStrand);
                 disjointSetsPointer->unite(
-                    orientedMarkerId0OppositeStrand,
-                    orientedMarkerId1OppositeStrand);
+                    markerId0OppositeStrand,
+                    markerId1OppositeStrand);
             }
         }
     }

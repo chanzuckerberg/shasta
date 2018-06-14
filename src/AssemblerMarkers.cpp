@@ -102,11 +102,11 @@ MarkerId Assembler::getMarkerId(
 // This could be avoided, at the cost of storing
 // an additional 4 bytes per marker.
 pair<OrientedReadId, uint32_t>
-    Assembler::findMarkerId(MarkerId orientedMarkerId) const
+    Assembler::findMarkerId(MarkerId markerId) const
 {
     OrientedReadId::Int orientedReadIdValue;
     uint32_t ordinal;
-    tie(orientedReadIdValue, ordinal) = markers.find(orientedMarkerId);
+    tie(orientedReadIdValue, ordinal) = markers.find(markerId);
     return make_pair(OrientedReadId(orientedReadIdValue), ordinal);
 }
 
