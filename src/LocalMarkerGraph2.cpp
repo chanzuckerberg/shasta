@@ -54,11 +54,26 @@ LocalMarkerGraph2::vertex_descriptor
     LocalMarkerGraph2::addVertex(
     GlobalMarkerGraphVertexId vertexId,
     int distance,
-    MemoryAsContainer<MarkerId> markers)
+    MemoryAsContainer<MarkerId> vertexMarkers)
 {
+    // Check that the vertex does not already exist.
     CZI_ASSERT(vertexMap.find(vertexId) == vertexMap.end());
-    const vertex_descriptor v = add_vertex(LocalMarkerGraph2Vertex(vertexId, distance, markers), *this);
+
+    // Add the vertex and store it in the vertex map.
+    const vertex_descriptor v = add_vertex(LocalMarkerGraph2Vertex(vertexId, distance), *this);
     vertexMap.insert(make_pair(vertexId, v));
+
+    // Fill in the marker information for this vertex.
+    LocalMarkerGraph2Vertex& vertex = (*this)[v];
+    vertex.markerInfos.reserve(vertexMarkers.size());
+    for(const MarkerId markerId: vertexMarkers) {
+        LocalMarkerGraph2Vertex::MarkerInfo markerInfo;
+        markerInfo.markerId = markerId;
+        tie(markerInfo.orientedReadId, markerInfo.ordinal) =
+            findMarkerId(markerId, markers);
+        vertex.markerInfos.push_back(markerInfo);
+    }
+
     return v;
 }
 
@@ -68,15 +83,15 @@ LocalMarkerGraph2::vertex_descriptor
 KmerId LocalMarkerGraph2::getKmerId(vertex_descriptor v) const
 {
     const LocalMarkerGraph2Vertex& vertex = (*this)[v];
-    CZI_ASSERT(!vertex.markers.empty());
-    const MarkerId firstMarkerId = vertex.markers[0];
+    CZI_ASSERT(!vertex.markerInfos.empty());
+    const MarkerId firstMarkerId = vertex.markerInfos.front().markerId;
     const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
     const KmerId kmerId = firstMarker.kmerId;
 
     // Sanity check that all markers have the same kmerId.
-    // At some point thsi can be removed.
-    for(const MarkerId markerId: vertex.markers){
-        const CompressedMarker& marker = markers.begin()[markerId];
+    // At some point this can be removed.
+    for(const auto& markerInfo: vertex.markerInfos){
+        const CompressedMarker& marker = markers.begin()[markerInfo.markerId];
         CZI_ASSERT(marker.kmerId == kmerId);
     }
 
@@ -146,7 +161,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
 void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
     const LocalMarkerGraph2Vertex& vertex = graph[v];
-    const auto coverage = vertex.markers.size();
+    const auto coverage = vertex.markerInfos.size();
     CZI_ASSERT(coverage > 0);
 
 
@@ -162,7 +177,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "[";
 
         // Tooltip.
-        s << "tooltip=\"Marker " << vertex.vertexId << ", coverage " << vertex.markers.size() << ", distance " << vertex.distance << "\"";
+        s << "tooltip=\"Marker " << vertex.vertexId;
+        s << ", coverage " << coverage << ", distance " << vertex.distance << "\"";
 
         // Vertex size.
         s << " width=\"";
@@ -253,17 +269,14 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td></tr>";
 
         // A row for each marker of this vertex.
-        for(const MarkerId markerId: vertex.markers) {
-            const CompressedMarker& marker = graph.markers.begin()[markerId];
-            OrientedReadId orientedReadId;
-            uint32_t ordinal;
-            tie(orientedReadId, ordinal) = findMarkerId(markerId, graph.markers);
+        for(const auto& markerInfo: vertex.markerInfos) {
+            const CompressedMarker& marker = graph.markers.begin()[markerInfo.markerId];
 
             // OrientedReadId
-            s << "<tr><td align=\"right\"><b>" << orientedReadId << "</b></td>";
+            s << "<tr><td align=\"right\"><b>" << markerInfo.orientedReadId << "</b></td>";
 
             // Ordinal.
-            s << "<td align=\"right\"><b>" << ordinal << "</b></td>";
+            s << "<td align=\"right\"><b>" << markerInfo.ordinal << "</b></td>";
 
             // Position.
             s << "<td align=\"right\"><b>" << marker.position << "</b></td></tr>";

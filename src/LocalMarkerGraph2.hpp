@@ -33,6 +33,7 @@ was done when the global marker graph was created.
 #include "Kmer.hpp"
 #include "MarkerId.hpp"
 #include "MemoryAsContainer.hpp"
+#include "ReadId.hpp"
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
@@ -42,6 +43,7 @@ was done when the global marker graph was created.
 #include <map>
 #include "string.hpp"
 #include "utility.hpp"
+#include "vector.hpp"
 
 namespace ChanZuckerberg {
     namespace Nanopore2 {
@@ -80,15 +82,20 @@ public:
     int distance;
 
     // The markers of this vertex.
-    MemoryAsContainer<MarkerId> markers;
+    class MarkerInfo {
+    public:
+        MarkerId markerId;
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+    };
+    vector<MarkerInfo> markerInfos;
 
     LocalMarkerGraph2Vertex(
         GlobalMarkerGraphVertexId vertexId,
-        int distance,
-        MemoryAsContainer<MarkerId> markers) :
+        int distance) :
         vertexId(vertexId),
-        distance(distance),
-        markers(markers){}
+        distance(distance)
+        {}
 };
 
 
