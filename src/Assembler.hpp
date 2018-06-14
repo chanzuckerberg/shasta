@@ -343,8 +343,7 @@ private:
 
     // Given a marker by its OrientedReadId and ordinal,
     // return the corresponding global marker id.
-    MarkerId getGlobalOrientedMarkerId(
-        OrientedReadId, uint32_t ordinal) const;
+    MarkerId getMarkerId(OrientedReadId, uint32_t ordinal) const;
 
     // Inverse of the above: given a global marker id,
     // return its OrientedReadId and ordinal.

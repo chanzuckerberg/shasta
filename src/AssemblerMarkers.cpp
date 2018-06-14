@@ -53,8 +53,7 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
     csv << "MarkerId,Ordinal,KmerId,Kmer,Position\n";
     for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
         const CompressedMarker& marker = orientedReadMarkers[ordinal];
-        const MarkerId markerId =
-            getGlobalOrientedMarkerId(orientedReadId, ordinal);
+        const MarkerId markerId = getMarkerId(orientedReadId, ordinal);
         csv << markerId << ",";
         csv << ordinal << ",";
         csv << marker.kmerId << ",";
@@ -87,13 +86,14 @@ void Assembler::getMarkersSortedByKmerId(
 
 // Given a marker by its OrientedReadId and ordinal,
 // return the corresponding global marker id.
-MarkerId Assembler::getGlobalOrientedMarkerId(
+MarkerId Assembler::getMarkerId(
     OrientedReadId orientedReadId, uint32_t ordinal) const
 {
     return
         (markers.begin(orientedReadId.getValue()) - markers.begin())
         + ordinal;
 }
+
 
 
 // Inverse of the above: given a global marker id,

@@ -519,9 +519,9 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 const uint32_t ordinal0 = p.first;
                 const uint32_t ordinal1 = p.second;
                 MarkerId orientedMarkerId0 =
-                    getGlobalOrientedMarkerId(orientedReadIds[0], ordinal0);
+                    getMarkerId(orientedReadIds[0], ordinal0);
                 MarkerId orientedMarkerId1 =
-                    getGlobalOrientedMarkerId(orientedReadIds[1], ordinal1);
+                    getMarkerId(orientedReadIds[1], ordinal1);
                 disjointSetsPointer->unite(orientedMarkerId0, orientedMarkerId1);
 
                 // Also do it for the corresponding oriented markers on
@@ -529,9 +529,9 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 const uint32_t ordinal0OppositeStrand = uint32_t(markersSortedByKmerId[0].size()) - 1 - ordinal0;
                 const uint32_t ordinal1OppositeStrand = uint32_t(markersSortedByKmerId[1].size()) - 1 - ordinal1;
                 const MarkerId orientedMarkerId0OppositeStrand =
-                    getGlobalOrientedMarkerId(orientedReadIdsOppositeStrand[0], ordinal0OppositeStrand);
+                    getMarkerId(orientedReadIdsOppositeStrand[0], ordinal0OppositeStrand);
                 const MarkerId orientedMarkerId1OppositeStrand =
-                    getGlobalOrientedMarkerId(orientedReadIdsOppositeStrand[1], ordinal1OppositeStrand);
+                    getMarkerId(orientedReadIdsOppositeStrand[1], ordinal1OppositeStrand);
                 disjointSetsPointer->unite(
                     orientedMarkerId0OppositeStrand,
                     orientedMarkerId1OppositeStrand);
