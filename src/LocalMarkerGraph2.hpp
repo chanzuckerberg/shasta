@@ -103,6 +103,36 @@ public:
 class ChanZuckerberg::Nanopore2::LocalMarkerGraph2Edge {
 public:
 
+    // Class to describe the intervening sequence between
+    // the two markers that define the edge.
+    class Sequence {
+    public:
+        // The number of overlapping bases between the
+        // marker of the source vertex and the
+        // marker of the target vertex.
+        uint8_t overlappingBaseCount;
+
+        // The intervening sequence between the two markers.
+        vector<Base> sequence;
+
+        // There are three possible cases:
+        // overlappingBaseCount>0 && sequence.empty():
+        //     The sequence of the two markers overlap by
+        //     overlappingBaseCount bases.
+        // overlappingBaseCount==0 && !sequence.empty():
+        //     Sequence stores the base sequence between the two markers.
+        // overlappingBaseCount==0 && sequence.empty():
+        //     The two markers immediately follow each other,
+        //     without any intervening sequence.
+
+        bool operator<(const Sequence& that) const
+        {
+            return tie(overlappingBaseCount, sequence) <
+                tie(that.overlappingBaseCount, that.sequence);
+        }
+    };
+
+
     // Each Info object corresponds to an oriented read
     // that appears at startOrdinal in the source vertex
     // of this edge and at startOrdinal+1 in the target vertex.
@@ -114,20 +144,35 @@ public:
         // Thr ordinal in the target vertex is one larger.
         uint32_t startOrdinal;
 
-        // The number of overlapping bases between the
-        // marker of the source vertex and the
-        // marker of the target vertex.
-        uint8_t overlappingBaseCount;
-
-        // The intervening sequence between the two markers.
-        vector<Base> sequence;
-
         Info(OrientedReadId orientedReadId, uint32_t startOrdinal) :
             orientedReadId(orientedReadId),
-            startOrdinal(startOrdinal),
-            overlappingBaseCount(0) {}
+            startOrdinal(startOrdinal)
+            {}
     };
-    vector<Info> infos;
+
+    // The oriented vertices of this edge, grouped by sequence.
+    // Sorted by decreasing number of supporting reads.
+    vector< pair<Sequence, vector<Info> > > infos;
+
+    // Consensus is the number of reads supporting the
+    // strongest sequence.
+    size_t consensus() const
+    {
+        CZI_ASSERT(!infos.empty());
+        return infos.front().second.size();
+    }
+
+    // Coverage is the total number of reads supporting this edge,
+    // with any sequence.
+    size_t coverage() const
+    {
+        size_t c = 0;
+        for(const auto& p: infos) {
+            c += p.second.size();
+        }
+        return c;
+    }
+
 };
 
 

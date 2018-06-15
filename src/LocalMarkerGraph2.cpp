@@ -5,6 +5,7 @@
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
+#include "orderPairs.hpp"
 #include "ReadId.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
@@ -111,10 +112,12 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
     const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
     const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
 
+    // Map to store the oriented read ids and ordinals, grouped by sequence.
+    std::map<LocalMarkerGraph2Edge::Sequence, vector<LocalMarkerGraph2Edge::Info> > sequenceTable;
+
     // Find pairs of consecutive markers in the two vertices.
     // We exploit the fact that the markers in each
     // of the vertices are sorted.
-    cout << "***A " << vertex0.markerInfos.size() << " " << vertex1.markerInfos.size() << endl;
     auto it0 = vertex0.markerInfos.begin();
     auto it1 = vertex1.markerInfos.begin();
     while(it0!=vertex0.markerInfos.end() && it1!=vertex1.markerInfos.end()) {
@@ -131,17 +134,16 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
         }
         const OrientedReadId orientedReadId = it0->orientedReadId;
         if(it1->orientedReadId == orientedReadId) {
-            edge.infos.push_back(LocalMarkerGraph2Edge::Info(orientedReadId, it0->ordinal));
 
             // Fill in the sequence information.
-            LocalMarkerGraph2Edge::Info& info = edge.infos.back();
+            LocalMarkerGraph2Edge::Sequence sequence;
             const CompressedMarker& marker0 = markers.begin()[markerId0];
             const CompressedMarker& marker1 = markers.begin()[markerId1];
 
             if(marker1.position <= marker0.position + k) {
-                info.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
+                sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
             } else {
-                info.overlappingBaseCount = 0;
+                sequence.overlappingBaseCount = 0;
                 const auto read = reads[orientedReadId.getReadId()];
                 const uint32_t readLength = uint32_t(read.baseCount);
                 for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
@@ -152,14 +154,26 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
                         base = read.get(readLength - 1 - position);
                         base.complementInPlace();
                     }
-                    info.sequence.push_back(base);
+                    sequence.sequence.push_back(base);
                 }
 
             }
+
+            sequenceTable[sequence].push_back(LocalMarkerGraph2Edge::Info(orientedReadId, it0->ordinal));
         }
         ++it0;
         ++it1;
     }
+
+    // Copy to the edge infos data structure.
+    edge.infos.clear();
+    copy(sequenceTable.begin(), sequenceTable.end(), back_inserter(edge.infos));
+
+    // Sort by decreasing size of the infos vector.
+    sort(edge.infos.begin(), edge.infos.end(),
+        OrderPairsBySizeOfSecondGreater<
+        LocalMarkerGraph2Edge::Sequence,
+        vector<LocalMarkerGraph2Edge::Info> >());
 
 }
 
@@ -287,7 +301,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         if(vertex.distance == maxDistance) {
             color = "cyan";
         } else if(vertex.distance == 0) {
-            color = "lightGreen";
+            color = "#7cfc00";  // Bright green
         } else if(coverage >= minCoverage) {
             color = "green";
         } else if(coverage == 1) {
@@ -362,6 +376,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 {
 
     const LocalMarkerGraph2Edge& edge = graph[e];
+    const size_t coverage = edge.coverage();
+    const size_t consensus = edge.consensus();
 
     if(!detailed) {
 
@@ -370,9 +386,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Begin edge attributes.
         s << "[";
 
+        s << "tooltip=\"Consensus " << consensus << ", coverage" << coverage << "\"";
+
         s << " penwidth=";
         const auto oldPrecision = s.precision(4);
-        s <<  0.5 * double(edge.infos.size());
+        s <<  0.5 * double(consensus);
         s.precision(oldPrecision);
 
         // End edge attributes.
@@ -387,10 +405,80 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Begin edge attributes.
         s << "[";
 
+        // Thickness is determined by consensus.
         s << " penwidth=";
         const auto oldPrecision = s.precision(4);
-        s <<  0.5 * double(edge.infos.size());
+        s <<  0.5 * double(consensus);
         s.precision(oldPrecision);
+
+        // Color.
+        string color;
+        string fillColor;
+        if(consensus >= minConsensus) {
+            color = "black";
+            fillColor = "green";
+        } else if(consensus == 1) {
+            color = "red";
+            fillColor = color;
+        } else if(consensus == 2) {
+            color = "#ff8000";  // Orange
+            fillColor = color;
+        } else {
+            color = "#ff80ff";  // Purple
+            fillColor = color;
+        }
+        s << " fillcolor=\"" << fillColor << "\"";
+        s << " color=\"" << color << "\"";
+
+        // Label.
+        s << " label=<<font color=\"black\">";
+        s << "<table";
+        s << " color=\"black\"";
+        s << " bgcolor=\"" << fillColor << "\"";
+        s << " border=\"0\"";
+        s << " cellborder=\"1\"";
+        s << " cellspacing=\"0\"";
+        s << ">";
+
+        // Header row.
+        s <<
+            "<tr>"
+            "<td align=\"center\"><b>Read</b></td>"
+            "<td align=\"center\"><b>Ord</b></td>"
+            "<td align=\"center\"><b>Seq</b></td>"
+            "</tr>";
+
+        // Loop over the infos table for this edge.
+        for(const auto& p: edge.infos) {
+            const auto& sequence = p.first;
+            const auto& infos = p.second;
+
+            // Construct the string representing this sequence.
+            string sequenceString;
+            if(sequence.sequence.empty()) {
+                sequenceString = to_string(sequence.overlappingBaseCount);
+            } else {
+                for(const Nanopore2::Base base: sequence.sequence) {
+                    sequenceString.push_back(base.character());
+                }
+            }
+
+            for(auto it=infos.begin(); it!=infos.end(); ++it) {
+                const auto& info = *it;
+                s << "<tr><td align=\"right\"><b>" << info.orientedReadId << "</b></td>";
+                s << "<td align=\"right\"><b>" << info.startOrdinal << "</b></td>";
+                s << "<td align=\"center\"><b>";
+                if(it == infos.begin()) {
+                    s << sequenceString;
+                } else {
+                    s << "=";
+                }
+                s << "</b></td></tr>";
+            }
+        }
+
+        s << "</table></font>> decorate=true";
+
 
         // End edge attributes.
         s << "]";

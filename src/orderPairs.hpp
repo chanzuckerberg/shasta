@@ -15,6 +15,9 @@ namespace ChanZuckerberg {
 
         template<class First, class Second> class OrderPairsBySecondThenByFirst;
         template<class First, class Second> class OrderPairsBySecondGreaterThenByFirstLess;
+
+        template<class First, class Second> class OrderPairsBySizeOfSecondGreater;
+
     }
 }
 
@@ -84,6 +87,17 @@ public:
         if(x.second > y.second) return true;
         if(y.second > x.second) return false;
         return x.first < y.first;
+    }
+};
+
+
+
+template<class First, class Second> class ChanZuckerberg::Nanopore2::OrderPairsBySizeOfSecondGreater {
+public:
+    using Pair = pair<First, Second>;
+    bool operator()(const Pair& x, const Pair& y) const
+    {
+        return x.second.size() > y.second.size();
     }
 };
 
