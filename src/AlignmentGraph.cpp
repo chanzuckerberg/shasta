@@ -67,6 +67,12 @@ void AlignmentGraph::create(
     // Create the vertices - one for each pair of common markers.
     createVertices(markers0, markers1, maxVertexCountPerKmer);
     sortVertices();
+
+    // Add the start and finish vertices.
+    // This must be done after sorting the remaining vertices,
+    // because sorting alters vertex descriptors.
+    vStart = addVertex();
+    vFinish = addVertex();
     doneAddingVertices();
     if(debug) {
         writeVertices("AlignmentGraphVertices.csv");
@@ -140,9 +146,6 @@ void AlignmentGraph::createVertices(
     size_t maxVertexCountPerKmer)
 {
 
-    // Add the start and finish vertices.
-    vStart = addVertex();
-    vFinish = addVertex();
 
     // Some iterators we will need.
     using MarkerIterator = vector<MarkerWithOrdinal>::const_iterator;
@@ -165,6 +168,7 @@ void AlignmentGraph::createVertices(
 
             // We found a common k-mer id.
             const KmerId kmerId = it0->kmerId;
+
 
             // This k-mer could appear more than once in each of the oriented reads,
             // so we need to find the streak of this k-mer in kmers0 and kmers1.
