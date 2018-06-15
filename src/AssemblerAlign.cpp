@@ -288,6 +288,7 @@ void Assembler::computeAllAlignments(
 
     // Create the alignmentInfos.
     alignmentInfos.createNew(largeDataName("AlignmentInfos"), largeDataPageSize);
+    alignmentInfos.reserve(overlaps.size());
     alignmentInfos.resize(overlaps.size());
 
     // If requested, initialize computation of the global marker graph.
@@ -296,6 +297,7 @@ void Assembler::computeAllAlignments(
         data.disjointSetsData.createNew(
             largeDataName("tmp-DisjointSetData"),
             largeDataPageSize);
+        data.disjointSetsData.reserve(data.orientedMarkerCount);
         data.disjointSetsData.resize(data.orientedMarkerCount);
         data.disjointSetsPointer = std::make_shared<DisjointSets>(
             data.disjointSetsData.begin(),
@@ -322,6 +324,7 @@ void Assembler::computeAllAlignments(
         globalMarkerGraphVertex.createNew(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
+        globalMarkerGraphVertex.reserve(markers.totalSize());
         globalMarkerGraphVertex.resize(markers.totalSize());
         DisjointSets& disjointSets = *data.disjointSetsPointer;
         for(MarkerId i=0; i<globalMarkerGraphVertex.size(); i++) {
