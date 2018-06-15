@@ -386,7 +386,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Begin edge attributes.
         s << "[";
 
-        s << "tooltip=\"Consensus " << consensus << ", coverage" << coverage << "\"";
+        s << "tooltip=\"Consensus " << consensus << ", coverage " << coverage << "\"";
 
         s << " penwidth=";
         const auto oldPrecision = s.precision(4);
