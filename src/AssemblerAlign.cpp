@@ -421,6 +421,24 @@ void Assembler::computeAllAlignments(
         for(VertexId i=0; i<globalMarkerGraphVertices.size(); i++) {
             sort(globalMarkerGraphVertices.begin(i), globalMarkerGraphVertices.end(i));
         }
+
+
+        // Check that all the markers of a vertex have the same kmer id.
+        if(true) {
+            for(VertexId i=0; i<globalMarkerGraphVertices.size(); i++) {
+                const MemoryAsContainer<MarkerId> vertexMarkers = globalMarkerGraphVertices[i];
+                KmerId kmerId = 0;
+                for(size_t j=0; j<vertexMarkers.size(); j++) {
+                    const MarkerId markerId = vertexMarkers[j];
+                    const CompressedMarker& marker = markers.begin()[markerId];
+                    if(j == 0) {
+                        kmerId = marker.kmerId;
+                    } else {
+                        CZI_ASSERT(kmerId == marker.kmerId);
+                    }
+                }
+            }
+        }
     }
 
 
@@ -520,6 +538,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 const uint32_t ordinal1 = p.second;
                 const MarkerId markerId0 = getMarkerId(orientedReadIds[0], ordinal0);
                 const MarkerId markerId1 = getMarkerId(orientedReadIds[1], ordinal1);
+                CZI_ASSERT(markers.begin()[markerId0].kmerId == markers.begin()[markerId1].kmerId);
                 disjointSetsPointer->unite(markerId0, markerId1);
 
                 // Also do it for the corresponding oriented markers on
@@ -530,6 +549,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                     getMarkerId(orientedReadIdsOppositeStrand[0], ordinal0OppositeStrand);
                 const MarkerId markerId1OppositeStrand =
                     getMarkerId(orientedReadIdsOppositeStrand[1], ordinal1OppositeStrand);
+                CZI_ASSERT(markers.begin()[markerId0OppositeStrand].kmerId == markers.begin()[markerId1OppositeStrand].kmerId);
                 disjointSetsPointer->unite(
                     markerId0OppositeStrand,
                     markerId1OppositeStrand);
