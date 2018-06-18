@@ -297,8 +297,7 @@ void Assembler::computeAllAlignments(
         data.disjointSetsData.createNew(
             largeDataName("tmp-DisjointSetData"),
             largeDataPageSize);
-        data.disjointSetsData.reserve(data.orientedMarkerCount);
-        data.disjointSetsData.resize(data.orientedMarkerCount);
+        data.disjointSetsData.reserveAndResize(data.orientedMarkerCount);
         data.disjointSetsPointer = std::make_shared<DisjointSets>(
             data.disjointSetsData.begin(),
             data.orientedMarkerCount
@@ -321,11 +320,11 @@ void Assembler::computeAllAlignments(
 
         // Compute the global marker graph vertex corresponding
         // to each MarkerId.
+        cout << timestamp << "Storing the global maker graph vertex each vertex belongs to." << endl;
         globalMarkerGraphVertex.createNew(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
-        globalMarkerGraphVertex.reserve(markers.totalSize());
-        globalMarkerGraphVertex.resize(markers.totalSize());
+        globalMarkerGraphVertex.reserveAndResize(markers.totalSize());
         DisjointSets& disjointSets = *data.disjointSetsPointer;
         for(MarkerId i=0; i<globalMarkerGraphVertex.size(); i++) {
             globalMarkerGraphVertex[i] = disjointSets.find(i);
@@ -342,17 +341,19 @@ void Assembler::computeAllAlignments(
 
         // First, we have to count the number of oriented markers for each
         // vertex, with the current numbering.
+        cout << timestamp << "Counting the markers of each vertex." << endl;
         using VertexId = GlobalMarkerGraphVertexId;
         MemoryMapped::Vector<VertexId> count;
         count.createNew(
             largeDataName("tmp-Count"),
             largeDataPageSize);
-        count.resize(globalMarkerGraphVertex.size());
+        count.reserveAndResize(globalMarkerGraphVertex.size());
         for(const auto i: globalMarkerGraphVertex) {
             ++count[i];
         }
 
         // Gather the ones with non-zero count.
+        cout << timestamp << "Creating the count table." << endl;
         MemoryMapped::Vector< pair<VertexId, VertexId> > countTable;
         countTable.createNew(
             largeDataName("tmp-CountTable"),
@@ -363,6 +364,7 @@ void Assembler::computeAllAlignments(
                 countTable.push_back(make_pair(i, n));
             }
         }
+        cout << timestamp << "Sorting the count table by count." << endl;
         sort(countTable.begin(), countTable.end(),
             OrderPairsBySecondGreaterThenByFirstLess<VertexId, VertexId>());
         cout << "The global marker graph has " << countTable.size();
@@ -372,6 +374,7 @@ void Assembler::computeAllAlignments(
         count.remove();
 
         // Create a histogram of number of markers per vertex.
+        cout << "Creating marker graph vertex coverage histogram." << endl;
         vector<uint64_t> histogram(countTable.front().second + 1, 0ULL);
         for(const auto& p: countTable) {
             ++histogram[p.second];
@@ -388,6 +391,9 @@ void Assembler::computeAllAlignments(
         // In the count table, replace the count by the rank,
         // (the rank becomes the new vertex id),
         // then sort by first (the old vertex id).
+        // This way we can use binary searches in the count table
+        // to convert old vertex ids to new ones.
+        cout << timestamp << "Assigning vertex ids." << endl;
         for(VertexId i=0; i<countTable.size(); i++) {
             countTable[i].second = i;
         }
@@ -395,6 +401,7 @@ void Assembler::computeAllAlignments(
             OrderPairsByFirstOnly<VertexId, VertexId>());
 
         // Redefine globalMarkerGraphVertex using this count table.
+        cout << timestamp << "Storing the new vertex ids." << endl;
         for(VertexId& v: globalMarkerGraphVertex) {
             const auto it = std::lower_bound(countTable.begin(), countTable.end(),
                 make_pair(v, 0),

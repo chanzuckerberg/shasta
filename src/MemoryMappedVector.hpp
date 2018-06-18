@@ -120,6 +120,16 @@ public:
 
     void unreserve();
 
+    // Use this instead of resize when it is known that the size
+    // will not further increase. This results in reduce
+    // memory requirement, because resize increases capacity to 1.5
+    // times the new size.
+    void reserveAndResize(size_t n)
+    {
+        reserve(n);
+        resize(n);
+    }
+
     // Make a copy of the Vector.
     void makeCopy(Vector<T>& copy, const string& newName) const;
 

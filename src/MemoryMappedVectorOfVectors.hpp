@@ -248,6 +248,7 @@ private:
 template<class T, class Int>
     void ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors<T, Int>::beginPass1(Int n)
 {
+    count.reserve(n);
     count.resize(n);
     fill(count.begin(), count.end(), Int(0));
 }
@@ -258,15 +259,13 @@ template<class T, class Int>
     void ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors<T, Int>::beginPass2()
 {
     const Int n = count.size();
-    toc.reserve(n+1);
-    toc.resize(n+1);
+    toc.reserveAndResize(n+1);
     toc[0] = 0;
     for(Int i=0; i<n; i++) {
         toc[i+1] = toc[i] + count[i];
     }
     const size_t  dataSize = toc.back();
-    data.reserve(dataSize);
-    data.resize(dataSize);
+    data.reserveAndResize(dataSize);
 }
 
 
