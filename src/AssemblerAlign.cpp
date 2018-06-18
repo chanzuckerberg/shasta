@@ -313,14 +313,13 @@ void Assembler::computeAllAlignments(
 
 
 
-
     // Use the disjoint sets to find the vertex of the global
     // marker graph that each oriented marker belongs to.
     if(computeGlobalMarkerGraph) {
 
         // Compute the global marker graph vertex corresponding
         // to each MarkerId.
-        cout << timestamp << "Storing the global maker graph vertex each vertex belongs to." << endl;
+        cout << timestamp << "Storing the global marker graph vertex each vertex belongs to." << endl;
         globalMarkerGraphVertex.createNew(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
@@ -365,6 +364,7 @@ void Assembler::computeAllAlignments(
                 countTable.push_back(make_pair(i, n));
             }
         }
+        cout << timestamp << "The count table has " << countTable.size() << " entries." << endl;
         cout << timestamp << "Sorting the count table by count." << endl;
         sort(countTable.begin(), countTable.end(),
             OrderPairsBySecondGreaterThenByFirstLess<CompressedVertexId, CompressedVertexId>());
