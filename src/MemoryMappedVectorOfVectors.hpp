@@ -27,8 +27,10 @@ namespace ChanZuckerberg {
 template<class T, class Int> class ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors {
 public:
 
-    void createNew(const string& name, size_t pageSize)
+    void createNew(const string& nameArgument, size_t pageSizeArgument)
     {
+        name = nameArgument;
+        pageSize = pageSizeArgument;
         toc.createNew(name + ".toc", pageSize);
         toc.push_back(0);
         data.createNew(name + ".data", pageSize);
@@ -36,8 +38,10 @@ public:
 
 
 
-    void accessExisting(const string& name, bool readWriteAccess)
+    void accessExisting(const string& nameArgument, bool readWriteAccess)
     {
+        name = nameArgument;
+        pageSize = 0;   // We cannot use count.
         toc.accessExisting(name + ".toc", readWriteAccess);
         data.accessExisting(name + ".data", readWriteAccess);
     }
@@ -69,12 +73,18 @@ public:
         toc.clear();
         toc.push_back(0);
         data.clear();
+        if(count.isOpen) {
+            count.clear();
+        }
     }
 
     void remove()
     {
         toc.remove();
         data.remove();
+        if(count.isOpen) {
+            count.remove();
+        }
     }
 
     size_t size() const
@@ -213,7 +223,6 @@ public:
     // In pass 2 we store the entries.
     // This can be easily turned into multithreaded code
     // if atomic memory access primitives are used.
-    vector<Int> count;
     void beginPass1(Int n);
     void incrementCount(Int index, Int m=1);  // Called during pass 1.
     void beginPass2();
@@ -240,7 +249,10 @@ public:
 
 private:
     Vector<Int> toc;
+    Vector<Int> count;
     Vector<T> data;
+    string name;
+    size_t pageSize;
 };
 
 
@@ -248,8 +260,10 @@ private:
 template<class T, class Int>
     void ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors<T, Int>::beginPass1(Int n)
 {
-    count.reserve(n);
-    count.resize(n);
+    if(!count.isOpen) {
+        count.createNew(name + ".count", pageSize);
+    }
+    count.reserveAndResize(n);
     fill(count.begin(), count.end(), Int(0));
 }
 
@@ -284,8 +298,7 @@ template<class T, class Int>
 
     // Free the memory of the count vector.
     if(free) {
-        vector<Int> emptyVector;
-        count.swap(emptyVector);
+        count.remove();
     } else {
         // This leaves the memory allocated.
         // Faster if we want to reuse the VectorOfVectors.
