@@ -476,12 +476,12 @@ private:
 
     // The global marker graph vertex corresponding to each marker.
     // Indexed by MarkerId.
-    MemoryMapped::Vector<GlobalMarkerGraphVertexId> globalMarkerGraphVertex;
+    MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId> globalMarkerGraphVertex;
 
     // The oriented marker ids of the markers corresponding to
     // each vertex of the global marker graph.
     // Indexed by GlobalMarkerGraphVertexId.
-    MemoryMapped::VectorOfVectors<MarkerId, GlobalMarkerGraphVertexId> globalMarkerGraphVertices;
+    MemoryMapped::VectorOfVectors<MarkerId, CompressedGlobalMarkerGraphVertexId> globalMarkerGraphVertices;
 
 
 

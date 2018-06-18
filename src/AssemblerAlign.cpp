@@ -343,7 +343,8 @@ void Assembler::computeAllAlignments(
         // vertex, with the current numbering.
         cout << timestamp << "Counting the markers of each vertex." << endl;
         using VertexId = GlobalMarkerGraphVertexId;
-        MemoryMapped::Vector<VertexId> count;
+        using CompressedVertexId = CompressedGlobalMarkerGraphVertexId;
+        MemoryMapped::Vector<CompressedVertexId> count;
         count.createNew(
             largeDataName("tmp-Count"),
             largeDataPageSize);
@@ -354,19 +355,19 @@ void Assembler::computeAllAlignments(
 
         // Gather the ones with non-zero count.
         cout << timestamp << "Creating the count table." << endl;
-        MemoryMapped::Vector< pair<VertexId, VertexId> > countTable;
+        MemoryMapped::Vector< pair<CompressedVertexId, CompressedVertexId> > countTable;
         countTable.createNew(
             largeDataName("tmp-CountTable"),
             largeDataPageSize);
         for(VertexId i=0; i<count.size(); i++) {
-            const VertexId n = count[i];
+            const CompressedVertexId n = count[i];
             if(n > 0) {
                 countTable.push_back(make_pair(i, n));
             }
         }
         cout << timestamp << "Sorting the count table by count." << endl;
         sort(countTable.begin(), countTable.end(),
-            OrderPairsBySecondGreaterThenByFirstLess<VertexId, VertexId>());
+            OrderPairsBySecondGreaterThenByFirstLess<CompressedVertexId, CompressedVertexId>());
         cout << "The global marker graph has " << countTable.size();
         cout << " vertices  for " << count.size() << " oriented markers." << endl;
 
@@ -398,14 +399,14 @@ void Assembler::computeAllAlignments(
             countTable[i].second = i;
         }
         sort(countTable.begin(), countTable.end(),
-            OrderPairsByFirstOnly<VertexId, VertexId>());
+            OrderPairsByFirstOnly<CompressedVertexId, CompressedVertexId>());
 
         // Redefine globalMarkerGraphVertex using this count table.
         cout << timestamp << "Storing the new vertex ids." << endl;
-        for(VertexId& v: globalMarkerGraphVertex) {
+        for(CompressedVertexId& v: globalMarkerGraphVertex) {
             const auto it = std::lower_bound(countTable.begin(), countTable.end(),
                 make_pair(v, 0),
-                OrderPairsByFirstOnly<VertexId, VertexId>());
+                OrderPairsByFirstOnly<CompressedVertexId, CompressedVertexId>());
                 CZI_ASSERT(it != countTable.end());
                 CZI_ASSERT(it->first == v);
                 v = it->second;
@@ -418,7 +419,7 @@ void Assembler::computeAllAlignments(
             largeDataName("GlobalMarkerGraphVertices"),
             largeDataPageSize);
         globalMarkerGraphVertices.beginPass1(vertexCount);
-        for(const VertexId& v: globalMarkerGraphVertex) {
+        for(const CompressedVertexId& v: globalMarkerGraphVertex) {
             globalMarkerGraphVertices.incrementCount(v);
         }
         globalMarkerGraphVertices.beginPass2();

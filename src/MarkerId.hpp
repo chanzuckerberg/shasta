@@ -2,6 +2,7 @@
 #define CZI_NANOPORE2_MARKER_ID_HPP
 
 #include "cstdint.hpp"
+#include "Uint.hpp"
 
 namespace ChanZuckerberg {
     namespace Nanopore2 {
@@ -16,6 +17,12 @@ namespace ChanZuckerberg {
 
         // Type used to identify a vertex of the global marker graph.
         using GlobalMarkerGraphVertexId = MarkerId;
+
+        // To save memory, store it using 5 bytes.
+        // This allows for up to 2^40 = 1 Ti markers (both strands).
+        // A human size run with 40x coverage and 10% markers
+        // has around 25 G markers (both strands).
+        using CompressedGlobalMarkerGraphVertexId = Uint40;
 
     }
 }

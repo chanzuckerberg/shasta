@@ -4,8 +4,9 @@
 // Template class used to implement bare bones integer types
 // that represent integers with any number of bytes
 // less than 16 which is not a power of two.
-// They support no operations except for conversions
-// to the a longer built-in integer type.
+// They support minimal functionality.
+// To operate on them, use the conversions
+// to a longer built-in integer type.
 
 #include "array.hpp"
 #include <cstdint>
@@ -45,6 +46,42 @@ public:
         memcpy(&data, &i, N);
     }
     Uint() {}
+
+    Uint& operator++()
+    {
+        const UintHelper oldValue = *this;
+        const UintHelper newValue = oldValue + UintHelper(1ULL);
+        *this = newValue;
+        return *this;
+    }
+    Uint operator++(int)
+    {
+        const UintHelper oldValue = *this;
+        const UintHelper newValue = oldValue + UintHelper(1ULL);
+        *this = newValue;
+        return Uint(oldValue);
+    }
+    Uint& operator--()
+    {
+        const UintHelper oldValue = *this;
+        const UintHelper newValue = oldValue - UintHelper(1ULL);
+        *this = newValue;
+        return *this;
+    }
+    Uint operator--(int)
+    {
+        const UintHelper oldValue = *this;
+        const UintHelper newValue = oldValue - UintHelper(1ULL);
+        *this = newValue;
+        return Uint(oldValue);
+    }
+    Uint& operator+=(Uint y)
+    {
+        const UintHelper oldValue = *this;
+        const UintHelper newValue = oldValue + UintHelper(y);
+        *this = newValue;
+        return *this;
+    }
 
     operator UintHelper() const
     {
