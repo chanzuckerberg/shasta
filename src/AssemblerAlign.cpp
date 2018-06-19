@@ -305,6 +305,7 @@ void Assembler::computeAllAlignments(
     }
 
     // Do the computation.
+    cout << timestamp << "Multithreaded portion begins." << endl;
     const size_t batchSize = 10000;
     setupLoadBalancing(overlaps.size(), batchSize);
     runThreads(&Assembler::computeAllAlignmentsThreadFunction,
