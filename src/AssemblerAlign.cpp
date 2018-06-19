@@ -304,13 +304,16 @@ void Assembler::computeAllAlignments(
             );
     }
 
-    // Do the computation.
-    cout << timestamp << "Multithreaded portion begins." << endl;
+
+
+    // Compute the alignments and update the disjoint set data structure
+    // for each good alignment.
+    cout << timestamp << "Alignment and disjoint set computation begins." << endl;
     const size_t batchSize = 10000;
     setupLoadBalancing(overlaps.size(), batchSize);
-    runThreads(&Assembler::computeAllAlignmentsThreadFunction,
-        threadCount, "threadLogs/computeAllAlignments");
-    cout << timestamp << "Multithreaded portion completed." << endl;
+    runThreads(&Assembler::computeAllAlignmentsThreadFunction1,
+        threadCount, "threadLogs/computeAllAlignments1");
+    cout << timestamp << "Alignment and disjoint set computation completed." << endl;
 
 
 
@@ -325,10 +328,10 @@ void Assembler::computeAllAlignments(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
         globalMarkerGraphVertex.reserveAndResize(markers.totalSize());
-        DisjointSets& disjointSets = *data.disjointSetsPointer;
-        for(MarkerId i=0; i<globalMarkerGraphVertex.size(); i++) {
-            globalMarkerGraphVertex[i] = disjointSets.find(i);
-        }
+        const size_t batchSize = 1000000;
+        setupLoadBalancing(markers.totalSize(), batchSize);
+        runThreads(&Assembler::computeAllAlignmentsThreadFunction2,
+            threadCount, "threadLogs/computeAllAlignments2");
 
         // Clean up.
         data.disjointSetsPointer = 0;
@@ -465,7 +468,7 @@ void Assembler::computeAllAlignments(
 
 
 
-void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
+void Assembler::computeAllAlignmentsThreadFunction1(size_t threadId)
 {
     ostream& out = getLog(threadId);
 
@@ -569,6 +572,19 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
         }
     }
 
+}
+
+
+void Assembler::computeAllAlignmentsThreadFunction2(size_t threadId)
+{
+    DisjointSets& disjointSets = *computeAllAlignmentsData.disjointSetsPointer;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(MarkerId i=begin; i!=end; ++i) {
+            globalMarkerGraphVertex[i] = disjointSets.find(i);
+        }
+    }
 }
 
 

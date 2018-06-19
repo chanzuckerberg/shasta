@@ -462,7 +462,21 @@ private:
     // These are computed with the first oriented read on strand 0.
     MemoryMapped::Vector<AlignmentInfo> alignmentInfos;
     void checkAlignmentInfosAreOpen();
-    void computeAllAlignmentsThreadFunction(size_t threadId);
+
+
+
+    // Thread functions for computeAllAlignments.
+
+    // Compute the alignments and update the disjoint set data structure
+    // for each good alignment.
+    void computeAllAlignmentsThreadFunction1(size_t threadId);
+
+    // Find the set that each marker belongs to.
+    void computeAllAlignmentsThreadFunction2(size_t threadId);
+
+
+
+    // Data for computeAllAlignments.
     class ComputeAllAlignmentsData {
     public:
         size_t maxSkip;
@@ -475,6 +489,8 @@ private:
         std::shared_ptr<DisjointSets> disjointSetsPointer;
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
+
+
 
     // The global marker graph vertex corresponding to each marker.
     // Indexed by MarkerId.
