@@ -4,6 +4,7 @@
 // Nanopore2
 #include "Alignment.hpp"
 #include "dset64.hpp"
+#include "HttpServer.hpp"
 #include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
@@ -48,7 +49,8 @@ public:
 
 
 class ChanZuckerberg::Nanopore2::Assembler :
-    public MultithreadedObject<Assembler> {
+    public MultithreadedObject<Assembler>,
+    public HttpServer {
 public:
 
 
@@ -544,6 +546,27 @@ private:
         // Minimum consensus for a strong edge.
         size_t minConsensus
         );
+
+
+
+    // Data and functions used for the http server.
+    void processRequest(
+        const vector<string>& request,
+        ostream&,
+        const BrowserInformation&);
+    void writeHtmlBegin(ostream&) const;
+    void writeHtmlEnd(ostream&) const;
+    void writeMakeAllTablesSelectable(ostream&) const;
+    void writeNavigation(ostream&) const;
+    class HttpServerData {
+    public:
+
+        typedef void (Assembler::*ServerFunction)(
+            const vector<string>& request,
+            ostream&);
+        std::map<string, ServerFunction> functionTable;
+    };
+    HttpServerData httpServerData;
 
 };
 

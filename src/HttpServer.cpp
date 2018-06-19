@@ -231,7 +231,7 @@ void HttpServer::BrowserInformation::set(const string& userAgentHeader)
     const string edgeString = "Edge/";
 
     // Tokenize the user agent header.
-    boost::tokenizer<> tokenizer(userAgentHeader);
+    boost::tokenizer< boost::char_separator<char> > tokenizer(userAgentHeader, boost::char_separator<char>(" "));
     vector<string> tokens;
     tokens.insert(tokens.begin(), tokenizer.begin(), tokenizer.end());
 

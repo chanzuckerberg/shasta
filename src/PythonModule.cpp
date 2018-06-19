@@ -278,6 +278,14 @@ PYBIND11_MODULE(Nanopore2, module)
 
 
 
+        // Http server.
+        .def("explore",
+            &Assembler::explore,
+            arg("port") = 17100,
+            arg("localOnly") = false);
+
+
+
         // Definition of class_<Assembler> ends here.
     ;
 
