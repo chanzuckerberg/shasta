@@ -14,6 +14,11 @@ add_definitions(-Wall -Wconversion -Wno-unused-result)
 # to return true.
 add_definitions(-mcx16)
 
+# Definitions needed to eliminate runtime dependency 
+# on the boost system library.
+add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
+add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
+
 # Define our shared library.
 file(GLOB SOURCES *.cpp)
 add_library(Nanopore2 SHARED ${SOURCES})
