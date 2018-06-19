@@ -474,6 +474,12 @@ private:
     // Find the set that each marker belongs to.
     void computeAllAlignmentsThreadFunction2(size_t threadId);
 
+    // Count the number of markers in each vertex.
+    void computeAllAlignmentsThreadFunction3(size_t threadId);
+
+    // Use the work area to convert raw vertex ids to final vertex ids.
+    void computeAllAlignmentsThreadFunction4(size_t threadId);
+
 
 
     // Data for computeAllAlignments.
@@ -487,6 +493,10 @@ private:
         uint64_t orientedMarkerCount;
         MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
         std::shared_ptr<DisjointSets> disjointSetsPointer;
+
+        // Work area used for multiple purposes.
+        // See computeAllAlignments for details.
+        MemoryMapped::Vector<GlobalMarkerGraphVertexId> workArea;
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
 

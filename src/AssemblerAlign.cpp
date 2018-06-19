@@ -262,6 +262,9 @@ void Assembler::computeAllAlignments(
     bool computeGlobalMarkerGraph
 )
 {
+    using VertexId = GlobalMarkerGraphVertexId;
+    using CompressedVertexId = CompressedGlobalMarkerGraphVertexId;
+
     const auto tBegin = steady_clock::now();
     cout << timestamp << "Begin computing alignments for ";
     cout << overlaps.size() << " overlaps." << endl;
@@ -327,26 +330,63 @@ void Assembler::computeAllAlignments(
         globalMarkerGraphVertex.createNew(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
-        globalMarkerGraphVertex.reserveAndResize(markers.totalSize());
+        globalMarkerGraphVertex.reserveAndResize(data.orientedMarkerCount);
         const size_t batchSize = 1000000;
         setupLoadBalancing(markers.totalSize(), batchSize);
-        runThreads(&Assembler::computeAllAlignmentsThreadFunction2,
-            threadCount, "threadLogs/computeAllAlignments2");
+        runThreads(&Assembler::computeAllAlignmentsThreadFunction2, threadCount);
 
         // Clean up.
         data.disjointSetsPointer = 0;
         data.disjointSetsData.remove();
 
 
+        // Using the disjoint sets data structure we computed a
+        // "raw" vertex id that each marker belongs to.
+        // These "raw" vertex ids are in [0, number of markers),
+        // but are not contiguous, because the number of vertices is
+        // less than the number of markers.
+        // To compute final vertex ids that are contiguous
+        // in [0, numberOfVertices), we begin by counting
+        // the number of markers for each raw vertex id.
+        // This is stored in workArea.
+        cout << timestamp << "Counting the number of markers in each vertex." << endl;
+        data.workArea.createNew(
+            largeDataName("tmp-ComputeAllAlignmentsWorkArea"),
+            largeDataPageSize);
+        data.workArea.reserveAndResize(data.orientedMarkerCount);
+        setupLoadBalancing(data.orientedMarkerCount, batchSize);
+        runThreads(&Assembler::computeAllAlignmentsThreadFunction3, threadCount);
 
+
+        // Now we can loop over the work area, and replace each
+        // non-zero entry with an increasing id which will be the final vertex id.
+        cout << timestamp << "Generating contiguous vertex ids." << endl;
+        GlobalMarkerGraphVertexId vertexId = 0;
+        for(GlobalMarkerGraphVertexId& w: data.workArea) {
+            if(w != 0ULL) {
+                w = vertexId++;
+            }
+        }
+        const GlobalMarkerGraphVertexId vertexCount = vertexId;
+        cout << timestamp << "The global marker graph has " << vertexCount;
+        cout << " vertices for " << data.orientedMarkerCount;
+        cout << " oriented markers." << endl;
+
+        // Now we can use the workArea to convert raw vertex ids to final vertex ids.
+        cout << timestamp << "Storing final vertex ids for all markers." << endl;
+        setupLoadBalancing(data.orientedMarkerCount, batchSize);
+        runThreads(&Assembler::computeAllAlignmentsThreadFunction4, threadCount);
+        data.workArea.remove();
+
+
+#if 0
+        // OLD CODE TO PREPROCESS THE RESULT OF THE DISJOINT SETS COMPUTATION.
         // Now we want to replace the vertices with contiguous ids
         // beginning at 0 and sorted by decreasing size.
 
         // First, we have to count the number of oriented markers for each
         // vertex, with the current numbering.
         cout << timestamp << "Counting the markers of each vertex." << endl;
-        using VertexId = GlobalMarkerGraphVertexId;
-        using CompressedVertexId = CompressedGlobalMarkerGraphVertexId;
         MemoryMapped::Vector<CompressedVertexId> count;
         count.createNew(
             largeDataName("tmp-Count"),
@@ -417,15 +457,21 @@ void Assembler::computeAllAlignments(
         }
         const VertexId vertexCount = countTable.size();
         countTable.remove();
+#endif
+
+
 
         // Gather the oriented marker ids of each vertex of the global marker graph.
+        cout << timestamp << "Gathering the oriented markers of each vertex." << endl;
         globalMarkerGraphVertices.createNew(
             largeDataName("GlobalMarkerGraphVertices"),
             largeDataPageSize);
+        cout << timestamp << "... pass 1" << endl;
         globalMarkerGraphVertices.beginPass1(vertexCount);
         for(const CompressedVertexId& v: globalMarkerGraphVertex) {
             globalMarkerGraphVertices.incrementCount(v);
         }
+        cout << timestamp << "... pass 2" << endl;
         globalMarkerGraphVertices.beginPass2();
         for(VertexId i=0; i<globalMarkerGraphVertex.size(); i++) {
             globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], i);
@@ -433,8 +479,11 @@ void Assembler::computeAllAlignments(
         globalMarkerGraphVertices.endPass2();
 
         // Sort the markers in each vertex.
-        for(VertexId i=0; i<globalMarkerGraphVertices.size(); i++) {
-            sort(globalMarkerGraphVertices.begin(i), globalMarkerGraphVertices.end(i));
+        cout << timestamp << "Gathering the oriented markers of each vertex." << endl;
+        for(VertexId i=0; i<vertexCount; i++) {
+            if(globalMarkerGraphVertices.size(i) > 1) {
+                sort(globalMarkerGraphVertices.begin(i), globalMarkerGraphVertices.end(i));
+            }
         }
 
 
@@ -454,6 +503,26 @@ void Assembler::computeAllAlignments(
                 }
             }
         }
+
+        // Create a histogram of number of markers per vertex.
+        cout << "Creating marker graph vertex coverage histogram." << endl;
+        vector<uint64_t> histogram;
+        for(size_t i=0; i<globalMarkerGraphVertices.size(); i++) {
+            const size_t count = globalMarkerGraphVertices.size(i);
+            if(histogram.size()<= count) {
+                histogram.resize(count+1, 0ULL);
+            }
+            ++histogram[count];
+        }
+        ofstream csv("GlobalMarkerGraphHistogram.csv");
+        csv << "MarkerCount,Frequency\n";
+        for(size_t i=0; i<histogram.size(); i++) {
+            const auto n = histogram[i];
+            if(n) {
+                csv << i << "," << n << "\n";
+            }
+        }
+
     }
 
 
@@ -575,6 +644,7 @@ void Assembler::computeAllAlignmentsThreadFunction1(size_t threadId)
 }
 
 
+
 void Assembler::computeAllAlignmentsThreadFunction2(size_t threadId)
 {
     DisjointSets& disjointSets = *computeAllAlignmentsData.disjointSetsPointer;
@@ -583,6 +653,39 @@ void Assembler::computeAllAlignmentsThreadFunction2(size_t threadId)
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             globalMarkerGraphVertex[i] = disjointSets.find(i);
+        }
+    }
+}
+
+
+
+void Assembler::computeAllAlignmentsThreadFunction3(size_t threadId)
+{
+    GlobalMarkerGraphVertexId* workArea =
+        computeAllAlignmentsData.workArea.begin();
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(MarkerId i=begin; i!=end; ++i) {
+            const MarkerId rawVertexId = globalMarkerGraphVertex[i];
+            __sync_fetch_and_add(workArea + rawVertexId, 1ULL);
+        }
+    }
+}
+
+
+
+void Assembler::computeAllAlignmentsThreadFunction4(size_t threadId)
+{
+    GlobalMarkerGraphVertexId* workArea =
+        computeAllAlignmentsData.workArea.begin();
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(MarkerId i=begin; i!=end; ++i) {
+            const MarkerId rawVertexId = globalMarkerGraphVertex[i];
+            const MarkerId finalVertexId = workArea[rawVertexId];
+            globalMarkerGraphVertex[i] = finalVertexId;
         }
     }
 }
