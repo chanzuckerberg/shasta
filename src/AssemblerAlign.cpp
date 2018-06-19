@@ -320,7 +320,7 @@ void Assembler::computeAllAlignments(
 
         // Compute the global marker graph vertex corresponding
         // to each MarkerId.
-        cout << timestamp << "Storing the global marker graph vertex each vertex belongs to." << endl;
+        cout << timestamp << "Storing the global marker graph vertex each marker belongs to." << endl;
         globalMarkerGraphVertex.createNew(
             largeDataName("GlobalMarkerGraphVertex"),
             largeDataPageSize);
