@@ -479,7 +479,7 @@ void Assembler::computeAllAlignments(
         globalMarkerGraphVertices.endPass2();
 
         // Sort the markers in each vertex.
-        cout << timestamp << "Gathering the oriented markers of each vertex." << endl;
+        cout << timestamp << "Sorting the oriented markers of each vertex." << endl;
         for(VertexId i=0; i<vertexCount; i++) {
             if(globalMarkerGraphVertices.size(i) > 1) {
                 sort(globalMarkerGraphVertices.begin(i), globalMarkerGraphVertices.end(i));
