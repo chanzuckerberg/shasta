@@ -3,17 +3,25 @@ using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
 #include <iomanip>
+#include "iterator.hpp"
+
+
+#define CZI_ADD_TO_FUNCTION_TABLE(name) httpServerData.functionTable[string("/") + #name ] = &Assembler::name
 
 
 
+// Associate http keywords wth member functions.
 void Assembler::fillServerFunctionTable()
 {
-    // Summary.
     httpServerData.functionTable[""]        = &Assembler::exploreSummary;
     httpServerData.functionTable["/"]       = &Assembler::exploreSummary;
     httpServerData.functionTable["/index"]  = &Assembler::exploreSummary;
+    CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
+
+    CZI_ADD_TO_FUNCTION_TABLE(exploreReads);
 
 }
+#undef CZI_ADD_TO_FUNCTION_TABLE
 
 
 
@@ -117,6 +125,35 @@ function makeAllTablesSelectableByDoubleClick()
 
 void Assembler::writeNavigation(ostream& html) const
 {
+    html << "<ul class=navigationMenu>";
+
+    writeNavigation(html, "Run information", {
+        {"Summary", "exploreSummary"},
+        });
+    writeNavigation(html, "Reads", {
+        {"Reads", "exploreReads"},
+        });
+
+    html << "</ul>";
+}
+
+
+
+void Assembler::writeNavigation(
+    ostream& html,
+    const string& title,
+    const vector<pair <string, string> >& items) const
+{
+    html <<
+        "<li class=navigationMenuEntry>"
+        "<div class=navigationButton>" << title << "</div>"
+        "<div class=navigationItems>";
+
+    for(const auto& item: items) {
+        html << "<a class=navigationItem href=" << item.second << ">" << item.first << "</a>";
+    }
+
+    html << "</div></li>";
 
 }
 
@@ -166,11 +203,11 @@ void Assembler::exploreSummary (
         "<tr><td title='The total number of k-mers of length k'>Total k-mers"
         "<td class=right>" << kmerTable.size() <<
 
-        "<tr><td title='The number of k-mers of length k used as marker'>Marker k-mers"
+        "<tr><td title='The number of k-mers of length k used as markers'>Marker k-mers"
         "<td class=right>" << markerKmerCount <<
 
-        "<tr><td title='The fraction of k-mers of length k used as marker'>Marker fraction"
-        "<td class=right>" << setprecision(4) << double(markerKmerCount) / double(kmerTable.size()) <<
+        "<tr><td title='The fraction of k-mers of length k used as markers'>Marker fraction"
+        "<td class=right>" << setprecision(3) << double(markerKmerCount) / double(kmerTable.size()) <<
 
         "<tr><td title='Total number of markers on both strands'>Oriented markers"
         "<td class=right>" << markers.totalSize() <<
@@ -194,4 +231,106 @@ void Assembler::exploreSummary (
         "</table>";
 }
 
+
+
+void Assembler::exploreReads (
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the ReadId and Strand from the request.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Show read'> "
+        "<input type=text name=readId title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand "
+        "<select name=strand>"
+        "<option value=0>0 (+)</option>"
+        "<option value=1>1 (-)</option>"
+        "</select>"
+        "</form>";
+
+    // If the readId or strand are missing, stop here.
+    if(!readIdIsPresent || !strandIsPresent) {
+        return;
+    }
+
+    // Access the read.
+    if(readId >= reads.size()) {
+        html << "<p>Invalid read id.";
+        return;
+    }
+    if(strand!=0 && strand!=1) {
+        html << "<p>Invalid strand.";
+        return;
+    }
+    const OrientedReadId orientedReadId(readId, strand);
+    const auto readSequence = reads[readId];
+    const auto readName = readNames[readId];
+
+
+
+    // Page title.
+    html << "<h1>Oriented read " << orientedReadId << "</h1>";
+
+    // Read name.
+    html << "<p>Read name on input: ";
+    copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
+
+    // Read length.
+    html << "<p>This read is " << readSequence.baseCount << " bases long.";
+
+    // Read sequence.
+    html << "<p><div style='font-family:monospace'>";
+    html << "<br>";
+    for(uint32_t i=0; i<readSequence.baseCount; i+=10) {
+        const string label = to_string(i);
+        html << label;
+        for(size_t j=0; j<10-label.size(); j++) {
+            html << "&nbsp;";
+        }
+    }
+    html << "<br>";
+    for(uint32_t i=0; i<readSequence.baseCount; i++) {
+        if((i%10)==0) {
+            html << "|";
+        } else if((i%5)==0) {
+            html << "+";
+        } else {
+            html << ".";
+        }
+    }
+    html << "<br>";
+    readSequence.write(html, strand==1);
+
+
+
+    // Write the markers on k rows.
+    const size_t k = assemblerInfo->k;
+    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+    for(size_t markerRow=0; markerRow<k; markerRow++) {
+        html << "<br>";
+        size_t position = 0;
+        for(uint32_t ordinal=uint32_t(markerRow);
+            ordinal<uint32_t(orientedReadMarkers.size()); ordinal+=uint32_t(k)) {
+            const CompressedMarker& marker = orientedReadMarkers[ordinal];
+            const Kmer kmer(marker.kmerId, k);
+            while(position < marker.position) {
+                html << "&nbsp;";
+                ++position;
+            }
+            kmer.write(html, k);
+            position += assemblerInfo->k;
+
+        }
+    }
+
+
+    html << "</div>";
+}
 

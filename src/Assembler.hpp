@@ -585,7 +585,12 @@ private:
     void writeHtmlEnd(ostream&) const;
     void writeMakeAllTablesSelectable(ostream&) const;
     void writeNavigation(ostream&) const;
+    void writeNavigation(
+        ostream& html,
+        const string& title,
+        const vector<pair <string, string> >&) const;
     void exploreSummary (const vector<string>&, ostream&);
+    void exploreReads (const vector<string>&, ostream&);
     class HttpServerData {
     public:
 
