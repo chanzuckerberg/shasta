@@ -2,6 +2,19 @@
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
+#include <iomanip>
+
+
+
+void Assembler::fillServerFunctionTable()
+{
+    // Summary.
+    httpServerData.functionTable[""]        = &Assembler::exploreSummary;
+    httpServerData.functionTable["/"]       = &Assembler::exploreSummary;
+    httpServerData.functionTable["/index"]  = &Assembler::exploreSummary;
+
+}
+
 
 
 void Assembler::processRequest(
@@ -106,4 +119,79 @@ void Assembler::writeNavigation(ostream& html) const
 {
 
 }
+
+
+
+void Assembler::exploreSummary (
+    const vector<string>& request,
+    ostream& html)
+{
+    using std::setprecision;
+
+    // Compute the total number of bases.
+    uint64_t totalBaseCount = 0;
+    for(ReadId readId=0; readId<reads.size(); readId++) {
+        totalBaseCount += reads[readId].baseCount;
+    }
+
+    // Compute the number of k-mers used as markers.
+    uint64_t markerKmerCount = 0;
+    for(const auto& tableEntry: kmerTable) {
+        if(tableEntry.isMarker) {
+            ++ markerKmerCount;
+        }
+    }
+
+
+    html <<
+        "<h1>Run summary</h1>"
+        "<table>"
+
+        "<tr><td title='Total number of input reads'>Reads"
+        "<td class=right>" << reads.size() <<
+
+        "<tr><td title='Total number of reads on both strands"
+        " (equal to twice the number of reads)'>Oriented reads"
+        "<td class=right>" << 2*reads.size() <<
+
+        "<tr><td title='Total number of input bases'>Bases"
+        "<td class=right>" << totalBaseCount <<
+
+        "<tr><td title='Average number of bases in a read'>Average read length"
+        "<td class=right>" << int(0.5 + double(totalBaseCount) / double(reads.size())) <<
+
+        "<tr><td title='The length of k-mers used as markers'>Marker length k"
+        "<td class=right>" << assemblerInfo->k <<
+
+        "<tr><td title='The total number of k-mers of length k'>Total k-mers"
+        "<td class=right>" << kmerTable.size() <<
+
+        "<tr><td title='The number of k-mers of length k used as marker'>Marker k-mers"
+        "<td class=right>" << markerKmerCount <<
+
+        "<tr><td title='The fraction of k-mers of length k used as marker'>Marker fraction"
+        "<td class=right>" << setprecision(4) << double(markerKmerCount) / double(kmerTable.size()) <<
+
+        "<tr><td title='Total number of markers on both strands'>Oriented markers"
+        "<td class=right>" << markers.totalSize() <<
+
+        "<tr><td title='The average number of markers per base'>Marker density"
+        "<td class=right>" << setprecision(4) << double(markers.totalSize()) / (2.*double(totalBaseCount)) <<
+
+        "<tr><td title='The average shift between consecutive markers in a read'>Marker average shift"
+        "<td class=right>" << setprecision(4) << (2.*double(totalBaseCount)) / double(markers.totalSize())  <<
+
+        "<tr><td title='The average gap between consecutive markers in a read'>Marker average gap"
+        "<td class=right>" << setprecision(4) <<
+        (2.*double(totalBaseCount)) / double(markers.totalSize()) - double(assemblerInfo->k) <<
+
+        "<tr><td title='Number of candidate overlaps found by the MinHash algorithm'>Overlaps"
+        "<td class=right>" << overlaps.size() <<
+
+        "<tr><td title='Number of vertices in the global marker graph'>Marker graph vertices"
+        "<td class=right>" << globalMarkerGraphVertices.size() <<
+
+        "</table>";
+}
+
 

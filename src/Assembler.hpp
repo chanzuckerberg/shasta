@@ -576,6 +576,7 @@ private:
 
 
     // Data and functions used for the http server.
+    void fillServerFunctionTable();
     void processRequest(
         const vector<string>& request,
         ostream&,
@@ -584,13 +585,15 @@ private:
     void writeHtmlEnd(ostream&) const;
     void writeMakeAllTablesSelectable(ostream&) const;
     void writeNavigation(ostream&) const;
+    void exploreSummary (const vector<string>&, ostream&);
     class HttpServerData {
     public:
 
-        typedef void (Assembler::*ServerFunction)(
+        using ServerFunction = void (Assembler::*) (
             const vector<string>& request,
             ostream&);
         std::map<string, ServerFunction> functionTable;
+
     };
     HttpServerData httpServerData;
 

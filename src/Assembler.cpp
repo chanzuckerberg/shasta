@@ -27,5 +27,8 @@ Assembler::Assembler(
 
     // Either way, assemblerInfo is the only open object
     // when the constructor finishes.
+
+    fillServerFunctionTable();
+
 }
 

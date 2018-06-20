@@ -387,6 +387,9 @@ void HttpServer::writeStyle(ostream& html)
     td.centered {
         text-align: center;
     }
+    td.right {
+        text-align: right;
+    }
     a {
         color: DarkSlateBlue;
     }
