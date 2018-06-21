@@ -589,8 +589,9 @@ private:
         ostream& html,
         const string& title,
         const vector<pair <string, string> >&) const;
-    void exploreSummary (const vector<string>&, ostream&);
-    void exploreReads (const vector<string>&, ostream&);
+    void exploreSummary(const vector<string>&, ostream&);
+    void exploreReads(const vector<string>&, ostream&);
+    void exploreMarkerGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:
 

@@ -16,9 +16,10 @@ void Assembler::fillServerFunctionTable()
     httpServerData.functionTable[""]        = &Assembler::exploreSummary;
     httpServerData.functionTable["/"]       = &Assembler::exploreSummary;
     httpServerData.functionTable["/index"]  = &Assembler::exploreSummary;
-    CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
 
+    CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
     CZI_ADD_TO_FUNCTION_TABLE(exploreReads);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
 
 }
 #undef CZI_ADD_TO_FUNCTION_TABLE
@@ -66,7 +67,7 @@ void Assembler::writeHtmlBegin(ostream& html) const
         "<link rel=icon href=\"https://s0.wp.com/wp-content/themes/vip/czi/images/build/favicon.ico\" />"
         "<meta charset='UTF-8'>";
     writeStyle(html);
-    writeMakeAllTablesSelectable(html);
+    // writeMakeAllTablesSelectable(html);
     html <<
         "</head>"
         "<body onload='makeAllTablesSelectableByDoubleClick()'>";
@@ -133,6 +134,9 @@ void Assembler::writeNavigation(ostream& html) const
     writeNavigation(html, "Reads", {
         {"Reads", "exploreReads"},
         });
+    writeNavigation(html, "Marker graph", {
+        {"Marker graph", "exploreMarkerGraph"},
+        });
 
     html << "</ul>";
 }
@@ -159,7 +163,7 @@ void Assembler::writeNavigation(
 
 
 
-void Assembler::exploreSummary (
+void Assembler::exploreSummary(
     const vector<string>& request,
     ostream& html)
 {
@@ -233,7 +237,7 @@ void Assembler::exploreSummary (
 
 
 
-void Assembler::exploreReads (
+void Assembler::exploreReads(
     const vector<string>& request,
     ostream& html)
 {
@@ -332,5 +336,119 @@ void Assembler::exploreReads (
 
 
     html << "</div>";
+}
+
+
+void Assembler::exploreMarkerGraph(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the parameters.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+    uint32_t ordinal = 0;
+    const bool ordinalIsPresent = getParameterValue(request, "ordinal", ordinal);
+    uint32_t maxDistance = 0;
+    const bool maxDistanceIsPresent = getParameterValue(request, "maxDistance", maxDistance);
+    string detailedString;
+    const bool detailed = getParameterValue(request, "detailed", detailedString);
+    uint32_t minCoverage = 0;
+    const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
+    uint32_t minConsensus = 0;
+    const bool minConsensusIsPresent = getParameterValue(request, "minConsensus", minConsensus);
+    uint32_t timeout;
+    const bool timeoutIsPresent = getParameterValue(request, "timeout", timeout);
+
+
+
+    // Write the form.
+    html <<
+        "<h3>Display a local subgraph of the global marker graph</h3>"
+        "<form>"
+
+        "<table>"
+
+        "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
+        "<td>Read id"
+        "<td><input type=text required name=readId size=8 style='text-align:center'"
+        << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
+        ">"
+
+        "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
+        "<td>Strand"
+        "<td class=centered>"
+        "<select name=strand>"
+        "<option value=0"
+        << ((strandIsPresent && strand==0) ? " selected" : "") <<
+        ">0 (+)</option>"
+        "<option value=1"
+        << ((strandIsPresent && strand==1) ? " selected" : "") <<
+        ">1 (-)</option>"
+        "</select>"
+
+        "<tr title='Ordinal for the desired marker in the specified oriented read.'>"
+        "<td>Marker ordinal"
+        "<td><input type=text required name=ordinal size=8 style='text-align:center'"
+        << (ordinalIsPresent ? ("value='"+to_string(ordinal)+"'") : "") <<
+        ">"
+
+        "<tr title='Maximum distance from start vertex (number of edges)'>"
+        "<td>Maximum distance"
+        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+        << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
+        ">"
+
+        "<tr title='Check for detailed graph with labels'>"
+        "<td>Detailed"
+        "<td class=centered><input type=checkbox name=detailed"
+        << (detailed ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Minimum coverage (number of markers) for a vertex to be considered strong. Used to color vertices.'>"
+        "<td>Vertex coverage threshold"
+        "<td><input type=text required name=minCoverage size=8 style='text-align:center'"
+        << (minCoverageIsPresent ? (" value='" + to_string(minCoverage)+"'") : " value='3'") <<
+        ">"
+
+        "<tr title='Minimum consensus (number or reads that agree on sequence) "
+        "for an edge to be considered strong. Used to color edges.'>"
+        "<td>Edge consensus threshold"
+        "<td><input type=text required name=minConsensus size=8 style='text-align:center'"
+        << (minConsensusIsPresent ? (" value='" + to_string(minConsensus)+"'") : " value='3'") <<
+        ">"
+
+        "<tr title='Maximum time (in seconds) allowed for graph layout'>"
+        "<td>Graph layout timeout"
+        "<td><input type=text required name=timeout size=8 style='text-align:center'"
+        << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
+        ">"
+
+        "</table>"
+
+        "<input type=submit value='Display'>"
+
+        " <span style='background-color:#e0e0e0' title='"
+        "Fill this form to display a local subgraph of the global marker graph starting at the "
+        "vertex containing the specified marker and extending out to a given distance "
+        "(number of edges) from the start vertex."
+        "The marker is specified by its oriented read id (read id, strand) and marker ordinal. "
+        "The marker ordinal is the sequential index of the marker in the specified oriented read "
+        "(the first marker is marker 0, the second marker is marker 1, and so on).'>"
+        "Explain form</span>"
+        "</form>";
+
+
+
+    // If any values are missing, stop here.
+    if(!readIdIsPresent || !strandIsPresent || !ordinalIsPresent
+        || !maxDistanceIsPresent || !minCoverageIsPresent || !minConsensusIsPresent
+        || !timeoutIsPresent) {
+        return;
+    }
+
+    const OrientedReadId orientedReadId(readId, strand);
+    html << "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId << "</h1>";
 }
 
