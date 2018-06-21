@@ -285,7 +285,13 @@ void Assembler::exploreReads(
 
 
     // Page title.
-    html << "<h1>Oriented read " << orientedReadId << "</h1>";
+    html << "<h1 title='Read " << readId << " on strand " << strand;
+    if(strand == 0) {
+        html << " (input read without reverse complementing)";
+    } else {
+        html << " (reverse complement of input read)";
+    }
+    html << "'>Oriented read " << orientedReadId << "</h1>";
 
     // Read name.
     html << "<p>Read name on input: ";
