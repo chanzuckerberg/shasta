@@ -335,14 +335,19 @@ void Assembler::exploreReads(
         for(uint32_t ordinal=uint32_t(markerRow);
             ordinal<uint32_t(orientedReadMarkers.size()); ordinal+=uint32_t(k)) {
             const CompressedMarker& marker = orientedReadMarkers[ordinal];
+            const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
+                "&strand=" + to_string(strand) +
+                "&ordinal=" + to_string(ordinal) +
+                "&maxDistance=6&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
             const Kmer kmer(marker.kmerId, k);
             while(position < marker.position) {
                 html << "&nbsp;";
                 ++position;
             }
-            html << "<span title='Marker ordinal " << ordinal << "'>";
+            html << "<a style='font-family:monospace' title='Marker ordinal " << ordinal << "'";
+            html << "href='" << url << "'>";
             kmer.write(html, k);
-            html << "</span>";
+            html << "</a>";
             position += assemblerInfo->k;
 
         }
@@ -381,7 +386,7 @@ void Assembler::exploreMarkerGraph(
 
     // Write the form.
     html <<
-        "<h3>Display a local subgraph of the global marker graph &#x1f4d6;</h3>"
+        "<h3>Display a local subgraph of the global marker graph</h3>"
         "<form>"
 
         "<table>"
