@@ -259,13 +259,10 @@ void Assembler::exploreReads(
     html <<
         "<form>"
         "<input type=submit value='Show read'> "
-        "<input type=text name=readId title='Enter a read id between 0 and " << reads.size()-1 << "'>"
-        " on strand "
-        "<select name=strand>"
-        "<option value=0>0 (+)</option>"
-        "<option value=1>1 (-)</option>"
-        "</select>"
-        "</form>";
+        "<input type=text name=readId required title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, false, false);
+    html << "</form>";
 
     // If the readId or strand are missing, stop here.
     if(!readIdIsPresent || !strandIsPresent) {
@@ -388,16 +385,10 @@ void Assembler::exploreMarkerGraph(
 
         "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
         "<td>Strand"
-        "<td class=centered>"
-        "<select name=strand>"
-        "<option value=0"
-        << ((strandIsPresent && strand==0) ? " selected" : "") <<
-        ">0 (+)</option>"
-        "<option value=1"
-        << ((strandIsPresent && strand==1) ? " selected" : "") <<
-        ">1 (-)</option>"
-        "</select>"
+        "<td class=centered>";
+    writeStrandSelection(html, strandIsPresent && strand==0, strandIsPresent && strand==1);
 
+    html <<
         "<tr title='Ordinal for the desired marker in the specified oriented read.'>"
         "<td>Marker ordinal"
         "<td><input type=text required name=ordinal size=8 style='text-align:center'"
@@ -513,6 +504,25 @@ void Assembler::exploreMarkerGraph(
 
     // Remove the .svg file.
     filesystem::remove(svgFileName);
+
+}
+
+
+
+void Assembler::writeStrandSelection(
+    ostream& html,
+    bool select0,
+    bool select1) const
+{
+    html <<
+        "<select name=strand title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
+        "<option value=0"
+        << (select0 ? " selected" : "") <<
+        ">0 (+)</option>"
+        "<option value=1"
+        << (select1 ? " selected" : "") <<
+        ">1 (-)</option>"
+        "</select>";
 
 }
 

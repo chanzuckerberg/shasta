@@ -596,6 +596,7 @@ private:
         ostream& html,
         const string& title,
         const vector<pair <string, string> >&) const;
+    void writeStrandSelection(ostream&, bool select0, bool select1) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreReads(const vector<string>&, ostream&);
     void exploreMarkerGraph(const vector<string>&, ostream&);
