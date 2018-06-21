@@ -359,7 +359,7 @@ void HttpServer::writeStyle(ostream& html)
 {
     html << R"%(
 <style>
-    * {
+    body {
         font-family: Arial;
     }
     pre {

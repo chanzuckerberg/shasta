@@ -504,11 +504,33 @@ void Assembler::extractLocalMarkerGraph(
     size_t minConsensus
     )
 {
-    // Create the local marker graph and add the start vertex.
-    const GlobalMarkerGraphVertexId startVertexId =
-        getGlobalMarkerGraphVertex(readId, strand, ordinal);
+    // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers);
+    extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, graph);
+
+    cout << "The local marker graph has " << num_vertices(graph);
+    cout << " vertices and " << num_edges(graph) << " edges." << endl;
+
+    // Write it out.
+    graph.write("MarkerGraph.dot", minCoverage, minConsensus, distance, false);
+    graph.write("DetailedMarkerGraph.dot", minCoverage, minConsensus, distance, true);
+
+}
+
+
+
+void Assembler::extractLocalMarkerGraph(
+    OrientedReadId orientedReadId,
+    uint32_t ordinal,
+    int distance,
+    LocalMarkerGraph2& graph
+    )
+{
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
+
+    // Add the start vertex.
+    const GlobalMarkerGraphVertexId startVertexId =
+        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
 
     // Do the BFS. Do not add the edges now.
@@ -565,9 +587,5 @@ void Assembler::extractLocalMarkerGraph(
         }
     }
 
-    cout << "The local marker graph has " << num_vertices(graph);
-    cout << " vertices and " << num_edges(graph) << " edges." << endl;
-    graph.write("MarkerGraph.dot", minCoverage, minConsensus, distance, false);
-    graph.write("DetailedMarkerGraph.dot", minCoverage, minConsensus, distance, true);
-
 }
+

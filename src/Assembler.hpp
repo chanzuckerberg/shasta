@@ -30,6 +30,7 @@ namespace ChanZuckerberg {
         class AlignmentGraph;
         class AlignmentInfo;
         class LocalReadGraph;
+        class LocalMarkerGraph2;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
         }
@@ -571,6 +572,12 @@ private:
 
         // Minimum consensus for a strong edge.
         size_t minConsensus
+        );
+    void extractLocalMarkerGraph(
+        OrientedReadId,
+        uint32_t ordinal,
+        int distance,
+        LocalMarkerGraph2&
         );
 
 

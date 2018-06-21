@@ -1,7 +1,15 @@
+// Nanopore2.
 #include "Assembler.hpp"
+#include "LocalMarkerGraph2.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
+// Boost libraries.
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+// Standard library.
 #include <iomanip>
 #include "iterator.hpp"
 
@@ -358,6 +366,8 @@ void Assembler::exploreMarkerGraph(
     const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
     uint32_t minConsensus = 0;
     const bool minConsensusIsPresent = getParameterValue(request, "minConsensus", minConsensus);
+    uint32_t sizePixels;
+    const bool sizePixelsIsPresent = getParameterValue(request, "sizePixels", sizePixels);
     uint32_t timeout;
     const bool timeoutIsPresent = getParameterValue(request, "timeout", timeout);
 
@@ -365,7 +375,7 @@ void Assembler::exploreMarkerGraph(
 
     // Write the form.
     html <<
-        "<h3>Display a local subgraph of the global marker graph</h3>"
+        "<h3>Display a local subgraph of the global marker graph &#x1f4d6;</h3>"
         "<form>"
 
         "<table>"
@@ -419,6 +429,14 @@ void Assembler::exploreMarkerGraph(
         << (minConsensusIsPresent ? (" value='" + to_string(minConsensus)+"'") : " value='3'") <<
         ">"
 
+        "<tr title='Graphics size in pixels. "
+        "Changing this works better than zooming. Make it larger if the graph is too crowded."
+        " Ok to make it much larger than screen size.'>"
+        "<td>Graphics size in pixels"
+        "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
+        << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='1600'") <<
+        ">"
+
         "<tr title='Maximum time (in seconds) allowed for graph layout'>"
         "<td>Graph layout timeout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
@@ -436,7 +454,7 @@ void Assembler::exploreMarkerGraph(
         "The marker is specified by its oriented read id (read id, strand) and marker ordinal. "
         "The marker ordinal is the sequential index of the marker in the specified oriented read "
         "(the first marker is marker 0, the second marker is marker 1, and so on).'>"
-        "Explain form</span>"
+        "Mouse here to explain form</span>"
         "</form>";
 
 
@@ -448,7 +466,53 @@ void Assembler::exploreMarkerGraph(
         return;
     }
 
+    // Create the local marker graph.
     const OrientedReadId orientedReadId(readId, strand);
+    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers);
+    extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, graph);
+
+    // Write it out in graphviz format.
+    // const boost::uuids::uuid uuid = boost::uuids::random_generator()();
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    graph.write(dotFileName, minCoverage, minConsensus, maxDistance, detailed);
+
+    // Compute layout in svg format.
+    const string command =
+        "timeout " + to_string(timeout) +
+        " dot -O -T svg " + dotFileName +
+        " -Gsize=" + to_string(sizePixels/72.);
+    const int commandStatus = ::system(command.c_str());
+    if(WIFEXITED(commandStatus)) {
+        const int exitStatus = WEXITSTATUS(commandStatus);
+        if(exitStatus == 124) {
+            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            filesystem::remove(dotFileName);
+            return;
+        }
+        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+            filesystem::remove(dotFileName);
+            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+        }
+    } else if(WIFSIGNALED(commandStatus)) {
+        const int signalNumber = WTERMSIG(commandStatus);
+        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+    } else {
+        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+
+    }
+    // Remove the .dot file.
+    filesystem::remove(dotFileName);
+
+    // Finally, we can display it.
     html << "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId << "</h1>";
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << svgFile.rdbuf();
+    svgFile.close();
+
+    // Remove the .svg file.
+    filesystem::remove(svgFileName);
+
 }
 
