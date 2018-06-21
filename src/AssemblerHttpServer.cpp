@@ -281,6 +281,7 @@ void Assembler::exploreReads(
     const OrientedReadId orientedReadId(readId, strand);
     const auto readSequence = reads[readId];
     const auto readName = readNames[readId];
+    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
 
 
@@ -298,7 +299,8 @@ void Assembler::exploreReads(
     copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
 
     // Read length.
-    html << "<p>This read is " << readSequence.baseCount << " bases long.";
+    html << "<p>This read is " << readSequence.baseCount;
+    html << " bases long and has " << orientedReadMarkers.size() << " markers.";
 
     // Read sequence.
     html << "<p><div style='font-family:monospace'>";
@@ -327,7 +329,6 @@ void Assembler::exploreReads(
 
     // Write the markers on k rows.
     const size_t k = assemblerInfo->k;
-    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
     for(size_t markerRow=0; markerRow<k; markerRow++) {
         html << "<br>";
         size_t position = 0;
@@ -339,7 +340,9 @@ void Assembler::exploreReads(
                 html << "&nbsp;";
                 ++position;
             }
+            html << "<span title='Marker ordinal " << ordinal << "'>";
             kmer.write(html, k);
+            html << "</span>";
             position += assemblerInfo->k;
 
         }
