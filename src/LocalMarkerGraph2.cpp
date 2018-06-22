@@ -223,6 +223,9 @@ LocalMarkerGraph2::Writer::Writer(
 
 void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
 {
+    // This turns off the tooltip on the graph.
+    s << "tooltip = \" \";\n";
+
     if(detailed) {
         s << "layout=dot;\n";
         s << "ratio=expand;\n";
@@ -256,8 +259,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "[";
 
         // Tooltip.
-        s << "tooltip=\"Marker " << vertex.vertexId;
-        s << ", coverage " << coverage << ", distance " << vertex.distance << "\"";
+        s << "tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << "\"";
 
         // Vertex size.
         s << " width=\"";
@@ -314,20 +316,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << " style=filled";
         s << " fillcolor=\"" << color << "\"";
 
-        // Label.
-        s << "label=\"Marker " << vertex.vertexId;
-        s << "\\nCoverage " << coverage;
-        s << "\\nDistance " << vertex.distance << "\"";
+        // Tooltip.
+        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << "\"";
 
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
-
-        /*
-        // Vertex id.
-        s << "<tr><td colspan=\"3\"><b>";
-        s << "Vertex " << vertex.vertexId;
-        s << "</b></td></tr>";
-        */
 
         // Kmer.
         s << "<tr><td colspan=\"3\"><b>";
@@ -404,6 +397,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
         // Begin edge attributes.
         s << "[";
+
+        const string tooltipText = "Consensus " + to_string(consensus) + ", coverage " +to_string(coverage);
+        s << " tooltip=\"" << tooltipText << "\"";
+        s << " labeltooltip=\"" << tooltipText << "\"";
+        s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
 
         // Thickness is determined by consensus.
         s << " penwidth=";

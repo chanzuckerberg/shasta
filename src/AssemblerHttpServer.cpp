@@ -491,7 +491,7 @@ void Assembler::exploreMarkerGraph(
             "<p>Invalid marker ordinal. "
             "Oriented read " << orientedReadId <<
             " has "  << orientedReadMarkerCount <<
-            " marker, and there fore the ordinal must be"
+            " markers, and therefore the ordinal must be"
             " between 0 and " << orientedReadMarkerCount-1 << ".";
         return;
     }
