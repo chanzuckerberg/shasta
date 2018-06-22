@@ -532,7 +532,7 @@ void Assembler::exploreMarkerGraph(
 
     }
     // Remove the .dot file.
-    filesystem::remove(dotFileName);
+    // filesystem::remove(dotFileName);
 
     // Finally, we can display it.
     html << "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId << "</h1>";

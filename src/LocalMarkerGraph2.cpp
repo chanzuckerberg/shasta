@@ -345,7 +345,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             const CompressedMarker& marker = graph.markers.begin()[markerInfo.markerId];
 
             // OrientedReadId
-            s << "<tr><td align=\"right\"><b>" << markerInfo.orientedReadId << "</b></td>";
+            s << "<tr><td align=\"right\"";
+            s << " href=\"exploreReads?readId&amp;" << markerInfo.orientedReadId.getReadId();
+            s << "&amp;strand=" << markerInfo.orientedReadId.getStrand() << "\"";
+            s << "><b>" << markerInfo.orientedReadId << "</b></td>";
 
             // Ordinal.
             s << "<td align=\"right\"><b>" << markerInfo.ordinal << "</b></td>";
@@ -463,7 +466,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
             for(auto it=infos.begin(); it!=infos.end(); ++it) {
                 const auto& info = *it;
-                s << "<tr><td align=\"right\"><b>" << info.orientedReadId << "</b></td>";
+                s << "<tr><td align=\"right\"";
+                s << " href=\"exploreReads?readId&amp;" << info.orientedReadId.getReadId();
+                s << "&amp;strand=" << info.orientedReadId.getStrand() << "\"";
+                s << "><b>" << info.orientedReadId << "</b></td>";
                 s << "<td align=\"right\"><b>" << info.startOrdinal << "</b></td>";
                 s << "<td align=\"center\"><b>";
                 if(it == infos.begin()) {
