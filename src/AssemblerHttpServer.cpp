@@ -255,6 +255,18 @@ void Assembler::exploreReads(
     Strand strand = 0;
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
 
+    // Get the set of ordinal for markers that should be highlighted.
+    vector<string> highlightedMarkerStrings;
+    getParameterValues(request, "highlightMarker", highlightedMarkerStrings);
+    std::set<uint32_t> highlightedMarkers;
+    for(const string& s: highlightedMarkerStrings) {
+        try {
+            highlightedMarkers.insert(boost::lexical_cast<uint32_t>(s));
+        } catch(std::exception&) {
+            // Ignore.
+        }
+    }
+
     // Write the form.
     html <<
         "<form>"
@@ -338,13 +350,17 @@ void Assembler::exploreReads(
             const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
                 "&strand=" + to_string(strand) +
                 "&ordinal=" + to_string(ordinal) +
-                "&maxDistance=6&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
+                "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
             const Kmer kmer(marker.kmerId, k);
             while(position < marker.position) {
                 html << "&nbsp;";
                 ++position;
             }
-            html << "<a style='font-family:monospace' title='Marker ordinal " << ordinal << "'";
+            html << "<a id=" << ordinal << " style='font-family:monospace;";
+            if(highlightedMarkers.find(ordinal) != highlightedMarkers.end()) {
+                html << "background-color:LightPink;";
+            }
+            html << "' title='Marker ordinal " << ordinal << "'";
             html << "href='" << url << "'>";
             kmer.write(html, k);
             html << "</a>";
