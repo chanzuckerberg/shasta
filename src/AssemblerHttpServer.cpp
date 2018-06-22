@@ -471,8 +471,33 @@ void Assembler::exploreMarkerGraph(
         return;
     }
 
-    // Create the local marker graph.
+
+
+    // Validity checks.
+    if(readId > reads.size()) {
+        html << "<p>Invalid read id " << readId;
+        html << ". Must be between 0 and " << reads.size()-1 << ".";
+        return;
+    }
+    if(strand>1) {
+        html << "<p>Invalid strand " << strand;
+        html << ". Must be 0 or 1.";
+        return;
+    }
     const OrientedReadId orientedReadId(readId, strand);
+    const auto orientedReadMarkerCount = markers.size(orientedReadId.getValue());
+    if(ordinal >= orientedReadMarkerCount) {
+        html <<
+            "<p>Invalid marker ordinal. "
+            "Oriented read " << orientedReadId <<
+            " has "  << orientedReadMarkerCount <<
+            " marker, and there fore the ordinal must be"
+            " between 0 and " << orientedReadMarkerCount-1 << ".";
+        return;
+    }
+
+
+    // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers);
     extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, graph);
 
