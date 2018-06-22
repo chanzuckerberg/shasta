@@ -5,6 +5,7 @@ using namespace ChanZuckerberg;
 using namespace Nanopore2;
 
 // Boost libraries.
+#include <boost/graph/iteration_macros.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -558,7 +559,31 @@ void Assembler::exploreMarkerGraph(
     svgFile.close();
 
     // Remove the .svg file.
-    filesystem::remove(svgFileName);
+    // filesystem::remove(svgFileName);
+
+
+    // Make the vertices clickable to recompute the graph with the
+    // same parameters, but starting at the clicked vertex.
+    html << "<script>\n";
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        CZI_ASSERT(!vertex.markerInfos.empty());
+        const auto& markerInfo = vertex.markerInfos.front();
+        const string url =
+            "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
+            "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
+            "&ordinal="  + to_string(markerInfo.ordinal) +
+            "&maxDistance=" + to_string(maxDistance) +
+            "&minCoverage=" + to_string(minCoverage) +
+            "&minConsensus=" + to_string(minConsensus) +
+            "&sizePixels=" + to_string(sizePixels) +
+            "&timeout=" + to_string(timeout) +
+            (detailed ? "&detailed=on" : "");
+        html <<
+            "document.getElementById('vertex" << vertex.vertexId <<
+            "').onclick = function() {location.href='" << url << "';};\n";
+    }
+    html << "</script>\n";
 
 }
 

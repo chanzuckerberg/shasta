@@ -258,8 +258,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         // Begin vertex attributes.
         s << "[";
 
+        // Id, so we can use JavaScript code to manipulate the vertex.
+        s << "id=vertex" << vertex.vertexId;
+
         // Tooltip.
-        s << "tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << "\"";
+        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << "\"";
 
         // Vertex size.
         s << " width=\"";
@@ -315,6 +318,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         }
         s << " style=filled";
         s << " fillcolor=\"" << color << "\"";
+
+        // Id, so we can use JavaScript code to manipulate the vertex.
+        s << " id=vertex" << vertex.vertexId;
 
         // Tooltip.
         s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << "\"";
