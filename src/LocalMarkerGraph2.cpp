@@ -348,7 +348,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<tr><td align=\"right\"";
             s << " href=\"exploreReads?readId&amp;" << markerInfo.orientedReadId.getReadId();
             s << "&amp;strand=" << markerInfo.orientedReadId.getStrand() << "\"";
-            s << "><b>" << markerInfo.orientedReadId << "</b></td>";
+            s << "><font color=\"blue\"><b><u>" << markerInfo.orientedReadId << "</u></b></font></td>";
 
             // Ordinal.
             s << "<td align=\"right\"";
@@ -356,7 +356,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "&amp;strand=" << markerInfo.orientedReadId.getStrand();
             s << "&amp;highlightMarker=" << markerInfo.ordinal;
             s << "#" << markerInfo.ordinal << "\"";
-            s << "><b>" << markerInfo.ordinal << "</b></td>";
+            s << "><font color=\"blue\"><b><u>" << markerInfo.ordinal << "</u></b></font></td>";
 
             // Position.
             s << "<td align=\"right\"><b>" << marker.position << "</b></td></tr>";
@@ -476,7 +476,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "<tr><td align=\"right\"";
                 s << " href=\"exploreReads?readId&amp;" << info.orientedReadId.getReadId();
                 s << "&amp;strand=" << info.orientedReadId.getStrand() << "\"";
-                s << "><b>" << info.orientedReadId << "</b></td>";
+                s << "><font color=\"blue\"><b><u>" << info.orientedReadId << "</u></b></font></td>";
 
                 s << "<td align=\"right\"";
                 s << " href=\"exploreReads?readId&amp;" << info.orientedReadId.getReadId();
@@ -484,7 +484,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "&amp;highlightMarker=" << info.startOrdinal;
                 s << "&amp;highlightMarker=" << info.startOrdinal+1;
                 s << "#" << info.startOrdinal+1 << "\"";
-                s << "><b>" << info.startOrdinal << "</b></td>";
+                s << "><font color=\"blue\"><b><u>" << info.startOrdinal << "</u></b></font></td>";
 
                 s << "<td align=\"center\"><b>";
                 if(it == infos.begin()) {
