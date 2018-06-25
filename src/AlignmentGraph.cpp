@@ -444,6 +444,15 @@ void AlignmentGraph::writeImage(
     rgb8_image_t image(n0, n1);
     rgb8_image_t::view_t imageView = view(image);
 
+    // Initialize it to black.
+    const rgb8_pixel_t black(0, 0, 0);
+    for(size_t i0=0; i0<n0; i0++) {
+        for(size_t i1=0; i1<n1; i1++) {
+            imageView(i0, i1) = black;
+        }
+    }
+
+
     // Write a grid.
     const size_t smallGridSpacing = 10;
     const rgb8_pixel_t lightGrey(12, 12, 12);

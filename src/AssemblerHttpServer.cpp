@@ -27,7 +27,8 @@ void Assembler::fillServerFunctionTable()
     httpServerData.functionTable["/index"]  = &Assembler::exploreSummary;
 
     CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreReads);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreRead);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
 
 }
@@ -141,7 +142,8 @@ void Assembler::writeNavigation(ostream& html) const
         {"Summary", "exploreSummary"},
         });
     writeNavigation(html, "Reads", {
-        {"Reads", "exploreReads"},
+        {"Reads", "exploreRead"},
+        {"Align two reads", "exploreAlignment"},
         });
     writeNavigation(html, "Marker graph", {
         {"Marker graph", "exploreMarkerGraph"},
@@ -246,7 +248,7 @@ void Assembler::exploreSummary(
 
 
 
-void Assembler::exploreReads(
+void Assembler::exploreRead(
     const vector<string>& request,
     ostream& html)
 {
@@ -272,9 +274,9 @@ void Assembler::exploreReads(
     html <<
         "<form>"
         "<input type=submit value='Show read'> "
-        "<input type=text name=readId required title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        "<input type=text name=readId required size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
-    writeStrandSelection(html, false, false);
+    writeStrandSelection(html, "strand", false, false);
     html << "</form>";
 
     // If the readId or strand are missing, stop here.
@@ -380,6 +382,93 @@ void Assembler::exploreReads(
 }
 
 
+
+void Assembler::exploreAlignment(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the read ids and strands from the request.
+    ReadId readId0 = 0;
+    const bool readId0IsPresent = getParameterValue(request, "readId0", readId0);
+    Strand strand0 = 0;
+    const bool strand0IsPresent = getParameterValue(request, "strand0", strand0);
+    ReadId readId1 = 0;
+    const bool readId1IsPresent = getParameterValue(request, "readId1", readId1);
+    Strand strand1 = 0;
+    const bool strand1IsPresent = getParameterValue(request, "strand1", strand1);
+
+    // Get alignment parameters.
+    size_t maxSkip = 30;
+    getParameterValue(request, "maxSkip", maxSkip);
+    size_t maxVertexCountPerKmer = 100;
+    getParameterValue(request, "maxVertexCountPerKmer", maxVertexCountPerKmer);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Compute a marker alignment'> of these two reads:"
+        "<br><input type=text name=readId0 required size=8 " <<
+        (readId0IsPresent ? "value="+to_string(readId0) : "") <<
+        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html <<
+         "<br><input type=text name=readId1 required size=8 " <<
+         (readId1IsPresent ? "value="+to_string(readId1) : "") <<
+         " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
+    html <<
+        "<br>Maximum ordinal skip allowed: " <<
+        "<input type=text name=maxSkip required size=8 value=" << maxSkip << ">";
+    html <<
+        "<br>Maximum number of alignment graph vertices per k-mer: " <<
+        "<input type=text name=maxVertexCountPerKmer required size=8 value=" << maxVertexCountPerKmer << ">";
+    html << "</form>";
+
+    // If the readId's or strand's are missing, stop here.
+    if(!readId0IsPresent || !strand0IsPresent || !readId1IsPresent || !strand1IsPresent) {
+        return;
+    }
+
+
+
+    // Page title.
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    const OrientedReadId orientedReadId1(readId1, strand1);
+    html <<
+        "<h1>Marker alignment of oriented reads " <<
+        "<a href='exploreRead?readId=" << readId0 << "&strand=" << strand0 << "'>" << orientedReadId0 << "</a>" <<
+        " and " <<
+        "<a href='exploreRead?readId=" << readId1 << "&strand=" << strand1 << "'>" << orientedReadId1 << "</a>" <<
+        "</h1>"
+        "<p>This alignment was computed allowing a skip of up to " << maxSkip << " markers "
+        "and up to " << maxVertexCountPerKmer << " alignment graph vertices for each k-mer."
+        "<p>In the picture, horizontal positions correspond to marker ordinals on " <<
+        orientedReadId0 << " (marker 0 is on left) "
+        "and vertical positions correspond to marker ordinals on " <<
+        orientedReadId0 << " (marker 0 is on top). "
+        "Each faint line corresponds to 10 markers.";
+
+
+    // Compute the alignment.
+    // This creates file Alignment.png.
+    alignOrientedReads(orientedReadId0, orientedReadId1, maxSkip, maxVertexCountPerKmer);
+
+    // Create a base64 version of the png file.
+    const string command = "base64 Alignment.png > Alignment.png.base64";
+    ::system(command.c_str());
+
+
+    // Write out the picture with the alignment.
+    html << "<p><img src=\"data:image/png;base64,";
+    ifstream png("Alignment.png.base64");
+    html << png.rdbuf();
+    html << "\"/>";
+}
+
+
+
 void Assembler::exploreMarkerGraph(
     const vector<string>& request,
     ostream& html)
@@ -422,7 +511,7 @@ void Assembler::exploreMarkerGraph(
         "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
         "<td>Strand"
         "<td class=centered>";
-    writeStrandSelection(html, strandIsPresent && strand==0, strandIsPresent && strand==1);
+    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
 
     html <<
         "<tr title='Ordinal for the desired marker in the specified oriented read.'>"
@@ -620,11 +709,12 @@ void Assembler::exploreMarkerGraph(
 
 void Assembler::writeStrandSelection(
     ostream& html,
+    const string& name,
     bool select0,
     bool select1) const
 {
     html <<
-        "<select name=strand title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
+        "<select name=" << name << " title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
         "<option value=0"
         << (select0 ? " selected" : "") <<
         ">0 (+)</option>"

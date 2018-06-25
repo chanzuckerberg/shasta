@@ -354,13 +354,13 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 
             // OrientedReadId
             s << "<tr><td align=\"right\"";
-            s << " href=\"exploreReads?readId&amp;" << markerInfo.orientedReadId.getReadId();
+            s << " href=\"exploreRead?readId&amp;" << markerInfo.orientedReadId.getReadId();
             s << "&amp;strand=" << markerInfo.orientedReadId.getStrand() << "\"";
             s << "><font color=\"blue\"><b><u>" << markerInfo.orientedReadId << "</u></b></font></td>";
 
             // Ordinal.
             s << "<td align=\"right\"";
-            s << " href=\"exploreReads?readId&amp;" << markerInfo.orientedReadId.getReadId();
+            s << " href=\"exploreRead?readId&amp;" << markerInfo.orientedReadId.getReadId();
             s << "&amp;strand=" << markerInfo.orientedReadId.getStrand();
             s << "&amp;highlightMarker=" << markerInfo.ordinal;
             s << "#" << markerInfo.ordinal << "\"";
@@ -496,12 +496,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             for(auto it=infos.begin(); it!=infos.end(); ++it) {
                 const auto& info = *it;
                 s << "<tr><td align=\"right\"";
-                s << " href=\"exploreReads?readId&amp;" << info.orientedReadId.getReadId();
+                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
                 s << "&amp;strand=" << info.orientedReadId.getStrand() << "\"";
                 s << "><font color=\"blue\"><b><u>" << info.orientedReadId << "</u></b></font></td>";
 
                 s << "<td align=\"right\"";
-                s << " href=\"exploreReads?readId&amp;" << info.orientedReadId.getReadId();
+                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
                 s << "&amp;strand=" << info.orientedReadId.getStrand();
                 s << "&amp;highlightMarker=" << info.startOrdinal;
                 s << "&amp;highlightMarker=" << info.startOrdinal+1;
