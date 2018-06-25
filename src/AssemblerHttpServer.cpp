@@ -561,7 +561,6 @@ void Assembler::exploreMarkerGraph(
     // Remove the .svg file.
     // filesystem::remove(svgFileName);
 
-
     // Make the vertices clickable to recompute the graph with the
     // same parameters, but starting at the clicked vertex.
     html << "<script>\n";
@@ -580,11 +579,10 @@ void Assembler::exploreMarkerGraph(
             "&timeout=" + to_string(timeout) +
             (detailed ? "&detailed=on" : "");
         html <<
-            "document.getElementById('vertex" << vertex.vertexId <<
+            "document.getElementById('a_vertexDistance" << vertex.vertexId <<
             "').onclick = function() {location.href='" << url << "';};\n";
     }
     html << "</script>\n";
-
 }
 
 

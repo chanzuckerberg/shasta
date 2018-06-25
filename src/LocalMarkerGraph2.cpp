@@ -339,9 +339,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "</b></td></tr>";
 
         // Distance.
-        s << "<tr><td colspan=\"3\"><b>";
-        s << "Distance " << vertex.distance;
-        s << "</b></td></tr>";
+        s << "<tr><td colspan=\"3\" ";
+        s << " href=\"\"";  // Necessary to activate tooltip.
+        s << " id=\"vertexDistance" << vertex.vertexId << "\" tooltip=\"Click here to recenter graph\">";
+        s << "<font color=\"blue\"><b><u>Distance " << vertex.distance;
+        s << "</u></b></font></td></tr>";
 
         // Column headers.
         s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td></tr>";
