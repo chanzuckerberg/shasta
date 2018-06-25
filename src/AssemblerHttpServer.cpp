@@ -315,6 +315,11 @@ void Assembler::exploreReads(
     html << "<p>This read is " << readSequence.baseCount;
     html << " bases long and has " << orientedReadMarkers.size() << " markers.";
 
+    // Hyperlink to Blat this read.
+    html << "<p><a href='https://genome.ucsc.edu/cgi-bin/hgBlat?userSeq=";
+    readSequence.write(html, strand==1);
+    html << "&type=DNA&name=Human&db=hg38'>Blat this read against human reference hg38</a>.";
+
     // Read sequence.
     html << "<p><div style='font-family:monospace'>";
     html << "<br>";
