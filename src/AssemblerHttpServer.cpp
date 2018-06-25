@@ -274,9 +274,11 @@ void Assembler::exploreRead(
     html <<
         "<form>"
         "<input type=submit value='Show read'> "
-        "<input type=text name=readId required size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        "<input type=text name=readId required" <<
+        (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
+        " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
-    writeStrandSelection(html, "strand", false, false);
+    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
     html << "</form>";
 
     // If the readId or strand are missing, stop here.
