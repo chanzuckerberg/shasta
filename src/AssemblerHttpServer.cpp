@@ -319,10 +319,30 @@ void Assembler::exploreRead(
     html << "<p>This read is " << readSequence.baseCount;
     html << " bases long and has " << orientedReadMarkers.size() << " markers.";
 
-    // Hyperlink to Blat this read.
+
+
+    // Button to Blat this read.
+    // We cannot use a simple <a> because we need to do a POST
+    // (the GET request fails when the read is too long).
+    html <<
+        "<p><form action='https://genome.ucsc.edu/cgi-bin/hgBlat' method=post>"
+        "<input type=submit value='Blat this read against human reference hg38'>"
+        "<input type=text hidden name=type value=DNA>"
+        "<input type=text hidden name=type value=DNA>"
+        "<input type=text hidden name=name value=Human>"
+        "<input type=text hidden name=db value=hg38>"
+        "<input type=text hidden name=userSeq value=";
+    readSequence.write(html, strand==1);
+    html << "></form>";
+
+#if 0
+    // This works if the read is not too long.
     html << "<p><a href='https://genome.ucsc.edu/cgi-bin/hgBlat?userSeq=";
     readSequence.write(html, strand==1);
     html << "&type=DNA&name=Human&db=hg38'>Blat this read against human reference hg38</a>.";
+#endif
+
+
 
     // Read sequence.
     html << "<p><div style='font-family:monospace'>";
