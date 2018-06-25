@@ -404,7 +404,7 @@ void Assembler::exploreMarkerGraph(
     // Write the form.
     html <<
         "<h3>Display a local subgraph of the global marker graph</h3>"
-        "<form>"
+        "<form action='#startVertex'>"
 
         "<table>"
 
@@ -563,6 +563,8 @@ void Assembler::exploreMarkerGraph(
 
     // Make the vertices clickable to recompute the graph with the
     // same parameters, but starting at the clicked vertex.
+    // For a detailed graph, only the "Distance" label of each vertex
+    // is made clickable.
     html << "<script>\n";
     BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
         const LocalMarkerGraph2Vertex& vertex = graph[v];
@@ -578,11 +580,35 @@ void Assembler::exploreMarkerGraph(
             "&sizePixels=" + to_string(sizePixels) +
             "&timeout=" + to_string(timeout) +
             (detailed ? "&detailed=on" : "");
-        html <<
-            "document.getElementById('a_vertexDistance" << vertex.vertexId <<
-            "').onclick = function() {location.href='" << url << "';};\n";
+        if(detailed) {
+            html <<
+                "document.getElementById('a_vertexDistance" << vertex.vertexId <<
+                "').onclick = function() {location.href='" << url << "';};\n";
+        } else {
+            html <<
+                "document.getElementById('vertex" << vertex.vertexId <<
+                "').onclick = function() {location.href='" << url << "';};\n";
+        }
     }
     html << "</script>\n";
+
+
+
+    // Position the start vertex at the center of the window.
+    const GlobalMarkerGraphVertexId startVertexId =
+        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+    html << "<script>\n";
+    if(detailed) {
+        html <<
+            "var element = document.getElementById('a_vertexDistance" << startVertexId << "');\n";
+    } else {
+        html <<
+            "var element = document.getElementById('vertex" << startVertexId << "');\n";
+    }
+    html <<
+        "var r = element.getBoundingClientRect();\n"
+        "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
+        "</script>\n";
 }
 
 
