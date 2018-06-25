@@ -80,7 +80,7 @@ void Assembler::writeHtmlBegin(ostream& html) const
     // writeMakeAllTablesSelectable(html);
     html <<
         "</head>"
-        "<body onload='makeAllTablesSelectableByDoubleClick()'>";
+        ;// "<body onload='makeAllTablesSelectableByDoubleClick()'>";
     writeNavigation(html);
 }
 
