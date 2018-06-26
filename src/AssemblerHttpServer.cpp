@@ -29,6 +29,7 @@ void Assembler::fillServerFunctionTable()
 
     CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
     CZI_ADD_TO_FUNCTION_TABLE(exploreRead);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreOverlappingReads);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
 
@@ -144,6 +145,7 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Reads", {
         {"Reads", "exploreRead"},
+        {"Overlapping reads", "exploreOverlappingReads"},
         {"Align two reads", "exploreAlignment"},
         });
     writeNavigation(html, "Marker graph", {
@@ -413,6 +415,79 @@ void Assembler::exploreRead(
 
 
 
+void Assembler::exploreOverlappingReads(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the ReadId and Strand from the request.
+    ReadId readId0 = 0;
+    const bool readId0IsPresent = getParameterValue(request, "readId", readId0);
+    Strand strand0 = 0;
+    const bool strand0IsPresent = getParameterValue(request, "strand", strand0);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Show reads that overlap read'> "
+        "<input type=text name=readId required" <<
+        (readId0IsPresent ? (" value=" + to_string(readId0)) : "") <<
+        " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html << "</form>";
+
+    // If the readId or strand are missing, stop here.
+    if(!readId0IsPresent || !strand0IsPresent) {
+        return;
+    }
+
+    // Page title.
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    html <<
+        "<h1>Reads that overlap oriented read "
+        "<a href='exploreRead?readId=" << readId0  << "&strand=" << strand0 << "'>"
+        << orientedReadId0 << "</a></h1>";
+
+
+
+    // Loop over Overlap and Alignment objects that this oriented read in involved in.
+    const auto overlapIndexes = overlapTable[orientedReadId0.getValue()];
+    html <<
+        "<table><tr>"
+        "<th>Oriented<br>read"
+        "<th title="
+        "'The number of times this overlapping pair was found by the MinHash algorithm'"
+        ">MinHash<br>frequency"
+        "<th title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers";
+    for(const auto i: overlapIndexes) {
+        const Overlap& overlap = overlaps[i];
+        const AlignmentInfo& alignmentInfo = alignmentInfos[i];
+
+        ReadId readId1;
+        if(overlap.readIds[0] == readId0) {
+            readId1 = overlap.readIds[1];
+        } else {
+            CZI_ASSERT(overlap.readIds[1] == readId0);
+            readId1 = overlap.readIds[0];
+        }
+        const Strand strand1 = overlap.isSameStrand ? strand0 : 1-strand0;
+        const OrientedReadId orientedReadId1(readId1, strand1);
+
+        html <<
+            "<tr>"
+            "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 << "'>" << orientedReadId1 << "</a>"
+            "<td class=centered>" << overlap.minHashFrequency <<
+            "<td class=centered>"
+            "<a href='exploreAlignment"
+            "?readId0=" << readId0 << "&strand0=" << strand0 <<
+            "&readId1=" << readId1 << "&strand1=" << strand1 <<
+            "'>" << alignmentInfo.markerCount << "</a>";
+    }
+    html << "</table>";
+}
+
+
+
 void Assembler::exploreAlignment(
     const vector<string>& request,
     ostream& html)
@@ -490,6 +565,10 @@ void Assembler::exploreAlignment(
         markers0SortedByKmerId,
         markers1SortedByKmerId,
         maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+    if(alignment.ordinals.empty()) {
+        html << "<p>The alignment is empty (it has no markers).";
+        return;
+    }
     const AlignmentInfo alignmentInfo(alignment);
     uint32_t leftTrim;
     uint32_t rightTrim;

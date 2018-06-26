@@ -599,6 +599,7 @@ private:
     void writeStrandSelection(ostream&, const string& name, bool select0, bool select1) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
+    void exploreOverlappingReads(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void exploreMarkerGraph(const vector<string>&, ostream&);
     class HttpServerData {

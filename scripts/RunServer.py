@@ -10,6 +10,7 @@ a.accessReadNamesReadOnly()
 a.accessKmers()
 a.accessMarkers()
 a.accessOverlaps()
+a.accessAlignmentInfos()
 a.accessGlobalMarkerGraph()
 a.explore()
 
