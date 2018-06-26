@@ -344,6 +344,12 @@ void Assembler::exploreRead(
 #endif
 
 
+    // Link to align this read against another read.
+    html <<
+        "<p><a href='exploreAlignment?readId0=" << readId << "&strand0=" << strand <<
+        "'>Compute a marker alignment of this read with another read.</a>";
+
+
 
     // Read sequence.
     html << "<p><div style='font-family:monospace'>";
@@ -402,6 +408,7 @@ void Assembler::exploreRead(
 
 
     html << "</div>";
+    html << "<p>You can click on a marker above to see the global marker graph around that marker.";
 }
 
 
