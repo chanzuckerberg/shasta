@@ -1,5 +1,6 @@
 // Nanopore2.
 #include "Assembler.hpp"
+#include "AlignmentGraph.hpp"
 #include "LocalMarkerGraph2.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
@@ -465,17 +466,108 @@ void Assembler::exploreAlignment(
         "<a href='exploreRead?readId=" << readId1 << "&strand=" << strand1 << "'>" << orientedReadId1 << "</a>" <<
         "</h1>"
         "<p>This alignment was computed allowing a skip of up to " << maxSkip << " markers "
-        "and up to " << maxVertexCountPerKmer << " alignment graph vertices for each k-mer."
-        "<p>In the picture, horizontal positions correspond to marker ordinals on " <<
-        orientedReadId0 << " (marker 0 is on left) "
-        "and vertical positions correspond to marker ordinals on " <<
-        orientedReadId0 << " (marker 0 is on top). "
-        "Each faint line corresponds to 10 markers.";
+        "and up to " << maxVertexCountPerKmer << " alignment graph vertices for each k-mer.";
+
 
 
     // Compute the alignment.
     // This creates file Alignment.png.
-    alignOrientedReads(orientedReadId0, orientedReadId1, maxSkip, maxVertexCountPerKmer);
+    vector<MarkerWithOrdinal> markers0SortedByKmerId;
+    vector<MarkerWithOrdinal> markers1SortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
+    getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
+    AlignmentGraph graph;
+    Alignment alignment;
+    const bool debug = true;
+    alignOrientedReads(
+        markers0SortedByKmerId,
+        markers1SortedByKmerId,
+        maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+    const AlignmentInfo alignmentInfo(alignment);
+    uint32_t leftTrim;
+    uint32_t rightTrim;
+    tie(leftTrim, rightTrim) = computeTrim(
+        orientedReadId0,
+        orientedReadId1,
+        alignmentInfo);
+
+
+
+    // Write out a table with some information on the alignment.
+    const auto markers0 = markers[orientedReadId0.getValue()];
+    const auto markers1 = markers[orientedReadId1.getValue()];
+    const auto markerCount0 = markers0.size();
+    const auto markerCount1 = markers1.size();
+    const auto baseCount0 = reads[orientedReadId0.getReadId()].baseCount;
+    const auto baseCount1 = reads[orientedReadId1.getReadId()].baseCount;
+    const auto firstOrdinal0 = alignment.ordinals.front().first;
+    const auto firstOrdinal1 = alignment.ordinals.front().second;
+    const auto lastOrdinal0 = alignment.ordinals.back().first;
+    const auto lastOrdinal1 = alignment.ordinals.back().second;
+    const auto& firstMarker0 = markers0[firstOrdinal0];
+    const auto& firstMarker1 = markers1[firstOrdinal1];
+    const auto& lastMarker0 = markers0[lastOrdinal0];
+    const auto& lastMarker1 = markers1[lastOrdinal1];
+    html <<
+        "<h3>Alignment summary</h3>"
+        "<table>"
+        "<tr>"
+        "<th rowspan=2>"
+        "<th colspan=2>Markers"
+        "<th colspan=2>Bases"
+
+        "<tr>"
+        "<th>" << orientedReadId0 <<
+        "<th>" << orientedReadId1 <<
+        "<th>" << orientedReadId0 <<
+        "<th>" << orientedReadId1 <<
+
+        "<tr>"
+        "<td title='Total number of markers or bases in this read'>Total"
+        "<td class=centered>" << markerCount0 <<
+        "<td class=centered>" << markerCount1 <<
+        "<td class=centered>" << baseCount0 <<
+        "<td class=centered>" << baseCount1 <<
+
+        "<tr>"
+        "<td title='Number of unaligned markers or bases to the left of the aligned portion'>Unaligned on left"
+        "<td class=centered>" << firstOrdinal0 <<
+        "<td class=centered>" << firstOrdinal1 <<
+        "<td class=centered>" << firstMarker0.position <<
+        "<td class=centered>" << firstMarker1.position <<
+
+        "<tr>"
+        "<td title='Number of unaligned markers or bases to the right of the aligned portion'>Unaligned on right"
+        "<td class=centered>" << markerCount0 - 1 - lastOrdinal0 <<
+        "<td class=centered>" << markerCount1 - 1 - lastOrdinal1 <<
+        "<td class=centered>" << baseCount0 - 1 - lastMarker0.position <<
+        "<td class=centered>" << baseCount1 - 1 - lastMarker1.position <<
+
+        "<tr>"
+        "<td title='Number of aligned markers or bases in the aligned portion'>Aligned range"
+        "<td class=centered>" << lastOrdinal0 + 1 - firstOrdinal0 <<
+        "<td class=centered>" << lastOrdinal1 + 1 - firstOrdinal1 <<
+        "<td class=centered>" << lastMarker0.position + 1 - firstMarker0.position <<
+        "<td class=centered>" << lastMarker1.position + 1 - firstMarker1.position <<
+
+        "<tr>"
+        "<td title='Number of aligned markers'>Aligned"
+        "<td class=centered>" << alignment.ordinals.size() <<
+        "<td class=centered>" << alignment.ordinals.size() <<
+        "<td>"
+        "<td>"
+
+        "<tr>"
+        "<td title='Fraction of aligned markers in the aligned portion'>Aligned fraction"
+        "<td class=centered>" << std::setprecision(2) << double(alignment.ordinals.size()) / double(lastOrdinal0 + 1 - firstOrdinal0) <<
+        "<td class=centered>" << std::setprecision(2) << double(alignment.ordinals.size()) / double(lastOrdinal1 + 1 - firstOrdinal1) <<
+        "<td>"
+        "<td>"
+
+        "</table>"
+        "<p>See bottom of this page for alignment details.";
+
+
 
     // Create a base64 version of the png file.
     const string command = "base64 Alignment.png > Alignment.png.base64";
@@ -483,10 +575,67 @@ void Assembler::exploreAlignment(
 
 
     // Write out the picture with the alignment.
+    html <<
+        "<h3>Alignment matrix</h3>"
+        "<p>In the picture, horizontal positions correspond to marker ordinals on " <<
+        orientedReadId0 << " (marker 0 is on left) "
+        "and vertical positions correspond to marker ordinals on " <<
+        orientedReadId1 << " (marker 0 is on top). "
+        "Each faint line corresponds to 10 markers.";
     html << "<p><img src=\"data:image/png;base64,";
     ifstream png("Alignment.png.base64");
     html << png.rdbuf();
     html << "\"/>";
+
+
+
+    // Write out details of the alignment.
+    html <<
+        "<h3>Alignment details</h3>"
+        "<table>"
+
+        "<tr>"
+        "<th rowspan=2>K-mer"
+        "<th colspan=2>Ordinals"
+        "<th colspan=2>Positions"
+
+        "<tr>"
+        "<th>" << orientedReadId0 <<
+        "<th>" << orientedReadId1 <<
+        "<th>" << orientedReadId0 <<
+        "<th>" << orientedReadId1;
+
+    for(const auto& ordinals: alignment.ordinals) {
+        const auto ordinal0 = ordinals.first;
+        const auto ordinal1 = ordinals.second;
+        const auto& marker0 = markers0[ordinal0];
+        const auto& marker1 = markers1[ordinal1];
+        const auto kmerId = marker0.kmerId;
+        CZI_ASSERT(marker1.kmerId == kmerId);
+        const Kmer kmer(kmerId, assemblerInfo->k);
+
+        html << "<tr><td style='font-family:monospace'>";
+        kmer.write(html, assemblerInfo->k);
+        html <<
+
+            "<td class=centered>"
+            "<a href=\"exploreRead?readId=" << orientedReadId0.getReadId() <<
+            "&amp;strand=" << orientedReadId0.getStrand() <<
+            "&amp;highlightMarker=" << ordinal0 <<
+            "#" << ordinal0 << "\">" << ordinal0 << "</a>"
+
+            "<td class=centered>"
+            "<a href=\"exploreRead?readId=" << orientedReadId1.getReadId() <<
+            "&amp;strand=" << orientedReadId1.getStrand() <<
+            "&amp;highlightMarker=" << ordinal1 <<
+            "#" << ordinal1 << "\">" << ordinal1 << "</a>"
+
+            "<td class=centered>" << marker0.position <<
+            "<td class=centered>" << marker1.position;
+
+    }
+
+    html << "</table>";
 }
 
 

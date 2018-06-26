@@ -360,7 +360,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 
             // Ordinal.
             s << "<td align=\"right\"";
-            s << " href=\"exploreRead?readId&amp;" << markerInfo.orientedReadId.getReadId();
+            s << " href=\"exploreRead?readId=" << markerInfo.orientedReadId.getReadId();
             s << "&amp;strand=" << markerInfo.orientedReadId.getStrand();
             s << "&amp;highlightMarker=" << markerInfo.ordinal;
             s << "#" << markerInfo.ordinal << "\"";
