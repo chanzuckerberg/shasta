@@ -90,6 +90,10 @@ LocalReadGraph::Writer::Writer(const LocalReadGraph& graph) :
 
 void LocalReadGraph::Writer::operator()(std::ostream& s) const
 {
+    s << "layout=sfdp;\n";
+    s << "ratio=expand;\n";
+    s << "node [shape=point];\n";
+    s << "edge [penwidth=\"0.2\"];\n";
 }
 
 
@@ -100,7 +104,12 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
 
     s << "[";
     s << "label=\"" << orientedReadId << "\\n" << vertex.distance << "\"";
-    s << " tooltip=\"" << orientedReadId << " " << vertex.distance << "\"";
+    s << " tooltip=\"" << orientedReadId << " distance " << vertex.distance << "\"";
+    s << " URL=\"exploreRead?readId=" << orientedReadId.getReadId();
+    s << "&strand=" << orientedReadId.getStrand() << "\"";
+    if(vertex.distance == 0) {
+        s << " color=lightGreen fillcolor=lightGreen";
+    }
     s << "]";
 }
 

@@ -243,6 +243,8 @@ void Assembler::createLocalReadGraph(
 
         // Dequeue a vertex.
         const OrientedReadId orientedReadId0 = q.front();
+        // cout << "Dequeued " << orientedReadId0;
+        // cout << " with " << overlapTable.size(orientedReadId0.getValue()) << " overlaps." << endl;
         q.pop();
         const size_t distance0 = graph.getDistance(orientedReadId0);
         const size_t distance1 = distance0 + 1;
@@ -290,6 +292,7 @@ void Assembler::createLocalReadGraph(
                 graph.addVertex(orientedReadId1, distance1);
                 if(distance1 < maxDistance) {
                     q.push(orientedReadId1);
+                    // cout << "Enqueued " << orientedReadId1 << endl;
                 }
             }
 

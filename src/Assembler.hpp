@@ -601,6 +601,7 @@ private:
     void exploreRead(const vector<string>&, ostream&);
     void exploreOverlappingReads(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
+    void exploreReadGraph(const vector<string>&, ostream&);
     void exploreMarkerGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:

@@ -1,6 +1,7 @@
 // Nanopore2.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "LocalReadGraph.hpp"
 #include "LocalMarkerGraph2.hpp"
 using namespace ChanZuckerberg;
 using namespace Nanopore2;
@@ -31,6 +32,7 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(exploreRead);
     CZI_ADD_TO_FUNCTION_TABLE(exploreOverlappingReads);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
 
 }
@@ -147,6 +149,9 @@ void Assembler::writeNavigation(ostream& html) const
         {"Reads", "exploreRead"},
         {"Overlapping reads", "exploreOverlappingReads"},
         {"Align two reads", "exploreAlignment"},
+        });
+    writeNavigation(html, "Read graph", {
+        {"Read graph", "exploreReadGraph"},
         });
     writeNavigation(html, "Marker graph", {
         {"Marker graph", "exploreMarkerGraph"},
@@ -726,6 +731,178 @@ void Assembler::exploreAlignment(
 
 
 
+void Assembler::exploreReadGraph(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the parameters.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+
+    size_t minFrequency = 1;
+    getParameterValue(request, "minFrequency", minFrequency);
+
+    size_t minAlignedMarkerCount = 100;
+    getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
+
+    size_t maxTrim = 200;
+    getParameterValue(request, "maxTrim", maxTrim);
+
+    size_t maxDistance = 2;
+    getParameterValue(request, "maxDistance", maxDistance);
+
+    uint32_t sizePixels = 1200;
+    getParameterValue(request, "sizePixels", sizePixels);
+
+    uint32_t timeout= 30;
+    getParameterValue(request, "timeout", timeout);
+
+
+
+    // Write the form.
+    html <<
+        "<h3>Display a local subgraph of the global read graph</h3>"
+        "<form>"
+
+        "<table>"
+
+        "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
+        "<td>Read id"
+        "<td><input type=text required name=readId size=8 style='text-align:center'"
+        << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
+        ">"
+
+        "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
+        "<td>Strand"
+        "<td class=centered>";
+    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
+
+    html <<
+
+        "<tr title='Maximum distance from start vertex (number of edges)'>"
+        "<td>Maximum distance"
+        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+        " value='" << maxDistance <<
+        "'>"
+
+        "<tr title='The minimum number of times a read pair was found by the MinHash "
+        "algorithm in order for an edge to be generated'>"
+        "<td>Minimum MinHash frequency"
+        "<td><input type=text required name=minFrequency size=8 style='text-align:center'"
+        " value='" << minFrequency <<
+        "'>"
+
+        "<tr title='The minimum number of aligned markers "
+        "in order for an edge to be generated'>"
+        "<td>Minimum number of aligned markers"
+        "<td><input type=text required name=minAlignedMarkerCount size=8 style='text-align:center'"
+        " value='" << minAlignedMarkerCount <<
+        "'>"
+
+        "<tr title='The maximum number of trimmed bases on either side "
+        "in order for an edge to be generated'>"
+        "<td>Minimum alignment trim"
+        "<td><input type=text required name=maxTrim size=8 style='text-align:center'"
+        " value='" << maxTrim <<
+        "'>"
+
+        "<tr title='Graphics size in pixels. "
+        "Changing this works better than zooming. Make it larger if the graph is too crowded."
+        " Ok to make it much larger than screen size.'>"
+        "<td>Graphics size in pixels"
+        "<td><input type=text required name=sizePixels size=8 style='text-align:center'" <<
+        " value='" << sizePixels <<
+        "'>"
+
+        "<tr title='Maximum time (in seconds) allowed for graph layout'>"
+        "<td>Graph layout timeout"
+        "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
+        " value='" << timeout <<
+        "'>"
+
+        "</table>"
+
+        "<input type=submit value='Display'>"
+        "</form>";
+
+
+
+    // If any necessary values are missing, stop here.
+    if(!readIdIsPresent || !strandIsPresent) {
+        return;
+    }
+
+
+
+    // Validity checks.
+    if(readId > reads.size()) {
+        html << "<p>Invalid read id " << readId;
+        html << ". Must be between 0 and " << reads.size()-1 << ".";
+        return;
+    }
+    if(strand>1) {
+        html << "<p>Invalid strand " << strand;
+        html << ". Must be 0 or 1.";
+        return;
+    }
+    const OrientedReadId orientedReadId(readId, strand);
+
+
+
+    // Create the LocalReadGraph.
+    LocalReadGraph graph;
+    createLocalReadGraph(orientedReadId,
+        minFrequency, minAlignedMarkerCount, maxTrim, maxDistance,
+        graph);
+
+    // Write it out in graphviz format.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    graph.write(dotFileName);
+
+    // Compute layout in svg format.
+    const string command =
+        "timeout " + to_string(timeout) +
+        " sfdp -O -T svg " + dotFileName +
+        " -Gsize=" + to_string(sizePixels/72.);
+    const int commandStatus = ::system(command.c_str());
+    if(WIFEXITED(commandStatus)) {
+        const int exitStatus = WEXITSTATUS(commandStatus);
+        if(exitStatus == 124) {
+            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            filesystem::remove(dotFileName);
+            return;
+        }
+        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+            filesystem::remove(dotFileName);
+            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+        }
+    } else if(WIFSIGNALED(commandStatus)) {
+        const int signalNumber = WTERMSIG(commandStatus);
+        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+    } else {
+        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+
+    }
+    // Remove the .dot file.
+    filesystem::remove(dotFileName);
+
+    // Finally, we can display it.
+    html << "<h1>Read graph near oriented read " << orientedReadId << "</h1>";
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << svgFile.rdbuf();
+    svgFile.close();
+
+    // Remove the .svg file.
+    filesystem::remove(svgFileName);
+}
+
+
+
 void Assembler::exploreMarkerGraph(
     const vector<string>& request,
     ostream& html)
@@ -870,7 +1047,6 @@ void Assembler::exploreMarkerGraph(
     extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, graph);
 
     // Write it out in graphviz format.
-    // const boost::uuids::uuid uuid = boost::uuids::random_generator()();
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = "/dev/shm/" + uuid + ".dot";
     graph.write(dotFileName, minCoverage, minConsensus, maxDistance, detailed);
@@ -900,7 +1076,7 @@ void Assembler::exploreMarkerGraph(
 
     }
     // Remove the .dot file.
-    // filesystem::remove(dotFileName);
+    filesystem::remove(dotFileName);
 
     // Finally, we can display it.
     html << "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId << "</h1>";
@@ -910,7 +1086,7 @@ void Assembler::exploreMarkerGraph(
     svgFile.close();
 
     // Remove the .svg file.
-    // filesystem::remove(svgFileName);
+    filesystem::remove(svgFileName);
 
     // Make the vertices clickable to recompute the graph with the
     // same parameters, but starting at the clicked vertex.
