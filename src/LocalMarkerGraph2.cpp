@@ -262,7 +262,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "id=vertex" << vertex.vertexId;
 
         // Tooltip.
-        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << ", click to recenter graph here\"";
+        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance;
+        s << ", click to recenter graph here, right click for detail\"";
 
         // Vertex size.
         s << " width=\"";

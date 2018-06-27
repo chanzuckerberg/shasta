@@ -939,6 +939,23 @@ void Assembler::exploreMarkerGraph(
             html <<
                 "document.getElementById('vertex" << vertex.vertexId <<
                 "').onclick = function() {location.href='" << url << "';};\n";
+
+            // We are displaying the graph in compact mode.
+            // Add a right click to recenter and show detailed.
+            const string detailUrl =
+                "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
+                "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
+                "&ordinal="  + to_string(markerInfo.ordinal) +
+                "&maxDistance=1" +
+                "&minCoverage=" + to_string(minCoverage) +
+                "&minConsensus=" + to_string(minConsensus) +
+                "&sizePixels=" + to_string(sizePixels) +
+                "&timeout=" + to_string(timeout) +
+                "&detailed=on";
+            html <<
+                "document.getElementById('vertex" << vertex.vertexId <<
+                "').oncontextmenu = function() {location.href='" << detailUrl << "';"
+                "return false;};\n";
         }
     }
     html << "</script>\n";
