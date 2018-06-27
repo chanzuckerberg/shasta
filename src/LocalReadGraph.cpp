@@ -14,13 +14,14 @@ using namespace Nanopore2;
 
 void LocalReadGraph::addVertex(
     OrientedReadId orientedReadId,
-    size_t distance)
+    uint32_t baseCount,
+    uint32_t distance)
 {
     // Check that we don't altready have a vertex with this OrientedReadId.
     CZI_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
 
     // Create the vertex.
-    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(orientedReadId, distance), *this);
+    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(orientedReadId, baseCount, distance), *this);
 
     // Store it in the vertex map.
     vertexMap.insert(make_pair(orientedReadId, v));
@@ -48,7 +49,7 @@ void LocalReadGraph::addEdge(
 
 
 
-size_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
+uint32_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
 {
     const auto it = vertexMap.find(orientedReadId);
     CZI_ASSERT(it != vertexMap.end());
@@ -103,10 +104,10 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     s << "[";
-    s << "label=\"" << orientedReadId << "\\n" << vertex.distance << "\"";
-    s << " tooltip=\"" << orientedReadId << " distance " << vertex.distance << "\"";
+    s << " tooltip=\"" << orientedReadId << " length " << vertex.baseCount << " distance " << vertex.distance << "\"";
     s << " URL=\"exploreRead?readId=" << orientedReadId.getReadId();
     s << "&strand=" << orientedReadId.getStrand() << "\"";
+    s << " width=" << sqrt(1.e-6 * vertex.baseCount);
     if(vertex.distance == 0) {
         s << " color=lightGreen fillcolor=lightGreen";
     }

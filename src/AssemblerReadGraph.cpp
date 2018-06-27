@@ -230,7 +230,8 @@ void Assembler::createLocalReadGraph(
     LocalReadGraph& graph)
 {
     // Add the starting vertex.
-    graph.addVertex(orientedReadIdStart, 0);
+    graph.addVertex(orientedReadIdStart,
+        uint32_t(reads[orientedReadIdStart.getReadId()].baseCount), 0);
 
     // Initialize a BFS starting at the start vertex.
     std::queue<OrientedReadId> q;
@@ -246,8 +247,8 @@ void Assembler::createLocalReadGraph(
         // cout << "Dequeued " << orientedReadId0;
         // cout << " with " << overlapTable.size(orientedReadId0.getValue()) << " overlaps." << endl;
         q.pop();
-        const size_t distance0 = graph.getDistance(orientedReadId0);
-        const size_t distance1 = distance0 + 1;
+        const uint32_t distance0 = graph.getDistance(orientedReadId0);
+        const uint32_t distance1 = distance0 + 1;
 
         // Loop over overlaps/alignments involving this vertex.
         for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
@@ -289,7 +290,8 @@ void Assembler::createLocalReadGraph(
             // Also add orientedReadId1 to the queue, unless
             // we already reached the maximum distance.
             if(!graph.vertexExists(orientedReadId1)) {
-                graph.addVertex(orientedReadId1, distance1);
+                graph.addVertex(orientedReadId1,
+                    uint32_t(reads[orientedReadId1.getReadId()].baseCount), distance1);
                 if(distance1 < maxDistance) {
                     q.push(orientedReadId1);
                     // cout << "Enqueued " << orientedReadId1 << endl;

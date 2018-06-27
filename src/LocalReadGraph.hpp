@@ -49,13 +49,18 @@ public:
     // it as a vertex id for graphviz output.
     OrientedReadId::Int orientedReadId;
 
+    // The number of bases in this read.
+    uint32_t baseCount;
+
     // The distance of this vertex from the starting vertex.
-    size_t distance;
+    uint32_t distance;
 
     LocalReadGraphVertex(
         OrientedReadId orientedReadId,
-        size_t distance) :
+        uint32_t baseCount,
+        uint32_t distance) :
         orientedReadId(orientedReadId.getValue()),
+        baseCount(baseCount),
         distance(distance)
         {}
 
@@ -87,7 +92,8 @@ public:
 
     void addVertex(
         OrientedReadId orientedReadId,
-        size_t distance);
+        uint32_t baseCount,
+        uint32_t distance);
 
     void addEdge(
         OrientedReadId orientedReadId0,
@@ -99,7 +105,7 @@ public:
     bool vertexExists(OrientedReadId) const;
 
     // Get the distance of an existing vertex from the start vertex.
-    size_t getDistance(OrientedReadId) const;
+    uint32_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
     void write(ostream&) const;
