@@ -200,12 +200,12 @@ void Assembler::createLocalMarkerGraph(
     // Create the local read graph.
     LocalReadGraph localReadGraph;
     createLocalReadGraph(OrientedReadId(readId, strand),
-        minFrequency, minAlignedMarkerCount, maxTrim, distance,
+        minFrequency, minAlignedMarkerCount, maxTrim, uint32_t(distance),
         localReadGraph);
     const size_t orientedReadIdCount = num_vertices(localReadGraph);
     cout << "The local read graph has " << num_vertices(localReadGraph);
     cout << " vertices and " << num_edges(localReadGraph) << " edges." << endl;
-    localReadGraph.write("LocalReadGraph.dot");
+    localReadGraph.write("LocalReadGraph.dot", uint32_t(distance));
     writeLocalReadGraphToFasta(localReadGraph, "LocalReadGraph.fasta");
 
 

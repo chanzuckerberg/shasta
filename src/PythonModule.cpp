@@ -142,7 +142,7 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("createLocalReadGraph",
             (
                 void (Assembler::*)
-                (ReadId, Strand, size_t, size_t, size_t, size_t)
+                (ReadId, Strand, size_t, size_t, size_t, uint32_t)
             )
             &Assembler::createLocalReadGraph,
             arg("readId"),

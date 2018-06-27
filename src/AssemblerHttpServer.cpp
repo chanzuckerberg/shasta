@@ -751,7 +751,7 @@ void Assembler::exploreReadGraph(
     size_t maxTrim = 200;
     getParameterValue(request, "maxTrim", maxTrim);
 
-    size_t maxDistance = 2;
+    uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
     uint32_t sizePixels = 1200;
@@ -861,7 +861,7 @@ void Assembler::exploreReadGraph(
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = "/dev/shm/" + uuid + ".dot";
-    graph.write(dotFileName);
+    graph.write(dotFileName, maxDistance);
 
     // Compute layout in svg format.
     const string command =

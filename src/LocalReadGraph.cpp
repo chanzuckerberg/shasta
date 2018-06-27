@@ -67,23 +67,26 @@ bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
 
 
 // Write the graph in Graphviz format.
-void LocalReadGraph::write(const string& fileName) const
+void LocalReadGraph::write(const string& fileName, uint32_t maxDistance) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream);
+    write(outputFileStream, maxDistance);
 }
-void LocalReadGraph::write(ostream& s) const
+void LocalReadGraph::write(ostream& s, uint32_t maxDistance) const
 {
-    Writer writer(*this);
+    Writer writer(*this, maxDistance);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalReadGraphVertex::orientedReadId, *this));
 }
 
-LocalReadGraph::Writer::Writer(const LocalReadGraph& graph) :
-    graph(graph)
+LocalReadGraph::Writer::Writer(
+    const LocalReadGraph& graph,
+    uint32_t maxDistance) :
+    graph(graph),
+    maxDistance(maxDistance)
 {
 }
 
@@ -110,6 +113,8 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
     s << " width=" << sqrt(1.e-6 * vertex.baseCount);
     if(vertex.distance == 0) {
         s << " color=lightGreen fillcolor=lightGreen";
+    } else if(vertex.distance == maxDistance) {
+            s << " color=cyan fillcolor=cyan";
     }
     s << "]";
 }

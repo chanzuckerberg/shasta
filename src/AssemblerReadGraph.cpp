@@ -180,7 +180,7 @@ void Assembler::createLocalReadGraph(
     size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-    size_t distance                 // How far to go from starting oriented read.
+    uint32_t distance                 // How far to go from starting oriented read.
 )
 {
     createLocalReadGraph(OrientedReadId(readId, strand),
@@ -192,7 +192,7 @@ void Assembler::createLocalReadGraph(
     size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-    size_t maxDistance              // How far to go from starting oriented read.
+    uint32_t maxDistance              // How far to go from starting oriented read.
 )
 {
     // Check that we have what we need.
@@ -212,7 +212,7 @@ void Assembler::createLocalReadGraph(
 
     cout << "The local read graph has " << num_vertices(graph);
     cout << " vertices and " << num_edges(graph) << " edges." << endl;
-    graph.write("LocalReadGraph.dot");
+    graph.write("LocalReadGraph.dot", maxDistance);
     writeLocalReadGraphToFasta(graph, "LocalReadGraph.fasta");
 
 }
@@ -226,7 +226,7 @@ void Assembler::createLocalReadGraph(
     size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-    size_t maxDistance,             // How far to go from starting oriented read.
+    uint32_t maxDistance,           // How far to go from starting oriented read.
     LocalReadGraph& graph)
 {
     // Add the starting vertex.

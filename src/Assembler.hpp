@@ -136,7 +136,7 @@ public:
         size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim (in bases) to generate an edge.
-        size_t distance                 // How far to go from starting oriented read.
+        uint32_t distance               // How far to go from starting oriented read.
     );
 
     // Compute connected components of the global read graph.
@@ -423,14 +423,14 @@ private:
         size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-        size_t distance                 // How far to go from starting oriented read.
+        uint32_t distance               // How far to go from starting oriented read.
     );
     void createLocalReadGraph(
         OrientedReadId,
         size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-        size_t distance,                // How far to go from starting oriented read.
+        uint32_t distance,              // How far to go from starting oriented read.
         LocalReadGraph&
     );
 

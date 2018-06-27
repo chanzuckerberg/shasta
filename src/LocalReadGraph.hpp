@@ -108,8 +108,8 @@ public:
     uint32_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
-    void write(ostream&) const;
-    void write(const string& fileName) const;
+    void write(ostream&, uint32_t maxDistance) const;
+    void write(const string& fileName, uint32_t maxDistance) const;
 
 private:
 
@@ -119,11 +119,12 @@ private:
     // Graphviz writer.
     class Writer {
     public:
-        Writer(const LocalReadGraph&);
+        Writer(const LocalReadGraph&, uint32_t maxDistance);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalReadGraph& graph;
+        uint32_t maxDistance;
     };
 };
 
