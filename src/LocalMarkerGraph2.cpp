@@ -399,11 +399,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << "tooltip=\"Consensus " << consensus << ", coverage " << coverage << "\"";
 
         string color;
-        if(coverage >= minCoverage) {
+        if(consensus >= minCoverage) {
             color = "black";
-        } else if(coverage == 1) {
+        } else if(consensus == 1) {
             color = "#ff000080";  // Red, half way transparent
-        } else if(coverage == 2) {
+        } else if(consensus == 2) {
             color = "#ff800080";  // Orange, half way transparent
         } else {
             color = "#ff80ff80";  // Purple, half way transparent
