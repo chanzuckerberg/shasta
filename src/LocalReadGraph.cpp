@@ -98,6 +98,9 @@ void LocalReadGraph::Writer::operator()(std::ostream& s) const
     s << "ratio=expand;\n";
     s << "node [shape=point];\n";
     s << "edge [penwidth=\"0.2\"];\n";
+
+    // This turns off the tooltip on the graph.
+    s << "tooltip = \" \";\n";
 }
 
 
