@@ -429,10 +429,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Begin edge attributes.
         s << "[";
 
-        const string tooltipText = "Consensus " + to_string(consensus) + ", coverage " +to_string(coverage);
-        s << " tooltip=\"" << tooltipText << "\"";
-        s << " labeltooltip=\"" << tooltipText << "\"";
-        s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
+        // const string tooltipText = "Consensus " + to_string(consensus) + ", coverage " +to_string(coverage);
+        s << " tooltip=\" \"";
+        s << " labeltooltip=\" \"";
+        // s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
 
         // Thickness is determined by consensus.
         s << " penwidth=";
@@ -468,6 +468,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << " cellborder=\"1\"";
         s << " cellspacing=\"0\"";
         s << ">";
+
+        // Consensus and coverage.
+        s << "<tr><td colspan=\"3\"><b>Consensus " << consensus << "</b></td></tr>";
+        s << "<tr><td colspan=\"3\"><b>Coverage " << coverage << "</b></td></tr>";
 
         // Header row.
         s <<
