@@ -266,6 +266,12 @@ void Assembler::exploreRead(
     Strand strand = 0;
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
 
+    // Get the begin and end position.
+    uint32_t beginPosition = 0;
+    const bool beginPositionIsPresent = getParameterValue(request, "beginPosition", beginPosition);
+    uint32_t endPosition = 0;
+    const bool endPositionIsPresent = getParameterValue(request, "endPosition", endPosition);
+
     // Get the set of ordinal for markers that should be highlighted.
     vector<string> highlightedMarkerStrings;
     getParameterValues(request, "highlightMarker", highlightedMarkerStrings);
@@ -287,7 +293,19 @@ void Assembler::exploreRead(
         " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
-    html << "</form>";
+    html << "<br><input type=text name=beginPosition size=8";
+    if(beginPositionIsPresent) {
+        html << " value=" << beginPosition;
+    }
+    html <<
+        ">Begin display at this base position (leave blank to begin at beginning of read)."
+        "<br><input type=text name=endPosition size=8";
+    if(endPositionIsPresent) {
+        html << " value=" << endPosition;
+    }
+    html <<
+        ">End display at this base position (leave blank to end at end of read)."
+        "</form>";
 
     // If the readId or strand are missing, stop here.
     if(!readIdIsPresent || !strandIsPresent) {
@@ -307,6 +325,12 @@ void Assembler::exploreRead(
     const auto readSequence = reads[readId];
     const auto readName = readNames[readId];
     const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+    if(!beginPositionIsPresent) {
+        beginPosition = 0;
+    }
+    if(!endPositionIsPresent) {
+        endPosition = uint32_t(readSequence.baseCount);
+    }
 
 
 
@@ -326,6 +350,13 @@ void Assembler::exploreRead(
     // Read length.
     html << "<p>This read is " << readSequence.baseCount;
     html << " bases long and has " << orientedReadMarkers.size() << " markers.";
+    if(beginPositionIsPresent || endPositionIsPresent) {
+        html <<
+            " Displaying only " << endPosition-beginPosition <<
+            " bases begining at base position " << beginPosition <<
+            " and ending at base position " << endPosition <<
+            " . Markers partially contained in this interval will not be displayed.";
+    }
 
 
 
@@ -334,21 +365,20 @@ void Assembler::exploreRead(
     // (the GET request fails when the read is too long).
     html <<
         "<p><form action='https://genome.ucsc.edu/cgi-bin/hgBlat' method=post>"
-        "<input type=submit value='Blat this read against human reference hg38'>"
+        "<input type=submit value='Blat ";
+    if(beginPositionIsPresent || endPositionIsPresent) {
+        html << " this portion of ";
+    }
+    html <<
+        "this read against human reference hg38'>"
         "<input type=text hidden name=type value=DNA>"
         "<input type=text hidden name=type value=DNA>"
         "<input type=text hidden name=name value=Human>"
         "<input type=text hidden name=db value=hg38>"
         "<input type=text hidden name=userSeq value=";
-    readSequence.write(html, strand==1);
+    readSequence.write(html, strand==1, beginPosition, endPosition);
     html << "></form>";
 
-#if 0
-    // This works if the read is not too long.
-    html << "<p><a href='https://genome.ucsc.edu/cgi-bin/hgBlat?userSeq=";
-    readSequence.write(html, strand==1);
-    html << "&type=DNA&name=Human&db=hg38'>Blat this read against human reference hg38</a>.";
-#endif
 
 
     // Link to align this read against another read.
@@ -357,19 +387,38 @@ void Assembler::exploreRead(
         "'>Compute a marker alignment of this read with another read.</a>";
 
 
-
-    // Read sequence.
+    // Labels for position scale.
     html << "<p><div style='font-family:monospace'>";
     html << "<br>";
-    for(uint32_t i=0; i<readSequence.baseCount; i+=10) {
-        const string label = to_string(i);
-        html << label;
-        for(size_t j=0; j<10-label.size(); j++) {
+    if(beginPositionIsPresent || endPositionIsPresent) {
+        // Portion of the read.
+        const uint32_t skip = (10 - beginPosition%10) % 10;
+        for(uint32_t i=0; i<skip; i++) {
             html << "&nbsp;";
+        }
+        for(uint32_t i=beginPosition+skip; i<endPosition; i+=10) {
+            const string label = to_string(i);
+            html << label;
+            for(size_t j=0; j<10-label.size(); j++) {
+                html << "&nbsp;";
+            }
+        }
+    } else {
+        // Entire read.
+        for(uint32_t i=0; i<readSequence.baseCount; i+=10) {
+            const string label = to_string(i);
+            html << label;
+            for(size_t j=0; j<10-label.size(); j++) {
+                html << "&nbsp;";
+            }
         }
     }
     html << "<br>";
-    for(uint32_t i=0; i<readSequence.baseCount; i++) {
+
+
+
+    // Position scale.
+    for(uint32_t i=beginPosition; i<endPosition; i++) {
         if((i%10)==0) {
             html << "|";
         } else if((i%5)==0) {
@@ -378,8 +427,12 @@ void Assembler::exploreRead(
             html << ".";
         }
     }
+
+
+
+    // Read sequence.
     html << "<br>";
-    readSequence.write(html, strand==1);
+    readSequence.write(html, strand==1, beginPosition, endPosition);
 
 
 
@@ -387,10 +440,20 @@ void Assembler::exploreRead(
     const size_t k = assemblerInfo->k;
     for(size_t markerRow=0; markerRow<k; markerRow++) {
         html << "<br>";
-        size_t position = 0;
+        size_t position = beginPosition;
         for(uint32_t ordinal=uint32_t(markerRow);
             ordinal<uint32_t(orientedReadMarkers.size()); ordinal+=uint32_t(k)) {
             const CompressedMarker& marker = orientedReadMarkers[ordinal];
+
+            // Only show the marker if it is completely contained in the
+            // base interval we are dispolaying.
+            if(marker.position < position) {
+                continue;
+            }
+            if(marker.position + k > endPosition) {
+                break;
+            }
+
             const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
                 "&strand=" + to_string(strand) +
                 "&ordinal=" + to_string(ordinal) +

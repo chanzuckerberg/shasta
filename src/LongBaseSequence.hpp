@@ -148,6 +148,17 @@ public:
         }
         return s;
     }
+    ostream& write(ostream& s, bool reverseComplement, uint64_t begin, uint64_t end) const
+    {
+        for(uint64_t i=begin; i<end; i++) {
+            if(reverseComplement) {
+                s << (*this)[baseCount-1-i].complement();
+            } else {
+                s << (*this)[i];
+            }
+        }
+        return s;
+    }
 
 };
 
@@ -223,6 +234,7 @@ private:
 // This is used to store nanopore reads.
 class ChanZuckerberg::Nanopore2::LongBaseSequences {
 public:
+
     void createNew(const string& name, size_t pageSize);
     void accessExistingReadOnly(const string& name);
     void accessExistingReadWrite(const string& name);
