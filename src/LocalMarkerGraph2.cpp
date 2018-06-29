@@ -477,6 +477,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
         s << "tooltip=\"Consensus " << consensus << ", coverage " << coverage << "\"";
 
+        // Color is determined by consensus.
         string color;
         if(consensus >= minCoverage) {
             color = "black";
@@ -490,10 +491,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << " fillcolor=\"" << color << "\"";
         s << " color=\"" << color << "\"";
 
-        // Thickness.
+        // Thickness is determined by coverage.
         s << " penwidth=";
         const auto oldPrecision = s.precision(4);
-        s <<  0.5 * double(consensus);
+        s <<  0.5 * double(coverage);
         s.precision(oldPrecision);
 
         // End edge attributes.
@@ -503,8 +504,6 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
         // Detailed output.
 
-        // If getting here, we are doing detailed output.
-
         // Begin edge attributes.
         s << "[";
 
@@ -513,13 +512,13 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << " labeltooltip=\" \"";
         // s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
 
-        // Thickness is determined by consensus.
+        // Thickness is determined by coverage.
         s << " penwidth=";
         const auto oldPrecision = s.precision(4);
-        s <<  0.5 * double(consensus);
+        s <<  0.5 * double(coverage);
         s.precision(oldPrecision);
 
-        // Color.
+        // Color is determined by consensus.
         string color;
         string fillColor;
         if(consensus >= minConsensus) {
