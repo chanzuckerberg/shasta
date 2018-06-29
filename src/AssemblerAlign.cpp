@@ -253,6 +253,10 @@ void Assembler::computeAllAlignments(
     // Maximum left/right trim (in bases) for an alignment to be used.
     size_t maxTrim,
 
+    // Minimum coverage (number of markers) for a vertex
+    // of the marker graph to be kept.
+    size_t minCoverage,
+
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
     size_t threadCount,
@@ -377,87 +381,6 @@ void Assembler::computeAllAlignments(
         setupLoadBalancing(data.orientedMarkerCount, batchSize);
         runThreads(&Assembler::computeAllAlignmentsThreadFunction4, threadCount);
         data.workArea.remove();
-
-
-#if 0
-        // OLD CODE TO PREPROCESS THE RESULT OF THE DISJOINT SETS COMPUTATION.
-        // Now we want to replace the vertices with contiguous ids
-        // beginning at 0 and sorted by decreasing size.
-
-        // First, we have to count the number of oriented markers for each
-        // vertex, with the current numbering.
-        cout << timestamp << "Counting the markers of each vertex." << endl;
-        MemoryMapped::Vector<CompressedVertexId> count;
-        count.createNew(
-            largeDataName("tmp-Count"),
-            largeDataPageSize);
-        count.reserveAndResize(globalMarkerGraphVertex.size());
-        for(const auto i: globalMarkerGraphVertex) {
-            ++count[i];
-        }
-
-        // Gather the ones with non-zero count.
-        cout << timestamp << "Creating the count table." << endl;
-        MemoryMapped::Vector< pair<CompressedVertexId, CompressedVertexId> > countTable;
-        countTable.createNew(
-            largeDataName("tmp-CountTable"),
-            largeDataPageSize);
-        for(VertexId i=0; i<count.size(); i++) {
-            const CompressedVertexId n = count[i];
-            if(n > 0) {
-                countTable.push_back(make_pair(i, n));
-            }
-        }
-        cout << timestamp << "The count table has " << countTable.size() << " entries." << endl;
-        cout << timestamp << "Sorting the count table by count." << endl;
-        sort(countTable.begin(), countTable.end(),
-            OrderPairsBySecondGreaterThenByFirstLess<CompressedVertexId, CompressedVertexId>());
-        cout << "The global marker graph has " << countTable.size();
-        cout << " vertices  for " << count.size() << " oriented markers." << endl;
-
-        // Now we can remove the count vector.
-        count.remove();
-
-        // Create a histogram of number of markers per vertex.
-        cout << "Creating marker graph vertex coverage histogram." << endl;
-        vector<uint64_t> histogram(countTable.front().second + 1, 0ULL);
-        for(const auto& p: countTable) {
-            ++histogram[p.second];
-        }
-        ofstream csv("GlobalMarkerGraphHistogram.csv");
-        csv << "MarkerCount,Frequency\n";
-        for(size_t i=0; i<histogram.size(); i++) {
-            const auto n = histogram[i];
-            if(n) {
-                csv << i << "," << n << "\n";
-            }
-        }
-
-        // In the count table, replace the count by the rank,
-        // (the rank becomes the new vertex id),
-        // then sort by first (the old vertex id).
-        // This way we can use binary searches in the count table
-        // to convert old vertex ids to new ones.
-        cout << timestamp << "Assigning vertex ids." << endl;
-        for(VertexId i=0; i<countTable.size(); i++) {
-            countTable[i].second = i;
-        }
-        sort(countTable.begin(), countTable.end(),
-            OrderPairsByFirstOnly<CompressedVertexId, CompressedVertexId>());
-
-        // Redefine globalMarkerGraphVertex using this count table.
-        cout << timestamp << "Storing the new vertex ids." << endl;
-        for(CompressedVertexId& v: globalMarkerGraphVertex) {
-            const auto it = std::lower_bound(countTable.begin(), countTable.end(),
-                make_pair(v, 0),
-                OrderPairsByFirstOnly<CompressedVertexId, CompressedVertexId>());
-                CZI_ASSERT(it != countTable.end());
-                CZI_ASSERT(it->first == v);
-                v = it->second;
-        }
-        const VertexId vertexCount = countTable.size();
-        countTable.remove();
-#endif
 
 
 

@@ -20,7 +20,6 @@ a.computeAllAlignments(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
     maxSkip = int(config['Align']['maxSkip']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
-    maxTrim = int(config['Align']['minAlignedMarkerCount']))
-
-
+    maxTrim = int(config['Align']['minAlignedMarkerCount']),
+    minCoverage = int(config['MarkerGraph']['minCoverage']))
 

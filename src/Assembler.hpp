@@ -234,6 +234,10 @@ public:
         // Maximum left/right trim (in bases) for an alignment to be used.
         size_t maxTrim,
 
+        // Minimum coverage (number of markers) for a vertex
+        // of the marker graph to be kept.
+        size_t minCoverage,
+
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
         size_t threadCount,

@@ -223,6 +223,7 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("maxSkip"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
+            arg("minCoverage"),
             arg("threadCount") = 0,
             arg("computeGlobalMarkerGraph") = true)
         .def("accessAlignmentInfos",
