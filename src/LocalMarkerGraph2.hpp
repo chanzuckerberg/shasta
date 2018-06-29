@@ -64,6 +64,7 @@ namespace ChanZuckerberg {
         class CompressedMarker;
         class LongBaseSequences;
         namespace MemoryMapped {
+            template<class T> class Vector;
             template<class Int, class T> class VectorOfVectors;
         }
     }
@@ -140,14 +141,15 @@ public:
     public:
         OrientedReadId orientedReadId;
 
-        // The ordinal in the source vertex.
-        // Thr ordinal in the target vertex is one larger.
-        uint32_t startOrdinal;
+        // The ordinals in the source and target vertex.
+        array<uint32_t, 2> ordinals;
 
-        Info(OrientedReadId orientedReadId, uint32_t startOrdinal) :
-            orientedReadId(orientedReadId),
-            startOrdinal(startOrdinal)
-            {}
+        Info(OrientedReadId orientedReadId, uint32_t ordinal0, uint32_t ordinal1) :
+            orientedReadId(orientedReadId)
+        {
+            ordinals[0] = ordinal0;
+            ordinals[1] = ordinal1;
+        }
     };
 
     // The oriented vertices of this edge, grouped by sequence.
@@ -158,8 +160,11 @@ public:
     // strongest sequence.
     size_t consensus() const
     {
-        CZI_ASSERT(!infos.empty());
-        return infos.front().second.size();
+        if(infos.empty()) {
+            return 0;
+        } else {
+            return infos.front().second.size();
+        }
     }
 
     // Coverage is the total number of reads supporting this edge,
@@ -184,7 +189,8 @@ public:
     LocalMarkerGraph2(
         uint32_t k,
         LongBaseSequences& reads,
-        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+        const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex
         );
 
     // Find out if a vertex with the given GlobalMarkerGraphVertexId exists.
@@ -243,6 +249,11 @@ private:
     // (not just those in this local marker graph).
     LongBaseSequences& reads;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
+
+    // A reference to the vector containing the global marker graph vertex id
+    // corresponding to each marker.
+    // Indexed by MarkerId.
+    const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex;
 
     class Writer {
     public:

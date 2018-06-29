@@ -524,6 +524,8 @@ private:
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
     // it belongs to, plus the ordinal of the marker in the oriented read.
+    // If the marker is not contained in any vertex, return
+    // invalidGlobalMarkerGraphVertexId.
     GlobalMarkerGraphVertexId getGlobalMarkerGraphVertex(
         OrientedReadId,
         uint32_t ordinal) const;

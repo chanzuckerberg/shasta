@@ -446,7 +446,7 @@ void Assembler::exploreRead(
             const CompressedMarker& marker = orientedReadMarkers[ordinal];
 
             // Only show the marker if it is completely contained in the
-            // base interval we are dispolaying.
+            // base interval we are displaying.
             if(marker.position < position) {
                 continue;
             }
@@ -454,23 +454,44 @@ void Assembler::exploreRead(
                 break;
             }
 
-            const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
-                "&strand=" + to_string(strand) +
-                "&ordinal=" + to_string(ordinal) +
-                "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
             const Kmer kmer(marker.kmerId, k);
             while(position < marker.position) {
                 html << "&nbsp;";
                 ++position;
             }
-            html << "<a id=" << ordinal << " style='font-family:monospace;";
-            if(highlightedMarkers.find(ordinal) != highlightedMarkers.end()) {
-                html << "background-color:LightPink;";
+
+            // See if this marker is contained in a vertex of the marker graph.
+            const GlobalMarkerGraphVertexId vertexId =
+                getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+            const bool hasMarkerGraphVertex =
+                (vertexId != invalidCompressedGlobalMarkerGraphVertexId);
+
+            // If it has a vertex, write it as link. Otherwise, write it as text.
+            if(hasMarkerGraphVertex) {
+                const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
+                    "&strand=" + to_string(strand) +
+                    "&ordinal=" + to_string(ordinal) +
+                    "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
+                html << "<a id=" << ordinal << " style='font-family:monospace;";
+                if(highlightedMarkers.find(ordinal) != highlightedMarkers.end()) {
+                    html << "background-color:LightPink;";
+                }
+                html << "' title='Marker ordinal " << ordinal << ", coverage "  << globalMarkerGraphVertices.size(vertexId) << "'";
+                html << "href='" << url << "'>";
+                kmer.write(html, k);
+                html << "</a>";
+            } else {
+                html << "<span id =" << ordinal;
+                html << " title='Marker ordinal " << ordinal << "'";
+                html << " style='font-family:monospace;";
+                if(highlightedMarkers.find(ordinal) != highlightedMarkers.end()) {
+                    html << "background-color:LightPink;'";
+                }
+                html << "'>";
+                kmer.write(html, k);
+                html << "</span>";
             }
-            html << "' title='Marker ordinal " << ordinal << "'";
-            html << "href='" << url << "'>";
-            kmer.write(html, k);
-            html << "</a>";
+
             position += assemblerInfo->k;
 
         }
@@ -1106,8 +1127,12 @@ void Assembler::exploreMarkerGraph(
 
 
     // Create the local marker graph.
-    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers);
+    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
     extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, graph);
+    if(num_vertices(graph) == 0) {
+        html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
+        return;
+    }
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());

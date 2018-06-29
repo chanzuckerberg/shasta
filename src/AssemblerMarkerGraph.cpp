@@ -414,20 +414,25 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
         uint32_t ordinal;
         tie(orientedReadId, ordinal) = findMarkerId(markerId);
 
-        // Go to the next marker.
+        // Find the next marker that is contained in a vertex.
         ++ordinal;
-        if(ordinal >= markers.size(orientedReadId.getValue())) {
-            continue;
+        for(; ordinal<markers.size(orientedReadId.getValue()); ++ordinal) {
+
+            // Find the vertex id.
+            const MarkerId childMarkerId =  getMarkerId(orientedReadId, ordinal);
+            const GlobalMarkerGraphVertexId childVertexId =
+                globalMarkerGraphVertex[childMarkerId];
+
+            // If this marker correspond to a vertex, add it to our list.
+            if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+                children.push_back(childVertexId);
+                break;
+            }
         }
 
-        // Find the vertex id.
-        const MarkerId childMarkerId =  getMarkerId(orientedReadId, ordinal);
-        const GlobalMarkerGraphVertexId childVertexId =
-            globalMarkerGraphVertex[childMarkerId];
-
-        // Add it to our vector.
-        children.push_back(childVertexId);
     }
+
+
 
     // Deduplicate.
     sort(children.begin(), children.end());
@@ -462,20 +467,28 @@ void Assembler::getGlobalMarkerGraphVertexParents(
         uint32_t ordinal;
         tie(orientedReadId, ordinal) = findMarkerId(markerId);
 
-        // Go to the previous marker.
-        if(ordinal  == 0) {
+        // Find the previous marker that is contained in a vertex.
+        if(ordinal == 0) {
             continue;
         }
         --ordinal;
+        for(; ; --ordinal) {
 
+            // Find the vertex id.
+            const MarkerId parentMarkerId =  getMarkerId(orientedReadId, ordinal);
+            const GlobalMarkerGraphVertexId parentVertexId =
+                globalMarkerGraphVertex[parentMarkerId];
 
-        // Find the vertex id.
-        const MarkerId parentMarkerId =  getMarkerId(orientedReadId, ordinal);
-        const GlobalMarkerGraphVertexId parentVertexId =
-            globalMarkerGraphVertex[parentMarkerId];
+            // If this marker correspond to a vertex, add it to our list.
+            if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+                parents.push_back(parentVertexId);
+                break;
+            }
 
-        // Add it to our vector.
-        parents.push_back(parentVertexId);
+            if(ordinal == 0) {
+                break;
+            }
+        }
     }
 
     // Deduplicate.
@@ -505,7 +518,7 @@ void Assembler::extractLocalMarkerGraph(
     )
 {
     // Create the local marker graph.
-    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers);
+    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
     extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, graph);
 
     cout << "The local marker graph has " << num_vertices(graph);
@@ -531,6 +544,9 @@ void Assembler::extractLocalMarkerGraph(
     // Add the start vertex.
     const GlobalMarkerGraphVertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+    if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
+        return;
+    }
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
 
     // Do the BFS. Do not add the edges now.

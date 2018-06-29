@@ -23,11 +23,13 @@ using namespace Nanopore2;
 LocalMarkerGraph2::LocalMarkerGraph2(
     uint32_t k,
     LongBaseSequences& reads,
-    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers
+    const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
+    const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex
     ) :
     k(k),
     reads(reads),
-    markers(markers)
+    markers(markers),
+    globalMarkerGraphVertex(globalMarkerGraphVertex)
 {
 
 }
@@ -115,24 +117,101 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
     // Map to store the oriented read ids and ordinals, grouped by sequence.
     std::map<LocalMarkerGraph2Edge::Sequence, vector<LocalMarkerGraph2Edge::Info> > sequenceTable;
 
-    // Find pairs of consecutive markers in the two vertices.
+
+
+    // Find pairs of markers for the same oriented read in the two vertices.
     // We exploit the fact that the markers in each
     // of the vertices are sorted.
     auto it0 = vertex0.markerInfos.begin();
     auto it1 = vertex1.markerInfos.begin();
-    while(it0!=vertex0.markerInfos.end() && it1!=vertex1.markerInfos.end()) {
-        const MarkerId markerId0 = it0->markerId;
-        const MarkerId markerId1 = it1->markerId;
-        const MarkerId markerId0Next = markerId0 + 1;
-        if(markerId0Next < markerId1) {
+    const auto end0 = vertex0.markerInfos.end();
+    const auto end1 = vertex1.markerInfos.end();
+    while(it0!=end0 && it1!=end1) {
+        const OrientedReadId orientedReadId0 = it0->orientedReadId;
+        const OrientedReadId orientedReadId1 = it1->orientedReadId;
+        if(orientedReadId0 < orientedReadId1) {
             ++it0;
             continue;
         }
-        if(markerId0Next > markerId1) {
+        if(orientedReadId1 < orientedReadId0) {
             ++it1;
             continue;
         }
-        const OrientedReadId orientedReadId = it0->orientedReadId;
+
+        // If getting here, the two oriented read ids are the same.
+        CZI_ASSERT(orientedReadId0 == orientedReadId1);
+        const OrientedReadId orientedReadId = orientedReadId0;
+
+
+        // Find the streaks of markers for the same oriented readId.
+        auto it0StreakEnd = it0;
+        while(it0StreakEnd!=end0 && it0StreakEnd->orientedReadId == orientedReadId) {
+            ++it0StreakEnd;
+        }
+        auto it1StreakEnd = it1;
+        while(it1StreakEnd!=end1 && it1StreakEnd->orientedReadId == orientedReadId) {
+            ++it1StreakEnd;
+        }
+
+
+        // Only do it if both streaks contain one marker,
+        // the ordinal for the source vertex
+        // is less than the ordinal for the target vertex,
+        // and there are no intervening markers that also belong to a
+        // vertex of the marker graph.
+        if(it0StreakEnd-it0==1 && it1StreakEnd-it1==1 && it0->ordinal<it1->ordinal) {
+            const MarkerId markerId0 = it0->markerId;
+            const MarkerId markerId1 = it1->markerId;
+
+            // Check that there are no intervening markers that also belong to a
+            // vertex of the marker graph.
+            bool interveningVertexFound = false;
+            for(MarkerId markerId=markerId0+1; markerId!=markerId1; markerId++) {
+                if(globalMarkerGraphVertex[markerId] != invalidCompressedGlobalMarkerGraphVertexId) {
+                    interveningVertexFound = true;
+                    break;
+                }
+
+            }
+            if(!interveningVertexFound) {
+
+                const CompressedMarker& marker0 = markers.begin()[markerId0];
+                const CompressedMarker& marker1 = markers.begin()[markerId1];
+
+                // Fill in the sequence information.
+                LocalMarkerGraph2Edge::Sequence sequence;
+                if(marker1.position <= marker0.position + k) {
+                    sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
+                } else {
+                    sequence.overlappingBaseCount = 0;
+                    const auto read = reads[orientedReadId.getReadId()];
+                    const uint32_t readLength = uint32_t(read.baseCount);
+                    for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
+                        Nanopore2::Base base;
+                        if(orientedReadId.getStrand() == 0) {
+                            base = read.get(position);
+                        } else {
+                            base = read.get(readLength - 1 - position);
+                            base.complementInPlace();
+                        }
+                        sequence.sequence.push_back(base);
+                    }
+
+                }
+
+                // Store it.
+                sequenceTable[sequence].push_back(LocalMarkerGraph2Edge::Info(
+                    orientedReadId,
+                    it0->ordinal,
+                    it1->ordinal));
+            }
+        }
+
+        // Update the iterators to point to the end of the streaks.
+        it0 = it0StreakEnd;
+        it1 = it1StreakEnd;
+
+#if 0
         if(it1->orientedReadId == orientedReadId) {
 
             // Fill in the sequence information.
@@ -163,6 +242,7 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
         }
         ++it0;
         ++it1;
+#endif
     }
 
     // Copy to the edge infos data structure.
@@ -174,7 +254,6 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
         OrderPairsBySizeOfSecondGreater<
         LocalMarkerGraph2Edge::Sequence,
         vector<LocalMarkerGraph2Edge::Info> >());
-
 }
 
 
@@ -470,14 +549,15 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << ">";
 
         // Consensus and coverage.
-        s << "<tr><td colspan=\"3\"><b>Consensus " << consensus << "</b></td></tr>";
-        s << "<tr><td colspan=\"3\"><b>Coverage " << coverage << "</b></td></tr>";
+        s << "<tr><td colspan=\"4\"><b>Consensus " << consensus << "</b></td></tr>";
+        s << "<tr><td colspan=\"4\"><b>Coverage " << coverage << "</b></td></tr>";
 
         // Header row.
         s <<
             "<tr>"
             "<td align=\"center\"><b>Read</b></td>"
-            "<td align=\"center\"><b>Ord</b></td>"
+            "<td align=\"center\"><b>Ord0</b></td>"
+            "<td align=\"center\"><b>Ord1</b></td>"
             "<td align=\"center\"><b>Seq</b></td>"
             "</tr>";
 
@@ -508,10 +588,18 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "<td align=\"right\"";
                 s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
                 s << "&amp;strand=" << info.orientedReadId.getStrand();
-                s << "&amp;highlightMarker=" << info.startOrdinal;
-                s << "&amp;highlightMarker=" << info.startOrdinal+1;
-                s << "#" << info.startOrdinal+1 << "\"";
-                s << "><font color=\"blue\"><b><u>" << info.startOrdinal << "</u></b></font></td>";
+                s << "&amp;highlightMarker=" << info.ordinals[0];
+                s << "&amp;highlightMarker=" << info.ordinals[1];
+                s << "#" << info.ordinals[1] << "\"";
+                s << "><font color=\"blue\"><b><u>" << info.ordinals[0] << "</u></b></font></td>";
+
+                s << "<td align=\"right\"";
+                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
+                s << "&amp;strand=" << info.orientedReadId.getStrand();
+                s << "&amp;highlightMarker=" << info.ordinals[0];
+                s << "&amp;highlightMarker=" << info.ordinals[1];
+                s << "#" << info.ordinals[1] << "\"";
+                s << "><font color=\"blue\"><b><u>" << info.ordinals[1] << "</u></b></font></td>";
 
                 s << "<td align=\"center\"><b>";
                 if(it == infos.begin()) {

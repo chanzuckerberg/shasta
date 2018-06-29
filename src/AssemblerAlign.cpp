@@ -362,12 +362,24 @@ void Assembler::computeAllAlignments(
         runThreads(&Assembler::computeAllAlignmentsThreadFunction3, threadCount);
 
 
+
         // Now we can loop over the work area, and replace each
-        // non-zero entry with an increasing id which will be the final vertex id.
+        // entry at least equal to minCoverage with an increasing id
+        // which will be the final vertex id.
+        // Entries that are 0 are set to maxValueMinus1.
+        // Entries that are greater than 0 and less than minCoverage
+        // are set to maxValue, so markers that don't belong to
+        // any vertex receive a vertex id of all one bits.
+        const uint64_t maxValue = std::numeric_limits<uint64_t>::max();
+        const uint64_t maxValueMinus1 = maxValue - 1ULL;
         cout << timestamp << "Generating contiguous vertex ids." << endl;
         GlobalMarkerGraphVertexId vertexId = 0;
         for(GlobalMarkerGraphVertexId& w: data.workArea) {
-            if(w != 0ULL) {
+            if(w == 0ULL) {
+                w = maxValueMinus1;
+            } else if(w <minCoverage) {
+                w = maxValue;
+            } else {
                 w = vertexId++;
             }
         }
@@ -391,13 +403,19 @@ void Assembler::computeAllAlignments(
             largeDataPageSize);
         cout << timestamp << "... pass 1" << endl;
         globalMarkerGraphVertices.beginPass1(vertexCount);
+        const CompressedVertexId maxValue40Bits = maxValue;
         for(const CompressedVertexId& v: globalMarkerGraphVertex) {
-            globalMarkerGraphVertices.incrementCount(v);
+            if(v != maxValue40Bits) {
+                globalMarkerGraphVertices.incrementCount(v);
+            }
         }
         cout << timestamp << "... pass 2" << endl;
         globalMarkerGraphVertices.beginPass2();
         for(VertexId i=0; i<globalMarkerGraphVertex.size(); i++) {
-            globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], i);
+            const CompressedVertexId v = globalMarkerGraphVertex[i];
+            if(v != maxValue40Bits) {
+                globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], i);
+            }
         }
         globalMarkerGraphVertices.endPass2();
 
@@ -602,11 +620,14 @@ void Assembler::computeAllAlignmentsThreadFunction4(size_t threadId)
 {
     GlobalMarkerGraphVertexId* workArea =
         computeAllAlignmentsData.workArea.begin();
+    const uint64_t maxValue = std::numeric_limits<uint64_t>::max();
+    const uint64_t maxValueMinus1 = maxValue - 1ULL;
 
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const MarkerId rawVertexId = globalMarkerGraphVertex[i];
+            CZI_ASSERT(rawVertexId != maxValueMinus1);
             const MarkerId finalVertexId = workArea[rawVertexId];
             globalMarkerGraphVertex[i] = finalVertexId;
         }
