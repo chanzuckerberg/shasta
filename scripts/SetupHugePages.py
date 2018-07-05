@@ -5,7 +5,8 @@ import pwd
 import sys
 
 helpMessage = """
-This sets up huge pages for a Nanopore2 run.
+This sets up huge pages for a shasta run.
+It must run with root privileges.
 
 After running this, use SetUpRunDirectory.py
 to create the required symbolic links and

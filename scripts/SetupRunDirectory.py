@@ -6,12 +6,12 @@ import sys
 
 helpMessage = """
 This sets up the symbolic links (data and Data) required
-to start a Nanopore2 run. It also creates the threadLogs directory.
+to start a shasta run. It also creates the threadLogs directory.
 
 Before running this, use SetuHugePages.py to 
 set up the huge pages.
 
-After this runs, a Nanopore2 run can be started in the current directory.
+After this runs, a shasta run can be started in the current directory.
 """
 
 if not len(sys.argv) == 1:
