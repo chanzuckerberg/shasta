@@ -20,7 +20,7 @@ using namespace pybind11;
 
 
 
-PYBIND11_MODULE(Nanopore2, module)
+PYBIND11_MODULE(shasta, module)
 {
     class_<Assembler>(module, "Assembler")
 

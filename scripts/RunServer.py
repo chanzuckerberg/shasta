@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-import Nanopore2
+import shasta
 
 
 # Initialize the assembler and access what we need.
-a = Nanopore2.Assembler()
+a = shasta.Assembler()
 a.accessReadsReadOnly()
 a.accessReadNamesReadOnly()
 a.accessKmers()

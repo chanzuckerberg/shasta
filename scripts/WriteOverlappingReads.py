@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import Nanopore2
+import shasta
 import sys
 
 helpMessage = """
@@ -17,7 +17,7 @@ strand= int(sys.argv[2])
 
    
 
-a = Nanopore2.Assembler()
+a = shasta.Assembler()
 a.accessReadsReadOnly()
 a.accessReadNamesReadOnly()
 a.accessOverlaps()

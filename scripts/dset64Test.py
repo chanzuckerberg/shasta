@@ -12,7 +12,7 @@ Invoke with 5 arguments:
 """
 
 
-import Nanopore2
+import shasta
 import sys
 
 if not len(sys.argv)==6:
@@ -26,7 +26,7 @@ batchSize = int(sys.argv[4])
 seed = int(sys.argv[5])
 
 
-Nanopore2.dset64Test(
+shasta.dset64Test(
     n = n,
     m = m,
     threadCount = threadCount,

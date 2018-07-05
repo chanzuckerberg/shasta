@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import Nanopore2
+import shasta
 import sys
 
 helpMessage = """
@@ -25,5 +25,5 @@ if not len(sys.argv) == 3:
     
 inputName = sys.argv[1]
 outputName = sys.argv[2]
-Nanopore2.mappedCopy(inputName, outputName)
+shasta.mappedCopy(inputName, outputName)
 

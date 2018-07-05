@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import Nanopore2
+import shasta
 import sys
 
 helpMessage = """
@@ -21,7 +21,7 @@ if not (strand==0 or strand==1):
 
 fileName = 'Markers-' + str(readId) + '-' + str(strand) + '.csv'
 
-a = Nanopore2.Assembler()
+a = shasta.Assembler()
 a.accessKmers()
 a.accessMarkers()
 a.accessReadsReadOnly()

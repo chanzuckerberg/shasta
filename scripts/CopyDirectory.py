@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import glob
-import Nanopore2
+import shasta
 import sys
 
 helpMessage = """
@@ -35,6 +35,6 @@ inputFileNames = glob.glob(inputName + '/*')
 for inputFileName in inputFileNames:
     lastSlashPosition = inputFileName.rfind('/')
     outputFileName = outputName + '/' + inputFileName[lastSlashPosition+1:]
-    Nanopore2.mappedCopy(inputFileName, outputFileName)
+    shasta.mappedCopy(inputFileName, outputFileName)
 
 

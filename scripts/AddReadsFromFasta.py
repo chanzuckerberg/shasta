@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
-import Nanopore2
-import Nanopore2GetConfig
+import shasta
+import GetConfig
 import sys
 
 # Read the config file.
-config = Nanopore2GetConfig.getConfig()
+config = GetConfig.getConfig()
+print(config)
 
-helpMessage = "Invoke with the one argument, the name of the Fasta file."
+helpMessage = "Invoke with one argument, the name of the Fasta file."
 
 if not len(sys.argv)==2:
     print(helpMessage)
@@ -15,7 +16,7 @@ if not len(sys.argv)==2:
     
 fileName = sys.argv[1]
 
-a = Nanopore2.Assembler()
+a = shasta.Assembler()
 a.accessReadsReadWrite();
 a.accessReadNamesReadWrite();
 a.addReadsFromFasta(

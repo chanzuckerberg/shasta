@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import Nanopore2
-import Nanopore2GetConfig
+import shasta
+import GetConfig
 import sys
 
 helpMessage = """
@@ -24,10 +24,10 @@ distance = int(sys.argv[4])
 
 
 # Read the config file.
-config = Nanopore2GetConfig.getConfig()
+config = GetConfig.getConfig()
 
 # Initialize the assembler and access what we need.
-a = Nanopore2.Assembler()
+a = shasta.Assembler()
 a.accessReadsReadOnly()
 a.accessKmers()
 a.accessMarkers()

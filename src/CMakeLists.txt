@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-project(Nanopore1)
+project(shasta)
 
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -21,21 +21,21 @@ add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 
 # Define our shared library.
 file(GLOB SOURCES *.cpp)
-add_library(Nanopore2 SHARED ${SOURCES})
+add_library(shasta SHARED ${SOURCES})
 
-# To make sure the library is named Nanopore2.so,
+# To make sure the library is named shasta.so,
 # get rid of the "lib" prefix.
-set_target_properties(Nanopore2 PROPERTIES PREFIX "")
+set_target_properties(shasta PROPERTIES PREFIX "")
 
 # Eliminate an extraneous -D during compilation.
-set_target_properties(Nanopore2 PROPERTIES  DEFINE_SYMBOL "")
+set_target_properties(shasta PROPERTIES  DEFINE_SYMBOL "")
 
 # Include directories.
 include_directories(/usr/include/python3.5m)
 include_directories(/usr/local/include/python3.5)
 
 # Libraries to link with.
-target_link_libraries(Nanopore2 png)
+target_link_libraries(shasta png)
 
 
 

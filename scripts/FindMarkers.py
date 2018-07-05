@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-import Nanopore2
+import shasta
 
-a = Nanopore2.Assembler()
+a = shasta.Assembler()
 a.accessReadsReadOnly()
 a.accessKmers()
 a.findMarkers()
