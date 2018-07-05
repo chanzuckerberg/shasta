@@ -386,6 +386,11 @@ void Assembler::exploreRead(
         "<p><a href='exploreAlignment?readId0=" << readId << "&strand0=" << strand <<
         "'>Compute a marker alignment of this read with another read.</a>";
 
+    // Link to show overlapping reads.
+    html <<
+        "<p><a href='exploreOverlappingReads?readId=" << readId << "&strand=" << strand <<
+        "'>Find other reads that overlap this read.</a>";
+
 
     // Labels for position scale.
     html << "<p><div style='font-family:monospace'>";
