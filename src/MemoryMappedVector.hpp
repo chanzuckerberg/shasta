@@ -1,7 +1,7 @@
 // Class to describe a vector stored in a file mapped to memory.
 
-#ifndef CZI_NANOPORE2_MEMORY_MAPPED_VECTOR_HPP
-#define CZI_NANOPORE2_MEMORY_MAPPED_VECTOR_HPP
+#ifndef CZI_SHASTA_MEMORY_MAPPED_VECTOR_HPP
+#define CZI_SHASTA_MEMORY_MAPPED_VECTOR_HPP
 
 // CZI.
 #include "CZI_ASSERT.hpp"

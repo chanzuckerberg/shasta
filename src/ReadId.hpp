@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_READ_ID_HPP
-#define CZI_NANOPORE2_READ_ID_HPP
+#ifndef CZI_SHASTA_READ_ID_HPP
+#define CZI_SHASTA_READ_ID_HPP
 
 // CZI.
 #include "CZI_ASSERT.hpp"

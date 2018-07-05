@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_FILESYSTEM_HPP
-#define CZI_NANOPORE2_FILESYSTEM_HPP
+#ifndef CZI_SHASTA_FILESYSTEM_HPP
+#define CZI_SHASTA_FILESYSTEM_HPP
 
 /*******************************************************************************
 

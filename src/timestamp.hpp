@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_TIME_STAMP_HPP
-#define CZI_NANOPORE2_TIME_STAMP_HPP
+#ifndef CZI_SHASTA_TIME_STAMP_HPP
+#define CZI_SHASTA_TIME_STAMP_HPP
 
 #include "boost/date_time/posix_time/posix_time.hpp"
 

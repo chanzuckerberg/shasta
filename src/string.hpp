@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_STRING_HPP
-#define CZI_NANOPORE2_STRING_HPP
+#ifndef CZI_SHASTA_STRING_HPP
+#define CZI_SHASTA_STRING_HPP
 
 #include <string>
 

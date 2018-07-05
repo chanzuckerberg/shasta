@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_ORDER_PAIRS_HPP
-#define CZI_NANOPORE2_ORDER_PAIRS_HPP
+#ifndef CZI_SHASTA_ORDER_PAIRS_HPP
+#define CZI_SHASTA_ORDER_PAIRS_HPP
 
 
 // Classes to sort pairs using various criteria.

@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_READ_LOADER_HPP
-#define CZI_NANOPORE2_READ_LOADER_HPP
+#ifndef CZI_SHASTA_READ_LOADER_HPP
+#define CZI_SHASTA_READ_LOADER_HPP
 
 // Nanopore2
 #include "LongBaseSequence.hpp"

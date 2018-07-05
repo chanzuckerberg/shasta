@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_LOCAL_MARKER_GRAPH2_HPP
-#define CZI_NANOPORE2_LOCAL_MARKER_GRAPH2_HPP
+#ifndef CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
+#define CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
 
 
 /*******************************************************************************

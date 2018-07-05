@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_ALIGNMENT_GRAPH_HPP
-#define CZI_NANOPORE2_ALIGNMENT_GRAPH_HPP
+#ifndef CZI_SHASTA_ALIGNMENT_GRAPH_HPP
+#define CZI_SHASTA_ALIGNMENT_GRAPH_HPP
 
 /*******************************************************************************
 

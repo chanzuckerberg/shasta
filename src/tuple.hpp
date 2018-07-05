@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_TUPLE_HPP
-#define CZI_NANOPORE2_TUPLE_HPP
+#ifndef CZI_SHASTA_TUPLE_HPP
+#define CZI_SHASTA_TUPLE_HPP
 
 #include <tuple>
 

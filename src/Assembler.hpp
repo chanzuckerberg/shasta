@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_ASSEMBLER_HPP
-#define CZI_NANOPORE2_ASSEMBLER_HPP
+#ifndef CZI_SHASTA_ASSEMBLER_HPP
+#define CZI_SHASTA_ASSEMBLER_HPP
 
 // Nanopore2
 #include "Alignment.hpp"

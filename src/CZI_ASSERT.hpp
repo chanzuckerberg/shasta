@@ -2,8 +2,8 @@
 // It is always compiled in, regardless of compilation settings.
 // It throws a standard exception if the assertion fails.
 
-#ifndef CZI_NANOPORE2_CZI_ASSERT_HPP
-#define CZI_NANOPORE2_CZI_ASSERT_HPP
+#ifndef CZI_SHASTA_CZI_ASSERT_HPP
+#define CZI_SHASTA_CZI_ASSERT_HPP
 
 #include <stdexcept>
 #include <string>

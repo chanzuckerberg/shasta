@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_CSTDINT_HPP
-#define CZI_NANOPORE2_CSTDINT_HPP
+#ifndef CZI_SHASTA_CSTDINT_HPP
+#define CZI_SHASTA_CSTDINT_HPP
 
 #include <cstdint>
 

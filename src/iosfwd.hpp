@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_IOSFWD_HPP
-#define CZI_NANOPORE2_IOSFWD_HPP
+#ifndef CZI_SHASTA_IOSFWD_HPP
+#define CZI_SHASTA_IOSFWD_HPP
 
 #include <iosfwd>
 

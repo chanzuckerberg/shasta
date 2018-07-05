@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_FSTREAM_HPP
-#define CZI_NANOPORE2_FSTREAM_HPP
+#ifndef CZI_SHASTA_FSTREAM_HPP
+#define CZI_SHASTA_FSTREAM_HPP
 
 #include <fstream>
 

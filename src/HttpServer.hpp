@@ -3,8 +3,8 @@
 // The derived class only has to override
 // function processRequest.
 
-#ifndef CZI_NANOPORE2_HTTP_SERVER_HPP
-#define CZI_NANOPORE2_HTTP_SERVER_HPP
+#ifndef CZI_SHASTA_HTTP_SERVER_HPP
+#define CZI_SHASTA_HTTP_SERVER_HPP
 
 #include "MemoryAsContainer.hpp"
 

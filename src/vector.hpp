@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_VECTOR_HPP
-#define CZI_NANOPORE2_VECTOR_HPP
+#ifndef CZI_SHASTA_VECTOR_HPP
+#define CZI_SHASTA_VECTOR_HPP
 
 #include <vector>
 

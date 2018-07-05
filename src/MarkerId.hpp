@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_MARKER_ID_HPP
-#define CZI_NANOPORE2_MARKER_ID_HPP
+#ifndef CZI_SHASTA_MARKER_ID_HPP
+#define CZI_SHASTA_MARKER_ID_HPP
 
 #include "cstdint.hpp"
 #include "Uint.hpp"

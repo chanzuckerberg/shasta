@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_OVERLAP_HPP
-#define CZI_NANOPORE2_OVERLAP_HPP
+#ifndef CZI_SHASTA_OVERLAP_HPP
+#define CZI_SHASTA_OVERLAP_HPP
 
 #include "ReadId.hpp"
 

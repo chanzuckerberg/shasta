@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_MARKER_HPP
-#define CZI_NANOPORE2_MARKER_HPP
+#ifndef CZI_SHASTA_MARKER_HPP
+#define CZI_SHASTA_MARKER_HPP
 
 
 /*******************************************************************************

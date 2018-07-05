@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_CHRONO_HPP
-#define CZI_NANOPORE2_CHRONO_HPP
+#ifndef CZI_SHASTA_CHRONO_HPP
+#define CZI_SHASTA_CHRONO_HPP
 
 #include <chrono>
 

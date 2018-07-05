@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_DSET_64_TEST_HPP
-#define CZI_NANOPORE2_DSET_64_TEST_HPP
+#ifndef CZI_SHASTA_DSET_64_TEST_HPP
+#define CZI_SHASTA_DSET_64_TEST_HPP
 
 // Unit test for dset64.hpp.
 #include "dset64.hpp"

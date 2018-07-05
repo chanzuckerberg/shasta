@@ -1,7 +1,7 @@
 // Simple class to make a range objects in memory appear as a container.
 
-#ifndef CZI_NANOPORE2_MEMORY_AS_CONTAINER_HPP
-#define CZI_NANOPORE2_MEMORY_AS_CONTAINER_HPP
+#ifndef CZI_SHASTA_MEMORY_AS_CONTAINER_HPP
+#define CZI_SHASTA_MEMORY_AS_CONTAINER_HPP
 
 #include "cstddef.hpp"
 

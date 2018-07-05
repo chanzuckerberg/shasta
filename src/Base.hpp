@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_BASE_HPP
-#define CZI_NANOPORE2_BASE_HPP
+#ifndef CZI_SHASTA_BASE_HPP
+#define CZI_SHASTA_BASE_HPP
 
 
 #include "array.hpp"

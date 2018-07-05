@@ -1,8 +1,8 @@
 // Class to describe a vector of vectors stored contiguously in mapped memory.
 // A table of contents (toc) contains indexes pointing to the first element of each vector.
 
-#ifndef CZI_NANOPORE2_MEMORY_MAPPED_VECTOR_OF_VECTORS_HPP
-#define CZI_NANOPORE2_MEMORY_MAPPED_VECTOR_OF_VECTORS_HPP
+#ifndef CZI_SHASTA_MEMORY_MAPPED_VECTOR_OF_VECTORS_HPP
+#define CZI_SHASTA_MEMORY_MAPPED_VECTOR_OF_VECTORS_HPP
 
 // CZI.
 #include "MemoryMappedVector.hpp"

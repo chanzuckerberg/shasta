@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_FIND_MARKER_ID_HPP
-#define CZI_NANOPORE2_FIND_MARKER_ID_HPP
+#ifndef CZI_SHASTA_FIND_MARKER_ID_HPP
+#define CZI_SHASTA_FIND_MARKER_ID_HPP
 
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"

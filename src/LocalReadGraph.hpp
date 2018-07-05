@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_LOCAL_READ_GRAPH_HPP
-#define CZI_NANOPORE2_LOCAL_READ_GRAPH_HPP
+#ifndef CZI_SHASTA_LOCAL_READ_GRAPH_HPP
+#define CZI_SHASTA_LOCAL_READ_GRAPH_HPP
 
 
 /*******************************************************************************

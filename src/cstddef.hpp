@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_CSTDDEF_HPP
-#define CZI_NANOPORE2_CSTDDEF_HPP
+#ifndef CZI_SHASTA_CSTDDEF_HPP
+#define CZI_SHASTA_CSTDDEF_HPP
 
 #include <cstddef>
 

@@ -1,5 +1,5 @@
-#ifndef CZI_NANOPORE2_UTILITY_HPP
-#define CZI_NANOPORE2_UTILITY_HPP
+#ifndef CZI_SHASTA_UTILITY_HPP
+#define CZI_SHASTA_UTILITY_HPP
 
 #include <utility>
 
