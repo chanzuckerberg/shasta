@@ -37,7 +37,8 @@ public:
         uint32_t minHashFrequency
     ) :
     readIds(array<ReadId, 2>{readId0, readId1}),
-    minHashFrequency(minHashFrequency)
+    minHashFrequency(minHashFrequency),
+    isSameStrand(isSameStrand)
     {
         CZI_ASSERT(readId0 != readId1);
     }
