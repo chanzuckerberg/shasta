@@ -248,6 +248,9 @@ void Assembler::exploreSummary(
         "<tr><td title='Number of candidate overlaps found by the MinHash algorithm'>Overlaps"
         "<td class=right>" << overlaps.size() <<
 
+        "<tr><td title='Number of overlaps with good alignments'>Alignments"
+        "<td class=right>" << alignmentData.size() <<
+
         "<tr><td title='Number of vertices in the global marker graph'>Marker graph vertices"
         "<td class=right>" << globalMarkerGraphVertices.size() <<
 
