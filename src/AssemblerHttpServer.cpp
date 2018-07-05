@@ -565,12 +565,13 @@ void Assembler::exploreOverlappingReads(
 
         html <<
             "<tr>"
-            "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 << "'>" << orientedReadId1 << "</a>"
+            "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 <<
+            "' title='Click to see this read'>" << orientedReadId1 << "</a>"
             "<td class=centered>"
             "<a href='exploreAlignment"
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
-            "'>" << ad.info.markerCount << "</a>";
+            "' title='Click to see the alignment'>" << ad.info.markerCount << "</a>";
     }
     html << "</table>";
 }
