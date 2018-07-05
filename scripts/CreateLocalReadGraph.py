@@ -31,7 +31,7 @@ a.accessReadsReadOnly()
 a.accessReadNamesReadOnly()
 a.accessMarkers()
 a.accessOverlaps()
-a.accessAlignmentInfos()
+a.accessAlignmentData()
 
 # Do the computation.
 a.createLocalReadGraph(
