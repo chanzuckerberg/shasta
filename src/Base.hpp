@@ -8,7 +8,7 @@
 #include "string.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         class Base;
         class BaseInitializer;
         inline ostream& operator<<(ostream&, Base);
@@ -20,7 +20,7 @@ namespace ChanZuckerberg {
 // Class used only to store a static look up table
 // use by the Base constructors toc convert
 // chacters to bases.
-class ChanZuckerberg::Nanopore2::BaseInitializer{
+class ChanZuckerberg::shasta::BaseInitializer{
 public:
     BaseInitializer();
     static array<uint8_t, 256> table;
@@ -32,7 +32,7 @@ public:
 // Describes a single base.
 // Represented as 1=byte integer as: A=0, C=1, G=2, T=3.
 // This choice of representation facilitates the computation of the complement.
-class ChanZuckerberg::Nanopore2::Base {
+class ChanZuckerberg::shasta::Base {
 public:
     uint8_t value;
 
@@ -95,9 +95,9 @@ public:
 
 
 
-inline std::ostream& ChanZuckerberg::Nanopore2::operator<<(
+inline std::ostream& ChanZuckerberg::shasta::operator<<(
     std::ostream& s,
-    ChanZuckerberg::Nanopore2::Base base)
+    ChanZuckerberg::shasta::Base base)
 {
     s << base.character();
     return s;

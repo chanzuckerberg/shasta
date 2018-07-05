@@ -12,13 +12,13 @@ which is the version used in CentOs 7).
 
 *******************************************************************************/
 
-// Nanopore2
+// shasta
 #include "filesystem.hpp"
 #include "CZI_ASSERT.hpp"
 #include "stdexcept.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
-using namespace ChanZuckerberg::Nanopore2::filesystem;
+using namespace shasta;
+using namespace ChanZuckerberg::shasta::filesystem;
 
 // Linux.
 #include <dirent.h>
@@ -27,7 +27,7 @@ using namespace ChanZuckerberg::Nanopore2::filesystem;
 
 
 // Return true if the path exists.
-bool ChanZuckerberg::Nanopore2::filesystem::exists(const string& path)
+bool ChanZuckerberg::shasta::filesystem::exists(const string& path)
 {
     struct ::stat info;
     return ::stat(path.c_str(), &info) == 0;
@@ -36,7 +36,7 @@ bool ChanZuckerberg::Nanopore2::filesystem::exists(const string& path)
 
 
 // Return true if the path exists and is a regular file.
-bool ChanZuckerberg::Nanopore2::filesystem::isRegularFile(const string& path)
+bool ChanZuckerberg::shasta::filesystem::isRegularFile(const string& path)
 {
     struct ::stat info;
     if(::stat(path.c_str(), &info) == -1) {
@@ -49,7 +49,7 @@ bool ChanZuckerberg::Nanopore2::filesystem::isRegularFile(const string& path)
 
 
 // Return true if the path exists and is a directory.
-bool ChanZuckerberg::Nanopore2::filesystem::isDirectory(const string& path)
+bool ChanZuckerberg::shasta::filesystem::isDirectory(const string& path)
 {
     struct ::stat info;
     if(::stat(path.c_str(), &info) == -1) {
@@ -62,7 +62,7 @@ bool ChanZuckerberg::Nanopore2::filesystem::isDirectory(const string& path)
 
 
 // Create a directory. In case of failure, throw an exception.
-void ChanZuckerberg::Nanopore2::filesystem::createDirectory(const string& path)
+void ChanZuckerberg::shasta::filesystem::createDirectory(const string& path)
 {
     if(::mkdir(path.c_str(), -1) == -1) {
         throw runtime_error("Unable to create directory " + path);
@@ -71,7 +71,7 @@ void ChanZuckerberg::Nanopore2::filesystem::createDirectory(const string& path)
 
 
 // Remove the specified path. In case of failure, throw an exception.
-void ChanZuckerberg::Nanopore2::filesystem::remove(const string& path)
+void ChanZuckerberg::shasta::filesystem::remove(const string& path)
 {
     if(::unlink(path.c_str()) == -1) {
         throw runtime_error("Unable to remove directory " + path);
@@ -81,7 +81,7 @@ void ChanZuckerberg::Nanopore2::filesystem::remove(const string& path)
 
 
 // Return the contents of a directory. In case of failure, throw an exception.
-vector<string> ChanZuckerberg::Nanopore2::filesystem::directoryContents(const string& path)
+vector<string> ChanZuckerberg::shasta::filesystem::directoryContents(const string& path)
 {
     DIR* dir = opendir(path.c_str());
     if(!dir) {
@@ -110,7 +110,7 @@ vector<string> ChanZuckerberg::Nanopore2::filesystem::directoryContents(const st
 // Return the extension of a path - that is, everything following
 // the last dot after the last slash.
 // If there is no dot after the last slash, throw an exception.
-string ChanZuckerberg::Nanopore2::filesystem::extension(const string& path)
+string ChanZuckerberg::shasta::filesystem::extension(const string& path)
 {
     // If the path is empty, throw an exception.
     if(path.empty()) {
@@ -146,7 +146,7 @@ string ChanZuckerberg::Nanopore2::filesystem::extension(const string& path)
 
 // Return everything up to the last dot following the last dash of a path.
 // If there is no dot following the last dash, throw an exception.
-string ChanZuckerberg::Nanopore2::filesystem::fileName(const string& path)
+string ChanZuckerberg::shasta::filesystem::fileName(const string& path)
 {
     // If the path is empty, throw an exception.
     if(path.empty()) {
@@ -181,7 +181,7 @@ string ChanZuckerberg::Nanopore2::filesystem::fileName(const string& path)
 
 
 // Find the size of a file.
-size_t ChanZuckerberg::Nanopore2::filesystem::fileSize(const string& path)
+size_t ChanZuckerberg::shasta::filesystem::fileSize(const string& path)
 {
     struct ::stat fileInformation;
     if(::stat(path.c_str(), &fileInformation) != 0) {

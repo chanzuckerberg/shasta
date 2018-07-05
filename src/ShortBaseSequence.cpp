@@ -2,13 +2,13 @@
 #include "algorithm.hpp"
 #include "CZI_ASSERT.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 #include <iomanip>
 
 
 
-void ChanZuckerberg::Nanopore2::testShortBaseSequence()
+void ChanZuckerberg::shasta::testShortBaseSequence()
 {
     ShortBaseSequence8 s;
     s.set(0, Base('T', Base::FromCharacter()));

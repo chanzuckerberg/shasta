@@ -4,7 +4,7 @@
 #include "cstddef.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Touch a range of memory in order to cause the
         // supporting pages of virtual memory to be loaded in real memory.

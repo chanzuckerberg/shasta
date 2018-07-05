@@ -1,12 +1,12 @@
 #ifndef CZI_SHASTA_MARKER_FINDER_HPP
 #define CZI_SHASTA_MARKER_FINDER_HPP
 
-// Nanopore2
+// shasta
 #include "Marker.hpp"
 #include "MultitreadedObject.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         class MarkerFinder;
         class LongBaseSequences;
         namespace MemoryMapped {
@@ -18,7 +18,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::Nanopore2::MarkerFinder :
+class ChanZuckerberg::shasta::MarkerFinder :
     public MultithreadedObject<MarkerFinder>{
 public:
 

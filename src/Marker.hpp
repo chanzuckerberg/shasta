@@ -22,7 +22,7 @@ kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarke
 #include "Uint.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // The classes with a 0 suffix will be phased out.
         class CompressedMarker0;
@@ -39,7 +39,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::Nanopore2::CompressedMarker0 {
+class ChanZuckerberg::shasta::CompressedMarker0 {
 public:
     KmerId kmerId;
 
@@ -53,7 +53,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::Marker0 {
+class ChanZuckerberg::shasta::Marker0 {
 public:
     KmerId kmerId;
 
@@ -69,7 +69,7 @@ public:
 
 
 // Class used to order markers by kmer id.
-class ChanZuckerberg::Nanopore2::OrderMarkers0ByKmerId {
+class ChanZuckerberg::shasta::OrderMarkers0ByKmerId {
 public:
     bool operator()(
         const Marker0& x,
@@ -96,7 +96,7 @@ public:
 // than older processors did:
 // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.455.4198&rep=rep1&type=pdf
 
-class ChanZuckerberg::Nanopore2::CompressedMarker {
+class ChanZuckerberg::shasta::CompressedMarker {
 public:
 
     // The id of the k-mer for this marker.
@@ -107,14 +107,14 @@ public:
     Uint24 position;
 
 };
-static_assert(sizeof(ChanZuckerberg::Nanopore2::CompressedMarker) == 5,
+static_assert(sizeof(ChanZuckerberg::shasta::CompressedMarker) == 5,
     "Unexpected size of class CompressedMarker.");
 
 
 
 // This stores the same information as CompressedMarker,
 // but using built-in, aligned integers.
-class ChanZuckerberg::Nanopore2::Marker {
+class ChanZuckerberg::shasta::Marker {
 public:
 
     // The id of the k-mer for this marker.
@@ -138,7 +138,7 @@ public:
 // This also stores the ordinal, that is the index
 // of the marker in the oriented read, when the markers
 // are sorted by position in the read.
-class ChanZuckerberg::Nanopore2::MarkerWithOrdinal : public Marker {
+class ChanZuckerberg::shasta::MarkerWithOrdinal : public Marker {
 public:
     uint32_t ordinal;
 

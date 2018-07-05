@@ -6,14 +6,14 @@
 #include "array.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         class Overlap;
     }
 }
 
 
 // Class describing the overlap between a pair of oriented reads.
-class ChanZuckerberg::Nanopore2::Overlap {
+class ChanZuckerberg::shasta::Overlap {
 public:
 
     // The ids of the overlapping oriented reads.

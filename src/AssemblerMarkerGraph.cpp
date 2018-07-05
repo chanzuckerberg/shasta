@@ -1,11 +1,11 @@
-// Nanopore2.
+// shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "LocalMarkerGraph.hpp"
 #include "LocalMarkerGraph2.hpp"
 #include "LocalReadGraph.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Standard library.
 #include <queue>

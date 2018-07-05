@@ -1,7 +1,7 @@
 #ifndef CZI_SHASTA_OVERLAP_FINDER_HPP
 #define CZI_SHASTA_OVERLAP_FINDER_HPP
 
-// Nanopore2
+// shasta
 #include "Marker.hpp"
 #include "Overlap.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
@@ -9,7 +9,7 @@
 #include "ReadId.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         class OverlapFinder;
     }
 }
@@ -19,7 +19,7 @@ namespace ChanZuckerberg {
 // This class uses the MinHash algorithm to find pairs
 // of overlapping oriented reads. It uses as features
 // sequences of m consecutive markers.
-class ChanZuckerberg::Nanopore2::OverlapFinder :
+class ChanZuckerberg::shasta::OverlapFinder :
     public MultithreadedObject<OverlapFinder>{
 public:
 

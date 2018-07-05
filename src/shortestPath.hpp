@@ -19,7 +19,7 @@
 
 
 
-// Nanopore2
+// shasta
 #include "orderPairs.hpp"
 
 // Boost Graph library.
@@ -31,7 +31,7 @@
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // The last argument to findShortestPath is a work area with this type.
         template<class Graph> using FindShortestPathQueue  =
@@ -58,7 +58,7 @@ namespace ChanZuckerberg {
 
 
 
-template<class Graph> inline void ChanZuckerberg::Nanopore2::findShortestPath(
+template<class Graph> inline void ChanZuckerberg::shasta::findShortestPath(
     Graph& graph,
     typename Graph::vertex_descriptor vSource,
     typename Graph::vertex_descriptor vTarget,

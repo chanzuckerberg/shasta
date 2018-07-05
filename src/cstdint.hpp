@@ -4,7 +4,7 @@
 #include <cstdint>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         using std::uint8_t;
         using std::uint16_t;

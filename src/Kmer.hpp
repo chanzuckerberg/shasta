@@ -5,7 +5,7 @@
 #include <limits>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
 
         // Types used to represent a k-mer and a k-mer id.
@@ -24,7 +24,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::Nanopore2::KmerInfo {
+class ChanZuckerberg::shasta::KmerInfo {
 public:
     KmerId reverseComplementedKmerId;
     bool isMarker;

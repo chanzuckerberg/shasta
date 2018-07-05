@@ -10,7 +10,7 @@
 #include "utility.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Given a global marker id in the global marker table,
         // return the corresponding OrientedReadId and ordinal.
@@ -23,8 +23,8 @@ namespace ChanZuckerberg {
 }
 
 
-inline std::pair<ChanZuckerberg::Nanopore2::OrientedReadId, uint32_t>
-    ChanZuckerberg::Nanopore2::findMarkerId(
+inline std::pair<ChanZuckerberg::shasta::OrientedReadId, uint32_t>
+    ChanZuckerberg::shasta::findMarkerId(
     MarkerId markerId,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers)
 {

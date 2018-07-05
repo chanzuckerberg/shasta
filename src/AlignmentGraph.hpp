@@ -19,7 +19,7 @@ To find a good alignment, we find a shortest path in the graph.
 
 *******************************************************************************/
 
-// Nanopore2
+// shasta
 #include "CompactUndirectedGraph.hpp"
 #include "Marker.hpp"
 #include "shortestPath.hpp"
@@ -29,7 +29,7 @@ To find a good alignment, we find a shortest path in the graph.
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         class Alignment;
         class AlignmentInfo;
@@ -77,7 +77,7 @@ namespace ChanZuckerberg {
 
 // Each vertex corresponds a pair of markers in the
 // two oriented reads that have the same kmer.
-class ChanZuckerberg::Nanopore2::AlignmentGraphVertex {
+class ChanZuckerberg::shasta::AlignmentGraphVertex {
 public:
 
     // The KmerId of this marker.
@@ -108,7 +108,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::AlignmentGraphEdge {
+class ChanZuckerberg::shasta::AlignmentGraphEdge {
 public:
     uint64_t weight;
 
@@ -119,7 +119,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::AlignmentGraph : public AlignmentGraphBaseClass {
+class ChanZuckerberg::shasta::AlignmentGraph : public AlignmentGraphBaseClass {
 public:
 
     void create(

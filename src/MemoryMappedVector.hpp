@@ -30,7 +30,7 @@
 
 // Forward declarations.
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         namespace MemoryMapped {
             template<class T> class Vector;
         }
@@ -40,7 +40,7 @@ namespace ChanZuckerberg {
 
 
 
-template<class T> class ChanZuckerberg::Nanopore2::MemoryMapped::Vector {
+template<class T> class ChanZuckerberg::shasta::MemoryMapped::Vector {
 public:
 
     // The access functions work as in std::vector.
@@ -111,7 +111,7 @@ public:
     // The return value can be ignored.
     size_t touchMemory() const
     {
-        return Nanopore2::touchMemory(begin(), end());
+        return shasta::touchMemory(begin(), end());
     }
 
 
@@ -268,75 +268,75 @@ private:
 // Note that in the non-const access functions we assert for isOpen, not isOpenWithWriteAccess.
 // This is necessary to allow legimitate patterns, such as having a non-const reference
 // to a Vector that is open read-only.
-template<class T> inline size_t ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::size() const
+template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Vector<T>::size() const
 {
     return isOpen ? header->objectCount : 0ULL;
 }
-template<class T> inline bool ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::empty() const
+template<class T> inline bool ChanZuckerberg::shasta::MemoryMapped::Vector<T>::empty() const
 {
     return isOpen ? (size()==0) : 0ULL;
 }
-template<class T> inline size_t ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::capacity() const
+template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Vector<T>::capacity() const
 {
     return isOpen ? header->capacity : 0ULL;
 }
 
-template<class T> inline T& ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::operator[](size_t i)
+template<class T> inline T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::operator[](size_t i)
 {
     CZI_ASSERT(isOpen);
     return data[i];
 }
-template<class T> inline const T& ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::operator[](size_t i) const
+template<class T> inline const T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::operator[](size_t i) const
 {
     CZI_ASSERT(isOpen);
     return data[i];
 }
 
-template<class T> inline T& ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::front()
+template<class T> inline T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::front()
 {
     CZI_ASSERT(isOpen);
     return *data;
 }
-template<class T> inline const T& ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::front() const
+template<class T> inline const T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::front() const
 {
     CZI_ASSERT(isOpen);
     CZI_ASSERT(size() > 0);
     return *data;
 }
 
-template<class T> inline T& ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::back()
+template<class T> inline T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::back()
 {
     CZI_ASSERT(isOpen);
     return data[size() - 1ULL];
 }
-template<class T> inline const T& ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::back() const
+template<class T> inline const T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::back() const
 {
     CZI_ASSERT(isOpen);
     return data[size() - 1ULL];
 }
-template<class T> inline T* ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::begin()
+template<class T> inline T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::begin()
 {
     CZI_ASSERT(isOpen);
     return data;
 }
-template<class T> inline const T* ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::begin() const
+template<class T> inline const T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::begin() const
 {
     CZI_ASSERT(isOpen);
     return data;
 }
 
-template<class T> inline T* ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::end()
+template<class T> inline T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::end()
 {
     CZI_ASSERT(isOpen);
     return data + size();
 }
 
-template<class T> inline const T* ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::end() const
+template<class T> inline const T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::end() const
 {
     CZI_ASSERT(isOpen);
     return data + size();
 }
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::push_back(const T& t)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::push_back(const T& t)
 {
     CZI_ASSERT(isOpen);
     resize(size()+1ULL);
@@ -347,7 +347,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 
 // Default constructor.
-template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::~Vector()
+template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Vector<T>::~Vector()
 {
     if(isOpen) {
         if(isOpenWithWriteAccess) {
@@ -358,7 +358,7 @@ template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::~Ve
 }
 
 // Destructor.
-template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::Vector() :
+template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Vector<T>::Vector() :
     header(0),
     data(0),
     isOpen(false),
@@ -371,7 +371,7 @@ template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::Vec
 // Open the given file name as new (create if not existing, truncate if existing)
 // and with write access.
 // Return the file descriptor.
-template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::openNew(const string& name)
+template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Vector<T>::openNew(const string& name)
 {
 
     // The specified name is not a directory.
@@ -389,7 +389,7 @@ template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>:
 
 // Open the given existing file.
 // Return the file descriptor.
-template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::openExisting(const string& name, bool readWriteAccess)
+template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Vector<T>::openExisting(const string& name, bool readWriteAccess)
 {
     const int fileDescriptor = ::open(
         name.c_str(),
@@ -402,7 +402,7 @@ template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>:
 }
 
 // Truncate the given file descriptor to the specified size.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::truncate(int fileDescriptor, size_t fileSize)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::truncate(int fileDescriptor, size_t fileSize)
 {
     const int ftruncateReturnCode = ::ftruncate(fileDescriptor, fileSize);
     if(ftruncateReturnCode == -1) {
@@ -412,7 +412,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 }
 
 // Map to memory the given file descriptor for the specified size.
-template<class T> inline void* ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::map(int fileDescriptor, size_t fileSize, bool writeAccess)
+template<class T> inline void* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::map(int fileDescriptor, size_t fileSize, bool writeAccess)
 {
     void* pointer = ::mmap(0, fileSize, PROT_READ | (writeAccess ? PROT_WRITE : 0), MAP_SHARED, fileDescriptor, 0);
     if(pointer == reinterpret_cast<void*>(-1LL)) {
@@ -423,7 +423,7 @@ template<class T> inline void* ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T
 }
 
 // Find the size of the file corresponding to an open file descriptor.
-template<class T> inline size_t ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::getFileSize(int fileDescriptor)
+template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Vector<T>::getFileSize(int fileDescriptor)
 {
     struct stat fileInformation;
     const int fstatReturnCode = ::fstat(fileDescriptor, &fileInformation);
@@ -440,7 +440,7 @@ template<class T> inline size_t ChanZuckerberg::Nanopore2::MemoryMapped::Vector<
 // The last argument specifies the required capacity.
 // Actual capacity will be a bit larger due to rounding up to the next page boundary.
 // The vector is stored in a memory mapped file with the specified name.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::createNew(
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::createNew(
     const string& name,
     size_t pageSize,
     size_t n,
@@ -497,7 +497,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 
 // Open a previously created vector with read-only or read-write access.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::accessExisting(const string& name, bool readWriteAccess)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::accessExisting(const string& name, bool readWriteAccess)
 {
     try {
         // If already open, should have called close first.
@@ -536,12 +536,12 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
         throw runtime_error("Error accessing " + name + ": " + e.what());
     }
 }
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::accessExistingReadOnly(const string& name)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::accessExistingReadOnly(const string& name)
 {
     accessExisting(name, false);
 }
 template<class T> inline
-    void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::accessExistingReadWrite(
+    void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::accessExistingReadWrite(
         const string& name)
 {
     accessExisting(name, true);
@@ -549,7 +549,7 @@ template<class T> inline
 
 // Attempt to open a previously created vector with read write access.
 // If this fails, create the vector, empty, and access it with read write access.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::accessExistingReadWriteOrCreateNew(
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::accessExistingReadWriteOrCreateNew(
     const string& name,
     size_t pageSize)
 {
@@ -564,7 +564,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 
 // Sync the mapped memory to disk.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::syncToDisk()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::syncToDisk()
 {
     CZI_ASSERT(isOpen);
     const int msyncReturnCode = ::msync(header, header->fileSize, MS_SYNC);
@@ -574,7 +574,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 }
 
 // Unmap the memory.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::unmap()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::unmap()
 {
     CZI_ASSERT(isOpen);
 
@@ -593,7 +593,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 }
 
 // Sync the mapped memory to disk, then unmap it.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::close()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::close()
 {
     CZI_ASSERT(isOpen);
     syncToDisk();
@@ -601,7 +601,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 }
 
 // Close it and remove the supporting file.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::remove()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::remove()
 {
     const string savedFileName = fileName;
     close();	// This forgets the fileName.
@@ -611,7 +611,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 
 // Resize works as for std::vector.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::resize(size_t newSize)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::resize(size_t newSize)
 {
     CZI_ASSERT(isOpenWithWriteAccess);
 
@@ -692,14 +692,14 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 
 
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::reserve()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::reserve()
 {
     CZI_ASSERT(isOpenWithWriteAccess);
     reserve(size());
 }
 
 
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::reserve(size_t capacity)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::reserve(size_t capacity)
 {
     CZI_ASSERT(isOpenWithWriteAccess);
     CZI_ASSERT(capacity >= size());
@@ -739,7 +739,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 
 
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::unreserve()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::unreserve()
 {
     reserve(size());
 }
@@ -747,7 +747,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 
 // Make a copy of the Vector.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::makeCopy(
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::makeCopy(
     Vector<T>& copy, const string& newName) const
     {
     copy.createNew(newName, size());
@@ -756,7 +756,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>
 
 // Return a hash function of the stored data.
 // Can be used to check for integrity.
-template<class T> inline uint64_t ChanZuckerberg::Nanopore2::MemoryMapped::Vector<T>::hash() const
+template<class T> inline uint64_t ChanZuckerberg::shasta::MemoryMapped::Vector<T>::hash() const
 {
     // The second argument to MurmurHash64A is a 4-byte integer.
     // Sooner or later we will have to deal with this.
@@ -768,7 +768,7 @@ template<class T> inline uint64_t ChanZuckerberg::Nanopore2::MemoryMapped::Vecto
 
 
 
-inline void ChanZuckerberg::Nanopore2::testMemoryMappedVector()
+inline void ChanZuckerberg::shasta::testMemoryMappedVector()
 {
     // Test creation of a temporary vector.
     MemoryMapped::Vector<int> x;

@@ -1,6 +1,6 @@
 #include "Assembler.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 
 

@@ -1,6 +1,6 @@
 #include "Base.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 #include "algorithm.hpp"
 
@@ -22,7 +22,7 @@ BaseInitializer::BaseInitializer()
 }
 
 
-void ChanZuckerberg::Nanopore2::testBase()
+void ChanZuckerberg::shasta::testBase()
 {
     const Base A('A', Base::FromCharacter());
     if(A.value) throw runtime_error("A is not 0.");

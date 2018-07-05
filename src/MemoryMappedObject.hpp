@@ -24,7 +24,7 @@
 #include <unistd.h>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         namespace MemoryMapped {
             template<class T> class Object;
         }
@@ -33,7 +33,7 @@ namespace ChanZuckerberg {
 
 
 
-template<class T> class ChanZuckerberg::Nanopore2::MemoryMapped::Object {
+template<class T> class ChanZuckerberg::shasta::MemoryMapped::Object {
 public:
 
     // Constructor and destructor.
@@ -177,7 +177,7 @@ private:
 
 
 // Default constructor.
-template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::Object() :
+template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Object<T>::Object() :
     header(0),
     data(0),
     isOpen(false),
@@ -188,7 +188,7 @@ template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::Obj
 
 
 // Destructor.
-template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::~Object()
+template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Object<T>::~Object()
 {
     if(isOpen) {
         close();
@@ -198,7 +198,7 @@ template<class T> inline ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::~Ob
 // Open the given file name as new (create if not existing, truncate if existing)
 // and with write access.
 // Return the file descriptor.
-template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::openNew(const string& name)
+template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Object<T>::openNew(const string& name)
 {
     const int fileDescriptor = ::open(
             name.c_str(),
@@ -212,7 +212,7 @@ template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>:
 
 // Open the given existing file.
 // Return the file descriptor.
-template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::openExisting(const string& name, bool readWriteAccess)
+template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Object<T>::openExisting(const string& name, bool readWriteAccess)
 {
     const int fileDescriptor = ::open(
         name.c_str(),
@@ -225,7 +225,7 @@ template<class T> inline int ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>:
 }
 
 // Truncate the given file descriptor to the specified size.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::truncate(int fileDescriptor, size_t fileSize)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::truncate(int fileDescriptor, size_t fileSize)
 {
     const int ftruncateReturnCode = ::ftruncate(fileDescriptor, fileSize);
     if(ftruncateReturnCode == -1) {
@@ -235,7 +235,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
 }
 
 // Map to memory the given file descriptor for the specified size.
-template<class T> inline void* ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::map(int fileDescriptor, size_t fileSize, bool writeAccess)
+template<class T> inline void* ChanZuckerberg::shasta::MemoryMapped::Object<T>::map(int fileDescriptor, size_t fileSize, bool writeAccess)
 {
     void* pointer = ::mmap(0, fileSize, PROT_READ | (writeAccess ? PROT_WRITE : 0), MAP_SHARED, fileDescriptor, 0);
     if(pointer == reinterpret_cast<void*>(-1LL)) {
@@ -246,7 +246,7 @@ template<class T> inline void* ChanZuckerberg::Nanopore2::MemoryMapped::Object<T
 }
 
 // Find the size of the file corresponding to an open file descriptor.
-template<class T> inline size_t ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::getFileSize(int fileDescriptor)
+template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Object<T>::getFileSize(int fileDescriptor)
 {
     struct stat fileInformation;
     const int fstatReturnCode = ::fstat(fileDescriptor, &fileInformation);
@@ -260,7 +260,7 @@ template<class T> inline size_t ChanZuckerberg::Nanopore2::MemoryMapped::Object<
 
 
 // Create a new mapped object.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::createNew(const string& name)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::createNew(const string& name)
 {
     try {
         // If already open, should have called close first.
@@ -310,7 +310,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
 
 
 // Open a previously created object with read-only or read-write access.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::accessExisting(const string& name, bool readWriteAccess)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::accessExisting(const string& name, bool readWriteAccess)
 {
     try {
         // If already open, should have called close first.
@@ -350,11 +350,11 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
     }
 
 }
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::accessExistingReadOnly(const string& name)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::accessExistingReadOnly(const string& name)
 {
     accessExisting(name, false);
 }
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::accessExistingReadWrite(const string& name)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::accessExistingReadWrite(const string& name)
 {
     accessExisting(name, true);
 }
@@ -362,7 +362,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
 
 
 // Sync the mapped memory to disk.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::syncToDisk()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::syncToDisk()
 {
     CZI_ASSERT(isOpen);
     const int msyncReturnCode = ::msync(header, header->fileSize, MS_SYNC);
@@ -372,7 +372,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
 }
 
 // Unmap the memory.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::unmap()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::unmap()
 {
     CZI_ASSERT(isOpen);
 
@@ -393,7 +393,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
 
 
 // Sync the mapped memory to disk, then unmap it.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::close()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::close()
 {
     CZI_ASSERT(isOpen);
     syncToDisk();
@@ -401,7 +401,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
 }
 
 // Close it and remove the supporting file.
-template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::remove()
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::remove()
 {
     const string savedFileName = fileName;
     close();    // This forgets the fileName.
@@ -410,13 +410,13 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>
 
 
 // Return a pointer to the stored object.
-template<class T> inline T* ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::operator->()
+template<class T> inline T* ChanZuckerberg::shasta::MemoryMapped::Object<T>::operator->()
 {
     CZI_ASSERT(isOpen);
     CZI_ASSERT(data);
     return data;
 }
-template<class T> inline const T* ChanZuckerberg::Nanopore2::MemoryMapped::Object<T>::operator->() const
+template<class T> inline const T* ChanZuckerberg::shasta::MemoryMapped::Object<T>::operator->() const
 {
     CZI_ASSERT(isOpen);
     CZI_ASSERT(data);

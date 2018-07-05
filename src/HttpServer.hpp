@@ -18,7 +18,7 @@
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         class HttpServer;
         class PostData;
     }
@@ -26,7 +26,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::Nanopore2::HttpServer {
+class ChanZuckerberg::shasta::HttpServer {
 public:
 
     // This function puts the server into an endless loop
@@ -125,7 +125,7 @@ private:
 
 
 // Class describing a POST request.
-class ChanZuckerberg::Nanopore2::PostData {
+class ChanZuckerberg::shasta::PostData {
 public:
 
     // The request already parsed in tokens.

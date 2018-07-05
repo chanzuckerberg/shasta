@@ -4,7 +4,7 @@
 #include <cstddef>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::size_t;
     }
 }

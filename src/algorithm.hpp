@@ -4,7 +4,7 @@
 #include <algorithm>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::copy;
         using std::fill;
         using std::find;

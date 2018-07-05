@@ -1,7 +1,7 @@
-// Nanopore2.
+// shasta.
 #include "LocalReadGraph.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>

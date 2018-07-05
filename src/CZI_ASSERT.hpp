@@ -12,7 +12,7 @@
 #include "execinfo.h"
 
 namespace ChanZuckerberg {
-    namespace Nanopore1 {
+    namespace shasta {
         inline void writeBackTrace();
     }
 }
@@ -22,7 +22,7 @@ namespace ChanZuckerberg {
 
 
 #if 0
-inline void ChanZuckerberg::Nanopore2::writeBackTrace()
+inline void ChanZuckerberg::shasta::writeBackTrace()
 {
     const int bufferSize = 64;  // To avoid extremely long, useless backtraces.
     void* buffer[bufferSize];

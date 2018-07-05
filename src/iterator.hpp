@@ -4,7 +4,7 @@
 #include <iterator>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::back_inserter;
         using std::ostream_iterator;
     }

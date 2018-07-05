@@ -1,7 +1,7 @@
 #ifndef CZI_SHASTA_ASSEMBLER_HPP
 #define CZI_SHASTA_ASSEMBLER_HPP
 
-// Nanopore2
+// shasta
 #include "Alignment.hpp"
 #include "dset64.hpp"
 #include "HttpServer.hpp"
@@ -19,7 +19,7 @@
 #include "tuple.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Forward declarations of classes defined here.
         class Assembler;
@@ -40,7 +40,7 @@ namespace ChanZuckerberg {
 
 
 // Class used to store various pieces of assembler information in shared memory.
-class ChanZuckerberg::Nanopore2::AssemblerInfo {
+class ChanZuckerberg::shasta::AssemblerInfo {
 public:
 
     // The length of k-mers used to define markers.
@@ -49,7 +49,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::Assembler :
+class ChanZuckerberg::shasta::Assembler :
     public MultithreadedObject<Assembler>,
     public HttpServer {
 public:

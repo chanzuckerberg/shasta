@@ -4,7 +4,7 @@
 #include "string.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // This can be used to copy a file to the huge page filesystem.
         // The regular cp command does not work (but it works to copy

@@ -1,7 +1,7 @@
 #include "Assembler.hpp"
 #include "OverlapFinder.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 
 

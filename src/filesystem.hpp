@@ -19,7 +19,7 @@ which is the version used in CentOs 7).
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         namespace filesystem {
 
             // Return true if the path exists.

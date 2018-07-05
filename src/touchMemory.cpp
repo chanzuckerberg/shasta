@@ -2,12 +2,12 @@
 
 #include "touchMemory.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Touch a range of memory in order to cause the
 // supporting pages of virtual memory to be loaded in real memory.
 // The return value can be ignored.
-size_t ChanZuckerberg::Nanopore2::touchMemory(
+size_t ChanZuckerberg::shasta::touchMemory(
     const void* begin,
     const void* end,
     size_t pageSize)

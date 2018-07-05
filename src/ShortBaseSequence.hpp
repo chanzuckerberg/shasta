@@ -1,7 +1,7 @@
 #ifndef CZI_SHASTA_SHORT_BASE_SEQUENCE_HPP
 #define CZI_SHASTA_SHORT_BASE_SEQUENCE_HPP
 
-// Nanopore2.
+// shasta.
 #include "Base.hpp"
 
 // Standard library.
@@ -14,7 +14,7 @@
 
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // A short sequence of bases.
         // Uses only two integers, so its capacity is limited
@@ -41,7 +41,7 @@ namespace ChanZuckerberg {
 // Position 1: the MSB bit of the bases (with base 0 corresponding to the MSB bit).
 // This class does not keep track of the number of bases
 // actually stored. All unused positions are left set at "A".
-template<class Int> class ChanZuckerberg::Nanopore2::ShortBaseSequence {
+template<class Int> class ChanZuckerberg::shasta::ShortBaseSequence {
 public:
 
     // Sanity check on the Int type.
@@ -148,9 +148,9 @@ public:
 
 
 
-template<class Int> inline std::ostream& ChanZuckerberg::Nanopore2::operator<<(
+template<class Int> inline std::ostream& ChanZuckerberg::shasta::operator<<(
     std::ostream& s,
-    const ChanZuckerberg::Nanopore2::ShortBaseSequence<Int>& sequence)
+    const ChanZuckerberg::shasta::ShortBaseSequence<Int>& sequence)
 {
     for(size_t i=0; i<sequence.capacity; i++) {
         s << sequence[i];

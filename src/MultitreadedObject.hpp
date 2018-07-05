@@ -30,7 +30,7 @@
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         template<class T> class MultithreadedObject;
         void testMultithreadedObject();
         class MultithreadedObjectTestClass;
@@ -39,7 +39,7 @@ namespace ChanZuckerberg {
 
 
 
-template<class T> class ChanZuckerberg::Nanopore2::MultithreadedObject {
+template<class T> class ChanZuckerberg::shasta::MultithreadedObject {
 public:
 
     // A function passed as argument to runThreads or startThreads
@@ -125,14 +125,14 @@ private:
 
 
 
-template<class T> inline ChanZuckerberg::Nanopore2::MultithreadedObject<T>::MultithreadedObject(T& t) :
+template<class T> inline ChanZuckerberg::shasta::MultithreadedObject<T>::MultithreadedObject(T& t) :
     t(t)
 {
 }
 
 
 
-template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>::runThreads(
+template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::runThreads(
     ThreadFunction f,
     size_t threadCount,
     const string& logFileNamePrefix)
@@ -143,7 +143,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>:
 
 
 
-template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>::startThreads(
+template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::startThreads(
     ThreadFunction f,
     size_t threadCount,
     const string& logFileNamePrefix)
@@ -177,7 +177,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>:
 
 
 
-template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>::waitForThreads()
+template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::waitForThreads()
 {
     for(std::shared_ptr<std::thread> thread: threads) {
         thread->join();
@@ -193,7 +193,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>:
 
 
 
-template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>::setupLoadBalancing(
+template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::setupLoadBalancing(
     size_t nArgument,
     size_t batchSizeArgument)
 {
@@ -201,7 +201,7 @@ template<class T> inline void ChanZuckerberg::Nanopore2::MultithreadedObject<T>:
     batchSize = batchSizeArgument;
     nextBatch = 0;
 }
-template<class T> inline bool ChanZuckerberg::Nanopore2::MultithreadedObject<T>:: getNextBatch(
+template<class T> inline bool ChanZuckerberg::shasta::MultithreadedObject<T>:: getNextBatch(
     size_t& begin,
     size_t& end)
 {

@@ -1,9 +1,9 @@
-// Nanopore2.
+// shasta.
 #include "ReadLoader.hpp"
 #include "splitRange.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Standard library.
 #include "tuple.hpp"

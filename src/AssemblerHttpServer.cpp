@@ -1,10 +1,10 @@
-// Nanopore2.
+// shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
 #include "LocalMarkerGraph2.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>

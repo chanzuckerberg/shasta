@@ -1,8 +1,8 @@
-// Nanopore2.
+// shasta.
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/gil/gil_all.hpp>
@@ -14,7 +14,7 @@ using namespace Nanopore2;
 
 
 // Ccompute an alignment of the markers of two oriented reads.
-void ChanZuckerberg::Nanopore2::align(
+void ChanZuckerberg::shasta::align(
 
     // Markers of the two oriented reads to be aligned, sorted by KmerId.
     const vector<MarkerWithOrdinal>& markers0,

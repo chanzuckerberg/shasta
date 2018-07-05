@@ -5,7 +5,7 @@
 
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         class TestCompactUndirectedGraphEdge;
         class TestCompactUndirectedGraphVertex {
         public:
@@ -26,7 +26,7 @@ namespace ChanZuckerberg {
 
 
 
-void ChanZuckerberg::Nanopore2::testCompactUndirectedGraph1()
+void ChanZuckerberg::shasta::testCompactUndirectedGraph1()
 {
     using G = CompactUndirectedGraph<double, double>;
     using vertex_descriptor = G::vertex_descriptor;
@@ -82,7 +82,7 @@ void ChanZuckerberg::Nanopore2::testCompactUndirectedGraph1()
 
 
 
-void ChanZuckerberg::Nanopore2::testCompactUndirectedGraph2()
+void ChanZuckerberg::shasta::testCompactUndirectedGraph2()
 {
     using G = CompactUndirectedGraph<TestCompactUndirectedGraphVertex, TestCompactUndirectedGraphEdge>;
     using vertex_descriptor = G::vertex_descriptor;

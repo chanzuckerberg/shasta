@@ -6,14 +6,14 @@
 #include "cstddef.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
     template<class T> class MemoryAsContainer;
     }
 }
 
 
 
-template<class T> class ChanZuckerberg::Nanopore2::MemoryAsContainer {
+template<class T> class ChanZuckerberg::shasta::MemoryAsContainer {
 public:
 
     MemoryAsContainer(T* begin, T* end) :

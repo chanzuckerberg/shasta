@@ -1,8 +1,8 @@
-// Nanopore2.
+// shasta.
 #include "OverlapFinder.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"

@@ -34,7 +34,7 @@
 
 // Forward definitions.
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         template<class Vertex, class Edge> class CompactUndirectedGraph;
         void testCompactUndirectedGraph1();
         void testCompactUndirectedGraph2();
@@ -44,7 +44,7 @@ namespace ChanZuckerberg {
 
 
 template<class Vertex, class Edge>
-    class ChanZuckerberg::Nanopore2::CompactUndirectedGraph {
+    class ChanZuckerberg::shasta::CompactUndirectedGraph {
 public:
 
     // Type used by the vertex_descriptor and edge_descriptor.
@@ -358,37 +358,37 @@ private:
 
 // Implement some of the boost adjacency_list API, but not all of it.
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         template<class Vertex, class Edge> std::pair<
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::vertex_iterator,
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::vertex_iterator
-            > vertices(const ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>& graph)
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::vertex_iterator,
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::vertex_iterator
+            > vertices(const ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>& graph)
         {
             return graph.allVertices();
         }
 
         template<class Vertex, class Edge> std::pair<
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::edge_iterator,
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::edge_iterator
-            > edges(const ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>& graph)
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::edge_iterator,
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::edge_iterator
+            > edges(const ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>& graph)
         {
             return graph.allEdges();
         }
 
         template<class Vertex, class Edge>
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor
             source(
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::edge_descriptor e,
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::edge_descriptor e,
             const CompactUndirectedGraph<Vertex, Edge>& graph)
         {
             return graph.source(e);
         }
 
         template<class Vertex, class Edge>
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor
             target(
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::edge_descriptor e,
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::edge_descriptor e,
             const CompactUndirectedGraph<Vertex, Edge>& graph)
         {
             return graph.target(e);
@@ -396,11 +396,11 @@ namespace ChanZuckerberg {
     }
 
         template<class Vertex, class Edge> std::pair<
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::out_edge_iterator,
-            typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::out_edge_iterator
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::out_edge_iterator,
+            typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::out_edge_iterator
             > out_edges(
-                typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor v,
-                const ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>& graph)
+                typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor v,
+                const ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>& graph)
         {
             return graph.allOutEdges(v);
         }
@@ -412,7 +412,7 @@ namespace ChanZuckerberg {
 
 template<class Vertex, class Edge>
     inline
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     CompactUndirectedGraph()
 {
     clear();
@@ -420,7 +420,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline void
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     clear()
 {
     state = State::AddingVertices;
@@ -430,16 +430,16 @@ template<class Vertex, class Edge>
 }
 
 template<class Vertex, class Edge>
-    inline typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::State
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    inline typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::State
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     getState() const
 {
     return state;
 }
 
 template<class Vertex, class Edge>
-    inline typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::Int
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    inline typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::Int
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     vertexCount() const
 {
     if(state == State::Processing) {
@@ -450,8 +450,8 @@ template<class Vertex, class Edge>
 }
 
 template<class Vertex, class Edge>
-    inline typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::Int
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    inline typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::Int
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     edgeCount() const
 {
     return Int(edgeTable.size());
@@ -459,7 +459,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline Vertex&
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](vertex_descriptor v)
 {
     CZI_ASSERT(v.v < vertexTable.size());
@@ -468,7 +468,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline const Vertex&
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](vertex_descriptor v) const
 {
     CZI_ASSERT(v.v < vertexTable.size());
@@ -477,7 +477,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline Edge&
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](edge_descriptor e)
 {
     CZI_ASSERT(e.e < edgeTable.size());
@@ -486,7 +486,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline const Edge&
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](edge_descriptor e) const
 {
     CZI_ASSERT(e.e < edgeTable.size());
@@ -494,8 +494,8 @@ template<class Vertex, class Edge>
 }
 
 template<class Vertex, class Edge>
-    inline typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    inline typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::vertex_descriptor
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     addVertex(const Vertex& vertex)
 {
     CZI_ASSERT(state == State::AddingVertices);
@@ -506,7 +506,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline void
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     sortVertices()
 {
     CZI_ASSERT(state == State::AddingVertices);
@@ -515,15 +515,15 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline void
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     doneAddingVertices()
 {
     state = State::AddingEdges;
 }
 
 template<class Vertex, class Edge>
-    inline typename ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::edge_descriptor
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    inline typename ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::edge_descriptor
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     addEdge(
     vertex_descriptor v0,
     vertex_descriptor v1,
@@ -537,7 +537,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline void
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     doneAddingEdges()
 {
     // First, we store the degree of each vertex
@@ -588,7 +588,7 @@ template<class Vertex, class Edge>
 
 template<class Vertex, class Edge>
     inline void
-    ChanZuckerberg::Nanopore2::CompactUndirectedGraph<Vertex, Edge>::
+    ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     dump(ostream& s) const
 {
     s << vertexCount() << " vertices, ";

@@ -1,9 +1,9 @@
-// Nanopore2.
+// shasta.
 #include "Assembler.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerFinder.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 
 
@@ -105,6 +105,6 @@ MarkerId Assembler::getMarkerId(
 pair<OrientedReadId, uint32_t>
     Assembler::findMarkerId(MarkerId markerId) const
 {
-    return Nanopore2::findMarkerId(markerId, markers);
+    return shasta::findMarkerId(markerId, markers);
 }
 

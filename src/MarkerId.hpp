@@ -5,7 +5,7 @@
 #include "Uint.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Type used to globally identify a marker on an oriented read.
         // This is the global index of the marker in Assembler::markers.

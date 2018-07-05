@@ -7,7 +7,7 @@
 #include <map>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         void dset64Test(
             uint64_t n,             // The number of items (vertices).
             uint64_t m,             // The number of union operations (edges).
@@ -21,7 +21,7 @@ namespace ChanZuckerberg {
 
 
 // Class describing the overlap between a pair of oriented reads.
-class ChanZuckerberg::Nanopore2::Dset64Test : public MultithreadedObject<Dset64Test> {
+class ChanZuckerberg::shasta::Dset64Test : public MultithreadedObject<Dset64Test> {
 public:
 
     Dset64Test(

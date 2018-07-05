@@ -9,7 +9,7 @@
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         class Alignment;
         class AlignmentData;
@@ -19,7 +19,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::Nanopore2::Alignment {
+class ChanZuckerberg::shasta::Alignment {
 public:
 
     // The ordinals in each of the two oriented reads of the
@@ -29,7 +29,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::AlignmentInfo {
+class ChanZuckerberg::shasta::AlignmentInfo {
 public:
 
     // The first and last ordinals in each of the two oriented reads.
@@ -58,7 +58,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::AlignmentData {
+class ChanZuckerberg::shasta::AlignmentData {
 public:
 
     // The ids of the overlapping oriented reads.

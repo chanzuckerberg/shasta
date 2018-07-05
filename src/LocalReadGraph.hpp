@@ -23,7 +23,7 @@ oriented reads have sufficiently good overlap/alignment.
 #include <map>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Forward declaration of types declared in this file.
         class LocalReadGraphVertex;
@@ -41,7 +41,7 @@ namespace ChanZuckerberg {
 }
 
 
-class ChanZuckerberg::Nanopore2::LocalReadGraphVertex {
+class ChanZuckerberg::shasta::LocalReadGraphVertex {
 public:
 
     // The OrientedReadId that this vertex corresponds to.
@@ -68,7 +68,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::LocalReadGraphEdge {
+class ChanZuckerberg::shasta::LocalReadGraphEdge {
 public:
 
     // Copies of the AlignmentInfo that caused this edge to be created.
@@ -82,7 +82,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::LocalReadGraph :
+class ChanZuckerberg::shasta::LocalReadGraph :
     public LocalReadGraphBaseClass {
 public:
 

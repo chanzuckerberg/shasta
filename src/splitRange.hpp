@@ -21,7 +21,7 @@
 #include "utility.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         inline pair<size_t, size_t> splitRange(
             size_t begin,
@@ -37,7 +37,7 @@ namespace ChanZuckerberg {
 
 
 
-inline std::pair<size_t, size_t> ChanZuckerberg::Nanopore2::splitRange(
+inline std::pair<size_t, size_t> ChanZuckerberg::shasta::splitRange(
     size_t begin,
     size_t end,
     size_t m,
@@ -62,7 +62,7 @@ inline std::pair<size_t, size_t> ChanZuckerberg::Nanopore2::splitRange(
 
 
 
-inline void ChanZuckerberg::Nanopore2::testSplitRange()
+inline void ChanZuckerberg::shasta::testSplitRange()
 {
     while(true) {
         cerr << "Enter begin, end, m:" << endl;

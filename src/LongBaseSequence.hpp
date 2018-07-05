@@ -1,7 +1,7 @@
 #ifndef CZI_SHASTA_LONG_BASE_SEQUENCE_HPP
 #define CZI_SHASTA_LONG_BASE_SEQUENCE_HPP
 
-// Nanopore2.
+// shasta.
 #include "Base.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 
@@ -11,7 +11,7 @@
 #include "string.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // A long sequence of bases. Memory is not owned.
         class LongBaseSequenceView;
@@ -41,7 +41,7 @@ namespace ChanZuckerberg {
 // This choice of representation facilitates the implementation of various
 // operations for high performance using low level bit manipulation.
 // This class does not own the memory it manipulates.
-class ChanZuckerberg::Nanopore2::LongBaseSequenceView {
+class ChanZuckerberg::shasta::LongBaseSequenceView {
 public:
     uint64_t* begin;
     uint64_t baseCount;
@@ -164,9 +164,9 @@ public:
 
 
 
-inline std::ostream& ChanZuckerberg::Nanopore2::operator<<(
+inline std::ostream& ChanZuckerberg::shasta::operator<<(
     std::ostream& s,
-    const ChanZuckerberg::Nanopore2::LongBaseSequenceView& sequence)
+    const ChanZuckerberg::shasta::LongBaseSequenceView& sequence)
 {
     return sequence.write(s);
 }
@@ -175,7 +175,7 @@ inline std::ostream& ChanZuckerberg::Nanopore2::operator<<(
 
 // Class that uses a vector of uint64_t values
 // to represent a sequence of bases as a LongBaseSequence.
-class ChanZuckerberg::Nanopore2::LongBaseSequence : public  LongBaseSequenceView {
+class ChanZuckerberg::shasta::LongBaseSequence : public  LongBaseSequenceView {
 public:
     LongBaseSequence(uint64_t baseCountArgument = 0)
     {
@@ -232,7 +232,7 @@ private:
 
 // Many long sequences of bases stored in memory mapped files.
 // This is used to store nanopore reads.
-class ChanZuckerberg::Nanopore2::LongBaseSequences {
+class ChanZuckerberg::shasta::LongBaseSequences {
 public:
 
     void createNew(const string& name, size_t pageSize);
@@ -283,7 +283,7 @@ private:
 
 
 // Reverse complement a vector of bases.
-inline void ChanZuckerberg::Nanopore2::reverseComplement(vector<Base>&v)
+inline void ChanZuckerberg::shasta::reverseComplement(vector<Base>&v)
 {
     const size_t n = v.size();
     const size_t nm1 = n - 1;

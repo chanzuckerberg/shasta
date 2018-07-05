@@ -1,7 +1,7 @@
 #ifndef CZI_SHASTA_READ_LOADER_HPP
 #define CZI_SHASTA_READ_LOADER_HPP
 
-// Nanopore2
+// shasta
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
@@ -11,7 +11,7 @@
 #include "string.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         class ReadLoader;
     }
 }
@@ -19,7 +19,7 @@ namespace ChanZuckerberg {
 
 
 // Class used to load reads from a fasta file.
-class ChanZuckerberg::Nanopore2::ReadLoader :
+class ChanZuckerberg::shasta::ReadLoader :
     public MultithreadedObject<ReadLoader>{
 public:
 

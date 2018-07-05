@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::exception;
         using std::runtime_error;
     }

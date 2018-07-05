@@ -4,7 +4,7 @@
 #include <iosfwd>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::istream;
         using std::ostream;
     }

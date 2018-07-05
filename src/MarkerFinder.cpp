@@ -1,10 +1,10 @@
-// Nanopore2.
+// shasta.
 #include "MarkerFinder.hpp"
 #include "LongBaseSequence.hpp"
 #include "ReadId.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Standard library.
 #include <chrono>

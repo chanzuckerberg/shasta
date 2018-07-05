@@ -1,8 +1,8 @@
-// Nanopore2.
+// shasta.
 #include "Assembler.hpp"
 #include "ReadLoader.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Standard libraries.
 #include "iterator.hpp"

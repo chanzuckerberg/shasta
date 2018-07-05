@@ -29,7 +29,7 @@ was done when the global marker graph was created.
 
 *******************************************************************************/
 
-// Nanopore2.
+// shasta.
 #include "Kmer.hpp"
 #include "MarkerId.hpp"
 #include "MemoryAsContainer.hpp"
@@ -46,7 +46,7 @@ was done when the global marker graph was created.
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Forward declaration of types declared in this file.
         class LocalMarkerGraph2Vertex;
@@ -72,7 +72,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::Nanopore2::LocalMarkerGraph2Vertex {
+class ChanZuckerberg::shasta::LocalMarkerGraph2Vertex {
 public:
 
     // The global vertex id of the vertex of the global marker
@@ -101,7 +101,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::LocalMarkerGraph2Edge {
+class ChanZuckerberg::shasta::LocalMarkerGraph2Edge {
 public:
 
     // Class to describe the intervening sequence between
@@ -182,7 +182,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::LocalMarkerGraph2 :
+class ChanZuckerberg::shasta::LocalMarkerGraph2 :
     public LocalMarkerGraph2BaseClass {
 public:
 

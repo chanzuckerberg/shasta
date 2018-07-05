@@ -1,9 +1,9 @@
-// Nanopore2.
+// shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Standard libraries.
 #include "chrono.hpp"

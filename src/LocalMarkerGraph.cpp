@@ -1,10 +1,10 @@
-// Nanopore2
+// shasta
 #include "LocalMarkerGraph.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
 #include "orderPairs.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Boost libraries.
 // Due to a bug in boost graph include files, disjoint_sets.hpp
@@ -723,7 +723,7 @@ vector<LocalMarkerGraph::vertex_descriptor> LocalMarkerGraph::topologicalSort()
 
 
 // Extract the longest sequence present in the graph.
-vector<pair<Nanopore2::Base, int> > LocalMarkerGraph::extractLongestSequence()
+vector<pair<shasta::Base, int> > LocalMarkerGraph::extractLongestSequence()
 {
 
     // Find the longest path.
@@ -740,11 +740,11 @@ vector<pair<Nanopore2::Base, int> > LocalMarkerGraph::extractLongestSequence()
 
 
 // Extract the sequence corresponding to a path.
-vector<pair<Nanopore2::Base, int> > LocalMarkerGraph::getPathSequence(
+vector<pair<shasta::Base, int> > LocalMarkerGraph::getPathSequence(
     const vector<edge_descriptor>& path)
 {
     LocalMarkerGraph& graph = *this;
-    using Nanopore2::Base;
+    using shasta::Base;
 
     // Sanity check on the path.
     CZI_ASSERT(!path.empty());

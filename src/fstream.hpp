@@ -4,7 +4,7 @@
 #include <fstream>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::ifstream;
         using std::ofstream;
     }

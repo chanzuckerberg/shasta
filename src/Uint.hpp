@@ -14,7 +14,7 @@
 #include <type_traits>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         template<int N, class UintHelper> class Uint;
 
@@ -38,7 +38,7 @@ namespace ChanZuckerberg {
 // UintHelper = built-in integer type that Uint converts to-from.
 // UintHelper must be an unsigned integer type at least N bytes long.
 
-template<int N, class UintHelper> class ChanZuckerberg::Nanopore2::Uint {
+template<int N, class UintHelper> class ChanZuckerberg::shasta::Uint {
 public:
 
     Uint(const UintHelper& i)

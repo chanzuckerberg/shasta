@@ -1,6 +1,6 @@
 #include "LongBaseSequence.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 #include "vector.hpp"
 
@@ -82,7 +82,7 @@ void LongBaseSequences::append(size_t baseCountArgument)
 
 
 
-void ChanZuckerberg::Nanopore2::testLongBaseSequence()
+void ChanZuckerberg::shasta::testLongBaseSequence()
 {
 
 

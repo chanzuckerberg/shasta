@@ -1,14 +1,14 @@
 #include "MultitreadedObject.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 #include <chrono>
 
 
 
 // Class used only by function testMultithreadedObject.
-class ChanZuckerberg::Nanopore2::MultithreadedObjectTestClass :
+class ChanZuckerberg::shasta::MultithreadedObjectTestClass :
     public MultithreadedObject<MultithreadedObjectTestClass> {
 public:
 
@@ -58,7 +58,7 @@ public:
 
 
 
-void ChanZuckerberg::Nanopore2::testMultithreadedObject()
+void ChanZuckerberg::shasta::testMultithreadedObject()
 {
 
     const size_t n = 32 * 1024;

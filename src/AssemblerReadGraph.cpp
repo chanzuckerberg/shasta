@@ -1,10 +1,10 @@
-// Nanopore2.
+// shasta.
 #include "Assembler.hpp"
 #include "LocalReadGraph.hpp"
 #include "orderPairs.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>

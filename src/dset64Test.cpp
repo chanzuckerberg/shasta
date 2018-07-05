@@ -1,8 +1,8 @@
-// Nanopore2.
+// shasta.
 #include "dset64Test.hpp"
 #include "vector.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
@@ -14,7 +14,7 @@ using namespace Nanopore2;
 
 
 
-void ChanZuckerberg::Nanopore2::dset64Test(
+void ChanZuckerberg::shasta::dset64Test(
     uint64_t n,             // The number of items (vertices).
     uint64_t m,             // The number of union operations (edges).
     uint64_t threadCount,   // The number of threads to use.

@@ -4,7 +4,7 @@
 #include <tuple>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::ignore;
         using std::tie;
         using std::tuple;

@@ -43,7 +43,7 @@ was done when the global marker graph was created.
 
 *******************************************************************************/
 
-// Nanopore2.
+// shasta.
 #include "Kmer.hpp"
 #include "MemoryAsContainer.hpp"
 #include "ReadId.hpp"
@@ -58,7 +58,7 @@ was done when the global marker graph was created.
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Forward declaration of types declared in this file.
         class LocalMarkerGraphVertex;
@@ -80,7 +80,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::Nanopore2::LocalMarkerGraphVertex {
+class ChanZuckerberg::shasta::LocalMarkerGraphVertex {
 public:
 
     // The k-mer id of the marker corresponding to this vertex.
@@ -110,7 +110,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::LocalMarkerGraphEdge {
+class ChanZuckerberg::shasta::LocalMarkerGraphEdge {
 public:
     class Data {
     public:
@@ -139,7 +139,7 @@ public:
 
 
 
-class ChanZuckerberg::Nanopore2::LocalMarkerGraph :
+class ChanZuckerberg::shasta::LocalMarkerGraph :
     public LocalMarkerGraphBaseClass {
 public:
 
@@ -210,7 +210,7 @@ public:
 
     // Extract the longest sequence present in the graph.
     // For each position the returned sequence contains a base and a coverage value.
-    using Base = Nanopore2::Base;   // Override boost::graph definition.
+    using Base = shasta::Base;   // Override boost::graph definition.
     vector< pair<Base, int> > extractLongestSequence();
 
 

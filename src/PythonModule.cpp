@@ -1,5 +1,5 @@
 
-// Nanopore2.
+// shasta.
 #include "Assembler.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
@@ -10,7 +10,7 @@
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Pybind11
 #include <pybind11/pybind11.h>

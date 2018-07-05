@@ -1,4 +1,4 @@
-// Nanopore2
+// shasta
 #include "LocalMarkerGraph2.hpp"
 #include "CZI_ASSERT.hpp"
 #include "findMarkerId.hpp"
@@ -8,7 +8,7 @@
 #include "orderPairs.hpp"
 #include "ReadId.hpp"
 using namespace ChanZuckerberg;
-using namespace Nanopore2;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>
@@ -187,7 +187,7 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
                     const auto read = reads[orientedReadId.getReadId()];
                     const uint32_t readLength = uint32_t(read.baseCount);
                     for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
-                        Nanopore2::Base base;
+                        shasta::Base base;
                         if(orientedReadId.getStrand() == 0) {
                             base = read.get(position);
                         } else {
@@ -226,7 +226,7 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
                 const auto read = reads[orientedReadId.getReadId()];
                 const uint32_t readLength = uint32_t(read.baseCount);
                 for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
-                    Nanopore2::Base base;
+                    shasta::Base base;
                     if(orientedReadId.getStrand() == 0) {
                         base = read.get(position);
                     } else {
@@ -570,7 +570,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             if(sequence.sequence.empty()) {
                 sequenceString = to_string(sequence.overlappingBaseCount);
             } else {
-                for(const Nanopore2::Base base: sequence.sequence) {
+                for(const shasta::Base base: sequence.sequence) {
                     sequenceString.push_back(base.character());
                 }
             }

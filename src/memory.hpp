@@ -4,7 +4,7 @@
 #include <memory>
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
         using std::make_shared;
         using std::shared_ptr;
     }

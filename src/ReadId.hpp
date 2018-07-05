@@ -13,7 +13,7 @@
 
 
 namespace ChanZuckerberg {
-    namespace Nanopore2 {
+    namespace shasta {
 
         // Type used to identify a read.
         // This is used as an index into Assembler::reads.
@@ -34,7 +34,7 @@ namespace ChanZuckerberg {
 // The strand stored in the least significant
 // bit is 0 if the oriented read is identical
 // to the original read and 1 if it is reverse complemented
-class ChanZuckerberg::Nanopore2::OrientedReadId {
+class ChanZuckerberg::shasta::OrientedReadId {
 public:
     OrientedReadId() : value(std::numeric_limits<ReadId>::max()) {}
     OrientedReadId(ReadId readId, Strand strand) : value((readId<<1) | strand)
@@ -84,7 +84,7 @@ private:
 
 
 
-inline std::ostream& ChanZuckerberg::Nanopore2::operator<<(
+inline std::ostream& ChanZuckerberg::shasta::operator<<(
     std::ostream& s,
     OrientedReadId orientedReadId)
 {
