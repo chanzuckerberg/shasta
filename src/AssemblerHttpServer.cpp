@@ -539,38 +539,33 @@ void Assembler::exploreOverlappingReads(
 
 
 
-    // Loop over Overlap and Alignment objects that this oriented read in involved in.
-    const auto overlapIndexes = overlapTable[orientedReadId0.getValue()];
+    // Loop over Alignment objects that this oriented read in involved in.
+    const auto overlapIndexes = alignmentTable[orientedReadId0.getValue()];
     html <<
         "<table><tr>"
         "<th>Oriented<br>read"
-        "<th title="
-        "'The number of times this overlapping pair was found by the MinHash algorithm'"
-        ">MinHash<br>frequency"
         "<th title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers";
     for(const auto i: overlapIndexes) {
-        const Overlap& overlap = overlaps[i];
-        const AlignmentInfo& alignmentInfo = alignmentInfos[i];
+        const AlignmentData& ad = alignmentData[i];
 
         ReadId readId1;
-        if(overlap.readIds[0] == readId0) {
-            readId1 = overlap.readIds[1];
+        if(ad.readIds[0] == readId0) {
+            readId1 = ad.readIds[1];
         } else {
-            CZI_ASSERT(overlap.readIds[1] == readId0);
-            readId1 = overlap.readIds[0];
+            CZI_ASSERT(ad.readIds[1] == readId0);
+            readId1 = ad.readIds[0];
         }
-        const Strand strand1 = overlap.isSameStrand ? strand0 : 1-strand0;
+        const Strand strand1 = ad.isSameStrand ? strand0 : 1-strand0;
         const OrientedReadId orientedReadId1(readId1, strand1);
 
         html <<
             "<tr>"
             "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 << "'>" << orientedReadId1 << "</a>"
-            "<td class=centered>" << overlap.minHashFrequency <<
             "<td class=centered>"
             "<a href='exploreAlignment"
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
-            "'>" << alignmentInfo.markerCount << "</a>";
+            "'>" << ad.info.markerCount << "</a>";
     }
     html << "</table>";
 }

@@ -141,7 +141,6 @@ public:
 
     // Compute connected components of the global read graph.
     void computeReadGraphComponents(
-        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minComponentSize,        // Minimum size for a connected component to be kept.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim                  // Maximum left/right trim to generate an edge
@@ -164,30 +163,6 @@ public:
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
         size_t maxTrim                  // Maximum trim allowed in an alignment.
     );
-
-    // Compute a local marker graph for a set of oriented reads.
-    void createLocalMarkerGraph(
-        const vector< pair<ReadId, Strand> >&,
-        bool alignAllPairs,
-        size_t alignmentMaxSkip,
-        size_t alignmentMaxVertexCountPerKmer,
-        size_t minAlignedMarkerCount,
-        size_t minCoverage,
-        size_t minConsensus);
-
-    // Create the local marker graph that corresponds to a local read graph
-    // constructed starting at a given oriented read and extending out
-    // up to a specified distance.
-    void createLocalMarkerGraph(
-        ReadId, Strand,
-        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
-        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-        size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-        size_t distance,                // How far to go from starting oriented read.
-        size_t alignmentMaxSkip,
-        size_t alignmentMaxVertexCountPerKmer,
-        size_t minCoverage,
-        size_t minConsensus);
 
 
 
@@ -240,13 +215,9 @@ public:
 
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
-        size_t threadCount,
-
-        // Flag to control computation of the global marker graph.
-        // This should normally be true.
-        bool computeGlobalMarkerGraph
+        size_t threadCount
     );
-    void accessAlignmentInfos();
+    void accessAlignmentData();
 
 
 
@@ -463,11 +434,16 @@ private:
         OrientedReadId orientedReadIds1,
         const AlignmentInfo&);
 
-    // The AlignmentInfo corresponding to each overlap.
+    // The good alignments we found.
     // These are computed with the first oriented read on strand 0.
-    MemoryMapped::Vector<AlignmentInfo> alignmentInfos;
-    void checkAlignmentInfosAreOpen();
+    MemoryMapped::Vector<AlignmentData> alignmentData;
+    void checkAlignmentDataAreOpen();
 
+    // The alignment table stores the AlignmentData that each oriented read is involved in.
+    // Stores, for each OrientedReadId, a vector of indexes into the alignmentData vector.
+    // Indexed by OrientedReadId::getValue(),
+    MemoryMapped::VectorOfVectors<uint32_t, uint32_t> alignmentTable;
+    void computeAlignmentTable();
 
 
     // Thread functions for computeAllAlignments.
@@ -490,12 +466,20 @@ private:
     // Data for computeAllAlignments.
     class ComputeAllAlignmentsData {
     public:
+
+        // Parameters.
         size_t maxSkip;
         size_t maxVertexCountPerKmer;
         size_t minAlignedMarkerCount;
         size_t maxTrim;
-        bool computeGlobalMarkerGraph;
+
+        // The total number of oriented markers.
         uint64_t orientedMarkerCount;
+
+        // The AlignmentInfo found by each thread.
+        vector< vector<AlignmentData> > threadAlignmentData;
+
+        // Disjoint sets data structures.
         MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
         std::shared_ptr<DisjointSets> disjointSetsPointer;
 
@@ -545,19 +529,6 @@ private:
         GlobalMarkerGraphVertexId,
         vector<GlobalMarkerGraphVertexId>&,
         bool append = false) const;
-
-
-
-    // Compute a local marker graph for a set of oriented reads.
-    // This creates it from scratch and does not use the global marker graph.
-    void createLocalMarkerGraph(
-        const vector<OrientedReadId>&,
-        bool alignAllPairs,
-        size_t alignmentMaxSkip,
-        size_t alignmentMaxVertexCountPerKmer,
-        size_t minAlignedMarkerCount,
-        size_t minCoverage,
-        size_t minConsensus);
 
 
 

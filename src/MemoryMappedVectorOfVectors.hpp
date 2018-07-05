@@ -272,7 +272,7 @@ template<class T, class Int>
 template<class T, class Int>
     void ChanZuckerberg::Nanopore2::MemoryMapped::VectorOfVectors<T, Int>::beginPass2()
 {
-    const Int n = count.size();
+    const Int n = Int(count.size());
     toc.reserveAndResize(n+1);
     toc[0] = 0;
     for(Int i=0; i<n; i++) {
@@ -290,7 +290,7 @@ template<class T, class Int>
 {
     // Verify that all counts are now zero.
     if(check) {
-        const Int n = count.size();
+        const Int n = Int(count.size());
         for(Int i=0; i<n; i++) {
             CZI_ASSERT(count[i] == 0);;
         }

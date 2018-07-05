@@ -32,7 +32,6 @@ void LocalReadGraph::addVertex(
 void LocalReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    const Overlap& overlap,
     const AlignmentInfo& alignmentInfo)
 {
     // Find the vertices corresponding to these two OrientedReadId.
@@ -44,7 +43,7 @@ void LocalReadGraph::addEdge(
     const vertex_descriptor v1 = it1->second;
 
     // Add the edge.
-    add_edge(v0, v1, LocalReadGraphEdge(overlap, alignmentInfo), *this);
+    add_edge(v0, v1, LocalReadGraphEdge(alignmentInfo), *this);
 }
 
 

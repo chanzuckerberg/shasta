@@ -19,7 +19,6 @@ using namespace Nanopore2;
 // Compute connected components of the global read graph.
 // We only keep components that are large enough.
 void Assembler::computeReadGraphComponents(
-    size_t minFrequency,            // Minimum number of minHash hits for an overlap to be used.
     size_t minComponentSize,        // Minimum size for a connected component to be kept.
     size_t minAlignedMarkerCount,
     size_t maxTrim
@@ -29,9 +28,8 @@ void Assembler::computeReadGraphComponents(
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkOverlapsAreOpen();
-    checkAlignmentInfosAreOpen();
+    checkAlignmentDataAreOpen();
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(2*reads.size());
-    CZI_ASSERT(overlaps.size() == alignmentInfos.size());
 
     // Initialize the disjoint set data structures.
     vector<ReadId> rank(orientedReadCount);
@@ -43,35 +41,28 @@ void Assembler::computeReadGraphComponents(
 
 
 
-    // Loop over overlaps, and the corresponding alignments,
-    // which satisfy our criteria.
-    for(size_t i=0; i<overlaps.size(); i++) {
+    // Loop over alignments which satisfy our criteria.
+    for(size_t i=0; i<alignmentData.size(); i++) {
         if((i%1000000) == 0) {
-            cout << timestamp << i << " of " << overlaps.size() << endl;
+            cout << timestamp << i << " of " << alignmentData.size() << endl;
         }
-        const Overlap& overlap = overlaps[i];
-        const AlignmentInfo& alignmentInfo = alignmentInfos[i];
-
-        // If the MinHash frequency is not sufficient, skip.
-        if(overlap.minHashFrequency < minFrequency) {
-            continue;
-        }
+        const AlignmentData& ad = alignmentData[i];
 
         // If the number of markers in the alignment is too small, skip.
-        if(alignmentInfo.markerCount < minAlignedMarkerCount) {
+        if(ad.info.markerCount < minAlignedMarkerCount) {
             continue;
         }
 
         // Compute the left and right trim (bases excluded from
         // the alignment).
-        OrientedReadId orientedReadId0(overlap.readIds[0], 0);
-        OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
+        OrientedReadId orientedReadId0(ad.readIds[0], 0);
+        OrientedReadId orientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
         uint32_t leftTrim;
         uint32_t rightTrim;
         tie(leftTrim, rightTrim) = computeTrim(
             orientedReadId0,
             orientedReadId1,
-            alignmentInfo);
+            ad.info);
 
         // If the trim is too high, skip.
         if(leftTrim>maxTrim || rightTrim>maxTrim) {
@@ -200,9 +191,7 @@ void Assembler::createLocalReadGraph(
     checkReadNamesAreOpen();
     checkKmersAreOpen();
     checkMarkersAreOpen();
-    checkOverlapsAreOpen();
-    checkAlignmentInfosAreOpen();
-    CZI_ASSERT(overlaps.size() == alignmentInfos.size());
+    checkAlignmentDataAreOpen();
 
     // Create the LocalReadGraph.
     LocalReadGraph graph;
@@ -251,40 +240,33 @@ void Assembler::createLocalReadGraph(
         const uint32_t distance1 = distance0 + 1;
 
         // Loop over overlaps/alignments involving this vertex.
-        for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
-            CZI_ASSERT(i < overlaps.size());
-            const Overlap& overlap = overlaps[i];
-
-            // If the overlap was found by too few minHash iterations, skip.
-            if(overlap.minHashFrequency < minFrequency) {
-                continue;
-            }
-
+        for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
+            CZI_ASSERT(i < alignmentData.size());
+            const AlignmentData& ad = alignmentData[i];
 
             // If the alignment involves too few markers, skip.
-            const AlignmentInfo& alignmentInfo = alignmentInfos[i];
-            if(alignmentInfo.markerCount < minAlignedMarkerCount) {
+            if(ad.info.markerCount < minAlignedMarkerCount) {
                 continue;
             }
 
             // To compute the trim, keep into account the fact
             // that the stored AlignmentInfo was computed for
             // the ReadId's stored in the Overlap, with the first one on strand 0.
-            const OrientedReadId overlapOrientedReadId0(overlap.readIds[0], 0);
-            const OrientedReadId overlapOrientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
+            const OrientedReadId overlapOrientedReadId0(ad.readIds[0], 0);
+            const OrientedReadId overlapOrientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
             uint32_t leftTrim;
             uint32_t rightTrim;
             tie(leftTrim, rightTrim) = computeTrim(
                 overlapOrientedReadId0,
                 overlapOrientedReadId1,
-                alignmentInfo);
+                ad.info);
             if(leftTrim>maxTrim || rightTrim>maxTrim) {
                 continue;
             }
 
             // The overlap and the alignment satisfy our criteria.
             // Get the other oriented read involved in this overlap.
-            const OrientedReadId orientedReadId1 = overlap.getOther(orientedReadId0);
+            const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
 
             // Add the vertex for orientedReadId1, if necessary.
             // Also add orientedReadId1 to the queue, unless
@@ -300,7 +282,7 @@ void Assembler::createLocalReadGraph(
 
             // Add the edge.
             graph.addEdge(orientedReadId0, orientedReadId1,
-                overlap, alignmentInfo);
+                ad.info);
         }
 
     }

@@ -71,15 +71,11 @@ public:
 class ChanZuckerberg::Nanopore2::LocalReadGraphEdge {
 public:
 
-    // Copies of the Overlap and AlignmentInfo
-    // that caused this edge to be created.
-    Overlap overlap;
+    // Copies of the AlignmentInfo that caused this edge to be created.
     AlignmentInfo alignmentInfo;
 
     LocalReadGraphEdge(
-        const Overlap& overlap,
         const AlignmentInfo& alignmentInfo) :
-        overlap(overlap),
         alignmentInfo(alignmentInfo)
         {}
 };
@@ -98,7 +94,6 @@ public:
     void addEdge(
         OrientedReadId orientedReadId0,
         OrientedReadId orientedReadId1,
-        const Overlap&,
         const AlignmentInfo&);
 
     // Find out if a vertex with a given OrientedId exists.

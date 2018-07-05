@@ -44,7 +44,7 @@ public:
 
 
 
-    // Give one of the oriented read ids involved in this overlap,
+    // Given one of the oriented read ids involved in this overlap,
     // return the other.
     OrientedReadId getOther(OrientedReadId orientedReadIdA) const
     {

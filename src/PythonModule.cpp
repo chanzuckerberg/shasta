@@ -135,7 +135,6 @@ PYBIND11_MODULE(Nanopore2, module)
         // Read graph.
         .def("computeReadGraphComponents",
             &Assembler::computeReadGraphComponents,
-            arg("minFrequency"),
             arg("minComponentSize"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"))
@@ -183,38 +182,6 @@ PYBIND11_MODULE(Nanopore2, module)
 
 
 
-        // Local marker graph.
-        .def("createLocalMarkerGraph",
-            (
-                void (Assembler::*)
-                (const vector< pair<ReadId, Strand> >&, bool, size_t, size_t, size_t, size_t, size_t)
-            )
-            &Assembler::createLocalMarkerGraph,
-            arg("readIdsAndStrands"),
-            arg("alignAllPairs"),
-            arg("alignmentMaxSkip"),
-            arg("alignmentMaxVertexCountPerKmer"),
-            arg("minAlignedMarkerCount"),
-            arg("minCoverage"),
-            arg("minConsensus"))
-        .def("createLocalMarkerGraph",
-            (
-                void (Assembler::*)
-                (ReadId, Strand, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t)
-            )
-            &Assembler::createLocalMarkerGraph,
-            arg("readId"),
-            arg("strand"),
-            arg("minFrequency"),
-            arg("minAlignedMarkerCount"),
-            arg("maxTrim"),
-            arg("distance"),
-            arg("alignmentMaxSkip"),
-            arg("alignmentMaxVertexCountPerKmer"),
-            arg("minCoverage"),
-            arg("minConsensus"))
-
-
         // Compute all alignments and, optionally, the global marker graph.
         .def("computeAllAlignments",
             &Assembler::computeAllAlignments,
@@ -224,10 +191,9 @@ PYBIND11_MODULE(Nanopore2, module)
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
             arg("minCoverage"),
-            arg("threadCount") = 0,
-            arg("computeGlobalMarkerGraph") = true)
-        .def("accessAlignmentInfos",
-            &Assembler::accessAlignmentInfos)
+            arg("threadCount") = 0)
+        .def("accessAlignmentData",
+            &Assembler::accessAlignmentData)
 
 
 
