@@ -26,6 +26,7 @@ public:
     // The constructor does all the work.
     ReadLoader(
         const string& fileName,
+        size_t minReadLength,
         size_t blockSize,
         size_t threadCountForReading,
         size_t threadCountForProcessing,
@@ -41,6 +42,9 @@ private:
     // The size, in bytes, of the input file.
     size_t fileSize;
     void getFileSize();
+
+    // The minimum read length. Shorter reads are not stored.
+    size_t minReadLength;
 
     // The block size we are using.
     size_t blockSize;

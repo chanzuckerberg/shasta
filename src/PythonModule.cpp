@@ -39,6 +39,7 @@ PYBIND11_MODULE(Nanopore2, module)
             &Assembler::addReadsFromFasta,
             "Add reads from a fasta file.",
             arg("fileName"),
+            arg("minReadLength"),
             arg("blockSize") = 2ULL * 1024ULL * 1024ULL * 1024ULL,
             arg("threadCountForReading") = 1,
             arg("threadCountForProcessing") = 0)

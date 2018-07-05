@@ -82,6 +82,7 @@ public:
     // The reads are added to those already previously present.
     void addReadsFromFasta(
         const string& fileName,
+        size_t minReadLength,
         size_t blockSize,
         size_t threadCountForReading,
         size_t threadCountForProcessing);

@@ -13,6 +13,7 @@ using namespace Nanopore2;
 // Load reads from a fastq or fasta file.
 ReadLoader::ReadLoader(
     const string& fileName,
+    size_t minReadLength,
     size_t blockSize,
     size_t threadCountForReadingArgument,
     size_t threadCountForProcessingArgument,
@@ -22,6 +23,7 @@ ReadLoader::ReadLoader(
     MemoryMapped::VectorOfVectors<char, uint64_t>& readNames) :
 
     MultithreadedObject(*this),
+    minReadLength(minReadLength),
     blockSize(blockSize),
     threadCountForReading(threadCountForReadingArgument),
     threadCountForProcessing(threadCountForProcessingArgument)
@@ -80,6 +82,9 @@ ReadLoader::ReadLoader(
         // cout << leftOver.size() << " characters in this block will be processed with the next block." << endl;
 
         // Process this block in parallel.
+        // This does not use load balancing. Each thread is assigned a predetermined
+        // portion of this block. This way, we store the reads in the same
+        // order as they appear in the input file.
         cout << "Processing " << buffer.size() << " input characters." << endl;
         const auto t2 = std::chrono::steady_clock::now();
         runThreads(&ReadLoader::processThreadFunction, threadCountForProcessing);
@@ -272,6 +277,11 @@ void ReadLoader::processThreadFunction(size_t threadId)
                 break;
             }
             read.push_back(Base(c, Base::FromCharacter()));
+        }
+
+        // If the read is too short, skip it.
+        if(read.size() < minReadLength) {
+            continue;
         }
 
         // Store the read name.

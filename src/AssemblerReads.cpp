@@ -52,6 +52,7 @@ void Assembler::checkReadId(ReadId readId) const
 // The reads are added to those already previously present.
 void Assembler::addReadsFromFasta(
     const string& fileName,
+    size_t minReadLength,
     size_t blockSize,
     const size_t threadCountForReading,
     const size_t threadCountForProcessing)
@@ -61,6 +62,7 @@ void Assembler::addReadsFromFasta(
 
     ReadLoader(
         fileName,
+        minReadLength,
         blockSize,
         threadCountForReading,
         threadCountForProcessing,
