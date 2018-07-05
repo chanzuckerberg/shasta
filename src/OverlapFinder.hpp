@@ -34,7 +34,6 @@ public:
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>&,
         MemoryMapped::Vector<Overlap>& overlaps,
-        MemoryMapped::VectorOfVectors<uint64_t, uint64_t>& overlapTable,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize
 );

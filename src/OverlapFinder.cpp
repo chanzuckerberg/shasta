@@ -25,7 +25,6 @@ OverlapFinder::OverlapFinder(
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     MemoryMapped::Vector<Overlap>& overlaps,
-    MemoryMapped::VectorOfVectors<uint64_t, uint64_t>& overlapTable,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize
     ) :
@@ -167,43 +166,6 @@ OverlapFinder::OverlapFinder(
     cout << "Found " << overlaps.size() << " overlaps."<< endl;
     cout << "Average number of overlaps per oriented read is ";
     cout << (2.* double(overlaps.size())) / double(orientedReadCount)  << endl;
-
-
-
-    // Create the overlap table.
-    // It contains indexes of the overlaps that each OrientedReadId
-    // is involved in.
-    cout << timestamp << "Creating overlap table." << endl;
-    overlapTable.beginPass1(orientedReadCount);
-    for(const Overlap& overlap: overlaps) {
-        OrientedReadId orientedReadId0(overlap.readIds[0], 0);
-        OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
-        overlapTable.incrementCount(orientedReadId0.getValue());
-        overlapTable.incrementCount(orientedReadId1.getValue());
-        orientedReadId0.flipStrand();
-        orientedReadId1.flipStrand();
-        overlapTable.incrementCount(orientedReadId0.getValue());
-        overlapTable.incrementCount(orientedReadId1.getValue());
-    }
-    overlapTable.beginPass2();
-    if(overlaps.size() > 0) {
-        for(size_t i=overlaps.size()-1; ; i--) {
-            const Overlap& overlap = overlaps[i];
-            OrientedReadId orientedReadId0(overlap.readIds[0], 0);
-            OrientedReadId orientedReadId1(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
-            overlapTable.store(orientedReadId0.getValue(), i);
-            overlapTable.store(orientedReadId1.getValue(), i);
-            orientedReadId0.flipStrand();
-            orientedReadId1.flipStrand();
-            overlapTable.store(orientedReadId0.getValue(), i);
-            overlapTable.store(orientedReadId1.getValue(), i);
-            if(i==0) {
-                break;
-            }
-        }
-    }
-    overlapTable.endPass2();
-    CZI_ASSERT(overlapTable.totalSize() == 4*overlaps.size());
 
 
 

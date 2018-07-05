@@ -151,11 +151,11 @@ void Assembler::alignOverlappingOrientedReads(
     // Loop over all overlaps involving this oriented read.
     vector<MarkerWithOrdinal> markers1SortedByKmerId;
     size_t goodAlignmentCount = 0;
-    for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
-        const Overlap& overlap = overlaps[i];
+    for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
+        const AlignmentData& ad = alignmentData[i];
 
         // Get the other oriented read involved in this overlap.
-        const OrientedReadId orientedReadId1 = overlap.getOther(orientedReadId0);
+        const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
 
         // Get the markers for orientedReadId1.
         getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
@@ -189,8 +189,8 @@ void Assembler::alignOverlappingOrientedReads(
         cout << endl;
 
     }
-    cout << "Found " << goodAlignmentCount << " good alignments among ";
-    cout << overlapTable[orientedReadId0.getValue()].size() << " overlaps." << endl;
+    cout << "Found " << goodAlignmentCount << " alignments out of ";
+    cout << alignmentTable[orientedReadId0.getValue()].size() << "." << endl;
 
 }
 

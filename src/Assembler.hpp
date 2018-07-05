@@ -337,11 +337,6 @@ private:
     // The overlap table defined below can be used to locate
     // all the overlaps that an oriented read is involved in.
     MemoryMapped::Vector<Overlap> overlaps;
-
-    // The overlap table stores the overlaps that each oriented read is involved in.
-    // Stores, for each OrientedReadId, a vector of indexes into the overlaps vector.
-    // Indexed by OrientedReadId::getValue(),
-    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> overlapTable;
     void checkOverlapsAreOpen() const;
 
 

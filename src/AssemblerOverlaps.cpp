@@ -27,9 +27,8 @@ void Assembler::findOverlaps(
             "Must at least equal base 2 log of number of reads plus 3.");
     }
 
-    // Create the overlaps and overlap table.
+    // Create the overlaps.
     overlaps.createNew(largeDataName("Overlaps"), largeDataPageSize);
-    overlapTable.createNew(largeDataName("OverlapTable"), largeDataPageSize);
 
     // Call the OverlapFinder to do the MinHash computation.
     OverlapFinder overlapFinder(
@@ -42,7 +41,6 @@ void Assembler::findOverlaps(
         kmerTable,
         markers,
         overlaps,
-        overlapTable,
         largeDataFileNamePrefix,
         largeDataPageSize);
 }
@@ -52,13 +50,12 @@ void Assembler::findOverlaps(
 void Assembler::accessOverlaps()
 {
     overlaps.accessExistingReadOnly(largeDataName("Overlaps"));
-    overlapTable.accessExistingReadOnly(largeDataName("OverlapTable"));
 }
 
 
 void Assembler::checkOverlapsAreOpen() const
 {
-    if(!overlaps.isOpen || !overlapTable.isOpen()) {
+    if(!overlaps.isOpen) {
         throw runtime_error("Overlaps are not accessible.");
     }
 }
@@ -86,18 +83,18 @@ void Assembler::writeOverlappingReads(
     cout << "Reads overlapping " << orientedReadId0 << " length " << length0 << endl;
 
     // Loop over all overlaps involving this oriented read.
-    for(const uint64_t i: overlapTable[orientedReadId0.getValue()]) {
-        const Overlap& overlap = overlaps[i];
+    for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
+        const AlignmentData& ad = alignmentData[i];
 
         // Get the other oriented read involved in this overlap.
-        const OrientedReadId orientedReadId1 = overlap.getOther(orientedReadId0);
+        const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
 
         // Write it out.
         const uint64_t length1 = reads[orientedReadId1.getReadId()].baseCount;
-        cout << orientedReadId1 << " length " << length1 << " frequency " << overlap.minHashFrequency << endl;
+        cout << orientedReadId1 << " length " << length1 << endl;
         writeOrientedRead(orientedReadId1, file);
     }
-    cout << "Found " << overlapTable[orientedReadId0.getValue()].size();
+    cout << "Found " << alignmentTable[orientedReadId0.getValue()].size();
     cout << " overlapping oriented reads." << endl;
 
 }
