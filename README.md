@@ -1,11 +1,11 @@
-# Nanopore2
+# Shasta
 
 De novo assembly from Nanopore sequencing data.
 This repository is at an early stage and
 no additional documentation is available.
 
 
-### Acknowledgment
+### Acknowledgment for file src/dset64.hpp
 
 File src/dset64.hpp is a modified version of file dset.h from GitHub repository
 wjakob/dset by Wenzel Jacob. See the LICENSE file for 
