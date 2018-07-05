@@ -37,7 +37,6 @@ a.accessAlignmentData()
 a.createLocalReadGraph(
     readId = readId,
     strand = strand,
-    minFrequency = int(config['MinHash']['minFrequency']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
     maxTrim = int(config['Align']['maxTrim']),
     distance = distance
