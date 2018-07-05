@@ -17,7 +17,6 @@ a.accessAlignmentData()
 
 # Do the computation.
 a.computeReadGraphComponents(
-    minFrequency = int(config['MinHash']['minFrequency']),
     minComponentSize = int(config['ReadGraph']['minComponentSize']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
     maxTrim = int(config['Align']['maxTrim'])
