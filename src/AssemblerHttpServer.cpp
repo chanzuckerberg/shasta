@@ -821,9 +821,6 @@ void Assembler::exploreReadGraph(
     Strand strand = 0;
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
 
-    size_t minFrequency = 1;
-    getParameterValue(request, "minFrequency", minFrequency);
-
     size_t minAlignedMarkerCount = 100;
     getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
 
@@ -865,13 +862,6 @@ void Assembler::exploreReadGraph(
         "<td>Maximum distance"
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
-        "'>"
-
-        "<tr title='The minimum number of times a read pair was found by the MinHash "
-        "algorithm in order for an edge to be generated'>"
-        "<td>Minimum MinHash frequency"
-        "<td><input type=text required name=minFrequency size=8 style='text-align:center'"
-        " value='" << minFrequency <<
         "'>"
 
         "<tr title='The minimum number of aligned markers "
@@ -934,7 +924,7 @@ void Assembler::exploreReadGraph(
     // Create the LocalReadGraph.
     LocalReadGraph graph;
     createLocalReadGraph(orientedReadId,
-        minFrequency, minAlignedMarkerCount, maxTrim, maxDistance,
+        minAlignedMarkerCount, maxTrim, maxDistance,
         graph);
 
     // Write it out in graphviz format.

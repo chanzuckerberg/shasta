@@ -237,9 +237,6 @@ pair<uint32_t, uint32_t> Assembler::computeTrim(
 // Optionally, the alignments are used for creation of the global marker graph.
 void Assembler::computeAllAlignments(
 
-    // Minimum number of MinHash hits for an alignment to be computed.
-    size_t minFrequency,
-
     // The  maximum number of vertices in the alignment graph
     // that we allow a single k-mer to generate.
     size_t alignmentMaxVertexCountPerKmer,

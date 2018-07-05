@@ -141,12 +141,11 @@ PYBIND11_MODULE(Nanopore2, module)
         .def("createLocalReadGraph",
             (
                 void (Assembler::*)
-                (ReadId, Strand, size_t, size_t, size_t, uint32_t)
+                (ReadId, Strand, size_t, size_t, uint32_t)
             )
             &Assembler::createLocalReadGraph,
             arg("readId"),
             arg("strand"),
-            arg("minFrequency"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
             arg("distance"))
@@ -185,7 +184,6 @@ PYBIND11_MODULE(Nanopore2, module)
         // Compute all alignments and, optionally, the global marker graph.
         .def("computeAllAlignments",
             &Assembler::computeAllAlignments,
-            arg("minFrequency"),
             arg("maxVertexCountPerKmer"),
             arg("maxSkip"),
             arg("minAlignedMarkerCount"),

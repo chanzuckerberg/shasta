@@ -133,7 +133,6 @@ public:
     // Create a local read graph starting from a given oriented read.
     void createLocalReadGraph(
         ReadId, Strand,
-        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim (in bases) to generate an edge.
         uint32_t distance               // How far to go from starting oriented read.
@@ -191,9 +190,6 @@ public:
     // Compute an Alignment for each Overlap, but  only store the AlignmentInfo.
     // Optionally, the alignments are used for creation of the global marker graph.
     void computeAllAlignments(
-
-        // Minimum number of MinHash hits for an alignment to be computed.
-        size_t minFrequency,
 
         // The  maximum number of vertices in the alignment graph
         // that we allow a single k-mer to generate.
@@ -390,14 +386,12 @@ private:
     // and walking out a given distance on the global read graph.
     void createLocalReadGraph(
         OrientedReadId,
-        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim to generate an edge.
         uint32_t distance               // How far to go from starting oriented read.
     );
     void createLocalReadGraph(
         OrientedReadId,
-        size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim to generate an edge.
         uint32_t distance,              // How far to go from starting oriented read.

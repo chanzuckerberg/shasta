@@ -168,19 +168,17 @@ void Assembler::computeReadGraphComponents(
 void Assembler::createLocalReadGraph(
     ReadId readId,
     Strand strand,
-    size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
     uint32_t distance                 // How far to go from starting oriented read.
 )
 {
     createLocalReadGraph(OrientedReadId(readId, strand),
-        minFrequency, minAlignedMarkerCount, maxTrim,
+        minAlignedMarkerCount, maxTrim,
         distance);
 }
 void Assembler::createLocalReadGraph(
     OrientedReadId orientedReadId,
-    size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
     uint32_t maxDistance              // How far to go from starting oriented read.
@@ -196,7 +194,7 @@ void Assembler::createLocalReadGraph(
     // Create the LocalReadGraph.
     LocalReadGraph graph;
     createLocalReadGraph(orientedReadId,
-        minFrequency, minAlignedMarkerCount, maxTrim, maxDistance,
+        minAlignedMarkerCount, maxTrim, maxDistance,
         graph);
 
     cout << "The local read graph has " << num_vertices(graph);
@@ -212,7 +210,6 @@ void Assembler::createLocalReadGraph(
 // and walking out a given distance on the global read graph.
 void Assembler::createLocalReadGraph(
     OrientedReadId orientedReadIdStart,
-    size_t minFrequency,            // Minimum number of minHash hits to generate an edge.
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
     uint32_t maxDistance,           // How far to go from starting oriented read.
