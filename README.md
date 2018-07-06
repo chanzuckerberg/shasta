@@ -1,9 +1,7 @@
-# Shasta
+# chanzuckerberg/shasta
 
-De novo assembly from Nanopore sequencing data.
-This repository is at an early stage and
-no additional documentation is available.
-
+Experimental software for de novo assembly from Nanopore sequencing data. 
+This repository is at an early stage and no additional documentation is available.
 
 ### Acknowledgment for file src/dset64.hpp
 
