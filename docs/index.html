@@ -14,8 +14,186 @@
 </h1>
 
 <p>
-Experimental software for de novo assembly from Nanopore sequencing data. 
-This repository is at an early stage and no additional documentation is available.
+The aim of this project is to enable 
+<i>de novo</i> assembly on a routine basis for human size genomes 
+using long reads with high error rates such as those created by 
+the <a href="https://nanoporetech.com/">Oxford Nanopore</a> 
+and 
+<a href="https://www.pacb.com/">Pacific Biosciences</a> DNA sequencing platforms.
+For this to be possible, <i>de novo</i> assembly must be:
+
+<ul>
+<li>Fast: under one day elapsed time.
+<li>Accurate: accuracy and other assembly metrics 
+comparable to those provided by existing tools.
+<li>Logistically simple and easy to run. 
+An assembly runs in memory on a single, dedicated large machine 
+with a large amount of memory (&asymp; 1 TB)
+and a relatively large number of processors (&asymp; 32 cores). 
+It does not require access to a large storage server.
+</ul>
+
+<p>
+These project is at an early stage, and the above items are
+currently merely a wish list. 
+See <a href=ShastaSlides-June2018-v2.pdf>this presentation</a>
+for more information on the computational methods.
+
+<p>
+The requirement for such a large machine may seem extravagant.
+However, machines with these characteristics are
+currently easily available at reasonable prices on the major
+cloud computing platforms. 
+For example, on AWS ECS, instance type <code>x1.16xlarge</code>,
+with 976 GiB of memory and 32 cores (64 "virtual processors")
+is available at the time of writing for around $7/hour (on demand pricing), 
+$4/hour (reserved pricing), $2/hour (spot pricing).
+On Google Cloud, machine type <code>n1-ultramem-40</code>, with similar characteristics,
+is available at similar prices.
+And machines with 1-2 TB of memory are often available
+as departmental machines.
+
+
+
+<h2>Supported platform</h2>
+<p>
+The code is currently set up to build and run on Ubuntu 16.04.
+The documentation assumes that this is the platform used
+both for building and running the code.
+
+<p> 
+Porting to other Linux systems should be relatively easy.
+However this has not yet been attempted. This reflects
+the fact that this project is at an early stage of development.
+If you are interested in portability to a specific Linux platform,
+please open a 
+<a href="https://github.com/chanzuckerberg/shasta/issues">GitHub Issue</a> 
+on the repository.
+
+<p>
+Because of the large memory utilization, it is recommended
+that a machine be dedicated to a single assembly run.
+Multiple concurrent runs on the same machine
+are not advisable. 
+If the code runs in virtualized or containerized
+environments, appropriate amounts of physical resources
+should be dedicated to it.
+
+
+
+<h2>Building the code from source</h2>
+<p>
+If you have the necessary prerequisite packages installed, 
+you can get a local copy of the code and build it
+using the following commands: 
+<pre>
+git clone git@github.com:chanzuckerberg/shasta.git
+mkdir shasta-build
+cd shasta-build
+cmake ../shasta
+make all
+make install
+</pre>
+
+<p>
+This creates in the <code>shasta-build</code> directory
+a <code>shasta-install</code> directory that 
+needs to be copied to the machine where the code will run
+and that contains the following:
+
+<ul>
+<li>A <code>bin</code> directory containing shared library
+<code>shasta.so</code> and a set of Python scripts.
+<li>A <code>conf</code> directory containing sample config files.
+<li>A <code>docs</code> directory containing this and other documentation. 
+</ul>
+
+<p>
+If your build system has more than one processor
+and enough memory, you can speed up the build using the <code>-j</code>
+option in the <code>make all</code> command.
+
+
+
+<h2>Memory configuration</h2>
+<p>
+For efficient utilization of the large amount of memory,
+the code stores data on non-swappable virtual memory supported by 
+2 MB pages, as provided by the 
+<a href="https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt">
+Linux hugetlbfs filesystem</a>.
+Script <code>SetupHugePages.py</code>, 
+located in the <code>shasta-install/bin</code> directory, provides an easy 
+way to configure memory in this way.
+
+It takes as an argument the number of GB of memory
+that should allocated to the hugetlbfs filesystem.
+Most of the system memory should be configured in this way, leaving only
+20-50 GB of memory allocated to standard 4KB pages.
+
+<p>
+Running <code>SetupHugePages.py</code> requires root privileges.
+Usually, the simplest and safest way to achieve this is to
+use the Linux <code>sudo</code> command.
+
+
+<h2>Setting up a run directory</h2>
+<p>
+After running <code>SetupHugePages.py</code>, you can create a new directory
+to contain your run. After <code>cd</code> to that new directory,
+run <code>shasta-install/bin/SetupRunDirectory.py</code>.
+This will create symbolic links <code>data</code> and 
+<code>Data</code> pointing to filesystems on 4KB and 2MB pages respectively,
+as well as a <code>threadLogs</code> directory 
+to contain logs for individual threads for assembly phases
+that run in parallel.
+
+<p>
+Next, you need to create a configuration file where the <code>shasta</code>
+software will find values for various assembly parameters.
+This file must be named <code>shasta.conf</code>.
+Sample config files are available in the 
+<code>shasta-install/conf</code> directory. 
+You can edit them to customize them as necessary for your run.
+
+
+<h2>Input files</h2>
+<p>
+The <code>shasta</code>
+software uses as input one or more 
+<a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
+ files containing the input reads.
+ If you have a <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a> file, 
+ you can convert it to FASTA using script 
+ <code>shasta-install/bin/FastqToFasta.py</code>.
+ If your FASTQ file is compressed (extension <code>.gz</code>),
+ you can decompress it and convert to FASTA in one step,
+ saving a round trip to disk, using 
+ script 
+ <code>shasta-install/bin/FastqGzToFasta.py</code>.
+ 
+ <p>
+ For each of your FASTA files, you use script
+ <code>
+ shasta-install/bin/AddReadsFromFasta.py
+ </code>
+ to load into memory the reads contained
+ in the FASTA file that have sufficient length.
+ The minimum length is controlled by parameter 
+ <code>minReadLength</code> 
+ in the <code>[Reads]</code> section
+ of the configuration file <code>shasta.conf</code>.
+ 
+ 
+ 
+ <h2>Running the assembly</h2>
+ <p>
+ When all input FASTA files have been loaded in this way,
+ you are ready to start the rest of the assembly process,
+ which occurs entirely in memory, without access to disk,
+ with the exception of log files and some small output
+ files containing summary information.
+
 
 </body>
 </html>
