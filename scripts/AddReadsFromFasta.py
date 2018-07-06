@@ -6,7 +6,6 @@ import sys
 
 # Read the config file.
 config = GetConfig.getConfig()
-print(config)
 
 helpMessage = "Invoke with one argument, the name of the Fasta file."
 

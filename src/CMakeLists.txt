@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
-project(shasta)
+project(shasta-library)
 
-SET(CMAKE_VERBOSE_MAKEFILE ON)
+# SET(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Compiler options.
 add_definitions(-std=c++11)
@@ -36,6 +36,10 @@ include_directories(/usr/local/include/python3.5)
 
 # Libraries to link with.
 target_link_libraries(shasta png)
+
+# The shared library goes to the bin directory.
+install(TARGETS shasta DESTINATION shasta-install/bin)
+
 
 
 
