@@ -7,7 +7,7 @@ def getConfig():
     config = configparser.ConfigParser()
     configFileName = 'shasta.conf'
     if not config.read(configFileName):
-        print('Error reading config file %s.' % configFileName)
+        raise Exception('Error reading config file %s.' % configFileName)
     return config
 
 
