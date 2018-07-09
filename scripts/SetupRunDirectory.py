@@ -41,7 +41,7 @@ for name in mustNotExist:
 os.symlink(Data, 'Data')
 os.symlink(data, 'data')
 
-# Crreate the threadLogs directory.
+# Create the threadLogs directory.
 os.system('mkdir threadLogs')
 
 
