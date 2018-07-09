@@ -144,10 +144,11 @@ If you are not sure if you have the necessary prerequisite packages installed,
 you can instead
 use the following commands
 (this assumes that you are authorized to acquire root privileges
-using the <code>sudo</code> command):
+using the <code>sudo</code> command - depending on set up you may be asked 
+to enter your password):
 <pre>
 git clone git@github.com:chanzuckerberg/shasta.git
-shasta/scripts/InstallPrerequisites-Ubuntu16.04.sh
+sudo shasta/scripts/InstallPrerequisites-Ubuntu16.04.sh
 mkdir shasta-build
 cd shasta-build
 cmake ../shasta
