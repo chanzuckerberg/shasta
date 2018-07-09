@@ -1,5 +1,7 @@
 # chanzuckerberg/shasta
 
+(See [here](https://chanzuckerberg.github.io/shasta/) for the complete documentation.)
+
 It was [recently shown](https://www.nature.com/articles/nbt.4060) 
 that de novo assembly for human genomes 
 from [Oxford Nanopore](https://nanoporetech.com) reads is possible, 
@@ -24,7 +26,7 @@ Please use the [Wiki](https://github.com/chanzuckerberg/shasta/wiki)
 or [Issues](https://github.com/chanzuckerberg/shasta/issues) 
 sections of the repository as appropriate for these purposes.
 
-See [this presentation](docs/ShastaSlides-June2018-v2.pdf) 
+See [this presentation](https://chanzuckerberg.github.io/shasta/ShastaSlides-June2018-v2.pdf) 
 for information on the computational approach selected. 
 In addition to Oxford Nanopore reads, these methods might also apply 
 to other long reads with high error rates 
