@@ -2,9 +2,12 @@
 
 Contributions of code, ideas, computational experiments,
 or documentation are welcome. 
-To contribute, please use the standard GitHub Pull Request process.
+To contribute, please use the standard GitHub Pull Request process
+and take into consideration the suggestions below.
 
-If you contribute C++ code, please:
+
+
+#### Contributing C++ code
 
 * Add at least a minimal amount
 of comments to explain or clarify what the code does. 
@@ -24,16 +27,19 @@ by the standard libraries, you can also use the Boost libraries.
 * If possible, avoid adding dependencies on other packages.
 
 
-If you contribute ideas, computational experiments,
-comments, or criticism, please use the GitHub 
+
+#### Contributing ideas, computational experiments, comments, or criticism
+* Please use the GitHub 
 [Wiki](https://github.com/chanzuckerberg/shasta/wiki)
 or 
 [Issues](https://github.com/chanzuckerberg/shasta/issues)
 sections of the GitHub repository as appropriate.
 
-If you contribute documentation, please:
 
-* Put it in the `docs`
+
+#### Contributing documentation
+
+* Put your contribution in the `docs`
 directory, so it becomes automatically visible in GitHub Pages.
 * Feel free to create new `.html` files, if appropriate.
 * Attempt to harmonize your new materials with the existing
