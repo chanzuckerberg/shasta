@@ -1,3 +1,4 @@
+# Contributing to shasta
 
 Contributions of code, ideas, computational experiments,
 or documentation are welcome. 
