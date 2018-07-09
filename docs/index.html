@@ -200,6 +200,26 @@ Running <code>SetupHugePages.py</code> requires root privileges.
 Usually, the simplest and safest way to achieve this is to
 use the Linux <code>sudo</code> command.
 
+<p>
+After running <code>SetupHugePages.py</code>, run the following
+command (shown here with sample output) 
+to display the number of 2 MB pages that were
+successfully configured:
+
+<pre>
+grep HugePages_Total /proc/meminfo
+HugePages_Total:  460800
+</pre>
+
+The total numnber of pages should equal the number of GB
+passed as an argument to <code>SetupHugePages.py</code>
+times 512, the number of 2 MB pages in 1 GB.
+On a machine that has been running for a long time,
+<code>SetupHugePages.py</code> may only be able to
+configure less than the requested amount of memory.
+This is normal and due to memory fragmentation.
+In this case, it may be necessary to reboot the system.
+
 
 
 <h2>Setting up a run directory</h2>
