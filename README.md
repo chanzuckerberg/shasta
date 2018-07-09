@@ -1,9 +1,38 @@
 # chanzuckerberg/shasta
 
-Experimental software for de novo assembly from Nanopore sequencing data. 
-This repository is at an early stage and no additional documentation is available.
+It was [recently shown](https://www.nature.com/articles/nbt.4060) 
+that de novo assembly for human genomes 
+from [Oxford Nanopore](https://nanoporetech.com) reads is possible, 
+but computationally expensive and laborious. 
+The aim of this project is to make de novo assembly 
+of human genomes possible on a routine/production basis 
+and at reasonable computational cost. 
+For this to be possible, de novo assembly must be:
 
-### Acknowledgment for file src/dset64.hpp
+* Fast: under one day elapsed time.
+* Accurate: accuracy and other assembly metrics comparable to those provided by existing tools.
+* Logistically simple and easy to run.
+
+This project is at an early stage, and does not yet 
+produce assembled sequence as its final output. 
+Contributions of code, ideas, computational experiments, or documentation are welcome. 
+To contribute, please use the standard GitHub Pull Request process. 
+To facilitate and encourage contributions, the guidelines for contributing are minimal.
+
+Comments and criticism are also welcome. 
+Please use the [Wiki](https://github.com/chanzuckerberg/shasta/wiki) 
+or [Issues](https://github.com/chanzuckerberg/shasta/issues) 
+sections of the repository as appropriate for these purposes.
+
+See [this presentation](docs/ShastaSlides-June2018-v2.pdf) 
+for information on the computational approach selected. 
+In addition to Oxford Nanopore reads, these methods might also apply 
+to other long reads with high error rates 
+such as those created by the Pacific Biosciences DNA sequencing platforms.
+
+
+
+#### Acknowledgment for file src/dset64.hpp
 
 File src/dset64.hpp is a modified version of file dset.h from GitHub repository
 wjakob/dset by Wenzel Jacob. See the LICENSE file for 

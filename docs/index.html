@@ -13,13 +13,21 @@
 <a href="https://github.com/chanzuckerberg/shasta">chanzuckerberg/shasta</a>
 </h1>
 
+
+
+<h2>Motivation and wish list</h2>
+
 <p>
-The aim of this project is to enable 
-<i>de novo</i> assembly on a routine basis for human size genomes 
-using long reads with high error rates such as those created by 
-the <a href="https://nanoporetech.com/">Oxford Nanopore</a> 
-and 
-<a href="https://www.pacb.com/">Pacific Biosciences</a> DNA sequencing platforms.
+It was  
+<a href="https://www.nature.com/articles/nbt.4060"> recently shown</a>
+that <i>de novo</i> assembly for human genomes
+from <a href="https://nanoporetech.com">Oxford Nanopore</a> reads
+is possible, but computationally expensive and laborious.
+The aim of this project is to
+make <i>de novo</i> assembly of human genomes
+possible on a routine/production basis and at reasonable 
+computational cost.
+
 For this to be possible, <i>de novo</i> assembly must be:
 
 <ul>
@@ -27,28 +35,68 @@ For this to be possible, <i>de novo</i> assembly must be:
 <li>Accurate: accuracy and other assembly metrics 
 comparable to those provided by existing tools.
 <li>Logistically simple and easy to run. 
-An assembly runs in memory on a single, dedicated large machine 
-with a large amount of memory (&asymp; 1 TB)
-and a relatively large number of processors (&asymp; 32 cores). 
-It does not require access to a large storage server.
 </ul>
 
 <p>
-These project is at an early stage, and the above items are
-currently merely a wish list. 
+This project is at an early stage, and does not yet produce
+assembled sequence as its final output.
+Contributions of code, ideas, computational experiments,
+or documentation are welcome. 
+To contribute, please use the standard GitHub Pull Request process.
+To facilitate and encourage contributions, the 
+<a href=CONTRIBUTING.html>guidelines</a>
+for contributing are minimal.
+
+<p>
+Comments and criticism are also welcome.
+Please use the GitHub 
+<a href="https://github.com/chanzuckerberg/shasta/wiki">Wiki</a>
+or 
+<a href="https://github.com/chanzuckerberg/shasta/issues">Issues</a>
+sections of the GitHub repository as appropriate for these purposes.
+
+
+
+<h2>Computational approach</h2>
+
+<p>
 See <a href=ShastaSlides-June2018-v2.pdf>this presentation</a>
-for more information on the computational methods.
+for information on the computational approach selected.
+In addition to Oxford Nanopore reads,
+these methods might also apply to other long reads with high 
+error rates such as those created by the
+<a href="https://www.pacb.com/">Pacific Biosciences</a> DNA sequencing platforms.
+
+<p>
+In the chosen computational approach, 
+an assembly runs in memory on a single, dedicated large machine 
+with a large amount of memory (&asymp; 1 TB)
+and a relatively large number of processors (&asymp; 32 cores). 
+Input data are copied to memory, the entire assembly runs
+in memory without disk access (except for log files
+and small summary files), and the output is finally copied
+to storage. This minimizes delays due to data movement,
+and facilitates algorithmic development, as all data
+structures are always loaded in memory and immediately
+accessible.
 
 <p>
 The requirement for such a large machine may seem extravagant.
 However, machines with these characteristics are
 currently easily available at reasonable prices on the major
 cloud computing platforms. 
-For example, on AWS ECS, instance type <code>x1.16xlarge</code>,
-with 976 GiB of memory and 32 cores (64 "virtual processors")
-is available at the time of writing for around $7/hour (on demand pricing), 
-$4/hour (reserved pricing), $2/hour (spot pricing).
-On Google Cloud, machine type <code>n1-ultramem-40</code>, with similar characteristics,
+For example, on 
+<a href="https://aws.amazon.com/ec2">AWS EC2</a>, 
+instance type <code>x1.16xlarge</code>,
+with 976 GB of memory and 32 cores (64 "virtual processors"
+because of hyperthreading)
+is available at the time of writing for an hourly price around 
+$7 (on demand pricing), 
+$4 (reserved pricing), 
+$2 (spot pricing).
+And on <a href="https://cloud.google.com">Google Cloud</a>, 
+machine type <code>n1-ultramem-40</code>, 
+with similar characteristics,
 is available at similar prices.
 And machines with 1-2 TB of memory are often available
 as departmental machines.
@@ -62,28 +110,24 @@ The documentation assumes that this is the platform used
 both for building and running the code.
 
 <p> 
-Porting to other Linux systems should be relatively easy.
-However this has not yet been attempted. This reflects
-the fact that this project is at an early stage of development.
+Porting to other Linux systems should be relatively easy,
+and likely requiring just minor changes to the build process.
+However this has not yet been attempted. 
 If you are interested in portability to a specific Linux platform,
 please open a 
 <a href="https://github.com/chanzuckerberg/shasta/issues">GitHub Issue</a> 
 on the repository.
 
-<p>
-Because of the large memory utilization, it is recommended
-that a machine be dedicated to a single assembly run.
-Multiple concurrent runs on the same machine
-are not advisable. 
-If the code runs in virtualized or containerized
-environments, appropriate amounts of physical resources
-should be dedicated to it.
-
 
 
 <h2>Building the code from source</h2>
 <p>
-If you have the necessary prerequisite packages installed, 
+This section, as the rest of the documentation,
+assumes that you are on an Ubuntu 16.04 machine.
+
+<p>
+If you have the necessary 
+<a href=Prerequisites.html>prerequisite packages</a> installed, 
 you can get a local copy of the code and build it
 using the following commands: 
 <pre>
@@ -96,6 +140,25 @@ make install
 </pre>
 
 <p>
+If you are not sure if you have the necessary prerequisite packages installed, 
+you can instead
+use the following commands
+(this assumes that you are authorized to acquire root privileges
+using the <code>sudo</code> command):
+<pre>
+git clone git@github.com:chanzuckerberg/shasta.git
+shasta/scripts/InstallPrerequisites-Ubuntu16.04.sh
+mkdir shasta-build
+cd shasta-build
+cmake ../shasta
+make all
+make install
+</pre>
+
+
+
+
+<p>
 This creates in the <code>shasta-build</code> directory
 a <code>shasta-install</code> directory that 
 needs to be copied to the machine where the code will run
@@ -103,7 +166,7 @@ and that contains the following:
 
 <ul>
 <li>A <code>bin</code> directory containing shared library
-<code>shasta.so</code> and a set of Python scripts.
+<code>shasta.so</code> and several scripts.
 <li>A <code>conf</code> directory containing sample config files.
 <li>A <code>docs</code> directory containing this and other documentation. 
 </ul>
@@ -137,6 +200,7 @@ Usually, the simplest and safest way to achieve this is to
 use the Linux <code>sudo</code> command.
 
 
+
 <h2>Setting up a run directory</h2>
 <p>
 After running <code>SetupHugePages.py</code>, you can create a new directory
@@ -151,10 +215,13 @@ that run in parallel.
 <p>
 Next, you need to create a configuration file where the <code>shasta</code>
 software will find values for various assembly parameters.
-This file must be named <code>shasta.conf</code>.
-Sample config files are available in the 
+This configuration file must be named <code>shasta.conf</code>.
+Sample configuration files are available in the 
 <code>shasta-install/conf</code> directory. 
-You can edit them to customize them as necessary for your run.
+You can select one of them, copy it to the run directory
+under the new name <code>shasta.conf</code>, 
+and edit it to customize it as necessary for your run.
+
 
 
 <h2>Input files</h2>
@@ -162,38 +229,58 @@ You can edit them to customize them as necessary for your run.
 The <code>shasta</code>
 software uses as input one or more 
 <a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
- files containing the input reads.
- If you have a <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a> file, 
- you can convert it to FASTA using script 
- <code>shasta-install/bin/FastqToFasta.py</code>.
- If your FASTQ file is compressed (extension <code>.gz</code>),
- you can decompress it and convert to FASTA in one step,
- saving a round trip to disk, using 
- script 
- <code>shasta-install/bin/FastqGzToFasta.py</code>.
- 
- <p>
- For each of your FASTA files, you use script
- <code>
- shasta-install/bin/AddReadsFromFasta.py
- </code>
- to load into memory the reads contained
- in the FASTA file that have sufficient length.
- The minimum length is controlled by parameter 
- <code>minReadLength</code> 
- in the <code>[Reads]</code> section
- of the configuration file <code>shasta.conf</code>.
- 
- 
- 
- <h2>Running the assembly</h2>
- <p>
- When all input FASTA files have been loaded in this way,
- you are ready to start the rest of the assembly process,
- which occurs entirely in memory, without access to disk,
- with the exception of log files and some small output
- files containing summary information.
+files containing the input reads.
+If you have a <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a> file, 
+you can convert it to FASTA using script 
+<code>shasta-install/bin/FastqToFasta.py</code>.
+If your FASTQ file is compressed (extension <code>.gz</code>),
+you can decompress it and convert to FASTA in one step,
+saving a round trip to disk, using 
+script 
+<code>shasta-install/bin/FastqGzToFasta.py</code>.
 
+<p>
+For each of your FASTA files, you use script
+<code>
+shasta-install/bin/AddReadsFromFasta.py
+</code>
+to load into memory the reads contained
+in the FASTA file that have sufficient length.
+The minimum length is controlled by parameter 
+<code>minReadLength</code> 
+in the <code>[Reads]</code> section
+of the configuration file <code>shasta.conf</code>.
+ 
+ 
+ 
+<h2>Running the assembly</h2>
+<p>
+When all input FASTA files have been loaded in this way,
+you are ready to start the rest of the assembly process,
+which occurs entirely in memory, without access to disk,
+with the exception of log files and some small output
+files containing summary information.
+
+<p>
+Because of the large memory utilization, it is recommended
+that a machine be dedicated to a single assembly run.
+The machine should be concurrently used for other purposes, 
+and multiple concurrent runs on the same machine
+are not advisable. 
+If the code runs in virtualized or containerized
+environments, appropriate amounts of physical resources
+should be dedicated to it.
+If adequate computational resources are not available,
+the assembly run will crash or slow down intolerably,
+and potentially crash the entire physical or virtual
+machine used.
+
+<p>
+Normally, you will be assembling a human genome or
+another large genome. For testing purposes,
+you can also assemble a small bacterial genome.
+Keep in mind, however, that the <code>shasta</code> 
+sofwtare is not designed or optimized for small genomes.
 
 </body>
 </html>
