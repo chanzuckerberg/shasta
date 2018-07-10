@@ -19,7 +19,9 @@ This project is at an early stage, and does not yet
 produce assembled sequence as its final output. 
 Contributions of code, ideas, computational experiments, or documentation are welcome. 
 To contribute, please use the standard GitHub Pull Request process. 
-To facilitate and encourage contributions, the guidelines for contributing are minimal.
+To facilitate and encourage contributions, the 
+[guidelines for contributing](https://github.com/chanzuckerberg/shasta/blob/master/CONTRIBUTING.md)
+are minimal.
 
 Comments and criticism are also welcome. 
 Please use the [Wiki](https://github.com/chanzuckerberg/shasta/wiki) 
