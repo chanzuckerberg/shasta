@@ -261,31 +261,41 @@ script
 <code>shasta-install/bin/FastqGzToFasta.py</code>.
 
 <p>
-For each of your FASTA files, you use script
-<code>
-shasta-install/bin/AddReadsFromFasta.py
-</code>
-to load into memory the reads contained
-in the FASTA file that have sufficient length.
-The minimum length is controlled by parameter 
-<code>minReadLength</code> 
-in the <code>[Reads]</code> section
-of the configuration file <code>shasta.conf</code>.
- 
- 
+Usually the input FASTA files will be stored in the run directory,
+that is, the same directory that contains
+<code>data</code>,
+<code>Data</code>, and 
+<code>shasta.conf</code>. 
+However this is not required.
+
+
  
 <h2>Running the assembly</h2>
 <p>
-When all input FASTA files have been loaded in this way,
-you are ready to start the rest of the assembly process,
-which occurs entirely in memory, without access to disk,
-with the exception of log files and some small output
-files containing summary information.
+With the run directory set up as described and the
+input FASTA files ready, you can run the assembly.
+Just invoke <code>shasta-install/bin/RunAssembly.py</code>,
+passing as arguments the names of your input FASTA files,
+and the assembly will start.
+
+<p>
+To prevent interruptions of the run due to network issues
+that break your ssh connection to the machine running the assembly, 
+you can use the <code>nohup</code> command:
+
+<pre>
+nohup shasta-install/bin/RunAssembly.py Input.fasta 1>RunAssembly.stdout 2>&1 &
+</pre>
+
+This way, the assembly runs in the background, is not interrupted
+if your ssh connection disappears, and all log output
+to <code>stdout</code> and <code>stderr</code>
+is saved to file <code>RunAssembly.stdout</code>.
 
 <p>
 Because of the large memory utilization, it is recommended
 that a machine be dedicated to a single assembly run.
-The machine should be concurrently used for other purposes, 
+The machine should not be concurrently used for other purposes, 
 and multiple concurrent runs on the same machine
 are not advisable. 
 If the code runs in virtualized or containerized
@@ -301,7 +311,114 @@ Normally, you will be assembling a human genome or
 another large genome. For testing purposes,
 you can also assemble a small bacterial genome.
 Keep in mind, however, that the <code>shasta</code> 
-sofwtare is not designed or optimized for small genomes.
+software is not designed or optimized for small genomes.
+
+
+
+<h2>Inspecting assembly results</h2>
+
+<p>
+Currently, the only output produced by the <code>shasta</code>
+software consists of various data structures stored in binary files in memory,
+visible as files in the <code>data</code> and <code>Data</code> directories.
+The most important such data structure is the global marker graph,
+as defined <a href=ShastaSlides-June2018-v2.pdf>here</a>.
+The <code>shasta</code>
+software implements <code>http</code> functionality 
+that allows you to inspect these data structures using a Web browser.
+To do this, use the following command:
+
+<pre>
+shasta-install/bin/RunServer.py
+</pre>
+
+This starts the <code>shasta</code> software in a mode that behaves like an 
+<code>http</code> server. You can connect to it by pointing your Web browser to it.
+If the browser is running on the same machine where the server is,
+enter this URL in your browser:
+
+<pre>
+http://localhost:17100
+</pre>
+
+(the port number following the colon could change - see the output of the 
+<code>RunServer.py</code> command to find out what port the server is using).
+If the browser is running on a different machine, you will have to replace
+<code>localhost</code> in the above URL with the name or IP address
+of the machine where the server is running.
+
+<p>
+Once in the browser, the server functionality should
+be reasonably self-explanatory. You can look at individual reads
+and their markers, and inspect the global marker graph around 
+any marker you choose. The local marker graph can be shown
+in a detailed format that shows the sequence associated with
+each vertex and edge, or in a compact format that shows only the
+graph connectivity.
+
+
+
+<h2>Saving assembly results</h2>
+
+<p>
+The data structures created during assembly are stored in memory,
+so they use valuable system resources. In addition, they are
+not persistent, which means they are lost 
+when the system reboots.
+You can save these data structures persistently using the following
+command:
+
+<pre>
+shasta-install/bin/SaveRun.py
+</pre>
+
+This will create directories <code>dataOnDisk</code> and
+<code>DataOnDisk</code>
+which are copies of <code>data</code> and
+<code>Data</code>.
+After this command completes, you can delete the 
+contents of the <code>data</code> and
+<code>Data</code> directory to free the memory 
+resources they use. You can still run the <code>http</code> server
+using the data on disk, using the following command:
+
+<pre>
+shasta-install/bin/RunServerFromDisk.py
+</pre>
+
+However, the server will not respond as fast as when running from
+data in memory. 
+
+<p>
+You can also restore the run in memory from the data on disk at a later time.
+For this, make sure the run directory is set up and that the 
+<code>data</code> and
+<code>Data</code> directories are empty. Then, use the following command:
+
+<pre>
+shasta-install/bin/RestoreRun.py
+</pre>
+
+At this point, you can again use the <code>RunServer.py</code>
+command to run the server from the data just restored to memory.
+
+<p>
+The <code>SaveRun.py</code> and <code>RestoreRun.py</code> commands
+perform large amounts of sequential I/O to/from storage.
+In some environments, the performance of this sequential I/O
+can be substantially improved using the following command to
+increase the size of individual I/O operations:
+
+<pre>
+blockdev --setra 65536 /dev/xvdf
+</pre>
+
+Here, replace <code>/dev/xvdf</code> with the name of the block device
+that your filesystem is mounted on. The above command
+requires root privileges.
+The above command is particularly helpful when using
+an EBS "Throughput Optimized HDD Volume" (volume type <code>st1</code>) on AWS EC2.
+
 
 </body>
 </html>
