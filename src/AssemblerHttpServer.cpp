@@ -395,6 +395,169 @@ void Assembler::exploreRead(
         "'>Find other reads that overlap this read.</a>";
 
 
+
+    // Use an svg object to display the read sequence and the markers.
+    // To ensure correct positioning and alignment, we have to position
+    // each character individually.
+    const size_t k = assemblerInfo->k;
+    const int monospaceFontSize = 12;
+    const int horizontalSpacing = 7;
+    const int verticalSpacing = 13;
+    const int charactersPerLine = endPosition - beginPosition + 10; // Add space for labels
+    const int svgLineCount = int(3 + k); // Labels, scale, sequence, plus k lines of markers.
+    const int svgWidth = horizontalSpacing * charactersPerLine;
+    const int svgHeight = verticalSpacing * svgLineCount;
+    const int highlightedMarkerVerticalOffset = 2;
+    html <<
+        "<p><svg width=" << svgWidth << " height=" << svgHeight << ">"
+        "<style>"
+        ".mono{font-family:monospace; font-size:" << monospaceFontSize << "px;}"
+        ".blueMono{font-family:monospace; font-size:" << monospaceFontSize << "px; fill:blue;}"
+        "</style>";
+
+
+
+    // Labels for position scale.
+    const int firstLabelPosition =
+        (beginPosition % 10 == 0) ?
+        beginPosition :
+        beginPosition + (10 - beginPosition % 10);
+    for(int labelPosition=firstLabelPosition; labelPosition<int(endPosition); labelPosition+=10) {
+        const string label = to_string(labelPosition);
+        for(size_t j=0; j<label.size(); j++) {
+            html <<
+                "<text class='mono'" <<
+                " x='" << (labelPosition-beginPosition+j)*horizontalSpacing << "'" <<
+                " y='" << verticalSpacing << "'>" <<
+                label[j] << "</text>";
+        }
+    }
+
+
+
+    // Position scale.
+    for(size_t position=beginPosition; position!=endPosition; position++) {
+        html <<
+            "<text class='mono'" <<
+            " x='" << (position-beginPosition)*horizontalSpacing << "'" <<
+            " y='" << 2*verticalSpacing << "'>";
+        if((position%10)==0) {
+            html << "|";
+        } else if((position%5)==0) {
+            html << "+";
+        } else {
+            html << ".";
+        }
+        html << "</text>";
+    }
+
+
+
+    // Read sequence.
+    for(size_t position=beginPosition; position!=endPosition; position++) {
+        html <<
+            "<text class='mono'" <<
+            " x='" << (position-beginPosition)*horizontalSpacing << "'" <<
+            " y='" << 3*verticalSpacing << "'>";
+        html << readSequence[position];
+        html << "</text>";
+    }
+
+
+
+    // Draw a rectangle for each highlighted marker.
+    for(const uint32_t ordinal: highlightedMarkers) {
+        const CompressedMarker& marker = orientedReadMarkers[ordinal];
+        html <<
+            "<rect" <<
+            " x='" << (marker.position-beginPosition)*horizontalSpacing << "'"
+            " y='" << (3 + ordinal%k)*verticalSpacing + highlightedMarkerVerticalOffset << "'"
+            " height='" << verticalSpacing << "'"
+            " width='" << k * horizontalSpacing << "'"
+            " style='fill:pink; stroke:none;'"
+            "/>";
+    }
+
+
+
+    // Markers.
+    for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
+        const CompressedMarker& marker = orientedReadMarkers[ordinal];
+
+        // Only show the marker if it is completely contained in the
+        // base interval we are displaying.
+        if(marker.position < beginPosition) {
+            continue;
+        }
+        if(marker.position + k > endPosition) {
+            break;
+        }
+
+        // See if this marker is contained in a vertex of the marker graph.
+        const GlobalMarkerGraphVertexId vertexId =
+            getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+        const bool hasMarkerGraphVertex =
+            (vertexId != invalidCompressedGlobalMarkerGraphVertexId);
+
+
+
+        // Write the k-mer of this marker.
+        const Kmer kmer(marker.kmerId, k);
+        html << "<a xlink:title='Marker " << ordinal << ", position " << marker.position;
+        if(hasMarkerGraphVertex) {
+            html << ", coverage " << globalMarkerGraphVertices.size(vertexId);
+        }
+        html << "' id='" << ordinal << "'";
+        if(hasMarkerGraphVertex) {
+            // Add a hyperlink to the marker graph vertex
+            // that contains this marker.
+            const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
+                "&strand=" + to_string(strand) +
+                "&ordinal=" + to_string(ordinal) +
+                "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
+            html << " xlink:href='" << url << "' style='cursor:pointer'";
+        }
+        html << ">";
+        for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
+            html << "<text class='";
+            if(hasMarkerGraphVertex) {
+                html << "blueMono";
+            } else {
+                html << "mono";
+            }
+            html << "'" <<
+                " x='" << (marker.position+positionInMarker-beginPosition)*horizontalSpacing << "'" <<
+                " y='" << (4+ordinal%k)*verticalSpacing << "'>";
+            html << kmer[positionInMarker];
+            html << "</text>";
+        }
+        html << "</a>";
+
+    }
+
+
+    // Finish the svg object.
+    html << "</svg>";
+
+    // Scroll to the first highlighted marker.
+    if(!highlightedMarkers.empty()) {
+        const uint32_t ordinal = *highlightedMarkers.begin();
+        html <<
+            "<script>"
+            "var element = document.getElementById('" << ordinal << "');"
+            "var rectangle = element.getBoundingClientRect();"
+            "window.scroll(rectangle.left-100, rectangle.top-100);"
+            "</script>";
+    }
+
+
+
+#if 0
+    // THE IFDEF CONTAINS THE OLD CODE THAT USES MONOSPACE CHARACTERS
+    // TO DISPLAY THE READ SEQUENCE AND THE MARKERS.
+    // THIS DOES NOT WORK WELL ON CHROME: FOR LONG READS,
+    // THE MARKERS ARE NOT CORRECTLY ALIGNED WITH THE READ SEQUENCE.
+
     // Labels for position scale.
     html << "<p><div style='font-family:monospace'>";
     html << "<br>";
@@ -507,7 +670,14 @@ void Assembler::exploreRead(
 
 
     html << "</div>";
-    html << "<p>You can click on a marker above to see the global marker graph around that marker.";
+#endif
+
+
+    html <<
+        "<p>You can click on a blue marker above "
+        "to see the global marker graph around that marker. "
+        "Black markers correspond to a vertex of the marker graph "
+        "that was removed because of low coverage.";
 }
 
 

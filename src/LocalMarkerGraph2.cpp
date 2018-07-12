@@ -443,7 +443,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << " href=\"exploreRead?readId=" << markerInfo.orientedReadId.getReadId();
             s << "&amp;strand=" << markerInfo.orientedReadId.getStrand();
             s << "&amp;highlightMarker=" << markerInfo.ordinal;
-            s << "#" << markerInfo.ordinal << "\"";
+            s << "\"";
             s << "><font color=\"blue\"><b><u>" << markerInfo.ordinal << "</u></b></font></td>";
 
             // Position.
@@ -597,7 +597,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "&amp;strand=" << info.orientedReadId.getStrand();
                 s << "&amp;highlightMarker=" << info.ordinals[0];
                 s << "&amp;highlightMarker=" << info.ordinals[1];
-                s << "#" << info.ordinals[1] << "\"";
+                s << "\"";
                 s << "><font color=\"blue\"><b><u>" << info.ordinals[1] << "</u></b></font></td>";
 
                 s << "<td align=\"center\"><b>";
