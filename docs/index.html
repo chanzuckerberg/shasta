@@ -40,6 +40,11 @@ comparable to those provided by existing tools.
 <p>
 This project is at an early stage, and does not yet produce
 assembled sequence as its final output.
+
+
+
+<h2>Contributions</h2>
+<p>
 Contributions of code, ideas, computational experiments,
 or documentation are welcome. 
 To contribute, please use the standard GitHub Pull Request process.
@@ -176,6 +181,16 @@ and that contains the following:
 If your build system has more than one processor
 and enough memory, you can speed up the build using the <code>-j</code>
 option in the <code>make all</code> command.
+
+<p>
+If you don't plan to use your build for debugging, you
+can use command <code>make install/strip</code>
+instead of <code>make install</code> as the last
+step of the build process.
+This will strip debug symbols from shared library
+<code>shasta-install/bin/shasta.so</code>, which significantly reduces
+the size of the
+build directory.
 
 
 
