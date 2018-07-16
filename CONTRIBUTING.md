@@ -4,6 +4,10 @@ Contributions of code, ideas, computational experiments,
 or documentation are welcome. 
 To contribute, please use the standard GitHub Pull Request process
 and take into consideration the suggestions below.
+To facilitate integration of your code,
+use a new branch for each Pull Request.
+You can choose any name you like for the branch you create for this purpose,
+as long as it does not conflict with the name of an existing branch.
 
 
 
