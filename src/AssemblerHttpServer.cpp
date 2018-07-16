@@ -396,17 +396,48 @@ void Assembler::exploreRead(
 
 
 
+    // Decide on which row each marker gets displayed
+    // (first row of markers is row 0).
+    const size_t k = assemblerInfo->k;
+    vector<int> markerRow(orientedReadMarkers.size(), -1);
+    vector<uint32_t> nextAvailableCharacterPosition(k, 0);
+    for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
+        const uint32_t position = orientedReadMarkers[ordinal].position;
+        for(int row=0; row<int(k); row++) {
+            if(position >= nextAvailableCharacterPosition[row]) {
+                markerRow[ordinal] = row;
+                // Require one character space to next marker.
+                nextAvailableCharacterPosition[row] = position + uint32_t(k) + 1;
+                // cout << "Marker " << ordinal << " at position " << position << " placed on row " << row << endl;
+                break;
+            }
+        }
+        /*
+        if(markerRow[ordinal] == -1) {
+            cout << "Marker " << ordinal << " at position " << position << " could not be placed." << endl;
+            cout << "nextAvailableCharacterPosition: ";
+            for(const auto rowNext: nextAvailableCharacterPosition) {
+                cout << " " << rowNext;
+            }
+            cout << endl;
+        }
+        */
+        CZI_ASSERT(markerRow[ordinal] != -1);
+    }
+    const int markerRowCount = *std::max_element(markerRow.begin(), markerRow.end());
+
+
+
     // Use an svg object to display the read sequence and the markers.
     // To ensure correct positioning and alignment, we use
     // a textLength attribute on every <text> element.
     // (The older code, ifdef'ed out, uses a separate <text>
     // element for each character).
-    const size_t k = assemblerInfo->k;
     const int monospaceFontSize = 12;
     const int horizontalSpacing = 7;
     const int verticalSpacing = 13;
     const int charactersPerLine = endPosition - beginPosition + 10; // Add space for labels
-    const int svgLineCount = int(3 + k); // Labels, scale, sequence, plus k lines of markers.
+    const int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
     const int svgWidth = horizontalSpacing * charactersPerLine;
     const int svgHeight = verticalSpacing * svgLineCount;
     const int highlightedMarkerVerticalOffset = 2;
@@ -567,7 +598,7 @@ void Assembler::exploreRead(
         html <<
             "<rect" <<
             " x='" << (marker.position-beginPosition)*horizontalSpacing << "'"
-            " y='" << (3 + ordinal%k)*verticalSpacing + highlightedMarkerVerticalOffset << "'"
+            " y='" << (3 + markerRow[ordinal])*verticalSpacing + highlightedMarkerVerticalOffset << "'"
             " height='" << verticalSpacing << "'"
             " width='" << k * horizontalSpacing << "'"
             " style='fill:pink; stroke:none;'"
@@ -625,7 +656,7 @@ void Assembler::exploreRead(
         }
         html << "'" <<
             " x='" << (marker.position-beginPosition)*horizontalSpacing << "px'" <<
-            " y='" << (4+ordinal%k)*verticalSpacing << "'"
+            " y='" << (4+markerRow[ordinal])*verticalSpacing << "'"
             " textLength='" << k*horizontalSpacing << "px'>";
         kmer.write(html, k);
         html << "</text>";
@@ -640,7 +671,7 @@ void Assembler::exploreRead(
             }
             html << "'" <<
                 " x='" << (marker.position+positionInMarker-beginPosition)*horizontalSpacing << "'" <<
-                " y='" << (4+ordinal%k)*verticalSpacing << "'>";
+                " y='" << (4+markerRow[ordinal])*verticalSpacing << "'>";
             html << kmer[positionInMarker];
             html << "</text>";
         }
