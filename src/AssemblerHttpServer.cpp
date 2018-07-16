@@ -397,8 +397,10 @@ void Assembler::exploreRead(
 
 
     // Use an svg object to display the read sequence and the markers.
-    // To ensure correct positioning and alignment, we have to position
-    // each character individually.
+    // To ensure correct positioning and alignment, we use
+    // a textLength attribute on every <text> element.
+    // (The older code, ifdef'ed out, uses a separate <text>
+    // element for each character).
     const size_t k = assemblerInfo->k;
     const int monospaceFontSize = 12;
     const int horizontalSpacing = 7;
@@ -424,6 +426,17 @@ void Assembler::exploreRead(
         beginPosition + (10 - beginPosition % 10);
     for(int labelPosition=firstLabelPosition; labelPosition<int(endPosition); labelPosition+=10) {
         const string label = to_string(labelPosition);
+#if 1
+        // This code uses a single <text> element,
+        // with a textLength attribute for exact alignment.
+        html <<
+            "<text class='mono'" <<
+            " x='" << (labelPosition-beginPosition)*horizontalSpacing << "'" <<
+            " y='" << verticalSpacing << "'" <<
+            " textLength='" << label.size()*horizontalSpacing << "px'>" <<
+            label << "</text>";
+#else
+        // This code uses one <text> element per character.
         for(size_t j=0; j<label.size(); j++) {
             html <<
                 "<text class='mono'" <<
@@ -431,11 +444,33 @@ void Assembler::exploreRead(
                 " y='" << verticalSpacing << "'>" <<
                 label[j] << "</text>";
         }
+#endif
     }
 
 
 
     // Position scale.
+#if 0
+    // This code uses a single <text> element,
+    // with a textLength attribute for exact alignment.
+    html <<
+        "<text class='mono'" <<
+        " x='0'" <<
+        " y='" << 2*verticalSpacing << "'" <<
+        " textLength ='" << (endPosition-beginPosition) * horizontalSpacing << "px'>";
+    for(size_t position=beginPosition; position!=endPosition; position++) {
+        if((position%10)==0) {
+            html << "|";
+        } else if((position%5)==0) {
+            html << "+";
+        } else {
+            html << ".";
+        }
+    }
+    html << "</text>";
+#endif
+#if 0
+    // This code uses one <text> element per character.
     for(size_t position=beginPosition; position!=endPosition; position++) {
         html <<
             "<text class='mono'" <<
@@ -450,10 +485,51 @@ void Assembler::exploreRead(
         }
         html << "</text>";
     }
+#endif
+#if 1
+    // This code uses one <text> element for every blockSize characters.
+    // This way you can select sequence text without getting a
+    // new line after each character, while still achieving good
+    // alignment.
+    // It is a reasonable compromise between the two extreme choices above.
+    const size_t blockSize = 100;
+    for(size_t blockBegin=beginPosition; blockBegin<endPosition; blockBegin+=blockSize) {
+        const size_t blockEnd = min(blockBegin+blockSize, size_t(endPosition));
+        html <<
+            "<text class='mono'" <<
+            " x='" << (blockBegin-beginPosition)*horizontalSpacing << "'" <<
+            " y='" << 2*verticalSpacing << "'"
+            " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
+        for(size_t position=blockBegin; position!=blockEnd; position++) {
+            if((position%10)==0) {
+                html << "|";
+            } else if((position%5)==0) {
+                html << "+";
+            } else {
+                html << ".";
+            }
+        }
+        html << "</text>";
+    }
+#endif
 
 
 
     // Read sequence.
+#if 0
+    // This code uses a single <text> element,
+    // with a textLength attribute for exact alignment.
+    // Unfortunately this does not achieve exact alignment on Chrome.
+    html <<
+        "<text class='mono'" <<
+        " x='0'" <<
+        " y='" << 3*verticalSpacing << "'" <<
+        " textLength='" << (endPosition-beginPosition) * horizontalSpacing << "px'>" <<
+        readSequence <<
+        "</text>";
+#endif
+#if 0
+    // This code uses one <text> element per character.
     for(size_t position=beginPosition; position!=endPosition; position++) {
         html <<
             "<text class='mono'" <<
@@ -462,6 +538,26 @@ void Assembler::exploreRead(
         html << readSequence[position];
         html << "</text>";
     }
+#endif
+#if 1
+    // This code uses one <text> element for every blockSize characters.
+    // This way you can select sequence text without getting a
+    // new line after each character, while still achieving good
+    // alignment.
+    // It is a reasonable compromise between the two extreme choices above.
+    for(size_t blockBegin=beginPosition; blockBegin<endPosition; blockBegin+=blockSize) {
+        const size_t blockEnd = min(blockBegin+blockSize, size_t(endPosition));
+        html <<
+            "<text class='mono'" <<
+            " x='" << (blockBegin-beginPosition)*horizontalSpacing << "'" <<
+            " y='" << 3*verticalSpacing << "'"
+            " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
+        for(size_t position=blockBegin; position!=blockEnd; position++) {
+            html << readSequence[position];
+        }
+        html << "</text>";
+    }
+#endif
 
 
 
@@ -518,6 +614,23 @@ void Assembler::exploreRead(
             html << " xlink:href='" << url << "' style='cursor:pointer'";
         }
         html << ">";
+#if 0
+        // This code uses a single <text> element,
+        // with a textLength attribute for exact alignment.
+        html << "<text class='";
+        if(hasMarkerGraphVertex) {
+            html << "blueMono";
+        } else {
+            html << "mono";
+        }
+        html << "'" <<
+            " x='" << (marker.position-beginPosition)*horizontalSpacing << "px'" <<
+            " y='" << (4+ordinal%k)*verticalSpacing << "'"
+            " textLength='" << k*horizontalSpacing << "px'>";
+        kmer.write(html, k);
+        html << "</text>";
+#else
+        // This code uses one <text> element per character.
         for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
             html << "<text class='";
             if(hasMarkerGraphVertex) {
@@ -531,6 +644,7 @@ void Assembler::exploreRead(
             html << kmer[positionInMarker];
             html << "</text>";
         }
+#endif
         html << "</a>";
 
     }
