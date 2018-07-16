@@ -241,7 +241,8 @@ public:
     vector<GlobalMarkerGraphVertexId>
         getGlobalMarkerGraphVertexParents(GlobalMarkerGraphVertexId) const;
 
-
+    // Call this before explore to make the documentation available.
+    void setDocsDirectory(const string&);
 
 private:
 
@@ -577,6 +578,7 @@ private:
             const vector<string>& request,
             ostream&);
         std::map<string, ServerFunction> functionTable;
+        string docsDirectory;
 
     };
     HttpServerData httpServerData;

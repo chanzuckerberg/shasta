@@ -248,7 +248,9 @@ PYBIND11_MODULE(shasta, module)
         .def("explore",
             &Assembler::explore,
             arg("port") = 17100,
-            arg("localOnly") = false);
+            arg("localOnly") = false)
+        .def("setDocsDirectory",
+            &Assembler::setDocsDirectory);
 
 
 

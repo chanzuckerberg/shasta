@@ -1,7 +1,13 @@
 #!/usr/bin/python3
 
+import os
 import shasta
 
+# Find the path to the docs directory.
+thisScriptPath = os.path.realpath(__file__)
+thisScriptDirectory = os.path.dirname(thisScriptPath)
+thisScriptParentDirectory = os.path.dirname(thisScriptDirectory)
+docsDirectory = thisScriptParentDirectory + "/docs"
 
 # Initialize the assembler and access what we need.
 a = shasta.Assembler(
@@ -14,6 +20,8 @@ a.accessMarkers()
 a.accessOverlaps()
 a.accessAlignmentData()
 a.accessGlobalMarkerGraph()
+
+a.setDocsDirectory(docsDirectory)
 a.explore()
 
 

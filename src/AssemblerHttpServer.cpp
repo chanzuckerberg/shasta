@@ -38,6 +38,11 @@ void Assembler::fillServerFunctionTable()
 }
 #undef CZI_ADD_TO_FUNCTION_TABLE
 
+void Assembler::setDocsDirectory(const string& docsDirectoryArgument)
+{
+    httpServerData.docsDirectory = docsDirectoryArgument;
+}
+
 
 
 void Assembler::processRequest(
@@ -45,9 +50,39 @@ void Assembler::processRequest(
     ostream& html,
     const BrowserInformation&)
 {
+    // Process a documentation request.
+    const string& keyword = request.front();
+    if(keyword.size()>6 && keyword.substr(0, 6)=="/docs/") {
+
+        // Extract the file name.
+        const string name = keyword.substr(6);
+
+        // If it contains "/", reject it.
+        if(name.find('/') != string::npos) {
+            writeHtmlBegin(html);
+            html << "Unknown documentation file " << name;
+            writeHtmlEnd(html);
+            return;
+        }
+
+        // Construct the full file name and open it.
+        const string fileName = httpServerData.docsDirectory + "/" + name;
+        ifstream file(fileName);
+        if(!file) {
+            writeHtmlBegin(html);
+            html << "Could not open " << fileName;
+            writeHtmlEnd(html);
+        }
+
+        // Send it to html.
+        html << "\r\n" << file.rdbuf();
+        return;
+    }
+
+
+
     // Look up the keyword to find the function that will process this request.
     // Note that the keyword includes the initial "/".
-    const string& keyword = request.front();
     const auto it = httpServerData.functionTable.find(keyword);
     if(it == httpServerData.functionTable.end()) {
         writeHtmlBegin(html);
@@ -155,6 +190,9 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Marker graph", {
         {"Marker graph", "exploreMarkerGraph"},
+        });
+    writeNavigation(html, "Help", {
+        {"Documentation", "docs/index.html"},
         });
 
     html << "</ul>";
