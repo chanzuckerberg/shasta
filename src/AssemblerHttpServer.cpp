@@ -13,6 +13,7 @@ using namespace shasta;
 #include <boost/uuid/uuid_io.hpp>
 
 // Standard library.
+#include "chrono.hpp"
 #include <iomanip>
 #include "iterator.hpp"
 
@@ -1285,9 +1286,11 @@ void Assembler::exploreReadGraph(
 
     // Create the LocalReadGraph.
     LocalReadGraph graph;
+    const auto createStartTime = steady_clock::now();
     createLocalReadGraph(orientedReadId,
         minAlignedMarkerCount, maxTrim, maxDistance,
         graph);
+    const auto createFinishTime = steady_clock::now();
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
@@ -1299,7 +1302,9 @@ void Assembler::exploreReadGraph(
         "timeout " + to_string(timeout) +
         " sfdp -O -T svg " + dotFileName +
         " -Gsize=" + to_string(sizePixels/72.);
+    const auto layoutStartTime = steady_clock::now();
     const int commandStatus = ::system(command.c_str());
+    const auto layoutFinishTime = steady_clock::now();
     if(WIFEXITED(commandStatus)) {
         const int exitStatus = WEXITSTATUS(commandStatus);
         if(exitStatus == 124) {
@@ -1321,8 +1326,13 @@ void Assembler::exploreReadGraph(
     // Remove the .dot file.
     filesystem::remove(dotFileName);
 
-    // Finally, we can display it.
+
+
+    // Write a title and display the graph.
     html << "<h1>Read graph near oriented read " << orientedReadId << "</h1>";
+
+
+    // Display the graph.
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
     html << svgFile.rdbuf();
@@ -1330,6 +1340,30 @@ void Assembler::exploreReadGraph(
 
     // Remove the .svg file.
     filesystem::remove(svgFileName);
+
+    // Write additional graph information.
+    html <<
+        "<br>This portion of the read graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." <<
+        "<br>Graph creation took " <<
+        std::setprecision(2) << seconds(createFinishTime-createStartTime) <<
+        " s.<br>Graph layout took " <<
+        std::setprecision(2) << seconds(layoutFinishTime-layoutStartTime) << " s.";
+
+    // Write a histogram of the number of vertices by distance.
+    vector<int> histogram(maxDistance+1, 0);
+    BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+        ++histogram[graph[v].distance];
+    }
+    html <<
+        "<h4>Vertex count by distance from start vertex</h4>"
+        "<table>"
+        "<tr><th>Distance<th>Count";
+    for(uint32_t distance=0; distance<=maxDistance; distance++) {
+        html << "<tr><td class=centered>" << distance << "<td class=centered>" << histogram[distance];
+    }
+    html << "</table>";
+
 }
 
 
