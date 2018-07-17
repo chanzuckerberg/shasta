@@ -1196,7 +1196,7 @@ void Assembler::exploreReadGraph(
     uint32_t sizePixels = 1200;
     getParameterValue(request, "sizePixels", sizePixels);
 
-    uint32_t timeout= 30;
+    double timeout= 30;
     getParameterValue(request, "timeout", timeout);
 
 
@@ -1249,8 +1249,8 @@ void Assembler::exploreReadGraph(
         " value='" << sizePixels <<
         "'>"
 
-        "<tr title='Maximum time (in seconds) allowed for graph layout'>"
-        "<td>Graph layout timeout"
+        "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
+        "<td>Timeout (seconds) for graph creation and layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
         " value='" << timeout <<
         "'>"
@@ -1287,9 +1287,11 @@ void Assembler::exploreReadGraph(
     // Create the LocalReadGraph.
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
-    createLocalReadGraph(orientedReadId,
-        minAlignedMarkerCount, maxTrim, maxDistance,
-        graph);
+    if(!createLocalReadGraph(orientedReadId,
+        minAlignedMarkerCount, maxTrim, maxDistance, timeout, graph)) {
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
+    }
     const auto createFinishTime = steady_clock::now();
 
     // Write it out in graphviz format.
@@ -1299,7 +1301,7 @@ void Assembler::exploreReadGraph(
 
     // Compute layout in svg format.
     const string command =
-        "timeout " + to_string(timeout) +
+        "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
         " sfdp -O -T svg " + dotFileName +
         " -Gsize=" + to_string(sizePixels/72.);
     const auto layoutStartTime = steady_clock::now();

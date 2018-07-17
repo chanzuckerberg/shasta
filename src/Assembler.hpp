@@ -392,11 +392,12 @@ private:
         size_t maxTrim,                 // Maximum left/right trim to generate an edge.
         uint32_t distance               // How far to go from starting oriented read.
     );
-    void createLocalReadGraph(
+    bool createLocalReadGraph(
         OrientedReadId,
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim to generate an edge.
         uint32_t distance,              // How far to go from starting oriented read.
+        double timeout,                 // Or 0 for no timeout.
         LocalReadGraph&
     );
 

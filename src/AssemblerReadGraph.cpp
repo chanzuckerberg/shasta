@@ -11,6 +11,7 @@ using namespace shasta;
 #include <boost/graph/iteration_macros.hpp>
 
 // Standard libraries.
+#include "chrono.hpp"
 #include <queue>
 #include "tuple.hpp"
 
@@ -194,7 +195,7 @@ void Assembler::createLocalReadGraph(
     // Create the LocalReadGraph.
     LocalReadGraph graph;
     createLocalReadGraph(orientedReadId,
-        minAlignedMarkerCount, maxTrim, maxDistance,
+        minAlignedMarkerCount, maxTrim, maxDistance, 0.,
         graph);
 
     cout << "The local read graph has " << num_vertices(graph);
@@ -208,13 +209,16 @@ void Assembler::createLocalReadGraph(
 
 // Create a local read graph starting from a given oriented read
 // and walking out a given distance on the global read graph.
-void Assembler::createLocalReadGraph(
+bool Assembler::createLocalReadGraph(
     OrientedReadId orientedReadIdStart,
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
     size_t maxTrim,                 // Maximum left/right trim to generate an edge.
     uint32_t maxDistance,           // How far to go from starting oriented read.
+    double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
 {
+    const auto startTime = steady_clock::now();
+
     // Add the starting vertex.
     graph.addVertex(orientedReadIdStart,
         uint32_t(reads[orientedReadIdStart.getReadId()].baseCount), 0);
@@ -227,6 +231,12 @@ void Assembler::createLocalReadGraph(
 
     // Do the BFS.
     while(!q.empty()) {
+
+        // See if we exceeded the timeout.
+        if(seconds(steady_clock::now() - startTime) > timeout) {
+            graph.clear();
+            return false;
+        }
 
         // Dequeue a vertex.
         const OrientedReadId orientedReadId0 = q.front();
@@ -309,6 +319,7 @@ void Assembler::createLocalReadGraph(
 
     }
 
+    return true;
 }
 
 
