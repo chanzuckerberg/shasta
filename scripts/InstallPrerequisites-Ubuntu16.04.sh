@@ -1,12 +1,12 @@
 #!/bin/sh
 
 apt-get update
-apt install g++
-apt install cmake
-apt install libboost-all-dev
-apt install libpng12-dev
-apt install graphviz
-apt install python3
-apt install python3-pip
-pip3 install pybind11
+apt install -y g++
+apt install -y cmake
+apt install -y libboost-all-dev
+apt install -y libpng12-dev
+apt install -y graphviz
+apt install -y python3
+apt install -y python3-pip
+pip3 install -y pybind11
 
