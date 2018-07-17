@@ -1329,7 +1329,12 @@ void Assembler::exploreReadGraph(
 
 
     // Write a title and display the graph.
-    html << "<h1>Read graph near oriented read " << orientedReadId << "</h1>";
+    html <<
+        "<h1 style='line-height:10px'>Read graph near oriented read " << orientedReadId << "</h1>"
+        "Color legend: "
+        "<span style='background-color:LightGreen'>start vertex</span> "
+        "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
+        ") from the start vertex</span>.";
 
 
     // Display the graph.
