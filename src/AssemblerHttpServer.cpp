@@ -1343,6 +1343,19 @@ void Assembler::exploreReadGraph(
     html << svgFile.rdbuf();
     svgFile.close();
 
+
+
+    // Add to each vertex a cursor that shows you can click on it.
+    html <<
+        "<script>"
+        "var vertices = document.getElementsByClassName('node');"
+        "for (var i=0;i<vertices.length; i++) {"
+        "    vertices[i].style.cursor = 'pointer';"
+        "}"
+        "</script>";
+
+
+
     // Remove the .svg file.
     filesystem::remove(svgFileName);
 
