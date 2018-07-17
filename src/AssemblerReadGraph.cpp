@@ -265,6 +265,30 @@ void Assembler::createLocalReadGraph(
             // Get the other oriented read involved in this overlap.
             const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
 
+
+            // Update our BFS.
+            // Note that we are pushing to the queue vertices at maxDistance,
+            // so we can find all of their edges to other vertices at maxDistance.
+            if(distance0 < maxDistance) {
+                if(!graph.vertexExists(orientedReadId1)) {
+                    graph.addVertex(orientedReadId1,
+                        uint32_t(reads[orientedReadId1.getReadId()].baseCount), distance1);
+                    q.push(orientedReadId1);
+                }
+                graph.addEdge(orientedReadId0, orientedReadId1,
+                    ad.info);
+            } else {
+                CZI_ASSERT(distance0 == maxDistance);
+                if(graph.vertexExists(orientedReadId1)) {
+                    graph.addEdge(orientedReadId0, orientedReadId1,
+                        ad.info);
+                }
+            }
+
+
+#if 0
+            // THE OLD CODE DOES NOT CREATE EDGES
+            // BETWEEN VERTICES AT MAXDISTANCE.
             // Add the vertex for orientedReadId1, if necessary.
             // Also add orientedReadId1 to the queue, unless
             // we already reached the maximum distance.
@@ -280,6 +304,7 @@ void Assembler::createLocalReadGraph(
             // Add the edge.
             graph.addEdge(orientedReadId0, orientedReadId1,
                 ad.info);
+#endif
         }
 
     }
