@@ -156,6 +156,10 @@ public:
     // Sorted by decreasing number of supporting reads.
     vector< pair<Sequence, vector<Info> > > infos;
 
+    // Flag to indicate if the edge is redundant
+    // (would go away under transitive reduction).
+    bool isRedundant = false;
+
     // Consensus is the number of reads supporting the
     // strongest sequence.
     size_t consensus() const

@@ -169,6 +169,9 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
             for(MarkerId markerId=markerId0+1; markerId!=markerId1; markerId++) {
                 if(globalMarkerGraphVertex[markerId] != invalidCompressedGlobalMarkerGraphVertexId) {
                     interveningVertexFound = true;
+                    // Also mark the edge as redundant (would go away
+                    // under transitive reduction).
+                    edge.isRedundant = true;
                     break;
                 }
 
@@ -509,7 +512,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         const auto oldPrecision = s.precision(4);
         s <<  thickness;
         s.precision(oldPrecision);
-        if(coverage == 0) {
+
+        // Style.
+        if(edge.isRedundant) {
+            s << " style=dashed";
+        } else if(coverage == 0) {
             s << " style=dotted";
         }
 
@@ -533,7 +540,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         const auto oldPrecision = s.precision(4);
         s <<  thickness;
         s.precision(oldPrecision);
-        if(coverage == 0) {
+
+        // Style.
+        if(edge.isRedundant) {
+            s << " style=dashed";
+        } else if(coverage == 0) {
             s << " style=dotted";
         }
 
