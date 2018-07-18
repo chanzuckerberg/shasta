@@ -302,7 +302,7 @@ LocalMarkerGraph2::Writer::Writer(
 
 void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
 {
-    // This turns off the tooltip on the graph.
+    // This turns off the tooltip on the graph and the edges.
     s << "tooltip = \" \";\n";
 
     if(detailed) {
@@ -312,6 +312,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
         s << "edge [fontname = \"Courier New\"];\n";
     } else {
         s << "layout=sfdp;\n";
+        s << "smoothing=triangle;\n";
         s << "ratio=expand;\n";
         s << "node [shape=point];\n";
     }
@@ -319,6 +320,325 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
 
 
 
+/*******************************************************************************
+
+Vertices and edges are displayed as follows.
+
+Compact:
+    - Vertex size: proportional to square root of coverage.
+    - Vertex color: light green for start vertex, cyan if vertex is at maxDistance.
+      Otherwise, black if coverage>=minCoverage, red if coverage<minCoverage.
+    - Edge thickness: proportional to coverage. If coverage==0,
+      use same thickness as coverage==1, but edge is dotted.
+    - Edge color: black if coverage>=minCoverage, red if coverage<minCoverage.
+Detailed:
+    - Vertex color: light green for start vertex, cyan if vertex is at maxDistance.
+      Otherwise, green if coverage>=minCoverage, red if coverage<minCoverage.
+    - Edge thickness: same as for compact case.
+    - Edge color: same as for compact case.
+    - Edge label color: green if coverage>=minCoverage, red if coverage<minCoverage.
+Note that only coverage, not consensus, determines how edges are displayed.
+
+*******************************************************************************/
+
+
+void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v) const
+{
+    const LocalMarkerGraph2Vertex& vertex = graph[v];
+    const auto coverage = vertex.markerInfos.size();
+    CZI_ASSERT(coverage > 0);
+
+
+    // For compact output, the node shape is already defaulted to point,
+    // and we don't write a label. The tooltip contains the vertex id,
+    // which can be used to create a local subgraph to be looked at
+    // in detailed format (use scripts/CreateLocalSubgraph.py).
+    if(!detailed) {
+
+        // Compact output.
+
+        // Begin vertex attributes.
+        s << "[";
+
+        // Id, so we can use JavaScript code to manipulate the vertex.
+        s << "id=vertex" << vertex.vertexId;
+
+        // Tooltip.
+        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance;
+        s << ", click to recenter graph here, right click for detail\"";
+
+        // Vertex size.
+        s << " width=\"";
+        const auto oldPrecision = s.precision(4);
+        s << 0.05 * sqrt(double(coverage));
+        s.precision(oldPrecision);
+        s << "\"";
+
+        // Color.
+        string color;
+        if(vertex.distance == maxDistance) {
+            color = "cyan";
+        } else if(vertex.distance == 0) {
+            color = "lightGreen";
+        } else  if(coverage >= minCoverage) {
+            color = "black";
+        } else {
+            color = "red";
+        }
+        s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
+
+        // End vertex attributes.
+        s << "]";
+
+    } else {
+
+        // Detailed output.
+        const size_t k = graph.k;
+        const KmerId kmerId = graph.getKmerId(v);
+        const Kmer kmer(kmerId, k);
+
+        // Begin vertex attributes.
+        s << "[";
+
+        // Color.
+        string color;
+        if(vertex.distance == maxDistance) {
+            color = "cyan";
+        } else if(vertex.distance == 0) {
+            color = "lightGreen";
+        } else if(coverage >= minCoverage) {
+            color = "green";
+        } else {
+            color = "red";
+        }
+        s << " style=filled";
+        s << " fillcolor=\"" << color << "\"";
+
+        // Id, so we can use JavaScript code to manipulate the vertex.
+        s << " id=vertex" << vertex.vertexId;
+
+        // Tooltip.
+        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << "\"";
+
+        // Write the label using Graphviz html-like functionality.
+        s << " label=<<font><table border=\"0\">";
+
+        // Kmer.
+        s << "<tr><td colspan=\"3\"><b>";
+        kmer.write(s, k);
+        s << "</b></td></tr>";
+
+        // Coverage.
+        s << "<tr><td colspan=\"3\"><b>";
+        s << "Coverage " << coverage;
+        s << "</b></td></tr>";
+
+        // Distance.
+        s << "<tr><td colspan=\"3\" ";
+        s << " href=\"\"";  // Necessary to activate tooltip.
+        s << " id=\"vertexDistance" << vertex.vertexId << "\" tooltip=\"Click to recenter graph here\">";
+        s << "<font color=\"blue\"><b><u>Distance " << vertex.distance;
+        s << "</u></b></font></td></tr>";
+
+        // Column headers.
+        s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td></tr>";
+
+        // A row for each marker of this vertex.
+        for(const auto& markerInfo: vertex.markerInfos) {
+            const CompressedMarker& marker = graph.markers.begin()[markerInfo.markerId];
+
+            // OrientedReadId
+            s << "<tr><td align=\"right\"";
+            s << " href=\"exploreRead?readId&amp;" << markerInfo.orientedReadId.getReadId();
+            s << "&amp;strand=" << markerInfo.orientedReadId.getStrand() << "\"";
+            s << "><font color=\"blue\"><b><u>" << markerInfo.orientedReadId << "</u></b></font></td>";
+
+            // Ordinal.
+            s << "<td align=\"right\"";
+            s << " href=\"exploreRead?readId=" << markerInfo.orientedReadId.getReadId();
+            s << "&amp;strand=" << markerInfo.orientedReadId.getStrand();
+            s << "&amp;highlightMarker=" << markerInfo.ordinal;
+            s << "\"";
+            s << "><font color=\"blue\"><b><u>" << markerInfo.ordinal << "</u></b></font></td>";
+
+            // Position.
+            s << "<td align=\"right\"><b>" << marker.position << "</b></td></tr>";
+        }
+
+
+        // End the table.
+        s << "</table></font>>";
+
+        // End vertex attributes.
+        s << "]";
+    }
+}
+
+
+
+void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) const
+{
+
+    const LocalMarkerGraph2Edge& edge = graph[e];
+    const size_t coverage = edge.coverage();
+    const size_t consensus = edge.consensus();
+    const double thickness = 0.5 * double(coverage==0 ? 1 : coverage);
+
+    if(!detailed) {
+
+        // Compact output.
+
+        // Begin edge attributes.
+        s << "[";
+
+        // Tooltip.
+        s << "tooltip=\"Coverage " << coverage << ", consensus " << consensus << "\"";
+
+        // Color is determined by consensus.
+        string color;
+        if(coverage >= minCoverage) {
+            color = "black";
+        } else {
+            color = "red";
+        }
+        s << " fillcolor=\"" << color << "\"";
+        s << " color=\"" << color << "\"";
+
+        // Thickness is determined by coverage.
+        s << " penwidth=";
+        const auto oldPrecision = s.precision(4);
+        s <<  thickness;
+        s.precision(oldPrecision);
+        if(coverage == 0) {
+            s << " style=dotted";
+        }
+
+        // End edge attributes.
+        s << "]";
+
+    } else {
+
+        // Detailed output.
+
+        // Begin edge attributes.
+        s << "[";
+
+        const string tooltipText = "Coverage " + to_string(coverage) + ", consensus " +to_string(consensus);
+        s << " tooltip=\"" << tooltipText << "\"";
+        s << " labeltooltip=\"" << tooltipText << "\"";
+        // s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
+
+        // Thickness is determined by coverage.
+        s << " penwidth=";
+        const auto oldPrecision = s.precision(4);
+        s <<  thickness;
+        s.precision(oldPrecision);
+        if(coverage == 0) {
+            s << " style=dotted";
+        }
+
+        // Color is determined by coverage.
+        string color;
+        string fillColor;
+        string labelColor;
+        if(coverage >= minCoverage) {
+            color = "black";
+            fillColor = "black";
+            labelColor = "green";
+        } else {
+            color = "red";
+            fillColor = "red";
+            labelColor = "red";
+        }
+        s << " fillcolor=\"" << fillColor << "\"";
+        s << " color=\"" << color << "\"";
+
+        // Label.
+        s << " label=<<font color=\"black\">";
+        s << "<table";
+        s << " color=\"black\"";
+        s << " bgcolor=\"" << labelColor << "\"";
+        s << " border=\"0\"";
+        s << " cellborder=\"1\"";
+        s << " cellspacing=\"0\"";
+        s << ">";
+
+        // Consensus and coverage.
+        s << "<tr><td colspan=\"4\"><b>Coverage " << coverage << "</b></td></tr>";
+        s << "<tr><td colspan=\"4\"><b>Consensus " << consensus << "</b></td></tr>";
+
+        // Header row.
+        s <<
+            "<tr>"
+            "<td align=\"center\"><b>Read</b></td>"
+            "<td align=\"center\"><b>Ord0</b></td>"
+            "<td align=\"center\"><b>Ord1</b></td>"
+            "<td align=\"center\"><b>Seq</b></td>"
+            "</tr>";
+
+        // Loop over the infos table for this edge.
+        for(const auto& p: edge.infos) {
+            const auto& sequence = p.first;
+            const auto& infos = p.second;
+
+            // Construct the string representing this sequence.
+            string sequenceString;
+            if(sequence.sequence.empty()) {
+                sequenceString = to_string(sequence.overlappingBaseCount);
+            } else {
+                for(const shasta::Base base: sequence.sequence) {
+                    sequenceString.push_back(base.character());
+                }
+            }
+
+
+
+            for(auto it=infos.begin(); it!=infos.end(); ++it) {
+                const auto& info = *it;
+                s << "<tr><td align=\"right\"";
+                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
+                s << "&amp;strand=" << info.orientedReadId.getStrand() << "\"";
+                s << "><font color=\"blue\"><b><u>" << info.orientedReadId << "</u></b></font></td>";
+
+                s << "<td align=\"right\"";
+                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
+                s << "&amp;strand=" << info.orientedReadId.getStrand();
+                s << "&amp;highlightMarker=" << info.ordinals[0];
+                s << "&amp;highlightMarker=" << info.ordinals[1];
+                s << "#" << info.ordinals[1] << "\"";
+                s << "><font color=\"blue\"><b><u>" << info.ordinals[0] << "</u></b></font></td>";
+
+                s << "<td align=\"right\"";
+                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
+                s << "&amp;strand=" << info.orientedReadId.getStrand();
+                s << "&amp;highlightMarker=" << info.ordinals[0];
+                s << "&amp;highlightMarker=" << info.ordinals[1];
+                s << "\"";
+                s << "><font color=\"blue\"><b><u>" << info.ordinals[1] << "</u></b></font></td>";
+
+                s << "<td align=\"center\"><b>";
+                if(it == infos.begin()) {
+                    s << sequenceString;
+                } else {
+                    s << "=";
+                }
+                s << "</b></td></tr>";
+            }
+        }
+
+        s << "</table></font>> decorate=true";
+
+
+        // End edge attributes.
+        s << "]";
+    }
+
+}
+
+
+
+#if 0
+// OLD CODE WITH MORE COMPLICATED COLORING.
 void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
     const LocalMarkerGraph2Vertex& vertex = graph[v];
@@ -618,4 +938,5 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
     }
 
 }
+#endif
 
