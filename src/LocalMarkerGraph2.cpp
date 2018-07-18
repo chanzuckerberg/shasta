@@ -618,7 +618,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
                 s << "<td align=\"center\"><b>";
                 if(it == infos.begin()) {
-                    s << sequenceString;
+                    if(sequenceString.size() > 100) {
+                        s << "Too long";
+                    } else {
+                        s << sequenceString;
+                    }
                 } else {
                     s << "=";
                 }
