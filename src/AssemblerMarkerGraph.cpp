@@ -212,8 +212,8 @@ void Assembler::extractLocalMarkerGraph(
     cout << " vertices and " << num_edges(graph) << " edges." << endl;
 
     // Write it out.
-    graph.write("MarkerGraph.dot", minCoverage, minConsensus, distance, false);
-    graph.write("DetailedMarkerGraph.dot", minCoverage, minConsensus, distance, true);
+    graph.write("MarkerGraph.dot", minCoverage, distance, false, true);
+    graph.write("DetailedMarkerGraph.dot", minCoverage, distance, true, true);
 
 }
 

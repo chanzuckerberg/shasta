@@ -169,9 +169,6 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
             for(MarkerId markerId=markerId0+1; markerId!=markerId1; markerId++) {
                 if(globalMarkerGraphVertex[markerId] != invalidCompressedGlobalMarkerGraphVertexId) {
                     interveningVertexFound = true;
-                    // Also mark the edge as redundant (would go away
-                    // under transitive reduction).
-                    edge.isRedundant = true;
                     break;
                 }
 
@@ -265,24 +262,24 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
 void LocalMarkerGraph2::write(
     const string& fileName,
     size_t minCoverage,
-    size_t minConsensus,
     int maxDistance,
-    bool detailed) const
+    bool detailed,
+    bool showVertexId) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, minCoverage, minConsensus, maxDistance, detailed);
+    write(outputFileStream, minCoverage, maxDistance, detailed, showVertexId);
 }
 void LocalMarkerGraph2::write(
     ostream& s,
     size_t minCoverage,
-    size_t minConsensus,
     int maxDistance,
-    bool detailed) const
+    bool detailed,
+    bool showVertexId) const
 {
-    Writer writer(*this, minCoverage, minConsensus, maxDistance, detailed);
+    Writer writer(*this, minCoverage, maxDistance, detailed, showVertexId);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraph2Vertex::vertexId, *this));
 }
@@ -290,14 +287,14 @@ void LocalMarkerGraph2::write(
 LocalMarkerGraph2::Writer::Writer(
     const LocalMarkerGraph2& graph,
     size_t minCoverage,
-    size_t minConsensus,
     int maxDistance,
-    bool detailed) :
+    bool detailed,
+    bool showVertexId) :
     graph(graph),
     minCoverage(minCoverage),
-    minConsensus(minConsensus),
     maxDistance(maxDistance),
-    detailed(detailed)
+    detailed(detailed),
+    showVertexId(showVertexId)
 {
 }
 
@@ -367,7 +364,13 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << "id=vertex" << vertex.vertexId;
 
         // Tooltip.
-        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance;
+        s << " tooltip=\"";
+        if(showVertexId) {
+            s << "Vertex " << vertex.vertexId << ", coverage ";
+        } else {
+            s << "Coverage ";
+        }
+        s << coverage << ", distance " << vertex.distance;
         s << ", click to recenter graph here, right click for detail\"";
 
         // Vertex size.
@@ -421,10 +424,23 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << " id=vertex" << vertex.vertexId;
 
         // Tooltip.
-        s << " tooltip=\"Coverage " << coverage << ", distance " << vertex.distance << "\"";
+        s << " tooltip=\"";
+        if(showVertexId) {
+            s << "Vertex " << vertex.vertexId << ", coverage ";
+        } else {
+            s << "Coverage ";
+        }
+        s << coverage << ", distance " << vertex.distance << "\"";
 
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
+
+        // Vertex id.
+        if(showVertexId) {
+            s << "<tr><td colspan=\"3\"><b>";
+            s << "Vertex " << vertex.vertexId;
+            s << "</b></td></tr>";
+        }
 
         // Kmer.
         s << "<tr><td colspan=\"3\"><b>";
@@ -514,11 +530,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s.precision(oldPrecision);
 
         // Style.
-        if(edge.isRedundant) {
-            s << " style=dashed";
-        } else if(coverage == 0) {
+        if(coverage == 0) {
             s << " style=dotted";
         }
+
+        // Weight;
+        s << " weight=" << coverage;
 
         // End edge attributes.
         s << "]";
@@ -542,9 +559,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s.precision(oldPrecision);
 
         // Style.
-        if(edge.isRedundant) {
-            s << " style=dashed";
-        } else if(coverage == 0) {
+        if(coverage == 0) {
             s << " style=dotted";
         }
 
@@ -563,6 +578,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         }
         s << " fillcolor=\"" << fillColor << "\"";
         s << " color=\"" << color << "\"";
+
+        // Weight;
+        s << " weight=" << coverage;
 
         // Label.
         s << " label=<<font color=\"black\">";

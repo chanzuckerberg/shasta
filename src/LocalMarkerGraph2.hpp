@@ -156,10 +156,6 @@ public:
     // Sorted by decreasing number of supporting reads.
     vector< pair<Sequence, vector<Info> > > infos;
 
-    // Flag to indicate if the edge is redundant
-    // (would go away under transitive reduction).
-    bool isRedundant = false;
-
     // Consensus is the number of reads supporting the
     // strongest sequence.
     size_t consensus() const
@@ -231,15 +227,15 @@ public:
     void write(
         ostream&,
         size_t minCoverage,
-        size_t minConsensus,
         int maxDistance,
-        bool detailed) const;
+        bool detailed,
+        bool showVertexId) const;
     void write(
         const string& fileName,
         size_t minCoverage,
-        size_t minConsensus,
         int maxDistance,
-        bool detailed) const;
+        bool detailed,
+        bool showVertexId) const;
 
 private:
 
@@ -264,17 +260,17 @@ private:
         Writer(
             const LocalMarkerGraph2&,
             size_t minCoverage,
-            size_t minConsensus,
             int maxDistance,
-            bool detailed);
+            bool detailed,
+            bool showVertexId);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalMarkerGraph2& graph;
         size_t minCoverage;
-        size_t minConsensus;
         int maxDistance;
         bool detailed;
+        bool showVertexId;
     };
     friend class Writer;
 };

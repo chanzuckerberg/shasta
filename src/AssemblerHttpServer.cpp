@@ -1403,10 +1403,10 @@ void Assembler::exploreMarkerGraph(
     const bool maxDistanceIsPresent = getParameterValue(request, "maxDistance", maxDistance);
     string detailedString;
     const bool detailed = getParameterValue(request, "detailed", detailedString);
+    string showVertexIdString;
+    const bool showVertexId = getParameterValue(request, "showVertexId", showVertexIdString);
     uint32_t minCoverage = 0;
     const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
-    uint32_t minConsensus = 0;
-    const bool minConsensusIsPresent = getParameterValue(request, "minConsensus", minConsensus);
     uint32_t sizePixels;
     const bool sizePixelsIsPresent = getParameterValue(request, "sizePixels", sizePixels);
     uint32_t timeout;
@@ -1451,17 +1451,17 @@ void Assembler::exploreMarkerGraph(
         << (detailed ? " checked=checked" : "") <<
         ">"
 
-        "<tr title='Minimum coverage (number of markers) for a vertex to be considered strong. Used to color vertices.'>"
-        "<td>Vertex coverage threshold"
-        "<td><input type=text required name=minCoverage size=8 style='text-align:center'"
-        << (minCoverageIsPresent ? (" value='" + to_string(minCoverage)+"'") : " value='3'") <<
+        "<tr title='Check to show vertex ids (only useful for debugging)'>"
+        "<td>Show vertex ids"
+        "<td class=centered><input type=checkbox name=showVertexId"
+        << (showVertexId ? " checked=checked" : "") <<
         ">"
 
-        "<tr title='Minimum consensus (number or reads that agree on sequence) "
-        "for an edge to be considered strong. Used to color edges.'>"
-        "<td>Edge consensus threshold"
-        "<td><input type=text required name=minConsensus size=8 style='text-align:center'"
-        << (minConsensusIsPresent ? (" value='" + to_string(minConsensus)+"'") : " value='3'") <<
+        "<tr title='Minimum coverage (number of markers) for a vertex or edge to be considered strong. "
+        "Affects the display of vertices and edges.'>"
+        "<td>Coverage threshold"
+        "<td><input type=text required name=minCoverage size=8 style='text-align:center'"
+        << (minCoverageIsPresent ? (" value='" + to_string(minCoverage)+"'") : " value='3'") <<
         ">"
 
         "<tr title='Graphics size in pixels. "
@@ -1496,7 +1496,7 @@ void Assembler::exploreMarkerGraph(
 
     // If any values are missing, stop here.
     if(!readIdIsPresent || !strandIsPresent || !ordinalIsPresent
-        || !maxDistanceIsPresent || !minCoverageIsPresent || !minConsensusIsPresent
+        || !maxDistanceIsPresent || !minCoverageIsPresent
         || !timeoutIsPresent) {
         return;
     }
@@ -1538,7 +1538,7 @@ void Assembler::exploreMarkerGraph(
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = "/dev/shm/" + uuid + ".dot";
-    graph.write(dotFileName, minCoverage, minConsensus, maxDistance, detailed);
+    graph.write(dotFileName, minCoverage, maxDistance, detailed, showVertexId);
 
     // Compute layout in svg format.
     const string command =
@@ -1592,10 +1592,10 @@ void Assembler::exploreMarkerGraph(
             "&ordinal="  + to_string(markerInfo.ordinal) +
             "&maxDistance=" + to_string(maxDistance) +
             "&minCoverage=" + to_string(minCoverage) +
-            "&minConsensus=" + to_string(minConsensus) +
             "&sizePixels=" + to_string(sizePixels) +
             "&timeout=" + to_string(timeout) +
-            (detailed ? "&detailed=on" : "");
+            (detailed ? "&detailed=on" : "") +
+            (showVertexId ? "&showVertexId=on" : "");
         if(detailed) {
             html <<
                 "document.getElementById('a_vertexDistance" << vertex.vertexId <<
@@ -1613,10 +1613,10 @@ void Assembler::exploreMarkerGraph(
                 "&ordinal="  + to_string(markerInfo.ordinal) +
                 "&maxDistance=1" +
                 "&minCoverage=" + to_string(minCoverage) +
-                "&minConsensus=" + to_string(minConsensus) +
                 "&sizePixels=" + to_string(sizePixels) +
                 "&timeout=" + to_string(timeout) +
-                "&detailed=on";
+                "&detailed=on" +
+                (showVertexId ? "&showVertexId=on" : "");
             html <<
                 "document.getElementById('vertex" << vertex.vertexId <<
                 "').oncontextmenu = function() {location.href='" << detailUrl << "';"
