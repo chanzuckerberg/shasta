@@ -6,7 +6,8 @@ apt install -y cmake
 apt install -y libboost-all-dev
 apt install -y libpng12-dev
 apt install -y graphviz
+apt install -y hugepages
 apt install -y python3
 apt install -y python3-pip
-pip3 install -y pybind11
+pip3 install pybind11
 

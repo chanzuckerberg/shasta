@@ -15,6 +15,7 @@ the threadLogs directory.
 This makes the following assumptions:
 - /hugepages does not exist.
 - /dev/shm/data does not exist.
+- The hugepages package is installed.
 
 Invoke with one argument, the number of GB to allocate to large pages.
 """
@@ -40,12 +41,6 @@ for name in mustNotExist:
    
 # Get the user name.
 userName = pwd.getpwuid(os.getuid()).pw_name
-
-# Make sure the hugepages package is installed.
-if not os.path.exists('/usr/bin/hugeadm'):
-    os.system('sudo apt update')
-    os.system('sudo apt upgrade')
-    os.system('sudo apt install hugepages')
 
 # Allocate the requested number of pages.
 # Consider adding --add-temp-swap option.
