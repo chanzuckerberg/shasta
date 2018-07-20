@@ -325,7 +325,8 @@ void Assembler::extractLocalMarkerGraph(
 
     // Now we can add the edges.
     BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph2) {
-        getGlobalMarkerGraphVertexChildren(graph[v0].vertexId, neighbors, false, useStoredConnectivity);
+        const GlobalMarkerGraphVertexId vertexId0 = graph[v0].vertexId;
+        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, false, useStoredConnectivity);
         for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
             bool vertexExists;
             vertex_descriptor v1;
@@ -336,6 +337,21 @@ void Assembler::extractLocalMarkerGraph(
                 tie(e, edgeWasAdded) = add_edge(v0, v1, graph);
                 CZI_ASSERT(edgeWasAdded);
                 graph.storeEdgeInfo(e);
+
+                // If we are using the stored connectivity, verify that the
+                // edge coverage we just computed agrees with the stored value.
+                if(useStoredConnectivity) {
+                    const auto storedEdgePointer = markerGraphConnectivity.findEdge(vertexId0, vertexId1);
+                    CZI_ASSERT(storedEdgePointer);
+                    const uint8_t storedCoverage = storedEdgePointer->coverage;
+                    const LocalMarkerGraph2Edge& edge = graph[e];
+                    const auto edgeCoverage = edge.coverage();
+                    if(storedCoverage==255) {
+                        CZI_ASSERT(edgeCoverage >= 255);
+                    } else {
+                        CZI_ASSERT(edgeCoverage == storedCoverage);
+                    }
+                }
             }
         }
     }
@@ -579,4 +595,21 @@ void Assembler::accessMarkerGraphConnectivity()
         largeDataName("GlobalMarkerGraphEdgesBySource"));
     markerGraphConnectivity.edgesByTarget.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesByTarget"));
+}
+
+
+
+// Locate the edge given the vertices.
+const Assembler::MarkerGraphConnectivity::Edge*
+    Assembler::MarkerGraphConnectivity::findEdge(Uint40 source, Uint40 target) const
+{
+    const auto edgesWithThisSource = edgesBySource[source];
+    for(const uint64_t i: edgesWithThisSource) {
+        const Edge& edge = edges[i];
+        if(edge.target == target) {
+            return &edge;
+        }
+    }
+    return 0;
+
 }

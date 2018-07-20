@@ -516,6 +516,7 @@ private:
             uint8_t coverage;   // (255 indicates 255 or more).
         };
         MemoryMapped::Vector<Edge> edges;
+        const Edge* findEdge(Uint40 source, Uint40 target) const;
 
         // The edges found by each thread.
         // This is temporary and only used inside createMarkerGraphConnectivity.
@@ -535,6 +536,7 @@ private:
     void createMarkerGraphConnectivityThreadFunction1(size_t threadId);
     void createMarkerGraphConnectivityThreadFunction2(size_t threadId);
     void createMarkerGraphConnectivityThreadFunction12(size_t threadId, size_t pass);
+
 
 
 
