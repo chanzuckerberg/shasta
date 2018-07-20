@@ -514,6 +514,7 @@ private:
             Uint40 source;  // The source vertex (index into globalMarkerGraphVertices).
             Uint40 target;  // The target vertex (index into globalMarkerGraphVertices).
             uint8_t coverage;   // (255 indicates 255 or more).
+            bool isGood = true;
         };
         MemoryMapped::Vector<Edge> edges;
         const Edge* findEdge(Uint40 source, Uint40 target) const;
