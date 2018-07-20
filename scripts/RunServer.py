@@ -19,6 +19,7 @@ a.accessMarkers()
 a.accessOverlaps()
 a.accessAlignmentData()
 a.accessMarkerGraphVertices()
+a.accessMarkerGraphConnectivity()
 
 a.setDocsDirectory(docsDirectory)
 a.explore()

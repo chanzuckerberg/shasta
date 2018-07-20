@@ -1405,6 +1405,8 @@ void Assembler::exploreMarkerGraph(
     const bool detailed = getParameterValue(request, "detailed", detailedString);
     string showVertexIdString;
     const bool showVertexId = getParameterValue(request, "showVertexId", showVertexIdString);
+    string useStoredConnectivityString;
+    const bool useStoredConnectivity = getParameterValue(request, "useStoredConnectivity", useStoredConnectivityString);
     uint32_t minCoverage = 0;
     const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
     uint32_t sizePixels;
@@ -1456,6 +1458,14 @@ void Assembler::exploreMarkerGraph(
         "<td class=centered><input type=checkbox name=showVertexId"
         << (showVertexId ? " checked=checked" : "") <<
         ">"
+
+        "<tr title='Check to use stored connectivity of the marker graph "
+        "(for testing only - if everything works, this should not affect the display'>"
+        "<td>Use stored connectivity"
+        "<td class=centered><input type=checkbox name=useStoredConnectivity"
+        << (useStoredConnectivity ? " checked=checked" : "") <<
+        ">"
+
 
         "<tr title='Minimum coverage (number of markers) for a vertex or edge to be considered strong. "
         "Affects the display of vertices and edges.'>"
@@ -1529,7 +1539,7 @@ void Assembler::exploreMarkerGraph(
 
     // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
-    extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, graph);
+    extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, useStoredConnectivity, graph);
     if(num_vertices(graph) == 0) {
         html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
         return;
@@ -1595,7 +1605,8 @@ void Assembler::exploreMarkerGraph(
             "&sizePixels=" + to_string(sizePixels) +
             "&timeout=" + to_string(timeout) +
             (detailed ? "&detailed=on" : "") +
-            (showVertexId ? "&showVertexId=on" : "");
+            (showVertexId ? "&showVertexId=on" : "") +
+            (useStoredConnectivity ? "&useStoredConnectivity=on" : "");
         if(detailed) {
             html <<
                 "document.getElementById('a_vertexDistance" << vertex.vertexId <<
@@ -1616,7 +1627,8 @@ void Assembler::exploreMarkerGraph(
                 "&sizePixels=" + to_string(sizePixels) +
                 "&timeout=" + to_string(timeout) +
                 "&detailed=on" +
-                (showVertexId ? "&showVertexId=on" : "");
+                (showVertexId ? "&showVertexId=on" : "") +
+                (useStoredConnectivity ? "&useStoredConnectivity=on" : "");
             html <<
                 "document.getElementById('vertex" << vertex.vertexId <<
                 "').oncontextmenu = function() {location.href='" << detailUrl << "';"

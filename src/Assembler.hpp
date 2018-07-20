@@ -237,9 +237,13 @@ public:
 
     // Find the children or parents of a vertex of the global marker graph.
     vector<GlobalMarkerGraphVertexId>
-        getGlobalMarkerGraphVertexChildren(GlobalMarkerGraphVertexId) const;
+        getGlobalMarkerGraphVertexChildren(
+        GlobalMarkerGraphVertexId,
+        bool useStoredConnectivity) const;
     vector<GlobalMarkerGraphVertexId>
-        getGlobalMarkerGraphVertexParents(GlobalMarkerGraphVertexId) const;
+        getGlobalMarkerGraphVertexParents(
+        GlobalMarkerGraphVertexId,
+        bool useStoredConnectivity) const;
 
     // Connectivity of the global marker graph.
     void createMarkerGraphConnectivity(size_t threadCount);
@@ -556,11 +560,13 @@ private:
     void getGlobalMarkerGraphVertexChildren(
         GlobalMarkerGraphVertexId,
         vector<GlobalMarkerGraphVertexId>&,
-        bool append = false) const;
+        bool append = false,
+        bool useStoredConnectivity = false) const;
     void getGlobalMarkerGraphVertexParents(
         GlobalMarkerGraphVertexId,
         vector<GlobalMarkerGraphVertexId>&,
-        bool append = false) const;
+        bool append = false,
+        bool useStoredConnectivity = false) const;
 
 
 
@@ -586,6 +592,7 @@ private:
         OrientedReadId,
         uint32_t ordinal,
         int distance,
+        bool useStoredConnectivity,
         LocalMarkerGraph2&
         );
 

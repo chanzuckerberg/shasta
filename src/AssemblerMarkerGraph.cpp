@@ -88,52 +88,71 @@ void Assembler::getGlobalMarkerGraphVertexMarkers(
 // Find the children of a vertex of the global marker graph.
 vector<GlobalMarkerGraphVertexId>
     Assembler::getGlobalMarkerGraphVertexChildren(
-    GlobalMarkerGraphVertexId vertexId) const
+    GlobalMarkerGraphVertexId vertexId,
+    bool useStoredConnectivity) const
 {
     vector<GlobalMarkerGraphVertexId> children;
-    getGlobalMarkerGraphVertexChildren(vertexId, children);
+    getGlobalMarkerGraphVertexChildren(vertexId, children, useStoredConnectivity);
     return children;
 }
 void Assembler::getGlobalMarkerGraphVertexChildren(
     GlobalMarkerGraphVertexId vertexId,
     vector<GlobalMarkerGraphVertexId>& children,
-    bool append) const
+    bool append,
+    bool useStoredConnectivity) const
 {
     if(!append) {
         children.clear();
     }
 
-    // Loop over the markers of this vertex.
-    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+    if(useStoredConnectivity) {
 
-        // Find the OrientedReadId and ordinal.
-        OrientedReadId orientedReadId;
-        uint32_t ordinal;
-        tie(orientedReadId, ordinal) = findMarkerId(markerId);
-
-        // Find the next marker that is contained in a vertex.
-        ++ordinal;
-        for(; ordinal<markers.size(orientedReadId.getValue()); ++ordinal) {
-
-            // Find the vertex id.
-            const MarkerId childMarkerId =  getMarkerId(orientedReadId, ordinal);
-            const GlobalMarkerGraphVertexId childVertexId =
-                globalMarkerGraphVertex[childMarkerId];
-
-            // If this marker correspond to a vertex, add it to our list.
-            if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
-                children.push_back(childVertexId);
-                break;
-            }
+        // This code does uses the stored connectivity of the marker graph
+        // (markerGraphConnectivity).
+        const auto edges = markerGraphConnectivity.edgesBySource[vertexId];
+        for(const auto i: edges) {
+            const auto& edge = markerGraphConnectivity.edges[i];
+            children.push_back(edge.target);
+            sort(children.begin(), children.end());
         }
 
+    } else {
+
+        // This code does not use the stored connectivity of the marker graph
+        // (markerGraphConnectivity).
+
+        // Loop over the markers of this vertex.
+        for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+
+            // Find the OrientedReadId and ordinal.
+            OrientedReadId orientedReadId;
+            uint32_t ordinal;
+            tie(orientedReadId, ordinal) = findMarkerId(markerId);
+
+            // Find the next marker that is contained in a vertex.
+            ++ordinal;
+            for(; ordinal<markers.size(orientedReadId.getValue()); ++ordinal) {
+
+                // Find the vertex id.
+                const MarkerId childMarkerId =  getMarkerId(orientedReadId, ordinal);
+                const GlobalMarkerGraphVertexId childVertexId =
+                    globalMarkerGraphVertex[childMarkerId];
+
+                // If this marker correspond to a vertex, add it to our list.
+                if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+                    children.push_back(childVertexId);
+                    break;
+                }
+            }
+
+        }
+
+
+
+        // Deduplicate.
+        sort(children.begin(), children.end());
+        children.resize(std::unique(children.begin(), children.end()) - children.begin());
     }
-
-
-
-    // Deduplicate.
-    sort(children.begin(), children.end());
-    children.resize(std::unique(children.begin(), children.end()) - children.begin());
 }
 
 
@@ -141,56 +160,75 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 // Find the parents of a vertex of the global marker graph.
 vector<GlobalMarkerGraphVertexId>
     Assembler::getGlobalMarkerGraphVertexParents(
-    GlobalMarkerGraphVertexId vertexId) const
+    GlobalMarkerGraphVertexId vertexId,
+    bool useStoredConnectivity) const
 {
     vector<GlobalMarkerGraphVertexId> parents;
-    getGlobalMarkerGraphVertexParents(vertexId, parents);
+    getGlobalMarkerGraphVertexParents(vertexId, parents, useStoredConnectivity);
     return parents;
 }
 void Assembler::getGlobalMarkerGraphVertexParents(
     GlobalMarkerGraphVertexId vertexId,
     vector<GlobalMarkerGraphVertexId>& parents,
-    bool append) const
+    bool append,
+    bool useStoredConnectivity) const
 {
     if(!append) {
         parents.clear();
     }
 
-    // Loop over the markers of this vertex.
-    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+    if(useStoredConnectivity) {
 
-        // Find the OrientedReadId and ordinal.
-        OrientedReadId orientedReadId;
-        uint32_t ordinal;
-        tie(orientedReadId, ordinal) = findMarkerId(markerId);
-
-        // Find the previous marker that is contained in a vertex.
-        if(ordinal == 0) {
-            continue;
+        // This code does uses the stored connectivity of the marker graph
+        // (markerGraphConnectivity).
+        const auto edges = markerGraphConnectivity.edgesByTarget[vertexId];
+        for(const auto i: edges) {
+            const auto& edge = markerGraphConnectivity.edges[i];
+            parents.push_back(edge.source);
         }
-        --ordinal;
-        for(; ; --ordinal) {
+        sort(parents.begin(), parents.end());
 
-            // Find the vertex id.
-            const MarkerId parentMarkerId =  getMarkerId(orientedReadId, ordinal);
-            const GlobalMarkerGraphVertexId parentVertexId =
-                globalMarkerGraphVertex[parentMarkerId];
+    } else {
 
-            // If this marker correspond to a vertex, add it to our list.
-            if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
-                parents.push_back(parentVertexId);
-                break;
-            }
+        // This code does not use the stored connectivity of the marker graph
+        // (markerGraphConnectivity).
 
+        // Loop over the markers of this vertex.
+        for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+
+            // Find the OrientedReadId and ordinal.
+            OrientedReadId orientedReadId;
+            uint32_t ordinal;
+            tie(orientedReadId, ordinal) = findMarkerId(markerId);
+
+            // Find the previous marker that is contained in a vertex.
             if(ordinal == 0) {
-                break;
+                continue;
+            }
+            --ordinal;
+            for(; ; --ordinal) {
+
+                // Find the vertex id.
+                const MarkerId parentMarkerId =  getMarkerId(orientedReadId, ordinal);
+                const GlobalMarkerGraphVertexId parentVertexId =
+                    globalMarkerGraphVertex[parentMarkerId];
+
+                // If this marker correspond to a vertex, add it to our list.
+                if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+                    parents.push_back(parentVertexId);
+                    break;
+                }
+
+                if(ordinal == 0) {
+                    break;
+                }
             }
         }
-    }
 
-    // Deduplicate.
-    sort(parents.begin(), parents.end());
-    parents.resize(std::unique(parents.begin(), parents.end()) - parents.begin());
+        // Deduplicate.
+        sort(parents.begin(), parents.end());
+        parents.resize(std::unique(parents.begin(), parents.end()) - parents.begin());
+    }
 }
 
 
@@ -216,7 +254,7 @@ void Assembler::extractLocalMarkerGraph(
 {
     // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
-    extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, graph);
+    extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, false, graph);
 
     cout << "The local marker graph has " << num_vertices(graph);
     cout << " vertices and " << num_edges(graph) << " edges." << endl;
@@ -233,9 +271,11 @@ void Assembler::extractLocalMarkerGraph(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
     int distance,
+    bool useStoredConnectivity,
     LocalMarkerGraph2& graph
     )
 {
+    cout << "useStoredConnectivity: " << int(useStoredConnectivity) << endl;
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
 
     // Add the start vertex.
@@ -265,8 +305,8 @@ void Assembler::extractLocalMarkerGraph(
 
         // Get the neighbors.
         neighbors.clear();
-        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, true);
-        getGlobalMarkerGraphVertexParents (vertexId0, neighbors, true);
+        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, true, useStoredConnectivity);
+        getGlobalMarkerGraphVertexParents (vertexId0, neighbors, true, useStoredConnectivity);
 
         // Loop over the neighbors.
         for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
@@ -285,7 +325,7 @@ void Assembler::extractLocalMarkerGraph(
 
     // Now we can add the edges.
     BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph2) {
-        getGlobalMarkerGraphVertexChildren(graph[v0].vertexId, neighbors);
+        getGlobalMarkerGraphVertexChildren(graph[v0].vertexId, neighbors, false, useStoredConnectivity);
         for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
             bool vertexExists;
             vertex_descriptor v1;
@@ -533,5 +573,10 @@ void Assembler::createMarkerGraphConnectivityThreadFunction12(size_t threadId, s
 
 void Assembler::accessMarkerGraphConnectivity()
 {
-    CZI_ASSERT(0);
+    markerGraphConnectivity.edges.accessExistingReadOnly(
+            largeDataName("GlobalMarkerGraphEdges"));
+    markerGraphConnectivity.edgesBySource.accessExistingReadOnly(
+        largeDataName("GlobalMarkerGraphEdgesBySource"));
+    markerGraphConnectivity.edgesByTarget.accessExistingReadOnly(
+        largeDataName("GlobalMarkerGraphEdgesByTarget"));
 }
