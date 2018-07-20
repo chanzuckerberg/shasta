@@ -225,8 +225,10 @@ public:
     // if atomic memory access primitives are used.
     void beginPass1(Int n);
     void incrementCount(Int index, Int m=1);  // Called during pass 1.
+    void incrementCountMultithreaded(Int index, Int m=1);  // Called during pass 1.
     void beginPass2();
     void store(Int index, const T&);            // Called during pass 2.
+    void storeMultithreaded(Int index, const T&);            // Called during pass 2.
     void endPass2(bool check = true, bool free=true);
 
     // Touch the memory in order to cause the
@@ -313,12 +315,24 @@ template<class T, class Int>
 {
     count[index] += m;
 }
+template<class T, class Int>
+    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::
+    incrementCountMultithreaded(Int index, Int m)
+{
+    __sync_fetch_and_add(&count[index], m);
+}
 
 
 template<class T, class Int>
     void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::store(Int index, const T& t)
 {
     (*this)[index][--count[index]] = t;
+}
+template<class T, class Int>
+    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::storeMultithreaded(Int index, const T& t)
+{
+    const Int i = __sync_sub_and_fetch(&count[index], 1);
+    (*this)[index][i] = t;
 }
 
 

@@ -220,7 +220,7 @@ public:
 
     // Python-callable access functions for the global marker graph.
     // See the private section for some more not callable from Python.
-    void accessGlobalMarkerGraph();
+    void accessMarkerGraphVertices();
 
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
@@ -240,6 +240,11 @@ public:
         getGlobalMarkerGraphVertexChildren(GlobalMarkerGraphVertexId) const;
     vector<GlobalMarkerGraphVertexId>
         getGlobalMarkerGraphVertexParents(GlobalMarkerGraphVertexId) const;
+
+    // Connectivity of the global marker graph.
+    void createMarkerGraphConnectivity(size_t threadCount);
+    void accessMarkerGraphConnectivity();
+
 
     // Call this before explore to make the documentation available.
     void setDocsDirectory(const string&);
@@ -491,6 +496,41 @@ private:
     // each vertex of the global marker graph.
     // Indexed by GlobalMarkerGraphVertexId.
     MemoryMapped::VectorOfVectors<MarkerId, CompressedGlobalMarkerGraphVertexId> globalMarkerGraphVertices;
+    void checkMarkerGraphVerticesAreAvailable();
+
+
+
+    // Marker graph connectivity.
+    class MarkerGraphConnectivity {
+    public:
+
+        // The edges of the marker graph.
+        class Edge {
+        public:
+            Uint40 source;  // The source vertex (index into globalMarkerGraphVertices).
+            Uint40 target;  // The target vertex (index into globalMarkerGraphVertices).
+            uint8_t coverage;   // (255 indicates 255 or more).
+        };
+        MemoryMapped::Vector<Edge> edges;
+
+        // The edges found by each thread.
+        // This is temporary and only used inside createMarkerGraphConnectivity.
+        vector< std::shared_ptr<MemoryMapped::Vector<Edge> > > threadEdges;
+
+        // The edges that each vertex is the source of.
+        // Contains indexes into the above edges vector.
+        MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesBySource;
+
+        // The edges that each vertex is the target of.
+        // Contains indexes into the above edges vector.
+        MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
+
+    };
+    MarkerGraphConnectivity markerGraphConnectivity;
+    void createMarkerGraphConnectivityThreadFunction0(size_t threadId);
+    void createMarkerGraphConnectivityThreadFunction1(size_t threadId);
+    void createMarkerGraphConnectivityThreadFunction2(size_t threadId);
+    void createMarkerGraphConnectivityThreadFunction12(size_t threadId, size_t pass);
 
 
 

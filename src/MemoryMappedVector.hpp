@@ -569,7 +569,8 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::s
     CZI_ASSERT(isOpen);
     const int msyncReturnCode = ::msync(header, header->fileSize, MS_SYNC);
     if(msyncReturnCode == -1) {
-        throw runtime_error("Error during msync for " + fileName);
+        throw runtime_error("Error " + to_string(errno) + " during msync for " + fileName
+            + ": " + ::strerror(errno) + ". Filesize is " + to_string(header->fileSize) + ".");
     }
 }
 

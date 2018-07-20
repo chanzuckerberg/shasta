@@ -32,7 +32,7 @@ a.accessReadsReadOnly()
 a.accessKmers()
 a.accessMarkers()
 a.accessOverlaps()
-a.accessGlobalMarkerGraph()
+a.accessMarkerGraphVertices()
 
 # Do it.
 a.extractLocalMarkerGraph(

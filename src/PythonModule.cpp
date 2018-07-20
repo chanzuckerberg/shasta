@@ -197,8 +197,8 @@ PYBIND11_MODULE(shasta, module)
 
 
         // Global marker graph.
-        .def("accessGlobalMarkerGraph",
-             &Assembler::accessGlobalMarkerGraph)
+        .def("accessMarkerGraphVertices",
+             &Assembler::accessMarkerGraphVertices)
         .def("getGlobalMarkerGraphVertex",
             (
                 GlobalMarkerGraphVertexId (Assembler::*)
@@ -242,6 +242,13 @@ PYBIND11_MODULE(shasta, module)
             arg("minCoverage"),
             arg("minConsensus"))
 
+
+        // Connectivity of the global marker graph.
+        .def("createMarkerGraphConnectivity",
+             &Assembler::createMarkerGraphConnectivity,
+             arg("threadCount") = 0)
+        .def("accessMarkerGraphConnectivity",
+             &Assembler::accessMarkerGraphConnectivity)
 
 
         // Http server.

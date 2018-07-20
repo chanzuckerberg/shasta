@@ -18,7 +18,7 @@ a.accessKmers()
 a.accessMarkers()
 a.accessOverlaps()
 a.accessAlignmentData()
-a.accessGlobalMarkerGraph()
+a.accessMarkerGraphVertices()
 
 a.setDocsDirectory(docsDirectory)
 a.explore()
