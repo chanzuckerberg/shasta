@@ -275,7 +275,6 @@ void Assembler::extractLocalMarkerGraph(
     LocalMarkerGraph2& graph
     )
 {
-    cout << "useStoredConnectivity: " << int(useStoredConnectivity) << endl;
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
 
     // Add the start vertex.
