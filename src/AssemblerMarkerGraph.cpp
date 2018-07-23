@@ -382,7 +382,7 @@ void Assembler::createMarkerGraphConnectivity(
 
     // Each thread stores the edges it finds in a separate vector.
     markerGraphConnectivity.threadEdges.resize(threadCount);
-    setupLoadBalancing(globalMarkerGraphVertices.size(), 1000);
+    setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
     runThreads(&Assembler::createMarkerGraphConnectivityThreadFunction0, threadCount,
         "threadLogs/createMarkerGraphConnectivity0");
 
@@ -455,7 +455,7 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
 
         // Loop over all marker graph vertices assigned to this batch.
         for(GlobalMarkerGraphVertexId vertex0=begin; vertex0!=end; ++vertex0) {
-            out << timestamp << vertex0 << " " << globalMarkerGraphVertices.size(vertex0) << endl;
+            // out << timestamp << vertex0 << " " << globalMarkerGraphVertices.size(vertex0) << endl;
             edge.source = vertex0;
             const auto markerIds0 = globalMarkerGraphVertices[vertex0];
 
