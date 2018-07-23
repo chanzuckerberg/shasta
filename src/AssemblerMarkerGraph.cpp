@@ -375,8 +375,9 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
 
     // Each thread stores the edges it finds in a separate vector.
     markerGraphConnectivity.threadEdges.resize(threadCount);
-    setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
-    runThreads(&Assembler::createMarkerGraphConnectivityThreadFunction0, threadCount);
+    setupLoadBalancing(globalMarkerGraphVertices.size(), 1000);
+    runThreads(&Assembler::createMarkerGraphConnectivityThreadFunction0, threadCount,
+        "threadLogs/createMarkerGraphConnectivity0");
 
     // Combine the edges found by each thread.
     markerGraphConnectivity.edges.createNew(
@@ -423,6 +424,8 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
 
 void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
 {
+    ostream& out = getLog(threadId);
+
     // Create the vector to contain the edges found by this thread.
     using std::shared_ptr;
     using std::make_shared;
@@ -441,9 +444,11 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
+        out << timestamp << begin << endl;
 
         // Loop over all marker graph vertices assigned to this batch.
         for(GlobalMarkerGraphVertexId vertex0=begin; vertex0!=end; ++vertex0) {
+            out << timestamp << vertex0 << " " << globalMarkerGraphVertices.size(vertex0) << endl;
             edge.source = vertex0;
             const auto markerIds0 = globalMarkerGraphVertices[vertex0];
 
