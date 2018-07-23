@@ -359,8 +359,12 @@ void Assembler::extractLocalMarkerGraph(
 
 
 
-// Connectivity of the global marker graph.
-void Assembler::createMarkerGraphConnectivity(size_t threadCount)
+// Compute connectivity of the global marker graph.
+// Vertices with more than markerCountOverflow are skipped.
+void Assembler::createMarkerGraphConnectivity(
+    size_t threadCount,
+    size_t markerCountOverflow
+    )
 {
     cout << timestamp << "createMarkerGraphConnectivity begins." << endl;
 
@@ -372,6 +376,9 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
         threadCount = std::thread::hardware_concurrency();
     }
     cout << "Using " << threadCount << " threads." << endl;
+
+    // Store markerCountOverflow so all threads can see it.
+    markerGraphConnectivity.markerCountOverflow = markerCountOverflow;
 
     // Each thread stores the edges it finds in a separate vector.
     markerGraphConnectivity.threadEdges.resize(threadCount);
@@ -452,11 +459,21 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
             edge.source = vertex0;
             const auto markerIds0 = globalMarkerGraphVertices[vertex0];
 
+            // Skip it is it has too many markers.
+            if(markerIds0.size() > markerGraphConnectivity.markerCountOverflow) {
+                continue;
+            }
+
             // Loop over children of this vertex.
             getGlobalMarkerGraphVertexChildren(vertex0, children);
             for(const GlobalMarkerGraphVertexId vertex1: children) {
                 edge.target = vertex1;
                 const auto markerIds1 = globalMarkerGraphVertices[vertex1];
+
+                // Skip it is it has too many markers.
+                if(markerIds1.size() > markerGraphConnectivity.markerCountOverflow) {
+                    continue;
+                }
 
                 // Joint loop over markers to compute coverage.
                 // This code is similar to LocalMarkerGraph2::storeEdgeInfo.

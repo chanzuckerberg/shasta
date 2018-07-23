@@ -245,8 +245,12 @@ public:
         GlobalMarkerGraphVertexId,
         bool useStoredConnectivity) const;
 
-    // Connectivity of the global marker graph.
-    void createMarkerGraphConnectivity(size_t threadCount);
+    // Compute connectivity of the global marker graph.
+    // Vertices with more than markerCountOverflow are skipped.
+    void createMarkerGraphConnectivity(
+        size_t threadCount,
+        size_t markerCountOverflow
+        );
     void accessMarkerGraphConnectivity();
 
 
@@ -505,6 +509,7 @@ private:
 
 
     // Marker graph connectivity.
+    // Also contains temporary data used by createMarkerGraphConnectivity.
     class MarkerGraphConnectivity {
     public:
 
@@ -530,6 +535,9 @@ private:
         // The edges that each vertex is the target of.
         // Contains indexes into the above edges vector.
         MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
+
+        // Vertices with more than markerCountOverflow are skipped.
+        size_t markerCountOverflow;
 
     };
     MarkerGraphConnectivity markerGraphConnectivity;
