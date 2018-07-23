@@ -64,4 +64,7 @@ a.computeAllAlignments(
     maxTrim = int(config['Align']['minAlignedMarkerCount']),
     minCoverage = int(config['MarkerGraph']['minCoverage']))
 
+# Compute connectivity of the global marker graph.
+a.createMarkerGraphConnectivity(
+    markerCountOverflow = int(config['MarkerGraph']['markerCountOverflow']))
 
