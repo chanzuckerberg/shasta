@@ -99,8 +99,14 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     GlobalMarkerGraphVertexId vertexId,
     vector<GlobalMarkerGraphVertexId>& children,
     bool append,
-    bool useStoredConnectivity) const
+    bool useStoredConnectivity,
+    bool onlyUseGoodEdges      // Only honored if useStoredConnectivity is true.
+    ) const
 {
+    if(!useStoredConnectivity) {
+        CZI_ASSERT(!onlyUseGoodEdges);
+    }
+
     if(!append) {
         children.clear();
     }
@@ -112,6 +118,9 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
         const auto edges = markerGraphConnectivity.edgesBySource[vertexId];
         for(const auto i: edges) {
             const auto& edge = markerGraphConnectivity.edges[i];
+            if(onlyUseGoodEdges && !edge.isGood) {
+                continue;
+            }
             children.push_back(edge.target);
             sort(children.begin(), children.end());
         }
@@ -171,8 +180,14 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     GlobalMarkerGraphVertexId vertexId,
     vector<GlobalMarkerGraphVertexId>& parents,
     bool append,
-    bool useStoredConnectivity) const
+    bool useStoredConnectivity,
+    bool onlyUseGoodEdges      // Only honored if useStoredConnectivity is true.
+    ) const
 {
+    if(!useStoredConnectivity) {
+        CZI_ASSERT(!onlyUseGoodEdges);
+    }
+
     if(!append) {
         parents.clear();
     }
@@ -184,6 +199,9 @@ void Assembler::getGlobalMarkerGraphVertexParents(
         const auto edges = markerGraphConnectivity.edgesByTarget[vertexId];
         for(const auto i: edges) {
             const auto& edge = markerGraphConnectivity.edges[i];
+            if(onlyUseGoodEdges && !edge.isGood) {
+                continue;
+            }
             parents.push_back(edge.source);
         }
         sort(parents.begin(), parents.end());
@@ -254,7 +272,7 @@ void Assembler::extractLocalMarkerGraph(
 {
     // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
-    extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, false, graph);
+    extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, false, false, graph);
 
     cout << "The local marker graph has " << num_vertices(graph);
     cout << " vertices and " << num_edges(graph) << " edges." << endl;
@@ -272,9 +290,14 @@ void Assembler::extractLocalMarkerGraph(
     uint32_t ordinal,
     int distance,
     bool useStoredConnectivity,
+    bool onlyUseGoodEdges,      // Only honored if useStoredConnectivity is true;
     LocalMarkerGraph2& graph
     )
 {
+    if(!useStoredConnectivity) {
+        CZI_ASSERT(!onlyUseGoodEdges);
+    }
+
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
 
     // Add the start vertex.
@@ -304,8 +327,8 @@ void Assembler::extractLocalMarkerGraph(
 
         // Get the neighbors.
         neighbors.clear();
-        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, true, useStoredConnectivity);
-        getGlobalMarkerGraphVertexParents (vertexId0, neighbors, true, useStoredConnectivity);
+        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, true, useStoredConnectivity, onlyUseGoodEdges);
+        getGlobalMarkerGraphVertexParents (vertexId0, neighbors, true, useStoredConnectivity, onlyUseGoodEdges);
 
         // Loop over the neighbors.
         for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
@@ -331,26 +354,20 @@ void Assembler::extractLocalMarkerGraph(
             vertex_descriptor v1;
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(vertexExists) {
+
+                if(useStoredConnectivity && onlyUseGoodEdges) {
+                    const auto storedEdgePointer = markerGraphConnectivity.findEdge(vertexId0, vertexId1);
+                    CZI_ASSERT(storedEdgePointer);
+                    if(!storedEdgePointer->isGood) {
+                        continue;
+                    }
+                }
                 LocalMarkerGraph2::edge_descriptor  e;
                 bool edgeWasAdded = false;
                 tie(e, edgeWasAdded) = add_edge(v0, v1, graph);
                 CZI_ASSERT(edgeWasAdded);
                 graph.storeEdgeInfo(e);
 
-                // If we are using the stored connectivity, verify that the
-                // edge coverage we just computed agrees with the stored value.
-                if(useStoredConnectivity) {
-                    const auto storedEdgePointer = markerGraphConnectivity.findEdge(vertexId0, vertexId1);
-                    CZI_ASSERT(storedEdgePointer);
-                    const uint8_t storedCoverage = storedEdgePointer->coverage;
-                    const LocalMarkerGraph2Edge& edge = graph[e];
-                    const auto edgeCoverage = edge.coverage();
-                    if(storedCoverage==255) {
-                        CZI_ASSERT(edgeCoverage >= 255);
-                    } else {
-                        CZI_ASSERT(edgeCoverage == storedCoverage);
-                    }
-                }
             }
         }
     }
@@ -608,10 +625,15 @@ void Assembler::createMarkerGraphConnectivityThreadFunction12(size_t threadId, s
 }
 
 
-void Assembler::accessMarkerGraphConnectivity()
+void Assembler::accessMarkerGraphConnectivity(bool accessEdgesReadWrite)
 {
-    markerGraphConnectivity.edges.accessExistingReadOnly(
+    if(accessEdgesReadWrite) {
+        markerGraphConnectivity.edges.accessExistingReadWrite(
             largeDataName("GlobalMarkerGraphEdges"));
+    } else {
+        markerGraphConnectivity.edges.accessExistingReadOnly(
+            largeDataName("GlobalMarkerGraphEdges"));
+    }
     markerGraphConnectivity.edgesBySource.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesBySource"));
     markerGraphConnectivity.edgesByTarget.accessExistingReadOnly(
@@ -634,3 +656,102 @@ const Assembler::MarkerGraphConnectivity::Edge*
     return 0;
 
 }
+
+
+
+// Flag as not good a marker graph edge if:
+// - It has coverage<minCoverage, AND
+// - A path of length <= maxPathLength edges exists that:
+//    * Starts at the source vertex of the edge.
+//    * Ends at the target vertex of the edge.
+//    * Only uses edges with coverage>=minCoverage.
+void Assembler::flagMarkerGraphEdges(
+    size_t threadCount,
+    size_t minCoverage,
+    size_t maxPathLength)
+{
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Store the parameters so all threads can see them.
+    flagMarkerGraphEdgesData.minCoverage = minCoverage;
+    flagMarkerGraphEdgesData.maxPathLength = maxPathLength;
+
+    // Do it in parallel.
+    const size_t vertexCount = markerGraphConnectivity.edgesBySource.size();
+    setupLoadBalancing(vertexCount, 100000);
+    runThreads(
+        &Assembler::flagMarkerGraphEdgesThreadFunction,
+        threadCount,
+        "threadLogs/flagMarkerGraphEdges");
+}
+
+
+
+void Assembler::flagMarkerGraphEdgesThreadFunction(size_t threadId)
+{
+    ostream& out = getLog(threadId);
+
+    const size_t minCoverage = flagMarkerGraphEdgesData.minCoverage;
+    const size_t maxPathLength = flagMarkerGraphEdgesData.maxPathLength;
+
+    vector< vector<GlobalMarkerGraphVertexId> > verticesByDistance(maxPathLength+1);
+    verticesByDistance.front().resize(1);
+    vector<GlobalMarkerGraphVertexId> vertices;
+
+    // Loop over all batches assigned to this thread.
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        out << timestamp << begin << endl;
+
+        // Loop over vertices assigned to this batch.
+        for(GlobalMarkerGraphVertexId startVertexId=begin; startVertexId!=end; ++startVertexId) {
+
+            // Find all vertices within maxPathLength of this vertex,
+            // computed using only edges with coverage >= minCoverage.
+            // This uses a very simple algorithm that should work well
+            // because the number of vertices involved is usually very small.
+            verticesByDistance.front().front() = startVertexId;
+            vertices.clear();
+            vertices.push_back(startVertexId);
+            for(size_t distance=1; distance<=maxPathLength; distance++) {
+                auto& verticesAtThisDistance = verticesByDistance[distance];
+                verticesAtThisDistance.clear();
+                for(const GlobalMarkerGraphVertexId vertexId0: verticesByDistance[distance-1]) {
+                    for(const uint64_t i: markerGraphConnectivity.edgesBySource[vertexId0]) {
+                        const auto& edge = markerGraphConnectivity.edges[i];
+                        if(edge.coverage < minCoverage) {
+                            continue;
+                        }
+                        CZI_ASSERT(edge.source == vertexId0);
+                        const GlobalMarkerGraphVertexId vertexId1 = edge.target;
+                        verticesAtThisDistance.push_back(vertexId1);
+                        vertices.push_back(vertexId1);
+                    }
+                }
+            }
+            sort(vertices.begin(), vertices.end());
+            vertices.resize(unique(vertices.begin(), vertices.end()) - vertices.begin());
+
+            // Loop over low coverage edges with source startVertexId.
+            // If the target is one of the vertices we found, flag the edge as not good.
+            for(const uint64_t i: markerGraphConnectivity.edgesBySource[startVertexId]) {
+                auto& edge = markerGraphConnectivity.edges[i];
+                if(edge.coverage >= minCoverage) {
+                    continue;
+                }
+                CZI_ASSERT(edge.source == startVertexId);
+                if(std::binary_search(vertices.begin(), vertices.end(), edge.target)) {
+                    edge.isGood = false;
+                }
+            }
+
+        }
+
+    }
+
+}
+

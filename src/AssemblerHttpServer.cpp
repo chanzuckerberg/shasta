@@ -1407,6 +1407,8 @@ void Assembler::exploreMarkerGraph(
     const bool showVertexId = getParameterValue(request, "showVertexId", showVertexIdString);
     string useStoredConnectivityString;
     const bool useStoredConnectivity = getParameterValue(request, "useStoredConnectivity", useStoredConnectivityString);
+    string onlyUseGoodEdgesString;
+    const bool onlyUseGoodEdges = getParameterValue(request, "onlyUseGoodEdges", onlyUseGoodEdgesString);
     uint32_t minCoverage = 0;
     const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
     uint32_t sizePixels;
@@ -1459,11 +1461,17 @@ void Assembler::exploreMarkerGraph(
         << (showVertexId ? " checked=checked" : "") <<
         ">"
 
-        "<tr title='Check to use stored connectivity of the marker graph "
-        "(for testing only - if everything works, this should not affect the display'>"
+        "<tr title='Check to use stored connectivity of the marker graph'>"
         "<td>Use stored connectivity"
         "<td class=centered><input type=checkbox name=useStoredConnectivity"
         << (useStoredConnectivity ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Check to only use edges marked as good. "
+        "This option is only available when using stored connectivity of the marker graph.'>"
+        "<td>Only use edges marked as good"
+        "<td class=centered><input type=checkbox name=onlyUseGoodEdges"
+        << (onlyUseGoodEdges ? " checked=checked" : "") <<
         ">"
 
 
@@ -1536,10 +1544,16 @@ void Assembler::exploreMarkerGraph(
         return;
     }
 
+    if(!useStoredConnectivity && onlyUseGoodEdges) {
+        html << "The option to only use good edges is only available when using stored connectivity.";
+        return;
+    }
+
 
     // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
-    extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, useStoredConnectivity, graph);
+    extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance,
+        useStoredConnectivity, onlyUseGoodEdges, graph);
     if(num_vertices(graph) == 0) {
         html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
         return;
@@ -1606,7 +1620,8 @@ void Assembler::exploreMarkerGraph(
             "&timeout=" + to_string(timeout) +
             (detailed ? "&detailed=on" : "") +
             (showVertexId ? "&showVertexId=on" : "") +
-            (useStoredConnectivity ? "&useStoredConnectivity=on" : "");
+            (useStoredConnectivity ? "&useStoredConnectivity=on" : "") +
+            (onlyUseGoodEdges ? "&onlyUseGoodEdges=on" : "");
         if(detailed) {
             html <<
                 "document.getElementById('a_vertexDistance" << vertex.vertexId <<
@@ -1628,7 +1643,8 @@ void Assembler::exploreMarkerGraph(
                 "&timeout=" + to_string(timeout) +
                 "&detailed=on" +
                 (showVertexId ? "&showVertexId=on" : "") +
-                (useStoredConnectivity ? "&useStoredConnectivity=on" : "");
+                (useStoredConnectivity ? "&useStoredConnectivity=on" : "") +
+                (onlyUseGoodEdges ? "&onlyUseGoodEdges=on" : "");
             html <<
                 "document.getElementById('vertex" << vertex.vertexId <<
                 "').oncontextmenu = function() {location.href='" << detailUrl << "';"

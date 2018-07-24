@@ -250,8 +250,14 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::createMarkerGraphConnectivity,
              arg("threadCount") = 0,
              arg("markerCountOverflow"))
-        .def("accessMarkerGraphConnectivity",
-             &Assembler::accessMarkerGraphConnectivity)
+         .def("accessMarkerGraphConnectivity",
+              &Assembler::accessMarkerGraphConnectivity,
+              arg("accessEdgesReadWrite") = false)
+         .def("flagMarkerGraphEdges",
+              &Assembler::flagMarkerGraphEdges,
+                 arg("threadCount") = 0,
+                 arg("minCoverage"),
+                 arg("maxPathLength"))
 
 
         // Http server.

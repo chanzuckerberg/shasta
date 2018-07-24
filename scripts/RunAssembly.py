@@ -67,4 +67,8 @@ a.computeAllAlignments(
 # Compute connectivity of the global marker graph.
 a.createMarkerGraphConnectivity(
     markerCountOverflow = int(config['MarkerGraph']['markerCountOverflow']))
+a.flagMarkerGraphEdges(
+    minCoverage = int(config['MarkerGraph']['minCoverage']),
+    maxPathLength = int(config['MarkerGraph']['maxPathLength']),
+    )
 

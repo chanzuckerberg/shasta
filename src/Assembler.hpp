@@ -251,7 +251,18 @@ public:
         size_t threadCount,
         size_t markerCountOverflow
         );
-    void accessMarkerGraphConnectivity();
+    void accessMarkerGraphConnectivity(bool accessEdgesReadWrite);
+
+    // Flag as not good a marker graph edge if:
+    // - It has coverage<minCoverage, AND
+    // - A path of length <= maxPathLength edges exists that:
+    //    * Starts at the source vertex of the edge.
+    //    * Ends at the target vertex of the edge.
+    //    * Only uses edges with coverage>=minCoverage.
+    void flagMarkerGraphEdges(
+        size_t threadCount,
+        size_t minCoverage,
+        size_t maxPathLength);
 
 
     // Call this before explore to make the documentation available.
@@ -548,6 +559,17 @@ private:
 
 
 
+    // Data used by flagMarkerGraphEdges.
+    class FlagMarkerGraphEdgesData {
+    public:
+        size_t minCoverage;
+        size_t maxPathLength;
+    };
+    FlagMarkerGraphEdgesData flagMarkerGraphEdgesData;
+    void flagMarkerGraphEdgesThreadFunction(size_t threadId);
+
+
+
 
     // Private access functions for the global marker graph.
     // See the public section for some more that are callable from Python.
@@ -572,12 +594,16 @@ private:
         GlobalMarkerGraphVertexId,
         vector<GlobalMarkerGraphVertexId>&,
         bool append = false,
-        bool useStoredConnectivity = false) const;
+        bool useStoredConnectivity = false,
+        bool onlyUseGoodEdges = false      // Only honored if useStoredConnectivity is true;
+        ) const;
     void getGlobalMarkerGraphVertexParents(
         GlobalMarkerGraphVertexId,
         vector<GlobalMarkerGraphVertexId>&,
         bool append = false,
-        bool useStoredConnectivity = false) const;
+        bool useStoredConnectivity = false,
+        bool onlyUseGoodEdges = false      // Only honored if useStoredConnectivity is true;
+        ) const;
 
 
 
@@ -604,6 +630,7 @@ private:
         uint32_t ordinal,
         int distance,
         bool useStoredConnectivity,
+        bool onlyUseGoodEdges,      // Only honored if useStoredConnectivity is true;
         LocalMarkerGraph2&
         );
 
