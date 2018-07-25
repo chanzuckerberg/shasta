@@ -178,6 +178,8 @@ public:
         return c;
     }
 
+    // Flag that is true is this edge belongs to the optimal spanning tree.
+    bool isSpanningTreeEdge = false;
 };
 
 
@@ -217,6 +219,9 @@ public:
     // LocalMarkerGraph2Edge::Info that caused the edge to be created.
     void storeEdgeInfo(edge_descriptor);
     void storeEdgeInfo(edge_descriptor, const vector<LocalMarkerGraph2Edge::Info>&);
+
+    // Create an optimal spanning tree and mark its edges.
+    void computeOptimalSpanningTree();
 
     // Write in Graphviz format.
     // There are two types of Graphviz output:

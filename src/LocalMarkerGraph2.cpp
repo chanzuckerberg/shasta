@@ -11,6 +11,9 @@ using namespace ChanZuckerberg;
 using namespace shasta;
 
 // Boost libraries.
+// Due to a bug in boost graph include files, disjoint_sets.hpp
+// must be included before graphviz.hpp
+#include <boost/pending/disjoint_sets.hpp>
 #include <boost/graph/graphviz.hpp>
 
 // Standard libraries.
@@ -318,6 +321,64 @@ void LocalMarkerGraph2::storeEdgeInfo(
 
 
 
+// Create an optimal spanning tree and mark its edges.
+void LocalMarkerGraph2::computeOptimalSpanningTree()
+{
+    LocalMarkerGraph2& graph = *this;
+
+    // Mark all edges as initially not part of the optimal spanning tree.
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        graph[e].isSpanningTreeEdge = false;
+    }
+
+    // Gather all the edges and sort them by decreasing coverage.
+    vector< pair<edge_descriptor, size_t> > edgeTable;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        edgeTable.push_back(make_pair(e, graph[e].coverage()));
+    }
+    std::sort(edgeTable.begin(), edgeTable.end(),
+        OrderPairsBySecondOnlyGreater<edge_descriptor, size_t>());
+
+    // Map the vertices to integers in [0, number of vertices).
+    const size_t n = boost::num_vertices(graph);
+    std::map<vertex_descriptor, uint32_t> vertexMap;
+    uint32_t vertexIndex = 0;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        vertexMap.insert(make_pair(v, vertexIndex++));
+    }
+
+
+    // Initialize the disjoint set data structures.
+    vector<uint32_t> rank(n);
+    vector<uint32_t> parent(n);
+    boost::disjoint_sets<uint32_t*, uint32_t*> disjointSets(&rank[0], &parent[0]);
+    for(size_t i=0; i<n; i++) {
+        disjointSets.make_set(i);
+    }
+
+    // Process the edges in this order.
+    // Only add each edge to the optimal spanning tree
+    // if the two vertices are in two different connected components.
+    for(const auto& p: edgeTable) {
+        const edge_descriptor e = p.first;
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const uint32_t i0 = vertexMap[v0];
+        const uint32_t i1 = vertexMap[v1];
+
+        // If v0 and v1 are in separate components,
+        // add this edge to the optimal spanning tree.
+        const uint32_t component0 = disjointSets.find_set(i0);
+        const uint32_t component1 = disjointSets.find_set(i1);
+        if(component0 != component1) {
+            graph[e].isSpanningTreeEdge = true;
+            disjointSets.union_set(i0, i1);
+        }
+    }
+}
+
+
+
 // Write the graph in Graphviz format.
 void LocalMarkerGraph2::write(
     const string& fileName,
@@ -378,28 +439,6 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
     }
 }
 
-
-
-/*******************************************************************************
-
-Vertices and edges are displayed as follows.
-
-Compact:
-    - Vertex size: proportional to square root of coverage.
-    - Vertex color: light green for start vertex, cyan if vertex is at maxDistance.
-      Otherwise, black if coverage>=minCoverage, red if coverage<minCoverage.
-    - Edge thickness: proportional to coverage. If coverage==0,
-      use same thickness as coverage==1, but edge is dotted.
-    - Edge color: black if coverage>=minCoverage, red if coverage<minCoverage.
-Detailed:
-    - Vertex color: light green for start vertex, cyan if vertex is at maxDistance.
-      Otherwise, green if coverage>=minCoverage, red if coverage<minCoverage.
-    - Edge thickness: same as for compact case.
-    - Edge color: same as for compact case.
-    - Edge label color: green if coverage>=minCoverage, red if coverage<minCoverage.
-Note that only coverage, not consensus, determines how edges are displayed.
-
-*******************************************************************************/
 
 
 void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v) const
@@ -560,6 +599,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
     const LocalMarkerGraph2Edge& edge = graph[e];
     const size_t coverage = edge.coverage();
+    CZI_ASSERT(coverage > 0);
     const size_t consensus = edge.consensus();
 
     if(!detailed) {
@@ -572,7 +612,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Tooltip.
         s << "tooltip=\"Coverage " << coverage << ", consensus " << consensus << "\"";
 
-        // Color is determined by consensus.
+        // Color is determined by coverage.
         string color;
         if(coverage >= minCoverage) {
             color = "black";
@@ -590,8 +630,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s.precision(oldPrecision);
 
         // Style.
-        if(coverage == 0) {
-            s << " style=dotted";
+        if(edge.isSpanningTreeEdge) {
+            s << " style=dashed";
         }
 
         // Weight;
@@ -620,8 +660,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s.precision(oldPrecision);
 
         // Style.
-        if(coverage == 0) {
-            s << " style=dotted";
+        if(edge.isSpanningTreeEdge) {
+            s << " style=dashed";
         }
 
         // Color is determined by coverage.
