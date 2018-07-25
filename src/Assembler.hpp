@@ -235,14 +235,15 @@ public:
     // Find the children or parents of a vertex of the global marker graph.
     vector<GlobalMarkerGraphVertexId>
         getGlobalMarkerGraphVertexChildren(
-        GlobalMarkerGraphVertexId,
-        bool useStoredConnectivity) const;
+        GlobalMarkerGraphVertexId) const;
     vector<GlobalMarkerGraphVertexId>
         getGlobalMarkerGraphVertexParents(
-        GlobalMarkerGraphVertexId,
-        bool useStoredConnectivity) const;
+        GlobalMarkerGraphVertexId) const;
+
+
 
     // Compute connectivity of the global marker graph.
+    // This code is currently not in use.
     // Vertices with more than markerCountOverflow are skipped.
     void createMarkerGraphConnectivity(
         size_t threadCount,
@@ -260,6 +261,7 @@ public:
         size_t threadCount,
         size_t minCoverage,
         size_t maxPathLength);
+
 
 
     // Call this before explore to make the documentation available.
@@ -590,16 +592,12 @@ private:
     void getGlobalMarkerGraphVertexChildren(
         GlobalMarkerGraphVertexId,
         vector<GlobalMarkerGraphVertexId>&,
-        bool append = false,
-        bool useStoredConnectivity = false,
-        bool onlyUseGoodEdges = false      // Only honored if useStoredConnectivity is true;
+        bool append = false
         ) const;
     void getGlobalMarkerGraphVertexParents(
         GlobalMarkerGraphVertexId,
         vector<GlobalMarkerGraphVertexId>&,
-        bool append = false,
-        bool useStoredConnectivity = false,
-        bool onlyUseGoodEdges = false      // Only honored if useStoredConnectivity is true;
+        bool append = false
         ) const;
 
 
@@ -626,8 +624,6 @@ private:
         OrientedReadId,
         uint32_t ordinal,
         int distance,
-        bool useStoredConnectivity,
-        bool onlyUseGoodEdges,      // Only honored if useStoredConnectivity is true;
         LocalMarkerGraph2&
         );
 

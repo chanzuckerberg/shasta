@@ -218,19 +218,17 @@ PYBIND11_MODULE(shasta, module)
         .def("getGlobalMarkerGraphVertexChildren",
             (
                 vector<GlobalMarkerGraphVertexId> (Assembler::*)
-                (GlobalMarkerGraphVertexId, bool) const
+                (GlobalMarkerGraphVertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexChildren,
-            arg("globalMarkerGraphVertexId"),
-            arg("useStoredConnectivity") = false)
+            arg("globalMarkerGraphVertexId"))
         .def("getGlobalMarkerGraphVertexParents",
             (
                 vector<GlobalMarkerGraphVertexId> (Assembler::*)
-                (GlobalMarkerGraphVertexId, bool) const
+                (GlobalMarkerGraphVertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexParents,
-            arg("globalMarkerGraphVertexId"),
-            arg("useStoredConnectivity") = false)
+            arg("globalMarkerGraphVertexId"))
         .def("extractLocalMarkerGraph",
             (
                 void (Assembler::*)
