@@ -15,6 +15,8 @@ using namespace shasta;
 // must be included before graphviz.hpp
 #include <boost/pending/disjoint_sets.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/filtered_graph.hpp>
+#include <boost/graph/topological_sort.hpp>
 
 // Standard libraries.
 #include "fstream.hpp"
@@ -375,6 +377,87 @@ void LocalMarkerGraph2::computeOptimalSpanningTree()
             disjointSets.union_set(i0, i1);
         }
     }
+}
+
+
+
+// Compute the best path in the optimal spanning tree.
+// The optimal spanning tree must have already been computed.
+void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
+{
+    LocalMarkerGraph2& graph = *this;
+
+    // Created a filtered graph that contains only the spanning tree edges.
+    SpanningTreeFilter filter(graph);
+    using FilteredGraph = boost::filtered_graph<LocalMarkerGraph2, SpanningTreeFilter>;
+    FilteredGraph spanningTree(graph, filter);
+
+    // Compute a topological sort of the spanning tree.
+    // This always succeeds as the spanning tree is acyclic.
+    vector<vertex_descriptor> topologicallySortedVertices;
+    std::map<vertex_descriptor, uint32_t> colorMap;
+    boost::topological_sort(spanningTree, back_inserter(topologicallySortedVertices),
+        boost::color_map(boost::make_assoc_property_map(colorMap)));
+
+    // Boost ::topological_sort returns the vertices in reverse topological.
+    std::reverse(topologicallySortedVertices.begin(), topologicallySortedVertices.end());
+
+    // In topological order, compute for each vertex a
+    // pair(predecessor, distance),
+    // where predecessor is the predecessor with the maximum distance.
+    // See https://en.wikipedia.org/wiki/Longest_path_problem#Acyclic_graphs_and_critical_paths
+    using Pair = pair<vertex_descriptor, uint32_t>;
+    std::map<vertex_descriptor, Pair> vertexTable;
+    for(const vertex_descriptor v0: topologicallySortedVertices) {
+        Pair p = make_pair(null_vertex(), 0);
+        BGL_FORALL_INEDGES(v0, e, spanningTree, FilteredGraph) {
+            const vertex_descriptor v1 = source(e, graph);
+            const auto it = vertexTable.find(v1);
+            CZI_ASSERT(it != vertexTable.end());
+            if(it->second.second+1 > p.second) {
+                p.first = v1;
+                p.second = it->second.second + 1;
+            }
+        }
+        vertexTable.insert(make_pair(v0, p));
+    }
+
+    // Find the vertex with maximum distance. This is where the longest path ends.
+    vertex_descriptor lastPathVertex = null_vertex();
+    uint32_t lastPathVertexDistance = 0;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        const auto it = vertexTable.find(v);
+        CZI_ASSERT(it != vertexTable.end());
+        if(it->second.second > lastPathVertexDistance) {
+            lastPathVertexDistance = it->second.second;
+            lastPathVertex = v;
+        }
+    }
+
+
+    // Construct the longest path, beginning at the end.
+    vector<edge_descriptor> longestPath;
+    vertex_descriptor v = lastPathVertex;
+    while(v != null_vertex()) {
+        const vertex_descriptor v1 = v;
+        const vertex_descriptor v0 = vertexTable[v1].first;
+        if(v0 == null_vertex()) {
+            break;
+        }
+        edge_descriptor e;
+        bool edgeWasFound;
+        tie(e, edgeWasFound) = boost::edge(v0, v1, graph);
+        CZI_ASSERT(edgeWasFound);
+        longestPath.push_back(e);
+        v = v0;
+    }
+    std::reverse(longestPath.begin(), longestPath.end());
+    /*
+    cout << "Longest path:" << endl;
+    for(const edge_descriptor e: longestPath) {
+        cout << graph[source(e, graph)].vertexId << " " << graph[target(e, graph)].vertexId << endl;
+    }
+    */
 }
 
 

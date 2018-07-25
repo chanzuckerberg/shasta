@@ -178,8 +178,14 @@ public:
         return c;
     }
 
-    // Flag that is true is this edge belongs to the optimal spanning tree.
+    // Flag that is true if this edge belongs to the optimal spanning tree.
+    // Set by computeOptimalSpanningTree().
     bool isSpanningTreeEdge = false;
+
+    // Flag that is true if this edge belongs to the best path
+    // of the optimal spanning tree.
+    // Set by computeOptimalSpanningTreeBestPath().
+    bool isSpanningTreeBestPathEdge = false;
 };
 
 
@@ -222,6 +228,25 @@ public:
 
     // Create an optimal spanning tree and mark its edges.
     void computeOptimalSpanningTree();
+
+    // Predicate that can be used with boost::filtered_graph
+    // to create an implicit representation of the spanning tree.
+    class SpanningTreeFilter {
+    public:
+        bool operator()(edge_descriptor e) const
+        {
+            return (*graph)[e].isSpanningTreeEdge;
+        }
+        const LocalMarkerGraph2* graph;
+        SpanningTreeFilter(const LocalMarkerGraph2& graph) :
+            graph(&graph) {}
+        SpanningTreeFilter() :
+            graph(0) {}
+    };
+
+    // Compute the best path in the optimal spanning tree.
+    // The optimal spanning tree must have already been computed.
+    void computeOptimalSpanningTreeBestPath();
 
     // Write in Graphviz format.
     // There are two types of Graphviz output:

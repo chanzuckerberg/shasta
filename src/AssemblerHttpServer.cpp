@@ -1546,6 +1546,7 @@ void Assembler::exploreMarkerGraph(
     }
     if(showOptimalSpanningTree) {
         graph.computeOptimalSpanningTree();
+        graph.computeOptimalSpanningTreeBestPath();
     }
 
     // Write it out in graphviz format.
