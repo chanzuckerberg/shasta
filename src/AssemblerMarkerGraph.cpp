@@ -105,10 +105,6 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
         children.clear();
     }
 
-
-    // This code does not use the stored connectivity of the marker graph
-    // (markerGraphConnectivity).
-
     // Loop over the markers of this vertex.
     for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
 
@@ -140,6 +136,67 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     // Deduplicate.
     sort(children.begin(), children.end());
     children.resize(std::unique(children.begin(), children.end()) - children.begin());
+}
+
+
+
+// This version also returns the oriented read ids and ordinals
+// that caused a child/paret to be marker as such.
+void Assembler::getGlobalMarkerGraphVertexChildren(
+    GlobalMarkerGraphVertexId vertexId,
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >& children,
+    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+    ) const
+{
+    children.clear();
+    workArea.clear();
+
+    // Loop over the markers of this vertex.
+    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+
+        // Find the OrientedReadId and ordinal.
+        MarkerGraphNeighborInfo info;
+        tie(info.orientedReadId, info.ordinal0) = findMarkerId(markerId);
+
+        // Find the next marker that is contained in a vertex.
+        const auto markerCount = markers.size(info.orientedReadId.getValue());
+        for(info.ordinal1=info.ordinal0+1; info.ordinal1<markerCount; ++info.ordinal1) {
+
+            // Find the vertex id.
+            const MarkerId childMarkerId =  getMarkerId(info.orientedReadId, info.ordinal1);
+            const GlobalMarkerGraphVertexId childVertexId =
+                globalMarkerGraphVertex[childMarkerId];
+
+            // If this marker correspond to a vertex, add it to our list.
+            if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+                workArea.push_back(make_pair(childVertexId, info));
+                break;
+            }
+        }
+
+    }
+    sort(workArea.begin(), workArea.end());
+
+
+
+    // Now construct the children by gathering streaks of workArea entries
+    // with the same child vertex id.
+    for(auto streakBegin=workArea.begin(); streakBegin!=workArea.end(); ) {
+        auto streakEnd = streakBegin + 1;
+        for(;
+            streakEnd!=workArea.end() && streakEnd->first==streakBegin->first;
+            streakEnd++) {
+        }
+        children.resize(children.size() + 1);
+        children.back().first = streakBegin->first;
+        auto& v = children.back().second;
+        for(auto it=streakBegin; it!=streakEnd; it++) {
+            v.push_back(it->second);
+        }
+
+        // Process the next streak.
+        streakBegin = streakEnd;
+    }
 }
 
 

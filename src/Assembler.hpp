@@ -600,6 +600,25 @@ private:
         bool append = false
         ) const;
 
+    // This version also returns the oriented read ids and ordinals
+    // that caused a child to be marked as such.
+    class MarkerGraphNeighborInfo {
+    public:
+        OrientedReadId orientedReadId;
+        uint32_t ordinal0;
+        uint32_t ordinal1;
+        bool operator<(const MarkerGraphNeighborInfo& that) const
+        {
+            return tie(orientedReadId, ordinal0, ordinal1) <
+                tie(that.orientedReadId, that.ordinal0, that.ordinal1);
+        }
+    };
+    void getGlobalMarkerGraphVertexChildren(
+        GlobalMarkerGraphVertexId,
+        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >&,
+        vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+        ) const;
+
 
 
     // Extract a local marker graph from the global marker graph.
