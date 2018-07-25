@@ -141,7 +141,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
 
 // This version also returns the oriented read ids and ordinals
-// that caused a child/paret to be marker as such.
+// that caused a child to be marked as such.
 void Assembler::getGlobalMarkerGraphVertexChildren(
     GlobalMarkerGraphVertexId vertexId,
     vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >& children,
@@ -260,6 +260,73 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 
 
 
+// This version also returns the oriented read ids and ordinals
+// that caused a parent to be marked as such.
+void Assembler::getGlobalMarkerGraphVertexParents(
+    GlobalMarkerGraphVertexId vertexId,
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >& parents,
+    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+    ) const
+{
+    parents.clear();
+    workArea.clear();
+
+    // Loop over the markers of this vertex.
+    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+
+        // Find the OrientedReadId and ordinal.
+        MarkerGraphNeighborInfo info;
+        tie(info.orientedReadId, info.ordinal0) = findMarkerId(markerId);
+        if(info.ordinal0 == 0) {
+            continue;
+        }
+
+        // Find the previous marker that is contained in a vertex.
+        for(info.ordinal1=info.ordinal0-1; ; --info.ordinal1) {
+
+            // Find the vertex id.
+            const MarkerId parentMarkerId =  getMarkerId(info.orientedReadId, info.ordinal1);
+            const GlobalMarkerGraphVertexId parentVertexId =
+                globalMarkerGraphVertex[parentMarkerId];
+
+            // If this marker correspond to a vertex, add it to our list.
+            if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+                workArea.push_back(make_pair(parentVertexId, info));
+                break;
+            }
+
+            if(info.ordinal1  == 0) {
+                break;
+            }
+        }
+
+    }
+    sort(workArea.begin(), workArea.end());
+
+
+
+    // Now construct the parents by gathering streaks of workArea entries
+    // with the same child vertex id.
+    for(auto streakBegin=workArea.begin(); streakBegin!=workArea.end(); ) {
+        auto streakEnd = streakBegin + 1;
+        for(;
+            streakEnd!=workArea.end() && streakEnd->first==streakBegin->first;
+            streakEnd++) {
+        }
+        parents.resize(parents.size() + 1);
+        parents.back().first = streakBegin->first;
+        auto& v = parents.back().second;
+        for(auto it=streakBegin; it!=streakEnd; it++) {
+            v.push_back(it->second);
+        }
+
+        // Process the next streak.
+        streakBegin = streakEnd;
+    }
+}
+
+
+
 void Assembler::extractLocalMarkerGraph(
 
     // The ReadId, Strand, and ordinal that identify the
@@ -292,6 +359,10 @@ void Assembler::extractLocalMarkerGraph(
 
 
 
+#if 0
+// Old version that uses the old version of
+// getGlobalMarkerGraphVertexChildren and getGlobalMarkerGraphVertexParents,
+// then uses LocalMarkerGraph2::storeEdgeInfo to fill in edge information.
 void Assembler::extractLocalMarkerGraph(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
@@ -366,6 +437,184 @@ void Assembler::extractLocalMarkerGraph(
     }
 
 }
+#else
+
+
+
+void Assembler::extractLocalMarkerGraph(
+    OrientedReadId orientedReadId,
+    uint32_t ordinal,
+    int distance,
+    LocalMarkerGraph2& graph
+    )
+{
+
+    using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
+    using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
+
+    // Add the start vertex.
+    const GlobalMarkerGraphVertexId startVertexId =
+        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+    if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
+        return;
+    }
+    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
+
+    // Some vectors used inside the BFS.
+    // Define them here to reduce memory allocation activity.
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > children;
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > parents;
+    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> > workArea;
+    vector<LocalMarkerGraph2Edge::Info> infoVector;
+
+
+
+    // Do the BFS.
+    std::queue<vertex_descriptor> q;
+    if(distance > 0) {
+        q.push(vStart);
+    }
+    while(!q.empty()) {
+
+        // Dequeue a vertex.
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
+        const int distance0 = vertex0.distance;
+        const int distance1 = distance0 + 1;
+
+        // Get the children and parents.
+        getGlobalMarkerGraphVertexChildren(vertexId0, children, workArea);
+        getGlobalMarkerGraphVertexParents (vertexId0, parents, workArea);
+
+        // Loop over the children.
+        for(const auto& p: children) {
+            const GlobalMarkerGraphVertexId vertexId1 = p.first;
+            bool vertexExists;
+
+            // Find the vertex corresponding to this child, creating it if necessary.
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            if(!vertexExists) {
+                v1 = graph.addVertex(
+                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                if(distance1 < distance) {
+                    q.push(v1);
+                }
+            }
+
+            // Create the edge v0->v1, if it does not already exist.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v0, v1, graph);
+            if(!edgeExists) {
+                tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
+                CZI_ASSERT(edgeExists);
+
+                // Fill in edge information.
+                infoVector.clear();
+                const auto& v = p.second;
+                for(const MarkerGraphNeighborInfo& x: v) {
+                    infoVector.push_back(LocalMarkerGraph2Edge::Info(
+                        x.orientedReadId, x.ordinal0, x.ordinal1));
+                }
+                graph.storeEdgeInfo(e, infoVector);
+            }
+        }
+
+
+        // Loop over the parents.
+        for(const auto& p: parents) {
+            const GlobalMarkerGraphVertexId vertexId1 = p.first;
+            bool vertexExists;
+
+            // Find the vertex corresponding to this parent, creating it if necessary.
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            if(!vertexExists) {
+                v1 = graph.addVertex(
+                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                if(distance1 < distance) {
+                    q.push(v1);
+                }
+            }
+
+            // Create the edge v1->v0, if it does not already exist.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v1, v0, graph);
+            if(!edgeExists) {
+                tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
+                CZI_ASSERT(edgeExists);
+
+                // Fill in edge information.
+                infoVector.clear();
+                const auto& v = p.second;
+                for(const MarkerGraphNeighborInfo& x: v) {
+                    infoVector.push_back(LocalMarkerGraph2Edge::Info(
+                        x.orientedReadId, x.ordinal1, x.ordinal0));
+                }
+                graph.storeEdgeInfo(e, infoVector);
+            }
+        }
+
+    }
+
+
+
+    // The BFS process did not create edges between vertices at maximum distance.
+    // Do it now.
+    // Loop over all vertices at maximum distance.
+    BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph2) {
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        if(vertex0.distance != distance) {
+            continue;
+        }
+
+        // Loop over the children that exist in the local marker graph
+        // and are also at maximum distance.
+        getGlobalMarkerGraphVertexChildren(vertex0.vertexId, children, workArea);
+        for(const auto& p: children) {
+            const GlobalMarkerGraphVertexId vertexId1 = p.first;
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+
+            // If it does not exist in the local marker graph, skip.
+            if(!vertexExists) {
+                continue;
+            }
+
+            // If it is not at maximum distance, skip.
+            const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            if(vertex1.distance != distance) {
+                continue;
+            }
+
+            // There is no way we already created this edge.
+            // Check that this is the case.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v0, v1, graph);
+            CZI_ASSERT(!edgeExists);
+
+            // Add the edge.
+            tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
+            CZI_ASSERT(edgeExists);
+
+            // Fill in edge information.
+            infoVector.clear();
+            const auto& v = p.second;
+            for(const MarkerGraphNeighborInfo& x: v) {
+                infoVector.push_back(LocalMarkerGraph2Edge::Info(
+                    x.orientedReadId, x.ordinal0, x.ordinal1));
+            }
+            graph.storeEdgeInfo(e, infoVector);
+        }
+    }
+}
+#endif
 
 
 

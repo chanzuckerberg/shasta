@@ -618,6 +618,11 @@ private:
         vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >&,
         vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
         ) const;
+    void getGlobalMarkerGraphVertexParents(
+        GlobalMarkerGraphVertexId,
+        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >&,
+        vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+        ) const;
 
 
 

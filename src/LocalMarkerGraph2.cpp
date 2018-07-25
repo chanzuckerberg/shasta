@@ -104,7 +104,12 @@ KmerId LocalMarkerGraph2::getKmerId(vertex_descriptor v) const
 
 
 
-void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
+// Store sequence information in the edge.
+// This version constructs the information from the markers
+// stored in the vertices (disregarding oriented read ids
+// with more than one marker on either vertex).
+void LocalMarkerGraph2::storeEdgeInfo(
+    edge_descriptor e)
 {
     // Access the graph, the edge, and its vertices.
     LocalMarkerGraph2& graph = *this;
@@ -243,6 +248,61 @@ void LocalMarkerGraph2::storeEdgeInfo(edge_descriptor e)
         ++it0;
         ++it1;
 #endif
+    }
+
+    // Copy to the edge infos data structure.
+    edge.infos.clear();
+    copy(sequenceTable.begin(), sequenceTable.end(), back_inserter(edge.infos));
+
+    // Sort by decreasing size of the infos vector.
+    sort(edge.infos.begin(), edge.infos.end(),
+        OrderPairsBySizeOfSecondGreater<
+        LocalMarkerGraph2Edge::Sequence,
+        vector<LocalMarkerGraph2Edge::Info> >());
+}
+
+
+
+// Store sequence information in the edge.
+// This version takes as input a vector of the
+// LocalMarkerGraph2Edge::Info that caused the edge to be created.
+void LocalMarkerGraph2::storeEdgeInfo(
+    edge_descriptor e,
+    const vector<LocalMarkerGraph2Edge::Info>& infoVector)
+{
+    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph2Edge& edge = graph[e];
+
+    // Map to store the oriented read ids and ordinals, grouped by sequence.
+    std::map<LocalMarkerGraph2Edge::Sequence, vector<LocalMarkerGraph2Edge::Info> > sequenceTable;
+    for(const LocalMarkerGraph2Edge::Info& info: infoVector) {
+        const CompressedMarker& marker0 = markers.begin(info.orientedReadId.getValue())[info.ordinals[0]];
+        const CompressedMarker& marker1 = markers.begin(info.orientedReadId.getValue())[info.ordinals[1]];
+
+        // Fill in the sequence information.
+        LocalMarkerGraph2Edge::Sequence sequence;
+        if(marker1.position <= marker0.position + k) {
+            sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
+        } else {
+            sequence.overlappingBaseCount = 0;
+            const auto read = reads[info.orientedReadId.getReadId()];
+            const uint32_t readLength = uint32_t(read.baseCount);
+            for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
+                shasta::Base base;
+                if(info.orientedReadId.getStrand() == 0) {
+                    base = read.get(position);
+                } else {
+                    base = read.get(readLength - 1 - position);
+                    base.complementInPlace();
+                }
+                sequence.sequence.push_back(base);
+            }
+
+        }
+
+        // Store it.
+        sequenceTable[sequence].push_back(info);
+
     }
 
     // Copy to the edge infos data structure.
