@@ -501,7 +501,6 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
     const LocalMarkerGraph2Edge& edge = graph[e];
     const size_t coverage = edge.coverage();
     const size_t consensus = edge.consensus();
-    const double thickness = 0.5 * double(coverage==0 ? 1 : coverage);
 
     if(!detailed) {
 
@@ -524,6 +523,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << " color=\"" << color << "\"";
 
         // Thickness is determined by coverage.
+        const double thickness = 0.2 * double(coverage==0 ? 1 : coverage);
         s << " penwidth=";
         const auto oldPrecision = s.precision(4);
         s <<  thickness;
@@ -553,6 +553,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
 
         // Thickness is determined by coverage.
+        const double thickness = 0.5 * double(coverage==0 ? 1 : coverage);
         s << " penwidth=";
         const auto oldPrecision = s.precision(4);
         s <<  thickness;
