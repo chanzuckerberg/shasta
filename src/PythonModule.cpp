@@ -234,15 +234,14 @@ PYBIND11_MODULE(shasta, module)
         .def("extractLocalMarkerGraph",
             (
                 void (Assembler::*)
-                (ReadId, Strand, uint32_t, int, size_t, size_t)
+                (ReadId, Strand, uint32_t, int, size_t)
             )
             &Assembler::extractLocalMarkerGraph,
             arg("readId"),
             arg("strand"),
             arg("ordinal"),
             arg("distance"),
-            arg("minCoverage"),
-            arg("minConsensus"))
+            arg("minCoverage"))
 
 
         // Connectivity of the global marker graph.

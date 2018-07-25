@@ -40,6 +40,5 @@ a.extractLocalMarkerGraph(
     strand = strand,
     ordinal = ordinal,
     distance = distance,
-    minCoverage = int(config['MarkerGraph']['minCoverage']),
-    minConsensus = int(config['MarkerGraph']['minConsensus']))
+    minCoverage = int(config['MarkerGraph']['minCoverage']))
     

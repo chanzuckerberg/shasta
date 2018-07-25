@@ -263,11 +263,9 @@ void Assembler::extractLocalMarkerGraph(
     // Maximum distance from the start vertex (number of edges in the global marker graph).
     int distance,
 
-    // Minimum coverage for a strong vertex.
-    size_t minCoverage,
+    // Minimum coverage for a strong vertex or edge (affects coloring).
+    size_t minCoverage
 
-    // Minimum consensus for a strong edge.
-    size_t minConsensus
     )
 {
     // Create the local marker graph.
