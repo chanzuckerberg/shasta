@@ -1411,7 +1411,7 @@ void Assembler::exploreMarkerGraph(
     const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
     uint32_t sizePixels;
     const bool sizePixelsIsPresent = getParameterValue(request, "sizePixels", sizePixels);
-    uint32_t timeout;
+    double timeout;
     const bool timeoutIsPresent = getParameterValue(request, "timeout", timeout);
     string portionToDisplay = "all";
     getParameterValue(request, "portionToDisplay", portionToDisplay);
@@ -1421,7 +1421,7 @@ void Assembler::exploreMarkerGraph(
     // Write the form.
     html <<
         "<h3>Display a local subgraph of the global marker graph</h3>"
-        "<form action='#startVertex'>"
+        "<form>"
 
         "<table>"
 
@@ -1483,8 +1483,8 @@ void Assembler::exploreMarkerGraph(
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='1600'") <<
         ">"
 
-        "<tr title='Maximum time (in seconds) allowed for graph layout'>"
-        "<td>Graph layout timeout"
+        "<tr>"
+        "<td>Timeout (seconds) for graph creation and layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
         ">"
@@ -1558,7 +1558,12 @@ void Assembler::exploreMarkerGraph(
 
     // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
-    extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, graph);
+    const auto createStartTime = steady_clock::now();
+    if(!extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, timeout, graph)) {
+        cout << "***" << endl;
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
+    }
     if(num_vertices(graph) == 0) {
         html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
         return;
@@ -1567,6 +1572,7 @@ void Assembler::exploreMarkerGraph(
         graph.computeOptimalSpanningTree();
         graph.computeOptimalSpanningTreeBestPath();
     }
+    const auto createFinishTime = steady_clock::now();
 
     // Remove the portion of the graph that we don't want to display.
     if(portionToDisplay=="spanningTree") {
@@ -1584,7 +1590,7 @@ void Assembler::exploreMarkerGraph(
 
     // Compute layout in svg format.
     const string command =
-        "timeout " + to_string(timeout) +
+        "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
         " dot -O -T svg " + dotFileName +
         " -Gsize=" + to_string(sizePixels/72.);
     const int commandStatus = ::system(command.c_str());

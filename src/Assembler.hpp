@@ -644,10 +644,11 @@ private:
         // Minimum consensus for a strong edge.
         size_t minConsensus
         );
-    void extractLocalMarkerGraph(
+    bool extractLocalMarkerGraph(
         OrientedReadId,
         uint32_t ordinal,
         int distance,
+        double timeout,                 // Or 0 for no timeout.
         LocalMarkerGraph2&
         );
 

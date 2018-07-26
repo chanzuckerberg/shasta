@@ -9,6 +9,7 @@ using namespace ChanZuckerberg;
 using namespace shasta;
 
 // Standard library.
+#include "chrono.hpp"
 #include <queue>
 
 
@@ -346,7 +347,7 @@ void Assembler::extractLocalMarkerGraph(
 {
     // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
-    extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, graph);
+    extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, 0., graph);
 
     cout << "The local marker graph has " << num_vertices(graph);
     cout << " vertices and " << num_edges(graph) << " edges." << endl;
@@ -441,22 +442,24 @@ void Assembler::extractLocalMarkerGraph(
 
 
 
-void Assembler::extractLocalMarkerGraph(
+bool Assembler::extractLocalMarkerGraph(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
     int distance,
+    double timeout,                 // Or 0 for no timeout.
     LocalMarkerGraph2& graph
     )
 {
 
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
     using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
+    const auto startTime = steady_clock::now();
 
     // Add the start vertex.
     const GlobalMarkerGraphVertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
-        return;
+        return true;
     }
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
 
@@ -475,6 +478,12 @@ void Assembler::extractLocalMarkerGraph(
         q.push(vStart);
     }
     while(!q.empty()) {
+
+        // See if we exceeded the timeout.
+        if(seconds(steady_clock::now() - startTime) > timeout) {
+            graph.clear();
+            return false;
+        }
 
         // Dequeue a vertex.
         const vertex_descriptor v0 = q.front();
@@ -613,6 +622,8 @@ void Assembler::extractLocalMarkerGraph(
             graph.storeEdgeInfo(e, infoVector);
         }
     }
+
+    return true;
 }
 #endif
 
