@@ -458,6 +458,11 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
         cout << graph[source(e, graph)].vertexId << " " << graph[target(e, graph)].vertexId << endl;
     }
     */
+
+    // Mark edges in the longest path.
+    for(const edge_descriptor e: longestPath) {
+        graph[e].isSpanningTreeBestPathEdge = true;
+    }
 }
 
 
@@ -695,9 +700,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Tooltip.
         s << "tooltip=\"Coverage " << coverage << ", consensus " << consensus << "\"";
 
-        // Color is determined by coverage.
+        // Color.
         string color;
-        if(coverage >= minCoverage) {
+        if(edge.isSpanningTreeEdge) {
+            color = "orchid1";
+        } else if(coverage >= minCoverage) {
             color = "black";
         } else {
             color = "red";
@@ -713,7 +720,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s.precision(oldPrecision);
 
         // Style.
-        if(edge.isSpanningTreeEdge) {
+        if(edge.isSpanningTreeEdge && !edge.isSpanningTreeBestPathEdge) {
             s << " style=dashed";
         }
 
@@ -743,25 +750,30 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s.precision(oldPrecision);
 
         // Style.
-        if(edge.isSpanningTreeEdge) {
+        if(edge.isSpanningTreeEdge && !edge.isSpanningTreeBestPathEdge) {
             s << " style=dashed";
         }
 
-        // Color is determined by coverage.
+        // Color.
         string color;
-        string fillColor;
-        string labelColor;
-        if(coverage >= minCoverage) {
+        if(edge.isSpanningTreeEdge) {
+            color = "orchid1";
+        } else if(coverage >= minCoverage) {
             color = "black";
-            fillColor = "black";
-            labelColor = "green";
         } else {
             color = "red";
-            fillColor = "red";
-            labelColor = "red";
         }
-        s << " fillcolor=\"" << fillColor << "\"";
+        s << " fillcolor=\"" << color << "\"";
         s << " color=\"" << color << "\"";
+
+        // Label color (used below).
+        string labelColor;
+        if(color == "black") {
+            labelColor = "green";
+        } else {
+            labelColor = color;
+        }
+
 
         // Weight;
         s << " weight=" << coverage;
