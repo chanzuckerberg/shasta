@@ -229,6 +229,12 @@ public:
     // Create an optimal spanning tree and mark its edges.
     void computeOptimalSpanningTree();
 
+    // Remove edges that are not on the spanning tree.
+    void removeNonSpanningTreeEdges();
+
+    // Remove vertices and edges that are not on the optimal path.
+    void removeAllExceptOptimalPath();
+
     // Predicate that can be used with boost::filtered_graph
     // to create an implicit representation of the spanning tree.
     class SpanningTreeFilter {

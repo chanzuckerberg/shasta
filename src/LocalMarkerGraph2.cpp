@@ -467,6 +467,62 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
 
 
 
+// Remove edges that are not on the spanning tree.
+// Thgis does not remove any vertices, as the spanning
+// tree by definition covers all vertices.
+void LocalMarkerGraph2::removeNonSpanningTreeEdges()
+{
+    LocalMarkerGraph2& graph = *this;
+
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        if(!graph[e].isSpanningTreeEdge) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, graph);
+    }
+}
+
+
+
+// Remove vertices and edges that are not on the optimal path.
+void LocalMarkerGraph2::removeAllExceptOptimalPath()
+{
+    LocalMarkerGraph2& graph = *this;
+
+    std::set<vertex_descriptor> verticesToBeKept;
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        if(graph[e].isSpanningTreeBestPathEdge) {
+            verticesToBeKept.insert(source(e, graph));
+            verticesToBeKept.insert(target(e, graph));
+        } else {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+
+    vector<vertex_descriptor> verticesToBeRemoved;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        if(verticesToBeKept.find(v) == verticesToBeKept.end()) {
+            verticesToBeRemoved.push_back(v);
+        }
+    }
+
+    // Remove the edges first!
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, graph);
+    }
+
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        boost::clear_vertex(v, graph);
+        boost::remove_vertex(v, graph);
+    }
+}
+
+
 // Write the graph in Graphviz format.
 void LocalMarkerGraph2::write(
     const string& fileName,
@@ -516,6 +572,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
 
     if(detailed) {
         s << "layout=dot;\n";
+        s << "rankdir=LR;\n";
         s << "ratio=expand;\n";
         s << "node [fontname = \"Courier New\" shape=rectangle];\n";
         s << "edge [fontname = \"Courier New\"];\n";

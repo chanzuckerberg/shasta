@@ -1413,6 +1413,8 @@ void Assembler::exploreMarkerGraph(
     const bool sizePixelsIsPresent = getParameterValue(request, "sizePixels", sizePixels);
     uint32_t timeout;
     const bool timeoutIsPresent = getParameterValue(request, "timeout", timeout);
+    string portionToDisplay = "all";
+    getParameterValue(request, "portionToDisplay", portionToDisplay);
 
 
 
@@ -1486,10 +1488,27 @@ void Assembler::exploreMarkerGraph(
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
         ">"
-
         "</table>"
 
-        "<input type=submit value='Display'>"
+
+        // Radio buttons to choose what portion of the graph to display.
+        "Portion of the graph to display:"
+        "<br><input type=radio name=portionToDisplay value=all" <<
+        (portionToDisplay=="all" ? " checked=on" : "") <<
+        ">Entire graph"
+        "<br><input type=radio name=portionToDisplay value=spanningTree" <<
+        (portionToDisplay=="spanningTree" ? " checked=on" : "") <<
+        ">Optimal spanning tree only"
+        "<br><input type=radio name=portionToDisplay value=optimalPath" <<
+        (portionToDisplay=="optimalPath" ? " checked=on" : "") <<
+        ">Optimal spanning tree best path only"
+        "<br><input type=radio name=portionToDisplay value=none" <<
+        (portionToDisplay=="none" ? " checked=on" : "") <<
+        ">Nothing"
+
+
+
+        "<br><input type=submit value='Display'>"
 
         " <span style='background-color:#e0e0e0' title='"
         "Fill this form to display a local subgraph of the global marker graph starting at the "
@@ -1544,9 +1563,18 @@ void Assembler::exploreMarkerGraph(
         html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
         return;
     }
-    if(showOptimalSpanningTree) {
+    if(showOptimalSpanningTree || portionToDisplay=="spanningTree" || portionToDisplay=="optimalPath") {
         graph.computeOptimalSpanningTree();
         graph.computeOptimalSpanningTreeBestPath();
+    }
+
+    // Remove the portion of the graph that we don't want to display.
+    if(portionToDisplay=="spanningTree") {
+        graph.removeNonSpanningTreeEdges();
+    } else if(portionToDisplay=="optimalPath") {
+        graph.removeAllExceptOptimalPath();
+    } else if(portionToDisplay=="none") {
+        graph.clear();
     }
 
     // Write it out in graphviz format.
@@ -1588,81 +1616,87 @@ void Assembler::exploreMarkerGraph(
     html <<
         "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId <<
         " <a href='docs/" << legendName << "'>(see legend)</a></h1>";
-    const string svgFileName = dotFileName + ".svg";
-    ifstream svgFile(svgFileName);
-    html << svgFile.rdbuf();
-    svgFile.close();
+    if(portionToDisplay == "none") {
+        html << "<p>As requested, the graph was not displayed.";
+    } else {
+        const string svgFileName = dotFileName + ".svg";
+        ifstream svgFile(svgFileName);
+        html << svgFile.rdbuf();
+        svgFile.close();
 
-    // Remove the .svg file.
-    filesystem::remove(svgFileName);
+        // Remove the .svg file.
+        filesystem::remove(svgFileName);
 
-    // Make the vertices clickable to recompute the graph with the
-    // same parameters, but starting at the clicked vertex.
-    // For a detailed graph, only the "Distance" label of each vertex
-    // is made clickable.
-    html << "<script>\n";
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
-        const LocalMarkerGraph2Vertex& vertex = graph[v];
-        CZI_ASSERT(!vertex.markerInfos.empty());
-        const auto& markerInfo = vertex.markerInfos.front();
-        const string url =
-            "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
-            "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
-            "&ordinal="  + to_string(markerInfo.ordinal) +
-            "&maxDistance=" + to_string(maxDistance) +
-            "&minCoverage=" + to_string(minCoverage) +
-            "&sizePixels=" + to_string(sizePixels) +
-            "&timeout=" + to_string(timeout) +
-            (detailed ? "&detailed=on" : "") +
-            (showVertexId ? "&showVertexId=on" : "") +
-            (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
-        if(detailed) {
-            html <<
-                "document.getElementById('a_vertexDistance" << vertex.vertexId <<
-                "').onclick = function() {location.href='" << url << "';};\n";
-        } else {
-            html <<
-                "document.getElementById('vertex" << vertex.vertexId <<
-                "').onclick = function() {location.href='" << url << "';};\n";
-
-            // We are displaying the graph in compact mode.
-            // Add a right click to recenter and show detailed.
-            const string detailUrl =
+        // Make the vertices clickable to recompute the graph with the
+        // same parameters, but starting at the clicked vertex.
+        // For a detailed graph, only the "Distance" label of each vertex
+        // is made clickable.
+        html << "<script>\n";
+        BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            CZI_ASSERT(!vertex.markerInfos.empty());
+            const auto& markerInfo = vertex.markerInfos.front();
+            const string url =
                 "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
                 "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
                 "&ordinal="  + to_string(markerInfo.ordinal) +
-                "&maxDistance=1" +
+                "&maxDistance=" + to_string(maxDistance) +
                 "&minCoverage=" + to_string(minCoverage) +
                 "&sizePixels=" + to_string(sizePixels) +
                 "&timeout=" + to_string(timeout) +
-                "&detailed=on" +
+                "&portionToDisplay=" + portionToDisplay +
+                (detailed ? "&detailed=on" : "") +
                 (showVertexId ? "&showVertexId=on" : "") +
                 (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
-            html <<
-                "document.getElementById('vertex" << vertex.vertexId <<
-                "').oncontextmenu = function() {location.href='" << detailUrl << "';"
-                "return false;};\n";
+            if(detailed) {
+                html <<
+                    "document.getElementById('a_vertexDistance" << vertex.vertexId <<
+                    "').onclick = function() {location.href='" << url << "';};\n";
+            } else {
+                html <<
+                    "document.getElementById('vertex" << vertex.vertexId <<
+                    "').onclick = function() {location.href='" << url << "';};\n";
+
+                // We are displaying the graph in compact mode.
+                // Add a right click to recenter and show detailed.
+                const string detailUrl =
+                    "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
+                    "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
+                    "&ordinal="  + to_string(markerInfo.ordinal) +
+                    "&maxDistance=1" +
+                    "&minCoverage=" + to_string(minCoverage) +
+                    "&sizePixels=" + to_string(sizePixels) +
+                    "&timeout=" + to_string(timeout) +
+                    "&portionToDisplay=" + portionToDisplay +
+                    "&detailed=on" +
+                    (showVertexId ? "&showVertexId=on" : "") +
+                    (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
+                html <<
+                    "document.getElementById('vertex" << vertex.vertexId <<
+                    "').oncontextmenu = function() {location.href='" << detailUrl << "';"
+                    "return false;};\n";
+            }
         }
-    }
-    html << "</script>\n";
+        html << "</script>\n";
 
 
 
-    // Position the start vertex at the center of the window.
-    const GlobalMarkerGraphVertexId startVertexId =
-        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-    html << "<script>\n";
-    if(detailed) {
+        // Position the start vertex at the center of the window.
+        const GlobalMarkerGraphVertexId startVertexId =
+            getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+        html << "<script>\n";
+        if(detailed) {
+            html <<
+                "var element = document.getElementById('a_vertexDistance" << startVertexId << "');\n";
+        } else {
+            html <<
+                "var element = document.getElementById('vertex" << startVertexId << "');\n";
+        }
         html <<
-            "var element = document.getElementById('a_vertexDistance" << startVertexId << "');\n";
-    } else {
-        html <<
-            "var element = document.getElementById('vertex" << startVertexId << "');\n";
+            "var r = element.getBoundingClientRect();\n"
+            "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
+            "</script>\n";
     }
-    html <<
-        "var r = element.getBoundingClientRect();\n"
-        "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
-        "</script>\n";
 }
 
 
