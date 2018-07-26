@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+
+<body>
+
+<h2>Legend for local marker graph display in compact form</h2>
+
+
+
+<h3>Vertex legend (in priority order)</h3>
+<table>
+<col width='50px'>
+<col width='300px'>
+
+<tr>
+<td style='background-color:LightGreen'>
+<td>Start vertex.
+
+<tr>
+<td style='background-color:Cyan'>
+<td>Vertex at the specified maximum distance from the start vertex. 
+Edges to vertices of the global marker graph
+that are not part of the local marker graph
+are not shown.
+
+<tr>
+<td style='background-color:black'>
+<td>Vertex with coverage at least equal to the specified minimum coverage.
+
+<tr>
+<td style='background-color:red'>
+<td>Vertex with coverage less than the specified minimum coverage.
+
+</table>
+
+
+
+<h3>Edge legend (in priority order)</h3>
+
+<table>
+<col width='50px'>
+<col width='300px'>
+
+<tr>
+<td style='background-color:violet'>
+<td>Edge that is part of the optimal spanning tree. If solid, the edge is also
+part of the optimal path in the spanning tree.
+Otherwise, it is dashed.
+
+<tr>
+<td style='background-color:black'>
+<td>Edge with coverage at least equal to the specified minimum coverage.
+
+<tr>
+<td style='background-color:red'>
+<td>Edge with coverage less than the specified minimum coverage.
+
+</table>
+
+
+
+</body>
+</html>
+

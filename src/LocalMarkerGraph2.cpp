@@ -703,7 +703,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Color.
         string color;
         if(edge.isSpanningTreeEdge) {
-            color = "orchid1";
+            color = "violet";
         } else if(coverage >= minCoverage) {
             color = "black";
         } else {
@@ -757,7 +757,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         // Color.
         string color;
         if(edge.isSpanningTreeEdge) {
-            color = "orchid1";
+            color = "violet";
         } else if(coverage >= minCoverage) {
             color = "black";
         } else {

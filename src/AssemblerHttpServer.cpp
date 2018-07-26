@@ -1503,7 +1503,7 @@ void Assembler::exploreMarkerGraph(
 
 
 
-    // If any values are missing, stop here.
+    // If any required values are missing, stop here.
     if(!readIdIsPresent || !strandIsPresent || !ordinalIsPresent
         || !maxDistanceIsPresent || !minCoverageIsPresent
         || !timeoutIsPresent) {
@@ -1581,8 +1581,13 @@ void Assembler::exploreMarkerGraph(
     // Remove the .dot file.
     filesystem::remove(dotFileName);
 
+
+
     // Finally, we can display it.
-    html << "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId << "</h1>";
+    const string legendName = detailed ? "MarkerGraphLegend-Detailed.html" : "MarkerGraphLegend-Compact.html";
+    html <<
+        "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId <<
+        " <a href='docs/" << legendName << "'>(see legend)</a></h1>";
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
     html << svgFile.rdbuf();
