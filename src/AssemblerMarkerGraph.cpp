@@ -152,6 +152,10 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     children.clear();
     workArea.clear();
 
+    if(isBadMarkerGraphVertex(vertexId)) {
+        return;
+    }
+
     // Loop over the markers of this vertex.
     for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
 
@@ -169,7 +173,8 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
                 globalMarkerGraphVertex[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+            if( childVertexId!=invalidCompressedGlobalMarkerGraphVertexId &&
+                !isBadMarkerGraphVertex(childVertexId)) {
                 workArea.push_back(make_pair(childVertexId, info));
                 break;
             }
@@ -272,6 +277,10 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     parents.clear();
     workArea.clear();
 
+    if(isBadMarkerGraphVertex(vertexId)) {
+        return;
+    }
+
     // Loop over the markers of this vertex.
     for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
 
@@ -291,7 +300,8 @@ void Assembler::getGlobalMarkerGraphVertexParents(
                 globalMarkerGraphVertex[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+            if( parentVertexId!=invalidCompressedGlobalMarkerGraphVertexId &&
+                !isBadMarkerGraphVertex(parentVertexId)) {
                 workArea.push_back(make_pair(parentVertexId, info));
                 break;
             }
@@ -324,6 +334,31 @@ void Assembler::getGlobalMarkerGraphVertexParents(
         // Process the next streak.
         streakBegin = streakEnd;
     }
+}
+
+
+
+// Return true if a vertex of the global marker graph has more than
+// one marker for at least one oriented read id.
+bool Assembler::isBadMarkerGraphVertex(GlobalMarkerGraphVertexId vertexId) const
+{
+    // Get the markers of this vertex.
+    const auto& vertexMarkerIds = globalMarkerGraphVertices[vertexId];
+
+    // The markers are sorted by OrientedReadId, so we can just check each
+    // consecutive pairs.
+    for(size_t i=1; i<vertexMarkerIds.size(); i++) {
+        const MarkerId markerId0 = vertexMarkerIds[i-1];
+        const MarkerId markerId1 = vertexMarkerIds[i];
+        OrientedReadId orientedReadId0;
+        OrientedReadId orientedReadId1;
+        tie(orientedReadId0, ignore) = findMarkerId(markerId0);
+        tie(orientedReadId1, ignore) = findMarkerId(markerId1);
+        if(orientedReadId0 == orientedReadId1) {
+            return true;
+        }
+    }
+    return false;
 }
 
 

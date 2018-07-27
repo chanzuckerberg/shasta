@@ -624,6 +624,10 @@ private:
         vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
         ) const;
 
+    // Return true if a vertex of the global marker graph has more than
+    // one marker for at least one oriented read id.
+    bool isBadMarkerGraphVertex(GlobalMarkerGraphVertexId) const;
+
 
 
     // Extract a local marker graph from the global marker graph.
