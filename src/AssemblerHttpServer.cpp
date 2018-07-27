@@ -1560,7 +1560,6 @@ void Assembler::exploreMarkerGraph(
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
     const auto createStartTime = steady_clock::now();
     if(!extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, timeout, graph)) {
-        cout << "***" << endl;
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
@@ -1568,11 +1567,17 @@ void Assembler::exploreMarkerGraph(
         html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
         return;
     }
+    vector< pair<shasta::Base, int> > sequence;
     if(showOptimalSpanningTree || portionToDisplay=="spanningTree" || portionToDisplay=="optimalPath") {
         graph.computeOptimalSpanningTree();
         graph.computeOptimalSpanningTreeBestPath();
+        graph.assembleDominantSequence(maxDistance, sequence);
     }
     const auto createFinishTime = steady_clock::now();
+    if(seconds(createFinishTime - createStartTime) > timeout) {
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
+    }
 
     // Remove the portion of the graph that we don't want to display.
     if(portionToDisplay=="spanningTree") {
@@ -1615,13 +1620,67 @@ void Assembler::exploreMarkerGraph(
     // Remove the .dot file.
     filesystem::remove(dotFileName);
 
-
-
-    // Finally, we can display it.
+    // Write the page title.
     const string legendName = detailed ? "MarkerGraphLegend-Detailed.html" : "MarkerGraphLegend-Compact.html";
     html <<
         "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId <<
         " <a href='docs/" << legendName << "'>(see legend)</a></h1>";
+
+
+
+    // Write the sequence, if available.
+    if(!sequence.empty()) {
+        html << "<br>Assembled " << sequence.size() << " bases (coverage on second line, blank if 10 or more):";
+        html << "<pre>";
+
+        // Labels.
+        for(size_t position=0; position<sequence.size(); position+=10) {
+            const string label = to_string(position);
+            html << label;
+            for(size_t i=0; i<10-label.size(); i++) {
+                html << " ";
+            }
+        }
+        html << "\n";
+
+        // Scale.
+        for(size_t position=0; position<sequence.size(); position++) {
+            if((position%10)==0) {
+                html << "|";
+            } else if((position%5)==0) {
+                html << "+";
+            } else {
+                html << ".";
+            }
+        }
+        html << "\n";
+
+        // Sequence.
+        for(const auto& p: sequence) {
+            const auto coverage = p.second;
+            if(coverage < 10) {
+                html << char(std::tolower(p.first.character()));
+            } else {
+                html << p.first;
+            }
+        }
+        html << "\n";
+
+        // Coverage.
+        for(const auto& p: sequence) {
+            const auto coverage = p.second;
+            if(coverage<10) {
+                html << coverage;
+            } else {
+                html << " ";
+            }
+        }
+        html << "</pre>";
+    }
+
+
+
+    // Write the graph.
     if(portionToDisplay == "none") {
         html << "<p>As requested, the graph was not displayed.";
     } else {

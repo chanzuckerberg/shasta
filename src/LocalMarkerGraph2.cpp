@@ -14,6 +14,7 @@ using namespace shasta;
 // Due to a bug in boost graph include files, disjoint_sets.hpp
 // must be included before graphviz.hpp
 #include <boost/pending/disjoint_sets.hpp>
+#include <boost/icl/interval_set.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/topological_sort.hpp>
@@ -436,7 +437,7 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
 
 
     // Construct the longest path, beginning at the end.
-    vector<edge_descriptor> longestPath;
+    optimalSpanningTreeBestPath.clear();
     vertex_descriptor v = lastPathVertex;
     while(v != null_vertex()) {
         const vertex_descriptor v1 = v;
@@ -448,10 +449,10 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
         bool edgeWasFound;
         tie(e, edgeWasFound) = boost::edge(v0, v1, graph);
         CZI_ASSERT(edgeWasFound);
-        longestPath.push_back(e);
+        optimalSpanningTreeBestPath.push_back(e);
         v = v0;
     }
-    std::reverse(longestPath.begin(), longestPath.end());
+    std::reverse(optimalSpanningTreeBestPath.begin(), optimalSpanningTreeBestPath.end());
     /*
     cout << "Longest path:" << endl;
     for(const edge_descriptor e: longestPath) {
@@ -460,15 +461,148 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
     */
 
     // Mark edges in the longest path.
-    for(const edge_descriptor e: longestPath) {
+    for(const edge_descriptor e: optimalSpanningTreeBestPath) {
         graph[e].isSpanningTreeBestPathEdge = true;
     }
 }
 
 
 
+// Use the best path to assemble the dominant sequence.
+void LocalMarkerGraph2::assembleDominantSequence(
+    int maxDistance,
+    vector< pair<shasta::Base, int> >& sequence) const
+{
+    CZI_ASSERT(!optimalSpanningTreeBestPath.empty());
+    const LocalMarkerGraph2& graph = *this;
+
+    // Find the longest subpath that does not use
+    // any edges at maximum distance.
+    boost::icl::interval_set<size_t> s;
+    for(size_t i=0; i<optimalSpanningTreeBestPath.size(); i++) {
+        const edge_descriptor e = optimalSpanningTreeBestPath[i];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        if(graph[v0].distance != maxDistance && graph[v1].distance != maxDistance) {
+            s.add(i);
+        }
+    }
+    if(s.empty()) {
+        sequence.clear();
+        return;
+    }
+    size_t i0;
+    size_t i1;
+    size_t bestPathLength = 0;
+    for(const auto x: s) {
+        const size_t j0 = x.lower();
+        const size_t j1 = x.upper();
+        const size_t length = j1 + 1 - j0;
+        if(length > bestPathLength) {
+            bestPathLength = length;
+            i0 = j0;
+            i1 = j1;
+        }
+
+    }
+    vector<edge_descriptor> path;
+    copy(
+        optimalSpanningTreeBestPath.begin() + i0,
+        optimalSpanningTreeBestPath.begin() + i1 + 1,
+        back_inserter(path));
+    CZI_ASSERT(path.size() == bestPathLength);
+
+    // Use this path to assemble the sequence.
+    assembleDominantSequence(path, sequence);
+
+}
+
+
+// Assemble the dominant sequence for a given path.
+void LocalMarkerGraph2::assembleDominantSequence(
+    const vector<edge_descriptor>& path,
+    vector< pair<shasta::Base, int> >& sequence) const
+{
+    CZI_ASSERT(!path.empty());
+    const LocalMarkerGraph2& graph = *this;
+
+    // Start with empty sequence.
+    sequence.clear();
+
+    // Add the sequence of the first vertex, with its coverage
+    const vertex_descriptor v0 = source(path.front(), graph);
+    const KmerId kmerId0 = getKmerId(v0);
+    const Kmer kmer0(kmerId0, k);
+    const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+    const auto coverage0 = vertex0.markerInfos.size();
+    for(size_t i=0; i<k; i++) {
+        sequence.push_back(make_pair(kmer0[i], coverage0));
+    }
+
+    // Loop over all edges in the path.
+    for(const edge_descriptor e: path) {
+
+        // Add the edge sequence, if any.
+        const LocalMarkerGraph2Edge& edge = graph[e];
+        CZI_ASSERT(!edge.infos.empty());
+        const auto& p = edge.infos.front();
+        const auto coverage = p.second.size();
+        const auto& edgeSequence = p.first.sequence;
+        for(const shasta::Base base: edgeSequence) {
+            sequence.push_back(make_pair(base, coverage));
+        }
+
+        // Add the sequence of the target vertex of this edge.
+        const vertex_descriptor v1 = target(e, graph);
+        const KmerId kmerId1 = getKmerId(v1);
+        const Kmer kmer1(kmerId1, k);
+        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const auto coverage1 = vertex1.markerInfos.size();
+
+        // First, handle any overlapping bases.
+        for(size_t i=0; i<size_t(p.first.overlappingBaseCount); i++) {
+            const size_t positionInAssembledSequence = sequence.size() - p.first.overlappingBaseCount + i;
+            CZI_ASSERT(sequence[positionInAssembledSequence].first == kmer1[i]);
+            sequence[positionInAssembledSequence].second =
+                max(sequence[positionInAssembledSequence].second, int(coverage1));
+        }
+
+        // Handle the non-overlapping bases.
+        for(size_t i=size_t(p.first.overlappingBaseCount); i<k; i++) {
+            sequence.push_back(make_pair(kmer1[i], coverage1));
+        }
+#if 0
+        cout << "After processing edge ";
+        cout << graph[source(e, graph)].vertexId << " ";
+        cout << graph[target(e, graph)].vertexId << " ";
+        cout << sequence.size() << endl;
+        for(const auto& p: sequence) {
+            const auto coverage = p.second;
+            if(coverage < 10) {
+                cout << char(std::tolower(p.first.character()));
+            } else {
+                cout << p.first;
+            }
+        }
+        cout << endl;
+        for(const auto& p: sequence) {
+            const auto coverage = p.second;
+            if(coverage<10) {
+                cout << coverage;
+            } else {
+                cout << " ";
+            }
+        }
+        cout << endl;
+#endif
+    }
+
+}
+
+
+
 // Remove edges that are not on the spanning tree.
-// Thgis does not remove any vertices, as the spanning
+// This does not remove any vertices, as the spanning
 // tree by definition covers all vertices.
 void LocalMarkerGraph2::removeNonSpanningTreeEdges()
 {

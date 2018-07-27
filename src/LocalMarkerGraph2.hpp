@@ -253,6 +253,15 @@ public:
     // Compute the best path in the optimal spanning tree.
     // The optimal spanning tree must have already been computed.
     void computeOptimalSpanningTreeBestPath();
+    vector<edge_descriptor> optimalSpanningTreeBestPath;
+
+    // Use the best path to assemble the dominant sequence.
+    void assembleDominantSequence(int maxDistance, vector< pair<shasta::Base, int> >&) const;
+
+    // Assemble the dominant sequence for a given path.
+    void assembleDominantSequence(
+        const vector<edge_descriptor>&,
+        vector< pair<shasta::Base, int> >&) const;
 
     // Write in Graphviz format.
     // There are two types of Graphviz output:
