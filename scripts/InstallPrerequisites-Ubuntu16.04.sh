@@ -1,6 +1,7 @@
 #!/bin/sh
 
 apt-get update
+apt install -y git
 apt install -y g++
 apt install -y cmake
 apt install -y libboost-all-dev
