@@ -1407,6 +1407,8 @@ void Assembler::exploreMarkerGraph(
     const bool showVertexId = getParameterValue(request, "showVertexId", showVertexIdString);
     string showOptimalSpanningTreeString;
     const bool showOptimalSpanningTree = getParameterValue(request, "showOptimalSpanningTree", showOptimalSpanningTreeString);
+    string showAssembledSequenceString;
+    const bool showAssembledSequence = getParameterValue(request, "showAssembledSequence", showAssembledSequenceString);
     uint32_t minCoverage = 0;
     const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
     uint32_t sizePixels;
@@ -1461,10 +1463,17 @@ void Assembler::exploreMarkerGraph(
         << (showVertexId ? " checked=checked" : "") <<
         ">"
 
-        "<tr title='Check to show thew optimal spaning tree of the local marker graph'>"
+        "<tr title='Check to show in purple the optimal spanning tree of the local marker graph"
+        " (always shown if assembled sequence is also selected)'>"
         "<td>Show optimal spanning tree"
         "<td class=centered><input type=checkbox name=showOptimalSpanningTree"
         << (showOptimalSpanningTree ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Check to show sequence assembled from this local marker graph'>"
+        "<td>Show assembled sequence"
+        "<td class=centered><input type=checkbox name=showAssembledSequence"
+        << (showAssembledSequence ? " checked=checked" : "") <<
         ">"
 
 
@@ -1568,10 +1577,13 @@ void Assembler::exploreMarkerGraph(
         return;
     }
     vector< pair<shasta::Base, int> > sequence;
-    if(showOptimalSpanningTree || portionToDisplay=="spanningTree" || portionToDisplay=="optimalPath") {
+    if(showOptimalSpanningTree || portionToDisplay=="spanningTree" || portionToDisplay=="optimalPath"
+        || showAssembledSequence) {
         graph.computeOptimalSpanningTree();
         graph.computeOptimalSpanningTreeBestPath();
-        graph.assembleDominantSequence(maxDistance, sequence);
+        if(showAssembledSequence) {
+            graph.assembleDominantSequence(maxDistance, sequence);
+        }
     }
     const auto createFinishTime = steady_clock::now();
     if(seconds(createFinishTime - createStartTime) > timeout) {
@@ -1620,18 +1632,14 @@ void Assembler::exploreMarkerGraph(
     // Remove the .dot file.
     filesystem::remove(dotFileName);
 
-    // Write the page title.
-    const string legendName = detailed ? "MarkerGraphLegend-Detailed.html" : "MarkerGraphLegend-Compact.html";
-    html <<
-        "<h1>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId <<
-        " <a href='docs/" << legendName << "'>(see legend)</a></h1>";
 
 
-
-    // Write the sequence, if available.
-    if(!sequence.empty()) {
-        html << "<br>Assembled " << sequence.size() << " bases (coverage on second line, blank if 10 or more):";
-        html << "<pre>";
+    // Write the sequence, if requested.
+    if(showAssembledSequence) {
+        html <<
+            "<h2>Sequence assembled from this local marker graph</h2>"
+            "<br>Assembled " << sequence.size() << " bases (coverage on second line, blank if 10 or more):"
+            "<pre>";
 
         // Labels.
         for(size_t position=0; position<sequence.size(); position+=10) {
@@ -1684,6 +1692,12 @@ void Assembler::exploreMarkerGraph(
     if(portionToDisplay == "none") {
         html << "<p>As requested, the graph was not displayed.";
     } else {
+        // Write the page title.
+        const string legendName = detailed ? "MarkerGraphLegend-Detailed.html" : "MarkerGraphLegend-Compact.html";
+        html <<
+            "<h2>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId <<
+            " <a href='docs/" << legendName << "'>(see legend)</a></h2>";
+
         const string svgFileName = dotFileName + ".svg";
         ifstream svgFile(svgFileName);
         html << svgFile.rdbuf();
@@ -1712,7 +1726,8 @@ void Assembler::exploreMarkerGraph(
                 "&portionToDisplay=" + portionToDisplay +
                 (detailed ? "&detailed=on" : "") +
                 (showVertexId ? "&showVertexId=on" : "") +
-                (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
+                (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
+                (showAssembledSequence ? "&showAssembledSequence=on" : "");
             if(detailed) {
                 html <<
                     "document.getElementById('a_vertexDistance" << vertex.vertexId <<
@@ -1735,7 +1750,8 @@ void Assembler::exploreMarkerGraph(
                     "&portionToDisplay=" + portionToDisplay +
                     "&detailed=on" +
                     (showVertexId ? "&showVertexId=on" : "") +
-                    (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
+                    (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
+                    (showAssembledSequence ? "&showAssembledSequence=on" : "");
                 html <<
                     "document.getElementById('vertex" << vertex.vertexId <<
                     "').oncontextmenu = function() {location.href='" << detailUrl << "';"
