@@ -22,43 +22,31 @@ It was
 <a href="https://www.nature.com/articles/nbt.4060"> recently shown</a>
 that <i>de novo</i> assembly for human genomes
 from <a href="https://nanoporetech.com">Oxford Nanopore</a> reads
-is possible, but computationally expensive and laborious.
+is possible, but computationally very expensive and laborious.
 The aim of this project is to
-make <i>de novo</i> assembly of human genomes
-possible on a routine/production basis and at reasonable 
+enable <i>de novo</i> assembly of human genomes
+on a routine/production basis and at reasonable 
 computational cost.
 
 For this to be possible, <i>de novo</i> assembly must be:
 
 <ul>
 <li>Fast: under one day elapsed time.
-<li>Accurate: accuracy and other assembly metrics 
+<li>Accurate: accuracy and other assembly metrics must be
 comparable to those provided by existing tools.
+Assembly accuracy should be limited by data quality,
+not by assembly algorithms.
 <li>Logistically simple and easy to run. 
 </ul>
 
 <p>
-This project is at an early stage, and does not yet produce
-assembled sequence as its final output.
+This project is at an early stage. Its main output is currently
+in the form of a <i>marker graph</i>, not assembled sequence. 
+It does include functionality to extract and display a
+local portion of the global marker graph, 
+and to use it to assemble sequence using a simple-minded
+algorithm.
 
-
-
-<h2>Contributions</h2>
-<p>
-Contributions of code, ideas, computational experiments,
-or documentation are welcome. 
-To contribute, please use the standard GitHub Pull Request process.
-To facilitate and encourage contributions, the 
-<a href=CONTRIBUTING.html>guidelines</a>
-for contributing are minimal.
-
-<p>
-Comments and criticism are also welcome.
-Please use the GitHub 
-<a href="https://github.com/chanzuckerberg/shasta/wiki">Wiki</a>
-or 
-<a href="https://github.com/chanzuckerberg/shasta/issues">Issues</a>
-sections of the GitHub repository as appropriate for these purposes.
 
 
 
@@ -66,24 +54,27 @@ sections of the GitHub repository as appropriate for these purposes.
 
 <p>
 See <a href=ShastaSlides-June2018-v2.pdf>this presentation</a>
-for information on the computational approach selected.
-In addition to Oxford Nanopore reads,
-these methods might also apply to other long reads with high 
-error rates such as those created by the
+for information on the computational methods currently being explored. 
+In addition to Oxford Nanopore reads, these methods might also apply 
+to long reads from other technologies, such as the
 <a href="https://www.pacb.com/">Pacific Biosciences</a> DNA sequencing platforms.
 
 <p>
-In the chosen computational approach, 
+To facilititate run logistics and code development, 
 an assembly runs in memory on a single, dedicated large machine 
 with a large amount of memory (&asymp; 1 TB)
 and a relatively large number of processors (&asymp; 32 cores). 
 Input data are copied to memory, the entire assembly runs
 in memory without disk access (except for log files
-and small summary files), and the output is finally copied
-to storage. This minimizes delays due to data movement,
+and small summary files), and the output is then copied
+to persistent storage. This minimizes delays due to data movement,
 and facilitates algorithmic development, as all data
 structures are always loaded in memory and immediately
-accessible.
+accessible at memory speed.
+In addition, it simplifies run logistics, eliminating
+the need to set up and maintain a cluster with high performance 
+networking and with access to a large, high performance
+storage server.
 
 <p>
 The requirement for such a large machine may seem extravagant.
@@ -243,9 +234,9 @@ After running <code>SetupHugePages.py</code>, you can create a new directory
 to contain your run. After <code>cd</code> to that new directory,
 run <code>shasta-install/bin/SetupRunDirectory.py</code>.
 This will create symbolic links <code>data</code> and 
-<code>Data</code> pointing to filesystems on 4KB and 2MB pages respectively,
+<code>Data</code> pointing to filesystems in memory backed by 4KB and 2MB pages respectively,
 as well as a <code>threadLogs</code> directory 
-to contain logs for individual threads for assembly phases
+to contain logs for individual threads, for assembly phases
 that run in parallel.
 
 <p>
@@ -303,7 +294,7 @@ nohup shasta-install/bin/RunAssembly.py Input.fasta 1>RunAssembly.stdout 2>&1 &
 </pre>
 
 This way, the assembly runs in the background, is not interrupted
-if your ssh connection disappears, and all log output
+if your terminal window is closed, and all log output
 to <code>stdout</code> and <code>stderr</code>
 is saved to file <code>RunAssembly.stdout</code>.
 
@@ -366,10 +357,14 @@ of the machine where the server is running.
 Once in the browser, the server functionality should
 be reasonably self-explanatory. You can look at individual reads
 and their markers, and inspect the global marker graph around 
-any marker you choose. The local marker graph can be shown
+any marker associated with a vertex of the
+global marker graph. The local marker graph can be shown
 in a detailed format that shows the sequence associated with
 each vertex and edge, or in a compact format that shows only the
 graph connectivity.
+You can also show the optimal spanning tree of the local marker graph
+and the sequence that is assembled from it using a simple-minded
+assembly algorithm.
 
 
 
@@ -433,6 +428,26 @@ that your filesystem is mounted on. The above command
 requires root privileges.
 The above command is particularly helpful when using
 an EBS "Throughput Optimized HDD Volume" (volume type <code>st1</code>) on AWS EC2.
+
+
+
+<h2>Contributions</h2>
+<p>
+Contributions of code, ideas, computational experiments,
+or documentation are welcome. 
+To contribute, please use the standard GitHub Pull Request process.
+To facilitate and encourage contributions, the 
+<a href=CONTRIBUTING.html>guidelines</a>
+for contributing are minimal.
+
+<p>
+Comments and criticism are also welcome.
+Please use the GitHub 
+<a href="https://github.com/chanzuckerberg/shasta/wiki">Wiki</a>
+or 
+<a href="https://github.com/chanzuckerberg/shasta/issues">Issues</a>
+sections of the GitHub repository as appropriate for these purposes.
+
 
 
 </body>
