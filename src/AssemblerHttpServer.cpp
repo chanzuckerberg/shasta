@@ -114,7 +114,7 @@ void Assembler::writeHtmlBegin(ostream& html) const
         "<!DOCTYPE html>"
         "<html>"
         "<head>"
-        "<link rel=icon href=\"https://s0.wp.com/wp-content/themes/vip/czi/images/build/favicon.ico\" />"
+        "<link rel=icon href=docs/CZI-new-logo.png />"
         "<meta charset='UTF-8'>";
     writeStyle(html);
     // writeMakeAllTablesSelectable(html);
