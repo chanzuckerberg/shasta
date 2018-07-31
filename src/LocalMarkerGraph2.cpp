@@ -1021,7 +1021,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "&amp;strand=" << info.orientedReadId.getStrand();
                 s << "&amp;highlightMarker=" << info.ordinals[0];
                 s << "&amp;highlightMarker=" << info.ordinals[1];
-                s << "#" << info.ordinals[1] << "\"";
+                s << "\"";
                 s << "><font color=\"blue\"><b><u>" << info.ordinals[0] << "</u></b></font></td>";
 
                 s << "<td align=\"right\"";
