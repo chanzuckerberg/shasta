@@ -468,19 +468,22 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
 
 
 
-// Use the best path to assemble the dominant sequence.
-void LocalMarkerGraph2::assembleDominantSequence(
+// Given a path, find the longest subset that contains no vertices
+// with distance equal to the specified maxDistance.
+void LocalMarkerGraph2::clipPath(
     int maxDistance,
-    vector< pair<shasta::Base, int> >& sequence) const
+    const vector<edge_descriptor>& fullPath,
+    vector<edge_descriptor>& clippedPath) const
 {
-    CZI_ASSERT(!optimalSpanningTreeBestPath.empty());
+    CZI_ASSERT(!fullPath.empty());
     const LocalMarkerGraph2& graph = *this;
+    clippedPath.clear();
 
-    // Find the longest subpath that does not use
-    // any edges at maximum distance.
+    // Create an interval_set containing the indexes
+    // of the edges that don't use vertices at maxDistance.
     boost::icl::interval_set<size_t> s;
-    for(size_t i=0; i<optimalSpanningTreeBestPath.size(); i++) {
-        const edge_descriptor e = optimalSpanningTreeBestPath[i];
+    for(size_t i=0; i<fullPath.size(); i++) {
+        const edge_descriptor e = fullPath[i];
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         if(graph[v0].distance != maxDistance && graph[v1].distance != maxDistance) {
@@ -488,9 +491,12 @@ void LocalMarkerGraph2::assembleDominantSequence(
         }
     }
     if(s.empty()) {
-        sequence.clear();
         return;
     }
+
+
+
+    // Find the largest interval in the interval set.
     size_t i0;
     size_t i1;
     size_t bestPathLength = 0;
@@ -505,12 +511,30 @@ void LocalMarkerGraph2::assembleDominantSequence(
         }
 
     }
+
+    if(bestPathLength > 0) {
+        copy(
+            fullPath.begin() + i0,
+            fullPath.begin() + i1 + 1,
+            back_inserter(clippedPath));
+    }
+    CZI_ASSERT(clippedPath.size() == bestPathLength);
+
+}
+
+
+
+// Use the optimalspanning tree best path to assemble the dominant sequence.
+void LocalMarkerGraph2::assembleDominantSequence(
+    int maxDistance,
+    vector< pair<shasta::Base, int> >& sequence) const
+{
+    CZI_ASSERT(!optimalSpanningTreeBestPath.empty());
+
+    // Find the longest subpath that does not use
+    // any edges at maximum distance.
     vector<edge_descriptor> path;
-    copy(
-        optimalSpanningTreeBestPath.begin() + i0,
-        optimalSpanningTreeBestPath.begin() + i1 + 1,
-        back_inserter(path));
-    CZI_ASSERT(path.size() == bestPathLength);
+    clipPath(maxDistance, optimalSpanningTreeBestPath, path);
 
     // Use this path to assemble the sequence.
     assembleDominantSequence(path, sequence);

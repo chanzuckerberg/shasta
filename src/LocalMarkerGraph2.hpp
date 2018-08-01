@@ -255,7 +255,7 @@ public:
     void computeOptimalSpanningTreeBestPath();
     vector<edge_descriptor> optimalSpanningTreeBestPath;
 
-    // Use the best path to assemble the dominant sequence.
+    // Use the optimalspanning tree best path to assemble the dominant sequence.
     void assembleDominantSequence(int maxDistance, vector< pair<shasta::Base, int> >&) const;
 
     // Assemble the dominant sequence for a given path.
@@ -305,6 +305,13 @@ private:
     // corresponding to each marker.
     // Indexed by MarkerId.
     const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex;
+
+    // Given a path, find the longest subset that contains no vertices
+    // with distance equal to the specified maxDistance.
+    void clipPath(
+        int maxDistance,
+        const vector<edge_descriptor>& fullPath,
+        vector<edge_descriptor>& clippedPath) const;
 
     class Writer {
     public:
