@@ -235,6 +235,9 @@ public:
     // Remove vertices and edges that are not on the optimal path.
     void removeAllExceptOptimalPath();
 
+    // Remove vertices and edges that are not on the clipped optimal path.
+    void removeAllExceptClippedOptimalPath();
+
     // Predicate that can be used with boost::filtered_graph
     // to create an implicit representation of the spanning tree.
     class SpanningTreeFilter {
@@ -255,8 +258,13 @@ public:
     void computeOptimalSpanningTreeBestPath();
     vector<edge_descriptor> optimalSpanningTreeBestPath;
 
+    // Clipped version of optimalSpanningTreeBestPath, to remove
+    // any vertices at maximum distance.
+    void computeClippedOptimalSpanningTreeBestPath(int maxDistance);
+    vector<edge_descriptor> clippedOptimalSpanningTreeBestPath;
+
     // Use the optimalspanning tree best path to assemble the dominant sequence.
-    void assembleDominantSequence(int maxDistance, vector< pair<shasta::Base, int> >&) const;
+    void assembleDominantSequence(int maxDistance, vector< pair<shasta::Base, int> >&);
 
     // Assemble the dominant sequence for a given path.
     void assembleDominantSequence(

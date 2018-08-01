@@ -1500,17 +1500,30 @@ void Assembler::exploreMarkerGraph(
         "</table>"
 
 
+
         // Radio buttons to choose what portion of the graph to display.
         "Portion of the graph to display:"
+
         "<br><input type=radio name=portionToDisplay value=all" <<
         (portionToDisplay=="all" ? " checked=on" : "") <<
         ">Entire graph"
+
         "<br><input type=radio name=portionToDisplay value=spanningTree" <<
         (portionToDisplay=="spanningTree" ? " checked=on" : "") <<
         ">Optimal spanning tree only"
+
         "<br><input type=radio name=portionToDisplay value=optimalPath" <<
         (portionToDisplay=="optimalPath" ? " checked=on" : "") <<
         ">Optimal spanning tree best path only"
+
+        "<br><input type=radio name=portionToDisplay value=clippedOptimalPath" <<
+        (portionToDisplay=="clippedOptimalPath" ? " checked=on" : "") <<
+        "><span "
+        " title='Longest subpath of the best path in the optimal spanning tree "
+        "that does not contain any vertices at maximum distance. "
+        "This subpath is used to assemble sequence.'" <<
+        ">Path used to assemble sequence</span>"
+
         "<br><input type=radio name=portionToDisplay value=none" <<
         (portionToDisplay=="none" ? " checked=on" : "") <<
         ">Nothing"
@@ -1577,8 +1590,11 @@ void Assembler::exploreMarkerGraph(
         return;
     }
     vector< pair<shasta::Base, int> > sequence;
-    if(showOptimalSpanningTree || portionToDisplay=="spanningTree" || portionToDisplay=="optimalPath"
-        || showAssembledSequence) {
+    if( showOptimalSpanningTree ||
+        portionToDisplay=="spanningTree" ||
+        portionToDisplay=="optimalPath" ||
+        portionToDisplay=="clippedOptimalPath" ||
+        showAssembledSequence) {
         graph.computeOptimalSpanningTree();
         graph.computeOptimalSpanningTreeBestPath();
         if(showAssembledSequence) {
@@ -1596,6 +1612,8 @@ void Assembler::exploreMarkerGraph(
         graph.removeNonSpanningTreeEdges();
     } else if(portionToDisplay=="optimalPath") {
         graph.removeAllExceptOptimalPath();
+    } else if(portionToDisplay=="clippedOptimalPath") {
+        graph.removeAllExceptClippedOptimalPath();
     } else if(portionToDisplay=="none") {
         graph.clear();
     }

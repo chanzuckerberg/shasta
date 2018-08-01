@@ -523,21 +523,27 @@ void LocalMarkerGraph2::clipPath(
 }
 
 
+// Clip the optimalSpanningTreeBestPath to remove
+// any vertices at maximum distance.
+void LocalMarkerGraph2::computeClippedOptimalSpanningTreeBestPath(int maxDistance)
+{
+    clipPath(
+        maxDistance,
+        optimalSpanningTreeBestPath,
+        clippedOptimalSpanningTreeBestPath);
+}
 
-// Use the optimalspanning tree best path to assemble the dominant sequence.
+
+
+// Compute the clipped optimal spanning tree path
+// and use it to assemble its dominant sequence.
 void LocalMarkerGraph2::assembleDominantSequence(
     int maxDistance,
-    vector< pair<shasta::Base, int> >& sequence) const
+    vector< pair<shasta::Base, int> >& sequence)
 {
     CZI_ASSERT(!optimalSpanningTreeBestPath.empty());
-
-    // Find the longest subpath that does not use
-    // any edges at maximum distance.
-    vector<edge_descriptor> path;
-    clipPath(maxDistance, optimalSpanningTreeBestPath, path);
-
-    // Use this path to assemble the sequence.
-    assembleDominantSequence(path, sequence);
+    computeClippedOptimalSpanningTreeBestPath(maxDistance);
+    assembleDominantSequence(clippedOptimalSpanningTreeBestPath, sequence);
 
 }
 
@@ -679,6 +685,53 @@ void LocalMarkerGraph2::removeAllExceptOptimalPath()
         boost::remove_vertex(v, graph);
     }
 }
+
+
+
+// Remove vertices and edges that are not on the clipped optimal path.
+void LocalMarkerGraph2::removeAllExceptClippedOptimalPath()
+{
+    LocalMarkerGraph2& graph= *this;
+
+    // Find the vertices and edges to be kept.
+    std::set<vertex_descriptor> verticesToBeKept;
+    std::set<edge_descriptor> edgesToBeKept;
+    for(const edge_descriptor e: clippedOptimalSpanningTreeBestPath) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        verticesToBeKept.insert(v0);
+        verticesToBeKept.insert(v1);
+        edgesToBeKept.insert(e);
+    }
+
+    // Find the vertices and edges to be removed.
+    vector<vertex_descriptor> verticesToBeRemoved;
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        if(verticesToBeKept.find(v) == verticesToBeKept.end()) {
+            verticesToBeRemoved.push_back(v);
+        }
+    }
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        if(edgesToBeKept.find(e) == edgesToBeKept.end()) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+
+    // Remove the edges first!
+    // Doing the opposite causes a crash when attempting
+    // to remove inexistent edges.
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, graph);
+    }
+
+    // Now remove the vertices.
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        clear_vertex(v, graph);
+        remove_vertex(v, graph);
+    }
+}
+
 
 
 // Write the graph in Graphviz format.
