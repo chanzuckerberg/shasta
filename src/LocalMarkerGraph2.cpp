@@ -1,5 +1,6 @@
 // shasta
 #include "LocalMarkerGraph2.hpp"
+#include "approximateTopologicalSort.hpp"
 #include "CZI_ASSERT.hpp"
 #include "findMarkerId.hpp"
 #include "LongBaseSequence.hpp"
@@ -631,6 +632,58 @@ void LocalMarkerGraph2::assembleDominantSequence(
 
 
 
+// Approximate topological sort, adding edges
+// in order of decreasing coverage. The topological sort
+// stored in LocalMarkerGrapg2Vertex::rank.
+void LocalMarkerGraph2::approximateTopologicalSort()
+{
+    LocalMarkerGraph2& graph = *this;
+
+    vector<pair<uint32_t, edge_descriptor> > edgeTable;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        edgeTable.push_back(make_pair(graph[e].coverage(), e));
+    }
+    sort(edgeTable.begin(), edgeTable.end(),
+        std::greater< pair<uint32_t, edge_descriptor> >());
+
+    vector<edge_descriptor> sortedEdges;
+    for(const auto& p: edgeTable) {
+        sortedEdges.push_back(p.second);
+    }
+
+    shasta::approximateTopologicalSort(graph, sortedEdges);
+
+
+    // Write out the vertices in topological sort order.
+    vector< pair<size_t, vertex_descriptor> > vertexTable;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        vertexTable.push_back(make_pair(graph[v].rank, v));
+    }
+    sort(vertexTable.begin(), vertexTable.end());
+
+#if 0
+    cout << "Vertices in topological sort order:" << endl;
+    for(const auto& p: vertexTable) {
+        cout << p.first << " " << graph[p.second].vertexId << endl;
+    }
+
+    // Write out the non-DAG edges.
+    cout << "Edges that did not participate in the topological order because they created cycles:" << endl;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        if(graph[e].isDagEdge) {
+            continue;
+        }
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        cout << graph[v0].vertexId << " ";
+        cout << graph[v1].vertexId << " ";
+        cout << graph[e].coverage() << endl;
+    }
+
+#endif
+}
+
+
 // Remove edges that are not on the spanning tree.
 // This does not remove any vertices, as the spanning
 // tree by definition covers all vertices.
@@ -1045,6 +1098,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
         // Weight;
         s << " weight=" << coverage;
+
+        // If the edge was not marked as a DAG edge during approximate topological sort,
+        // tell graphviz not to use it in constraint assignment.
+        if(!edge.isDagEdge) {
+            s << " constraint=false";
+        }
 
         // Label.
         s << " label=<<font color=\"black\">";

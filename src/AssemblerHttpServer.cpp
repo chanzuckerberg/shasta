@@ -1589,6 +1589,7 @@ void Assembler::exploreMarkerGraph(
         html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
         return;
     }
+    graph.approximateTopologicalSort();
     vector< pair<shasta::Base, int> > sequence;
     if( showOptimalSpanningTree ||
         portionToDisplay=="spanningTree" ||
@@ -1648,7 +1649,7 @@ void Assembler::exploreMarkerGraph(
 
     }
     // Remove the .dot file.
-    filesystem::remove(dotFileName);
+    // filesystem::remove(dotFileName);
 
 
 

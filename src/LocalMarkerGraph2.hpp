@@ -91,6 +91,10 @@ public:
     };
     vector<MarkerInfo> markerInfos;
 
+    // Fields used by approximateTopologicalSort.
+    uint32_t color;
+    size_t rank;
+
     LocalMarkerGraph2Vertex(
         GlobalMarkerGraphVertexId vertexId,
         int distance) :
@@ -186,6 +190,9 @@ public:
     // of the optimal spanning tree.
     // Set by computeOptimalSpanningTreeBestPath().
     bool isSpanningTreeBestPathEdge = false;
+
+    // Field used by approximateTopologicalSort.
+    bool isDagEdge = true;
 };
 
 
@@ -270,6 +277,11 @@ public:
     void assembleDominantSequence(
         const vector<edge_descriptor>&,
         vector< pair<shasta::Base, int> >&) const;
+
+    // Approximate topological sort, adding edges
+    // in order of decreasing coverage. The topological sort
+    // stored in LocalMarkerGrapg2Vertex::rank.
+    void approximateTopologicalSort();
 
     // Write in Graphviz format.
     // There are two types of Graphviz output:
