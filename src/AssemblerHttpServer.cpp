@@ -1649,7 +1649,7 @@ void Assembler::exploreMarkerGraph(
 
     }
     // Remove the .dot file.
-    // filesystem::remove(dotFileName);
+    filesystem::remove(dotFileName);
 
 
 
