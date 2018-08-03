@@ -1654,9 +1654,34 @@ void Assembler::exploreMarkerGraph(
 
     // Write the sequence, if requested.
     if(showAssembledSequence) {
+
+        const string fastaSequenceName =
+            "AssembledSequence-" + orientedReadId.getString() +
+            "-" + to_string(ordinal) + "-" + to_string(maxDistance);
+        const string fastaFileName = fastaSequenceName + ".fa";
+        string fastaString = ">" + fastaSequenceName + " length " + to_string(sequence.size()) + "\\n";
+        for(const auto& p: sequence) {
+            char c = p.first.character();
+            const auto coverage = p.second;
+            if(coverage < 10) {
+                c = char(std::tolower(c));
+            }
+            fastaString += c;
+        }
+        fastaString += "\\n";
+
         html <<
             "<h2>Sequence assembled from this local marker graph</h2>"
-            "<br>Assembled " << sequence.size() << " bases (coverage on second line, blank if 10 or more):"
+            "<br><span title='Coverage on second line, blank if &ge; 10."
+            " Base is lower case if coverage &lt; 10.'>"
+            "Assembled " << sequence.size() << " bases. </span>"
+            "<a id=fastaDownload>Download in FASTA format</a>"
+            "<script>"
+            "var element = document.getElementById('fastaDownload');"
+            "element.setAttribute('href', 'data:text/plain;charset=utf-8,' +"
+            "encodeURIComponent('" << fastaString << "'));"
+            "element.setAttribute('download', '" << fastaFileName << "');"
+            "</script>"
             "<pre>";
 
         // Labels.
