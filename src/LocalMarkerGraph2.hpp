@@ -279,9 +279,12 @@ public:
         vector< pair<shasta::Base, int> >&) const;
 
     // Approximate topological sort, adding edges
-    // in order of decreasing coverage. The topological sort
-    // stored in LocalMarkerGrapg2Vertex::rank.
+    // in order of decreasing coverage. The topological sort rank
+    // of each vertex is stored in LocalMarkerGrapg2Vertex::rank.
+    // In addition, the vertices are stored in topological sort order
+    // in vector topologicallySortedVertices.
     void approximateTopologicalSort();
+    vector<vertex_descriptor> topologicallySortedVertices;
 
     // Write in Graphviz format.
     // There are two types of Graphviz output:
@@ -307,6 +310,10 @@ public:
         int maxDistance,
         bool detailed,
         bool showVertexId) const;
+
+    // The oriented reads represented in the local marker graph, sorted.
+    vector<OrientedReadId> orientedReadIds;
+    void findOrientedReadIds();
 
 private:
 

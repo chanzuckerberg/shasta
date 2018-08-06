@@ -218,6 +218,9 @@ void Assembler::exploreMarkerGraph(
             }
         }
         html << "</pre>";
+
+        // Also show alignments of oriented reads to assembled sequence.
+        showLocalMarkerGraphAlignments(html, graph, requestParameters);
     }
 
 
@@ -264,8 +267,7 @@ void Assembler::exploreMarkerGraph(
                 "&portionToDisplay=" + requestParameters.portionToDisplay +
                 (requestParameters.detailed ? "&detailed=on" : "") +
                 (requestParameters.showVertexId ? "&showVertexId=on" : "") +
-                (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
-                (requestParameters.showAssembledSequence ? "&showAssembledSequence=on" : "");
+                (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
             if(requestParameters.detailed) {
                 html <<
                     "document.getElementById('a_vertexDistance" << vertex.vertexId <<
@@ -288,8 +290,7 @@ void Assembler::exploreMarkerGraph(
                     "&portionToDisplay=" + requestParameters.portionToDisplay +
                     "&detailed=on" +
                     (requestParameters.showVertexId ? "&showVertexId=on" : "") +
-                    (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
-                    (requestParameters.showAssembledSequence ? "&showAssembledSequence=on" : "");
+                    (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
                 html <<
                     "document.getElementById('vertex" << vertex.vertexId <<
                     "').oncontextmenu = function() {location.href='" << detailUrl << "';"
@@ -303,17 +304,21 @@ void Assembler::exploreMarkerGraph(
         // Position the start vertex at the center of the window.
         const GlobalMarkerGraphVertexId startVertexId =
             getGlobalMarkerGraphVertex(orientedReadId, requestParameters.ordinal);
-        html << "<script>\n";
+        html <<
+            "<script>\n"
+            "function positionAtVertex(vertexId) {\n";
         if(requestParameters.detailed) {
             html <<
-                "var element = document.getElementById('a_vertexDistance" << startVertexId << "');\n";
+                "var element = document.getElementById('a_vertexDistance' + vertexId);\n";
         } else {
             html <<
-                "var element = document.getElementById('vertex" << startVertexId << "');\n";
+                "var element = document.getElementById('vertex' + vertexId);\n";
         }
         html <<
             "var r = element.getBoundingClientRect();\n"
             "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
+            "}\n";
+        html << "positionAtVertex(" << startVertexId << ");\n"
             "</script>\n";
     }
 }
@@ -517,4 +522,80 @@ bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters(
         !maxDistanceIsPresent ||
         !minCoverageIsPresent ||
         !timeoutIsPresent;
+}
+
+
+
+void Assembler::showLocalMarkerGraphAlignments(
+    ostream& html,
+    const LocalMarkerGraph2& graph,
+    const LocalMarkerGraphRequestParameters& requestParameters
+    ) const
+{
+    using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
+    const size_t k = assemblerInfo->k;
+
+
+
+    // Create a table with one column for each vertex
+    // (in topologically sorted order), plus an additional column
+    // between each pair of successive vertices.
+    html << "Marker alignments of assembled sequence to oriented reads (work in progress).";
+    html << "<table style='table-layout:auto;white-space:nowrap'><tr><th>";
+
+
+
+    // Table header.
+    for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
+        const vertex_descriptor v = graph.topologicallySortedVertices[i];
+        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        const auto vertexId = graph[v].vertexId;
+
+        // Color.
+        string color;
+        if(vertex.distance == int(requestParameters.maxDistance)) {
+            color = "cyan";
+        } else if(vertex.distance == 0) {
+            color = "lightGreen";
+        } else if(vertex.markerInfos.size() >= requestParameters.minCoverage) {
+            color = "green";
+        } else {
+            color = "red";
+        }
+
+        const KmerId kmerId = graph.getKmerId(v);
+        const Kmer kmer(kmerId, k);
+        html << "<th title='";
+        if(requestParameters.showVertexId) {
+            html << "Vertex " << vertexId << ". ";
+        }
+        html <<
+            "Click to position graph display at this vertex.'"
+            " onClick='positionAtVertex(" << vertexId << ")'"
+            " style='background-color:" << color << "'>";
+        if(requestParameters.showVertexId) {
+            html << vertexId << "<br>";
+        }
+        kmer.write(html, k);
+
+        // Add a column before the next vertex.
+        if(i != graph.topologicallySortedVertices.size()-1) {
+            html << "<th>";
+        }
+    }
+
+
+
+    // Add a row for each oriented read.
+    for(const OrientedReadId orientedReadId: graph.orientedReadIds) {
+        html <<
+            "<tr><td><a href='exploreRead?readId&amp;" << orientedReadId.getReadId() <<
+            "&amp;strand=" << orientedReadId.getStrand() << "'>" <<
+            orientedReadId << "</a>";
+    }
+
+
+
+    // Finish the table
+    html << "</table>";
 }

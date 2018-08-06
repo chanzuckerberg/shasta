@@ -658,6 +658,8 @@ bool Assembler::extractLocalMarkerGraph(
         }
     }
 
+    // Fill in the oriented read ids represented in the graph.
+    graph.findOrientedReadIds();
     return true;
 }
 #endif

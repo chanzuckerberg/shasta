@@ -725,6 +725,11 @@ private:
     void getLocalMarkerGraphRequestParameters(
         const vector<string>&,
         LocalMarkerGraphRequestParameters&) const;
+    void showLocalMarkerGraphAlignments(
+        ostream& html,
+        const LocalMarkerGraph2&,
+        const LocalMarkerGraphRequestParameters&
+        ) const;
 };
 
 #endif

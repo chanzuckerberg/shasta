@@ -654,33 +654,17 @@ void LocalMarkerGraph2::approximateTopologicalSort()
     shasta::approximateTopologicalSort(graph, sortedEdges);
 
 
-    // Write out the vertices in topological sort order.
+    // Also store the vertices in topological sort order.
     vector< pair<size_t, vertex_descriptor> > vertexTable;
     BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
         vertexTable.push_back(make_pair(graph[v].rank, v));
     }
     sort(vertexTable.begin(), vertexTable.end());
-
-#if 0
-    cout << "Vertices in topological sort order:" << endl;
+    topologicallySortedVertices.clear();
     for(const auto& p: vertexTable) {
-        cout << p.first << " " << graph[p.second].vertexId << endl;
+        topologicallySortedVertices.push_back(p.second);
     }
 
-    // Write out the non-DAG edges.
-    cout << "Edges that did not participate in the topological order because they created cycles:" << endl;
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
-        if(graph[e].isDagEdge) {
-            continue;
-        }
-        const vertex_descriptor v0 = source(e, graph);
-        const vertex_descriptor v1 = target(e, graph);
-        cout << graph[v0].vertexId << " ";
-        cout << graph[v1].vertexId << " ";
-        cout << graph[e].coverage() << endl;
-    }
-
-#endif
 }
 
 
@@ -785,6 +769,25 @@ void LocalMarkerGraph2::removeAllExceptClippedOptimalPath()
     }
 }
 
+
+
+// Fill in the oriented reads represented in the local marker graph.
+void LocalMarkerGraph2::findOrientedReadIds()
+{
+    LocalMarkerGraph2& graph = *this;
+    std::set<OrientedReadId> orientedReadIdsSet;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        for(const auto& markerInfo: graph[v].markerInfos) {
+            orientedReadIdsSet.insert(markerInfo.orientedReadId);
+        }
+    }
+
+    orientedReadIds.clear();
+    orientedReadIds.insert(
+        orientedReadIds.end(),
+        orientedReadIdsSet.begin(),
+        orientedReadIdsSet.end());
+}
 
 
 // Write the graph in Graphviz format.
