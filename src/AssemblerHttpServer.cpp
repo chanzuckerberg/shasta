@@ -1817,6 +1817,7 @@ void Assembler::exploreMarkerGraph(
 }
 
 
+
 // Extract  from the request the parameters for the display
 // of the local marker graph.
 void Assembler::getLocalMarkerGraphRequestParameters(
@@ -1875,20 +1876,24 @@ void Assembler::getLocalMarkerGraphRequestParameters(
 
 
 
-void Assembler::writeStrandSelection(
-    ostream& html,
-    const string& name,
-    bool select0,
-    bool select1) const
+void ChanZuckerberg::shasta::writeStrandSelection(
+    ostream& html,          // The html stream to write the form to.
+    const string& name,     // The selection name.
+    bool select0,           // Whether strand 0 is selected.
+    bool select1)           // Whether strand 1 is selected.
 {
     html <<
-        "<select name=" << name << " title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
+        "<select name=" << name <<
+        " title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
+
         "<option value=0"
         << (select0 ? " selected" : "") <<
         ">0 (+)</option>"
+
         "<option value=1"
         << (select1 ? " selected" : "") <<
         ">1 (-)</option>"
+
         "</select>";
 
 }

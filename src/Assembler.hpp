@@ -34,6 +34,13 @@ namespace ChanZuckerberg {
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
         }
+
+        // Write an html form to select strand.
+        void writeStrandSelection(
+            ostream&,               // The html stream to write the form to.
+            const string& name,     // The selection name.
+            bool select0,           // Whether strand 0 is selected.
+            bool select1);          // Whether strand 1 is selected.
     }
 }
 
@@ -672,7 +679,6 @@ private:
         ostream& html,
         const string& title,
         const vector<pair <string, string> >&) const;
-    void writeStrandSelection(ostream&, const string& name, bool select0, bool select1) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
     void exploreOverlappingReads(const vector<string>&, ostream&);
