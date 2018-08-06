@@ -678,7 +678,6 @@ private:
     void exploreOverlappingReads(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void exploreReadGraph(const vector<string>&, ostream&);
-    void exploreMarkerGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:
 
@@ -691,6 +690,33 @@ private:
     };
     HttpServerData httpServerData;
 
+    // Functions and data used for display of the local marker graph.
+    void exploreMarkerGraph(const vector<string>&, ostream&);
+    class LocalMarkerGraphRequestParameters {
+    public:
+        ReadId readId;
+        bool readIdIsPresent;
+        Strand strand;
+        bool strandIsPresent;
+        uint32_t ordinal;
+        bool ordinalIsPresent;
+        uint32_t maxDistance;
+        bool maxDistanceIsPresent;
+        bool detailed;
+        bool showVertexId;
+        bool showOptimalSpanningTree;
+        bool showAssembledSequence;
+        uint32_t minCoverage;
+        bool minCoverageIsPresent;
+        uint32_t sizePixels;
+        bool sizePixelsIsPresent;
+        double timeout;
+        bool timeoutIsPresent;
+        string portionToDisplay;
+    };
+    void getLocalMarkerGraphRequestParameters(
+        const vector<string>&,
+        LocalMarkerGraphRequestParameters&) const;
 };
 
 #endif

@@ -1392,33 +1392,9 @@ void Assembler::exploreMarkerGraph(
     const vector<string>& request,
     ostream& html)
 {
-    // Get the parameters.
-    ReadId readId = 0;
-    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
-    Strand strand = 0;
-    const bool strandIsPresent = getParameterValue(request, "strand", strand);
-    uint32_t ordinal = 0;
-    const bool ordinalIsPresent = getParameterValue(request, "ordinal", ordinal);
-    uint32_t maxDistance = 0;
-    const bool maxDistanceIsPresent = getParameterValue(request, "maxDistance", maxDistance);
-    string detailedString;
-    const bool detailed = getParameterValue(request, "detailed", detailedString);
-    string showVertexIdString;
-    const bool showVertexId = getParameterValue(request, "showVertexId", showVertexIdString);
-    string showOptimalSpanningTreeString;
-    const bool showOptimalSpanningTree = getParameterValue(request, "showOptimalSpanningTree", showOptimalSpanningTreeString);
-    string showAssembledSequenceString;
-    const bool showAssembledSequence = getParameterValue(request, "showAssembledSequence", showAssembledSequenceString);
-    uint32_t minCoverage = 0;
-    const bool minCoverageIsPresent = getParameterValue(request, "minCoverage", minCoverage);
-    uint32_t sizePixels;
-    const bool sizePixelsIsPresent = getParameterValue(request, "sizePixels", sizePixels);
-    double timeout;
-    const bool timeoutIsPresent = getParameterValue(request, "timeout", timeout);
-    string portionToDisplay = "all";
-    getParameterValue(request, "portionToDisplay", portionToDisplay);
-
-
+    // Get the request parameters.
+    LocalMarkerGraphRequestParameters requestParameters;
+    getLocalMarkerGraphRequestParameters(request, requestParameters);
 
     // Write the form.
     html <<
@@ -1430,50 +1406,52 @@ void Assembler::exploreMarkerGraph(
         "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
         "<td>Read id"
         "<td><input type=text required name=readId size=8 style='text-align:center'"
-        << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
+        << (requestParameters.readIdIsPresent ? ("value='"+to_string(requestParameters.readId)+"'") : "") <<
         ">"
 
         "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
         "<td>Strand"
         "<td class=centered>";
-    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
+    writeStrandSelection(html, "strand",
+        requestParameters.strandIsPresent && requestParameters.strand==0,
+        requestParameters.strandIsPresent && requestParameters.strand==1);
 
     html <<
         "<tr title='Ordinal for the desired marker in the specified oriented read.'>"
         "<td>Marker ordinal"
         "<td><input type=text required name=ordinal size=8 style='text-align:center'"
-        << (ordinalIsPresent ? ("value='"+to_string(ordinal)+"'") : "") <<
+        << (requestParameters.ordinalIsPresent ? ("value='"+to_string(requestParameters.ordinal)+"'") : "") <<
         ">"
 
         "<tr title='Maximum distance from start vertex (number of edges)'>"
         "<td>Maximum distance"
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
-        << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
+        << (requestParameters.maxDistanceIsPresent ? ("value='" + to_string(requestParameters.maxDistance)+"'") : " value='6'") <<
         ">"
 
         "<tr title='Check for detailed graph with labels'>"
         "<td>Detailed"
         "<td class=centered><input type=checkbox name=detailed"
-        << (detailed ? " checked=checked" : "") <<
+        << (requestParameters.detailed ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
         "<td>Show vertex ids"
         "<td class=centered><input type=checkbox name=showVertexId"
-        << (showVertexId ? " checked=checked" : "") <<
+        << (requestParameters.showVertexId ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show in purple the optimal spanning tree of the local marker graph"
         " (always shown if assembled sequence is also selected)'>"
         "<td>Show optimal spanning tree"
         "<td class=centered><input type=checkbox name=showOptimalSpanningTree"
-        << (showOptimalSpanningTree ? " checked=checked" : "") <<
+        << (requestParameters.showOptimalSpanningTree ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show sequence assembled from this local marker graph'>"
         "<td>Show assembled sequence"
         "<td class=centered><input type=checkbox name=showAssembledSequence"
-        << (showAssembledSequence ? " checked=checked" : "") <<
+        << (requestParameters.showAssembledSequence ? " checked=checked" : "") <<
         ">"
 
 
@@ -1481,7 +1459,7 @@ void Assembler::exploreMarkerGraph(
         "Affects the coloring of vertices and edges.'>"
         "<td>Coverage threshold"
         "<td><input type=text required name=minCoverage size=8 style='text-align:center'"
-        << (minCoverageIsPresent ? (" value='" + to_string(minCoverage)+"'") : " value='3'") <<
+        << (requestParameters.minCoverageIsPresent ? (" value='" + to_string(requestParameters.minCoverage)+"'") : " value='3'") <<
         ">"
 
         "<tr title='Graphics size in pixels. "
@@ -1489,13 +1467,13 @@ void Assembler::exploreMarkerGraph(
         " Ok to make it much larger than screen size.'>"
         "<td>Graphics size in pixels"
         "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
-        << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='1600'") <<
+        << (requestParameters.sizePixelsIsPresent ? (" value='" + to_string(requestParameters.sizePixels)+"'") : " value='1600'") <<
         ">"
 
         "<tr>"
         "<td>Timeout (seconds) for graph creation and layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
-        << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
+        << (requestParameters.timeoutIsPresent ? (" value='" + to_string(requestParameters.timeout)+"'") : " value='30'") <<
         ">"
         "</table>"
 
@@ -1505,19 +1483,19 @@ void Assembler::exploreMarkerGraph(
         "Portion of the graph to display:"
 
         "<br><input type=radio name=portionToDisplay value=all" <<
-        (portionToDisplay=="all" ? " checked=on" : "") <<
+        (requestParameters.portionToDisplay=="all" ? " checked=on" : "") <<
         ">Entire graph"
 
         "<br><input type=radio name=portionToDisplay value=spanningTree" <<
-        (portionToDisplay=="spanningTree" ? " checked=on" : "") <<
+        (requestParameters.portionToDisplay=="spanningTree" ? " checked=on" : "") <<
         ">Optimal spanning tree only"
 
         "<br><input type=radio name=portionToDisplay value=optimalPath" <<
-        (portionToDisplay=="optimalPath" ? " checked=on" : "") <<
+        (requestParameters.portionToDisplay=="optimalPath" ? " checked=on" : "") <<
         ">Optimal spanning tree best path only"
 
         "<br><input type=radio name=portionToDisplay value=clippedOptimalPath" <<
-        (portionToDisplay=="clippedOptimalPath" ? " checked=on" : "") <<
+        (requestParameters.portionToDisplay=="clippedOptimalPath" ? " checked=on" : "") <<
         "><span "
         " title='Longest subpath of the best path in the optimal spanning tree "
         "that does not contain any vertices at maximum distance. "
@@ -1525,7 +1503,7 @@ void Assembler::exploreMarkerGraph(
         ">Path used to assemble sequence</span>"
 
         "<br><input type=radio name=portionToDisplay value=none" <<
-        (portionToDisplay=="none" ? " checked=on" : "") <<
+        (requestParameters.portionToDisplay=="none" ? " checked=on" : "") <<
         ">Nothing"
 
 
@@ -1545,28 +1523,28 @@ void Assembler::exploreMarkerGraph(
 
 
     // If any required values are missing, stop here.
-    if(!readIdIsPresent || !strandIsPresent || !ordinalIsPresent
-        || !maxDistanceIsPresent || !minCoverageIsPresent
-        || !timeoutIsPresent) {
+    if(!requestParameters.readIdIsPresent || !requestParameters.strandIsPresent || !requestParameters.ordinalIsPresent
+        || !requestParameters.maxDistanceIsPresent || !requestParameters.minCoverageIsPresent
+        || !requestParameters.timeoutIsPresent) {
         return;
     }
 
 
 
     // Validity checks.
-    if(readId > reads.size()) {
-        html << "<p>Invalid read id " << readId;
+    if(requestParameters.readId > reads.size()) {
+        html << "<p>Invalid read id " << requestParameters.readId;
         html << ". Must be between 0 and " << reads.size()-1 << ".";
         return;
     }
-    if(strand>1) {
-        html << "<p>Invalid strand " << strand;
+    if(requestParameters.strand>1) {
+        html << "<p>Invalid strand " << requestParameters.strand;
         html << ". Must be 0 or 1.";
         return;
     }
-    const OrientedReadId orientedReadId(readId, strand);
+    const OrientedReadId orientedReadId(requestParameters.readId, requestParameters.strand);
     const auto orientedReadMarkerCount = markers.size(orientedReadId.getValue());
-    if(ordinal >= orientedReadMarkerCount) {
+    if(requestParameters.ordinal >= orientedReadMarkerCount) {
         html <<
             "<p>Invalid marker ordinal. "
             "Oriented read " << orientedReadId <<
@@ -1581,7 +1559,12 @@ void Assembler::exploreMarkerGraph(
     // Create the local marker graph.
     LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
     const auto createStartTime = steady_clock::now();
-    if(!extractLocalMarkerGraph(orientedReadId, ordinal, maxDistance, timeout, graph)) {
+    if(!extractLocalMarkerGraph(
+        orientedReadId,
+        requestParameters.ordinal,
+        requestParameters.maxDistance,
+        requestParameters.timeout,
+        graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
@@ -1591,44 +1574,49 @@ void Assembler::exploreMarkerGraph(
     }
     graph.approximateTopologicalSort();
     vector< pair<shasta::Base, int> > sequence;
-    if( showOptimalSpanningTree ||
-        portionToDisplay=="spanningTree" ||
-        portionToDisplay=="optimalPath" ||
-        portionToDisplay=="clippedOptimalPath" ||
-        showAssembledSequence) {
+    if( requestParameters.showOptimalSpanningTree ||
+        requestParameters.portionToDisplay=="spanningTree" ||
+        requestParameters.portionToDisplay=="optimalPath" ||
+        requestParameters.portionToDisplay=="clippedOptimalPath" ||
+        requestParameters.showAssembledSequence) {
         graph.computeOptimalSpanningTree();
         graph.computeOptimalSpanningTreeBestPath();
-        if(showAssembledSequence) {
-            graph.assembleDominantSequence(maxDistance, sequence);
+        if(requestParameters.showAssembledSequence) {
+            graph.assembleDominantSequence(requestParameters.maxDistance, sequence);
         }
     }
     const auto createFinishTime = steady_clock::now();
-    if(seconds(createFinishTime - createStartTime) > timeout) {
+    if(seconds(createFinishTime - createStartTime) > requestParameters.timeout) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
 
     // Remove the portion of the graph that we don't want to display.
-    if(portionToDisplay=="spanningTree") {
+    if(requestParameters.portionToDisplay=="spanningTree") {
         graph.removeNonSpanningTreeEdges();
-    } else if(portionToDisplay=="optimalPath") {
+    } else if(requestParameters.portionToDisplay=="optimalPath") {
         graph.removeAllExceptOptimalPath();
-    } else if(portionToDisplay=="clippedOptimalPath") {
+    } else if(requestParameters.portionToDisplay=="clippedOptimalPath") {
         graph.removeAllExceptClippedOptimalPath();
-    } else if(portionToDisplay=="none") {
+    } else if(requestParameters.portionToDisplay=="none") {
         graph.clear();
     }
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = "/dev/shm/" + uuid + ".dot";
-    graph.write(dotFileName, minCoverage, maxDistance, detailed, showVertexId);
+    graph.write(
+        dotFileName,
+        requestParameters.minCoverage,
+        requestParameters.maxDistance,
+        requestParameters.detailed,
+        requestParameters.showVertexId);
 
     // Compute layout in svg format.
     const string command =
-        "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+        "timeout " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
         " dot -O -T svg " + dotFileName +
-        " -Gsize=" + to_string(sizePixels/72.);
+        " -Gsize=" + to_string(requestParameters.sizePixels/72.);
     const int commandStatus = ::system(command.c_str());
     if(WIFEXITED(commandStatus)) {
         const int exitStatus = WEXITSTATUS(commandStatus);
@@ -1654,11 +1642,11 @@ void Assembler::exploreMarkerGraph(
 
 
     // Write the sequence, if requested.
-    if(showAssembledSequence) {
+    if(requestParameters.showAssembledSequence) {
 
         const string fastaSequenceName =
             "AssembledSequence-" + orientedReadId.getString() +
-            "-" + to_string(ordinal) + "-" + to_string(maxDistance);
+            "-" + to_string(requestParameters.ordinal) + "-" + to_string(requestParameters.maxDistance);
         const string fastaFileName = fastaSequenceName + ".fa";
         string fastaString = ">" + fastaSequenceName + " length " + to_string(sequence.size()) + "\\n";
         for(const auto& p: sequence) {
@@ -1733,13 +1721,17 @@ void Assembler::exploreMarkerGraph(
 
 
     // Write the graph.
-    if(portionToDisplay == "none") {
+    if(requestParameters.portionToDisplay == "none") {
         html << "<p>As requested, the graph was not displayed.";
     } else {
         // Write the page title.
-        const string legendName = detailed ? "MarkerGraphLegend-Detailed.html" : "MarkerGraphLegend-Compact.html";
+        const string legendName =
+            requestParameters.detailed ?
+            "MarkerGraphLegend-Detailed.html" :
+            "MarkerGraphLegend-Compact.html";
         html <<
-            "<h2>Marker graph near marker " << ordinal << " of oriented read " << orientedReadId <<
+            "<h2>Marker graph near marker " << requestParameters.ordinal <<
+            " of oriented read " << orientedReadId <<
             " <a href='docs/" << legendName << "'>(see legend)</a></h2>";
 
         const string svgFileName = dotFileName + ".svg";
@@ -1763,16 +1755,16 @@ void Assembler::exploreMarkerGraph(
                 "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
                 "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
                 "&ordinal="  + to_string(markerInfo.ordinal) +
-                "&maxDistance=" + to_string(maxDistance) +
-                "&minCoverage=" + to_string(minCoverage) +
-                "&sizePixels=" + to_string(sizePixels) +
-                "&timeout=" + to_string(timeout) +
-                "&portionToDisplay=" + portionToDisplay +
-                (detailed ? "&detailed=on" : "") +
-                (showVertexId ? "&showVertexId=on" : "") +
-                (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
-                (showAssembledSequence ? "&showAssembledSequence=on" : "");
-            if(detailed) {
+                "&maxDistance=" + to_string(requestParameters.maxDistance) +
+                "&minCoverage=" + to_string(requestParameters.minCoverage) +
+                "&sizePixels=" + to_string(requestParameters.sizePixels) +
+                "&timeout=" + to_string(requestParameters.timeout) +
+                "&portionToDisplay=" + requestParameters.portionToDisplay +
+                (requestParameters.detailed ? "&detailed=on" : "") +
+                (requestParameters.showVertexId ? "&showVertexId=on" : "") +
+                (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
+                (requestParameters.showAssembledSequence ? "&showAssembledSequence=on" : "");
+            if(requestParameters.detailed) {
                 html <<
                     "document.getElementById('a_vertexDistance" << vertex.vertexId <<
                     "').onclick = function() {location.href='" << url << "';};\n";
@@ -1788,14 +1780,14 @@ void Assembler::exploreMarkerGraph(
                     "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
                     "&ordinal="  + to_string(markerInfo.ordinal) +
                     "&maxDistance=1" +
-                    "&minCoverage=" + to_string(minCoverage) +
-                    "&sizePixels=" + to_string(sizePixels) +
-                    "&timeout=" + to_string(timeout) +
-                    "&portionToDisplay=" + portionToDisplay +
+                    "&minCoverage=" + to_string(requestParameters.minCoverage) +
+                    "&sizePixels=" + to_string(requestParameters.sizePixels) +
+                    "&timeout=" + to_string(requestParameters.timeout) +
+                    "&portionToDisplay=" + requestParameters.portionToDisplay +
                     "&detailed=on" +
-                    (showVertexId ? "&showVertexId=on" : "") +
-                    (showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
-                    (showAssembledSequence ? "&showAssembledSequence=on" : "");
+                    (requestParameters.showVertexId ? "&showVertexId=on" : "") +
+                    (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "") +
+                    (requestParameters.showAssembledSequence ? "&showAssembledSequence=on" : "");
                 html <<
                     "document.getElementById('vertex" << vertex.vertexId <<
                     "').oncontextmenu = function() {location.href='" << detailUrl << "';"
@@ -1808,9 +1800,9 @@ void Assembler::exploreMarkerGraph(
 
         // Position the start vertex at the center of the window.
         const GlobalMarkerGraphVertexId startVertexId =
-            getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+            getGlobalMarkerGraphVertex(orientedReadId, requestParameters.ordinal);
         html << "<script>\n";
-        if(detailed) {
+        if(requestParameters.detailed) {
             html <<
                 "var element = document.getElementById('a_vertexDistance" << startVertexId << "');\n";
         } else {
@@ -1822,6 +1814,63 @@ void Assembler::exploreMarkerGraph(
             "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
             "</script>\n";
     }
+}
+
+
+// Extract  from the request the parameters for the display
+// of the local marker graph.
+void Assembler::getLocalMarkerGraphRequestParameters(
+    const vector<string>& request,
+    LocalMarkerGraphRequestParameters& parameters) const
+{
+    parameters.readId = 0;
+    parameters.readIdIsPresent = getParameterValue(
+        request, "readId", parameters.readId);
+
+    parameters.strand = 0;
+    parameters.strandIsPresent = getParameterValue(
+        request, "strand", parameters.strand);
+
+    parameters.ordinal = 0;
+    parameters.ordinalIsPresent = getParameterValue(
+        request, "ordinal", parameters.ordinal);
+
+    parameters.maxDistance = 0;
+    parameters.maxDistanceIsPresent = getParameterValue(
+        request, "maxDistance", parameters.maxDistance);
+
+    string detailedString;
+    parameters.detailed = getParameterValue(
+        request, "detailed", detailedString);
+
+    string showVertexIdString;
+    parameters.showVertexId = getParameterValue(
+        request, "showVertexId", showVertexIdString);
+
+    string showOptimalSpanningTreeString;
+    parameters.showOptimalSpanningTree = getParameterValue(
+        request, "showOptimalSpanningTree", showOptimalSpanningTreeString);
+
+    string showAssembledSequenceString;
+    parameters.showAssembledSequence = getParameterValue(
+        request, "showAssembledSequence", showAssembledSequenceString);
+
+    parameters.minCoverage = 0;
+    parameters.minCoverageIsPresent = getParameterValue(
+        request, "minCoverage", parameters.minCoverage);
+
+    parameters.sizePixels = 800;
+    parameters.sizePixelsIsPresent = getParameterValue(
+        request, "sizePixels", parameters.sizePixels);
+
+    parameters.timeout = 30;
+    parameters.timeoutIsPresent = getParameterValue(
+        request, "timeout", parameters.timeout);
+
+    parameters.portionToDisplay = "all";
+    getParameterValue(
+        request, "portionToDisplay", parameters.portionToDisplay);
+
 }
 
 
