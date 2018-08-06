@@ -719,6 +719,8 @@ private:
         double timeout;
         bool timeoutIsPresent;
         string portionToDisplay;
+        void writeForm(ostream&, size_t readCount) const;
+        bool hasMissingRequiredParameters() const;
     };
     void getLocalMarkerGraphRequestParameters(
         const vector<string>&,

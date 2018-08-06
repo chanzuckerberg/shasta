@@ -24,135 +24,10 @@ void Assembler::exploreMarkerGraph(
     getLocalMarkerGraphRequestParameters(request, requestParameters);
 
     // Write the form.
-    html <<
-        "<h3>Display a local subgraph of the global marker graph</h3>"
-        "<form>"
-
-        "<table>"
-
-        "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
-        "<td>Read id"
-        "<td><input type=text required name=readId size=8 style='text-align:center'"
-        << (requestParameters.readIdIsPresent ? ("value='"+to_string(requestParameters.readId)+"'") : "") <<
-        ">"
-
-        "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
-        "<td>Strand"
-        "<td class=centered>";
-    writeStrandSelection(html, "strand",
-        requestParameters.strandIsPresent && requestParameters.strand==0,
-        requestParameters.strandIsPresent && requestParameters.strand==1);
-
-    html <<
-        "<tr title='Ordinal for the desired marker in the specified oriented read.'>"
-        "<td>Marker ordinal"
-        "<td><input type=text required name=ordinal size=8 style='text-align:center'"
-        << (requestParameters.ordinalIsPresent ? ("value='"+to_string(requestParameters.ordinal)+"'") : "") <<
-        ">"
-
-        "<tr title='Maximum distance from start vertex (number of edges)'>"
-        "<td>Maximum distance"
-        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
-        << (requestParameters.maxDistanceIsPresent ? ("value='" + to_string(requestParameters.maxDistance)+"'") : " value='6'") <<
-        ">"
-
-        "<tr title='Check for detailed graph with labels'>"
-        "<td>Detailed"
-        "<td class=centered><input type=checkbox name=detailed"
-        << (requestParameters.detailed ? " checked=checked" : "") <<
-        ">"
-
-        "<tr title='Check to show vertex ids (only useful for debugging)'>"
-        "<td>Show vertex ids"
-        "<td class=centered><input type=checkbox name=showVertexId"
-        << (requestParameters.showVertexId ? " checked=checked" : "") <<
-        ">"
-
-        "<tr title='Check to show in purple the optimal spanning tree of the local marker graph"
-        " (always shown if assembled sequence is also selected)'>"
-        "<td>Show optimal spanning tree"
-        "<td class=centered><input type=checkbox name=showOptimalSpanningTree"
-        << (requestParameters.showOptimalSpanningTree ? " checked=checked" : "") <<
-        ">"
-
-        "<tr title='Check to show sequence assembled from this local marker graph'>"
-        "<td>Show assembled sequence"
-        "<td class=centered><input type=checkbox name=showAssembledSequence"
-        << (requestParameters.showAssembledSequence ? " checked=checked" : "") <<
-        ">"
-
-
-        "<tr title='Minimum coverage (number of markers) for a vertex or edge to be considered strong. "
-        "Affects the coloring of vertices and edges.'>"
-        "<td>Coverage threshold"
-        "<td><input type=text required name=minCoverage size=8 style='text-align:center'"
-        << (requestParameters.minCoverageIsPresent ? (" value='" + to_string(requestParameters.minCoverage)+"'") : " value='3'") <<
-        ">"
-
-        "<tr title='Graphics size in pixels. "
-        "Changing this works better than zooming. Make it larger if the graph is too crowded."
-        " Ok to make it much larger than screen size.'>"
-        "<td>Graphics size in pixels"
-        "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
-        << (requestParameters.sizePixelsIsPresent ? (" value='" + to_string(requestParameters.sizePixels)+"'") : " value='1600'") <<
-        ">"
-
-        "<tr>"
-        "<td>Timeout (seconds) for graph creation and layout"
-        "<td><input type=text required name=timeout size=8 style='text-align:center'"
-        << (requestParameters.timeoutIsPresent ? (" value='" + to_string(requestParameters.timeout)+"'") : " value='30'") <<
-        ">"
-        "</table>"
-
-
-
-        // Radio buttons to choose what portion of the graph to display.
-        "Portion of the graph to display:"
-
-        "<br><input type=radio name=portionToDisplay value=all" <<
-        (requestParameters.portionToDisplay=="all" ? " checked=on" : "") <<
-        ">Entire graph"
-
-        "<br><input type=radio name=portionToDisplay value=spanningTree" <<
-        (requestParameters.portionToDisplay=="spanningTree" ? " checked=on" : "") <<
-        ">Optimal spanning tree only"
-
-        "<br><input type=radio name=portionToDisplay value=optimalPath" <<
-        (requestParameters.portionToDisplay=="optimalPath" ? " checked=on" : "") <<
-        ">Optimal spanning tree best path only"
-
-        "<br><input type=radio name=portionToDisplay value=clippedOptimalPath" <<
-        (requestParameters.portionToDisplay=="clippedOptimalPath" ? " checked=on" : "") <<
-        "><span "
-        " title='Longest subpath of the best path in the optimal spanning tree "
-        "that does not contain any vertices at maximum distance. "
-        "This subpath is used to assemble sequence.'" <<
-        ">Path used to assemble sequence</span>"
-
-        "<br><input type=radio name=portionToDisplay value=none" <<
-        (requestParameters.portionToDisplay=="none" ? " checked=on" : "") <<
-        ">Nothing"
-
-
-
-        "<br><input type=submit value='Display'>"
-
-        " <span style='background-color:#e0e0e0' title='"
-        "Fill this form to display a local subgraph of the global marker graph starting at the "
-        "vertex containing the specified marker and extending out to a given distance "
-        "(number of edges) from the start vertex."
-        "The marker is specified by its oriented read id (read id, strand) and marker ordinal. "
-        "The marker ordinal is the sequential index of the marker in the specified oriented read "
-        "(the first marker is marker 0, the second marker is marker 1, and so on).'>"
-        "Mouse here to explain form</span>"
-        "</form>";
-
-
+    requestParameters.writeForm(html, reads.size());
 
     // If any required values are missing, stop here.
-    if(!requestParameters.readIdIsPresent || !requestParameters.strandIsPresent || !requestParameters.ordinalIsPresent
-        || !requestParameters.maxDistanceIsPresent || !requestParameters.minCoverageIsPresent
-        || !requestParameters.timeoutIsPresent) {
+    if(requestParameters.hasMissingRequiredParameters()) {
         return;
     }
 
@@ -268,7 +143,7 @@ void Assembler::exploreMarkerGraph(
 
 
 
-    // Write the sequence, if requested.
+    // Write assembled sequence, if requested.
     if(requestParameters.showAssembledSequence) {
 
         const string fastaSequenceName =
@@ -499,4 +374,147 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     getParameterValue(
         request, "portionToDisplay", parameters.portionToDisplay);
 
+}
+
+
+
+void Assembler::LocalMarkerGraphRequestParameters::writeForm(
+    ostream& html,
+    size_t readCount) const
+{
+    html <<
+        "<h3>Display a local subgraph of the global marker graph</h3>"
+        "<form>"
+
+        "<table>"
+
+        "<tr title='Read id between 0 and " << readCount-1 << "'>"
+        "<td>Read id"
+        "<td><input type=text required name=readId size=8 style='text-align:center'"
+        << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
+        ">"
+
+        "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
+        "<td>Strand"
+        "<td class=centered>";
+    writeStrandSelection(html, "strand",
+        strandIsPresent && strand==0,
+        strandIsPresent && strand==1);
+
+    html <<
+        "<tr title='Ordinal for the desired marker in the specified oriented read.'>"
+        "<td>Marker ordinal"
+        "<td><input type=text required name=ordinal size=8 style='text-align:center'"
+        << (ordinalIsPresent ? ("value='"+to_string(ordinal)+"'") : "") <<
+        ">"
+
+        "<tr title='Maximum distance from start vertex (number of edges)'>"
+        "<td>Maximum distance"
+        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+        << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
+        ">"
+
+        "<tr title='Check for detailed graph with labels'>"
+        "<td>Detailed"
+        "<td class=centered><input type=checkbox name=detailed"
+        << (detailed ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Check to show vertex ids (only useful for debugging)'>"
+        "<td>Show vertex ids"
+        "<td class=centered><input type=checkbox name=showVertexId"
+        << (showVertexId ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Check to show in purple the optimal spanning tree of the local marker graph"
+        " (always shown if assembled sequence is also selected)'>"
+        "<td>Show optimal spanning tree"
+        "<td class=centered><input type=checkbox name=showOptimalSpanningTree"
+        << (showOptimalSpanningTree ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Check to show sequence assembled from this local marker graph'>"
+        "<td>Show assembled sequence"
+        "<td class=centered><input type=checkbox name=showAssembledSequence"
+        << (showAssembledSequence ? " checked=checked" : "") <<
+        ">"
+
+
+        "<tr title='Minimum coverage (number of markers) for a vertex or edge to be considered strong. "
+        "Affects the coloring of vertices and edges.'>"
+        "<td>Coverage threshold"
+        "<td><input type=text required name=minCoverage size=8 style='text-align:center'"
+        << (minCoverageIsPresent ? (" value='" + to_string(minCoverage)+"'") : " value='3'") <<
+        ">"
+
+        "<tr title='Graphics size in pixels. "
+        "Changing this works better than zooming. Make it larger if the graph is too crowded."
+        " Ok to make it much larger than screen size.'>"
+        "<td>Graphics size in pixels"
+        "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
+        << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='1600'") <<
+        ">"
+
+        "<tr>"
+        "<td>Timeout (seconds) for graph creation and layout"
+        "<td><input type=text required name=timeout size=8 style='text-align:center'"
+        << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
+        ">"
+        "</table>"
+
+
+
+        // Radio buttons to choose what portion of the graph to display.
+        "Portion of the graph to display:"
+
+        "<br><input type=radio name=portionToDisplay value=all" <<
+        (portionToDisplay=="all" ? " checked=on" : "") <<
+        ">Entire graph"
+
+        "<br><input type=radio name=portionToDisplay value=spanningTree" <<
+        (portionToDisplay=="spanningTree" ? " checked=on" : "") <<
+        ">Optimal spanning tree only"
+
+        "<br><input type=radio name=portionToDisplay value=optimalPath" <<
+        (portionToDisplay=="optimalPath" ? " checked=on" : "") <<
+        ">Optimal spanning tree best path only"
+
+        "<br><input type=radio name=portionToDisplay value=clippedOptimalPath" <<
+        (portionToDisplay=="clippedOptimalPath" ? " checked=on" : "") <<
+        "><span "
+        " title='Longest subpath of the best path in the optimal spanning tree "
+        "that does not contain any vertices at maximum distance. "
+        "This subpath is used to assemble sequence.'" <<
+        ">Path used to assemble sequence</span>"
+
+        "<br><input type=radio name=portionToDisplay value=none" <<
+        (portionToDisplay=="none" ? " checked=on" : "") <<
+        ">Nothing"
+
+
+
+        "<br><input type=submit value='Display'>"
+
+        " <span style='background-color:#e0e0e0' title='"
+        "Fill this form to display a local subgraph of the global marker graph starting at the "
+        "vertex containing the specified marker and extending out to a given distance "
+        "(number of edges) from the start vertex."
+        "The marker is specified by its oriented read id (read id, strand) and marker ordinal. "
+        "The marker ordinal is the sequential index of the marker in the specified oriented read "
+        "(the first marker is marker 0, the second marker is marker 1, and so on).'>"
+        "Mouse here to explain form</span>"
+        "</form>";
+}
+
+
+
+bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters() const
+{
+    return
+        !readIdIsPresent ||
+        !strandIsPresent ||
+        !ordinalIsPresent ||
+        !maxDistanceIsPresent ||
+        !minCoverageIsPresent ||
+        !timeoutIsPresent;
 }
