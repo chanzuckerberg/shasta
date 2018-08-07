@@ -280,6 +280,7 @@ public:
 
     // Clipped version of optimalSpanningTreeBestPath, to remove
     // any vertices at maximum distance.
+    // This is used by assembleDominantSequence.
     void computeClippedOptimalSpanningTreeBestPath(int maxDistance);
     vector<edge_descriptor> clippedOptimalSpanningTreeBestPath;
 

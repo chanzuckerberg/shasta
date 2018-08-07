@@ -545,15 +545,126 @@ void Assembler::showLocalMarkerGraphAlignments(
     // (in topologically sorted order), plus an additional column
     // between each pair of successive vertices.
     html << "Marker alignments of assembled sequence to oriented reads (work in progress).";
-    html << "<table style='table-layout:auto;white-space:nowrap;font-family:monospace;font-size:10px'><tr><th>";
+    html << "<table style='table-layout:auto;white-space:nowrap;font-family:monospace;font-size:10px'>";
+
+
+    // Row with vertex ids.
+    if(requestParameters.showVertexId) {
+        html << "<tr title='Vertex'><th style='text-align:left'>Vertex";
+        for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
+            const vertex_descriptor v = graph.topologicallySortedVertices[i];
+            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            const auto vertexId = graph[v].vertexId;
+
+            // Color.
+            string color;
+            if(vertex.distance == int(requestParameters.maxDistance)) {
+                color = "cyan";
+            } else if(vertex.distance == 0) {
+                color = "lightGreen";
+            } else if(vertex.markerInfos.size() >= requestParameters.minCoverage) {
+                color = "green";
+            } else {
+                color = "red";
+            }
+
+            html << "<td style='background-color:" << color << ";text-align:center;font-size:8px'";
+            if(requestParameters.portionToDisplay != "none") {
+                html <<
+                    " title='Click to position graph display at this vertex.'"
+                    " onClick='positionAtVertex(" << vertexId << ")'";
+            }
+            html << ">";
+            html << vertexId;
+
+            // Add a column before the next vertex.
+            if(i != graph.topologicallySortedVertices.size()-1) {
+                html << "<td>";
+            }
+        }
+    }
 
 
 
-    // Table header.
+    // Row with vertex ranks.
+    html << "<tr title='Rank'><th style='text-align:left' title='"
+        "Vertex rank according to computed approximate topological sort."
+        "'>Rank";
     for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
         const vertex_descriptor v = graph.topologicallySortedVertices[i];
         const LocalMarkerGraph2Vertex& vertex = graph[v];
-        const auto vertexId = graph[v].vertexId;
+
+        // Color.
+        string color;
+        if(vertex.distance == int(requestParameters.maxDistance)) {
+            color = "cyan";
+        } else if(vertex.distance == 0) {
+            color = "lightGreen";
+        } else if(vertex.markerInfos.size() >= requestParameters.minCoverage) {
+            color = "green";
+        } else {
+            color = "red";
+        }
+
+        html << "<td style='background-color:" << color << ";text-align:center'";
+        if(requestParameters.portionToDisplay != "none") {
+            html <<
+                " title='Click to position graph display at this vertex.'"
+                " onClick='positionAtVertex(" << vertex.vertexId << ")'";
+        }
+        html << ">";
+        html << vertex.rank;
+
+        // Add a column before the next vertex.
+        if(i != graph.topologicallySortedVertices.size()-1) {
+            html << "<td>";
+        }
+    }
+
+
+
+    // Row with vertex distances.
+    html << "<tr title='Distance'><th style='text-align:left' title='"
+        "Vertex distance (number of edges) from start vertex."
+        "'>Distance";
+    for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
+        const vertex_descriptor v = graph.topologicallySortedVertices[i];
+        const LocalMarkerGraph2Vertex& vertex = graph[v];
+
+        // Color.
+        string color;
+        if(vertex.distance == int(requestParameters.maxDistance)) {
+            color = "cyan";
+        } else if(vertex.distance == 0) {
+            color = "lightGreen";
+        } else if(vertex.markerInfos.size() >= requestParameters.minCoverage) {
+            color = "green";
+        } else {
+            color = "red";
+        }
+
+        html << "<td style='background-color:" << color << ";text-align:center'";
+        if(requestParameters.portionToDisplay != "none") {
+            html <<
+                " title='Click to position graph display at this vertex.'"
+                " onClick='positionAtVertex(" << vertex.vertexId << ")'";
+        }
+        html << ">";
+        html << vertex.distance;
+
+        // Add a column before the next vertex.
+        if(i != graph.topologicallySortedVertices.size()-1) {
+            html << "<td>";
+        }
+    }
+
+
+
+    // Row with marker k-mers.
+    html << "<tr title='Marker k-mer'><th style='text-align:left'>Marker k-mer";
+    for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
+        const vertex_descriptor v = graph.topologicallySortedVertices[i];
+        const LocalMarkerGraph2Vertex& vertex = graph[v];
 
         // Color.
         string color;
@@ -569,31 +680,27 @@ void Assembler::showLocalMarkerGraphAlignments(
 
         const KmerId kmerId = graph.getKmerId(v);
         const Kmer kmer(kmerId, k);
-        html << "<th title='";
-        if(requestParameters.showVertexId) {
-            html << "Vertex " << vertexId << ". ";
-        }
-        html << "Rank " << vertex.rank << ". ";
-        if(requestParameters.portionToDisplay == "none") {
-            html << "'";
-        } else {
+
+        html << "<td style='background-color:" << color << ";text-align:center'";
+        if(requestParameters.portionToDisplay != "none") {
             html <<
-                "Click to position graph display at this vertex.'"
-                " onClick='positionAtVertex(" << vertexId << ")'";
+                " title='Click to position graph display at this vertex.'"
+                " onClick='positionAtVertex(" << vertex.vertexId << ")'";
         }
-        html <<
-            " style='background-color:" << color << "'>";
-        if(requestParameters.showVertexId) {
-            html << vertexId << "<br>";
-        }
+        html << ">";
         kmer.write(html, k);
 
         // Add a column before the next vertex.
         if(i != graph.topologicallySortedVertices.size()-1) {
-            html << "<th>";
+            html << "<td>";
         }
     }
 
+
+
+    // Row with assembled sequence.
+    html << "<tr title='Assembled'><th style='text-align:left'>Assembled";
+    html << "<td colspan=" << 2*graph.topologicallySortedVertices.size()-1 << ">";
 
 
     // Add a row for each oriented read.
