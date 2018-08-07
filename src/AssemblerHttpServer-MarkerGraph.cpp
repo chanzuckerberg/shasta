@@ -93,57 +93,11 @@ void Assembler::exploreMarkerGraph(
         return;
     }
 
-    // Remove the portion of the graph that we don't want to display.
-    if(requestParameters.portionToDisplay=="spanningTree") {
-        graph.removeNonSpanningTreeEdges();
-    } else if(requestParameters.portionToDisplay=="optimalPath") {
-        graph.removeAllExceptOptimalPath();
-    } else if(requestParameters.portionToDisplay=="clippedOptimalPath") {
-        graph.removeAllExceptClippedOptimalPath();
-    } else if(requestParameters.portionToDisplay=="none") {
-        graph.clear();
-    }
-
-    // Write it out in graphviz format.
-    const string uuid = to_string(boost::uuids::random_generator()());
-    const string dotFileName = "/dev/shm/" + uuid + ".dot";
-    graph.write(
-        dotFileName,
-        requestParameters.minCoverage,
-        requestParameters.maxDistance,
-        requestParameters.detailed,
-        requestParameters.showVertexId);
-
-    // Compute layout in svg format.
-    const string command =
-        "timeout " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
-        " dot -O -T svg " + dotFileName +
-        " -Gsize=" + to_string(requestParameters.sizePixels/72.);
-    const int commandStatus = ::system(command.c_str());
-    if(WIFEXITED(commandStatus)) {
-        const int exitStatus = WEXITSTATUS(commandStatus);
-        if(exitStatus == 124) {
-            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            filesystem::remove(dotFileName);
-            return;
-        }
-        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-            filesystem::remove(dotFileName);
-            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
-        }
-    } else if(WIFSIGNALED(commandStatus)) {
-        const int signalNumber = WTERMSIG(commandStatus);
-        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
-    } else {
-        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
-
-    }
-    // Remove the .dot file.
-    filesystem::remove(dotFileName);
 
 
 
-    // Write assembled sequence, if requested.
+    // Assembled sequence from the graph, if requested.
+    // This must be done while the graph is still intact.
     if(requestParameters.showAssembledSequence) {
 
         const string fastaSequenceName =
@@ -223,6 +177,55 @@ void Assembler::exploreMarkerGraph(
         showLocalMarkerGraphAlignments(html, graph, requestParameters);
     }
 
+
+
+    // Remove the portion of the graph that we don't want to display.
+    if(requestParameters.portionToDisplay=="spanningTree") {
+        graph.removeNonSpanningTreeEdges();
+    } else if(requestParameters.portionToDisplay=="optimalPath") {
+        graph.removeAllExceptOptimalPath();
+    } else if(requestParameters.portionToDisplay=="clippedOptimalPath") {
+        graph.removeAllExceptClippedOptimalPath();
+    } else if(requestParameters.portionToDisplay=="none") {
+        graph.clear();
+    }
+
+    // Write it out in graphviz format.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    graph.write(
+        dotFileName,
+        requestParameters.minCoverage,
+        requestParameters.maxDistance,
+        requestParameters.detailed,
+        requestParameters.showVertexId);
+
+    // Compute layout in svg format.
+    const string command =
+        "timeout " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
+        " dot -O -T svg " + dotFileName +
+        " -Gsize=" + to_string(requestParameters.sizePixels/72.);
+    const int commandStatus = ::system(command.c_str());
+    if(WIFEXITED(commandStatus)) {
+        const int exitStatus = WEXITSTATUS(commandStatus);
+        if(exitStatus == 124) {
+            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            filesystem::remove(dotFileName);
+            return;
+        }
+        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+            filesystem::remove(dotFileName);
+            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+        }
+    } else if(WIFSIGNALED(commandStatus)) {
+        const int signalNumber = WTERMSIG(commandStatus);
+        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+    } else {
+        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+
+    }
+    // Remove the .dot file.
+    filesystem::remove(dotFileName);
 
 
     // Write the graph.
@@ -530,9 +533,10 @@ void Assembler::showLocalMarkerGraphAlignments(
     ostream& html,
     const LocalMarkerGraph2& graph,
     const LocalMarkerGraphRequestParameters& requestParameters
-    ) const
+    )
 {
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
+    // using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
     const size_t k = assemblerInfo->k;
 
 
@@ -541,7 +545,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     // (in topologically sorted order), plus an additional column
     // between each pair of successive vertices.
     html << "Marker alignments of assembled sequence to oriented reads (work in progress).";
-    html << "<table style='table-layout:auto;white-space:nowrap'><tr><th>";
+    html << "<table style='table-layout:auto;white-space:nowrap;font-family:monospace;font-size:10px'><tr><th>";
 
 
 
@@ -569,9 +573,15 @@ void Assembler::showLocalMarkerGraphAlignments(
         if(requestParameters.showVertexId) {
             html << "Vertex " << vertexId << ". ";
         }
+        html << "Rank " << vertex.rank << ".";
+        if(requestParameters.portionToDisplay == "none") {
+            html << "'";
+        } else {
+            html <<
+                "Click to position graph display at this vertex.'"
+                " onClick='positionAtVertex(" << vertexId << ")'";
+        }
         html <<
-            "Click to position graph display at this vertex.'"
-            " onClick='positionAtVertex(" << vertexId << ")'"
             " style='background-color:" << color << "'>";
         if(requestParameters.showVertexId) {
             html << vertexId << "<br>";
@@ -589,9 +599,133 @@ void Assembler::showLocalMarkerGraphAlignments(
     // Add a row for each oriented read.
     for(const OrientedReadId orientedReadId: graph.orientedReadIds) {
         html <<
-            "<tr><td><a href='exploreRead?readId&amp;" << orientedReadId.getReadId() <<
+            "<tr title='" << orientedReadId <<
+            "'><td><a href='exploreRead?readId&amp;" << orientedReadId.getReadId() <<
             "&amp;strand=" << orientedReadId.getStrand() << "'>" <<
             orientedReadId << "</a>";
+        cout << orientedReadId << " vertices:" << endl;
+
+        // Find the graph vertices corresponding to this oriented read,
+        // and the corresponding ordinals.
+        vector< pair<uint32_t, vertex_descriptor> > orientedReadVertices;
+        graph.getOrientedReadVertices(orientedReadId, orientedReadVertices);
+
+#if 0
+        // Write out details of the vertices.
+        for(size_t i=0; i<orientedReadVertices.size(); i++) {
+            const auto& p = orientedReadVertices[i];
+            const uint32_t ordinal = p.first;
+            const vertex_descriptor v = p.second;
+            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            cout << "Vertex " << vertex.vertexId;
+            cout << " distance " << vertex.distance;
+            cout << " rank " << vertex.rank;
+            cout << " ordinal " << ordinal;
+            if(i>0 && graph[orientedReadVertices[i-1].second].rank >= vertex.rank) {
+                cout << " rank order violation";
+            }
+            cout << endl;
+        }
+#endif
+
+        // Get rid of the vertices that are inconsistent with rank ordering.
+        vector< pair<uint32_t, vertex_descriptor> > rankEnforcedOrientedReadVertices;
+        graph.enforceRankOrder(orientedReadVertices, rankEnforcedOrientedReadVertices);
+
+#if 0
+        // Write out details of the vertices.
+        for(size_t i=0; i<rankEnforcedOrientedReadVertices.size(); i++) {
+            const auto& p = rankEnforcedOrientedReadVertices[i];
+            const uint32_t ordinal = p.first;
+            const vertex_descriptor v = p.second;
+            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            cout << "Vertex " << vertex.vertexId;
+            cout << " distance " << vertex.distance;
+            cout << " rank " << vertex.rank;
+            cout << " ordinal " << ordinal;
+            cout << endl;
+            if(i>0) {
+                CZI_ASSERT(graph[rankEnforcedOrientedReadVertices[i-1].second].rank < vertex.rank);
+            }
+        }
+#endif
+
+        // If we have no vertices, just write an empty cell covering the entire width.
+        if(rankEnforcedOrientedReadVertices.empty()) {
+            html << "<td colspan=" << 2*graph.topologicallySortedVertices.size()-1 << ">";
+            continue;
+        }
+
+        // If necessary, add an empty cell at the beginning, covering up to and excluding
+        // the vertex with lowest rank.
+        const size_t lowestRank = graph[rankEnforcedOrientedReadVertices.front().second].rank;
+        if(lowestRank > 0) {
+            html << "<td colspan=" << 2*lowestRank << ">";
+        }
+
+
+
+        // Loop over the vertices.
+        size_t skipBaseCount = 0;
+        for(size_t i=0; i<rankEnforcedOrientedReadVertices.size(); i++) {
+
+            // Get the information we need about this vertex.
+            const auto& p0 = rankEnforcedOrientedReadVertices[i];
+            const uint32_t ordinal0 = p0.first;
+            const vertex_descriptor v0 = p0.second;
+            const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+            const size_t rank0 = vertex0.rank;
+            const KmerId kmerId0 = graph.getKmerId(v0);
+            const Kmer kmer0(kmerId0, k);
+
+            // Write the k-mer.
+            html << "<td style='text-align:right'>";
+            for(size_t j=skipBaseCount; j<k; j++) {
+                html << kmer0[j];
+            }
+
+            // If this is the last vertex, we are done.
+            if(i == rankEnforcedOrientedReadVertices.size()-1) {
+                continue;
+            }
+
+            // Get the information we need about the next vertex.
+            const auto& p1 = rankEnforcedOrientedReadVertices[i+1];
+            const uint32_t ordinal1 = p1.first;
+            const vertex_descriptor v1 = p1.second;
+            const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            const size_t rank1 = vertex1.rank;
+
+            // Write the cell in between these two vertices.
+            html << "<td colspan=" << 2*(rank1-rank0)-1 << ">";
+
+            // Write the sequence in between the two vertices.
+            const MarkerId markerId0 = getMarkerId(orientedReadId, ordinal0);
+            const MarkerId markerId1 = getMarkerId(orientedReadId, ordinal1);
+            const CompressedMarker& marker0 = markers.begin()[markerId0];
+            const CompressedMarker& marker1 = markers.begin()[markerId1];
+            const uint32_t position0 = marker0.position;
+            const uint32_t position1 = marker1.position;
+            if(position1 > position0+k) {
+                if(position1-position0-k > 100) {
+                    html << "Too long";
+                } else {
+                    for(uint32_t position=position0+uint32_t(k); position<position1; position++) {
+                        html << getOrientedReadBase(orientedReadId, position);
+                    }
+                }
+                skipBaseCount = 0;
+            } else {
+                skipBaseCount = position0+k-position1;
+            }
+        }
+
+
+        // If necessary, also add an empty cell at the end
+        const size_t highestRank = graph[rankEnforcedOrientedReadVertices.back().second].rank;
+        if(highestRank < graph.topologicallySortedVertices.size()-1) {
+            html << "<td colspan=" << 2*(graph.topologicallySortedVertices.size()-1 - lowestRank) << ">";
+        }
     }
 
 

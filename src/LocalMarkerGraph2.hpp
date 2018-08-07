@@ -42,6 +42,7 @@ was done when the global marker graph was created.
 #include "iostream.hpp"
 #include <map>
 #include "string.hpp"
+#include "tuple.hpp"
 #include "utility.hpp"
 #include "vector.hpp"
 
@@ -101,6 +102,13 @@ public:
         vertexId(vertexId),
         distance(distance)
         {}
+
+    // Look for the ordinal for a given oriented read id.
+    // If found, returns pair(true, ordinal).
+    // Otherwise, returns pair(false, don't care).
+    // If more than an ordinal is found, the first one is returned.
+    pair<bool, uint32_t> getOrdinal(OrientedReadId) const;
+
 };
 
 
@@ -193,6 +201,11 @@ public:
 
     // Field used by approximateTopologicalSort.
     bool isDagEdge = true;
+
+    // Look for the ordinals for a given oriented read id.
+    // If found, returns true.
+    // If more than an ordinal pairs is found, the first one is returned.
+    bool getOrdinals(OrientedReadId, array<uint32_t, 2>& ordinals) const;
 };
 
 
@@ -314,6 +327,28 @@ public:
     // The oriented reads represented in the local marker graph, sorted.
     vector<OrientedReadId> orientedReadIds;
     void findOrientedReadIds();
+
+    // Compute the set of vertices that corresponds to a given oriented read.
+    // Vertices are returned in a pair with the corresponding ordinal,
+    // sorted by the ordinal.
+    void getOrientedReadVertices(
+        OrientedReadId,
+        vector< pair<uint32_t, vertex_descriptor> >&) const;
+
+    // Given a vector of vertices returned by getOrientedReadVertices,
+    // return a subset that does not break rank ordering.
+    void enforceRankOrder(
+        const vector< pair<uint32_t, vertex_descriptor> >&,
+        vector< pair<uint32_t, vertex_descriptor> >&) const;
+
+    // Compute the set of edges that corresponds to a given oriented read.
+    // Each edge is returned in a tuple containing the two ordinals
+    // for the given oriented read.
+    // The edges are computed sorted by the ordinals.
+    void getOrientedReadEdges(
+        OrientedReadId,
+        vector< pair< array<uint32_t, 2>, edge_descriptor> >&) const;
+
 
 private:
 

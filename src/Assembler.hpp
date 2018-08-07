@@ -307,6 +307,17 @@ private:
     void checkReadNamesAreOpen() const;
     void checkReadId(ReadId) const;
 
+    // Return a base of an oriented read.
+    Base getOrientedReadBase(OrientedReadId orientedReadId, uint32_t position)
+    {
+        const auto& read = reads[orientedReadId.getReadId()];
+        if(orientedReadId.getStrand() == 0) {
+            return read[position];
+        } else {
+            return read[read.baseCount-1-position].complement();
+        }
+    }
+
     // The names of the reads from the input fasta or fastq files.
     // Indexed by ReadId.
     // Note that we don't enforce uniqueness of read names.
@@ -729,7 +740,7 @@ private:
         ostream& html,
         const LocalMarkerGraph2&,
         const LocalMarkerGraphRequestParameters&
-        ) const;
+        );
 };
 
 #endif

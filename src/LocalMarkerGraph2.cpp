@@ -790,6 +790,143 @@ void LocalMarkerGraph2::findOrientedReadIds()
 }
 
 
+
+// Compute the set of vertices that corresponds to a given oriented read.
+// Vertices are returned in a pair with the corresponding ordinal,
+// sorted by the ordinal.
+void LocalMarkerGraph2::getOrientedReadVertices(
+    OrientedReadId orientedReadId,
+    vector< pair<uint32_t, vertex_descriptor> >& orientedReadVertices) const
+{
+    const LocalMarkerGraph2& graph = *this;
+
+    orientedReadVertices.clear();
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        bool found = true;
+        uint32_t ordinal;
+        tie(found, ordinal) = graph[v].getOrdinal(orientedReadId);
+        if(found) {
+            orientedReadVertices.push_back(make_pair(ordinal, v));
+        }
+    }
+    sort(orientedReadVertices.begin(), orientedReadVertices.end());
+
+}
+
+
+
+// Given a vector of vertices returned by getOrientedReadVertices,
+// return a subset that does not break rank ordering.
+void LocalMarkerGraph2::enforceRankOrder(
+    const vector< pair<uint32_t, vertex_descriptor> >& v,
+    vector< pair<uint32_t, vertex_descriptor> >& u) const
+{
+    const LocalMarkerGraph2& graph = *this;
+
+    // Create an interval_set of rank values that should be excluded.
+    boost::icl::interval_set<size_t> inconsistentRanks;
+    for(size_t i=1; i<v.size(); i++) {
+        const vertex_descriptor v0 = v[i-1].second;
+        const vertex_descriptor v1 = v[i].second;
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const size_t rank0 = vertex0.rank;
+        const size_t rank1 = vertex1.rank;
+        if(rank1 <= rank0) {
+            inconsistentRanks += boost::icl::interval<size_t>::closed(rank1, rank0);
+        }
+    }
+
+    /*
+    cout << "Inconsistent ranks:" << endl;
+    for(const auto& x: inconsistentRanks) {
+        cout << x << endl;
+    }
+    */
+
+    // Now copy v to u, but exclude vertices with rank
+    // in the forbidden ranges.
+    u.clear();
+    for(const auto& p: v) {
+        const vertex_descriptor v = p.second;
+        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        if(inconsistentRanks.find(vertex.rank) == inconsistentRanks.end()) {
+            u.push_back(p);
+        } else {
+            // cout << "Skipped " << vertex.vertexId << " rank " << vertex.rank << endl;
+        }
+
+    }
+
+}
+
+
+
+// Compute the set of edges that corresponds to a given oriented read.
+// Each edge is returned in a tuple containing the two ordinals
+// for the given oriented read.
+// The edges are computed sorted by the ordinals.
+void LocalMarkerGraph2::getOrientedReadEdges(
+    OrientedReadId orientedReadId,
+    vector< pair< array<uint32_t, 2>, edge_descriptor> >& orientedReadEdges) const
+{
+    const LocalMarkerGraph2& graph = *this;
+
+    orientedReadEdges.clear();
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        array<uint32_t, 2> ordinals;
+        if(graph[e].getOrdinals(orientedReadId, ordinals)) {
+            // const vertex_descriptor v0 = source(e, graph);
+            // const vertex_descriptor v1 = target(e, graph);
+            // const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+            // const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            orientedReadEdges.push_back(make_pair(ordinals, e));
+        }
+    }
+    sort(orientedReadEdges.begin(), orientedReadEdges.end());
+
+}
+
+
+
+// Look for the ordinal for a given oriented read id.
+// If found, returns pair(true, ordinal).
+// Otherwise, returns pair(false, don't care).
+// If more than an ordinal is found, the first one is returned.
+pair<bool, uint32_t> LocalMarkerGraph2Vertex::getOrdinal(
+    OrientedReadId orientedReadId) const
+{
+    for(const MarkerInfo& markerInfo: markerInfos) {
+        if(markerInfo.orientedReadId == orientedReadId) {
+            return make_pair(true, markerInfo.ordinal);
+        }
+    }
+    return make_pair(false, std::numeric_limits<uint32_t>::max());
+}
+
+
+
+// Look for the ordinals for a given oriented read id.
+// If found, returns true.
+// If more than an ordinal pairs is found, the first one is returned.
+bool LocalMarkerGraph2Edge::getOrdinals(
+    OrientedReadId orientedReadId,
+    array<uint32_t, 2>& ordinals) const
+{
+    for(const pair<Sequence, vector<Info> >& p: infos) {
+        for(const Info& info: p.second) {
+            if(info.orientedReadId == orientedReadId) {
+                ordinals = info.ordinals;
+                return true;
+            }
+        }
+    }
+
+    // If getting here, we did not find it.
+    return false;
+}
+
+
 // Write the graph in Graphviz format.
 void LocalMarkerGraph2::write(
     const string& fileName,
@@ -881,7 +1018,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         } else {
             s << "Coverage ";
         }
-        s << coverage << ", distance " << vertex.distance;
+        s << coverage << ", distance " << vertex.distance << ", rank " << vertex.rank;
         s << ", click to recenter graph here, right click for detail\"";
 
         // Vertex size.
@@ -941,7 +1078,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         } else {
             s << "Coverage ";
         }
-        s << coverage << ", distance " << vertex.distance << "\"";
+        s << coverage << ", distance " << vertex.distance << ", rank "  << vertex.rank << "\"";
 
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
@@ -969,6 +1106,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         s << " id=\"vertexDistance" << vertex.vertexId << "\" tooltip=\"Click to recenter graph here\">";
         s << "<font color=\"blue\"><b><u>Distance " << vertex.distance;
         s << "</u></b></font></td></tr>";
+
+        // Rank.
+        s << "<tr><td colspan=\"3\">";
+        s << "<b>Rank " << vertex.rank;
+        s << "</b></td></tr>";
 
         // Column headers.
         s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td></tr>";
