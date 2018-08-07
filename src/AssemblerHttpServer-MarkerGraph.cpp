@@ -573,7 +573,7 @@ void Assembler::showLocalMarkerGraphAlignments(
         if(requestParameters.showVertexId) {
             html << "Vertex " << vertexId << ". ";
         }
-        html << "Rank " << vertex.rank << ".";
+        html << "Rank " << vertex.rank << ". ";
         if(requestParameters.portionToDisplay == "none") {
             html << "'";
         } else {
@@ -603,7 +603,6 @@ void Assembler::showLocalMarkerGraphAlignments(
             "'><td><a href='exploreRead?readId&amp;" << orientedReadId.getReadId() <<
             "&amp;strand=" << orientedReadId.getStrand() << "'>" <<
             orientedReadId << "</a>";
-        cout << orientedReadId << " vertices:" << endl;
 
         // Find the graph vertices corresponding to this oriented read,
         // and the corresponding ordinals.
@@ -612,6 +611,7 @@ void Assembler::showLocalMarkerGraphAlignments(
 
 #if 0
         // Write out details of the vertices.
+        cout << orientedReadId << " vertices:" << endl;
         for(size_t i=0; i<orientedReadVertices.size(); i++) {
             const auto& p = orientedReadVertices[i];
             const uint32_t ordinal = p.first;
