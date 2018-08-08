@@ -609,7 +609,7 @@ void Assembler::showLocalMarkerGraphAlignments(
         html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
         if(requestParameters.portionToDisplay != "none") {
             html <<
-                " title='Click to position graph display at this vertex.'"
+                " title='Vertex rank. Click to position graph display at this vertex.'"
                 " onClick='positionAtVertex(" << vertex.vertexId << ")'";
         }
         html << ">";
@@ -646,7 +646,8 @@ void Assembler::showLocalMarkerGraphAlignments(
         html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
         if(requestParameters.portionToDisplay != "none") {
             html <<
-                " title='Click to position graph display at this vertex.'"
+                " title='Vertex distance (number of edges) from start vertex. "
+                "Click to position graph display at this vertex.'"
                 " onClick='positionAtVertex(" << vertex.vertexId << ")'";
         }
         html << ">";
@@ -721,6 +722,8 @@ void Assembler::showLocalMarkerGraphAlignments(
             "Assembly path violates rank order.";
     }
 
+
+
     // If necessary, add an empty cell at the beginning, covering up to and excluding
     // the vertex with lowest rank.
     const edge_descriptor firstEdge = assemblyPath.front();
@@ -735,6 +738,8 @@ void Assembler::showLocalMarkerGraphAlignments(
     const Kmer firstKmer(firstKmerId, k);
     html << "<td>";
     firstKmer.write(html, k);
+
+
 
     // To add assembled sequence to the alignment table,
     // loop over edges of the assembly path.
@@ -772,6 +777,60 @@ void Assembler::showLocalMarkerGraphAlignments(
     const edge_descriptor lastEdge = assemblyPath.back();
     const vertex_descriptor lastVertex = target(lastEdge, graph);
     const size_t highestRank = graph[lastVertex].rank;
+    if(highestRank < graph.topologicallySortedVertices.size()-1) {
+        html << "<td colspan=" << 2*(graph.topologicallySortedVertices.size()-1 -highestRank) << ">";
+    }
+
+
+
+    // Repeat the  loop over edges of the assembly path
+    // to add a row for vertex and edge coverage.
+    html << "<tr style='background-color:pink' title='Coverage'><th style='text-align:left'>Coverage";
+    if(lowestRank > 0) {
+        html << "<td colspan=" << 2*lowestRank << ">";
+    }
+    html << "<td>" << graph[firstVertex].markerInfos.size();
+    for(const edge_descriptor e: assemblyPath) {
+        const LocalMarkerGraph2Edge& edge = graph[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const size_t rank0 = vertex0.rank;
+        const size_t rank1 = vertex1.rank;
+        CZI_ASSERT(rank0 < rank1);  // We checked for this above.
+
+        html <<
+            "<td class=centered colspan=" << 2*(rank1-rank0) - 1 <<
+            ">" << edge.coverage() << "<td class=centered>" << vertex1.markerInfos.size();
+    }
+    if(highestRank < graph.topologicallySortedVertices.size()-1) {
+        html << "<td colspan=" << 2*(graph.topologicallySortedVertices.size()-1 -highestRank) << ">";
+    }
+
+
+
+    // Repeat the  loop over edges of the assembly path
+    // to add a row for edge consensus.
+    html << "<tr style='background-color:pink' title='Consensus'><th style='text-align:left'>Consensus";
+    if(lowestRank > 0) {
+        html << "<td colspan=" << 2*lowestRank << ">";
+    }
+    html << "<td>"; // First vertex
+    for(const edge_descriptor e: assemblyPath) {
+        const LocalMarkerGraph2Edge& edge = graph[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const size_t rank0 = vertex0.rank;
+        const size_t rank1 = vertex1.rank;
+        CZI_ASSERT(rank0 < rank1);  // We checked for this above.
+
+        html <<
+            "<td class=centered colspan=" << 2*(rank1-rank0) - 1 <<
+            ">" << edge.consensus() << "<td>";
+    }
     if(highestRank < graph.topologicallySortedVertices.size()-1) {
         html << "<td colspan=" << 2*(graph.topologicallySortedVertices.size()-1 -highestRank) << ">";
     }
