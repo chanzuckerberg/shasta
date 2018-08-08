@@ -622,7 +622,7 @@ void Assembler::exploreRead(
             " y='" << 3*verticalSpacing << "'"
             " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
         for(size_t position=blockBegin; position!=blockEnd; position++) {
-            html << readSequence[position];
+            html << getOrientedReadBase(orientedReadId, uint32_t(position));
         }
         html << "</text>";
     }
