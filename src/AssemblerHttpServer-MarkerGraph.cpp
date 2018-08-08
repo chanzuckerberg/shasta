@@ -606,7 +606,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             color = "red";
         }
 
-        html << "<td style='background-color:" << color << ";text-align:center'";
+        html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
         if(requestParameters.portionToDisplay != "none") {
             html <<
                 " title='Click to position graph display at this vertex.'"
@@ -643,7 +643,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             color = "red";
         }
 
-        html << "<td style='background-color:" << color << ";text-align:center'";
+        html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
         if(requestParameters.portionToDisplay != "none") {
             html <<
                 " title='Click to position graph display at this vertex.'"
@@ -681,7 +681,7 @@ void Assembler::showLocalMarkerGraphAlignments(
         const KmerId kmerId = graph.getKmerId(v);
         const Kmer kmer(kmerId, k);
 
-        html << "<td style='background-color:" << color << ";text-align:center'";
+        html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
         if(requestParameters.portionToDisplay != "none") {
             html <<
                 " title='Click to position graph display at this vertex.'"
@@ -871,7 +871,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             }
             html <<
                 "'>"
-                "<a href='exploreRead?readId=" << orientedReadId.getReadId() <<
+                "<a style='text-decoration:none;color:black' href='exploreRead?readId=" << orientedReadId.getReadId() <<
                 "&amp;strand=" << orientedReadId.getStrand() <<
                 "&amp;highlightMarker=" << ordinal0 <<
                 "'>";
@@ -903,7 +903,7 @@ void Assembler::showLocalMarkerGraphAlignments(
                 ordinal0 << "-" << ordinal1 <<
                 ", positions " << position0+k << "-" <<position1-1 <<
                 "'>"
-                "<a href='exploreRead?readId=" << orientedReadId.getReadId() <<
+                "<a style='text-decoration:none;color:black' href='exploreRead?readId=" << orientedReadId.getReadId() <<
                 "&amp;strand=" << orientedReadId.getStrand() <<
                 "&amp;highlightMarker=" << ordinal0 <<
                 "&amp;highlightMarker=" << ordinal1 <<
