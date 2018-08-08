@@ -781,7 +781,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     // Add a row for each oriented read.
     for(const OrientedReadId orientedReadId: graph.orientedReadIds) {
         html <<
-            "<tr title='" << orientedReadId <<
+            "<tr title='Oriented read " << orientedReadId <<
             "'><td><a href='exploreRead?readId&amp;" << orientedReadId.getReadId() <<
             "&amp;strand=" << orientedReadId.getStrand() << "'>" <<
             orientedReadId << "</a>";
@@ -859,10 +859,17 @@ void Assembler::showLocalMarkerGraphAlignments(
             const size_t rank0 = vertex0.rank;
             const KmerId kmerId0 = graph.getKmerId(v0);
             const Kmer kmer0(kmerId0, k);
+            const MarkerId markerId0 = getMarkerId(orientedReadId, ordinal0);
+            const CompressedMarker& marker0 = markers.begin()[markerId0];
 
             // Write the k-mer.
             html << "<td style='text-align:right' title='Oriented read " << orientedReadId <<
-                " marker ordinal " << ordinal0 << "'>";
+                " marker ordinal " << ordinal0 <<
+                ", positions " << marker0.position << "-" << marker0.position+k-1;
+            if(skipBaseCount>0) {
+                html << " (first " << skipBaseCount << " bases overlap with previous marker and are not displayed)";
+            }
+            html << "'>";
             for(size_t j=skipBaseCount; j<k; j++) {
                 html << kmer0[j];
             }
@@ -880,15 +887,18 @@ void Assembler::showLocalMarkerGraphAlignments(
             const size_t rank1 = vertex1.rank;
 
             // Write the cell in between these two vertices.
-            html << "<td colspan=" << 2*(rank1-rank0)-1 << ">";
-
-            // Write the sequence in between the two vertices.
-            const MarkerId markerId0 = getMarkerId(orientedReadId, ordinal0);
             const MarkerId markerId1 = getMarkerId(orientedReadId, ordinal1);
-            const CompressedMarker& marker0 = markers.begin()[markerId0];
             const CompressedMarker& marker1 = markers.begin()[markerId1];
             const uint32_t position0 = marker0.position;
             const uint32_t position1 = marker1.position;
+            html <<
+                "<td colspan=" << 2*(rank1-rank0)-1 <<
+                " title='Oriented read " << orientedReadId << " between markers " <<
+                ordinal0 << "-" << ordinal1 <<
+                ", positions " << position0+k << "-" <<position1-1 <<
+                "'>";
+
+            // Write the sequence in between the two vertices.
             if(position1 > position0+k) {
                 if(position1-position0-k > 100) {
                     html << "Too long";
