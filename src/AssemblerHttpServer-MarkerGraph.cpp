@@ -861,7 +861,8 @@ void Assembler::showLocalMarkerGraphAlignments(
             const Kmer kmer0(kmerId0, k);
 
             // Write the k-mer.
-            html << "<td style='text-align:right'>";
+            html << "<td style='text-align:right' title='Oriented read " << orientedReadId <<
+                " marker ordinal " << ordinal0 << "'>";
             for(size_t j=skipBaseCount; j<k; j++) {
                 html << kmer0[j];
             }
