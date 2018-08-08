@@ -897,12 +897,15 @@ void Assembler::showLocalMarkerGraphAlignments(
             const CompressedMarker& marker1 = markers.begin()[markerId1];
             const uint32_t position0 = marker0.position;
             const uint32_t position1 = marker1.position;
+            html << "<td colspan=" << 2*(rank1-rank0)-1;
+            if(position1-1 >= position0+k) {
+                html <<
+                    " title='Oriented read " << orientedReadId << " between markers " <<
+                    ordinal0 << "-" << ordinal1 <<
+                    ", positions " << position0+k << "-" << position1-1 << "'";
+            }
             html <<
-                "<td colspan=" << 2*(rank1-rank0)-1 <<
-                " title='Oriented read " << orientedReadId << " between markers " <<
-                ordinal0 << "-" << ordinal1 <<
-                ", positions " << position0+k << "-" <<position1-1 <<
-                "'>"
+                ">"
                 "<a style='text-decoration:none;color:black' href='exploreRead?readId=" << orientedReadId.getReadId() <<
                 "&amp;strand=" << orientedReadId.getStrand() <<
                 "&amp;highlightMarker=" << ordinal0 <<
