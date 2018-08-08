@@ -536,7 +536,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     )
 {
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
-    // using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
+    using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
     const size_t k = assemblerInfo->k;
 
 
@@ -699,8 +699,83 @@ void Assembler::showLocalMarkerGraphAlignments(
 
 
     // Row with assembled sequence.
-    html << "<tr title='Assembled'><th style='text-align:left'>Assembled";
-    html << "<td colspan=" << 2*graph.topologicallySortedVertices.size()-1 << ">";
+    html <<
+        "<tr title='Assembled sequence' style='background-color:pink'>"
+        "<th style='text-align:left'>Assembled";
+    const vector<edge_descriptor>& assemblyPath = graph.clippedOptimalSpanningTreeBestPath;
+
+    // Verify that rank increases along the assembly path.
+    bool assemblyPathViolatesRankOrder = false;
+    for(size_t i=0; i<assemblyPath.size(); i++) {
+        const edge_descriptor e = assemblyPath[i];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        if(graph[v1].rank <= graph[v0].rank) {
+            assemblyPathViolatesRankOrder = true;
+            break;
+        }
+    }
+    if(assemblyPathViolatesRankOrder) {
+        html <<
+            "<td colspan=" << 2*graph.topologicallySortedVertices.size()-1 << ">"
+            "Assembly path violates rank order.";
+    }
+
+    // If necessary, add an empty cell at the beginning, covering up to and excluding
+    // the vertex with lowest rank.
+    const edge_descriptor firstEdge = assemblyPath.front();
+    const vertex_descriptor firstVertex = source(firstEdge, graph);
+    const size_t lowestRank = graph[firstVertex].rank;
+    if(lowestRank > 0) {
+        html << "<td colspan=" << 2*lowestRank << ">";
+    }
+
+    // Write the marker of the first vertex.
+    const KmerId firstKmerId = graph.getKmerId(firstVertex);
+    const Kmer firstKmer(firstKmerId, k);
+    html << "<td>";
+    firstKmer.write(html, k);
+
+    // To add assembled sequence to the alignment table,
+    // loop over edges of the assembly path.
+    // The code here is similar to LocalMarkerGraph2::assembleDominantSequence.
+    for(const edge_descriptor e: assemblyPath) {
+        const LocalMarkerGraph2Edge& edge = graph[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const size_t rank0 = vertex0.rank;
+        const size_t rank1 = vertex1.rank;
+        CZI_ASSERT(rank0 < rank1);  // We checked for this above.
+
+        // Write the edge sequence, if any.
+        CZI_ASSERT(!edge.infos.empty());
+        const auto& p = edge.infos.front();
+        // const auto coverage = p.second.size();
+        const auto& edgeSequence = p.first.sequence;
+        html << "<td colspan=" << 2*(rank1-rank0) - 1 << ">";
+        for(const shasta::Base b: edgeSequence) {
+            html << b;
+        }
+
+        // Write the sequence of the target vertex.
+        const KmerId kmerId1 = graph.getKmerId(v1);
+        const Kmer kmer1(kmerId1, k);
+        html << "<td style='text-align:right'>";
+        for(size_t i=size_t(p.first.overlappingBaseCount); i<k; i++) {
+            html << kmer1[i];
+        }
+    }
+
+    // If necessary, also add an empty cell at the end.
+    const edge_descriptor lastEdge = assemblyPath.back();
+    const vertex_descriptor lastVertex = target(lastEdge, graph);
+    const size_t highestRank = graph[lastVertex].rank;
+    if(highestRank < graph.topologicallySortedVertices.size()-1) {
+        html << "<td colspan=" << 2*(graph.topologicallySortedVertices.size()-1 -highestRank) << ">";
+    }
+
 
 
     // Add a row for each oriented read.
