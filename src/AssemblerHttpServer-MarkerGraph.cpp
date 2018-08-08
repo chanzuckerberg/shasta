@@ -869,10 +869,16 @@ void Assembler::showLocalMarkerGraphAlignments(
             if(skipBaseCount>0) {
                 html << " (first " << skipBaseCount << " bases overlap with previous marker and are not displayed)";
             }
-            html << "'>";
+            html <<
+                "'>"
+                "<a href='exploreRead?readId=" << orientedReadId.getReadId() <<
+                "&amp;strand=" << orientedReadId.getStrand() <<
+                "&amp;highlightMarker=" << ordinal0 <<
+                "'>";
             for(size_t j=skipBaseCount; j<k; j++) {
                 html << kmer0[j];
             }
+            html << "</a>";
 
             // If this is the last vertex, we are done.
             if(i == rankEnforcedOrientedReadVertices.size()-1) {
@@ -896,6 +902,11 @@ void Assembler::showLocalMarkerGraphAlignments(
                 " title='Oriented read " << orientedReadId << " between markers " <<
                 ordinal0 << "-" << ordinal1 <<
                 ", positions " << position0+k << "-" <<position1-1 <<
+                "'>"
+                "<a href='exploreRead?readId=" << orientedReadId.getReadId() <<
+                "&amp;strand=" << orientedReadId.getStrand() <<
+                "&amp;highlightMarker=" << ordinal0 <<
+                "&amp;highlightMarker=" << ordinal1 <<
                 "'>";
 
             // Write the sequence in between the two vertices.
@@ -911,6 +922,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             } else {
                 skipBaseCount = position0+k-position1;
             }
+            html << "</a>";
         }
 
 
