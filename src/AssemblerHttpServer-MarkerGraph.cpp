@@ -702,7 +702,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     // Row with assembled sequence.
     html <<
         "<tr title='Assembled sequence' style='background-color:pink'>"
-        "<th style='text-align:left'>Assembled";
+        "<th style='text-align:left'>Assembled sequence";
     const vector<edge_descriptor>& assemblyPath = graph.clippedOptimalSpanningTreeBestPath;
 
     // Verify that rank increases along the assembly path.
@@ -743,8 +743,6 @@ void Assembler::showLocalMarkerGraphAlignments(
         }
         html << c;
     }
-
-
 
     // To add assembled sequence to the alignment table,
     // loop over edges of the assembly path.
@@ -793,6 +791,41 @@ void Assembler::showLocalMarkerGraphAlignments(
     const edge_descriptor lastEdge = assemblyPath.back();
     const vertex_descriptor lastVertex = target(lastEdge, graph);
     const size_t highestRank = graph[lastVertex].rank;
+    if(highestRank < graph.topologicallySortedVertices.size()-1) {
+        html << "<td colspan=" << 2*(graph.topologicallySortedVertices.size()-1 -highestRank) << ">";
+    }
+
+
+
+    // Repeat the  loop over edges of the assembly path
+    // to add a row with assembled position.
+    html << "<tr style='background-color:pink' title='Assembled position'>"
+        "<th style='text-align:left'>Assembled position";
+    if(lowestRank > 0) {
+        html << "<td colspan=" << 2*lowestRank << ">";
+    }
+    size_t position = 0;
+    html << "<td class=centered>" << position;
+    position += k;
+    for(const edge_descriptor e: assemblyPath) {
+        const LocalMarkerGraph2Edge& edge = graph[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const size_t rank0 = vertex0.rank;
+        const size_t rank1 = vertex1.rank;
+        CZI_ASSERT(rank0 < rank1);  // We checked for this above.
+        const auto& p = edge.infos.front();
+        const auto& edgeSequence = p.first.sequence;
+
+        html <<
+            "<td class=centered colspan=" << 2*(rank1-rank0) - 1 <<
+            ">" << position;
+        position += edgeSequence.size();
+        html << "<td class=centered>" << position + p.first.overlappingBaseCount;
+        position += k - p.first.overlappingBaseCount;
+    }
     if(highestRank < graph.topologicallySortedVertices.size()-1) {
         html << "<td colspan=" << 2*(graph.topologicallySortedVertices.size()-1 -highestRank) << ">";
     }
