@@ -5,7 +5,7 @@ apt install -y git
 apt install -y g++
 apt install -y cmake
 apt install -y libboost-all-dev
-apt install -y libpng12-dev
+apt install -y libpng-dev
 apt install -y graphviz
 apt install -y hugepages
 apt install -y python3
