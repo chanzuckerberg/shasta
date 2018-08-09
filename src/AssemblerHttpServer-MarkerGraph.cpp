@@ -722,8 +722,6 @@ void Assembler::showLocalMarkerGraphAlignments(
             "Assembly path violates rank order.";
     }
 
-
-
     // If necessary, add an empty cell at the beginning, covering up to and excluding
     // the vertex with lowest rank.
     const edge_descriptor firstEdge = assemblyPath.front();
@@ -737,7 +735,14 @@ void Assembler::showLocalMarkerGraphAlignments(
     const KmerId firstKmerId = graph.getKmerId(firstVertex);
     const Kmer firstKmer(firstKmerId, k);
     html << "<td>";
-    firstKmer.write(html, k);
+    for(size_t i=0; i<k; i++) {
+        const Base base = firstKmer[i];
+        char c = base.character();
+        if(graph[firstVertex].markerInfos.size() < 10) {
+            c = char(std::tolower(c));
+        }
+        html << c;
+    }
 
 
 
@@ -746,6 +751,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     // The code here is similar to LocalMarkerGraph2::assembleDominantSequence.
     for(const edge_descriptor e: assemblyPath) {
         const LocalMarkerGraph2Edge& edge = graph[e];
+        const auto consensus = edge.consensus();
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
@@ -761,15 +767,25 @@ void Assembler::showLocalMarkerGraphAlignments(
         const auto& edgeSequence = p.first.sequence;
         html << "<td colspan=" << 2*(rank1-rank0) - 1 << ">";
         for(const shasta::Base b: edgeSequence) {
-            html << b;
+            char c = b.character();
+            if(consensus < 10) {
+                c = char(std::tolower(c));
+            }
+            html << c;
         }
 
         // Write the sequence of the target vertex.
         const KmerId kmerId1 = graph.getKmerId(v1);
         const Kmer kmer1(kmerId1, k);
+        const auto coverage1 = graph[v1].markerInfos.size();
         html << "<td style='text-align:right'>";
         for(size_t i=size_t(p.first.overlappingBaseCount); i<k; i++) {
-            html << kmer1[i];
+            const Base b = kmer1[i];
+            char c = b.character();
+            if(coverage1 < 10) {
+                c = char(std::tolower(c));
+            }
+            html << c;
         }
     }
 
