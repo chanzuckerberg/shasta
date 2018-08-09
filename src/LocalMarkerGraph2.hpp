@@ -93,8 +93,8 @@ public:
     vector<MarkerInfo> markerInfos;
 
     // Fields used by approximateTopologicalSort.
-    uint32_t color;
-    size_t rank;
+    uint32_t color = 0;
+    size_t rank = 0;
 
     LocalMarkerGraph2Vertex(
         GlobalMarkerGraphVertexId vertexId,

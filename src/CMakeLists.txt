@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 project(shasta-library)
 
 # SET(CMAKE_VERBOSE_MAKEFILE ON)
@@ -30,9 +30,11 @@ set_target_properties(shasta PROPERTIES PREFIX "")
 # Eliminate an extraneous -D during compilation.
 set_target_properties(shasta PROPERTIES  DEFINE_SYMBOL "")
 
-# Include directories.
-include_directories(/usr/include/python3.5m)
-include_directories(/usr/local/include/python3.5)
+# Python 3 and pybind11.
+# I was not able to get find_package to work with pybind11 as installed by pip3.
+# The code below creates include paths for both Python 3 and pybind11.
+execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PYTHON_INCLUDES)
+add_definitions(${SHASTA_PYTHON_INCLUDES})
 
 # Libraries to link with.
 target_link_libraries(shasta png)

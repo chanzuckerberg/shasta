@@ -2,6 +2,8 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+#include <random>
+
 
 
 void Assembler::accessKmers()

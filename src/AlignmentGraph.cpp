@@ -5,6 +5,16 @@ using namespace ChanZuckerberg;
 using namespace shasta;
 
 // Boost libraries.
+// The boost gil library includes png.h,
+// then uses int_p_NULL which is not defined in
+// all versions of png (see Boost bug 3908,
+// flaged as fixed but it is not obvious that that
+// is the case). To deal with this, we defensively
+// include pngh., then define int_p_NULL if necessary.
+#include <png.h>
+#ifndef int_p_NULL
+#define int_p_NULL (int *)NULL
+#endif
 #include <boost/gil/gil_all.hpp>
 #include <boost/gil/extension/io/png_dynamic_io.hpp>
 
