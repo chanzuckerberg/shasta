@@ -93,6 +93,21 @@ void Assembler::exploreMarkerGraph(
         return;
     }
 
+    html <<
+        "<script>\n"
+        "function positionAtVertex(vertexId) {\n";
+    if(requestParameters.detailed) {
+        html <<
+            "var element = document.getElementById('a_vertexDistance' + vertexId);\n";
+    } else {
+        html <<
+            "var element = document.getElementById('vertex' + vertexId);\n";
+    }
+    html <<
+        "var r = element.getBoundingClientRect();\n"
+        "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
+        "}\n"
+        "</script>\n";
 
 
 
@@ -309,19 +324,7 @@ void Assembler::exploreMarkerGraph(
             getGlobalMarkerGraphVertex(orientedReadId, requestParameters.ordinal);
         html <<
             "<script>\n"
-            "function positionAtVertex(vertexId) {\n";
-        if(requestParameters.detailed) {
-            html <<
-                "var element = document.getElementById('a_vertexDistance' + vertexId);\n";
-        } else {
-            html <<
-                "var element = document.getElementById('vertex' + vertexId);\n";
-        }
-        html <<
-            "var r = element.getBoundingClientRect();\n"
-            "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
-            "}\n";
-        html << "positionAtVertex(" << startVertexId << ");\n"
+            "positionAtVertex(" << startVertexId << ");\n"
             "</script>\n";
     }
 }
