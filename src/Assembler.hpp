@@ -681,7 +681,7 @@ private:
     void processRequest(
         const vector<string>& request,
         ostream&,
-        const BrowserInformation&);
+        const BrowserInformation&) override;
     void writeHtmlBegin(ostream&) const;
     void writeHtmlEnd(ostream&) const;
     void writeMakeAllTablesSelectable(ostream&) const;
