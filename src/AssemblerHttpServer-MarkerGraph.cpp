@@ -789,7 +789,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     if(lowestRank > 0) {
         html << "<td colspan=" << 2*lowestRank << ">";
     }
-    html << "<td>" << graph[firstVertex].markerInfos.size();
+    html << "<td class=centered>" << graph[firstVertex].markerInfos.size();
     for(const edge_descriptor e: assemblyPath) {
         const LocalMarkerGraph2Edge& edge = graph[e];
         const vertex_descriptor v0 = source(e, graph);
