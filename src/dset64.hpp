@@ -90,7 +90,10 @@ public:
         if(!mData->is_lock_free()) {
             // If this happens with g++ on 64-bit x86 Linux, use
             // compile option -mcx16.
-            throw std::runtime_error("DisjointSets::Aint is not lock-free.");
+            // This throw is commented out to permit running on Ubuntu 18.04
+            // (see comments above), but at a performance penalty,
+            // possibly significant.
+            // throw std::runtime_error("DisjointSets::Aint is not lock-free.");
         }
         for (Uint i=0; i<size; ++i)
             mData[i] = Aint(i);
