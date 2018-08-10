@@ -49,6 +49,17 @@
  * will crash with an "Illegal instruction" error
  * upon attempting to run this code.
  *
+ * Unfortunately, however, beginning with gcc 7, a bug was introduced
+ * that causes std::atomic<uint128_t>::is_lock_free to return false,
+ * even when compile option -mcx16 is used (gcc bug 80878):
+ * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
+ *
+ * Ubuntu 18.04 uses gcc 7.3, so here are the alternatives
+ * to port to Ubuntu 18.04:
+ * - The gcc bug gets fixed.
+ * - We change the code to use gcc __sync primitives instead of std::atomic.
+ * - We use an older version of gcc on ubuntu 18.04 (messy).
+ *
  */
 
 
