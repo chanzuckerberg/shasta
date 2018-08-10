@@ -105,6 +105,9 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     if(!append) {
         children.clear();
     }
+    if(isBadMarkerGraphVertex(vertexId)) {
+        return;
+    }
 
     // Loop over the markers of this vertex.
     for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
@@ -124,7 +127,8 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
                 globalMarkerGraphVertex[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+            if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId &&
+                !isBadMarkerGraphVertex(childVertexId)) {
                 children.push_back(childVertexId);
                 break;
             }
@@ -226,6 +230,9 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     if(!append) {
         parents.clear();
     }
+    if(isBadMarkerGraphVertex(vertexId)) {
+        return;
+    }
 
     // Loop over the markers of this vertex.
     for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
@@ -248,7 +255,8 @@ void Assembler::getGlobalMarkerGraphVertexParents(
                 globalMarkerGraphVertex[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId) {
+            if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId &&
+                !isBadMarkerGraphVertex(parentVertexId)) {
                 parents.push_back(parentVertexId);
                 break;
             }
