@@ -53,12 +53,8 @@
  * that causes std::atomic<uint128_t>::is_lock_free to return false,
  * even when compile option -mcx16 is used (gcc bug 80878):
  * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
- *
- * Ubuntu 18.04 uses gcc 7.3, so here are the alternatives
- * to port to Ubuntu 18.04:
- * - The gcc bug gets fixed.
- * - We change the code to use gcc __sync primitives instead of std::atomic.
- * - We use an older version of gcc on ubuntu 18.04 (messy).
+ * When using a version of gcc with the bug, this
+ * code will run at reduced performance.
  *
  */
 
@@ -85,14 +81,13 @@ public:
     static const Aint rankMask = parentMask << 64;
 
     // For memory allocation flexibility, the memory is allocated
-    // and ownded by the caller.
+    // and owned by the caller.
     DisjointSets(std::atomic<Aint>* mData, Uint size) : mData(mData), n(size) {
         if(!mData->is_lock_free()) {
             // If this happens with g++ on 64-bit x86 Linux, use
             // compile option -mcx16.
             // This throw is commented out to permit running on Ubuntu 18.04
-            // (see comments above), but at a performance penalty,
-            // possibly significant.
+            // (see comments above), but at a performance penalty.
             // throw std::runtime_error("DisjointSets::Aint is not lock-free.");
         }
         for (Uint i=0; i<size; ++i)

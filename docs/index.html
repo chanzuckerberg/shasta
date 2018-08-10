@@ -99,15 +99,13 @@ as departmental machines.
 
 
 
-<h2 id=platforms>Supported platform</h2>
+<h2 id=platforms>Supported platforms</h2>
 <p>
-The code is currently set up to build and run on Ubuntu 16.04.
-The documentation assumes that this is the platform used
+The code is currently set up to build and run on Ubuntu 16.04 and Ubuntu 18.04.
+The documentation assumes that one of these platforms is used
 both for building and running the code.
 
 <p>
-See the next section regarding porting to Ubuntu 18.04
-and to other Linux systems using gcc compiler version 7.1 or newer. 
 Porting to other Linux systems should be relatively easy once the 
 gcc problem described in the next section is fixed.
 It will likely require just minor changes to the build process
@@ -119,35 +117,20 @@ on the repository.
 
 
 
-<h4 id=ubuntu18>Status of porting to Ubuntu 18.04</h3>
+<h4 id=ubuntu18Performance>Platform-dependent performance considerations</h3>
 <p>
-The code can be built on Ubuntu 18.04. However, because of a 
-<a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878">known bug</a> 
-in the gcc compiler, the resulting code is not usable. The problem 
-is that the disjoint set code in <code>src/dset64.hpp</code>
-uses C++ lock-free <code>std::atomic</code> privitives on 128-bit integers.
-As a result of the gcc bug, lock-free primitives are not available,
-beginning at gcc 7.1, for 128-bit integers. 
-Ubuntu 18.04 uses gcc 7.3. 
-
-<p>
-Therefore, here are available alternatives for the porting to Ubuntu 18.04
-and to other Linux platforms that use gcc 7.1:
-
-<ul>
-<li>The gcc bug gets fixed (at the time of writing it is open and unassigned).
-<li>The code in <code>src/dset64.hpp</code> gets changed to use an
-alternative that remains lock-free on gcc 7.1. This may require
-assembly code.
-<li>The code gets built using an older compiler version on Ubuntu 18.04.
-This could be messy and problematic.
-</ul>
+Because of  
+<a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878">bug 80878</a> 
+in the gcc compiler, on Ubuntu 18.04 some phases of the code
+run at reduced performance. 
+This will also be the case for other Linux platforms that use gcc 7.1 or later,
+until the gcc bug is fixed.
 
 
 <h2 id=building>Building the code from source</h2>
 <p>
 This section, as the rest of the documentation,
-assumes that you are on an Ubuntu 16.04 machine.
+assumes that you are on an Ubuntu 16.04 or 18.04 machine.
 
 <p>
 If you have the necessary 
@@ -173,7 +156,7 @@ to enter your password):
 <pre>
 sudo apt install git
 git clone https://github.com/chanzuckerberg/shasta.git
-sudo shasta/scripts/InstallPrerequisites-Ubuntu16.04.sh
+sudo shasta/scripts/InstallPrerequisites-Ubuntu.sh
 mkdir shasta-build
 cd shasta-build
 cmake ../shasta
