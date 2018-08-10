@@ -15,7 +15,7 @@
 
 
 
-<h2>Motivation and wish list</h2>
+<h2 id=motivation>Motivation and wish list</h2>
 
 <p>
 It was  
@@ -50,7 +50,7 @@ algorithm.
 
 
 
-<h2>Computational approach</h2>
+<h2 id=approach>Computational approach</h2>
 
 <p>
 See <a href=ShastaSlides-June2018-v2.pdf>this presentation</a>
@@ -99,17 +99,19 @@ as departmental machines.
 
 
 
-<h2>Supported platform</h2>
+<h2 id=platforms>Supported platform</h2>
 <p>
 The code is currently set up to build and run on Ubuntu 16.04.
 The documentation assumes that this is the platform used
 both for building and running the code.
 
-<p> 
-Porting to other Linux systems should be relatively easy,
-and likely require just minor changes to the build process
+<p>
+See the next section regarding porting to Ubuntu 18.04
+and to other Linux systems using gcc compiler version 7.1 or newer. 
+Porting to other Linux systems should be relatively easy once the 
+gcc problem described in the next section is fixed.
+It will likely require just minor changes to the build process
 (in particular, <code>cmake</code> file <code>src/CMakeLists.txt</code>). 
-However this has not yet been attempted. 
 If you are interested in portability to a specific Linux platform,
 please open a 
 <a href="https://github.com/chanzuckerberg/shasta/issues">GitHub Issue</a> 
@@ -117,7 +119,32 @@ on the repository.
 
 
 
-<h2>Building the code from source</h2>
+<h4 id=ubuntu18>Status of porting to Ubuntu 18.04</h3>
+<p>
+The code can be built on Ubuntu 18.04. However, because of a 
+<a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878">known bug</a> 
+in the gcc compiler, the resulting code is not usable. The problem 
+is that the disjoint set code in <code>src/dset64.hpp</code>
+uses C++ lock-free <code>std::atomic</code> privitives on 128-bit integers.
+As a result of the gcc bug, lock-free primitives are not available,
+beginning at gcc 7.1, for 128-bit integers. 
+Ubuntu 18.04 uses gcc 7.3. 
+
+<p>
+Therefore, here are available alternatives for the porting to Ubuntu 18.04
+and to other Linux platforms that use gcc 7.1:
+
+<ul>
+<li>The gcc bug gets fixed (at the time of writing it is open and unassigned).
+<li>The code in <code>src/dset64.hpp</code> gets changed to use an
+alternative that remains lock-free on gcc 7.1. This may require
+assembly code.
+<li>The code gets built using an older compiler version on Ubuntu 18.04.
+This could be messy and problematic.
+</ul>
+
+
+<h2 id=building>Building the code from source</h2>
 <p>
 This section, as the rest of the documentation,
 assumes that you are on an Ubuntu 16.04 machine.
@@ -187,7 +214,7 @@ build directory.
 
 
 
-<h2>Memory configuration</h2>
+<h2 id=memory>Memory configuration</h2>
 <p>
 For efficient utilization of the large amount of memory,
 the code stores data on non-swappable virtual memory supported by 
@@ -230,7 +257,7 @@ In this case, it may be necessary to reboot the system.
 
 
 
-<h2>Setting up a run directory</h2>
+<h2 id=runDirectory>Setting up a run directory</h2>
 <p>
 After running <code>SetupHugePages.py</code>, you can create a new directory
 to contain your run. After <code>cd</code> to that new directory,
@@ -253,7 +280,7 @@ and edit it to customize it as necessary for your run.
 
 
 
-<h2>Input files</h2>
+<h2 id=input>Input files</h2>
 <p>
 The <code>shasta</code>
 software uses as input one or more 
@@ -278,7 +305,7 @@ However this is not required.
 
 
  
-<h2>Running the assembly</h2>
+<h2 id=running>Running the assembly</h2>
 <p>
 With the run directory set up as described and the
 input FASTA files ready, you can run the assembly.
@@ -323,7 +350,7 @@ software is not designed or optimized for small genomes.
 
 
 
-<h2>Inspecting assembly results</h2>
+<h2 id=inspecting>Inspecting assembly results</h2>
 
 <p>
 Currently, the only output produced by the <code>shasta</code>
@@ -370,7 +397,7 @@ assembly algorithm.
 
 
 
-<h2>Saving assembly results</h2>
+<h2 id=saving>Saving assembly results</h2>
 
 <p>
 The data structures created during assembly are stored in memory,
@@ -433,7 +460,7 @@ an EBS "Throughput Optimized HDD Volume" (volume type <code>st1</code>) on AWS E
 
 
 
-<h2>Contributions</h2>
+<h2 id=contributions>Contributions</h2>
 <p>
 Contributions of code, ideas, computational experiments,
 or documentation are welcome. 
