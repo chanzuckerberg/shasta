@@ -247,6 +247,25 @@ public:
         getGlobalMarkerGraphVertexParents(
         GlobalMarkerGraphVertexId) const;
 
+    // Python-callable function to get information about an edge of the
+    // global marker graph. Returns an empty vector if the specified
+    // edge does not exist.
+    class GlobalMarkerGraphEdgeInformation {
+    public:
+        ReadId readId;
+        Strand strand;
+        uint32_t ordinal0;
+        uint32_t ordinal1;
+        uint32_t position0;
+        uint32_t position1;
+        uint32_t overlappingBaseCount;
+        string sequence;
+    };
+    vector<GlobalMarkerGraphEdgeInformation> getGlobalMarkerGraphEdgeInformation(
+        GlobalMarkerGraphVertexId,
+        GlobalMarkerGraphVertexId
+        );
+
 
 
     // Compute connectivity of the global marker graph.

@@ -22,6 +22,23 @@ using namespace pybind11;
 
 PYBIND11_MODULE(shasta, module)
 {
+
+    {
+        // Class used by Assembler::getGlobalMarkerGraphEdgeInformation.
+        using Info = Assembler::GlobalMarkerGraphEdgeInformation;
+        class_<Info>(module, "GlobalMarkerGraphEdgeInformation")
+            .def_readwrite("readId", &Info::readId)
+            .def_readwrite("strand", &Info::strand)
+            .def_readwrite("ordinal0", &Info::ordinal0)
+            .def_readwrite("ordinal1", &Info::ordinal1)
+            .def_readwrite("position0", &Info::position0)
+            .def_readwrite("position1", &Info::position1)
+            .def_readwrite("overlappingBaseCount", &Info::overlappingBaseCount)
+            .def_readwrite("sequence", &Info::sequence)
+            ;
+    }
+
+
     class_<Assembler>(module, "Assembler")
 
         // Constructor.
@@ -214,32 +231,36 @@ PYBIND11_MODULE(shasta, module)
                 (GlobalMarkerGraphVertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexMarkers,
-            arg("globalMarkerGraphVertexId"))
+            arg("vertexId"))
         .def("getGlobalMarkerGraphVertexChildren",
             (
                 vector<GlobalMarkerGraphVertexId> (Assembler::*)
                 (GlobalMarkerGraphVertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexChildren,
-            arg("globalMarkerGraphVertexId"))
+            arg("vertexId"))
         .def("getGlobalMarkerGraphVertexParents",
             (
                 vector<GlobalMarkerGraphVertexId> (Assembler::*)
                 (GlobalMarkerGraphVertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexParents,
-            arg("globalMarkerGraphVertexId"))
+            arg("vertexId"))
+        .def("getGlobalMarkerGraphEdgeInformation",
+                &Assembler::getGlobalMarkerGraphEdgeInformation,
+                arg("vertexId0"),
+                arg("vertexId1"))
         .def("extractLocalMarkerGraph",
-            (
-                void (Assembler::*)
-                (ReadId, Strand, uint32_t, int, size_t)
-            )
-            &Assembler::extractLocalMarkerGraph,
-            arg("readId"),
-            arg("strand"),
-            arg("ordinal"),
-            arg("distance"),
-            arg("minCoverage"))
+        (
+            void (Assembler::*)
+            (ReadId, Strand, uint32_t, int, size_t)
+        )
+        &Assembler::extractLocalMarkerGraph,
+        arg("readId"),
+        arg("strand"),
+        arg("ordinal"),
+        arg("distance"),
+        arg("minCoverage"))
 
 
         // Connectivity of the global marker graph.

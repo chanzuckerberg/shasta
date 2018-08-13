@@ -346,6 +346,69 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 
 
 
+// Python-callable function to get information about an edge of the
+// global marker graph. Returns an empty vector if the specified
+// edge does not exist.
+vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGraphEdgeInformation(
+    GlobalMarkerGraphVertexId vertexId0,
+    GlobalMarkerGraphVertexId vertexId1
+    )
+{
+    const uint32_t k = uint32_t(assemblerInfo->k);
+
+    // Find the children of vertexId0.
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > children;
+    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> > workArea;
+    getGlobalMarkerGraphVertexChildren(vertexId0, children, workArea);
+
+    // Find vertexId1 in the children.
+    vector<GlobalMarkerGraphEdgeInformation> v;
+    for(const auto& child: children) {
+        if(child.first != vertexId1) {
+            continue;
+        }
+
+        // We found vertexId1. Loop over its MarkerGraphNeighborInfo.
+        const auto& childInfos = child.second;
+        v.resize(childInfos.size());
+        for(size_t i=0; i<v.size(); i++) {
+            const auto& childInfo = childInfos[i];
+            auto& info = v[i];
+            info.readId = childInfo.orientedReadId.getReadId();
+            info.strand = childInfo.orientedReadId.getStrand();
+            info.ordinal0 = childInfo.ordinal0;
+            info.ordinal1 = childInfo.ordinal1;
+
+            // Get the positions.
+            const MarkerId markerId0 = getMarkerId(childInfo.orientedReadId, info.ordinal0);
+            const MarkerId markerId1 = getMarkerId(childInfo.orientedReadId, info.ordinal1);
+            const auto& marker0 = markers.begin()[markerId0];
+            const auto& marker1 = markers.begin()[markerId1];
+            info.position0 = marker0.position;
+            info.position1 = marker1.position;
+
+            // Construct the sequence.
+            if(info.position1 <= info.position0+k) {
+                // The marker overlap.
+                info.overlappingBaseCount = info.position0+k - info.position1;
+            } else {
+                // The markers don't overlap.
+                info.overlappingBaseCount = 0;
+                for(uint32_t position=info.position0+k; position!=info.position1; position++) {
+                    const Base base = getOrientedReadBase(childInfo.orientedReadId, position);
+                    info.sequence.push_back(base.character());
+                }
+            }
+        }
+    }
+
+    // If getting here, vertexId1 was not found, and we return
+    // and empty veector.
+    return v;
+}
+
+
+
 // Return true if a vertex of the global marker graph has more than
 // one marker for at least one oriented read id.
 bool Assembler::isBadMarkerGraphVertex(GlobalMarkerGraphVertexId vertexId) const

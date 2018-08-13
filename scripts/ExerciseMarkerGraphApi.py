@@ -32,10 +32,8 @@ while True:
         'or two vertex ids to find information about the edge that joins them:\n').split()
     if len(vertexIds)==1:
         vertexId = int(vertexIds[0]) 
-        children = a.getGlobalMarkerGraphVertexChildren(
-            globalMarkerGraphVertexId = vertexId)
-        parents = a.getGlobalMarkerGraphVertexParents(
-            globalMarkerGraphVertexId = vertexId)
+        children = a.getGlobalMarkerGraphVertexChildren(vertexId)
+        parents = a.getGlobalMarkerGraphVertexParents(vertexId)
         print('Start vertex:', vertexId)
         print('Parents:', parents)
         print('Children:', children)
@@ -44,5 +42,10 @@ while True:
         child = int(vertexIds[1])
         print('Parent:', parent)
         print('Child:', child)
-        print('Not implemented.')
+        edgeInformation = a.getGlobalMarkerGraphEdgeInformation(parent, child)
+        for x in edgeInformation:
+            print(('Read %i %i, ordinals %i %i, positions %i %i, ' + 
+                'overlapping base count %i, sequence length %i, sequence %s') %
+                (x.readId, x.strand, x.ordinal0, x.ordinal1, x.position0, x.position1,
+                x.overlappingBaseCount, len(x.sequence), x.sequence))
 
