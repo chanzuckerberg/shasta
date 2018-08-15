@@ -52,6 +52,12 @@ public:
 
     // The length of k-mers used to define markers.
     size_t k;
+
+    // Flag for the read representation in use:
+    // false: Raw reads.
+    // true:  Run-length representation.
+    // See comments later near Assembler::reads for more information.
+    bool useRunLengthReads = false;
 };
 
 
@@ -315,9 +321,83 @@ private:
     // See class AssemblerInfo for more information.
     MemoryMapped::Object<AssemblerInfo> assemblerInfo;
 
-    // The reads used for this assembly.
-    // Indexed by ReadId.
+
+
+    /***************************************************************************
+
+    The reads used for this assembly.
+    Indexed by ReadId.
+
+    Depending on the setting of assemblerInfo->useRunLengthReads,
+    we represent reads in one of two ways:
+
+    - If assemblerInfo->useRunLengthReads is false, we represent
+      reads as raw reads just as read from the input fasta files.
+      In this case, repeat base counts are not used.
+
+    - If assemblerInfo->useRunLengthReads is true, we use a run-length
+      representation (https://en.wikipedia.org/wiki/Run-length_encoding)
+      for reads: all repeated bases are removed, and
+      for each base we store a repeat base count that says how many
+      times that base was repeated in the original read.
+      Many assembly phases use only the run-length representation
+      (without using the base repeat count).
+      This includes the generation of markers, the computation of
+      alignments, and the creation of the marker graph.
+
+    For example, suppose we have the following read sequence:
+
+    TAATCATTTTGATGTAAGTCTAAAAATTTCACCTTAATACTTATTTTTCC
+
+    If assemblerInfo->useRunLengthReads is false, the read is represented
+    just as written above, this sequence is stored in reads[readId],
+    and readRepeatCount is not used.
+
+    If assemblerInfo->useRunLengthReads is true, the read is stored like this:
+
+    TATCATGATGTAGTCTATCACTATACTATC
+    121114111112111153112221112152
+
+    The first line is stored in reads[readId] and the second line
+    is stored in readRepeatCount[readId]. Note that base caller errors
+    in the number of times a base is repeated (a g. AAAA versus AAAAA)
+    leave the first line unchanged.
+
+    In this representation the sequence never has any repeated bases.
+    However, repeats with period 2 or longer are possible, for example TATA
+    above.
+
+    In the run-length representation, the read sequence, which has all
+    repeated bases removed, is insensitive to base caller errors
+    in the number of repetitions of individual bases, which is the
+    most common type of error in nanopore sequencing.
+    Therefore, it is hoped that the run-length representation results
+    in better resilience to base caller errors.
+
+    The base repeat count is stored in one byte per base and so
+    it can store base repeat lengths up to 255.
+    If a read contains bases repeated 256 or more times,
+    it cannot be stored and is discarded on input.
+    The stored base repeat count is never zero, and is one
+    for most bases.
+
+    The run-length representation is typically around 25% shorter than
+    the raw representation, due to the removal of repeated bases.
+    This gives some performance benefits for assembly phases that
+    don't use the base repeat counts. However, the need to store
+    repeat base counts (8 bits per base) increases the memory
+    requirement from 2 to 10 bits per base. So overall the
+    run-length representation requires more memory for the reads
+    than the raw representation.
+
+    Run-length representations that are more economic in memory are possible,
+    at the price of additional code complexity and performance cost
+    in assembly phases that use the base repeat counts.
+
+    ***************************************************************************/
+
     LongBaseSequences reads;
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCount;
     ReadId readCount() const
     {
         return ReadId(reads.size());
@@ -325,6 +405,8 @@ private:
     void checkReadsAreOpen() const;
     void checkReadNamesAreOpen() const;
     void checkReadId(ReadId) const;
+
+
 
     // Return a base of an oriented read.
     Base getOrientedReadBase(OrientedReadId orientedReadId, uint32_t position)
