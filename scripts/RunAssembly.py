@@ -29,7 +29,14 @@ for fileName in fastaFileNames:
 config = GetConfig.getConfig()
 
 # Create the assembler.
-a = shasta.Assembler()
+useRunLengthReadsString = config['Reads']['useRunLengthReads']
+if useRunLengthReadsString == 'True':
+    useRunLengthReads = True
+elif useRunLengthReadsString == 'False':
+    useRunLengthReads = False
+else:
+    raise RuntimeError("Configuration parameter useRunLengthReads in sectin Reads must be True or False.")
+a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
 
 # Read the input fasta files.
 a.accessReadsReadWrite();

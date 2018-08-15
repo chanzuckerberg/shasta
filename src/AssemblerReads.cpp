@@ -12,10 +12,16 @@ using namespace shasta;
 void Assembler::accessReadsReadOnly()
 {
     reads.accessExistingReadOnly(largeDataName("Reads"));
+    if(assemblerInfo->useRunLengthReads) {
+        readRepeatCounts.accessExistingReadOnly(largeDataName("ReadRepeatCounts"));
+    }
 }
 void Assembler::accessReadsReadWrite()
 {
     reads.accessExistingReadWrite(largeDataName("Reads"));
+    if(assemblerInfo->useRunLengthReads) {
+        readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
+    }
 }
 void Assembler::accessReadNamesReadOnly()
 {
@@ -29,6 +35,9 @@ void Assembler::checkReadsAreOpen() const
 {
     if(!reads.isOpen()) {
         throw runtime_error("Reads are not accessible.");
+    }
+    if(assemblerInfo->useRunLengthReads && !readRepeatCounts.isOpen()) {
+        throw runtime_error("Read repeat counts are not accessible.");
     }
 }
 void Assembler::checkReadNamesAreOpen() const
@@ -77,6 +86,9 @@ void Assembler::addReadsFromFasta(
 // Create a histogram of read lengths.
 void Assembler::histogramReadLength(const string& fileName)
 {
+    // As written, this only works when using raw read representation.
+    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+
     checkReadsAreOpen();
 
     // Create the histogram.
@@ -112,6 +124,9 @@ void Assembler::histogramReadLength(const string& fileName)
 // Function to write one or all reads in Fasta format.
 void Assembler::writeReads(const string& fileName)
 {
+    // As written, this only works when using raw read representation.
+    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+
     ofstream file(fileName);
     for(ReadId readId=0; readId<readCount(); readId++) {
         writeRead(readId, file);
@@ -123,6 +138,9 @@ void Assembler::writeReads(const string& fileName)
 
 void Assembler::writeRead(ReadId readId, const string& fileName)
 {
+    // As written, this only works when using raw read representation.
+    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+
     ofstream file(fileName);
     writeRead(readId, file);
 }
@@ -130,6 +148,9 @@ void Assembler::writeRead(ReadId readId, const string& fileName)
 
 void Assembler::writeRead(ReadId readId, ostream& file)
 {
+    // As written, this only works when using raw read representation.
+    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+
     checkReadsAreOpen();
     checkReadNamesAreOpen();
     checkReadId(readId);
@@ -149,6 +170,9 @@ void Assembler::writeRead(ReadId readId, ostream& file)
 
 void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fileName)
 {
+    // As written, this only works when using raw read representation.
+    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+
     writeOrientedRead(OrientedReadId(readId, strand), fileName);
 }
 
@@ -156,6 +180,9 @@ void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fi
 
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& fileName)
 {
+    // As written, this only works when using raw read representation.
+    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+
     ofstream file(fileName);
     writeOrientedRead(orientedReadId, file);
 }
@@ -164,6 +191,9 @@ void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& f
 
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
 {
+    // As written, this only works when using raw read representation.
+    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+
     checkReadsAreOpen();
     checkReadNamesAreOpen();
 

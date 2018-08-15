@@ -41,9 +41,16 @@ PYBIND11_MODULE(shasta, module)
 
     class_<Assembler>(module, "Assembler")
 
-        // Constructor.
+        // Constructors.
+        .def(init<string, string, size_t, size_t, bool>(),
+            "Create a new assembler.",
+            arg("smallDataFileNamePrefix") = "data/",
+            arg("largeDataFileNamePrefix") = "Data/",
+            arg("smallDataPageSize") = 4096,
+            arg("largeDataPageSize") = 2*1024*1024,
+            arg("useRunLengthReads"))
         .def(init<string, string, size_t, size_t>(),
-            "Access an existing Assembler or create a new one.",
+            "Access an existing Assembler.",
             arg("smallDataFileNamePrefix") = "data/",
             arg("largeDataFileNamePrefix") = "Data/",
             arg("smallDataPageSize") = 4096,

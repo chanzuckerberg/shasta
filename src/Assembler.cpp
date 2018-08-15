@@ -4,6 +4,44 @@ using namespace shasta;
 
 
 
+// Constructor to be called one to create a new run.
+Assembler::Assembler(
+    const string& smallDataFileNamePrefix,
+    const string& largeDataFileNamePrefix,
+    size_t smallDataPageSize,
+    size_t largeDataPageSize,
+    bool useRunLengthReads) :
+    MultithreadedObject(*this),
+    smallDataFileNamePrefix(smallDataFileNamePrefix),
+    largeDataFileNamePrefix(largeDataFileNamePrefix),
+    smallDataPageSize(smallDataPageSize),
+    largeDataPageSize(largeDataPageSize)
+{
+    assemblerInfo.createNew(smallDataName("Info"));
+    assemblerInfo->useRunLengthReads = useRunLengthReads;
+
+    reads.createNew(largeDataName("Reads"), largeDataPageSize);
+    reads.close();
+
+    readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
+    readNames.close();
+
+    if(useRunLengthReads) {
+        readRepeatCounts.createNew(largeDataName("ReadRepeatCounts"), largeDataPageSize);
+        readRepeatCounts.close();
+
+    }
+
+    // assemblerInfo is the only open object
+    // when the constructor finishes.
+
+    fillServerFunctionTable();
+
+}
+
+
+
+// Constructor to be called to continue an existing run.
 Assembler::Assembler(
     const string& smallDataFileNamePrefix,
     const string& largeDataFileNamePrefix,
@@ -15,17 +53,10 @@ Assembler::Assembler(
     smallDataPageSize(smallDataPageSize),
     largeDataPageSize(largeDataPageSize)
 {
-    try {
-        assemblerInfo.accessExistingReadWrite(smallDataName("Info"));
-    } catch(runtime_error) {
-        assemblerInfo.createNew(smallDataName("Info"));
-        reads.createNew(largeDataName("Reads"), largeDataPageSize);
-        readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
-        reads.close();
-        readNames.close();
-    }
 
-    // Either way, assemblerInfo is the only open object
+    assemblerInfo.accessExistingReadWrite(smallDataName("Info"));
+
+    // assemblerInfo is the only open object
     // when the constructor finishes.
 
     fillServerFunctionTable();

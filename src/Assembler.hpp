@@ -68,21 +68,37 @@ class ChanZuckerberg::shasta::Assembler :
 public:
 
 
+    /***************************************************************************
 
-    // The constructor specifies the file name prefixes for binary data files.
-    // There are two prefixes, one used for small data and one used for large data.
-    // If these are directory names, they must include the final "/".
-    // It also specifies the page size for small and large binary data files.
-    // Typically, small binary data files will reside in a regular
-    // directory on disk or on /dev/shm mapped backed by 4K pages,
-    // while large binary data file will reside in a huge page
-    // file system backed by 2MB pages.
-    // 1GB huge pages are also supported.
-    // The page sizes specified here must be equal to, or be an exact multiple of,
-    // the actual size of the pages backing the data.
-    // If the system has no large pages and it is not possible to change that,
-    // use 4096 for both page sizes, and for performance place both
-    // the small and large binary data under /dev/shm (in-memory filesystem).
+    The constructors specify the file name prefixes for binary data files.
+    There are two prefixes, one used for small data and one used for large data.
+    If these are directory names, they must include the final "/".
+
+    The constructors also specify the page size for small and large binary data files.
+    Typically, small binary data files will reside in a regular
+    directory on disk or on /dev/shm mapped backed by 4K pages,
+    while large binary data file will reside in a huge page
+    file system backed by 2MB pages.
+    1GB huge pages are also supported.
+    The page sizes specified here must be equal to, or be an exact multiple of,
+    the actual size of the pages backing the data.
+    If the system has no large pages and it is not possible to change that,
+    use 4096 for both page sizes, and for performance place both
+    the small and large binary data under /dev/shm (in-memory filesystem).
+
+
+    ***************************************************************************/
+
+    // Constructor to be called one to create a new run.
+    Assembler(
+        const string& smallDataFileNamePrefix,
+        const string& largeDataFileNamePrefix,
+        size_t smallDataPageSize,
+        size_t largeDataPageSize,
+        bool useRunLengthReads
+        );
+
+    // Constructor to be called to continue an existing run.
     Assembler(
         const string& smallDataFileNamePrefix,
         const string& largeDataFileNamePrefix,
@@ -397,7 +413,7 @@ private:
     ***************************************************************************/
 
     LongBaseSequences reads;
-    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCount;
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCounts;
     ReadId readCount() const
     {
         return ReadId(reads.size());
