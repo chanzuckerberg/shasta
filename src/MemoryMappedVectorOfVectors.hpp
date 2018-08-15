@@ -242,6 +242,10 @@ public:
     {
         return toc.isOpen && data.isOpen;
     }
+    bool isOpenWithWriteAccess() const
+    {
+        return toc.isOpenWithWriteAccess && data.isOpenWithWriteAccess;
+    }
 
     // Given a global index k in a VectorOfVectors v,
     // find i and j such that v[i][j] (aka v.begin(i)[j]) is the same

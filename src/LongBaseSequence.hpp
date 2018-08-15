@@ -247,6 +247,10 @@ public:
     {
         return baseCount.isOpen && data.isOpen();
     }
+    bool isOpenWithWriteAccess() const
+    {
+        return baseCount.isOpenWithWriteAccess && data.isOpenWithWriteAccess();
+    }
 
     // Return a LongBaseSequenceView representing the i-th sequence stored.
     LongBaseSequenceView operator[](uint64_t i)
