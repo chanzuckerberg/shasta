@@ -26,7 +26,7 @@ if useRunLengthReadsString == 'True':
 elif useRunLengthReadsString == 'False':
     useRunLengthReads = False
 else:
-    raise RuntimeError("Configuration parameter useRunLengthReads in sectin Reads must be True or False.")
+    raise RuntimeError("Configuration parameter useRunLengthReads in section Reads must be True or False.")
 a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
 
 
