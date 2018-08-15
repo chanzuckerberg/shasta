@@ -72,13 +72,15 @@ void Assembler::addReadsFromFasta(
     ReadLoader(
         fileName,
         minReadLength,
+        assemblerInfo->useRunLengthReads,
         blockSize,
         threadCountForReading,
         threadCountForProcessing,
         largeDataFileNamePrefix,
         largeDataPageSize,
         reads,
-        readNames);
+        readNames,
+        readRepeatCounts);
 
 }
 

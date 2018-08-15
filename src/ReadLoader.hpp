@@ -27,13 +27,15 @@ public:
     ReadLoader(
         const string& fileName,
         size_t minReadLength,
+        bool useRunLengthReads,
         size_t blockSize,
         size_t threadCountForReading,
         size_t threadCountForProcessing,
         const string& dataNamePrefix,
         size_t pageSize,
         LongBaseSequences& reads,
-        MemoryMapped::VectorOfVectors<char, uint64_t>& readNames);
+        MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
+        MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts);
 private:
 
     // The file descriptor for the input file.
@@ -45,6 +47,11 @@ private:
 
     // The minimum read length. Shorter reads are not stored.
     size_t minReadLength;
+
+    // Flag for the read representation in use:
+    // false: Raw reads.
+    // true:  Run-length representation.
+    bool useRunLengthReads;
 
     // The block size we are using.
     size_t blockSize;
@@ -85,6 +92,18 @@ private:
     // Indexed by threadId.
     vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadNames;
     vector< shared_ptr<LongBaseSequences> > threadReads;
+    vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
+
+    // Given the raw representation of a read, compute its
+    // run-length representation.
+    // This returns false if the read contains a homopolymer run
+    // of more than 255 bases, which cannot be represented
+    // with a one-byte repeat count.
+    static bool computeRunLengthRead(
+        const vector<Base>& read,
+        vector<Base>& runLengthRead,
+        vector<uint8_t>& readRepeatCount);
+
 };
 
 

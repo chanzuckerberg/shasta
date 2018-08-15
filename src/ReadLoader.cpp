@@ -14,21 +14,29 @@ using namespace shasta;
 ReadLoader::ReadLoader(
     const string& fileName,
     size_t minReadLength,
+    bool useRunLengthReads,
     size_t blockSize,
     size_t threadCountForReadingArgument,
     size_t threadCountForProcessingArgument,
     const string& dataNamePrefix,
     size_t pageSize,
     LongBaseSequences& reads,
-    MemoryMapped::VectorOfVectors<char, uint64_t>& readNames) :
+    MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts) :
 
     MultithreadedObject(*this),
     minReadLength(minReadLength),
+    useRunLengthReads(useRunLengthReads),
     blockSize(blockSize),
     threadCountForReading(threadCountForReadingArgument),
     threadCountForProcessing(threadCountForProcessingArgument)
 {
     cout << timestamp << "Loading reads from " << fileName << "." << endl;
+    if(useRunLengthReads) {
+        cout << "Using run-length read representation." << endl;
+    } else {
+        cout << "Using raw read representation." << endl;
+    }
     cout << "Input file block size: " << blockSize << " bytes." << endl;
     const auto tBegin = std::chrono::steady_clock::now();
 
@@ -59,12 +67,19 @@ ReadLoader::ReadLoader(
     // each thread stores the reads it found and their names.
     threadReadNames.resize(threadCountForProcessing);
     threadReads.resize(threadCountForProcessing);
+    if(useRunLengthReads) {
+        threadReadRepeatCounts.resize(threadCountForProcessing);
+    }
     for(size_t threadId=0; threadId<threadCountForProcessing; threadId++) {
         const string  threadDataNamePrefix = dataNamePrefix + +"tmp-ReadLoader-" + to_string(threadId) + "-";
         threadReadNames[threadId] = make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
         threadReadNames[threadId]->createNew(threadDataNamePrefix + "ReadNames", pageSize);
         threadReads[threadId] = make_shared<LongBaseSequences>();
         threadReads[threadId]->createNew(threadDataNamePrefix + "Reads", pageSize);
+        if(useRunLengthReads) {
+            threadReadRepeatCounts[threadId] = make_shared< MemoryMapped::VectorOfVectors<uint8_t, uint64_t> >();
+            threadReadRepeatCounts[threadId]->createNew(threadDataNamePrefix + "ReadRepeatCounts", pageSize);
+        }
     }
 
 
@@ -102,12 +117,25 @@ ReadLoader::ReadLoader(
             LongBaseSequences& thisThreadReads = *(threadReads[threadId]);
             const size_t n = thisThreadReadNames.size();
             CZI_ASSERT(thisThreadReads.size() == n);
+            MemoryMapped::VectorOfVectors<uint8_t, uint64_t>* thisThreadReadRepeatCounts = 0;
+            if(useRunLengthReads) {
+                thisThreadReadRepeatCounts = threadReadRepeatCounts[threadId].get();
+                CZI_ASSERT(thisThreadReadRepeatCounts->size() == n);
+            }
             for(size_t i=0; i<n; i++) {
                 readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
                 reads.append(thisThreadReads[i]);
+                if(useRunLengthReads) {
+                    readRepeatCounts.appendVector(
+                        thisThreadReadRepeatCounts->begin(i),
+                        thisThreadReadRepeatCounts->end(i));
+                }
             }
             thisThreadReadNames.clear();
             thisThreadReads.clear();
+            if(useRunLengthReads) {
+                thisThreadReadRepeatCounts->clear();
+            }
         }
         const auto t5 = std::chrono::steady_clock::now();
         const double t45 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t5 - t4)).count());
@@ -126,6 +154,9 @@ ReadLoader::ReadLoader(
     for(size_t threadId=0; threadId<threadCountForProcessing; threadId++) {
         threadReadNames[threadId]->remove();
         threadReads[threadId]->remove();
+        if(useRunLengthReads) {
+            threadReadRepeatCounts[threadId]->remove();
+        }
     }
     const auto tEnd = std::chrono::steady_clock::now();
     const double tTotal = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tBegin)).count());
@@ -244,16 +275,23 @@ void ReadLoader::processThreadFunction(size_t threadId)
     // and read names.
     MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames = *(threadReadNames[threadId]);
     LongBaseSequences& thisThreadReads = *(threadReads[threadId]);
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t>* thisThreadReadRepeatCounts = 0;
+    if(useRunLengthReads) {
+        thisThreadReadRepeatCounts = threadReadRepeatCounts[threadId].get();
+    }
 
     // Main loop over the buffer slice assigned to this thread.
     string readName;
     vector<Base> read;
+    vector<Base> runLengthRead;
+    vector<uint8_t> readRepeatCount;
     while(bufferIndex < sliceEnd) {
 
         // Skip the '>' that introduces the new read.
         CZI_ASSERT(buffer[bufferIndex++] == '>');
 
         // Extract the read name and discard the rest of the line.
+        readName.clear();
         bool blankFound = false;
         while(bufferIndex < buffer.size()) {
             const char c = buffer[bufferIndex++];
@@ -271,6 +309,7 @@ void ReadLoader::processThreadFunction(size_t threadId)
 
 
         // Read the base characters.
+        read.clear();
         while(bufferIndex < buffer.size()) {
             const char c = buffer[bufferIndex++];
             if(c == '\n') {
@@ -284,13 +323,22 @@ void ReadLoader::processThreadFunction(size_t threadId)
             continue;
         }
 
-        // Store the read name.
-        thisThreadReadNames.appendVector(readName.begin(), readName.end());
-        readName.clear();
-
         // Store the read bases.
-        thisThreadReads.append(read);
-        read.clear();
+        if(useRunLengthReads) {
+
+            // We are using run-length read representation.
+            if(computeRunLengthRead(read, runLengthRead, readRepeatCount)) {
+                thisThreadReadNames.appendVector(readName.begin(), readName.end());
+                thisThreadReads.append(runLengthRead);
+                thisThreadReadRepeatCounts->appendVector(readRepeatCount);
+            }
+
+        } else {
+
+            // We are using raw read representation.
+            thisThreadReadNames.appendVector(readName.begin(), readName.end());
+            thisThreadReads.append(read);
+        }
 
     }
 }
@@ -331,3 +379,39 @@ bool ReadLoader::readBeginsHere(size_t bufferIndex) const
         return c=='>' && buffer[bufferIndex-1]=='\n';
     }
 }
+
+
+
+// Given the raw representation of a read, compute its
+// run-length representation.
+// This returns false if the read contains a homopolymer run
+// of more than 255 bases, which cannot be represented
+// with a one-byte repeat count.
+bool ReadLoader::computeRunLengthRead(
+    const vector<Base>& read,
+    vector<Base>& runLengthRead,
+    vector<uint8_t>& readRepeatCount)
+{
+    runLengthRead.clear();
+    readRepeatCount.clear();
+
+    for(auto it=read.begin(); it!=read.end(); ) {
+        const Base base = *it;
+        uint32_t count = 0;
+        while(it!=read.end() && *it==base) {
+            ++it;
+            ++count;
+            if(count == 256) {
+                return false;
+            }
+        }
+        CZI_ASSERT(count > 0);
+        CZI_ASSERT(count <= 255);
+        runLengthRead.push_back(base);
+        readRepeatCount.push_back(uint8_t(count));
+    }
+
+    CZI_ASSERT(runLengthRead.size() == readRepeatCount.size());
+    return true;
+}
+
