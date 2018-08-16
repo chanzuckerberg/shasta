@@ -659,7 +659,10 @@ void Assembler::exploreRead(
     const int horizontalSpacing = 7;
     const int verticalSpacing = 13;
     const int charactersPerLine = int(readStoredSequence.baseCount) + 10; // Add space for labels
-    const int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
+    int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
+    if(assemblerInfo->useRunLengthReads) {
+        svgLineCount++;     // Add a line with the repeat counts.
+    }
     const int svgWidth = horizontalSpacing * charactersPerLine;
     const int svgHeight = verticalSpacing * svgLineCount;
     const int highlightedMarkerVerticalOffset = 2;
@@ -714,17 +717,42 @@ void Assembler::exploreRead(
 
 
 
+    // Repeat counts.
+    if(assemblerInfo->useRunLengthReads) {
+        for(size_t position=0; position!=readStoredSequence.baseCount; position++) {
+            Base base;
+            uint8_t repeatCount;
+            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
+            html <<
+                "<text class='mono'" <<
+                " x='" << position*horizontalSpacing << "'" <<
+                " y='" << 3*verticalSpacing << "'"
+                " textLength='" << horizontalSpacing<< "'>";
+            if(repeatCount < 10) {
+                html << int(repeatCount);
+            } else {
+                html << "*";
+            }
+            html << "<title>" << base << " at run-length position " << position <<
+                " is repeated " << int(repeatCount) << " times</title>";
+            html << "</text>";
+        }
+    }
+
+
+
     // Raw read sequence.
     // This code uses one <text> element for every blockSize characters.
     // This way you can select sequence text without getting a
     // new line after each character, while still achieving good
     // alignment.
+    const uint32_t readSequenceLine = assemblerInfo->useRunLengthReads ? 4 : 3;
     for(size_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
         const size_t blockEnd = min(blockBegin+blockSize, readStoredSequence.baseCount);
         html <<
             "<text class='mono'" <<
             " x='" << blockBegin*horizontalSpacing << "'" <<
-            " y='" << 3*verticalSpacing << "'"
+            " y='" << readSequenceLine*verticalSpacing << "'"
             " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
         for(size_t position=blockBegin; position!=blockEnd; position++) {
             html << getOrientedReadBase(orientedReadId, uint32_t(position));
@@ -740,7 +768,7 @@ void Assembler::exploreRead(
         html <<
             "<rect" <<
             " x='" << (marker.position-beginPosition)*horizontalSpacing << "'"
-            " y='" << (3 + markerRow[ordinal])*verticalSpacing + highlightedMarkerVerticalOffset << "'"
+            " y='" << (readSequenceLine + markerRow[ordinal])*verticalSpacing + highlightedMarkerVerticalOffset << "'"
             " height='" << verticalSpacing << "'"
             " width='" << k * horizontalSpacing << "'"
             " style='fill:pink; stroke:none;'"
@@ -789,7 +817,7 @@ void Assembler::exploreRead(
             }
             html << "'" <<
                 " x='" << (marker.position+positionInMarker)*horizontalSpacing << "'" <<
-                " y='" << (4+markerRow[ordinal])*verticalSpacing << "'>";
+                " y='" << (readSequenceLine+1+markerRow[ordinal])*verticalSpacing << "'>";
             html << kmer[positionInMarker];
             html << "</text>";
         }
