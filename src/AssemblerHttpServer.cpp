@@ -245,6 +245,9 @@ void Assembler::exploreSummary(
         "<h1>Run summary</h1>"
         "<table>"
 
+        "<tr><td title='The representation used to store read sequence'>Read representation"
+        "<td class=right>" << (assemblerInfo->useRunLengthReads ? "Run-length" : "Raw") <<
+
         "<tr><td title='Total number of input reads'>Reads"
         "<td class=right>" << reads.size() <<
 
