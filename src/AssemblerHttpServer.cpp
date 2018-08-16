@@ -550,12 +550,91 @@ void Assembler::exploreRead(
         html << "</pre>";
 
 
+
         // Sequence.
         html << "<pre style='font-family:monospace;margin:0'>";
         for(uint32_t position=beginPosition; position!=endPosition; position++) {
             html << rawOrientedReadSequence[position];
         }
         html << "</pre>";
+
+
+
+        // Also write a position scale for positions in the run-length representation.
+        if(assemblerInfo->useRunLengthReads) {
+            html << "<pre style='font-family:monospace;margin:0'";
+            html << " title='Position in run-length read sequence'>";
+
+            const vector<uint32_t> rawPositions = getRawPositions(orientedReadId);
+
+            // Scale.
+            bool firstTime = true;
+            for(int runLengthPosition=0; runLengthPosition<int(rawPositions.size()); runLengthPosition++) {
+                const int rawPosition = rawPositions[runLengthPosition];
+                // cout << runLengthPosition << " " << rawPosition << endl;
+                if(rawPosition >= int(endPosition)) {
+                    break;
+                }
+                if(rawPosition < int(beginPosition)) {
+                    continue;
+                }
+                uint32_t skip;
+                if(firstTime) {
+                    skip = rawPosition - beginPosition;
+                } else {
+                    skip = rawPosition - rawPositions[runLengthPosition-1] - 1;
+                }
+                for(uint32_t i=0; i<skip; i++) {
+                    html << " ";
+                }
+                firstTime = false;
+                if((runLengthPosition % 10) == 0) {
+                    html << "|";
+                    //cout << "|";
+                } else if((runLengthPosition % 5) == 0) {
+                    html << "+";
+                    //cout << "+";
+                } else {
+                    html << ".";
+                    //cout << ".";
+                }
+            }
+            html << "\n";
+
+            // Labels.
+            firstTime = true;
+            for(int runLengthPosition=0; runLengthPosition<int(rawPositions.size()); runLengthPosition+=10) {
+                const int rawPosition = rawPositions[runLengthPosition];
+                if(rawPosition >= int(endPosition)) {
+                    break;
+                }
+                if(rawPosition < int(beginPosition)) {
+                    continue;
+                }
+
+                uint32_t skip;
+                if(firstTime) {
+                    skip = rawPosition - beginPosition;
+                } else {
+                    skip = rawPosition - rawPositions[runLengthPosition-10] - 10;
+                }
+                for(uint32_t i=0; i<skip; i++) {
+                    html << " ";
+                }
+                firstTime = false;
+
+                const string label = to_string(runLengthPosition);
+                html << label;
+                for(size_t i=0; i<10-label.size(); i++) {
+                    html << " ";
+                }
+
+            }
+
+
+            html << "</pre>";
+            //cout << endl;
+        }
     }
 
 

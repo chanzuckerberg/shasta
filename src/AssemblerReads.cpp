@@ -250,3 +250,33 @@ vector<Base> Assembler::getOrientedReadRawSequence(OrientedReadId orientedReadId
 
     return sequence;
 }
+
+
+
+// Get a vector of the raw read positions
+// corresponding to each position in the run-length
+// representation of an oriented read.
+vector<uint32_t> Assembler::getRawPositions(OrientedReadId orientedReadId) const
+{
+    CZI_ASSERT(assemblerInfo->useRunLengthReads);
+    const ReadId readId = orientedReadId.getReadId();
+    const ReadId strand = orientedReadId.getStrand();
+    const auto repeatCounts = readRepeatCounts[readId];
+    const size_t n = repeatCounts.size();
+
+    vector<uint32_t> v;
+
+    uint32_t position = 0;
+    for(size_t i=0; i<n; i++) {
+        v.push_back(position);
+        uint8_t count;
+        if(strand == 0) {
+            count = repeatCounts[i];
+        } else {
+            count = repeatCounts[n-1-i];
+        }
+        position += count;
+    }
+
+    return v;
+}

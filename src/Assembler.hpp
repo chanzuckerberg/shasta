@@ -477,6 +477,11 @@ private:
     // Return a vector containing the raw sequence of an oriented read.
     vector<Base> getOrientedReadRawSequence(OrientedReadId);
 
+    // Get a vector of the raw read positions
+    // corresponding to each position in the run-length
+    // representation of an oriented read.
+    vector<uint32_t> getRawPositions(OrientedReadId) const;
+
     // The names of the reads from the input fasta or fastq files.
     // Indexed by ReadId.
     // Note that we don't enforce uniqueness of read names.
