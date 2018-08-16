@@ -215,3 +215,38 @@ void Assembler::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
 }
 
 
+
+// Return a vector containing the raw sequence of an oriented read.
+vector<Base> Assembler::getOrientedReadRawSequence(OrientedReadId orientedReadId)
+{
+    // The sequence we will return;
+    vector<Base> sequence;
+
+    /// The number of bases stored.
+    const uint32_t storedBaseCount = uint32_t(reads[orientedReadId.getReadId()].baseCount);
+
+    if(assemblerInfo->useRunLengthReads) {
+
+        // We are storing a run-length representation of the read.
+        // Expand it base by base to create the raw representation.
+        for(uint32_t position=0; position<storedBaseCount; position++) {
+            Base base;
+            uint8_t count;
+            tie(base, count) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            for(uint32_t i=0; i<uint32_t(count); i++) {
+                sequence.push_back(base);
+            }
+        }
+
+    } else {
+
+        // We are storing raw read sequence, so we can just copy the stored sequence.
+        sequence.resize(storedBaseCount);
+        for(size_t position=0; position<storedBaseCount; position++) {
+            sequence[position] = getOrientedReadBase(orientedReadId, uint32_t(position));
+        }
+
+    }
+
+    return sequence;
+}

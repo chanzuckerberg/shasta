@@ -425,7 +425,9 @@ private:
 
 
     // Return a base of an oriented read.
-    Base getOrientedReadBase(OrientedReadId orientedReadId, uint32_t position)
+    Base getOrientedReadBase(
+        OrientedReadId orientedReadId,
+        uint32_t position)
     {
         const auto& read = reads[orientedReadId.getReadId()];
         if(orientedReadId.getStrand() == 0) {
@@ -434,6 +436,46 @@ private:
             return read[read.baseCount-1-position].complement();
         }
     }
+
+
+
+    // Same as above, but also returns the repeat count.
+    pair<Base, uint8_t> getOrientedReadBaseAndRepeatCount(
+        OrientedReadId orientedReadId,
+        uint32_t position)
+    {
+        // This should only be called when using run-length read representation.
+        CZI_ASSERT(assemblerInfo->useRunLengthReads);
+
+        // Extract the read id and strand.
+        const ReadId readId = orientedReadId.getReadId();
+        const Strand strand = orientedReadId.getStrand();
+
+        // Access the bases and repeat counts for this read.
+        const auto& read = reads[readId];
+        const auto& counts = readRepeatCounts[readId];
+
+        // Compute the position as stored, depending on strand.
+        uint32_t orientedPosition = position;
+        if(strand == 1) {
+            orientedPosition = uint32_t(read.baseCount) - 1 - orientedPosition;
+        }
+
+        // Extract the base and repeat count at this position.
+        pair<Base, uint8_t> p = make_pair(read[orientedPosition], counts[orientedPosition]);
+
+        // Complement the base, if necessary.
+        if(strand == 1) {
+            p.first = p.first.complement();
+        }
+
+        return p;
+    }
+
+
+
+    // Return a vector containing the raw sequence of an oriented read.
+    vector<Base> getOrientedReadRawSequence(OrientedReadId);
 
     // The names of the reads from the input fasta or fastq files.
     // Indexed by ReadId.

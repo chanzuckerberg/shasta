@@ -342,13 +342,13 @@ void Assembler::exploreRead(
         html << " value=" << beginPosition;
     }
     html <<
-        ">Begin display at this base position (leave blank to begin at beginning of read)."
+        ">Begin display of raw sequence at this base position (leave blank to begin at beginning of read)."
         "<br><input type=text name=endPosition size=8";
     if(endPositionIsPresent) {
         html << " value=" << endPosition;
     }
     html <<
-        ">End display at this base position (leave blank to end at end of read)."
+        ">End display of raw sequence at this base position (leave blank to end at end of read)."
         "</form>";
 
     // If the readId or strand are missing, stop here.
@@ -366,14 +366,19 @@ void Assembler::exploreRead(
         return;
     }
     const OrientedReadId orientedReadId(readId, strand);
-    const auto readSequence = reads[readId];
+    const vector<Base> rawOrientedReadSequence = getOrientedReadRawSequence(orientedReadId);
+    const auto readStoredSequence = reads[readId];
     const auto readName = readNames[readId];
     const auto orientedReadMarkers = markers[orientedReadId.getValue()];
     if(!beginPositionIsPresent) {
         beginPosition = 0;
     }
     if(!endPositionIsPresent) {
-        endPosition = uint32_t(readSequence.baseCount);
+        endPosition = uint32_t(rawOrientedReadSequence.size());
+    }
+    if(endPosition <= beginPosition) {
+        html << "<p>Invalid choice of begin and end position.";
+        return;
     }
 
 
@@ -392,14 +397,25 @@ void Assembler::exploreRead(
     copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
 
     // Read length.
-    html << "<p>This read is " << readSequence.baseCount;
-    html << " bases long and has " << orientedReadMarkers.size() << " markers.";
+    html << "<p>This read is " << rawOrientedReadSequence.size() << " bases long";
+    if(assemblerInfo->useRunLengthReads) {
+        html << " (" << readStoredSequence.baseCount << " bases in run-length representation)";
+    }
+    html << " and has " << orientedReadMarkers.size() << " markers.";
+
+    // Begin/end position (in raw sequence).
     if(beginPositionIsPresent || endPositionIsPresent) {
         html <<
-            " Displaying only " << endPosition-beginPosition <<
-            " bases begining at base position " << beginPosition <<
+            " Displaying only " << endPosition-beginPosition << " bases";
+        if(assemblerInfo->useRunLengthReads) {
+            html << " of raw read sequences";
+        }
+        html << " beginning at base position " << beginPosition <<
             " and ending at base position " << endPosition <<
-            " . Markers partially contained in this interval will not be displayed.";
+            " .";
+        if(assemblerInfo->useRunLengthReads) {
+            html << " For sequence in run-length representation see below.";
+        }
     }
 
 
@@ -420,7 +436,10 @@ void Assembler::exploreRead(
         "<input type=text hidden name=name value=Human>"
         "<input type=text hidden name=db value=hg38>"
         "<input type=text hidden name=userSeq value=";
-    readSequence.write(html, strand==1, beginPosition, endPosition);
+    copy(
+        rawOrientedReadSequence.begin() + beginPosition,
+        rawOrientedReadSequence.begin() + endPosition,
+        ostream_iterator<Base>(html));
     html << "></form>";
 
 
@@ -469,15 +488,98 @@ void Assembler::exploreRead(
 
 
 
-    // Use an svg object to display the read sequence and the markers.
+    // Display the selected portion of raw sequence.
+    // This is skipped if we are using raw read representation
+    // and the display of the entire read is selected,
+    // because it would be redundant (the same information
+    // is in the display with markers that comes next).
+    const bool partialSequenceRequested =  beginPositionIsPresent || endPositionIsPresent;
+    if(assemblerInfo->useRunLengthReads || partialSequenceRequested) {
+        html << "<h3>";
+        if(assemblerInfo->useRunLengthReads) {
+            if(partialSequenceRequested) {
+                html << "Selected portion of raw sequence of this oriented read";
+            } else {
+                html << "Raw sequence of this oriented read";
+            }
+        } else {
+            if(partialSequenceRequested) {
+                html << "Selected portion of sequence of this oriented read";
+            } else {
+                CZI_ASSERT(0);
+            }
+
+        }
+        html << "</h3>";
+
+        // Here we don't have to worry about using an svg object like we do below,
+        // because we are just writing text without html, and so there will
+        // be no alignment problems.
+
+        // Labels for position scale.
+        html << "<pre style='font-family:monospace;margin:0'";
+        if(assemblerInfo->useRunLengthReads) {
+            html << " title='Position in raw read sequence'";
+        }
+        html<< ">";
+        for(size_t position=beginPosition; position<endPosition; ) {
+            if((position%10)==0) {
+                const string label = to_string(position);
+                html << label;
+                for(size_t i=0; i<10-label.size(); i++) {
+                    html << " ";
+                }
+                position += 10;
+            } else {
+                html << " ";
+                ++position;
+            }
+        }
+        html<< "\n";
+
+        // Position scale.
+        for(size_t position=beginPosition; position!=endPosition; position++) {
+            if((position%10)==0) {
+                html << "|";
+            } else if((position%5)==0) {
+                html << "+";
+            } else {
+                html << ".";
+            }
+        }
+        html << "</pre>";
+
+
+        // Sequence.
+        html << "<pre style='font-family:monospace;margin:0'>";
+        for(uint32_t position=beginPosition; position!=endPosition; position++) {
+            html << rawOrientedReadSequence[position];
+        }
+        html << "</pre>";
+    }
+
+
+
+    // Title for the next portion of the display, which shows the markers.
+    if(assemblerInfo->useRunLengthReads) {
+        html << "<h3>Run-length representation of oriented read sequence and its markers</h3>";
+    } else {
+        html << "<h3>Oriented read sequence and its markers</h3>";
+    }
+
+
+
+
+    // Use an svg object to display the read sequence as stored and the markers.
     // To ensure correct positioning and alignment, we use
     // a textLength attribute on every <text> element.
     // (The older code, ifdef'ed out, uses a separate <text>
     // element for each character).
+    // Note that here we display the entire read, regardless of beginPosition and endPosition.
     const int monospaceFontSize = 12;
     const int horizontalSpacing = 7;
     const int verticalSpacing = 13;
-    const int charactersPerLine = endPosition - beginPosition + 10; // Add space for labels
+    const int charactersPerLine = int(readStoredSequence.baseCount) + 10; // Add space for labels
     const int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
     const int svgWidth = horizontalSpacing * charactersPerLine;
     const int svgHeight = verticalSpacing * svgLineCount;
@@ -492,84 +594,31 @@ void Assembler::exploreRead(
 
 
     // Labels for position scale.
-    const int firstLabelPosition =
-        (beginPosition % 10 == 0) ?
-        beginPosition :
-        beginPosition + (10 - beginPosition % 10);
-    for(int labelPosition=firstLabelPosition; labelPosition<int(endPosition); labelPosition+=10) {
-        const string label = to_string(labelPosition);
-#if 1
-        // This code uses a single <text> element,
-        // with a textLength attribute for exact alignment.
+    for(uint32_t position=0; position<readStoredSequence.baseCount; position+=10) {
+        const string label = to_string(position);
+
+        // Use a single <text> element with a textLength attribute for exact alignment.
         html <<
             "<text class='mono'" <<
-            " x='" << (labelPosition-beginPosition)*horizontalSpacing << "'" <<
+            " x='" << position * horizontalSpacing << "'" <<
             " y='" << verticalSpacing << "'" <<
-            " textLength='" << label.size()*horizontalSpacing << "px'>" <<
+            " textLength='" << label.size() * horizontalSpacing << "px'>" <<
             label << "</text>";
-#else
-        // This code uses one <text> element per character.
-        for(size_t j=0; j<label.size(); j++) {
-            html <<
-                "<text class='mono'" <<
-                " x='" << (labelPosition-beginPosition+j)*horizontalSpacing << "'" <<
-                " y='" << verticalSpacing << "'>" <<
-                label[j] << "</text>";
-        }
-#endif
     }
 
 
 
     // Position scale.
-#if 0
-    // This code uses a single <text> element,
-    // with a textLength attribute for exact alignment.
-    html <<
-        "<text class='mono'" <<
-        " x='0'" <<
-        " y='" << 2*verticalSpacing << "'" <<
-        " textLength ='" << (endPosition-beginPosition) * horizontalSpacing << "px'>";
-    for(size_t position=beginPosition; position!=endPosition; position++) {
-        if((position%10)==0) {
-            html << "|";
-        } else if((position%5)==0) {
-            html << "+";
-        } else {
-            html << ".";
-        }
-    }
-    html << "</text>";
-#endif
-#if 0
-    // This code uses one <text> element per character.
-    for(size_t position=beginPosition; position!=endPosition; position++) {
-        html <<
-            "<text class='mono'" <<
-            " x='" << (position-beginPosition)*horizontalSpacing << "'" <<
-            " y='" << 2*verticalSpacing << "'>";
-        if((position%10)==0) {
-            html << "|";
-        } else if((position%5)==0) {
-            html << "+";
-        } else {
-            html << ".";
-        }
-        html << "</text>";
-    }
-#endif
-#if 1
     // This code uses one <text> element for every blockSize characters.
     // This way you can select sequence text without getting a
     // new line after each character, while still achieving good
     // alignment.
-    // It is a reasonable compromise between the two extreme choices above.
     const size_t blockSize = 100;
-    for(size_t blockBegin=beginPosition; blockBegin<endPosition; blockBegin+=blockSize) {
-        const size_t blockEnd = min(blockBegin+blockSize, size_t(endPosition));
+    for(size_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
+        const size_t blockEnd = min(blockBegin+blockSize, readStoredSequence.baseCount);
         html <<
             "<text class='mono'" <<
-            " x='" << (blockBegin-beginPosition)*horizontalSpacing << "'" <<
+            " x='" << blockBegin*horizontalSpacing << "'" <<
             " y='" << 2*verticalSpacing << "'"
             " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
         for(size_t position=blockBegin; position!=blockEnd; position++) {
@@ -583,45 +632,19 @@ void Assembler::exploreRead(
         }
         html << "</text>";
     }
-#endif
 
 
 
-    // Read sequence.
-#if 0
-    // This code uses a single <text> element,
-    // with a textLength attribute for exact alignment.
-    // Unfortunately this does not achieve exact alignment on Chrome.
-    html <<
-        "<text class='mono'" <<
-        " x='0'" <<
-        " y='" << 3*verticalSpacing << "'" <<
-        " textLength='" << (endPosition-beginPosition) * horizontalSpacing << "px'>" <<
-        readSequence <<
-        "</text>";
-#endif
-#if 0
-    // This code uses one <text> element per character.
-    for(size_t position=beginPosition; position!=endPosition; position++) {
-        html <<
-            "<text class='mono'" <<
-            " x='" << (position-beginPosition)*horizontalSpacing << "'" <<
-            " y='" << 3*verticalSpacing << "'>";
-        html << readSequence[position];
-        html << "</text>";
-    }
-#endif
-#if 1
+    // Raw read sequence.
     // This code uses one <text> element for every blockSize characters.
     // This way you can select sequence text without getting a
     // new line after each character, while still achieving good
     // alignment.
-    // It is a reasonable compromise between the two extreme choices above.
-    for(size_t blockBegin=beginPosition; blockBegin<endPosition; blockBegin+=blockSize) {
-        const size_t blockEnd = min(blockBegin+blockSize, size_t(endPosition));
+    for(size_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
+        const size_t blockEnd = min(blockBegin+blockSize, readStoredSequence.baseCount);
         html <<
             "<text class='mono'" <<
-            " x='" << (blockBegin-beginPosition)*horizontalSpacing << "'" <<
+            " x='" << blockBegin*horizontalSpacing << "'" <<
             " y='" << 3*verticalSpacing << "'"
             " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
         for(size_t position=blockBegin; position!=blockEnd; position++) {
@@ -629,7 +652,6 @@ void Assembler::exploreRead(
         }
         html << "</text>";
     }
-#endif
 
 
 
@@ -651,15 +673,6 @@ void Assembler::exploreRead(
     // Markers.
     for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
         const CompressedMarker& marker = orientedReadMarkers[ordinal];
-
-        // Only show the marker if it is completely contained in the
-        // base interval we are displaying.
-        if(marker.position < beginPosition) {
-            continue;
-        }
-        if(marker.position + k > endPosition) {
-            break;
-        }
 
         // See if this marker is contained in a vertex of the marker graph.
         const GlobalMarkerGraphVertexId vertexId =
@@ -686,22 +699,7 @@ void Assembler::exploreRead(
             html << " xlink:href='" << url << "' style='cursor:pointer'";
         }
         html << ">";
-#if 0
-        // This code uses a single <text> element,
-        // with a textLength attribute for exact alignment.
-        html << "<text class='";
-        if(hasMarkerGraphVertex) {
-            html << "blueMono";
-        } else {
-            html << "mono";
-        }
-        html << "'" <<
-            " x='" << (marker.position-beginPosition)*horizontalSpacing << "px'" <<
-            " y='" << (4+markerRow[ordinal])*verticalSpacing << "'"
-            " textLength='" << k*horizontalSpacing << "px'>";
-        kmer.write(html, k);
-        html << "</text>";
-#else
+
         // This code uses one <text> element per character.
         for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
             html << "<text class='";
@@ -711,12 +709,11 @@ void Assembler::exploreRead(
                 html << "mono";
             }
             html << "'" <<
-                " x='" << (marker.position+positionInMarker-beginPosition)*horizontalSpacing << "'" <<
+                " x='" << (marker.position+positionInMarker)*horizontalSpacing << "'" <<
                 " y='" << (4+markerRow[ordinal])*verticalSpacing << "'>";
             html << kmer[positionInMarker];
             html << "</text>";
         }
-#endif
         html << "</a>";
 
     }
@@ -738,125 +735,7 @@ void Assembler::exploreRead(
 
 
 
-#if 0
-    // THE IFDEF CONTAINS THE OLD CODE THAT USES MONOSPACE CHARACTERS
-    // TO DISPLAY THE READ SEQUENCE AND THE MARKERS.
-    // THIS DOES NOT WORK WELL ON CHROME: FOR LONG READS,
-    // THE MARKERS ARE NOT CORRECTLY ALIGNED WITH THE READ SEQUENCE.
 
-    // Labels for position scale.
-    html << "<p><div style='font-family:monospace'>";
-    html << "<br>";
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        // Portion of the read.
-        const uint32_t skip = (10 - beginPosition%10) % 10;
-        for(uint32_t i=0; i<skip; i++) {
-            html << "&nbsp;";
-        }
-        for(uint32_t i=beginPosition+skip; i<endPosition; i+=10) {
-            const string label = to_string(i);
-            html << label;
-            for(size_t j=0; j<10-label.size(); j++) {
-                html << "&nbsp;";
-            }
-        }
-    } else {
-        // Entire read.
-        for(uint32_t i=0; i<readSequence.baseCount; i+=10) {
-            const string label = to_string(i);
-            html << label;
-            for(size_t j=0; j<10-label.size(); j++) {
-                html << "&nbsp;";
-            }
-        }
-    }
-    html << "<br>";
-
-
-
-    // Position scale.
-    for(uint32_t i=beginPosition; i<endPosition; i++) {
-        if((i%10)==0) {
-            html << "|";
-        } else if((i%5)==0) {
-            html << "+";
-        } else {
-            html << ".";
-        }
-    }
-
-
-
-    // Read sequence.
-    html << "<br>";
-    readSequence.write(html, strand==1, beginPosition, endPosition);
-
-
-
-    // Write the markers on k rows.
-    const size_t k = assemblerInfo->k;
-    for(size_t markerRow=0; markerRow<k; markerRow++) {
-        html << "<br>";
-        size_t position = beginPosition;
-        for(uint32_t ordinal=uint32_t(markerRow);
-            ordinal<uint32_t(orientedReadMarkers.size()); ordinal+=uint32_t(k)) {
-            const CompressedMarker& marker = orientedReadMarkers[ordinal];
-
-            // Only show the marker if it is completely contained in the
-            // base interval we are displaying.
-            if(marker.position < position) {
-                continue;
-            }
-            if(marker.position + k > endPosition) {
-                break;
-            }
-
-            const Kmer kmer(marker.kmerId, k);
-            while(position < marker.position) {
-                html << "&nbsp;";
-                ++position;
-            }
-
-            // See if this marker is contained in a vertex of the marker graph.
-            const GlobalMarkerGraphVertexId vertexId =
-                getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-            const bool hasMarkerGraphVertex =
-                (vertexId != invalidCompressedGlobalMarkerGraphVertexId);
-
-            // If it has a vertex, write it as link. Otherwise, write it as text.
-            if(hasMarkerGraphVertex) {
-                const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
-                    "&strand=" + to_string(strand) +
-                    "&ordinal=" + to_string(ordinal) +
-                    "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
-                html << "<a id=" << ordinal << " style='font-family:monospace;";
-                if(highlightedMarkers.find(ordinal) != highlightedMarkers.end()) {
-                    html << "background-color:LightPink;";
-                }
-                html << "' title='Marker ordinal " << ordinal << ", coverage "  << globalMarkerGraphVertices.size(vertexId) << "'";
-                html << "href='" << url << "'>";
-                kmer.write(html, k);
-                html << "</a>";
-            } else {
-                html << "<span id =" << ordinal;
-                html << " title='Marker ordinal " << ordinal << "'";
-                html << " style='font-family:monospace;";
-                if(highlightedMarkers.find(ordinal) != highlightedMarkers.end()) {
-                    html << "background-color:LightPink;'";
-                }
-                html << "'>";
-                kmer.write(html, k);
-                html << "</span>";
-            }
-
-            position += assemblerInfo->k;
-
-        }
-    }
-
-
-    html << "</div>";
-#endif
 
 
     html <<
