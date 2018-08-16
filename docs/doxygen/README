@@ -1,0 +1,20 @@
+To generate Doxygen documentation for the C++ code,
+just make sure you have doxygen installed
+(ubuntu package name is "doxygen"),
+cd to this directory, then issue command 
+"doxygen" without arguments.
+
+Documentation will be created in directory "html"
+under this directory. The top level file
+of the documentation will be "html/index.html".
+Point your browser to that to see the documentation.
+
+For readability, the C++ code does not contain
+and Doxygen directives, so the generated documentation
+will only contain what Doxygen can do with "EXTRACT_ALL=YES"
+and without relying on documentation directives in the code.
+Even with this limitation, this can be very useful to explore the C++ code.
+
+The Doxygen documentation is too large to be added
+to the git repository, and so the top level 
+.gitignore ignores docs/doxygen/html.
