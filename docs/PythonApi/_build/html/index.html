@@ -1,0 +1,328 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Shasta Python API documentation &mdash; Shasta  documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Shasta  documentation" href="#" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Shasta  documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="shasta-python-api-documentation">
+<h1>Shasta Python API documentation<a class="headerlink" href="#shasta-python-api-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span>Search Page</span></a></li>
+</ul>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<span class="target" id="module-shasta"></span></div>
+<div class="section" id="class-assembler">
+<h2>Class Assembler<a class="headerlink" href="#class-assembler" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="shasta.Assembler">
+<em class="property">class </em><code class="descclassname">shasta.</code><code class="descname">Assembler</code><a class="headerlink" href="#shasta.Assembler" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="shasta.Assembler.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#shasta.Assembler.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li>__init__(self: shasta.Assembler, smallDataFileNamePrefix: str=&#8217;data/&#8217;, largeDataFileNamePrefix: str=&#8217;Data/&#8217;, smallDataPageSize: int=4096, largeDataPageSize: int=2097152, useRunLengthReads: bool) -&gt; None</li>
+</ol>
+<p>Create a new assembler.</p>
+<ol class="arabic simple" start="2">
+<li>__init__(self: shasta.Assembler, smallDataFileNamePrefix: str=&#8217;data/&#8217;, largeDataFileNamePrefix: str=&#8217;Data/&#8217;, smallDataPageSize: int=4096, largeDataPageSize: int=2097152) -&gt; None</li>
+</ol>
+<p>Access an existing Assembler.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessAlignmentData">
+<code class="descname">accessAlignmentData</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAlignmentData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessKmers">
+<code class="descname">accessKmers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessKmers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkerGraphConnectivity">
+<code class="descname">accessMarkerGraphConnectivity</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>accessEdgesReadWrite: bool=False</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphConnectivity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkerGraphVertices">
+<code class="descname">accessMarkerGraphVertices</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphVertices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkers">
+<code class="descname">accessMarkers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessOverlaps">
+<code class="descname">accessOverlaps</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessOverlaps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessReadNamesReadOnly">
+<code class="descname">accessReadNamesReadOnly</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadNamesReadOnly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessReadNamesReadWrite">
+<code class="descname">accessReadNamesReadWrite</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadNamesReadWrite" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessReadsReadOnly">
+<code class="descname">accessReadsReadOnly</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadsReadOnly" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessReadsReadWrite">
+<code class="descname">accessReadsReadWrite</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadsReadWrite" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.addReadsFromFasta">
+<code class="descname">addReadsFromFasta</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>fileName: str</em>, <em>minReadLength: int</em>, <em>blockSize: int=2147483648</em>, <em>threadCountForReading: int=1</em>, <em>threadCountForProcessing: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.addReadsFromFasta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add reads from a fasta file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.alignOrientedReads">
+<code class="descname">alignOrientedReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId0: int</em>, <em>strand0: int</em>, <em>readId1: int</em>, <em>strand1: int</em>, <em>maxSkip: int</em>, <em>maxVertexCountPerKmer: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.alignOrientedReads" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.alignOverlappingOrientedReads">
+<code class="descname">alignOverlappingOrientedReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>maxSkip: int</em>, <em>maxVertexCountPerKmer: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.alignOverlappingOrientedReads" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.computeAllAlignments">
+<code class="descname">computeAllAlignments</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxVertexCountPerKmer: int</em>, <em>maxSkip: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em>, <em>minCoverage: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeAllAlignments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.computeReadGraphComponents">
+<code class="descname">computeReadGraphComponents</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>minComponentSize: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeReadGraphComponents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createLocalReadGraph">
+<code class="descname">createLocalReadGraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em>, <em>distance: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createLocalReadGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createMarkerGraphConnectivity">
+<code class="descname">createMarkerGraphConnectivity</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em>, <em>markerCountOverflow: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createMarkerGraphConnectivity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.explore">
+<code class="descname">explore</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>port: int=17100</em>, <em>localOnly: bool=False</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.explore" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.extractLocalMarkerGraph">
+<code class="descname">extractLocalMarkerGraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>ordinal: int</em>, <em>distance: int</em>, <em>minCoverage: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.extractLocalMarkerGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.findMarkers">
+<code class="descname">findMarkers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findMarkers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find markers in reads.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.findOverlaps">
+<code class="descname">findOverlaps</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>m: int</em>, <em>minHashIterationCount: int</em>, <em>log2MinHashBucketCount: int</em>, <em>maxBucketSize: int</em>, <em>minFrequency: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findOverlaps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.flagMarkerGraphEdges">
+<code class="descname">flagMarkerGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em>, <em>minCoverage: int</em>, <em>maxPathLength: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.flagMarkerGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.getGlobalMarkerGraphEdgeInformation">
+<code class="descname">getGlobalMarkerGraphEdgeInformation</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>vertexId0: int</em>, <em>vertexId1: int</em><span class="sig-paren">)</span> &rarr; List[shasta.GlobalMarkerGraphEdgeInformation]<a class="headerlink" href="#shasta.Assembler.getGlobalMarkerGraphEdgeInformation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.getGlobalMarkerGraphVertex">
+<code class="descname">getGlobalMarkerGraphVertex</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>ordinal: int</em><span class="sig-paren">)</span> &rarr; int<a class="headerlink" href="#shasta.Assembler.getGlobalMarkerGraphVertex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.getGlobalMarkerGraphVertexChildren">
+<code class="descname">getGlobalMarkerGraphVertexChildren</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>vertexId: int</em><span class="sig-paren">)</span> &rarr; List[int]<a class="headerlink" href="#shasta.Assembler.getGlobalMarkerGraphVertexChildren" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.getGlobalMarkerGraphVertexMarkers">
+<code class="descname">getGlobalMarkerGraphVertexMarkers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>vertexId: int</em><span class="sig-paren">)</span> &rarr; List[Tuple[int, int, int]]<a class="headerlink" href="#shasta.Assembler.getGlobalMarkerGraphVertexMarkers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.getGlobalMarkerGraphVertexParents">
+<code class="descname">getGlobalMarkerGraphVertexParents</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>vertexId: int</em><span class="sig-paren">)</span> &rarr; List[int]<a class="headerlink" href="#shasta.Assembler.getGlobalMarkerGraphVertexParents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.histogramReadLength">
+<code class="descname">histogramReadLength</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>fileName: str='ReadLengthHistogram.csv'</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.histogramReadLength" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a histogram of read length and write it to a csv file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.randomlySelectKmers">
+<code class="descname">randomlySelectKmers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>k: int</em>, <em>probability: float</em>, <em>seed: int=231</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.randomlySelectKmers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.setDocsDirectory">
+<code class="descname">setDocsDirectory</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>arg0: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.setDocsDirectory" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeKmers">
+<code class="descname">writeKmers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>fileName: str='Kmers.csv'</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeKmers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeMarkers">
+<code class="descname">writeMarkers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>fileName: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeMarkers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the markers of an oriented read.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeOrientedRead">
+<code class="descname">writeOrientedRead</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>fileName: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeOrientedRead" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write one oriented read to a file in fasta format.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeOverlappingReads">
+<code class="descname">writeOverlappingReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>fileName: str='OverlappingReads.fasta'</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeOverlappingReads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write in fasta format the reads that overlap a given read.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeRead">
+<code class="descname">writeRead</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>fileName: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeRead" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write one read to a file in fasta format.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeReads">
+<code class="descname">writeReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>fileName: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeReads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write all reads to a file in fasta format.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Shasta Python API documentation</a><ul>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#class-assembler">Class Assembler</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Shasta  documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright .
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.6.
+    </div>
+  </body>
+</html>
