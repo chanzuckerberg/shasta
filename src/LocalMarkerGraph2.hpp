@@ -243,12 +243,8 @@ public:
     vector<uint8_t> getRepeatCounts(const LocalMarkerGraph2Vertex::MarkerInfo&) const;
 
     // Store sequence information in the edge.
-    // The first one constructs the information from the markers
-    // stored in the vertices (disregarding oriented read ids
-    // with more than one marker on either vertex).
-    // The second one takes as input a vector of the
+    // Takes as input a vector of the
     // LocalMarkerGraph2Edge::Info that caused the edge to be created.
-    void storeEdgeInfo(edge_descriptor);
     void storeEdgeInfo(edge_descriptor, const vector<LocalMarkerGraph2Edge::Info>&);
 
     // Create an optimal spanning tree and mark its edges.
