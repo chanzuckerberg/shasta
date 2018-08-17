@@ -4,10 +4,14 @@ just make sure you have doxygen installed
 cd to this directory, then issue command 
 "doxygen" without arguments.
 
-Documentation will be created in directory "html"
+HTML documentation will be created in directory "html"
 under this directory. The top level file
 of the documentation will be "html/index.html".
 Point your browser to that to see the documentation.
+
+Latex documentation will also be created in directory "latex".
+To also generate PDF documentation, "cd latex; make pdf".
+The pdf file is refman.pdf.
 
 For readability, the C++ code does not contain
 and Doxygen directives, so the generated documentation
