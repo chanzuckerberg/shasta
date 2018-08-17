@@ -59,7 +59,13 @@ void Assembler::exploreMarkerGraph(
 
 
     // Create the local marker graph.
-    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
+    LocalMarkerGraph2 graph(
+        uint32_t(assemblerInfo->k),
+        reads,
+        assemblerInfo->useRunLengthReads,
+        readRepeatCounts,
+        markers,
+        globalMarkerGraphVertex);
     const auto createStartTime = steady_clock::now();
     if(!extractLocalMarkerGraph(
         orientedReadId,

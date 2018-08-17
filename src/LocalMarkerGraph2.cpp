@@ -30,11 +30,15 @@ using namespace shasta;
 LocalMarkerGraph2::LocalMarkerGraph2(
     uint32_t k,
     LongBaseSequences& reads,
+    bool useRunLengthReads,
+    const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex
     ) :
     k(k),
     reads(reads),
+    useRunLengthReads(useRunLengthReads),
+    readRepeatCounts(readRepeatCounts),
     markers(markers),
     globalMarkerGraphVertex(globalMarkerGraphVertex)
 {
@@ -107,6 +111,32 @@ KmerId LocalMarkerGraph2::getKmerId(vertex_descriptor v) const
     }
 
     return kmerId;
+}
+
+
+
+// Get the repeat counts for a MarkerInfo of a vertex.
+vector<uint8_t> LocalMarkerGraph2::getRepeatCounts(
+    const LocalMarkerGraph2Vertex::MarkerInfo& markerInfo) const
+{
+    CZI_ASSERT(useRunLengthReads);
+    const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+    const ReadId readId = orientedReadId.getReadId();
+    const Strand strand = orientedReadId.getStrand();
+    const CompressedMarker& marker = markers.begin()[markerInfo.markerId];
+
+    const auto& counts = readRepeatCounts[readId];
+
+    vector<uint8_t> v(k);
+    for(size_t i=0; i<k; i++) {
+        if(strand == 0) {
+            v[i] = counts[marker.position + i];
+        } else {
+            v[i] = counts[counts.size() - 1 - marker.position - i];
+        }
+    }
+
+    return v;
 }
 
 
@@ -1082,6 +1112,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
+        const int columnCount = graph.useRunLengthReads ? 4 : 3;
 
         // Vertex id.
         if(showVertexId) {
@@ -1091,29 +1122,33 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         }
 
         // Kmer.
-        s << "<tr><td colspan=\"3\"><b>";
+        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
         kmer.write(s, k);
         s << "</b></td></tr>";
 
         // Coverage.
-        s << "<tr><td colspan=\"3\"><b>";
+        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
         s << "Coverage " << coverage;
         s << "</b></td></tr>";
 
         // Distance.
-        s << "<tr><td colspan=\"3\" ";
+        s << "<tr><td colspan=\"" << columnCount << "\" ";
         s << " href=\"\"";  // Necessary to activate tooltip.
         s << " id=\"vertexDistance" << vertex.vertexId << "\" tooltip=\"Click to recenter graph here\">";
         s << "<font color=\"blue\"><b><u>Distance " << vertex.distance;
         s << "</u></b></font></td></tr>";
 
         // Rank.
-        s << "<tr><td colspan=\"3\">";
+        s << "<tr><td colspan=\"" << columnCount << "\">";
         s << "<b>Rank " << vertex.rank;
         s << "</b></td></tr>";
 
         // Column headers.
-        s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td></tr>";
+        s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td>";
+        if(graph.useRunLengthReads) {
+            s << "<td><b>Repeat</b></td>";
+        }
+        s << "</tr>";
 
         // A row for each marker of this vertex.
         for(const auto& markerInfo: vertex.markerInfos) {
@@ -1134,7 +1169,23 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "><font color=\"blue\"><b><u>" << markerInfo.ordinal << "</u></b></font></td>";
 
             // Position.
-            s << "<td align=\"right\"><b>" << marker.position << "</b></td></tr>";
+            s << "<td align=\"right\"><b>" << marker.position << "</b></td>";
+
+            // Repeat counts.
+            if(graph.useRunLengthReads) {
+                const vector<uint8_t> counts = graph.getRepeatCounts(markerInfo);
+                s << "<td><b>";
+                for(size_t i=0; i<k; i++) {
+                    if(counts[i] < 10) {
+                        s << int(counts[i]);
+                    } else {
+                        s << "*";
+                    }
+                }
+                s << "</b></td>";
+            }
+
+            s << "</tr>";
         }
 
 

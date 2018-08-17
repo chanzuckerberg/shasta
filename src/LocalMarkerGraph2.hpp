@@ -217,6 +217,8 @@ public:
     LocalMarkerGraph2(
         uint32_t k,
         LongBaseSequences& reads,
+        bool useRunLengthReads,
+        const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex
         );
@@ -236,6 +238,9 @@ public:
 
     // Get the KmerId for a vertex.
     KmerId getKmerId(vertex_descriptor) const;
+
+    // Get the repeat counts for a MarkerInfo of a vertex.
+    vector<uint8_t> getRepeatCounts(const LocalMarkerGraph2Vertex::MarkerInfo&) const;
 
     // Store sequence information in the edge.
     // The first one constructs the information from the markers
@@ -362,6 +367,8 @@ private:
     // Reference to the global data structure containing all reads and markers
     // (not just those in this local marker graph).
     LongBaseSequences& reads;
+    bool useRunLengthReads;
+    const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
 
     // A reference to the vector containing the global marker graph vertex id

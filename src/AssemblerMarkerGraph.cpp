@@ -452,7 +452,13 @@ void Assembler::extractLocalMarkerGraph(
     )
 {
     // Create the local marker graph.
-    LocalMarkerGraph2 graph(uint32_t(assemblerInfo->k), reads, markers, globalMarkerGraphVertex);
+    LocalMarkerGraph2 graph(
+        uint32_t(assemblerInfo->k),
+        reads,
+        assemblerInfo->useRunLengthReads,
+        readRepeatCounts,
+        markers,
+        globalMarkerGraphVertex);
     extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, 0., graph);
 
     cout << "The local marker graph has " << num_vertices(graph);
