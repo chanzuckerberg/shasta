@@ -138,19 +138,28 @@ void Assembler::exploreMarkerGraph(
 
         html <<
             "<h2>Sequence assembled from this local marker graph</h2>"
-            "<br><span title='Coverage on second line, blank if &ge; 10."
-            " Base is lower case if coverage &lt; 10.'>"
-            "Assembled " << sequence.size() << " bases. </span>"
+            "<h4 style='margin:0'>"
+            "Assembled sequence";;
+        if(assemblerInfo->useRunLengthReads) {
+            html << " in run-length representation";
+        }
+        html << " (" << sequence.size() << " bases).</h4>";
+        html << "<br>Line following sequence is coverage/consensus ("
+            "blank if &ge; 10). Sequence base is lower case if coverage &lt; 10. "
             "<a id=fastaDownload>Download in FASTA format</a>"
             "<script>"
             "var element = document.getElementById('fastaDownload');"
             "element.setAttribute('href', 'data:text/plain;charset=utf-8,' +"
             "encodeURIComponent('" << fastaString << "'));"
             "element.setAttribute('download', '" << fastaFileName << "');"
-            "</script>"
-            "<pre>";
+            "</script>";
 
         // Labels.
+        if(assemblerInfo->useRunLengthReads) {
+            html << "<pre  style='margin:0' title='Position on run-length representation of assembled sequence'>";
+        } else {
+            html << "<pre  style='margin:0' title='Position on assembled sequence'>";
+        }
         for(size_t position=0; position<sequence.size(); position+=10) {
             const string label = to_string(position);
             html << label;
@@ -158,9 +167,14 @@ void Assembler::exploreMarkerGraph(
                 html << " ";
             }
         }
-        html << "\n";
+        html << "</pre>";
 
         // Scale.
+        if(assemblerInfo->useRunLengthReads) {
+            html << "<pre  style='margin:0' title='Position on run-length representation of assembled sequence'>";
+        } else {
+            html << "<pre  style='margin:0' title='Position on assembled sequence'>";
+        }
         for(size_t position=0; position<sequence.size(); position++) {
             if((position%10)==0) {
                 html << "|";
@@ -170,9 +184,14 @@ void Assembler::exploreMarkerGraph(
                 html << ".";
             }
         }
-        html << "\n";
+        html << "</pre>";
 
         // Sequence.
+        if(assemblerInfo->useRunLengthReads) {
+            html << "<pre  style='margin:0' title='Run-length representation of assembled sequence'>";
+        } else {
+            html << "<pre  style='margin:0' title='Assembled sequence'>";
+        }
         for(const auto& p: sequence) {
             const auto coverage = p.second;
             if(coverage < 10) {
@@ -181,9 +200,14 @@ void Assembler::exploreMarkerGraph(
                 html << p.first;
             }
         }
-        html << "\n";
+        html << "</pre>";
 
         // Coverage.
+        if(assemblerInfo->useRunLengthReads) {
+            html << "<pre  style='margin:0' title='Coverage/consensus for run-length representation of assembled sequence'>";
+        } else {
+            html << "<pre  style='margin:0' title='Assembled sequence coverage/consensus'>";
+        }
         for(const auto& p: sequence) {
             const auto coverage = p.second;
             if(coverage<10) {
@@ -195,6 +219,11 @@ void Assembler::exploreMarkerGraph(
         html << "</pre>";
 
         // Also show alignments of oriented reads to assembled sequence.
+        html << "<br><h4 style='margin:0'>Marker alignments of assembled sequence to oriented reads</h4>";
+        if(assemblerInfo->useRunLengthReads) {
+            html << "<br>All read and assembled sequence in this table is "
+                "in run-length representation.";
+        }
         showLocalMarkerGraphAlignments(html, graph, requestParameters);
     }
 
@@ -553,7 +582,6 @@ void Assembler::showLocalMarkerGraphAlignments(
     // Create a table with one column for each vertex
     // (in topologically sorted order), plus an additional column
     // between each pair of successive vertices.
-    html << "Marker alignments of assembled sequence to oriented reads (work in progress).";
     html << "<table style='table-layout:auto;white-space:nowrap;font-family:monospace;font-size:10px'>";
 
 
