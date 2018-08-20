@@ -163,10 +163,16 @@ public:
             ordinals[1] = ordinal1;
         }
     };
+    class InfoWithRepeatCounts : public Info {
+    public:
+        vector<uint8_t> repeatCounts;
+        // The constructor does not fill in the repeat counts.
+        InfoWithRepeatCounts(const Info& info) : Info(info){}
+    };
 
     // The oriented vertices of this edge, grouped by sequence.
     // Sorted by decreasing number of supporting reads.
-    vector< pair<Sequence, vector<Info> > > infos;
+    vector< pair<Sequence, vector<InfoWithRepeatCounts> > > infos;
 
     // Consensus is the number of reads supporting the
     // strongest sequence.

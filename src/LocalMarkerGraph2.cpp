@@ -152,15 +152,29 @@ void LocalMarkerGraph2::storeEdgeInfo(
     LocalMarkerGraph2Edge& edge = graph[e];
 
     // Map to store the oriented read ids and ordinals, grouped by sequence.
-    std::map<LocalMarkerGraph2Edge::Sequence, vector<LocalMarkerGraph2Edge::Info> > sequenceTable;
+    std::map<LocalMarkerGraph2Edge::Sequence, vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts> > sequenceTable;
     for(const LocalMarkerGraph2Edge::Info& info: infoVector) {
         const CompressedMarker& marker0 = markers.begin(info.orientedReadId.getValue())[info.ordinals[0]];
         const CompressedMarker& marker1 = markers.begin(info.orientedReadId.getValue())[info.ordinals[1]];
 
-        // Fill in the sequence information.
+        // Fill in the sequence information and, if necessary, the base repeat counts.
         LocalMarkerGraph2Edge::Sequence sequence;
+        LocalMarkerGraph2Edge::InfoWithRepeatCounts infoWithRepeatCounts(info);
         if(marker1.position <= marker0.position + k) {
             sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
+            if(useRunLengthReads) {
+                const auto repeatCounts = readRepeatCounts[info.orientedReadId.getReadId()];
+                for(uint32_t i=0; i<sequence.overlappingBaseCount; i++) {
+                    uint32_t position = marker1.position + i;
+                    uint8_t repeatCount = 0;
+                    if(info.orientedReadId.getStrand() == 0) {
+                        repeatCount = repeatCounts[position];
+                    } else {
+                        repeatCount = repeatCounts[repeatCounts.size() - 1 - position];
+                    }
+                    infoWithRepeatCounts.repeatCounts.push_back(repeatCount);
+                }
+            }
         } else {
             sequence.overlappingBaseCount = 0;
             const auto read = reads[info.orientedReadId.getReadId()];
@@ -175,11 +189,23 @@ void LocalMarkerGraph2::storeEdgeInfo(
                 }
                 sequence.sequence.push_back(base);
             }
+            if(useRunLengthReads) {
+                const auto repeatCounts = readRepeatCounts[info.orientedReadId.getReadId()];
+                for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
+                    uint8_t repeatCount;
+                    if(info.orientedReadId.getStrand() == 0) {
+                        repeatCount = repeatCounts[position];
+                    } else {
+                        repeatCount = repeatCounts[readLength - 1 - position];
+                    }
+                    infoWithRepeatCounts.repeatCounts.push_back(repeatCount);
+                }
+            }
 
         }
 
         // Store it.
-        sequenceTable[sequence].push_back(info);
+        sequenceTable[sequence].push_back(infoWithRepeatCounts);
 
     }
 
@@ -191,7 +217,7 @@ void LocalMarkerGraph2::storeEdgeInfo(
     sort(edge.infos.begin(), edge.infos.end(),
         OrderPairsBySizeOfSecondGreater<
         LocalMarkerGraph2Edge::Sequence,
-        vector<LocalMarkerGraph2Edge::Info> >());
+        vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts> >());
 }
 
 
@@ -784,7 +810,7 @@ bool LocalMarkerGraph2Edge::getOrdinals(
     OrientedReadId orientedReadId,
     array<uint32_t, 2>& ordinals) const
 {
-    for(const pair<Sequence, vector<Info> >& p: infos) {
+    for(const pair<Sequence, vector<InfoWithRepeatCounts> >& p: infos) {
         for(const Info& info: p.second) {
             if(info.orientedReadId == orientedReadId) {
                 ordinals = info.ordinals;
@@ -1153,8 +1179,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << ">";
 
         // Consensus and coverage.
-        s << "<tr><td colspan=\"4\"><b>Coverage " << coverage << "</b></td></tr>";
-        s << "<tr><td colspan=\"4\"><b>Consensus " << consensus << "</b></td></tr>";
+        const int columnCount = graph.useRunLengthReads ? 5 : 4;
+        s << "<tr><td colspan=\"" << columnCount << "\"><b>Coverage " << coverage << "</b></td></tr>";
+        s << "<tr><td colspan=\"" << columnCount << "\"><b>Consensus " << consensus << "</b></td></tr>";
 
         // Header row.
         s <<
@@ -1162,8 +1189,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             "<td align=\"center\"><b>Read</b></td>"
             "<td align=\"center\"><b>Ord0</b></td>"
             "<td align=\"center\"><b>Ord1</b></td>"
-            "<td align=\"center\"><b>Seq</b></td>"
-            "</tr>";
+            "<td align=\"center\"><b>Seq</b></td>";
+        if(graph.useRunLengthReads) {
+            s << "<td align=\"center\"><b>Repeat</b></td>";
+        }
+        s << "</tr>";
 
         // Loop over the infos table for this edge.
         for(const auto& p: edge.infos) {
@@ -1215,7 +1245,22 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 } else {
                     s << "=";
                 }
-                s << "</b></td></tr>";
+                s << "</b></td>";
+
+                // Write out the repeat counts, if necessary.
+                if(graph.useRunLengthReads && !info.repeatCounts.empty()) {
+                    s << "<td align=\"center\"><b>";
+                    for(const uint8_t repeatCount: info.repeatCounts) {
+                        if(repeatCount < 10) {
+                            s << int(repeatCount);
+                        } else {
+                            s << "*";
+                        }
+                    }
+                    s << "</b></td>";
+                }
+
+                s << "</tr>";
             }
         }
 
