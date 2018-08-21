@@ -14,7 +14,7 @@ a group of aligned markers.
 
 
 
-CLASS LocalMarkerGraph VERSUS CLASS LocalMarkerGraph2.
+Class LocalMarkerGraph versus class LocalMarkerGraph2.
 
 Assembler::createLocalMarkerGraph uses class LocalMarkerGraph
 to create a local marker graph from a set of oriented reads,
@@ -291,13 +291,19 @@ public:
     void computeClippedOptimalSpanningTreeBestPath(int maxDistance);
     vector<edge_descriptor> clippedOptimalSpanningTreeBestPath;
 
-    // Use the optimalspanning tree best path to assemble the dominant sequence.
+    // Use the optimal spanning tree best path to assemble the dominant sequence.
     void assembleDominantSequence(int maxDistance, vector< pair<shasta::Base, int> >&);
 
     // Assemble the dominant sequence for a given path.
     void assembleDominantSequence(
         const vector<edge_descriptor>&,
         vector< pair<shasta::Base, int> >&) const;
+
+    // Version of assembleDominantSequence for the case where
+    // we use a run-length representation of the reads.
+    // This  assumes that clippedOptimalSpanningTreeBestPath was
+    // already computed and only creates html output.
+    void assembleDominantSequence(ostream& html) const;
 
     // Approximate topological sort, adding edges
     // in order of decreasing coverage. The topological sort rank

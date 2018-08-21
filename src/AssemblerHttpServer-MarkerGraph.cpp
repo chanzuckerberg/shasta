@@ -136,95 +136,105 @@ void Assembler::exploreMarkerGraph(
         }
         fastaString += "\\n";
 
-        html <<
-            "<h2>Sequence assembled from this local marker graph</h2>"
-            "<h4 style='margin:0'>"
-            "Assembled sequence";;
-        if(assemblerInfo->useRunLengthReads) {
-            html << " in run-length representation";
-        }
-        html << " (" << sequence.size() << " bases).</h4>";
-        html << "<br>Line following sequence is coverage/consensus ("
-            "blank if &ge; 10). Sequence base is lower case if coverage &lt; 10. "
-            "<a id=fastaDownload>Download in FASTA format</a>"
-            "<script>"
-            "var element = document.getElementById('fastaDownload');"
-            "element.setAttribute('href', 'data:text/plain;charset=utf-8,' +"
-            "encodeURIComponent('" << fastaString << "'));"
-            "element.setAttribute('download', '" << fastaFileName << "');"
-            "</script>";
+        html << "<h2>Sequence assembled from this local marker graph</h2>";
 
-        // Labels.
-        if(assemblerInfo->useRunLengthReads) {
-            html << "<pre  style='margin:0' title='Position on run-length representation of assembled sequence'>";
-        } else {
-            html << "<pre  style='margin:0' title='Position on assembled sequence'>";
-        }
-        for(size_t position=0; position<sequence.size(); position+=10) {
-            const string label = to_string(position);
-            html << label;
-            for(size_t i=0; i<10-label.size(); i++) {
-                html << " ";
+
+        if(!assemblerInfo->useRunLengthReads) {
+            html <<
+                "<h4 style='margin:0'>"
+                "Assembled sequence";;
+            if(assemblerInfo->useRunLengthReads) {
+                html << " in run-length representation";
             }
-        }
-        html << "</pre>";
+            html << " (" << sequence.size() << " bases).</h4>";
+            html << "<br>Coverage/consensus ("
+                "blank if &ge; 10) is shown in blue. Sequence base is lower case if coverage &lt; 10. "
+                "<a id=fastaDownload>Download in FASTA format</a>"
+                "<script>"
+                "var element = document.getElementById('fastaDownload');"
+                "element.setAttribute('href', 'data:text/plain;charset=utf-8,' +"
+                "encodeURIComponent('" << fastaString << "'));"
+                "element.setAttribute('download', '" << fastaFileName << "');"
+                "</script>";
 
-        // Scale.
-        if(assemblerInfo->useRunLengthReads) {
-            html << "<pre  style='margin:0' title='Position on run-length representation of assembled sequence'>";
-        } else {
-            html << "<pre  style='margin:0' title='Position on assembled sequence'>";
-        }
-        for(size_t position=0; position<sequence.size(); position++) {
-            if((position%10)==0) {
-                html << "|";
-            } else if((position%5)==0) {
-                html << "+";
+            // Labels.
+            if(assemblerInfo->useRunLengthReads) {
+                html << "<pre  style='margin:0' title='Position on run-length representation of assembled sequence'>";
             } else {
-                html << ".";
+                html << "<pre  style='margin:0' title='Position on assembled sequence'>";
             }
-        }
-        html << "</pre>";
+            for(size_t position=0; position<sequence.size(); position+=10) {
+                const string label = to_string(position);
+                html << label;
+                for(size_t i=0; i<10-label.size(); i++) {
+                    html << " ";
+                }
+            }
+            html << "</pre>";
 
-        // Sequence.
-        if(assemblerInfo->useRunLengthReads) {
-            html << "<pre  style='margin:0' title='Run-length representation of assembled sequence'>";
-        } else {
-            html << "<pre  style='margin:0' title='Assembled sequence'>";
-        }
-        for(const auto& p: sequence) {
-            const auto coverage = p.second;
-            if(coverage < 10) {
-                html << char(std::tolower(p.first.character()));
+            // Scale.
+            if(assemblerInfo->useRunLengthReads) {
+                html << "<pre  style='margin:0' title='Position on run-length representation of assembled sequence'>";
             } else {
-                html << p.first;
+                html << "<pre  style='margin:0' title='Position on assembled sequence'>";
             }
-        }
-        html << "</pre>";
+            for(size_t position=0; position<sequence.size(); position++) {
+                if((position%10)==0) {
+                    html << "|";
+                } else if((position%5)==0) {
+                    html << "+";
+                } else {
+                    html << ".";
+                }
+            }
+            html << "</pre>";
 
-        // Coverage.
-        if(assemblerInfo->useRunLengthReads) {
-            html << "<pre  style='margin:0' title='Coverage/consensus for run-length representation of assembled sequence'>";
-        } else {
-            html << "<pre  style='margin:0' title='Assembled sequence coverage/consensus'>";
-        }
-        for(const auto& p: sequence) {
-            const auto coverage = p.second;
-            if(coverage<10) {
-                html << coverage;
+            // Sequence.
+            if(assemblerInfo->useRunLengthReads) {
+                html << "<pre  style='margin:0' title='Run-length representation of assembled sequence'>";
             } else {
-                html << " ";
+                html << "<pre  style='margin:0' title='Assembled sequence'>";
             }
+            for(const auto& p: sequence) {
+                const auto coverage = p.second;
+                if(coverage < 10) {
+                    html << char(std::tolower(p.first.character()));
+                } else {
+                    html << p.first;
+                }
+            }
+            html << "</pre>";
+
+            // Coverage.
+            if(assemblerInfo->useRunLengthReads) {
+                html << "<pre  style='margin:0;color:blue' title='Coverage/consensus for run-length representation of assembled sequence'>";
+            } else {
+                html << "<pre  style='margin:0;color:blue' title='Assembled sequence coverage/consensus'>";
+            }
+            for(const auto& p: sequence) {
+                const auto coverage = p.second;
+                if(coverage<10) {
+                    html << coverage;
+                } else {
+                    html << " ";
+                }
+            }
+            html << "</pre>";
         }
-        html << "</pre>";
+
+
+
+        if(assemblerInfo->useRunLengthReads) {
+            graph.assembleDominantSequence(html);
+        }
 
         // Also show alignments of oriented reads to assembled sequence.
         html << "<br><h4 style='margin:0'>Marker alignments of assembled sequence to oriented reads</h4>";
         if(assemblerInfo->useRunLengthReads) {
             html << "<br>All read and assembled sequence in this table is "
                 "in run-length representation.";
+            showLocalMarkerGraphAlignments(html, graph, requestParameters);
         }
-        showLocalMarkerGraphAlignments(html, graph, requestParameters);
     }
 
 
@@ -1086,3 +1096,5 @@ void Assembler::showLocalMarkerGraphAlignments(
     // Finish the table
     html << "</table>";
 }
+
+
