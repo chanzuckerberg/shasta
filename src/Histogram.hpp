@@ -2,6 +2,7 @@
 #define CZI_SHASTA_HISTOGRAM_HPP
 
 #include "algorithm.hpp"
+#include <numeric>
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
