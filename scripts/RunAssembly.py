@@ -42,7 +42,7 @@ a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
 a.accessReadsReadWrite();
 a.accessReadNamesReadWrite();
 for fileName in fastaFileNames:  
-    print('Reading input file', fileName) 
+    print('Reading input file', fileName, flush=True) 
     a.addReadsFromFasta(
         fileName = fileName, 
         minReadLength = int(config['Reads']['minReadLength']))
