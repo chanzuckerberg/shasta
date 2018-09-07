@@ -1271,7 +1271,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         if(vertex.distance == maxDistance) {
             color = "cyan";
         } else if(vertex.distance == 0) {
-            color = "lightGreen";
+            color = "#90ee90";
         } else  if(coverage >= minCoverage) {
             color = "black";
         } else {
@@ -1297,7 +1297,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         if(vertex.distance == maxDistance) {
             color = "cyan";
         } else if(vertex.distance == 0) {
-            color = "lightGreen";
+            color = "#90ee90";
         } else if(coverage >= minCoverage) {
             color = "green";
         } else {
@@ -1655,7 +1655,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         if(vertex.distance == maxDistance) {
             color = "cyan";
         } else if(vertex.distance == 0) {
-            color = "lightGreen";
+            color = "#90ee90";
         } else  if(coverage >= minCoverage) {
             color = "black";
         } else if(coverage == 1) {
