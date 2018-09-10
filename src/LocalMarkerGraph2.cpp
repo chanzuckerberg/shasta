@@ -12,11 +12,16 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+// SeqAn.
+#include <seqan/graph_msa.h>
+#include <seqan/version.h>
+
 // Boost libraries.
 // Due to a bug in boost graph include files, disjoint_sets.hpp
 // must be included before graphviz.hpp
 #include <boost/pending/disjoint_sets.hpp>
 #include <boost/icl/interval_set.hpp>
+#include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/topological_sort.hpp>
@@ -220,6 +225,146 @@ void LocalMarkerGraph2::storeEdgeInfo(
         OrderPairsBySizeOfSecondGreater<
         LocalMarkerGraph2Edge::Sequence,
         vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts> >());
+
+}
+
+
+
+// If using the run-length representation of reads,
+// compute SeqAn alignments for all edges.
+void LocalMarkerGraph2::computeSeqanAlignments()
+{
+    if(!useRunLengthReads) {
+        return;
+    }
+    const bool debug = true;
+
+    LocalMarkerGraph2& graph = *this;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+        LocalMarkerGraph2Edge& edge = graph[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        if(debug) {
+            cout << "Computing SeqAn alignment for edge ";
+            cout << graph[v0].vertexId << "->" << graph[v1].vertexId << endl;
+        }
+
+        // Extract the marker sequences.
+        const Kmer kmer0(getKmerId(v0), k);
+        const Kmer kmer1(getKmerId(v1), k);
+        if(debug) {
+            cout << "Marker sequences ";
+            kmer0.write(cout, k);
+            cout << "->";
+            kmer1.write(cout, k);
+            cout << endl;
+        }
+
+
+        // Write the sequences for this edge.
+        if(debug) {
+            cout << "Sequences:" << endl;
+            for(const auto& p: edge.infos) {
+                const auto& sequence = p.first;
+                const auto& infos = p.second;
+                string sequenceString;
+                if(sequence.sequence.empty()) {
+                    sequenceString = to_string(sequence.overlappingBaseCount);
+                } else {
+                    for(const shasta::Base base: sequence.sequence) {
+                        sequenceString.push_back(base.character());
+                    }
+                }
+                for(auto it=infos.begin(); it!=infos.end(); ++it) {
+                    const auto& info = *it;
+                    cout << info.orientedReadId << " ";
+                    cout << info.ordinals[0] << " " << info.ordinals[1] << " ";
+                    cout << sequenceString << endl;
+                }
+            }
+        }
+
+
+
+        // Compute the alignmentInfos.
+        edge.alignmentInfos.clear();
+        for(const auto& p: edge.infos) {
+            const auto& sequence = p.first;
+            const auto& infos = p.second;
+
+            // Construct the extended sequence, which includes marker sequence
+            // on both sides.
+            vector<shasta::Base> extendedSequence;
+            for(size_t i=0; i<k; i++) {
+                extendedSequence.push_back(kmer0[i]);
+            }
+            if(sequence.sequence.empty()) {
+                for(size_t i=sequence.overlappingBaseCount; i<k; i++) {
+                    extendedSequence.push_back(kmer1[i]);
+                }
+            } else {
+                copy(sequence.sequence.begin(), sequence.sequence.end(),
+                    back_inserter(extendedSequence));
+                for(size_t i=0; i<k; i++) {
+                    extendedSequence.push_back(kmer1[i]);
+                }
+            }
+
+            // Loop over all infos for this sequence.
+            for(auto it=infos.begin(); it!=infos.end(); ++it) {
+                const auto& info = *it;
+                LocalMarkerGraph2Edge::AlignmentInfo alignmentInfo;
+                alignmentInfo.orientedReadId = info.orientedReadId;
+                alignmentInfo.ordinals = info.ordinals;
+                alignmentInfo.extendedSequence = extendedSequence;
+                alignmentInfo.repeatCounts = info.repeatCounts;
+                edge.alignmentInfos.push_back(alignmentInfo);
+            }
+        }
+
+
+        // Write the alignmentInfos.
+        if(debug) {
+            cout << "Alignment infos:" << endl;
+            for(const auto& info: edge.alignmentInfos) {
+                cout << info.orientedReadId << " ";
+                cout << info.ordinals[0] << " " << info.ordinals[1] << " ";
+                copy(info.extendedSequence.begin(), info.extendedSequence.end(),
+                    ostream_iterator<shasta::Base>(cout));
+                cout << " ";
+                for(const int count: info.repeatCounts) {
+                    cout << " " << count;
+                }
+                cout << endl;
+            }
+        }
+
+
+
+        // Now we can compute the multiple sequence alignment using SeqAn.
+        static_assert(
+            SEQAN_VERSION_MAJOR==2 &&
+            SEQAN_VERSION_MINOR==4 &&
+            SEQAN_VERSION_PATCH==0,
+            "SeqAn version 2.4.0 is required.");
+        resize(rows(edge.seqanAlignment), edge.alignmentInfos.size());
+        for (size_t i = 0; i <edge.alignmentInfos.size(); i++) {
+            const auto& info = edge.alignmentInfos[i];
+            string sequenceString;
+            for(const shasta::Base base: info.extendedSequence) {
+                sequenceString.push_back(base.character());
+            }
+            seqan::assignSource(seqan::row(edge.seqanAlignment, i), sequenceString);
+        }
+        seqan::globalMsaAlignment(edge.seqanAlignment, seqan::Score<int, seqan::Simple>(0, -1, -1));
+
+        if(debug) {
+            cout << "SeqAn alignment:" << endl;
+            for(size_t i=0; i<edge.alignmentInfos.size(); i++) {
+                std::cout << seqan::row(edge.seqanAlignment, i) << std::endl;
+            }
+        }
+    }
 }
 
 

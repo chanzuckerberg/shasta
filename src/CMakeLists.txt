@@ -4,7 +4,7 @@ project(shasta-library)
 # SET(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Compiler options.
-add_definitions(-std=c++11)
+add_definitions(-std=c++14)
 add_definitions(-ggdb3)
 add_definitions(-O3 -msse4.2)
 add_definitions(-Wall -Wconversion -Wno-unused-result)

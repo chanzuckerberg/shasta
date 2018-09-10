@@ -29,7 +29,7 @@ was done when the global marker graph was created.
 
 *******************************************************************************/
 
-// shasta.
+// Shasta.
 #include "Kmer.hpp"
 #include "MarkerId.hpp"
 #include "MemoryAsContainer.hpp"
@@ -37,6 +37,9 @@ was done when the global marker graph was created.
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
+
+// SeqAn.
+#include <seqan/align.h>
 
 // Standard library.
 #include "iostream.hpp"
@@ -212,6 +215,21 @@ public:
     // If found, returns true.
     // If more than an ordinal pairs is found, the first one is returned.
     bool getOrdinals(OrientedReadId, array<uint32_t, 2>& ordinals) const;
+
+
+
+    // Seqan multiple sequence alignment and data structures used to compute it.
+    // This is only supported when using the run-length representation of reads.
+    seqan::Align<seqan::String<seqan::Dna> > seqanAlignment;
+    class AlignmentInfo {
+    public:
+        OrientedReadId orientedReadId;
+        array<uint32_t, 2> ordinals;
+        vector<Base> extendedSequence;  // Includes marker sequence.
+        vector<uint8_t> repeatCounts;   // Does not include marker sequence.
+    };
+    vector<AlignmentInfo> alignmentInfos;
+
 };
 
 
@@ -363,6 +381,9 @@ public:
         OrientedReadId,
         vector< pair< array<uint32_t, 2>, edge_descriptor> >&) const;
 
+    // If using the run-length representation of reads,
+    // compute SeqAn alignments for all edges.
+    void computeSeqanAlignments();
 
 private:
 

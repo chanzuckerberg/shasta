@@ -13,7 +13,7 @@
 
 <p>
 To download, build and run the <code>shasta</code> software on a
-ubuntu 16.04 machine, the following packages are required:
+ubuntu 16.04 or 18.04 machine, the following packages are required:
 
 <ul>
 <li>git 
@@ -26,6 +26,7 @@ ubuntu 16.04 machine, the following packages are required:
 <li>pybind11
 <li>The png library
 <li>hugepages
+<li>SeqAn 2.4.0
 </ul>
 
 <p>
@@ -33,7 +34,13 @@ Script <code>shasta/scripts/InstallPrerequisites-Ubuntu16.04.sh</code>
 can be used to install these prerequisites. 
 It must be run with root privileges.
 After building the code, this script is also available as
-<code>shasta-install/bin/InstallPrerequisites-Ubuntu16.04.sh</code> 
+<code>shasta-install/bin/InstallPrerequisites-Ubuntu16.04.sh</code>.
+
+<p>
+Note that SeqAn 2.4.0 is not available on standard Ubuntu repositories,
+and <code>shasta/scripts/InstallPrerequisites-Ubuntu16.04.sh</code>
+downloads it from GitHub. 
+See comments in the script for more information.
 
 </body>
 </html>
