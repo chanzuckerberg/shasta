@@ -10,8 +10,8 @@ namespace ChanZuckerberg {
 
         // Types used to represent a k-mer and a k-mer id.
         // These limit the maximum k-mer length that can be used.
-        using Kmer = ShortBaseSequence8;
-        using KmerId = uint16_t;
+        using Kmer = ShortBaseSequence16;
+        using KmerId = uint32_t;
 
         // Check for consistency of these two types.
         static_assert(

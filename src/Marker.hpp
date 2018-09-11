@@ -107,7 +107,8 @@ public:
     Uint24 position;
 
 };
-static_assert(sizeof(ChanZuckerberg::shasta::CompressedMarker) == 5,
+static_assert(sizeof(ChanZuckerberg::shasta::CompressedMarker) ==
+    sizeof(ChanZuckerberg::shasta::KmerId) + sizeof(ChanZuckerberg::shasta::Uint24),
     "Unexpected size of class CompressedMarker.");
 
 
