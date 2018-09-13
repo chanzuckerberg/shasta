@@ -1,7 +1,6 @@
 // shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
-#include "LocalMarkerGraph.hpp"
 #include "LocalMarkerGraph2.hpp"
 #include "LocalReadGraph.hpp"
 #include "timestamp.hpp"
