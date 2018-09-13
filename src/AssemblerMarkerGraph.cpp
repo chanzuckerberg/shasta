@@ -471,88 +471,6 @@ void Assembler::extractLocalMarkerGraph(
 
 
 
-#if 0
-// Old version that uses the old version of
-// getGlobalMarkerGraphVertexChildren and getGlobalMarkerGraphVertexParents,
-// then uses LocalMarkerGraph2::storeEdgeInfo to fill in edge information.
-void Assembler::extractLocalMarkerGraph(
-    OrientedReadId orientedReadId,
-    uint32_t ordinal,
-    int distance,
-    LocalMarkerGraph2& graph
-    )
-{
-
-    using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
-
-    // Add the start vertex.
-    const GlobalMarkerGraphVertexId startVertexId =
-        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-    if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
-        return;
-    }
-    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
-
-    // Do the BFS. Do not add the edges now.
-    // We will add the edges later.
-    std::queue<vertex_descriptor> q;
-    if(distance > 0) {
-        q.push(vStart);
-    }
-    vector<GlobalMarkerGraphVertexId> neighbors;
-    while(!q.empty()) {
-
-        // Dequeue a vertex.
-        const vertex_descriptor v0 = q.front();
-        q.pop();
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
-        const int distance0 = vertex0.distance;
-        const int distance1 = distance0 + 1;
-
-        // Get the neighbors.
-        neighbors.clear();
-        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, true);
-        getGlobalMarkerGraphVertexParents (vertexId0, neighbors, true);
-
-        // Loop over the neighbors.
-        for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
-            bool vertexExists;
-            tie(vertexExists, ignore) = graph.findVertex(vertexId1);
-            if(!vertexExists) {
-                const vertex_descriptor v1 = graph.addVertex(
-                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
-                if(distance1 < distance) {
-                    q.push(v1);
-                }
-            }
-        }
-    }
-
-
-    // Now we can add the edges.
-    BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph2) {
-        const GlobalMarkerGraphVertexId vertexId0 = graph[v0].vertexId;
-        getGlobalMarkerGraphVertexChildren(vertexId0, neighbors, false);
-        for(const GlobalMarkerGraphVertexId vertexId1: neighbors) {
-            bool vertexExists;
-            vertex_descriptor v1;
-            tie(vertexExists, v1) = graph.findVertex(vertexId1);
-            if(vertexExists) {
-                LocalMarkerGraph2::edge_descriptor  e;
-                bool edgeWasAdded = false;
-                tie(e, edgeWasAdded) = add_edge(v0, v1, graph);
-                CZI_ASSERT(edgeWasAdded);
-                graph.storeEdgeInfo(e);
-            }
-        }
-    }
-
-}
-#else
-
-
-
 bool Assembler::extractLocalMarkerGraph(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
@@ -757,7 +675,6 @@ bool Assembler::extractLocalMarkerGraph(
     // graph.computeSeqanAlignments();
     return true;
 }
-#endif
 
 
 
