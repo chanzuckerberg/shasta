@@ -561,16 +561,30 @@ bool Assembler::extractLocalMarkerGraph(
     LocalMarkerGraph2& graph
     )
 {
+    const GlobalMarkerGraphVertexId startVertexId =
+        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+    return extractLocalMarkerGraph(startVertexId, distance, timeout, graph);
+
+}
+
+
+
+bool Assembler::extractLocalMarkerGraph(
+    GlobalMarkerGraphVertexId startVertexId,
+    int distance,
+    double timeout,                 // Or 0 for no timeout.
+    LocalMarkerGraph2& graph
+    )
+{
+
 
     using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
     using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
     const auto startTime = steady_clock::now();
 
     // Add the start vertex.
-    const GlobalMarkerGraphVertexId startVertexId =
-        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
-        return true;
+        return true;    // Because no timeout occurred.
     }
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
 
@@ -591,7 +605,7 @@ bool Assembler::extractLocalMarkerGraph(
     while(!q.empty()) {
 
         // See if we exceeded the timeout.
-        if(seconds(steady_clock::now() - startTime) > timeout) {
+        if(timeout>0. && seconds(steady_clock::now() - startTime) > timeout) {
             graph.clear();
             return false;
         }
@@ -744,6 +758,47 @@ bool Assembler::extractLocalMarkerGraph(
     return true;
 }
 #endif
+
+
+
+// Create a local marker graph and return its local assembly path.
+// The local marker graph is specified by its start vertex
+// and maximum distance (number of edges) form the start vertex.
+vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
+    GlobalMarkerGraphVertexId startVertexId,
+    int maxDistance
+    )
+{
+
+    // Create the local marker graph.
+    LocalMarkerGraph2 graph(
+        uint32_t(assemblerInfo->k),
+        reads,
+        assemblerInfo->useRunLengthReads,
+        readRepeatCounts,
+        markers,
+        globalMarkerGraphVertex);
+    extractLocalMarkerGraph(startVertexId, maxDistance, 0., graph);
+
+    // Construct the local assembly path.
+    graph.approximateTopologicalSort();
+    graph.computeOptimalSpanningTree();
+    graph.computeOptimalSpanningTreeBestPath();
+    graph.computeClippedOptimalSpanningTreeBestPath(maxDistance);
+
+    // Get the vertex ids in the assembly path.
+    vector<GlobalMarkerGraphVertexId> path;
+    if(!graph.clippedOptimalSpanningTreeBestPath.empty()) {
+        LocalMarkerGraph2::edge_descriptor e = graph.clippedOptimalSpanningTreeBestPath.front();
+        const LocalMarkerGraph2::vertex_descriptor v = source(e, graph);
+        path.push_back(graph[v].vertexId);
+        for(LocalMarkerGraph2::edge_descriptor e: graph.clippedOptimalSpanningTreeBestPath) {
+            const LocalMarkerGraph2::vertex_descriptor v = target(e, graph);
+            path.push_back(graph[v].vertexId);
+        }
+    }
+    return path;
+}
 
 
 

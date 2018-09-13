@@ -290,6 +290,16 @@ public:
 
 
 
+    // Create a local marker graph and return its local assembly path.
+    // The local marker graph is specified by its start vertex
+    // and maximum distance (number of edges) form the start vertex.
+    vector<GlobalMarkerGraphVertexId> getLocalAssemblyPath(
+        GlobalMarkerGraphVertexId,
+        int maxDistance
+        );
+
+
+
     // Compute connectivity of the global marker graph.
     // This code is currently not in use.
     // Vertices with more than markerCountOverflow are skipped.
@@ -833,6 +843,12 @@ private:
     bool extractLocalMarkerGraph(
         OrientedReadId,
         uint32_t ordinal,
+        int distance,
+        double timeout,                 // Or 0 for no timeout.
+        LocalMarkerGraph2&
+        );
+    bool extractLocalMarkerGraph(
+        GlobalMarkerGraphVertexId,
         int distance,
         double timeout,                 // Or 0 for no timeout.
         LocalMarkerGraph2&

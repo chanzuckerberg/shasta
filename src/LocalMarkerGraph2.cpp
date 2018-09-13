@@ -499,8 +499,8 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
     }
     std::reverse(optimalSpanningTreeBestPath.begin(), optimalSpanningTreeBestPath.end());
     /*
-    cout << "Longest path:" << endl;
-    for(const edge_descriptor e: longestPath) {
+    cout << "Optimal spanning tree best path:" << endl;
+    for(const edge_descriptor e: optimalSpanningTreeBestPath) {
         cout << graph[source(e, graph)].vertexId << " " << graph[target(e, graph)].vertexId << endl;
     }
     */

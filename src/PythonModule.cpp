@@ -268,6 +268,10 @@ PYBIND11_MODULE(shasta, module)
         arg("ordinal"),
         arg("distance"),
         arg("minCoverage"))
+        .def("getLocalAssemblyPath",
+            &Assembler::getLocalAssemblyPath,
+            arg("startVertexId"),
+            arg("maxDistance"))
 
 
         // Connectivity of the global marker graph.
@@ -297,6 +301,13 @@ PYBIND11_MODULE(shasta, module)
 
         // Definition of class_<Assembler> ends here.
     ;
+
+
+
+    // Constants.
+    module.attr("invalidGlobalMarkerGraphVertexId") = invalidGlobalMarkerGraphVertexId;
+    module.attr("invalidCompressedGlobalMarkerGraphVertexId") =
+        uint64_t(invalidCompressedGlobalMarkerGraphVertexId);
 
 
 
