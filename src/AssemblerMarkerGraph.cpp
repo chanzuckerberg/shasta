@@ -701,15 +701,15 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
     graph.approximateTopologicalSort();
     graph.computeOptimalSpanningTree();
     graph.computeOptimalSpanningTreeBestPath();
-    graph.computeClippedOptimalSpanningTreeBestPath(maxDistance);
+    graph.computeLocalAssemblyPath(maxDistance);
 
     // Get the vertex ids in the assembly path.
     vector<GlobalMarkerGraphVertexId> path;
-    if(!graph.clippedOptimalSpanningTreeBestPath.empty()) {
-        LocalMarkerGraph2::edge_descriptor e = graph.clippedOptimalSpanningTreeBestPath.front();
+    if(!graph.localAssemblyPath.empty()) {
+        LocalMarkerGraph2::edge_descriptor e = graph.localAssemblyPath.front();
         const LocalMarkerGraph2::vertex_descriptor v = source(e, graph);
         path.push_back(graph[v].vertexId);
-        for(LocalMarkerGraph2::edge_descriptor e: graph.clippedOptimalSpanningTreeBestPath) {
+        for(LocalMarkerGraph2::edge_descriptor e: graph.localAssemblyPath) {
             const LocalMarkerGraph2::vertex_descriptor v = target(e, graph);
             path.push_back(graph[v].vertexId);
         }

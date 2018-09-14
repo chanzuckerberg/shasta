@@ -568,14 +568,21 @@ void LocalMarkerGraph2::clipPath(
 }
 
 
-// Clip the optimalSpanningTreeBestPath to remove
-// any vertices at maximum distance.
-void LocalMarkerGraph2::computeClippedOptimalSpanningTreeBestPath(int maxDistance)
+
+// The local assembly path is a clipped version of optimalSpanningTreeBestPath,
+// in which vertices at maximum distance are removed.
+void LocalMarkerGraph2::computeLocalAssemblyPath(int maxDistance)
 {
     clipPath(
         maxDistance,
         optimalSpanningTreeBestPath,
-        clippedOptimalSpanningTreeBestPath);
+        localAssemblyPath);
+
+    // Mark the edges on the local assembly path.
+    LocalMarkerGraph2& graph = *this;
+    for(const edge_descriptor e: localAssemblyPath) {
+        graph[e].isLocalAssemblyPathEdge = true;
+    }
 }
 
 
@@ -587,8 +594,8 @@ void LocalMarkerGraph2::assembleDominantSequence(
     vector< pair<shasta::Base, int> >& sequence)
 {
     CZI_ASSERT(!optimalSpanningTreeBestPath.empty());
-    computeClippedOptimalSpanningTreeBestPath(maxDistance);
-    assembleDominantSequence(clippedOptimalSpanningTreeBestPath, sequence);
+    computeLocalAssemblyPath(maxDistance);
+    assembleDominantSequence(localAssemblyPath, sequence);
 
 }
 
@@ -684,7 +691,7 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
 {
     // Shorthands.
     const LocalMarkerGraph2& graph = *this;
-    const vector<edge_descriptor>& path = clippedOptimalSpanningTreeBestPath;
+    const vector<edge_descriptor>& path = localAssemblyPath;
     using MarkerInfo = LocalMarkerGraph2Vertex::MarkerInfo;
     using InfoWithRepeatCounts = LocalMarkerGraph2Edge::InfoWithRepeatCounts;
     using Sequence = LocalMarkerGraph2Edge::Sequence;
@@ -1116,7 +1123,7 @@ void LocalMarkerGraph2::removeAllExceptClippedOptimalPath()
     // Find the vertices and edges to be kept.
     std::set<vertex_descriptor> verticesToBeKept;
     std::set<edge_descriptor> edgesToBeKept;
-    for(const edge_descriptor e: clippedOptimalSpanningTreeBestPath) {
+    for(const edge_descriptor e: localAssemblyPath) {
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         verticesToBeKept.insert(v0);

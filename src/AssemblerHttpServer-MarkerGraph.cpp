@@ -750,7 +750,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     html <<
         "<tr title='Assembled sequence' style='background-color:pink'>"
         "<th style='text-align:left'>Assembled sequence";
-    const vector<edge_descriptor>& assemblyPath = graph.clippedOptimalSpanningTreeBestPath;
+    const vector<edge_descriptor>& assemblyPath = graph.localAssemblyPath;
 
     // Verify that rank increases along the assembly path.
     bool assemblyPathViolatesRankOrder = false;

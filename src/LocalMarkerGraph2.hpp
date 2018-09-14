@@ -208,6 +208,11 @@ public:
     // Set by computeOptimalSpanningTreeBestPath().
     bool isSpanningTreeBestPathEdge = false;
 
+    // Flag that is true if this edge belongs to the local assembly path
+    // (clipped version of the best oath on the optimal spanning tree).
+    // Set by computeLocalAssemblyPath().
+    bool isLocalAssemblyPathEdge = false;
+
     // Field used by approximateTopologicalSort.
     bool isDagEdge = true;
 
@@ -303,11 +308,11 @@ public:
     void computeOptimalSpanningTreeBestPath();
     vector<edge_descriptor> optimalSpanningTreeBestPath;
 
-    // Clipped version of optimalSpanningTreeBestPath, to remove
-    // any vertices at maximum distance.
+    // The local assembly path is a clipped version of optimalSpanningTreeBestPath,
+    // in which vertices at maximum distance are removed.
     // This is used by assembleDominantSequence.
-    void computeClippedOptimalSpanningTreeBestPath(int maxDistance);
-    vector<edge_descriptor> clippedOptimalSpanningTreeBestPath;
+    void computeLocalAssemblyPath(int maxDistance);
+    vector<edge_descriptor> localAssemblyPath;
 
     // Use the optimal spanning tree best path to assemble the dominant sequence.
     void assembleDominantSequence(int maxDistance, vector< pair<shasta::Base, int> >&);
