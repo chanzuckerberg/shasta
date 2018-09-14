@@ -230,8 +230,8 @@ public:
     public:
         OrientedReadId orientedReadId;
         array<uint32_t, 2> ordinals;
-        vector<Base> extendedSequence;  // Includes marker sequence.
-        vector<uint8_t> repeatCounts;   // Does not include marker sequence.
+        vector<Base> sequence;
+        vector<uint8_t> repeatCounts;
     };
     vector<AlignmentInfo> alignmentInfos;
 
@@ -320,7 +320,7 @@ public:
     // Assemble the dominant sequence for a given path.
     void assembleDominantSequence(
         const vector<edge_descriptor>&,
-        vector< pair<shasta::Base, int> >&) const;
+        vector< pair<shasta::Base, int> >&);
 
     // Version of assembleDominantSequence for the case where
     // we use a run-length representation of the reads.

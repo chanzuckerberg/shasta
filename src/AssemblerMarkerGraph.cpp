@@ -669,10 +669,6 @@ bool Assembler::extractLocalMarkerGraph(
     // Fill in the oriented read ids represented in the graph.
     graph.findOrientedReadIds();
 
-    // If using the run-length representation of reads,
-    // also compute SeqAn alignments for all edges.
-    // This is work in progress and not yet activated.
-    // graph.computeSeqanAlignments();
     return true;
 }
 

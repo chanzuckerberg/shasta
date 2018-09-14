@@ -231,17 +231,23 @@ void LocalMarkerGraph2::storeEdgeInfo(
 
 
 // If using the run-length representation of reads,
-// compute SeqAn alignments for all edges.
+// compute SeqAn alignments for all edges on the local assembly path.
 void LocalMarkerGraph2::computeSeqanAlignments()
 {
-    if(!useRunLengthReads) {
-        return;
-    }
+    CZI_ASSERT(useRunLengthReads);
     const bool debug = true;
 
     LocalMarkerGraph2& graph = *this;
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    for(const edge_descriptor e: localAssemblyPath) {
         LocalMarkerGraph2Edge& edge = graph[e];
+        CZI_ASSERT(!edge.infos.empty());
+
+        // If the edge is not ambiguous, there is no need
+        // to compute the alignment.
+        if(edge.infos.size() == 1) {
+            continue;
+        }
+
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         if(debug) {
@@ -249,6 +255,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             cout << graph[v0].vertexId << "->" << graph[v1].vertexId << endl;
         }
 
+        /*
         // Extract the marker sequences.
         const Kmer kmer0(getKmerId(v0), k);
         const Kmer kmer1(getKmerId(v1), k);
@@ -259,10 +266,11 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             kmer1.write(cout, k);
             cout << endl;
         }
+        */
 
 
         // Write the sequences for this edge.
-        if(debug) {
+        if(false) {
             cout << "Sequences:" << endl;
             for(const auto& p: edge.infos) {
                 const auto& sequence = p.first;
@@ -292,31 +300,13 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             const auto& sequence = p.first;
             const auto& infos = p.second;
 
-            // Construct the extended sequence, which includes marker sequence
-            // on both sides.
-            vector<shasta::Base> extendedSequence;
-            for(size_t i=0; i<k; i++) {
-                extendedSequence.push_back(kmer0[i]);
-            }
-            if(sequence.sequence.empty()) {
-                for(size_t i=sequence.overlappingBaseCount; i<k; i++) {
-                    extendedSequence.push_back(kmer1[i]);
-                }
-            } else {
-                copy(sequence.sequence.begin(), sequence.sequence.end(),
-                    back_inserter(extendedSequence));
-                for(size_t i=0; i<k; i++) {
-                    extendedSequence.push_back(kmer1[i]);
-                }
-            }
-
             // Loop over all infos for this sequence.
             for(auto it=infos.begin(); it!=infos.end(); ++it) {
                 const auto& info = *it;
                 LocalMarkerGraph2Edge::AlignmentInfo alignmentInfo;
                 alignmentInfo.orientedReadId = info.orientedReadId;
                 alignmentInfo.ordinals = info.ordinals;
-                alignmentInfo.extendedSequence = extendedSequence;
+                alignmentInfo.sequence = sequence.sequence;
                 alignmentInfo.repeatCounts = info.repeatCounts;
                 edge.alignmentInfos.push_back(alignmentInfo);
             }
@@ -329,7 +319,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             for(const auto& info: edge.alignmentInfos) {
                 cout << info.orientedReadId << " ";
                 cout << info.ordinals[0] << " " << info.ordinals[1] << " ";
-                copy(info.extendedSequence.begin(), info.extendedSequence.end(),
+                copy(info.sequence.begin(), info.sequence.end(),
                     ostream_iterator<shasta::Base>(cout));
                 cout << " ";
                 for(const int count: info.repeatCounts) {
@@ -351,7 +341,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
         for (size_t i = 0; i <edge.alignmentInfos.size(); i++) {
             const auto& info = edge.alignmentInfos[i];
             string sequenceString;
-            for(const shasta::Base base: info.extendedSequence) {
+            for(const shasta::Base base: info.sequence) {
                 sequenceString.push_back(base.character());
             }
             seqan::assignSource(seqan::row(edge.seqanAlignment, i), sequenceString);
@@ -361,9 +351,139 @@ void LocalMarkerGraph2::computeSeqanAlignments()
         if(debug) {
             cout << "SeqAn alignment:" << endl;
             for(size_t i=0; i<edge.alignmentInfos.size(); i++) {
-                std::cout << seqan::row(edge.seqanAlignment, i) << std::endl;
+                cout << seqan::row(edge.seqanAlignment, i) << " " << i << endl;
             }
+            cout << "Repeat counts on SeqAn alignment:" << endl;
+            for(size_t i=0; i<edge.alignmentInfos.size(); i++) {
+                const seqan::Gaps< seqan::String<seqan::Dna> >& alignmentRow =
+                    seqan::row(edge.seqanAlignment, i);
+                const auto n = seqan::length(alignmentRow);
+                size_t position = 0;
+                for(size_t j=0; j<n; j++) {
+                    if(seqan::isGap(alignmentRow, j)) {
+                        cout << "-";
+                    } else {
+                        const int repeatCount = edge.alignmentInfos[i].repeatCounts[position++];
+                        if(repeatCount < 10) {
+                            cout << repeatCount;
+                        } else {
+                            cout << "*";
+                        }
+                    }
+                }
+                cout << " " << i << endl;
+            }
+
+            /*
+            // See what we have at each position of the alignment.
+            const size_t n = seqan::length(seqan::row(edge.seqanAlignment, 0));
+            vector<size_t> positions(edge.alignmentInfos.size(), 0);
+            for(size_t i=0; i<n; i++) {
+                cout << "Alignment position " << i << endl;
+                for(size_t j=0; j<edge.alignmentInfos.size(); j++) {
+                    char baseCharacter = '-';
+                    int repeatCount = 1;
+                    if(!seqan::isGap(seqan::row(edge.seqanAlignment, j), i)) {
+                        baseCharacter = edge.alignmentInfos[j].sequence[positions[j]].character();
+                        repeatCount = edge.alignmentInfos[j].repeatCounts[positions[j]];
+                        ++positions[j];
+                    }
+                    cout << baseCharacter << repeatCount << " ";
+                }
+                cout << endl;
+            }
+            */
         }
+
+
+
+        // Loop over alignment positions.
+        vector<shasta::Base> consensusSequence;
+        const size_t n = seqan::length(seqan::row(edge.seqanAlignment, 0));
+        vector<size_t> positions(edge.alignmentInfos.size(), 0);
+        vector<size_t> baseInteger(edge.alignmentInfos.size()); // 0=C 1=C 2=G 3=T 4=-
+        vector<size_t> repeatCount(edge.alignmentInfos.size());
+        for(size_t i=0; i<n; i++) {
+
+            // Fill in the base and repeat count at this position
+            // of the alignment for each read that participates in the alignment.
+            for(size_t j=0; j<edge.alignmentInfos.size(); j++) {
+                baseInteger[j] = 4;
+                repeatCount[j] = 1;
+                if(!seqan::isGap(seqan::row(edge.seqanAlignment, j), i)) {
+                    baseInteger[j] = edge.alignmentInfos[j].sequence[positions[j]].value;
+                    repeatCount[j] = edge.alignmentInfos[j].repeatCounts[positions[j]];
+                    ++positions[j];
+                }
+            }
+
+            // Create a histogram of the base.
+            array<int, 5> baseHistogram;
+            fill(baseHistogram.begin(), baseHistogram.end(), 0);
+            for(const size_t b: baseInteger) {
+                ++baseHistogram[b];
+            }
+
+            // Find the most frequent base.
+            const size_t bestBase = std::max_element(baseHistogram.begin(), baseHistogram.end())
+                - baseHistogram.begin();
+            // const size_t bestFrequency = baseHistogram[bestBase];
+            using shasta::Base;
+            /*
+            cout << "Alignment position " << i << ": best base ";
+            if(bestBase < 4) {
+                cout << Base(uint8_t(bestBase), Base::FromInteger());
+            } else {
+                cout << "-";
+            }
+            cout << ", coverage " << bestFrequency;
+            */
+
+            if(bestBase < 4) {
+
+                // Create a histogram of repeat counts for this base.
+                vector<size_t> repeatCountHistogram;
+                for(size_t j=0; j<baseInteger.size(); j++) {
+                    if(baseInteger[j] == bestBase) {
+                        if(repeatCount[j] >= repeatCountHistogram.size()) {
+                            repeatCountHistogram.resize(repeatCount[j]+1, 0);
+                        }
+                        ++repeatCountHistogram[repeatCount[j]];
+                    }
+                }
+                /*
+                cout << "Repeat count histogram:";
+                for(size_t r=0; r<repeatCountHistogram.size(); r++) {
+                    if(repeatCountHistogram[r]) {
+                        cout << " " << r << ":" << repeatCountHistogram[r];
+                    }
+                }
+                */
+
+                // Find the most frequent repeat count.
+                const size_t bestRepeatCount = std::max_element(repeatCountHistogram.begin(), repeatCountHistogram.end())
+                    - repeatCountHistogram.begin();
+                // const size_t bestRepeatCountFrequency = repeatCountHistogram[bestRepeatCount];
+
+                /*
+                cout << ", best repeat count " << bestRepeatCount;
+                cout << ", coverage " << bestRepeatCountFrequency;
+                cout << endl;
+                */
+                for(size_t k=0; k<bestRepeatCount; k++) {
+                    consensusSequence.push_back(Base(uint8_t(bestBase), Base::FromInteger()));
+                }
+            } else {
+                // cout << endl;
+            }
+
+        }
+        cout << "Consensus sequence:" << endl;
+        copy(consensusSequence.begin(), consensusSequence.end(),
+            ostream_iterator<shasta::Base>(cout));
+        cout << endl;
+
+
     }
 }
 
@@ -603,10 +723,16 @@ void LocalMarkerGraph2::assembleDominantSequence(
 // Assemble the dominant sequence for a given path.
 void LocalMarkerGraph2::assembleDominantSequence(
     const vector<edge_descriptor>& path,
-    vector< pair<shasta::Base, int> >& sequence) const
+    vector< pair<shasta::Base, int> >& sequence)
 {
     CZI_ASSERT(!path.empty());
     const LocalMarkerGraph2& graph = *this;
+
+    // This is only used with the run-length representation of reads.
+    CZI_ASSERT(useRunLengthReads);
+
+    // Compute SeqAn alignments for all edges on the local assembly path.
+    // computeSeqanAlignments();
 
     // Start with empty sequence.
     sequence.clear();
