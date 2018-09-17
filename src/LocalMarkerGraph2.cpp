@@ -235,7 +235,7 @@ void LocalMarkerGraph2::storeEdgeInfo(
 void LocalMarkerGraph2::computeSeqanAlignments()
 {
     CZI_ASSERT(useRunLengthReads);
-    const bool debug = true;
+    const bool debug = false;
 
     LocalMarkerGraph2& graph = *this;
     for(const edge_descriptor e: localAssemblyPath) {
@@ -492,10 +492,12 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             }
 
         }
-        cout << "Consensus sequence:" << endl;
-        copy(consensusSequence.begin(), consensusSequence.end(),
-            ostream_iterator<shasta::Base>(cout));
-        cout << endl;
+        if(debug) {
+            cout << "Consensus sequence:" << endl;
+            copy(consensusSequence.begin(), consensusSequence.end(),
+                ostream_iterator<shasta::Base>(cout));
+            cout << endl;
+        }
 
 
     }
@@ -1808,7 +1810,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
         s << " bgcolor=\"" << labelColor << "\"";
         s << " border=\"0\"";
         s << " cellborder=\"1\"";
-        s << " cellspacing=\"0\"";
+        s << " cellspacing=\"1\"";
         s << ">";
 
         // Consensus and coverage.
@@ -1897,6 +1899,73 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             }
         }
 
+
+
+        // If the SeqAn alignment was computed, also write it to the table.
+        if(edge.seqanAlignmentWasComputed) {
+            s << "<tr><td colspan=\"" << columnCount << "\"><b>SeqAn alignment</b></td></tr>";
+
+            // Add one row to the table for each read.
+            for(size_t i=0; i<edge.alignmentInfos.size(); i++) {
+                const auto& alignmentInfo = edge.alignmentInfos[i];
+
+                // Begin a new row of the table.
+                s << "<tr>";
+
+                // Read id and ordinals.
+                s << "<td align=\"right\"";
+                s << " href=\"exploreRead?readId&amp;" << alignmentInfo.orientedReadId.getReadId();
+                s << "&amp;strand=" << alignmentInfo.orientedReadId.getStrand() << "\"";
+                s << "><font color=\"blue\"><b><u>" << alignmentInfo.orientedReadId << "</u></b></font></td>";
+
+                s << "<td align=\"right\"";
+                s << " href=\"exploreRead?readId&amp;" << alignmentInfo.orientedReadId.getReadId();
+                s << "&amp;strand=" << alignmentInfo.orientedReadId.getStrand();
+                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[0];
+                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[1];
+                s << "\"";
+                s << "><font color=\"blue\"><b><u>" << alignmentInfo.ordinals[0] << "</u></b></font></td>";
+
+                s << "<td align=\"right\"";
+                s << " href=\"exploreRead?readId&amp;" << alignmentInfo.orientedReadId.getReadId();
+                s << "&amp;strand=" << alignmentInfo.orientedReadId.getStrand();
+                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[0];
+                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[1];
+                s << "\"";
+                s << "><font color=\"blue\"><b><u>" << alignmentInfo.ordinals[1] << "</u></b></font></td>";
+
+                // SeqAn alignment.
+                const seqan::Gaps< seqan::String<seqan::Dna> >& alignmentRow =
+                    seqan::row(edge.seqanAlignment, i);
+                s << "<td><b>" << alignmentRow << "</b></td>";
+
+                // Repeat counts on SeqAn alignment.
+                s << "<td><b>";
+                const auto n = seqan::length(alignmentRow);
+                size_t position = 0;
+                for(size_t j=0; j<n; j++) {
+                    if(seqan::isGap(alignmentRow, j)) {
+                        s << "-";
+                    } else {
+                        const int repeatCount = edge.alignmentInfos[i].repeatCounts[position++];
+                        if(repeatCount < 10) {
+                            s << repeatCount;
+                        } else {
+                            s << "*";
+                        }
+                    }
+                }
+                s << "</b></td>";
+
+                // End this row of the table.
+                s << "</tr>";
+            }
+
+        }
+
+
+
+        // End the label.
         s << "</table></font>> decorate=true";
 
 
