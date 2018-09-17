@@ -236,6 +236,28 @@ public:
     };
     vector<AlignmentInfo> alignmentInfos;
 
+
+
+    // Use the SeqAn alignment to compute consensus sequence.
+    class ConsensusInfo {
+    public:
+
+        // Coverage for ACGT-.
+        array<size_t, 5> baseCoverage = {{0, 0, 0, 0, 0}};
+
+        // Character representing the best base of gap. Can be one of "ACGT-".
+        char bestBaseCharacter = 'N';
+
+        // Coverage for individual repeat counts for each base.
+        array<vector<size_t>, 4> repeatCountCoverage;
+
+        // The best repeat count for the best base.
+        // Will be 0 if bestBaseCharacter=='-'.
+        size_t bestBaseBestRepeatCount = 0;
+    };
+    vector<ConsensusInfo> seqanConsensus;    // Including positions that have a '-' (gap).
+    void computeSeqanConsensus();
+
 };
 
 

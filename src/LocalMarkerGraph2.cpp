@@ -499,7 +499,114 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             cout << endl;
         }
 
+        edge.computeSeqanConsensus();
+    }
+}
 
+
+
+void LocalMarkerGraph2Edge::computeSeqanConsensus()
+{
+    CZI_ASSERT(seqanAlignmentWasComputed);
+    const bool debug = false;
+
+
+    // Loop over all positions of the alignment.
+    const size_t n = seqan::length(seqan::row(seqanAlignment, 0));
+    const size_t m = alignmentInfos.size();
+    vector<size_t> positions(m, 0);
+    seqanConsensus.resize(n);
+    for(size_t i=0; i<n; i++) {
+        ConsensusInfo& consensusInfo =seqanConsensus[i];
+
+        // Loop over all reads in the alignment to compute coverage
+        // histograms at this position for base and repeat count.
+        for(size_t j=0; j<m; j++) {
+            if(seqan::isGap(seqan::row(seqanAlignment, j), i)) {
+                ++consensusInfo.baseCoverage[4];
+            } else {
+                const shasta::Base base = alignmentInfos[j].sequence[positions[j]];
+                const size_t repeatCount = alignmentInfos[j].repeatCounts[positions[j]];
+                ++positions[j];
+
+                // Increment coverage for this base.
+                ++consensusInfo.baseCoverage[base.value];
+
+                // Increment coverage for this base and repeat count.
+                auto& repeatCountHistogram = consensusInfo.repeatCountCoverage[base.value];
+                if(repeatCountHistogram.size() <= repeatCount) {
+                    repeatCountHistogram.resize(repeatCount+1, 0);
+                }
+                ++repeatCountHistogram[repeatCount];
+            }
+        }
+
+        // Find the base with the most coverage.
+        const size_t bestBaseInteger =
+            std::max_element(consensusInfo.baseCoverage.begin(), consensusInfo.baseCoverage.end()) -
+            consensusInfo.baseCoverage.begin();
+        if(bestBaseInteger < 4) {
+            consensusInfo.bestBaseCharacter =
+                shasta::Base(uint8_t(bestBaseInteger), shasta::Base::FromInteger()).character();
+        } else {
+            consensusInfo.bestBaseCharacter = '-';
+        }
+
+        // Find the repeat count with the most coverage, for this base.
+        if(consensusInfo.bestBaseCharacter != '-') {
+            const auto& v = consensusInfo.repeatCountCoverage[bestBaseInteger];
+            consensusInfo.bestBaseBestRepeatCount =
+                std::max_element(v.begin(), v.end()) - v.begin();
+        }
+
+
+        if(false) {
+            cout << i << " ";
+            for(uint8_t base=0; base<5; base++) {
+                const size_t coverage = consensusInfo.baseCoverage[base];
+                if(coverage) {
+                    if(base<4) {
+                        cout << shasta::Base(base, shasta::Base::FromInteger());
+                    } else {
+                        cout << "-";
+                    }
+                    cout << ":" << coverage << " ";
+                }
+            }
+            cout << "Best base: " << consensusInfo.bestBaseCharacter << ". ";
+            for(uint8_t base=0; base<4; base++) {
+                const auto& v = consensusInfo.repeatCountCoverage[base];
+                for(size_t c=0; c<v.size(); c++) {
+                    if(v[c]) {
+                        cout << shasta::Base(base, shasta::Base::FromInteger());
+                        cout << c << ":" << v[c] << " ";
+                    }
+                }
+            }
+            cout << " Best base repeat count: " << consensusInfo.bestBaseBestRepeatCount;
+            cout << endl;
+        }
+    }
+
+    if(debug) {
+        for(size_t i=0; i<n; i++) {
+            ConsensusInfo& consensusInfo =seqanConsensus[i];
+            cout << consensusInfo.bestBaseCharacter;
+        }
+        cout << endl;
+        for(size_t i=0; i<n; i++) {
+            ConsensusInfo& consensusInfo =seqanConsensus[i];
+            if(consensusInfo.bestBaseCharacter == '-') {
+                cout << "-";
+            } else {
+                if(consensusInfo.bestBaseBestRepeatCount < 10) {
+                    cout << consensusInfo.bestBaseBestRepeatCount;
+                } else {
+                    cout << "*";
+                }
+            }
+        }
+        cout << endl;
     }
 }
 
@@ -1960,6 +2067,43 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 // End this row of the table.
                 s << "</tr>";
             }
+
+
+            // Seqan consensus (run-length sequence).
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (run-length)</b></td>";
+            s << "<td><b>";
+            for(const auto& consensusInfo: edge.seqanConsensus) {
+                s << consensusInfo.bestBaseCharacter;
+            }
+            s << "</b></td>";
+            s << "<td><b>";
+            for(const auto& consensusInfo: edge.seqanConsensus) {
+                if(consensusInfo.bestBaseCharacter == '-') {
+                    s << "-";
+                } else {
+                    if(consensusInfo.bestBaseBestRepeatCount < 10) {
+                        s << consensusInfo.bestBaseBestRepeatCount;
+                    } else {
+                        s << "*";
+                    }
+                }
+            }
+            s << "</b></td>";
+            s << "</tr>";
+
+
+            // Seqan consensus (raw sequence).
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw)</b></td>";
+            s << "<td colspan=\"2\"><b>";
+            for(const auto& consensusInfo: edge.seqanConsensus) {
+                if(consensusInfo.bestBaseCharacter != '-') {
+                    for(size_t k=0; k<consensusInfo.bestBaseBestRepeatCount; k++) {
+                        s << consensusInfo.bestBaseCharacter;
+                    }
+                }
+            }
+            s << "</b></td>";
+            s << "</tr>";
 
         }
 
