@@ -226,6 +226,7 @@ public:
     // Seqan multiple sequence alignment and data structures used to compute it.
     // This is only supported when using the run-length representation of reads.
     seqan::Align<seqan::String<seqan::Dna> > seqanAlignment;
+    bool seqanAlignmentWasComputed = false;
     class AlignmentInfo {
     public:
         OrientedReadId orientedReadId;

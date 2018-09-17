@@ -248,6 +248,19 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             continue;
         }
 
+        // SeqAn multiple sequence alignment does not support empty sequences.
+        // Skip it if we have any empty sequences.
+        bool emptySequencesFound = false;
+        for(const auto& p: edge.infos) {
+            if(p.first.sequence.empty()) {
+                emptySequencesFound = true;
+                break;
+            }
+        }
+        if(emptySequencesFound) {
+            continue;
+        }
+
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         if(debug) {
@@ -347,6 +360,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             seqan::assignSource(seqan::row(edge.seqanAlignment, i), sequenceString);
         }
         seqan::globalMsaAlignment(edge.seqanAlignment, seqan::Score<int, seqan::Simple>(0, -1, -1));
+        edge.seqanAlignmentWasComputed = true;
 
         if(debug) {
             cout << "SeqAn alignment:" << endl;
@@ -732,7 +746,7 @@ void LocalMarkerGraph2::assembleDominantSequence(
     CZI_ASSERT(useRunLengthReads);
 
     // Compute SeqAn alignments for all edges on the local assembly path.
-    // computeSeqanAlignments();
+    computeSeqanAlignments();
 
     // Start with empty sequence.
     sequence.clear();
