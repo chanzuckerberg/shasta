@@ -525,11 +525,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                 ++consensusInfo.baseCoverage[base.value];
 
                 // Increment coverage for this base and repeat count.
-                auto& repeatCountHistogram = consensusInfo.repeatCountCoverage[base.value];
-                if(repeatCountHistogram.size() <= repeatCount) {
-                    repeatCountHistogram.resize(repeatCount+1, 0);
-                }
-                ++repeatCountHistogram[repeatCount];
+                consensusInfo.incrementRepeatCountCoverage(base.value, repeatCount);
             }
         }
 
@@ -546,9 +542,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
 
         // Find the repeat count with the most coverage, for this base.
         if(consensusInfo.bestBaseCharacter != '-') {
-            const auto& v = consensusInfo.repeatCountCoverage[bestBaseInteger];
-            consensusInfo.bestBaseBestRepeatCount =
-                std::max_element(v.begin(), v.end()) - v.begin();
+            consensusInfo.computeBestBaseBestRepeatCount();
         }
 
 
@@ -567,11 +561,11 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
             }
             cout << "Best base: " << consensusInfo.bestBaseCharacter << ". ";
             for(uint8_t base=0; base<4; base++) {
-                const auto& v = consensusInfo.repeatCountCoverage[base];
-                for(size_t c=0; c<v.size(); c++) {
-                    if(v[c]) {
+                for(size_t c=0; c<=consensusInfo.maxRepeatCount(base); c++) {
+                    const auto coverage = consensusInfo.getRepeatCountCoverage(base, c);
+                    if(coverage) {
                         cout << shasta::Base(base, shasta::Base::FromInteger());
-                        cout << c << ":" << v[c] << " ";
+                        cout << c << ":" << coverage << " ";
                     }
                 }
             }
