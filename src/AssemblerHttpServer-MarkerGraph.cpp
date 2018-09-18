@@ -228,6 +228,7 @@ void Assembler::exploreMarkerGraph(
             graph.assembleDominantSequence(html);
         }
 
+#if 0
         // Also show alignments of oriented reads to assembled sequence.
         html << "<br><h4 style='margin:0'>Marker alignments of assembled sequence to oriented reads</h4>";
         if(assemblerInfo->useRunLengthReads) {
@@ -235,6 +236,7 @@ void Assembler::exploreMarkerGraph(
                 "in run-length representation.";
             showLocalMarkerGraphAlignments(html, graph, requestParameters);
         }
+#endif
     }
 
 
