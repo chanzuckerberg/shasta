@@ -2092,6 +2092,54 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "</tr>";
 
 
+
+            // Consensus coverage for each base.
+            for(uint8_t b=0; b<=4; b++) {
+                s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for ";
+                if(b < 4) {
+                    s << shasta::Base(b, shasta::Base::FromInteger()).character();
+                } else {
+                    s << "-";
+                }
+                s << "</b></td>";
+                s << "<td><b>";
+                for(const auto& consensusInfo: edge.seqanConsensus) {
+                    const auto coverage = consensusInfo.baseCoverage[b];
+                    if(coverage==0) {
+                        s << ".";
+                    } else if(coverage < 10) {
+                        s << coverage;
+                    } else {
+                        s << "*";
+                    }
+
+                }
+                s << "</b></td>";
+                s << "</tr>";
+            }
+
+            // Consensus coverage for the best base.
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus coverage</b></td>";
+            s << "<td><b>";
+            for(const auto& consensusInfo: edge.seqanConsensus) {
+                size_t coverage;
+                if(consensusInfo.bestBaseCharacter == '-') {
+                    coverage = consensusInfo.baseCoverage[4];
+                } else {
+                    const shasta::Base b = shasta::Base(consensusInfo.bestBaseCharacter, shasta::Base::FromCharacter());
+                    coverage = consensusInfo.baseCoverage[b.value];
+                }
+                if(coverage < 10) {
+                    s << coverage;
+                } else {
+                    s << "*";
+                }
+            }
+            s << "</b></td>";
+            s << "</tr>";
+
+
+
             // Seqan consensus (raw sequence).
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw)</b></td>";
             s << "<td colspan=\"2\"><b>";
