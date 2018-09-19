@@ -30,14 +30,17 @@ namespace ChanZuckerberg {
 class ChanZuckerberg::shasta::ConsensusInfo {
 public:
 
-    // Coverage for each of ACGT-.
+    // Coverage for each base at this position.
+    // Indexed by AlignedBase::value.
     array<size_t, 5> baseCoverage = {{0, 0, 0, 0, 0}};
 
-    // Character representing the best base of gap. Can be one of "ACGT-".
-    char bestBaseCharacter = 'N';
+    // The base with the most coverage.
+    AlignedBase bestBase;
 
     // Coverage for individual repeat counts for each base (ACGT only, no entry for '-').
+    // Indexed by Base::value.
     array<vector<size_t>, 4> repeatCountCoverage;
+
     size_t getRepeatCountCoverage(size_t baseIndex, size_t repeatCount) const;
     void incrementRepeatCountCoverage(size_t baseIndex, size_t repeatCount);
     size_t maxRepeatCount(size_t baseIndex) const;
@@ -46,10 +49,6 @@ public:
     // Will be 0 if bestBaseCharacter=='-'.
     size_t bestBaseBestRepeatCount = 0;
     void computeBestBaseBestRepeatCount();
-
-    // Get the best base.
-    // This asserts if bestBaseCharacter is not a valid base.
-    Base bestBase() const;
 
     // Get base coverage for the best base.
     size_t bestBaseCoverage() const;

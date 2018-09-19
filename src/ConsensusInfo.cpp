@@ -38,26 +38,15 @@ size_t ConsensusInfo::maxRepeatCount(size_t baseIndex) const
 
 void ConsensusInfo::computeBestBaseBestRepeatCount()
 {
-    const auto& v = repeatCountCoverage[bestBase().value];
+    const auto& v = repeatCountCoverage[bestBase.value];
     bestBaseBestRepeatCount =
         std::max_element(v.begin(), v.end()) - v.begin();
 }
 
 
 
-Base ConsensusInfo::bestBase() const
-{
-    return Base::fromCharacter(bestBaseCharacter);
-}
-
-
-
 size_t ::ConsensusInfo::bestBaseCoverage() const
 {
-    if(bestBaseCharacter == '-') {
-        return baseCoverage[4];
-    } else {
-        return baseCoverage[bestBase().value];
-    }
+    return baseCoverage[bestBase.value];
 }
 

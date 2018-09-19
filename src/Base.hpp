@@ -227,6 +227,12 @@ public:
         }
     }
 
+    // Return true if this base is a gap in the alignment (represented by '-').
+    bool isGap() const
+    {
+        return value == 4;
+    }
+
     bool operator==(AlignedBase that) const
     {
         return value == that.value;

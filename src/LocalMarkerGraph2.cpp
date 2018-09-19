@@ -532,15 +532,10 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
         const size_t bestBaseInteger =
             std::max_element(consensusInfo.baseCoverage.begin(), consensusInfo.baseCoverage.end()) -
             consensusInfo.baseCoverage.begin();
-        if(bestBaseInteger < 4) {
-            consensusInfo.bestBaseCharacter =
-                Base::fromInteger(bestBaseInteger).character();
-        } else {
-            consensusInfo.bestBaseCharacter = '-';
-        }
+        consensusInfo.bestBase = AlignedBase::fromInteger(bestBaseInteger);
 
         // Find the repeat count with the most coverage, for this base.
-        if(consensusInfo.bestBaseCharacter != '-') {
+        if(!consensusInfo.bestBase.isGap()) {
             consensusInfo.computeBestBaseBestRepeatCount();
         }
 
@@ -558,7 +553,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                     cout << ":" << coverage << " ";
                 }
             }
-            cout << "Best base: " << consensusInfo.bestBaseCharacter << ". ";
+            cout << "Best base: " << consensusInfo.bestBase << ". ";
             for(uint8_t base=0; base<4; base++) {
                 for(size_t c=0; c<=consensusInfo.maxRepeatCount(base); c++) {
                     const auto coverage = consensusInfo.getRepeatCountCoverage(base, c);
@@ -576,12 +571,12 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
     if(debug) {
         for(size_t i=0; i<n; i++) {
             ConsensusInfo& consensusInfo =seqanConsensus[i];
-            cout << consensusInfo.bestBaseCharacter;
+            cout << consensusInfo.bestBase;
         }
         cout << endl;
         for(size_t i=0; i<n; i++) {
             ConsensusInfo& consensusInfo =seqanConsensus[i];
-            if(consensusInfo.bestBaseCharacter == '-') {
+            if(consensusInfo.bestBase.isGap()) {
                 cout << "-";
             } else {
                 if(consensusInfo.bestBaseBestRepeatCount < 10) {
