@@ -22,6 +22,25 @@ BaseInitializer::BaseInitializer()
 }
 
 
+
+AlignedBaseInitializer AlignedBaseInitializer::singleton;
+std::array<uint8_t, 256> AlignedBaseInitializer::table;
+AlignedBaseInitializer::AlignedBaseInitializer()
+{
+    fill(table.begin(), table.end(), 255);
+    table['A'] = 0;
+    table['C'] = 1;
+    table['G'] = 2;
+    table['T'] = 3;
+    table['a'] = 0;
+    table['c'] = 1;
+    table['g'] = 2;
+    table['t'] = 3;
+    table['-'] = 4;
+}
+
+
+
 void ChanZuckerberg::shasta::testBase()
 {
     const Base A = Base::fromCharacter('A');
