@@ -321,6 +321,10 @@ public:
         const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex
         );
 
+    // Override base class Base defined in Boost Graph library.
+    // Use shasta::Base instead.
+    using Base = shasta::Base;
+
     // Find out if a vertex with the given GlobalMarkerGraphVertexId exists.
     // If it exists, return make_pair(true, v).
     // Otherwise, return make_pair(false, null_vertex());

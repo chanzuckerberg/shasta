@@ -179,7 +179,7 @@ void LocalMarkerGraph2::storeEdgeInfo(
             const auto read = reads[info.orientedReadId.getReadId()];
             const uint32_t readLength = uint32_t(read.baseCount);
             for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
-                shasta::Base base;
+                Base base;
                 if(info.orientedReadId.getStrand() == 0) {
                     base = read.get(position);
                 } else {
@@ -284,7 +284,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
                 if(sequence.sequence.empty()) {
                     sequenceString = to_string(sequence.overlappingBaseCount);
                 } else {
-                    for(const shasta::Base base: sequence.sequence) {
+                    for(const Base base: sequence.sequence) {
                         sequenceString.push_back(base.character());
                     }
                 }
@@ -325,7 +325,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
                 cout << info.orientedReadId << " ";
                 cout << info.ordinals[0] << " " << info.ordinals[1] << " ";
                 copy(info.sequence.begin(), info.sequence.end(),
-                    ostream_iterator<shasta::Base>(cout));
+                    ostream_iterator<Base>(cout));
                 cout << " ";
                 for(const int count: info.repeatCounts) {
                     cout << " " << count;
@@ -346,7 +346,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
         for (size_t i = 0; i <edge.alignmentInfos.size(); i++) {
             const auto& info = edge.alignmentInfos[i];
             string sequenceString;
-            for(const shasta::Base base: info.sequence) {
+            for(const Base base: info.sequence) {
                 sequenceString.push_back(base.character());
             }
             seqan::assignSource(seqan::row(edge.seqanAlignment, i), sequenceString);
@@ -404,7 +404,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
 
 
         // Loop over alignment positions.
-        vector<shasta::Base> consensusSequence;
+        vector<Base> consensusSequence;
         const size_t n = seqan::length(seqan::row(edge.seqanAlignment, 0));
         vector<size_t> positions(edge.alignmentInfos.size(), 0);
         vector<size_t> baseInteger(edge.alignmentInfos.size()); // 0=C 1=C 2=G 3=T 4=-
@@ -434,7 +434,6 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             const size_t bestBase = std::max_element(baseHistogram.begin(), baseHistogram.end())
                 - baseHistogram.begin();
             // const size_t bestFrequency = baseHistogram[bestBase];
-            using shasta::Base;
             /*
             cout << "Alignment position " << i << ": best base ";
             if(bestBase < 4) {
@@ -477,7 +476,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
                 cout << endl;
                 */
                 for(size_t k=0; k<bestRepeatCount; k++) {
-                    consensusSequence.push_back(Base(uint8_t(bestBase), Base::FromInteger()));
+                    consensusSequence.push_back(Base::fromInteger(uint8_t(bestBase)));
                 }
             } else {
                 // cout << endl;
@@ -487,7 +486,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
         if(debug) {
             cout << "Consensus sequence:" << endl;
             copy(consensusSequence.begin(), consensusSequence.end(),
-                ostream_iterator<shasta::Base>(cout));
+                ostream_iterator<Base>(cout));
             cout << endl;
         }
 
@@ -517,7 +516,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
             if(seqan::isGap(seqan::row(seqanAlignment, j), i)) {
                 ++consensusInfo.baseCoverage[4];
             } else {
-                const shasta::Base base = alignmentInfos[j].sequence[positions[j]];
+                const Base base = alignmentInfos[j].sequence[positions[j]];
                 const size_t repeatCount = alignmentInfos[j].repeatCounts[positions[j]];
                 ++positions[j];
 
@@ -535,7 +534,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
             consensusInfo.baseCoverage.begin();
         if(bestBaseInteger < 4) {
             consensusInfo.bestBaseCharacter =
-                shasta::Base(uint8_t(bestBaseInteger), shasta::Base::FromInteger()).character();
+                Base::fromInteger(bestBaseInteger).character();
         } else {
             consensusInfo.bestBaseCharacter = '-';
         }
@@ -552,7 +551,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                 const size_t coverage = consensusInfo.baseCoverage[base];
                 if(coverage) {
                     if(base<4) {
-                        cout << shasta::Base(base, shasta::Base::FromInteger());
+                        cout << Base::fromInteger(base);
                     } else {
                         cout << "-";
                     }
@@ -564,7 +563,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                 for(size_t c=0; c<=consensusInfo.maxRepeatCount(base); c++) {
                     const auto coverage = consensusInfo.getRepeatCountCoverage(base, c);
                     if(coverage) {
-                        cout << shasta::Base(base, shasta::Base::FromInteger());
+                        cout << Base::fromInteger(base);
                         cout << c << ":" << coverage << " ";
                     }
                 }
@@ -820,7 +819,7 @@ void LocalMarkerGraph2::computeLocalAssemblyPath(int maxDistance)
 // and use it to assemble its dominant sequence.
 void LocalMarkerGraph2::assembleDominantSequence(
     int maxDistance,
-    vector< pair<shasta::Base, int> >& sequence)
+    vector< pair<Base, int> >& sequence)
 {
     CZI_ASSERT(!optimalSpanningTreeBestPath.empty());
     computeLocalAssemblyPath(maxDistance);
@@ -832,7 +831,7 @@ void LocalMarkerGraph2::assembleDominantSequence(
 // Assemble the dominant sequence for a given path.
 void LocalMarkerGraph2::assembleDominantSequence(
     const vector<edge_descriptor>& path,
-    vector< pair<shasta::Base, int> >& sequence)
+    vector< pair<Base, int> >& sequence)
 {
     CZI_ASSERT(!path.empty());
     const LocalMarkerGraph2& graph = *this;
@@ -865,7 +864,7 @@ void LocalMarkerGraph2::assembleDominantSequence(
         const auto& p = edge.infos.front();
         const auto coverage = p.second.size();
         const auto& edgeSequence = p.first.sequence;
-        for(const shasta::Base base: edgeSequence) {
+        for(const Base base: edgeSequence) {
             sequence.push_back(make_pair(base, coverage));
         }
 
@@ -930,7 +929,6 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
     using MarkerInfo = LocalMarkerGraph2Vertex::MarkerInfo;
     using InfoWithRepeatCounts = LocalMarkerGraph2Edge::InfoWithRepeatCounts;
     using Sequence = LocalMarkerGraph2Edge::Sequence;
-    using shasta::Base;
 
     // If the path is empty, do nothing.
     if(path.empty()) {

@@ -34,14 +34,20 @@ public:
 // This choice of representation facilitates the computation of the complement.
 class ChanZuckerberg::shasta::Base {
 public:
+
+    // Tha byte value is always one of 0, 1, 2, 3.
     uint8_t value;
 
-    // Constructors.
-    // To avoid confusion, use a second argument to specify
-    // whether the argument is the character representing the base (A, C, G, T),
-    // or the corresponding integer value (0 through 3).
-    class FromInteger {};
+    // The default constructor constructs A.
     Base() : value(0) {}
+
+    // We use static member functions instead of constructors.
+    // This is safer due to the possibility of unwanted
+    // conversions between characters and integers,
+    // or confusion between the value stored (0, 1, 2, 3) and
+    // the representing character (A, C, G, T).
+
+    // Construct from a character.
     static Base fromCharacter(char c)
     {
         Base base;
@@ -51,12 +57,36 @@ public:
         }
         return base;
     }
-    Base(uint8_t value, FromInteger) : value(value)
+
+    // Construct from an integer.
+    // This does not check validity.
+    static Base fromInteger(uint8_t i)
     {
+        Base base;
+        base.value = i;
+        return base;
+    }
+    static Base fromInteger(uint16_t i)
+    {
+        Base base;
+        base.value = uint8_t(i);
+        return base;
+    }
+    static Base fromInteger(uint32_t i)
+    {
+        Base base;
+        base.value = uint8_t(i);
+        return base;
+    }
+    static Base fromInteger(uint64_t i)
+    {
+        Base base;
+        base.value = uint8_t(i);
+        return base;
     }
 
     // Return the character representing the base.
-    // This always returns an uppercase character,
+    // This always returns an upper case character,
     // regardless of how the base was constructed.
     char character() const
     {
@@ -73,7 +103,7 @@ public:
     // Return the complement of this base, without changing it.
     Base complement() const
     {
-        return Base(uint8_t(3-value), FromInteger());
+        return fromInteger(uint8_t(3 - int(value)));
     }
 
     // Replace this base with its complement.

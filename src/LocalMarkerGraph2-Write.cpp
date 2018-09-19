@@ -394,7 +394,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             if(sequence.sequence.empty()) {
                 sequenceString = to_string(sequence.overlappingBaseCount);
             } else {
-                for(const shasta::Base base: sequence.sequence) {
+                for(const Base base: sequence.sequence) {
                     sequenceString.push_back(base.character());
                 }
             }
@@ -545,7 +545,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             for(uint8_t b=0; b<=4; b++) {
                 s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for ";
                 if(b < 4) {
-                    s << shasta::Base(b, shasta::Base::FromInteger()).character();
+                    s << Base::fromInteger(b).character();
                 } else {
                     s << "-";
                 }

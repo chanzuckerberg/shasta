@@ -68,7 +68,7 @@ public:
         const uint64_t bit0 = (data[0] >> bitIndex) & 1ULL;
         const uint64_t bit1 = (data[1] >> bitIndex) & 1ULL;
         const uint8_t value = uint8_t((bit1 << 1ULL) + bit0);
-        return Base(value, Base::FromInteger());
+        return Base::fromInteger(value);
     }
 
     // Set the base at a given position.

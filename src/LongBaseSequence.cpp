@@ -143,7 +143,7 @@ void ChanZuckerberg::shasta::testLongBaseSequence()
 
         for(size_t i=0; i<8; i++) {
             LongBaseSequence sequence(i*50);
-            const Base base(i%4, Base::FromInteger());
+            const Base base = Base::fromInteger(i%4);
             for(size_t j=0; j<sequence.baseCount; j++) {
                 sequence.set(j, base);
             }
@@ -154,7 +154,7 @@ void ChanZuckerberg::shasta::testLongBaseSequence()
         for(size_t i=0; i<sequences.size(); i++) {\
             cout << i << endl;
             LongBaseSequenceView sequence = sequences[i];
-            const Base base(i%4, Base::FromInteger());
+            const Base base = Base::fromInteger(i%4);
             for(size_t j=0; j<sequence.baseCount; j++) {
                 sequence.set(j, base);
             }

@@ -67,7 +67,7 @@ public:
         const uint64_t bit0 = (word0 >> bitIndex) & 1ULL;
         const uint64_t bit1 = (word1 >> bitIndex) & 1ULL;
         const uint8_t value = uint8_t((bit1 << 1ULL) + bit0);
-        return Base(value, Base::FromInteger());
+        return Base::fromInteger(value);
     }
     Base get(uint64_t i) const
     {
