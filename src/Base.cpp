@@ -24,17 +24,17 @@ BaseInitializer::BaseInitializer()
 
 void ChanZuckerberg::shasta::testBase()
 {
-    const Base A('A', Base::FromCharacter());
-    if(A.value) throw runtime_error("A is not 0.");
+    const Base A = Base::fromCharacter('A');
+    if(A.value != 0) throw runtime_error("A is not 0.");
 
-    const Base C('C', Base::FromCharacter());
-    if(C.value != 1) throw runtime_error("C is not 1.");
+    const Base C = Base::fromCharacter('C');
+    if(C.value != 1) throw runtime_error("C is not 0.");
 
-    const Base G('G', Base::FromCharacter());
-    if(G.value != 2) throw runtime_error("G is not 2.");
+    const Base G = Base::fromCharacter('G');
+    if(G.value != 2) throw runtime_error("G is not 0.");
 
-    const Base T('T', Base::FromCharacter());
-    if(T.value != 3) throw runtime_error("T is not 3.");
+    const Base T = Base::fromCharacter('T');
+    if(T.value != 3) throw runtime_error("R is not 0.");
 
     cout << A << C << G << T << endl;
 }

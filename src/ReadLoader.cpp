@@ -315,7 +315,7 @@ void ReadLoader::processThreadFunction(size_t threadId)
             if(c == '\n') {
                 break;
             }
-            read.push_back(Base(c, Base::FromCharacter()));
+            read.push_back(Base::fromCharacter(c));
         }
 
         // If the read is too short, skip it.

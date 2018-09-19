@@ -91,10 +91,10 @@ void ChanZuckerberg::shasta::testLongBaseSequence()
     {
         vector<uint64_t> v(4, 0);
         LongBaseSequenceView s(v.data(), 100);
-        s.set( 5, Base('C', Base::FromCharacter()));
-        s.set(63, Base('G', Base::FromCharacter()));
-        s.set(64, Base('T', Base::FromCharacter()));
-        s.set(95, Base('T', Base::FromCharacter()));
+        s.set( 5, Base::fromCharacter('C'));
+        s.set(63, Base::fromCharacter('G'));
+        s.set(64, Base::fromCharacter('T'));
+        s.set(95, Base::fromCharacter('T'));
 
         for(size_t i=0; i<100; i++) {
             cout << s[i];
@@ -115,10 +115,10 @@ void ChanZuckerberg::shasta::testLongBaseSequence()
     // Test class LongBaseSequence.
     {
         LongBaseSequence s(100);
-        s.set( 5, Base('C', Base::FromCharacter()));
-        s.set(63, Base('G', Base::FromCharacter()));
-        s.set(64, Base('T', Base::FromCharacter()));
-        s.set(95, Base('T', Base::FromCharacter()));
+        s.set( 5, Base::fromCharacter('C'));
+        s.set(63, Base::fromCharacter('G'));
+        s.set(64, Base::fromCharacter('T'));
+        s.set(95, Base::fromCharacter('T'));
 
         for(size_t i=0; i<100; i++) {
             cout << s[i];

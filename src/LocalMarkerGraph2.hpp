@@ -287,7 +287,7 @@ public:
         // This asserts if bestBaseCharacter is not a valid base.
         Base bestBase() const
         {
-            return Base(bestBaseCharacter, Base::FromCharacter());
+            return Base::fromCharacter(bestBaseCharacter);
         }
 
         // Get base coverage for the best base.

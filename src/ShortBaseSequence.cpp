@@ -11,10 +11,10 @@ using namespace shasta;
 void ChanZuckerberg::shasta::testShortBaseSequence()
 {
     ShortBaseSequence8 s;
-    s.set(0, Base('T', Base::FromCharacter()));
-    s.set(1, Base('C', Base::FromCharacter()));
-    s.set(2, Base('G', Base::FromCharacter()));
-    s.set(3, Base('T', Base::FromCharacter()));
+    s.set(0, Base::fromCharacter('T'));
+    s.set(1, Base::fromCharacter('C'));
+    s.set(2, Base::fromCharacter('G'));
+    s.set(3, Base::fromCharacter('T'));
     cout << s << " " << s.reverseComplement(6) << endl;
     s.shiftLeft();
     cout << s << endl;
