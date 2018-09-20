@@ -140,6 +140,48 @@ vector<uint8_t> LocalMarkerGraph2::getRepeatCounts(
 
 
 
+// Fill in the ConsensusInfo's for each vertex.
+void LocalMarkerGraph2::computeVertexConsensusInfo()
+{
+    CZI_ASSERT(useRunLengthReads);
+
+    LocalMarkerGraph2& graph = *this;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+        computeVertexConsensusInfo(v);
+    }
+}
+void LocalMarkerGraph2::computeVertexConsensusInfo( vertex_descriptor v)
+{
+    // This should only be used with run-length reads.
+    CZI_ASSERT(useRunLengthReads);
+
+    // Short-hands for the graph and the vertex.
+    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph2Vertex& vertex = graph[v];
+
+    // Get the marker k-mer of this vertex.
+    const KmerId kmerId = graph.getKmerId(v);
+    const Kmer kmer(kmerId, k);
+
+    // Resize the consensus info's for the vertex.
+    vertex.consensusInfo.resize(k);
+
+    // Loop over all markers of this vertex.
+    for(const auto& markerInfo: vertex.markerInfos) {
+
+        // Get the repeat counts for this marker.
+        const vector<uint8_t> counts = graph.getRepeatCounts(markerInfo);
+        CZI_ASSERT(counts.size() == k);
+
+        // Increment coverage.
+        for(size_t position=0; position<k; position++) {
+            vertex.consensusInfo[position].incrementCoverage(kmer[position], counts[position]);
+        }
+    }
+}
+
+
+
 // Store sequence information in the edge.
 // This version takes as input a vector of the
 // LocalMarkerGraph2Edge::Info that caused the edge to be created.

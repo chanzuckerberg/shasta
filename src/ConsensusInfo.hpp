@@ -15,6 +15,7 @@
 // Standard library.
 #include "algorithm.hpp"
 #include "array.hpp"
+#include <set>
 #include "vector.hpp"
 
 namespace ChanZuckerberg {
@@ -86,6 +87,10 @@ public:
     size_t maxRepeatCount(Base) const;
 
 
+    // Given a vector of ConsensusInfo objects,
+    // find the repeat counts that have non-zero coverage on the best base
+    // at any position.
+    static std::set<size_t> findRepeatCounts(const vector<ConsensusInfo>&);
 
 private:
 

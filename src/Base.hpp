@@ -230,7 +230,7 @@ public:
     }
 
     // Convert to a Base. This asserts if the current value is 4 ('-').
-    operator Base() const
+    explicit operator Base() const
     {
         CZI_ASSERT(value != 4);
         return Base::fromInteger(value);

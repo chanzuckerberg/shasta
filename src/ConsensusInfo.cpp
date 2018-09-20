@@ -159,6 +159,32 @@ size_t ConsensusInfo::maxRepeatCount(Base base) const
 
 
 
+// Given a vector of ConsensusInfo objects,
+// find the repeat counts that have non-zero coverage on the best base
+// at any position.
+std::set<size_t> ConsensusInfo::findRepeatCounts(const vector<ConsensusInfo>& consensusInfos)
+{
+
+    std::set<size_t> repeatCounts;
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        const AlignedBase bestBase = consensusInfo.bestBase();
+        if(bestBase.isGap()) {
+            continue;
+        }
+        const size_t maxRepeatCount = consensusInfo.maxRepeatCount(Base(bestBase));
+        for(size_t repeatCount=0; repeatCount<=maxRepeatCount; repeatCount++) {
+            const size_t coverage = consensusInfo.coverage(Base(bestBase), repeatCount);
+            if(coverage) {
+                repeatCounts.insert(repeatCount);
+            }
+        }
+    }
+    return repeatCounts;
+}
+
+
+
+
 
 
 

@@ -113,6 +113,11 @@ public:
     // If more than an ordinal is found, the first one is returned.
     pair<bool, uint32_t> getOrdinal(OrientedReadId) const;
 
+    // Consensus information at each of the k positions.
+    // All reads agree on the bases, which are the marker bases,
+    // but the repeat counts can be different.
+    vector<ConsensusInfo> consensusInfo;
+
 };
 
 
@@ -282,6 +287,10 @@ public:
 
     // Get the repeat counts for a MarkerInfo of a vertex.
     vector<uint8_t> getRepeatCounts(const LocalMarkerGraph2Vertex::MarkerInfo&) const;
+
+    // Fill in the ConsensusInfo's for each vertex.
+    void computeVertexConsensusInfo();
+    void computeVertexConsensusInfo(vertex_descriptor);
 
     // Store sequence information in the edge.
     // Takes as input a vector of the

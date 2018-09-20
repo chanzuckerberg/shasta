@@ -245,6 +245,65 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
         }
 
 
+
+        // Repeat count consensus.
+        if(graph.useRunLengthReads) {
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Repeat consensus</b></td>";
+            s << "<td><b>";
+            for(size_t position=0; position<graph.k; position++) {
+                const size_t bestRepeatCount =
+                    vertex.consensusInfo[position].bestRepeatCount(kmer[position]);
+                if(bestRepeatCount < 10) {
+                    s << bestRepeatCount;
+                } else {
+                    s << "*";
+                }
+            }
+            s << "</b></td></tr>";
+
+            // Coverage for each repeat count at each position.
+            const std::set<size_t> repeatCounts =
+                ConsensusInfo::findRepeatCounts(vertex.consensusInfo);
+            for(const size_t repeatCount: repeatCounts) {
+                s << "<tr>";
+                s << "<td colspan=\"3\" align=\"left\"><b>Coverage for repeat ";
+                s << repeatCount << "</b></td>";
+                s << "<td><b>";
+                for(size_t position=0; position<graph.k; position++) {
+                    const ConsensusInfo& consensusInfo = vertex.consensusInfo[position];
+                    const Base bestBase = Base(consensusInfo.bestBase());
+                    s << vertex.consensusInfo[position].coverageCharacter(bestBase, repeatCount);
+                }
+                s << "</b></td></tr>";
+            }
+
+            // Coverage for the best repeat count at each position.
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus coverage</b></td>";
+            s << "<td><b>";
+            for(size_t position=0; position<graph.k; position++) {
+                const ConsensusInfo& consensusInfo = vertex.consensusInfo[position];
+                const Base bestBase = Base(consensusInfo.bestBase());
+                const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
+                s << vertex.consensusInfo[position].coverageCharacter(bestBase, bestRepeatCount);
+            }
+            s << "</b></td></tr>";
+
+            // The raw sequence, based on the best repeat counts.
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Raw consensus</b></td>";
+            s << "<td align=\"left\"><b>";
+            for(size_t position=0; position<graph.k; position++) {
+                const ConsensusInfo& consensusInfo = vertex.consensusInfo[position];
+                const Base bestBase = Base(consensusInfo.bestBase());
+                const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
+                for(size_t k=0; k<bestRepeatCount; k++) {
+                    s << bestBase;
+            }
+            }
+            s << "</b></td></tr>";
+        }
+
+
+
         // End the table.
         s << "</table></font>>";
 
@@ -567,20 +626,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
             // Find the repeat counts that have non-zero coverage on the best base
             // at any position.
-            std::set<size_t> repeatCounts;
-            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
-                const AlignedBase bestBase = consensusInfo.bestBase();
-                if(bestBase.isGap()) {
-                    continue;
-                }
-                const size_t maxRepeatCount = consensusInfo.maxRepeatCount(bestBase);
-                for(size_t repeatCount=0; repeatCount<=maxRepeatCount; repeatCount++) {
-                    const size_t coverage = consensusInfo.coverage(Base(bestBase), repeatCount);
-                    if(coverage) {
-                        repeatCounts.insert(repeatCount);
-                    }
-                }
-            }
+            const std::set<size_t> repeatCounts = ConsensusInfo::findRepeatCounts(edge.seqanConsensus);
 
             // Coverage for the best base at each position, broken down
             // by repeat count.
@@ -607,7 +653,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                     continue;
                 }
                 s << consensusInfo.coverageCharacter(
-                    consensusInfo.bestBase(), consensusInfo.bestBaseBestRepeatCount());
+                    Base(consensusInfo.bestBase()), consensusInfo.bestBaseBestRepeatCount());
             }
             s << "</b></td>";
             s << "</tr>";
@@ -632,7 +678,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 const AlignedBase bestBase = consensusInfo.bestBase();
                 if(!bestBase.isGap()) {
                     const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
-                    const char coverageCharacter = consensusInfo.coverageCharacter(bestBase, bestRepeatCount);
+                    const char coverageCharacter = consensusInfo.coverageCharacter(Base(bestBase), bestRepeatCount);
                     for(size_t k=0; k<bestRepeatCount; k++) {
                         s << coverageCharacter;
                     }

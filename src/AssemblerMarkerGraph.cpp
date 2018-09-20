@@ -669,6 +669,12 @@ bool Assembler::extractLocalMarkerGraph(
     // Fill in the oriented read ids represented in the graph.
     graph.findOrientedReadIds();
 
+    // If using run-length reads, also fill in the ConsensusInfo's
+    // for each vertex.
+    if(assemblerInfo->useRunLengthReads) {
+        graph.computeVertexConsensusInfo();
+    }
+
     return true;
 }
 
