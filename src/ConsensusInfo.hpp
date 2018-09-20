@@ -5,7 +5,7 @@
 
 // Class ConsensusInfo is used to summarize coverage information
 // at a single position of a multiple sequence alignment.
-// It contains read coverage for each base
+// It stores read coverage for each base (ACGT and '-')
 // and for each repeat count.
 
 // Shasta.
@@ -39,6 +39,25 @@ public:
 
 
 
+    // Functions to return the best base or best repeat count.
+    // Here, best means "with the most coverage".
+
+    // Return the base with the most coverage.
+    // This can return ACGT or '-'.
+    AlignedBase bestBase() const;
+
+    // Get the repeat count with the most coverage for a given base.
+    // The base cannot be '-'.
+    size_t bestRepeatCount(Base) const;
+
+    // Get the repeat count with the most coverage for the base
+    // with the most coverage.
+    // This should only be called if the base with the best coverage
+    // is not '-'.
+    size_t bestBaseBestRepeatCount() const;
+
+
+
     // Functions to get coverage.
 
     // Represent a coverage value with a single character.
@@ -54,40 +73,24 @@ public:
     size_t coverage(Base, size_t repeatCount) const;
     char coverageCharacter(Base, size_t repeatCount) const;
 
+    // Get base coverage for the best base.
+    size_t bestBaseCoverage() const;
+    char bestBaseCoverageCharacter() const;
 
-
-
-    // Functions to return the best base or repeat count.
-    // Here, best means "with the most coverage".
-
-    // Return the base with the most coverage.
-    // This can return ACGT or '-'.
-    AlignedBase bestBase() const;
-
-    // Get the repeat count with the most coverage for a given base.
-    // The base cannot be '-'.
-    size_t getBestRepeatCount(Base) const;
-
-    // Get the repeat count with the most coverage for the base
-    // with the most coverage.
-    // The should only be called if the base with the best coverage
-    // is not '-'.
-    size_t bestBaseBestRepeatCount() const;
 
 
     // Other const functions.
 
     // Get the maximum repeat count for a given base.
-    size_t maxRepeatCount(size_t baseIndex) const;
-
-    // Get base coverage for the best base.
-    size_t bestBaseCoverage() const;
+    // The base can be ACGT (not '-').
+    size_t maxRepeatCount(Base) const;
 
 
 
-    // Data.
+private:
 
-    // Coverage for each base at this position.
+    // Coverage for each base (ACGT or '-')
+    // at the position described by this ConsensusInfo.
     // Indexed by AlignedBase::value.
     array<size_t, 5> baseCoverage = {{0, 0, 0, 0, 0}};
 

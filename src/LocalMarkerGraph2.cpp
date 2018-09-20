@@ -498,20 +498,24 @@ void LocalMarkerGraph2::computeSeqanAlignments()
 
 void LocalMarkerGraph2Edge::computeSeqanConsensus()
 {
+    // The SeqAn alignment must have been computed.
     CZI_ASSERT(seqanAlignmentWasComputed);
-    const bool debug = false;
 
+    // The length of the alignment.
+    // This includes gaps.
+    const size_t n = seqan::length(seqan::row(seqanAlignment, 0));
+
+    // The number of reads in the alignment.
+    const size_t m = alignmentInfos.size();
 
     // Loop over all positions of the alignment.
-    const size_t n = seqan::length(seqan::row(seqanAlignment, 0));
-    const size_t m = alignmentInfos.size();
     vector<size_t> positions(m, 0);
     seqanConsensus.resize(n);
     for(size_t i=0; i<n; i++) {
         ConsensusInfo& consensusInfo =seqanConsensus[i];
 
         // Loop over all reads in the alignment to compute coverage
-        // histograms at this position for base and repeat count.
+        // for each base and repeat count.
         for(size_t j=0; j<m; j++) {
             if(seqan::isGap(seqan::row(seqanAlignment, j), i)) {
                 consensusInfo.incrementGapCoverage();
@@ -527,56 +531,6 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                 consensusInfo.incrementCoverage(base, repeatCount);
             }
         }
-
-
-
-        if(false) {
-            cout << i << " ";
-            for(uint8_t base=0; base<5; base++) {
-                const size_t coverage = consensusInfo.baseCoverage[base];
-                if(coverage) {
-                    if(base<4) {
-                        cout << Base::fromInteger(base);
-                    } else {
-                        cout << "-";
-                    }
-                    cout << ":" << coverage << " ";
-                }
-            }
-            cout << "Best base: " << consensusInfo.bestBase() << ". ";
-            for(uint8_t base=0; base<4; base++) {
-                for(size_t repeatCount=0; repeatCount<=consensusInfo.maxRepeatCount(base); repeatCount++) {
-                    const auto coverage = consensusInfo.coverage(AlignedBase::fromInteger(base), repeatCount);
-                    if(coverage) {
-                        cout << Base::fromInteger(base);
-                        cout << repeatCount << ":" << coverage << " ";
-                    }
-                }
-            }
-            cout << " Best base repeat count: " << consensusInfo.bestBaseBestRepeatCount();
-            cout << endl;
-        }
-    }
-
-    if(debug) {
-        for(size_t i=0; i<n; i++) {
-            ConsensusInfo& consensusInfo =seqanConsensus[i];
-            cout << consensusInfo.bestBase();
-        }
-        cout << endl;
-        for(size_t i=0; i<n; i++) {
-            ConsensusInfo& consensusInfo =seqanConsensus[i];
-            if(consensusInfo.bestBase().isGap()) {
-                cout << "-";
-            } else {
-                if(consensusInfo.bestBaseBestRepeatCount() < 10) {
-                    cout << consensusInfo.bestBaseBestRepeatCount();
-                } else {
-                    cout << "*";
-                }
-            }
-        }
-        cout << endl;
     }
 }
 
