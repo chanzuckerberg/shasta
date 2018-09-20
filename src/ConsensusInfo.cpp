@@ -4,27 +4,61 @@ using namespace shasta;
 
 
 
-size_t ConsensusInfo::getRepeatCountCoverage(size_t baseIndex, size_t repeatCount) const
+// Increment coverage for a given base and repeat count.
+void ConsensusInfo::incrementCoverage(Base base, size_t repeatCount)
 {
-    CZI_ASSERT(baseIndex < 4);
-    const auto& v = repeatCountCoverage[baseIndex];
+    // Extract the base value and check it.
+    const uint8_t baseValue = base.value;
+    CZI_ASSERT(baseValue < 4);
+
+    // Increment total coverage for this base.
+    ++baseCoverage[baseValue];
+
+    // Increment coverage for this base and repeat count,
+    // extending the vector if necessary.
+    auto& v = repeatCountCoverage[baseValue];
+    if(v.size() <= repeatCount) {
+        v.resize(repeatCount+1, 0);
+    }
+    ++v[repeatCount];
+}
+
+
+
+// Increment base coverage for '-'.
+void ConsensusInfo::incrementGapCoverage()
+{
+    ++baseCoverage[4];
+}
+
+
+
+// Get coverage for a given base, for all repeat counts.
+// The base can be ACGT or '-'.
+size_t ConsensusInfo::getCoverage(AlignedBase base) const
+{
+    // Extract the base value and check it.
+    const uint8_t baseValue = base.value;
+    CZI_ASSERT(baseValue < 5);
+
+    // Return total coverage for this base, for all repeat counts.
+    return baseCoverage[baseValue];
+
+}
+
+
+// Get coverage for a given base and repeat count.
+// The base cannot be '-'.
+size_t ConsensusInfo::getCoverage(AlignedBase base, size_t repeatCount) const
+{
+    CZI_ASSERT(!base.isGap());
+
+    const auto& v = repeatCountCoverage[base.value];
     if(repeatCount < v.size()) {
         return v[repeatCount];
     } else {
         return 0;
     }
-}
-
-
-
-void ConsensusInfo::incrementRepeatCountCoverage(size_t baseIndex, size_t repeatCount)
-{
-    CZI_ASSERT(baseIndex < 4);
-    auto& v = repeatCountCoverage[baseIndex];
-    if(repeatCount >= v.size()) {
-        v.resize(repeatCount+1, 0);
-    }
-    ++v[repeatCount];
 }
 
 

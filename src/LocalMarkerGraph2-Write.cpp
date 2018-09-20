@@ -543,16 +543,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
             // Consensus coverage for each base.
             for(uint8_t b=0; b<=4; b++) {
-                s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for ";
-                if(b < 4) {
-                    s << Base::fromInteger(b).character();
-                } else {
-                    s << "-";
-                }
+                const AlignedBase base = AlignedBase::fromInteger(b);
+                s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for " << base;
                 s << "</b></td>";
                 s << "<td><b>";
                 for(const auto& consensusInfo: edge.seqanConsensus) {
-                    const auto coverage = consensusInfo.baseCoverage[b];
+                    const auto coverage = consensusInfo.getCoverage(base);
                     if(coverage==0) {
                         s << ".";
                     } else if(coverage < 10) {
@@ -609,9 +605,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                         s << "-";
                         continue;
                     }
-                    const auto coverage = consensusInfo.getRepeatCountCoverage(
-                        consensusInfo.bestBase.value,
-                        repeatCount);
+                    const auto coverage = consensusInfo.getCoverage(consensusInfo.bestBase, repeatCount);
                     if(coverage == 0) {
                         s << ".";
                     } else if(coverage < 10) {
@@ -630,8 +624,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                     s << "-";
                     continue;
                 }
-                const auto coverage = consensusInfo.getRepeatCountCoverage(
-                    consensusInfo.bestBase.value, consensusInfo.bestBaseBestRepeatCount);
+                const auto coverage = consensusInfo.getCoverage(
+                    consensusInfo.bestBase, consensusInfo.bestBaseBestRepeatCount);
                 if(coverage == 0) {
                     s << ".";
                 } else if(coverage < 10) {

@@ -514,17 +514,17 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
         // histograms at this position for base and repeat count.
         for(size_t j=0; j<m; j++) {
             if(seqan::isGap(seqan::row(seqanAlignment, j), i)) {
-                ++consensusInfo.baseCoverage[4];
+                consensusInfo.incrementGapCoverage();
             } else {
+
+                // Extract the read base and repeat count at this position
+                // in the alignment.
                 const Base base = alignmentInfos[j].sequence[positions[j]];
                 const size_t repeatCount = alignmentInfos[j].repeatCounts[positions[j]];
                 ++positions[j];
 
-                // Increment coverage for this base.
-                ++consensusInfo.baseCoverage[base.value];
-
                 // Increment coverage for this base and repeat count.
-                consensusInfo.incrementRepeatCountCoverage(base.value, repeatCount);
+                consensusInfo.incrementCoverage(base, repeatCount);
             }
         }
 
@@ -555,11 +555,11 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
             }
             cout << "Best base: " << consensusInfo.bestBase << ". ";
             for(uint8_t base=0; base<4; base++) {
-                for(size_t c=0; c<=consensusInfo.maxRepeatCount(base); c++) {
-                    const auto coverage = consensusInfo.getRepeatCountCoverage(base, c);
+                for(size_t repeatCount=0; repeatCount<=consensusInfo.maxRepeatCount(base); repeatCount++) {
+                    const auto coverage = consensusInfo.getCoverage(AlignedBase::fromInteger(base), repeatCount);
                     if(coverage) {
                         cout << Base::fromInteger(base);
-                        cout << c << ":" << coverage << " ";
+                        cout << repeatCount << ":" << coverage << " ";
                     }
                 }
             }
