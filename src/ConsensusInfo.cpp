@@ -35,7 +35,7 @@ void ConsensusInfo::incrementGapCoverage()
 
 // Get coverage for a given base, for all repeat counts.
 // The base can be ACGT or '-'.
-size_t ConsensusInfo::getCoverage(AlignedBase base) const
+size_t ConsensusInfo::coverage(AlignedBase base) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
@@ -45,6 +45,28 @@ size_t ConsensusInfo::getCoverage(AlignedBase base) const
     return baseCoverage[baseValue];
 
 }
+
+
+
+// Get coverage for a given base and repeat count.
+// The base cannot be '-'.
+size_t ConsensusInfo::coverage(Base base, size_t repeatCount) const
+{
+    // Extract the base value and check it.
+    const uint8_t baseValue = base.value;
+    CZI_ASSERT(baseValue < 4);
+
+    // Access the coverage vector for this base.
+    const auto& v = repeatCountCoverage[baseValue];
+
+    // Return coverage for the given repeat count.
+    if(repeatCount < v.size()) {
+        return v[repeatCount];
+    } else {
+        return 0;
+    }
+}
+
 
 
 // Return the base with the most coverage.
@@ -57,18 +79,11 @@ AlignedBase ConsensusInfo::bestBase() const
 }
 
 
-// Get coverage for a given base and repeat count.
-// The base cannot be '-'.
-size_t ConsensusInfo::getCoverage(AlignedBase base, size_t repeatCount) const
-{
-    CZI_ASSERT(!base.isGap());
 
-    const auto& v = repeatCountCoverage[base.value];
-    if(repeatCount < v.size()) {
-        return v[repeatCount];
-    } else {
-        return 0;
-    }
+// Get base coverage for the best base.
+size_t ConsensusInfo::bestBaseCoverage() const
+{
+    return baseCoverage[bestBase().value];
 }
 
 
@@ -80,17 +95,32 @@ size_t ConsensusInfo::maxRepeatCount(size_t baseIndex) const
 
 
 
-void ConsensusInfo::computeBestBaseBestRepeatCount()
+// Get the repeat count with the most coverage for a given base.
+// The base canot be '-'.
+size_t ConsensusInfo::getBestRepeatCount(Base base) const
 {
-    const auto& v = repeatCountCoverage[bestBase().value];
-    bestBaseBestRepeatCount =
-        std::max_element(v.begin(), v.end()) - v.begin();
+    // Extract the base value and check it.
+    const uint8_t baseValue = base.value;
+    CZI_ASSERT(baseValue < 4);
+
+    // Access the repeat count coverage vector for this base.
+    const auto& v = repeatCountCoverage[baseValue];
+
+    // Return the index with maximum coverage.
+    return std::max_element(v.begin(), v.end()) - v.begin();
 }
 
 
 
-size_t ::ConsensusInfo::bestBaseCoverage() const
+// Get the repeat count with the most coverage for the base
+// with the most coverage.
+// The should only be called if the base with the best coverage
+// is not '-'.
+size_t ConsensusInfo::bestBaseBestRepeatCount() const
 {
-    return baseCoverage[bestBase().value];
+    return getBestRepeatCount(Base(bestBase()));
 }
+
+
+
 

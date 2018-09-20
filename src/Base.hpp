@@ -8,6 +8,8 @@
 // to be '-' represented as 4. This is useful when
 // dealing with multiple sequence alignments.
 
+#include "CZI_ASSERT.hpp"
+
 #include "array.hpp"
 #include "iostream.hpp"
 #include "stdexcept.hpp"
@@ -225,6 +227,13 @@ public:
         default:
             throw runtime_error("Invalid base value " + to_string(value));
         }
+    }
+
+    // Convert to a Base. This asserts if the current value is 4 ('-').
+    operator Base() const
+    {
+        CZI_ASSERT(value != 4);
+        return Base::fromInteger(value);
     }
 
     // Return true if this base is a gap in the alignment (represented by '-').

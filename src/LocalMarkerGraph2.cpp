@@ -528,10 +528,6 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
             }
         }
 
-        // Find the repeat count with the most coverage, for this base.
-        if(!consensusInfo.bestBase().isGap()) {
-            consensusInfo.computeBestBaseBestRepeatCount();
-        }
 
 
         if(false) {
@@ -557,7 +553,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                     }
                 }
             }
-            cout << " Best base repeat count: " << consensusInfo.bestBaseBestRepeatCount;
+            cout << " Best base repeat count: " << consensusInfo.bestBaseBestRepeatCount();
             cout << endl;
         }
     }
@@ -573,8 +569,8 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
             if(consensusInfo.bestBase().isGap()) {
                 cout << "-";
             } else {
-                if(consensusInfo.bestBaseBestRepeatCount < 10) {
-                    cout << consensusInfo.bestBaseBestRepeatCount;
+                if(consensusInfo.bestBaseBestRepeatCount() < 10) {
+                    cout << consensusInfo.bestBaseBestRepeatCount();
                 } else {
                     cout << "*";
                 }
