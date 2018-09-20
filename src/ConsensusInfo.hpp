@@ -41,23 +41,19 @@ public:
 
     // Functions to get coverage.
 
+    // Represent a coverage value with a single character.
+    static char coverageCharacter(size_t);
+
     // Get coverage for a given base, for all repeat counts.
     // The base can be ACGT or '-'.
     size_t coverage(AlignedBase) const;
-
-    // TO BE PHASED OUT
-    size_t getCoverage(AlignedBase base) const {
-        return coverage(base);
-    }
+    char coverageCharacter(AlignedBase) const;
 
     // Get coverage for a given base and repeat count.
     // The base cannot be '-'.
     size_t coverage(Base, size_t repeatCount) const;
+    char coverageCharacter(Base, size_t repeatCount) const;
 
-    // TO BE PHASED OUT
-    size_t getCoverage(Base base, size_t repeatCount) const {
-        return coverage(base, repeatCount);
-    }
 
 
 

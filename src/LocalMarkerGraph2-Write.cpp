@@ -548,7 +548,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "</b></td>";
                 s << "<td><b>";
                 for(const auto& consensusInfo: edge.seqanConsensus) {
-                    const auto coverage = consensusInfo.getCoverage(base);
+                    const auto coverage = consensusInfo.coverage(base);
                     if(coverage==0) {
                         s << ".";
                     } else if(coverage < 10) {
@@ -606,7 +606,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                         s << "-";
                         continue;
                     }
-                    const auto coverage = consensusInfo.getCoverage(Base(bestBase), repeatCount);
+                    const auto coverage = consensusInfo.coverage(Base(bestBase), repeatCount);
                     if(coverage == 0) {
                         s << ".";
                     } else if(coverage < 10) {
@@ -625,7 +625,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                     s << "-";
                     continue;
                 }
-                const auto coverage = consensusInfo.getCoverage(
+                const auto coverage = consensusInfo.coverage(
                     consensusInfo.bestBase(), consensusInfo.bestBaseBestRepeatCount());
                 if(coverage == 0) {
                     s << ".";

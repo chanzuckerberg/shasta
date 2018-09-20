@@ -33,6 +33,22 @@ void ConsensusInfo::incrementGapCoverage()
 
 
 
+// Represent a coverage value with a single character.
+char ConsensusInfo::coverageCharacter(size_t coverage)
+{
+    if(coverage == 0) {
+        return '.';
+    } else if(coverage < 10) {
+        const string coverageString = to_string(coverage);
+        CZI_ASSERT(coverageString.size() == 1);
+        return coverageString[0];
+    } else {
+        return '*';
+    }
+}
+
+
+
 // Get coverage for a given base, for all repeat counts.
 // The base can be ACGT or '-'.
 size_t ConsensusInfo::coverage(AlignedBase base) const
@@ -44,6 +60,10 @@ size_t ConsensusInfo::coverage(AlignedBase base) const
     // Return total coverage for this base, for all repeat counts.
     return baseCoverage[baseValue];
 
+}
+char ConsensusInfo::coverageCharacter(AlignedBase base) const
+{
+    return coverageCharacter(coverage(base));
 }
 
 
@@ -65,6 +85,10 @@ size_t ConsensusInfo::coverage(Base base, size_t repeatCount) const
     } else {
         return 0;
     }
+}
+char ConsensusInfo::coverageCharacter(Base base, size_t repeatCount) const
+{
+    return coverageCharacter(coverage(base, repeatCount));
 }
 
 

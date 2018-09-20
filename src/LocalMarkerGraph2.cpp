@@ -546,7 +546,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
             cout << "Best base: " << consensusInfo.bestBase() << ". ";
             for(uint8_t base=0; base<4; base++) {
                 for(size_t repeatCount=0; repeatCount<=consensusInfo.maxRepeatCount(base); repeatCount++) {
-                    const auto coverage = consensusInfo.getCoverage(AlignedBase::fromInteger(base), repeatCount);
+                    const auto coverage = consensusInfo.coverage(AlignedBase::fromInteger(base), repeatCount);
                     if(coverage) {
                         cout << Base::fromInteger(base);
                         cout << repeatCount << ":" << coverage << " ";
