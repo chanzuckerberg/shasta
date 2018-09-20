@@ -47,6 +47,16 @@ size_t ConsensusInfo::getCoverage(AlignedBase base) const
 }
 
 
+// Return the base with the most coverage.
+// This can return ACGT or '-'.
+AlignedBase ConsensusInfo::bestBase() const
+{
+    const size_t bestBaseValue =
+        std::max_element(baseCoverage.begin(), baseCoverage.end()) - baseCoverage.begin();
+    return AlignedBase::fromInteger(bestBaseValue);
+}
+
+
 // Get coverage for a given base and repeat count.
 // The base cannot be '-'.
 size_t ConsensusInfo::getCoverage(AlignedBase base, size_t repeatCount) const
@@ -72,7 +82,7 @@ size_t ConsensusInfo::maxRepeatCount(size_t baseIndex) const
 
 void ConsensusInfo::computeBestBaseBestRepeatCount()
 {
-    const auto& v = repeatCountCoverage[bestBase.value];
+    const auto& v = repeatCountCoverage[bestBase().value];
     bestBaseBestRepeatCount =
         std::max_element(v.begin(), v.end()) - v.begin();
 }
@@ -81,6 +91,6 @@ void ConsensusInfo::computeBestBaseBestRepeatCount()
 
 size_t ::ConsensusInfo::bestBaseCoverage() const
 {
-    return baseCoverage[bestBase.value];
+    return baseCoverage[bestBase().value];
 }
 

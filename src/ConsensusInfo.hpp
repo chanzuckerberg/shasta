@@ -54,8 +54,9 @@ public:
     // Indexed by AlignedBase::value.
     array<size_t, 5> baseCoverage = {{0, 0, 0, 0, 0}};
 
-    // The base with the most coverage.
-    AlignedBase bestBase;
+    // Return the base with the most coverage.
+    // This can return ACGT or '-'.
+    AlignedBase bestBase() const;
 
     // Coverage for individual repeat counts for each base.
     // Indexed by Base::value.
