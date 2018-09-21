@@ -225,7 +225,7 @@ void Assembler::exploreMarkerGraph(
 
 
         if(assemblerInfo->useRunLengthReads) {
-            graph.assembleDominantSequence(html);
+            graph.assembleDominantSequenceUsingSeqan(html);
         }
 
 #if 0

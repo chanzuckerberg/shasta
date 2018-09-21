@@ -448,3 +448,229 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
         "element.setAttribute('download', 'AssembledSequence.fa');"
         "</script>";
 }
+
+
+
+// Version of assembleDominantSequence for the case where
+// we use a run-length representation of the reads,
+// and we use SeqAn alignments stored in edges to assemble sequence.
+// This  assumes that clippedOptimalSpanningTreeBestPath was
+// already computed and only creates html output.
+void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
+{
+    // Shorthands.
+    const LocalMarkerGraph2& graph = *this;
+    const vector<edge_descriptor>& path = localAssemblyPath;
+    using InfoWithRepeatCounts = LocalMarkerGraph2Edge::InfoWithRepeatCounts;
+    using Sequence = LocalMarkerGraph2Edge::Sequence;
+
+    // If the path is empty, do nothing.
+    if(path.empty()) {
+        html << "<p>The assembly path is empty.";
+        return;
+    }
+
+
+
+    // Create two vectors with the vertices and edges
+    // contributing to assembled sequence and their positions.
+    // Edges with overlapping sequence are not included.
+    vector< pair<vertex_descriptor, uint32_t> > pathVertices;
+    vector< pair<edge_descriptor, uint32_t> > pathEdges;
+    uint32_t assembledPosition = 0;
+    for(const edge_descriptor e: path) {
+        const vertex_descriptor v0 = source(e, graph);
+        pathVertices.push_back(make_pair(v0, assembledPosition));
+        assembledPosition += k;
+        const LocalMarkerGraph2Edge& edge = graph[e];
+
+        if(edge.seqanAlignmentWasComputed) {
+            uint32_t baseCount = 0;
+            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
+                if(!consensusInfo.bestBase().isGap()) {
+                    ++baseCount;
+                }
+            }
+            if(baseCount) {
+                pathEdges.push_back(make_pair(e, assembledPosition));
+                assembledPosition += baseCount;
+            }
+
+        } else {
+            CZI_ASSERT(!edge.infos.empty());
+            const pair<Sequence, vector<InfoWithRepeatCounts> > p = edge.infos.front();
+            const Sequence& sequence = p.first;
+            if(sequence.sequence.size() == 0) {
+                // This edge does not contribute
+                assembledPosition -= sequence.overlappingBaseCount;
+            } else {
+                pathEdges.push_back(make_pair(e, assembledPosition));
+                assembledPosition += uint32_t(sequence.sequence.size());
+            }
+        }
+    }
+    const vertex_descriptor vLast = target(path.back(), graph);
+    pathVertices.push_back(make_pair(vLast, assembledPosition));
+    const uint32_t assembledLength = assembledPosition + k;
+
+
+
+    // Write out the contributing vertices and edges.
+    if(true) {
+        cout << "Vertices contributing to assembled sequence:" << endl;
+        for(const auto& p: pathVertices) {
+            const vertex_descriptor v = p.first;
+            const uint32_t position = p.second;
+            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            cout << "Vertex " << vertex.vertexId;
+            cout << " position " << position << endl;
+        }
+        cout << "Edges contributing to assembled sequence:" << endl;
+        for(const auto& p: pathEdges) {
+            const edge_descriptor e = p.first;
+            const uint32_t position = p.second;
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+            const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            cout << "Edge " << vertex0.vertexId << "->";
+            cout << vertex1.vertexId;
+            cout << " position " << position << endl;
+        }
+        cout << "Assembled length " << assembledLength << endl;
+    }
+
+
+
+    // Some assembled positions have more than one contributing vertex.
+    // For each position, pick the vertex with the maximum coverage.
+    // Vector verticesByPosition stores pairs (vertex_descriptor, positionInVertex)
+    // for each position.
+    vector< pair<vertex_descriptor, size_t> > verticesByPosition(
+        assembledLength, make_pair(null_vertex(), 0));
+    for(const auto& p: pathVertices) {
+        const vertex_descriptor v = p.first;
+        const size_t startPosition = p.second;
+        const size_t coverage = graph[v].markerInfos.size();
+        for(size_t i=0; i<k; i++) {
+            const size_t position = startPosition + i;
+            auto& p = verticesByPosition[position];
+            if(p.first==null_vertex() || coverage > graph[p.first].markerInfos.size()) {
+                p.first = v;
+                p.second = i;
+            }
+        }
+    }
+
+    // Also construct a similar table of edges by position.
+    // Here, the second element in the pair is an index into edge.seqanConsensus
+    // (that is, it includes gap positions in the alignment).
+    vector< pair<edge_descriptor, size_t> > edgesByPosition(
+        assembledLength);
+    for(const auto& p: pathEdges) {
+        const edge_descriptor e = p.first;
+        const uint32_t startPosition = p.second;
+        const LocalMarkerGraph2Edge& edge = graph[e];
+
+        if(edge.seqanAlignmentWasComputed) {
+            size_t position = startPosition;
+            for(size_t offset=0; offset<edge.seqanConsensus.size(); offset++) {
+                const ConsensusInfo& consensusInfo = edge.seqanConsensus[offset];
+                if(consensusInfo.bestBase().isGap()) {
+                    continue;
+                }
+                CZI_ASSERT(verticesByPosition[position].first == null_vertex());
+                edgesByPosition[position].first = e;
+                edgesByPosition[position].second = offset;
+                ++position;
+            }
+
+        } else {
+            CZI_ASSERT(!edge.infos.empty());
+            const pair<Sequence, vector<InfoWithRepeatCounts> > p = edge.infos.front();
+            const Sequence& sequence = p.first;
+            for(size_t offset=0; offset<sequence.sequence.size(); offset++) {
+                const size_t position = startPosition + offset; // In this case there are no gaps.
+                CZI_ASSERT(verticesByPosition[position].first == null_vertex());
+                edgesByPosition[position].first = e;
+                edgesByPosition[position].second = offset;
+            }
+        }
+    }
+
+    cout << "Vertex or edge used for each assembly position:" << endl;
+    for(size_t position=0; position<assembledLength; position++) {
+        const auto& p = verticesByPosition[position];
+        cout << position;
+        if(p.first != null_vertex()) {
+            cout << " vertex " << graph[p.first].vertexId << " " << p.second;
+        } else {
+            const auto& q = edgesByPosition[position];
+            const edge_descriptor e = q.first;
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            cout << " edge " << graph[v0].vertexId << "->" << graph[v1].vertexId << " " << q.second;
+        }
+        cout << endl;
+    }
+
+
+
+    // Create a ConsensusInfo for each assembled positions.
+    vector<ConsensusInfo> consensusInfos(assembledLength);
+    for(size_t position=0; position<assembledLength; position++) {
+        const auto& p = verticesByPosition[position];
+        const vertex_descriptor v = p.first;
+        if(v != null_vertex()) {
+
+            // Get the ConsensusInfo for this position from the vertex.
+            consensusInfos[position] = graph[v].consensusInfo[p.second];
+        } else {
+
+            // Get the ConsensusInfo for this position from the edge.
+            const auto& q = edgesByPosition[position];
+            const edge_descriptor e = q.first;
+            const size_t positionInEdge = q.second;
+            const LocalMarkerGraph2Edge& edge = graph[e];
+
+            if(edge.seqanAlignmentWasComputed) {
+                consensusInfos[position] = edge.seqanConsensus[positionInEdge];
+            } else {
+
+                // This is an end case where the SeqAn alignment for the edge
+                // was not computed. Use the most frequent sequence instead.
+
+                // Start by gathering the information we need.
+                const LocalMarkerGraph2Edge& edge = graph[e];
+                CZI_ASSERT(!edge.infos.empty());
+                const auto& p = edge.infos.front();
+                const LocalMarkerGraph2Edge::Sequence& s = p.first;
+                CZI_ASSERT(s.overlappingBaseCount == 0);
+                const vector<Base>& sequence = s.sequence;
+                const vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts>& infos = p.second;
+
+                // Loop over the infos.
+                ConsensusInfo& consensusInfo = consensusInfos[position];
+                for(const auto& info: infos) {
+                    consensusInfo.incrementCoverage(
+                        sequence[positionInEdge],
+                        info.repeatCounts[positionInEdge]);
+
+                }
+            }
+        }
+    }
+
+
+
+    // Write out assembled sequence.
+    html << "<p>Assembed sequence<br>";
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        const Base base = Base(consensusInfo.bestBase());
+        const size_t repeatCount = consensusInfo.bestBaseBestRepeatCount();
+        for(size_t k=0; k<repeatCount; k++) {
+            html << base;
+        }
+    }
+
+}
