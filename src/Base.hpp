@@ -213,6 +213,9 @@ public:
         return base;
     }
 
+    // Construct from a Base.
+    explicit AlignedBase(Base base) : value(base.value) {}
+
     // Return the character representing the base.
     // This always returns an upper case character or '-',
     // regardless of how the base was constructed.

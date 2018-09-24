@@ -516,7 +516,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
 
     // Write out the contributing vertices and edges.
-    if(true) {
+    if(false) {
         cout << "Vertices contributing to assembled sequence:" << endl;
         for(const auto& p: pathVertices) {
             const vertex_descriptor v = p.first;
@@ -598,20 +598,22 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
         }
     }
 
-    cout << "Vertex or edge used for each assembly position:" << endl;
-    for(size_t position=0; position<assembledLength; position++) {
-        const auto& p = verticesByPosition[position];
-        cout << position;
-        if(p.first != null_vertex()) {
-            cout << " vertex " << graph[p.first].vertexId << " " << p.second;
-        } else {
-            const auto& q = edgesByPosition[position];
-            const edge_descriptor e = q.first;
-            const vertex_descriptor v0 = source(e, graph);
-            const vertex_descriptor v1 = target(e, graph);
-            cout << " edge " << graph[v0].vertexId << "->" << graph[v1].vertexId << " " << q.second;
+    if(false) {
+        cout << "Vertex or edge used for each assembly position:" << endl;
+        for(size_t position=0; position<assembledLength; position++) {
+            const auto& p = verticesByPosition[position];
+            cout << position;
+            if(p.first != null_vertex()) {
+                cout << " vertex " << graph[p.first].vertexId << " " << p.second;
+            } else {
+                const auto& q = edgesByPosition[position];
+                const edge_descriptor e = q.first;
+                const vertex_descriptor v0 = source(e, graph);
+                const vertex_descriptor v1 = target(e, graph);
+                cout << " edge " << graph[v0].vertexId << "->" << graph[v1].vertexId << " " << q.second;
+            }
+            cout << endl;
         }
-        cout << endl;
     }
 
 
@@ -663,7 +665,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
 
 
-    // Write out assembled sequence.
+    // Gather raw assembled sequence.
     vector<Base> rawAssembledSequence;
     for(const ConsensusInfo& consensusInfo: consensusInfos) {
         const Base base = Base(consensusInfo.bestBase());
@@ -676,7 +678,8 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
 
     // Write assembled sequence.
-    html << "<p>Assembed sequence:<br>";
+    html << "<p>Assembed " << rawAssembledSequence.size();
+    html << " bases ( " << consensusInfos.size() << " bases in run-length representation):<br>";
     html << "<pre style='margin:0px'>";
     for(size_t position=0; position<rawAssembledSequence.size(); position+=10) {
         const string label = to_string(position);
@@ -711,5 +714,143 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     copy(rawAssembledSequence.begin(), rawAssembledSequence.end(), ostream_iterator<Base>(html));
     html << "\\n'));"
         "element.setAttribute('download', 'AssembledSequence.fa');"
+        "</script>";
+
+
+
+    // Write out to a big table the information contained in the consensusInfos vector.
+    // Make the table hidden for now and display it later, to avoid flickering.
+    html << "<p><table id=assemblyTable style='text-align:center;font-size:12px;visibility:hidden'>";
+
+
+
+    // Table row containing positions in the run-length assembled sequence,
+    // which are also indices in the consensusInfo vector.
+    html <<
+        "<tr style='background-color:#ffe6e6' title='Position (run-length)'>"
+        "<th style='min-width:200px;text-align:left'>Position (run-length)";
+    for(size_t position=0; position<consensusInfos.size(); position++) {
+        html << "<td>" << position;
+    }
+
+
+
+    // Table row containing consensus bases in run-length sequence.
+    html <<
+        "<tr style='background-color:#ffcccc' title='Consensus base (run-length)'>"
+        "<th style='min-width:200px;text-align:left'>Consensus base (run-length)";
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        html << "<td>" << Base(consensusInfo.bestBase());
+    }
+
+
+
+    // Table row containing consensus repeat counts.
+    html <<
+        "<tr style='background-color:#ffffe6' title='Repeat count consensus'>"
+        "<th style='min-width:200px;text-align:left'>Repeat count consensus";
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        html << "<td>" << consensusInfo.bestBaseBestRepeatCount();
+    }
+
+
+
+    // Table row containing position in raw sequence.
+    size_t rawPosition = 0;
+    html <<
+        "<tr style='background-color:#e6ffe6' title='Position (raw)'>"
+        "<th style='min-width:200px;text-align:left'>Position (raw)";
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        html << "<td>" << rawPosition;
+        rawPosition += consensusInfo.bestBaseBestRepeatCount();
+    }
+
+
+
+    // Table row containing consensus bases in raw sequence.
+    html <<
+        "<tr style='background-color:#ccffcc' title='Consensus bases (raw)'>"
+        "<th style='min-width:200px;text-align:left'>Consensus bases (raw)";
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        const Base base = Base(consensusInfo.bestBase());
+        const size_t repeatCount = consensusInfo.bestBaseBestRepeatCount();
+        html << "<td>";
+        for(size_t i=0; i<repeatCount; i++) {
+            html << base;
+        }
+    }
+
+
+
+    // Four rows with coverage for ACGT.
+    for(size_t b=0; b<4; b++) {
+        const Base base = Base::fromInteger(b);
+        const string rowTitle = string("Coverage for ") + base.character();
+        html <<
+            "<tr style='background-color:#e6f2ff' title='" << rowTitle << "'>"
+            "<th style='min-width:200px;text-align:left'>" << rowTitle;
+        for(const ConsensusInfo& consensusInfo: consensusInfos) {
+            const size_t coverage = consensusInfo.coverage(AlignedBase(base));
+            html << "<td>";
+            if(coverage) {
+                html << consensusInfo.coverage(AlignedBase(base));
+            }
+        }
+    }
+
+
+
+    // Table row containing coverage for the best base.
+    html <<
+        "<tr style='background-color:#cce6ff' title='Coverage for consensus base'>"
+        "<th style='min-width:200px;text-align:left'>"
+        "Coverage for consensus base";
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        const Base base = Base(consensusInfo.bestBase());
+        html << "<td>" << consensusInfo.coverage(AlignedBase(base));
+    }
+
+
+
+    // One row with coverage for each represented repeat count.
+    const std::set<size_t> repeatCounts = ConsensusInfo::findRepeatCounts(consensusInfos);
+    for(const size_t repeatCount: repeatCounts) {
+        const string rowTitle = "Coverage for repeat count " + to_string(repeatCount);
+        html <<
+            "<tr style='background-color:#fff2e6' title='" << rowTitle << "'>"
+            "<th style='min-width:200px;text-align:left'>" << rowTitle;
+        for(const ConsensusInfo& consensusInfo: consensusInfos) {
+            const Base base = Base(consensusInfo.bestBase());
+            const size_t coverage = consensusInfo.coverage(base, repeatCount);
+            html << "<td>";
+            if(coverage) {
+                html << coverage;
+            }
+        }
+    }
+
+
+
+    // One row with coverage for the consensus repeat count.
+    const string rowTitle = "Coverage for repeat count consensus";
+    html <<
+        "<tr style='background-color:#ffe6cc' title='" << rowTitle << "'>"
+        "<th style='min-width:200px;text-align:left'>" << rowTitle;
+    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+        const Base base = Base(consensusInfo.bestBase());
+        const size_t repeatCount = consensusInfo.bestBaseBestRepeatCount();
+        const size_t coverage = consensusInfo.coverage(base, repeatCount);
+        html << "<td>";
+        if(coverage) {
+            html << coverage;
+        }
+    }
+
+
+
+    // Finish the table. Make it visible now. This avoids flickering.
+    html << "</table>"
+        "<script>"
+        "document.getElementById('assemblyTable').style.visibility = 'visible';"
         "</script>";
 }
