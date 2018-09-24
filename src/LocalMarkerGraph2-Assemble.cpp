@@ -664,13 +664,52 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
 
     // Write out assembled sequence.
-    html << "<p>Assembed sequence<br>";
+    vector<Base> rawAssembledSequence;
     for(const ConsensusInfo& consensusInfo: consensusInfos) {
         const Base base = Base(consensusInfo.bestBase());
         const size_t repeatCount = consensusInfo.bestBaseBestRepeatCount();
         for(size_t k=0; k<repeatCount; k++) {
-            html << base;
+            rawAssembledSequence.push_back(base);
         }
     }
 
+
+
+    // Write assembled sequence.
+    html << "<p>Assembed sequence:<br>";
+    html << "<pre style='margin:0px'>";
+    for(size_t position=0; position<rawAssembledSequence.size(); position+=10) {
+        const string label = to_string(position);
+        html << label;
+        for(size_t i=0; i<10-label.size(); i++) {
+            html << " ";
+        }
+    }
+    html << "</pre>";
+    html << "<pre style='margin:0px'>";
+    for(size_t position=0; position<rawAssembledSequence.size(); position++) {
+        if((position%10)==0) {
+            html << "|";
+        } else if((position%5)==0) {
+            html << "+";
+        } else {
+            html << ".";
+        }
+    }
+    html << "</pre>";
+    html << "<pre style='margin:0px'>";
+    copy(rawAssembledSequence.begin(), rawAssembledSequence.end(), ostream_iterator<Base>(html));
+    html << "</pre>";
+
+    html <<
+        "<a id=fastaDownload>Download in FASTA format</a><br>"
+        "<script>"
+        "var element = document.getElementById('fastaDownload');"
+        "element.setAttribute('href', 'data:text/plain;charset=utf-8,' +"
+        "encodeURIComponent('>AssembledSequence " << rawAssembledSequence.size() <<
+        "\\n";
+    copy(rawAssembledSequence.begin(), rawAssembledSequence.end(), ostream_iterator<Base>(html));
+    html << "\\n'));"
+        "element.setAttribute('download', 'AssembledSequence.fa');"
+        "</script>";
 }
