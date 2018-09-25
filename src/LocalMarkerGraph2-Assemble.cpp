@@ -6,6 +6,9 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/icl/interval_map.hpp>
+
 // Standard libraries.
 #include "iterator.hpp"
 
@@ -618,6 +621,47 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
 
 
+    // Create an icl::interval_map containing the vertex or edge
+    // corresponding to each interval of assembled positions.
+    // The vertex_descriptor is null_vertex() for intervals
+    // covered by an edge.
+    boost::icl::interval_map<size_t, pair<vertex_descriptor, edge_descriptor> > intervalMap;
+    edge_descriptor unitializedEdgeDescriptor;
+    for(size_t position=0; position<assembledLength; position++) {
+        const auto& p = verticesByPosition[position];
+        if(p.first != null_vertex()) {
+            intervalMap.insert(make_pair(
+                boost::icl::interval<size_t>::right_open(position, position+1),
+                make_pair(p.first, unitializedEdgeDescriptor)));
+        } else {
+            const auto& q = edgesByPosition[position];
+            const edge_descriptor e = q.first;
+            intervalMap.insert(make_pair(
+                boost::icl::interval<size_t>::right_open(position, position+1),
+                make_pair(null_vertex(), e)));
+        }
+    }
+    if(false) {
+        cout << "Vertex or edge corresponding to each assembly interval:" << endl;
+        for(const auto& p: intervalMap) {
+            const auto& interval = p.first;
+            cout << interval << " ";
+            const auto& q = p.second;
+            const vertex_descriptor v = q.first;
+            if(v == null_vertex()) {
+                const edge_descriptor e = q.second;
+                const vertex_descriptor v0 = source(e, graph);
+                const vertex_descriptor v1 = target(e, graph);
+                cout << graph[v0].vertexId << "->" << graph[v1].vertexId;
+            } else {
+                cout << graph[v].vertexId;
+            }
+            cout << endl;
+        }
+    }
+
+
+
     // Create a ConsensusInfo for each assembled positions.
     vector<ConsensusInfo> consensusInfos(assembledLength);
     for(size_t position=0; position<assembledLength; position++) {
@@ -832,7 +876,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
 
     // One row with coverage for the consensus repeat count.
-    const string rowTitle = "Coverage for repeat count consensus";
+    string rowTitle = "Coverage for repeat count consensus";
     html <<
         "<tr style='background-color:#ffe6cc' title='" << rowTitle << "'>"
         "<th style='min-width:200px;text-align:left'>" << rowTitle;
@@ -843,6 +887,35 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
         html << "<td>";
         if(coverage) {
             html << coverage;
+        }
+    }
+
+
+
+    // Table row with links to vertices or edges.
+    rowTitle = "Vertex or edge";
+    html <<
+        "<tr style='background-color:#e6e6e6' title='" << rowTitle << "'>"
+        "<th style='min-width:200px;text-align:left'>" << rowTitle;
+    for(const auto& p: intervalMap) {
+        const auto& interval = p.first;
+        html << "<td colspan=" << boost::icl::length(interval) << ">";
+        const auto& q = p.second;
+        const vertex_descriptor v = q.first;
+        if(v == null_vertex()) {
+            const edge_descriptor e = q.second;
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            html <<
+                "<span style='cursor:pointer' onClick='positionAtVertex(" << graph[v0].vertexId << ")'>" <<
+                graph[v0].vertexId << "</span>" <<
+                "&rarr;"
+                "<span style='cursor:pointer' onClick='positionAtVertex(" << graph[v1].vertexId << ")'>" <<
+                graph[v1].vertexId << "</span>";
+        } else {
+            html <<
+                "<span style='cursor:pointer' onClick='positionAtVertex(" << graph[v].vertexId << ")'>" <<
+                graph[v].vertexId << "</span>";
         }
     }
 
