@@ -39,25 +39,53 @@ not by assembly algorithms.
 <li>Logistically simple and easy to run. 
 </ul>
 
+
+
+<h2 id=currentStatus>Current status</h2>
+
 <p>
 This project is at an early stage. Its main output is currently
 in the form of a <i>marker graph</i>, not assembled sequence. 
 It does include functionality to extract and display a
 local portion of the global marker graph, 
-and to use it to assemble sequence using a simple-minded
-algorithm.
+and to use it interactively for local assembly.
 
+<p>
+This limited computation currently runs in a few hours 
+for a typical human genome with coverage 40x, 
+using a single machine with sufficient memory and 32 cores.
 
 
 
 <h2 id=approach>Computational approach</h2>
 
 <p>
-See <a href=ShastaSlides-June2018-v2.pdf>this presentation</a>
+See <a href=ShastaSlides-June2018-v2.pdf>this somewhat obsolete presentation</a>
 for information on the computational methods currently being explored. 
+Key computational ideas under considerations include:
+
+<ul>
+<li>Use a fixed subset of all k-mers (with short k, typically 10), called markers,
+as a concise representation of reads useful to find pairs of overlapping reads 
+and to efficiently compute alignments.
+<li>Use a <a href='https://en.wikipedia.org/wiki/MinHash'>MinHash</a> approach
+on this concise representation to find pairs
+of potentially overlapping reads.
+<li>To check if two reads actually overlap, compute a marker alignment, rather than a 
+complete alignment.
+<li>Use a <a href='https://en.wikipedia.org/wiki/Run-length_encoding'>run-length encoding</a> of reads, 
+as first proposed 
+<a href='https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0046679'>here</a> for
+error correction of Pacific Biosciences reads.
+The run-length representation of reads in insensitive to one of the most
+common types of errors in Nanopore reads, namely errors in the length of a homopolymer run.
+</ul>
+
+<p>
 In addition to Oxford Nanopore reads, these methods might also apply 
 to long reads from other technologies, such as the
 <a href="https://www.pacb.com/">Pacific Biosciences</a> DNA sequencing platforms.
+
 
 <p>
 To facilititate run logistics and code development, 

@@ -56,7 +56,7 @@ local portion of the global marker graph,
 and to use it interactively for local assembly.
 
 This limited computation currently runs in a few hours for
-a typicaly human genome with coverage 40x, using a single
+a typical human genome with coverage 40x, using a single
 machine with sufficient memory and 32 cores.
 
 
