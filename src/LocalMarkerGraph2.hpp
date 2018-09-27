@@ -30,7 +30,7 @@ was done when the global marker graph was created.
 *******************************************************************************/
 
 // Shasta.
-#include "ConsensusInfo.hpp"
+#include "Coverage.hpp"
 #include "Kmer.hpp"
 #include "MarkerId.hpp"
 #include "MemoryAsContainer.hpp"
