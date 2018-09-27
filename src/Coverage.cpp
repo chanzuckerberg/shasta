@@ -4,7 +4,22 @@ using namespace shasta;
 
 
 
-// Default constructor.
+// CoverageData constructor.
+// If the base is '-', repeatCount must be zero.
+// Otherwise, it must not be zero.
+CoverageData::CoverageData(AlignedBase base, Strand strand, size_t repeatCount) :
+    base(base), strand(strand), repeatCount(repeatCount)
+{
+    if(base.isGap()) {
+        CZI_ASSERT(repeatCount == 0);
+    } else {
+        CZI_ASSERT(repeatCount > 0);
+    }
+}
+
+
+
+// Coverage default constructor.
 Coverage::Coverage()
 {
     // Zero out the baseCoverage.

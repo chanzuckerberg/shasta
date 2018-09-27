@@ -43,15 +43,10 @@ public:
     Strand strand;      // 0 for + strand or 1 for - strand.
     size_t repeatCount; // The repeat count found in this read.
 
-    CoverageData(AlignedBase base, Strand strand, size_t repeatCount) :
-        base(base), strand(strand), repeatCount(repeatCount)
-    {
-        if(base.isGap()) {
-            CZI_ASSERT(repeatCount == 0);
-        } else {
-            CZI_ASSERT(repeatCount > 0);
-        }
-    }
+    // Constructor.
+    // If the base is '-', repeatCount must be zero.
+    // Otherwise, it must not be zero.
+    CoverageData(AlignedBase base, Strand strand, size_t repeatCount);
 };
 
 
