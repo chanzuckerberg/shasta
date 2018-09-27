@@ -489,7 +489,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
         if(edge.seqanAlignmentWasComputed) {
             uint32_t baseCount = 0;
-            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
+            for(const Coverage& consensusInfo: edge.coverages) {
                 if(!consensusInfo.bestBase().isGap()) {
                     ++baseCount;
                 }
@@ -577,9 +577,9 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
         if(edge.seqanAlignmentWasComputed) {
             size_t position = startPosition;
-            for(size_t offset=0; offset<edge.seqanConsensus.size(); offset++) {
-                const ConsensusInfo& consensusInfo = edge.seqanConsensus[offset];
-                if(consensusInfo.bestBase().isGap()) {
+            for(size_t offset=0; offset<edge.coverages.size(); offset++) {
+                const Coverage& coverage = edge.coverages[offset];
+                if(coverage.bestBase().isGap()) {
                     continue;
                 }
                 CZI_ASSERT(verticesByPosition[position].first == null_vertex());
@@ -663,24 +663,24 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
 
     // Create a ConsensusInfo for each assembled positions.
-    vector<ConsensusInfo> consensusInfos(assembledLength);
+    vector<Coverage> coverages(assembledLength);
     for(size_t position=0; position<assembledLength; position++) {
         const auto& p = verticesByPosition[position];
         const vertex_descriptor v = p.first;
         if(v != null_vertex()) {
 
-            // Get the ConsensusInfo for this position from the vertex.
-            consensusInfos[position] = graph[v].consensusInfo[p.second];
+            // Get the Coverage for this position from the vertex.
+            coverages[position] = graph[v].coverages[p.second];
         } else {
 
-            // Get the ConsensusInfo for this position from the edge.
+            // Get the Coverage for this position from the edge.
             const auto& q = edgesByPosition[position];
             const edge_descriptor e = q.first;
             const size_t positionInEdge = q.second;
             const LocalMarkerGraph2Edge& edge = graph[e];
 
             if(edge.seqanAlignmentWasComputed) {
-                consensusInfos[position] = edge.seqanConsensus[positionInEdge];
+                coverages[position] = edge.coverages[positionInEdge];
             } else {
 
                 // This is an end case where the SeqAn alignment for the edge
@@ -696,9 +696,9 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
                 const vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts>& infos = p.second;
 
                 // Loop over the infos.
-                ConsensusInfo& consensusInfo = consensusInfos[position];
+                Coverage& coverage = coverages[position];
                 for(const auto& info: infos) {
-                    consensusInfo.addRead(
+                    coverage.addRead(
                         AlignedBase(sequence[positionInEdge]),
                         info.orientedReadId.getStrand(),
                         info.repeatCounts[positionInEdge]);
@@ -711,9 +711,9 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
     // Gather raw assembled sequence.
     vector<Base> rawAssembledSequence;
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
-        const Base base = Base(consensusInfo.bestBase());
-        const size_t repeatCount = consensusInfo.bestBaseBestRepeatCount();
+    for(const Coverage& coverage: coverages) {
+        const Base base = Base(coverage.bestBase());
+        const size_t repeatCount = coverage.bestBaseBestRepeatCount();
         for(size_t k=0; k<repeatCount; k++) {
             rawAssembledSequence.push_back(base);
         }
@@ -723,7 +723,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
 
     // Write assembled sequence.
     html << "<p>Assembed " << rawAssembledSequence.size();
-    html << " bases ( " << consensusInfos.size() << " bases in run-length representation):<br>";
+    html << " bases ( " << coverages.size() << " bases in run-length representation):<br>";
     html << "<pre style='margin:0px'>";
     for(size_t position=0; position<rawAssembledSequence.size(); position+=10) {
         const string label = to_string(position);
@@ -773,7 +773,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     html <<
         "<tr style='background-color:#ffe6e6' title='Position (run-length)'>"
         "<th style='min-width:200px;text-align:left'>Position (run-length)";
-    for(size_t position=0; position<consensusInfos.size(); position++) {
+    for(size_t position=0; position<coverages.size(); position++) {
         html << "<td>" << position;
     }
 
@@ -783,8 +783,8 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     html <<
         "<tr style='background-color:#ffcccc' title='Consensus base (run-length)'>"
         "<th style='min-width:200px;text-align:left'>Consensus base (run-length)";
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
-        html << "<td>" << Base(consensusInfo.bestBase());
+    for(const Coverage& coverage: coverages) {
+        html << "<td>" << Base(coverage.bestBase());
     }
 
 
@@ -793,8 +793,8 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     html <<
         "<tr style='background-color:#ffffe6' title='Repeat count consensus'>"
         "<th style='min-width:200px;text-align:left'>Repeat count consensus";
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
-        html << "<td>" << consensusInfo.bestBaseBestRepeatCount();
+    for(const Coverage& coverage: coverages) {
+        html << "<td>" << coverage.bestBaseBestRepeatCount();
     }
 
 
@@ -804,9 +804,9 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     html <<
         "<tr style='background-color:#e6ffe6' title='Position (raw)'>"
         "<th style='min-width:200px;text-align:left'>Position (raw)";
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+    for(const Coverage& coverage: coverages) {
         html << "<td>" << rawPosition;
-        rawPosition += consensusInfo.bestBaseBestRepeatCount();
+        rawPosition += coverage.bestBaseBestRepeatCount();
     }
 
 
@@ -815,9 +815,9 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     html <<
         "<tr style='background-color:#ccffcc' title='Consensus bases (raw)'>"
         "<th style='min-width:200px;text-align:left'>Consensus bases (raw)";
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
-        const Base base = Base(consensusInfo.bestBase());
-        const size_t repeatCount = consensusInfo.bestBaseBestRepeatCount();
+    for(const Coverage& coverage: coverages) {
+        const Base base = Base(coverage.bestBase());
+        const size_t repeatCount = coverage.bestBaseBestRepeatCount();
         html << "<td>";
         for(size_t i=0; i<repeatCount; i++) {
             html << base;
@@ -833,11 +833,11 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
         html <<
             "<tr style='background-color:#e6f2ff' title='" << rowTitle << "'>"
             "<th style='min-width:200px;text-align:left'>" << rowTitle;
-        for(const ConsensusInfo& consensusInfo: consensusInfos) {
-            const size_t coverage = consensusInfo.coverage(AlignedBase(base));
+        for(const Coverage& coverage: coverages) {
+            const size_t baseCoverage = coverage.coverage(AlignedBase(base));
             html << "<td>";
-            if(coverage) {
-                html << consensusInfo.coverage(AlignedBase(base));
+            if(baseCoverage) {
+                html << baseCoverage;
             }
         }
     }
@@ -849,26 +849,26 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
         "<tr style='background-color:#cce6ff' title='Coverage for consensus base'>"
         "<th style='min-width:200px;text-align:left'>"
         "Coverage for consensus base";
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
-        const Base base = Base(consensusInfo.bestBase());
-        html << "<td>" << consensusInfo.coverage(AlignedBase(base));
+    for(const Coverage& coverage: coverages) {
+        const Base base = Base(coverage.bestBase());
+        html << "<td>" << coverage.coverage(AlignedBase(base));
     }
 
 
 
     // One row with coverage for each represented repeat count.
-    const std::set<size_t> repeatCounts = ConsensusInfo::findRepeatCounts(consensusInfos);
+    const std::set<size_t> repeatCounts = Coverage::findRepeatCounts(coverages);
     for(const size_t repeatCount: repeatCounts) {
         const string rowTitle = "Coverage for repeat count " + to_string(repeatCount);
         html <<
             "<tr style='background-color:#fff2e6' title='" << rowTitle << "'>"
             "<th style='min-width:200px;text-align:left'>" << rowTitle;
-        for(const ConsensusInfo& consensusInfo: consensusInfos) {
-            const Base base = Base(consensusInfo.bestBase());
-            const size_t coverage = consensusInfo.coverage(base, repeatCount);
+        for(const Coverage& coverage: coverages) {
+            const Base base = Base(coverage.bestBase());
+            const size_t repeatCountCoverage = coverage.coverage(base, repeatCount);
             html << "<td>";
-            if(coverage) {
-                html << coverage;
+            if(repeatCountCoverage) {
+                html << repeatCountCoverage;
             }
         }
     }
@@ -880,13 +880,13 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     html <<
         "<tr style='background-color:#ffe6cc' title='" << rowTitle << "'>"
         "<th style='min-width:200px;text-align:left'>" << rowTitle;
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
-        const Base base = Base(consensusInfo.bestBase());
-        const size_t repeatCount = consensusInfo.bestBaseBestRepeatCount();
-        const size_t coverage = consensusInfo.coverage(base, repeatCount);
+    for(const Coverage& coverage: coverages) {
+        const Base base = Base(coverage.bestBase());
+        const size_t repeatCount = coverage.bestBaseBestRepeatCount();
+        const size_t baseCoverageForRepeatCount = coverage.coverage(base, repeatCount);
         html << "<td>";
-        if(coverage) {
-            html << coverage;
+        if(baseCoverageForRepeatCount) {
+            html << baseCoverageForRepeatCount;
         }
     }
 

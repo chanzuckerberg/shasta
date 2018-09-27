@@ -6,7 +6,7 @@ using namespace shasta;
 
 // Add information about a supporting read.
 // If the AlignedBase is '-',repeatCount must be zero.
-void ConsensusInfo::addRead(AlignedBase base, Strand strand, size_t repeatCount)
+void Coverage::addRead(AlignedBase base, Strand strand, size_t repeatCount)
 {
     if(base.isGap()) {
         CZI_ASSERT(repeatCount == 0);
@@ -24,7 +24,7 @@ void ConsensusInfo::addRead(AlignedBase base, Strand strand, size_t repeatCount)
 
 
 // Increment coverage for a given base and repeat count.
-void ConsensusInfo::incrementCoverage(Base base, size_t repeatCount)
+void Coverage::incrementCoverage(Base base, size_t repeatCount)
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
@@ -45,7 +45,7 @@ void ConsensusInfo::incrementCoverage(Base base, size_t repeatCount)
 
 
 // Increment base coverage for '-'.
-void ConsensusInfo::incrementGapCoverage()
+void Coverage::incrementGapCoverage()
 {
     ++baseCoverage[4];
 }
@@ -54,7 +54,7 @@ void ConsensusInfo::incrementGapCoverage()
 
 // Return the base with the most coverage.
 // This can return ACGT or '-'.
-AlignedBase ConsensusInfo::bestBase() const
+AlignedBase Coverage::bestBase() const
 {
     const size_t bestBaseValue =
         std::max_element(baseCoverage.begin(), baseCoverage.end()) - baseCoverage.begin();
@@ -65,7 +65,7 @@ AlignedBase ConsensusInfo::bestBase() const
 
 // Get the repeat count with the most coverage for a given base.
 // The base canot be '-'.
-size_t ConsensusInfo::bestRepeatCount(Base base) const
+size_t Coverage::bestRepeatCount(Base base) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
@@ -84,7 +84,7 @@ size_t ConsensusInfo::bestRepeatCount(Base base) const
 // with the most coverage.
 // The should only be called if the base with the best coverage
 // is not '-'.
-size_t ConsensusInfo::bestBaseBestRepeatCount() const
+size_t Coverage::bestBaseBestRepeatCount() const
 {
     return bestRepeatCount(Base(bestBase()));
 }
@@ -92,7 +92,7 @@ size_t ConsensusInfo::bestBaseBestRepeatCount() const
 
 
 // Represent a coverage value with a single character.
-char ConsensusInfo::coverageCharacter(size_t coverage)
+char Coverage::coverageCharacter(size_t coverage)
 {
     if(coverage == 0) {
         return '.';
@@ -109,7 +109,7 @@ char ConsensusInfo::coverageCharacter(size_t coverage)
 
 // Get coverage for a given base, for all repeat counts.
 // The base can be ACGT or '-'.
-size_t ConsensusInfo::coverage(AlignedBase base) const
+size_t Coverage::coverage(AlignedBase base) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
@@ -119,7 +119,7 @@ size_t ConsensusInfo::coverage(AlignedBase base) const
     return baseCoverage[baseValue];
 
 }
-char ConsensusInfo::coverageCharacter(AlignedBase base) const
+char Coverage::coverageCharacter(AlignedBase base) const
 {
     return coverageCharacter(coverage(base));
 }
@@ -128,7 +128,7 @@ char ConsensusInfo::coverageCharacter(AlignedBase base) const
 
 // Get coverage for a given base and repeat count.
 // The base cannot be '-'.
-size_t ConsensusInfo::coverage(Base base, size_t repeatCount) const
+size_t Coverage::coverage(Base base, size_t repeatCount) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
@@ -144,7 +144,7 @@ size_t ConsensusInfo::coverage(Base base, size_t repeatCount) const
         return 0;
     }
 }
-char ConsensusInfo::coverageCharacter(Base base, size_t repeatCount) const
+char Coverage::coverageCharacter(Base base, size_t repeatCount) const
 {
     return coverageCharacter(coverage(base, repeatCount));
 }
@@ -152,11 +152,11 @@ char ConsensusInfo::coverageCharacter(Base base, size_t repeatCount) const
 
 
 // Get base coverage for the best base.
-size_t ConsensusInfo::bestBaseCoverage() const
+size_t Coverage::bestBaseCoverage() const
 {
     return baseCoverage[bestBase().value];
 }
-char ConsensusInfo::bestBaseCoverageCharacter() const
+char Coverage::bestBaseCoverageCharacter() const
 {
     return coverageCharacter(bestBaseCoverage());
 }
@@ -165,7 +165,7 @@ char ConsensusInfo::bestBaseCoverageCharacter() const
 
 // Get the maximum repeat count for a given base.
 // The base can be ACGT (not '-').
-size_t ConsensusInfo::maxRepeatCount(Base base) const
+size_t Coverage::maxRepeatCount(Base base) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
@@ -181,11 +181,11 @@ size_t ConsensusInfo::maxRepeatCount(Base base) const
 // Given a vector of ConsensusInfo objects,
 // find the repeat counts that have non-zero coverage on the best base
 // at any position.
-std::set<size_t> ConsensusInfo::findRepeatCounts(const vector<ConsensusInfo>& consensusInfos)
+std::set<size_t> Coverage::findRepeatCounts(const vector<Coverage>& consensusInfos)
 {
 
     std::set<size_t> repeatCounts;
-    for(const ConsensusInfo& consensusInfo: consensusInfos) {
+    for(const Coverage& consensusInfo: consensusInfos) {
         const AlignedBase bestBase = consensusInfo.bestBase();
         if(bestBase.isGap()) {
             continue;

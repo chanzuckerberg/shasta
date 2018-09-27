@@ -113,10 +113,10 @@ public:
     // If more than an ordinal is found, the first one is returned.
     pair<bool, uint32_t> getOrdinal(OrientedReadId) const;
 
-    // Consensus information at each of the k positions.
+    // Coverage information at each of the k positions.
     // All reads agree on the bases, which are the marker bases,
     // but the repeat counts can be different.
-    vector<ConsensusInfo> consensusInfo;
+    vector<Coverage> coverages;
 
 };
 
@@ -244,9 +244,10 @@ public:
 
 
 
-    // Use the SeqAn alignment to compute consensus sequence.
-    vector<ConsensusInfo> seqanConsensus;    // Including positions that have a '-' (gap).
-    void computeSeqanConsensus();
+    // Use the SeqAn alignment to compute coverage at each position
+    // of the alignment.
+    vector<Coverage> coverages;    // Including positions that have a '-' (gap).
+    void computeCoverage();
 
 };
 

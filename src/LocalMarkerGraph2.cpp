@@ -164,7 +164,7 @@ void LocalMarkerGraph2::computeVertexConsensusInfo( vertex_descriptor v)
     const Kmer kmer(kmerId, k);
 
     // Resize the consensus info's for the vertex.
-    vertex.consensusInfo.resize(k);
+    vertex.coverages.resize(k);
 
     // Loop over all markers of this vertex.
     for(const auto& markerInfo: vertex.markerInfos) {
@@ -175,7 +175,7 @@ void LocalMarkerGraph2::computeVertexConsensusInfo( vertex_descriptor v)
 
         // Increment coverage.
         for(size_t position=0; position<k; position++) {
-            vertex.consensusInfo[position].addRead(
+            vertex.coverages[position].addRead(
                 AlignedBase(kmer[position]),
                 markerInfo.orientedReadId.getStrand(),
                 counts[position]);
@@ -535,13 +535,13 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             cout << endl;
         }
 
-        edge.computeSeqanConsensus();
+        edge.computeCoverage();
     }
 }
 
 
 
-void LocalMarkerGraph2Edge::computeSeqanConsensus()
+void LocalMarkerGraph2Edge::computeCoverage()
 {
     // The SeqAn alignment must have been computed.
     CZI_ASSERT(seqanAlignmentWasComputed);
@@ -555,15 +555,15 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
 
     // Loop over all positions of the alignment.
     vector<size_t> positions(m, 0);
-    seqanConsensus.resize(n);
+    coverages.resize(n);
     for(size_t i=0; i<n; i++) {
-        ConsensusInfo& consensusInfo =seqanConsensus[i];
+        Coverage& coverage =coverages[i];
 
         // Loop over all reads in the alignment to compute coverage
         // for each base and repeat count.
         for(size_t j=0; j<m; j++) {
             if(seqan::isGap(seqan::row(seqanAlignment, j), i)) {
-                consensusInfo.addRead(
+                coverage.addRead(
                     AlignedBase::gap(),
                     alignmentInfos[j].orientedReadId.getStrand(),
                     0);
@@ -576,7 +576,7 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                 ++positions[j];
 
                 // Increment coverage for this base and repeat count.
-                consensusInfo.addRead(
+                coverage.addRead(
                     AlignedBase(base),
                     alignmentInfos[j].orientedReadId.getStrand(),
                     repeatCount);

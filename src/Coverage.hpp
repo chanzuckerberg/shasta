@@ -21,13 +21,13 @@
 
 namespace ChanZuckerberg {
     namespace shasta {
-        class ConsensusInfo;
+        class Coverage;
     }
 }
 
 
 
-class ChanZuckerberg::shasta::ConsensusInfo {
+class ChanZuckerberg::shasta::Coverage {
 public:
 
     // Add information about a supporting read.
@@ -81,7 +81,7 @@ public:
     // Given a vector of ConsensusInfo objects,
     // find the repeat counts that have non-zero coverage on the best base
     // at any position.
-    static std::set<size_t> findRepeatCounts(const vector<ConsensusInfo>&);
+    static std::set<size_t> findRepeatCounts(const vector<Coverage>&);
 
 private:
 

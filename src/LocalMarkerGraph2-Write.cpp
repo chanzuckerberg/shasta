@@ -252,7 +252,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const size_t bestRepeatCount =
-                    vertex.consensusInfo[position].bestRepeatCount(kmer[position]);
+                    vertex.coverages[position].bestRepeatCount(kmer[position]);
                 if(bestRepeatCount < 10) {
                     s << bestRepeatCount;
                 } else {
@@ -263,16 +263,16 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 
             // Coverage for each repeat count at each position.
             const std::set<size_t> repeatCounts =
-                ConsensusInfo::findRepeatCounts(vertex.consensusInfo);
+                Coverage::findRepeatCounts(vertex.coverages);
             for(const size_t repeatCount: repeatCounts) {
                 s << "<tr>";
                 s << "<td colspan=\"3\" align=\"left\"><b>Coverage for repeat ";
                 s << repeatCount << "</b></td>";
                 s << "<td><b>";
                 for(size_t position=0; position<graph.k; position++) {
-                    const ConsensusInfo& consensusInfo = vertex.consensusInfo[position];
+                    const Coverage& consensusInfo = vertex.coverages[position];
                     const Base bestBase = Base(consensusInfo.bestBase());
-                    s << vertex.consensusInfo[position].coverageCharacter(bestBase, repeatCount);
+                    s << vertex.coverages[position].coverageCharacter(bestBase, repeatCount);
                 }
                 s << "</b></td></tr>";
             }
@@ -281,10 +281,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus coverage</b></td>";
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
-                const ConsensusInfo& consensusInfo = vertex.consensusInfo[position];
+                const Coverage& consensusInfo = vertex.coverages[position];
                 const Base bestBase = Base(consensusInfo.bestBase());
                 const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
-                s << vertex.consensusInfo[position].coverageCharacter(bestBase, bestRepeatCount);
+                s << vertex.coverages[position].coverageCharacter(bestBase, bestRepeatCount);
             }
             s << "</b></td></tr>";
 
@@ -292,9 +292,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Raw consensus</b></td>";
             s << "<td align=\"left\"><b>";
             for(size_t position=0; position<graph.k; position++) {
-                const ConsensusInfo& consensusInfo = vertex.consensusInfo[position];
-                const Base bestBase = Base(consensusInfo.bestBase());
-                const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
+                const Coverage& coverage = vertex.coverages[position];
+                const Base bestBase = Base(coverage.bestBase());
+                const size_t bestRepeatCount = coverage.bestBaseBestRepeatCount();
                 for(size_t k=0; k<bestRepeatCount; k++) {
                     s << bestBase;
             }
@@ -579,17 +579,17 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             // Seqan consensus (run-length sequence).
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (run-length)</b></td>";
             s << "<td><b>";
-            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
-                s << consensusInfo.bestBase();
+            for(const Coverage& coverage: edge.coverages) {
+                s << coverage.bestBase();
             }
             s << "</b></td>";
             s << "<td><b>";
-            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
-                if(consensusInfo.bestBase().isGap()) {
+            for(const Coverage& coverage: edge.coverages) {
+                if(coverage.bestBase().isGap()) {
                     s << "-";
                 } else {
-                    if(consensusInfo.bestBaseBestRepeatCount() < 10) {
-                        s << consensusInfo.bestBaseBestRepeatCount();
+                    if(coverage.bestBaseBestRepeatCount() < 10) {
+                        s << coverage.bestBaseBestRepeatCount();
                     } else {
                         s << "*";
                     }
@@ -606,8 +606,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for " << base;
                 s << "</b></td>";
                 s << "<td><b>";
-                for(const auto& consensusInfo: edge.seqanConsensus) {
-                    s << consensusInfo.coverageCharacter(base);
+                for(const Coverage& coverage: edge.coverages) {
+                    s << coverage.coverageCharacter(base);
                 }
                 s << "</b></td>";
                 s << "</tr>";
@@ -616,8 +616,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             // Consensus coverage for the best base.
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus coverage</b></td>";
             s << "<td><b>";
-            for(const auto& consensusInfo: edge.seqanConsensus) {
-                s << consensusInfo.bestBaseCoverageCharacter();
+            for(const Coverage& coverage: edge.coverages) {
+                s << coverage.bestBaseCoverageCharacter();
             }
             s << "</b></td>";
             s << "</tr>";
@@ -626,7 +626,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
             // Find the repeat counts that have non-zero coverage on the best base
             // at any position.
-            const std::set<size_t> repeatCounts = ConsensusInfo::findRepeatCounts(edge.seqanConsensus);
+            const std::set<size_t> repeatCounts = Coverage::findRepeatCounts(edge.coverages);
 
             // Coverage for the best base at each position, broken down
             // by repeat count.
@@ -634,26 +634,26 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for repeat count ";
                 s << repeatCount << "</b></td>";
                 s << "<td><b>";
-                for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
-                    const AlignedBase bestBase = consensusInfo.bestBase();
+                for(const Coverage& coverage: edge.coverages) {
+                    const AlignedBase bestBase = coverage.bestBase();
                     if(bestBase.isGap()) {
                         s << "-";
                         continue;
                     }
-                    s << consensusInfo.coverageCharacter(Base(bestBase), repeatCount);
+                    s << coverage.coverageCharacter(Base(bestBase), repeatCount);
                 }
                 s << "</b></td>";
                 s << "</tr>";
             }
             s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for best repeat count</b></td>";
             s << "<td><b>";
-            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
-                if(consensusInfo.bestBase().isGap()) {
+            for(const Coverage& coverage: edge.coverages) {
+                if(coverage.bestBase().isGap()) {
                     s << "-";
                     continue;
                 }
-                s << consensusInfo.coverageCharacter(
-                    Base(consensusInfo.bestBase()), consensusInfo.bestBaseBestRepeatCount());
+                s << coverage.coverageCharacter(
+                    Base(coverage.bestBase()), coverage.bestBaseBestRepeatCount());
             }
             s << "</b></td>";
             s << "</tr>";
@@ -663,10 +663,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             // Seqan consensus (raw sequence) and its coverage.
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw)</b></td>";
             s << "<td colspan=\"2\"><b>";
-            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
-                if(!consensusInfo.bestBase().isGap()) {
-                    for(size_t k=0; k<consensusInfo.bestBaseBestRepeatCount(); k++) {
-                        s << consensusInfo.bestBase();
+            for(const Coverage& coverage: edge.coverages) {
+                if(!coverage.bestBase().isGap()) {
+                    for(size_t k=0; k<coverage.bestBaseBestRepeatCount(); k++) {
+                        s << coverage.bestBase();
                     }
                 }
             }
@@ -674,11 +674,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "</tr>";
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw) coverage</b></td>";
             s << "<td colspan=\"2\"><b>";
-            for(const ConsensusInfo& consensusInfo: edge.seqanConsensus) {
-                const AlignedBase bestBase = consensusInfo.bestBase();
+            for(const Coverage& coverage: edge.coverages) {
+                const AlignedBase bestBase = coverage.bestBase();
                 if(!bestBase.isGap()) {
-                    const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
-                    const char coverageCharacter = consensusInfo.coverageCharacter(Base(bestBase), bestRepeatCount);
+                    const size_t bestRepeatCount = coverage.bestBaseBestRepeatCount();
+                    const char coverageCharacter = coverage.coverageCharacter(Base(bestBase), bestRepeatCount);
                     for(size_t k=0; k<bestRepeatCount; k++) {
                         s << coverageCharacter;
                     }
