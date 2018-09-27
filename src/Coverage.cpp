@@ -4,49 +4,52 @@ using namespace shasta;
 
 
 
+// Default constructor.
+Coverage::Coverage()
+{
+    // Zero out the baseCoverage.
+    for(size_t base=0; base<5; base++) {
+        auto& v = baseCoverage[base];
+        v[0] = 0;
+        v[1] = 0;
+    }
+
+    // The detailedCoverage structure does not need to be zero,
+    // as each entry is an empty vector.
+}
+
+
+
 // Add information about a supporting read.
 // If the AlignedBase is '-',repeatCount must be zero.
+// Otherwise, it must not be zero.
+// This is the only public non-const function.
 void Coverage::addRead(AlignedBase base, Strand strand, size_t repeatCount)
 {
+    // Sanity check on the base.
+    const size_t baseValue = base.value;
+    CZI_ASSERT(baseValue < 5);
+
+    // Sanity check on the repeat count.
+    if(base.isGap()) {
+        CZI_ASSERT(repeatCount == 0);
+    } else {
+        CZI_ASSERT(repeatCount > 0);
+    }
+
     // Store a CoverageData for this read.
     readCoverageData.push_back(CoverageData(base, strand, repeatCount));
 
-    // Increment coverage.
-    if(base.isGap()) {
-        incrementGapCoverage();
-    } else {
-        incrementCoverage(Base(base), repeatCount);
+    // Increment detailed coverage.
+    auto& c = detailedCoverage[baseValue][strand];
+    if(c.size() <= repeatCount) {
+        c.resize(repeatCount + 1);
     }
+    ++c[repeatCount];
 
-}
+    // Increment base coverage.
+    ++baseCoverage[baseValue][strand];
 
-
-
-// Increment coverage for a given base and repeat count.
-void Coverage::incrementCoverage(Base base, size_t repeatCount)
-{
-    // Extract the base value and check it.
-    const uint8_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 4);
-
-    // Increment total coverage for this base.
-    ++baseCoverage[baseValue];
-
-    // Increment coverage for this base and repeat count,
-    // extending the vector if necessary.
-    auto& v = repeatCountCoverage[baseValue];
-    if(v.size() <= repeatCount) {
-        v.resize(repeatCount+1, 0);
-    }
-    ++v[repeatCount];
-}
-
-
-
-// Increment base coverage for '-'.
-void Coverage::incrementGapCoverage()
-{
-    ++baseCoverage[4];
 }
 
 
@@ -55,26 +58,38 @@ void Coverage::incrementGapCoverage()
 // This can return ACGT or '-'.
 AlignedBase Coverage::bestBase() const
 {
-    const size_t bestBaseValue =
-        std::max_element(baseCoverage.begin(), baseCoverage.end()) - baseCoverage.begin();
+    size_t bestBaseValue = 4;
+    size_t bestBaseCoverage = 0;
+
+    for(size_t baseValue=0; baseValue<5; baseValue++) {
+        const size_t baseCoverage = coverage(AlignedBase::fromInteger(baseValue));
+        if(baseCoverage > bestBaseCoverage) {
+            bestBaseValue = baseValue;
+            bestBaseCoverage = baseCoverage;
+        }
+    }
     return AlignedBase::fromInteger(bestBaseValue);
 }
 
 
 
 // Get the repeat count with the most coverage for a given base.
-// The base canot be '-'.
-size_t Coverage::bestRepeatCount(Base base) const
+// Note that, if the base is '-', this will always return 0.
+size_t Coverage::bestRepeatCount(AlignedBase base) const
 {
-    // Extract the base value and check it.
-    const uint8_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 4);
+    size_t countEnd =repeatCountEnd(base);
+    size_t bestCount = 0;
+    size_t bestCountCoverage = 0;
 
-    // Access the repeat count coverage vector for this base.
-    const auto& v = repeatCountCoverage[baseValue];
+    for(size_t repeatCount=0; repeatCount<countEnd; repeatCount++) {
+        const size_t coverageForRepeatCount = coverage(base, repeatCount);
+        if(coverageForRepeatCount > bestCountCoverage) {
+            bestCount = repeatCount;
+            bestCountCoverage = coverageForRepeatCount;
+        }
+    }
 
-    // Return the index with maximum coverage.
-    return std::max_element(v.begin(), v.end()) - v.begin();
+    return bestCount;
 }
 
 
@@ -85,7 +100,7 @@ size_t Coverage::bestRepeatCount(Base base) const
 // is not '-'.
 size_t Coverage::bestBaseBestRepeatCount() const
 {
-    return bestRepeatCount(Base(bestBase()));
+    return bestRepeatCount(bestBase());
 }
 
 
@@ -106,18 +121,23 @@ char Coverage::coverageCharacter(size_t coverage)
 
 
 
-// Get coverage for a given base, for all repeat counts.
-// The base can be ACGT or '-'.
+// Get coverage for a given base, for all repeat counts,
+// summing over both strands.
 size_t Coverage::coverage(AlignedBase base) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
     CZI_ASSERT(baseValue < 5);
 
-    // Return total coverage for this base, for all repeat counts.
-    return baseCoverage[baseValue];
+    // Return total coverage for this base,
+    // for both strands and all repeat counts.
+    return baseCoverage[baseValue][0] + baseCoverage[baseValue][1];
 
 }
+
+
+
+// Same as above, but return a single character representing coverage.
 char Coverage::coverageCharacter(AlignedBase base) const
 {
     return coverageCharacter(coverage(base));
@@ -125,25 +145,32 @@ char Coverage::coverageCharacter(AlignedBase base) const
 
 
 
-// Get coverage for a given base and repeat count.
-// The base cannot be '-'.
-size_t Coverage::coverage(Base base, size_t repeatCount) const
+// Get coverage for a given base and repeat count,
+// summing over both strands.
+size_t Coverage::coverage(AlignedBase base, size_t repeatCount) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 4);
+    CZI_ASSERT(baseValue < 5);
 
     // Access the coverage vector for this base.
-    const auto& v = repeatCountCoverage[baseValue];
+    const auto& baseDetailedCoverage = detailedCoverage[baseValue];
 
-    // Return coverage for the given repeat count.
-    if(repeatCount < v.size()) {
-        return v[repeatCount];
-    } else {
-        return 0;
+    // Return coverage for the given repeat count, summing over both strands.
+    size_t c = 0;
+    for(Strand strand=0; strand<2; strand++) {
+        const auto& baseAndStrandDetailedCoverage = baseDetailedCoverage[strand];
+        if(repeatCount < baseAndStrandDetailedCoverage.size()) {
+            c += baseAndStrandDetailedCoverage[repeatCount];
+        }
     }
+    return c;
 }
-char Coverage::coverageCharacter(Base base, size_t repeatCount) const
+
+
+
+// Same as above, but return a single character representing coverage.
+char Coverage::coverageCharacter(AlignedBase base, size_t repeatCount) const
 {
     return coverageCharacter(coverage(base, repeatCount));
 }
@@ -153,8 +180,12 @@ char Coverage::coverageCharacter(Base base, size_t repeatCount) const
 // Get base coverage for the best base.
 size_t Coverage::bestBaseCoverage() const
 {
-    return baseCoverage[bestBase().value];
+    return coverage(bestBase());
 }
+
+
+
+// Same as above, but return a single character representing coverage.
 char Coverage::bestBaseCoverageCharacter() const
 {
     return coverageCharacter(bestBaseCoverage());
@@ -162,17 +193,17 @@ char Coverage::bestBaseCoverageCharacter() const
 
 
 
-// Get the maximum repeat count for a given base.
-// The base can be ACGT (not '-').
-size_t Coverage::maxRepeatCount(Base base) const
+// Get, for a given base, the first repeat count for which
+// coverage becomes permanently zero.
+// This can be used to loop over repeat coutns for that base.
+// Note that, if the base is '-', this will always return 0.
+size_t Coverage::repeatCountEnd(AlignedBase base) const
 {
-    // Extract the base value and check it.
-    const uint8_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 4);
+    const size_t baseValue = base.value;
+    CZI_ASSERT(baseValue < 5);
 
-    // The maximum repeat count is one less than the
-    // size of the repeat count coverage vector for this base.
-    return repeatCountCoverage[baseValue].size() - 1;
+    const auto& c = detailedCoverage[baseValue];
+    return max(c[0].size(), c[1].size());
 }
 
 
@@ -189,9 +220,9 @@ std::set<size_t> Coverage::findRepeatCounts(const vector<Coverage>& consensusInf
         if(bestBase.isGap()) {
             continue;
         }
-        const size_t maxRepeatCount = consensusInfo.maxRepeatCount(Base(bestBase));
-        for(size_t repeatCount=0; repeatCount<=maxRepeatCount; repeatCount++) {
-            const size_t coverage = consensusInfo.coverage(Base(bestBase), repeatCount);
+        const size_t repeatCountEnd = consensusInfo.repeatCountEnd(bestBase);
+        for(size_t repeatCount=0; repeatCount<repeatCountEnd; repeatCount++) {
+            const size_t coverage = consensusInfo.coverage(bestBase, repeatCount);
             if(coverage) {
                 repeatCounts.insert(repeatCount);
             }

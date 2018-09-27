@@ -864,7 +864,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
             "<tr style='background-color:#fff2e6' title='" << rowTitle << "'>"
             "<th style='min-width:200px;text-align:left'>" << rowTitle;
         for(const Coverage& coverage: coverages) {
-            const Base base = Base(coverage.bestBase());
+            const AlignedBase base = coverage.bestBase();
             const size_t repeatCountCoverage = coverage.coverage(base, repeatCount);
             html << "<td>";
             if(repeatCountCoverage) {
@@ -881,7 +881,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
         "<tr style='background-color:#ffe6cc' title='" << rowTitle << "'>"
         "<th style='min-width:200px;text-align:left'>" << rowTitle;
     for(const Coverage& coverage: coverages) {
-        const Base base = Base(coverage.bestBase());
+        const AlignedBase base = coverage.bestBase();
         const size_t repeatCount = coverage.bestBaseBestRepeatCount();
         const size_t baseCoverageForRepeatCount = coverage.coverage(base, repeatCount);
         html << "<td>";

@@ -252,7 +252,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const size_t bestRepeatCount =
-                    vertex.coverages[position].bestRepeatCount(kmer[position]);
+                    vertex.coverages[position].bestRepeatCount(AlignedBase(kmer[position]));
                 if(bestRepeatCount < 10) {
                     s << bestRepeatCount;
                 } else {
@@ -270,8 +270,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
                 s << repeatCount << "</b></td>";
                 s << "<td><b>";
                 for(size_t position=0; position<graph.k; position++) {
-                    const Coverage& consensusInfo = vertex.coverages[position];
-                    const Base bestBase = Base(consensusInfo.bestBase());
+                    const Coverage& coverage = vertex.coverages[position];
+                    const AlignedBase bestBase = coverage.bestBase();
                     s << vertex.coverages[position].coverageCharacter(bestBase, repeatCount);
                 }
                 s << "</b></td></tr>";
@@ -282,7 +282,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const Coverage& consensusInfo = vertex.coverages[position];
-                const Base bestBase = Base(consensusInfo.bestBase());
+                const AlignedBase bestBase = consensusInfo.bestBase();
                 const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
                 s << vertex.coverages[position].coverageCharacter(bestBase, bestRepeatCount);
             }
@@ -640,7 +640,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                         s << "-";
                         continue;
                     }
-                    s << coverage.coverageCharacter(Base(bestBase), repeatCount);
+                    s << coverage.coverageCharacter(bestBase, repeatCount);
                 }
                 s << "</b></td>";
                 s << "</tr>";
@@ -652,8 +652,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                     s << "-";
                     continue;
                 }
-                s << coverage.coverageCharacter(
-                    Base(coverage.bestBase()), coverage.bestBaseBestRepeatCount());
+                s << coverage.coverageCharacter(coverage.bestBase(),
+                    coverage.bestBaseBestRepeatCount());
             }
             s << "</b></td>";
             s << "</tr>";
@@ -678,7 +678,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 const AlignedBase bestBase = coverage.bestBase();
                 if(!bestBase.isGap()) {
                     const size_t bestRepeatCount = coverage.bestBaseBestRepeatCount();
-                    const char coverageCharacter = coverage.coverageCharacter(Base(bestBase), bestRepeatCount);
+                    const char coverageCharacter = coverage.coverageCharacter(bestBase, bestRepeatCount);
                     for(size_t k=0; k<bestRepeatCount; k++) {
                         s << coverageCharacter;
                     }

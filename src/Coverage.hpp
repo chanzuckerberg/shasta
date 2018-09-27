@@ -1,13 +1,6 @@
 #ifndef CZI_SHASTA_COVERAGE_HPP
 #define CZI_SHASTA_COVERAGE_HPP
 
-
-
-// Class ConsensusInfo is used to summarize coverage information
-// at a single position of a multiple sequence alignment.
-// It stores read coverage for each base (ACGT and '-')
-// and for each repeat count.
-
 // Shasta.
 #include "Base.hpp"
 #include "CZI_ASSERT.hpp"
@@ -32,6 +25,7 @@ position of a multiple sequence alignment.
 *******************************************************************************/
 
 
+
 namespace ChanZuckerberg {
     namespace shasta {
         class Coverage;
@@ -54,6 +48,8 @@ public:
     {
         if(base.isGap()) {
             CZI_ASSERT(repeatCount == 0);
+        } else {
+            CZI_ASSERT(repeatCount > 0);
         }
     }
 };
@@ -65,28 +61,26 @@ public:
 class ChanZuckerberg::shasta::Coverage {
 public:
 
+    // Default constructor.
+    Coverage();
+
     // Add information about a supporting read.
     // If the AlignedBase is '-',repeatCount must be zero.
+    // Otherwise, it must not be zero.
     // This is the only public non-const function.
     void addRead(AlignedBase, Strand, size_t repeatCount);
 
 
-
-    // Functions to return the best base or best repeat count.
-    // Here, best means "with the most coverage".
 
     // Return the base with the most coverage.
     // This can return ACGT or '-'.
     AlignedBase bestBase() const;
 
     // Get the repeat count with the most coverage for a given base.
-    // The base cannot be '-'.
-    size_t bestRepeatCount(Base) const;
+    size_t bestRepeatCount(AlignedBase) const;
 
     // Get the repeat count with the most coverage for the base
     // with the most coverage.
-    // This should only be called if the base with the best coverage
-    // is not '-'.
     size_t bestBaseBestRepeatCount() const;
 
 
@@ -94,23 +88,26 @@ public:
     // Represent a coverage value with a single character.
     static char coverageCharacter(size_t);
 
-    // Get coverage for a given base, for all repeat counts.
-    // The base can be ACGT or '-'.
+    // Get coverage for a given base, for all repeat counts,
+    // summing over both strands.
     size_t coverage(AlignedBase) const;
     char coverageCharacter(AlignedBase) const;
 
-    // Get coverage for a given base and repeat count.
-    // The base cannot be '-'.
-    size_t coverage(Base, size_t repeatCount) const;
-    char coverageCharacter(Base, size_t repeatCount) const;
+    // Get coverage for a given base and repeat count,
+    // summing over both strands.
+    size_t coverage(AlignedBase, size_t repeatCount) const;
+    char coverageCharacter(AlignedBase, size_t repeatCount) const;
 
     // Get base coverage for the best base.
     size_t bestBaseCoverage() const;
     char bestBaseCoverageCharacter() const;
 
-    // Get the maximum repeat count for a given base.
-    // The base can be ACGT (not '-').
-    size_t maxRepeatCount(Base) const;
+    // Get, for a given base, the first repeat count for which
+    // coverage becomes permanently zero.
+    // This can be used to loop over repeat counts for that base.
+    // Note that, if the base is '-', this will always return 0.
+    size_t repeatCountEnd(AlignedBase) const;
+
 
 
     // Given a vector of ConsensusInfo objects,
@@ -123,21 +120,16 @@ private:
     // An entry for each read in the alignment.
     vector<CoverageData> readCoverageData;
 
-    // Coverage for each base (ACGT or '-')
-    // at the position described by this ConsensusInfo.
-    // Indexed by AlignedBase::value.
-    array<size_t, 5> baseCoverage = {{0, 0, 0, 0, 0}};
+    // Coverage for each base (ACGT or '-'), strand, and repeat count.
+    // Indexed by [AlignedBase::value][strand][repeatCount].
+    array< array<vector<size_t>, 2>, 5> detailedCoverage;
 
-    // Coverage for individual repeat counts for each base.
-    // Indexed by Base::value.
-    // Note that this includes entries for ACGT only (no entry for '-').
-    array<vector<size_t>, 4> repeatCountCoverage;
+    // Coverage for each base (ACGT or '-') and strand.
+    // Indexed by [AlignedBase::value][strand].
+    // This contains the same information in repeatCountCoverage,
+    // summed over all repeat counts.
+    array< array<size_t, 2>, 5> baseCoverage;
 
-    // Increment coverage for a given base and repeat count.
-    void incrementCoverage(Base, size_t repeatCount);
-
-    // Increment coverage for '-'.
-    void incrementGapCoverage();
 };
 
 
