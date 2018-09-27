@@ -175,7 +175,10 @@ void LocalMarkerGraph2::computeVertexConsensusInfo( vertex_descriptor v)
 
         // Increment coverage.
         for(size_t position=0; position<k; position++) {
-            vertex.consensusInfo[position].incrementCoverage(kmer[position], counts[position]);
+            vertex.consensusInfo[position].addRead(
+                AlignedBase(kmer[position]),
+                markerInfo.orientedReadId.getStrand(),
+                counts[position]);
         }
     }
 }
@@ -560,7 +563,10 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
         // for each base and repeat count.
         for(size_t j=0; j<m; j++) {
             if(seqan::isGap(seqan::row(seqanAlignment, j), i)) {
-                consensusInfo.incrementGapCoverage();
+                consensusInfo.addRead(
+                    AlignedBase::gap(),
+                    alignmentInfos[j].orientedReadId.getStrand(),
+                    0);
             } else {
 
                 // Extract the read base and repeat count at this position
@@ -570,7 +576,10 @@ void LocalMarkerGraph2Edge::computeSeqanConsensus()
                 ++positions[j];
 
                 // Increment coverage for this base and repeat count.
-                consensusInfo.incrementCoverage(base, repeatCount);
+                consensusInfo.addRead(
+                    AlignedBase(base),
+                    alignmentInfos[j].orientedReadId.getStrand(),
+                    repeatCount);
             }
         }
     }

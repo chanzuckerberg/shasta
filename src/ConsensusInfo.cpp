@@ -4,6 +4,25 @@ using namespace shasta;
 
 
 
+// Add information about a supporting read.
+// If the AlignedBase is '-',repeatCount must be zero.
+void ConsensusInfo::addRead(AlignedBase base, Strand strand, size_t repeatCount)
+{
+    if(base.isGap()) {
+        CZI_ASSERT(repeatCount == 0);
+    }
+
+    // Increment coverage.
+    if(base.isGap()) {
+        incrementGapCoverage();
+    } else {
+        incrementCoverage(Base(base), repeatCount);
+    }
+
+}
+
+
+
 // Increment coverage for a given base and repeat count.
 void ConsensusInfo::incrementCoverage(Base base, size_t repeatCount)
 {

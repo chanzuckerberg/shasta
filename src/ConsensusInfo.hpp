@@ -11,6 +11,7 @@
 // Shasta.
 #include "Base.hpp"
 #include "CZI_ASSERT.hpp"
+#include "ReadId.hpp"
 
 // Standard library.
 #include "algorithm.hpp"
@@ -29,14 +30,10 @@ namespace ChanZuckerberg {
 class ChanZuckerberg::shasta::ConsensusInfo {
 public:
 
-    // Functions to increment coverage.
-    // These are the only non-const functions.
-
-    // Increment coverage for a given base and repeat count.
-    void incrementCoverage(Base, size_t repeatCount);
-
-    // Increment coverage for '-'.
-    void incrementGapCoverage();
+    // Add information about a supporting read.
+    // If the AlignedBase is '-',repeatCount must be zero.
+    // This is the only public non-const function.
+    void addRead(AlignedBase, Strand, size_t repeatCount);
 
 
 
@@ -59,8 +56,6 @@ public:
 
 
 
-    // Functions to get coverage.
-
     // Represent a coverage value with a single character.
     static char coverageCharacter(size_t);
 
@@ -77,10 +72,6 @@ public:
     // Get base coverage for the best base.
     size_t bestBaseCoverage() const;
     char bestBaseCoverageCharacter() const;
-
-
-
-    // Other const functions.
 
     // Get the maximum repeat count for a given base.
     // The base can be ACGT (not '-').
@@ -104,6 +95,11 @@ private:
     // Note that this includes entries for ACGT only (no entry for '-').
     array<vector<size_t>, 4> repeatCountCoverage;
 
+    // Increment coverage for a given base and repeat count.
+    void incrementCoverage(Base, size_t repeatCount);
+
+    // Increment coverage for '-'.
+    void incrementGapCoverage();
 };
 
 

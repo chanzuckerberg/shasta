@@ -213,6 +213,12 @@ public:
         return base;
     }
 
+    // Return a gap.
+    static AlignedBase gap()
+    {
+        return fromInteger(uint8_t(4));
+    }
+
     // Construct from a Base.
     explicit AlignedBase(Base base) : value(base.value) {}
 

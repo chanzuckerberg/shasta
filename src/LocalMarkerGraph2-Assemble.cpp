@@ -698,10 +698,10 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
                 // Loop over the infos.
                 ConsensusInfo& consensusInfo = consensusInfos[position];
                 for(const auto& info: infos) {
-                    consensusInfo.incrementCoverage(
-                        sequence[positionInEdge],
+                    consensusInfo.addRead(
+                        AlignedBase(sequence[positionInEdge]),
+                        info.orientedReadId.getStrand(),
                         info.repeatCounts[positionInEdge]);
-
                 }
             }
         }
