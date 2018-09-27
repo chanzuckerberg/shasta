@@ -8,9 +8,8 @@ using namespace shasta;
 // If the AlignedBase is '-',repeatCount must be zero.
 void Coverage::addRead(AlignedBase base, Strand strand, size_t repeatCount)
 {
-    if(base.isGap()) {
-        CZI_ASSERT(repeatCount == 0);
-    }
+    // Store a CoverageData for this read.
+    readCoverageData.push_back(CoverageData(base, strand, repeatCount));
 
     // Increment coverage.
     if(base.isGap()) {

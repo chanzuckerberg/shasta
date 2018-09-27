@@ -19,14 +19,49 @@
 #include <set>
 #include "vector.hpp"
 
+
+
+/*******************************************************************************
+
+Class CoverageData stores coverage information for a single
+read at a single position of a multiple sequence alignment.
+
+Class Coverage stores coverage information for all reads at a single
+position of a multiple sequence alignment.
+
+*******************************************************************************/
+
+
 namespace ChanZuckerberg {
     namespace shasta {
         class Coverage;
+        class CoverageData;
     }
 }
 
 
 
+// Class CoverageData stores coverage information for a single
+// read at a single position of a multiple sequence alignment.
+class ChanZuckerberg::shasta::CoverageData {
+public:
+    AlignedBase base;   // ACGT or "-" for a gap
+    Strand strand;      // 0 for + strand or 1 for - strand.
+    size_t repeatCount; // The repeat count found in this read.
+
+    CoverageData(AlignedBase base, Strand strand, size_t repeatCount) :
+        base(base), strand(strand), repeatCount(repeatCount)
+    {
+        if(base.isGap()) {
+            CZI_ASSERT(repeatCount == 0);
+        }
+    }
+};
+
+
+
+// Class Coverage stores coverage information for all reads at a single
+// position of a multiple sequence alignment.
 class ChanZuckerberg::shasta::Coverage {
 public:
 
@@ -84,6 +119,9 @@ public:
     static std::set<size_t> findRepeatCounts(const vector<Coverage>&);
 
 private:
+
+    // An entry for each read in the alignment.
+    vector<CoverageData> readCoverageData;
 
     // Coverage for each base (ACGT or '-')
     // at the position described by this ConsensusInfo.
