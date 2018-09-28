@@ -273,7 +273,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 
             // Coverage for each repeat count at each position.
             const std::set<size_t> repeatCounts =
-                Coverage::findRepeatCounts(vertex.coverages);
+                graph.consensusCaller.findRepeatCounts(vertex.coverages);
             for(const size_t repeatCount: repeatCounts) {
                 s << "<tr>";
                 s << "<td colspan=\"3\" align=\"left\"><b>Coverage for repeat ";
@@ -640,7 +640,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
             // Find the repeat counts that have non-zero coverage on the best base
             // at any position.
-            const std::set<size_t> repeatCounts = Coverage::findRepeatCounts(edge.coverages);
+            const std::set<size_t> repeatCounts = graph.consensusCaller.findRepeatCounts(edge.coverages);
 
             // Coverage for the consensus base at each position, broken down
             // by repeat count.

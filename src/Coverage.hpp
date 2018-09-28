@@ -9,7 +9,6 @@
 // Standard library.
 #include "algorithm.hpp"
 #include "array.hpp"
-#include <set>
 #include "vector.hpp"
 
 
@@ -107,13 +106,6 @@ public:
     // This can be used to loop over repeat counts for that base.
     // Note that, if the base is '-', this will always return 0.
     size_t repeatCountEnd(AlignedBase) const;
-
-
-
-    // Given a vector of ConsensusInfo objects,
-    // find the repeat counts that have non-zero coverage on the best base
-    // at any position.
-    static std::set<size_t> findRepeatCounts(const vector<Coverage>&);
 
 private:
 

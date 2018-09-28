@@ -223,32 +223,6 @@ size_t Coverage::repeatCountEnd(AlignedBase base) const
 
 
 
-// Given a vector of ConsensusInfo objects,
-// find the repeat counts that have non-zero coverage on the best base
-// at any position.
-std::set<size_t> Coverage::findRepeatCounts(const vector<Coverage>& consensusInfos)
-{
-
-    std::set<size_t> repeatCounts;
-    for(const Coverage& consensusInfo: consensusInfos) {
-        const AlignedBase mostFrequentBase = consensusInfo.mostFrequentBase();
-        if(mostFrequentBase.isGap()) {
-            continue;
-        }
-        const size_t repeatCountEnd = consensusInfo.repeatCountEnd(mostFrequentBase);
-        for(size_t repeatCount=0; repeatCount<repeatCountEnd; repeatCount++) {
-            const size_t coverage = consensusInfo.coverage(mostFrequentBase, repeatCount);
-            if(coverage) {
-                repeatCounts.insert(repeatCount);
-            }
-        }
-    }
-    return repeatCounts;
-}
-
-
-
-
 
 
 

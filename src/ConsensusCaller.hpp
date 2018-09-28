@@ -22,7 +22,9 @@ the "best" base and repeat count.
 #include "Base.hpp"
 
 // Standard libraries.
+#include <set>
 #include "utility.hpp"
+#include "vector.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {
@@ -45,6 +47,11 @@ public:
 
     // Virtual destructor, to ensure destruction of derived classes.
     virtual ~ConsensusCaller() {}
+
+    // Given a vector of ConsensusInfo objects,
+    // find the repeat counts that have non-zero coverage on the called base
+    // at any position.
+    std::set<size_t> findRepeatCounts(const vector<Coverage>&) const;
 };
 
 
