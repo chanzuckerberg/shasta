@@ -65,6 +65,11 @@ public:
     // This is the only public non-const function.
     void addRead(AlignedBase, Strand, size_t repeatCount);
 
+    // Return the list detailing coverage from each read.
+    const vector<CoverageData>& getReadCoverageData() const
+    {
+        return readCoverageData;
+    }
 
 
     // Return the base with the most coverage.
