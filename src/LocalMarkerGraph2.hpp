@@ -67,6 +67,7 @@ namespace ChanZuckerberg {
 
         // Forward declarations of classes defined elsewhere.
         class CompressedMarker;
+        class ConsensusCaller;
         class LongBaseSequences;
         namespace MemoryMapped {
             template<class T> class Vector;
@@ -263,7 +264,8 @@ public:
         bool useRunLengthReads,
         const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex
+        const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex,
+        const ConsensusCaller&
         );
 
     // Override base class Base defined in Boost Graph library.
@@ -432,6 +434,10 @@ private:
     // corresponding to each marker.
     // Indexed by MarkerId.
     const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex;
+
+    // Object used to compute consensus bases and repeat counts.
+    // This is owned by the caller (the Assembler object).
+    const ConsensusCaller& consensusCaller;
 
     // Given a path, find the longest subset that contains no vertices
     // with distance equal to the specified maxDistance.

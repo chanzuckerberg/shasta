@@ -32,14 +32,16 @@ LocalMarkerGraph2::LocalMarkerGraph2(
     bool useRunLengthReads,
     const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex
+    const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex,
+    const ConsensusCaller& consensusCaller
     ) :
     k(k),
     reads(reads),
     useRunLengthReads(useRunLengthReads),
     readRepeatCounts(readRepeatCounts),
     markers(markers),
-    globalMarkerGraphVertex(globalMarkerGraphVertex)
+    globalMarkerGraphVertex(globalMarkerGraphVertex),
+    consensusCaller(consensusCaller)
 {
 
 }

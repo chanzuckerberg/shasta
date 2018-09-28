@@ -457,7 +457,8 @@ void Assembler::extractLocalMarkerGraph(
         assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
-        globalMarkerGraphVertex);
+        globalMarkerGraphVertex,
+        *consensusCaller);
     extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, 0., graph);
 
     cout << "The local marker graph has " << num_vertices(graph);
@@ -696,7 +697,8 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
         assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
-        globalMarkerGraphVertex);
+        globalMarkerGraphVertex,
+        *consensusCaller);
     extractLocalMarkerGraph(startVertexId, maxDistance, 0., graph);
 
     // Construct the local assembly path.
