@@ -1,5 +1,6 @@
 // Shasta.
 #include "LocalMarkerGraph2.hpp"
+#include "ConsensusCaller.hpp"
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 using namespace ChanZuckerberg;
@@ -248,11 +249,20 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 
         // Repeat count consensus.
         if(graph.useRunLengthReads) {
+
+            // Use the consensus caller to compute the consensus base and repeat count
+            // at each of the k positions. The consensus base should be equal
+            // to the corresponding base of the k-mer for this vertex!
+            vector< pair<AlignedBase, size_t> > consensus(k);
+            for(size_t position=0; position<graph.k; position++) {
+                consensus[position] = graph.consensusCaller(vertex.coverages[position]);
+                CZI_ASSERT(consensus[position].first == AlignedBase(kmer[position]));
+            }
+
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Repeat consensus</b></td>";
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
-                const size_t bestRepeatCount =
-                    vertex.coverages[position].mostFrequentRepeatCount(AlignedBase(kmer[position]));
+                const size_t bestRepeatCount = consensus[position].second;
                 if(bestRepeatCount < 10) {
                     s << bestRepeatCount;
                 } else {
@@ -270,21 +280,19 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
                 s << repeatCount << "</b></td>";
                 s << "<td><b>";
                 for(size_t position=0; position<graph.k; position++) {
-                    const Coverage& coverage = vertex.coverages[position];
-                    const AlignedBase mostFrequentBase = coverage.mostFrequentBase();
-                    s << vertex.coverages[position].coverageCharacter(mostFrequentBase, repeatCount);
+                    const AlignedBase base = AlignedBase(kmer[position]);
+                    s << vertex.coverages[position].coverageCharacter(base, repeatCount);
                 }
                 s << "</b></td></tr>";
             }
 
-            // Coverage for the best repeat count at each position.
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus coverage</b></td>";
+            // Coverage for the consensus best repeat count at each position.
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for repeat consensus</b></td>";
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
-                const Coverage& consensusInfo = vertex.coverages[position];
-                const AlignedBase mostFrequentBase = consensusInfo.mostFrequentBase();
-                const size_t mostFrequentRepeatCount = consensusInfo.mostFrequentBaseMostFrequentRepeatCount();
-                s << vertex.coverages[position].coverageCharacter(mostFrequentBase, mostFrequentRepeatCount);
+                const AlignedBase base = AlignedBase(kmer[position]);
+                const size_t consensusRepeatCount = consensus[position].second;
+                s << vertex.coverages[position].coverageCharacter(base, consensusRepeatCount);
             }
             s << "</b></td></tr>";
 
@@ -292,11 +300,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Raw consensus</b></td>";
             s << "<td align=\"left\"><b>";
             for(size_t position=0; position<graph.k; position++) {
-                const Coverage& coverage = vertex.coverages[position];
-                const Base mostFrequentBase = Base(coverage.mostFrequentBase());
-                const size_t mostFrequentRepeatCount = coverage.mostFrequentBaseMostFrequentRepeatCount();
-                for(size_t k=0; k<mostFrequentRepeatCount; k++) {
-                    s << mostFrequentBase;
+                const AlignedBase base = AlignedBase(kmer[position]);
+                const size_t consensusRepeatCount = consensus[position].second;
+                for(size_t k=0; k<consensusRepeatCount; k++) {
+                    s << base;
             }
             }
             s << "</b></td></tr>";
