@@ -29,6 +29,7 @@ namespace ChanZuckerberg {
         class Alignment;
         class AlignmentGraph;
         class AlignmentInfo;
+        class ConsensusCaller;
         class LocalReadGraph;
         class LocalMarkerGraph2;
         namespace MemoryMapped {
@@ -324,6 +325,13 @@ public:
 
     // Call this before explore to make the documentation available.
     void setDocsDirectory(const string&);
+
+    // Set up the ConsensusCaller used to compute the "best"
+    // base and repeat count at each assembly position.
+    // The aregument specifies the consensus caller to be used.
+    // For now, the only supported value is "SimpleConsensusCaller".
+    void setupConsensusCaller(const string&);
+
 
 private:
 
@@ -921,6 +929,11 @@ private:
         const LocalMarkerGraph2&,
         const LocalMarkerGraphRequestParameters&
         );
+
+
+    // The ConsensusCaller used to compute the "best"
+    // base and repeat count at each assembly position.
+    std::shared_ptr<ConsensusCaller> consensusCaller;
 };
 
 #endif

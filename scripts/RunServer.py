@@ -7,7 +7,7 @@ import shasta
 thisScriptPath = os.path.realpath(__file__)
 thisScriptDirectory = os.path.dirname(thisScriptPath)
 thisScriptParentDirectory = os.path.dirname(thisScriptDirectory)
-docsDirectory = thisScriptParentDirectory + "/docs"
+docsDirectory = thisScriptParentDirectory + '/docs'
 
 
 # Initialize the assembler and access what we need.
@@ -19,6 +19,7 @@ a.accessMarkers()
 a.accessOverlaps()
 a.accessAlignmentData()
 a.accessMarkerGraphVertices()
+a.setupConsensusCaller('SimpleConsensusCaller')
 
 a.setDocsDirectory(docsDirectory)
 a.explore()

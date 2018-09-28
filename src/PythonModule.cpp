@@ -295,7 +295,11 @@ PYBIND11_MODULE(shasta, module)
             arg("port") = 17100,
             arg("localOnly") = false)
         .def("setDocsDirectory",
-            &Assembler::setDocsDirectory);
+            &Assembler::setDocsDirectory)
+
+        // Consensus caller.
+        .def("setupConsensusCaller",
+            &Assembler::setupConsensusCaller)
 
 
 

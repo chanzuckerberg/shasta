@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "SimpleConsensusCaller.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -63,3 +64,17 @@ Assembler::Assembler(
 
 }
 
+
+// Set up the ConsensusCaller used to compute the "best"
+// base and repeat count at each assembly position.
+void Assembler::setupConsensusCaller(const string& s)
+{
+    if(s == "SimpleConsensusCaller") {
+        consensusCaller = std::make_shared<SimpleConsensusCaller>();
+        return;
+    }
+
+    // If getting here, the argument does not specify a supported
+    // consensus caller.
+    throw runtime_error("Unsupported consensus caller " + s);
+}
