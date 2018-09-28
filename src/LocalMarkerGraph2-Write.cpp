@@ -253,18 +253,18 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             // Use the consensus caller to compute the consensus base and repeat count
             // at each of the k positions. The consensus base should be equal
             // to the corresponding base of the k-mer for this vertex!
-            vector< pair<AlignedBase, size_t> > consensus(k);
+            vector<Consensus> consensus(k);
             for(size_t position=0; position<graph.k; position++) {
                 consensus[position] = graph.consensusCaller(vertex.coverages[position]);
-                CZI_ASSERT(consensus[position].first == AlignedBase(kmer[position]));
+                CZI_ASSERT(consensus[position].base == AlignedBase(kmer[position]));
             }
 
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Repeat consensus</b></td>";
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
-                const size_t bestRepeatCount = consensus[position].second;
-                if(bestRepeatCount < 10) {
-                    s << bestRepeatCount;
+                const size_t repeatCount = consensus[position].repeatCount;
+                if(repeatCount < 10) {
+                    s << repeatCount;
                 } else {
                     s << "*";
                 }
@@ -291,8 +291,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const AlignedBase base = AlignedBase(kmer[position]);
-                const size_t consensusRepeatCount = consensus[position].second;
-                s << vertex.coverages[position].coverageCharacter(base, consensusRepeatCount);
+                const size_t repeatCount = consensus[position].repeatCount;
+                s << vertex.coverages[position].coverageCharacter(base, repeatCount);
             }
             s << "</b></td></tr>";
 
@@ -301,8 +301,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td align=\"left\"><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const AlignedBase base = AlignedBase(kmer[position]);
-                const size_t consensusRepeatCount = consensus[position].second;
-                for(size_t k=0; k<consensusRepeatCount; k++) {
+                const size_t repeatCount = consensus[position].repeatCount;
+                for(size_t k=0; k<repeatCount; k++) {
                     s << base;
             }
             }
@@ -583,7 +583,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
 
             // Use the Consensus Caller to compute consensus
             // for base and repeat count at each position in the alignment.
-            vector< pair<AlignedBase, size_t> > consensus(edge.coverages.size());
+            vector<Consensus> consensus(edge.coverages.size());
             for(size_t position=0; position<edge.coverages.size(); position++) {
                 consensus[position] = graph.consensusCaller(edge.coverages[position]);
             }
@@ -591,16 +591,16 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             // Seqan consensus (run-length sequence).
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus base, repeat count</b></td>";
             s << "<td><b>";
-            for(const auto& p: consensus) {
-                s << p.first;
+            for(const Consensus& c: consensus) {
+                s << c.base;
             }
             s << "</b></td>";
             s << "<td><b>";
-            for(const auto& p: consensus) {
-                if(p.first.isGap()) {
+            for(const Consensus& c: consensus) {
+                if(c.base.isGap()) {
                     s << "-";
                 } else {
-                    const size_t repeatCount = p.second;
+                    const size_t repeatCount = c.repeatCount;
                     if(repeatCount < 10) {
                         s << repeatCount;
                     } else {
@@ -630,7 +630,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for consensus base</b></td>";
             s << "<td><b>";
             for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].first;
+                const AlignedBase base = consensus[position].base;
                 s << edge.coverages[position].coverageCharacter(base);
             }
             s << "</b></td>";
@@ -649,7 +649,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << repeatCount << "</b></td>";
                 s << "<td><b>";
                 for(size_t position=0; position<consensus.size(); position++) {
-                    const AlignedBase base = consensus[position].first;
+                    const AlignedBase base = consensus[position].base;
                     const Coverage& coverage = edge.coverages[position];
                     if(base.isGap()) {
                         s << "-";
@@ -663,8 +663,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for consensus base and repeat count</b></td>";
             s << "<td><b>";
             for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].first;
-                const size_t repeatCount = consensus[position].second;
+                const AlignedBase base = consensus[position].base;
+                const size_t repeatCount = consensus[position].repeatCount;
                 if(base.isGap()) {
                     s << "-";
                     continue;
@@ -681,9 +681,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw)</b></td>";
             s << "<td colspan=\"2\"><b>";
             for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].first;
+                const AlignedBase base = consensus[position].base;
                 if(!base.isGap()) {
-                    const size_t repeatCount = consensus[position].second;
+                    const size_t repeatCount = consensus[position].repeatCount;
                     for(size_t k=0; k<repeatCount; k++) {
                         s << base;
                     }
@@ -694,9 +694,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw) coverage</b></td>";
             s << "<td colspan=\"2\"><b>";
             for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].first;
+                const AlignedBase base = consensus[position].base;
                 if(!base.isGap()) {
-                    const size_t repeatCount = consensus[position].second;
+                    const size_t repeatCount = consensus[position].repeatCount;
                     const char coverageCharacter =
                         edge.coverages[position].coverageCharacter(base, repeatCount);
                     for(size_t k=0; k<repeatCount; k++) {

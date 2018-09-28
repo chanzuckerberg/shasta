@@ -30,8 +30,22 @@ namespace ChanZuckerberg {
     namespace shasta {
         class Coverage;
         class ConsensusCaller;
+        class Consensus;
     }
 }
+
+
+
+// Class used to represent the consensus base and repeat count
+// at a position of an alignment.
+class ChanZuckerberg::shasta::Consensus {
+public:
+    AlignedBase base;
+    size_t repeatCount;
+
+    Consensus(AlignedBase base = AlignedBase::gap(), size_t repeatCount = 0) :
+        base(base), repeatCount(repeatCount) {}
+};
 
 
 
@@ -43,7 +57,7 @@ public:
     // algorithm implemented by the derived class.
     // This is the only pure virtual function.
     // It must be implemented by all derived classes.
-    virtual pair<AlignedBase, size_t> operator()(const Coverage&) const = 0;
+    virtual Consensus operator()(const Coverage&) const = 0;
 
     // Virtual destructor, to ensure destruction of derived classes.
     virtual ~ConsensusCaller() {}

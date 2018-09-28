@@ -14,7 +14,7 @@ std::set<size_t> ConsensusCaller::findRepeatCounts(
 
     std::set<size_t> repeatCounts;
     for(const Coverage& coverage: coverages) {
-        const AlignedBase base = (*this)(coverage).first;
+        const AlignedBase base = (*this)(coverage).base;
         if(base.isGap()) {
             continue;
         }
