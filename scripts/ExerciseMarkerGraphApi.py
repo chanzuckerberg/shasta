@@ -26,6 +26,7 @@ a = shasta.Assembler(
 a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
+a.setupConsensusCaller('SimpleConsensusCaller')
 
 while True:
     vertexIds = input('Enter a vertex id to find its children and parents\n' + 
