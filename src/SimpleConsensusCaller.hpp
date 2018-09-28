@@ -31,6 +31,7 @@ class ChanZuckerberg::shasta::SimpleConsensusCaller :
 public:
 
     virtual pair<AlignedBase, size_t> operator()(const Coverage&) const;
+
 };
 
 #endif

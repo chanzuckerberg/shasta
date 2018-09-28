@@ -74,22 +74,22 @@ public:
 
     // Return the base with the most coverage.
     // This can return ACGT or '-'.
-    AlignedBase bestBase() const;
+    AlignedBase mostFrequentBase() const;
 
     // Get the repeat count with the most coverage for a given base.
-    size_t bestRepeatCount(AlignedBase) const;
+    size_t mostFrequentRepeatCount(AlignedBase) const;
 
     // Get the repeat count with the most coverage for the base
     // with the most coverage.
-    size_t bestBaseBestRepeatCount() const;
+    size_t mostFrequentBaseMostFrequentRepeatCount() const;
 
 
 
     // Represent a coverage value with a single character.
     static char coverageCharacter(size_t);
 
-    // Get coverage for a given base, for all repeat counts,
-    // summing over both strands.
+    // Get coverage for a given base,
+    // summing over all repeats and both strands.
     size_t coverage(AlignedBase) const;
     char coverageCharacter(AlignedBase) const;
 
@@ -99,8 +99,8 @@ public:
     char coverageCharacter(AlignedBase, size_t repeatCount) const;
 
     // Get base coverage for the best base.
-    size_t bestBaseCoverage() const;
-    char bestBaseCoverageCharacter() const;
+    size_t mostFrequentBaseCoverage() const;
+    char mostFrequentBaseCoverageCharacter() const;
 
     // Get, for a given base, the first repeat count for which
     // coverage becomes permanently zero.

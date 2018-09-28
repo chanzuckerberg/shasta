@@ -71,7 +71,7 @@ void Coverage::addRead(AlignedBase base, Strand strand, size_t repeatCount)
 
 // Return the base with the most coverage.
 // This can return ACGT or '-'.
-AlignedBase Coverage::bestBase() const
+AlignedBase Coverage::mostFrequentBase() const
 {
     size_t bestBaseValue = 4;
     size_t bestBaseCoverage = 0;
@@ -90,7 +90,7 @@ AlignedBase Coverage::bestBase() const
 
 // Get the repeat count with the most coverage for a given base.
 // Note that, if the base is '-', this will always return 0.
-size_t Coverage::bestRepeatCount(AlignedBase base) const
+size_t Coverage::mostFrequentRepeatCount(AlignedBase base) const
 {
     size_t countEnd =repeatCountEnd(base);
     size_t bestCount = 0;
@@ -113,9 +113,9 @@ size_t Coverage::bestRepeatCount(AlignedBase base) const
 // with the most coverage.
 // The should only be called if the base with the best coverage
 // is not '-'.
-size_t Coverage::bestBaseBestRepeatCount() const
+size_t Coverage::mostFrequentBaseMostFrequentRepeatCount() const
 {
-    return bestRepeatCount(bestBase());
+    return mostFrequentRepeatCount(mostFrequentBase());
 }
 
 
@@ -193,17 +193,17 @@ char Coverage::coverageCharacter(AlignedBase base, size_t repeatCount) const
 
 
 // Get base coverage for the best base.
-size_t Coverage::bestBaseCoverage() const
+size_t Coverage::mostFrequentBaseCoverage() const
 {
-    return coverage(bestBase());
+    return coverage(mostFrequentBase());
 }
 
 
 
 // Same as above, but return a single character representing coverage.
-char Coverage::bestBaseCoverageCharacter() const
+char Coverage::mostFrequentBaseCoverageCharacter() const
 {
-    return coverageCharacter(bestBaseCoverage());
+    return coverageCharacter(mostFrequentBaseCoverage());
 }
 
 
@@ -231,13 +231,13 @@ std::set<size_t> Coverage::findRepeatCounts(const vector<Coverage>& consensusInf
 
     std::set<size_t> repeatCounts;
     for(const Coverage& consensusInfo: consensusInfos) {
-        const AlignedBase bestBase = consensusInfo.bestBase();
-        if(bestBase.isGap()) {
+        const AlignedBase mostFrequentBase = consensusInfo.mostFrequentBase();
+        if(mostFrequentBase.isGap()) {
             continue;
         }
-        const size_t repeatCountEnd = consensusInfo.repeatCountEnd(bestBase);
+        const size_t repeatCountEnd = consensusInfo.repeatCountEnd(mostFrequentBase);
         for(size_t repeatCount=0; repeatCount<repeatCountEnd; repeatCount++) {
-            const size_t coverage = consensusInfo.coverage(bestBase, repeatCount);
+            const size_t coverage = consensusInfo.coverage(mostFrequentBase, repeatCount);
             if(coverage) {
                 repeatCounts.insert(repeatCount);
             }

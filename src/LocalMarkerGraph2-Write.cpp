@@ -252,7 +252,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const size_t bestRepeatCount =
-                    vertex.coverages[position].bestRepeatCount(AlignedBase(kmer[position]));
+                    vertex.coverages[position].mostFrequentRepeatCount(AlignedBase(kmer[position]));
                 if(bestRepeatCount < 10) {
                     s << bestRepeatCount;
                 } else {
@@ -271,8 +271,8 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
                 s << "<td><b>";
                 for(size_t position=0; position<graph.k; position++) {
                     const Coverage& coverage = vertex.coverages[position];
-                    const AlignedBase bestBase = coverage.bestBase();
-                    s << vertex.coverages[position].coverageCharacter(bestBase, repeatCount);
+                    const AlignedBase mostFrequentBase = coverage.mostFrequentBase();
+                    s << vertex.coverages[position].coverageCharacter(mostFrequentBase, repeatCount);
                 }
                 s << "</b></td></tr>";
             }
@@ -282,9 +282,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const Coverage& consensusInfo = vertex.coverages[position];
-                const AlignedBase bestBase = consensusInfo.bestBase();
-                const size_t bestRepeatCount = consensusInfo.bestBaseBestRepeatCount();
-                s << vertex.coverages[position].coverageCharacter(bestBase, bestRepeatCount);
+                const AlignedBase mostFrequentBase = consensusInfo.mostFrequentBase();
+                const size_t mostFrequentRepeatCount = consensusInfo.mostFrequentBaseMostFrequentRepeatCount();
+                s << vertex.coverages[position].coverageCharacter(mostFrequentBase, mostFrequentRepeatCount);
             }
             s << "</b></td></tr>";
 
@@ -293,10 +293,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
             s << "<td align=\"left\"><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const Coverage& coverage = vertex.coverages[position];
-                const Base bestBase = Base(coverage.bestBase());
-                const size_t bestRepeatCount = coverage.bestBaseBestRepeatCount();
-                for(size_t k=0; k<bestRepeatCount; k++) {
-                    s << bestBase;
+                const Base mostFrequentBase = Base(coverage.mostFrequentBase());
+                const size_t mostFrequentRepeatCount = coverage.mostFrequentBaseMostFrequentRepeatCount();
+                for(size_t k=0; k<mostFrequentRepeatCount; k++) {
+                    s << mostFrequentBase;
             }
             }
             s << "</b></td></tr>";
@@ -580,16 +580,16 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (run-length)</b></td>";
             s << "<td><b>";
             for(const Coverage& coverage: edge.coverages) {
-                s << coverage.bestBase();
+                s << coverage.mostFrequentBase();
             }
             s << "</b></td>";
             s << "<td><b>";
             for(const Coverage& coverage: edge.coverages) {
-                if(coverage.bestBase().isGap()) {
+                if(coverage.mostFrequentBase().isGap()) {
                     s << "-";
                 } else {
-                    if(coverage.bestBaseBestRepeatCount() < 10) {
-                        s << coverage.bestBaseBestRepeatCount();
+                    if(coverage.mostFrequentBaseMostFrequentRepeatCount() < 10) {
+                        s << coverage.mostFrequentBaseMostFrequentRepeatCount();
                     } else {
                         s << "*";
                     }
@@ -617,7 +617,7 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus coverage</b></td>";
             s << "<td><b>";
             for(const Coverage& coverage: edge.coverages) {
-                s << coverage.bestBaseCoverageCharacter();
+                s << coverage.mostFrequentBaseCoverageCharacter();
             }
             s << "</b></td>";
             s << "</tr>";
@@ -635,12 +635,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << repeatCount << "</b></td>";
                 s << "<td><b>";
                 for(const Coverage& coverage: edge.coverages) {
-                    const AlignedBase bestBase = coverage.bestBase();
-                    if(bestBase.isGap()) {
+                    const AlignedBase mostFrequentBase = coverage.mostFrequentBase();
+                    if(mostFrequentBase.isGap()) {
                         s << "-";
                         continue;
                     }
-                    s << coverage.coverageCharacter(bestBase, repeatCount);
+                    s << coverage.coverageCharacter(mostFrequentBase, repeatCount);
                 }
                 s << "</b></td>";
                 s << "</tr>";
@@ -648,12 +648,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for best repeat count</b></td>";
             s << "<td><b>";
             for(const Coverage& coverage: edge.coverages) {
-                if(coverage.bestBase().isGap()) {
+                if(coverage.mostFrequentBase().isGap()) {
                     s << "-";
                     continue;
                 }
-                s << coverage.coverageCharacter(coverage.bestBase(),
-                    coverage.bestBaseBestRepeatCount());
+                s << coverage.coverageCharacter(coverage.mostFrequentBase(),
+                    coverage.mostFrequentBaseMostFrequentRepeatCount());
             }
             s << "</b></td>";
             s << "</tr>";
@@ -664,9 +664,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw)</b></td>";
             s << "<td colspan=\"2\"><b>";
             for(const Coverage& coverage: edge.coverages) {
-                if(!coverage.bestBase().isGap()) {
-                    for(size_t k=0; k<coverage.bestBaseBestRepeatCount(); k++) {
-                        s << coverage.bestBase();
+                if(!coverage.mostFrequentBase().isGap()) {
+                    for(size_t k=0; k<coverage.mostFrequentBaseMostFrequentRepeatCount(); k++) {
+                        s << coverage.mostFrequentBase();
                     }
                 }
             }
@@ -675,11 +675,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw) coverage</b></td>";
             s << "<td colspan=\"2\"><b>";
             for(const Coverage& coverage: edge.coverages) {
-                const AlignedBase bestBase = coverage.bestBase();
-                if(!bestBase.isGap()) {
-                    const size_t bestRepeatCount = coverage.bestBaseBestRepeatCount();
-                    const char coverageCharacter = coverage.coverageCharacter(bestBase, bestRepeatCount);
-                    for(size_t k=0; k<bestRepeatCount; k++) {
+                const AlignedBase mostFrequentBase = coverage.mostFrequentBase();
+                if(!mostFrequentBase.isGap()) {
+                    const size_t mostFrequentRepeatCount = coverage.mostFrequentBaseMostFrequentRepeatCount();
+                    const char coverageCharacter = coverage.coverageCharacter(mostFrequentBase, mostFrequentRepeatCount);
+                    for(size_t k=0; k<mostFrequentRepeatCount; k++) {
                         s << coverageCharacter;
                     }
                 }
