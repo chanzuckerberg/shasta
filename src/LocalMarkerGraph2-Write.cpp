@@ -581,22 +581,28 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
                 s << "</tr>";
             }
 
-
+            // Use the Consensus Caller to compute consensus
+            // for base and repeat count at each position in the alignment.
+            vector< pair<AlignedBase, size_t> > consensus(edge.coverages.size());
+            for(size_t position=0; position<edge.coverages.size(); position++) {
+                consensus[position] = graph.consensusCaller(edge.coverages[position]);
+            }
 
             // Seqan consensus (run-length sequence).
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (run-length)</b></td>";
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus base, repeat count</b></td>";
             s << "<td><b>";
-            for(const Coverage& coverage: edge.coverages) {
-                s << coverage.mostFrequentBase();
+            for(const auto& p: consensus) {
+                s << p.first;
             }
             s << "</b></td>";
             s << "<td><b>";
-            for(const Coverage& coverage: edge.coverages) {
-                if(coverage.mostFrequentBase().isGap()) {
+            for(const auto& p: consensus) {
+                if(p.first.isGap()) {
                     s << "-";
                 } else {
-                    if(coverage.mostFrequentBaseMostFrequentRepeatCount() < 10) {
-                        s << coverage.mostFrequentBaseMostFrequentRepeatCount();
+                    const size_t repeatCount = p.second;
+                    if(repeatCount < 10) {
+                        s << repeatCount;
                     } else {
                         s << "*";
                     }
@@ -621,10 +627,11 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             }
 
             // Consensus coverage for the best base.
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus coverage</b></td>";
+            s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for consensus base</b></td>";
             s << "<td><b>";
-            for(const Coverage& coverage: edge.coverages) {
-                s << coverage.mostFrequentBaseCoverageCharacter();
+            for(size_t position=0; position<consensus.size(); position++) {
+                const AlignedBase base = consensus[position].first;
+                s << edge.coverages[position].coverageCharacter(base);
             }
             s << "</b></td>";
             s << "</tr>";
@@ -635,32 +642,35 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             // at any position.
             const std::set<size_t> repeatCounts = Coverage::findRepeatCounts(edge.coverages);
 
-            // Coverage for the best base at each position, broken down
+            // Coverage for the consensus base at each position, broken down
             // by repeat count.
             for(size_t repeatCount: repeatCounts) {
-                s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for repeat count ";
+                s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for consensus base, repeat count ";
                 s << repeatCount << "</b></td>";
                 s << "<td><b>";
-                for(const Coverage& coverage: edge.coverages) {
-                    const AlignedBase mostFrequentBase = coverage.mostFrequentBase();
-                    if(mostFrequentBase.isGap()) {
+                for(size_t position=0; position<consensus.size(); position++) {
+                    const AlignedBase base = consensus[position].first;
+                    const Coverage& coverage = edge.coverages[position];
+                    if(base.isGap()) {
                         s << "-";
                         continue;
                     }
-                    s << coverage.coverageCharacter(mostFrequentBase, repeatCount);
+                    s << coverage.coverageCharacter(base, repeatCount);
                 }
                 s << "</b></td>";
                 s << "</tr>";
             }
-            s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for best repeat count</b></td>";
+            s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for consensus base and repeat count</b></td>";
             s << "<td><b>";
-            for(const Coverage& coverage: edge.coverages) {
-                if(coverage.mostFrequentBase().isGap()) {
+            for(size_t position=0; position<consensus.size(); position++) {
+                const AlignedBase base = consensus[position].first;
+                const size_t repeatCount = consensus[position].second;
+                if(base.isGap()) {
                     s << "-";
                     continue;
                 }
-                s << coverage.coverageCharacter(coverage.mostFrequentBase(),
-                    coverage.mostFrequentBaseMostFrequentRepeatCount());
+                const Coverage& coverage = edge.coverages[position];
+                s << coverage.coverageCharacter(base, repeatCount);
             }
             s << "</b></td>";
             s << "</tr>";
@@ -670,10 +680,12 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             // Seqan consensus (raw sequence) and its coverage.
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw)</b></td>";
             s << "<td colspan=\"2\"><b>";
-            for(const Coverage& coverage: edge.coverages) {
-                if(!coverage.mostFrequentBase().isGap()) {
-                    for(size_t k=0; k<coverage.mostFrequentBaseMostFrequentRepeatCount(); k++) {
-                        s << coverage.mostFrequentBase();
+            for(size_t position=0; position<consensus.size(); position++) {
+                const AlignedBase base = consensus[position].first;
+                if(!base.isGap()) {
+                    const size_t repeatCount = consensus[position].second;
+                    for(size_t k=0; k<repeatCount; k++) {
+                        s << base;
                     }
                 }
             }
@@ -681,12 +693,13 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) c
             s << "</tr>";
             s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw) coverage</b></td>";
             s << "<td colspan=\"2\"><b>";
-            for(const Coverage& coverage: edge.coverages) {
-                const AlignedBase mostFrequentBase = coverage.mostFrequentBase();
-                if(!mostFrequentBase.isGap()) {
-                    const size_t mostFrequentRepeatCount = coverage.mostFrequentBaseMostFrequentRepeatCount();
-                    const char coverageCharacter = coverage.coverageCharacter(mostFrequentBase, mostFrequentRepeatCount);
-                    for(size_t k=0; k<mostFrequentRepeatCount; k++) {
+            for(size_t position=0; position<consensus.size(); position++) {
+                const AlignedBase base = consensus[position].first;
+                if(!base.isGap()) {
+                    const size_t repeatCount = consensus[position].second;
+                    const char coverageCharacter =
+                        edge.coverages[position].coverageCharacter(base, repeatCount);
+                    for(size_t k=0; k<repeatCount; k++) {
                         s << coverageCharacter;
                     }
                 }
