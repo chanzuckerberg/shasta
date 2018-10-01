@@ -3,12 +3,18 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
-
+// The trained parameters should be provided in a file at this filepath in the
+// run directory. The file is assumed to follow a columnar structure with columns
+// separated by tabs:
+//
+// called_base called_len true_base true_len prob
+// -           0          -         0        .00001
+// -           0          A         1        .0000001
+// etc.
+//
+// In addition, there is assumed to be a header line with column titles.
 static const string trainedDistributionFilepath = "consensus_distribution";
 
-// The constructor does not have any parameters.
-// All data should be read from a file with fixed name
-// in the run directory. We will update the documentation accordingly.
 TrainedBayesianConsensusCaller::TrainedBayesianConsensusCaller()
 {
     std::ifstream trainedDistributionFile(trainedDistributionFilepath);
@@ -27,9 +33,9 @@ TrainedBayesianConsensusCaller::TrainedBayesianConsensusCaller()
         line.erase(std::remove(line.begin(), line.end(), '\n'), line.end());
         
         // Tokenize the line by tabs
-        stringstream strm(line);
-        vector<string> tokens;
-        string buffer;
+        std::stringstream strm(line);
+        vector<std::string> tokens;
+        std::string buffer;
         while (std::getline(strm, buffer, '\t')) {
             buffer.erase(std::remove(buffer.begin(), buffer.end(), '\t'), buffer.end());
             tokens.push_back(buffer);

@@ -14,6 +14,7 @@ developed by Jordan Eizenga at UCSC.
 #include <cassert>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include <map>
 
 #include "tuple.hpp"
