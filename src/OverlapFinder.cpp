@@ -160,7 +160,7 @@ OverlapFinder::OverlapFinder(
             if(candidate.frequency >= minFrequency) {
                 const ReadId readId1 = candidate.readId1;
                 CZI_ASSERT(readId0 < readId1);
-                overlaps.push_back(Overlap(readId0, readId1, candidate.isSameStrand, candidate.frequency));
+                overlaps.push_back(Overlap(readId0, readId1, candidate.isSameStrand));
             }
         }
     }

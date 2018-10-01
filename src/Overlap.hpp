@@ -22,23 +22,19 @@ public:
     // even on opposite strands.
     array<ReadId, 2> readIds;
 
-    // The number of minHash iteration that found this pair.
-    uint32_t minHashFrequency;
-
     // Flag that is true if the alignment is obtained with the
     // two reads on the same strand.
     bool isSameStrand;
 
-    Overlap() : minHashFrequency(0) {}
+    // Constructors.
+    Overlap() {}
     Overlap(
         ReadId readId0,
         ReadId readId1,
-        bool isSameStrand,
-        uint32_t minHashFrequency
-    ) :
-    readIds(array<ReadId, 2>{readId0, readId1}),
-    minHashFrequency(minHashFrequency),
-    isSameStrand(isSameStrand)
+        bool isSameStrand
+        ) :
+        readIds(array<ReadId, 2>{readId0, readId1}),
+        isSameStrand(isSameStrand)
     {
         CZI_ASSERT(readId0 != readId1);
     }
