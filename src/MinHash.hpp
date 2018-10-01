@@ -92,7 +92,7 @@ private:
     vector< vector<Candidate> > candidates;
 
     // The total number of candidate found so far, as seen by each thread.
-    // This only counts overlaps with frequency
+    // This only counts candidates with frequency
     // at least equal to minFrequency.
     vector<size_t> totalCandidateCountByThread;
 };
