@@ -158,11 +158,6 @@ PYBIND11_MODULE(shasta, module)
             arg("fileName") = "OverlappingReads.fasta")
 
         // Read graph.
-        .def("computeReadGraphComponents",
-            &Assembler::computeReadGraphComponents,
-            arg("minComponentSize"),
-            arg("minAlignedMarkerCount"),
-            arg("maxTrim"))
         .def("createLocalReadGraph",
             (
                 void (Assembler::*)

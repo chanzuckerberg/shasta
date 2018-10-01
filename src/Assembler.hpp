@@ -169,13 +169,6 @@ public:
         uint32_t distance               // How far to go from starting oriented read.
     );
 
-    // Compute connected components of the global read graph.
-    void computeReadGraphComponents(
-        size_t minComponentSize,        // Minimum size for a connected component to be kept.
-        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-        size_t maxTrim                  // Maximum left/right trim to generate an edge
-        );
-
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
         ReadId, Strand,
@@ -561,25 +554,6 @@ private:
     void checkOverlapsAreOpen() const;
 
 
-
-    // The overlaps define a global overlap graph,
-    // an undirected graph in which each vertex corresponds to
-    // an oriented read. Two vertices are joined by an edge
-    // if there is an overlap between the corresponding
-    // oriented reads. We want to process each connected
-    // component separately, so we compute connected components
-    // of the overlap graph.
-
-    // The connected component that each oriented read belongs to,
-    // or std::numeric_limits<ReadId>::max() if the oriented read
-    // belongs to a connected component that was discarded
-    // because it was too small.
-    // Indexed by OrientedReadId::getValue().
-    MemoryMapped::Vector<ReadId> overlapGraphComponent;
-
-    // The OrientedReadId's of each connected component.
-    // Sorted by decreasing component size.
-    MemoryMapped::VectorOfVectors<OrientedReadId, ReadId> overlapGraphComponents;
 
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
