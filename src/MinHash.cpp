@@ -10,8 +10,8 @@ using namespace shasta;
 
 
 
-// Class OverlapFinder uses the MinHash algorithm to find pairs
-// of overlapping oriented reads. It uses as features
+// Class MinHash uses the MinHash algorithm to find candidate pairs
+// of aligned reads. It uses as features
 // sequences of m consecutive markers.
 
 
@@ -21,7 +21,7 @@ MinHash::MinHash(
     size_t minHashIterationCount,   // Number of minHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
     size_t maxBucketSize,           // The maximum size for a bucket to be used.
-    size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
+    size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
@@ -74,7 +74,7 @@ MinHash::MinHash(
             largeDataPageSize);
     minHash.resize(orientedReadCount);
     candidates.resize(readCount);
-    totalOverlapCountByThread.resize(threadCount);
+    totalCandidateCountByThread.resize(threadCount);
 
     // MinHash iteration loop.
     for(iteration=0; iteration<minHashIterationCount; iteration++) {
@@ -122,12 +122,13 @@ MinHash::MinHash(
         runThreads(&MinHash::inspectBuckets, threadCount, "threadLogs/inspectBuckets");
         const auto t3 = steady_clock::now();
 
+        // Write a summary fo rthis iteration.
         const double t01 = seconds(t1 - t0);
         const double t12 = seconds(t2 - t1);
         const double t23 = seconds(t3 - t2);
         cout << "Times for this iteration: hash " << t01 << ", fill " << t12 << ", inspect " << t23 << endl;
         const size_t totalOverlapCount =
-            std::accumulate(totalOverlapCountByThread.begin(), totalOverlapCountByThread.end(), 0ULL);
+            std::accumulate(totalCandidateCountByThread.begin(), totalCandidateCountByThread.end(), 0ULL);
         cout << "Found " << totalOverlapCount;
         cout << " overlaps with frequency at least " << minFrequency << " so far." << endl;
 
@@ -276,7 +277,7 @@ void MinHash::computeMinHash(size_t threadId)
 void MinHash::inspectBuckets(size_t threadId)
 {
     ostream& out = getLog(threadId);
-    size_t& totalCountForThread = totalOverlapCountByThread[threadId];
+    size_t& totalCountForThread = totalCandidateCountByThread[threadId];
     totalCountForThread = 0;
 
     // Loop over batches assigned to this thread.

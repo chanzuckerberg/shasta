@@ -16,8 +16,8 @@ namespace ChanZuckerberg {
 
 
 
-// This class uses the MinHash algorithm to find pairs
-// of overlapping oriented reads. It uses as features
+// This class uses the MinHash algorithm to find candidate pairs
+// of aligned reads. It uses as features
 // sequences of m consecutive markers.
 class ChanZuckerberg::shasta::MinHash :
     public MultithreadedObject<MinHash>{
@@ -29,7 +29,7 @@ public:
         size_t minHashIterationCount,   // Number of minHash iterations.
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
         size_t maxBucketSize,           // The maximum size for a bucket to be used.
-        size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered an overlap.
+        size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
         size_t threadCount,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>&,
@@ -43,7 +43,7 @@ private:
     // Store some of the arguments passed to the constructor.
     size_t m;                       // Number of consecutive markers that define a feature.
     size_t maxBucketSize;           // The maximum size for a bucket to be used.
-    size_t minFrequency;            // Minimum number of minHash hits for a pair to be considered an overlap.
+    size_t minFrequency;            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCount;
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
@@ -75,7 +75,7 @@ private:
     // The buckets containing oriented read ids.
     MemoryMapped::VectorOfVectors<OrientedReadId::Int, uint64_t> buckets;
 
-    // Inspect the buckets to find overlap candidates.
+    // Inspect the buckets to find candidates.
     void inspectBuckets(size_t threadId);
 
     // Data structure used to store candidate pairs.
@@ -91,11 +91,10 @@ private:
     };
     vector< vector<Candidate> > candidates;
 
-    // The total number of overlaps found so far,
-    // as seen by each thread.
+    // The total number of candidate found so far, as seen by each thread.
     // This only counts overlaps with frequency
     // at least equal to minFrequency.
-    vector<size_t> totalOverlapCountByThread;
+    vector<size_t> totalCandidateCountByThread;
 };
 
 #endif
