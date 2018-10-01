@@ -1,5 +1,5 @@
 #include "Assembler.hpp"
-#include "OverlapFinder.hpp"
+#include "MinHash.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -30,8 +30,8 @@ void Assembler::findOverlaps(
     // Create the overlaps.
     candidateAlignments.createNew(largeDataName("CandidateAlignments"), largeDataPageSize);
 
-    // Call the OverlapFinder to do the MinHash computation.
-    OverlapFinder overlapFinder(
+    // Run the MinHash computation to find candidate alignments.
+    MinHash minHash(
         m,
         minHashIterationCount,
         log2MinHashBucketCount,

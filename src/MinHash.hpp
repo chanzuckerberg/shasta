@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_OVERLAP_FINDER_HPP
-#define CZI_SHASTA_OVERLAP_FINDER_HPP
+#ifndef CZI_SHASTA_MIN_HASH_HPP
+#define CZI_SHASTA_MIN_HASH_HPP
 
 // shasta
 #include "Marker.hpp"
@@ -10,7 +10,7 @@
 
 namespace ChanZuckerberg {
     namespace shasta {
-        class OverlapFinder;
+        class MinHash;
     }
 }
 
@@ -19,12 +19,12 @@ namespace ChanZuckerberg {
 // This class uses the MinHash algorithm to find pairs
 // of overlapping oriented reads. It uses as features
 // sequences of m consecutive markers.
-class ChanZuckerberg::shasta::OverlapFinder :
-    public MultithreadedObject<OverlapFinder>{
+class ChanZuckerberg::shasta::MinHash :
+    public MultithreadedObject<MinHash>{
 public:
 
     // The constructor does all the work.
-    OverlapFinder(
+    MinHash(
         size_t m,                       // Number of consecutive markers that define a feature.
         size_t minHashIterationCount,   // Number of minHash iterations.
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.

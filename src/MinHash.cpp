@@ -1,5 +1,5 @@
-// shasta.
-#include "OverlapFinder.hpp"
+// Shasta.
+#include "MinHash.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -16,7 +16,7 @@ using namespace shasta;
 
 
 
-OverlapFinder::OverlapFinder(
+MinHash::MinHash(
     size_t m,                       // Number of consecutive markers that define a feature.
     size_t minHashIterationCount,   // Number of minHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
@@ -70,7 +70,7 @@ OverlapFinder::OverlapFinder(
 
     // Prepare work areas.
     buckets.createNew(
-            largeDataFileNamePrefix + "tmp-OverlapFinder-Buckets",
+            largeDataFileNamePrefix + "tmp-MinHash-Buckets",
             largeDataPageSize);
     minHash.resize(orientedReadCount);
     overlapCandidates.resize(readCount);
@@ -84,7 +84,7 @@ OverlapFinder::OverlapFinder(
         // Compute the min hash of each oriented read.
         const size_t batchSize = 10000;
         setupLoadBalancing(orientedReadCount, batchSize);
-        runThreads(&OverlapFinder::computeMinHash, threadCount);
+        runThreads(&MinHash::computeMinHash, threadCount);
         const auto t1 = steady_clock::now();
 
         // Construct the buckets.
@@ -119,7 +119,7 @@ OverlapFinder::OverlapFinder(
         // Inspect the buckets to find overlap candidates.
         const auto t2 = steady_clock::now();
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&OverlapFinder::inspectBuckets, threadCount, "threadLogs/inspectBuckets");
+        runThreads(&MinHash::inspectBuckets, threadCount, "threadLogs/inspectBuckets");
         const auto t3 = steady_clock::now();
 
         const double t01 = seconds(t1 - t0);
@@ -179,10 +179,10 @@ OverlapFinder::OverlapFinder(
 
 
 
-void OverlapFinder::createKmerIds()
+void MinHash::createKmerIds()
 {
     kmerIds.createNew(
-        largeDataFileNamePrefix + "tmp-OverlapFinder-Markers",
+        largeDataFileNamePrefix + "tmp-MinHash-Markers",
         largeDataPageSize);
     const ReadId orientedReadCount = ReadId(markers.size());
     const ReadId readCount = orientedReadCount / 2;
@@ -198,13 +198,13 @@ void OverlapFinder::createKmerIds()
     kmerIds.endPass2(false);
     const size_t batchSize = 10000;
     setupLoadBalancing(readCount, batchSize);
-    runThreads(&OverlapFinder::createKmerIds, threadCount, "threadLogs/createKmerIds");
+    runThreads(&MinHash::createKmerIds, threadCount, "threadLogs/createKmerIds");
 }
 
 
 
 // Thread function for createKmerIds.
-void OverlapFinder::createKmerIds(size_t threadId)
+void MinHash::createKmerIds(size_t threadId)
 {
     ostream& out = getLog(threadId);
 
@@ -233,7 +233,7 @@ void OverlapFinder::createKmerIds(size_t threadId)
 
 
 // Thread function used to compute the min hash of each oriented read.
-void OverlapFinder::computeMinHash(size_t threadId)
+void MinHash::computeMinHash(size_t threadId)
 {
     const int featureByteCount = int(m * sizeof(KmerId));
     const uint64_t seed = iteration * 37;
@@ -273,7 +273,7 @@ void OverlapFinder::computeMinHash(size_t threadId)
 
 
 // Thread function used to inspect the buckets to find overlap candidates.
-void OverlapFinder::inspectBuckets(size_t threadId)
+void MinHash::inspectBuckets(size_t threadId)
 {
     ostream& out = getLog(threadId);
     size_t& totalCountForThread = totalOverlapCountByThread[threadId];
