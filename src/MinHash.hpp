@@ -78,18 +78,18 @@ private:
     // Inspect the buckets to find overlap candidates.
     void inspectBuckets(size_t threadId);
 
-    // Data structure used to store overlap candidate pairs.
+    // Data structure used to store candidate pairs.
     // Indexed by readId0, the read id of the lower numbered
     // read in the pair.
-    class OverlapCandidate {
+    class Candidate {
     public:
         ReadId readId1;      // The higher numbered read in the pair, readId1 > readId0.
         uint16_t frequency;  // Number of times this pair was found during MinHash.
         bool isSameStrand;   // True if the two reads are on the same strand.
-        OverlapCandidate(ReadId readId1, uint16_t frequency, bool isSameStrand) :
+        Candidate(ReadId readId1, uint16_t frequency, bool isSameStrand) :
             readId1(readId1), frequency(frequency), isSameStrand(isSameStrand) {}
     };
-    vector< vector<OverlapCandidate> > overlapCandidates;
+    vector< vector<Candidate> > candidates;
 
     // The total number of overlaps found so far,
     // as seen by each thread.

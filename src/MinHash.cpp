@@ -73,7 +73,7 @@ MinHash::MinHash(
             largeDataFileNamePrefix + "tmp-MinHash-Buckets",
             largeDataPageSize);
     minHash.resize(orientedReadCount);
-    overlapCandidates.resize(readCount);
+    candidates.resize(readCount);
     totalOverlapCountByThread.resize(threadCount);
 
     // MinHash iteration loop.
@@ -134,7 +134,7 @@ MinHash::MinHash(
         // Write out total capacity for overlap candidates.
         size_t totalCandidateCapacity = 0;
         size_t totalCandidateSize = 0;
-        for(const auto& v: overlapCandidates) {
+        for(const auto& v: candidates) {
             totalCandidateCapacity += v.capacity();
             totalCandidateSize += v.size();
         }
@@ -155,8 +155,8 @@ MinHash::MinHash(
     cout << timestamp << "Storing overlaps." << endl;
     CZI_ASSERT(orientedReadCount == 2*readCount);
     for(ReadId readId0=0; readId0<readCount; readId0++) {
-        const auto& candidates = overlapCandidates[readId0];
-        for(const OverlapCandidate& candidate: candidates) {
+        const auto& candidates0 = candidates[readId0];
+        for(const Candidate& candidate: candidates0) {
             if(candidate.frequency >= minFrequency) {
                 const ReadId readId1 = candidate.readId1;
                 CZI_ASSERT(readId0 < readId1);
@@ -288,7 +288,7 @@ void MinHash::inspectBuckets(size_t threadId)
         for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {
 
             // Locate the candidate overlaps for this oriented read.
-            auto& candidates = overlapCandidates[readId0];
+            auto& candidates0 = candidates[readId0];
 
             // Loop over two strands.
             for(Strand strand0=0; strand0<2; strand0++) {
@@ -328,7 +328,7 @@ void MinHash::inspectBuckets(size_t threadId)
                                 // If found, increase its frequency.
                                 // Otherwise, add it with frequency 1.
                                 bool found = false;
-                                for(OverlapCandidate& candidate: candidates) {
+                                for(Candidate& candidate: candidates0) {
                                     if(candidate.readId1==readId1 && candidate.isSameStrand==isSameStrand) {
                                         // We found it. Increment the frequency.
                                         ++candidate.frequency;
@@ -337,7 +337,7 @@ void MinHash::inspectBuckets(size_t threadId)
                                     }
                                 }
                                 if(!found) {
-                                    candidates.push_back(OverlapCandidate(readId1, 1, isSameStrand));
+                                    candidates0.push_back(Candidate(readId1, 1, isSameStrand));
                                 }
                             }
                         }
@@ -347,7 +347,7 @@ void MinHash::inspectBuckets(size_t threadId)
 
             // Increment the total number of overlaps
             // (used for statistics only).
-            for(const auto& candidate: candidates) {
+            for(const auto& candidate: candidates0) {
                 if(candidate.frequency >= minFrequency) {
                     ++totalCountForThread;
                 }
