@@ -239,7 +239,7 @@ public:
     }
     
     // Return the complement of this base or the gap character if it is already a gap.
-    AlignedBase complement()
+    AlignedBase complement() const
     {
         return AlignedBase::fromInteger(uint8_t(value == 4 ? 4 : 3 - value));
     }
@@ -260,6 +260,11 @@ public:
     bool operator==(AlignedBase that) const
     {
         return value == that.value;
+    }
+    
+    bool operator<(AlignedBase that) const
+    {
+        return value < that.value;
     }
 };
 
