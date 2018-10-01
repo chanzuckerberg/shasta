@@ -241,7 +241,7 @@ public:
     // Return the complement of this base or the gap character if it is already a gap.
     AlignedBase complement()
     {
-        return AlignedBase::fromInteger(value == 4 ? 4 : 3 - value);
+        return AlignedBase::fromInteger(uint8_t(value == 4 ? 4 : 3 - value));
     }
 
     // Convert to a Base. This asserts if the current value is 4 ('-').
