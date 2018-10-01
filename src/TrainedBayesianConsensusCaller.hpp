@@ -9,7 +9,15 @@ developed by Jordan Eizenga at UCSC.
 *******************************************************************************/
 
 #include "ConsensusCaller.hpp"
+
 #include <cmath>
+#include <cassert>
+#include <fstream>
+#include <sstream>
+#include <map>
+
+#include "tuple.hpp"
+#include "vector.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {
@@ -37,10 +45,10 @@ private:
     size_t maxRepeatCount = 0;
     
     // Convenience vector that contains all possible homopolymer calls
-    std::vector<Consensus> repeatBases;
+    vector<Consensus> repeatBases;
     
     // Memo of the log(prob) of a called homopolymer given a true homopolymer
-    std::map<std::tuple<AlignedBase, size_t, AlignedBase, size_t>, double> logConditionalProbabilities;
+    std::map<tuple<AlignedBase, size_t, AlignedBase, size_t>, double> logConditionalProbabilities;
 
 };
 
