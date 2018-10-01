@@ -499,7 +499,7 @@ void Assembler::computeAllAlignmentsThreadFunction1(size_t threadId)
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         for(size_t i=begin; i!=end; i++) {
-            const Overlap& overlap = overlaps[i];
+            const OrientedReadPair& overlap = overlaps[i];
 
             // Get the oriented read ids.
             orientedReadIds[0] = OrientedReadId(overlap.readIds[0], 0);

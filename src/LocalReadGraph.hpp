@@ -12,9 +12,9 @@ oriented reads have sufficiently good overlap/alignment.
 
 *******************************************************************************/
 
-// Nanoppore2.
+// Shasta.
 #include "Alignment.hpp"
-#include "Overlap.hpp"
+#include "OrientedReadPair.hpp"
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>

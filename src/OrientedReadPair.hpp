@@ -1,34 +1,34 @@
-#ifndef CZI_SHASTA_OVERLAP_HPP
-#define CZI_SHASTA_OVERLAP_HPP
+#ifndef CZI_SHASTA_ORIENTED_READ_PAIR_HPP
+#define CZI_SHASTA_ORIENTED_READ_PAIR_HPP
 
+// Shasta.
 #include "ReadId.hpp"
 
+// Standard library.
 #include "array.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {
-        class Overlap;
+        class OrientedReadPair;
     }
 }
 
 
-// Class describing the overlap between a pair of oriented reads.
-class ChanZuckerberg::shasta::Overlap {
+
+// Class describing a pair of reads with a relative orientation
+// (same strand or different strands).
+class ChanZuckerberg::shasta::OrientedReadPair {
 public:
 
-    // The ids of the overlapping oriented reads.
-    // They are guaranteed to be distinct.
-    // That is, overlapping with self is not stored,
-    // even on opposite strands.
+    // The read ids are guaranteed to be distinct.
     array<ReadId, 2> readIds;
 
-    // Flag that is true if the alignment is obtained with the
-    // two reads on the same strand.
+    // Flag that is true if the two reads are on the same strand.
     bool isSameStrand;
 
     // Constructors.
-    Overlap() {}
-    Overlap(
+    OrientedReadPair() {}
+    OrientedReadPair(
         ReadId readId0,
         ReadId readId1,
         bool isSameStrand
@@ -41,8 +41,8 @@ public:
 
 
 
-    // Given one of the oriented read ids involved in this overlap,
-    // return the other.
+    // Given one of the oriented read ids, return the other,
+    // taking into account the relative orientation.
     OrientedReadId getOther(OrientedReadId orientedReadIdA) const
     {
         // Get the read id and strand of the given oriented read.

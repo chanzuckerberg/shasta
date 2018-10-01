@@ -25,7 +25,7 @@ OverlapFinder::OverlapFinder(
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    MemoryMapped::Vector<Overlap>& overlaps,
+    MemoryMapped::Vector<OrientedReadPair>& overlaps,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize
     ) :
@@ -160,7 +160,7 @@ OverlapFinder::OverlapFinder(
             if(candidate.frequency >= minFrequency) {
                 const ReadId readId1 = candidate.readId1;
                 CZI_ASSERT(readId0 < readId1);
-                overlaps.push_back(Overlap(readId0, readId1, candidate.isSameStrand));
+                overlaps.push_back(OrientedReadPair(readId0, readId1, candidate.isSameStrand));
             }
         }
     }

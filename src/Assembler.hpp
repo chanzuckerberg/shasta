@@ -11,7 +11,7 @@
 #include "MarkerId.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
-#include "Overlap.hpp"
+#include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 
 // Standard library.
@@ -550,7 +550,7 @@ private:
     // This is a global vector that stores all the overlaps.
     // The overlap table defined below can be used to locate
     // all the overlaps that an oriented read is involved in.
-    MemoryMapped::Vector<Overlap> overlaps;
+    MemoryMapped::Vector<OrientedReadPair> overlaps;
     void checkOverlapsAreOpen() const;
 
 

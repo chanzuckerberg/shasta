@@ -3,9 +3,9 @@
 
 // shasta
 #include "Marker.hpp"
-#include "Overlap.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultitreadedObject.hpp"
+#include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 
 namespace ChanZuckerberg {
@@ -33,7 +33,7 @@ public:
         size_t threadCount,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>&,
-        MemoryMapped::Vector<Overlap>& overlaps,
+        MemoryMapped::Vector<OrientedReadPair>&,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize
 );
