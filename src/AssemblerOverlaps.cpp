@@ -6,9 +6,9 @@ using namespace shasta;
 
 
 
-// Use the minHash algorithm to find pairs of overlapping oriented reads.
+// Use the minHash algorithm to find alignment candidates.
 // Use as features sequences of m consecutive special k-mers.
-void Assembler::findOverlaps(
+void Assembler::findAlignmentCandidates(
     size_t m,                       // Number of consecutive k-mers that define a feature.
     size_t minHashIterationCount,   // Number of minHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
@@ -27,8 +27,8 @@ void Assembler::findOverlaps(
             "Must at least equal base 2 log of number of reads plus 3.");
     }
 
-    // Create the overlaps.
-    candidateAlignments.createNew(largeDataName("CandidateAlignments"), largeDataPageSize);
+    // Create the alignment candidates.
+    alignmentCandidates.createNew(largeDataName("AlignmentCandidates"), largeDataPageSize);
 
     // Run the MinHash computation to find candidate alignments.
     MinHash minHash(
@@ -40,23 +40,23 @@ void Assembler::findOverlaps(
         threadCount,
         kmerTable,
         markers,
-        candidateAlignments,
+        alignmentCandidates,
         largeDataFileNamePrefix,
         largeDataPageSize);
 }
 
 
 
-void Assembler::accessCandidateAlignments()
+void Assembler::accessAlignmentCandidates()
 {
-    candidateAlignments.accessExistingReadOnly(largeDataName("CandidateAlignments"));
+    alignmentCandidates.accessExistingReadOnly(largeDataName("AlignmentCandidates"));
 }
 
 
-void Assembler::checkCandidateAlignmentsAreOpen() const
+void Assembler::checkAlignmentCandidatesAreOpen() const
 {
-    if(!candidateAlignments.isOpen) {
-        throw runtime_error("Candidate alignments are not accessible.");
+    if(!alignmentCandidates.isOpen) {
+        throw runtime_error("Alignment candidates are not accessible.");
     }
 }
 
@@ -70,7 +70,7 @@ void Assembler::writeOverlappingReads(
 {
     // Check that we have what we need.
     checkReadsAreOpen();
-    checkCandidateAlignmentsAreOpen();
+    checkAlignmentCandidatesAreOpen();
 
 
 

@@ -146,9 +146,9 @@ public:
     void accessMarkers();
     void writeMarkers(ReadId, Strand, const string& fileName);
 
-    // Use the minHash algorithm to find pairs of overlapping oriented reads.
+    // Use the minHash algorithm to find candidate alignments.
     // Use as features sequences of m consecutive special k-mers.
-    void findOverlaps(
+    void findAlignmentCandidates(
         size_t m,                       // Number of consecutive k-mers that define a feature.
         size_t minHashIterationCount,   // Number of minHash iterations.
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
@@ -156,7 +156,7 @@ public:
         size_t minFrequency,            // Minimum number of minHash hits for a pair to become a candidate.
         size_t threadCount
     );
-    void accessCandidateAlignments();
+    void accessAlignmentCandidates();
 
     // Write the reads that overlap a given read.
     void writeOverlappingReads(ReadId, Strand, const string& fileName);
@@ -546,10 +546,9 @@ private:
 
 
 
-    // Candidate pairs of possibly overlapping reads
-    // found by the MinHash algorithm.
-    MemoryMapped::Vector<OrientedReadPair> candidateAlignments;
-    void checkCandidateAlignmentsAreOpen() const;
+    // Alignment candidate found by the MinHash algorithm.
+    MemoryMapped::Vector<OrientedReadPair> alignmentCandidates;
+    void checkAlignmentCandidatesAreOpen() const;
 
 
 

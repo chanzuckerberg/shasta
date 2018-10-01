@@ -56,7 +56,7 @@ a.randomlySelectKmers(
 a.findMarkers()
 
 # Run MinHash to find pairs of reads that may overlap.
-a.findOverlaps(
+a.findAlignmentCandidates(
     m = int(config['MinHash']['m']), 
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
     log2MinHashBucketCount = int(config['MinHash']['log2MinHashBucketCount']),

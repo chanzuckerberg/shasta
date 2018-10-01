@@ -5,7 +5,7 @@ import GetConfig
 import sys
 
 helpMessage="""
-This uses the MinHash method to find overlapping reads.
+This uses the MinHash method to find alignment candidates.
 
 Invoke without arguments.
 """
@@ -24,7 +24,7 @@ a.accessKmers()
 a.accessMarkers()
 
 # Do the computation.
-a.findOverlaps(
+a.findAlignmentCandidates(
     m = int(config['MinHash']['m']), 
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
     log2MinHashBucketCount = int(config['MinHash']['log2MinHashBucketCount']),

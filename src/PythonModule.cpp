@@ -140,8 +140,8 @@ PYBIND11_MODULE(shasta, module)
 
 
         // Overlaps
-        .def("findOverlaps",
-            &Assembler::findOverlaps,
+        .def("findAlignmentCandidates",
+            &Assembler::findAlignmentCandidates,
             arg("m"),
             arg("minHashIterationCount"),
             arg("log2MinHashBucketCount"),
@@ -149,7 +149,7 @@ PYBIND11_MODULE(shasta, module)
             arg("minFrequency"),
             arg("threadCount") = 0)
         .def("accessCandidateAlignments",
-            &Assembler::accessCandidateAlignments)
+            &Assembler::accessAlignmentCandidates)
         .def("writeOverlappingReads",
             &Assembler::writeOverlappingReads,
             "Write in fasta format the reads that overlap a given read.",
