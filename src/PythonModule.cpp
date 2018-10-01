@@ -148,8 +148,8 @@ PYBIND11_MODULE(shasta, module)
             arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)
-        .def("accessOverlaps",
-            &Assembler::accessOverlaps)
+        .def("accessCandidateAlignments",
+            &Assembler::accessCandidateAlignments)
         .def("writeOverlappingReads",
             &Assembler::writeOverlappingReads,
             "Write in fasta format the reads that overlap a given read.",

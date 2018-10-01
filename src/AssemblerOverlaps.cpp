@@ -28,7 +28,7 @@ void Assembler::findOverlaps(
     }
 
     // Create the overlaps.
-    overlaps.createNew(largeDataName("Overlaps"), largeDataPageSize);
+    candidateAlignments.createNew(largeDataName("CandidateAlignments"), largeDataPageSize);
 
     // Call the OverlapFinder to do the MinHash computation.
     OverlapFinder overlapFinder(
@@ -40,23 +40,23 @@ void Assembler::findOverlaps(
         threadCount,
         kmerTable,
         markers,
-        overlaps,
+        candidateAlignments,
         largeDataFileNamePrefix,
         largeDataPageSize);
 }
 
 
 
-void Assembler::accessOverlaps()
+void Assembler::accessCandidateAlignments()
 {
-    overlaps.accessExistingReadOnly(largeDataName("Overlaps"));
+    candidateAlignments.accessExistingReadOnly(largeDataName("CandidateAlignments"));
 }
 
 
-void Assembler::checkOverlapsAreOpen() const
+void Assembler::checkCandidateAlignmentsAreOpen() const
 {
-    if(!overlaps.isOpen) {
-        throw runtime_error("Overlaps are not accessible.");
+    if(!candidateAlignments.isOpen) {
+        throw runtime_error("Candidate alignments are not accessible.");
     }
 }
 
@@ -70,7 +70,7 @@ void Assembler::writeOverlappingReads(
 {
     // Check that we have what we need.
     checkReadsAreOpen();
-    checkOverlapsAreOpen();
+    checkCandidateAlignmentsAreOpen();
 
 
 

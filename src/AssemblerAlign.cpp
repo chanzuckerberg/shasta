@@ -142,7 +142,7 @@ void Assembler::alignOverlappingOrientedReads(
     // Check that we have what we need.
     checkReadsAreOpen();
     checkMarkersAreOpen();
-    checkOverlapsAreOpen();
+    checkCandidateAlignmentsAreOpen();
 
     // Get the markers for orientedReadId0.
     vector<MarkerWithOrdinal> markers0SortedByKmerId;
@@ -265,13 +265,13 @@ void Assembler::computeAllAlignments(
 
     const auto tBegin = steady_clock::now();
     cout << timestamp << "Begin computing alignments for ";
-    cout << overlaps.size() << " overlaps." << endl;
+    cout << candidateAlignments.size() << " candidate alignments." << endl;
 
     // Check that we have what we need.
     checkReadsAreOpen();
     checkKmersAreOpen();
     checkMarkersAreOpen();
-    checkOverlapsAreOpen();
+    checkCandidateAlignmentsAreOpen();
 
     // Store parameters so they are accessible to the threads.
     auto& data = computeAllAlignmentsData;
@@ -305,7 +305,7 @@ void Assembler::computeAllAlignments(
     data.threadAlignmentData.resize(threadCount);
     cout << timestamp << "Alignment and disjoint set computation begins." << endl;
     size_t batchSize = 10000;
-    setupLoadBalancing(overlaps.size(), batchSize);
+    setupLoadBalancing(candidateAlignments.size(), batchSize);
     runThreads(&Assembler::computeAllAlignmentsThreadFunction1,
         threadCount, "threadLogs/computeAllAlignments1");
     cout << timestamp << "Alignment and disjoint set computation completed." << endl;
@@ -499,7 +499,7 @@ void Assembler::computeAllAlignmentsThreadFunction1(size_t threadId)
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         for(size_t i=begin; i!=end; i++) {
-            const OrientedReadPair& overlap = overlaps[i];
+            const OrientedReadPair& overlap = candidateAlignments[i];
 
             // Get the oriented read ids.
             orientedReadIds[0] = OrientedReadId(overlap.readIds[0], 0);

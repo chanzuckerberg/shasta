@@ -156,7 +156,7 @@ public:
         size_t minFrequency,            // Minimum number of minHash hits for a pair to become a candidate.
         size_t threadCount
     );
-    void accessOverlaps();
+    void accessCandidateAlignments();
 
     // Write the reads that overlap a given read.
     void writeOverlappingReads(ReadId, Strand, const string& fileName);
@@ -546,12 +546,10 @@ private:
 
 
 
-    // Pairs of overlapping oriented reads.
-    // This is a global vector that stores all the overlaps.
-    // The overlap table defined below can be used to locate
-    // all the overlaps that an oriented read is involved in.
-    MemoryMapped::Vector<OrientedReadPair> overlaps;
-    void checkOverlapsAreOpen() const;
+    // Candidate pairs of possibly overlapping reads
+    // found by the MinHash algorithm.
+    MemoryMapped::Vector<OrientedReadPair> candidateAlignments;
+    void checkCandidateAlignmentsAreOpen() const;
 
 
 

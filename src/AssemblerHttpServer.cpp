@@ -286,8 +286,9 @@ void Assembler::exploreSummary(
         "<td class=right>" << setprecision(4) <<
         (2.*double(totalBaseCount)) / double(markers.totalSize()) - double(assemblerInfo->k) <<
 
-        "<tr><td title='Number of candidate overlaps found by the MinHash algorithm'>Overlaps"
-        "<td class=right>" << overlaps.size() <<
+        "<tr><td title='Number of candidate alignments found by the MinHash algorithm'>"
+        "Candidate alignments"
+        "<td class=right>" << candidateAlignments.size() <<
 
         "<tr><td title='Number of overlaps with good alignments'>Alignments"
         "<td class=right>" << alignmentData.size() <<
