@@ -89,8 +89,8 @@ TrainedBayesianConsensusCaller::TrainedBayesianConsensusCaller()
         double logNormalizingFactor = log(normalizingFactor);
         
         for (const Consensus& trueRepeatBase : repeatBases) {
-            auto key = make_tuple(calledRepeatBase.first, calledRepeatBase.second,
-                                  trueRepeatBase.first, trueRepeatBase.second);
+            auto key = make_tuple(calledRepeatBase.base, calledRepeatBase.repeatCount,
+                                  trueRepeatBase.base, trueRepeatBase.repeatCount);
             logConditionalProbabilities[key] = log(distribution[key]) - logNormalizingFactor;
         }
     }
@@ -109,11 +109,12 @@ Consensus TrainedBayesianConsensusCaller::operator()(
     // Check likelihood for each possible consensus call
     for (const Consensus& trueRepeatBase : repeatBases) {
         double logLikelihood = 0.0;
-        for (const ConsensusData& observation : coverage.getReadCoverageData()) {
+        for (const CoverageData& observation : coverage.getReadCoverageData()) {
             
             // Match either the bases or their complements depending on which one was the actual
             // called read sequence (i.e. the base that traversed the nanopore)
-            AlignedBase trueLookupBase, calledLookupBase;
+            AlignedBase trueLookupBase;
+            AlignedBase calledLookupBase;
             if (observation.strand) {
                 trueLookupBase = trueRepeatBase.base.complement();
                 calledLookupBase = observation.base.complement();
