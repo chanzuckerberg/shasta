@@ -220,7 +220,7 @@ private:
             std::memset(this, 0, sizeof(Header));
         }
     };
-    BOOST_STATIC_ASSERT(sizeof(Header) == 256);
+    static_assert(sizeof(Header) == 256, "Unexpected header size for MemoryMapped::Vector.");
     Header* header;
 
     // The data immediately follow the header.

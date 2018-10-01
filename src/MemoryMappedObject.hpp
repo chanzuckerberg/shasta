@@ -134,7 +134,7 @@ private:
             std::memset(this, 0, sizeof(Header));
         }
     };
-    static_assert(sizeof(Header) == 256, "Unexpected header size.");
+    static_assert(sizeof(Header) == 256, "Unexpected header size for MemoryMapped::Object.");
     Header* header;
 
     // The data immediately follow the header.
