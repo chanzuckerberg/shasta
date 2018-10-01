@@ -9,6 +9,7 @@ developed by Jordan Eizenga at UCSC.
 *******************************************************************************/
 
 #include "ConsensusCaller.hpp"
+#include <cmath>
 
 namespace ChanZuckerberg {
     namespace shasta {
@@ -31,8 +32,15 @@ public:
     virtual Consensus operator()(const Coverage&) const;
 
 private:
-
-    // Put here any functions and data needed by the TrainedBayesianConsensusCaller.
+    
+    // The maximum length of a homopolymer repeat we allow
+    size_t maxRepeatCount = 0;
+    
+    // Convenience vector that contains all possible homopolymer calls
+    std::vector<Consensus> repeatBases;
+    
+    // Memo of the log(prob) of a called homopolymer given a true homopolymer
+    std::map<std::tuple<AlignedBase, size_t, AlignedBase, size_t>, double> logConditionalProbabilities;
 
 };
 

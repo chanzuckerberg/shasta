@@ -237,6 +237,12 @@ public:
             throw runtime_error("Invalid base value " + to_string(value));
         }
     }
+    
+    // Return the complement of this base or the gap character if it is already a gap.
+    AlignedBase complement()
+    {
+        return value == 4 ? 4 : 3 - value;
+    }
 
     // Convert to a Base. This asserts if the current value is 4 ('-').
     explicit operator Base() const
