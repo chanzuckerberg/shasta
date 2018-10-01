@@ -237,6 +237,12 @@ public:
             throw runtime_error("Invalid base value " + to_string(value));
         }
     }
+    
+    // Return the complement of this base or the gap character if it is already a gap.
+    AlignedBase complement() const
+    {
+        return AlignedBase::fromInteger(uint8_t(value == 4 ? 4 : 3 - value));
+    }
 
     // Convert to a Base. This asserts if the current value is 4 ('-').
     explicit operator Base() const
@@ -254,6 +260,11 @@ public:
     bool operator==(AlignedBase that) const
     {
         return value == that.value;
+    }
+    
+    bool operator<(AlignedBase that) const
+    {
+        return value < that.value;
     }
 };
 
