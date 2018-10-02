@@ -20,7 +20,7 @@ Assembler::Assembler(
     smallDataPageSize(smallDataPageSize),
     largeDataPageSize(largeDataPageSize)
 {
-    assemblerInfo.createNew(smallDataName("Info"));
+    assemblerInfo.createNew(smallDataName("Info"), smallDataPageSize);
     assemblerInfo->useRunLengthReads = useRunLengthReads;
 
     reads.createNew(largeDataName("Reads"), largeDataPageSize);

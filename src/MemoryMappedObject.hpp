@@ -45,7 +45,7 @@ public:
     Object& operator=(const Object&) = delete;
 
     // Create a mapped object.
-    void createNew(const string& name);
+    void createNew(const string& name, size_t pageSize);
 
     // Open a previously created vector with read-only or read-write access.
     void accessExisting(const string& name, bool readWriteAccess);
@@ -70,13 +70,8 @@ public:
 
 private:
 
-    // A mapped file is always allocated with size equal to a multiple of page size.
-    // Here we assume a fixed 4KB page size.
-    // This will have to be changed if we want to support large pages.
-    static const size_t pageSize = 4096;
-
     // Compute the number of pages needed to hold n bytes.
-    static size_t computePageCount(size_t n)
+    static size_t computePageCount(size_t n, size_t pageSize)
     {
         return (n - 1ULL ) / pageSize  + 1ULL;
     }
@@ -93,6 +88,13 @@ private:
 
         // The number of objects. It is always 1.
         size_t objectCount;
+
+        // The mapped file is always allocated with size equal to
+        // a multiple of this page size, specified to createNew.
+        // If the mapped file is backed by Linux huge pages,
+        // this value must equal the Linux huge page size used
+        // or a multiple of it.
+        size_t pageSize;
 
         // The number of pages in the mapped file.
         // this equals exactly fileSize/pageSize.
@@ -111,16 +113,17 @@ private:
         size_t magicNumber;
 
         // Pad to 256 bytes to make sure the object is aligned with cache lines.
-        array<size_t, 25> padding;
+        array<size_t, 24> padding;
 
         // Constructor.
-        Header()
+        Header(size_t pageSizeArgument)
         {
             clear();
             headerSize = sizeof(Header);
             objectSize = sizeof(T);
             objectCount = 1;
-            pageCount = computePageCount(headerSize + objectSize * objectCount);
+            pageSize = pageSizeArgument;
+            pageCount = computePageCount(headerSize + objectSize * objectCount, pageSize);
             fileSize = pageCount * pageSize;
             capacity = 1;
             magicNumber = constantMagicNumber;
@@ -260,14 +263,16 @@ template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Object<T>:
 
 
 // Create a new mapped object.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::createNew(const string& name)
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::createNew(
+    const string& name,
+    size_t pageSize)
 {
     try {
         // If already open, should have called close first.
         CZI_ASSERT(!isOpen);
 
         // Create the header.
-        const Header headerOnStack;
+        const Header headerOnStack(pageSize);
         const size_t fileSize = headerOnStack.fileSize;
 
         // Create the file.
