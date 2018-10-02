@@ -530,6 +530,7 @@ private:
 
 
     // Alignment candidate found by the MinHash algorithm.
+    // They all have readId0<readId1.
     MemoryMapped::Vector<OrientedReadPair> alignmentCandidates;
     void checkAlignmentCandidatesAreOpen() const;
 
@@ -604,7 +605,7 @@ private:
         const AlignmentInfo&);
 
     // The good alignments we found.
-    // These are computed with the first oriented read on strand 0.
+    // They are stored with readId0<readId1 and with strand0==0.
     MemoryMapped::Vector<AlignmentData> alignmentData;
     void checkAlignmentDataAreOpen();
 

@@ -74,6 +74,12 @@ public:
         OrientedReadPair(readIds, isSameStrand),
         info(info)
     {}
+    AlignmentData(
+        const OrientedReadPair& orientedReadPair,
+        const AlignmentInfo& info) :
+        OrientedReadPair(orientedReadPair),
+        info(info)
+    {}
 
 };
 

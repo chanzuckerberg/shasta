@@ -499,11 +499,12 @@ void Assembler::computeAllAlignmentsThreadFunction1(size_t threadId)
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         for(size_t i=begin; i!=end; i++) {
-            const OrientedReadPair& overlap = alignmentCandidates[i];
+            const OrientedReadPair& candidate = alignmentCandidates[i];
+            CZI_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
 
-            // Get the oriented read ids.
-            orientedReadIds[0] = OrientedReadId(overlap.readIds[0], 0);
-            orientedReadIds[1] = OrientedReadId(overlap.readIds[1], overlap.isSameStrand ? 0 : 1);
+            // Get the oriented read ids, with the first one on strand 0.
+            orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
+            orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
 
             // Get the oriented read ids for the opposite strand.
             orientedReadIdsOppositeStrand = orientedReadIds;
@@ -513,7 +514,7 @@ void Assembler::computeAllAlignmentsThreadFunction1(size_t threadId)
 
             // out << timestamp << "Working on " << i << " " << orientedReadIds[0] << " " << orientedReadIds[1] << endl;
 
-            // Get the markers for the two oriented reads in this Overlap.
+            // Get the markers for the two oriented reads in this candidate.
             for(size_t j=0; j<2; j++) {
                 getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
             }
@@ -545,8 +546,7 @@ void Assembler::computeAllAlignmentsThreadFunction1(size_t threadId)
             }
 
             // If getting here, this is a good alignment.
-            threadAlignmentData.push_back(
-                AlignmentData(overlap.readIds, overlap.isSameStrand, alignmentInfo));
+            threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
 
             // In the global marker graph, merge pairs
             // of aligned markers.
