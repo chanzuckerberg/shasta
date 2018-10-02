@@ -62,12 +62,16 @@ a.findAlignmentCandidates(
     minFrequency = int(config['MinHash']['minFrequency']))
 
 # Compute alignments and create the global marker graph.
-a.computeAllAlignments(
+a.computeAlignments(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
     maxSkip = int(config['Align']['maxSkip']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
-    maxTrim = int(config['Align']['minAlignedMarkerCount']),
-    minCoverage = int(config['MarkerGraph']['minCoverage']))
+    maxTrim = int(config['Align']['maxTrim']))
 
+# Create the global marker graph vertices.
+a.createMarkerGraphVertices(
+    maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
+    maxSkip = int(config['Align']['maxSkip']),
+    minCoverage = int(config['MarkerGraph']['minCoverage']))
 
 

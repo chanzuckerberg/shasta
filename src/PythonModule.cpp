@@ -135,7 +135,7 @@ PYBIND11_MODULE(shasta, module)
 
 
 
-        // Overlaps
+        // Alignment candidates.
         .def("findAlignmentCandidates",
             &Assembler::findAlignmentCandidates,
             arg("m"),
@@ -196,7 +196,7 @@ PYBIND11_MODULE(shasta, module)
             )
 
 
-
+#if 0
         // Compute all alignments and, optionally, the global marker graph.
         .def("computeAllAlignments",
             &Assembler::computeAllAlignments,
@@ -206,12 +206,27 @@ PYBIND11_MODULE(shasta, module)
             arg("maxTrim"),
             arg("minCoverage"),
             arg("threadCount") = 0)
+#endif
+        // Compute an alignment for each alignment candidate.
+        .def("computeAlignments",
+            &Assembler::computeAlignments,
+            arg("maxVertexCountPerKmer"),
+            arg("maxSkip"),
+            arg("minAlignedMarkerCount"),
+            arg("maxTrim"),
+            arg("threadCount") = 0)
         .def("accessAlignmentData",
             &Assembler::accessAlignmentData)
 
 
 
         // Global marker graph.
+        .def("createMarkerGraphVertices",
+            &Assembler::createMarkerGraphVertices,
+            arg("maxVertexCountPerKmer"),
+            arg("maxSkip"),
+            arg("minCoverage"),
+            arg("threadCount") = 0)
         .def("accessMarkerGraphVertices",
              &Assembler::accessMarkerGraphVertices)
         .def("getGlobalMarkerGraphVertex",

@@ -232,7 +232,7 @@ pair<uint32_t, uint32_t> Assembler::computeTrim(
 }
 
 
-
+#if 0
 // Compute an alignment for each alignment candidate, but  only store the AlignmentInfo.
 // Optionally, the alignments are used for creation of the global marker graph.
 void Assembler::computeAllAlignments(
@@ -622,6 +622,163 @@ void Assembler::computeAllAlignmentsThreadFunction4(size_t threadId)
             CZI_ASSERT(rawVertexId != maxValueMinus1);
             const MarkerId finalVertexId = workArea[rawVertexId];
             globalMarkerGraphVertex[i] = finalVertexId;
+        }
+    }
+}
+#endif
+
+
+
+// Compute an alignment for each alignment candidate.
+// Store summary information for the ones that are good enough,
+// without storing details of the alignment.
+void Assembler::computeAlignments(
+
+    // The  maximum number of vertices in the alignment graph
+    // that we allow a single k-mer to generate.
+    size_t alignmentMaxVertexCountPerKmer,
+
+    // The maximum ordinal skip to be tolerated between successive markers
+    // in the alignment.
+    size_t maxSkip,
+
+    // Minimum number of alignment markers for an alignment to be used.
+    size_t minAlignedMarkerCount,
+
+    // Maximum left/right trim (in bases) for an alignment to be used.
+    size_t maxTrim,
+
+    // Number of threads. If zero, a number of threads equal to
+    // the number of virtual processors is used.
+    size_t threadCount
+)
+{
+    const auto tBegin = steady_clock::now();
+    cout << timestamp << "Begin computing alignments for ";
+    cout << alignmentCandidates.size() << " alignment candidates." << endl;
+
+    // Check that we have what we need.
+    checkReadsAreOpen();
+    checkKmersAreOpen();
+    checkMarkersAreOpen();
+    checkAlignmentCandidatesAreOpen();
+
+    // Store parameters so they are accessible to the threads.
+    auto& data = computeAlignmentsData;
+    data.maxSkip = maxSkip;
+    data.maxVertexCountPerKmer = alignmentMaxVertexCountPerKmer;
+    data.minAlignedMarkerCount = minAlignedMarkerCount;
+    data.maxTrim = maxTrim;
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Compute the alignments.
+    data.threadAlignmentData.resize(threadCount);
+    cout << timestamp << "Alignment computation begins." << endl;
+    size_t batchSize = 10000;
+    setupLoadBalancing(alignmentCandidates.size(), batchSize);
+    runThreads(&Assembler::computeAlignmentsThreadFunction,
+        threadCount, "threadLogs/computeAlignmentsThreadFunction");
+    cout << timestamp << "Alignment computation completed." << endl;
+
+
+
+    // Store alignmentInfos found by each thread in the global alignmentInfos.
+    cout << "Storing the alignment info objects." << endl;
+    alignmentData.createNew(largeDataName("AlignmentData"), largeDataPageSize);
+    for(size_t threadId=0; threadId<threadCount; threadId++) {
+        const vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
+        for(const AlignmentData& ad: threadAlignmentData) {
+            alignmentData.push_back(ad);
+        }
+    }
+    cout << timestamp << "Creating alignment table." << endl;
+    computeAlignmentTable();
+
+    const auto tEnd = steady_clock::now();
+    const double tTotal = seconds(tEnd - tBegin);
+    cout << timestamp << "Computation of alignments ";
+    cout << "completed in " << tTotal << " s." << endl;
+}
+
+
+
+void Assembler::computeAlignmentsThreadFunction(size_t threadId)
+{
+    ostream& out = getLog(threadId);
+
+    array<OrientedReadId, 2> orientedReadIds;
+    array<OrientedReadId, 2> orientedReadIdsOppositeStrand;
+    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
+    AlignmentGraph graph;
+    Alignment alignment;
+
+    const bool debug = false;
+    auto& data = computeAlignmentsData;
+    const size_t maxSkip = data.maxSkip;
+    const size_t maxVertexCountPerKmer = data.maxVertexCountPerKmer;
+    const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
+    const size_t maxTrim = data.maxTrim;
+
+    vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        out << timestamp << "Working on batch " << begin << " " << end << endl;
+
+        for(size_t i=begin; i!=end; i++) {
+            const OrientedReadPair& candidate = alignmentCandidates[i];
+            CZI_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
+
+            // Get the oriented read ids, with the first one on strand 0.
+            orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
+            orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
+
+            // Get the oriented read ids for the opposite strand.
+            orientedReadIdsOppositeStrand = orientedReadIds;
+            orientedReadIdsOppositeStrand[0].flipStrand();
+            orientedReadIdsOppositeStrand[1].flipStrand();
+
+
+            // out << timestamp << "Working on " << i << " " << orientedReadIds[0] << " " << orientedReadIds[1] << endl;
+
+            // Get the markers for the two oriented reads in this candidate.
+            for(size_t j=0; j<2; j++) {
+                getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+            }
+
+            // Compute the Alignment.
+            alignOrientedReads(
+                markersSortedByKmerId[0],
+                markersSortedByKmerId[1],
+                maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+
+            // If the alignment has too few markers skip it.
+            if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                continue;
+            }
+
+            // Compute the AlignmentInfo.
+            AlignmentInfo alignmentInfo;
+            alignmentInfo.create(alignment);
+
+            // If the alignment has too much trim, skip it.
+            uint32_t leftTrim;
+            uint32_t rightTrim;
+            tie(leftTrim, rightTrim) = computeTrim(
+                orientedReadIds[0],
+                orientedReadIds[1],
+                alignmentInfo);
+            if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                continue;
+            }
+
+            // If getting here, this is a good alignment.
+            threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
         }
     }
 }

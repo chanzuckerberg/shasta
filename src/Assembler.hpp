@@ -196,8 +196,8 @@ public:
         );
 
 
-
-    // Compute an Alignment for each Overlap, but  only store the AlignmentInfo.
+#if 0
+    // Compute an Alignment for each candidate alignment, but  only store the AlignmentInfo.
     // Optionally, the alignments are used for creation of the global marker graph.
     void computeAllAlignments(
 
@@ -223,7 +223,56 @@ public:
         // the number of virtual processors is used.
         size_t threadCount
     );
+#endif
+
+    // Compute an alignment for each alignment candidate.
+    // Store summary information for the ones that are good enough,
+    // without storing details of the alignment.
+    void computeAlignments(
+
+        // The  maximum number of vertices in the alignment graph
+        // that we allow a single k-mer to generate.
+        size_t alignmentMaxVertexCountPerKmer,
+
+        // The maximum ordinal skip to be tolerated between successive markers
+        // in the alignment.
+        size_t maxSkip,
+
+        // Minimum number of alignment markers for an alignment to be used.
+        size_t minAlignedMarkerCount,
+
+        // Maximum left/right trim (in bases) for an alignment to be used.
+        size_t maxTrim,
+
+        // Number of threads. If zero, a number of threads equal to
+        // the number of virtual processors is used.
+        size_t threadCount
+    );
     void accessAlignmentData();
+
+
+
+    // Loop over all alignments to create vertices of the global marker graph.
+    // Eventually, this will be modified to loop over edges of the read
+    // graph, rather than over all alignments.
+    void createMarkerGraphVertices(
+
+        // The  maximum number of vertices in the alignment graph
+        // that we allow a single k-mer to generate.
+        size_t alignmentMaxVertexCountPerKmer,
+
+        // The maximum ordinal skip to be tolerated between successive markers
+        // in the alignment.
+        size_t maxSkip,
+
+        // Minimum coverage (number of markers) for a vertex
+        // of the marker graph to be kept.
+        size_t minCoverage,
+
+        // Number of threads. If zero, a number of threads equal to
+        // the number of virtual processors is used.
+        size_t threadCount
+    );
 
 
 
@@ -615,7 +664,7 @@ private:
     MemoryMapped::VectorOfVectors<uint32_t, uint32_t> alignmentTable;
     void computeAlignmentTable();
 
-
+#if 0
     // Thread functions for computeAllAlignments.
 
     // Compute the alignments and update the disjoint set data structure
@@ -658,6 +707,50 @@ private:
         MemoryMapped::Vector<GlobalMarkerGraphVertexId> workArea;
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
+#endif
+
+
+    // Private functions and data used by computeAlignments.
+    void computeAlignmentsThreadFunction(size_t threadId);
+    class ComputeAlignmentsData {
+    public:
+
+        // Parameters.
+        size_t maxSkip;
+        size_t maxVertexCountPerKmer;
+        size_t minAlignedMarkerCount;
+        size_t maxTrim;
+
+        // The AlignmentInfo found by each thread.
+        vector< vector<AlignmentData> > threadAlignmentData;
+    };
+    ComputeAlignmentsData computeAlignmentsData;
+
+
+    // Private functions and data used by createMarkerGraphVertices.
+    void createMarkerGraphVerticesThreadFunction1(size_t threadId);
+    void createMarkerGraphVerticesThreadFunction2(size_t threadId);
+    void createMarkerGraphVerticesThreadFunction3(size_t threadId);
+    void createMarkerGraphVerticesThreadFunction4(size_t threadId);
+    class CreateMarkerGraphVerticesData {
+    public:
+
+        // Parameters.
+        size_t maxSkip;
+        size_t maxVertexCountPerKmer;
+
+        // The total number of oriented markers.
+        uint64_t orientedMarkerCount;
+
+        // Disjoint sets data structures.
+        MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
+        std::shared_ptr<DisjointSets> disjointSetsPointer;
+
+        // Work area used for multiple purposes.
+        // See computeAllAlignments for details.
+        MemoryMapped::Vector<GlobalMarkerGraphVertexId> workArea;
+    };
+    CreateMarkerGraphVerticesData createMarkerGraphVerticesData;
 
 
 
