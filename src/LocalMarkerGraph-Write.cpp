@@ -1,5 +1,5 @@
 // Shasta.
-#include "LocalMarkerGraph2.hpp"
+#include "LocalMarkerGraph.hpp"
 #include "ConsensusCaller.hpp"
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
@@ -15,7 +15,7 @@ using namespace shasta;
 
 
 // Write the graph in Graphviz format.
-void LocalMarkerGraph2::write(
+void LocalMarkerGraph::write(
     const string& fileName,
     size_t minCoverage,
     int maxDistance,
@@ -28,7 +28,7 @@ void LocalMarkerGraph2::write(
     }
     write(outputFileStream, minCoverage, maxDistance, detailed, showVertexId);
 }
-void LocalMarkerGraph2::write(
+void LocalMarkerGraph::write(
     ostream& s,
     size_t minCoverage,
     int maxDistance,
@@ -37,11 +37,11 @@ void LocalMarkerGraph2::write(
 {
     Writer writer(*this, minCoverage, maxDistance, detailed, showVertexId);
     boost::write_graphviz(s, *this, writer, writer, writer,
-        boost::get(&LocalMarkerGraph2Vertex::vertexId, *this));
+        boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
 
-LocalMarkerGraph2::Writer::Writer(
-    const LocalMarkerGraph2& graph,
+LocalMarkerGraph::Writer::Writer(
+    const LocalMarkerGraph& graph,
     size_t minCoverage,
     int maxDistance,
     bool detailed,
@@ -56,7 +56,7 @@ LocalMarkerGraph2::Writer::Writer(
 
 
 
-void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
+void LocalMarkerGraph::Writer::operator()(std::ostream& s) const
 {
     // This turns off the tooltip on the graph and the edges.
     s << "tooltip = \" \";\n";
@@ -77,9 +77,9 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s) const
 
 
 
-void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v) const
+void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
-    const LocalMarkerGraph2Vertex& vertex = graph[v];
+    const LocalMarkerGraphVertex& vertex = graph[v];
     const auto coverage = vertex.markerInfos.size();
     CZI_ASSERT(coverage > 0);
 
@@ -321,10 +321,10 @@ void LocalMarkerGraph2::Writer::operator()(std::ostream& s, vertex_descriptor v)
 
 
 
-void LocalMarkerGraph2::Writer::operator()(std::ostream& s, edge_descriptor e) const
+void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
 
-    const LocalMarkerGraph2Edge& edge = graph[e];
+    const LocalMarkerGraphEdge& edge = graph[e];
     const size_t coverage = edge.coverage();
     CZI_ASSERT(coverage > 0);
     const size_t consensus = edge.consensus();

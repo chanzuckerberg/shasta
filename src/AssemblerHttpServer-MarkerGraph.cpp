@@ -1,6 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
-#include "LocalMarkerGraph2.hpp"
+#include "LocalMarkerGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -59,7 +59,7 @@ void Assembler::exploreMarkerGraph(
 
 
     // Create the local marker graph.
-    LocalMarkerGraph2 graph(
+    LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
         assemblerInfo->useRunLengthReads,
@@ -318,8 +318,8 @@ void Assembler::exploreMarkerGraph(
         // For a detailed graph, only the "Distance" label of each vertex
         // is made clickable.
         html << "<script>\n";
-        BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
-            const LocalMarkerGraph2Vertex& vertex = graph[v];
+        BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
+            const LocalMarkerGraphVertex& vertex = graph[v];
             CZI_ASSERT(!vertex.markerInfos.empty());
             const auto& markerInfo = vertex.markerInfos.front();
             const string url =
@@ -582,12 +582,12 @@ bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters(
 
 void Assembler::showLocalMarkerGraphAlignments(
     ostream& html,
-    const LocalMarkerGraph2& graph,
+    const LocalMarkerGraph& graph,
     const LocalMarkerGraphRequestParameters& requestParameters
     )
 {
-    using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
-    using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
+    using vertex_descriptor = LocalMarkerGraph::vertex_descriptor;
+    using edge_descriptor = LocalMarkerGraph::edge_descriptor;
     const size_t k = assemblerInfo->k;
 
 
@@ -603,7 +603,7 @@ void Assembler::showLocalMarkerGraphAlignments(
         html << "<tr title='Vertex'><th style='text-align:left'>Vertex";
         for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
             const vertex_descriptor v = graph.topologicallySortedVertices[i];
-            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            const LocalMarkerGraphVertex& vertex = graph[v];
             const auto vertexId = graph[v].vertexId;
 
             // Color.
@@ -642,7 +642,7 @@ void Assembler::showLocalMarkerGraphAlignments(
         "'>Rank";
     for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
         const vertex_descriptor v = graph.topologicallySortedVertices[i];
-        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        const LocalMarkerGraphVertex& vertex = graph[v];
 
         // Color.
         string color;
@@ -679,7 +679,7 @@ void Assembler::showLocalMarkerGraphAlignments(
         "'>Distance";
     for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
         const vertex_descriptor v = graph.topologicallySortedVertices[i];
-        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        const LocalMarkerGraphVertex& vertex = graph[v];
 
         // Color.
         string color;
@@ -715,7 +715,7 @@ void Assembler::showLocalMarkerGraphAlignments(
     html << "<tr title='Marker k-mer'><th style='text-align:left'>Marker k-mer";
     for(size_t i=0; i<graph.topologicallySortedVertices.size(); i++) {
         const vertex_descriptor v = graph.topologicallySortedVertices[i];
-        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        const LocalMarkerGraphVertex& vertex = graph[v];
 
         // Color.
         string color;
@@ -796,14 +796,14 @@ void Assembler::showLocalMarkerGraphAlignments(
 
     // To add assembled sequence to the alignment table,
     // loop over edges of the assembly path.
-    // The code here is similar to LocalMarkerGraph2::assembleDominantSequence.
+    // The code here is similar to LocalMarkerGraph::assembleDominantSequence.
     for(const edge_descriptor e: assemblyPath) {
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         const auto consensus = edge.consensus();
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        const LocalMarkerGraphVertex& vertex1 = graph[v1];
         const size_t rank0 = vertex0.rank;
         const size_t rank1 = vertex1.rank;
         CZI_ASSERT(rank0 < rank1);  // We checked for this above.
@@ -858,11 +858,11 @@ void Assembler::showLocalMarkerGraphAlignments(
     html << "<td class=centered>" << position;
     position += k;
     for(const edge_descriptor e: assemblyPath) {
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        const LocalMarkerGraphVertex& vertex1 = graph[v1];
         const size_t rank0 = vertex0.rank;
         const size_t rank1 = vertex1.rank;
         CZI_ASSERT(rank0 < rank1);  // We checked for this above.
@@ -890,11 +890,11 @@ void Assembler::showLocalMarkerGraphAlignments(
     }
     html << "<td class=centered>" << graph[firstVertex].markerInfos.size();
     for(const edge_descriptor e: assemblyPath) {
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        const LocalMarkerGraphVertex& vertex1 = graph[v1];
         const size_t rank0 = vertex0.rank;
         const size_t rank1 = vertex1.rank;
         CZI_ASSERT(rank0 < rank1);  // We checked for this above.
@@ -917,11 +917,11 @@ void Assembler::showLocalMarkerGraphAlignments(
     }
     html << "<td>"; // First vertex
     for(const edge_descriptor e: assemblyPath) {
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        const LocalMarkerGraphVertex& vertex1 = graph[v1];
         const size_t rank0 = vertex0.rank;
         const size_t rank1 = vertex1.rank;
         CZI_ASSERT(rank0 < rank1);  // We checked for this above.
@@ -956,7 +956,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             const auto& p = orientedReadVertices[i];
             const uint32_t ordinal = p.first;
             const vertex_descriptor v = p.second;
-            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            const LocalMarkerGraphVertex& vertex = graph[v];
             cout << "Vertex " << vertex.vertexId;
             cout << " distance " << vertex.distance;
             cout << " rank " << vertex.rank;
@@ -978,7 +978,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             const auto& p = rankEnforcedOrientedReadVertices[i];
             const uint32_t ordinal = p.first;
             const vertex_descriptor v = p.second;
-            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            const LocalMarkerGraphVertex& vertex = graph[v];
             cout << "Vertex " << vertex.vertexId;
             cout << " distance " << vertex.distance;
             cout << " rank " << vertex.rank;
@@ -1013,7 +1013,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             const auto& p0 = rankEnforcedOrientedReadVertices[i];
             const uint32_t ordinal0 = p0.first;
             const vertex_descriptor v0 = p0.second;
-            const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+            const LocalMarkerGraphVertex& vertex0 = graph[v0];
             const size_t rank0 = vertex0.rank;
             const KmerId kmerId0 = graph.getKmerId(v0);
             const Kmer kmer0(kmerId0, k);
@@ -1047,7 +1047,7 @@ void Assembler::showLocalMarkerGraphAlignments(
             const auto& p1 = rankEnforcedOrientedReadVertices[i+1];
             const uint32_t ordinal1 = p1.first;
             const vertex_descriptor v1 = p1.second;
-            const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            const LocalMarkerGraphVertex& vertex1 = graph[v1];
             const size_t rank1 = vertex1.rank;
 
             // Write the cell in between these two vertices.

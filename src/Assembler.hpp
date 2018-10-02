@@ -31,7 +31,7 @@ namespace ChanZuckerberg {
         class AlignmentInfo;
         class ConsensusCaller;
         class LocalReadGraph;
-        class LocalMarkerGraph2;
+        class LocalMarkerGraph;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
         }
@@ -814,13 +814,13 @@ private:
         uint32_t ordinal,
         int distance,
         double timeout,                 // Or 0 for no timeout.
-        LocalMarkerGraph2&
+        LocalMarkerGraph&
         );
     bool extractLocalMarkerGraph(
         GlobalMarkerGraphVertexId,
         int distance,
         double timeout,                 // Or 0 for no timeout.
-        LocalMarkerGraph2&
+        LocalMarkerGraph&
         );
 
 
@@ -887,7 +887,7 @@ private:
         LocalMarkerGraphRequestParameters&) const;
     void showLocalMarkerGraphAlignments(
         ostream& html,
-        const LocalMarkerGraph2&,
+        const LocalMarkerGraph&,
         const LocalMarkerGraphRequestParameters&
         );
 

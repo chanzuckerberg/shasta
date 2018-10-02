@@ -1,5 +1,5 @@
 // Shasta
-#include "LocalMarkerGraph2.hpp"
+#include "LocalMarkerGraph.hpp"
 #include "approximateTopologicalSort.hpp"
 #include "findMarkerId.hpp"
 #include "LongBaseSequence.hpp"
@@ -26,7 +26,7 @@ using namespace shasta;
 
 
 
-LocalMarkerGraph2::LocalMarkerGraph2(
+LocalMarkerGraph::LocalMarkerGraph(
     uint32_t k,
     LongBaseSequences& reads,
     bool useRunLengthReads,
@@ -50,8 +50,8 @@ LocalMarkerGraph2::LocalMarkerGraph2(
 // Find out if a vertex with the given GlobalMarkerGraphVertexId exists.
 // If it exists, return make_pair(true, v).
 // Otherwise, return make_pair(false, null_vertex());
-std::pair<bool, LocalMarkerGraph2::vertex_descriptor>
-    LocalMarkerGraph2::findVertex(GlobalMarkerGraphVertexId vertexId) const
+std::pair<bool, LocalMarkerGraph::vertex_descriptor>
+    LocalMarkerGraph::findVertex(GlobalMarkerGraphVertexId vertexId) const
 {
     const auto it = vertexMap.find(vertexId);
     if(it == vertexMap.end()) {
@@ -66,8 +66,8 @@ std::pair<bool, LocalMarkerGraph2::vertex_descriptor>
 // Add a vertex with the given GlobalMarkerGraphVertexId
 // and return its vertex descriptor.
 // A vertex with this GlobalMarkerGraphVertexId must not exist.
-LocalMarkerGraph2::vertex_descriptor
-    LocalMarkerGraph2::addVertex(
+LocalMarkerGraph::vertex_descriptor
+    LocalMarkerGraph::addVertex(
     GlobalMarkerGraphVertexId vertexId,
     int distance,
     MemoryAsContainer<MarkerId> vertexMarkers)
@@ -76,14 +76,14 @@ LocalMarkerGraph2::vertex_descriptor
     CZI_ASSERT(vertexMap.find(vertexId) == vertexMap.end());
 
     // Add the vertex and store it in the vertex map.
-    const vertex_descriptor v = add_vertex(LocalMarkerGraph2Vertex(vertexId, distance), *this);
+    const vertex_descriptor v = add_vertex(LocalMarkerGraphVertex(vertexId, distance), *this);
     vertexMap.insert(make_pair(vertexId, v));
 
     // Fill in the marker information for this vertex.
-    LocalMarkerGraph2Vertex& vertex = (*this)[v];
+    LocalMarkerGraphVertex& vertex = (*this)[v];
     vertex.markerInfos.reserve(vertexMarkers.size());
     for(const MarkerId markerId: vertexMarkers) {
-        LocalMarkerGraph2Vertex::MarkerInfo markerInfo;
+        LocalMarkerGraphVertex::MarkerInfo markerInfo;
         markerInfo.markerId = markerId;
         tie(markerInfo.orientedReadId, markerInfo.ordinal) =
             findMarkerId(markerId, markers);
@@ -96,9 +96,9 @@ LocalMarkerGraph2::vertex_descriptor
 
 
 // Get the KmerId for a vertex.
-KmerId LocalMarkerGraph2::getKmerId(vertex_descriptor v) const
+KmerId LocalMarkerGraph::getKmerId(vertex_descriptor v) const
 {
-    const LocalMarkerGraph2Vertex& vertex = (*this)[v];
+    const LocalMarkerGraphVertex& vertex = (*this)[v];
     CZI_ASSERT(!vertex.markerInfos.empty());
     const MarkerId firstMarkerId = vertex.markerInfos.front().markerId;
     const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
@@ -117,8 +117,8 @@ KmerId LocalMarkerGraph2::getKmerId(vertex_descriptor v) const
 
 
 // Get the repeat counts for a MarkerInfo of a vertex.
-vector<uint8_t> LocalMarkerGraph2::getRepeatCounts(
-    const LocalMarkerGraph2Vertex::MarkerInfo& markerInfo) const
+vector<uint8_t> LocalMarkerGraph::getRepeatCounts(
+    const LocalMarkerGraphVertex::MarkerInfo& markerInfo) const
 {
     CZI_ASSERT(useRunLengthReads);
     const OrientedReadId orientedReadId = markerInfo.orientedReadId;
@@ -143,23 +143,23 @@ vector<uint8_t> LocalMarkerGraph2::getRepeatCounts(
 
 
 // Fill in the ConsensusInfo's for each vertex.
-void LocalMarkerGraph2::computeVertexConsensusInfo()
+void LocalMarkerGraph::computeVertexConsensusInfo()
 {
     CZI_ASSERT(useRunLengthReads);
 
-    LocalMarkerGraph2& graph = *this;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    LocalMarkerGraph& graph = *this;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         computeVertexConsensusInfo(v);
     }
 }
-void LocalMarkerGraph2::computeVertexConsensusInfo( vertex_descriptor v)
+void LocalMarkerGraph::computeVertexConsensusInfo( vertex_descriptor v)
 {
     // This should only be used with run-length reads.
     CZI_ASSERT(useRunLengthReads);
 
     // Short-hands for the graph and the vertex.
-    LocalMarkerGraph2& graph = *this;
-    LocalMarkerGraph2Vertex& vertex = graph[v];
+    LocalMarkerGraph& graph = *this;
+    LocalMarkerGraphVertex& vertex = graph[v];
 
     // Get the marker k-mer of this vertex.
     const KmerId kmerId = graph.getKmerId(v);
@@ -189,23 +189,23 @@ void LocalMarkerGraph2::computeVertexConsensusInfo( vertex_descriptor v)
 
 // Store sequence information in the edge.
 // This version takes as input a vector of the
-// LocalMarkerGraph2Edge::Info that caused the edge to be created.
-void LocalMarkerGraph2::storeEdgeInfo(
+// LocalMarkerGraphEdge::Info that caused the edge to be created.
+void LocalMarkerGraph::storeEdgeInfo(
     edge_descriptor e,
-    const vector<LocalMarkerGraph2Edge::Info>& infoVector)
+    const vector<LocalMarkerGraphEdge::Info>& infoVector)
 {
-    LocalMarkerGraph2& graph = *this;
-    LocalMarkerGraph2Edge& edge = graph[e];
+    LocalMarkerGraph& graph = *this;
+    LocalMarkerGraphEdge& edge = graph[e];
 
     // Map to store the oriented read ids and ordinals, grouped by sequence.
-    std::map<LocalMarkerGraph2Edge::Sequence, vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts> > sequenceTable;
-    for(const LocalMarkerGraph2Edge::Info& info: infoVector) {
+    std::map<LocalMarkerGraphEdge::Sequence, vector<LocalMarkerGraphEdge::InfoWithRepeatCounts> > sequenceTable;
+    for(const LocalMarkerGraphEdge::Info& info: infoVector) {
         const CompressedMarker& marker0 = markers.begin(info.orientedReadId.getValue())[info.ordinals[0]];
         const CompressedMarker& marker1 = markers.begin(info.orientedReadId.getValue())[info.ordinals[1]];
 
         // Fill in the sequence information and, if necessary, the base repeat counts.
-        LocalMarkerGraph2Edge::Sequence sequence;
-        LocalMarkerGraph2Edge::InfoWithRepeatCounts infoWithRepeatCounts(info);
+        LocalMarkerGraphEdge::Sequence sequence;
+        LocalMarkerGraphEdge::InfoWithRepeatCounts infoWithRepeatCounts(info);
         if(marker1.position <= marker0.position + k) {
             sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
             if(useRunLengthReads) {
@@ -262,8 +262,8 @@ void LocalMarkerGraph2::storeEdgeInfo(
     // Sort by decreasing size of the infos vector.
     sort(edge.infos.begin(), edge.infos.end(),
         OrderPairsBySizeOfSecondGreater<
-        LocalMarkerGraph2Edge::Sequence,
-        vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts> >());
+        LocalMarkerGraphEdge::Sequence,
+        vector<LocalMarkerGraphEdge::InfoWithRepeatCounts> >());
 
 }
 
@@ -271,14 +271,14 @@ void LocalMarkerGraph2::storeEdgeInfo(
 
 // If using the run-length representation of reads,
 // compute SeqAn alignments for all edges on the local assembly path.
-void LocalMarkerGraph2::computeSeqanAlignments()
+void LocalMarkerGraph::computeSeqanAlignments()
 {
     CZI_ASSERT(useRunLengthReads);
     const bool debug = false;
 
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
     for(const edge_descriptor e: localAssemblyPath) {
-        LocalMarkerGraph2Edge& edge = graph[e];
+        LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
 
         // If the edge is not ambiguous, there is no need
@@ -355,7 +355,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
             // Loop over all infos for this sequence.
             for(auto it=infos.begin(); it!=infos.end(); ++it) {
                 const auto& info = *it;
-                LocalMarkerGraph2Edge::AlignmentInfo alignmentInfo;
+                LocalMarkerGraphEdge::AlignmentInfo alignmentInfo;
                 alignmentInfo.orientedReadId = info.orientedReadId;
                 alignmentInfo.ordinals = info.ordinals;
                 alignmentInfo.sequence = sequence.sequence;
@@ -543,7 +543,7 @@ void LocalMarkerGraph2::computeSeqanAlignments()
 
 
 
-void LocalMarkerGraph2Edge::computeCoverage()
+void LocalMarkerGraphEdge::computeCoverage()
 {
     // The SeqAn alignment must have been computed.
     CZI_ASSERT(seqanAlignmentWasComputed);
@@ -590,18 +590,18 @@ void LocalMarkerGraph2Edge::computeCoverage()
 
 
 // Create an optimal spanning tree and mark its edges.
-void LocalMarkerGraph2::computeOptimalSpanningTree()
+void LocalMarkerGraph::computeOptimalSpanningTree()
 {
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
 
     // Mark all edges as initially not part of the optimal spanning tree.
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         graph[e].isSpanningTreeEdge = false;
     }
 
     // Gather all the edges and sort them by decreasing coverage.
     vector< pair<edge_descriptor, size_t> > edgeTable;
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         edgeTable.push_back(make_pair(e, graph[e].coverage()));
     }
     std::sort(edgeTable.begin(), edgeTable.end(),
@@ -611,7 +611,7 @@ void LocalMarkerGraph2::computeOptimalSpanningTree()
     const size_t n = boost::num_vertices(graph);
     std::map<vertex_descriptor, uint32_t> vertexMap;
     uint32_t vertexIndex = 0;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         vertexMap.insert(make_pair(v, vertexIndex++));
     }
 
@@ -649,13 +649,13 @@ void LocalMarkerGraph2::computeOptimalSpanningTree()
 
 // Compute the best path in the optimal spanning tree.
 // The optimal spanning tree must have already been computed.
-void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
+void LocalMarkerGraph::computeOptimalSpanningTreeBestPath()
 {
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
 
     // Created a filtered graph that contains only the spanning tree edges.
     SpanningTreeFilter filter(graph);
-    using FilteredGraph = boost::filtered_graph<LocalMarkerGraph2, SpanningTreeFilter>;
+    using FilteredGraph = boost::filtered_graph<LocalMarkerGraph, SpanningTreeFilter>;
     FilteredGraph spanningTree(graph, filter);
 
     // Compute a topological sort of the spanning tree.
@@ -691,7 +691,7 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
     // Find the vertex with maximum distance. This is where the longest path ends.
     vertex_descriptor lastPathVertex = null_vertex();
     uint32_t lastPathVertexDistance = 0;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         const auto it = vertexTable.find(v);
         CZI_ASSERT(it != vertexTable.end());
         if(it->second.second > lastPathVertexDistance) {
@@ -735,13 +735,13 @@ void LocalMarkerGraph2::computeOptimalSpanningTreeBestPath()
 
 // Given a path, find the longest subset that contains no vertices
 // with distance equal to the specified maxDistance.
-void LocalMarkerGraph2::clipPath(
+void LocalMarkerGraph::clipPath(
     int maxDistance,
     const vector<edge_descriptor>& fullPath,
     vector<edge_descriptor>& clippedPath) const
 {
     CZI_ASSERT(!fullPath.empty());
-    const LocalMarkerGraph2& graph = *this;
+    const LocalMarkerGraph& graph = *this;
     clippedPath.clear();
 
     // Create an interval_set containing the indexes
@@ -791,7 +791,7 @@ void LocalMarkerGraph2::clipPath(
 
 // The local assembly path is a clipped version of optimalSpanningTreeBestPath,
 // in which vertices at maximum distance are removed.
-void LocalMarkerGraph2::computeLocalAssemblyPath(int maxDistance)
+void LocalMarkerGraph::computeLocalAssemblyPath(int maxDistance)
 {
     clipPath(
         maxDistance,
@@ -799,7 +799,7 @@ void LocalMarkerGraph2::computeLocalAssemblyPath(int maxDistance)
         localAssemblyPath);
 
     // Mark the edges on the local assembly path.
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
     for(const edge_descriptor e: localAssemblyPath) {
         graph[e].isLocalAssemblyPathEdge = true;
     }
@@ -810,12 +810,12 @@ void LocalMarkerGraph2::computeLocalAssemblyPath(int maxDistance)
 // Approximate topological sort, adding edges
 // in order of decreasing coverage. The topological sort
 // stored in LocalMarkerGrapg2Vertex::rank.
-void LocalMarkerGraph2::approximateTopologicalSort()
+void LocalMarkerGraph::approximateTopologicalSort()
 {
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
 
     vector<pair<uint32_t, edge_descriptor> > edgeTable;
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         edgeTable.push_back(make_pair(graph[e].coverage(), e));
     }
     sort(edgeTable.begin(), edgeTable.end(),
@@ -831,7 +831,7 @@ void LocalMarkerGraph2::approximateTopologicalSort()
 
     // Also store the vertices in topological sort order.
     vector< pair<size_t, vertex_descriptor> > vertexTable;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         vertexTable.push_back(make_pair(graph[v].rank, v));
     }
     sort(vertexTable.begin(), vertexTable.end());
@@ -846,12 +846,12 @@ void LocalMarkerGraph2::approximateTopologicalSort()
 // Remove edges that are not on the spanning tree.
 // This does not remove any vertices, as the spanning
 // tree by definition covers all vertices.
-void LocalMarkerGraph2::removeNonSpanningTreeEdges()
+void LocalMarkerGraph::removeNonSpanningTreeEdges()
 {
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
 
     vector<edge_descriptor> edgesToBeRemoved;
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         if(!graph[e].isSpanningTreeEdge) {
             edgesToBeRemoved.push_back(e);
         }
@@ -865,13 +865,13 @@ void LocalMarkerGraph2::removeNonSpanningTreeEdges()
 
 
 // Remove vertices and edges that are not on the optimal path.
-void LocalMarkerGraph2::removeAllExceptOptimalPath()
+void LocalMarkerGraph::removeAllExceptOptimalPath()
 {
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
 
     std::set<vertex_descriptor> verticesToBeKept;
     vector<edge_descriptor> edgesToBeRemoved;
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         if(graph[e].isSpanningTreeBestPathEdge) {
             verticesToBeKept.insert(source(e, graph));
             verticesToBeKept.insert(target(e, graph));
@@ -881,7 +881,7 @@ void LocalMarkerGraph2::removeAllExceptOptimalPath()
     }
 
     vector<vertex_descriptor> verticesToBeRemoved;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         if(verticesToBeKept.find(v) == verticesToBeKept.end()) {
             verticesToBeRemoved.push_back(v);
         }
@@ -901,9 +901,9 @@ void LocalMarkerGraph2::removeAllExceptOptimalPath()
 
 
 // Remove vertices and edges that are not on the clipped optimal path.
-void LocalMarkerGraph2::removeAllExceptClippedOptimalPath()
+void LocalMarkerGraph::removeAllExceptClippedOptimalPath()
 {
-    LocalMarkerGraph2& graph= *this;
+    LocalMarkerGraph& graph= *this;
 
     // Find the vertices and edges to be kept.
     std::set<vertex_descriptor> verticesToBeKept;
@@ -919,12 +919,12 @@ void LocalMarkerGraph2::removeAllExceptClippedOptimalPath()
     // Find the vertices and edges to be removed.
     vector<vertex_descriptor> verticesToBeRemoved;
     vector<edge_descriptor> edgesToBeRemoved;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         if(verticesToBeKept.find(v) == verticesToBeKept.end()) {
             verticesToBeRemoved.push_back(v);
         }
     }
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         if(edgesToBeKept.find(e) == edgesToBeKept.end()) {
             edgesToBeRemoved.push_back(e);
         }
@@ -947,11 +947,11 @@ void LocalMarkerGraph2::removeAllExceptClippedOptimalPath()
 
 
 // Fill in the oriented reads represented in the local marker graph.
-void LocalMarkerGraph2::findOrientedReadIds()
+void LocalMarkerGraph::findOrientedReadIds()
 {
-    LocalMarkerGraph2& graph = *this;
+    LocalMarkerGraph& graph = *this;
     std::set<OrientedReadId> orientedReadIdsSet;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         for(const auto& markerInfo: graph[v].markerInfos) {
             orientedReadIdsSet.insert(markerInfo.orientedReadId);
         }
@@ -969,14 +969,14 @@ void LocalMarkerGraph2::findOrientedReadIds()
 // Compute the set of vertices that corresponds to a given oriented read.
 // Vertices are returned in a pair with the corresponding ordinal,
 // sorted by the ordinal.
-void LocalMarkerGraph2::getOrientedReadVertices(
+void LocalMarkerGraph::getOrientedReadVertices(
     OrientedReadId orientedReadId,
     vector< pair<uint32_t, vertex_descriptor> >& orientedReadVertices) const
 {
-    const LocalMarkerGraph2& graph = *this;
+    const LocalMarkerGraph& graph = *this;
 
     orientedReadVertices.clear();
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph2) {
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         bool found = true;
         uint32_t ordinal;
         tie(found, ordinal) = graph[v].getOrdinal(orientedReadId);
@@ -992,19 +992,19 @@ void LocalMarkerGraph2::getOrientedReadVertices(
 
 // Given a vector of vertices returned by getOrientedReadVertices,
 // return a subset that does not break rank ordering.
-void LocalMarkerGraph2::enforceRankOrder(
+void LocalMarkerGraph::enforceRankOrder(
     const vector< pair<uint32_t, vertex_descriptor> >& v,
     vector< pair<uint32_t, vertex_descriptor> >& u) const
 {
-    const LocalMarkerGraph2& graph = *this;
+    const LocalMarkerGraph& graph = *this;
 
     // Create an interval_set of rank values that should be excluded.
     boost::icl::interval_set<size_t> inconsistentRanks;
     for(size_t i=1; i<v.size(); i++) {
         const vertex_descriptor v0 = v[i-1].second;
         const vertex_descriptor v1 = v[i].second;
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        const LocalMarkerGraphVertex& vertex1 = graph[v1];
         const size_t rank0 = vertex0.rank;
         const size_t rank1 = vertex1.rank;
         if(rank1 <= rank0) {
@@ -1024,7 +1024,7 @@ void LocalMarkerGraph2::enforceRankOrder(
     u.clear();
     for(const auto& p: v) {
         const vertex_descriptor v = p.second;
-        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        const LocalMarkerGraphVertex& vertex = graph[v];
         if(inconsistentRanks.find(vertex.rank) == inconsistentRanks.end()) {
             u.push_back(p);
         } else {
@@ -1041,20 +1041,20 @@ void LocalMarkerGraph2::enforceRankOrder(
 // Each edge is returned in a tuple containing the two ordinals
 // for the given oriented read.
 // The edges are computed sorted by the ordinals.
-void LocalMarkerGraph2::getOrientedReadEdges(
+void LocalMarkerGraph::getOrientedReadEdges(
     OrientedReadId orientedReadId,
     vector< pair< array<uint32_t, 2>, edge_descriptor> >& orientedReadEdges) const
 {
-    const LocalMarkerGraph2& graph = *this;
+    const LocalMarkerGraph& graph = *this;
 
     orientedReadEdges.clear();
-    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph2) {
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         array<uint32_t, 2> ordinals;
         if(graph[e].getOrdinals(orientedReadId, ordinals)) {
             // const vertex_descriptor v0 = source(e, graph);
             // const vertex_descriptor v1 = target(e, graph);
-            // const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-            // const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            // const LocalMarkerGraphVertex& vertex0 = graph[v0];
+            // const LocalMarkerGraphVertex& vertex1 = graph[v1];
             orientedReadEdges.push_back(make_pair(ordinals, e));
         }
     }
@@ -1068,7 +1068,7 @@ void LocalMarkerGraph2::getOrientedReadEdges(
 // If found, returns pair(true, ordinal).
 // Otherwise, returns pair(false, don't care).
 // If more than an ordinal is found, the first one is returned.
-pair<bool, uint32_t> LocalMarkerGraph2Vertex::getOrdinal(
+pair<bool, uint32_t> LocalMarkerGraphVertex::getOrdinal(
     OrientedReadId orientedReadId) const
 {
     for(const MarkerInfo& markerInfo: markerInfos) {
@@ -1084,7 +1084,7 @@ pair<bool, uint32_t> LocalMarkerGraph2Vertex::getOrdinal(
 // Look for the ordinals for a given oriented read id.
 // If found, returns true.
 // If more than an ordinal pairs is found, the first one is returned.
-bool LocalMarkerGraph2Edge::getOrdinals(
+bool LocalMarkerGraphEdge::getOrdinals(
     OrientedReadId orientedReadId,
     array<uint32_t, 2>& ordinals) const
 {

@@ -1,5 +1,5 @@
 // Shasta
-#include "LocalMarkerGraph2.hpp"
+#include "LocalMarkerGraph.hpp"
 #include "ConsensusCaller.hpp"
 #include "Histogram.hpp"
 #include "Marker.hpp"
@@ -17,7 +17,7 @@ using namespace shasta;
 
 // Compute the clipped optimal spanning tree path
 // and use it to assemble its dominant sequence.
-void LocalMarkerGraph2::assembleDominantSequence(
+void LocalMarkerGraph::assembleDominantSequence(
     int maxDistance,
     vector< pair<Base, int> >& sequence)
 {
@@ -29,12 +29,12 @@ void LocalMarkerGraph2::assembleDominantSequence(
 
 
 // Assemble the dominant sequence for a given path.
-void LocalMarkerGraph2::assembleDominantSequence(
+void LocalMarkerGraph::assembleDominantSequence(
     const vector<edge_descriptor>& path,
     vector< pair<Base, int> >& sequence)
 {
     CZI_ASSERT(!path.empty());
-    const LocalMarkerGraph2& graph = *this;
+    const LocalMarkerGraph& graph = *this;
 
     // This is only used with the run-length representation of reads.
     CZI_ASSERT(useRunLengthReads);
@@ -49,7 +49,7 @@ void LocalMarkerGraph2::assembleDominantSequence(
     const vertex_descriptor v0 = source(path.front(), graph);
     const KmerId kmerId0 = getKmerId(v0);
     const Kmer kmer0(kmerId0, k);
-    const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+    const LocalMarkerGraphVertex& vertex0 = graph[v0];
     const auto coverage0 = vertex0.markerInfos.size();
     for(size_t i=0; i<k; i++) {
         sequence.push_back(make_pair(kmer0[i], coverage0));
@@ -59,7 +59,7 @@ void LocalMarkerGraph2::assembleDominantSequence(
     for(const edge_descriptor e: path) {
 
         // Add the edge sequence, if any.
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
         const auto& p = edge.infos.front();
         const auto coverage = p.second.size();
@@ -72,7 +72,7 @@ void LocalMarkerGraph2::assembleDominantSequence(
         const vertex_descriptor v1 = target(e, graph);
         const KmerId kmerId1 = getKmerId(v1);
         const Kmer kmer1(kmerId1, k);
-        const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+        const LocalMarkerGraphVertex& vertex1 = graph[v1];
         const auto coverage1 = vertex1.markerInfos.size();
 
         // First, handle any overlapping bases.
@@ -121,14 +121,14 @@ void LocalMarkerGraph2::assembleDominantSequence(
 // we use a run-length representation of the reads.
 // This  assumes that clippedOptimalSpanningTreeBestPath was
 // already computed and only creates html output.
-void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
+void LocalMarkerGraph::assembleDominantSequence(ostream& html) const
 {
     // Shorthands.
-    const LocalMarkerGraph2& graph = *this;
+    const LocalMarkerGraph& graph = *this;
     const vector<edge_descriptor>& path = localAssemblyPath;
-    using MarkerInfo = LocalMarkerGraph2Vertex::MarkerInfo;
-    using InfoWithRepeatCounts = LocalMarkerGraph2Edge::InfoWithRepeatCounts;
-    using Sequence = LocalMarkerGraph2Edge::Sequence;
+    using MarkerInfo = LocalMarkerGraphVertex::MarkerInfo;
+    using InfoWithRepeatCounts = LocalMarkerGraphEdge::InfoWithRepeatCounts;
+    using Sequence = LocalMarkerGraphEdge::Sequence;
 
     // If the path is empty, do nothing.
     if(path.empty()) {
@@ -148,7 +148,7 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
         const vertex_descriptor v0 = source(e, graph);
         pathVertices.push_back(make_pair(v0, assembledPosition));
         assembledPosition += k;
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
         const pair<Sequence, vector<InfoWithRepeatCounts> > p = edge.infos.front();
         const Sequence& sequence = p.first;
@@ -171,7 +171,7 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
         for(const auto& p: pathVertices) {
             const vertex_descriptor v = p.first;
             const uint32_t position = p.second;
-            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            const LocalMarkerGraphVertex& vertex = graph[v];
             cout << "Vertex " << vertex.vertexId;
             cout << " rank " << vertex.rank;
             cout << " position " << position << endl;
@@ -182,8 +182,8 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
             const uint32_t position = p.second;
             const vertex_descriptor v0 = source(e, graph);
             const vertex_descriptor v1 = target(e, graph);
-            const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-            const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            const LocalMarkerGraphVertex& vertex0 = graph[v0];
+            const LocalMarkerGraphVertex& vertex1 = graph[v1];
             cout << "Edge " << vertex0.vertexId << "->";
             cout << vertex1.vertexId << "->";
             cout << " ranks " << vertex0.rank << " " << vertex1.rank;
@@ -214,7 +214,7 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
     for(const auto& p: pathEdges) {
         const edge_descriptor e = p.first;
         const uint32_t position = p.second;
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
         const pair<Sequence, vector<InfoWithRepeatCounts> > q = edge.infos.front();
         const vector<Base>& edgeSequence = q.first.sequence;
@@ -240,7 +240,7 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
     for(const auto& p: pathVertices) {
         const vertex_descriptor v = p.first;
         const uint32_t position = p.second;
-        const LocalMarkerGraph2Vertex& vertex = graph[v];
+        const LocalMarkerGraphVertex& vertex = graph[v];
         for(const MarkerInfo& markerInfo: vertex.markerInfos) {
             const MarkerId markerId = markerInfo.markerId;
             const CompressedMarker& marker = markers.begin()[markerId];
@@ -254,7 +254,7 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
     for(const auto& p: pathEdges) {
         const edge_descriptor e = p.first;
         const uint32_t position = p.second;
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
         const pair<Sequence, vector<InfoWithRepeatCounts> > q = edge.infos.front();
         const Sequence& sequence = q.first;
@@ -460,13 +460,13 @@ void LocalMarkerGraph2::assembleDominantSequence(ostream& html) const
 // and we use SeqAn alignments stored in edges to assemble sequence.
 // This  assumes that clippedOptimalSpanningTreeBestPath was
 // already computed and only creates html output.
-void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
+void LocalMarkerGraph::assembleDominantSequenceUsingSeqan(ostream& html) const
 {
     // Shorthands.
-    const LocalMarkerGraph2& graph = *this;
+    const LocalMarkerGraph& graph = *this;
     const vector<edge_descriptor>& path = localAssemblyPath;
-    using InfoWithRepeatCounts = LocalMarkerGraph2Edge::InfoWithRepeatCounts;
-    using Sequence = LocalMarkerGraph2Edge::Sequence;
+    using InfoWithRepeatCounts = LocalMarkerGraphEdge::InfoWithRepeatCounts;
+    using Sequence = LocalMarkerGraphEdge::Sequence;
 
     // If the path is empty, do nothing.
     if(path.empty()) {
@@ -486,7 +486,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
         const vertex_descriptor v0 = source(e, graph);
         pathVertices.push_back(make_pair(v0, assembledPosition));
         assembledPosition += k;
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
 
         if(edge.seqanAlignmentWasComputed) {
             uint32_t baseCount = 0;
@@ -525,7 +525,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
         for(const auto& p: pathVertices) {
             const vertex_descriptor v = p.first;
             const uint32_t position = p.second;
-            const LocalMarkerGraph2Vertex& vertex = graph[v];
+            const LocalMarkerGraphVertex& vertex = graph[v];
             cout << "Vertex " << vertex.vertexId;
             cout << " position " << position << endl;
         }
@@ -535,8 +535,8 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
             const uint32_t position = p.second;
             const vertex_descriptor v0 = source(e, graph);
             const vertex_descriptor v1 = target(e, graph);
-            const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
-            const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            const LocalMarkerGraphVertex& vertex0 = graph[v0];
+            const LocalMarkerGraphVertex& vertex1 = graph[v1];
             cout << "Edge " << vertex0.vertexId << "->";
             cout << vertex1.vertexId;
             cout << " position " << position << endl;
@@ -574,7 +574,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
     for(const auto& p: pathEdges) {
         const edge_descriptor e = p.first;
         const uint32_t startPosition = p.second;
-        const LocalMarkerGraph2Edge& edge = graph[e];
+        const LocalMarkerGraphEdge& edge = graph[e];
 
         if(edge.seqanAlignmentWasComputed) {
             size_t position = startPosition;
@@ -678,7 +678,7 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
             const auto& q = edgesByPosition[position];
             const edge_descriptor e = q.first;
             const size_t positionInEdge = q.second;
-            const LocalMarkerGraph2Edge& edge = graph[e];
+            const LocalMarkerGraphEdge& edge = graph[e];
 
             if(edge.seqanAlignmentWasComputed) {
                 coverages[position] = edge.coverages[positionInEdge];
@@ -688,13 +688,13 @@ void LocalMarkerGraph2::assembleDominantSequenceUsingSeqan(ostream& html) const
                 // was not computed. Use the most frequent sequence instead.
 
                 // Start by gathering the information we need.
-                const LocalMarkerGraph2Edge& edge = graph[e];
+                const LocalMarkerGraphEdge& edge = graph[e];
                 CZI_ASSERT(!edge.infos.empty());
                 const auto& p = edge.infos.front();
-                const LocalMarkerGraph2Edge::Sequence& s = p.first;
+                const LocalMarkerGraphEdge::Sequence& s = p.first;
                 CZI_ASSERT(s.overlappingBaseCount == 0);
                 const vector<Base>& sequence = s.sequence;
-                const vector<LocalMarkerGraph2Edge::InfoWithRepeatCounts>& infos = p.second;
+                const vector<LocalMarkerGraphEdge::InfoWithRepeatCounts>& infos = p.second;
 
                 // Loop over the infos.
                 Coverage& coverage = coverages[position];

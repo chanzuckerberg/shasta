@@ -1,7 +1,7 @@
 // shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
-#include "LocalMarkerGraph2.hpp"
+#include "LocalMarkerGraph.hpp"
 #include "LocalReadGraph.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
@@ -451,7 +451,7 @@ void Assembler::extractLocalMarkerGraph(
     )
 {
     // Create the local marker graph.
-    LocalMarkerGraph2 graph(
+    LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
         assemblerInfo->useRunLengthReads,
@@ -477,7 +477,7 @@ bool Assembler::extractLocalMarkerGraph(
     uint32_t ordinal,
     int distance,
     double timeout,                 // Or 0 for no timeout.
-    LocalMarkerGraph2& graph
+    LocalMarkerGraph& graph
     )
 {
     const GlobalMarkerGraphVertexId startVertexId =
@@ -492,13 +492,13 @@ bool Assembler::extractLocalMarkerGraph(
     GlobalMarkerGraphVertexId startVertexId,
     int distance,
     double timeout,                 // Or 0 for no timeout.
-    LocalMarkerGraph2& graph
+    LocalMarkerGraph& graph
     )
 {
 
 
-    using vertex_descriptor = LocalMarkerGraph2::vertex_descriptor;
-    using edge_descriptor = LocalMarkerGraph2::edge_descriptor;
+    using vertex_descriptor = LocalMarkerGraph::vertex_descriptor;
+    using edge_descriptor = LocalMarkerGraph::edge_descriptor;
     const auto startTime = steady_clock::now();
 
     // Add the start vertex.
@@ -512,7 +512,7 @@ bool Assembler::extractLocalMarkerGraph(
     vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > children;
     vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > parents;
     vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> > workArea;
-    vector<LocalMarkerGraph2Edge::Info> infoVector;
+    vector<LocalMarkerGraphEdge::Info> infoVector;
 
 
 
@@ -532,7 +532,7 @@ bool Assembler::extractLocalMarkerGraph(
         // Dequeue a vertex.
         const vertex_descriptor v0 = q.front();
         q.pop();
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
         const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
         const int distance0 = vertex0.distance;
         const int distance1 = distance0 + 1;
@@ -569,7 +569,7 @@ bool Assembler::extractLocalMarkerGraph(
                 infoVector.clear();
                 const auto& v = p.second;
                 for(const MarkerGraphNeighborInfo& x: v) {
-                    infoVector.push_back(LocalMarkerGraph2Edge::Info(
+                    infoVector.push_back(LocalMarkerGraphEdge::Info(
                         x.orientedReadId, x.ordinal0, x.ordinal1));
                 }
                 graph.storeEdgeInfo(e, infoVector);
@@ -605,7 +605,7 @@ bool Assembler::extractLocalMarkerGraph(
                 infoVector.clear();
                 const auto& v = p.second;
                 for(const MarkerGraphNeighborInfo& x: v) {
-                    infoVector.push_back(LocalMarkerGraph2Edge::Info(
+                    infoVector.push_back(LocalMarkerGraphEdge::Info(
                         x.orientedReadId, x.ordinal1, x.ordinal0));
                 }
                 graph.storeEdgeInfo(e, infoVector);
@@ -619,8 +619,8 @@ bool Assembler::extractLocalMarkerGraph(
     // The BFS process did not create edges between vertices at maximum distance.
     // Do it now.
     // Loop over all vertices at maximum distance.
-    BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph2) {
-        const LocalMarkerGraph2Vertex& vertex0 = graph[v0];
+    BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph) {
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
         if(vertex0.distance != distance) {
             continue;
         }
@@ -640,7 +640,7 @@ bool Assembler::extractLocalMarkerGraph(
             }
 
             // If it is not at maximum distance, skip.
-            const LocalMarkerGraph2Vertex& vertex1 = graph[v1];
+            const LocalMarkerGraphVertex& vertex1 = graph[v1];
             if(vertex1.distance != distance) {
                 continue;
             }
@@ -660,7 +660,7 @@ bool Assembler::extractLocalMarkerGraph(
             infoVector.clear();
             const auto& v = p.second;
             for(const MarkerGraphNeighborInfo& x: v) {
-                infoVector.push_back(LocalMarkerGraph2Edge::Info(
+                infoVector.push_back(LocalMarkerGraphEdge::Info(
                     x.orientedReadId, x.ordinal0, x.ordinal1));
             }
             graph.storeEdgeInfo(e, infoVector);
@@ -691,7 +691,7 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
 {
 
     // Create the local marker graph.
-    LocalMarkerGraph2 graph(
+    LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
         assemblerInfo->useRunLengthReads,
@@ -710,11 +710,11 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
     // Get the vertex ids in the assembly path.
     vector<GlobalMarkerGraphVertexId> path;
     if(!graph.localAssemblyPath.empty()) {
-        LocalMarkerGraph2::edge_descriptor e = graph.localAssemblyPath.front();
-        const LocalMarkerGraph2::vertex_descriptor v = source(e, graph);
+        LocalMarkerGraph::edge_descriptor e = graph.localAssemblyPath.front();
+        const LocalMarkerGraph::vertex_descriptor v = source(e, graph);
         path.push_back(graph[v].vertexId);
-        for(LocalMarkerGraph2::edge_descriptor e: graph.localAssemblyPath) {
-            const LocalMarkerGraph2::vertex_descriptor v = target(e, graph);
+        for(LocalMarkerGraph::edge_descriptor e: graph.localAssemblyPath) {
+            const LocalMarkerGraph::vertex_descriptor v = target(e, graph);
             path.push_back(graph[v].vertexId);
         }
     }
@@ -840,7 +840,7 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
                 }
 
                 // Joint loop over markers to compute coverage.
-                // This code is similar to LocalMarkerGraph2::storeEdgeInfo.
+                // This code is similar to LocalMarkerGraph::storeEdgeInfo.
                 uint32_t coverage = 0;
 
                 // Find pairs of markers for the same oriented read in the two vertices.

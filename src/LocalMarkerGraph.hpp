@@ -4,28 +4,13 @@
 
 /*******************************************************************************
 
-The local marker graph created by class LocalMarkerGraph2 is a subgraph
+The local marker graph created by class LocalMarkerGraph is a subgraph
 of the global marker graph, created by starting at a given vertex,
 and extending out to a specified distance in both directions.
 Distance is number of edges on the global marker graph.
 
 Like in the global marker graph, each vertex corresponds to
 a group of aligned markers.
-
-
-
-Class LocalMarkerGraph versus class LocalMarkerGraph2.
-
-Assembler::createLocalMarkerGraph uses class LocalMarkerGraph
-to create a local marker graph from a set of oriented reads,
-without using the global marker graph.
-This is computationally expensive as it requires
-computations of alignments and merging of vertices.
-
-Assembler::extractLocalMarkerGraph uses class LocalMarkerGraph2
-to create a subgraph of the global marker graph.
-This is computationally inexpensive as most of the computing
-was done when the global marker graph was created.
 
 *******************************************************************************/
 
@@ -54,15 +39,15 @@ namespace ChanZuckerberg {
     namespace shasta {
 
         // Forward declaration of types declared in this file.
-        class LocalMarkerGraph2Vertex;
-        class LocalMarkerGraph2Edge;
-        class LocalMarkerGraph2;
-        using LocalMarkerGraph2BaseClass = boost::adjacency_list<
+        class LocalMarkerGraphVertex;
+        class LocalMarkerGraphEdge;
+        class LocalMarkerGraph;
+        using LocalMarkerGraphBaseClass = boost::adjacency_list<
             boost::setS,
             boost::listS,
             boost::bidirectionalS,
-            LocalMarkerGraph2Vertex,
-            LocalMarkerGraph2Edge
+            LocalMarkerGraphVertex,
+            LocalMarkerGraphEdge
             >;
 
         // Forward declarations of classes defined elsewhere.
@@ -78,7 +63,7 @@ namespace ChanZuckerberg {
 
 
 
-class ChanZuckerberg::shasta::LocalMarkerGraph2Vertex {
+class ChanZuckerberg::shasta::LocalMarkerGraphVertex {
 public:
 
     // The global vertex id of the vertex of the global marker
@@ -101,7 +86,7 @@ public:
     uint32_t color = 0;
     size_t rank = 0;
 
-    LocalMarkerGraph2Vertex(
+    LocalMarkerGraphVertex(
         GlobalMarkerGraphVertexId vertexId,
         int distance) :
         vertexId(vertexId),
@@ -123,7 +108,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalMarkerGraph2Edge {
+class ChanZuckerberg::shasta::LocalMarkerGraphEdge {
 public:
 
     // Class to describe the intervening sequence between
@@ -254,11 +239,11 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalMarkerGraph2 :
-    public LocalMarkerGraph2BaseClass {
+class ChanZuckerberg::shasta::LocalMarkerGraph :
+    public LocalMarkerGraphBaseClass {
 public:
 
-    LocalMarkerGraph2(
+    LocalMarkerGraph(
         uint32_t k,
         LongBaseSequences& reads,
         bool useRunLengthReads,
@@ -289,7 +274,7 @@ public:
     KmerId getKmerId(vertex_descriptor) const;
 
     // Get the repeat counts for a MarkerInfo of a vertex.
-    vector<uint8_t> getRepeatCounts(const LocalMarkerGraph2Vertex::MarkerInfo&) const;
+    vector<uint8_t> getRepeatCounts(const LocalMarkerGraphVertex::MarkerInfo&) const;
 
     // Fill in the ConsensusInfo's for each vertex.
     void computeVertexConsensusInfo();
@@ -297,8 +282,8 @@ public:
 
     // Store sequence information in the edge.
     // Takes as input a vector of the
-    // LocalMarkerGraph2Edge::Info that caused the edge to be created.
-    void storeEdgeInfo(edge_descriptor, const vector<LocalMarkerGraph2Edge::Info>&);
+    // LocalMarkerGraphEdge::Info that caused the edge to be created.
+    void storeEdgeInfo(edge_descriptor, const vector<LocalMarkerGraphEdge::Info>&);
 
     // Create an optimal spanning tree and mark its edges.
     void computeOptimalSpanningTree();
@@ -320,8 +305,8 @@ public:
         {
             return (*graph)[e].isSpanningTreeEdge;
         }
-        const LocalMarkerGraph2* graph;
-        SpanningTreeFilter(const LocalMarkerGraph2& graph) :
+        const LocalMarkerGraph* graph;
+        SpanningTreeFilter(const LocalMarkerGraph& graph) :
             graph(&graph) {}
         SpanningTreeFilter() :
             graph(0) {}
@@ -449,7 +434,7 @@ private:
     class Writer {
     public:
         Writer(
-            const LocalMarkerGraph2&,
+            const LocalMarkerGraph&,
             size_t minCoverage,
             int maxDistance,
             bool detailed,
@@ -457,7 +442,7 @@ private:
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
-        const LocalMarkerGraph2& graph;
+        const LocalMarkerGraph& graph;
         size_t minCoverage;
         int maxDistance;
         bool detailed;
