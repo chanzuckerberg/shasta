@@ -20,7 +20,7 @@ Assembler::Assembler(
     smallDataPageSize(smallDataPageSize),
     largeDataPageSize(largeDataPageSize)
 {
-    assemblerInfo.createNew(smallDataName("Info"), smallDataPageSize);
+    assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
     assemblerInfo->useRunLengthReads = useRunLengthReads;
 
     reads.createNew(largeDataName("Reads"), largeDataPageSize);
@@ -57,7 +57,7 @@ Assembler::Assembler(
     largeDataPageSize(largeDataPageSize)
 {
 
-    assemblerInfo.accessExistingReadWrite(smallDataName("Info"));
+    assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
 
     // assemblerInfo is the only open object
     // when the constructor finishes.

@@ -8,7 +8,7 @@ using namespace shasta;
 
 void Assembler::accessKmers()
 {
-    kmerTable.accessExistingReadOnly(smallDataName("Kmers"));
+    kmerTable.accessExistingReadOnly(largeDataName("Kmers"));
     if(kmerTable.size() != (1ULL<< (2*assemblerInfo->k))) {
         throw runtime_error("Size of k-mer vector is inconsistent with stored value of k.");
     }
@@ -67,7 +67,7 @@ void Assembler::randomlySelectKmers(
 
 
     // Create the kmer table with the necessary size.
-    kmerTable.createNew(smallDataName("Kmers"), smallDataPageSize);
+    kmerTable.createNew(largeDataName("Kmers"), largeDataPageSize);
     const size_t kmerCount = 1ULL << (2ULL*k);
     kmerTable.resize(kmerCount);
 
