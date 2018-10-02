@@ -20,7 +20,6 @@ are the global vertex ids used by this script.
 import shasta
 
 a = shasta.Assembler(
-    smallDataFileNamePrefix='dataOnDisk/',
     largeDataFileNamePrefix='DataOnDisk/')
 
 a.accessReadsReadOnly()

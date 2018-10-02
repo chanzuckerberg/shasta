@@ -19,17 +19,13 @@ if not len(sys.argv) == 1:
     
 
 largePagesMountPoint = '/hugepages';
-data = '/dev/shm/data'
 Data = '%s/Data' % largePagesMountPoint
 
-response = input('This will destroy any binary data in memory at %s and %s.\nEnter "Yes" if you really want to do that:\n' % (data, Data))   
+response = input('This will destroy any binary data in memory at %s.\nEnter "Yes" if you really want to do that:\n' % Data)   
 if not response == 'Yes':
     print('Nothing done.')
     exit(0)
 
-
-# Remove the data directory.
-os.system('sudo rm -rf %s' % data)
 
 # Create the Data directory.
 os.system('sudo rm -rf %s' % Data)

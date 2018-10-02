@@ -92,18 +92,14 @@ public:
 
     // Constructor to be called one to create a new run.
     Assembler(
-        const string& smallDataFileNamePrefix,
         const string& largeDataFileNamePrefix,
-        size_t smallDataPageSize,
         size_t largeDataPageSize,
         bool useRunLengthReads
         );
 
     // Constructor to be called to continue an existing run.
     Assembler(
-        const string& smallDataFileNamePrefix,
         const string& largeDataFileNamePrefix,
-        size_t smallDataPageSize,
         size_t largeDataPageSize
         );
 
@@ -329,16 +325,10 @@ public:
 private:
 
     // Data filled in by the constructor.
-    string smallDataFileNamePrefix;
     string largeDataFileNamePrefix;
-    size_t smallDataPageSize;
     size_t largeDataPageSize;
 
-    // Functions to construct names for small and large binary objects.
-    string smallDataName(const string& name) const
-    {
-        return smallDataFileNamePrefix + name;
-    }
+    // Function to construct names for binary objects.
     string largeDataName(const string& name) const
     {
         return largeDataFileNamePrefix + name;

@@ -26,19 +26,17 @@ if not len(sys.argv) == 1:
     
 
 # If any of these is present, don't do anything.
-mustNotExist = ['data', 'Data', 'threadLogs']
+mustNotExist = ['Data', 'threadLogs']
 for name in mustNotExist:
     if os.path.lexists(name):
         print('%s must not exist. Remove it before running this script.' % name)
         exit(1)
 
 # Create the directories.
-os.mkdir('data')
 os.mkdir('Data')
 os.mkdir('threadLogs')
 
 # Create the symbolic links.
-os.symlink('data', 'dataOnDisk')
 os.symlink('Data', 'DataOnDisk')
 
 

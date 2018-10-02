@@ -9,15 +9,11 @@ using namespace shasta;
 
 // Constructor to be called one to create a new run.
 Assembler::Assembler(
-    const string& smallDataFileNamePrefix,
     const string& largeDataFileNamePrefix,
-    size_t smallDataPageSize,
     size_t largeDataPageSize,
     bool useRunLengthReads) :
     MultithreadedObject(*this),
-    smallDataFileNamePrefix(smallDataFileNamePrefix),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    smallDataPageSize(smallDataPageSize),
     largeDataPageSize(largeDataPageSize)
 {
     assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
@@ -46,14 +42,10 @@ Assembler::Assembler(
 
 // Constructor to be called to continue an existing run.
 Assembler::Assembler(
-    const string& smallDataFileNamePrefix,
     const string& largeDataFileNamePrefix,
-    size_t smallDataPageSize,
     size_t largeDataPageSize) :
     MultithreadedObject(*this),
-    smallDataFileNamePrefix(smallDataFileNamePrefix),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    smallDataPageSize(smallDataPageSize),
     largeDataPageSize(largeDataPageSize)
 {
 

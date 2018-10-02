@@ -5,7 +5,7 @@ import pwd
 import sys
 
 helpMessage = """
-This sets up the symbolic links (data and Data) required
+This sets up the Data symbolic link required
 to start a shasta run. It also creates the threadLogs directory.
 
 Before running this, use SetuHugePages.py to 
@@ -24,14 +24,14 @@ Data = '%s/Data' % largePagesMountPoint
 
 
 # If any of these is not present, don't do anything.
-mustExist = [data, Data]
+mustExist = [Data]
 for name in mustExist:
     if not os.path.lexists(name):
         print('%s must exist. You can use SetupHugePages.py to create it.' % name)
         exit(1)
 
 # If any of these is present, don't do anything.
-mustNotExist = ['data', 'Data', 'threadLogs']
+mustNotExist = ['Data', 'threadLogs']
 for name in mustNotExist:
     if os.path.lexists(name):
         print('%s must not exist. Remove it before running this script.' % name)
@@ -39,7 +39,6 @@ for name in mustNotExist:
 
 # Create the Data and data symbolic links.
 os.symlink(Data, 'Data')
-os.symlink(data, 'data')
 
 # Create the threadLogs directory.
 os.system('mkdir threadLogs')

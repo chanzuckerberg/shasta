@@ -20,7 +20,6 @@ import shasta
 
 # Create the Assembler object and access what we need.
 a = shasta.Assembler(
-    smallDataFileNamePrefix='dataOnDisk/',
     largeDataFileNamePrefix='DataOnDisk/')
 a.accessReadsReadOnly()
 a.accessMarkers()

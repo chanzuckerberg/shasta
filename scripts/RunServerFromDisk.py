@@ -15,13 +15,12 @@ config = GetConfig.getConfig()
 
 # Initialize the assembler and access what we need.
 a = shasta.Assembler(
-    smallDataFileNamePrefix='dataOnDisk/',
     largeDataFileNamePrefix='DataOnDisk/')
 a.accessReadsReadOnly()
 a.accessReadNamesReadOnly()
 a.accessKmers()
 a.accessMarkers()
-a.accessAlignmentCandidates()
+a.accessCandidateAlignments()
 a.accessAlignmentData()
 a.accessMarkerGraphVertices()
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])

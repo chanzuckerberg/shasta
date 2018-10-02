@@ -27,13 +27,12 @@ if not len(sys.argv) == 2:
 gigaBytes = int(sys.argv[1]) 
 
 largePagesMountPoint = '/hugepages';
-data = '/dev/shm/data'
 Data = '%s/Data' % largePagesMountPoint
 
 
 
 # If any of these is present, don't do anything.
-mustNotExist = [data, largePagesMountPoint]
+mustNotExist = [largePagesMountPoint]
 for name in mustNotExist:
     if os.path.lexists(name):
         print('%s must not exist. Remove it before running this script.' % name)
@@ -55,9 +54,6 @@ os.system('sudo mount -t hugetlbfs -o size=100%% none %s' % largePagesMountPoint
 # Create the Data directory.
 os.system('sudo mkdir %s' % Data)
 os.system('sudo chown %s %s' % (userName, Data))
-
-# Create the data directory.
-os.system('mkdir %s' % data)
 
 
 
