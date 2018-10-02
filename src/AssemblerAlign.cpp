@@ -115,7 +115,7 @@ void Assembler::alignOrientedReads(
 
 
 // Compute marker alignments of an oriented read with all reads
-// for which we have an Overlap.
+// for which we have an alignment.
 void Assembler::alignOverlappingOrientedReads(
     ReadId readId, Strand strand,
     size_t maxSkip,                 // Maximum ordinal skip allowed.
@@ -148,13 +148,13 @@ void Assembler::alignOverlappingOrientedReads(
     vector<MarkerWithOrdinal> markers0SortedByKmerId;
     getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
 
-    // Loop over all overlaps involving this oriented read.
+    // Loop over all alignments involving this oriented read.
     vector<MarkerWithOrdinal> markers1SortedByKmerId;
     size_t goodAlignmentCount = 0;
     for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
         const AlignmentData& ad = alignmentData[i];
 
-        // Get the other oriented read involved in this overlap.
+        // Get the other oriented read involved in this alignment.
         const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
 
         // Get the markers for orientedReadId1.
@@ -233,7 +233,7 @@ pair<uint32_t, uint32_t> Assembler::computeTrim(
 
 
 
-// Compute an Alignment for each Overlap, but  only store the AlignmentInfo.
+// Compute an alignment for each alignment candidate, but  only store the AlignmentInfo.
 // Optionally, the alignments are used for creation of the global marker graph.
 void Assembler::computeAllAlignments(
 
