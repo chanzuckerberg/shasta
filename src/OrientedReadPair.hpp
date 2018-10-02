@@ -38,6 +38,15 @@ public:
     {
         CZI_ASSERT(readId0 != readId1);
     }
+    OrientedReadPair(
+        array<ReadId, 2> readIds,
+        bool isSameStrand
+        ) :
+        readIds(readIds),
+        isSameStrand(isSameStrand)
+    {
+        CZI_ASSERT(readIds[0] != readIds[1]);
+    }
 
 
 
