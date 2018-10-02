@@ -225,7 +225,7 @@ void Assembler::createMarkerGraphVertices(
 
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
-    cout << timestamp << "Computation of global marker graph vertices";
+    cout << timestamp << "Computation of global marker graph vertices ";
     cout << "completed in " << tTotal << " s." << endl;
 }
 
