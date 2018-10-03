@@ -882,23 +882,68 @@ void Assembler::exploreOverlappingReads(
     }
 
     // Page title.
-    const OrientedReadId orientedReadId0(readId0, strand0);
     html <<
-        "<h1>Reads that overlap oriented read "
+        "<h1>Alignments involving oriented read "
         "<a href='exploreRead?readId=" << readId0  << "&strand=" << strand0 << "'>"
-        << orientedReadId0 << "</a></h1>";
+        << OrientedReadId(readId0, strand0) << "</a>"
+        << " (" << markers[OrientedReadId(readId0, strand0).getValue()].size() << " markers)"
+        "</h1>";
 
 
 
-    // Loop over Alignment objects that this oriented read in involved in.
-    const auto overlapIndexes = alignmentTable[orientedReadId0.getValue()];
+    // Loop over AlignmentData objects that this oriented read in involved in.
+    const auto alignmentTable0 = alignmentTable[OrientedReadId(readId0, strand0).getValue()];
     html <<
         "<table><tr>"
-        "<th>Oriented<br>read"
-        "<th title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers";
-    for(const auto i: overlapIndexes) {
+        "<th rowspan=2>Other<br>oriented<br>read"
+        "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
+        "<th colspan=5>Markers on oriented read " << OrientedReadId(readId0, strand0) <<
+        "<th colspan=5>Markers on other oriented read"
+        "<tr>";
+    for(int i=0; i<2; i++) {
+        html <<
+            "<th title='Number of aligned markers on the left of the alignment'>Left<br>unaligned"
+            "<th title='Number of markers in the aligned range'>Alignment<br>range"
+            "<th title='Number of aligned markers on the right of the alignment'>Right<br>unaligned"
+            "<th title='Total number of markers on the oriented read'>Total"
+            "<th title='Fraction of aligned markers in the alignment range'>Aligned<br>fraction";
+    }
+    for(const auto i: alignmentTable0) {
         const AlignmentData& ad = alignmentData[i];
 
+        // Get the oriented read ids that the AlignmentData refers to.
+        OrientedReadId orientedReadId0(ad.readIds[0], 0);
+        OrientedReadId orientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
+        AlignmentInfo alignmentInfo = ad.info;
+
+        // Swap oriented reads, if necessary.
+        if(orientedReadId0.getReadId() != readId0) {
+            swap(orientedReadId0, orientedReadId1);
+            alignmentInfo.swap();
+        }
+        CZI_ASSERT(orientedReadId0.getReadId() == readId0);
+
+        // Get the number of markers for each of the two reads.
+        // We will need it below.
+        const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+
+        // Reverse complement, if necessary.
+        if(orientedReadId0.getStrand() != strand0) {
+            orientedReadId0.flipStrand();
+            orientedReadId1.flipStrand();
+            alignmentInfo.reverseComplement(markerCount0, markerCount1);
+        }
+        CZI_ASSERT(orientedReadId0.getStrand() == strand0);
+        CZI_ASSERT(orientedReadId0 == OrientedReadId(readId0, strand0));
+
+        // Extract information on the other oriented read.
+        const ReadId readId1 = orientedReadId1.getReadId();
+        const Strand strand1 = orientedReadId1.getStrand();
+
+
+#if 0
+        // Extract orientedReadId1.
         ReadId readId1;
         if(ad.readIds[0] == readId0) {
             readId1 = ad.readIds[1];
@@ -909,6 +954,30 @@ void Assembler::exploreOverlappingReads(
         const Strand strand1 = ad.isSameStrand ? strand0 : 1-strand0;
         const OrientedReadId orientedReadId1(readId1, strand1);
 
+
+
+        // The AlignmentInfo is stored to describe the alignment with the lower numbered read
+        // as the first read and on the positive strand.
+        // We have to do a bit of manipulation to make sure the AlignmentInfo refers
+        // to the alignment of orientedReadId0 and orientedReadId1, in this order.
+        const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+        AlignmentInfo alignmentInfo = ad.info;
+        if(ad.readIds[0] == readId0) {
+            // No swap is needed.
+            if(strand0 == 1) {
+                alignmentInfo.reverseComplement(markerCount0, markerCount1);
+            }
+        } else {
+            CZI_ASSERT(ad.readIds[1] == readId0);
+            alignmentInfo.swap();
+            if() {
+                alignmentInfo.reverseComplement(markerCount0, markerCount1);
+            }
+        }
+#endif
+
+        // Write a row in the table for this alignment.
         html <<
             "<tr>"
             "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 <<
@@ -917,7 +986,19 @@ void Assembler::exploreOverlappingReads(
             "<a href='exploreAlignment"
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
-            "' title='Click to see the alignment'>" << ad.info.markerCount << "</a>";
+            "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
+            "<td class=centered>" << alignmentInfo.firstOrdinals.first <<
+            "<td class=centered>" << alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first <<
+            "<td class=centered>" << markerCount0 -1 - alignmentInfo.lastOrdinals.first <<
+            "<td class=centered>" << markerCount0 <<
+            "<td class=centered>" << std::setprecision(2) <<
+            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first) <<
+            "<td class=centered>" << alignmentInfo.firstOrdinals.second <<
+            "<td class=centered>" << alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second <<
+            "<td class=centered>" << markerCount1 -1 - alignmentInfo.lastOrdinals.second <<
+            "<td class=centered>" << markerCount1 <<
+            "<td class=centered>" << std::setprecision(2) <<
+            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second);
     }
     html << "</table>";
 }

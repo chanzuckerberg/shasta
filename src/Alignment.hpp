@@ -4,6 +4,7 @@
 #include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 
+#include "algorithm.hpp"
 #include "array.hpp"
 #include "cstdint.hpp"
 #include "utility.hpp"
@@ -54,6 +55,29 @@ public:
         }
     }
     AlignmentInfo() {}
+
+    // Update the alignment to reflect a swap the two oriented reads.
+    void swap()
+    {
+        std::swap(firstOrdinals.first, firstOrdinals.second);
+        std::swap(lastOrdinals.first, lastOrdinals.second);
+    }
+
+    // Update the alignment to reflect reverse complementing of the two reads.
+    // Takes as input the total number of markers in each read.
+    void reverseComplement(
+        uint32_t markerCount0,
+        uint32_t markerCount1)
+    {
+        std::swap(firstOrdinals.first, lastOrdinals.first);
+        firstOrdinals.first = markerCount0 - 1 - firstOrdinals.first;
+        lastOrdinals.first  = markerCount0 - 1 - lastOrdinals.first;
+
+        std::swap(firstOrdinals.second, lastOrdinals.second);
+        firstOrdinals.second = markerCount1 - 1 - firstOrdinals.second;
+        lastOrdinals.second  = markerCount1 - 1 - lastOrdinals.second;
+
+    }
 
 };
 
