@@ -220,6 +220,13 @@ PYBIND11_MODULE(shasta, module)
 
 
 
+        // Read graph
+        .def("createReadGraph",
+            &Assembler::createReadGraph,
+            arg("maxTrim"))
+
+
+
         // Global marker graph.
         .def("createMarkerGraphVertices",
             &Assembler::createMarkerGraphVertices,

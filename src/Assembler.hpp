@@ -738,6 +738,13 @@ private:
 
 
 
+    // Read graph and related functions and data.
+public:
+    void createReadGraph(uint32_t maxTrim);
+
+
+
+
     // Private functions and data used by createMarkerGraphVertices.
     void createMarkerGraphVerticesThreadFunction1(size_t threadId);
     void createMarkerGraphVerticesThreadFunction2(size_t threadId);
