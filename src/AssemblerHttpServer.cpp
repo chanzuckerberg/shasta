@@ -1087,12 +1087,14 @@ void Assembler::exploreAlignment(
         return;
     }
     const AlignmentInfo alignmentInfo(alignment);
+    /*
     uint32_t leftTrim;
     uint32_t rightTrim;
     tie(leftTrim, rightTrim) = computeTrim(
         orientedReadId0,
         orientedReadId1,
         alignmentInfo);
+    */
 
 
 
@@ -1257,7 +1259,7 @@ void Assembler::exploreReadGraph(
     size_t minAlignedMarkerCount = 100;
     getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
 
-    size_t maxTrim = 200;
+    size_t maxTrim = 30;
     getParameterValue(request, "maxTrim", maxTrim);
 
     uint32_t maxDistance = 2;

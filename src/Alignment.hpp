@@ -79,6 +79,38 @@ public:
 
     }
 
+
+
+    // Compute the left and right trim, expressed in markers.
+    // This is the minimum number of markers (over the two oriented reads)
+    // that are excluded from the alignment on each side.
+    // If the trim is too high, the alignment is suspicious.
+    pair<uint32_t, uint32_t> computeTrim(
+        uint32_t markerCount0,
+        uint32_t markerCount1) const
+    {
+        if(markerCount) {
+
+            // The alignment is not empty.
+            const uint32_t leftTrim = min(
+                firstOrdinals.first,
+                firstOrdinals.second);
+            const uint32_t rightTrim = min(
+                markerCount0 - 1 - lastOrdinals.first,
+                markerCount1 - 1 - lastOrdinals.second);
+            return make_pair(leftTrim, rightTrim);
+
+        } else {
+
+            // The alignment is empty.
+            // The trim on each side equals the number of markers
+            // of the shortest read.
+            const uint32_t trim = min(markerCount0, markerCount1);
+            return make_pair(trim, trim);
+
+        }
+
+    }
 };
 
 

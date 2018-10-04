@@ -65,7 +65,7 @@ void Assembler::createLocalReadGraph(
 bool Assembler::createLocalReadGraph(
     OrientedReadId orientedReadIdStart,
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-    size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+    size_t maxTrim,                 // Maximum left/right trim (expressed in bases) to generate an edge.
     uint32_t maxDistance,           // How far to go from starting oriented read.
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)

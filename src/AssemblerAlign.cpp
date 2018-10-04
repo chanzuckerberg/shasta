@@ -67,7 +67,7 @@ void Assembler::alignOrientedReads(
     cout << " bases and " << markers1SortedByKmerId.size() << " markers." << endl;
     cout << "The alignment has " << alignmentInfo.markerCount;
     cout << " markers. Left trim " << leftTrim;
-    cout << " bases, right trim " << rightTrim << " bases." << endl;
+    cout << " markers, right trim " << rightTrim << " markers." << endl;
 
     // For convenience, also write the two oriented reads.
     ofstream fasta("AlignedOrientedReads.fasta");
@@ -121,7 +121,7 @@ void Assembler::alignOverlappingOrientedReads(
     size_t maxSkip,                 // Maximum ordinal skip allowed.
     size_t maxVertexCountPerKmer,
     size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
-    size_t maxTrim                  // Maximum trim allowed in an alignment.
+    size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
 )
 {
     alignOverlappingOrientedReads(
@@ -136,7 +136,7 @@ void Assembler::alignOverlappingOrientedReads(
     size_t maxSkip,                 // Maximum ordinal skip allowed.
     size_t maxVertexCountPerKmer,
     size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
-    size_t maxTrim                  // Maximum trim allowed in an alignment.
+    size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
 )
 {
     // Check that we have what we need.
@@ -197,39 +197,23 @@ void Assembler::alignOverlappingOrientedReads(
 
 
 // Given two oriented reads and their computed AlignmentInfo,
-// compute the left and right trim.
-// This is the minimum number of bases (over the two reads)
-// that are excluded from the alignment on each size.
-// This takes as input markers sorted by position.
+// compute the left and right trim, expressed in markers.
+// This is the minimum number of markers (over the two reads)
+// that are excluded from the alignment on each side.
+// If the trim is too high, the alignment is suspicious.
 pair<uint32_t, uint32_t> Assembler::computeTrim(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    const AlignmentInfo& alignmentInfo)
+    const AlignmentInfo& alignmentInfo) const
 {
-    const uint32_t baseCount0 = uint32_t(reads[orientedReadId0.getReadId()].baseCount);
-    const uint32_t baseCount1 = uint32_t(reads[orientedReadId1.getReadId()].baseCount);
 
     const auto markers0 = markers[orientedReadId0.getValue()];
     const auto markers1 = markers[orientedReadId1.getValue()];
-
-    if(alignmentInfo.markerCount) {
-        const CompressedMarker& firstMarker0 = markers0[alignmentInfo.firstOrdinals.first];
-        const CompressedMarker& firstMarker1 = markers1[alignmentInfo.firstOrdinals.second];
-        const CompressedMarker& lastMarker0 = markers0[alignmentInfo.lastOrdinals.first];
-        const CompressedMarker& lastMarker1 = markers1[alignmentInfo.lastOrdinals.second];
-        return make_pair(
-            min(firstMarker0.position, firstMarker1.position),
-            min(baseCount0-1-lastMarker0.position, baseCount1-1-lastMarker1.position)
-            );
-    } else {
-        // The alignment is empty.
-        // The trim equal the entire lenght of the shortest read.
-        const uint32_t trim = min(baseCount0, baseCount1);
-        return make_pair(trim, trim);
-
-    }
-
+    const uint32_t markerCount0 = uint32_t(markers0.size());
+    const uint32_t markerCount1 = uint32_t(markers1.size());
+    return alignmentInfo.computeTrim(markerCount0, markerCount1);
 }
+
 
 
 #if 0

@@ -173,7 +173,7 @@ public:
         size_t maxSkip,                 // Maximum ordinal skip allowed.
         size_t maxVertexCountPerKmer,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
-        size_t maxTrim                  // Maximum trim allowed in an alignment.
+        size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
     );
 
 
@@ -622,7 +622,7 @@ private:
     bool createLocalReadGraph(
         OrientedReadId,
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-        size_t maxTrim,                 // Maximum left/right trim to generate an edge.
+        size_t maxTrim,                 // Maximum left/right trim (expressed in bases).
         uint32_t distance,              // How far to go from starting oriented read.
         double timeout,                 // Or 0 for no timeout.
         LocalReadGraph&
@@ -640,18 +640,19 @@ private:
         size_t maxSkip,                 // Maximum ordinal skip allowed.
         size_t maxVertexCountPerKmer,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
-        size_t maxTrim                  // Maximum trim allowed in an alignment.
+        size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
     );
 
 
     // Given two oriented reads and their computed AlignmentInfo,
-    // compute the left and right trim.
-    // This is the minimum number of bases (over the two reads)
-    // that are excluded from the alignment on each size.
+    // compute the left and right trim, expressed in markers.
+    // This is the minimum number of markers (over the two reads)
+    // that are excluded from the alignment on each side.
+    // If the trim is too high, the alignment is suspicious.
     pair<uint32_t, uint32_t> computeTrim(
         OrientedReadId orientedReadIds0,
         OrientedReadId orientedReadIds1,
-        const AlignmentInfo&);
+        const AlignmentInfo&) const;
 
     // The good alignments we found.
     // They are stored with readId0<readId1 and with strand0==0.
