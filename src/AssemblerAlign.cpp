@@ -824,3 +824,53 @@ void Assembler::checkAlignmentDataAreOpen()
     }
 }
 
+
+
+// Find in the alignment table the alignments involving
+// a given oriented read, and return them with the correct
+// orientation (this may involve a swap and/or reverse complement
+// of the AlignmentInfo stored in the alignmentTable).
+vector< pair<OrientedReadId, AlignmentInfo> >
+    Assembler::findOrientedAlignments(OrientedReadId orientedReadId0Argument) const
+{
+    const ReadId readId0 = orientedReadId0Argument.getReadId();
+    const ReadId strand0 = orientedReadId0Argument.getStrand();
+
+    vector< pair<OrientedReadId, AlignmentInfo> > result;
+
+    // Loop over alignment involving this read, as stored in the
+    // alignment table.
+    const auto alignmentTable0 = alignmentTable[orientedReadId0Argument.getValue()];
+    for(const auto i: alignmentTable0) {
+        const AlignmentData& ad = alignmentData[i];
+
+        // Get the oriented read ids that the AlignmentData refers to.
+        OrientedReadId orientedReadId0(ad.readIds[0], 0);
+        OrientedReadId orientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
+        AlignmentInfo alignmentInfo = ad.info;
+
+        // Swap oriented reads, if necessary.
+        if(orientedReadId0.getReadId() != readId0) {
+            swap(orientedReadId0, orientedReadId1);
+            alignmentInfo.swap();
+        }
+        CZI_ASSERT(orientedReadId0.getReadId() == readId0);
+
+        // Get the number of markers for each of the two reads.
+        // We will need it below.
+        const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+
+        // Reverse complement, if necessary.
+        if(orientedReadId0.getStrand() != strand0) {
+            orientedReadId0.flipStrand();
+            orientedReadId1.flipStrand();
+            alignmentInfo.reverseComplement(markerCount0, markerCount1);
+        }
+        CZI_ASSERT(orientedReadId0.getStrand() == strand0);
+        CZI_ASSERT(orientedReadId0 == orientedReadId0Argument);
+
+        result.push_back(make_pair(orientedReadId1, alignmentInfo));
+    }
+    return result;
+}

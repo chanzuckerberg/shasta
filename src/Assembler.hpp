@@ -728,6 +728,16 @@ private:
     ComputeAlignmentsData computeAlignmentsData;
 
 
+
+    // Find in the alignment table the alignments involving
+    // a given oriented read, and return them with the correct
+    // orientation (this may involve a swap and/or reverse complement
+    // of the AlignmentInfo stored in the alignmentTable).
+    vector< pair<OrientedReadId, AlignmentInfo> >
+        findOrientedAlignments(OrientedReadId) const;
+
+
+
     // Private functions and data used by createMarkerGraphVertices.
     void createMarkerGraphVerticesThreadFunction1(size_t threadId);
     void createMarkerGraphVerticesThreadFunction2(size_t threadId);

@@ -882,17 +882,15 @@ void Assembler::exploreOverlappingReads(
     }
 
     // Page title.
+    const OrientedReadId orientedReadId0(readId0, strand0);
     html <<
         "<h1>Alignments involving oriented read "
         "<a href='exploreRead?readId=" << readId0  << "&strand=" << strand0 << "'>"
         << OrientedReadId(readId0, strand0) << "</a>"
-        << " (" << markers[OrientedReadId(readId0, strand0).getValue()].size() << " markers)"
+        << " (" << markers[orientedReadId0.getValue()].size() << " markers)"
         "</h1>";
 
-
-
-    // Loop over AlignmentData objects that this oriented read in involved in.
-    const auto alignmentTable0 = alignmentTable[OrientedReadId(readId0, strand0).getValue()];
+    // Begin the table.
     html <<
         "<table><tr>"
         "<th rowspan=2>Other<br>oriented<br>read"
@@ -908,74 +906,21 @@ void Assembler::exploreOverlappingReads(
             "<th title='Total number of markers on the oriented read'>Total"
             "<th title='Fraction of aligned markers in the alignment range'>Aligned<br>fraction";
     }
-    for(const auto i: alignmentTable0) {
-        const AlignmentData& ad = alignmentData[i];
 
-        // Get the oriented read ids that the AlignmentData refers to.
-        OrientedReadId orientedReadId0(ad.readIds[0], 0);
-        OrientedReadId orientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
-        AlignmentInfo alignmentInfo = ad.info;
 
-        // Swap oriented reads, if necessary.
-        if(orientedReadId0.getReadId() != readId0) {
-            swap(orientedReadId0, orientedReadId1);
-            alignmentInfo.swap();
-        }
-        CZI_ASSERT(orientedReadId0.getReadId() == readId0);
 
-        // Get the number of markers for each of the two reads.
-        // We will need it below.
-        const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
-        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+    // Loop over the alignments that this oriented read is involved in, with the proper orientation.
+    const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
+        findOrientedAlignments(orientedReadId0);
+    const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+    for(const auto& p: alignments) {
 
-        // Reverse complement, if necessary.
-        if(orientedReadId0.getStrand() != strand0) {
-            orientedReadId0.flipStrand();
-            orientedReadId1.flipStrand();
-            alignmentInfo.reverseComplement(markerCount0, markerCount1);
-        }
-        CZI_ASSERT(orientedReadId0.getStrand() == strand0);
-        CZI_ASSERT(orientedReadId0 == OrientedReadId(readId0, strand0));
-
-        // Extract information on the other oriented read.
+        // Access information for this alignment.
+        const OrientedReadId orientedReadId1 = p.first;
+        const AlignmentInfo& alignmentInfo = p.second;
         const ReadId readId1 = orientedReadId1.getReadId();
-        const Strand strand1 = orientedReadId1.getStrand();
-
-
-#if 0
-        // Extract orientedReadId1.
-        ReadId readId1;
-        if(ad.readIds[0] == readId0) {
-            readId1 = ad.readIds[1];
-        } else {
-            CZI_ASSERT(ad.readIds[1] == readId0);
-            readId1 = ad.readIds[0];
-        }
-        const Strand strand1 = ad.isSameStrand ? strand0 : 1-strand0;
-        const OrientedReadId orientedReadId1(readId1, strand1);
-
-
-
-        // The AlignmentInfo is stored to describe the alignment with the lower numbered read
-        // as the first read and on the positive strand.
-        // We have to do a bit of manipulation to make sure the AlignmentInfo refers
-        // to the alignment of orientedReadId0 and orientedReadId1, in this order.
-        const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+        const ReadId strand1 = orientedReadId1.getStrand();
         const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
-        AlignmentInfo alignmentInfo = ad.info;
-        if(ad.readIds[0] == readId0) {
-            // No swap is needed.
-            if(strand0 == 1) {
-                alignmentInfo.reverseComplement(markerCount0, markerCount1);
-            }
-        } else {
-            CZI_ASSERT(ad.readIds[1] == readId0);
-            alignmentInfo.swap();
-            if() {
-                alignmentInfo.reverseComplement(markerCount0, markerCount1);
-            }
-        }
-#endif
 
         // Write a row in the table for this alignment.
         html <<
