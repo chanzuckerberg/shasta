@@ -1,8 +1,7 @@
-// shasta.
+// Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "LocalMarkerGraph.hpp"
-#include "LocalReadGraph.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;

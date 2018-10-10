@@ -30,7 +30,7 @@ namespace ChanZuckerberg {
         class AlignmentGraph;
         class AlignmentInfo;
         class ConsensusCaller;
-        class LocalReadGraph;
+        class LocalAlignmentGraph;
         class LocalMarkerGraph;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
@@ -603,15 +603,19 @@ private:
         Alignment& alignment
     );
 
-    // Create a local read graph starting from a given oriented read
-    // and walking out a given distance on the global read graph.
-    bool createLocalReadGraph(
+    // Create a local alignment graph starting from a given oriented read
+    // and walking out a given distance on the global alignment graph.
+    // An alignment graph is an undirected graph in which each vertex
+    // represents an oriented read. Two vertices are joined by an
+    // undirected edge if we have a found a good alignment,
+    // and stored it, between the corresponding oriented reads.
+    bool createLocalAlignmentGraph(
         OrientedReadId,
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
         size_t maxTrim,                 // Maximum left/right trim (expressed in bases).
         uint32_t distance,              // How far to go from starting oriented read.
         double timeout,                 // Or 0 for no timeout.
-        LocalReadGraph&
+        LocalAlignmentGraph&
     );
 
     // Compute marker alignments of an oriented read with all reads
@@ -929,7 +933,7 @@ public:
     void exploreRead(const vector<string>&, ostream&);
     void exploreOverlappingReads(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
-    void exploreReadGraph(const vector<string>&, ostream&);
+    void exploreAlignmentGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:
 

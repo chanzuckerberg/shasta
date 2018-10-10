@@ -1,7 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
-#include "LocalReadGraph.hpp"
+#include "LocalAlignmentGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -32,7 +32,7 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(exploreRead);
     CZI_ADD_TO_FUNCTION_TABLE(exploreOverlappingReads);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
 
 }
@@ -185,8 +185,8 @@ void Assembler::writeNavigation(ostream& html) const
         {"Overlapping reads", "exploreOverlappingReads"},
         {"Align two reads", "exploreAlignment"},
         });
-    writeNavigation(html, "Read graph", {
-        {"Read graph", "exploreReadGraph"},
+    writeNavigation(html, "Alignment graph", {
+        {"Alignment graph", "exploreAlignmentGraph"},
         });
     writeNavigation(html, "Marker graph", {
         {"Marker graph", "exploreMarkerGraph"},
@@ -1190,7 +1190,7 @@ void Assembler::exploreAlignment(
 
 
 
-void Assembler::exploreReadGraph(
+void Assembler::exploreAlignmentGraph(
     const vector<string>& request,
     ostream& html)
 {
@@ -1220,7 +1220,7 @@ void Assembler::exploreReadGraph(
 
     // Write the form.
     html <<
-        "<h3>Display a local subgraph of the global read graph</h3>"
+        "<h3>Display a local subgraph of the global alignment graph</h3>"
         "<form>"
 
         "<table>"
@@ -1301,10 +1301,10 @@ void Assembler::exploreReadGraph(
 
 
 
-    // Create the LocalReadGraph.
-    LocalReadGraph graph;
+    // Create the local alignment graph.
+    LocalAlignmentGraph graph;
     const auto createStartTime = steady_clock::now();
-    if(!createLocalReadGraph(orientedReadId,
+    if(!createLocalAlignmentGraph(orientedReadId,
         minAlignedMarkerCount, maxTrim, maxDistance, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
@@ -1349,7 +1349,7 @@ void Assembler::exploreReadGraph(
 
     // Write a title and display the graph.
     html <<
-        "<h1 style='line-height:10px'>Read graph near oriented read " << orientedReadId << "</h1>"
+        "<h1 style='line-height:10px'>Alignment graph near oriented read " << orientedReadId << "</h1>"
         "Color legend: "
         "<span style='background-color:LightGreen'>start vertex</span> "
         "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
@@ -1380,7 +1380,7 @@ void Assembler::exploreReadGraph(
 
     // Write additional graph information.
     html <<
-        "<br>This portion of the read graph has " << num_vertices(graph) <<
+        "<br>This portion of the akignment graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." <<
         "<br>Graph creation took " <<
         std::setprecision(2) << seconds(createFinishTime-createStartTime) <<
@@ -1389,7 +1389,7 @@ void Assembler::exploreReadGraph(
 
     // Write a histogram of the number of vertices by distance.
     vector<int> histogram(maxDistance+1, 0);
-    BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+    BGL_FORALL_VERTICES(v, graph, LocalAlignmentGraph) {
         ++histogram[graph[v].distance];
     }
     html <<

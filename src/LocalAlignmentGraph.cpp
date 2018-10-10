@@ -1,5 +1,5 @@
-// shasta.
-#include "LocalReadGraph.hpp"
+// Shasta.
+#include "LocalAlignmentGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -12,7 +12,7 @@ using namespace shasta;
 
 
 
-void LocalReadGraph::addVertex(
+void LocalAlignmentGraph::addVertex(
     OrientedReadId orientedReadId,
     uint32_t baseCount,
     uint32_t distance)
@@ -21,7 +21,7 @@ void LocalReadGraph::addVertex(
     CZI_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
 
     // Create the vertex.
-    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(orientedReadId, baseCount, distance), *this);
+    const vertex_descriptor v = add_vertex(LocalAlignmentGraphVertex(orientedReadId, baseCount, distance), *this);
 
     // Store it in the vertex map.
     vertexMap.insert(make_pair(orientedReadId, v));
@@ -29,7 +29,7 @@ void LocalReadGraph::addVertex(
 
 
 
-void LocalReadGraph::addEdge(
+void LocalAlignmentGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     const AlignmentInfo& alignmentInfo)
@@ -43,12 +43,12 @@ void LocalReadGraph::addEdge(
     const vertex_descriptor v1 = it1->second;
 
     // Add the edge.
-    add_edge(v0, v1, LocalReadGraphEdge(alignmentInfo), *this);
+    add_edge(v0, v1, LocalAlignmentGraphEdge(alignmentInfo), *this);
 }
 
 
 
-uint32_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
+uint32_t LocalAlignmentGraph::getDistance(OrientedReadId orientedReadId) const
 {
     const auto it = vertexMap.find(orientedReadId);
     CZI_ASSERT(it != vertexMap.end());
@@ -58,7 +58,7 @@ uint32_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
 
 
 
-bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
+bool LocalAlignmentGraph::vertexExists(OrientedReadId orientedReadId) const
 {
    return vertexMap.find(orientedReadId) != vertexMap.end();
 }
@@ -66,7 +66,7 @@ bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
 
 
 // Write the graph in Graphviz format.
-void LocalReadGraph::write(const string& fileName, uint32_t maxDistance) const
+void LocalAlignmentGraph::write(const string& fileName, uint32_t maxDistance) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
@@ -74,15 +74,15 @@ void LocalReadGraph::write(const string& fileName, uint32_t maxDistance) const
     }
     write(outputFileStream, maxDistance);
 }
-void LocalReadGraph::write(ostream& s, uint32_t maxDistance) const
+void LocalAlignmentGraph::write(ostream& s, uint32_t maxDistance) const
 {
     Writer writer(*this, maxDistance);
     boost::write_graphviz(s, *this, writer, writer, writer,
-        boost::get(&LocalReadGraphVertex::orientedReadId, *this));
+        boost::get(&LocalAlignmentGraphVertex::orientedReadId, *this));
 }
 
-LocalReadGraph::Writer::Writer(
-    const LocalReadGraph& graph,
+LocalAlignmentGraph::Writer::Writer(
+    const LocalAlignmentGraph& graph,
     uint32_t maxDistance) :
     graph(graph),
     maxDistance(maxDistance)
@@ -91,7 +91,7 @@ LocalReadGraph::Writer::Writer(
 
 
 
-void LocalReadGraph::Writer::operator()(std::ostream& s) const
+void LocalAlignmentGraph::Writer::operator()(std::ostream& s) const
 {
     s << "layout=sfdp;\n";
     s << "ratio=expand;\n";
@@ -103,9 +103,9 @@ void LocalReadGraph::Writer::operator()(std::ostream& s) const
 }
 
 
-void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
+void LocalAlignmentGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
-    const LocalReadGraphVertex& vertex = graph[v];
+    const LocalAlignmentGraphVertex& vertex = graph[v];
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     s << "[";
@@ -123,13 +123,13 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
 
 
 
-void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
+void LocalAlignmentGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
-    const LocalReadGraphEdge& edge = graph[e];
+    const LocalAlignmentGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
-    const LocalReadGraphVertex& vertex0 = graph[v0];
-    const LocalReadGraphVertex& vertex1 = graph[v1];
+    const LocalAlignmentGraphVertex& vertex0 = graph[v0];
+    const LocalAlignmentGraphVertex& vertex1 = graph[v1];
 
     s << "[";
     s << "tooltip=\"" << OrientedReadId(vertex0.orientedReadId) << " ";

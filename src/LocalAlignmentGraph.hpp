@@ -1,14 +1,18 @@
-#ifndef CZI_SHASTA_LOCAL_READ_GRAPH_HPP
-#define CZI_SHASTA_LOCAL_READ_GRAPH_HPP
+#ifndef CZI_SHASTA_LOCAL_ALIGNMENT_GRAPH_HPP
+#define CZI_SHASTA_LOCAL_ALIGNMENT_GRAPH_HPP
+
 
 
 /*******************************************************************************
 
-The local read graph is a local subgraph of the global read graph,
+The local alignment graph is a local subgraph of the global alignment graph,
 starting at a given oriented read and going out up to a specified distance.
 It is an undirected graph in which each vertex corresponds to a read.
 An edge is created between two vertices if the corresponding
-oriented reads have sufficiently good overlap/alignment.
+oriented reads have a stored alignment.
+
+The alignment graph is being phased out in favor of the read graph
+(see AssemblerReadGraph.cpp).
 
 *******************************************************************************/
 
@@ -26,22 +30,22 @@ namespace ChanZuckerberg {
     namespace shasta {
 
         // Forward declaration of types declared in this file.
-        class LocalReadGraphVertex;
-        class LocalReadGraphEdge;
-        class LocalReadGraph;
-        using LocalReadGraphBaseClass = boost::adjacency_list<
+        class LocalAlignmentGraphVertex;
+        class LocalAlignmentGraphEdge;
+        class LocalAlignmentGraph;
+        using LocalAlignmentGraphBaseClass = boost::adjacency_list<
             boost::setS,
             boost::listS,
             boost::undirectedS,
-            LocalReadGraphVertex,
-            LocalReadGraphEdge
+            LocalAlignmentGraphVertex,
+            LocalAlignmentGraphEdge
             >;
 
     }
 }
 
 
-class ChanZuckerberg::shasta::LocalReadGraphVertex {
+class ChanZuckerberg::shasta::LocalAlignmentGraphVertex {
 public:
 
     // The OrientedReadId that this vertex corresponds to.
@@ -55,7 +59,7 @@ public:
     // The distance of this vertex from the starting vertex.
     uint32_t distance;
 
-    LocalReadGraphVertex(
+    LocalAlignmentGraphVertex(
         OrientedReadId orientedReadId,
         uint32_t baseCount,
         uint32_t distance) :
@@ -68,13 +72,13 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalReadGraphEdge {
+class ChanZuckerberg::shasta::LocalAlignmentGraphEdge {
 public:
 
     // Copies of the AlignmentInfo that caused this edge to be created.
     AlignmentInfo alignmentInfo;
 
-    LocalReadGraphEdge(
+    LocalAlignmentGraphEdge(
         const AlignmentInfo& alignmentInfo) :
         alignmentInfo(alignmentInfo)
         {}
@@ -82,8 +86,8 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalReadGraph :
-    public LocalReadGraphBaseClass {
+class ChanZuckerberg::shasta::LocalAlignmentGraph :
+    public LocalAlignmentGraphBaseClass {
 public:
 
     void addVertex(
@@ -114,11 +118,11 @@ private:
     // Graphviz writer.
     class Writer {
     public:
-        Writer(const LocalReadGraph&, uint32_t maxDistance);
+        Writer(const LocalAlignmentGraph&, uint32_t maxDistance);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
-        const LocalReadGraph& graph;
+        const LocalAlignmentGraph& graph;
         uint32_t maxDistance;
     };
 };
