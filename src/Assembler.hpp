@@ -150,14 +150,6 @@ public:
     // Write the reads that overlap a given read.
     void writeOverlappingReads(ReadId, Strand, const string& fileName);
 
-    // Create a local read graph starting from a given oriented read.
-    void createLocalReadGraph(
-        ReadId, Strand,
-        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-        size_t maxTrim,                 // Maximum left/right trim (in bases) to generate an edge.
-        uint32_t distance               // How far to go from starting oriented read.
-    );
-
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
         ReadId, Strand,
@@ -613,12 +605,6 @@ private:
 
     // Create a local read graph starting from a given oriented read
     // and walking out a given distance on the global read graph.
-    void createLocalReadGraph(
-        OrientedReadId,
-        size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-        size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-        uint32_t distance               // How far to go from starting oriented read.
-    );
     bool createLocalReadGraph(
         OrientedReadId,
         size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
@@ -627,11 +613,6 @@ private:
         double timeout,                 // Or 0 for no timeout.
         LocalReadGraph&
     );
-
-    // Write in fasta format the sequences of the vertices of a local read graph.
-    void writeLocalReadGraphToFasta(
-        const LocalReadGraph&,
-        const string& fileName);
 
     // Compute marker alignments of an oriented read with all reads
     // for which we have an Overlap.

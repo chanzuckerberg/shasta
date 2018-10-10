@@ -153,19 +153,6 @@ PYBIND11_MODULE(shasta, module)
             arg("strand"),
             arg("fileName") = "OverlappingReads.fasta")
 
-        // Read graph.
-        .def("createLocalReadGraph",
-            (
-                void (Assembler::*)
-                (ReadId, Strand, size_t, size_t, uint32_t)
-            )
-            &Assembler::createLocalReadGraph,
-            arg("readId"),
-            arg("strand"),
-            arg("minAlignedMarkerCount"),
-            arg("maxTrim"),
-            arg("distance"))
-
 
 
         // Alignments.
@@ -195,18 +182,6 @@ PYBIND11_MODULE(shasta, module)
             arg("maxTrim")
             )
 
-
-#if 0
-        // Compute all alignments and, optionally, the global marker graph.
-        .def("computeAllAlignments",
-            &Assembler::computeAllAlignments,
-            arg("maxVertexCountPerKmer"),
-            arg("maxSkip"),
-            arg("minAlignedMarkerCount"),
-            arg("maxTrim"),
-            arg("minCoverage"),
-            arg("threadCount") = 0)
-#endif
         // Compute an alignment for each alignment candidate.
         .def("computeAlignments",
             &Assembler::computeAlignments,

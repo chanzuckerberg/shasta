@@ -19,49 +19,6 @@ using namespace shasta;
 
 // Create a local read graph starting from a given oriented read
 // and walking out a given distance on the global read graph.
-void Assembler::createLocalReadGraph(
-    ReadId readId,
-    Strand strand,
-    size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-    size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-    uint32_t distance                 // How far to go from starting oriented read.
-)
-{
-    createLocalReadGraph(OrientedReadId(readId, strand),
-        minAlignedMarkerCount, maxTrim,
-        distance);
-}
-void Assembler::createLocalReadGraph(
-    OrientedReadId orientedReadId,
-    size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
-    size_t maxTrim,                 // Maximum left/right trim to generate an edge.
-    uint32_t maxDistance              // How far to go from starting oriented read.
-)
-{
-    // Check that we have what we need.
-    checkReadsAreOpen();
-    checkReadNamesAreOpen();
-    checkKmersAreOpen();
-    checkMarkersAreOpen();
-    checkAlignmentDataAreOpen();
-
-    // Create the LocalReadGraph.
-    LocalReadGraph graph;
-    createLocalReadGraph(orientedReadId,
-        minAlignedMarkerCount, maxTrim, maxDistance, 0.,
-        graph);
-
-    cout << "The local read graph has " << num_vertices(graph);
-    cout << " vertices and " << num_edges(graph) << " edges." << endl;
-    graph.write("LocalReadGraph.dot", maxDistance);
-    writeLocalReadGraphToFasta(graph, "LocalReadGraph.fasta");
-
-}
-
-
-
-// Create a local read graph starting from a given oriented read
-// and walking out a given distance on the global read graph.
 bool Assembler::createLocalReadGraph(
     OrientedReadId orientedReadIdStart,
     size_t minAlignedMarkerCount,   // Minimum number of alignment markers to generate an edge.
@@ -175,19 +132,6 @@ bool Assembler::createLocalReadGraph(
     return true;
 }
 
-
-
-// Write in fasta format the sequences of the vertices of a local read graph.
-void Assembler::writeLocalReadGraphToFasta(
-    const LocalReadGraph& graph,
-    const string& fileName)
-{
-    ofstream fasta(fileName);
-    BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
-        const OrientedReadId orientedReadId(graph[v].orientedReadId);
-        writeOrientedRead(orientedReadId, fasta);
-    }
-}
 
 
 // Create the global read graph.
