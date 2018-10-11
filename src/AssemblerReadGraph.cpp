@@ -198,11 +198,11 @@ void Assembler::createReadGraph(uint32_t maxTrim)
     // For each contained read, find the best containing oriented read.
     // This is read that achieves the best alignment -
     // that is, the alignment with the greatest number of markers.
-    // Note that this best contgaining oriented read could
+    // Note that this best containing oriented read could
     // also itself be contained. This is possible because
-    // we are nomt guaranteed to have all the alignments.
+    // we are not guaranteed to have all the alignments.
     // That is, if B contains A and C contains B,
-    // we don't necessarily have the alignmnet between A and C.
+    // we don't necessarily have the alignment between A and C.
     for(ReadId readId0=0; readId0<readCount; readId0++) {
         if(!isContainedRead(readId0)) {
             continue;
@@ -231,8 +231,35 @@ void Assembler::createReadGraph(uint32_t maxTrim)
             }
         }
         CZI_ASSERT(bestContaining != OrientedReadId::invalid());
+        containingOrientedReadId[readId0] = bestContaining;
     }
 }
 
 #endif
+
+
+
+void Assembler::accessReadGraph()
+{
+    containingOrientedReadId.accessExistingReadOnly(largeDataName("ContainingOrientedReadId"));
+}
+
+
+
+// Follow the chain of containing reads until we reach a non-contained read.
+OrientedReadId Assembler::findContainingReadRecursive(OrientedReadId orientedReadId) const
+{
+    while(true) {
+        const ReadId readId = orientedReadId.getReadId();
+        if(!isContainedRead(readId)) {
+            return orientedReadId;
+        }
+        OrientedReadId containing = containingOrientedReadId[readId];
+        if(orientedReadId.getStrand() == 1) {
+            containing.flipStrand();
+        }
+        orientedReadId = containing;
+    }
+}
+
 

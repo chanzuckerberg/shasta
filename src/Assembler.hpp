@@ -741,6 +741,15 @@ private:
         return containingOrientedReadId[readId] != OrientedReadId::invalid();
     }
 
+    // Follow the chain of containing reads until we reach a non-contained read.
+    OrientedReadId findContainingReadRecursive(OrientedReadId) const;
+
+    // This accesses both the containingOrientedReadId vector and
+    // the read graph edges.
+public:
+    void accessReadGraph();
+private:
+
 
 
 
@@ -945,7 +954,7 @@ private:
         const vector<pair <string, string> >&) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
-    void exploreOverlappingReads(const vector<string>&, ostream&);
+    void exploreAlignments(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void exploreAlignmentGraph(const vector<string>&, ostream&);
     class HttpServerData {

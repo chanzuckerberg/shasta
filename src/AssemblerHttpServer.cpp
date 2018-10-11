@@ -30,7 +30,7 @@ void Assembler::fillServerFunctionTable()
 
     CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
     CZI_ADD_TO_FUNCTION_TABLE(exploreRead);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreOverlappingReads);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreAlignments);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
@@ -182,7 +182,7 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Reads", {
         {"Reads", "exploreRead"},
-        {"Overlapping reads", "exploreOverlappingReads"},
+        {"Alignments", "exploreAlignments"},
         {"Align two reads", "exploreAlignment"},
         });
     writeNavigation(html, "Alignment graph", {
@@ -855,7 +855,7 @@ void Assembler::exploreRead(
 
 
 
-void Assembler::exploreOverlappingReads(
+void Assembler::exploreAlignments(
     const vector<string>& request,
     ostream& html)
 {
@@ -868,7 +868,7 @@ void Assembler::exploreOverlappingReads(
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Show reads that overlap read'> "
+        "<input type=submit value='Show alignments involving read'> "
         "<input type=text name=readId required" <<
         (readId0IsPresent ? (" value=" + to_string(readId0)) : "") <<
         " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
@@ -946,6 +946,24 @@ void Assembler::exploreOverlappingReads(
             double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second);
     }
     html << "</table>";
+
+
+    // Display the containment chain.
+    html << "<p>Containment chain:";
+    OrientedReadId orientedReadId = orientedReadId0;
+    while(true) {
+        const ReadId readId = orientedReadId.getReadId();
+        if(!isContainedRead(readId)) {
+            html << "<br>" << orientedReadId << " is not contained.";
+            break;
+        }
+        html << "<br>" << orientedReadId;
+        OrientedReadId containing = containingOrientedReadId[readId];
+        if(orientedReadId.getStrand() == 1) {
+            containing.flipStrand();
+        }
+        orientedReadId = containing;
+    }
 }
 
 

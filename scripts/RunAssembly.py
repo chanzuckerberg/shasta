@@ -61,12 +61,15 @@ a.findAlignmentCandidates(
     maxBucketSize = int(config['MinHash']['maxBucketSize']),
     minFrequency = int(config['MinHash']['minFrequency']))
 
-# Compute alignments and create the global marker graph.
+# Compute alignments.
 a.computeAlignments(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
     maxSkip = int(config['Align']['maxSkip']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
     maxTrim = int(config['Align']['maxTrim']))
+    
+# Create the global read graph.
+a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
 
 # Create the global marker graph vertices.
 a.createMarkerGraphVertices(

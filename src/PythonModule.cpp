@@ -199,6 +199,8 @@ PYBIND11_MODULE(shasta, module)
         .def("createReadGraph",
             &Assembler::createReadGraph,
             arg("maxTrim"))
+        .def("accessReadGraph",
+            &Assembler::accessReadGraph)
 
 
 

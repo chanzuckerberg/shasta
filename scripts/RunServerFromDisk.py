@@ -22,6 +22,7 @@ a.accessKmers()
 a.accessMarkers()
 a.accessCandidateAlignments()
 a.accessAlignmentData()
+a.accessReadGraph()
 a.accessMarkerGraphVertices()
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 

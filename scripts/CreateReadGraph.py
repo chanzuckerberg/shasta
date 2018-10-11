@@ -12,7 +12,7 @@ a = shasta.Assembler()
 a.accessMarkers()
 a.accessAlignmentData()
 
-# Createthe global read graph.
+# Create the global read graph.
 a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
 
 
