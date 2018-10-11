@@ -964,6 +964,7 @@ void Assembler::exploreAlignments(
         }
         orientedReadId = containing;
     }
+    CZI_ASSERT(orientedReadId == findContainingReadRecursive(orientedReadId0));
 }
 
 
