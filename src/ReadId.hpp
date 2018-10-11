@@ -68,9 +68,19 @@ public:
         return to_string(getReadId()) + "-" + to_string(getStrand());
     }
 
+    // Return an invalid OrientedReadId.
+    static OrientedReadId invalid()
+    {
+        return OrientedReadId();
+    }
+
     bool operator==(const OrientedReadId& that) const
     {
         return value == that.value;
+    }
+    bool operator!=(const OrientedReadId& that) const
+    {
+        return value != that.value;
     }
     bool operator<(const OrientedReadId& that) const
     {

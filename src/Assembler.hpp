@@ -724,8 +724,22 @@ private:
 
 
     // Read graph and related functions and data.
+    // For more information, see comments at the beginning
+    // of AssemblerReadGraph.cpp.
 public:
     void createReadGraph(uint32_t maxTrim);
+private:
+
+    // For each read, store the best containing read and orientation.
+    // Indexed by ReadId.
+    // For reads that are not contained, this stores OrientedReadId::invalid().
+    MemoryMapped::Vector<OrientedReadId> containingOrientedReadId;
+
+    // Return true if a read is contained.
+    bool isContainedRead(ReadId readId) const
+    {
+        return containingOrientedReadId[readId] != OrientedReadId::invalid();
+    }
 
 
 
