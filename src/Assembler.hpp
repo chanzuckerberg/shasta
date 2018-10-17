@@ -760,9 +760,14 @@ private:
     };
     MemoryMapped::Vector<ReadGraphEdge> readGraphEdges;
 
-    // This accesses both the containingOrientedReadId vector and
-    // the read graph edges.
+    // Connectivity of the read graph.
+    // Stores, for each ReadId, a vector of indexes into the readGraphEdges vector.
+    // Indexed by ReadId.
+    MemoryMapped::VectorOfVectors<uint32_t, uint32_t> readGraphConnectivity;
+
 public:
+    // This accesses containingOrientedReadId, readGraphEdges,
+    // and readGraphConnectivity.
     void accessReadGraph();
 private:
 

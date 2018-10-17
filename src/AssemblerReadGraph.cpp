@@ -336,6 +336,25 @@ void Assembler::createReadGraph(uint32_t maxTrim)
     if(debug) {
         graphOut << "}" << endl;
     }
+
+
+
+    // Create read graph connectivity.
+    readGraphConnectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
+    readGraphConnectivity.beginPass1(readCount);
+    for(const ReadGraphEdge& edge: readGraphEdges) {
+        const AlignmentData& alignment = alignmentData[edge.alignmentId];
+        readGraphConnectivity.incrementCount(alignment.readIds[0]);
+        readGraphConnectivity.incrementCount(alignment.readIds[1]);
+    }
+    readGraphConnectivity.beginPass2();
+    for(size_t i=0; i<readGraphEdges.size(); i++) {
+        const ReadGraphEdge& edge = readGraphEdges[i];
+        const AlignmentData& alignment = alignmentData[edge.alignmentId];
+        readGraphConnectivity.store(alignment.readIds[0], uint32_t(i));
+        readGraphConnectivity.store(alignment.readIds[1], uint32_t(i));
+    }
+    readGraphConnectivity.endPass2();
 }
 
 #endif
@@ -345,6 +364,7 @@ void Assembler::accessReadGraph()
 {
     containingOrientedReadId.accessExistingReadOnly(largeDataName("ContainingOrientedReadId"));
     readGraphEdges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
+    readGraphConnectivity.accessExistingReadOnly(largeDataName("ReadGraphConnectivity"));
 }
 
 
