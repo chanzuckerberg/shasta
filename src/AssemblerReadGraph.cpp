@@ -42,15 +42,15 @@ to incorporate contained reads in the marker graph.
 
 *******************************************************************************/
 
-
-// Shasta.
 #include "Assembler.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
 
+
 #if 0
 // Create the global read graph.
+// Old test version.
 void Assembler::createReadGraph(uint32_t maxTrim)
 {
     // Find the number of reads and oriented reads.
@@ -117,7 +117,7 @@ void Assembler::createReadGraph(uint32_t maxTrim)
                     continue;
                 }
 
-                const uint32_t markerCount1 = uint32_t(markers[orientedReadId0.getValue()].size());
+                const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
                 const AlignmentInfo& alignmentInfo = p.second;
 
                 // If there is too much trim on both sides of orientedReadId0,
@@ -125,6 +125,7 @@ void Assembler::createReadGraph(uint32_t maxTrim)
                 const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
                 const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
                 if(leftTrim0 > maxTrim && rightTrim0 > maxTrim) {
+                    CZI_ASSERT(0);
                     continue;
                 }
 
@@ -133,6 +134,7 @@ void Assembler::createReadGraph(uint32_t maxTrim)
                 const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
                 const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
                 if(leftTrim1 > maxTrim && rightTrim1 > maxTrim) {
+                    CZI_ASSERT(0);
                     continue;
                 }
 
@@ -150,42 +152,76 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 // Create the global read graph.
 void Assembler::createReadGraph(uint32_t maxTrim)
 {
+    const bool debug = false;
+
     // Find the number of reads and oriented reads.
     const ReadId orientedReadCount = uint32_t(markers.size());
     CZI_ASSERT((orientedReadCount % 2) == 0);
     const ReadId readCount = orientedReadCount / 2;
 
-    // Allocate containingOrientedReadId and initialize it to
-    // OrientedReadId::invalid().
-    // This marks all read as not contained.
+    // Allocate containingOrientedReadId.
     containingOrientedReadId.createNew(largeDataName("ContainingOrientedReadId"), largeDataPageSize);
     containingOrientedReadId.resize(readCount);
-    fill(containingOrientedReadId.begin(), containingOrientedReadId.end(), OrientedReadId::invalid());
+
 
 
     // Find which reads are contained.
-    // For the ones that are contained, set containingOrientedReadId
-    // to OrientedReadId(0, 0), for now.
+    vector< pair<OrientedReadId, AlignmentInfo> > alignments;
     uint32_t containedCount = 0;
     for(ReadId readId0=0; readId0<readCount; readId0++) {
 
         // Get the information we need.
         const Strand strand0 = 0;
         const OrientedReadId orientedReadId0(readId0, strand0);
-        const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
-            findOrientedAlignments(orientedReadId0);
         const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
 
-        // Check all the alignments.
+        // Get the alignments for this reads, properly oriented.
+        alignments = findOrientedAlignments(orientedReadId0);
+
+        // Check all the alignments, looking for the best containing oriented read.
+        OrientedReadId bestContaining = OrientedReadId::invalid();
+        uint32_t bestMarkerCount = 0;
         for(const auto& p: alignments) {
+            const OrientedReadId orientedReadId1 = p.first;
             const AlignmentInfo& alignmentInfo = p.second;
+            const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+
+            // Compute the trim values.
             const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
             const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
-            if(leftTrim0<=maxTrim && rightTrim0<=maxTrim) {
-                containingOrientedReadId[readId0] = OrientedReadId(0, 0);
-                ++containedCount;
-                break;
+            const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
+            const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
+
+            // Sanity check on the trim values.
+            if( (leftTrim0 > maxTrim && rightTrim0 > maxTrim) &&
+                (leftTrim1 > maxTrim && rightTrim1 > maxTrim)) {
+                cout << "Found an invalid alignment:" << endl;
+                cout << "orientedReadId0 " << orientedReadId0 << endl;
+                cout << "orientedReadId1 " << orientedReadId1 << endl;
+                cout << "markerCount0 " << markerCount0 << endl;
+                cout << "markerCount1 " << markerCount1 << endl;
+                cout << "leftTrim0 " << leftTrim0 << endl;
+                cout << "rightTrim0 " << rightTrim0 << endl;
+                cout << "leftTrim1 " << leftTrim1 << endl;
+                cout << "rightTrim1 " << rightTrim1 << endl;
+                throw runtime_error("Found a bad alignment.");
             }
+
+            // If this is a containing alignment, see if it is better
+            // that the one currently stored.
+            if(leftTrim0<=maxTrim && rightTrim0<=maxTrim) {
+                if(alignmentInfo.markerCount > bestMarkerCount) {
+                    bestContaining = orientedReadId1;
+                    bestMarkerCount = alignmentInfo.markerCount;
+                }
+            }
+        }
+
+        // Store the best containing oriented read.
+        // If we did not find any, this will remain set to OrientedReadId::invalid().
+        containingOrientedReadId[readId0] = bestContaining;
+        if(bestContaining != OrientedReadId::invalid()) {
+            ++containedCount;
         }
     }
     cout << "Found " << containedCount << " contained reads out of ";
@@ -195,53 +231,93 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 
 
 
-    // For each contained read, find the best containing oriented read.
-    // This is read that achieves the best alignment -
-    // that is, the alignment with the greatest number of markers.
-    // Note that this best containing oriented read could
-    // also itself be contained. This is possible because
-    // we are not guaranteed to have all the alignments.
-    // That is, if B contains A and C contains B,
-    // we don't necessarily have the alignment between A and C.
-    for(ReadId readId0=0; readId0<readCount; readId0++) {
-        if(!isContainedRead(readId0)) {
+    // Open the file for output of the global reead graph
+    // (debugging only).
+    ofstream graphOut;
+    if(debug) {
+        graphOut.open("ReadGraph.dot");
+        graphOut << "graph G {" << endl;
+    }
+
+
+
+    // Create read graph edges.
+    // Each alignment between non-contained reads generates an edge.
+    readGraphEdges.createNew(largeDataName("ReadGraphEdges"), largeDataPageSize);
+    for(size_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
+        const AlignmentData& alignment = alignmentData[alignmentId];
+        const AlignmentInfo& alignmentInfo = alignment.info;
+
+        // If this alignment is not between contained reads, skip it.
+        const ReadId readId0 = alignment.readIds[0];
+        if(isContainedRead(readId0)) {
+            continue;
+        }
+        const ReadId readId1 = alignment.readIds[1];
+        if(isContainedRead(readId1)) {
             continue;
         }
 
-        // Get the information we need.
-        const Strand strand0 = 0;
-        const OrientedReadId orientedReadId0(readId0, strand0);
-        const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
-            findOrientedAlignments(orientedReadId0);
-        const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+        // Create the read graph edge.
+        ReadGraphEdge edge;
+        edge.alignmentId = alignmentId & 0x3fffffffffffffff;    // To suppress compiler warning
 
-        // Check all the alignments.
-        OrientedReadId bestContaining = OrientedReadId::invalid();
-        uint32_t bestMarkerCount = 0;
-        for(const auto& p: alignments) {
-            const OrientedReadId orientedReadId1 = p.first;
-            const AlignmentInfo& alignmentInfo = p.second;
-            const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
-            const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
-            if(leftTrim0<=maxTrim && rightTrim0<=maxTrim) {
-                if(alignmentInfo.markerCount > bestMarkerCount) {
-                    bestContaining = orientedReadId1;
-                    bestMarkerCount = alignmentInfo.markerCount;
-                }
-            }
+        // Compute the left and right trim for the two reads.
+        const uint32_t markerCount0 = uint32_t(markers[OrientedReadId(readId0, 0).getValue()].size());
+        const uint32_t markerCount1 = uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size());
+        CZI_ASSERT(alignmentInfo.lastOrdinals.first < markerCount0);
+        CZI_ASSERT(alignmentInfo.lastOrdinals.second < markerCount1);
+        const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
+        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
+        const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
+        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
+
+        // Sanity check on the left and right trim.
+        if(
+            (leftTrim0 > maxTrim && rightTrim0 > maxTrim) ||
+            (leftTrim1 > maxTrim && rightTrim1 > maxTrim)) {
+
+            cout << "Found a bad alignment:" << endl;
+            cout << "Read ids: " << readId0 << " " << readId1 << endl;
+            cout << "Is same strand: " << alignment.isSameStrand << endl;
+            cout << "Trims for first read: " << leftTrim0 << " " << rightTrim0 << endl;
+            cout << "Trims for second read: " << leftTrim1 << " " << rightTrim1 << endl;
+            cout << "Marker counts: " << markerCount0 << " " << markerCount1 << endl;
+            cout << "First ordinals: " << alignmentInfo.firstOrdinals.first << " " << alignmentInfo.firstOrdinals.second << endl;
+            cout << "Last ordinals: " << alignmentInfo.lastOrdinals.first << " " << alignmentInfo.lastOrdinals.second << endl;
+            throw runtime_error("Found a bad alignment.");
         }
-        CZI_ASSERT(bestContaining != OrientedReadId::invalid());
-        containingOrientedReadId[readId0] = bestContaining;
+
+
+
+        // Fill in the direction bits.
+        // See comments at the beginning of this file for more information.
+        if(alignment.isSameStrand) {
+
+        } else {
+
+        }
+
+        if(debug) {
+            graphOut << readId0 << "--" << readId1 << ";\n";
+        }
+
+        // Store the new edge.
+        readGraphEdges.push_back(edge);
+    }
+
+    if(debug) {
+        graphOut << "}" << endl;
     }
 }
 
 #endif
 
 
-
 void Assembler::accessReadGraph()
 {
     containingOrientedReadId.accessExistingReadOnly(largeDataName("ContainingOrientedReadId"));
+    readGraphEdges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
 }
 
 

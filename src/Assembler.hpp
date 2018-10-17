@@ -744,6 +744,20 @@ private:
     // Follow the chain of containing reads until we reach a non-contained read.
     OrientedReadId findContainingReadRecursive(OrientedReadId) const;
 
+    // Edges of the read graph.
+    class ReadGraphEdge {
+    public:
+        // Index in alignmentData vector of the alignment that generated this vertex.
+        uint64_t alignmentId : 62;
+        // Bidirected edge information.
+        // 0 = points towards vertex, 1 = points away from vertex
+        // For more information, see comments at the beginning
+        // of AssemblerReadGraph.cpp.
+        uint64_t direction0: 1;
+        uint64_t direction1: 1;
+    };
+    MemoryMapped::Vector<ReadGraphEdge> readGraphEdges;
+
     // This accesses both the containingOrientedReadId vector and
     // the read graph edges.
 public:
