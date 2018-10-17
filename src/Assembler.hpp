@@ -755,6 +755,8 @@ private:
         // of AssemblerReadGraph.cpp.
         uint64_t direction0: 1;
         uint64_t direction1: 1;
+        static const int towardsVertex = 0;
+        static const int awayFromVertex = 1;
     };
     MemoryMapped::Vector<ReadGraphEdge> readGraphEdges;
 

@@ -292,9 +292,36 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 
         // Fill in the direction bits.
         // See comments at the beginning of this file for more information.
+        // This code is untested.
         if(alignment.isSameStrand) {
 
+            // The two reads are on the same strand.
+            // Case 1 in Fig. 1 of the paper referenced above.
+            // The "leftmost" read has direction away from the vertex
+            // and the "rightmost" read has direction towards the vertex.
+            if(leftTrim1 <= maxTrim) {
+                edge.direction0 = ReadGraphEdge::awayFromVertex;
+                edge.direction1 = ReadGraphEdge::towardsVertex;
+            } else {
+                edge.direction0 = ReadGraphEdge::towardsVertex;
+                edge.direction1 = ReadGraphEdge::awayFromVertex;
+            }
+
         } else {
+
+            // The two reads are on opposite strands.
+            if(leftTrim0 <= maxTrim) {
+                // Case 2 in Fig. 1 of the paper referenced above.
+                // Both directions are towards the vertex.
+                edge.direction0 = ReadGraphEdge::towardsVertex;
+                edge.direction1 = ReadGraphEdge::towardsVertex;
+
+            } else {
+                // Case 3 in Fig. 1 of the paper referenced above.
+                // Both directions are away from the vertex.
+                edge.direction0 = ReadGraphEdge::awayFromVertex;
+                edge.direction1 = ReadGraphEdge::awayFromVertex;
+            }
 
         }
 
