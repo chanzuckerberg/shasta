@@ -42,10 +42,15 @@ to incorporate contained reads in the marker graph.
 
 *******************************************************************************/
 
+// Shasta.
 #include "Assembler.hpp"
+#include "LocalReadGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+// Standard libraries.
+#include "chrono.hpp"
+#include <queue>
 
 
 #if 0
@@ -360,6 +365,7 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 #endif
 
 
+
 void Assembler::accessReadGraph()
 {
     containingOrientedReadId.accessExistingReadOnly(largeDataName("ContainingOrientedReadId"));
@@ -386,3 +392,105 @@ OrientedReadId Assembler::findContainingReadRecursive(OrientedReadId orientedRea
 }
 
 
+
+// Create a local subgraph of the global read graph,
+// starting at a given vertex and extending out to a specified
+// distance (number of edges).
+// If the specified Readid corresponds to a contained read,
+// which does not have a corresponding vertex in the read graph,
+// the local subgraph starts instead from the containing read
+// of the specified read.
+bool Assembler::createLocalReadGraph(
+    ReadId readIdStart,
+    uint32_t maxDistance,           // How far to go from starting oriented read.
+    double timeout,                 // Or 0 for no timeout.
+    LocalReadGraph& graph)
+{
+    const auto startTime = steady_clock::now();
+
+    // If the specified read is a contained read, find the containing read.
+    if(isContainedRead(readIdStart)) {
+        readIdStart = findContainingReadRecursive(OrientedReadId(readIdStart, 0)).getReadId();
+    }
+
+    // Add the starting vertex.
+    graph.addVertex(readIdStart, uint32_t(reads[readIdStart].baseCount), 0);
+
+    // Initialize a BFS starting at the start vertex.
+    std::queue<ReadId> q;
+    q.push(readIdStart);
+
+
+
+    // Do the BFS.
+    while(!q.empty()) {
+
+        // See if we exceeded the timeout.
+        if(seconds(steady_clock::now() - startTime) > timeout) {
+            graph.clear();
+            return false;
+        }
+
+        // Dequeue a vertex.
+        const ReadId readId0 = q.front();
+        q.pop();
+        const uint32_t distance0 = graph.getDistance(readId0);
+        const uint32_t distance1 = distance0 + 1;
+
+#if 0
+        // Loop over overlaps/alignments involving this vertex.
+        for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
+            CZI_ASSERT(i < alignmentData.size());
+            const AlignmentData& ad = alignmentData[i];
+
+            // If the alignment involves too few markers, skip.
+            if(ad.info.markerCount < minAlignedMarkerCount) {
+                continue;
+            }
+
+            // To compute the trim, keep into account the fact
+            // that the stored AlignmentInfo was computed for
+            // the ReadId's stored in the Overlap, with the first one on strand 0.
+            const OrientedReadId overlapOrientedReadId0(ad.readIds[0], 0);
+            const OrientedReadId overlapOrientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
+            uint32_t leftTrim;
+            uint32_t rightTrim;
+            tie(leftTrim, rightTrim) = computeTrim(
+                overlapOrientedReadId0,
+                overlapOrientedReadId1,
+                ad.info);
+            if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                continue;
+            }
+
+            // The overlap and the alignment satisfy our criteria.
+            // Get the other oriented read involved in this overlap.
+            const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
+
+
+            // Update our BFS.
+            // Note that we are pushing to the queue vertices at maxDistance,
+            // so we can find all of their edges to other vertices at maxDistance.
+            if(distance0 < maxDistance) {
+                if(!graph.vertexExists(orientedReadId1)) {
+                    graph.addVertex(orientedReadId1,
+                        uint32_t(reads[orientedReadId1.getReadId()].baseCount), distance1);
+                    q.push(orientedReadId1);
+                }
+                graph.addEdge(orientedReadId0, orientedReadId1,
+                    ad.info);
+            } else {
+                CZI_ASSERT(distance0 == maxDistance);
+                if(graph.vertexExists(orientedReadId1)) {
+                    graph.addEdge(orientedReadId0, orientedReadId1,
+                        ad.info);
+                }
+            }
+
+
+        }
+
+#endif
+    }
+    return true;
+}

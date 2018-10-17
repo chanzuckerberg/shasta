@@ -33,6 +33,7 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignments);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
 
 }
@@ -187,6 +188,9 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Alignment graph", {
         {"Alignment graph", "exploreAlignmentGraph"},
+        });
+    writeNavigation(html, "Read graph", {
+        {"Read graph", "exploreReadGraph"},
         });
     writeNavigation(html, "Marker graph", {
         {"Marker graph", "exploreMarkerGraph"},
@@ -1239,7 +1243,7 @@ void Assembler::exploreAlignmentGraph(
 
     // Write the form.
     html <<
-        "<h3>Display a local subgraph of the global alignment graph</h3>"
+        "<h3>Display a local subgraph of the <a href='docs/ReadGraph.html'>global alignment graph</a></h3>"
         "<form>"
 
         "<table>"
@@ -1420,6 +1424,85 @@ void Assembler::exploreAlignmentGraph(
     }
     html << "</table>";
 
+}
+
+
+
+void Assembler::exploreReadGraph(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the parameters.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+
+    uint32_t maxDistance = 2;
+    getParameterValue(request, "maxDistance", maxDistance);
+
+    uint32_t sizePixels = 1200;
+    getParameterValue(request, "sizePixels", sizePixels);
+
+    double timeout= 30;
+    getParameterValue(request, "timeout", timeout);
+
+
+
+    // Write the form.
+    html <<
+        "<h3>Display a local subgraph of the <a href='docs/ReadGraph.html'>global read graph</a></h3>"
+        "<form>"
+
+        "<table>"
+
+        "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
+        "<td>Read id"
+        "<td><input type=text required name=readId size=8 style='text-align:center'"
+        << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
+        ">";
+
+
+    html <<
+
+        "<tr title='Maximum distance from start vertex (number of edges)'>"
+        "<td>Maximum distance"
+        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+        " value='" << maxDistance <<
+        "'>"
+
+        "<tr title='Graphics size in pixels. "
+        "Changing this works better than zooming. Make it larger if the graph is too crowded."
+        " Ok to make it much larger than screen size.'>"
+        "<td>Graphics size in pixels"
+        "<td><input type=text required name=sizePixels size=8 style='text-align:center'" <<
+        " value='" << sizePixels <<
+        "'>"
+
+        "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
+        "<td>Timeout (seconds) for graph creation and layout"
+        "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
+        " value='" << timeout <<
+        "'>"
+
+        "</table>"
+
+        "<input type=submit value='Display'>"
+        "</form>";
+
+
+
+    // If any necessary values are missing, stop here.
+    if(!readIdIsPresent) {
+        return;
+    }
+
+
+
+    // Validity checks.
+    if(readId > reads.size()) {
+        html << "<p>Invalid read id " << readId;
+        html << ". Must be between 0 and " << reads.size()-1 << ".";
+        return;
+    }
 }
 
 

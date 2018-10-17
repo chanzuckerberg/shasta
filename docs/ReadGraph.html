@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+
+<body>
+
+<h1>Alignment graph versus read graph</h1>
+
+
+<table>
+<col style='width:200px'>
+<col style='width:400px'>
+<col style='width:400px'>
+
+<tr>
+<th>
+<th>In the alignment graph
+<th>In the read graph
+
+<tr>
+<td>Each vertex represents:
+<td>An oriented read (read and strand or orientation).
+<td>A read.
+
+<tr>
+<td>Each read generates:
+<td>Two vertices, one for each strand
+<td>One vertex, for non-contained reads.
+Contained reads generate no vertices.
+A read X is contained if it has an alignment 
+with another read Y and the alignment
+covers substantially the entire read X.
+
+<tr>
+<td>The graph is:
+<td>Undirected
+<td>Bidirected
+(see <a href='http://medvedevgroup.com/papers/wabi07.pdf'>here</a>
+for more information,
+in particular Fig. 1 and Section 2.2).
+
+<tr>
+<td>An edge represents:
+<td>An alignment between two oriented reads.
+<td>An alignment between two reads, with orientation described
+by the two "arrows" of the bidirected edge.
+
+
+</table>
+
+</body>
+</html>
+

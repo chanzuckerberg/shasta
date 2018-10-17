@@ -32,6 +32,7 @@ namespace ChanZuckerberg {
         class ConsensusCaller;
         class LocalAlignmentGraph;
         class LocalMarkerGraph;
+        class LocalReadGraph;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
         }
@@ -772,6 +773,19 @@ public:
 private:
 
 
+    // Create a local subgraph of the global read graph,
+    // starting at a given vertex and extending out to a specified
+    // distance (number of edges).
+    // If the specified Readid corresponds to a contained read,
+    // which does not have a corresponding vertex in the read graph,
+    // the local subgraph starts instead from the containing read
+    // of the specified read.
+    bool createLocalReadGraph(
+        ReadId readIdStart,
+        uint32_t maxDistance,           // How far to go from starting oriented read.
+        double timeout,                 // Or 0 for no timeout.
+        LocalReadGraph&);
+
 
 
     // Private functions and data used by createMarkerGraphVertices.
@@ -978,6 +992,7 @@ private:
     void exploreAlignments(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void exploreAlignmentGraph(const vector<string>&, ostream&);
+    void exploreReadGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:
 
