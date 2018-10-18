@@ -459,14 +459,18 @@ bool Assembler::createLocalReadGraph(
                 graph.addEdge(
                     alignment.readIds[0],
                     alignment.readIds[1],
-                    globalEdge.alignmentId);
+                    globalEdge.alignmentId,
+                    globalEdge.direction0,
+                    globalEdge.direction1);
             } else {
                 CZI_ASSERT(distance0 == maxDistance);
                 if(graph.vertexExists(readId1)) {
                     graph.addEdge(
                         alignment.readIds[0],
                         alignment.readIds[1],
-                        globalEdge.alignmentId);
+                        globalEdge.alignmentId,
+                        globalEdge.direction0,
+                        globalEdge.direction1);
                 }
             }
 

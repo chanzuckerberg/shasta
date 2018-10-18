@@ -74,8 +74,18 @@ public:
     // This is an index into Assembler::readGraphEdges.
     size_t globalEdgeId;
 
-    LocalReadGraphEdge(size_t globalEdgeId) :
-        globalEdgeId(globalEdgeId) {}
+    // Bidirected edge information.
+    // Same as in Assembler::ReadGraphEdge.
+    // 0 = points towards vertex, 1 = points away from vertex
+    // For more information, see comments at the beginning
+    // of AssemblerReadGraph.cpp.
+    uint8_t direction0;
+    uint8_t direction1;
+
+    LocalReadGraphEdge(size_t globalEdgeId, uint8_t direction0, uint8_t direction1) :
+        globalEdgeId(globalEdgeId),
+        direction0(direction0),
+        direction1(direction1) {}
 };
 
 
@@ -92,7 +102,9 @@ public:
     void addEdge(
         ReadId,
         ReadId,
-        size_t globalEdgeId);
+        size_t globalEdgeId,
+        uint8_t direction0,
+        uint8_t direction1);
 
     // Find out if a vertex with a given ReadId exists.
     bool vertexExists(ReadId) const;

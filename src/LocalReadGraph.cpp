@@ -33,7 +33,9 @@ void LocalReadGraph::addVertex(
 void LocalReadGraph::addEdge(
     ReadId readId0,
     ReadId readId1,
-    size_t globalEdgeId)
+    size_t globalEdgeId,
+    uint8_t direction0,
+    uint8_t direction1)
 {
     // Find the vertices corresponding to these two ReadId.
     const auto it0 = vertexMap.find(readId0);
@@ -44,7 +46,7 @@ void LocalReadGraph::addEdge(
     const vertex_descriptor v1 = it1->second;
 
     // Add the edge.
-    add_edge(v0, v1, LocalReadGraphEdge(globalEdgeId), *this);
+    add_edge(v0, v1, LocalReadGraphEdge(globalEdgeId, direction0, direction1), *this);
 }
 
 
@@ -128,14 +130,22 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
 
 void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
+    const LocalReadGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
     const LocalReadGraphVertex& vertex0 = graph[v0];
     const LocalReadGraphVertex& vertex1 = graph[v1];
 
-    s << "[";
-    s << "tooltip=\"" << vertex0.readId << " ";
-    s << vertex1.readId << "\"";
-    s << "]";
+    const string direction0 = edge.direction0 ? "normal" : "inv";
+    const string direction1 = edge.direction1 ? "normal" : "inv";
+
+    s <<
+        "["
+        "tooltip=\"" << vertex0.readId << " " <<
+        vertex1.readId << "\""
+        " dir=both arrowhead=" << direction0 <<
+        " arrowtail=" << direction1 <<
+        " arrowsize=0.4"
+        "]";
 }
 
