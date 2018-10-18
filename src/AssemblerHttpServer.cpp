@@ -31,6 +31,7 @@ void Assembler::fillServerFunctionTable()
 
     CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
     CZI_ADD_TO_FUNCTION_TABLE(exploreRead);
+    CZI_ADD_TO_FUNCTION_TABLE(blastRead);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignments);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
@@ -45,6 +46,12 @@ void Assembler::setDocsDirectory(const string& docsDirectoryArgument)
     httpServerData.docsDirectory = docsDirectoryArgument;
 }
 
+// Call this before explore to specify the name of the fasta
+// file containing the reference to be used with Blast commands.
+void Assembler::setReferenceFastaFileName(const string& referenceFastaFileName)
+{
+    httpServerData.referenceFastaFileName = referenceFastaFileName;
+}
 
 
 void Assembler::processRequest(
@@ -426,14 +433,14 @@ void Assembler::exploreRead(
 
 
 
-    // Button to Blat this read.
+    // Button to Blat this read or portion of a read.
     // We cannot use a simple <a> because we need to do a POST
     // (the GET request fails when the read is too long).
     html <<
         "<p><form action='https://genome.ucsc.edu/cgi-bin/hgBlat' method=post>"
         "<input type=submit value='Blat ";
     if(beginPositionIsPresent || endPositionIsPresent) {
-        html << " this portion of ";
+        html << "this portion of ";
     }
     html <<
         "this read'>"
@@ -449,6 +456,24 @@ void Assembler::exploreRead(
         rawOrientedReadSequence.begin() + endPosition,
         ostream_iterator<Base>(html));
     html << "></form>";
+
+
+
+    // Button to Blast this read or portion of a read.
+    html <<
+        "<p><form action='blastRead'>"
+        "<input type=submit value='Blast ";
+    if(beginPositionIsPresent || endPositionIsPresent) {
+        html << "this portion of ";
+    }
+    html <<
+        "this read'>"
+        "<input type=text hidden name=readId value=" << readId << ">" <<
+        "<input type=text hidden name=strand value=" << strand << ">" <<
+        "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
+        "<input type=text hidden name=endPosition value=" << endPosition << ">"
+        " Blast options: <input type=text size=80 name=blastOptions>"
+        "</form>";
 
 
 
@@ -858,6 +883,102 @@ void Assembler::exploreRead(
         "to see the global marker graph around that marker. "
         "Black markers correspond to a vertex of the marker graph "
         "that was removed because of low coverage.";
+}
+
+
+
+void Assembler::blastRead(
+    const vector<string>& request,
+    ostream& html)
+{
+
+    if(!filesystem::isRegularFile(httpServerData.referenceFastaFileName)) {
+        html << "<p>The fasta sequence " << httpServerData.referenceFastaFileName <<
+            " to be used as the reference (Blast subject) does not exist.";
+        return;
+    }
+
+
+
+    // Get the ReadId and Strand from the request.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+    if(!(readIdIsPresent && strandIsPresent)) {
+        return;
+    }
+
+    // Get the begin and end position.
+    uint32_t beginPosition = 0;
+    getParameterValue(request, "beginPosition", beginPosition);
+    uint32_t endPosition = 0;
+    const bool endPositionIsPresent = getParameterValue(request, "endPosition", endPosition);
+
+    // Get blast options.
+    string blastOptions;
+    getParameterValue(request, "blastOptions", blastOptions);
+
+
+
+    // Access the read.
+    if(readId >= reads.size()) {
+        html << "<p>Invalid read id.";
+        return;
+    }
+    if(strand!=0 && strand!=1) {
+        html << "<p>Invalid strand.";
+        return;
+    }
+    const OrientedReadId orientedReadId(readId, strand);
+    const vector<Base> rawOrientedReadSequence = getOrientedReadRawSequence(orientedReadId);
+    if(!endPositionIsPresent) {
+        endPosition = uint32_t(rawOrientedReadSequence.size());
+    }
+    if(endPosition <= beginPosition) {
+        html << "<p>Invalid choice of begin and end position.";
+        return;
+    }
+
+
+    // Create a fasta file with this sequence.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string fastaFileName = "/dev/shm/" + uuid + ".fa";
+    ofstream fastaFile(fastaFileName);
+    fastaFile << ">" << OrientedReadId(readId, strand);
+    fastaFile << "-" << beginPosition << "-" << endPosition<< "\n";
+    copy(rawOrientedReadSequence.begin() + beginPosition,
+        rawOrientedReadSequence.begin() + endPosition,
+        ostream_iterator<Base>(fastaFile));
+    fastaFile << "\n";
+    fastaFile.close();
+
+    // Create the blast command.
+    const string blastOutputFileName = "/dev/shm/" + uuid + ".txt";
+    const string blastErrFileName = "/dev/shm/" + uuid + ".errtxt";
+    const string command = "blastn -task megablast -subject " + httpServerData.referenceFastaFileName +
+        " -query " + fastaFileName + " 1>" + blastOutputFileName + " 2>" + blastErrFileName +
+        " " + blastOptions;
+    ::system(command.c_str());
+
+    // Copy the output to html.
+    if(filesystem::fileSize(blastErrFileName)) {
+        ifstream blastErrFile(blastErrFileName);
+        html << "<pre style='font-size:10px'>";
+        html << blastErrFile.rdbuf();
+        html << "</pre>";
+        blastErrFile.close();
+    }
+    ifstream blastOutputFile(blastOutputFileName);
+    html << "<pre style='font-size:10px'>";
+    html << blastOutputFile.rdbuf();
+    html << "</pre>";
+    blastOutputFile.close();
+
+    // Remove the files we created.
+    filesystem::remove(fastaFileName);
+    filesystem::remove(blastOutputFileName);
+    filesystem::remove(blastErrFileName);
 }
 
 

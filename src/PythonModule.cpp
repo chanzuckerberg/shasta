@@ -286,6 +286,8 @@ PYBIND11_MODULE(shasta, module)
             arg("localOnly") = false)
         .def("setDocsDirectory",
             &Assembler::setDocsDirectory)
+        .def("setReferenceFastaFileName",
+            &Assembler::setReferenceFastaFileName)
 
         // Consensus caller.
         .def("setupConsensusCaller",

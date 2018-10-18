@@ -350,6 +350,10 @@ public:
     // Call this before explore to make the documentation available.
     void setDocsDirectory(const string&);
 
+    // Call this before explore to specify the name of the fasta
+    // file containing the reference to be used with Blast commands.
+    void setReferenceFastaFileName(const string&);
+
     // Set up the ConsensusCaller used to compute the "best"
     // base and repeat count at each assembly position.
     // The aregument specifies the consensus caller to be used.
@@ -974,6 +978,8 @@ private:
 
 
     // Data and functions used for the http server.
+    // This function puts the server into an endless loop
+    // of processing requests.
     void fillServerFunctionTable();
     void processRequest(
         const vector<string>& request,
@@ -989,6 +995,7 @@ private:
         const vector<pair <string, string> >&) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
+    void blastRead(const vector<string>&, ostream&);
     void exploreAlignments(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void exploreAlignmentGraph(const vector<string>&, ostream&);
@@ -1001,6 +1008,7 @@ private:
             ostream&);
         std::map<string, ServerFunction> functionTable;
         string docsDirectory;
+        string referenceFastaFileName = "reference.fa";
 
     };
     HttpServerData httpServerData;
