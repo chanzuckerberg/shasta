@@ -401,7 +401,7 @@ OrientedReadId Assembler::findContainingReadRecursive(OrientedReadId orientedRea
 // the local subgraph starts instead from the containing read
 // of the specified read.
 bool Assembler::createLocalReadGraph(
-    ReadId readIdStart,
+    ReadId& readIdStart,            // If the specified read is contained, modified to the containing read.
     uint32_t maxDistance,           // How far to go from starting oriented read.
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
@@ -414,7 +414,7 @@ bool Assembler::createLocalReadGraph(
     }
 
     // Add the starting vertex.
-    graph.addVertex(readIdStart, uint32_t(reads[readIdStart].baseCount), 0);
+    graph.addVertex(readIdStart, uint32_t(markers[OrientedReadId(readIdStart, 0).getValue()].size()), 0);
 
     // Initialize a BFS starting at the start vertex.
     std::queue<ReadId> q;
@@ -437,60 +437,41 @@ bool Assembler::createLocalReadGraph(
         const uint32_t distance0 = graph.getDistance(readId0);
         const uint32_t distance1 = distance0 + 1;
 
-#if 0
-        // Loop over overlaps/alignments involving this vertex.
-        for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
-            CZI_ASSERT(i < alignmentData.size());
-            const AlignmentData& ad = alignmentData[i];
+        // Loop over edges of the global read graph involving this vertex.
+        for(const uint64_t i: readGraphConnectivity[readId0]) {
+            CZI_ASSERT(i < readGraphEdges.size());
+            const ReadGraphEdge& globalEdge = readGraphEdges[i];
+            const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
 
-            // If the alignment involves too few markers, skip.
-            if(ad.info.markerCount < minAlignedMarkerCount) {
-                continue;
-            }
-
-            // To compute the trim, keep into account the fact
-            // that the stored AlignmentInfo was computed for
-            // the ReadId's stored in the Overlap, with the first one on strand 0.
-            const OrientedReadId overlapOrientedReadId0(ad.readIds[0], 0);
-            const OrientedReadId overlapOrientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
-            uint32_t leftTrim;
-            uint32_t rightTrim;
-            tie(leftTrim, rightTrim) = computeTrim(
-                overlapOrientedReadId0,
-                overlapOrientedReadId1,
-                ad.info);
-            if(leftTrim>maxTrim || rightTrim>maxTrim) {
-                continue;
-            }
-
-            // The overlap and the alignment satisfy our criteria.
-            // Get the other oriented read involved in this overlap.
-            const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
+            // Get the other read involved in this edge of the read graph.
+            const ReadId readId1 = alignment.getOther(readId0);
 
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,
             // so we can find all of their edges to other vertices at maxDistance.
             if(distance0 < maxDistance) {
-                if(!graph.vertexExists(orientedReadId1)) {
-                    graph.addVertex(orientedReadId1,
-                        uint32_t(reads[orientedReadId1.getReadId()].baseCount), distance1);
-                    q.push(orientedReadId1);
+                if(!graph.vertexExists(readId1)) {
+                    graph.addVertex(readId1,
+                        uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size()), distance1);
+                    q.push(readId1);
                 }
-                graph.addEdge(orientedReadId0, orientedReadId1,
-                    ad.info);
+                graph.addEdge(
+                    alignment.readIds[0],
+                    alignment.readIds[1],
+                    globalEdge.alignmentId);
             } else {
                 CZI_ASSERT(distance0 == maxDistance);
-                if(graph.vertexExists(orientedReadId1)) {
-                    graph.addEdge(orientedReadId0, orientedReadId1,
-                        ad.info);
+                if(graph.vertexExists(readId1)) {
+                    graph.addEdge(
+                        alignment.readIds[0],
+                        alignment.readIds[1],
+                        globalEdge.alignmentId);
                 }
             }
 
-
         }
 
-#endif
     }
     return true;
 }

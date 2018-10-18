@@ -48,6 +48,16 @@ public:
         CZI_ASSERT(readIds[0] != readIds[1]);
     }
 
+    // Given one of the read ids, return the other.
+    ReadId getOther(ReadId readIdA) const
+    {
+        if(readIdA == readIds[0]) {
+            return readIds[1];
+        } else {
+            CZI_ASSERT(readIdA == readIds[1]);
+            return readIds[0];
+        }
+    }
 
 
     // Given one of the oriented read ids, return the other,

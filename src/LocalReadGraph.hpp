@@ -48,18 +48,18 @@ public:
     // The ReadId that this vertex corresponds to.
     ReadId readId;
 
-    // The number of bases in this read.
-    uint32_t baseCount;
+    // The number of markers in this read.
+    uint32_t markerCount;
 
     // The distance of this vertex from the starting vertex.
     uint32_t distance;
 
     LocalReadGraphVertex(
         ReadId readId,
-        uint32_t baseCount,
+        uint32_t markerCount,
         uint32_t distance) :
         readId(readId),
-        baseCount(baseCount),
+        markerCount(markerCount),
         distance(distance)
         {}
 

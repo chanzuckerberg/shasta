@@ -2,6 +2,7 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "LocalAlignmentGraph.hpp"
+#include "LocalReadGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -435,11 +436,13 @@ void Assembler::exploreRead(
         html << " this portion of ";
     }
     html <<
-        "this read against human reference hg38'>"
+        "this read'>"
         "<input type=text hidden name=type value=DNA>"
-        "<input type=text hidden name=type value=DNA>"
-        "<input type=text hidden name=name value=Human>"
-        "<input type=text hidden name=db value=hg38>"
+        // Don't specify the genome.
+        // UCSC browser will Blat again last used genome (stored in cookies).
+        // "<input type=text hidden name=type value=DNA>"
+        // "<input type=text hidden name=name value=Human>"
+        // "<input type=text hidden name=db value=hg38>"
         "<input type=text hidden name=userSeq value=";
     copy(
         rawOrientedReadSequence.begin() + beginPosition,
@@ -1403,7 +1406,7 @@ void Assembler::exploreAlignmentGraph(
 
     // Write additional graph information.
     html <<
-        "<br>This portion of the akignment graph has " << num_vertices(graph) <<
+        "<br>This portion of the alignment graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." <<
         "<br>Graph creation took " <<
         std::setprecision(2) << seconds(createFinishTime-createStartTime) <<
@@ -1503,6 +1506,84 @@ void Assembler::exploreReadGraph(
         html << ". Must be between 0 and " << reads.size()-1 << ".";
         return;
     }
+
+
+
+    // Create the local read graph.
+    LocalReadGraph graph;
+    const auto createStartTime = steady_clock::now();
+    if(!createLocalReadGraph(readId, maxDistance, timeout, graph)) {
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
+    }
+    html << "<p>The local read graph has " << num_vertices(graph);
+    html << " vertices and " << num_edges(graph) << " edges.";
+    const auto createFinishTime = steady_clock::now();
+
+    // Write it out in graphviz format.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    graph.write(dotFileName, maxDistance);
+
+    // Compute layout in svg format.
+    const string command =
+        "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+        " sfdp -O -T svg " + dotFileName +
+        " -Gsize=" + to_string(sizePixels/72.);
+    const int commandStatus = ::system(command.c_str());
+    if(WIFEXITED(commandStatus)) {
+        const int exitStatus = WEXITSTATUS(commandStatus);
+        if(exitStatus == 124) {
+            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            filesystem::remove(dotFileName);
+            return;
+        }
+        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+            filesystem::remove(dotFileName);
+            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+        }
+    } else if(WIFSIGNALED(commandStatus)) {
+        const int signalNumber = WTERMSIG(commandStatus);
+        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+    } else {
+        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+
+    }
+    // Remove the .dot file.
+    filesystem::remove(dotFileName);
+
+
+
+    // Write a title and display the graph.
+    html <<
+        "<h1 style='line-height:10px'>Read graph near read " << readId << "</h1>"
+        "Color legend: "
+        "<span style='background-color:LightGreen'>start vertex</span> "
+        "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
+        ") from the start vertex</span>.";
+
+
+    // Display the graph.
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << svgFile.rdbuf();
+    svgFile.close();
+
+
+
+    // Add to each vertex a cursor that shows you can click on it.
+    html <<
+        "<script>"
+        "var vertices = document.getElementsByClassName('node');"
+        "for (var i=0;i<vertices.length; i++) {"
+        "    vertices[i].style.cursor = 'pointer';"
+        "}"
+        "</script>";
+
+
+
+    // Remove the .svg file.
+    filesystem::remove(svgFileName);
 }
 
 

@@ -781,9 +781,9 @@ private:
     // the local subgraph starts instead from the containing read
     // of the specified read.
     bool createLocalReadGraph(
-        ReadId readIdStart,
-        uint32_t maxDistance,           // How far to go from starting oriented read.
-        double timeout,                 // Or 0 for no timeout.
+        ReadId& readIdStart,    // If the specified read is contained, modified to the containing read.
+        uint32_t maxDistance,   // How far to go from starting oriented read.
+        double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
 
 

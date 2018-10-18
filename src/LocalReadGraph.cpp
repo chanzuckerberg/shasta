@@ -109,11 +109,13 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
     const LocalReadGraphVertex& vertex = graph[v];
     const ReadId readId(vertex.readId);
 
-    s << "[";
-    s << " tooltip=\"" << readId << " length " << vertex.baseCount << " distance " << vertex.distance << "\"";
-    s << " URL=\"exploreRead?readId=" << readId;
-    s << "&strand=0\"";
-    s << " width=" << sqrt(1.e-6 * vertex.baseCount);
+    s <<
+        "["
+        " tooltip=\"Read " << readId << ", " << vertex.markerCount <<
+        " markers, distance " << vertex.distance << "\"" <<
+        " URL=\"exploreRead?readId=" << readId <<
+        "&strand=0\"" <<
+        " width=" << sqrt(1.e-6 * vertex.markerCount);
     if(vertex.distance == 0) {
         s << " color=lightGreen fillcolor=lightGreen";
     } else if(vertex.distance == maxDistance) {
