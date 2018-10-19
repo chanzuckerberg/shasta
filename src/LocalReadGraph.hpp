@@ -54,6 +54,9 @@ public:
     // The distance of this vertex from the starting vertex.
     uint32_t distance;
 
+    // Used for Blast annotations.
+    string additionalToolTipText;
+
     LocalReadGraphVertex(
         ReadId readId,
         uint32_t markerCount,

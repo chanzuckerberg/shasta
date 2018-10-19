@@ -114,10 +114,10 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
     s <<
         "["
         " tooltip=\"Read " << readId << ", " << vertex.markerCount <<
-        " markers, distance " << vertex.distance << "\"" <<
+        " markers, distance " << vertex.distance << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << readId <<
         "&strand=0\"" <<
-        " width=" << sqrt(1.e-6 * vertex.markerCount);
+        " width=" << sqrt(1.e-5 * vertex.markerCount);
     if(vertex.distance == 0) {
         s << " color=lightGreen fillcolor=lightGreen";
     } else if(vertex.distance == maxDistance) {

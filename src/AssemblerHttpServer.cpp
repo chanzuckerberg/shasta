@@ -3,6 +3,7 @@
 #include "AlignmentGraph.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
+#include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -1708,6 +1709,9 @@ void Assembler::exploreReadGraph(
     double timeout= 30;
     getParameterValue(request, "timeout", timeout);
 
+    string addBlastAnnotationsString;
+    const bool addBlastAnnotations = getParameterValue(request, "addBlastAnnotations", addBlastAnnotationsString);
+
 
 
     // Write the form.
@@ -1746,6 +1750,12 @@ void Assembler::exploreReadGraph(
         " value='" << timeout <<
         "'>"
 
+        "<tr title='Add to each vertex tooltip summary information on the best alignment to the reference'>"
+        "<td>Add Blast annotations"
+        "<td class=centered><input type=checkbox name=addBlastAnnotations" <<
+        (addBlastAnnotations ? " checked" : "") <<
+        ">"
+
         "</table>"
 
         "<input type=submit value='Display'>"
@@ -1779,6 +1789,95 @@ void Assembler::exploreReadGraph(
     html << "<p>The local read graph has " << num_vertices(graph);
     html << " vertices and " << num_edges(graph) << " edges.";
     const auto createFinishTime = steady_clock::now();
+
+
+
+    // Add Blast annotations, if requested.
+    if(addBlastAnnotations) {
+
+        // Create a fasta file containing the sequences of all the reads
+        // in the local read graph.
+        const string uuid = to_string(boost::uuids::random_generator()());
+        const string fastaFileName = "/dev/shm/" + uuid + ".fa";
+        ofstream fastaFile(fastaFileName);
+        BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+            const LocalReadGraphVertex& vertex = graph[v];
+            const vector<Base> sequence = getOrientedReadRawSequence(OrientedReadId(vertex.readId, 0));
+            fastaFile << ">" << vertex.readId << "\n";
+            copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fastaFile));
+            fastaFile << "\n";
+        }
+
+        // Create the blast command and run it.
+        const string blastOptions =
+            "-outfmt '10 qseqid sseqid sstart send' "
+            "-evalue 1e-200 -max_hsps 1 -max_target_seqs 1";
+        const string blastOutputFileName = "/dev/shm/" + uuid + ".txt";
+        const string blastErrFileName = "/dev/shm/" + uuid + ".errtxt";
+        const string command = "blastn -task megablast -subject " + httpServerData.referenceFastaFileName +
+            " -query " + fastaFileName + " 1>" + blastOutputFileName + " 2>" + blastErrFileName +
+            " " + blastOptions;
+        cout << timestamp << "Running Blast command." << endl;
+        ::system(command.c_str());
+        cout << timestamp << "Blast command completed." << endl;
+
+        // Copy any error output to html.
+        if(filesystem::fileSize(blastErrFileName)) {
+            ifstream blastErrFile(blastErrFileName);
+            html << "<pre style='font-size:10px'>";
+            html << blastErrFile.rdbuf();
+            html << "</pre>";
+            blastErrFile.close();
+        }
+
+        // Store alignments, keyed by ReadId.
+        // For each ReadId we store all the alignments we found,
+        // already tokenized.
+        using Separator = boost::char_separator<char>;
+        using Tokenizer = boost::tokenizer<Separator>;
+        const Separator separator(",");
+        std::map<ReadId, vector< vector<string> > > alignments;
+        ifstream blastOutputFile(blastOutputFileName);
+        string line;
+        vector<string> tokens;
+        while(true) {
+
+            // Get a line.
+            string line;
+            std::getline(blastOutputFile, line);
+            if(!blastOutputFile) {
+                break;
+            }
+
+            // Tokenize it.
+            Tokenizer tokenizer(line, separator);
+            tokens.clear();
+            tokens.insert(tokens.begin(), tokenizer.begin(), tokenizer.end());
+
+            // Extract the ReadId.
+            CZI_ASSERT(!tokens.empty());
+            const ReadId readId = std::stoi(tokens.front());;
+
+            // Store it.
+            alignments[readId].push_back(tokens);
+        }
+
+        // Remove the files we created.
+        filesystem::remove(fastaFileName);
+        filesystem::remove(blastOutputFileName);
+        filesystem::remove(blastErrFileName);
+
+        // Now store the alignments as additional text in the vertices tooltips.
+        BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+            LocalReadGraphVertex& vertex = graph[v];
+            const auto& vertexAlignments = alignments[vertex.readId];
+            for(const auto& alignment: vertexAlignments) {
+                CZI_ASSERT(alignment.size() == 4);
+                vertex.additionalToolTipText += " " + alignment[1] + ":" + alignment[2] + "-" + alignment[3];
+            }
+        }
+    }
+
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
