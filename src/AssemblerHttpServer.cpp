@@ -940,7 +940,11 @@ void Assembler::blastRead(
     string summaryString;
     const bool isSummary = getParameterValue(request, "summary", summaryString);
     if(isSummary) {
-        blastOptions = "-outfmt '10 bitscore qstart qend sseqid sstart send length pident' -evalue 1e-200";
+        blastOptions =
+            "-outfmt '10 bitscore qstart qend sseqid sstart send length pident' "
+            "-evalue 1e-200 "
+            // The following is used to avoid breaking up alignments too much.
+            "-reward 3 -penalty -2 -gapopen 5 -gapextend 5";
     }
 
 
@@ -1010,6 +1014,8 @@ void Assembler::blastRead(
 
     // Output to html.
     if(isSummary) {
+
+        html << "<br>Blast options used: " << blastOptions << "<p>";
 
         // Tokenize and gather the output, each line with its score.
         using Separator = boost::char_separator<char>;
