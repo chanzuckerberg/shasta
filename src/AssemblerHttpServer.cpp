@@ -7,6 +7,7 @@ using namespace ChanZuckerberg;
 using namespace shasta;
 
 // Boost libraries.
+#include<boost/tokenizer.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -443,7 +444,7 @@ void Assembler::exploreRead(
         html << "this portion of ";
     }
     html <<
-        "this read'>"
+        "this read in the UCSC browser'>"
         "<input type=text hidden name=type value=DNA>"
         // Don't specify the genome.
         // UCSC browser will Blat again last used genome (stored in cookies).
@@ -467,12 +468,30 @@ void Assembler::exploreRead(
         html << "this portion of ";
     }
     html <<
-        "this read'>"
+        "this read against " << httpServerData.referenceFastaFileName << " using Blast options: '>"
         "<input type=text hidden name=readId value=" << readId << ">" <<
         "<input type=text hidden name=strand value=" << strand << ">" <<
         "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
         "<input type=text hidden name=endPosition value=" << endPosition << ">"
-        " Blast options: <input type=text size=80 name=blastOptions>"
+        "<input type=text size=80 name=blastOptions>"
+        "</form>";
+
+
+
+    // Button to Blast this read or portion of a read (summary output).
+    html <<
+        "<p><form action='blastRead'>"
+        "<input type=submit value='Blast ";
+    if(beginPositionIsPresent || endPositionIsPresent) {
+        html << "this portion of ";
+    }
+    html <<
+        "this read against " << httpServerData.referenceFastaFileName << " (summary output)'>"
+        "<input type=text hidden name=readId value=" << readId << ">" <<
+        "<input type=text hidden name=strand value=" << strand << ">" <<
+        "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
+        "<input type=text hidden name=endPosition value=" << endPosition << ">"
+        "<input type=checkbox checked hidden name=summary>"
         "</form>";
 
 
@@ -918,6 +937,11 @@ void Assembler::blastRead(
     // Get blast options.
     string blastOptions;
     getParameterValue(request, "blastOptions", blastOptions);
+    string summaryString;
+    const bool isSummary = getParameterValue(request, "summary", summaryString);
+    if(isSummary) {
+        blastOptions = "-outfmt '10 bitscore qstart qend sseqid sstart send length pident' -evalue 1e-200";
+    }
 
 
 
@@ -941,6 +965,14 @@ void Assembler::blastRead(
     }
 
 
+
+    // Write a title.
+    html << "<h1>Blast results for oriented read " << orientedReadId;
+    html << ", position range " << beginPosition << " " << endPosition;
+    html << " (" << endPosition-beginPosition << " bases)</h1>";
+
+
+
     // Create a fasta file with this sequence.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string fastaFileName = "/dev/shm/" + uuid + ".fa";
@@ -953,7 +985,9 @@ void Assembler::blastRead(
     fastaFile << "\n";
     fastaFile.close();
 
-    // Create the blast command.
+
+
+    // Create the blast command and run it.
     const string blastOutputFileName = "/dev/shm/" + uuid + ".txt";
     const string blastErrFileName = "/dev/shm/" + uuid + ".errtxt";
     const string command = "blastn -task megablast -subject " + httpServerData.referenceFastaFileName +
@@ -961,7 +995,9 @@ void Assembler::blastRead(
         " " + blastOptions;
     ::system(command.c_str());
 
-    // Copy the output to html.
+
+
+    // Copy any error output to html.
     if(filesystem::fileSize(blastErrFileName)) {
         ifstream blastErrFile(blastErrFileName);
         html << "<pre style='font-size:10px'>";
@@ -969,11 +1005,107 @@ void Assembler::blastRead(
         html << "</pre>";
         blastErrFile.close();
     }
-    ifstream blastOutputFile(blastOutputFileName);
-    html << "<pre style='font-size:10px'>";
-    html << blastOutputFile.rdbuf();
-    html << "</pre>";
-    blastOutputFile.close();
+
+
+
+    // Output to html.
+    if(isSummary) {
+
+        // Tokenize and gather the output, each line with its score.
+        using Separator = boost::char_separator<char>;
+        using Tokenizer = boost::tokenizer<Separator>;
+        const Separator separator(",");
+        vector< pair<double, vector<string> > > alignments;
+        ifstream blastOutputFile(blastOutputFileName);
+        string line;
+        vector<string> tokens;
+        while(true) {
+
+            // Get a line.
+            string line;
+            std::getline(blastOutputFile, line);
+            if(!blastOutputFile) {
+                break;
+            }
+
+            // Tokenize it.
+            Tokenizer tokenizer(line, separator);
+            tokens.clear();
+            tokens.insert(tokens.begin(), tokenizer.begin(), tokenizer.end());
+
+            // Extract the score.
+            CZI_ASSERT(!tokens.empty());
+            const double score = std::stod(tokens.front());;
+
+            // Store it.
+            alignments.push_back(make_pair(score, tokens));
+        }
+
+        // Sort by score.
+        sort(alignments.begin(), alignments.end(),
+            std::greater< pair<double, vector<string> > >());
+
+        // Write it out.
+        html <<
+            "<table><tr>"
+            "<th rowspan=2>Bit<br>score"
+            "<th colspan=3>In " << orientedReadId <<
+            "<th colspan=5>In " << httpServerData.referenceFastaFileName <<
+            "<th rowspan=2>Alignment<br>length"
+            "<th rowspan=2>Identity<br>(%)"
+            "<tr>"
+            "<th>Begin"
+            "<th>End"
+            "<th>Length"
+            "<th>Strand"
+            "<th>Name"
+            "<th>Begin"
+            "<th>End"
+            "<th>Length";
+        for(const auto& p: alignments) {
+            const auto& tokens = p.second;
+            // bitscore qstart qend sseqid sstart send length pident
+            CZI_ASSERT(tokens.size() == 8);
+            const string& bitscore = tokens[0];
+            const size_t qstart = std::stoi(tokens[1]) + beginPosition;
+            const size_t qend = std::stoi(tokens[2]) + beginPosition;
+            const string& sseqid = tokens[3];
+            size_t sstart = std::stoi(tokens[4]);
+            size_t send = std::stoi(tokens[5]);
+            const string& length = tokens[6];
+            const string& pident = tokens[7];
+            Strand strand = 0;
+            if(send < sstart) {
+                swap(sstart, send);
+                strand = 1;
+            }
+            html <<
+                "<tr style='text-align:center'>"
+                "<td>" << bitscore <<
+                "<td>" << qstart <<
+                "<td>" << qend <<
+                "<td>" << qend-qstart <<
+                "<td>" << (strand==0 ? "+" : "-") << " (" << strand << ")"
+                "<td>" << sseqid <<
+                "<td>" << sstart <<
+                "<td>" << send <<
+                "<td>" << send-sstart <<
+                "<td>" << length <<
+                "<td>" << pident;
+        }
+        html << "</table>";
+
+    } else {
+
+        // This is not summary output.
+        // Just copy Blast output to html.
+        ifstream blastOutputFile(blastOutputFileName);
+        html << "<pre style='font-size:10px'>";
+        html << blastOutputFile.rdbuf();
+        html << "</pre>";
+    }
+
+
 
     // Remove the files we created.
     filesystem::remove(fastaFileName);
