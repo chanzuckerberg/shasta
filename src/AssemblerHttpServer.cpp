@@ -942,9 +942,10 @@ void Assembler::blastRead(
     if(isSummary) {
         blastOptions =
             "-outfmt '10 bitscore qstart qend sseqid sstart send length pident' "
-            "-evalue 1e-200 "
+            "-evalue 1e-200";
             // The following is used to avoid breaking up alignments too much.
-            "-reward 3 -penalty -2 -gapopen 5 -gapextend 5";
+            // But it also slows down the search a lot.
+            // "-reward 3 -penalty -2 -gapopen 5 -gapextend 5";
     }
 
 
