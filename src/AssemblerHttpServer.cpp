@@ -688,6 +688,27 @@ void Assembler::exploreRead(
             html << "</pre>";
             //cout << endl;
         }
+
+
+        // Button to download the sequence to a fasta file
+        html <<
+            "<a id=fastaDownload>Download in FASTA format</a><br>"
+            "<script>"
+            "var element = document.getElementById('fastaDownload');"
+            "element.setAttribute('href', 'data:text/plain;charset=utf-8,' +"
+            "encodeURIComponent('>" << orientedReadId <<
+            "-" << beginPosition << "-" << endPosition << " " << endPosition-beginPosition <<
+            " ";
+        copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
+        html << "\\n";
+        for(uint32_t position=beginPosition; position!=endPosition; position++) {
+            html << rawOrientedReadSequence[position];
+        }
+        html << "\\n'));"
+            "element.setAttribute('download', '" << orientedReadId << "-" <<
+            beginPosition << "-" << endPosition <<
+            ".fa');"
+            "</script>";
     }
 
 
