@@ -53,7 +53,7 @@ using namespace shasta;
 #include <queue>
 
 
-
+#if 0
 // Create the global read graph.
 void Assembler::createReadGraph(uint32_t maxTrim)
 {
@@ -240,6 +240,175 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 
     if(debug) {
         graphOut << "}" << endl;
+    }
+
+
+
+    // Create read graph connectivity.
+    readGraphConnectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
+    readGraphConnectivity.beginPass1(readCount);
+    for(const ReadGraphEdge& edge: readGraphEdges) {
+        const AlignmentData& alignment = alignmentData[edge.alignmentId];
+        readGraphConnectivity.incrementCount(alignment.readIds[0]);
+        readGraphConnectivity.incrementCount(alignment.readIds[1]);
+    }
+    readGraphConnectivity.beginPass2();
+    for(size_t i=0; i<readGraphEdges.size(); i++) {
+        const ReadGraphEdge& edge = readGraphEdges[i];
+        const AlignmentData& alignment = alignmentData[edge.alignmentId];
+        readGraphConnectivity.store(alignment.readIds[0], uint32_t(i));
+        readGraphConnectivity.store(alignment.readIds[1], uint32_t(i));
+    }
+    readGraphConnectivity.endPass2();
+}
+#endif
+
+
+
+// Alternative, tentative version of createReadGraph.
+// It marks all reads are not contained.
+// For each read, it keeps only the best maxAlignmentCount alignments.
+// Note that the connectivity of the resulting read graph can
+// be more than maxAlignmentCount.
+void Assembler::createReadGraph(uint32_t maxTrim)
+{
+    // Number of alignments to be kept for each read.
+    // This should be passed in as an argument instead.
+    const size_t maxAlignmentCount = 6;
+
+    // Find the number of reads and oriented reads.
+    const ReadId orientedReadCount = uint32_t(markers.size());
+    CZI_ASSERT((orientedReadCount % 2) == 0);
+    const ReadId readCount = orientedReadCount / 2;
+
+    // Mark all reads as not contained.
+    containingOrientedReadId.createNew(largeDataName("ContainingOrientedReadId"), largeDataPageSize);
+    containingOrientedReadId.resize(readCount);
+    fill(containingOrientedReadId.begin(), containingOrientedReadId.end(),
+        OrientedReadId::invalid());
+
+    // Mark all alignments as not to be kept.
+    vector<bool> keepAlignment(alignmentData.size(), false);
+
+    // Vector to keep the alignments for each read,
+    // with their number of markers.
+    // Contains pairs(marker count, alignment id).
+    vector< pair<uint32_t, uint32_t> > readAlignments;
+
+
+
+    // Loop over reads.
+    for(ReadId readId=0; readId<readCount; readId++) {
+
+        // Gather the alignments for this read, each with its number of markers.
+        readAlignments.clear();
+        for(const uint32_t alignmentId: alignmentTable[OrientedReadId(readId, 0).getValue()]) {
+            const AlignmentData& alignment = alignmentData[alignmentId];
+            readAlignments.push_back(make_pair(alignment.info.markerCount, alignmentId));
+        }
+
+        // Keep the best maxAlignmentCount.
+        if(readAlignments.size() > maxAlignmentCount) {
+            std::nth_element(
+                readAlignments.begin(),
+                readAlignments.begin() + maxAlignmentCount,
+                readAlignments.end(),
+                std::greater< pair<uint32_t, uint32_t> >());
+            readAlignments.resize(maxAlignmentCount);
+        }
+
+        // Mark the surviving alignments as to be kept.
+        for(const auto& p: readAlignments) {
+            const uint32_t alignmentId = p.second;
+            keepAlignment[alignmentId] = true;
+        }
+    }
+    const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
+    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+
+
+
+    // Now we can create the read graph.
+    // Only the alignments we marker as "keep" generate an edge in the read graph.
+    readGraphEdges.createNew(largeDataName("ReadGraphEdges"), largeDataPageSize);
+    for(size_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
+        if(!keepAlignment[alignmentId]) {
+            continue;
+        }
+        const AlignmentData& alignment = alignmentData[alignmentId];
+        const AlignmentInfo& alignmentInfo = alignment.info;
+
+        // Create the read graph edge.
+        ReadGraphEdge edge;
+        edge.alignmentId = alignmentId & 0x3fffffffffffffff;    // To suppress compiler warning
+
+        // Compute the left and right trim for the two reads.
+        const ReadId readId0 = alignment.readIds[0];
+        const ReadId readId1 = alignment.readIds[1];
+        const uint32_t markerCount0 = uint32_t(markers[OrientedReadId(readId0, 0).getValue()].size());
+        const uint32_t markerCount1 = uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size());
+        CZI_ASSERT(alignmentInfo.lastOrdinals.first < markerCount0);
+        CZI_ASSERT(alignmentInfo.lastOrdinals.second < markerCount1);
+        const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
+        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
+        const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
+        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
+
+        // Sanity check on the left and right trim.
+        if(
+            (leftTrim0 > maxTrim && rightTrim0 > maxTrim) &&
+            (leftTrim1 > maxTrim && rightTrim1 > maxTrim)) {
+
+            cout << "Found a bad alignment:" << endl;
+            cout << "Read ids: " << readId0 << " " << readId1 << endl;
+            cout << "Is same strand: " << alignment.isSameStrand << endl;
+            cout << "Trims for first read: " << leftTrim0 << " " << rightTrim0 << endl;
+            cout << "Trims for second read: " << leftTrim1 << " " << rightTrim1 << endl;
+            cout << "Marker counts: " << markerCount0 << " " << markerCount1 << endl;
+            cout << "First ordinals: " << alignmentInfo.firstOrdinals.first << " " << alignmentInfo.firstOrdinals.second << endl;
+            cout << "Last ordinals: " << alignmentInfo.lastOrdinals.first << " " << alignmentInfo.lastOrdinals.second << endl;
+            throw runtime_error("Found a bad alignment.");
+        }
+
+
+
+        // Fill in the direction bits.
+        // See comments at the beginning of this file for more information.
+        // This code is untested.
+        if(alignment.isSameStrand) {
+
+            // The two reads are on the same strand.
+            // Case 1 in Fig. 1 of the paper referenced above.
+            // The "leftmost" read has direction away from the vertex
+            // and the "rightmost" read has direction towards the vertex.
+            if(leftTrim1 <= maxTrim) {
+                edge.direction0 = ReadGraphEdge::awayFromVertex;
+                edge.direction1 = ReadGraphEdge::towardsVertex;
+            } else {
+                edge.direction0 = ReadGraphEdge::towardsVertex;
+                edge.direction1 = ReadGraphEdge::awayFromVertex;
+            }
+
+        } else {
+
+            // The two reads are on opposite strands.
+            if(leftTrim0 <= maxTrim) {
+                // Case 2 in Fig. 1 of the paper referenced above.
+                // Both directions are towards the vertex.
+                edge.direction0 = ReadGraphEdge::towardsVertex;
+                edge.direction1 = ReadGraphEdge::towardsVertex;
+
+            } else {
+                // Case 3 in Fig. 1 of the paper referenced above.
+                // Both directions are away from the vertex.
+                edge.direction0 = ReadGraphEdge::awayFromVertex;
+                edge.direction1 = ReadGraphEdge::awayFromVertex;
+            }
+
+        }
+
+        // Store the new edge.
+        readGraphEdges.push_back(edge);
     }
 
 
