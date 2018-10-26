@@ -71,10 +71,14 @@ a.computeAlignments(
 # Create the global read graph.
 a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
 
-# Create the global marker graph vertices.
+# Create global marker graph vertices.
 a.createMarkerGraphVertices(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
     maxSkip = int(config['Align']['maxSkip']),
     minCoverage = int(config['MarkerGraph']['minCoverage']))
+
+# Create global marker graph edges.
+a.createMarkerGraphConnectivity(
+    markerCountOverflow = int(config['MarkerGraph']['markerCountOverflow']))
 
 
