@@ -325,7 +325,6 @@ public:
 
 
     // Compute connectivity of the global marker graph.
-    // This code is currently not in use.
     // Vertices with more than markerCountOverflow vertices are skipped.
     void createMarkerGraphConnectivity(
         size_t threadCount,
@@ -826,6 +825,7 @@ private:
     // The oriented marker ids of the markers corresponding to
     // each vertex of the global marker graph.
     // Indexed by GlobalMarkerGraphVertexId.
+    // For a given vertex, the oriented marker ids are sorted.
     MemoryMapped::VectorOfVectors<MarkerId, CompressedGlobalMarkerGraphVertexId> globalMarkerGraphVertices;
     void checkMarkerGraphVerticesAreAvailable();
 
