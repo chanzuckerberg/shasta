@@ -13,6 +13,7 @@ a.accessReadsReadOnly()
 a.accessKmers()
 a.accessMarkers()
 a.accessAlignmentData()
+a.accessReadGraph()
 
 # Do the computation.
 a.createMarkerGraphVertices(

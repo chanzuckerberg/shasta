@@ -12,9 +12,8 @@ using namespace shasta;
 
 
 
-// Loop over all alignments to create vertices of the global marker graph.
-// Eventually, this will be modified to loop over edges of the read
-// graph, rather than over all alignments.
+// Loop over all alignments in the read graph
+// to create vertices of the global marker graph.
 void Assembler::createMarkerGraphVertices(
 
     // The  maximum number of vertices in the alignment graph
@@ -46,6 +45,7 @@ void Assembler::createMarkerGraphVertices(
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentDataAreOpen();
+    checkReadGraphIsOpen();
 
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
@@ -71,11 +71,12 @@ void Assembler::createMarkerGraphVertices(
 
 
 
-    // Update the disjoint set data structure for each alignment.
-    cout << "Begin processing " << alignmentData.size() << " alignments." << endl;
+    // Update the disjoint set data structure for each alignment
+    // in the read graph.
+    cout << "Begin processing " << readGraphEdges.size() << " alignments in the read graph." << endl;
     cout << timestamp << "Disjoint set computation begins." << endl;
     size_t batchSize = 10000;
-    setupLoadBalancing(alignmentData.size(), batchSize);
+    setupLoadBalancing(readGraphEdges.size(), batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1,
         threadCount, "threadLogs/createMarkerGraphVertices1");
     cout << timestamp << "Disjoint set computation completed." << endl;
@@ -252,7 +253,9 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         for(size_t i=begin; i!=end; i++) {
-            const OrientedReadPair& candidate = alignmentData[i];
+            const ReadGraphEdge& readGraphEdge = readGraphEdges[i];
+            const uint64_t alignmentId = readGraphEdge.alignmentId;
+            const OrientedReadPair& candidate = alignmentData[alignmentId];
             CZI_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
 
             // Get the oriented read ids, with the first one on strand 0.
@@ -1090,11 +1093,14 @@ void Assembler::createMarkerGraphConnectivity(
 
     // Each thread stores the edges it finds in a separate vector.
     markerGraphConnectivity.threadEdges.resize(threadCount);
+    cout << timestamp << "Processing " << globalMarkerGraphVertices.size();
+    cout << " marker graph vertices." << endl;
     setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
     runThreads(&Assembler::createMarkerGraphConnectivityThreadFunction0, threadCount,
         "threadLogs/createMarkerGraphConnectivity0");
 
     // Combine the edges found by each thread.
+    cout << timestamp << "Combining the edges found by each thread." << endl;
     markerGraphConnectivity.edges.createNew(
             largeDataName("GlobalMarkerGraphEdges"),
             largeDataPageSize);

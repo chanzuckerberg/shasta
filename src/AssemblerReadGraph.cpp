@@ -439,6 +439,19 @@ void Assembler::accessReadGraph()
     readGraphEdges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
     readGraphConnectivity.accessExistingReadOnly(largeDataName("ReadGraphConnectivity"));
 }
+void Assembler::checkReadGraphIsOpen()
+{
+    if(!containingOrientedReadId.isOpen) {
+        throw runtime_error("Containing oriented read ids are not accessible.");
+    }
+    if(!readGraphEdges.isOpen) {
+        throw runtime_error("Read graph edges are not accessible.");
+    }
+    if(!readGraphConnectivity.isOpen()) {
+        throw runtime_error("Read graph connectivity is not accessible.");
+    }
+
+}
 
 
 

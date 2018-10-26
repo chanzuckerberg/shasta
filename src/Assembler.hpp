@@ -245,9 +245,8 @@ public:
 
 
 
-    // Loop over all alignments to create vertices of the global marker graph.
-    // Eventually, this will be modified to loop over edges of the read
-    // graph, rather than over all alignments.
+    // Loop over all alignments in the read graph
+    // to create vertices of the global marker graph.
     void createMarkerGraphVertices(
 
         // The  maximum number of vertices in the alignment graph
@@ -774,6 +773,7 @@ public:
     // This accesses containingOrientedReadId, readGraphEdges,
     // and readGraphConnectivity.
     void accessReadGraph();
+    void checkReadGraphIsOpen();
 private:
 
 
