@@ -1068,7 +1068,7 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
 
 
 // Compute connectivity of the global marker graph.
-// Vertices with more than markerCountOverflow are skipped.
+// Vertices with more than markerCountOverflow vertices are skipped.
 void Assembler::createMarkerGraphConnectivity(
     size_t threadCount,
     size_t markerCountOverflow

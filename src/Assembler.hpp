@@ -327,7 +327,7 @@ public:
 
     // Compute connectivity of the global marker graph.
     // This code is currently not in use.
-    // Vertices with more than markerCountOverflow are skipped.
+    // Vertices with more than markerCountOverflow vertices are skipped.
     void createMarkerGraphConnectivity(
         size_t threadCount,
         size_t markerCountOverflow
@@ -859,7 +859,7 @@ private:
         // Contains indexes into the above edges vector.
         MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
 
-        // Vertices with more than markerCountOverflow are skipped.
+        // Vertices with more than markerCountOverflow vertices are skipped.
         size_t markerCountOverflow;
 
     };
