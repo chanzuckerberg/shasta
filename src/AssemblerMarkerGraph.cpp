@@ -1442,7 +1442,7 @@ void Assembler::flagMarkerGraphEdgesThreadFunction(size_t threadId)
                 }
                 CZI_ASSERT(edge.source == startVertexId);
                 if(std::binary_search(vertices.begin(), vertices.end(), edge.target)) {
-                    edge.isGood = false;
+                    edge.flag0 = 1;
                 }
             }
 
