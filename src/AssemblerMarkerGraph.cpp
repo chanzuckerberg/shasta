@@ -1028,6 +1028,34 @@ bool Assembler::extractLocalMarkerGraph(
 
 
 
+bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
+    OrientedReadId orientedReadId,
+    uint32_t ordinal,
+    int distance,
+    double timeout,                 // Or 0 for no timeout.
+    LocalMarkerGraph& graph
+    )
+{
+    const GlobalMarkerGraphVertexId startVertexId =
+        getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+    return extractLocalMarkerGraphUsingStoredConnectivity(startVertexId, distance, timeout, graph);
+
+}
+
+
+
+bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
+    GlobalMarkerGraphVertexId startVertexId,
+    int distance,
+    double timeout,                 // Or 0 for no timeout.
+    LocalMarkerGraph& graph
+    )
+{
+    CZI_ASSERT(0);
+}
+
+
+
 // Create a local marker graph and return its local assembly path.
 // The local marker graph is specified by its start vertex
 // and maximum distance (number of edges) form the start vertex.

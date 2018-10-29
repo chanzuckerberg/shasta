@@ -993,6 +993,22 @@ private:
         LocalMarkerGraph&
         );
 
+    // Versions of the above that use stored connectivity of the
+    // global marker graph instead of creating it on the fly.
+    bool extractLocalMarkerGraphUsingStoredConnectivity(
+        OrientedReadId,
+        uint32_t ordinal,
+        int distance,
+        double timeout,                 // Or 0 for no timeout.
+        LocalMarkerGraph&
+        );
+    bool extractLocalMarkerGraphUsingStoredConnectivity(
+        GlobalMarkerGraphVertexId,
+        int distance,
+        double timeout,                 // Or 0 for no timeout.
+        LocalMarkerGraph&
+        );
+
 
 
     // Data and functions used for the http server.
@@ -1044,6 +1060,7 @@ private:
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
         bool detailed;
+        bool useStoredConnectivity;
         bool showVertexId;
         bool showOptimalSpanningTree;
         bool showAssembledSequence;

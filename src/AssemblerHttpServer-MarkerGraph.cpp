@@ -68,14 +68,26 @@ void Assembler::exploreMarkerGraph(
         globalMarkerGraphVertex,
         *consensusCaller);
     const auto createStartTime = steady_clock::now();
-    if(!extractLocalMarkerGraph(
-        orientedReadId,
-        requestParameters.ordinal,
-        requestParameters.maxDistance,
-        requestParameters.timeout,
-        graph)) {
-        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-        return;
+    if(requestParameters.useStoredConnectivity) {
+        if(!extractLocalMarkerGraphUsingStoredConnectivity(
+            orientedReadId,
+            requestParameters.ordinal,
+            requestParameters.maxDistance,
+            requestParameters.timeout,
+            graph)) {
+            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            return;
+        }
+    } else {
+        if(!extractLocalMarkerGraph(
+            orientedReadId,
+            requestParameters.ordinal,
+            requestParameters.maxDistance,
+            requestParameters.timeout,
+            graph)) {
+            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            return;
+        }
     }
     if(num_vertices(graph) == 0) {
         html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
@@ -405,6 +417,10 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.detailed = getParameterValue(
         request, "detailed", detailedString);
 
+    string useStoredConnectivityString;
+    parameters.useStoredConnectivity = getParameterValue(
+        request, "useStoredConnectivity", useStoredConnectivityString);
+
     string showVertexIdString;
     parameters.showVertexId = getParameterValue(
         request, "showVertexId", showVertexIdString);
@@ -477,6 +493,13 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td>Detailed"
         "<td class=centered><input type=checkbox name=detailed"
         << (detailed ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Check to use stored connectivity of the global marker graph "
+        "instead of constructing it on the fly'>"
+        "<td>Use stored connectivity"
+        "<td class=centered><input type=checkbox name=useStoredConnectivity"
+        << (useStoredConnectivity ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
