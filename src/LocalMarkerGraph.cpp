@@ -192,42 +192,42 @@ void LocalMarkerGraph::computeVertexConsensusInfo( vertex_descriptor v)
 // LocalMarkerGraphEdge::Info that caused the edge to be created.
 void LocalMarkerGraph::storeEdgeInfo(
     edge_descriptor e,
-    const vector<LocalMarkerGraphEdge::Info>& infoVector)
+    const vector<MarkerInterval>& intervals)
 {
     LocalMarkerGraph& graph = *this;
     LocalMarkerGraphEdge& edge = graph[e];
 
     // Map to store the oriented read ids and ordinals, grouped by sequence.
-    std::map<LocalMarkerGraphEdge::Sequence, vector<LocalMarkerGraphEdge::InfoWithRepeatCounts> > sequenceTable;
-    for(const LocalMarkerGraphEdge::Info& info: infoVector) {
-        const CompressedMarker& marker0 = markers.begin(info.orientedReadId.getValue())[info.ordinals[0]];
-        const CompressedMarker& marker1 = markers.begin(info.orientedReadId.getValue())[info.ordinals[1]];
+    std::map<LocalMarkerGraphEdge::Sequence, vector<MarkerIntervalWithRepeatCounts> > sequenceTable;
+    for(const MarkerInterval& interval: intervals) {
+        const CompressedMarker& marker0 = markers.begin(interval.orientedReadId.getValue())[interval.ordinals[0]];
+        const CompressedMarker& marker1 = markers.begin(interval.orientedReadId.getValue())[interval.ordinals[1]];
 
         // Fill in the sequence information and, if necessary, the base repeat counts.
         LocalMarkerGraphEdge::Sequence sequence;
-        LocalMarkerGraphEdge::InfoWithRepeatCounts infoWithRepeatCounts(info);
+        MarkerIntervalWithRepeatCounts intervalWithRepeatCounts(interval);
         if(marker1.position <= marker0.position + k) {
             sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
             if(useRunLengthReads) {
-                const auto repeatCounts = readRepeatCounts[info.orientedReadId.getReadId()];
+                const auto& repeatCounts = readRepeatCounts[interval.orientedReadId.getReadId()];
                 for(uint32_t i=0; i<sequence.overlappingBaseCount; i++) {
                     uint32_t position = marker1.position + i;
                     uint8_t repeatCount = 0;
-                    if(info.orientedReadId.getStrand() == 0) {
+                    if(interval.orientedReadId.getStrand() == 0) {
                         repeatCount = repeatCounts[position];
                     } else {
                         repeatCount = repeatCounts[repeatCounts.size() - 1 - position];
                     }
-                    infoWithRepeatCounts.repeatCounts.push_back(repeatCount);
+                    intervalWithRepeatCounts.repeatCounts.push_back(repeatCount);
                 }
             }
         } else {
             sequence.overlappingBaseCount = 0;
-            const auto read = reads[info.orientedReadId.getReadId()];
+            const auto read = reads[interval.orientedReadId.getReadId()];
             const uint32_t readLength = uint32_t(read.baseCount);
             for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
                 Base base;
-                if(info.orientedReadId.getStrand() == 0) {
+                if(interval.orientedReadId.getStrand() == 0) {
                     base = read.get(position);
                 } else {
                     base = read.get(readLength - 1 - position);
@@ -236,22 +236,22 @@ void LocalMarkerGraph::storeEdgeInfo(
                 sequence.sequence.push_back(base);
             }
             if(useRunLengthReads) {
-                const auto repeatCounts = readRepeatCounts[info.orientedReadId.getReadId()];
+                const auto repeatCounts = readRepeatCounts[interval.orientedReadId.getReadId()];
                 for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
                     uint8_t repeatCount;
-                    if(info.orientedReadId.getStrand() == 0) {
+                    if(interval.orientedReadId.getStrand() == 0) {
                         repeatCount = repeatCounts[position];
                     } else {
                         repeatCount = repeatCounts[readLength - 1 - position];
                     }
-                    infoWithRepeatCounts.repeatCounts.push_back(repeatCount);
+                    intervalWithRepeatCounts.repeatCounts.push_back(repeatCount);
                 }
             }
 
         }
 
         // Store it.
-        sequenceTable[sequence].push_back(infoWithRepeatCounts);
+        sequenceTable[sequence].push_back(intervalWithRepeatCounts);
 
     }
 
@@ -263,7 +263,7 @@ void LocalMarkerGraph::storeEdgeInfo(
     sort(edge.infos.begin(), edge.infos.end(),
         OrderPairsBySizeOfSecondGreater<
         LocalMarkerGraphEdge::Sequence,
-        vector<LocalMarkerGraphEdge::InfoWithRepeatCounts> >());
+        vector<MarkerIntervalWithRepeatCounts> >());
 
 }
 
@@ -1088,10 +1088,10 @@ bool LocalMarkerGraphEdge::getOrdinals(
     OrientedReadId orientedReadId,
     array<uint32_t, 2>& ordinals) const
 {
-    for(const pair<Sequence, vector<InfoWithRepeatCounts> >& p: infos) {
-        for(const Info& info: p.second) {
-            if(info.orientedReadId == orientedReadId) {
-                ordinals = info.ordinals;
+    for(const pair<Sequence, vector<MarkerIntervalWithRepeatCounts> >& p: infos) {
+        for(const MarkerIntervalWithRepeatCounts& interval: p.second) {
+            if(interval.orientedReadId == orientedReadId) {
+                ordinals = interval.ordinals;
                 return true;
             }
         }

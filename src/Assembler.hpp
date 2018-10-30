@@ -33,6 +33,7 @@ namespace ChanZuckerberg {
         class LocalAlignmentGraph;
         class LocalMarkerGraph;
         class LocalReadGraph;
+        class MarkerInterval;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
         }
@@ -293,6 +294,8 @@ public:
         getGlobalMarkerGraphVertexParents(
         GlobalMarkerGraphVertexId) const;
 
+
+
     // Python-callable function to get information about an edge of the
     // global marker graph. Returns an empty vector if the specified
     // edge does not exist.
@@ -312,6 +315,15 @@ public:
         GlobalMarkerGraphVertexId
         );
 
+private:
+    // Lower-level, more efficient version of the above
+    // (but it returns less information).
+    void getGlobalMarkerGraphEdgeInfo(
+        GlobalMarkerGraphVertexId,
+        GlobalMarkerGraphVertexId,
+        vector<MarkerInterval>&
+        );
+public:
 
 
     // Create a local marker graph and return its local assembly path.
@@ -331,6 +343,7 @@ public:
         size_t markerCountOverflow
         );
     void accessMarkerGraphConnectivity(bool accessEdgesReadWrite);
+    void checkMarkerGraphConnectivityIsOpen();
 
     // Flag as not good a marker graph edge if:
     // - It has coverage<minCoverage, AND

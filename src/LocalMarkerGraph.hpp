@@ -18,6 +18,7 @@ a group of aligned markers.
 #include "Coverage.hpp"
 #include "Kmer.hpp"
 #include "MarkerId.hpp"
+#include "MarkerInterval.hpp"
 #include "MemoryAsContainer.hpp"
 #include "ReadId.hpp"
 
@@ -141,33 +142,10 @@ public:
     };
 
 
-    // Each Info object corresponds to an oriented read
-    // that appears at startOrdinal in the source vertex
-    // of this edge and at startOrdinal+1 in the target vertex.
-    class Info {
-    public:
-        OrientedReadId orientedReadId;
-
-        // The ordinals in the source and target vertex.
-        array<uint32_t, 2> ordinals;
-
-        Info(OrientedReadId orientedReadId, uint32_t ordinal0, uint32_t ordinal1) :
-            orientedReadId(orientedReadId)
-        {
-            ordinals[0] = ordinal0;
-            ordinals[1] = ordinal1;
-        }
-    };
-    class InfoWithRepeatCounts : public Info {
-    public:
-        vector<uint8_t> repeatCounts;
-        // The constructor does not fill in the repeat counts.
-        InfoWithRepeatCounts(const Info& info) : Info(info){}
-    };
 
     // The oriented vertices of this edge, grouped by sequence.
     // Sorted by decreasing number of supporting reads.
-    vector< pair<Sequence, vector<InfoWithRepeatCounts> > > infos;
+    vector< pair<Sequence, vector<MarkerIntervalWithRepeatCounts> > > infos;
 
     // Consensus is the number of reads supporting the
     // strongest sequence.
@@ -283,7 +261,7 @@ public:
     // Store sequence information in the edge.
     // Takes as input a vector of the
     // LocalMarkerGraphEdge::Info that caused the edge to be created.
-    void storeEdgeInfo(edge_descriptor, const vector<LocalMarkerGraphEdge::Info>&);
+    void storeEdgeInfo(edge_descriptor, const vector<MarkerInterval>&);
 
     // Create an optimal spanning tree and mark its edges.
     void computeOptimalSpanningTree();

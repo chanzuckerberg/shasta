@@ -127,7 +127,6 @@ void LocalMarkerGraph::assembleDominantSequence(ostream& html) const
     const LocalMarkerGraph& graph = *this;
     const vector<edge_descriptor>& path = localAssemblyPath;
     using MarkerInfo = LocalMarkerGraphVertex::MarkerInfo;
-    using InfoWithRepeatCounts = LocalMarkerGraphEdge::InfoWithRepeatCounts;
     using Sequence = LocalMarkerGraphEdge::Sequence;
 
     // If the path is empty, do nothing.
@@ -150,7 +149,7 @@ void LocalMarkerGraph::assembleDominantSequence(ostream& html) const
         assembledPosition += k;
         const LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
-        const pair<Sequence, vector<InfoWithRepeatCounts> > p = edge.infos.front();
+        const pair<Sequence, vector<MarkerIntervalWithRepeatCounts> > p = edge.infos.front();
         const Sequence& sequence = p.first;
         if(sequence.sequence.size() == 0) {
             // This edge does not contribute
@@ -216,7 +215,7 @@ void LocalMarkerGraph::assembleDominantSequence(ostream& html) const
         const uint32_t position = p.second;
         const LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
-        const pair<Sequence, vector<InfoWithRepeatCounts> > q = edge.infos.front();
+        const pair<Sequence, vector<MarkerIntervalWithRepeatCounts> > q = edge.infos.front();
         const vector<Base>& edgeSequence = q.first.sequence;
         for(size_t i=0; i<edgeSequence.size(); i++) {
             const Base base = edgeSequence[i];
@@ -256,16 +255,16 @@ void LocalMarkerGraph::assembleDominantSequence(ostream& html) const
         const uint32_t position = p.second;
         const LocalMarkerGraphEdge& edge = graph[e];
         CZI_ASSERT(!edge.infos.empty());
-        const pair<Sequence, vector<InfoWithRepeatCounts> > q = edge.infos.front();
+        const pair<Sequence, vector<MarkerIntervalWithRepeatCounts> > q = edge.infos.front();
         const Sequence& sequence = q.first;
-        const vector<InfoWithRepeatCounts>& infos = q.second;
+        const vector<MarkerIntervalWithRepeatCounts>& markerIntervals = q.second;
         CZI_ASSERT(sequence.sequence.size() > 0);
-        for(const InfoWithRepeatCounts& info: infos) {
-            CZI_ASSERT(info.repeatCounts.size() == sequence.sequence.size());
-            const CompressedMarker& marker = markers[info.orientedReadId.getValue()][info.ordinals[0]];
-            for(uint32_t i=0; i<info.repeatCounts.size(); i++) {
+        for(const MarkerIntervalWithRepeatCounts& interval: markerIntervals) {
+            CZI_ASSERT(interval.repeatCounts.size() == sequence.sequence.size());
+            const CompressedMarker& marker = markers[interval.orientedReadId.getValue()][interval.ordinals[0]];
+            for(uint32_t i=0; i<interval.repeatCounts.size(); i++) {
                 repeatCountTable[position+i].insert(
-                    make_tuple(info.orientedReadId, marker.position+k+i, info.repeatCounts[i]));
+                    make_tuple(interval.orientedReadId, marker.position+k+i, interval.repeatCounts[i]));
 
             }
 
@@ -465,7 +464,6 @@ void LocalMarkerGraph::assembleDominantSequenceUsingSeqan(ostream& html) const
     // Shorthands.
     const LocalMarkerGraph& graph = *this;
     const vector<edge_descriptor>& path = localAssemblyPath;
-    using InfoWithRepeatCounts = LocalMarkerGraphEdge::InfoWithRepeatCounts;
     using Sequence = LocalMarkerGraphEdge::Sequence;
 
     // If the path is empty, do nothing.
@@ -502,7 +500,7 @@ void LocalMarkerGraph::assembleDominantSequenceUsingSeqan(ostream& html) const
 
         } else {
             CZI_ASSERT(!edge.infos.empty());
-            const pair<Sequence, vector<InfoWithRepeatCounts> > p = edge.infos.front();
+            const pair<Sequence, vector<MarkerIntervalWithRepeatCounts> > p = edge.infos.front();
             const Sequence& sequence = p.first;
             if(sequence.sequence.size() == 0) {
                 // This edge does not contribute
@@ -591,7 +589,7 @@ void LocalMarkerGraph::assembleDominantSequenceUsingSeqan(ostream& html) const
 
         } else {
             CZI_ASSERT(!edge.infos.empty());
-            const pair<Sequence, vector<InfoWithRepeatCounts> > p = edge.infos.front();
+            const pair<Sequence, vector<MarkerIntervalWithRepeatCounts> > p = edge.infos.front();
             const Sequence& sequence = p.first;
             for(size_t offset=0; offset<sequence.sequence.size(); offset++) {
                 const size_t position = startPosition + offset; // In this case there are no gaps.
@@ -694,15 +692,15 @@ void LocalMarkerGraph::assembleDominantSequenceUsingSeqan(ostream& html) const
                 const LocalMarkerGraphEdge::Sequence& s = p.first;
                 CZI_ASSERT(s.overlappingBaseCount == 0);
                 const vector<Base>& sequence = s.sequence;
-                const vector<LocalMarkerGraphEdge::InfoWithRepeatCounts>& infos = p.second;
+                const vector<MarkerIntervalWithRepeatCounts>& intervals = p.second;
 
-                // Loop over the infos.
+                // Loop over the intervals.
                 Coverage& coverage = coverages[position];
-                for(const auto& info: infos) {
+                for(const auto& interval: intervals) {
                     coverage.addRead(
                         AlignedBase(sequence[positionInEdge]),
-                        info.orientedReadId.getStrand(),
-                        info.repeatCounts[positionInEdge]);
+                        interval.orientedReadId.getStrand(),
+                        interval.repeatCounts[positionInEdge]);
                 }
             }
         }

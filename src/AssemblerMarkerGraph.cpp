@@ -755,6 +755,19 @@ vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGr
 
 
 
+// Lower-level, more efficient version of the above
+// (but it returns less information).
+void Assembler::getGlobalMarkerGraphEdgeInfo(
+    GlobalMarkerGraphVertexId vertexId0,
+    GlobalMarkerGraphVertexId vertexId1,
+    vector<MarkerInterval>& intervals
+    )
+{
+    CZI_ASSERT(0);
+}
+
+
+
 // Return true if a vertex of the global marker graph has more than
 // one marker for at least one oriented read id.
 bool Assembler::isBadMarkerGraphVertex(GlobalMarkerGraphVertexId vertexId) const
@@ -859,7 +872,7 @@ bool Assembler::extractLocalMarkerGraph(
     vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > children;
     vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > parents;
     vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> > workArea;
-    vector<LocalMarkerGraphEdge::Info> infoVector;
+    vector<MarkerInterval> markerIntervalVector;
 
 
 
@@ -913,13 +926,13 @@ bool Assembler::extractLocalMarkerGraph(
                 CZI_ASSERT(edgeExists);
 
                 // Fill in edge information.
-                infoVector.clear();
+                markerIntervalVector.clear();
                 const auto& v = p.second;
                 for(const MarkerGraphNeighborInfo& x: v) {
-                    infoVector.push_back(LocalMarkerGraphEdge::Info(
+                    markerIntervalVector.push_back(MarkerInterval(
                         x.orientedReadId, x.ordinal0, x.ordinal1));
                 }
-                graph.storeEdgeInfo(e, infoVector);
+                graph.storeEdgeInfo(e, markerIntervalVector);
             }
         }
 
@@ -949,13 +962,13 @@ bool Assembler::extractLocalMarkerGraph(
                 CZI_ASSERT(edgeExists);
 
                 // Fill in edge information.
-                infoVector.clear();
+                markerIntervalVector.clear();
                 const auto& v = p.second;
                 for(const MarkerGraphNeighborInfo& x: v) {
-                    infoVector.push_back(LocalMarkerGraphEdge::Info(
+                    markerIntervalVector.push_back(MarkerInterval(
                         x.orientedReadId, x.ordinal1, x.ordinal0));
                 }
-                graph.storeEdgeInfo(e, infoVector);
+                graph.storeEdgeInfo(e, markerIntervalVector);
             }
         }
 
@@ -1004,13 +1017,13 @@ bool Assembler::extractLocalMarkerGraph(
             CZI_ASSERT(edgeExists);
 
             // Fill in edge information.
-            infoVector.clear();
+            markerIntervalVector.clear();
             const auto& v = p.second;
             for(const MarkerGraphNeighborInfo& x: v) {
-                infoVector.push_back(LocalMarkerGraphEdge::Info(
+                markerIntervalVector.push_back(MarkerInterval(
                     x.orientedReadId, x.ordinal0, x.ordinal1));
             }
-            graph.storeEdgeInfo(e, infoVector);
+            graph.storeEdgeInfo(e, markerIntervalVector);
         }
     }
 
@@ -1051,6 +1064,82 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     LocalMarkerGraph& graph
     )
 {
+    // Sanity check.
+    checkMarkerGraphConnectivityIsOpen();
+
+    // Some shorthands.
+    using vertex_descriptor = LocalMarkerGraph::vertex_descriptor;
+    using edge_descriptor = LocalMarkerGraph::edge_descriptor;
+
+    // Start a timer.
+    const auto startTime = steady_clock::now();
+
+    // Add the start vertex.
+    if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
+        return true;    // Because no timeout occurred.
+    }
+    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
+
+    // Some vectors used inside the BFS.
+    // Define them here to reduce memory allocation activity.
+    vector<MarkerInterval> markerIntervals;
+
+
+    // Do the BFS.
+    std::queue<vertex_descriptor> q;
+    if(distance > 0) {
+        q.push(vStart);
+    }
+    while(!q.empty()) {
+
+        // See if we exceeded the timeout.
+        if(timeout>0. && seconds(steady_clock::now() - startTime) > timeout) {
+            graph.clear();
+            return false;
+        }
+
+        // Dequeue a vertex.
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
+        const int distance0 = vertex0.distance;
+        const int distance1 = distance0 + 1;
+
+        // Loop over the children.
+        const auto children = markerGraphConnectivity.edgesBySource[vertexId0];
+        for(GlobalMarkerGraphVertexId vertexId1: children) {
+
+            // Find the vertex corresponding to this child, creating it if necessary.
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            if(!vertexExists) {
+                v1 = graph.addVertex(
+                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                if(distance1 < distance) {
+                    q.push(v1);
+                }
+            }
+
+            // Create the edge v0->v1, if it does not already exist.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v0, v1, graph);
+            if(!edgeExists) {
+                tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
+                CZI_ASSERT(edgeExists);
+
+                // Fill in edge information.
+                markerIntervals.clear();
+                getGlobalMarkerGraphEdgeInfo(vertexId0, vertexId1, markerIntervals);
+                graph.storeEdgeInfo(e, markerIntervals);
+            }
+        }
+
+        CZI_ASSERT(0);
+    }
+
     CZI_ASSERT(0);
 }
 
@@ -1363,6 +1452,15 @@ void Assembler::accessMarkerGraphConnectivity(bool accessEdgesReadWrite)
         largeDataName("GlobalMarkerGraphEdgesBySource"));
     markerGraphConnectivity.edgesByTarget.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesByTarget"));
+}
+
+
+
+void Assembler::checkMarkerGraphConnectivityIsOpen()
+{
+    CZI_ASSERT(markerGraphConnectivity.edges.isOpen);
+    CZI_ASSERT(markerGraphConnectivity.edgesBySource.isOpen());
+    CZI_ASSERT(markerGraphConnectivity.edgesByTarget.isOpen());
 }
 
 
