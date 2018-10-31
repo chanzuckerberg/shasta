@@ -749,7 +749,7 @@ vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGr
     }
 
     // If getting here, vertexId1 was not found, and we return
-    // and empty veector.
+    // and empty vector.
     return v;
 }
 
@@ -763,7 +763,39 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
     vector<MarkerInterval>& intervals
     )
 {
-    CZI_ASSERT(0);
+
+    if(isBadMarkerGraphVertex(vertexId0)) {
+        return;
+    }
+    if(isBadMarkerGraphVertex(vertexId1)) {
+        return;
+    }
+
+    // Loop over markers of vertex0.
+    for(const MarkerId markerId0: globalMarkerGraphVertices[vertexId0]) {
+        OrientedReadId orientedReadId;
+        uint32_t ordinal0;
+        tie(orientedReadId, ordinal0) = findMarkerId(markerId0);
+
+        // Find the next marker in orientedReadId that is contained in a vertex.
+        uint32_t ordinal1 = ordinal0 + 1;;
+        for(; ordinal1<markers.size(orientedReadId.getValue()); ++ordinal1) {
+
+            // Find the vertex id.
+            const MarkerId markerId1 =  getMarkerId(orientedReadId, ordinal1);
+            const GlobalMarkerGraphVertexId vertexId1Candidate =
+                globalMarkerGraphVertex[markerId1];
+
+            // If this marker correspond to vertexId1, add it to our list.
+            if(vertexId1Candidate != invalidCompressedGlobalMarkerGraphVertexId &&
+                !isBadMarkerGraphVertex(vertexId1Candidate)) {
+                if(vertexId1Candidate == vertexId1) {
+                    intervals.push_back(MarkerInterval(orientedReadId, ordinal0, ordinal1));
+                }
+                break;
+            }
+        }
+    }
 }
 
 
@@ -1027,6 +1059,8 @@ bool Assembler::extractLocalMarkerGraph(
         }
     }
 
+
+
     // Fill in the oriented read ids represented in the graph.
     graph.findOrientedReadIds();
 
@@ -1107,8 +1141,13 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const int distance1 = distance0 + 1;
 
         // Loop over the children.
-        const auto children = markerGraphConnectivity.edgesBySource[vertexId0];
-        for(GlobalMarkerGraphVertexId vertexId1: children) {
+        const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
+        for(uint64_t edgeId: childEdges) {
+            const auto& edge = markerGraphConnectivity.edges[edgeId];
+            const GlobalMarkerGraphVertexId vertexId1 = edge.target;
+            CZI_ASSERT(edge.source == vertexId0);
+            CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
+            CZI_ASSERT(!isBadMarkerGraphVertex(vertexId1));
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1137,10 +1176,109 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             }
         }
 
-        CZI_ASSERT(0);
+        // Loop over the parents.
+        const auto parentEdges = markerGraphConnectivity.edgesByTarget[vertexId0];
+        for(uint64_t edgeId: parentEdges) {
+            const auto& edge = markerGraphConnectivity.edges[edgeId];
+            const GlobalMarkerGraphVertexId vertexId1 = edge.source;
+            CZI_ASSERT(edge.target == vertexId0);
+            CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
+
+            // Find the vertex corresponding to this child, creating it if necessary.
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            if(!vertexExists) {
+                v1 = graph.addVertex(
+                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                if(distance1 < distance) {
+                    q.push(v1);
+                }
+            }
+
+            // Create the edge v1->v0, if it does not already exist.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v1, v0, graph);
+            if(!edgeExists) {
+                tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
+                CZI_ASSERT(edgeExists);
+
+                // Fill in edge information.
+                markerIntervals.clear();
+                getGlobalMarkerGraphEdgeInfo(vertexId1, vertexId0, markerIntervals);
+                graph.storeEdgeInfo(e, markerIntervals);
+            }
+        }
+
     }
 
-    CZI_ASSERT(0);
+
+    // The BFS process did not create edges between vertices at maximum distance.
+    // Do it now.
+    // Loop over all vertices at maximum distance.
+    BGL_FORALL_VERTICES(v0, graph, LocalMarkerGraph) {
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        if(vertex0.distance != distance) {
+            continue;
+        }
+        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
+
+        // Loop over the children that exist in the local marker graph
+        // and are also at maximum distance.
+        const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
+        for(uint64_t edgeId: childEdges) {
+            const auto& edge = markerGraphConnectivity.edges[edgeId];
+            const GlobalMarkerGraphVertexId vertexId1 = edge.target;
+            CZI_ASSERT(edge.source == vertexId0);
+            CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
+
+            // See if we have a vertex for this global vertex id.
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+
+            // If it does not exist in the local marker graph, skip.
+            if(!vertexExists) {
+                continue;
+            }
+
+            // If it is not at maximum distance, skip.
+            const LocalMarkerGraphVertex& vertex1 = graph[v1];
+            if(vertex1.distance != distance) {
+                continue;
+            }
+
+            // There is no way we already created this edge.
+            // Check that this is the case.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v0, v1, graph);
+            CZI_ASSERT(!edgeExists);
+
+            // Add the edge.
+            tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
+            CZI_ASSERT(edgeExists);
+
+            // Fill in edge information.
+            markerIntervals.clear();
+            getGlobalMarkerGraphEdgeInfo(vertexId0, vertexId1, markerIntervals);
+            graph.storeEdgeInfo(e, markerIntervals);
+        }
+    }
+
+
+
+    // Fill in the oriented read ids represented in the graph.
+    graph.findOrientedReadIds();
+
+    // If using run-length reads, also fill in the ConsensusInfo's
+    // for each vertex.
+    if(assemblerInfo->useRunLengthReads) {
+        graph.computeVertexConsensusInfo();
+    }
+
+    return true;
 }
 
 
@@ -1295,13 +1433,18 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
                 continue;
             }
 
+            // Skip it if it is a bad vertex.
+            if(isBadMarkerGraphVertex(vertex0)) {
+                continue;
+            }
+
             // Loop over children of this vertex.
             getGlobalMarkerGraphVertexChildren(vertex0, children);
             for(const GlobalMarkerGraphVertexId vertex1: children) {
                 edge.target = vertex1;
                 const auto markerIds1 = globalMarkerGraphVertices[vertex1];
 
-                // Skip it is it has too many markers.
+                // Skip it if it has too many markers.
                 if(markerIds1.size() > markerGraphConnectivity.markerCountOverflow) {
                     continue;
                 }

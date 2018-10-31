@@ -23,6 +23,7 @@ a.accessCandidateAlignments()
 a.accessAlignmentData()
 a.accessReadGraph()
 a.accessMarkerGraphVertices()
+a.accessMarkerGraphConnectivity()
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 
 a.setDocsDirectory(docsDirectory)
