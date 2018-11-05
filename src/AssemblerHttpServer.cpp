@@ -1829,7 +1829,10 @@ void Assembler::exploreReadGraph(
         BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
             const LocalReadGraphVertex& vertex = graph[v];
             const vector<Base> sequence = getOrientedReadRawSequence(OrientedReadId(vertex.readId, 0));
-            fastaFile << ">" << vertex.readId << "\n";
+            const auto readName = readNames[vertex.readId];
+            fastaFile << ">" << vertex.readId << " ";
+            copy(readName.begin(), readName.end(), ostream_iterator<char>(fastaFile));
+            fastaFile << "\n";
             copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fastaFile));
             fastaFile << "\n";
         }
