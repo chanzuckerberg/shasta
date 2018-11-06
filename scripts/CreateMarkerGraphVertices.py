@@ -19,5 +19,6 @@ a.accessReadGraph()
 a.createMarkerGraphVertices(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
     maxSkip = int(config['Align']['maxSkip']),
-    minCoverage = int(config['MarkerGraph']['minCoverage']))
+    minCoverage = int(config['MarkerGraph']['minCoverage']),
+    maxCoverage = int(config['MarkerGraph']['maxCoverage']))
 

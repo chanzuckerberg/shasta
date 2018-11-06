@@ -210,6 +210,7 @@ PYBIND11_MODULE(shasta, module)
             arg("maxVertexCountPerKmer"),
             arg("maxSkip"),
             arg("minCoverage"),
+            arg("maxCoverage"),
             arg("threadCount") = 0)
         .def("accessMarkerGraphVertices",
              &Assembler::accessMarkerGraphVertices)

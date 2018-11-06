@@ -14,6 +14,10 @@ using namespace shasta;
 
 // Loop over all alignments in the read graph
 // to create vertices of the global marker graph.
+// Throw away vertices with coverage (number of markers)
+// less than minCoverage or more than maxCoverage.
+// Also throw away "bad" vertices - that is, vertices
+// with more than one marker on the same oriented read.
 void Assembler::createMarkerGraphVertices(
 
     // The  maximum number of vertices in the alignment graph
@@ -28,14 +32,22 @@ void Assembler::createMarkerGraphVertices(
     // of the marker graph to be kept.
     size_t minCoverage,
 
+    // Maximum coverage (number of markers) for a vertex
+    // of the marker graph to be kept.
+    size_t maxCoverage,
+
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
     size_t threadCount
 )
 {
 
-    using VertexId = GlobalMarkerGraphVertexId;
-    using CompressedVertexId = CompressedGlobalMarkerGraphVertexId;
+    // Flag to control debug output.
+    // Only turn on for a very small test run with just a few reads.
+    const bool debug = false;
+
+    // using VertexId = GlobalMarkerGraphVertexId;
+    // using CompressedVertexId = CompressedGlobalMarkerGraphVertexId;
 
     const auto tBegin = steady_clock::now();
     cout << timestamp << "Begin computing marker graph vertices." << endl;
@@ -83,150 +95,262 @@ void Assembler::createMarkerGraphVertices(
 
 
 
-    // Use the disjoint sets to find the vertex of the global
-    // marker graph that each oriented marker belongs to.
-
-    // Compute the global marker graph vertex corresponding
-    // to each MarkerId.
-    cout << timestamp << "Storing the global marker graph vertex each marker belongs to." << endl;
-    globalMarkerGraphVertex.createNew(
-        largeDataName("GlobalMarkerGraphVertex"),
+    // Find the disjoint set that each oriented marker was assigned to.
+    cout << timestamp << "Finding the disjoint set that each oriented marker was assigned to." << endl;
+    data.disjointSetTable.createNew(
+        largeDataName("tmp-DisjointSetTable"),
         largeDataPageSize);
-    globalMarkerGraphVertex.reserveAndResize(data.orientedMarkerCount);
+    data.disjointSetTable.reserveAndResize(data.orientedMarkerCount);
     batchSize = 1000000;
-    setupLoadBalancing(markers.totalSize(), batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction2, threadCount);
+    cout << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
+    setupLoadBalancing(data.orientedMarkerCount, batchSize);
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction2, threadCount,
+        "threadLogs/createMarkerGraphVertices2");
 
-    // Clean up.
+    // Free the disjoint set data structure.
     data.disjointSetsPointer = 0;
     data.disjointSetsData.remove();
 
 
-    // Using the disjoint sets data structure we computed a
-    // "raw" vertex id that each marker belongs to.
-    // These "raw" vertex ids are in [0, number of markers),
-    // but are not contiguous, because the number of vertices is
-    // less than the number of markers.
-    // To compute final vertex ids that are contiguous
-    // in [0, numberOfVertices), we begin by counting
-    // the number of markers for each raw vertex id.
-    // This is stored in workArea.
-    cout << timestamp << "Counting the number of markers in each vertex." << endl;
+    // Debug output.
+    if(debug) {
+        ofstream out("DisjointSetTable-initial.csv");
+        for(MarkerId markerId=0; markerId<data.orientedMarkerCount; markerId++) {
+            out << markerId << "," << data.disjointSetTable[markerId] << "\n";
+        }
+
+    }
+
+
+
+    // Count the number of markers in each disjoint set
+    // and store it in data.workArea.
+    // We don't want to combine this with the previous block
+    // because it would significantly increase the peak memory usage.
+    // This way, we allocate data.workArea only after freeing the
+    // disjoint set data structure.
+    cout << timestamp << "Counting the number of markers in each disjoint set." << endl;
     data.workArea.createNew(
-        largeDataName("tmp-ComputeAllAlignmentsWorkArea"),
+        largeDataName("tmp-WorkArea"),
         largeDataPageSize);
     data.workArea.reserveAndResize(data.orientedMarkerCount);
+    fill(data.workArea.begin(), data.workArea.end(), 0ULL);
+    cout << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction3, threadCount);
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction3, threadCount,
+        "threadLogs/createMarkerGraphVertices3");
 
 
 
-    // Now we can loop over the work area, and replace each
-    // entry at least equal to minCoverage with an increasing id
-    // which will be the final vertex id.
-    // Entries that are 0 are set to maxValueMinus1.
-    // Entries that are greater than 0 and less than minCoverage
-    // are set to maxValue, so markers that don't belong to
-    // any vertex receive a vertex id of all one bits.
-    const uint64_t maxValue = std::numeric_limits<uint64_t>::max();
-    const uint64_t maxValueMinus1 = maxValue - 1ULL;
-    cout << timestamp << "Generating contiguous vertex ids." << endl;
-    GlobalMarkerGraphVertexId vertexId = 0;
-    for(GlobalMarkerGraphVertexId& w: data.workArea) {
-        if(w == 0ULL) {
-            w = maxValueMinus1;
-        } else if(w <minCoverage) {
-            w = maxValue;
+    // Debug output.
+    if(debug) {
+        ofstream out("WorkArea-initial-count.csv");
+        for(MarkerId markerId=0; markerId<data.orientedMarkerCount; markerId++) {
+            out << markerId << "," << data.workArea[markerId] << "\n";
+        }
+
+    }
+
+
+
+    // At this point, data.workArea contains the number of oriented markers in
+    // each disjoint set.
+    // Replace it with a new numbering, counting only disjoint sets
+    // with size not less than minCoverage and not greater than maxCoverage.
+    // Note that this numbering is not yet the final vertex numbering,
+    // as we will later remove "bad" vertices
+    // (vertices with more than one marker on the same oriented read).
+    // This block is recursive and cannot be multithreaded.
+    cout << timestamp << "Renumbering the disjoint sets." << endl;
+    GlobalMarkerGraphVertexId newDisjointSetId = 0ULL;
+    for(GlobalMarkerGraphVertexId oldDisjointSetId=0;
+        oldDisjointSetId<data.orientedMarkerCount; ++oldDisjointSetId) {
+        auto& w = data.workArea[oldDisjointSetId];
+        const GlobalMarkerGraphVertexId markerCount = w;
+        if(markerCount<minCoverage || markerCount>maxCoverage) {
+            w = invalidGlobalMarkerGraphVertexId;
         } else {
-            w = vertexId++;
+            w = newDisjointSetId;
+            ++newDisjointSetId;
         }
     }
-    const GlobalMarkerGraphVertexId vertexCount = vertexId;
-    cout << timestamp << "The global marker graph has " << vertexCount;
-    cout << " vertices for " << data.orientedMarkerCount;
-    cout << " oriented markers." << endl;
+    const auto disjointSetCount = newDisjointSetId;
+    cout << "Kept " << disjointSetCount << " disjoint sets with coverage in the requested range." << endl;
 
-    // Now we can use the workArea to convert raw vertex ids to final vertex ids.
-    cout << timestamp << "Storing final vertex ids for all markers." << endl;
-    setupLoadBalancing(data.orientedMarkerCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction4, threadCount);
+
+
+    // Debug output.
+    if(debug) {
+        ofstream out("WorkArea-initial-renumbering.csv");
+        for(MarkerId markerId=0; markerId<data.orientedMarkerCount; markerId++) {
+            out << markerId << "," << data.workArea[markerId] << "\n";
+        }
+    }
+
+
+    // Reassign vertices to disjoint sets using this new numbering.
+    // Vertices assigned to no disjoint set will store invalidGlobalMarkerGraphVertexId.
+    // This could be multithreaded if necessary.
+    cout << timestamp << "Assigning vertices to renumbered disjoint sets." << endl;
+    for(GlobalMarkerGraphVertexId markerId=0;
+        markerId<data.orientedMarkerCount; ++markerId) {
+        auto& d = data.disjointSetTable[markerId];
+        const auto oldId = d;
+        const auto newId = data.workArea[oldId];
+        d = newId;
+    }
+    // We no longer need the workArea.
     data.workArea.remove();
 
 
 
-    // Gather the oriented marker ids of each vertex of the global marker graph.
-    cout << timestamp << "Gathering the oriented markers of each vertex." << endl;
+    // Debug output.
+    if(debug) {
+        ofstream out("DisjointSetTable-renumbered.csv");
+        for(MarkerId markerId=0; markerId<data.orientedMarkerCount; markerId++) {
+            out << markerId << "," << data.disjointSetTable[markerId] << "\n";
+        }
+    }
+
+
+    // At this point, data.disjointSetTable contains, for each oriented marker,
+    // the disjoint set that the oriented marker is assigned to,
+    // and all disjoint sets have a number of markers in the requested range.
+    // Vertices not assigned to any disjoint set store a disjoint set
+    // equal to invalidGlobalMarkerGraphVertexId.
+
+
+
+    // Gather the markers in each disjoint set.
+    data.disjointSetMarkers.createNew(
+        largeDataName("tmp-DisjointSetMarkers"),
+        largeDataPageSize);
+    cout << timestamp << "Gathering markers in disjoint sets, pass1." << endl;
+    data.disjointSetMarkers.beginPass1(disjointSetCount);
+    cout << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
+    setupLoadBalancing(data.orientedMarkerCount, batchSize);
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction4, threadCount,
+        "threadLogs/createMarkerGraphVertices4");
+    cout << timestamp << "Gathering markers in disjoint sets, pass2." << endl;
+    data.disjointSetMarkers.beginPass2();
+    cout << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
+    setupLoadBalancing(data.orientedMarkerCount, batchSize);
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction5, threadCount,
+        "threadLogs/createMarkerGraphVertices5");
+    data.disjointSetMarkers.endPass2();
+
+
+
+    // Sort the markers in each disjoint set.
+    cout << timestamp << "Sorting the markers in each disjoint set." << endl;
+    setupLoadBalancing(disjointSetCount, batchSize);
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction6, threadCount,
+        "threadLogs/createMarkerGraphVertices6");
+
+
+
+    // Flag disjoint sets that contain more than one marker on the same oriented read.
+    data.isBadDisjointSet.createNew(
+        largeDataName("tmp-IsBadDisjointSet"),
+        largeDataPageSize);
+    data.isBadDisjointSet.reserveAndResize(disjointSetCount);
+    cout << timestamp << "Flagging bad disjoint sets." << endl;
+    setupLoadBalancing(disjointSetCount, batchSize);
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction7, threadCount,
+        "threadLogs/createMarkerGraphVertices7");
+    const size_t badDisjointSetCount = std::count(
+        data.isBadDisjointSet.begin(), data.isBadDisjointSet.end(), true);
+    cout << "Found " << badDisjointSetCount << " bad disjoint sets "
+        "with more than one marker on a single oriented read." << endl;
+
+
+
+    // Renumber the disjoint sets again, this time without counting the ones marked as bad.
+    cout << timestamp << "Renumbering disjoint sets to remove the bad ones." << endl;
+    data.workArea.createNew(
+        largeDataName("tmp-WorkArea"),
+        largeDataPageSize);
+    data.workArea.reserveAndResize(disjointSetCount);
+    newDisjointSetId = 0ULL;
+    for(GlobalMarkerGraphVertexId oldDisjointSetId=0;
+        oldDisjointSetId<disjointSetCount; ++oldDisjointSetId) {
+        auto& w = data.workArea[oldDisjointSetId];
+        if(data.isBadDisjointSet[oldDisjointSetId]) {
+            w = invalidGlobalMarkerGraphVertexId;
+        } else {
+            w = newDisjointSetId;
+            ++newDisjointSetId;
+        }
+    }
+    CZI_ASSERT(newDisjointSetId + badDisjointSetCount == disjointSetCount);
+
+
+
+    // Debug output.
+    if(debug) {
+        ofstream out("WorkArea-final-renumbering.csv");
+        for(MarkerId markerId=0; markerId<disjointSetCount; markerId++) {
+            out << markerId << "," << data.workArea[markerId] << "\n";
+        }
+    }
+
+
+    // Compute the final disjoint set number for each marker.
+    // That becomes the vertex id assigned to that marker.
+    // This could be multithreaded.
+    cout << timestamp << "Assigning vertex ids to markers." << endl;
+    globalMarkerGraphVertex.createNew(
+        largeDataName("GlobalMarkerGraphVertex"),
+        largeDataPageSize);
+    globalMarkerGraphVertex.reserveAndResize(data.orientedMarkerCount);
+    for(GlobalMarkerGraphVertexId markerId=0;
+        markerId<data.orientedMarkerCount; ++markerId) {
+        auto oldValue = data.disjointSetTable[markerId];
+        if(oldValue == invalidGlobalMarkerGraphVertexId) {
+            globalMarkerGraphVertex[markerId] = invalidCompressedGlobalMarkerGraphVertexId;
+        } else {
+            globalMarkerGraphVertex[markerId] = data.workArea[oldValue];
+        }
+    }
+
+
+
+    // Store the disjoint sets that are not marker bad.
+    // Each corresponds to a vertex of the global marker graph.
+    // This could be multithreaded.
+    cout << timestamp << "Gathering the markers of each vertex of the marker graph." << endl;
     globalMarkerGraphVertices.createNew(
         largeDataName("GlobalMarkerGraphVertices"),
         largeDataPageSize);
-    cout << timestamp << "... pass 1" << endl;
-    globalMarkerGraphVertices.beginPass1(vertexCount);
-    const CompressedVertexId maxValue40Bits = maxValue;
-    for(const CompressedVertexId& v: globalMarkerGraphVertex) {
-        if(v != maxValue40Bits) {
-            globalMarkerGraphVertices.incrementCount(v);
+    for(GlobalMarkerGraphVertexId oldDisjointSetId=0;
+        oldDisjointSetId<disjointSetCount; ++oldDisjointSetId) {
+        if(data.isBadDisjointSet[oldDisjointSetId]) {
+            continue;
+        }
+        globalMarkerGraphVertices.appendVector();
+        const auto markers = data.disjointSetMarkers[oldDisjointSetId];
+        for(const MarkerId markerId: markers) {
+            globalMarkerGraphVertices.append(markerId);
         }
     }
-    cout << timestamp << "... pass 2" << endl;
-    globalMarkerGraphVertices.beginPass2();
-    for(VertexId i=0; i<globalMarkerGraphVertex.size(); i++) {
-        const CompressedVertexId v = globalMarkerGraphVertex[i];
-        if(v != maxValue40Bits) {
-            globalMarkerGraphVertices.store(globalMarkerGraphVertex[i], i);
-        }
-    }
-    globalMarkerGraphVertices.endPass2();
-
-    // Sort the markers in each vertex.
-    cout << timestamp << "Sorting the oriented markers of each vertex." << endl;
-    for(VertexId i=0; i<vertexCount; i++) {
-        if(globalMarkerGraphVertices.size(i) > 1) {
-            sort(globalMarkerGraphVertices.begin(i), globalMarkerGraphVertices.end(i));
-        }
-    }
+    data.isBadDisjointSet.remove();
+    data.workArea.remove();
+    data.disjointSetMarkers.remove();
+    data.disjointSetTable.remove();
 
 
-    // Check that all the markers of a vertex have the same kmer id.
-    if(true) {
-        for(VertexId i=0; i<globalMarkerGraphVertices.size(); i++) {
-            const MemoryAsContainer<MarkerId> vertexMarkers = globalMarkerGraphVertices[i];
-            KmerId kmerId = 0;
-            for(size_t j=0; j<vertexMarkers.size(); j++) {
-                const MarkerId markerId = vertexMarkers[j];
-                const CompressedMarker& marker = markers.begin()[markerId];
-                if(j == 0) {
-                    kmerId = marker.kmerId;
-                } else {
-                    CZI_ASSERT(kmerId == marker.kmerId);
-                }
-            }
-        }
-    }
+    // Check that the data structures we created are consistent with each other.
+    // This could be expensive. Remove when we know this code works.
+    cout << timestamp << "Checking marker graph vertices." << endl;
+    checkMarkerGraphVertices(minCoverage, maxCoverage);
 
-    // Create a histogram of number of markers per vertex.
-    cout << "Creating marker graph vertex coverage histogram." << endl;
-    vector<uint64_t> histogram;
-    for(size_t i=0; i<globalMarkerGraphVertices.size(); i++) {
-        const size_t count = globalMarkerGraphVertices.size(i);
-        if(histogram.size()<= count) {
-            histogram.resize(count+1, 0ULL);
-        }
-        ++histogram[count];
-    }
-    ofstream csv("GlobalMarkerGraphHistogram.csv");
-    csv << "MarkerCount,Frequency\n";
-    for(size_t i=0; i<histogram.size(); i++) {
-        const auto n = histogram[i];
-        if(n) {
-            csv << i << "," << n << "\n";
-        }
-    }
 
 
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
     cout << timestamp << "Computation of global marker graph vertices ";
     cout << "completed in " << tTotal << " s." << endl;
+
 }
 
 
@@ -310,20 +434,178 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
 }
 
+
+
 void Assembler::createMarkerGraphVerticesThreadFunction2(size_t threadId)
 {
     DisjointSets& disjointSets = *createMarkerGraphVerticesData.disjointSetsPointer;
+    auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
 
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
-            globalMarkerGraphVertex[i] = disjointSets.find(i);
+            const uint64_t disjointSetId = disjointSets.find(i);
+            disjointSetTable[i] = disjointSetId;
         }
     }
 }
 
 
 
+void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)
+{
+    const auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
+    auto& workArea = createMarkerGraphVerticesData.workArea;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(MarkerId i=begin; i!=end; ++i) {
+            const uint64_t disjointSetId = disjointSetTable[i];
+
+            // Increment the set size in a thread-safe way.
+            __sync_fetch_and_add(&workArea[disjointSetId], 1ULL);
+        }
+    }
+}
+
+
+
+void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
+{
+    createMarkerGraphVerticesThreadFunction45(4);
+}
+
+
+
+void Assembler::createMarkerGraphVerticesThreadFunction5(size_t threadId)
+{
+    createMarkerGraphVerticesThreadFunction45(5);
+}
+
+
+
+void Assembler::createMarkerGraphVerticesThreadFunction6(size_t threadId)
+{
+    auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(GlobalMarkerGraphVertexId i=begin; i!=end; ++i) {
+            auto markers = disjointSetMarkers[i];
+            sort(markers.begin(), markers.end());
+        }
+    }
+}
+
+
+
+void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
+{
+    const auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
+    auto& isBadDisjointSet = createMarkerGraphVerticesData.isBadDisjointSet;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(GlobalMarkerGraphVertexId disjointSetId=begin; disjointSetId!=end; ++disjointSetId) {
+            auto markers = disjointSetMarkers[disjointSetId];
+            const size_t markerCount = markers.size();
+            CZI_ASSERT(markerCount > 0);
+            isBadDisjointSet[disjointSetId] = false;
+            if(markerCount == 1) {
+                continue;
+            }
+            for(size_t j=1; j<markerCount; j++) {
+                const MarkerId& previousMarkerId = markers[j-1];
+                const MarkerId& markerId = markers[j];
+                OrientedReadId previousOrientedReadId;
+                OrientedReadId orientedReadId;
+                tie(previousOrientedReadId, ignore) = findMarkerId(previousMarkerId);
+                tie(orientedReadId, ignore) = findMarkerId(markerId);
+                if(orientedReadId == previousOrientedReadId) {
+                    isBadDisjointSet[disjointSetId] = true;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
+
+void Assembler::createMarkerGraphVerticesThreadFunction45(int value)
+{
+    CZI_ASSERT(value==4 || value==5);
+    const auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
+    auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(MarkerId i=begin; i!=end; ++i) {
+            const uint64_t disjointSetId = disjointSetTable[i];
+            if(disjointSetId == invalidGlobalMarkerGraphVertexId) {
+                continue;
+            }
+            if(value == 4) {
+                disjointSetMarkers.incrementCountMultithreaded(disjointSetId);
+            } else {
+                disjointSetMarkers.storeMultithreaded(disjointSetId, i);
+            }
+        }
+   }
+}
+
+
+
+// Check for consistency of globalMarkerGraphVertex and globalMarkerGraphVertices.
+void Assembler::checkMarkerGraphVertices(
+    size_t minCoverage,
+    size_t maxCoverage)
+{
+    checkMarkersAreOpen();
+    checkMarkerGraphVerticesAreAvailable();
+    CZI_ASSERT(markers.totalSize() == globalMarkerGraphVertex.size());
+    const MarkerId markerCount = markers.totalSize();
+
+
+
+    // Dump everything. Only turn on for a very small test case.
+    if(false) {
+        ofstream out1("globalMarkerGraphVertex.csv");
+        out1 << "MarkerId,VertexId\n";
+        for(MarkerId markerId=0; markerId<markerCount; markerId++) {
+            out1 << markerId << "," << globalMarkerGraphVertex[markerId] << "\n";
+        }
+        ofstream out2("globalMarkerGraphVertices.csv");
+        out1 << "VertexId,MarkerId\n";
+        for(GlobalMarkerGraphVertexId vertexId=0;
+            vertexId<globalMarkerGraphVertices.size(); vertexId++) {
+            const auto markers = globalMarkerGraphVertices[vertexId];
+            for(const MarkerId markerId: markers) {
+                out2 << vertexId << "," << markerId << "\n";
+            }
+        }
+    }
+
+
+
+    for(GlobalMarkerGraphVertexId vertexId=0;
+        vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
+        CZI_ASSERT(!isBadMarkerGraphVertex(vertexId));
+        const auto markers = globalMarkerGraphVertices[vertexId];
+        CZI_ASSERT(markers.size() >= minCoverage);
+        CZI_ASSERT(markers.size() <= maxCoverage);
+        for(const MarkerId markerId: markers) {
+            if(globalMarkerGraphVertex[markerId] != vertexId) {
+                cout << "Failure at vertex " << vertexId << " marker " << markerId << endl;
+            }
+            CZI_ASSERT(globalMarkerGraphVertex[markerId] == vertexId);
+        }
+    }
+}
+
+
+
+#if 0
 void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)
 {
     GlobalMarkerGraphVertexId* workArea =
@@ -357,6 +639,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
         }
     }
 }
+#endif
 
 
 

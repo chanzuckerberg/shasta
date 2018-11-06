@@ -75,7 +75,8 @@ a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
 a.createMarkerGraphVertices(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
     maxSkip = int(config['Align']['maxSkip']),
-    minCoverage = int(config['MarkerGraph']['minCoverage']))
+    minCoverage = int(config['MarkerGraph']['minCoverage']),
+    maxCoverage = int(config['MarkerGraph']['maxCoverage']))
 
 # Create global marker graph edges.
 a.createMarkerGraphConnectivity(

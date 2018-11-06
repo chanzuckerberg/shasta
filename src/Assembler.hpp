@@ -248,6 +248,10 @@ public:
 
     // Loop over all alignments in the read graph
     // to create vertices of the global marker graph.
+    // Throw away vertices with coverage (number of markers)
+    // less than minCoverage or more than maxCoverage.
+    // Also throw away "bad" vertices - that is, vertices
+    // with more than one marker on the same oriented read.
     void createMarkerGraphVertices(
 
         // The  maximum number of vertices in the alignment graph
@@ -261,6 +265,10 @@ public:
         // Minimum coverage (number of markers) for a vertex
         // of the marker graph to be kept.
         size_t minCoverage,
+
+        // Maximum coverage (number of markers) for a vertex
+        // of the marker graph to be kept.
+        size_t maxCoverage,
 
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
@@ -809,6 +817,10 @@ private:
     void createMarkerGraphVerticesThreadFunction2(size_t threadId);
     void createMarkerGraphVerticesThreadFunction3(size_t threadId);
     void createMarkerGraphVerticesThreadFunction4(size_t threadId);
+    void createMarkerGraphVerticesThreadFunction5(size_t threadId);
+    void createMarkerGraphVerticesThreadFunction45(int);
+    void createMarkerGraphVerticesThreadFunction6(size_t threadId);
+    void createMarkerGraphVerticesThreadFunction7(size_t threadId);
     class CreateMarkerGraphVerticesData {
     public:
 
@@ -823,9 +835,20 @@ private:
         MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
         std::shared_ptr<DisjointSets> disjointSetsPointer;
 
+        // The disjoint set that each oriented marker was assigned to.
+        // See createMarkerGraphVertices for details.
+        MemoryMapped::Vector<GlobalMarkerGraphVertexId> disjointSetTable;
+
         // Work area used for multiple purposes.
-        // See computeAllAlignments for details.
+        // See createMarkerGraphVertices for details.
         MemoryMapped::Vector<GlobalMarkerGraphVertexId> workArea;
+
+        // The markers in each disjoint set with coverage in the requested range.
+        MemoryMapped::VectorOfVectors<MarkerId, GlobalMarkerGraphVertexId> disjointSetMarkers;
+
+        // Flag disjoint sets that contain more than one marker on the same oriented read.
+        MemoryMapped::Vector<bool> isBadDisjointSet;
+
     };
     CreateMarkerGraphVerticesData createMarkerGraphVerticesData;
 
@@ -841,6 +864,11 @@ private:
     // For a given vertex, the oriented marker ids are sorted.
     MemoryMapped::VectorOfVectors<MarkerId, CompressedGlobalMarkerGraphVertexId> globalMarkerGraphVertices;
     void checkMarkerGraphVerticesAreAvailable();
+
+    // Check for consistency of globalMarkerGraphVertex and globalMarkerGraphVertices.
+    void checkMarkerGraphVertices(
+        size_t minCoverage,
+        size_t maxCoverage);
 
 
 
