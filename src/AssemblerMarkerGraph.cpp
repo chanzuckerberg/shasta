@@ -1644,9 +1644,14 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
         auto& thisThreadEdges = *markerGraphConnectivity.threadEdges[threadId];
         auto& thisThreadEdgeMarkerIntervals = *markerGraphConnectivity.threadEdgeMarkerIntervals[threadId];
         CZI_ASSERT(thisThreadEdges.size() == thisThreadEdgeMarkerIntervals.size());
-        for(const auto& edge: thisThreadEdges) {
+        for(size_t i=0; i<thisThreadEdges.size(); i++) {
+            const auto& edge = thisThreadEdges[i];
+            const auto edgeMarkerIntervals = thisThreadEdgeMarkerIntervals[i];
             markerGraphConnectivity.edges.push_back(edge);
             markerGraphConnectivity.edgeMarkerIntervals.appendVector();
+            for(auto edgeMarkerInterval: edgeMarkerIntervals) {
+                markerGraphConnectivity.edgeMarkerIntervals.append(edgeMarkerInterval);
+            }
         }
         thisThreadEdges.remove();
         thisThreadEdgeMarkerIntervals.remove();
@@ -1711,7 +1716,8 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
             largeDataPageSize);
 
     // Some things used inside the loop but defined here for performance.
-    vector<GlobalMarkerGraphVertexId> children;
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > children;
+    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> > workArea;
     MarkerGraphConnectivity::Edge edge;
 
     // Loop over all batches assigned to this thread.
@@ -1723,113 +1729,28 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
         for(GlobalMarkerGraphVertexId vertex0=begin; vertex0!=end; ++vertex0) {
             // out << timestamp << vertex0 << " " << globalMarkerGraphVertices.size(vertex0) << endl;
             edge.source = vertex0;
-            const auto markerIds0 = globalMarkerGraphVertices[vertex0];
 
-            // We are assuming that there are no "bad" vertices
-            // (vertices with more than one marker on the same oriented read),
-            // and that no vertices with very low or very high coverage are present.
-            // This is what createMarkerGraphVertices does.
-
-            // Loop over children of this vertex.
-            getGlobalMarkerGraphVertexChildren(vertex0, children);
-            for(const GlobalMarkerGraphVertexId vertex1: children) {
+            getGlobalMarkerGraphVertexChildren(vertex0, children, workArea);
+            for(const auto& p: children) {
+                const auto vertex1 = p.first;
+                const auto& markerIntervals = p.second;
                 edge.target = vertex1;
-                const auto markerIds1 = globalMarkerGraphVertices[vertex1];
-
-                // Joint loop over markers to compute coverage.
-                // This code is similar to LocalMarkerGraph::storeEdgeInfo.
-                uint32_t coverage = 0;
-
-                // Find pairs of markers for the same oriented read in the two vertices.
-                // We exploit the fact that the markers in each
-                // of the vertices are sorted.
-                auto it0 = markerIds0.begin();
-                auto it1 = markerIds1.begin();
-                const auto end0 = markerIds0.end();
-                const auto end1 = markerIds1.end();
-                while(it0!=end0 && it1!=end1) {
-                    const MarkerId markerId0 = *it0;
-                    const MarkerId markerId1 = *it1;
-
-                    // Find the oriented read ids and ordinals for these markers.
-                    // This uses findMarkerId which requires binary searches
-                    // and therefore could be expensive.
-                    // If this becomes a performance problem we can
-                    // store the OrientedReadId in each marker (4 extra bytes per marker).
-                    OrientedReadId orientedReadId0;
-                    uint32_t ordinal0;
-                    tie(orientedReadId0, ordinal0) = findMarkerId(markerId0);
-                    OrientedReadId orientedReadId1;
-                    uint32_t ordinal1;
-                    tie(orientedReadId1, ordinal1) = findMarkerId(markerId1);
-
-                    if(orientedReadId0 < orientedReadId1) {
-                        ++it0;
-                        continue;
-                    }
-                    if(orientedReadId1 < orientedReadId0) {
-                        ++it1;
-                        continue;
-                    }
-
-                    // If getting here, the two oriented read ids are the same.
-                    CZI_ASSERT(orientedReadId0 == orientedReadId1);
-                    const OrientedReadId orientedReadId = orientedReadId0;
-
-                    // Find the range of marker ids that correspond to this orientedReadId.
-                    const auto thisOrientedReadMarkers = markers[orientedReadId.getValue()];
-                    const MarkerId markerIdEnd   = thisOrientedReadMarkers.end()   - markers.begin();
-
-
-                    // Find the streaks of markers for the same oriented readId.
-                    auto it0StreakEnd = it0;
-                    while(it0StreakEnd!=end0 && *it0StreakEnd<markerIdEnd) {
-                        ++it0StreakEnd;
-                    }
-                    auto it1StreakEnd = it1;
-                    while(it1StreakEnd!=end1 && *it1StreakEnd<markerIdEnd) {
-                        ++it1StreakEnd;
-                    }
-
-
-                    // Only do it if both streaks contain one marker,
-                    // the ordinal for the source vertex
-                    // is less than the ordinal for the target vertex,
-                    // and there are no intervening markers that also belong to a
-                    // vertex of the marker graph.
-                    if(it0StreakEnd-it0==1 && it1StreakEnd-it1==1 && ordinal0<ordinal1) {
-
-                        // Check that there are no intervening markers that also belong to a
-                        // vertex of the marker graph.
-                        bool interveningVertexFound = false;
-                        for(MarkerId markerId=markerId0+1; markerId!=markerId1; markerId++) {
-                            if(globalMarkerGraphVertex[markerId] != invalidCompressedGlobalMarkerGraphVertexId) {
-                                interveningVertexFound = true;
-                                break;
-                            }
-
-                        }
-                        if(!interveningVertexFound) {
-                            ++coverage;
-                        }
-                    }
-
-                    // Update the iterators to point to the end of the streaks.
-                    it0 = it0StreakEnd;
-                    it1 = it1StreakEnd;
-                }
-
-
-                // Store this edge.
-                if(coverage >= 255) {
-                    edge.coverage = 255;
-                } else {
+                size_t coverage = markerIntervals.size();
+                if(coverage < 256) {
                     edge.coverage = uint8_t(coverage);
+                } else {
+                    edge.coverage = 255;
                 }
-                thisThreadEdges.push_back(edge);
-                thisThreadEdgeMarkerIntervals.appendVector();
-            }
 
+                // Store the edge.
+                thisThreadEdges.push_back(edge);
+
+                // Store the marker intervals.
+                thisThreadEdgeMarkerIntervals.appendVector();
+                for(const MarkerInterval markerInterval: markerIntervals) {
+                    thisThreadEdgeMarkerIntervals.append(markerInterval);
+                }
+            }
         }
     }
 
