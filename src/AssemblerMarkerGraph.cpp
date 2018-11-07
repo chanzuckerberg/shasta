@@ -1625,6 +1625,7 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
 
     // Each thread stores the edges it finds in a separate vector.
     markerGraphConnectivity.threadEdges.resize(threadCount);
+    markerGraphConnectivity.threadEdgeMarkerIntervals.resize(threadCount);
     cout << timestamp << "Processing " << globalMarkerGraphVertices.size();
     cout << " marker graph vertices." << endl;
     setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
@@ -1636,13 +1637,21 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
     markerGraphConnectivity.edges.createNew(
             largeDataName("GlobalMarkerGraphEdges"),
             largeDataPageSize);
+    markerGraphConnectivity.edgeMarkerIntervals.createNew(
+            largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"),
+            largeDataPageSize);
     for(size_t threadId=0; threadId<threadCount; threadId++) {
         auto& thisThreadEdges = *markerGraphConnectivity.threadEdges[threadId];
+        auto& thisThreadEdgeMarkerIntervals = *markerGraphConnectivity.threadEdgeMarkerIntervals[threadId];
+        CZI_ASSERT(thisThreadEdges.size() == thisThreadEdgeMarkerIntervals.size());
         for(const auto& edge: thisThreadEdges) {
             markerGraphConnectivity.edges.push_back(edge);
+            markerGraphConnectivity.edgeMarkerIntervals.appendVector();
         }
         thisThreadEdges.remove();
+        thisThreadEdgeMarkerIntervals.remove();
     }
+    CZI_ASSERT(markerGraphConnectivity.edges.size() == markerGraphConnectivity.edgeMarkerIntervals.size());
     cout << timestamp << "Found " << markerGraphConnectivity.edges.size();
     cout << " edges for " << globalMarkerGraphVertices.size() << " vertices." << endl;
 
@@ -1677,17 +1686,28 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
 
 void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
 {
+    using std::shared_ptr;
+    using std::make_shared;
     ostream& out = getLog(threadId);
 
     // Create the vector to contain the edges found by this thread.
-    using std::shared_ptr;
-    using std::make_shared;
     shared_ptr< MemoryMapped::Vector<MarkerGraphConnectivity::Edge> > thisThreadEdgesPointer =
         make_shared< MemoryMapped::Vector<MarkerGraphConnectivity::Edge> >();
     markerGraphConnectivity.threadEdges[threadId] = thisThreadEdgesPointer;
     MemoryMapped::Vector<MarkerGraphConnectivity::Edge>& thisThreadEdges = *thisThreadEdgesPointer;
     thisThreadEdges.createNew(
             largeDataName("tmp-ThreadGlobalMarkerGraphEdges-" + to_string(threadId)),
+            largeDataPageSize);
+
+    // Create the vector to contain the marker intervals for edges found by this thread.
+    shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> >
+        thisThreadEdgeMarkerIntervalsPointer =
+        make_shared< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> >();
+    markerGraphConnectivity.threadEdgeMarkerIntervals[threadId] = thisThreadEdgeMarkerIntervalsPointer;
+    MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t>&
+        thisThreadEdgeMarkerIntervals = *thisThreadEdgeMarkerIntervalsPointer;
+    thisThreadEdgeMarkerIntervals.createNew(
+            largeDataName("tmp-ThreadGlobalMarkerGraphEdgeMarkerIntervals-" + to_string(threadId)),
             largeDataPageSize);
 
     // Some things used inside the loop but defined here for performance.
@@ -1807,7 +1827,7 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
                     edge.coverage = uint8_t(coverage);
                 }
                 thisThreadEdges.push_back(edge);
-
+                thisThreadEdgeMarkerIntervals.appendVector();
             }
 
         }

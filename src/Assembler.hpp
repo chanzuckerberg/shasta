@@ -903,9 +903,13 @@ private:
         MemoryMapped::Vector<Edge> edges;
         const Edge* findEdge(Uint40 source, Uint40 target) const;
 
-        // The edges found by each thread.
+        // The MarkerIntervals for each of the above edges.
+        MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> edgeMarkerIntervals;
+
+        // The edges and their MarkerIntervals found by each thread.
         // This is temporary and only used inside createMarkerGraphConnectivity.
         vector< std::shared_ptr<MemoryMapped::Vector<Edge> > > threadEdges;
+        vector< std::shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
 
         // The edges that each vertex is the source of.
         // Contains indexes into the above edges vector.

@@ -6,6 +6,7 @@
 // CZI.
 #include "CZI_ASSERT.hpp"
 #include "filesystem.hpp"
+#include "MarkerInterval.hpp"
 #include "MurmurHash2.hpp"
 #include "touchMemory.hpp"
 
