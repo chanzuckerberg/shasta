@@ -11,7 +11,6 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
-a.createMarkerGraphConnectivity(
-    markerCountOverflow = int(config['MarkerGraph']['markerCountOverflow']))
+a.createMarkerGraphConnectivity()
 
 

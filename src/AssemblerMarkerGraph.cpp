@@ -1610,10 +1610,7 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
 
 // Compute connectivity of the global marker graph.
 // Vertices with more than markerCountOverflow vertices are skipped.
-void Assembler::createMarkerGraphConnectivity(
-    size_t threadCount,
-    size_t markerCountOverflow
-    )
+void Assembler::createMarkerGraphConnectivity(size_t threadCount)
 {
     cout << timestamp << "createMarkerGraphConnectivity begins." << endl;
 
@@ -1625,9 +1622,6 @@ void Assembler::createMarkerGraphConnectivity(
         threadCount = std::thread::hardware_concurrency();
     }
     cout << "Using " << threadCount << " threads." << endl;
-
-    // Store markerCountOverflow so all threads can see it.
-    markerGraphConnectivity.markerCountOverflow = markerCountOverflow;
 
     // Each thread stores the edges it finds in a separate vector.
     markerGraphConnectivity.threadEdges.resize(threadCount);
@@ -1711,26 +1705,16 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
             edge.source = vertex0;
             const auto markerIds0 = globalMarkerGraphVertices[vertex0];
 
-            // Skip it is it has too many markers.
-            if(markerIds0.size() > markerGraphConnectivity.markerCountOverflow) {
-                continue;
-            }
-
-            // Skip it if it is a bad vertex.
-            if(isBadMarkerGraphVertex(vertex0)) {
-                continue;
-            }
+            // We are assuming that there are no "bad" vertices
+            // (vertices with more than one marker on the same oriented read),
+            // and that no vertices with very low or very high coverage are present.
+            // This is what createMarkerGraphVertices does.
 
             // Loop over children of this vertex.
             getGlobalMarkerGraphVertexChildren(vertex0, children);
             for(const GlobalMarkerGraphVertexId vertex1: children) {
                 edge.target = vertex1;
                 const auto markerIds1 = globalMarkerGraphVertices[vertex1];
-
-                // Skip it if it has too many markers.
-                if(markerIds1.size() > markerGraphConnectivity.markerCountOverflow) {
-                    continue;
-                }
 
                 // Joint loop over markers to compute coverage.
                 // This code is similar to LocalMarkerGraph::storeEdgeInfo.

@@ -79,7 +79,6 @@ a.createMarkerGraphVertices(
     maxCoverage = int(config['MarkerGraph']['maxCoverage']))
 
 # Create global marker graph edges.
-a.createMarkerGraphConnectivity(
-    markerCountOverflow = int(config['MarkerGraph']['markerCountOverflow']))
+a.createMarkerGraphConnectivity()
 
 

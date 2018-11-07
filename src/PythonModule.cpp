@@ -268,8 +268,7 @@ PYBIND11_MODULE(shasta, module)
         // Connectivity of the global marker graph.
         .def("createMarkerGraphConnectivity",
              &Assembler::createMarkerGraphConnectivity,
-             arg("threadCount") = 0,
-             arg("markerCountOverflow"))
+             arg("threadCount") = 0)
          .def("accessMarkerGraphConnectivity",
               &Assembler::accessMarkerGraphConnectivity,
               arg("accessEdgesReadWrite") = false)
