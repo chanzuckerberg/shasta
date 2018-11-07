@@ -2,6 +2,7 @@
 #define CZI_SHASTA_MARKER_INTERVAL_HPP
 
 #include "ReadId.hpp"
+#include"tuple.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {
@@ -23,6 +24,7 @@ public:
     // The ordinals of the two markers.
     array<uint32_t, 2> ordinals;
 
+    MarkerInterval() {}
     MarkerInterval(
         OrientedReadId orientedReadId,
         uint32_t ordinal0,
@@ -31,6 +33,14 @@ public:
     {
         ordinals[0] = ordinal0;
         ordinals[1] = ordinal1;
+    }
+
+    bool operator<(const MarkerInterval& that) const
+    {
+        return
+            tie(orientedReadId, ordinals[0], ordinals[1])
+            <
+            tie(that.orientedReadId, that.ordinals[0], that.ordinals[1]);
     }
 };
 

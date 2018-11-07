@@ -778,8 +778,8 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 // that caused a child to be marked as such.
 void Assembler::getGlobalMarkerGraphVertexChildren(
     GlobalMarkerGraphVertexId vertexId,
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >& children,
-    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >& children,
+    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
     ) const
 {
     children.clear();
@@ -793,15 +793,15 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
 
         // Find the OrientedReadId and ordinal.
-        MarkerGraphNeighborInfo info;
-        tie(info.orientedReadId, info.ordinal0) = findMarkerId(markerId);
+        MarkerInterval info;
+        tie(info.orientedReadId, info.ordinals[0]) = findMarkerId(markerId);
 
         // Find the next marker that is contained in a vertex.
         const auto markerCount = markers.size(info.orientedReadId.getValue());
-        for(info.ordinal1=info.ordinal0+1; info.ordinal1<markerCount; ++info.ordinal1) {
+        for(info.ordinals[1]=info.ordinals[0]+1; info.ordinals[1]<markerCount; ++info.ordinals[1]) {
 
             // Find the vertex id.
-            const MarkerId childMarkerId =  getMarkerId(info.orientedReadId, info.ordinal1);
+            const MarkerId childMarkerId =  getMarkerId(info.orientedReadId, info.ordinals[1]);
             const GlobalMarkerGraphVertexId childVertexId =
                 globalMarkerGraphVertex[childMarkerId];
 
@@ -907,8 +907,8 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 // that caused a parent to be marked as such.
 void Assembler::getGlobalMarkerGraphVertexParents(
     GlobalMarkerGraphVertexId vertexId,
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >& parents,
-    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >& parents,
+    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
     ) const
 {
     parents.clear();
@@ -922,17 +922,17 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
 
         // Find the OrientedReadId and ordinal.
-        MarkerGraphNeighborInfo info;
-        tie(info.orientedReadId, info.ordinal0) = findMarkerId(markerId);
-        if(info.ordinal0 == 0) {
+        MarkerInterval info;
+        tie(info.orientedReadId, info.ordinals[0]) = findMarkerId(markerId);
+        if(info.ordinals[0] == 0) {
             continue;
         }
 
         // Find the previous marker that is contained in a vertex.
-        for(info.ordinal1=info.ordinal0-1; ; --info.ordinal1) {
+        for(info.ordinals[1]=info.ordinals[0]-1; ; --info.ordinals[1]) {
 
             // Find the vertex id.
-            const MarkerId parentMarkerId =  getMarkerId(info.orientedReadId, info.ordinal1);
+            const MarkerId parentMarkerId =  getMarkerId(info.orientedReadId, info.ordinals[1]);
             const GlobalMarkerGraphVertexId parentVertexId =
                 globalMarkerGraphVertex[parentMarkerId];
 
@@ -943,7 +943,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
                 break;
             }
 
-            if(info.ordinal1  == 0) {
+            if(info.ordinals[1]  == 0) {
                 break;
             }
         }
@@ -986,8 +986,8 @@ vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGr
     const uint32_t k = uint32_t(assemblerInfo->k);
 
     // Find the children of vertexId0.
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > children;
-    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> > workArea;
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > children;
+    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> > workArea;
     getGlobalMarkerGraphVertexChildren(vertexId0, children, workArea);
 
     // Find vertexId1 in the children.
@@ -1005,8 +1005,8 @@ vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGr
             auto& info = v[i];
             info.readId = childInfo.orientedReadId.getReadId();
             info.strand = childInfo.orientedReadId.getStrand();
-            info.ordinal0 = childInfo.ordinal0;
-            info.ordinal1 = childInfo.ordinal1;
+            info.ordinal0 = childInfo.ordinals[0];
+            info.ordinal1 = childInfo.ordinals[1];
 
             // Get the positions.
             const MarkerId markerId0 = getMarkerId(childInfo.orientedReadId, info.ordinal0);
@@ -1184,9 +1184,9 @@ bool Assembler::extractLocalMarkerGraph(
 
     // Some vectors used inside the BFS.
     // Define them here to reduce memory allocation activity.
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > children;
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > > parents;
-    vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> > workArea;
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > children;
+    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > parents;
+    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> > workArea;
     vector<MarkerInterval> markerIntervalVector;
 
 
@@ -1243,9 +1243,9 @@ bool Assembler::extractLocalMarkerGraph(
                 // Fill in edge information.
                 markerIntervalVector.clear();
                 const auto& v = p.second;
-                for(const MarkerGraphNeighborInfo& x: v) {
+                for(const MarkerInterval& x: v) {
                     markerIntervalVector.push_back(MarkerInterval(
-                        x.orientedReadId, x.ordinal0, x.ordinal1));
+                        x.orientedReadId, x.ordinals[0], x.ordinals[1]));
                 }
                 graph.storeEdgeInfo(e, markerIntervalVector);
             }
@@ -1279,9 +1279,9 @@ bool Assembler::extractLocalMarkerGraph(
                 // Fill in edge information.
                 markerIntervalVector.clear();
                 const auto& v = p.second;
-                for(const MarkerGraphNeighborInfo& x: v) {
+                for(const MarkerInterval& x: v) {
                     markerIntervalVector.push_back(MarkerInterval(
-                        x.orientedReadId, x.ordinal1, x.ordinal0));
+                        x.orientedReadId, x.ordinals[1], x.ordinals[0]));
                 }
                 graph.storeEdgeInfo(e, markerIntervalVector);
             }
@@ -1334,9 +1334,9 @@ bool Assembler::extractLocalMarkerGraph(
             // Fill in edge information.
             markerIntervalVector.clear();
             const auto& v = p.second;
-            for(const MarkerGraphNeighborInfo& x: v) {
+            for(const MarkerInterval& x: v) {
                 markerIntervalVector.push_back(MarkerInterval(
-                    x.orientedReadId, x.ordinal0, x.ordinal1));
+                    x.orientedReadId, x.ordinals[0], x.ordinals[1]));
             }
             graph.storeEdgeInfo(e, markerIntervalVector);
         }

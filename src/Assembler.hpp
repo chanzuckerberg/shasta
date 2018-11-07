@@ -968,26 +968,15 @@ private:
 
     // This version also returns the oriented read ids and ordinals
     // that caused a child to be marked as such.
-    class MarkerGraphNeighborInfo {
-    public:
-        OrientedReadId orientedReadId;
-        uint32_t ordinal0;
-        uint32_t ordinal1;
-        bool operator<(const MarkerGraphNeighborInfo& that) const
-        {
-            return tie(orientedReadId, ordinal0, ordinal1) <
-                tie(that.orientedReadId, that.ordinal0, that.ordinal1);
-        }
-    };
     void getGlobalMarkerGraphVertexChildren(
         GlobalMarkerGraphVertexId,
-        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >&,
-        vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >&,
+        vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
         ) const;
     void getGlobalMarkerGraphVertexParents(
         GlobalMarkerGraphVertexId,
-        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerGraphNeighborInfo> > >&,
-        vector< pair<GlobalMarkerGraphVertexId, MarkerGraphNeighborInfo> >& workArea
+        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >&,
+        vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
         ) const;
 
     // Return true if a vertex of the global marker graph has more than
