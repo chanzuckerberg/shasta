@@ -1838,13 +1838,8 @@ const Assembler::MarkerGraphConnectivity::Edge*
 
 
 
-// Flag as not good a marker graph edge if:
-// - It has coverage<minCoverage, AND
-// - A path of length <= maxPathLength edges exists that:
-//    * Starts at the source vertex of the edge.
-//    * Ends at the target vertex of the edge.
-//    * Only uses edges with coverage>=minCoverage.
-void Assembler::flagMarkerGraphEdges(
+// Set the isWeak flag of marker graph edges.
+void Assembler::flagMarkerGraphWeakEdges(
     size_t threadCount,
     size_t minCoverage,
     size_t maxPathLength)
@@ -1856,26 +1851,28 @@ void Assembler::flagMarkerGraphEdges(
     cout << "Using " << threadCount << " threads." << endl;
 
     // Store the parameters so all threads can see them.
-    flagMarkerGraphEdgesData.minCoverage = minCoverage;
-    flagMarkerGraphEdgesData.maxPathLength = maxPathLength;
+    flagMarkerGraphWeakEdgesData.minCoverage = minCoverage;
+    flagMarkerGraphWeakEdgesData.maxPathLength = maxPathLength;
 
     // Do it in parallel.
     const size_t vertexCount = markerGraphConnectivity.edgesBySource.size();
     setupLoadBalancing(vertexCount, 100000);
+    cout << timestamp << "Processing " << vertexCount << " vertices." << endl;
     runThreads(
-        &Assembler::flagMarkerGraphEdgesThreadFunction,
+        &Assembler::flagMarkerGraphWeakEdgesThreadFunction,
         threadCount,
-        "threadLogs/flagMarkerGraphEdges");
+        "threadLogs/flagMarkerGraphWeakEdges");
+    cout << timestamp << "Done flagging weak edges." << endl;
 }
 
 
 
-void Assembler::flagMarkerGraphEdgesThreadFunction(size_t threadId)
+void Assembler::flagMarkerGraphWeakEdgesThreadFunction(size_t threadId)
 {
     ostream& out = getLog(threadId);
 
-    const size_t minCoverage = flagMarkerGraphEdgesData.minCoverage;
-    const size_t maxPathLength = flagMarkerGraphEdgesData.maxPathLength;
+    const size_t minCoverage = flagMarkerGraphWeakEdgesData.minCoverage;
+    const size_t maxPathLength = flagMarkerGraphWeakEdgesData.maxPathLength;
 
     vector< vector<GlobalMarkerGraphVertexId> > verticesByDistance(maxPathLength+1);
     verticesByDistance.front().resize(1);
@@ -1924,13 +1921,12 @@ void Assembler::flagMarkerGraphEdgesThreadFunction(size_t threadId)
                 }
                 CZI_ASSERT(edge.source == startVertexId);
                 if(std::binary_search(vertices.begin(), vertices.end(), edge.target)) {
-                    edge.flag0 = 1;
+                    edge.isWeak = 1;
                 }
             }
 
         }
 
     }
-
 }
 

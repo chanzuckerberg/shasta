@@ -350,13 +350,8 @@ public:
     void accessMarkerGraphConnectivity(bool accessEdgesReadWrite);
     void checkMarkerGraphConnectivityIsOpen();
 
-    // Flag as not good a marker graph edge if:
-    // - It has coverage<minCoverage, AND
-    // - A path of length <= maxPathLength edges exists that:
-    //    * Starts at the source vertex of the edge.
-    //    * Ends at the target vertex of the edge.
-    //    * Only uses edges with coverage>=minCoverage.
-    void flagMarkerGraphEdges(
+    // Set the isWeak flag of marker graph edges.
+    void flagMarkerGraphWeakEdges(
         size_t threadCount,
         size_t minCoverage,
         size_t maxPathLength);
@@ -880,7 +875,15 @@ private:
             Uint40 source;  // The source vertex (index into globalMarkerGraphVertices).
             Uint40 target;  // The target vertex (index into globalMarkerGraphVertices).
             uint8_t coverage;   // (255 indicates 255 or more).
-            uint8_t flag0 : 1;
+
+            // This flag gets set by flagWeakMarkerGraphEdges if:
+            // - It has coverage less than minCoverage, and
+            // - The directed edge is v0->v1, and v1 is reachable from v0
+            //   via a short path that only uses edges with coverage
+            //   at least equal to minCoverage.
+            uint8_t isWeak : 1;
+
+            // The remaining flags are currently unused.
             uint8_t flag1 : 1;
             uint8_t flag2 : 1;
             uint8_t flag3 : 1;
@@ -890,7 +893,7 @@ private:
             uint8_t flag7 : 1;
             void clearFlags()
             {
-                flag0 = 0;
+                isWeak = 0;
                 flag1 = 0;
                 flag2 = 0;
                 flag3 = 0;
@@ -935,14 +938,14 @@ private:
 
 
 
-    // Data used by flagMarkerGraphEdges.
-    class FlagMarkerGraphEdgesData {
+    // Data used by flagWeakMarkerGraphEdges.
+    class FlagMarkerGraphWeakEdgesData {
     public:
         size_t minCoverage;
         size_t maxPathLength;
     };
-    FlagMarkerGraphEdgesData flagMarkerGraphEdgesData;
-    void flagMarkerGraphEdgesThreadFunction(size_t threadId);
+    FlagMarkerGraphWeakEdgesData flagMarkerGraphWeakEdgesData;
+    void flagMarkerGraphWeakEdgesThreadFunction(size_t threadId);
 
 
 

@@ -10,8 +10,8 @@ config = GetConfig.getConfig()
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
 a.accessMarkerGraphConnectivity(accessEdgesReadWrite=True)
-a.flagMarkerGraphEdges(
-    minCoverage = int(config['MarkerGraph']['minCoverage']),
+a.flagMarkerGraphWeakEdges(
+    minCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
     maxPathLength = int(config['MarkerGraph']['maxPathLength']),
     )
 

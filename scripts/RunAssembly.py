@@ -81,4 +81,10 @@ a.createMarkerGraphVertices(
 # Create global marker graph edges.
 a.createMarkerGraphConnectivity()
 
+# Flag weak edges of the marker graph.
+a.flagMarkerGraphWeakEdges(
+    minCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
+    maxPathLength = int(config['MarkerGraph']['maxPathLength']),
+    )
+
 

@@ -272,8 +272,8 @@ PYBIND11_MODULE(shasta, module)
          .def("accessMarkerGraphConnectivity",
               &Assembler::accessMarkerGraphConnectivity,
               arg("accessEdgesReadWrite") = false)
-         .def("flagMarkerGraphEdges",
-              &Assembler::flagMarkerGraphEdges,
+         .def("flagMarkerGraphWeakEdges",
+              &Assembler::flagMarkerGraphWeakEdges,
                  arg("threadCount") = 0,
                  arg("minCoverage"),
                  arg("maxPathLength"))
