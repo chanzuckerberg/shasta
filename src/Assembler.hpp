@@ -899,6 +899,13 @@ private:
                 flag6 = 0;
                 flag7 = 0;
             }
+            Edge() :
+                source(invalidCompressedGlobalMarkerGraphVertexId),
+                target(invalidCompressedGlobalMarkerGraphVertexId),
+                coverage(0)
+            {
+                clearFlags();
+            }
         };
         MemoryMapped::Vector<Edge> edges;
         const Edge* findEdge(Uint40 source, Uint40 target) const;
