@@ -1453,8 +1453,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 CZI_ASSERT(edgeExists);
 
                 // Fill in edge information.
-                markerIntervals.clear();
-                getGlobalMarkerGraphEdgeInfo(vertexId0, vertexId1, markerIntervals);
+                const auto storedMarkerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+                markerIntervals.resize(storedMarkerIntervals.size());
+                copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
             }
         }
@@ -1488,8 +1489,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 CZI_ASSERT(edgeExists);
 
                 // Fill in edge information.
-                markerIntervals.clear();
-                getGlobalMarkerGraphEdgeInfo(vertexId1, vertexId0, markerIntervals);
+                const auto storedMarkerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+                markerIntervals.resize(storedMarkerIntervals.size());
+                copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
             }
         }
@@ -1544,8 +1546,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             CZI_ASSERT(edgeExists);
 
             // Fill in edge information.
-            markerIntervals.clear();
-            getGlobalMarkerGraphEdgeInfo(vertexId0, vertexId1, markerIntervals);
+            const auto storedMarkerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+            markerIntervals.resize(storedMarkerIntervals.size());
+            copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
             graph.storeEdgeInfo(e, markerIntervals);
         }
     }
@@ -1799,6 +1802,8 @@ void Assembler::accessMarkerGraphConnectivity(bool accessEdgesReadWrite)
         markerGraphConnectivity.edges.accessExistingReadOnly(
             largeDataName("GlobalMarkerGraphEdges"));
     }
+    markerGraphConnectivity.edgeMarkerIntervals.accessExistingReadOnly(
+        largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
     markerGraphConnectivity.edgesBySource.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesBySource"));
     markerGraphConnectivity.edgesByTarget.accessExistingReadOnly(
