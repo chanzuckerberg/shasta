@@ -1865,6 +1865,12 @@ void Assembler::flagMarkerGraphWeakEdges(
     flagMarkerGraphWeakEdgesData.minCoverage = minCoverage;
     flagMarkerGraphWeakEdgesData.maxPathLength = maxPathLength;
 
+    // Make sure all edges are initially flagged as not weak.
+    for(auto& edge: markerGraphConnectivity.edges) {
+        edge.isWeak = 0;
+    }
+
+
     // Do it in parallel.
     const size_t vertexCount = markerGraphConnectivity.edgesBySource.size();
     setupLoadBalancing(vertexCount, 100000);
@@ -1874,6 +1880,16 @@ void Assembler::flagMarkerGraphWeakEdges(
         threadCount,
         "threadLogs/flagMarkerGraphWeakEdges");
     cout << timestamp << "Done flagging weak edges." << endl;
+
+    // Count the number of edges that were flagged as weak.
+    uint64_t weakEdgeCount = 0;;
+    for(const auto& edge: markerGraphConnectivity.edges) {
+        if(edge.isWeak) {
+            ++weakEdgeCount;
+        }
+    }
+    cout << "Marked as weak " << weakEdgeCount << " marker graph edges out of ";
+    cout << markerGraphConnectivity.edges.size() << " total." << endl;
 }
 
 
