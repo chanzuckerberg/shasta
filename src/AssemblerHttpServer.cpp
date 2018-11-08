@@ -125,7 +125,8 @@ void Assembler::writeHtmlBegin(ostream& html) const
         "<html>"
         "<head>"
         "<link rel=icon href=docs/CZI-new-logo.png />"
-        "<meta charset='UTF-8'>";
+        "<meta charset='UTF-8'>"
+        "<title>Shasta assembler</title>";
     writeStyle(html);
     // writeMakeAllTablesSelectable(html);
     html <<
