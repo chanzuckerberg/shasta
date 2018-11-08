@@ -1363,12 +1363,13 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     uint32_t ordinal,
     int distance,
     double timeout,                 // Or 0 for no timeout.
+    bool showWeakEdges,
     LocalMarkerGraph& graph
     )
 {
     const GlobalMarkerGraphVertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-    return extractLocalMarkerGraphUsingStoredConnectivity(startVertexId, distance, timeout, graph);
+    return extractLocalMarkerGraphUsingStoredConnectivity(startVertexId, distance, timeout, showWeakEdges, graph);
 
 }
 
@@ -1378,6 +1379,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     GlobalMarkerGraphVertexId startVertexId,
     int distance,
     double timeout,                 // Or 0 for no timeout.
+    bool showWeakEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1427,6 +1429,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
         for(uint64_t edgeId: childEdges) {
             const auto& edge = markerGraphConnectivity.edges[edgeId];
+            if(edge.isWeak && !showWeakEdges) {
+                continue;
+            }
             const GlobalMarkerGraphVertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
@@ -1464,6 +1469,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const auto parentEdges = markerGraphConnectivity.edgesByTarget[vertexId0];
         for(uint64_t edgeId: parentEdges) {
             const auto& edge = markerGraphConnectivity.edges[edgeId];
+            if(edge.isWeak && !showWeakEdges) {
+                continue;
+            }
             const GlobalMarkerGraphVertexId vertexId1 = edge.source;
             CZI_ASSERT(edge.target == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
@@ -1514,6 +1522,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
         for(uint64_t edgeId: childEdges) {
             const auto& edge = markerGraphConnectivity.edges[edgeId];
+            if(edge.isWeak && !showWeakEdges) {
+                continue;
+            }
             const GlobalMarkerGraphVertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());

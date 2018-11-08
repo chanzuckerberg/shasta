@@ -74,6 +74,7 @@ void Assembler::exploreMarkerGraph(
             requestParameters.ordinal,
             requestParameters.maxDistance,
             requestParameters.timeout,
+            requestParameters.showWeakEdges,
             graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             return;
@@ -421,6 +422,14 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.useStoredConnectivity = getParameterValue(
         request, "useStoredConnectivity", useStoredConnectivityString);
 
+    string showWeakEdgesString;
+    parameters.showWeakEdges = getParameterValue(
+        request, "showWeakEdges", showWeakEdgesString);
+
+    string showChimericEdgesString;
+    parameters.showChimericEdges = getParameterValue(
+        request, "showChimericEdges", showChimericEdgesString);
+
     string showVertexIdString;
     parameters.showVertexId = getParameterValue(
         request, "showVertexId", showVertexIdString);
@@ -500,6 +509,9 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td>Use stored connectivity"
         "<td class=centered><input type=checkbox name=useStoredConnectivity"
         << (useStoredConnectivity ? " checked=checked" : "") <<
+        "><td class=centered>"
+        "Weak edges<input type=checkbox name=showWeakEdges" << (showWeakEdges ? " checked=checked" : "") <<
+        "><td class=centered>Chimeric edges (not implemented)<input type=checkbox name=showChimericEdges" << (showChimericEdges ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"

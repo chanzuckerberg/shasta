@@ -1038,12 +1038,14 @@ private:
         uint32_t ordinal,
         int distance,
         double timeout,                 // Or 0 for no timeout.
+        bool showWeakEdges,
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
         GlobalMarkerGraphVertexId,
         int distance,
         double timeout,                 // Or 0 for no timeout.
+        bool showWeakEdges,
         LocalMarkerGraph&
         );
 
@@ -1099,6 +1101,8 @@ private:
         bool maxDistanceIsPresent;
         bool detailed;
         bool useStoredConnectivity;
+        bool showWeakEdges;
+        bool showChimericEdges;
         bool showVertexId;
         bool showOptimalSpanningTree;
         bool showAssembledSequence;
