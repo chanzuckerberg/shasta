@@ -277,6 +277,10 @@ PYBIND11_MODULE(shasta, module)
                  arg("threadCount") = 0,
                  arg("minCoverage"),
                  arg("maxPathLength"))
+         .def("flagMarkerGraphChimericEdges",
+              &Assembler::flagMarkerGraphChimericEdges,
+                 arg("threadCount") = 0,
+                 arg("maxChimericEdgeCoverage"))
 
 
         // Http server.

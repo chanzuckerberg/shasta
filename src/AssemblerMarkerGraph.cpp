@@ -1957,3 +1957,131 @@ void Assembler::flagMarkerGraphWeakEdgesThreadFunction(size_t threadId)
     }
 }
 
+
+
+// Flag chimeric marker graph edges.
+void Assembler::flagMarkerGraphChimericEdges(
+    size_t threadCount,
+    size_t maxChimericEdgeCoverage)
+{
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Store the parameters so all threads can see them.
+    flagMarkerGraphChimericEdgesData.maxChimericEdgeCoverage = maxChimericEdgeCoverage;
+
+    // Make sure all edges are initially flagged as not chimeric.
+    for(auto& edge: markerGraphConnectivity.edges) {
+        edge.isChimeric = 0;
+    }
+
+
+
+    // Do it in parallel.
+    const uint64_t edgeCount = markerGraphConnectivity.edges.size();
+    setupLoadBalancing(edgeCount, 100000);
+    cout << timestamp << "Processing " << edgeCount << " edges." << endl;
+    runThreads(
+        &Assembler::flagMarkerGraphChimericEdgesThreadFunction,
+        threadCount,
+        "threadLogs/flagMarkerGraphChimericEdges");
+    cout << timestamp << "Done flagging chimeric edges." << endl;
+
+
+    // Count the number of edges that were flagged as chimeric.
+    uint64_t chimericEdgeCount = 0;
+    uint64_t chimericNonWeakEdgeCount = 0;
+    for(const auto& edge: markerGraphConnectivity.edges) {
+        if(edge.isChimeric) {
+            ++chimericEdgeCount;
+            if(!edge.isWeak) {
+                ++chimericNonWeakEdgeCount;
+            }
+        }
+    }
+    cout << "Marked as chimeric " << chimericEdgeCount << " marker graph edges out of ";
+    cout << markerGraphConnectivity.edges.size() << " total." << endl;
+    cout << "Number of edges that are flagged chimeric but not weak is " << chimericNonWeakEdgeCount << endl;
+}
+
+
+
+void Assembler::flagMarkerGraphChimericEdgesThreadFunction(size_t threadId)
+{
+    ostream& out = getLog(threadId);
+    const size_t maxChimericEdgeCoverage = flagMarkerGraphChimericEdgesData.maxChimericEdgeCoverage;
+
+
+
+    // Loop over all batches assigned to this thread.
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        out << timestamp << begin << endl;
+
+        // Loop over edges assigned to this batch.
+        for(uint64_t edgeId=begin; edgeId!=end; ++edgeId) {
+            auto& edge = markerGraphConnectivity.edges[edgeId];
+
+            // If the edge has too much coverage, skip it.
+            if(edge.coverage > maxChimericEdgeCoverage) {
+                continue;
+            }
+
+            // Count common oriented read ids between the source and target vertices.
+            // We use the fact that marker ids in vertices are sorted,
+            // that marker ids are also sorted by oriented read id,
+            // and that oriented read ids are distinct in each vertex.
+            const GlobalMarkerGraphVertexId v0 = edge.source;
+            const GlobalMarkerGraphVertexId v1 = edge.target;
+            const auto markers0 = globalMarkerGraphVertices[v0];
+            const auto markers1 = globalMarkerGraphVertices[v1];
+            auto it0 = markers0.begin();
+            auto it1 = markers1.begin();
+            uint64_t commonOrientedReadCount = 0;
+            while(it0!=markers0.end() && it1!=markers1.end()) {
+
+                // Find the oriented read ids.
+                OrientedReadId orientedReadId0;
+                tie(orientedReadId0, ignore) = findMarkerId(*it0);
+                OrientedReadId orientedReadId1;
+                tie(orientedReadId1, ignore) = findMarkerId(*it1);
+
+                if(orientedReadId0 < orientedReadId1) {
+                    ++it0;
+                } else if(orientedReadId1 < orientedReadId0) {
+                    ++it1;
+                } else {
+                    ++commonOrientedReadCount;
+                    ++it0;
+                    ++it1;
+                }
+            }
+
+
+            // If there are no common oriented reads in addition
+            // to the ones in the edge, mark this edge as chimeric.
+            if(commonOrientedReadCount <= edge.coverage) {
+                edge.isChimeric = true;
+
+                OrientedReadId orientedReadId0;
+                uint32_t ordinal0;
+                tie(orientedReadId0, ordinal0) = findMarkerId(*(markers0.begin()));
+
+                OrientedReadId orientedReadId1;
+                uint32_t ordinal1;
+                tie(orientedReadId1, ordinal1) = findMarkerId(*(markers1.begin()));
+
+                out << orientedReadId0 << " " << ordinal0 << " ";
+                out << orientedReadId1 << " " << ordinal1 << " ";
+                out << int(edge.isWeak) << " " << commonOrientedReadCount << " " << int(edge.coverage) << endl;
+            }
+        }
+    }
+}
+
+
+
+

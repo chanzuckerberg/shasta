@@ -356,6 +356,11 @@ public:
         size_t minCoverage,
         size_t maxPathLength);
 
+    // Flag chimeric marker graph edges.
+    void flagMarkerGraphChimericEdges(
+        size_t threadCount,
+        size_t maxChimericEdgeCoverage);
+
 
 
     // Call this before explore to make the documentation available.
@@ -883,8 +888,10 @@ private:
             //   at least equal to minCoverage.
             uint8_t isWeak : 1;
 
+            // Flag set to indicate that this edge is chimeric.
+            uint8_t isChimeric : 1;
+
             // The remaining flags are currently unused.
-            uint8_t flag1 : 1;
             uint8_t flag2 : 1;
             uint8_t flag3 : 1;
             uint8_t flag4 : 1;
@@ -894,7 +901,7 @@ private:
             void clearFlags()
             {
                 isWeak = 0;
-                flag1 = 0;
+                isChimeric = 0;
                 flag2 = 0;
                 flag3 = 0;
                 flag4 = 0;
@@ -938,7 +945,7 @@ private:
 
 
 
-    // Data used by flagWeakMarkerGraphEdges.
+    // Data used by flagMarkerGraphWeakEdges.
     class FlagMarkerGraphWeakEdgesData {
     public:
         size_t minCoverage;
@@ -946,6 +953,16 @@ private:
     };
     FlagMarkerGraphWeakEdgesData flagMarkerGraphWeakEdgesData;
     void flagMarkerGraphWeakEdgesThreadFunction(size_t threadId);
+
+
+
+    // Data used by flagMarkerGraphChimericEdges.
+    class FlagMarkerGraphChimericEdgesData {
+    public:
+        size_t maxChimericEdgeCoverage;
+    };
+    FlagMarkerGraphChimericEdgesData flagMarkerGraphChimericEdgesData;
+    void flagMarkerGraphChimericEdgesThreadFunction(size_t threadId);
 
 
 
