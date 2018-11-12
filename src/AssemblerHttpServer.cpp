@@ -1958,7 +1958,8 @@ void Assembler::exploreReadGraph(
         "Color legend: "
         "<span style='background-color:LightGreen'>start vertex</span> "
         "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
-        ") from the start vertex</span>.";
+        ") from the start vertex</span> "
+        "<span style='background-color:red'>chimeric vertices</span>.<br>";
 
 
     // Display the graph.
