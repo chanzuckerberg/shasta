@@ -51,6 +51,9 @@ public:
     // The number of markers in this read.
     uint32_t markerCount;
 
+    // Flag that indicates whether this read is chimeric.
+    bool isChimeric;
+
     // The distance of this vertex from the starting vertex.
     uint32_t distance;
 
@@ -60,9 +63,11 @@ public:
     LocalReadGraphVertex(
         ReadId readId,
         uint32_t markerCount,
+        bool isChimeric,
         uint32_t distance) :
         readId(readId),
         markerCount(markerCount),
+        isChimeric(isChimeric),
         distance(distance)
         {}
 
@@ -100,6 +105,7 @@ public:
     void addVertex(
         ReadId,
         uint32_t baseCount,
+        bool isChimeric,
         uint32_t distance);
 
     void addEdge(

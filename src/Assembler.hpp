@@ -818,6 +818,7 @@ private:
     bool createLocalReadGraph(
         ReadId& readIdStart,    // If the specified read is contained, modified to the containing read.
         uint32_t maxDistance,   // How far to go from starting oriented read.
+        bool allowChimericReads,
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
 

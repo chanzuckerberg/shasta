@@ -1730,6 +1730,9 @@ void Assembler::exploreReadGraph(
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
+    string allowChimericReadsString;
+    const bool allowChimericReads = getParameterValue(request, "allowChimericReads", allowChimericReadsString);
+
     uint32_t sizePixels = 1200;
     getParameterValue(request, "sizePixels", sizePixels);
 
@@ -1762,6 +1765,12 @@ void Assembler::exploreReadGraph(
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
         "'>"
+
+        "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
+        "<td>Allow chimeric reads"
+        "<td class=centered><input type=checkbox name=allowChimericReads" <<
+        (allowChimericReads ? " checked" : "") <<
+        ">"
 
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
@@ -1809,7 +1818,7 @@ void Assembler::exploreReadGraph(
     // Create the local read graph.
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
-    if(!createLocalReadGraph(readId, maxDistance, timeout, graph)) {
+    if(!createLocalReadGraph(readId, maxDistance, allowChimericReads, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }

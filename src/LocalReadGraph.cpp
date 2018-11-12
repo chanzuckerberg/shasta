@@ -16,13 +16,14 @@ using namespace shasta;
 void LocalReadGraph::addVertex(
     ReadId readId,
     uint32_t baseCount,
+    bool isChimeric,
     uint32_t distance)
 {
     // Check that we don't already have a vertex with this ReadId.
     CZI_ASSERT(vertexMap.find(readId) == vertexMap.end());
 
     // Create the vertex.
-    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(readId, baseCount, distance), *this);
+    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(readId, baseCount, isChimeric, distance), *this);
 
     // Store it in the vertex map.
     vertexMap.insert(make_pair(readId, v));
@@ -122,6 +123,8 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
         s << " color=lightGreen fillcolor=lightGreen";
     } else if(vertex.distance == maxDistance) {
             s << " color=cyan fillcolor=cyan";
+    } else if(vertex.isChimeric) {
+        s << " color=red fillcolor=red";
     }
     s << "]";
 }

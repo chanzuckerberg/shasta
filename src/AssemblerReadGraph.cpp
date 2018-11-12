@@ -487,6 +487,7 @@ OrientedReadId Assembler::findContainingReadRecursive(OrientedReadId orientedRea
 bool Assembler::createLocalReadGraph(
     ReadId& readIdStart,            // If the specified read is contained, modified to the containing read.
     uint32_t maxDistance,           // How far to go from starting oriented read.
+    bool allowChimericReads,
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
 {
@@ -497,8 +498,14 @@ bool Assembler::createLocalReadGraph(
         readIdStart = findContainingReadRecursive(OrientedReadId(readIdStart, 0)).getReadId();
     }
 
+    // If the starting read is chimeric and we donm't allow chimeric reads, do nothing.
+    if(!allowChimericReads && isChimericRead[readIdStart]) {
+        return true;
+    }
+
     // Add the starting vertex.
-    graph.addVertex(readIdStart, uint32_t(markers[OrientedReadId(readIdStart, 0).getValue()].size()), 0);
+    graph.addVertex(readIdStart, uint32_t(markers[OrientedReadId(readIdStart, 0).getValue()].size()),
+        isChimericRead[readIdStart], 0);
 
     // Initialize a BFS starting at the start vertex.
     std::queue<ReadId> q;
@@ -530,6 +537,11 @@ bool Assembler::createLocalReadGraph(
             // Get the other read involved in this edge of the read graph.
             const ReadId readId1 = alignment.getOther(readId0);
 
+            // If this read is flagged chimeric and we don't allow chimeric reads, skip.
+            if(!allowChimericReads && isChimericRead[readId1]) {
+                continue;
+            }
+
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,
@@ -537,7 +549,8 @@ bool Assembler::createLocalReadGraph(
             if(distance0 < maxDistance) {
                 if(!graph.vertexExists(readId1)) {
                     graph.addVertex(readId1,
-                        uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size()), distance1);
+                        uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size()),
+                        isChimericRead[readId1], distance1);
                     q.push(readId1);
                 }
                 graph.addEdge(

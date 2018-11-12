@@ -205,6 +205,8 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::flagChimericReads,
             arg("maxChimericReadDistance"),
             arg("threadCount") = 0)
+        .def("accessChimericReadsFlags",
+            &Assembler::accessChimericReadsFlags)
 
 
 
