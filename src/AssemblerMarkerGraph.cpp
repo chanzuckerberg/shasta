@@ -382,6 +382,11 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             const OrientedReadPair& candidate = alignmentData[alignmentId];
             CZI_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
 
+            // If either of the reads is flagged chimeric, skip it.
+            if(isChimericRead[candidate.readIds[0]] || isChimericRead[candidate.readIds[1]]) {
+                continue;
+            }
+
             // Get the oriented read ids, with the first one on strand 0.
             orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
             orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
