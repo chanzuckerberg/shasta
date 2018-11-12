@@ -791,7 +791,21 @@ public:
     // and readGraphConnectivity.
     void accessReadGraph();
     void checkReadGraphIsOpen();
+
+
+
+    // Use the read graph to flag chimeric reads.
+    void flagChimericReads(size_t maxDistance, size_t threadCount);
+    void accessChimericReadsFlags();
 private:
+    MemoryMapped::Vector<bool> isChimericRead;
+    class FlagChimericReadsData {
+    public:
+        size_t maxDistance;
+    };
+    FlagChimericReadsData flagChimericReadsData;
+    void flagChimericReadsThreadFunction(size_t threadId);
+
 
 
     // Create a local subgraph of the global read graph,

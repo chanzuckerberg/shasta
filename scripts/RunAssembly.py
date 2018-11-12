@@ -71,6 +71,10 @@ a.computeAlignments(
 # Create the global read graph.
 a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
 
+# Flag chimeric reads.
+a.flagChimericReads(
+    maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
+
 # Create global marker graph vertices.
 a.createMarkerGraphVertices(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),

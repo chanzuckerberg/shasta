@@ -45,8 +45,12 @@ to incorporate contained reads in the marker graph.
 // Shasta.
 #include "Assembler.hpp"
 #include "LocalReadGraph.hpp"
+#include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
+
+// Boost libraries.
+#include <boost/pending/disjoint_sets.hpp>
 
 // Standard libraries.
 #include "chrono.hpp"
@@ -558,4 +562,232 @@ bool Assembler::createLocalReadGraph(
 
     }
     return true;
+}
+
+
+
+// Use the read graph to flag chimeric reads.
+// For each read and corresponding vertex v0, we do
+// a BFS in the read graph up to the specified maxDistance.
+// We then compute connected components of the subgraph
+// consisting of the vertices reached by the bfs, minus v0.
+// If not all the vertices at maximum distance are
+// in the same component, the read corresponding to v0
+// is flagged as chimeric.
+void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
+{
+    cout << timestamp << "Begin flagging chimeric reads, max distance " << maxDistance << endl;
+
+    // Check that we have what we need.
+    checkReadGraphIsOpen();
+    const size_t readCount = readGraphConnectivity.size();
+
+    // Create the flags to indicate which reads are chimeric.
+    isChimericRead.createNew(
+        largeDataName("IsChimericRead"),
+        largeDataPageSize);
+    isChimericRead.resize(readCount);
+
+    // Store the argument so it is accessible by all threads.
+    CZI_ASSERT(maxDistance < 255);
+    flagChimericReadsData.maxDistance = maxDistance;
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+    // Multithreaded loop over all reads.
+    cout << timestamp << "Processing " << readCount << " reads." << endl;
+    setupLoadBalancing(readCount, 10000);
+    runThreads(&Assembler::flagChimericReadsThreadFunction, threadCount,
+        "threadLogs/flagChimericReads");
+
+    cout << timestamp << "Done flagging chimeric reads." << endl;
+
+    const size_t chimericReadCount = std::count(isChimericRead.begin(), isChimericRead.end(), true);
+    cout << timestamp << "Flagged " << chimericReadCount << " reads as chimeric out of ";
+    cout << readCount << " total." << endl;
+    cout << "Chimera rate is " << double(chimericReadCount) / double(readCount) << endl;
+}
+
+
+
+void Assembler::flagChimericReadsThreadFunction(size_t threadId)
+{
+    ostream& out = getLog(threadId);
+    const size_t maxDistance = flagChimericReadsData.maxDistance;
+
+    // Vector used for BFS searches by this thread.
+    // It stores the local vertex id in the current BFS assigned to each vertex,
+    // or notReached for vertices not yet reached by the current BFS.
+    // This is of size equal to the number of reads, and each thread has its own copy.
+    // This is not prohibitive. For example, for a large human size run with
+    // 20 million reads and 100 threads, the total space is only 8 GB.
+    const ReadId notReached = std::numeric_limits<ReadId>::max();
+    MemoryMapped::Vector<ReadId> vertexTable;
+    vertexTable.createNew(
+        largeDataName("tmp-FlagChimericReads-VertexTable" + to_string(threadId)),
+        largeDataPageSize);
+    vertexTable.resize(readGraphConnectivity.size());
+    fill(vertexTable.begin(), vertexTable.end(), notReached);
+
+    // Vector to contain the vertices we found in the current BFS,
+    // each with the distance from the start vertex.
+    vector< pair<ReadId, uint32_t> > localVertices;
+
+    // The queue used for the BFS.
+    std::queue<ReadId> q;
+
+    // Vectors used to compute connected components after each BFS>
+    vector<ReadId> rank;
+    vector<ReadId> parent;
+
+
+    // Loop over all batches assigned to this thread.
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        out << timestamp << "Working on batch " << begin << " " << end << endl;
+
+        // Loop over all reads assigned to this batch.
+        for(ReadId vStart=ReadId(begin); vStart!=ReadId(end); vStart++) {
+            // out<< timestamp << "Working on read " << vStart << endl;
+
+            // Check that there is no garbage left by the previous BFS.
+            CZI_ASSERT(localVertices.empty());
+            CZI_ASSERT(q.empty());
+
+            // Begin by flagging this read as not chimeric.
+            isChimericRead[vStart] = false;
+
+
+
+            // Do the BFS for this read.
+            ReadId localVertexId = 0;
+            q.push(vStart);
+            localVertices.push_back(make_pair(vStart, 0));
+            vertexTable[vStart] = localVertexId++;
+            while(!q.empty()) {
+
+                // Dequeue a vertex.
+                const ReadId v0 = q.front();
+                q.pop();
+                const uint32_t distance0 = localVertices[vertexTable[v0]].second;
+                const uint32_t distance1 = distance0 + 1;
+                // out << "Dequeued " << v0 << endl;
+
+                // Loop over edges involving this vertex.
+                const auto edges = readGraphConnectivity[v0];
+                for(const uint32_t edgeId: edges) {
+                    const ReadGraphEdge& edge = readGraphEdges[edgeId];
+                    const AlignmentData& alignment = alignmentData[edge.alignmentId];
+                    const ReadId v1 = alignment.getOther(v0);
+                    // out << "Found " << v1 << endl;
+
+                    // If we already encountered this read in this BFS, do nothing.
+                    if(vertexTable[v1] != notReached) {
+                        // out << "Previously reached." << endl;
+                        continue;
+                    }
+
+                    // Record this vertex.
+                    // out << "Recording " << v1 << endl;
+                    localVertices.push_back(make_pair(v1, distance1));
+                    vertexTable[v1] = localVertexId++;
+
+                    // If at distance less than maxDistance, also enqueue it.
+                    if(distance1 < maxDistance) {
+                        // out << "Enqueueing " << v1 << endl;
+                        q.push(v1);
+                    }
+                }
+            }
+            // out << "BFS found " << localVertices.size() << " vertices." << endl;
+
+
+
+            // Now that we have the list of vertices with maxDistance of vStart,
+            // compute connected components, disregarding edges that involve v0.
+
+            // Initialize the disjoint set data structures.
+            const ReadId n = ReadId(localVertices.size());
+            rank.resize(n);
+            parent.resize(n);
+            boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
+            for(ReadId i=0; i<n; i++) {
+                disjointSets.make_set(i);
+            }
+
+            // Loop over all edges involving the vertices we found during the BFS,
+            // but disregarding vertices involving vStart.
+            for(const auto& p: localVertices) {
+                const ReadId v0 = p.first;
+                if(v0 == vStart) {
+                    continue;   // Skip edges involving vStart.
+                }
+                const ReadId u0 = vertexTable[v0];
+                CZI_ASSERT(u0 != notReached);
+                const auto edges = readGraphConnectivity[v0];
+                for(const uint32_t edgeId: edges) {
+                    const ReadGraphEdge& edge = readGraphEdges[edgeId];
+                    const AlignmentData& alignment = alignmentData[edge.alignmentId];
+                    const ReadId v1 = alignment.getOther(v0);
+                    if(v1 == vStart) {
+                        continue;   // Skip edges involving vStart.
+                    }
+                    const ReadId u1 = vertexTable[v1];
+                    if(u1 != notReached) {
+                        disjointSets.union_set(u0, u1);
+                    }
+                }
+            }
+
+
+            // Now check the vertices at maximum distance.
+            // If they belong to more than one connected component,
+            // removing vStart affects the large scale connectivity of the
+            // read graph, and therefore we flag vStart as chimeric.
+            ReadId component = std::numeric_limits<ReadId>::max();
+            for(const auto& p: localVertices) {
+                if(p.second != maxDistance) {
+                    continue;
+                }
+                const ReadId v = p.first;
+                const ReadId u = vertexTable[v];
+                CZI_ASSERT(u != notReached);
+                const ReadId uComponent = disjointSets.find_set(u);
+                if(component == std::numeric_limits<ReadId>::max()) {
+                    component = uComponent;
+                } else {
+                    if(uComponent != component) {
+                        isChimericRead[vStart] = true;
+                        out << "Flagged read " << vStart << " as chimeric." << endl;
+                        break;
+                    }
+                }
+            }
+
+
+            // Before processing the next read, we need to reset
+            // all entries of the distance vector to not found,
+            // then clear the verticesFound vector.
+            for(const auto& p: localVertices) {
+                const ReadId readId = p.first;
+                vertexTable[readId] = notReached;;
+            }
+            localVertices.clear();
+        }
+    }
+
+    // Remove our work vector.
+    vertexTable.remove();
+
+}
+
+
+
+void Assembler::accessChimericReadsFlags()
+{
+    isChimericRead.accessExistingReadOnly(
+        largeDataName("IsChimericRead"));
 }

@@ -201,6 +201,10 @@ PYBIND11_MODULE(shasta, module)
             arg("maxTrim"))
         .def("accessReadGraph",
             &Assembler::accessReadGraph)
+        .def("flagChimericReads",
+             &Assembler::flagChimericReads,
+            arg("maxChimericReadDistance"),
+            arg("threadCount") = 0)
 
 
 
