@@ -751,19 +751,7 @@ public:
     void createReadGraph(uint32_t maxTrim);
 private:
 
-    // For each read, store the best containing read and orientation.
-    // Indexed by ReadId.
-    // For reads that are not contained, this stores OrientedReadId::invalid().
-    MemoryMapped::Vector<OrientedReadId> containingOrientedReadId;
 
-    // Return true if a read is contained.
-    bool isContainedRead(ReadId readId) const
-    {
-        return containingOrientedReadId[readId] != OrientedReadId::invalid();
-    }
-
-    // Follow the chain of containing reads until we reach a non-contained read.
-    OrientedReadId findContainingReadRecursive(OrientedReadId) const;
 
     // Edges of the read graph.
     class ReadGraphEdge {

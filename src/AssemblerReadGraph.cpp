@@ -26,19 +26,8 @@ In summary:
 
 We store edges with the lowest numbered read as the first read.
 
-We use the standard approach to construct string graphs
-(Myers, "The fragment assembly string graph" (2005),
-doi:10.1093/bioinformatics/bti111,
-http://www.cs.utoronto.ca/~brudno/csc2427/myers.pdf),
-which prescribes that contained reads should not be included in the graph.
-A contained read is a read that has an alignment
-with a longer read covering the entire read.
-
-However, in order not to lose coverage from contained reads
-(which would result in a unacceptable reduction in coverage),
-for each contained read we keep track of the containing read
-that achieves the best alignment. This information is used later,
-to incorporate contained reads in the marker graph.
+The read graph uses the best maxAlignmentCount alignments for each read.
+Additional alignments do not generate an edge of the read graph.
 
 *******************************************************************************/
 
@@ -269,9 +258,7 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 
 
 
-// Alternative, tentative version of createReadGraph.
-// It marks all reads are not contained.
-// For each read, it keeps only the best maxAlignmentCount alignments.
+// For each read, keep only the best maxAlignmentCount alignments.
 // Note that the connectivity of the resulting read graph can
 // be more than maxAlignmentCount.
 void Assembler::createReadGraph(uint32_t maxTrim)
@@ -284,12 +271,6 @@ void Assembler::createReadGraph(uint32_t maxTrim)
     const ReadId orientedReadCount = uint32_t(markers.size());
     CZI_ASSERT((orientedReadCount % 2) == 0);
     const ReadId readCount = orientedReadCount / 2;
-
-    // Mark all reads as not contained.
-    containingOrientedReadId.createNew(largeDataName("ContainingOrientedReadId"), largeDataPageSize);
-    containingOrientedReadId.resize(readCount);
-    fill(containingOrientedReadId.begin(), containingOrientedReadId.end(),
-        OrientedReadId::invalid());
 
     // Mark all alignments as not to be kept.
     vector<bool> keepAlignment(alignmentData.size(), false);
@@ -439,15 +420,11 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 
 void Assembler::accessReadGraph()
 {
-    containingOrientedReadId.accessExistingReadOnly(largeDataName("ContainingOrientedReadId"));
     readGraphEdges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
     readGraphConnectivity.accessExistingReadOnly(largeDataName("ReadGraphConnectivity"));
 }
 void Assembler::checkReadGraphIsOpen()
 {
-    if(!containingOrientedReadId.isOpen) {
-        throw runtime_error("Containing oriented read ids are not accessible.");
-    }
     if(!readGraphEdges.isOpen) {
         throw runtime_error("Read graph edges are not accessible.");
     }
@@ -455,24 +432,6 @@ void Assembler::checkReadGraphIsOpen()
         throw runtime_error("Read graph connectivity is not accessible.");
     }
 
-}
-
-
-
-// Follow the chain of containing reads until we reach a non-contained read.
-OrientedReadId Assembler::findContainingReadRecursive(OrientedReadId orientedReadId) const
-{
-    while(true) {
-        const ReadId readId = orientedReadId.getReadId();
-        if(!isContainedRead(readId)) {
-            return orientedReadId;
-        }
-        OrientedReadId containing = containingOrientedReadId[readId];
-        if(orientedReadId.getStrand() == 1) {
-            containing.flipStrand();
-        }
-        orientedReadId = containing;
-    }
 }
 
 
@@ -493,12 +452,7 @@ bool Assembler::createLocalReadGraph(
 {
     const auto startTime = steady_clock::now();
 
-    // If the specified read is a contained read, find the containing read.
-    if(isContainedRead(readIdStart)) {
-        readIdStart = findContainingReadRecursive(OrientedReadId(readIdStart, 0)).getReadId();
-    }
-
-    // If the starting read is chimeric and we donm't allow chimeric reads, do nothing.
+    // If the starting read is chimeric and we don't allow chimeric reads, do nothing.
     if(!allowChimericReads && isChimericRead[readIdStart]) {
         return true;
     }

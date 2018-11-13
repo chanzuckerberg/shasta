@@ -1242,24 +1242,6 @@ void Assembler::exploreAlignments(
     }
     html << "</table>";
 
-
-    // Display the containment chain.
-    html << "<p>Containment chain:";
-    OrientedReadId orientedReadId = orientedReadId0;
-    while(true) {
-        const ReadId readId = orientedReadId.getReadId();
-        if(!isContainedRead(readId)) {
-            html << "<br>" << orientedReadId << " is not contained.";
-            break;
-        }
-        html << "<br>" << orientedReadId;
-        OrientedReadId containing = containingOrientedReadId[readId];
-        if(orientedReadId.getStrand() == 1) {
-            containing.flipStrand();
-        }
-        orientedReadId = containing;
-    }
-    CZI_ASSERT(orientedReadId == findContainingReadRecursive(orientedReadId0));
 }
 
 
