@@ -426,10 +426,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.showWeakEdges = getParameterValue(
         request, "showWeakEdges", showWeakEdgesString);
 
-    string showChimericEdgesString;
-    parameters.showChimericEdges = getParameterValue(
-        request, "showChimericEdges", showChimericEdgesString);
-
     string showVertexIdString;
     parameters.showVertexId = getParameterValue(
         request, "showVertexId", showVertexIdString);
@@ -511,7 +507,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         << (useStoredConnectivity ? " checked=checked" : "") <<
         "><td class=centered>"
         "Weak edges<input type=checkbox name=showWeakEdges" << (showWeakEdges ? " checked=checked" : "") <<
-        "><td class=centered>Chimeric edges (not implemented)<input type=checkbox name=showChimericEdges" << (showChimericEdges ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
