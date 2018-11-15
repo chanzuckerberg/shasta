@@ -737,6 +737,22 @@ private:
     vector< pair<OrientedReadId, AlignmentInfo> >
         findOrientedAlignments(OrientedReadId) const;
 
+    // Given the oriented alignments computed by findOrientedAlignments,
+    // compute a vector of alignment coverage for the given oriented read.
+    // This is a vector that contains, for each marker of the given
+    // oriented read, the number of alignments "covering" that marker.
+    // An alignment "covers" as marker if it starts at or before
+    // the marker and it ends at or after the marker.
+    // It does not matter whether the marker is in the alignment.
+    // This is used to detect portions of the read that may contain
+    // unreliable alignments due to repeats (most commonly for a human genome,
+    // LINE repeats).
+    void computeAlignmentCoverage(
+        OrientedReadId,
+        const vector< pair<OrientedReadId, AlignmentInfo> >&,    // Computed by findOrientedAlignments
+        vector<uint32_t>& coverage
+        ) const;
+
 
 
     // Read graph and related functions and data.

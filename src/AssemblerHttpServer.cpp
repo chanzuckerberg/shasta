@@ -1207,6 +1207,8 @@ void Assembler::exploreAlignments(
     // Loop over the alignments that this oriented read is involved in, with the proper orientation.
     const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
         findOrientedAlignments(orientedReadId0);
+    vector<uint32_t> coverage;
+    computeAlignmentCoverage(orientedReadId0, alignments, coverage);
     const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
     for(const auto& p: alignments) {
 

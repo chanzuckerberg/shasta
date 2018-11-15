@@ -874,3 +874,49 @@ vector< pair<OrientedReadId, AlignmentInfo> >
     }
     return result;
 }
+
+
+
+// Given the oriented alignments computed by findOrientedAlignments,
+// compute a vector of alignment coverage for the given oriented read.
+// This is a vector that contains, for each marker of the given
+// oriented read, the number of alignments "covering" that marker.
+// An alignment "covers" as marker if it starts at or before
+// the marker and it ends at or after the marker.
+// It does not matter whether the marker is in the alignment.
+// This is used to detect portions of the read that may contain
+// unreliable alignments due to repeats (most commonly for a human genome,
+// LINE repeats).
+void Assembler::computeAlignmentCoverage(
+    OrientedReadId orientedReadId0,
+    const vector< pair<OrientedReadId, AlignmentInfo> >& alignments,   // Computed by findOrientedAlignments
+    vector<uint32_t>& coverage
+    ) const
+{
+    // Begin with zero coverage.
+    const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+    coverage.clear();
+    coverage.resize(markerCount0, 0);
+
+    // Loop over the alignments.
+    for(const auto& p: alignments) {
+        const AlignmentInfo& alignment = p.second;
+        const auto begin = alignment.firstOrdinals.first;
+        const auto end = alignment.lastOrdinals.first;
+        for(size_t ordinal=begin; ordinal<=end; ordinal++) {
+            (coverage[ordinal])++;
+        }
+    }
+
+
+    // For debugging, write to csv file.
+    const bool debug = false;
+    if(debug) {
+        ofstream csv("AlignmentCoverage.csv");
+        csv << "Ordinal,Coverage\n";
+        for(uint32_t ordinal=0; ordinal<markerCount0; ordinal++) {
+            csv << ordinal << "," << coverage[ordinal] << "\n";
+        }
+    }
+}
+
