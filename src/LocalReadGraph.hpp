@@ -82,6 +82,11 @@ public:
     // This is an index into Assembler::readGraphEdges.
     size_t globalEdgeId;
 
+    // Flags that indicates whether this is a containment edge
+    // (that is, the alignment covers one or both reads entirely,
+    // except possibly for up to maxTrim markers at each end).
+    bool isContainmentAlignment;
+
     // Bidirected edge information.
     // Same as in Assembler::ReadGraphEdge.
     // 0 = points towards vertex, 1 = points away from vertex
@@ -90,8 +95,13 @@ public:
     uint8_t direction0;
     uint8_t direction1;
 
-    LocalReadGraphEdge(size_t globalEdgeId, uint8_t direction0, uint8_t direction1) :
+    LocalReadGraphEdge(
+        size_t globalEdgeId,
+        bool isContainmentAlignment,
+        uint8_t direction0,
+        uint8_t direction1) :
         globalEdgeId(globalEdgeId),
+        isContainmentAlignment(isContainmentAlignment),
         direction0(direction0),
         direction1(direction1) {}
 };
@@ -113,7 +123,8 @@ public:
         ReadId,
         size_t globalEdgeId,
         uint8_t direction0,
-        uint8_t direction1);
+        uint8_t direction1,
+        bool isContainmentAlignment);
 
     // Find out if a vertex with a given ReadId exists.
     bool vertexExists(ReadId) const;

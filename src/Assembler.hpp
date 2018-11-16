@@ -753,6 +753,16 @@ private:
         vector<uint32_t>& coverage
         ) const;
 
+    // Find out if an alignment stored in alignmentData is a containment alignment.
+    // The alignment is a containment alignment if one (or both)
+    // of the two reads are entirely contained in the alignment,
+    // except possibly for up to maxTrim markers at each end.
+    // The alignment to be checked is specified by its alignmentId, an index
+    // into the alignmentData vector.
+    bool isContainmentAlignment(
+        uint64_t alignmentId,
+        size_t maxTrim) const;
+
 
 
     // Read graph and related functions and data.
@@ -817,6 +827,7 @@ private:
     bool createLocalReadGraph(
         ReadId& readIdStart,    // If the specified read is contained, modified to the containing read.
         uint32_t maxDistance,   // How far to go from starting oriented read.
+        uint32_t maxTrim,       // To define alignment containment
         bool allowChimericReads,
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
