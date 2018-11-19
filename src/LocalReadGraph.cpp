@@ -153,9 +153,12 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
         " arrowtail=" << direction1 <<
         " arrowsize=0.4";
 
+    /*
     if(edge.isContainmentAlignment) {
         s << " color=red fillcolor=black";
     }
+    */
+
     s << "]";
 }
 
