@@ -88,15 +88,15 @@ void Assembler::addReadsFromFasta(
 // Create a histogram of read lengths.
 void Assembler::histogramReadLength(const string& fileName)
 {
-    // As written, this only works when using raw read representation.
-    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
 
     checkReadsAreOpen();
 
     // Create the histogram.
     vector<size_t> histogram;
+    size_t totalBaseCount = 0;
     for(ReadId readId=0; readId<readCount(); readId++) {
-        const size_t length = reads[readId].baseCount;
+        const size_t length = getReadRawSequenceLength(readId);
+        totalBaseCount += length;
         if(histogram.size() <= length) {
             histogram.resize(length+1, 0);
         }
@@ -104,18 +104,58 @@ void Assembler::histogramReadLength(const string& fileName)
     }
 
     // Write it out.
-    ofstream csv(fileName);
-    csv << "Length,Frequency,Bases,CumulativeFrequency,CumulativeBases\n";
-    size_t cumulativeFrequency = 0;
-    size_t cumulativeBaseCount = 0;
-    for(size_t length=0; length<histogram.size(); length++) {
-        const size_t frequency = histogram[length];
-        if(frequency) {
-            const  size_t baseCount = frequency * length;
-            cumulativeFrequency += frequency;
-            cumulativeBaseCount += baseCount;
-            csv << length << "," << frequency << "," << baseCount << ",";
-            csv<< cumulativeFrequency << "," << cumulativeBaseCount << "\n";
+    {
+        ofstream csv(fileName);
+        csv << "Length,Frequency,Bases,CumulativeReads,CumulativeBases,"
+            "FractionalCumulativeReads,FractionalCumulativeBases,\n";
+        size_t cumulativeFrequency = 0;
+        size_t cumulativeBaseCount = 0;
+        for(size_t length=0; length<histogram.size(); length++) {
+            const size_t frequency = histogram[length];
+            if(frequency) {
+                const  size_t baseCount = frequency * length;
+                cumulativeFrequency += frequency;
+                cumulativeBaseCount += baseCount;
+                csv << length << "," << frequency << "," << baseCount << ",";
+                csv << cumulativeFrequency << "," << cumulativeBaseCount << ",";
+                csv << double(cumulativeFrequency)/double(readCount()) << ",";
+                csv << double(cumulativeBaseCount)/double(totalBaseCount) << "\n";
+            }
+        }
+        CZI_ASSERT(cumulativeFrequency == readCount());
+        CZI_ASSERT(cumulativeBaseCount == totalBaseCount);
+        cout << "Total number of reads is " << cumulativeFrequency << endl;
+        cout << "Total number of raw bases is " << cumulativeBaseCount << endl;
+        cout << "Average read length is " << double(cumulativeBaseCount) / double(cumulativeFrequency);
+        cout << " bases." << endl;
+    }
+
+
+
+    // Also write out a histogram of number of reads in 1 Kb bins.
+    {
+        const size_t binWidth = 1000;
+        vector<size_t> binnedHistogram;
+        for(size_t length=0; length<histogram.size(); length++) {
+            const size_t frequency = histogram[length];
+            if(frequency) {
+                const size_t bin = length / binWidth;
+                if(binnedHistogram.size() <= bin) {
+                    binnedHistogram.resize(bin+1, 0);
+                }
+                binnedHistogram[bin] += frequency;
+            }
+        }
+
+        ofstream csv("Binned-" + fileName);
+        csv << "LengthBegin,LengthEnd,ReadCount\n";
+        for(size_t bin=0; bin<binnedHistogram.size(); bin++) {
+            const size_t frequency = binnedHistogram[bin];
+            if(frequency) {
+                csv << bin*binWidth << ",";
+                csv << (bin+1)*binWidth << ",";
+                csv << frequency << "\n";
+            }
         }
     }
 
@@ -222,7 +262,7 @@ vector<Base> Assembler::getOrientedReadRawSequence(OrientedReadId orientedReadId
     // The sequence we will return;
     vector<Base> sequence;
 
-    /// The number of bases stored.
+    // The number of bases stored.
     const uint32_t storedBaseCount = uint32_t(reads[orientedReadId.getReadId()].baseCount);
 
     if(assemblerInfo->useRunLengthReads) {
@@ -249,6 +289,36 @@ vector<Base> Assembler::getOrientedReadRawSequence(OrientedReadId orientedReadId
     }
 
     return sequence;
+}
+
+
+
+// Return the length of the raw sequence of a read.
+// If using the run-length representation of reads, this counts each
+// base a number of times equal to its repeat count.
+size_t Assembler::getReadRawSequenceLength(ReadId readId)
+{
+
+    if(assemblerInfo->useRunLengthReads) {
+
+        // We are not using the run-length representation.
+        // The number of raw bases equals the sum of all
+        // the repeat counts.
+        // Don't use std::accumulate to compute the sum,
+        // otherwise the sum is computed using uint8_t!
+        const auto& counts = readRepeatCounts[readId];
+        size_t sum = 0;;
+        for(uint8_t count: counts) {
+            sum += count;
+        }
+        return sum;
+
+    } else {
+
+        // We are not using the run-length representation.
+        // The number of raw bases equals the number of stored bases.
+        return reads[readId].baseCount;
+    }
 }
 
 

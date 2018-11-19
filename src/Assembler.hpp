@@ -528,6 +528,11 @@ private:
     // Return a vector containing the raw sequence of an oriented read.
     vector<Base> getOrientedReadRawSequence(OrientedReadId);
 
+    // Return the length of the raw sequence of a read.
+    // If using the run-length representation of reads, this counts each
+    // base a number of times equal to its repeat count.
+    size_t getReadRawSequenceLength(ReadId);
+
     // Get a vector of the raw read positions
     // corresponding to each position in the run-length
     // representation of an oriented read.
