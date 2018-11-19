@@ -6,8 +6,6 @@ import os
 import sys
 
 # Check that we have what we need.
-if not os.path.lexists('data'):
-    raise Exception('Missing: data. Use SetupRunDirectory.py to set up the run directory.')
 if not os.path.lexists('Data'):
     raise Exception('Missing: Data. Use SetupRunDirectory.py to set up the run directory.')
 if not os.path.lexists('threadLogs'):
