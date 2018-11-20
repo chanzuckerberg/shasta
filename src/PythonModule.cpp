@@ -283,6 +283,9 @@ PYBIND11_MODULE(shasta, module)
                  arg("threadCount") = 0,
                  arg("minCoverage"),
                  arg("maxPathLength"))
+         .def("computeMarkerGraphSpanningSubgraph",
+              &Assembler::computeMarkerGraphSpanningSubgraph,
+                 arg("minCoverage"))
 
 
 

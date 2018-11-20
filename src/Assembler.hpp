@@ -918,8 +918,11 @@ private:
             //   at least equal to minCoverage.
             uint8_t isWeak : 1;
 
+            // Set if the edge belongs to the spanning subgraph computed by
+            // computeMarkerGraphSpanningSubgraph.
+            uint8_t isInSpanningSubgraph : 1;
+
             // The remaining flags are currently unused.
-            uint8_t flag1 : 1;
             uint8_t flag2 : 1;
             uint8_t flag3 : 1;
             uint8_t flag4 : 1;
@@ -929,7 +932,7 @@ private:
             void clearFlags()
             {
                 isWeak = 0;
-                flag1 = 0;
+                isInSpanningSubgraph = 0;
                 flag2 = 0;
                 flag3 = 0;
                 flag4 = 0;
@@ -981,6 +984,14 @@ private:
     };
     FlagMarkerGraphWeakEdgesData flagMarkerGraphWeakEdgesData;
     void flagMarkerGraphWeakEdgesThreadFunction(size_t threadId);
+
+
+
+    // Compute the "spanning subgraph" of the global marker graph.
+    // See the function implementation for more information.
+public:
+    void computeMarkerGraphSpanningSubgraph(size_t minCoverage);
+private:
 
 
 

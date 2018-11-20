@@ -6,6 +6,9 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/pending/disjoint_sets.hpp>
+
 // Standard library.
 #include "chrono.hpp"
 #include <queue>
@@ -1965,6 +1968,195 @@ void Assembler::flagMarkerGraphWeakEdgesThreadFunction(size_t threadId)
 
 
 
+// Compute the "spanning subgraph" of the global marker graph.
+// The spanning subgraph is used to generate assembly paths
+// for global assembly.
+// It contains all vertices, but only a subset of the edges.
+// If an edge belongs to the spanning subgraph,
+// its flag isInSpanningSubgraph is set.
+// The spanning subgraph is computed as follows:
+// - First, all non-weak edges with coverage at least minCoverage are
+//   assigned to the spanning graph.
+// - Then, non-weak edges are processed in order of decreasing coverage.
+//   A non-weak edge is assigned to the spanning subgraph if the two
+//   vertices belong to different connected components.
+// This is similar to the construction of an optimal spanning tree,
+// except that edges with high coverage are always included, and
+// therefore we generate a spanning subgraph, not a spanning tree.
+void Assembler::computeMarkerGraphSpanningSubgraph(size_t minCoverage)
+{
+    // Check that we have what we need.
+    checkMarkerGraphVerticesAreAvailable();
+    checkMarkerGraphConnectivityIsOpen();
+
+
+    // Get the number of vertices.
+    using VertexId = GlobalMarkerGraphVertexId;
+    const VertexId vertexCount = globalMarkerGraphVertices.size();
+
+    cout << timestamp << "computeMarkerGraphSpanningSubgraph begins." << endl;
+    cout << "The global marker graph has " << vertexCount;
+    cout << " vertices and " << markerGraphConnectivity.edges.size() << " edges." << endl;
+
+    // Clear the isInSpanningSubgraph flag of all edges.
+    for(MarkerGraphConnectivity::Edge& edge: markerGraphConnectivity.edges) {
+        edge.isInSpanningSubgraph = 0;
+    }
+
+    // Initialize a disjoint set data structure for the spanning subgraph.
+    MemoryMapped::Vector<VertexId> rank, parent;
+    rank.createNew(
+        largeDataName("tmp-SpanningSubgraphDisjointSetRank"),
+        largeDataPageSize);
+    parent.createNew(
+        largeDataName("tmp-SpanningSubgraphDisjointSetParent"),
+        largeDataPageSize);
+    rank.resize(vertexCount);
+    parent.resize(vertexCount);
+    boost::disjoint_sets<VertexId*, VertexId*> disjointSets(&rank[0], &parent[0]);
+    for(VertexId i=0; i<vertexCount; i++) {
+        disjointSets.make_set(i);
+    }
+
+
+
+    // Add to the spanning subgraph all non-weak edges with coverage at least minCoverage.
+    // Update the disjoint sets data structure accordingly.
+    cout << timestamp << "Adding to the spanning subgraph non-weak edges with coverage at least ";
+    cout << minCoverage << "." << endl;
+    using EdgeId = VertexId;
+    EdgeId highCoverageEdgeCount = 0;
+    for(MarkerGraphConnectivity::Edge& edge: markerGraphConnectivity.edges) {
+        if(edge.coverage >= minCoverage && !edge.isWeak) {
+            edge.isInSpanningSubgraph = 1;
+            disjointSets.union_set(edge.source, edge.target);
+            ++highCoverageEdgeCount;
+        }
+    }
+    cout << timestamp << "Added to the spanning subgraph " << highCoverageEdgeCount;
+    cout << " non-weak edges with coverage at least " << minCoverage << "." << endl;
+    EdgeId spanningTreeEdgeCount = highCoverageEdgeCount;
+
+
+
+    // Gather all edges with coverage less than minCoverage,
+    // and group them by coverage.
+    // This way we don't have to do a big sort.
+    cout << timestamp << "Gathering non-weak edges with coverage less than " << minCoverage << "." << endl;
+    MemoryMapped::VectorOfVectors<EdgeId, EdgeId> edgesByCoverage;
+    edgesByCoverage.createNew(
+        largeDataName("tmp-SpanningSubgraphDisjointSetParent"),
+        largeDataPageSize);
+    edgesByCoverage.beginPass1(minCoverage);
+    for(EdgeId edgeId=0; edgeId!=markerGraphConnectivity.edges.size(); edgeId++) {
+        const MarkerGraphConnectivity::Edge& edge = markerGraphConnectivity.edges[edgeId];
+        if(edge.coverage < minCoverage && !edge.isWeak) {
+            edgesByCoverage.incrementCount(edge.coverage);
+        }
+    }
+    edgesByCoverage.beginPass2();
+    for(EdgeId edgeId=0; edgeId!=markerGraphConnectivity.edges.size(); edgeId++) {
+        const MarkerGraphConnectivity::Edge& edge = markerGraphConnectivity.edges[edgeId];
+        if(edge.coverage < minCoverage && !edge.isWeak) {
+            edgesByCoverage.store(edge.coverage, edgeId);
+        }
+    }
+    edgesByCoverage.endPass2();
+    cout << timestamp << "Gathered " << edgesByCoverage.totalSize();
+    cout << " non-weak edges with coverage less than " << minCoverage << "." << endl;
+
+
+
+    // Process the edges we gathered, in order of decreasing coverage.
+    for(int coverage=int(minCoverage)-1; coverage>=0; coverage--) {
+        const auto& edgesToProcess = edgesByCoverage[coverage];
+        cout << timestamp << "Processing " << edgesToProcess.size();
+        cout << " non-weak edges with coverage " << coverage << endl;
+        EdgeId count = 0;
+        for(const EdgeId edgeId: edgesToProcess) {
+            MarkerGraphConnectivity::Edge& edge = markerGraphConnectivity.edges[edgeId];
+            CZI_ASSERT(edge.coverage == coverage);
+            CZI_ASSERT(!edge.isWeak);
+
+            // If the source and target vertices are in separate connected
+            // components, add this edge to the spanning subgraph.
+            if(disjointSets.find_set(edge.source) != disjointSets.find_set(edge.target)) {
+                edge.isInSpanningSubgraph = 1;
+                disjointSets.union_set(edge.source, edge.target);
+                ++count;
+            }
+        }
+        spanningTreeEdgeCount += count;
+        cout << "Added " << count << " non-weak edges with coverage ";
+        cout << coverage << " to the spanning subgraph." << endl;
+    }
+    edgesByCoverage.remove();
+
+    cout << timestamp << "The spanning subgraph has " << vertexCount;
+    cout << " vertices and " << spanningTreeEdgeCount << " edges." << endl;
+
+
+
+    // Find the connected component each vertex belongs to.
+    MemoryMapped::Vector<VertexId> component;
+    component.createNew(
+        largeDataName("tmp-SpanningSubgraphComponent"),
+        largeDataPageSize);
+    component.resize(vertexCount);
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        component[vertexId] = disjointSets.find_set(vertexId);
+    }
+    rank.remove();
+    parent.remove();
+
+
+
+    // Gather the vertices in each connected component.
+    // For now this is temporary data.
+    MemoryMapped::VectorOfVectors<EdgeId, EdgeId> verticesByComponent;
+    verticesByComponent.createNew(
+        largeDataName("tmp-SpanningSubgraphVerticesByComponent"),
+        largeDataPageSize);
+    verticesByComponent.beginPass1(vertexCount);
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        verticesByComponent.incrementCount(component[vertexId]);
+    }
+    verticesByComponent.beginPass2();
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        verticesByComponent.store(component[vertexId], vertexId);
+    }
+    verticesByComponent.endPass2();
+    component.remove();
+
+
+
+    // Compute a histogram of component size.
+    std::map<VertexId, VertexId> histogram;
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        const VertexId componentSize = verticesByComponent[vertexId].size();
+        if(componentSize == 0) {
+            continue;
+        }
+        auto it = histogram.find(componentSize);
+        if(it == histogram.end()) {
+            histogram.insert(make_pair(componentSize, 1));
+        } else {
+            ++(it->second);
+        }
+    }
+    verticesByComponent.remove();
+
+
+
+    // Write out the component size histogram.
+    ofstream csv("MarkerGraphComponentSizeHistogram.csv");
+    csv << "Size,Count\n";
+    for(const auto& p: histogram) {
+        csv << p.first << "," << p.second << endl;
+    }
+
+
+}
 
 
 
