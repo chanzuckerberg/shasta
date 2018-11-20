@@ -515,38 +515,6 @@ void Assembler::exploreRead(
 
 
 
-    // Decide on which row each marker gets displayed
-    // (first row of markers is row 0).
-    const size_t k = assemblerInfo->k;
-    vector<int> markerRow(orientedReadMarkers.size(), -1);
-    vector<uint32_t> nextAvailableCharacterPosition(k, 0);
-    for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
-        const uint32_t position = orientedReadMarkers[ordinal].position;
-        for(int row=0; row<int(k); row++) {
-            if(position >= nextAvailableCharacterPosition[row]) {
-                markerRow[ordinal] = row;
-                // Require one character space to next marker.
-                nextAvailableCharacterPosition[row] = position + uint32_t(k) + 1;
-                // cout << "Marker " << ordinal << " at position " << position << " placed on row " << row << endl;
-                break;
-            }
-        }
-        /*
-        if(markerRow[ordinal] == -1) {
-            cout << "Marker " << ordinal << " at position " << position << " could not be placed." << endl;
-            cout << "nextAvailableCharacterPosition: ";
-            for(const auto rowNext: nextAvailableCharacterPosition) {
-                cout << " " << rowNext;
-            }
-            cout << endl;
-        }
-        */
-        CZI_ASSERT(markerRow[ordinal] != -1);
-    }
-    const int markerRowCount = *std::max_element(markerRow.begin(), markerRow.end());
-
-
-
     // Display the selected portion of raw sequence.
     // This is skipped if we are using raw read representation
     // and the display of the entire read is selected,
@@ -717,6 +685,45 @@ void Assembler::exploreRead(
             "</script>";
     }
 
+
+
+    // If there are no markers, stop here.
+    if(orientedReadMarkers.empty()) {
+        html << "<p>This read has no markers.";
+        return;
+    }
+
+
+
+    // Decide on which row each marker gets displayed
+    // (first row of markers is row 0).
+    const size_t k = assemblerInfo->k;
+    vector<int> markerRow(orientedReadMarkers.size(), -1);
+    vector<uint32_t> nextAvailableCharacterPosition(k, 0);
+    for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
+        const uint32_t position = orientedReadMarkers[ordinal].position;
+        for(int row=0; row<int(k); row++) {
+            if(position >= nextAvailableCharacterPosition[row]) {
+                markerRow[ordinal] = row;
+                // Require one character space to next marker.
+                nextAvailableCharacterPosition[row] = position + uint32_t(k) + 1;
+                // cout << "Marker " << ordinal << " at position " << position << " placed on row " << row << endl;
+                break;
+            }
+        }
+        /*
+        if(markerRow[ordinal] == -1) {
+            cout << "Marker " << ordinal << " at position " << position << " could not be placed." << endl;
+            cout << "nextAvailableCharacterPosition: ";
+            for(const auto rowNext: nextAvailableCharacterPosition) {
+                cout << " " << rowNext;
+            }
+            cout << endl;
+        }
+        */
+        CZI_ASSERT(markerRow[ordinal] != -1);
+    }
+    const int markerRowCount = *std::max_element(markerRow.begin(), markerRow.end());
 
 
     // Title for the next portion of the display, which shows the markers.
