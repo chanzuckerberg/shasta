@@ -76,6 +76,7 @@ void Assembler::exploreMarkerGraph(
             requestParameters.timeout,
             requestParameters.showWeakEdges,
             requestParameters.onlyUseSpanningSubgraphEdges,
+            requestParameters.dontUsePrunedEdges,
             graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             return;
@@ -431,6 +432,11 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.onlyUseSpanningSubgraphEdges = getParameterValue(
         request, "onlyUseSpanningSubgraphEdges", onlyUseSpanningSubgraphEdgesString);
 
+    string dontUsePrunedEdgesString;
+    parameters.dontUsePrunedEdges = getParameterValue(
+        request, "dontUsePrunedEdges", dontUsePrunedEdgesString);
+
+
     string showVertexIdString;
     parameters.showVertexId = getParameterValue(
         request, "showVertexId", showVertexIdString);
@@ -514,6 +520,8 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "Weak edges<input type=checkbox name=showWeakEdges" << (showWeakEdges ? " checked=checked" : "") <<
         "><td class=centered>"
         "Only use spanning subgraph edges<input type=checkbox name=onlyUseSpanningSubgraphEdges" << (onlyUseSpanningSubgraphEdges ? " checked=checked" : "") <<
+        "><td class=centered>"
+        "Don't use pruned edges<input type=checkbox name=dontUsePrunedEdges" << (dontUsePrunedEdges ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"

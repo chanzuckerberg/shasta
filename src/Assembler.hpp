@@ -1097,6 +1097,7 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool showWeakEdges,
         bool onlyUseSpanningSubgraphEdges,
+        bool dontUsePrunedEdges,
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
@@ -1105,6 +1106,7 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool showWeakEdges,
         bool onlyUseSpanningSubgraphEdges,
+        bool dontUsePrunedEdges,
         LocalMarkerGraph&
         );
 
@@ -1162,6 +1164,7 @@ private:
         bool useStoredConnectivity;
         bool showWeakEdges;
         bool onlyUseSpanningSubgraphEdges;
+        bool dontUsePrunedEdges;
         bool showVertexId;
         bool showOptimalSpanningTree;
         bool showAssembledSequence;

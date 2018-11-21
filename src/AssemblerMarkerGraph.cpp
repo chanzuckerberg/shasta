@@ -1373,6 +1373,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool showWeakEdges,
     bool onlyUseSpanningSubgraphEdges,
+    bool dontUsePrunedEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1380,7 +1381,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     return extractLocalMarkerGraphUsingStoredConnectivity(
         startVertexId, distance, timeout,
-        showWeakEdges, onlyUseSpanningSubgraphEdges, graph);
+        showWeakEdges, onlyUseSpanningSubgraphEdges, dontUsePrunedEdges, graph);
 
 }
 
@@ -1392,6 +1393,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool showWeakEdges,
     bool onlyUseSpanningSubgraphEdges,
+    bool dontUsePrunedEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1449,6 +1451,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.isWeak && !showWeakEdges) {
                 continue;
             }
+            if(edge.wasPruned && dontUsePrunedEdges) {
+                continue;
+            }
 
             const GlobalMarkerGraphVertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
@@ -1493,6 +1498,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
             if(edge.isWeak && !showWeakEdges) {
+                continue;
+            }
+            if(edge.wasPruned && dontUsePrunedEdges) {
                 continue;
             }
 
@@ -1552,6 +1560,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
             if(edge.isWeak && !showWeakEdges) {
+                continue;
+            }
+            if(edge.wasPruned && dontUsePrunedEdges) {
                 continue;
             }
 
