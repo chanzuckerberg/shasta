@@ -2182,3 +2182,97 @@ void Assembler::computeMarkerGraphSpanningSubgraph(size_t minCoverage)
 
 
 
+// Prune leaves from the "spanning subgraph" of the global marker graph.
+void Assembler::pruneMarkerGraphSpanningSubgraph(size_t iterationCount)
+{
+    // Some shorthands.
+    using VertexId = GlobalMarkerGraphVertexId;
+    using EdgeId = VertexId;
+
+    // Check that we have what we need.
+    checkMarkerGraphVerticesAreAvailable();
+    checkMarkerGraphConnectivityIsOpen();
+
+    // Get the number of edges.
+    auto& edges = markerGraphConnectivity.edges;
+    const EdgeId edgeCount = edges.size();
+
+    // Flags to mark edges to prune at each iteration.
+    MemoryMapped::Vector<bool> edgesToBePruned;
+    edgesToBePruned.createNew(
+        largeDataName("tmp-PruneMarkerGraphSpanningSubgraph"),
+        largeDataPageSize);
+    edgesToBePruned.resize(edgeCount);
+    fill(edgesToBePruned.begin(), edgesToBePruned.end(), false);
+
+    // Clear the wasPruned flag of all edges.
+    for(MarkerGraphConnectivity::Edge& edge: edges) {
+        edge.wasPruned = false;
+    }
+
+
+
+    // At each prune iteration we prune one layer of leaves.
+    for(size_t iteration=0; iteration!=iterationCount; iteration++) {
+        cout << timestamp << "Begin prune iteration " << iteration << endl;
+
+        // Find the edges to be pruned at each iteration.
+        for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
+            MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+            if(
+                isForwardLeafOfMarkerGraphPrunedSpanningSubgraph(edge.target) ||
+                isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(edge.source)
+                ) {
+                edgesToBePruned[edgeId] = true;
+            }
+        }
+
+
+
+        // Flag the edges we found at this iteration.
+        EdgeId count = 0;
+        for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
+            if(edgesToBePruned[edgeId]) {
+                edges[edgeId].wasPruned = 1;
+                ++count;
+                edgesToBePruned[edgeId] = false;    // For next iteration.
+            }
+        }
+        cout << "Pruned " << count << " edges at prune iteration " << iteration << "." << endl;
+    }
+
+
+    edgesToBePruned.remove();
+
+}
+
+
+// Find out if a vertex is a forward or backward leaf of the pruned
+// spanning subgraph of the marker graph.
+// A forward leaf is a vertex with out-degree 0.
+// A backward leaf is a vertex with in-degree 0.
+bool Assembler::isForwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId vertexId) const
+{
+    const auto& forwardEdges = markerGraphConnectivity.edgesBySource[vertexId];
+    for(const auto& edgeId: forwardEdges) {
+        const auto& edge = markerGraphConnectivity.edges[edgeId];
+        if(edge.isInSpanningSubgraph && ! edge.wasPruned) {
+            return false;   // We found a forward edge, so this is not a forward leaf.
+        }
+
+    }
+    return true;    // We did not find any forward edges, so this is a forward leaf.
+}
+bool Assembler::isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId vertexId) const
+{
+    const auto& backwardEdges = markerGraphConnectivity.edgesByTarget[vertexId];
+    for(const auto& edgeId: backwardEdges) {
+        const auto& edge = markerGraphConnectivity.edges[edgeId];
+        if(edge.isInSpanningSubgraph && ! edge.wasPruned) {
+            return false;   // We found a backward edge, so this is not a backward leaf.
+        }
+
+    }
+    return true;    // We did not find any backward edges, so this is a backward leaf.
+}
+

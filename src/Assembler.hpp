@@ -922,8 +922,10 @@ private:
             // computeMarkerGraphSpanningSubgraph.
             uint8_t isInSpanningSubgraph : 1;
 
+            // Set if this edge was pruned from the spanning subgraph.
+            uint8_t wasPruned : 1;
+
             // The remaining flags are currently unused.
-            uint8_t flag2 : 1;
             uint8_t flag3 : 1;
             uint8_t flag4 : 1;
             uint8_t flag5 : 1;
@@ -933,7 +935,7 @@ private:
             {
                 isWeak = 0;
                 isInSpanningSubgraph = 0;
-                flag2 = 0;
+                wasPruned = 0;
                 flag3 = 0;
                 flag4 = 0;
                 flag5 = 0;
@@ -987,10 +989,13 @@ private:
 
 
 
+public:
     // Compute the "spanning subgraph" of the global marker graph.
     // See the function implementation for more information.
-public:
     void computeMarkerGraphSpanningSubgraph(size_t minCoverage);
+
+    // Prune leaves from the "spanning subgraph" of the global marker graph.
+    void pruneMarkerGraphSpanningSubgraph(size_t iterationCount);
 private:
 
 
@@ -1041,6 +1046,13 @@ private:
     // Return true if a vertex of the global marker graph has more than
     // one marker for at least one oriented read id.
     bool isBadMarkerGraphVertex(GlobalMarkerGraphVertexId) const;
+
+    // Find out if a vertex is a forward or backward leaf of the pruned
+    // spanning subgraph of the marker graph.
+    // A forward leaf is a vertex with out-degree 0.
+    // A backward leaf is a vertex with in-degree 0.
+    bool isForwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId) const;
+    bool isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId) const;
 
 
 

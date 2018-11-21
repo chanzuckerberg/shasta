@@ -286,6 +286,9 @@ PYBIND11_MODULE(shasta, module)
          .def("computeMarkerGraphSpanningSubgraph",
               &Assembler::computeMarkerGraphSpanningSubgraph,
                  arg("minCoverage"))
+         .def("pruneMarkerGraphSpanningSubgraph",
+              &Assembler::pruneMarkerGraphSpanningSubgraph,
+                 arg("iterationCount"))
 
 
 
