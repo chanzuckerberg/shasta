@@ -2255,6 +2255,18 @@ void Assembler::pruneMarkerGraphSpanningSubgraph(size_t iterationCount)
 
     edgesToBePruned.remove();
 
+
+    // Count the number of surviving edges in the pruned spanning subgraph.
+    size_t count = 0;
+    for(MarkerGraphConnectivity::Edge& edge: edges) {
+        if(edge.isInSpanningSubgraph && !edge.wasPruned) {
+            ++count;
+        }
+    }
+    cout << "The marker graph has " << globalMarkerGraphVertices.size();
+    cout << " vertices and " << edgeCount << " edges." << endl;
+    cout << "The pruned spanning subgraph has " << globalMarkerGraphVertices.size();
+    cout << " vertices and " << count << " edges." << endl;
 }
 
 
