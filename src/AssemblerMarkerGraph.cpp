@@ -1372,12 +1372,15 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     int distance,
     double timeout,                 // Or 0 for no timeout.
     bool showWeakEdges,
+    bool onlyUseSpanningSubgraphEdges,
     LocalMarkerGraph& graph
     )
 {
     const GlobalMarkerGraphVertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-    return extractLocalMarkerGraphUsingStoredConnectivity(startVertexId, distance, timeout, showWeakEdges, graph);
+    return extractLocalMarkerGraphUsingStoredConnectivity(
+        startVertexId, distance, timeout,
+        showWeakEdges, onlyUseSpanningSubgraphEdges, graph);
 
 }
 
@@ -1388,6 +1391,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     int distance,
     double timeout,                 // Or 0 for no timeout.
     bool showWeakEdges,
+    bool onlyUseSpanningSubgraphEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1437,9 +1441,15 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
         for(uint64_t edgeId: childEdges) {
             const auto& edge = markerGraphConnectivity.edges[edgeId];
+
+            // Skip this edge if the arguments require it.
+            if(!edge.isInSpanningSubgraph && onlyUseSpanningSubgraphEdges) {
+                continue;
+            }
             if(edge.isWeak && !showWeakEdges) {
                 continue;
             }
+
             const GlobalMarkerGraphVertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
@@ -1477,9 +1487,15 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const auto parentEdges = markerGraphConnectivity.edgesByTarget[vertexId0];
         for(uint64_t edgeId: parentEdges) {
             const auto& edge = markerGraphConnectivity.edges[edgeId];
+
+            // Skip this edge if the arguments require it.
+            if(!edge.isInSpanningSubgraph && onlyUseSpanningSubgraphEdges) {
+                continue;
+            }
             if(edge.isWeak && !showWeakEdges) {
                 continue;
             }
+
             const GlobalMarkerGraphVertexId vertexId1 = edge.source;
             CZI_ASSERT(edge.target == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
@@ -1530,9 +1546,15 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
         for(uint64_t edgeId: childEdges) {
             const auto& edge = markerGraphConnectivity.edges[edgeId];
+
+            // Skip this edge if the arguments require it.
+            if(!edge.isInSpanningSubgraph && onlyUseSpanningSubgraphEdges) {
+                continue;
+            }
             if(edge.isWeak && !showWeakEdges) {
                 continue;
             }
+
             const GlobalMarkerGraphVertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
