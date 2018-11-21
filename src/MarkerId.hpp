@@ -15,10 +15,14 @@ namespace ChanZuckerberg {
         // where uint32_t is sufficient.
         using MarkerId = uint64_t;
 
-        // Type used to identify a vertex of the global marker graph.
+        // Types used to identify a vertex and edge of the global marker graph.
         using GlobalMarkerGraphVertexId = MarkerId;
         const GlobalMarkerGraphVertexId invalidGlobalMarkerGraphVertexId =
             std::numeric_limits<GlobalMarkerGraphVertexId>::max();
+        using GlobalMarkerGraphEdgeId = GlobalMarkerGraphVertexId;
+        const GlobalMarkerGraphEdgeId invalidGlobalMarkerGraphEdgeId =
+            invalidGlobalMarkerGraphVertexId;
+
 
         // To save memory, store it using 5 bytes.
         // This allows for up to 2^40 = 1 Ti markers (both strands).

@@ -292,6 +292,12 @@ PYBIND11_MODULE(shasta, module)
 
 
 
+         // Assembly graph.
+         .def("createAssemblyGraphVertices",
+              &Assembler::createAssemblyGraphVertices)
+
+
+
         // Http server.
         .def("explore",
             &Assembler::explore,

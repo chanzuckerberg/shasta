@@ -2299,3 +2299,95 @@ bool Assembler::isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGr
     return true;    // We did not find any backward edges, so this is a backward leaf.
 }
 
+
+
+// Given an edge of the pruned spanning subgraph of the marker graph,
+// return the next edge if it exists and is unique.
+// Otherwise, return invalidGlobalMarkerGraphEdgeId.
+GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedSpanningSubgraph(
+    GlobalMarkerGraphEdgeId edgeId0) const
+{
+    // Some shorthands.
+    using EdgeId = GlobalMarkerGraphEdgeId;
+    using Edge = MarkerGraphConnectivity::Edge;
+    const auto& edges = markerGraphConnectivity.edges;
+
+    // Check that the edge we were passed belongs to the
+    // pruned spanning subgraph of the marker graph.
+    const Edge& edge0 = edges[edgeId0];
+    CZI_ASSERT(edge0.isInSpanningSubgraph);
+    CZI_ASSERT(!edge0.wasPruned);
+
+    // Loop over all edges following it.
+    EdgeId nextEdgeId = invalidGlobalMarkerGraphEdgeId;
+    for(const EdgeId edgeId1: markerGraphConnectivity.edgesBySource[edge0.target]) {
+        const Edge& edge1 = edges[edgeId1];
+
+        // Skip the edge if it is not part of the
+        // pruned spanning subgraph of the marker graph.
+        if(!edge1.isInSpanningSubgraph) {
+            continue;
+        }
+        if(edge1.wasPruned) {
+            continue;
+        }
+
+        // Ok, this a possible next edge.
+        if(nextEdgeId == invalidGlobalMarkerGraphEdgeId) {
+            // This is the first one we find.
+            nextEdgeId = edgeId1;
+        } else {
+            // This is not the first one we found, so the next edge is not unique.
+            return invalidGlobalMarkerGraphEdgeId;
+        }
+    }
+
+    return nextEdgeId;
+}
+
+
+
+// Given an edge of the pruned spanning subgraph of the marker graph,
+// return the previous edge if it exists and is unique.
+// Otherwise, return invalidGlobalMarkerGraphEdgeId.
+GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedSpanningSubgraph(
+    GlobalMarkerGraphEdgeId edgeId0) const
+{
+    // Some shorthands.
+    using EdgeId = GlobalMarkerGraphEdgeId;
+    using Edge = MarkerGraphConnectivity::Edge;
+    const auto& edges = markerGraphConnectivity.edges;
+
+    // Check that the edge we were passed belongs to the
+    // pruned spanning subgraph of the marker graph.
+    const Edge& edge0 = edges[edgeId0];
+    CZI_ASSERT(edge0.isInSpanningSubgraph);
+    CZI_ASSERT(!edge0.wasPruned);
+
+    // Loop over all edges preceding it.
+    EdgeId previousEdgeId = invalidGlobalMarkerGraphEdgeId;
+    for(const EdgeId edgeId1: markerGraphConnectivity.edgesByTarget[edge0.source]) {
+        const Edge& edge1 = edges[edgeId1];
+
+        // Skip the edge if it is not part of the
+        // pruned spanning subgraph of the marker graph.
+        if(!edge1.isInSpanningSubgraph) {
+            continue;
+        }
+        if(edge1.wasPruned) {
+            continue;
+        }
+
+        // Ok, this a possible previous edge.
+        if(previousEdgeId == invalidGlobalMarkerGraphEdgeId) {
+            // This is the first one we find.
+            previousEdgeId = edgeId1;
+        } else {
+            // This is not the first one we found, so the previous edge is not unique.
+            return invalidGlobalMarkerGraphEdgeId;
+        }
+    }
+
+    return previousEdgeId;
+}
+

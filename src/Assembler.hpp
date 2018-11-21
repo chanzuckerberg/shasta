@@ -1054,6 +1054,12 @@ private:
     bool isForwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId) const;
     bool isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId) const;
 
+    // Given an edge of the pruned spanning subgraph of the marker graph,
+    // return the next/previous edge if it exists and is unique.
+    // Otherwise, return invalidGlobalMarkerGraphEdgeId.
+    GlobalMarkerGraphEdgeId nextEdgeInMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphEdgeId) const;
+    GlobalMarkerGraphEdgeId previousEdgeInMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphEdgeId) const;
+
 
 
     // Extract a local marker graph from the global marker graph.
@@ -1109,6 +1115,29 @@ private:
         bool dontUsePrunedEdges,
         LocalMarkerGraph&
         );
+
+
+
+    // In the assembly graph, each vertex corresponds to a linear chain
+    // of edges in the pruned spanning subgraph of the marker graph.
+    // A directed vertex A->B is created if the last marker graph vertex
+    // of the edge chain corresponding to A coincides with the
+    // first marker graph vertex of the edge chain corresponding to B.
+    class AssemblyGraph {
+    public:
+
+        // Use the same vertex and edge ids of the marker graph.
+        // We could probably get away with 32 bits.
+        using VertexId = GlobalMarkerGraphVertexId;
+        using EdgeId = GlobalMarkerGraphEdgeId;
+
+        // The edge ids of global marker graph edges of each vertex.
+        // Indexed by the vertex id of the assembly graph vertex.
+        MemoryMapped::VectorOfVectors<EdgeId, EdgeId> vertices;
+    };
+    AssemblyGraph assemblyGraph;
+public:
+    void createAssemblyGraphVertices();
 
 
 
