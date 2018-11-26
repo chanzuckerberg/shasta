@@ -24,7 +24,7 @@ void Assembler::exploreMarkerGraph(
     getLocalMarkerGraphRequestParameters(request, requestParameters);
 
     // Write the form.
-    requestParameters.writeForm(html, reads.size());
+    requestParameters.writeForm(html, globalMarkerGraphVertices.size());
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -34,25 +34,9 @@ void Assembler::exploreMarkerGraph(
 
 
     // Validity checks.
-    if(requestParameters.readId > reads.size()) {
-        html << "<p>Invalid read id " << requestParameters.readId;
-        html << ". Must be between 0 and " << reads.size()-1 << ".";
-        return;
-    }
-    if(requestParameters.strand>1) {
-        html << "<p>Invalid strand " << requestParameters.strand;
-        html << ". Must be 0 or 1.";
-        return;
-    }
-    const OrientedReadId orientedReadId(requestParameters.readId, requestParameters.strand);
-    const auto orientedReadMarkerCount = markers.size(orientedReadId.getValue());
-    if(requestParameters.ordinal >= orientedReadMarkerCount) {
-        html <<
-            "<p>Invalid marker ordinal. "
-            "Oriented read " << orientedReadId <<
-            " has "  << orientedReadMarkerCount <<
-            " markers, and therefore the ordinal must be"
-            " between 0 and " << orientedReadMarkerCount-1 << ".";
+    if(requestParameters.vertexId > globalMarkerGraphVertices.size()) {
+        html << "<p>Invalid vertex id " << requestParameters.vertexId;
+        html << ". Must be between 0 and " << globalMarkerGraphVertices.size()-1 << " inclusive.";
         return;
     }
 
@@ -70,8 +54,7 @@ void Assembler::exploreMarkerGraph(
     const auto createStartTime = steady_clock::now();
     if(requestParameters.useStoredConnectivity) {
         if(!extractLocalMarkerGraphUsingStoredConnectivity(
-            orientedReadId,
-            requestParameters.ordinal,
+            requestParameters.vertexId,
             requestParameters.maxDistance,
             requestParameters.timeout,
             requestParameters.showWeakEdges,
@@ -83,8 +66,7 @@ void Assembler::exploreMarkerGraph(
         }
     } else {
         if(!extractLocalMarkerGraph(
-            orientedReadId,
-            requestParameters.ordinal,
+            requestParameters.vertexId,
             requestParameters.maxDistance,
             requestParameters.timeout,
             graph)) {
@@ -93,7 +75,7 @@ void Assembler::exploreMarkerGraph(
         }
     }
     if(num_vertices(graph) == 0) {
-        html << "<p>The specified marker does not correspond to a vertex of the marker graph.";
+        html << "<p>The local marker graph is empty.";
         return;
     }
     graph.approximateTopologicalSort();
@@ -138,8 +120,8 @@ void Assembler::exploreMarkerGraph(
     if(requestParameters.showAssembledSequence) {
 
         const string fastaSequenceName =
-            "AssembledSequence-" + orientedReadId.getString() +
-            "-" + to_string(requestParameters.ordinal) + "-" + to_string(requestParameters.maxDistance);
+            "AssembledSequence-" + to_string(requestParameters.vertexId) +
+            "-" + to_string(requestParameters.maxDistance);
         const string fastaFileName = fastaSequenceName + ".fa";
         string fastaString = ">" + fastaSequenceName + " length " + to_string(sequence.size()) + "\\n";
         for(const auto& p: sequence) {
@@ -316,8 +298,7 @@ void Assembler::exploreMarkerGraph(
             "MarkerGraphLegend-Detailed.html" :
             "MarkerGraphLegend-Compact.html";
         html <<
-            "<h2>Marker graph near marker " << requestParameters.ordinal <<
-            " of oriented read " << orientedReadId <<
+            "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
             " <a href='docs/" << legendName << "'>(see legend)</a></h2>";
 
         const string svgFileName = dotFileName + ".svg";
@@ -383,11 +364,9 @@ void Assembler::exploreMarkerGraph(
 
 
         // Position the start vertex at the center of the window.
-        const GlobalMarkerGraphVertexId startVertexId =
-            getGlobalMarkerGraphVertex(orientedReadId, requestParameters.ordinal);
         html <<
             "<script>\n"
-            "positionAtVertex(" << startVertexId << ");\n"
+            "positionAtVertex(" << requestParameters.vertexId << ");\n"
             "</script>\n";
     }
 }
@@ -400,17 +379,9 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     const vector<string>& request,
     LocalMarkerGraphRequestParameters& parameters) const
 {
-    parameters.readId = 0;
-    parameters.readIdIsPresent = getParameterValue(
-        request, "readId", parameters.readId);
-
-    parameters.strand = 0;
-    parameters.strandIsPresent = getParameterValue(
-        request, "strand", parameters.strand);
-
-    parameters.ordinal = 0;
-    parameters.ordinalIsPresent = getParameterValue(
-        request, "ordinal", parameters.ordinal);
+    parameters.vertexId = 0;
+    parameters.vertexIdIsPresent = getParameterValue(
+        request, "vertexId", parameters.vertexId);
 
     parameters.maxDistance = 0;
     parameters.maxDistanceIsPresent = getParameterValue(
@@ -471,7 +442,7 @@ void Assembler::getLocalMarkerGraphRequestParameters(
 
 void Assembler::LocalMarkerGraphRequestParameters::writeForm(
     ostream& html,
-    size_t readCount) const
+    GlobalMarkerGraphVertexId vertexCount) const
 {
     html <<
         "<h3>Display a local subgraph of the global marker graph</h3>"
@@ -479,24 +450,10 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
         "<table>"
 
-        "<tr title='Read id between 0 and " << readCount-1 << "'>"
-        "<td>Read id"
-        "<td><input type=text required name=readId size=8 style='text-align:center'"
-        << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
-        ">"
-
-        "<tr title='Choose 0 (+) for the input read or 1 (-) for its reverse complement'>"
-        "<td>Strand"
-        "<td class=centered>";
-    writeStrandSelection(html, "strand",
-        strandIsPresent && strand==0,
-        strandIsPresent && strand==1);
-
-    html <<
-        "<tr title='Ordinal for the desired marker in the specified oriented read.'>"
-        "<td>Marker ordinal"
-        "<td><input type=text required name=ordinal size=8 style='text-align:center'"
-        << (ordinalIsPresent ? ("value='"+to_string(ordinal)+"'") : "") <<
+        "<tr title='Vertex id between 0 and " << vertexCount << "'>"
+        "<td>Vertex id"
+        "<td><input type=text required name=vertexId size=8 style='text-align:center'"
+        << (vertexIdIsPresent ? ("value='"+to_string(vertexId)+"'") : "") <<
         ">"
 
         "<tr title='Maximum distance from start vertex (number of edges)'>"
@@ -615,9 +572,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters() const
 {
     return
-        !readIdIsPresent ||
-        !strandIsPresent ||
-        !ordinalIsPresent ||
+        !vertexIdIsPresent ||
         !maxDistanceIsPresent ||
         !minCoverageIsPresent ||
         !timeoutIsPresent;

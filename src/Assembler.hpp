@@ -1181,12 +1181,8 @@ public:
     void exploreMarkerGraph(const vector<string>&, ostream&);
     class LocalMarkerGraphRequestParameters {
     public:
-        ReadId readId;
-        bool readIdIsPresent;
-        Strand strand;
-        bool strandIsPresent;
-        uint32_t ordinal;
-        bool ordinalIsPresent;
+        GlobalMarkerGraphVertexId vertexId;
+        bool vertexIdIsPresent;
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
         bool detailed;
@@ -1204,7 +1200,7 @@ public:
         double timeout;
         bool timeoutIsPresent;
         string portionToDisplay;
-        void writeForm(ostream&, size_t readCount) const;
+        void writeForm(ostream&, GlobalMarkerGraphVertexId vertexCount) const;
         bool hasMissingRequiredParameters() const;
     };
     void getLocalMarkerGraphRequestParameters(

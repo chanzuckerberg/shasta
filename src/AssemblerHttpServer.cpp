@@ -886,9 +886,7 @@ void Assembler::exploreRead(
         if(hasMarkerGraphVertex) {
             // Add a hyperlink to the marker graph vertex
             // that contains this marker.
-            const string url = "exploreMarkerGraph?readId=" + to_string(readId) +
-                "&strand=" + to_string(strand) +
-                "&ordinal=" + to_string(ordinal) +
+            const string url = "exploreMarkerGraph?vertexId=" + to_string(vertexId) +
                 "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
             html << " xlink:href='" << url << "' style='cursor:pointer'";
         }
