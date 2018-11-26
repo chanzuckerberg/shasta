@@ -45,6 +45,9 @@ for fileName in fastaFileNames:
         fileName = fileName, 
         minReadLength = int(config['Reads']['minReadLength']))
 
+# Create a histogram of read lengths.
+a.histogramReadLength(fileName="ReadLengthHistogram.csv")
+
 # Randomly select the k-mers that will be used as markers.
 a.randomlySelectKmers(
     k = int(config['Kmers']['k']), 
@@ -68,21 +71,21 @@ a.computeAlignments(
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
     maxTrim = int(config['Align']['maxTrim']))
     
-# Create the global read graph.
+# Create the read graph.
 a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
 
 # Flag chimeric reads.
 a.flagChimericReads(
     maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
 
-# Create global marker graph vertices.
+# Create vertices of the marker graph.
 a.createMarkerGraphVertices(
     maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
     maxSkip = int(config['Align']['maxSkip']),
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']))
 
-# Create global marker graph edges.
+# Create edges of the marker graph.
 a.createMarkerGraphConnectivity()
 
 # Flag weak edges of the marker graph.
@@ -91,4 +94,14 @@ a.flagMarkerGraphWeakEdges(
     maxPathLength = int(config['MarkerGraph']['maxPathLength']),
     )
 
+# Compute the "spanning subgraph" of the marker graph.
+a.computeMarkerGraphSpanningSubgraph(
+    minCoverage = int(config['MarkerGraph']['spanningSubgraphMinCoverage']))
+
+# Prune the "spanning subgraph" of the marker graph.
+a.pruneMarkerGraphSpanningSubgraph(
+    iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
+
+# Create vertices of the assembly graph.
+a.createAssemblyGraphVertices()
 
