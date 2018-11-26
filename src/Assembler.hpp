@@ -1055,10 +1055,15 @@ private:
     bool isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId) const;
 
     // Given an edge of the pruned spanning subgraph of the marker graph,
-    // return the next/previous edge if it exists and is unique.
-    // Otherwise, return invalidGlobalMarkerGraphEdgeId.
-    GlobalMarkerGraphEdgeId nextEdgeInMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphEdgeId) const;
-    GlobalMarkerGraphEdgeId previousEdgeInMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphEdgeId) const;
+    // return the next/previous edge in the linear chain the edge belongs to.
+    // If the edge is the last/first edge in its linear chain, return invalidGlobalMarkerGraphEdgeId.
+    GlobalMarkerGraphEdgeId nextEdgeInMarkerGraphPrunedSpanningSubgraphChain(GlobalMarkerGraphEdgeId) const;
+    GlobalMarkerGraphEdgeId previousEdgeInMarkerGraphPrunedSpanningSubgraphChain(GlobalMarkerGraphEdgeId) const;
+
+    // Return the out-degree or in-degree (number of outgoing/incoming edges)
+    // of a vertex of the pruned spanning subgraph of the marker graph.
+    size_t markerGraphPrunedSpanningSubgraphOutDegree(GlobalMarkerGraphVertexId) const;
+    size_t markerGraphPrunedSpanningSubgraphInDegree (GlobalMarkerGraphVertexId) const;
 
 
 

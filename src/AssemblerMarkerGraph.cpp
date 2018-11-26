@@ -2302,9 +2302,9 @@ bool Assembler::isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGr
 
 
 // Given an edge of the pruned spanning subgraph of the marker graph,
-// return the next edge if it exists and is unique.
-// Otherwise, return invalidGlobalMarkerGraphEdgeId.
-GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedSpanningSubgraph(
+// return the next edge in the linear chain the edge belongs to.
+// If the edge is the last edge in its linear chain, return invalidGlobalMarkerGraphEdgeId.
+GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedSpanningSubgraphChain(
     GlobalMarkerGraphEdgeId edgeId0) const
 {
     // Some shorthands.
@@ -2317,6 +2317,15 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedSpanningSubgraph(
     const Edge& edge0 = edges[edgeId0];
     CZI_ASSERT(edge0.isInSpanningSubgraph);
     CZI_ASSERT(!edge0.wasPruned);
+
+    // If the out-degree and in-degree of the target of this edge are not both 1,
+    // this edge is the last of its chain.
+    if(
+        (markerGraphPrunedSpanningSubgraphOutDegree(edge0.target) != 1) ||
+        (markerGraphPrunedSpanningSubgraphInDegree( edge0.target) != 1)
+        ) {
+        return invalidGlobalMarkerGraphEdgeId;
+    }
 
     // Loop over all edges following it.
     EdgeId nextEdgeId = invalidGlobalMarkerGraphEdgeId;
@@ -2348,11 +2357,16 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedSpanningSubgraph(
 
 
 // Given an edge of the pruned spanning subgraph of the marker graph,
-// return the previous edge if it exists and is unique.
-// Otherwise, return invalidGlobalMarkerGraphEdgeId.
-GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedSpanningSubgraph(
+// return the previous edge in the linear chain the edge belongs to.
+// If the edge is the first edge in its linear chain, return invalidGlobalMarkerGraphEdgeId.
+GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedSpanningSubgraphChain(
     GlobalMarkerGraphEdgeId edgeId0) const
 {
+    const bool debug = false;
+    if(debug) {
+        cout << "previousEdgeInMarkerGraphPrunedSpanningSubgraph begins." << endl;
+    }
+
     // Some shorthands.
     using EdgeId = GlobalMarkerGraphEdgeId;
     using Edge = MarkerGraphConnectivity::Edge;
@@ -2364,30 +2378,85 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedSpanningSubgra
     CZI_ASSERT(edge0.isInSpanningSubgraph);
     CZI_ASSERT(!edge0.wasPruned);
 
+    // If the out-degree and in-degree of the source of this edge are not both 1,
+    // this edge is the last of its chain.
+    if(
+        (markerGraphPrunedSpanningSubgraphOutDegree(edge0.source) != 1) ||
+        (markerGraphPrunedSpanningSubgraphInDegree( edge0.source) != 1)
+        ) {
+        return invalidGlobalMarkerGraphEdgeId;
+    }
+
     // Loop over all edges preceding it.
     EdgeId previousEdgeId = invalidGlobalMarkerGraphEdgeId;
     for(const EdgeId edgeId1: markerGraphConnectivity.edgesByTarget[edge0.source]) {
         const Edge& edge1 = edges[edgeId1];
+        if(debug) {
+            cout << "Found " << edgeId1 << " " << edge1.source << "->" << edge1.target << endl;
+        }
 
         // Skip the edge if it is not part of the
         // pruned spanning subgraph of the marker graph.
         if(!edge1.isInSpanningSubgraph) {
+            if(debug) {
+                cout << "Edge is not in the spanning graph." << endl;
+            }
             continue;
         }
         if(edge1.wasPruned) {
+            if(debug) {
+                cout << "Edge was pruned." << endl;
+            }
             continue;
         }
 
         // Ok, this a possible previous edge.
         if(previousEdgeId == invalidGlobalMarkerGraphEdgeId) {
             // This is the first one we find.
+            if(debug) {
+                cout << "Tentative previous edge " << edgeId1 << " " << edge1.source << "->" << edge1.target << endl;
+            }
             previousEdgeId = edgeId1;
         } else {
             // This is not the first one we found, so the previous edge is not unique.
+            if(debug) {
+                cout << "previousEdgeInMarkerGraphPrunedSpanningSubgraph ends, case 1." << endl;
+            }
             return invalidGlobalMarkerGraphEdgeId;
         }
+    }
+    if(debug) {
+        cout << "previousEdgeInMarkerGraphPrunedSpanningSubgraph ends, case 2 " << previousEdgeId << endl;
     }
 
     return previousEdgeId;
 }
 
+
+
+// Return the out-degree or in-degree (number of outgoing/incoming edges)
+// of a vertex of the pruned spanning subgraph of the marker graph.
+size_t Assembler::markerGraphPrunedSpanningSubgraphOutDegree(
+    GlobalMarkerGraphVertexId vertexId) const
+{
+    size_t outDegree = 0;
+    for(const auto edgeId: markerGraphConnectivity.edgesBySource[vertexId]) {
+        const auto& edge = markerGraphConnectivity.edges[edgeId];
+        if(edge.isInSpanningSubgraph && !edge.wasPruned) {
+            ++outDegree;
+        }
+    }
+    return outDegree;
+}
+size_t Assembler::markerGraphPrunedSpanningSubgraphInDegree(
+    GlobalMarkerGraphVertexId vertexId) const
+{
+    size_t inDegree = 0;
+    for(const auto edgeId: markerGraphConnectivity.edgesByTarget[vertexId]) {
+        const auto& edge = markerGraphConnectivity.edges[edgeId];
+        if(edge.isInSpanningSubgraph && !edge.wasPruned) {
+            ++inDegree;
+        }
+    }
+    return inDegree;
+}

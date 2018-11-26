@@ -23,6 +23,10 @@ void Assembler::createAssemblyGraphVertices()
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphConnectivityIsOpen();
+    const auto& edges = markerGraphConnectivity.edges;
+
+    // Flag to control debug output.
+    const bool debug = false;
 
     // Vector used to keep track of edges that were already found.
     const EdgeId edgeCount = markerGraphConnectivity.edges.size();
@@ -41,8 +45,8 @@ void Assembler::createAssemblyGraphVertices()
 
 
     // Work vectors reused for each chain.
-    vector<EdgeId> nextVertices;
-    vector<EdgeId> previousVertices;
+    vector<EdgeId> nextEdges;
+    vector<EdgeId> previousEdges;
     vector<EdgeId> chain;
 
 
@@ -51,46 +55,60 @@ void Assembler::createAssemblyGraphVertices()
     // of the marker graph.
     // At each iteration we find a new linear chain of edges.
     for(EdgeId startEdgeId=0; startEdgeId<edgeCount; startEdgeId++) {
-        const auto& startEdge = markerGraphConnectivity.edges[startEdgeId];
+        const auto& startEdge = edges[startEdgeId];
+
+        if(debug) {
+            cout << "Working on start edge " << startEdgeId;
+            cout << " " << startEdge.source << "->" << startEdge.target << endl;
+        }
 
         // If this edge is not part of the pruned spanning subgraph, skip it.
         if(!startEdge.isInSpanningSubgraph) {
+            if(debug) {
+                cout << "Edge is not in the spanning subgraph." << endl;
+            }
             continue;
         }
         if(startEdge.wasPruned) {
+            if(debug) {
+                cout << "Edge was pruned." << endl;
+            }
             continue;
         }
 
         // If we already found this edge, skip it.
         // It is part of a chain we aready found.
         if(wasFound[startEdgeId]) {
+            if(debug) {
+                cout << "This edge is part of a chain we already found." << endl;
+            }
             continue;
         }
 
         // Follow the chain forward.
         EdgeId edgeId = startEdgeId;
         while(true) {
-            edgeId = nextEdgeInMarkerGraphPrunedSpanningSubgraph(edgeId);
+            edgeId = nextEdgeInMarkerGraphPrunedSpanningSubgraphChain(edgeId);
             if(edgeId == invalidGlobalMarkerGraphEdgeId) {
                 break;
             }
-            nextVertices.push_back(edgeId);
+            nextEdges.push_back(edgeId);
         }
 
         // Follow the chain backward.
         edgeId = startEdgeId;
         while(true) {
-            edgeId = previousEdgeInMarkerGraphPrunedSpanningSubgraph(edgeId);
+            edgeId = previousEdgeInMarkerGraphPrunedSpanningSubgraphChain(edgeId);
             if(edgeId == invalidGlobalMarkerGraphEdgeId) {
                 break;
             }
-            previousVertices.push_back(edgeId);
+            previousEdges.push_back(edgeId);
         }
 
         // Gather the chain.
-        copy(previousVertices.rbegin(), previousVertices.rend(), back_inserter< vector<EdgeId> >(chain));
+        copy(previousEdges.rbegin(), previousEdges.rend(), back_inserter< vector<EdgeId> >(chain));
         chain.push_back(startEdgeId);
-        copy(nextVertices.begin(), nextVertices.end(), back_inserter< vector<EdgeId> >(chain));
+        copy(nextEdges.begin(), nextEdges.end(), back_inserter< vector<EdgeId> >(chain));
 
         // Mark all the edges in the chain as found.
         for(const EdgeId edgeId: chain) {
@@ -100,9 +118,19 @@ void Assembler::createAssemblyGraphVertices()
         // Store this chain as a new vertex of the assembly graph.
         assemblyGraph.vertices.appendVector(chain);
 
+        // Write out the chain.
+        if(debug) {
+            cout << "Chain: ";
+            cout << edges[chain.front()].source << " ";
+            for(const EdgeId edgeId: chain) {
+                cout << edges[edgeId].target << " ";
+            }
+            cout << endl;
+        }
+
         // Cleanup.
-        nextVertices.clear();
-        previousVertices.clear();
+        nextEdges.clear();
+        previousEdges.clear();
         chain.clear();
     }
 
