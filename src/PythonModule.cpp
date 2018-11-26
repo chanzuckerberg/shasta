@@ -295,6 +295,12 @@ PYBIND11_MODULE(shasta, module)
          // Assembly graph.
          .def("createAssemblyGraphVertices",
               &Assembler::createAssemblyGraphVertices)
+         .def("createAssemblyGraphEdges",
+             &Assembler::createAssemblyGraphEdges)
+         .def("accessAssemblyGraphVertices",
+              &Assembler::accessAssemblyGraphVertices)
+          .def("accessAssemblyGraphEdges",
+               &Assembler::accessAssemblyGraphEdges)
 
 
 
