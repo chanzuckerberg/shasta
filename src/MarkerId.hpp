@@ -1,8 +1,12 @@
 #ifndef CZI_SHASTA_MARKER_ID_HPP
 #define CZI_SHASTA_MARKER_ID_HPP
 
-#include "cstdint.hpp"
+// Shasta.
 #include "Uint.hpp"
+
+// Standard library.
+#include "cstdint.hpp"
+#include <limits>
 
 namespace ChanZuckerberg {
     namespace shasta {

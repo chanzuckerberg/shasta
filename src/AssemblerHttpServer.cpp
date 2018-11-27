@@ -39,6 +39,7 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
 
 }
 #undef CZI_ADD_TO_FUNCTION_TABLE
@@ -205,6 +206,9 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Marker graph", {
         {"Marker graph", "exploreMarkerGraph"},
+        });
+    writeNavigation(html, "Assembly graph", {
+        {"Assembly graph", "exploreAssemblyGraph"},
         });
     writeNavigation(html, "Help", {
         {"Documentation", "docs/index.html"},

@@ -1,8 +1,9 @@
 #ifndef CZI_SHASTA_ASSEMBLER_HPP
 #define CZI_SHASTA_ASSEMBLER_HPP
 
-// shasta
+// Shasta
 #include "Alignment.hpp"
+#include "AssemblyGraph.hpp"
 #include "dset64.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
@@ -1128,40 +1129,6 @@ private:
     // A directed vertex A->B is created if the last marker graph vertex
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
-    class AssemblyGraph {
-    public:
-
-        // Use the same vertex and edge ids of the marker graph.
-        // We could probably get away with 32 bits.
-        using VertexId = GlobalMarkerGraphVertexId;
-        using EdgeId = GlobalMarkerGraphEdgeId;
-
-        // The edge ids of global marker graph edges of each vertex.
-        // They describe the chain (path in the marker graph)
-        // corresponding to each vertex of the assembly graph.
-        // Indexed by the vertex id of the assembly graph vertex.
-        MemoryMapped::VectorOfVectors<EdgeId, EdgeId> vertices;
-
-        // The edges of the assembly graph.
-        // Each edge stores the vertex ids (in the assembly graph).
-        class Edge {
-        public:
-            VertexId source;
-            VertexId target;
-            Edge(VertexId source, VertexId target) :
-                source(source), target(target) {}
-            Edge() {}
-        };
-        MemoryMapped::Vector<Edge> edges;
-
-        // The edges that each vertex is the source of.
-        // Contains indexes into the above edges vector.
-        MemoryMapped::VectorOfVectors<VertexId, EdgeId> edgesBySource;
-
-        // The edges that each vertex is the target of.
-        // Contains indexes into the above edges vector.
-        MemoryMapped::VectorOfVectors<VertexId, EdgeId> edgesByTarget;
-    };
     AssemblyGraph assemblyGraph;
 public:
     void createAssemblyGraphVertices();
@@ -1207,7 +1174,10 @@ private:
     };
     HttpServerData httpServerData;
 
-    // Functions and data used for display of the local marker graph.
+
+
+    // Functions and data used by the http server
+    // for display of the local marker graph.
     void exploreMarkerGraph(const vector<string>&, ostream&);
     class LocalMarkerGraphRequestParameters {
     public:
@@ -1241,6 +1211,29 @@ private:
         const LocalMarkerGraph&,
         const LocalMarkerGraphRequestParameters&
         );
+
+
+
+    // Functions and data used by the http server
+    // for display of the local assembly graph.
+    void exploreAssemblyGraph(const vector<string>&, ostream&);
+    class LocalAssemblyGraphRequestParameters {
+    public:
+        AssemblyGraph::VertexId vertexId;
+        bool vertexIdIsPresent;
+        uint32_t maxDistance;
+        bool maxDistanceIsPresent;
+        bool detailed;
+        uint32_t sizePixels;
+        bool sizePixelsIsPresent;
+        double timeout;
+        bool timeoutIsPresent;
+        void writeForm(ostream&, AssemblyGraph::VertexId vertexCount) const;
+        bool hasMissingRequiredParameters() const;
+    };
+    void getLocalAssemblyGraphRequestParameters(
+        const vector<string>&,
+        LocalAssemblyGraphRequestParameters&) const;
 
 
     // The ConsensusCaller used to compute the "best"

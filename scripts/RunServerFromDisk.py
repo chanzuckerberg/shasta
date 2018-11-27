@@ -26,6 +26,8 @@ a.accessReadGraph()
 a.accessChimericReadsFlags()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphConnectivity()
+a.accessAssemblyGraphVertices()
+a.accessAssemblyGraphEdges()
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 
 a.setDocsDirectory(docsDirectory)
