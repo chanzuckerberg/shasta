@@ -96,7 +96,7 @@ void Assembler::exploreAssemblyGraph(
     }
 
     // Remove the .dot file.
-    filesystem::remove(dotFileName);
+    // filesystem::remove(dotFileName);
 
     // Copy the svg to html.
     const string svgFileName = dotFileName + ".svg";

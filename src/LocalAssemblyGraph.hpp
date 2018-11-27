@@ -87,6 +87,10 @@ public:
     // Otherwise, return make_pair(false, null_vertex());
     pair<bool, vertex_descriptor> findVertex(VertexId) const;
 
+    // Return the "length" of a vertex, that is, the
+    // number of marker graph edges that it corresponds to.
+    size_t vertexLength(vertex_descriptor) const;
+
     // Write in Graphviz format.
     void write(
         ostream&,

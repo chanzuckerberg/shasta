@@ -55,6 +55,17 @@ std::pair<bool, LocalAssemblyGraph::vertex_descriptor>
 
 
 
+// Return the "length" of a vertex, that is, the
+// number of marker graph edges that it corresponds to.
+size_t LocalAssemblyGraph::vertexLength(vertex_descriptor v) const
+{
+    const LocalAssemblyGraph& graph = *this;
+    const VertexId vertexId = graph[v].vertexId;
+    return globalAssemblyGraph.vertices.size(vertexId);
+}
+
+
+
 // Write the graph in Graphviz format.
 void LocalAssemblyGraph::write(
     const string& fileName,
@@ -93,12 +104,89 @@ LocalAssemblyGraph::Writer::Writer(
 
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s) const
 {
+    // This turns off the tooltip on the graph.
+    s << "tooltip = \" \";\n";
+
+    if(detailed) {
+        s << "layout=dot;\n";
+        s << "rankdir=LR;\n";
+        s << "ratio=expand;\n";
+        s << "node [fontname=\"Courier New\" shape=rectangle style=filled];\n";
+        s << "edge [fontname=\"Courier New\"];\n";
+    } else {
+        s << "layout=sfdp;\n";
+        s << "smoothing=triangle;\n";
+        s << "ratio=expand;\n";
+        s << "node [shape=point];\n";
+    }
 }
 
 
 
+// Write a vertex in graphviz format.
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
+    const LocalAssemblyGraphVertex& vertex = graph[v];
+    const size_t length = graph.vertexLength(v);
+
+    // Begin vertex attributes.
+    s << "[";
+
+
+
+    // Color.
+    string color;
+    if(vertex.distance == maxDistance) {
+        // Vertices at maximum distance.
+        color = "cyan";
+    } else if(vertex.distance == 0) {
+        // Start vertex.
+        color = "#90ee90";
+    } else {
+        // All other vertices.
+        if(detailed) {
+            color = "pink";
+        } else {
+            color = "black";
+        }
+    }
+    s << " fillcolor=\"" << color << "\"";
+    if(!detailed) {
+        s << " color=\"" << color << "\"";
+    }
+
+
+
+    // Size.
+    // This could be problematic for the compressed assembly graph.
+    /*
+    if(detailed) {
+        s << " width=" << 1. * double(length);
+    } else {
+        s << " width=" << 1.e-1 * double(length);
+    }
+    */
+
+
+
+    // Toolip.
+    if(!detailed) {
+        s << " tooltip=\"Id " << vertex.vertexId;
+        s << ", length " << length << "\"";
+    }
+
+
+
+    // Label.
+    if(detailed) {
+        s << " label=\"Id " << vertex.vertexId << "\\n";
+        s << "Length " << length << "\"";
+    }
+
+
+
+    // End vertex attributes.
+    s << "]";
 }
 
 
