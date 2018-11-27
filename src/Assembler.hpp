@@ -32,6 +32,7 @@ namespace ChanZuckerberg {
         class AlignmentInfo;
         class ConsensusCaller;
         class LocalAlignmentGraph;
+        class LocalAssemblyGraph;
         class LocalMarkerGraph;
         class LocalReadGraph;
         class MarkerInterval;
@@ -1136,6 +1137,14 @@ public:
     void createAssemblyGraphEdges();
     void accessAssemblyGraphEdges();
 private:
+
+    // Extract a local assembly graph from the global assembly graph.
+    // This returns false if the timeout was exceeded.
+    bool extractLocalAssemblyGraph(
+        AssemblyGraph::VertexId,
+        int distance,
+        double timeout,
+        LocalAssemblyGraph&) const;
 
 
     // Data and functions used for the http server.

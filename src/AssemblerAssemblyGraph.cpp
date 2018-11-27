@@ -1,10 +1,16 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "LocalAssemblyGraph.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/graph/iteration_macros.hpp>
+
 // Standard library.
+#include "chrono.hpp"
+#include <queue>
 #include <unordered_map>
 #include "iterator.hpp"
 
@@ -238,7 +244,7 @@ void Assembler::createAssemblyGraphEdges()
             markerGraphConnectivity.edges[lastChainEdgeId];
         const VertexId u = lastChainEdge.target;
 
-        // Looking up the map gives the childre of this assembly graph vertex.
+        // Looking up the map gives the children of this assembly graph vertex.
         const vector<VertexId>& children = vertexMap[u];
         for(const VertexId v1: children) {
             assemblyGraph.edges.push_back(AssemblyGraph::Edge(v0, v1));
@@ -258,8 +264,17 @@ void Assembler::createAssemblyGraphEdges()
         largeDataPageSize);
     assemblyGraph.edgesBySource.beginPass1(vertices.size());
     assemblyGraph.edgesByTarget.beginPass1(vertices.size());
+    for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
+        assemblyGraph.edgesBySource.incrementCount(edge.source);
+        assemblyGraph.edgesByTarget.incrementCount(edge.target);
+    }
     assemblyGraph.edgesBySource.beginPass2();
     assemblyGraph.edgesByTarget.beginPass2();
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+        assemblyGraph.edgesBySource.store(edge.source, edgeId);
+        assemblyGraph.edgesByTarget.store(edge.target, edgeId);
+    }
     assemblyGraph.edgesBySource.endPass2();
     assemblyGraph.edgesByTarget.endPass2();
 
@@ -272,4 +287,209 @@ void Assembler::accessAssemblyGraphEdges()
 {
     assemblyGraph.edges.accessExistingReadOnly(
         largeDataName("AssemblyGraphEdges"));
+    assemblyGraph.edgesBySource.accessExistingReadOnly(
+        largeDataName("AssemblyGraphEdgesBySource"));
+    assemblyGraph.edgesByTarget.accessExistingReadOnly(
+        largeDataName("AssemblyGraphEdgesByTarget"));
+}
+
+
+
+// Extract a local assembly graph from the global assembly graph.
+// This returns false if the timeout was exceeded.
+bool Assembler::extractLocalAssemblyGraph(
+    AssemblyGraph::VertexId startVertexId,
+    int distance,
+    double timeout,
+    LocalAssemblyGraph& graph) const
+{
+    using vertex_descriptor = LocalAssemblyGraph::vertex_descriptor;
+    using edge_descriptor = LocalAssemblyGraph::edge_descriptor;
+    using VertexId = AssemblyGraph::VertexId;
+    using EdgeId = AssemblyGraph::EdgeId;
+
+    const bool debug = false;
+    if(debug) {
+        cout << "Begin extractLocalAssemblyGraph for vertex "
+            << startVertexId << " distance " << distance << endl;
+    }
+
+    const auto startTime = steady_clock::now();
+
+    // Add the start vertex.
+    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0);
+
+    // Do the BFS.
+    std::queue<vertex_descriptor> q;
+    if(distance > 0) {
+        q.push(vStart);
+    }
+    while(!q.empty()) {
+
+        // See if we exceeded the timeout.
+        if(timeout>0. && seconds(steady_clock::now() - startTime) > timeout) {
+            graph.clear();
+            return false;
+        }
+
+        // Dequeue a vertex.
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+        const LocalAssemblyGraphVertex& vertex0 = graph[v0];
+        const VertexId vertexId0 = vertex0.vertexId;
+        const int distance0 = vertex0.distance;
+        const int distance1 = distance0 + 1;
+
+        if(debug) {
+            cout << "Dequeued " << vertexId0 << " at distance " << distance0 << endl;
+        }
+
+
+
+        // Loop over children.
+        const auto childEdges = assemblyGraph.edgesBySource[vertexId0];
+        for(const EdgeId edgeId: childEdges) {
+            const AssemblyGraph::Edge& globalEdge = assemblyGraph.edges[edgeId];
+            const VertexId vertexId1 = globalEdge.target;
+
+            if(debug) {
+                cout << "Found child " << vertexId1 << endl;
+            }
+
+            // Find the vertex corresponding to this child, creating it if necessary.
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            if(!vertexExists) {
+                v1 = graph.addVertex(vertexId1, distance1);
+                if(distance1 < distance) {
+                    q.push(v1);
+                }
+                if(debug) {
+                    cout << "Vertex added " << vertexId1 << endl;
+                }
+            }
+
+            // Create the edge v0->v1, if it does not already exist.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v0, v1, graph);
+            if(!edgeExists) {
+                tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
+                CZI_ASSERT(edgeExists);
+                if(debug) {
+                    cout << "Edge added " << vertexId0 << "->" << vertexId1 << endl;
+                }
+            }
+        }
+
+
+
+        // Loop over parents.
+        const auto parentEdges = assemblyGraph.edgesByTarget[vertexId0];
+        for(const EdgeId edgeId: parentEdges) {
+            const AssemblyGraph::Edge& globalEdge = assemblyGraph.edges[edgeId];
+            const VertexId vertexId1 = globalEdge.source;
+
+            if(debug) {
+                cout << "Found parent " << vertexId1 << endl;
+            }
+
+            // Find the vertex corresponding to this child, creating it if necessary.
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            if(!vertexExists) {
+                v1 = graph.addVertex(vertexId1, distance1);
+                if(distance1 < distance) {
+                    q.push(v1);
+                }
+                if(debug) {
+                    cout << "Vertex added " << vertexId1 << endl;
+                }
+            }
+
+            // Create the edge v1->v0, if it does not already exist.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v1, v0, graph);
+            if(!edgeExists) {
+                tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
+                CZI_ASSERT(edgeExists);
+                if(debug) {
+                    cout << "Edge added " << vertexId1 << "->" << vertexId0 << endl;
+                }
+            }
+        }
+    }
+
+
+
+    // The BFS process did not create edges between vertices at maximum distance.
+    // Do it now.
+    // Loop over all vertices at maximum distance.
+    BGL_FORALL_VERTICES(v0, graph, LocalAssemblyGraph) {
+        const LocalAssemblyGraphVertex& vertex0 = graph[v0];
+        if(vertex0.distance != distance) {
+            continue;
+        }
+        const AssemblyGraph::VertexId vertexId0 = vertex0.vertexId;
+
+        // Loop over the children that exist in the local assembly graph
+        // and are also at maximum distance.
+        const auto childEdges = assemblyGraph.edgesBySource[vertexId0];
+        for(uint64_t edgeId: childEdges) {
+            const auto& edge = assemblyGraph.edges[edgeId];
+
+            const AssemblyGraph::VertexId vertexId1 = edge.target;
+            CZI_ASSERT(edge.source == vertexId0);
+            CZI_ASSERT(vertexId1 < assemblyGraph.vertices.size());
+
+            // See if we have a vertex for this global vertex id.
+            bool vertexExists;
+            vertex_descriptor v1;
+            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+
+            // If it does not exist in the local marker graph, skip.
+            if(!vertexExists) {
+                continue;
+            }
+
+            // If it is not at maximum distance, skip.
+            const LocalAssemblyGraphVertex& vertex1 = graph[v1];
+            if(vertex1.distance != distance) {
+                continue;
+            }
+
+            // There is no way we already created this edge.
+            // Check that this is the case.
+            edge_descriptor e;
+            bool edgeExists;
+            tie(e, edgeExists) = boost::edge(v0, v1, graph);
+            CZI_ASSERT(!edgeExists);
+
+            // Add the edge.
+            tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
+            CZI_ASSERT(edgeExists);
+
+        }
+    }
+
+    if(debug) {
+        cout << "Vertices:" << endl;
+        BGL_FORALL_VERTICES(v, graph, LocalAssemblyGraph) {
+            cout << graph[v].vertexId << endl;
+        }
+        cout << "Edges:" << endl;
+        BGL_FORALL_EDGES(e, graph, LocalAssemblyGraph) {
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            cout << graph[v0].vertexId << "->";
+            cout << graph[v1].vertexId << endl;
+        }
+
+    }
+
+
+    return true;
 }

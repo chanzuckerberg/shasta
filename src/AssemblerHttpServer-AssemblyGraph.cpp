@@ -4,6 +4,11 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 // Standard library.
 #include "chrono.hpp"
 
@@ -35,11 +40,73 @@ void Assembler::exploreAssemblyGraph(
 
 
     // Create the local assembly graph.
+    html << "<h1>Local assembly graph</h1>";
     LocalAssemblyGraph graph(assemblyGraph);
     const auto createStartTime = steady_clock::now();
+    if(!extractLocalAssemblyGraph(
+        requestParameters.vertexId,
+        requestParameters.maxDistance,
+        requestParameters.timeout,
+        graph)) {
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
+    }
+    html << "<p>The local assembly graph has " << num_vertices(graph);
+    html << " vertices and " << num_edges(graph) << " edges.";
+
+    const auto createFinishTime = steady_clock::now();
+    if(seconds(createFinishTime - createStartTime) > requestParameters.timeout) {
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
+    }
+
+    // Write it out in graphviz format.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    graph.write(
+        dotFileName,
+        requestParameters.maxDistance,
+        requestParameters.detailed);
 
 
-    html << "<h1>Local assembly graph</h1>";
+
+    // Compute graph layout in svg format.
+    const string command =
+        "timeout " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
+        " dot -O -T svg " + dotFileName +
+        " -Gsize=" + to_string(requestParameters.sizePixels/72.);
+    const int commandStatus = ::system(command.c_str());
+    if(WIFEXITED(commandStatus)) {
+        const int exitStatus = WEXITSTATUS(commandStatus);
+        if(exitStatus == 124) {
+            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            filesystem::remove(dotFileName);
+            return;
+        }
+        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+            filesystem::remove(dotFileName);
+            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+        }
+    } else if(WIFSIGNALED(commandStatus)) {
+        const int signalNumber = WTERMSIG(commandStatus);
+        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+    } else {
+        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+
+    }
+
+    // Remove the .dot file.
+    filesystem::remove(dotFileName);
+
+    // Copy the svg to html.
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << svgFile.rdbuf();
+    svgFile.close();
+
+    // Remove the .svg file.
+    filesystem::remove(svgFileName);
+
 }
 
 

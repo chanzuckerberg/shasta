@@ -82,6 +82,10 @@ public:
         VertexId,
         int distance);
 
+    // Find out if a vertex with the given VertexId exists.
+    // If it exists, return make_pair(true, v).
+    // Otherwise, return make_pair(false, null_vertex());
+    pair<bool, vertex_descriptor> findVertex(VertexId) const;
 
     // Write in Graphviz format.
     void write(
