@@ -173,6 +173,8 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
     if(!detailed) {
         s << " tooltip=\"Id " << vertex.vertexId;
         s << ", length " << length << "\"";
+    } else {
+        s << " tooltip=\" \"";
     }
 
 
@@ -183,6 +185,9 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
         s << "Length " << length << "\"";
     }
 
+
+    // Link to detailed information for this vertex.
+    s << " URL=\"exploreAssemblyGraphVertex?vertexId=" << vertex.vertexId << "\"";
 
 
     // End vertex attributes.
