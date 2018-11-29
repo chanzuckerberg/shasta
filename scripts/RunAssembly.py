@@ -102,6 +102,8 @@ a.computeMarkerGraphSpanningSubgraph(
 a.pruneMarkerGraphSpanningSubgraph(
     iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
 
-# Create vertices of the assembly graph.
+# Create vertices and edges of the assembly graph.
 a.createAssemblyGraphVertices()
+a.createAssemblyGraphEdges()
+
 
