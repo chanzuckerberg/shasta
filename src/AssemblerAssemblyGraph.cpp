@@ -510,7 +510,11 @@ void Assembler::assembleAssemblyGraphVertex(
         ostream& html = *htmlPointer;
 
         // Write a title.
-        html << "<h1>Local assembly graph vertex " << vertexId << "</h1>";
+        html <<
+            "<h1>Local assembly graph vertex <a href="
+            "'exploreAssemblyGraph?vertexId=" << vertexId <<
+            "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
+            vertexId << "</a></h1>";
 
 
 
