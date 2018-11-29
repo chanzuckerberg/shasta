@@ -516,15 +516,7 @@ void Assembler::assembleAssemblyGraphVertex(
             "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
             vertexId << "</a></h1>";
 
-
-
-        // Write a table with a row for each marker graph edge in the chain that
-        // this assembly graph vertex corresponds to.
-        const auto markerGraphEdgeIds = assemblyGraph.vertices[vertexId];
-        html <<
-            "<p>This vertex of the assembly graph corresponds to a chain of " <<
-            markerGraphEdgeIds.size() << " edges in the marker graph.";
-
+        // Write parent and child vertices in the assembly graph.
         html << "<p>Parent vertices in the assembly graph:";
         for(const auto parentEdge: assemblyGraph.edgesByTarget[vertexId]) {
             const AssemblyGraph::VertexId parent = assemblyGraph.edges[parentEdge].source;
@@ -541,29 +533,67 @@ void Assembler::assembleAssemblyGraphVertex(
                 << child << "</a>";
         }
 
-        html << "<table><tr><th colspan=3>Ids in marker graph<tr><th>Edge id<th>Source<br>vertex<br>id<th>Target<br>vertex<br>id";
-        for(const AssemblyGraph::EdgeId markerGraphEdgeId: markerGraphEdgeIds) {
+
+
+        // Write a table with a row for each marker graph vertex or edge
+        // in the marker graph chain.
+        const auto markerGraphEdgeIds = assemblyGraph.vertices[vertexId];
+        html <<
+            "<p>This vertex of the assembly graph corresponds to a chain of " <<
+            markerGraphEdgeIds.size() << " edges in the marker graph. "
+            "The table below shows consensus sequences "
+            "for the vertices and edges of this chain of the marker graph. "
+            "All vertex and edge ids in the table refer to the marker graph."
+            "<p><table><tr><th>Entity<th>Id<th>Sequence<th>Repeat<br>counts";
+        const string urlPrefix = "exploreMarkerGraph?vertexId=";
+        const string urlSuffix =
+            "&maxDistance=5"
+            "&detailed=on"
+            "&minCoverage=3"
+            "&minConsensus=3"
+            "&sizePixels=600&timeout=10"
+            "&useStoredConnectivity=on"
+            "&onlyUseSpanningSubgraphEdges=on"
+            "&dontUsePrunedEdges=on"
+            "&showVertexId=on";
+        for(size_t i=0; ; i++) {
+
+            // Vertex.
+            // It is always the source of the edge, except at the last iteration,
+            // in which it is the target of the previous edge.
+            GlobalMarkerGraphVertexId vertexId;
+            if(i == markerGraphEdgeIds.size()) {
+                const GlobalMarkerGraphEdgeId markerGraphEdgeId = markerGraphEdgeIds[i-1];
+                const MarkerGraphConnectivity::Edge& markerGraphEdge =
+                    markerGraphConnectivity.edges[markerGraphEdgeId];
+                vertexId = markerGraphEdge.target;
+            } else {
+                const GlobalMarkerGraphEdgeId markerGraphEdgeId = markerGraphEdgeIds[i];
+                const MarkerGraphConnectivity::Edge& markerGraphEdge =
+                    markerGraphConnectivity.edges[markerGraphEdgeId];
+                vertexId = markerGraphEdge.source;
+            }
+            const string url = urlPrefix + to_string(vertexId) + urlSuffix;
+            html <<
+                 "<tr><td class=centered>Vertex" <<
+                "<td class=centered><a href='" << url << "'>" << vertexId << "</a><td><td>";
+
+            // This was the last vertex.
+            if(i == markerGraphEdgeIds.size()) {
+                break;
+            }
+
+
+
+            // Edge.
+            const GlobalMarkerGraphEdgeId markerGraphEdgeId = markerGraphEdgeIds[i];
             const MarkerGraphConnectivity::Edge& markerGraphEdge =
                 markerGraphConnectivity.edges[markerGraphEdgeId];
-            const string urlPrefix = "exploreMarkerGraph?vertexId=";
-            const string urlSuffix =
-                "&maxDistance=5"
-                "&detailed=on"
-                "&minCoverage=3"
-                "&minConsensus=3"
-                "&sizePixels=600&timeout=10"
-                "&useStoredConnectivity=on"
-                "&onlyUseSpanningSubgraphEdges=on"
-                "&dontUsePrunedEdges=on"
-                "&showVertexId=on";
             const string sourceUrl = urlPrefix + to_string(markerGraphEdge.source) + urlSuffix;
             const string targetUrl = urlPrefix + to_string(markerGraphEdge.target) + urlSuffix;
             html <<
-                "<tr><td class=centered>" << markerGraphEdgeId <<
-                "<td class=centered><a href='" << sourceUrl << "'>" << markerGraphEdge.source << "</a>"
-                "<td class=centered><a href='" << targetUrl << "'>" << markerGraphEdge.target << "</a>";
+                "<tr><td class=centered>Edge<td class=centered>" << markerGraphEdgeId << "<td><td>";
          }
-        html << "</table>";
     }
 
 }
