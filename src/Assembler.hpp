@@ -1146,6 +1146,16 @@ private:
         double timeout,
         LocalAssemblyGraph&) const;
 
+    // Assemble sequence for a vertex of the assembly graph.
+    // Optionally outputs detailed assembly information
+    // in html (skipped if the html pointer is 0).
+    void assembleAssemblyGraphVertex(
+        AssemblyGraph::VertexId,
+        vector<Base>&,
+        vector<uint32_t>& repeatCounts,
+        ostream* html = 0);
+
+
 
     // Data and functions used for the http server.
     // This function puts the server into an endless loop

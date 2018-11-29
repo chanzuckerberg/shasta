@@ -493,3 +493,73 @@ bool Assembler::extractLocalAssemblyGraph(
 
     return true;
 }
+
+
+
+// Assemble sequence for a vertex of the assembly graph.
+// Optionally outputs detailed assembly information
+// in html (skipped if the html pointer is 0).
+void Assembler::assembleAssemblyGraphVertex(
+    AssemblyGraph::VertexId vertexId,
+    vector<Base>&,
+    vector<uint32_t>& repeatCounts,
+    ostream* htmlPointer)
+{
+
+    if(htmlPointer) {
+        ostream& html = *htmlPointer;
+
+        // Write a title.
+        html << "<h1>Local assembly graph vertex " << vertexId << "</h1>";
+
+
+
+        // Write a table with a row for each marker graph edge in the chain that
+        // this assembly graph vertex corresponds to.
+        const auto markerGraphEdgeIds = assemblyGraph.vertices[vertexId];
+        html <<
+            "<p>This vertex of the assembly graph corresponds to a chain of " <<
+            markerGraphEdgeIds.size() << " edges in the marker graph.";
+
+        html << "<p>Parent vertices in the assembly graph:";
+        for(const auto parentEdge: assemblyGraph.edgesByTarget[vertexId]) {
+            const AssemblyGraph::VertexId parent = assemblyGraph.edges[parentEdge].source;
+            html <<
+                " <a href='exploreAssemblyGraphVertex?vertexId=" << parent << "'>"
+                << parent << "</a>";
+        }
+
+        html << "<p>Child vertices in the assembly graph:";
+        for(const auto childEdge: assemblyGraph.edgesBySource[vertexId]) {
+            const AssemblyGraph::VertexId child = assemblyGraph.edges[childEdge].target;
+            html <<
+                " <a href='exploreAssemblyGraphVertex?vertexId=" << child << "'>"
+                << child << "</a>";
+        }
+
+        html << "<table><tr><th colspan=3>Ids in marker graph<tr><th>Edge id<th>Source<br>vertex<br>id<th>Target<br>vertex<br>id";
+        for(const AssemblyGraph::EdgeId markerGraphEdgeId: markerGraphEdgeIds) {
+            const MarkerGraphConnectivity::Edge& markerGraphEdge =
+                markerGraphConnectivity.edges[markerGraphEdgeId];
+            const string urlPrefix = "exploreMarkerGraph?vertexId=";
+            const string urlSuffix =
+                "&maxDistance=5"
+                "&detailed=on"
+                "&minCoverage=3"
+                "&minConsensus=3"
+                "&sizePixels=600&timeout=10"
+                "&useStoredConnectivity=on"
+                "&onlyUseSpanningSubgraphEdges=on"
+                "&dontUsePrunedEdges=on"
+                "&showVertexId=on";
+            const string sourceUrl = urlPrefix + to_string(markerGraphEdge.source) + urlSuffix;
+            const string targetUrl = urlPrefix + to_string(markerGraphEdge.target) + urlSuffix;
+            html <<
+                "<tr><td class=centered>" << markerGraphEdgeId <<
+                "<td class=centered><a href='" << sourceUrl << "'>" << markerGraphEdge.source << "</a>"
+                "<td class=centered><a href='" << targetUrl << "'>" << markerGraphEdge.target << "</a>";
+         }
+        html << "</table>";
+    }
+
+}

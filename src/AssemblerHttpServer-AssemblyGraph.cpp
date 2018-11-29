@@ -233,43 +233,9 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
 
 
 
-    // Write a title.
-    html << "<h1>Local assembly graph vertex " << vertexId << "</h1>";
-
-
-
-    // Write a table with a row for each marker graph edge in the chain that
-    // this assembly graph vertex corresponds to.
-    const auto markerGraphEdgeIds = assemblyGraph.vertices[vertexId];
-    html <<
-        "<p>This vertex of the assembly graph corresponds to a chain of " <<
-        markerGraphEdgeIds.size() << " edges in the marker graph.";
-
-    html << "<p>Parent vertices:";
-    for(const auto parentEdge: assemblyGraph.edgesByTarget[vertexId]) {
-        const AssemblyGraph::VertexId parent = assemblyGraph.edges[parentEdge].source;
-        html <<
-            " <a href='exploreAssemblyGraphVertex?vertexId=" << parent << "'>"
-            << parent << "</a>";
-    }
-
-    html << "<p>Child vertices:";
-    for(const auto childEdge: assemblyGraph.edgesBySource[vertexId]) {
-        const AssemblyGraph::VertexId child = assemblyGraph.edges[childEdge].target;
-        html <<
-            " <a href='exploreAssemblyGraphVertex?vertexId=" << child << "'>"
-            << child << "</a>";
-    }
-
-    html << "<table><tr><th colspan=3>Ids in marker graph<tr><th>Edge id<th>Source<br>vertex<br>id<th>Target<br>vertex<br>id";
-    for(const AssemblyGraph::EdgeId markerGraphEdgeId: markerGraphEdgeIds) {
-        const MarkerGraphConnectivity::Edge& markerGraphEdge =
-            markerGraphConnectivity.edges[markerGraphEdgeId];
-        html <<
-            "<tr><td class=centered>" << markerGraphEdgeId <<
-            "<td class=centered>" << markerGraphEdge.source <<
-            "<td class=centered>" << markerGraphEdge.target;
-     }
-    html << "</table>";
+    // Assemble the sequence and output detailed information to html.
+    vector<Base> sequence;
+    vector<uint32_t> repeatCounts;
+    assembleAssemblyGraphVertex(vertexId, sequence, repeatCounts, &html);
 
 }
