@@ -1123,6 +1123,22 @@ private:
         LocalMarkerGraph&
         );
 
+    // Compute consensus sequence for a vertex of the marker graph.
+    void computeMarkerGraphVertexConsensusSequence(
+        GlobalMarkerGraphVertexId,
+        vector<Base>& sequence,
+        vector<uint32_t>& repeatCounts
+        );
+
+    // Compute consensus sequence for anedge of the marker graph.
+    // This includes the k bases corresponding to the flanking markers,
+    // but computed only using reads on this edge.
+    void computeMarkerGraphEdgeConsensusSequence(
+        GlobalMarkerGraphEdgeId,
+        vector<Base>& sequence,
+        vector<uint32_t>& repeatCounts
+        );
+
 
 
     // In the assembly graph, each vertex corresponds to a linear chain

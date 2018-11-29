@@ -2460,3 +2460,31 @@ size_t Assembler::markerGraphPrunedSpanningSubgraphInDegree(
     }
     return inDegree;
 }
+
+
+
+// Compute consensus sequence for a vertex of the marker graph.
+void Assembler::computeMarkerGraphVertexConsensusSequence(
+    GlobalMarkerGraphVertexId vertexId,
+    vector<Base>& sequence,
+    vector<uint32_t>& repeatCounts
+    )
+{
+    sequence.clear();
+    repeatCounts.clear();
+}
+
+
+
+// Compute consensus sequence for anedge of the marker graph.
+// This includes the k bases corresponding to the flanking markers,
+// but computed only using reads on this edge.
+void Assembler::computeMarkerGraphEdgeConsensusSequence(
+    GlobalMarkerGraphEdgeId edgeId,
+    vector<Base>& sequence,
+    vector<uint32_t>& repeatCounts
+    )
+{
+    sequence.clear();
+    repeatCounts.clear();
+}

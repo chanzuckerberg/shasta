@@ -505,6 +505,39 @@ void Assembler::assembleAssemblyGraphVertex(
     vector<uint32_t>& repeatCounts,
     ostream* htmlPointer)
 {
+    // The edges of this chain in the marker graph.
+    const MemoryAsContainer<GlobalMarkerGraphEdgeId> edgeIds = assemblyGraph.vertices[vertexId];
+    const size_t edgeCount = edgeIds.size();
+    const size_t vertexCount = edgeCount + 1;
+
+    // The vertices of this chain in the marker graph.
+    vector<GlobalMarkerGraphVertexId> vertexIds;
+    vertexIds.reserve(vertexCount);
+    for(const GlobalMarkerGraphEdgeId edgeId: edgeIds) {
+        const MarkerGraphConnectivity::Edge& edge =
+            markerGraphConnectivity.edges[edgeId];
+        vertexIds.push_back(edge.source);
+    }
+    const MarkerGraphConnectivity::Edge& lastEdge =
+        markerGraphConnectivity.edges[edgeIds[edgeIds.size()-1]];
+    vertexIds.push_back(lastEdge.target);
+
+
+    // Compute consensus sequence for the vertices of the chain.
+    vector< vector<Base> > vertexSequences(vertexCount);
+    vector< vector<uint32_t> > vertexRepeatCounts(vertexCount);
+    for(size_t i=0; i<vertexCount; i++) {
+        computeMarkerGraphVertexConsensusSequence(
+            vertexIds[i], vertexSequences[i], vertexRepeatCounts[i]);
+    }
+
+    // Compute consensus sequence for the edges of the chain.
+    vector< vector<Base> > edgeSequences(edgeCount);
+    vector< vector<uint32_t> > edgeRepeatCounts(edgeCount);
+    for(size_t i=0; i<edgeCount; i++) {
+        computeMarkerGraphEdgeConsensusSequence(
+            edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
+    }
 
     if(htmlPointer) {
         ostream& html = *htmlPointer;
@@ -537,10 +570,9 @@ void Assembler::assembleAssemblyGraphVertex(
 
         // Write a table with a row for each marker graph vertex or edge
         // in the marker graph chain.
-        const auto markerGraphEdgeIds = assemblyGraph.vertices[vertexId];
         html <<
             "<p>This vertex of the assembly graph corresponds to a chain of " <<
-            markerGraphEdgeIds.size() << " edges in the marker graph. "
+            edgeIds.size() << " edges in the marker graph. "
             "The table below shows consensus sequences "
             "for the vertices and edges of this chain of the marker graph. "
             "All vertex and edge ids in the table refer to the marker graph."
@@ -559,40 +591,25 @@ void Assembler::assembleAssemblyGraphVertex(
         for(size_t i=0; ; i++) {
 
             // Vertex.
-            // It is always the source of the edge, except at the last iteration,
-            // in which it is the target of the previous edge.
-            GlobalMarkerGraphVertexId vertexId;
-            if(i == markerGraphEdgeIds.size()) {
-                const GlobalMarkerGraphEdgeId markerGraphEdgeId = markerGraphEdgeIds[i-1];
-                const MarkerGraphConnectivity::Edge& markerGraphEdge =
-                    markerGraphConnectivity.edges[markerGraphEdgeId];
-                vertexId = markerGraphEdge.target;
-            } else {
-                const GlobalMarkerGraphEdgeId markerGraphEdgeId = markerGraphEdgeIds[i];
-                const MarkerGraphConnectivity::Edge& markerGraphEdge =
-                    markerGraphConnectivity.edges[markerGraphEdgeId];
-                vertexId = markerGraphEdge.source;
-            }
+            const GlobalMarkerGraphVertexId vertexId = vertexIds[i];
             const string url = urlPrefix + to_string(vertexId) + urlSuffix;
             html <<
-                 "<tr><td class=centered>Vertex" <<
+                 "<tr><td>Vertex" <<
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a><td><td>";
 
             // This was the last vertex.
-            if(i == markerGraphEdgeIds.size()) {
+            if(i == edgeCount) {
                 break;
             }
 
-
-
             // Edge.
-            const GlobalMarkerGraphEdgeId markerGraphEdgeId = markerGraphEdgeIds[i];
-            const MarkerGraphConnectivity::Edge& markerGraphEdge =
-                markerGraphConnectivity.edges[markerGraphEdgeId];
-            const string sourceUrl = urlPrefix + to_string(markerGraphEdge.source) + urlSuffix;
-            const string targetUrl = urlPrefix + to_string(markerGraphEdge.target) + urlSuffix;
+            const GlobalMarkerGraphEdgeId edgeId = edgeIds[i];
+            const MarkerGraphConnectivity::Edge& edge =
+                markerGraphConnectivity.edges[edgeId];
+            const string sourceUrl = urlPrefix + to_string(edge.source) + urlSuffix;
+            const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
             html <<
-                "<tr><td class=centered>Edge<td class=centered>" << markerGraphEdgeId << "<td><td>";
+                "<tr><td>Edge<td class=centered>" << edgeId << "<td><td>";
          }
     }
 
