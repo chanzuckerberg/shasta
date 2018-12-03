@@ -505,6 +505,7 @@ void Assembler::assembleAssemblyGraphVertex(
     vector<uint32_t>& repeatCounts,
     ostream* htmlPointer)
 {
+
     // The edges of this chain in the marker graph.
     const MemoryAsContainer<GlobalMarkerGraphEdgeId> edgeIds = assemblyGraph.vertices[vertexId];
     const size_t edgeCount = edgeIds.size();
@@ -590,6 +591,7 @@ void Assembler::assembleAssemblyGraphVertex(
             "&onlyUseSpanningSubgraphEdges=on"
             "&dontUsePrunedEdges=on"
             "&showVertexId=on";
+        const auto k = assemblerInfo->k;
         for(size_t i=0; ; i++) {
 
             // Vertex.
@@ -599,6 +601,7 @@ void Assembler::assembleAssemblyGraphVertex(
             const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
             const uint32_t maxVertexRepeatCount =
                 *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
+            CZI_ASSERT(maxVertexRepeatCount < 10);  // For now. Add additional code when this fails.
             html <<
                  "<tr><td>Vertex" <<
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
@@ -631,23 +634,46 @@ void Assembler::assembleAssemblyGraphVertex(
             const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
             const vector<Base>& edgeSequence = edgeSequences[i];
             const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
+            const size_t edgeSequenceLength = edgeSequence.size();
+            CZI_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
             const uint32_t maxEdgeRepeatCount =
                 *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
+            CZI_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
             html <<
                 "<tr><td>Edge<td class=centered>" << edgeId <<
                 "<td style='font-family:courier'>";
-            copy(edgeSequence.begin(), edgeSequence.end(), ostream_iterator<Base>(html));
+            for(size_t j=0; j<edgeSequenceLength; j++) {
+                if(edgeSequenceLength>2*k && j==k) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
+                html << edgeSequence[j];
+                if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
+                    html << "</span>";
+                }
+            }
             html << "<br>";
-            for(size_t j=0; j<edgeSequence.size(); j++) {
+            for(size_t j=0; j<edgeSequenceLength; j++) {
                 const uint32_t repeatCount = edgeRepeatCount[j];
+                if(edgeSequenceLength>2*k && j==k) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
                 html << repeatCount % 10;
+                if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
+                    html << "</span>";
+                }
             }
             html << "<td style='font-family:courier'>";
-            for(size_t j=0; j<edgeSequence.size(); j++) {
+            for(size_t j=0; j<edgeSequenceLength; j++) {
                 const Base b = edgeSequence[j];
                 const uint32_t repeatCount = edgeRepeatCount[j];
+                if(edgeSequenceLength>2*k && j==k) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
                 for(uint32_t k=0; k<repeatCount; k++) {
                     html << b;
+                }
+                if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
+                    html << "</span>";
                 }
             }
          }
