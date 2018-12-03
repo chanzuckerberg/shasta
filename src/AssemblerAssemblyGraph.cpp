@@ -578,7 +578,7 @@ void Assembler::assembleAssemblyGraphVertex(
             "The table below shows consensus sequences "
             "for the vertices and edges of this chain of the marker graph. "
             "All vertex and edge ids in the table refer to the marker graph."
-            "<p><table><tr><th>Vertex<br>or<br>edge<th>Id<th>Run-length<br>sequence<th>Repeat<br>counts<th>Sequence";
+            "<p><table><tr><th>Vertex<br>or<br>edge<th>Id<th>Run-length<br>sequence<th>Sequence";
         const string urlPrefix = "exploreMarkerGraph?vertexId=";
         const string urlSuffix =
             "&maxDistance=5"
@@ -597,13 +597,18 @@ void Assembler::assembleAssemblyGraphVertex(
             const string url = urlPrefix + to_string(vertexId) + urlSuffix;
             const vector<Base>& vertexSequence = vertexSequences[i];
             const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
+            const uint32_t maxVertexRepeatCount =
+                *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
             html <<
                  "<tr><td>Vertex" <<
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
                 "<td style='font-family:courier'>";
             copy(vertexSequence.begin(), vertexSequence.end(), ostream_iterator<Base>(html));
-            html << "<td style='font-family:courier'>";
-            copy(vertexRepeatCount.begin(), vertexRepeatCount.end(), ostream_iterator<uint32_t>(html, " "));
+            html << "<br>";
+            for(size_t j=0; j<vertexSequence.size(); j++) {
+                const uint32_t repeatCount = vertexRepeatCount[j];
+                html << repeatCount % 10;
+            }
             html << "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
                 const Base b = vertexSequence[j];
@@ -626,12 +631,17 @@ void Assembler::assembleAssemblyGraphVertex(
             const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
             const vector<Base>& edgeSequence = edgeSequences[i];
             const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
+            const uint32_t maxEdgeRepeatCount =
+                *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
             html <<
                 "<tr><td>Edge<td class=centered>" << edgeId <<
                 "<td style='font-family:courier'>";
             copy(edgeSequence.begin(), edgeSequence.end(), ostream_iterator<Base>(html));
-            html << "<td style='font-family:courier'>";
-            copy(edgeRepeatCount.begin(), edgeRepeatCount.end(), ostream_iterator<uint32_t>(html, " "));
+            html << "<br>";
+            for(size_t j=0; j<edgeSequence.size(); j++) {
+                const uint32_t repeatCount = edgeRepeatCount[j];
+                html << repeatCount % 10;
+            }
             html << "<td style='font-family:courier'>";
             for(size_t j=0; j<edgeSequence.size(); j++) {
                 const Base b = edgeSequence[j];
