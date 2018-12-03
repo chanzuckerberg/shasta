@@ -539,6 +539,8 @@ void Assembler::assembleAssemblyGraphVertex(
             edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
     }
 
+
+    // If requested, write out details in html format.
     if(htmlPointer) {
         ostream& html = *htmlPointer;
 
@@ -576,7 +578,7 @@ void Assembler::assembleAssemblyGraphVertex(
             "The table below shows consensus sequences "
             "for the vertices and edges of this chain of the marker graph. "
             "All vertex and edge ids in the table refer to the marker graph."
-            "<p><table><tr><th>Entity<th>Id<th>Sequence<th>Repeat<br>counts";
+            "<p><table><tr><th>Vertex<br>or<br>edge<th>Id<th>Run-length<br>sequence<th>Repeat<br>counts<th>Sequence";
         const string urlPrefix = "exploreMarkerGraph?vertexId=";
         const string urlSuffix =
             "&maxDistance=5"
@@ -593,9 +595,23 @@ void Assembler::assembleAssemblyGraphVertex(
             // Vertex.
             const GlobalMarkerGraphVertexId vertexId = vertexIds[i];
             const string url = urlPrefix + to_string(vertexId) + urlSuffix;
+            const vector<Base>& vertexSequence = vertexSequences[i];
+            const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
             html <<
                  "<tr><td>Vertex" <<
-                "<td class=centered><a href='" << url << "'>" << vertexId << "</a><td><td>";
+                "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
+                "<td style='font-family:courier'>";
+            copy(vertexSequence.begin(), vertexSequence.end(), ostream_iterator<Base>(html));
+            html << "<td style='font-family:courier'>";
+            copy(vertexRepeatCount.begin(), vertexRepeatCount.end(), ostream_iterator<uint32_t>(html, " "));
+            html << "<td style='font-family:courier'>";
+            for(size_t j=0; j<vertexSequence.size(); j++) {
+                const Base b = vertexSequence[j];
+                const uint32_t repeatCount = vertexRepeatCount[j];
+                for(uint32_t k=0; k<repeatCount; k++) {
+                    html << b;
+                }
+            }
 
             // This was the last vertex.
             if(i == edgeCount) {
@@ -609,7 +625,10 @@ void Assembler::assembleAssemblyGraphVertex(
             const string sourceUrl = urlPrefix + to_string(edge.source) + urlSuffix;
             const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
             html <<
-                "<tr><td>Edge<td class=centered>" << edgeId << "<td><td>";
+                "<tr><td>Edge<td class=centered>" << edgeId <<
+                "<td style='font-family:courier'>"
+                "<td style='font-family:courier'>"
+                "<td style='font-family:courier'>";
          }
     }
 

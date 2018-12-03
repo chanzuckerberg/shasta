@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "ConsensusCaller.hpp"
 #include "LocalMarkerGraph.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
@@ -2470,13 +2471,65 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
     vector<uint32_t>& repeatCounts
     )
 {
-    sequence.clear();
-    repeatCounts.clear();
+    // Access the markers of this vertex.
+    const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
+    const size_t markerCount = markerIds.size();
+    CZI_ASSERT(markerCount > 0);
+
+    // Find the corresponding oriented read ids, marker ordinals,
+    // and marker positions in each oriented read id.
+    vector< pair<OrientedReadId, uint32_t> > markerInfos;
+    vector<uint32_t> markerPositions;
+    markerInfos.reserve(markerIds.size());
+    markerPositions.reserve(markerIds.size());
+    for(const MarkerId markerId: markerIds) {
+        markerInfos.push_back(findMarkerId(markerId));
+        markerPositions.push_back(markers.begin()[markerId].position);
+    }
+
+
+    // Loop over all base positions of this marker.
+    const size_t k = assemblerInfo->k;
+    sequence.resize(k);
+    repeatCounts.resize(k);
+    for(uint32_t position=0; position<uint32_t(k); position++) {
+
+        // Object to store base and repeat count information
+        // at this position.
+        Coverage coverage;
+
+        // Loop over markers.
+        for(size_t i=0; i<markerCount; i++) {
+
+            // Get the base and repeat count.
+            const OrientedReadId orientedReadId = markerInfos[i].first;
+            const uint32_t markerPosition = markerPositions[i];
+            Base base;
+            uint8_t repeatCount;
+            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
+
+            // Add it to the Coverage object.
+            coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), size_t(repeatCount));
+        }
+
+        // Sanity check that all the bases are the same.
+        const vector<CoverageData>& coverageData = coverage.getReadCoverageData();
+        CZI_ASSERT(coverageData.size() == markerCount);
+        const Base firstBase = Base(coverageData.front().base);
+        for(const CoverageData& c: coverageData) {
+            CZI_ASSERT(Base(c.base) == firstBase);
+        }
+
+        // Compute the consensus.
+        const Consensus consensus = (*consensusCaller)(coverage);
+        sequence[position] = Base(consensus.base);
+        repeatCounts[position] = uint32_t(consensus.repeatCount);
+    }
 }
 
 
 
-// Compute consensus sequence for anedge of the marker graph.
+// Compute consensus sequence for an edge of the marker graph.
 // This includes the k bases corresponding to the flanking markers,
 // but computed only using reads on this edge.
 void Assembler::computeMarkerGraphEdgeConsensusSequence(
