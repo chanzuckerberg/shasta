@@ -164,7 +164,6 @@ void LocalMarkerGraph::computeVertexConsensusInfo( vertex_descriptor v)
     // Get the marker k-mer of this vertex.
     const KmerId kmerId = graph.getKmerId(v);
     const Kmer kmer(kmerId, k);
-
     // Resize the consensus info's for the vertex.
     vertex.coverages.resize(k);
 

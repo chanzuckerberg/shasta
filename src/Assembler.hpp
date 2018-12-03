@@ -1130,7 +1130,7 @@ private:
         vector<uint32_t>& repeatCounts
         );
 
-    // Compute consensus sequence for anedge of the marker graph.
+    // Compute consensus sequence for an edge of the marker graph.
     // This includes the k bases corresponding to the flanking markers,
     // but computed only using reads on this edge.
     void computeMarkerGraphEdgeConsensusSequence(

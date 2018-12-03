@@ -546,7 +546,7 @@ void Assembler::assembleAssemblyGraphVertex(
 
         // Write a title.
         html <<
-            "<h1>Local assembly graph vertex <a href="
+            "<h1>Assembly graph vertex <a href="
             "'exploreAssemblyGraph?vertexId=" << vertexId <<
             "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
             vertexId << "</a></h1>";
@@ -624,11 +624,22 @@ void Assembler::assembleAssemblyGraphVertex(
                 markerGraphConnectivity.edges[edgeId];
             const string sourceUrl = urlPrefix + to_string(edge.source) + urlSuffix;
             const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
+            const vector<Base>& edgeSequence = edgeSequences[i];
+            const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
             html <<
                 "<tr><td>Edge<td class=centered>" << edgeId <<
-                "<td style='font-family:courier'>"
-                "<td style='font-family:courier'>"
                 "<td style='font-family:courier'>";
+            copy(edgeSequence.begin(), edgeSequence.end(), ostream_iterator<Base>(html));
+            html << "<td style='font-family:courier'>";
+            copy(edgeRepeatCount.begin(), edgeRepeatCount.end(), ostream_iterator<uint32_t>(html, " "));
+            html << "<td style='font-family:courier'>";
+            for(size_t j=0; j<edgeSequence.size(); j++) {
+                const Base b = edgeSequence[j];
+                const uint32_t repeatCount = edgeRepeatCount[j];
+                for(uint32_t k=0; k<repeatCount; k++) {
+                    html << b;
+                }
+            }
          }
     }
 
