@@ -1490,6 +1490,12 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 markerIntervals.resize(storedMarkerIntervals.size());
                 copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
+                graph[e].edgeId = edgeId;
+
+                // Link to assembly graph vertex.
+                const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
+                graph[e].assemblyVertexId = p.first;
+                graph[e].positionInAssemblyVertex = p.second;
             }
         }
 
@@ -1538,6 +1544,12 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 markerIntervals.resize(storedMarkerIntervals.size());
                 copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
+                graph[e].edgeId = edgeId;
+
+                // Link to assembly graph vertex.
+                const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
+                graph[e].assemblyVertexId = p.first;
+                graph[e].positionInAssemblyVertex = p.second;
             }
         }
 
@@ -1607,6 +1619,12 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             markerIntervals.resize(storedMarkerIntervals.size());
             copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
             graph.storeEdgeInfo(e, markerIntervals);
+            graph[e].edgeId = edgeId;
+
+            // Link to assembly graph vertex.
+            const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
+            graph[e].assemblyVertexId = p.first;
+            graph[e].positionInAssemblyVertex = p.second;
         }
     }
 

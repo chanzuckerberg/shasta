@@ -15,6 +15,7 @@ a group of aligned markers.
 *******************************************************************************/
 
 // Shasta.
+#include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
 #include "Kmer.hpp"
 #include "MarkerId.hpp"
@@ -190,6 +191,20 @@ public:
     // If found, returns true.
     // If more than an ordinal pairs is found, the first one is returned.
     bool getOrdinals(OrientedReadId, array<uint32_t, 2>& ordinals) const;
+
+    // Id of the global edge corresponding to this edge.
+    // Only filled in when the graph is created using stored connectivity.
+    GlobalMarkerGraphEdgeId edgeId = invalidGlobalMarkerGraphEdgeId;
+
+    // The id of the assembly graph vertex that contains this marker graph edge,
+    // or std::numeric_limits<AssemblyGraph::VertexId>::max() if this
+    // marker graph edge is not part of any assembly graph vertex.
+    AssemblyGraph::VertexId assemblyVertexId = std::numeric_limits<AssemblyGraph::VertexId>::max();
+
+    // The position (index) of this marker graph edge
+    // in the chain corresponding to the containing assembly vertex.
+    // Onkly valid if assemblyVertexId!=std::numeric_limits<AssemblyGraph::VertexId>::max()
+    uint32_t positionInAssemblyVertex;
 
 
 

@@ -209,6 +209,8 @@ void Assembler::accessAssemblyGraphVertices()
 {
     assemblyGraph.vertices.accessExistingReadOnly(
         largeDataName("AssemblyGraphVertices"));
+    assemblyGraph.markerToAssemblyTable.accessExistingReadOnly(
+        largeDataName("MarkerToAssemblyTable"));
 }
 
 

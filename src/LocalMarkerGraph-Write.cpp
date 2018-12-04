@@ -433,8 +433,19 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << " cellspacing=\"1\"";
         s << ">";
 
-        // Consensus and coverage.
+        // Edge id.
         const int columnCount = graph.useRunLengthReads ? 5 : 4;
+        if(showVertexId && (edge.edgeId != invalidGlobalMarkerGraphEdgeId)) {
+            s << "<tr><td colspan=\"" << columnCount << "\"><b>Edge " << edge.edgeId << "</b></td></tr>";
+        }
+
+        // Assembly vertex id.
+        if(showVertexId && (edge.assemblyVertexId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {
+            s << "<tr><td colspan=\"" << columnCount << "\"><b>Position " << edge.positionInAssemblyVertex <<
+                " in assembly graph vertex " << edge.assemblyVertexId << "</b></td></tr>";
+        }
+
+        // Consensus and coverage.
         s << "<tr><td colspan=\"" << columnCount << "\"><b>Coverage " << coverage << "</b></td></tr>";
         s << "<tr><td colspan=\"" << columnCount << "\"><b>Consensus " << consensus << "</b></td></tr>";
 
