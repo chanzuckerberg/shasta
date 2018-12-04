@@ -634,6 +634,57 @@ void Assembler::assembleAssemblyGraphVertex(
 
 
 
+    // Assemble run-length sequence and raw sequence.
+    // Keep track of the range each vertex and edge contributes.
+    vector<Base> assembledRunLengthSequence;
+    vector<uint32_t> assembledRepeatCounts;
+    vector<Base> assembledRawSequence;
+    vector< pair<uint32_t, uint32_t> > vertexRunLengthRange(vertexCount);
+    vector< pair<uint32_t, uint32_t> > vertexRawRange(vertexCount);
+    vector< pair<uint32_t, uint32_t> > edgeRunLengthRange(edgeCount);
+    vector< pair<uint32_t, uint32_t> > edgeRawRange(edgeCount);
+    for(size_t i=0; ; i++) {
+
+        // Vertex.
+        vertexRunLengthRange[i].first = uint32_t(assembledRunLengthSequence.size());
+        vertexRawRange[i].first = uint32_t(assembledRawSequence.size());
+        for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
+            const Base base = vertexSequences[i][j];
+            const uint32_t repeatCount = vertexRepeatCounts[i][j];
+            assembledRunLengthSequence.push_back(base);
+            assembledRepeatCounts.push_back(repeatCount);
+            for(uint32_t k=0; k!=repeatCount; k++) {
+                assembledRawSequence.push_back(base);
+            }
+        }
+        vertexRunLengthRange[i].second = uint32_t(assembledRunLengthSequence.size());
+        vertexRawRange[i].second = uint32_t(assembledRawSequence.size());
+
+        // This was the last vertex.
+        if(i == edgeCount) {
+            break;
+        }
+
+        // Edge.
+        edgeRunLengthRange[i].first = uint32_t(assembledRunLengthSequence.size());
+        edgeRawRange[i].first = uint32_t(assembledRawSequence.size());
+        if(edgeSequences[i].size() > 2*k) {
+            for(uint32_t j=uint32_t(k); j!=uint32_t(edgeSequences[i].size()-k); j++) {
+                const Base base = edgeSequences[i][j];
+                const uint32_t repeatCount = edgeRepeatCounts[i][j];
+                assembledRunLengthSequence.push_back(base);
+                assembledRepeatCounts.push_back(repeatCount);
+                for(uint32_t k=0; k!=repeatCount; k++) {
+                    assembledRawSequence.push_back(base);
+                }
+            }
+        }
+        edgeRunLengthRange[i].second = uint32_t(assembledRunLengthSequence.size());
+        edgeRawRange[i].second = uint32_t(assembledRawSequence.size());
+    }
+
+
+
     // If requested, write out details in html format.
     if(htmlPointer) {
         ostream& html = *htmlPointer;
@@ -662,6 +713,27 @@ void Assembler::assembleAssemblyGraphVertex(
                 << child << "</a>";
         }
 
+        // Assembled run-length sequence.
+        html << "<p>Assembled run-length sequence (" << assembledRunLengthSequence.size() <<
+            " bases):<br><span style='font-family:courier'>";
+        copy(assembledRunLengthSequence.begin(), assembledRunLengthSequence.end(),
+            ostream_iterator<Base>(html));
+        html << "<br>";
+        for(size_t j=0; j<assembledRepeatCounts.size(); j++) {
+            const uint32_t repeatCount = assembledRepeatCounts[j];
+            CZI_ASSERT(repeatCount < 10);  // Fix when it fails.
+            html << repeatCount%10;
+        }
+        html << "</span>";
+
+        // Assembled raw sequence.
+        html << "<p>Assembled raw sequence (" << assembledRawSequence.size() <<
+            " bases):<br><span style='font-family:courier'>";
+        copy(assembledRawSequence.begin(), assembledRawSequence.end(),
+            ostream_iterator<Base>(html));
+        html << "</span>";
+
+
 
 
         // Write a table with a row for each marker graph vertex or edge
@@ -672,7 +744,20 @@ void Assembler::assembleAssemblyGraphVertex(
             "The table below shows consensus sequences "
             "for the vertices and edges of this chain of the marker graph. "
             "All vertex and edge ids in the table refer to the marker graph."
-            "<p><table><tr><th>Vertex<br>or<br>edge<th>Id<th>Coverage<th>Offset<th>Run-length<br>sequence<th>Sequence";
+            "<p><table><tr>"
+            "<th rowspan=2>Vertex<br>or<br>edge"
+            "<th rowspan=2>Id"
+            "<th rowspan=2>Coverage"
+            "<th colspan=4>Run-length"
+            "<th colspan=3>Raw"
+            "<tr>"
+            "<th>Offset"
+            "<th>Begin"
+            "<th>End"
+            "<th>Sequence"
+            "<th>Begin"
+            "<th>End"
+            "<th>Sequence";
         const string urlPrefix = "exploreMarkerGraph?vertexId=";
         const string urlSuffix =
             "&maxDistance=5"
@@ -700,6 +785,8 @@ void Assembler::assembleAssemblyGraphVertex(
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
                 "<td class=centered>" << vertexCoverage[i] <<
                 "<td class=centered>" << vertexOffsets[i] <<
+                "<td class=centered>" << vertexRunLengthRange[i].first <<
+                "<td class=centered>" << vertexRunLengthRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
                 if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
@@ -721,7 +808,10 @@ void Assembler::assembleAssemblyGraphVertex(
                     html << "</span>";
                 }
             }
-            html << "<td style='font-family:courier'>";
+            html <<
+                "<td class=centered>" << vertexRawRange[i].first <<
+                "<td class=centered>" << vertexRawRange[i].second <<
+                "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
                 if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
@@ -741,6 +831,8 @@ void Assembler::assembleAssemblyGraphVertex(
                 break;
             }
 
+
+
             // Edge.
             const GlobalMarkerGraphEdgeId edgeId = edgeIds[i];
             const MarkerGraphConnectivity::Edge& edge =
@@ -758,6 +850,8 @@ void Assembler::assembleAssemblyGraphVertex(
                 "<tr><td>Edge<td class=centered>" << edgeId <<
                 "<td class=centered>" << edgeCoverage[i] <<
                 "<td class=centered>" << edgeOffsets[i] <<
+                "<td class=centered>" << edgeRunLengthRange[i].first <<
+                "<td class=centered>" << edgeRunLengthRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<edgeSequenceLength; j++) {
                 if(edgeSequenceLength>2*k && j==k) {
@@ -779,7 +873,10 @@ void Assembler::assembleAssemblyGraphVertex(
                     html << "</span>";
                 }
             }
-            html << "<td style='font-family:courier'>";
+            html <<
+                "<td class=centered>" << edgeRawRange[i].first <<
+                "<td class=centered>" << edgeRawRange[i].second <<
+                "<td style='font-family:courier'>";
             for(size_t j=0; j<edgeSequenceLength; j++) {
                 const Base b = edgeSequence[j];
                 const uint32_t repeatCount = edgeRepeatCount[j];
