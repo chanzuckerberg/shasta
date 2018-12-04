@@ -624,6 +624,12 @@ void Assembler::assembleAssemblyGraphVertex(
                 break;
             }
         }
+
+        // Handle the case of a vertex that contributes nothing.
+        if(vertexAssembledPortion[i].second <= vertexAssembledPortion[i].first) {
+            vertexAssembledPortion[i].first = 0;
+            vertexAssembledPortion[i].second = 0;
+        }
     }
 
 
@@ -696,28 +702,28 @@ void Assembler::assembleAssemblyGraphVertex(
                 "<td class=centered>" << vertexOffsets[i] <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
-                if(j==vertexAssembledPortion[i].first) {
+                if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
                 }
                 html << vertexSequence[j];
-                if(j==vertexAssembledPortion[i].second-1) {
+                if(j==vertexAssembledPortion[i].second-1  && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "</span>";
                 }
             }
             html << "<br>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
                 const uint32_t repeatCount = vertexRepeatCount[j];
-                if(j==vertexAssembledPortion[i].first) {
+                if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
                 }
                 html << repeatCount % 10;
-                if(j==vertexAssembledPortion[i].second-1) {
+                if(j==vertexAssembledPortion[i].second-1 && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "</span>";
                 }
             }
             html << "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
-                if(j==vertexAssembledPortion[i].first) {
+                if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
                 }
                 const Base b = vertexSequence[j];
@@ -725,7 +731,7 @@ void Assembler::assembleAssemblyGraphVertex(
                 for(uint32_t k=0; k<repeatCount; k++) {
                     html << b;
                 }
-                if(j==vertexAssembledPortion[i].second-1) {
+                if(j==vertexAssembledPortion[i].second-1 && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "</span>";
                 }
             }
