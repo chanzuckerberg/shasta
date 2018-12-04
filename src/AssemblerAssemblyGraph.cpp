@@ -165,6 +165,25 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
+    // Create the markerToAssemblyTable.
+    assemblyGraph.markerToAssemblyTable.createNew(
+        largeDataName("MarkerToAssemblyTable"),
+        largeDataPageSize);
+    assemblyGraph.markerToAssemblyTable.resize(edges.size());
+    fill(
+        assemblyGraph.markerToAssemblyTable.begin(),
+        assemblyGraph.markerToAssemblyTable.end(),
+        make_pair(std::numeric_limits<VertexId>::max(), 0));
+    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
+        const MemoryAsContainer<EdgeId> chain = assemblyGraph.vertices[vertexId];
+        for(uint32_t position=0; position!=chain.size(); position++) {
+            const EdgeId edgeId = chain[position];
+            assemblyGraph.markerToAssemblyTable[edgeId] = make_pair(vertexId, position);
+        }
+    }
+
+
+
     // Create a histogram of size (chain length) of assembly graph vertices.
     vector<size_t> histogram;
     for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {

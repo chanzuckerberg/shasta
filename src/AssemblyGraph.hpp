@@ -56,6 +56,17 @@ public:
     // The edges that each vertex is the target of.
     // Contains indexes into the above edges vector.
     MemoryMapped::VectorOfVectors<VertexId, EdgeId> edgesByTarget;
+
+    // A table that can be used to find the location of a marker graph
+    // edge in the assembly graph, if any.
+    // Indexed by the GlobalMarkerGraphEdgeId, gives for each marker graph
+    // edge a pair(VertexId, position), where:
+    // - VertexId is the id of the assembly graph vertex containing the
+    //   given marker graph edge, or std::numeric_limits<VertexId>::max()
+    //   if the marker graph edge is not part of any assembly graph vertex.
+    // - Position is the index of this marker graph edge in the
+    //   chain corresponding to that assembly graph vertex.
+    MemoryMapped::Vector< pair<VertexId, uint32_t> > markerToAssemblyTable;
 };
 
 
