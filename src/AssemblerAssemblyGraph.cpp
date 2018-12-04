@@ -656,7 +656,8 @@ void Assembler::assembleAssemblyGraphVertex(
             "&useStoredConnectivity=on"
             "&onlyUseSpanningSubgraphEdges=on"
             "&dontUsePrunedEdges=on"
-            "&showVertexId=on";
+            "&showVertexId=on"
+            "&showAssembledSequence=on";
         for(size_t i=0; ; i++) {
 
             // Vertex.
@@ -674,7 +675,6 @@ void Assembler::assembleAssemblyGraphVertex(
                 "<td class=centered>" << vertexOffsets[i] <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
-                const uint32_t repeatCount = vertexRepeatCount[j];
                 if(j==vertexAssembledPortion[i].first) {
                     html << "<span style='background-color:LightGreen'>";
                 }
