@@ -2219,7 +2219,6 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
             }
         }
 
-        cout << "*** " << std::count(edgesToBePruned.begin(), edgesToBePruned.end(), true) << endl;
 
 
         // Flag the edges we found at this iteration.
