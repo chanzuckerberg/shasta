@@ -91,19 +91,16 @@ a.createMarkerGraphConnectivity()
 # Flag weak edges of the marker graph.
 a.flagMarkerGraphWeakEdges(
     minCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
-    maxPathLength = int(config['MarkerGraph']['maxPathLength']),
+    maxDistance = int(config['MarkerGraph']['maxDistance']),
     )
 
-# Compute the "spanning subgraph" of the marker graph.
-a.computeMarkerGraphSpanningSubgraph(
-    minCoverage = int(config['MarkerGraph']['spanningSubgraphMinCoverage']))
-
-# Prune the "spanning subgraph" of the marker graph.
-a.pruneMarkerGraphSpanningSubgraph(
+# Prune the strong subgraph of the marker graph.
+a.pruneMarkerGraphStrongSubgraph(
     iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
 
 # Create vertices and edges of the assembly graph.
-a.createAssemblyGraphVertices()
-a.createAssemblyGraphEdges()
+# Skip this for now, until flagMarkerGraphWeakEdges is done.
+# a.createAssemblyGraphVertices()
+# a.createAssemblyGraphEdges()
 
 

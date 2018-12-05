@@ -144,7 +144,7 @@ PYBIND11_MODULE(shasta, module)
             arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)
-        .def("accessCandidateAlignments",
+        .def("accessAlignmentCandidates",
             &Assembler::accessAlignmentCandidates)
         .def("writeOverlappingReads",
             &Assembler::writeOverlappingReads,
@@ -282,12 +282,9 @@ PYBIND11_MODULE(shasta, module)
               &Assembler::flagMarkerGraphWeakEdges,
                  arg("threadCount") = 0,
                  arg("minCoverage"),
-                 arg("maxPathLength"))
-         .def("computeMarkerGraphSpanningSubgraph",
-              &Assembler::computeMarkerGraphSpanningSubgraph,
-                 arg("minCoverage"))
-         .def("pruneMarkerGraphSpanningSubgraph",
-              &Assembler::pruneMarkerGraphSpanningSubgraph,
+                 arg("maxDistance"))
+         .def("pruneMarkerGraphStrongSubgraph",
+              &Assembler::pruneMarkerGraphStrongSubgraph,
                  arg("iterationCount"))
 
 
@@ -305,6 +302,8 @@ PYBIND11_MODULE(shasta, module)
 
 
         // Http server.
+       .def("accessAllSoft",
+           &Assembler::accessAllSoft)
         .def("explore",
             &Assembler::explore,
             arg("port") = 17100,

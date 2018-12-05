@@ -70,16 +70,16 @@ void Assembler::createAssemblyGraphVertices()
             cout << " " << startEdge.source << "->" << startEdge.target << endl;
         }
 
-        // If this edge is not part of the pruned spanning subgraph, skip it.
-        if(!startEdge.isInSpanningSubgraph) {
+        // If this edge is not part of the pruned strong subgraph, skip it.
+        if(startEdge.isWeak) {
             if(debug) {
-                cout << "Edge is not in the spanning subgraph." << endl;
+                cout << "Start edge is a weak edge." << endl;
             }
             continue;
         }
         if(startEdge.wasPruned) {
             if(debug) {
-                cout << "Edge was pruned." << endl;
+                cout << "Start edge was pruned." << endl;
             }
             continue;
         }
@@ -96,7 +96,7 @@ void Assembler::createAssemblyGraphVertices()
         // Follow the chain forward.
         EdgeId edgeId = startEdgeId;
         while(true) {
-            edgeId = nextEdgeInMarkerGraphPrunedSpanningSubgraphChain(edgeId);
+            edgeId = nextEdgeInMarkerGraphPrunedStrongSubgraphChain(edgeId);
             if(edgeId == invalidGlobalMarkerGraphEdgeId) {
                 break;
             }
@@ -106,7 +106,7 @@ void Assembler::createAssemblyGraphVertices()
         // Follow the chain backward.
         edgeId = startEdgeId;
         while(true) {
-            edgeId = previousEdgeInMarkerGraphPrunedSpanningSubgraphChain(edgeId);
+            edgeId = previousEdgeInMarkerGraphPrunedStrongSubgraphChain(edgeId);
             if(edgeId == invalidGlobalMarkerGraphEdgeId) {
                 break;
             }
@@ -144,19 +144,15 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
-    // Check that all edges of the pruned spanning subgraph of the marker graph
+    // Check that only and all edges of the pruned strong subgraph of the marker graph
     // were found.
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
         const auto& edge = markerGraphConnectivity.edges[edgeId];
-        if(!edge.isInSpanningSubgraph) {
+        if(edge.isWeak || edge.wasPruned) {
             CZI_ASSERT(!wasFound[edgeId]);
-            continue;
+        } else {
+            CZI_ASSERT(wasFound[edgeId]);
         }
-        if(edge.wasPruned) {
-            CZI_ASSERT(!wasFound[edgeId]);
-            continue;
-        }
-        CZI_ASSERT(wasFound[edgeId]);
     }
 
     wasFound.remove();
@@ -766,8 +762,6 @@ void Assembler::assembleAssemblyGraphVertex(
             "&minConsensus=3"
             "&sizePixels=600&timeout=10"
             "&useStoredConnectivity=on"
-            "&onlyUseSpanningSubgraphEdges=on"
-            "&dontUsePrunedEdges=on"
             "&showVertexId=on"
             "&showAssembledSequence=on";
         for(size_t i=0; ; i++) {

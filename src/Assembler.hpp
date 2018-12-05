@@ -356,7 +356,7 @@ public:
     void flagMarkerGraphWeakEdges(
         size_t threadCount,
         size_t minCoverage,
-        size_t maxPathLength);
+        size_t maxDistance);
 
 
 
@@ -913,21 +913,14 @@ private:
             Uint40 target;  // The target vertex (index into globalMarkerGraphVertices).
             uint8_t coverage;   // (255 indicates 255 or more).
 
-            // This flag gets set by flagWeakMarkerGraphEdges if:
-            // - It has coverage less than minCoverage, and
-            // - The directed edge is v0->v1, and v1 is reachable from v0
-            //   via a short path that only uses edges with coverage
-            //   at least equal to minCoverage.
+            // This flag gets set by flagWeakMarkerGraphEdges.
             uint8_t isWeak : 1;
 
-            // Set if the edge belongs to the spanning subgraph computed by
-            // computeMarkerGraphSpanningSubgraph.
-            uint8_t isInSpanningSubgraph : 1;
-
-            // Set if this edge was pruned from the spanning subgraph.
+            // Set if this edge was pruned from the strong subgraph.
             uint8_t wasPruned : 1;
 
             // The remaining flags are currently unused.
+            uint8_t flag2 : 1;
             uint8_t flag3 : 1;
             uint8_t flag4 : 1;
             uint8_t flag5 : 1;
@@ -936,8 +929,8 @@ private:
             void clearFlags()
             {
                 isWeak = 0;
-                isInSpanningSubgraph = 0;
                 wasPruned = 0;
+                flag2 = 0;
                 flag3 = 0;
                 flag4 = 0;
                 flag5 = 0;
@@ -984,7 +977,7 @@ private:
     class FlagMarkerGraphWeakEdgesData {
     public:
         size_t minCoverage;
-        size_t maxPathLength;
+        size_t maxDistance;
     };
     FlagMarkerGraphWeakEdgesData flagMarkerGraphWeakEdgesData;
     void flagMarkerGraphWeakEdgesThreadFunction(size_t threadId);
@@ -992,12 +985,9 @@ private:
 
 
 public:
-    // Compute the "spanning subgraph" of the global marker graph.
-    // See the function implementation for more information.
-    void computeMarkerGraphSpanningSubgraph(size_t minCoverage);
 
-    // Prune leaves from the "spanning subgraph" of the global marker graph.
-    void pruneMarkerGraphSpanningSubgraph(size_t iterationCount);
+    // Prune leaves from the strong subgraph of the global marker graph.
+    void pruneMarkerGraphStrongSubgraph(size_t iterationCount);
 private:
 
 
@@ -1050,22 +1040,22 @@ private:
     bool isBadMarkerGraphVertex(GlobalMarkerGraphVertexId) const;
 
     // Find out if a vertex is a forward or backward leaf of the pruned
-    // spanning subgraph of the marker graph.
+    // strong subgraph of the marker graph.
     // A forward leaf is a vertex with out-degree 0.
     // A backward leaf is a vertex with in-degree 0.
-    bool isForwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId) const;
-    bool isBackwardLeafOfMarkerGraphPrunedSpanningSubgraph(GlobalMarkerGraphVertexId) const;
+    bool isForwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId) const;
+    bool isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId) const;
 
-    // Given an edge of the pruned spanning subgraph of the marker graph,
+    // Given an edge of the pruned strong subgraph of the marker graph,
     // return the next/previous edge in the linear chain the edge belongs to.
     // If the edge is the last/first edge in its linear chain, return invalidGlobalMarkerGraphEdgeId.
-    GlobalMarkerGraphEdgeId nextEdgeInMarkerGraphPrunedSpanningSubgraphChain(GlobalMarkerGraphEdgeId) const;
-    GlobalMarkerGraphEdgeId previousEdgeInMarkerGraphPrunedSpanningSubgraphChain(GlobalMarkerGraphEdgeId) const;
+    GlobalMarkerGraphEdgeId nextEdgeInMarkerGraphPrunedStrongSubgraphChain(GlobalMarkerGraphEdgeId) const;
+    GlobalMarkerGraphEdgeId previousEdgeInMarkerGraphPrunedStrongSubgraphChain(GlobalMarkerGraphEdgeId) const;
 
     // Return the out-degree or in-degree (number of outgoing/incoming edges)
-    // of a vertex of the pruned spanning subgraph of the marker graph.
-    size_t markerGraphPrunedSpanningSubgraphOutDegree(GlobalMarkerGraphVertexId) const;
-    size_t markerGraphPrunedSpanningSubgraphInDegree (GlobalMarkerGraphVertexId) const;
+    // of a vertex of the pruned strong subgraph of the marker graph.
+    size_t markerGraphPrunedStrongSubgraphOutDegree(GlobalMarkerGraphVertexId) const;
+    size_t markerGraphPrunedStrongSubgraphInDegree (GlobalMarkerGraphVertexId) const;
 
 
 
@@ -1108,18 +1098,16 @@ private:
         uint32_t ordinal,
         int distance,
         double timeout,                 // Or 0 for no timeout.
-        bool showWeakEdges,
-        bool onlyUseSpanningSubgraphEdges,
-        bool dontUsePrunedEdges,
+        bool useWeakEdges,
+        bool usePrunedEdges,
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
         GlobalMarkerGraphVertexId,
         int distance,
         double timeout,                 // Or 0 for no timeout.
-        bool showWeakEdges,
-        bool onlyUseSpanningSubgraphEdges,
-        bool dontUsePrunedEdges,
+        bool useWeakEdges,
+        bool usePrunedEdges,
         LocalMarkerGraph&
         );
 
@@ -1142,7 +1130,7 @@ private:
 
 
     // In the assembly graph, each vertex corresponds to a linear chain
-    // of edges in the pruned spanning subgraph of the marker graph.
+    // of edges in the pruned strong subgraph of the marker graph.
     // A directed vertex A->B is created if the last marker graph vertex
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
@@ -1222,9 +1210,8 @@ private:
         bool maxDistanceIsPresent;
         bool detailed;
         bool useStoredConnectivity;
-        bool showWeakEdges;
-        bool onlyUseSpanningSubgraphEdges;
-        bool dontUsePrunedEdges;
+        bool useWeakEdges;
+        bool usePrunedEdges;
         bool showVertexId;
         bool showOptimalSpanningTree;
         bool showAssembledSequence;
@@ -1249,8 +1236,16 @@ private:
 
 
 
+    // Access all available assembly data, without thorwing an exception
+    // on failures.
+public:
+    void accessAllSoft();
+
+
+
     // Functions and data used by the http server
     // for display of the local assembly graph.
+private:
     void exploreAssemblyGraph(const vector<string>&, ostream&);
     class LocalAssemblyGraphRequestParameters {
     public:

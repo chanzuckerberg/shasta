@@ -241,6 +241,104 @@ void Assembler::writeNavigation(
 
 
 
+// Access all available assembly data, without throwing exceptions
+void Assembler::accessAllSoft()
+{
+
+    bool allDataAreAvailable = true;
+
+    try {
+        accessReadsReadOnly();
+    } catch(exception e) {
+        cout << "Reads are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessReadNamesReadOnly();
+    } catch(exception e) {
+        cout << "Read names are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessKmers();
+    } catch(exception e) {
+        cout << "K-mers are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessMarkers();
+    } catch(exception e) {
+        cout << "Markers are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessAlignmentCandidates();
+    } catch(exception e) {
+        cout << "Alignment candidates are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessAlignmentData();
+    } catch(exception e) {
+        cout << "Alignments are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessReadGraph();
+    } catch(exception e) {
+        cout << "The read graph is not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessChimericReadsFlags();
+    } catch(exception e) {
+        cout << "Chimeric read flags are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessMarkerGraphVertices();
+    } catch(exception e) {
+        cout << "Marker graph vertices are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessMarkerGraphConnectivity(false);
+    } catch(exception e) {
+        cout << "Marker graph connectivity is not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessAssemblyGraphVertices();
+    } catch(exception e) {
+        cout << "Assembly graph vertices are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessAssemblyGraphEdges();
+    } catch(exception e) {
+        cout << "Assembly graph edges are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    if(!allDataAreAvailable) {
+        cout << "Not all assembly data are accessible." << endl;
+        cout << "Some functionality is not available." << endl;
+    }
+}
+
+
+
 void Assembler::exploreSummary(
     const vector<string>& request,
     ostream& html)

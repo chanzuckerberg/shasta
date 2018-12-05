@@ -13,20 +13,9 @@ docsDirectory = thisScriptParentDirectory + '/docs'
 # Read the config file.
 config = GetConfig.getConfig()
 
-# Initialize the assembler and access what we need.
+# Initialize the assembler.
 a = shasta.Assembler()
-a.accessReadsReadOnly()
-a.accessReadNamesReadOnly()
-a.accessKmers()
-a.accessMarkers()
-a.accessCandidateAlignments()
-a.accessAlignmentData()
-a.accessReadGraph()
-a.accessChimericReadsFlags()
-a.accessMarkerGraphVertices()
-a.accessMarkerGraphConnectivity()
-a.accessAssemblyGraphVertices()
-a.accessAssemblyGraphEdges()
+a.accessAllSoft()
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 
 a.setDocsDirectory(docsDirectory)

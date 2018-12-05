@@ -11,8 +11,8 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphConnectivity(accessEdgesReadWrite=True)
-a.computeMarkerGraphSpanningSubgraph(
-    minCoverage = int(config['MarkerGraph']['spanningSubgraphMinCoverage']))
+a.pruneMarkerGraphStrongSubgraph(
+    iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
 
 
 
