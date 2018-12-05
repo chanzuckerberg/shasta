@@ -100,7 +100,7 @@ a.pruneMarkerGraphStrongSubgraph(
 
 # Create vertices and edges of the assembly graph.
 # Skip this for now, until flagMarkerGraphWeakEdges is done.
-# a.createAssemblyGraphVertices()
-# a.createAssemblyGraphEdges()
+a.createAssemblyGraphVertices()
+a.createAssemblyGraphEdges()
 
 

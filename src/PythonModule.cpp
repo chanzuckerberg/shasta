@@ -280,7 +280,6 @@ PYBIND11_MODULE(shasta, module)
               arg("accessEdgesReadWrite") = false)
          .def("flagMarkerGraphWeakEdges",
               &Assembler::flagMarkerGraphWeakEdges,
-                 arg("threadCount") = 0,
                  arg("minCoverage"),
                  arg("maxDistance"))
          .def("pruneMarkerGraphStrongSubgraph",

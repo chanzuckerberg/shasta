@@ -352,9 +352,8 @@ public:
     void accessMarkerGraphConnectivity(bool accessEdgesReadWrite);
     void checkMarkerGraphConnectivityIsOpen();
 
-    // Set the isWeak flag of marker graph edges.
+    // Find weak edges in the marker graph.
     void flagMarkerGraphWeakEdges(
-        size_t threadCount,
         size_t minCoverage,
         size_t maxDistance);
 
@@ -973,17 +972,6 @@ private:
 
 
 
-    // Data used by flagMarkerGraphWeakEdges.
-    class FlagMarkerGraphWeakEdgesData {
-    public:
-        size_t minCoverage;
-        size_t maxDistance;
-    };
-    FlagMarkerGraphWeakEdgesData flagMarkerGraphWeakEdgesData;
-    void flagMarkerGraphWeakEdgesThreadFunction(size_t threadId);
-
-
-
 public:
 
     // Prune leaves from the strong subgraph of the global marker graph.
@@ -1056,6 +1044,22 @@ private:
     // of a vertex of the pruned strong subgraph of the marker graph.
     size_t markerGraphPrunedStrongSubgraphOutDegree(GlobalMarkerGraphVertexId) const;
     size_t markerGraphPrunedStrongSubgraphInDegree (GlobalMarkerGraphVertexId) const;
+
+    // Return true if an edge disconnects the local subgraph.
+    bool markerGraphEdgeDisconnectsLocalStrongSubgraph(
+        GlobalMarkerGraphEdgeId edgeId,
+        size_t maxDistance,
+
+        // Work areas, to reduce memory allocation activity.
+
+        // Each of these two must be sized maxDistance+1.
+        array<vector< vector<GlobalMarkerGraphEdgeId> >, 2>& verticesByDistance,
+
+        // Each of these two must be sized globalMarkerGraphVertices.size()
+        // and set to all false on entry.
+        // It is left set to all false on exit, so it can be reused.
+        array<vector<bool>, 2>& vertexFlags
+        ) const;
 
 
 

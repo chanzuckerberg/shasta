@@ -1908,37 +1908,80 @@ const Assembler::MarkerGraphConnectivity::Edge*
 
 
 
-// Set the isWeak flag of marker graph edges.
+// Find weak edges in the marker graph.
+// All edges with coverage at least minCoverage as marked as strong.
+// The remaining edges are processed in order of increasing coverage,
+// and they are flagged as weak if they don't disconnect the local subgraph
+// up to maxDistance. Edges are processed in order of increased coverage,
+// and the local subgraph is created using only edges
+// currently marked as strong. This way, low coverage edges
+// are more likely to be marked as weak, and we never locally disconnect the graph.
 void Assembler::flagMarkerGraphWeakEdges(
-    size_t threadCount,
     size_t minCoverage,
     size_t maxDistance)
 {
-    // Adjust the numbers of threads, if necessary.
-    if(threadCount == 0) {
-        threadCount = std::thread::hardware_concurrency();
-    }
-    cout << "Using " << threadCount << " threads." << endl;
+    cout << timestamp << "Flagging weak edges of the marker graph." << endl;
+    cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
+    cout << markerGraphConnectivity.edges.size() << " edges." << endl;
 
-    // Store the parameters so all threads can see them.
-    flagMarkerGraphWeakEdgesData.minCoverage = minCoverage;
-    flagMarkerGraphWeakEdgesData.maxDistance = maxDistance;
-
-    // Make sure all edges are initially flagged as not weak.
-    for(auto& edge: markerGraphConnectivity.edges) {
+    // Initially flag all edges as strong.
+    auto& edges = markerGraphConnectivity.edges;
+    for(auto& edge: edges) {
         edge.isWeak = 0;
     }
 
+    // Gather edges for each coverage less than minCoverage.
+    using EdgeId = GlobalMarkerGraphEdgeId;
+    MemoryMapped::VectorOfVectors<EdgeId, EdgeId>  edgesByCoverage;
+    edgesByCoverage.createNew(
+            largeDataName("tmp-EdgesByCoverage"),
+            largeDataPageSize);
+    edgesByCoverage.beginPass1(minCoverage);
+    for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
+        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        if(edge.coverage < minCoverage) {
+            edgesByCoverage.incrementCount(edge.coverage);
+        }
+    }
+    edgesByCoverage.beginPass2();
+    for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
+        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        if(edge.coverage < minCoverage) {
+            edgesByCoverage.store(edge.coverage, edgeId);
+        }
+    }
+    edgesByCoverage.endPass2();
 
-    // Do it in parallel.
-    const size_t vertexCount = markerGraphConnectivity.edgesBySource.size();
-    setupLoadBalancing(vertexCount, 100000);
-    cout << timestamp << "Processing " << vertexCount << " vertices." << endl;
-    runThreads(
-        &Assembler::flagMarkerGraphWeakEdgesThreadFunction,
-        threadCount,
-        "threadLogs/flagMarkerGraphWeakEdges");
-    cout << timestamp << "Done flagging weak edges." << endl;
+    // Work areas for markerGraphEdgeDisconnectsLocalStrongSubgraph.
+    array<vector< vector<EdgeId> >, 2> verticesByDistance;
+    array<vector<bool>, 2> vertexFlags;
+    for(size_t i=0; i<2; i++) {
+        verticesByDistance[i].resize(maxDistance+1);
+        vertexFlags[i].resize(globalMarkerGraphVertices.size());
+        fill(vertexFlags[i].begin(), vertexFlags[i].end(), false);
+    }
+
+
+    // Process the edges with coverage less than minCoverage
+    // in order of increasing coverage.
+    for(size_t coverage=0; coverage<minCoverage; coverage++) {
+        const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
+        cout << timestamp << "Processing " << edgesWithThisCoverage.size() <<
+            " edges with coverage " << coverage << endl;
+        size_t count = 0;
+        for(const EdgeId edgeId: edgesWithThisCoverage) {
+            if(!markerGraphEdgeDisconnectsLocalStrongSubgraph(
+                edgeId, maxDistance, verticesByDistance, vertexFlags)) {
+                edges[edgeId].isWeak = 1;
+                ++ count;
+            }
+        }
+        cout << "Out of " << edgesWithThisCoverage.size() <<
+            " edges with coverage " << coverage <<
+            ", " << count << " were marked as weak." << endl;
+    }
+    edgesByCoverage.remove();
+
 
     // Count the number of edges that were flagged as weak.
     uint64_t weakEdgeCount = 0;;
@@ -1949,76 +1992,177 @@ void Assembler::flagMarkerGraphWeakEdges(
     }
     cout << "Marked as weak " << weakEdgeCount << " marker graph edges out of ";
     cout << markerGraphConnectivity.edges.size() << " total." << endl;
+
+    cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
+    cout << markerGraphConnectivity.edges.size()-weakEdgeCount << " strong edges." << endl;
+
+    cout << timestamp << "Done flagging weak edges of the marker graph." << endl;
 }
 
 
 
-void Assembler::flagMarkerGraphWeakEdgesThreadFunction(size_t threadId)
+// Return true if an edge disconnects the local subgraph.
+bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
+    GlobalMarkerGraphEdgeId startEdgeId,
+    size_t maxDistance,
+
+    // Each of these two must be sized maxDistance.
+    array<vector< vector<GlobalMarkerGraphEdgeId> >, 2>& verticesByDistance,
+
+    // Each of these two must be sized globalMarkerGraphVertices.size()
+    // and set to all false on entry.
+    // It is left set to all false on exit, so it can be reused.
+    array<vector<bool>, 2>& vertexFlags
+    ) const
 {
-    ostream& out = getLog(threadId);
 
-    const size_t minCoverage = flagMarkerGraphWeakEdgesData.minCoverage;
-    const size_t maxDistance = flagMarkerGraphWeakEdgesData.maxDistance;
+    // Some shorthands for clarity.
+    auto& edges = markerGraphConnectivity.edges;
+    using VertexId = GlobalMarkerGraphVertexId;
+    using EdgeId = GlobalMarkerGraphEdgeId;
+    using Edge = MarkerGraphConnectivity::Edge;
 
-    vector< vector<GlobalMarkerGraphVertexId> > verticesByDistance(maxDistance+1);
-    verticesByDistance.front().resize(1);
-    vector<GlobalMarkerGraphVertexId> vertices;
-
-    // Loop over all batches assigned to this thread.
-    size_t begin, end;
-    while(getNextBatch(begin, end)) {
-        out << timestamp << begin << endl;
-
-        // Loop over vertices assigned to this batch.
-        for(GlobalMarkerGraphVertexId startVertexId=begin; startVertexId!=end; ++startVertexId) {
-
-            // Find all vertices within maxPathLength of this vertex,
-            // computed using only edges with coverage >= minCoverage.
-            // This uses a very simple algorithm that should work well
-            // because the number of vertices involved is usually very small.
-            verticesByDistance.front().front() = startVertexId;
-            vertices.clear();
-            vertices.push_back(startVertexId);
-            for(size_t distance=1; distance<=maxDistance; distance++) {
-                auto& verticesAtThisDistance = verticesByDistance[distance];
-                verticesAtThisDistance.clear();
-                for(const GlobalMarkerGraphVertexId vertexId0: verticesByDistance[distance-1]) {
-                    for(const uint64_t i: markerGraphConnectivity.edgesBySource[vertexId0]) {
-                        const auto& edge = markerGraphConnectivity.edges[i];
-                        if(edge.coverage < minCoverage) {
-                            continue;
-                        }
-                        CZI_ASSERT(edge.source == vertexId0);
-                        const GlobalMarkerGraphVertexId vertexId1 = edge.target;
-                        verticesAtThisDistance.push_back(vertexId1);
-                        vertices.push_back(vertexId1);
-                    }
-                }
-            }
-            sort(vertices.begin(), vertices.end());
-            vertices.resize(unique(vertices.begin(), vertices.end()) - vertices.begin());
-
-            // Loop over low coverage edges with source startVertexId.
-            // If the target is one of the vertices we found, flag the edge as not good.
-            for(const uint64_t i: markerGraphConnectivity.edgesBySource[startVertexId]) {
-                auto& edge = markerGraphConnectivity.edges[i];
-                if(edge.coverage >= minCoverage) {
-                    continue;
-                }
-                CZI_ASSERT(edge.source == startVertexId);
-                if(std::binary_search(vertices.begin(), vertices.end(), edge.target)) {
-                    edge.isWeak = 1;
-                }
-            }
-
-        }
-
+    // Check that the work areas are sized as expected.
+    for(size_t i=0; i<2; i++) {
+        CZI_ASSERT(verticesByDistance[i].size() == maxDistance+1);
+        CZI_ASSERT(vertexFlags[i].size() == globalMarkerGraphVertices.size());
     }
+
+    // Find the two vertices of the starting edge.
+    const Edge& startEdge = edges[startEdgeId];
+    const array<VertexId, 2> startVertexIds = {startEdge.source, startEdge.target};
+
+    // We want to the two BFS one step at a time,
+    // going up by one in distance at each step,
+    // and avoiding the start edge.
+    // So, instead of the usual queue, we store the vertices found at each distance
+    // for each of the two start vertices.
+    // Indexed by [0 or 1][distance].
+    for(size_t i=0; i<2; i++) {
+        verticesByDistance[i][0].clear();
+        const VertexId startVertexId = startVertexIds[i];
+        verticesByDistance[i][0].push_back(startVertexId);
+        vertexFlags[i][startVertexId] = true;
+    }
+    // cout << "Working on edge " << startVertexIds[0] << " " << startVertexIds[1] << endl;
+
+
+
+    // Do the two BFSs in order of increasing distance
+    // and avoiding the start edge.
+    // At each step we process vertices at distance
+    // and find vertices at distance+1.
+    bool disconnects = true;
+    for(size_t distance=0; distance<maxDistance; distance++) {
+        // cout << "Working on distance " << distance << endl;
+        for(size_t i=0; i<2; i++) {
+            // cout << "Working on i = " << i << endl;
+            verticesByDistance[i][distance+1].clear();
+            for(const VertexId vertexId0: verticesByDistance[i][distance]) {
+                // cout << "VertexId0 " << vertexId0 << endl;
+
+                // Loop over children.
+                auto childEdgeIds = markerGraphConnectivity.edgesBySource[vertexId0];
+                for(EdgeId edgeId: childEdgeIds) {
+                    if(edgeId == startEdgeId) {
+                        continue;
+                    }
+                    const Edge& edge = edges[edgeId];
+                    if(edge.isWeak) {
+                        continue;
+                    }
+                    const VertexId vertexId1 = edge.target;
+                    // cout << "Distance " << distance << " i " << i << " found child " << vertexId1 << endl;
+
+                    // If we already found this vertex in this BFS, skip it.
+                    if(vertexFlags[i][vertexId1]) {
+                        // cout << "Already found." << endl;
+                        continue;
+                    }
+
+                    // If we already found this vertex in the other BFS,
+                    // we have found a path between the vertices of the starting edge
+                    // that does not use the starting edge.
+                    // Therefore, the starting edge does not disconnect the local subgraph
+                    if(vertexFlags[1-i][vertexId1]) {
+                        // cout << "Already found on other BFS" << endl;
+                        disconnects = false;
+                        break;
+                    }
+
+                    // This is the first time we find this vertex.
+                    verticesByDistance[i][distance+1].push_back(vertexId1);
+                    vertexFlags[i][vertexId1] = true;
+                }
+                if(!disconnects) {
+                    break;
+                }
+
+                // Loop over parents.
+                auto parentEdgeIds = markerGraphConnectivity.edgesByTarget[vertexId0];
+                for(EdgeId edgeId: parentEdgeIds) {
+                    if(edgeId == startEdgeId) {
+                        continue;
+                    }
+                    const Edge& edge = edges[edgeId];
+                    if(edge.isWeak) {
+                        continue;
+                    }
+                    const VertexId vertexId1 = edge.target;
+                    // cout << "Distance " << distance << " i " << i << " found parent " << vertexId1 << endl;
+
+                    // If we already found this vertex in this BFS, skip it.
+                    if(vertexFlags[i][vertexId1]) {
+                        // cout << "Already found." << endl;
+                        continue;
+                    }
+
+                    // If we already found this vertex in the other BFS,
+                    // we have found a path between the vertices of the starting edge
+                    // that does not use the starting edge.
+                    // Therefore, the starting edge does not disconnect the local subgraph
+                    if(vertexFlags[1-i][vertexId1]) {
+                        disconnects = false;
+                        // cout << "Already found on other BFS" << endl;
+                        break;
+                    }
+
+                    // This is the first time we find this vertex.
+                    verticesByDistance[i][distance+1].push_back(vertexId1);
+                    vertexFlags[i][vertexId1] = true;
+                }
+                if(!disconnects) {
+                    break;
+                }
+
+            }
+            if(!disconnects) {
+                break;
+            }
+        }
+        if(!disconnects) {
+            break;
+        }
+    }
+
+
+
+    // Clean up.
+    for(size_t distance=0; distance<=maxDistance; distance++) {
+        for(size_t i=0; i<2; i++) {
+            auto& v = verticesByDistance[i][distance];
+            for(const VertexId vertexId: v) {
+                vertexFlags[i][vertexId] = false;
+            }
+            v.clear();
+        }
+    }
+
+
+    // cout << "Returning " << int(disconnects) << endl;
+    // CZI_ASSERT(0);
+    return disconnects;
 }
-
-
-
-
 
 
 
@@ -2059,6 +2203,10 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
         // Find the edges to be pruned at each iteration.
         for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
             MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+            if(edge.wasPruned) {
+                // We already pruned this edge.
+                continue;
+            }
             if(
                 isForwardLeafOfMarkerGraphPrunedStrongSubgraph(edge.target) ||
                 isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(edge.source)
