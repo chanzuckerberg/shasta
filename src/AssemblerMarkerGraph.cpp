@@ -1909,15 +1909,17 @@ const Assembler::MarkerGraphConnectivity::Edge*
 
 
 // Find weak edges in the marker graph.
-// All edges with coverage at least minCoverage as marked as strong.
+// All edges with coverage up to lowCoverageThreshold are marked as weak.
+// All edges with coverage at least highCoverageThreshold as marked as strong.
 // The remaining edges are processed in order of increasing coverage,
 // and they are flagged as weak if they don't disconnect the local subgraph
-// up to maxDistance. Edges are processed in order of increased coverage,
+// up to maxDistance. Edges are processed in order of increasin coverage,
 // and the local subgraph is created using only edges
 // currently marked as strong. This way, low coverage edges
 // are more likely to be marked as weak, and we never locally disconnect the graph.
 void Assembler::flagMarkerGraphWeakEdges(
-    size_t minCoverage,
+    size_t lowCoverageThreshold,
+    size_t highCoverageThreshold,
     size_t maxDistance)
 {
     cout << timestamp << "Flagging weak edges of the marker graph." << endl;
@@ -1930,23 +1932,23 @@ void Assembler::flagMarkerGraphWeakEdges(
         edge.isWeak = 0;
     }
 
-    // Gather edges for each coverage less than minCoverage.
+    // Gather edges for each coverage less than highCoverageThreshold.
     using EdgeId = GlobalMarkerGraphEdgeId;
     MemoryMapped::VectorOfVectors<EdgeId, EdgeId>  edgesByCoverage;
     edgesByCoverage.createNew(
             largeDataName("tmp-EdgesByCoverage"),
             largeDataPageSize);
-    edgesByCoverage.beginPass1(minCoverage);
+    edgesByCoverage.beginPass1(highCoverageThreshold);
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
         const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
-        if(edge.coverage < minCoverage) {
+        if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.incrementCount(edge.coverage);
         }
     }
     edgesByCoverage.beginPass2();
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
         const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
-        if(edge.coverage < minCoverage) {
+        if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.store(edge.coverage, edgeId);
         }
     }
@@ -1964,13 +1966,13 @@ void Assembler::flagMarkerGraphWeakEdges(
 
     // Process the edges with coverage less than minCoverage
     // in order of increasing coverage.
-    for(size_t coverage=0; coverage<minCoverage; coverage++) {
+    for(size_t coverage=0; coverage<highCoverageThreshold; coverage++) {
         const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
         cout << timestamp << "Processing " << edgesWithThisCoverage.size() <<
             " edges with coverage " << coverage << endl;
         size_t count = 0;
         for(const EdgeId edgeId: edgesWithThisCoverage) {
-            if(!markerGraphEdgeDisconnectsLocalStrongSubgraph(
+            if(coverage<=lowCoverageThreshold || !markerGraphEdgeDisconnectsLocalStrongSubgraph(
                 edgeId, maxDistance, verticesByDistance, vertexFlags)) {
                 edges[edgeId].isWeak = 1;
                 ++ count;
@@ -2203,8 +2205,10 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
         // Find the edges to be pruned at each iteration.
         for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
             MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+            if(edge.isWeak) {
+                continue;
+            }
             if(edge.wasPruned) {
-                // We already pruned this edge.
                 continue;
             }
             if(
@@ -2215,6 +2219,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
             }
         }
 
+        cout << "*** " << std::count(edgesToBePruned.begin(), edgesToBePruned.end(), true) << endl;
 
 
         // Flag the edges we found at this iteration.

@@ -354,7 +354,8 @@ public:
 
     // Find weak edges in the marker graph.
     void flagMarkerGraphWeakEdges(
-        size_t minCoverage,
+        size_t lowCoverageThreshold,
+        size_t highCoverageThreshold,
         size_t maxDistance);
 
 
