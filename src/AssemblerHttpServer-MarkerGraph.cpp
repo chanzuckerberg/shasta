@@ -471,7 +471,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "><td class=centered>"
         "Weak edges<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") <<
         "><td class=centered>"
-        "Use pruned edges<input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") <<
+        "Pruned edges<input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
