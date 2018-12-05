@@ -12,7 +12,7 @@ a = shasta.Assembler()
 a.accessMarkerGraphConnectivity(accessEdgesReadWrite=True)
 a.flagMarkerGraphWeakEdges(
     minCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
-    maxPathLength = int(config['MarkerGraph']['maxPathLength']),
+    maxDistance = int(config['MarkerGraph']['maxDistance']),
     )
 
 
