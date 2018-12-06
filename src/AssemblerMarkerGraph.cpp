@@ -1972,6 +1972,9 @@ void Assembler::flagMarkerGraphWeakEdges(
             " edges with coverage " << coverage << endl;
         size_t count = 0;
         for(const EdgeId edgeId: edgesWithThisCoverage) {
+            // CZI_ASSERT(find(vertexFlags[0].begin(), vertexFlags[0].end(), true) == vertexFlags[0].end());
+            // CZI_ASSERT(find(vertexFlags[1].begin(), vertexFlags[1].end(), true) == vertexFlags[1].end());
+            CZI_ASSERT(edges[edgeId].isWeak == 0);
             if(coverage<=lowCoverageThreshold || !markerGraphEdgeDisconnectsLocalStrongSubgraph(
                 edgeId, maxDistance, verticesByDistance, vertexFlags)) {
                 edges[edgeId].isWeak = 1;
@@ -2039,8 +2042,9 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
     // and avoiding the start edge.
     // So, instead of the usual queue, we store the vertices found at each distance
     // for each of the two start vertices.
-    // Indexed by [0 or 1][distance].
+    // verticesByDistance is indexed by [0 or 1][distance].
     for(size_t i=0; i<2; i++) {
+        CZI_ASSERT(verticesByDistance[i][0].size() == 0);
         verticesByDistance[i][0].clear();
         const VertexId startVertexId = startVertexIds[i];
         verticesByDistance[i][0].push_back(startVertexId);
@@ -2059,7 +2063,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
         // cout << "Working on distance " << distance << endl;
         for(size_t i=0; i<2; i++) {
             // cout << "Working on i = " << i << endl;
-            verticesByDistance[i][distance+1].clear();
+            CZI_ASSERT(verticesByDistance[i][distance+1].size() == 0);
             for(const VertexId vertexId0: verticesByDistance[i][distance]) {
                 // cout << "VertexId0 " << vertexId0 << endl;
 
@@ -2110,7 +2114,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
                     if(edge.isWeak) {
                         continue;
                     }
-                    const VertexId vertexId1 = edge.target;
+                    const VertexId vertexId1 = edge.source;
                     // cout << "Distance " << distance << " i " << i << " found parent " << vertexId1 << endl;
 
                     // If we already found this vertex in this BFS, skip it.
