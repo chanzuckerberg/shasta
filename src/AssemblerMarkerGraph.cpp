@@ -167,7 +167,7 @@ void Assembler::createMarkerGraphVertices(
     // with size not less than minCoverage and not greater than maxCoverage.
     // Note that this numbering is not yet the final vertex numbering,
     // as we will later remove "bad" vertices
-    // (vertices with more than one marker on the same oriented read).
+    // (vertices with more than one marker on the same read).
     // This block is recursive and cannot be multithreaded.
     cout << timestamp << "Renumbering the disjoint sets." << endl;
     GlobalMarkerGraphVertexId newDisjointSetId = 0ULL;
@@ -257,7 +257,7 @@ void Assembler::createMarkerGraphVertices(
 
 
 
-    // Flag disjoint sets that contain more than one marker on the same oriented read.
+    // Flag disjoint sets that contain more than one marker on the same read.
     data.isBadDisjointSet.createNew(
         largeDataName("tmp-IsBadDisjointSet"),
         largeDataPageSize);
@@ -269,7 +269,7 @@ void Assembler::createMarkerGraphVertices(
     const size_t badDisjointSetCount = std::count(
         data.isBadDisjointSet.begin(), data.isBadDisjointSet.end(), true);
     cout << "Found " << badDisjointSetCount << " bad disjoint sets "
-        "with more than one marker on a single oriented read." << endl;
+        "with more than one marker on a single read." << endl;
 
 
 
@@ -534,7 +534,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
                 OrientedReadId orientedReadId;
                 tie(previousOrientedReadId, ignore) = findMarkerId(previousMarkerId);
                 tie(orientedReadId, ignore) = findMarkerId(markerId);
-                if(orientedReadId == previousOrientedReadId) {
+                if(orientedReadId.getReadId() == previousOrientedReadId.getReadId()) {
                     isBadDisjointSet[disjointSetId] = true;
                     break;
                 }

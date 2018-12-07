@@ -11,7 +11,8 @@ first marker graph vertex of the edge chain corresponding to B.
 
 ***************************************************************************/
 
-// Shasta
+// Shasta.
+#include "LongBaseSequence.hpp"
 #include "MarkerId.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 
@@ -67,6 +68,11 @@ public:
     // - Position is the index of this marker graph edge in the
     //   chain corresponding to that assembly graph vertex.
     MemoryMapped::Vector< pair<VertexId, uint32_t> > markerToAssemblyTable;
+
+    // The assembled sequenced and repeat counts for each vertex of the
+    // assembly graph.
+    LongBaseSequences sequences;
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> repeatCounts;
 };
 
 

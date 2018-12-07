@@ -16,6 +16,7 @@
 #include "ReadId.hpp"
 
 // Standard library.
+#include "memory.hpp"
 #include "string.hpp"
 #include "tuple.hpp"
 
@@ -709,7 +710,7 @@ private:
 
         // Disjoint sets data structures.
         MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
-        std::shared_ptr<DisjointSets> disjointSetsPointer;
+        shared_ptr<DisjointSets> disjointSetsPointer;
 
         // Work area used for multiple purposes.
         // See computeAllAlignments for details.
@@ -862,7 +863,7 @@ private:
 
         // Disjoint sets data structures.
         MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
-        std::shared_ptr<DisjointSets> disjointSetsPointer;
+        shared_ptr<DisjointSets> disjointSetsPointer;
 
         // The disjoint set that each oriented marker was assigned to.
         // See createMarkerGraphVertices for details.
@@ -953,8 +954,8 @@ private:
 
         // The edges and their MarkerIntervals found by each thread.
         // This is temporary and only used inside createMarkerGraphConnectivity.
-        vector< std::shared_ptr<MemoryMapped::Vector<Edge> > > threadEdges;
-        vector< std::shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
+        vector< shared_ptr<MemoryMapped::Vector<Edge> > > threadEdges;
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
 
         // The edges that each vertex is the source of.
         // Contains indexes into the above edges vector.
@@ -1165,6 +1166,25 @@ private:
         ostream* html = 0);
 
 
+    // Assemble sequence for all vertices of the assembly graph.
+public:
+    void assemble(size_t threadCount);
+private:
+    class AssembleData {
+    public:
+
+        // The results created by each thread.
+        // All indexed by threadId.
+        vector< vector<AssemblyGraph::VertexId> > vertices;
+        vector< shared_ptr<LongBaseSequences> > sequences;
+        vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > repeatCounts;
+        void allocate(size_t threadCount);
+        void free();
+    };
+    AssembleData assembleData;
+    void assembleThreadFunction(size_t threadId);
+
+
 
     // Data and functions used for the http server.
     // This function puts the server into an endless loop
@@ -1274,7 +1294,7 @@ private:
 
     // The ConsensusCaller used to compute the "best"
     // base and repeat count at each assembly position.
-    std::shared_ptr<ConsensusCaller> consensusCaller;
+    shared_ptr<ConsensusCaller> consensusCaller;
 };
 
 #endif

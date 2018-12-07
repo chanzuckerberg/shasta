@@ -88,9 +88,9 @@ a.createMarkerGraphVertices(
 # Create edges of the marker graph.
 a.createMarkerGraphConnectivity()
 
-# Flag weak edges of the marker graph.
 a.flagMarkerGraphWeakEdges(
-    minCoverage = int(config['MarkerGraph']['minEdgeCoverage']),
+    lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
+    highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
     maxDistance = int(config['MarkerGraph']['maxDistance']),
     )
 

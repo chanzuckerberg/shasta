@@ -296,13 +296,16 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::createAssemblyGraphEdges)
          .def("accessAssemblyGraphVertices",
               &Assembler::accessAssemblyGraphVertices)
-          .def("accessAssemblyGraphEdges",
-               &Assembler::accessAssemblyGraphEdges)
+         .def("accessAssemblyGraphEdges",
+              &Assembler::accessAssemblyGraphEdges)
+         .def("assemble",
+              &Assembler::assemble,
+              arg("threadCount") = 0)
 
 
 
         // Http server.
-       .def("accessAllSoft",
+        .def("accessAllSoft",
            &Assembler::accessAllSoft)
         .def("explore",
             &Assembler::explore,

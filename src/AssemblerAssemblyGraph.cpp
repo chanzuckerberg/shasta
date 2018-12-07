@@ -312,6 +312,153 @@ void Assembler::accessAssemblyGraphEdges()
 
 
 
+// Assemble sequence for all vertices of the assembly graph.
+void Assembler::assemble(size_t threadCount)
+{
+    // Check that we have what we need.
+    checkKmersAreOpen();
+    checkReadsAreOpen();
+    checkMarkersAreOpen();
+    checkMarkerGraphVerticesAreAvailable();
+    checkMarkerGraphConnectivityIsOpen();
+    CZI_ASSERT(assemblyGraph.vertices.isOpen());
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Allocate data structures to store assembly results for each thread.
+    assembleData.allocate(threadCount);
+
+    // Do all the assemblies.
+    cout << "Assembly begins for " << assemblyGraph.vertices.size() <<
+        " vertices of the assembly graph." << endl;
+    setupLoadBalancing(assemblyGraph.vertices.size(), 1);
+    runThreads(&Assembler::assembleThreadFunction, threadCount,
+        "threadLogs/assemble");
+
+    // Find the pair(thread, index in thread) that the assembly for each vertex is stored in.
+    const auto uninitializedPair = make_pair(
+        std::numeric_limits<size_t>::max(),
+        std::numeric_limits<size_t>::max());
+    vector< pair<size_t, size_t> > vertexTable(assemblyGraph.vertices.size(), uninitializedPair);
+    for(size_t threadId=0; threadId<threadCount; threadId++) {
+        vector<AssemblyGraph::VertexId>& vertices = assembleData.vertices[threadId];
+        for(size_t i=0; i<vertices.size(); i++) {
+            vertexTable[vertices[i]] = make_pair(threadId, i);
+        }
+    }
+
+
+    // Store the assembly results found by each thread.
+    assemblyGraph.sequences.createNew(largeDataName("AssembledSequences"), largeDataPageSize);
+    assemblyGraph.repeatCounts.createNew(largeDataName("AssembledRepeatCounts"), largeDataPageSize);
+    for(AssemblyGraph::VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
+        const auto& p = vertexTable[vertexId];
+        CZI_ASSERT(p != uninitializedPair);
+        const size_t threadId = p.first;
+        const size_t i = p.second;
+
+        // Store the sequence for this vertex.
+        LongBaseSequences& threadSequences =
+            *(assembleData.sequences[threadId]);
+        const auto vertexSequence = threadSequences[i];
+        assemblyGraph.sequences.append(vertexSequence);
+
+        // Store the sequence for this vertex.
+        MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& threadRepeatCounts =
+            *(assembleData.repeatCounts[threadId]);
+        const MemoryAsContainer<uint8_t> vertexRepeatCounts = threadRepeatCounts[i];
+        assemblyGraph.repeatCounts.appendVector();
+        for(uint8_t r: vertexRepeatCounts) {
+            assemblyGraph.repeatCounts.append(r);
+        }
+    }
+
+
+    // Clean up the results stores by each thread.
+    assembleData.free();
+
+    // Compute the total number of bases assembled.
+    size_t totalBaseCount = 0;
+    for(size_t i=0; i<assemblyGraph.repeatCounts.totalSize(); i++) {
+        totalBaseCount += assemblyGraph.repeatCounts.begin()[i];
+    }
+    cout << timestamp << "Assembled a total " << totalBaseCount <<
+        " bases for " << assemblyGraph.vertices.size() << " assembly graph vertices." << endl;
+}
+
+
+
+void Assembler::assembleThreadFunction(size_t threadId)
+{
+    ostream& out = getLog(threadId);;
+
+    // Initialize data structures for this thread.
+    vector<AssemblyGraph::VertexId>& vertices = assembleData.vertices[threadId];
+
+    assembleData.sequences[threadId] = make_shared<LongBaseSequences>();
+    LongBaseSequences& sequences = *(assembleData.sequences[threadId]);
+    sequences.createNew(largeDataName("tmp-Sequences-" + to_string(threadId)), largeDataPageSize);
+
+    assembleData.repeatCounts[threadId] = make_shared<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> >();
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& repeatCounts = *(assembleData.repeatCounts[threadId]);
+    repeatCounts.createNew(largeDataName("tmp-RepeatCounts-" + to_string(threadId)), largeDataPageSize);
+
+    vector<Base> vertexSequence;
+    vector<uint32_t> vertexRepeatCounts;
+
+    // Loop over batches allocated to this thread.
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(AssemblyGraph::VertexId vertexId=begin; vertexId!=end; vertexId++) {
+            out << timestamp << "Assembling vertex " << vertexId << endl;
+            assembleAssemblyGraphVertex(vertexId, vertexSequence, vertexRepeatCounts);
+
+            // Store the vertex id.
+            vertices.push_back(vertexId);
+
+            // Store the sequence.
+            sequences.append(vertexSequence);
+
+            // Store the repeat counts.
+            repeatCounts.appendVector();
+            for(const uint32_t r: vertexRepeatCounts) {
+                repeatCounts.append(uint8_t(min(uint32_t(255), r)));
+            }
+        }
+    }
+
+}
+
+
+
+void Assembler::AssembleData::allocate(size_t threadCount)
+{
+    vertices.resize(threadCount);
+    sequences.resize(threadCount);
+    repeatCounts.resize(threadCount);
+}
+
+
+
+void Assembler::AssembleData::free()
+{
+    vertices.clear();
+    for(auto& sequence: sequences) {
+        sequence->remove();
+    }
+    sequences.clear();
+    for(auto& r: repeatCounts) {
+        r->remove();
+    }
+    repeatCounts.clear();
+}
+
+
+
 // Extract a local assembly graph from the global assembly graph.
 // This returns false if the timeout was exceeded.
 bool Assembler::extractLocalAssemblyGraph(
@@ -518,8 +665,8 @@ bool Assembler::extractLocalAssemblyGraph(
 // in html (skipped if the html pointer is 0).
 void Assembler::assembleAssemblyGraphVertex(
     AssemblyGraph::VertexId vertexId,
-    vector<Base>&,
-    vector<uint32_t>& repeatCounts,
+    vector<Base>& assembledRunLengthSequence,
+    vector<uint32_t>& assembledRepeatCounts,
     ostream* htmlPointer)
 {
     const auto k = assemblerInfo->k;
@@ -632,8 +779,8 @@ void Assembler::assembleAssemblyGraphVertex(
 
     // Assemble run-length sequence and raw sequence.
     // Keep track of the range each vertex and edge contributes.
-    vector<Base> assembledRunLengthSequence;
-    vector<uint32_t> assembledRepeatCounts;
+    assembledRunLengthSequence.clear();
+    assembledRepeatCounts.clear();
     vector<Base> assembledRawSequence;
     vector< pair<uint32_t, uint32_t> > vertexRunLengthRange(vertexCount);
     vector< pair<uint32_t, uint32_t> > vertexRawRange(vertexCount);
