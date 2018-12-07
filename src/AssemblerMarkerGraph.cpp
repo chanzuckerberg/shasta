@@ -1908,12 +1908,18 @@ const Assembler::MarkerGraphConnectivity::Edge*
 
 
 
+#if 0
+// (OLD VERSION)
+// This old versdion works pretty well, but it causes contig breaks
+// in some relatively rare end cases.
+// The new version below uses approximate transitive reduction.
+
 // Find weak edges in the marker graph.
 // All edges with coverage up to lowCoverageThreshold are marked as weak.
 // All edges with coverage at least highCoverageThreshold as marked as strong.
 // The remaining edges are processed in order of increasing coverage,
 // and they are flagged as weak if they don't disconnect the local subgraph
-// up to maxDistance. Edges are processed in order of increasin coverage,
+// up to maxDistance. Edges are processed in order of increasing coverage,
 // and the local subgraph is created using only edges
 // currently marked as strong. This way, low coverage edges
 // are more likely to be marked as weak, and we never locally disconnect the graph.
@@ -1996,6 +2002,209 @@ void Assembler::flagMarkerGraphWeakEdges(
         }
     }
     cout << "Marked as weak " << weakEdgeCount << " marker graph edges out of ";
+    cout << markerGraphConnectivity.edges.size() << " total." << endl;
+
+    cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
+    cout << markerGraphConnectivity.edges.size()-weakEdgeCount << " strong edges." << endl;
+
+    cout << timestamp << "Done flagging weak edges of the marker graph." << endl;
+}
+#endif
+
+
+
+// Find weak edges in the marker graph.
+// This new version uses approximate transitive reduction.
+void Assembler::flagMarkerGraphWeakEdges(
+    size_t lowCoverageThreshold,
+    size_t highCoverageThreshold,
+    size_t maxDistance)
+{
+    // Some shorthands for readability.
+    auto& edges = markerGraphConnectivity.edges;
+    using VertexId = GlobalMarkerGraphVertexId;
+    using EdgeId = GlobalMarkerGraphEdgeId;
+    using Edge = MarkerGraphConnectivity::Edge;
+
+    // Initial message.
+    cout << timestamp << "Flagging weak edges of the marker graph "
+        "via approximate transitive reduction." << endl;
+    cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
+    cout << edges.size() << " edges." << endl;
+
+    // Initially flag all edges as strong.
+    for(auto& edge: edges) {
+        edge.isWeak = 0;
+    }
+
+    // Gather edges for each coverage less than highCoverageThreshold.
+    MemoryMapped::VectorOfVectors<EdgeId, EdgeId>  edgesByCoverage;
+    edgesByCoverage.createNew(
+            largeDataName("tmp-flagMarkerGraphWeakEdges-edgesByCoverage"),
+            largeDataPageSize);
+    edgesByCoverage.beginPass1(highCoverageThreshold);
+    for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
+        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        if(edge.coverage < highCoverageThreshold) {
+            edgesByCoverage.incrementCount(edge.coverage);
+        }
+    }
+    edgesByCoverage.beginPass2();
+    for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
+        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        if(edge.coverage < highCoverageThreshold) {
+            edgesByCoverage.store(edge.coverage, edgeId);
+        }
+    }
+    edgesByCoverage.endPass2();
+
+    // Check that there are no edges with coverage 0.
+    CZI_ASSERT(edgesByCoverage[0].size() == 0);
+
+#if 0
+    // Vector to store which edges should be flagged as
+    // weak at each iteration over coverage.
+    MemoryMapped::Vector<bool> edgeFlags;
+    edgeFlags.createNew(
+        largeDataName("tmp-flagMarkerGraphWeakEdges-edgeFlags"),
+        largeDataPageSize);
+    edgeFlags.resize(edges.size());
+    fill(edgeFlags.begin(), edgeFlags.end(), false);
+#endif
+
+    // Vector to contain vertex distances during each BFS.
+    // Is is set to -1 fore vertices nt reached by the BFS.
+    MemoryMapped::Vector<int> vertexDistances;
+    vertexDistances.createNew(
+        largeDataName("tmp-flagMarkerGraphWeakEdges-vertexDistances"),
+        largeDataPageSize);
+    vertexDistances.resize(globalMarkerGraphVertices.size());
+    fill(vertexDistances.begin(), vertexDistances.end(), -1);
+
+    // Queue to be used for all BFSs.
+    std::queue<VertexId> q;
+
+    // Vector to store vertices encountered duirng a BFS.
+    vector<VertexId> bfsVertices;
+
+
+
+    // Flag as weak all edges with coverage <= lowCoverageThreshold
+    for(size_t coverage=1; coverage<=lowCoverageThreshold; coverage++) {
+        const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
+        cout << timestamp << "Flagging as weak " << edgesWithThisCoverage.size() <<
+            " edges with coverage " << coverage << "." << endl;
+        for(const EdgeId edgeId: edgesWithThisCoverage) {
+            edges[edgeId].isWeak = 1;
+        }
+    }
+
+
+
+    // Process edges of intermediate coverage.
+    for(size_t coverage=lowCoverageThreshold+1;
+        coverage<highCoverageThreshold; coverage++) {
+        const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
+        cout << timestamp << "Processing " << edgesWithThisCoverage.size() <<
+            " edges with coverage " << coverage << "." << endl;
+        size_t count = 0;
+
+        // Loop over edges with this coverage.
+        for(const EdgeId edgeId: edgesWithThisCoverage) {
+            const Edge& edge = edges[edgeId];
+            CZI_ASSERT(!edge.isWeak);
+            const VertexId u0 = edge.source;
+            const VertexId u1 = edge.target;
+
+            // Do a forward BFS starting at v0, up to distance maxDistance,
+            // using only edges currently marked as strong
+            // and without using this edge.
+            // If we encounter v1, v1 is reachable from v0 without
+            // using this edge, and so we can mark this edge as weak.
+            q.push(u0);
+            vertexDistances[u0] = 0;
+            bfsVertices.push_back(u0);
+            bool found = false;
+            while(!q.empty()) {
+                const VertexId v0 = q.front();
+                q.pop();
+                const int distance0 = vertexDistances[v0];
+                const int distance1 = distance0 + 1;
+                for(const auto edgeId01: markerGraphConnectivity.edgesBySource[v0]) {
+                    if(edgeId01 == edgeId) {
+                        continue;
+                    }
+                    const Edge& edge01 = markerGraphConnectivity.edges[edgeId01];
+                    if(edge01.isWeak) {
+                        continue;
+                    }
+                    const VertexId v1 = edge01.target;
+                    if(vertexDistances[v1] >= 0) {
+                        continue;   // We already encountered this vertex.
+                    }
+                    if(v1 == u1) {
+                        // We found it!
+                        found = true;
+                        break;
+                    }
+                    vertexDistances[v1] = distance1;
+                    bfsVertices.push_back(v1);
+                    if(distance1 < int(maxDistance)) {
+                        q.push(v1);
+                    }
+                }
+                if(found) {
+                    break;
+                }
+            }
+
+            if(found) {
+                edges[edgeId].isWeak = 1;
+                ++count;
+            }
+
+            // Clean up to be ready to process the next edge.
+            while(!q.empty()) {
+                q.pop();
+            }
+            for(const VertexId v: bfsVertices) {
+                vertexDistances[v] = -1;
+            }
+            bfsVertices.clear();
+        }
+
+#if 0
+        // Actually flag these weak edges in the marker graph.
+        size_t count = 0;
+        for(EdgeId edgeId=0; edgeId<edgeFlags.size(); edgeId++) {
+            if(edgeFlags[edgeId]) {
+                edges[edgeId].isWeak = 1;
+                edgeFlags[edgeId] = false;
+                ++count;
+            }
+        }
+#endif
+        cout << "Flagged as weak " << count <<
+            " edges with coverage " << coverage <<
+            " out of "<< edgesWithThisCoverage.size() << " total." << endl;
+    }
+
+
+    // Clean up our work areas.
+    edgesByCoverage.remove();
+    // edgeFlags.remove();
+    vertexDistances.remove();
+
+
+
+    // Count the number of edges that were flagged as weak.
+    uint64_t weakEdgeCount = 0;;
+    for(const auto& edge: markerGraphConnectivity.edges) {
+        if(edge.isWeak) {
+            ++weakEdgeCount;
+        }
+    }
+    cout << "Flagged as weak " << weakEdgeCount << " marker graph edges out of ";
     cout << markerGraphConnectivity.edges.size() << " total." << endl;
 
     cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
