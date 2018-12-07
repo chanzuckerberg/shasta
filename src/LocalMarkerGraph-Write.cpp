@@ -516,11 +516,15 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
                 // Write out the repeat counts, if necessary.
                 if(graph.useRunLengthReads && !info.repeatCounts.empty()) {
                     s << "<td align=\"center\"><b>";
-                    for(const uint8_t repeatCount: info.repeatCounts) {
-                        if(repeatCount < 10) {
-                            s << int(repeatCount);
-                        } else {
-                            s << "*";
+                    if(sequenceString.size() > 100) {
+                        s << "Too long";
+                    } else {
+                        for(const uint8_t repeatCount: info.repeatCounts) {
+                            if(repeatCount < 10) {
+                                s << int(repeatCount);
+                            } else {
+                                s << "*";
+                            }
                         }
                     }
                     s << "</b></td>";
