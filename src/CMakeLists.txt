@@ -6,7 +6,7 @@ project(shasta-library)
 # Compiler options.
 add_definitions(-std=c++14)
 add_definitions(-ggdb3)
-add_definitions(-O0 -msse4.2)
+add_definitions(-O3 -msse4.2)
 add_definitions(-Wall -Wconversion -Wno-unused-result)
 
 # This is required by dset64.hpp.
@@ -33,17 +33,11 @@ set_target_properties(shasta PROPERTIES DEFINE_SYMBOL "")
 ## Python 3 and pybind11.
 ## I was not able to get find_package to work with pybind11 as installed by pip3.
 ## The code below creates include paths for both Python 3 and pybind11.
-#execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PYTHON_INCLUDES)
-#add_definitions(${SHASTA_PYTHON_INCLUDES})
+execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PYTHON_INCLUDES)
+add_definitions(${SHASTA_PYTHON_INCLUDES})
 
 # Libraries to link with.
 target_link_libraries(shasta atomic png pthread z)
 
-# test of consensus caller
-add_executable(test_SimpleBayesianConsensusCaller test_SimpleBayesianConsensusCaller.cpp ${SOURCES})
-
-# Libraries to link with.
-target_link_libraries(test_SimpleBayesianConsensusCaller shasta)
-
 # The shared library goes to the bin directory.
-install(TARGETS shasta test_SimpleBayesianConsensusCaller DESTINATION shasta-install/bin)
+install(TARGETS shasta DESTINATION shasta-install/bin)
