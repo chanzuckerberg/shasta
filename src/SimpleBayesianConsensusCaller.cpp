@@ -27,13 +27,26 @@ using namespace ChanZuckerberg;
 using namespace shasta;
 
 
-// The constructor does not have any parameters.
-// All data should be read from a file with fixed name
-// in the run directory. We will update the documentation accordingly.
+// Helper function
+vector<double> split(string s, char separator_char){
+    vector<double> tokens;
+    Separator separator(&separator_char);
+    Tokenizer tok{s, separator};
+
+    for (string token: tok) {
+        tokens.push_back(stod(token));
+    }
+
+    return tokens;
+}
+
+
 SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
-    this->load_probability_matrices(file_paths);
+    this->load_probability_matrices(matrix_file_paths);
     this->max_runlength = 50;
     this->ignore_non_consensus_base_repeats = false;
+    this->predict_gap_runlengths = false;
+    this->count_gaps_as_zeros = false;
 }
 
 
@@ -54,19 +67,6 @@ void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
         if (b != n_bases-1)
             cout << '\n';
     }
-}
-
-
-vector<double> split(string s, char separator_char){
-    vector<double> tokens;
-    Separator separator(&separator_char);
-    Tokenizer tok{s, separator};
-
-    for (string token: tok) {
-        tokens.push_back(stod(token));
-    }
-
-    return tokens;
 }
 
 
@@ -122,15 +122,14 @@ vector<double> SimpleBayesianConsensusCaller::normalize_likelihoods(vector<doubl
 
 
 map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage) const{
-    // Store counts for each unique observation
     map<int,int> factored_repeats;
 
+    // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
         if (not observation.base.isGap()) {
             factored_repeats[observation.repeatCount]++;
         }
-        else{
-            // TODO: address the issue of whether to count gaps (zeros) in runlength prediction...
+        else if (this->count_gaps_as_zeros){
             factored_repeats[0]++;
         }
     }
@@ -140,16 +139,16 @@ map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& cover
 
 
 map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const{
-    // Store counts for each unique observation
     map<int,int> factored_repeats;
 
+    // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
+        // Ignore non consensus repeat values
         if (observation.base.value == consensus_base.value){
             if (not observation.base.isGap()) {
                 factored_repeats[observation.repeatCount]++;
             }
-            else {
-                // TODO: address the issue of whether to count gaps (zeros) in runlength prediction...
+            else if (this->count_gaps_as_zeros){
                 factored_repeats[0]++;
             }
         }
@@ -170,9 +169,9 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
     else
         factored_repeats = this->factor_repeats(coverage);
 
-    int x_i;    // Member of X such that X = {x_0, x_1, ..., x_i} observed repeats
+    int x_i;    // Element of X = {x_0, x_1, ..., x_i} observed repeats
     int c_i;    // Number of times x_i was observed
-    int y_j;    // Member of Y such that Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
+    int y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
 
     double log_sum;                                                 // Product (in logspace) of P(x_i|y_j) for each i
     vector<double> log_likelihood_y(this->max_runlength, -inf);     // Loglikelihoods for all possible y_j
@@ -248,14 +247,25 @@ AlignedBase SimpleBayesianConsensusCaller::predict_consensus_base(const Coverage
 
 Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) const{
     // TODO: test that coverage is not empty?
-    // TODO: test that consensus base is not gap
     AlignedBase consensus_base;
     int consensus_repeat;
     vector<double> log_likelihoods;
 
     consensus_base = this->predict_consensus_base(coverage);
-    tie(consensus_repeat, log_likelihoods) = this->predict_runlength(coverage, consensus_base);
 
-    // This returns a A with repeat count 3.
+    if (this->predict_gap_runlengths) {
+        // Predict all run lengths regardless of whether consensus base is a gap
+        tie(consensus_repeat, log_likelihoods) = this->predict_runlength(coverage, consensus_base);
+    }
+    else {
+        if (not consensus_base.isGap()) {
+            // Consensus is NOT a gap character, and the configuration forbids predicting gaps
+            tie(consensus_repeat, log_likelihoods) = this->predict_runlength(coverage, consensus_base);
+        } else {
+            // Consensus IS a gap character, and the configuration forbids predicting gaps
+            consensus_repeat = 1;
+        }
+    }
+
     return Consensus(AlignedBase::fromCharacter(consensus_base.character()), consensus_repeat);
 }
