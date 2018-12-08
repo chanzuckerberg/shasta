@@ -49,10 +49,10 @@ namespace ChanZuckerberg {
 }
 
 
-const vector<string> matrix_file_paths = {"/home/ryan/code/consensus_caller_cpp/models/parameters/A_2018_12_4_15_38_20_105463.csv",
-                                          "/home/ryan/code/consensus_caller_cpp/models/parameters/C_2018_12_4_15_38_20_117575.csv",
-                                          "/home/ryan/code/consensus_caller_cpp/models/parameters/G_2018_12_4_15_38_20_112692.csv",
-                                          "/home/ryan/code/consensus_caller_cpp/models/parameters/T_2018_12_4_15_38_20_115145.csv"};
+const vector<string> matrix_file_paths = {"../../../models/parameters/A_2018_12_4_15_38_20_105463.csv",
+                                          "../../../models/parameters/C_2018_12_4_15_38_20_117575.csv",
+                                          "../../../models/parameters/G_2018_12_4_15_38_20_112692.csv",
+                                          "../../../models/parameters/T_2018_12_4_15_38_20_115145.csv"};
 
 const double inf = std::numeric_limits<double>::infinity();;
 const vector<char> bases = {'A', 'C', 'G', 'T'};
