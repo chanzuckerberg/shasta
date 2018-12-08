@@ -1,4 +1,4 @@
-
+/*
 // shasta.
 #include "Assembler.hpp"
 #include "Base.hpp"
@@ -367,3 +367,4 @@ PYBIND11_MODULE(shasta, module)
 
 }
 
+*/
