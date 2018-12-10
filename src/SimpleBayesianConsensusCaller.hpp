@@ -31,6 +31,7 @@ must take into account which strand each read is on.
 #include <fstream>
 #include <utility>
 #include <vector>
+#include <array>
 #include <string>
 #include <limits>
 #include <map>
@@ -38,6 +39,7 @@ must take into account which strand each read is on.
 using ChanZuckerberg::shasta::Consensus;
 using std::ifstream;
 using std::vector;
+using std::array;
 using std::string;
 using std::pair;
 using std::map;
@@ -49,15 +51,11 @@ namespace ChanZuckerberg {
 }
 
 
-const vector<string> matrix_file_paths = {"../../../models/parameters/A_2018_12_4_15_38_20_105463.csv",
-                                          "../../../models/parameters/C_2018_12_4_15_38_20_117575.csv",
-                                          "../../../models/parameters/G_2018_12_4_15_38_20_112692.csv",
-                                          "../../../models/parameters/T_2018_12_4_15_38_20_115145.csv"};
+const string MATRIX_FILE_PATH = "../conf/SingleBayesianConsensusCaller-1.csv";
 
-const double inf = std::numeric_limits<double>::infinity();;
-const vector<char> bases = {'A', 'C', 'G', 'T'};
-const map<char,int> base_indexes = {{'A',0}, {'C',1}, {'G',2}, {'T',3}};
-
+const double INF = std::numeric_limits<double>::infinity();;
+const vector<char> BASES = {'A', 'C', 'G', 'T'};
+const map<char,int> BASE_INDEXES = {{'A',0}, {'C',1}, {'G',2}, {'T',3}};
 
 // Given a set of observations (repeat, strand, base), predict the true repeat count
 class ChanZuckerberg::shasta::SimpleBayesianConsensusCaller:
@@ -68,7 +66,7 @@ public:
     // The constructor does not have any parameters.
     // All data should be read from a file with fixed name
     // in the run directory. We will update the documentation accordingly.
-    SimpleBayesianConsensusCaller();
+    SimpleBayesianConsensusCaller(string matrix_file_path=MATRIX_FILE_PATH);
 
     // Given a coverage object, return the most likely run length, and the normalized log likelihood vector for all run
     // lengths as a pair
@@ -93,7 +91,7 @@ private:
     bool count_gaps_as_zeros;
 
     // p(X|Y) normalized for each Y, where X = observed and Y = True run length
-    vector<vector<vector<double> > > probability_matrices;
+    array<vector<vector<double> >, 4> probability_matrices;
 
 
     /// ----- Methods ----- ///
@@ -101,8 +99,10 @@ private:
     // Read a single csv containing run length probability matrix
     vector<vector<double> > load_probability_matrix(string file_path);
 
-    // Read each probability matrix from its file and store them in a vector
-    void load_probability_matrices(vector<string> file_paths);
+    // Read each probability matrix from its file and store them in a vector (assuming decibel units, aka base 10)
+    // Each delimited table in text should be preceded by a fasta-like header e.g.: ">A" for the base it corresponds to.
+    // This converts each line to a vector of doubles, appending probability_matrices according to the matrix header.
+    void load_probability_matrices(ifstream& matrix_file);
 
     // For a given vector of likelihoods over each Y value, normalize by the maximum
     vector<double> normalize_likelihoods(vector<double> x, double x_max) const;

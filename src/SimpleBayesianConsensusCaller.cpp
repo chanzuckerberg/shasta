@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include <string>
+#include <cstdio>
 #include <cmath>
 #include <map>
 #include "SimpleBayesianConsensusCaller.hpp"
@@ -17,6 +18,7 @@ using Tokenizer = boost::tokenizer<Separator>;
 using std::ifstream;
 using std::vector;
 using std::string;
+using std::printf;
 using std::pair;
 using std::make_pair;
 using std::cout;
@@ -41,12 +43,21 @@ vector<double> split(string s, char separator_char){
 }
 
 
-SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
-    this->load_probability_matrices(matrix_file_paths);
+SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(string matrix_file_path){
     this->max_runlength = 50;
     this->ignore_non_consensus_base_repeats = false;
     this->predict_gap_runlengths = false;
     this->count_gaps_as_zeros = false;
+
+    ifstream matrix_file(matrix_file_path);
+
+    // Ensure that file pointer is not null
+    if (not matrix_file.good()){
+        cout << "ERROR: file read error: " << matrix_file_path << '\n';
+        exit(1);
+    }
+
+    this->load_probability_matrices(matrix_file);
 }
 
 
@@ -55,10 +66,11 @@ void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
     int n_bases = 4;
 
     for (int b=0; b<n_bases; b++){
-        cout << '>' << bases[b] << '\n';
+        cout << '>' << BASES[b] << '\n';
         for (int i=0; i<length; i++){
             for (int j=0; j<length; j++){
-                cout << this->probability_matrices[b][i][j];
+                // Print with exactly 9 decimal values
+                printf("%.9f",this->probability_matrices[b][i][j]);
                 if (j != length-1)
                     cout << separator;
             }
@@ -70,10 +82,28 @@ void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
 }
 
 
-void SimpleBayesianConsensusCaller::load_probability_matrices(vector<string> matrix_file_paths){
-    // Assume that matrix file paths are in order of base convention A=0, C=1, G=2, T=3
-    for (string& file_path: matrix_file_paths){
-        this->probability_matrices.push_back(this->load_probability_matrix(file_path));
+void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_file){
+    string line;
+    vector<double> row;
+    vector<vector<double> > matrix;
+    char base;
+    int base_index;
+
+    // Matrices are labeled via fasta-like headers
+    while (getline(matrix_file, line)){
+
+        // Header line
+        if (line[0] == '>'){
+            base = line[1];
+            base_index = BASE_INDEXES.at(base);
+        }
+
+        // Data line
+        else if (line[0] != '>' && not line.empty()) {
+            // Assume csv format
+            row = split(line, ',');
+            this->probability_matrices[base_index].push_back(row);
+        }
     }
 }
 
@@ -158,7 +188,6 @@ map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& cover
 }
 
 
-//TODO: convert "base" to proper Base class?
 pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensusBase) const{
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods/
     // Depending on class boolean "ignore_non_consensus_base_repeats" filter out observations
@@ -174,9 +203,9 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
     int y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
 
     double log_sum;                                                 // Product (in logspace) of P(x_i|y_j) for each i
-    vector<double> log_likelihood_y(this->max_runlength, -inf);     // Loglikelihoods for all possible y_j
+    vector<double> log_likelihood_y(this->max_runlength, -INF);     // Loglikelihoods for all possible y_j
 
-    double y_max_likelihood = -inf;
+    double y_max_likelihood = -INF;
     int y_max = -1;
 
     // Iterate all possible Y from 0 to j to calculate p(Y_j|X) where X is all observations 0 to i,
@@ -263,9 +292,9 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
             tie(consensus_repeat, log_likelihoods) = this->predict_runlength(coverage, consensus_base);
         } else {
             // Consensus IS a gap character, and the configuration forbids predicting gaps
-            consensus_repeat = 1;
+            consensus_repeat = 0;
         }
     }
 
-    return Consensus(AlignedBase::fromCharacter(consensus_base.character()), consensus_repeat);
+    return Consensus(AlignedBase::fromInteger(consensus_base.value), consensus_repeat);
 }
