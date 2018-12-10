@@ -73,6 +73,10 @@ public:
     // assembly graph.
     LongBaseSequences sequences;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> repeatCounts;
+
+    // Write the assembly graph in GFA 1.0 format defined here:
+    // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
+    void writeGfa1(ostream&);
 };
 
 

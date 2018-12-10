@@ -459,6 +459,24 @@ void Assembler::AssembleData::free()
 
 
 
+void Assembler::accessAssemblyGraphSequences()
+{
+    assemblyGraph.sequences.accessExistingReadOnly(
+        largeDataName("AssembledSequences"));
+}
+
+
+
+// Write the assembly graph in GFA 1.0 format defined here:
+// https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
+void Assembler::writeGfa1(const string& fileName)
+{
+    ofstream gfa(fileName);
+    assemblyGraph.writeGfa1(gfa);
+}
+
+
+
 // Extract a local assembly graph from the global assembly graph.
 // This returns false if the timeout was exceeded.
 bool Assembler::extractLocalAssemblyGraph(

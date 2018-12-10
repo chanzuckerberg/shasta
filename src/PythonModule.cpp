@@ -289,18 +289,23 @@ PYBIND11_MODULE(shasta, module)
 
 
 
-         // Assembly graph.
-         .def("createAssemblyGraphVertices",
-              &Assembler::createAssemblyGraphVertices)
-         .def("createAssemblyGraphEdges",
+        // Assembly graph.
+        .def("createAssemblyGraphVertices",
+             &Assembler::createAssemblyGraphVertices)
+        .def("createAssemblyGraphEdges",
              &Assembler::createAssemblyGraphEdges)
-         .def("accessAssemblyGraphVertices",
-              &Assembler::accessAssemblyGraphVertices)
-         .def("accessAssemblyGraphEdges",
-              &Assembler::accessAssemblyGraphEdges)
-         .def("assemble",
-              &Assembler::assemble,
-              arg("threadCount") = 0)
+        .def("accessAssemblyGraphVertices",
+             &Assembler::accessAssemblyGraphVertices)
+        .def("accessAssemblyGraphEdges",
+             &Assembler::accessAssemblyGraphEdges)
+        .def("assemble",
+            &Assembler::assemble,
+            arg("threadCount") = 0)
+        .def("accessAssemblyGraphSequences",
+             &Assembler::accessAssemblyGraphSequences)
+        .def("writeGfa1",
+            &Assembler::writeGfa1,
+            arg("fileName"))
 
 
 

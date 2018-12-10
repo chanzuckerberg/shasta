@@ -1169,6 +1169,7 @@ private:
     // Assemble sequence for all vertices of the assembly graph.
 public:
     void assemble(size_t threadCount);
+    void accessAssemblyGraphSequences();
 private:
     class AssembleData {
     public:
@@ -1183,6 +1184,12 @@ private:
     };
     AssembleData assembleData;
     void assembleThreadFunction(size_t threadId);
+
+    // Write the assembly graph in GFA 1.0 format defined here:
+    // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
+public:
+    void writeGfa1(const string& fileName);
+private:
 
 
 
