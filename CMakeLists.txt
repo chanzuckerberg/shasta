@@ -5,7 +5,7 @@ set(CMAKE_INSTALL_PREFIX .)
 
 add_subdirectory(src)
 
-## Install the scripts.
+# Install the scripts.
 file(GLOB SCRIPTS scripts/*.py scripts/*.sh)
 install(PROGRAMS ${SCRIPTS} DESTINATION shasta-install/bin)
 

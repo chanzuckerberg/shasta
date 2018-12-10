@@ -28,11 +28,11 @@ add_library(shasta SHARED ${SOURCES})
 set_target_properties(shasta PROPERTIES PREFIX "")
 
 # Eliminate an extraneous -D during compilation.
-set_target_properties(shasta PROPERTIES DEFINE_SYMBOL "")
+set_target_properties(shasta PROPERTIES  DEFINE_SYMBOL "")
 
-## Python 3 and pybind11.
-## I was not able to get find_package to work with pybind11 as installed by pip3.
-## The code below creates include paths for both Python 3 and pybind11.
+# Python 3 and pybind11.
+# I was not able to get find_package to work with pybind11 as installed by pip3.
+# The code below creates include paths for both Python 3 and pybind11.
 execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PYTHON_INCLUDES)
 add_definitions(${SHASTA_PYTHON_INCLUDES})
 
@@ -41,3 +41,7 @@ target_link_libraries(shasta atomic png pthread z)
 
 # The shared library goes to the bin directory.
 install(TARGETS shasta DESTINATION shasta-install/bin)
+
+
+
+
