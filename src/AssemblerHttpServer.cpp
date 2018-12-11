@@ -331,6 +331,13 @@ void Assembler::accessAllSoft()
         allDataAreAvailable = false;
     }
 
+    try {
+        accessAssemblyGraphSequences();
+    } catch(exception e) {
+        cout << "Assembly graph sequences are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
     if(!allDataAreAvailable) {
         cout << "Not all assembly data are accessible." << endl;
         cout << "Some functionality is not available." << endl;

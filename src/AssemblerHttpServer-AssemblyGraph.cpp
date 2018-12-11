@@ -205,10 +205,14 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
 {
     html << "<h2>Show details about a vertex of the assembly graph</h2>";
 
-    // Get the vertex id from the request.
+    // Get the request parameters.
     AssemblyGraph::VertexId vertexId = 0;
     const bool vertexIdIsPresent = getParameterValue(
         request, "vertexId", vertexId);
+    string showDetailsString;
+    getParameterValue(request, "showDetails", showDetailsString);
+    const bool showDetails = (showDetailsString == "on");
+    cout << "showDetailsString " << showDetailsString << " " << int(showDetails) << endl;
 
     // Write the form to get the vertex id.
     html <<
@@ -216,7 +220,9 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
         "<br>Assembly graph vertex id: <input type=text name=vertexId" <<
         (vertexIdIsPresent ? (" value='" + to_string(vertexId)) + "'" : "") <<
         " title='Enter an assembly graph vertex id between 0 and " << assemblyGraph.vertices.size()-1 << " inclusive'"
-        "> <input type=submit value='Go'>"
+        "><br>Show assembly details <input type=checkbox name=showDetails" <<
+        (showDetails ? " checked=checked" : "") <<
+        ">(this can be slow)<br><input type=submit value='Go'>"
         "</form>";
 
     // If the vertex id is missing or invalid, don't do anything.
@@ -234,8 +240,79 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
 
 
     // Assemble the sequence and output detailed information to html.
-    vector<Base> sequence;
-    vector<uint32_t> repeatCounts;
-    assembleAssemblyGraphVertex(vertexId, sequence, repeatCounts, &html);
+    if(showDetails) {
+        vector<Base> sequence;
+        vector<uint32_t> repeatCounts;
+        assembleAssemblyGraphVertex(vertexId, sequence, repeatCounts, &html);
+    } else {
+
+        // Assembly details were not requested but a global assembly
+        // is not available.
+        if( !assemblyGraph.sequences.isOpen() ||
+            !assemblyGraph.repeatCounts.isOpen()) {
+            html << "<p>A global assembly is not available. You can check "
+                "the showDetails checkbox to have the sequence computed on the fly. "
+                "This could be slow for long sequence.";
+            return;
+        } else {
+
+            // Assembly details were not requested and a global assembly
+            // is available. Get the sequence from the global assembly.
+
+            html << "<p>Add here the code to write assembled sequence.";
+            // Write a title.
+            html <<
+                "<h1>Assembly graph vertex <a href="
+                "'exploreAssemblyGraph?vertexId=" << vertexId <<
+                "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
+                vertexId << "</a></h1>";
+
+            // Write parent and child vertices in the assembly graph.
+            html << "<p>Parent vertices in the assembly graph:";
+            for(const auto parentEdge: assemblyGraph.edgesByTarget[vertexId]) {
+                const AssemblyGraph::VertexId parent = assemblyGraph.edges[parentEdge].source;
+                html <<
+                    " <a href='exploreAssemblyGraphVertex?vertexId=" << parent << "'>"
+                    << parent << "</a>";
+            }
+
+            html << "<p>Child vertices in the assembly graph:";
+            for(const auto childEdge: assemblyGraph.edgesBySource[vertexId]) {
+                const AssemblyGraph::VertexId child = assemblyGraph.edges[childEdge].target;
+                html <<
+                    " <a href='exploreAssemblyGraphVertex?vertexId=" << child << "'>"
+                    << child << "</a>";
+            }
+
+            // Assembled run-length sequence.
+            const LongBaseSequenceView runLengthSequence = assemblyGraph.sequences[vertexId];
+            const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[vertexId];
+            CZI_ASSERT(repeatCounts.size() == runLengthSequence.baseCount);
+            html << "<p>Assembled run-length sequence (" << runLengthSequence.baseCount <<
+                " bases):<br><span style='font-family:courier'>";
+            html << runLengthSequence;
+            html << "<br>";
+            size_t rawSequenceSize = 0;
+            for(size_t j=0; j<repeatCounts.size(); j++) {
+                const uint32_t repeatCount = repeatCounts[j];
+                rawSequenceSize += repeatCount;
+                CZI_ASSERT(repeatCount < 10);  // Fix when it fails.
+                html << repeatCount%10;
+            }
+            html << "</span>";
+
+            // Assembled raw sequence.
+            html << "<p>Assembled raw sequence (" << rawSequenceSize <<
+                " bases):<br><span style='font-family:courier'>";
+            for(size_t i=0; i<runLengthSequence.baseCount; i++) {
+                const Base base = runLengthSequence[i];
+                const uint8_t repeatCount = repeatCounts[i];
+                for(uint8_t k=0; k<repeatCount; k++) {
+                    html << base;
+                }
+            }
+            html << "</span>";
+        }
+    }
 
 }
