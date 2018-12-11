@@ -51,8 +51,6 @@ namespace ChanZuckerberg {
 }
 
 
-const string MATRIX_FILE_PATH = "../conf/SingleBayesianConsensusCaller-1.csv";
-
 const double INF = std::numeric_limits<double>::infinity();;
 const vector<char> BASES = {'A', 'C', 'G', 'T'};
 const map<char,int> BASE_INDEXES = {{'A',0}, {'C',1}, {'G',2}, {'T',3}};
@@ -64,9 +62,9 @@ public:
     /// ----- Methods ----- ///
 
     // The constructor does not have any parameters.
-    // All data should be read from a file with fixed name
+    // All data is read from file SimpleBayesianConsensusCaller.csv
     // in the run directory. We will update the documentation accordingly.
-    SimpleBayesianConsensusCaller(string matrix_file_path=MATRIX_FILE_PATH);
+    SimpleBayesianConsensusCaller();
 
     // Given a coverage object, return the most likely run length, and the normalized log likelihood vector for all run
     // lengths as a pair

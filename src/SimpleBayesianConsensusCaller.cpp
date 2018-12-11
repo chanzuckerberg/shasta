@@ -43,18 +43,16 @@ vector<double> split(string s, char separator_char){
 }
 
 
-SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(string matrix_file_path){
+SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
     this->max_runlength = 50;
     this->ignore_non_consensus_base_repeats = false;
     this->predict_gap_runlengths = false;
     this->count_gaps_as_zeros = false;
 
-    ifstream matrix_file(matrix_file_path);
-
-    // Ensure that file pointer is not null
+    const string fileName = "SimpleBayesianConsensusCaller.csv";
+    ifstream matrix_file(fileName);
     if (not matrix_file.good()){
-        cout << "ERROR: file read error: " << matrix_file_path << '\n';
-        exit(1);
+        throw runtime_error("Error opening " + fileName);
     }
 
     this->load_probability_matrices(matrix_file);
