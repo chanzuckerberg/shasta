@@ -69,7 +69,7 @@ class ChanZuckerberg::shasta::LocalAssemblyGraph :
 public:
 
     LocalAssemblyGraph(
-        const AssemblyGraph&
+        AssemblyGraph&
         );
 
     using VertexId = AssemblyGraph::VertexId;
@@ -87,19 +87,22 @@ public:
     // Otherwise, return make_pair(false, null_vertex());
     pair<bool, vertex_descriptor> findVertex(VertexId) const;
 
-    // Return the "length" of a vertex, that is, the
-    // number of marker graph edges that it corresponds to.
+    // Return the number of marker graph edges that the vertex corresponds to.
     size_t vertexLength(vertex_descriptor) const;
+
+    // Return the number of bases in the raw assembled sequence of a vertex,
+    // or -1 if not available.
+    int baseCount(vertex_descriptor) const;
 
     // Write in Graphviz format.
     void write(
         ostream&,
         int maxDistance,
-        bool detailed) const;
+        bool detailed);
     void write(
         const string& fileName,
         int maxDistance,
-        bool detailed) const;
+        bool detailed);
 
 
 private:
@@ -108,13 +111,13 @@ private:
     std::map<VertexId, vertex_descriptor> vertexMap;
 
     // Reference to the global assembly graph.
-    const AssemblyGraph& globalAssemblyGraph;
+    AssemblyGraph& globalAssemblyGraph;
 
     // Writer class used for Graphviz output.
     class Writer {
     public:
         Writer(
-            const LocalAssemblyGraph&,
+            LocalAssemblyGraph&,
             int maxDistance,
             bool detailed);
         void operator()(ostream&) const;

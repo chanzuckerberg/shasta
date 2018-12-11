@@ -11,7 +11,7 @@ using namespace shasta;
 
 
 
-LocalAssemblyGraph::LocalAssemblyGraph(const AssemblyGraph& globalAssemblyGraph) :
+LocalAssemblyGraph::LocalAssemblyGraph(AssemblyGraph& globalAssemblyGraph) :
     globalAssemblyGraph(globalAssemblyGraph)
 {
 
@@ -55,8 +55,7 @@ std::pair<bool, LocalAssemblyGraph::vertex_descriptor>
 
 
 
-// Return the "length" of a vertex, that is, the
-// number of marker graph edges that it corresponds to.
+// Return the number of marker graph edges that the vertex corresponds to.
 size_t LocalAssemblyGraph::vertexLength(vertex_descriptor v) const
 {
     const LocalAssemblyGraph& graph = *this;
@@ -66,11 +65,36 @@ size_t LocalAssemblyGraph::vertexLength(vertex_descriptor v) const
 
 
 
+// Return the number of bases in the raw assembled sequence of a vertex,
+// or -1 if not available.
+int LocalAssemblyGraph::baseCount(vertex_descriptor v) const
+{
+    if(!globalAssemblyGraph.repeatCounts.isOpen()) {
+        return -1;
+    }
+
+    // Get the repeat counts for this vertex.
+    const LocalAssemblyGraph& graph = *this;
+    const VertexId vertexId = graph[v].vertexId;
+    const MemoryAsContainer<uint8_t> repeatCounts = globalAssemblyGraph.repeatCounts[vertexId];
+
+
+    // Add them up.
+    int count = 0;
+    for(const uint8_t repeatCount: repeatCounts) {
+        count += repeatCount;
+    }
+    return count;
+}
+
+
+
+
 // Write the graph in Graphviz format.
 void LocalAssemblyGraph::write(
     const string& fileName,
     int maxDistance,
-    bool detailed) const
+    bool detailed)
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
@@ -81,7 +105,7 @@ void LocalAssemblyGraph::write(
 void LocalAssemblyGraph::write(
     ostream& s,
     int maxDistance,
-    bool detailed) const
+    bool detailed)
 {
     Writer writer(*this, maxDistance, detailed);
     boost::write_graphviz(s, *this, writer, writer, writer,
@@ -91,7 +115,7 @@ void LocalAssemblyGraph::write(
 
 
 LocalAssemblyGraph::Writer::Writer(
-    const LocalAssemblyGraph& graph,
+    LocalAssemblyGraph& graph,
     int maxDistance,
     bool detailed) :
     graph(graph),
@@ -128,6 +152,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
 {
     const LocalAssemblyGraphVertex& vertex = graph[v];
     const size_t length = graph.vertexLength(v);
+    const int baseCount = graph.baseCount(v);
 
     // Begin vertex attributes.
     s << "[";
@@ -172,7 +197,11 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
     // Toolip.
     if(!detailed) {
         s << " tooltip=\"Id " << vertex.vertexId;
-        s << ", length " << length << "\"";
+        s << ", length " << length;
+        if(baseCount >= 0) {
+            s << ", " << baseCount << " bases";
+        }
+        s << "\"";
     } else {
         s << " tooltip=\" \"";
     }
@@ -181,8 +210,12 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
 
     // Label.
     if(detailed) {
-        s << " label=\"Id " << vertex.vertexId << "\\n";
-        s << "Length " << length << "\"";
+        s << " label=\"Vertex " << vertex.vertexId << "\\n";
+        s << length << " edges";
+        if(baseCount >= 0) {
+            s << "\\n" << baseCount << " bases";
+        }
+        s << "\"";
     }
 
 
