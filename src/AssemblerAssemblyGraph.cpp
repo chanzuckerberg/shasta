@@ -463,6 +463,8 @@ void Assembler::accessAssemblyGraphSequences()
 {
     assemblyGraph.sequences.accessExistingReadOnly(
         largeDataName("AssembledSequences"));
+    assemblyGraph.repeatCounts.accessExistingReadOnly(
+        largeDataName("AssembledRepeatCounts"));
 }
 
 
@@ -472,7 +474,129 @@ void Assembler::accessAssemblyGraphSequences()
 void Assembler::writeGfa1(const string& fileName)
 {
     ofstream gfa(fileName);
-    assemblyGraph.writeGfa1(gfa);
+
+    // Write the header line.
+    gfa << "H\tVN:Z:1.0\n";
+
+    // Write a segment record for each vertex.
+    for(AssemblyGraph::VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
+        const auto sequence = assemblyGraph.sequences[vertexId];
+        const auto repeatCounts = assemblyGraph.repeatCounts[vertexId];
+        CZI_ASSERT(sequence.baseCount == repeatCounts.size());
+        gfa << "S\t" << vertexId << "\t";
+        for(size_t i=0; i<sequence.baseCount; i++) {
+            const Base b = sequence[i];
+            const uint8_t repeatCount = repeatCounts[i];
+            for(size_t k=0; k<repeatCount; k++) {
+                gfa << b;
+            }
+        }
+        gfa << "\n";
+    }
+
+
+
+    // Write a link for each edge.
+    const size_t k = assemblerInfo->k;
+    string cigarString;
+    for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
+
+        /// Locate the two vertices of this edge.
+        const AssemblyGraph::VertexId v0 = edge.source;
+        const AssemblyGraph::VertexId v1 = edge.target;
+
+        // Locate the corresponding repeat counts.
+        const MemoryAsContainer<uint8_t> repeatCounts0 = assemblyGraph.repeatCounts[v0];
+        const MemoryAsContainer<uint8_t> repeatCounts1 = assemblyGraph.repeatCounts[v1];
+
+        // Locate the last k repeat counts of v0 and the first k of v1.
+        const MemoryAsContainer<uint8_t> lastRepeatCounts0(
+            repeatCounts0.begin() + repeatCounts0.size() - k,
+            repeatCounts0.end());
+        const MemoryAsContainer<uint8_t> firstRepeatCounts1(
+            repeatCounts1.begin(),
+            repeatCounts1.begin() + k);
+
+
+        // Construct the cigar string.
+        constructCigarString(lastRepeatCounts0, firstRepeatCounts1, cigarString);
+
+        // Write out the link record for this edge.
+        gfa << "L\t" <<
+            v0 << "\t" <<
+            "+\t" <<
+            v1 << "\t" <<
+            "+\t" <<
+            cigarString << "\n";
+    }
+}
+
+
+
+// Construct the CIGAR string given two vectors of repeat counts.
+// Used by writeGfa1.
+void Assembler::constructCigarString(
+    const MemoryAsContainer<uint8_t>& repeatCounts0,
+    const MemoryAsContainer<uint8_t>& repeatCounts1,
+    string& cigarString
+    )
+{
+    // Check that the repeat counts have the same length.
+    const size_t k = repeatCounts0.size();
+    CZI_ASSERT(repeatCounts1.size() == k);
+
+    if(std::equal(repeatCounts0.begin(), repeatCounts0.end(), repeatCounts1.begin())) {
+
+        // Fast path when the repeat counts are identical.
+        // This is the most common case.
+        // The cigar string is all matches, for a number of bases
+        // equal to the total base count (in raw representation).
+        size_t totalBaseCount = 0;
+        for(const uint8_t r: repeatCounts0) {
+            totalBaseCount += r;
+        }
+        cigarString = to_string(totalBaseCount) + "M";
+
+    } else {
+
+        // General case.
+        vector< pair<char, int> > cigar;
+        for(size_t i=0; i<k; i++) {
+            const uint8_t repeatCount0 = repeatCounts0[i];
+            const uint8_t repeatCount1 = repeatCounts1[i];
+
+            // Matching bases.
+            const uint8_t matchingCount = min(repeatCount0, repeatCount1);
+            if(matchingCount) {
+                if(!cigar.empty() && cigar.back().first=='M') {
+                    cigar.back().second += matchingCount;
+                } else {
+                    cigar.push_back(make_pair('M', matchingCount));
+                }
+            }
+
+            // Inserted bases (bases present in repeatCounts1 but not in repeatCounts0).
+            if(repeatCount1 > repeatCount0) {
+                const uint8_t insertedCount = uint8_t(repeatCount1 - repeatCount0);
+                if(!cigar.empty() && cigar.back().first=='I') {
+                    cigar.back().second += insertedCount;
+                } else {
+                    cigar.push_back(make_pair('I', insertedCount));
+                }
+            }
+
+            // Deleted bases (bases present in repeatCounts0 but not in repeatCounts1).
+            if(repeatCount0 > repeatCount1) {
+                const uint8_t deletedCount = uint8_t(repeatCount0 - repeatCount1);
+                if(!cigar.empty() && cigar.back().first=='D') {
+                    cigar.back().second += deletedCount;
+                } else {
+                    cigar.push_back(make_pair('D', deletedCount));
+                }
+            }
+        }
+    }
+
 }
 
 
@@ -781,7 +905,7 @@ void Assembler::assembleAssemblyGraphVertex(
             }
             if(vertexCoverage[j]>vertexCoverage[i] ||
                 (vertexCoverage[j]==vertexCoverage[i] && vertexIds[j]<vertexIds[i])) {
-                vertexAssembledPortion[i].second = vertexOffsets[i] + uint32_t(k) - vertexOffsets[j];
+                vertexAssembledPortion[i].second = vertexOffsets[j] - vertexOffsets[i];
                 break;
             }
         }

@@ -45,6 +45,21 @@ public:
         return dataBegin[i];
     }
 
+    T& front()
+    {
+        CZI_ASSERT(dataBegin);
+        CZI_ASSERT(dataEnd);
+        CZI_ASSERT(!empty());
+        return *dataBegin;
+    }
+
+    T& back()
+    {
+        CZI_ASSERT(dataBegin);
+        CZI_ASSERT(dataEnd);
+        CZI_ASSERT(!empty());
+        return *(dataEnd - 1);
+    }
 private:
     T* dataBegin;
     T* dataEnd;

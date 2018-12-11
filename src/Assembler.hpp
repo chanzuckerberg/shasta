@@ -1190,6 +1190,13 @@ private:
 public:
     void writeGfa1(const string& fileName);
 private:
+    // Construct the CIGAR string given two vectors of repeat counts.
+    // Used by writeGfa1.
+    static void constructCigarString(
+        const MemoryAsContainer<uint8_t>& repeatCounts0,
+        const MemoryAsContainer<uint8_t>& repeatCounts1,
+        string&
+        );
 
 
 
