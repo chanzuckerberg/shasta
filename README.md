@@ -64,7 +64,7 @@ machine with sufficient memory and 32 cores.
 #### Acknowledgments
 
 The Shasta software uses various external software packages.
-See [https://chanzuckerberg.github.io/shasta/Acknowledgments.html](here) for more information.
+See [here](https://chanzuckerberg.github.io/shasta/Acknowledgments.html) for more information.
 
 
 
