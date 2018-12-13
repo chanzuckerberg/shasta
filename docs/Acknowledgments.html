@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+
+<body>
+
+<h2>Acknowledgments</h2>
+
+<p>
+The Shasta software uses the external software packages listed below.
+This list does not include standard components of the 
+<a href='https://www.ubuntu.com/'>Ubuntu</a> distribution 
+of the 
+<a href='https://www.linux.org/'>Linux</a> operating system.
+
+<p>
+Licensing information for each of these packages is contained in the Shasta 
+<a href='https://github.com/chanzuckerberg/shasta/blob/master/LICENSE'>LICENSE</a> file.
+
+
+
+<h3> MurmurHash2</h3>
+<p>
+<a href='https://github.com/aappleby/smhasher/blob/master/src/MurmurHash2.cpp'>MurmurHash2</a>
+ from GitHub repository
+<a href='https://github.com/aappleby/smhasher'>aappleby/smhasher</a>, by Austin Appleby,
+is a hash function with excellent performance and randomness properties.
+It is used as a hash function in the Shasta software. 
+
+
+
+<h3>Dset</h3>
+<p>
+File 
+<a href='https://github.com/chanzuckerberg/shasta/blob/master/src/dset64.hpp'>src/dset64.hpp</a>
+is a modified version of file 
+<a href='https://github.com/wjakob/dset/blob/master/dset.h'>dset.h</a>
+from GitHub repository
+<a href='https://github.com/wjakob/dset'>wjakob/dset</a> 
+by Wenzel Jakob. 
+
+It is a lock-free implementation in C++ the algorithm described in <i>Wait-free Parallel Algorithms for the Union-Find Problem</i>
+by Richard J. Anderson and Heather Woll, 
+<i>STOC '91 Proceedings of the twenty-third annual ACM symposium on Theory of computing</i>.
+
+<p>
+The code was modified to support the union-find algorithm for 64-bit data 
+using 128-bit primitives for atomic memory access.
+Kind assistance by Wenzel Jakob in making these changes is acknowledged.
+
+
+
+<h3> SeqAn</h3>
+<p>
+The <a href='https://github.com/seqan/seqan'>SeqAn</a> software 
+is used as an option for multiple sequence alignment
+of sequences encountered in edges of the Shasta marker graph.
+It is not directly included in the Shasta repository.
+Instead, it is downloaded from GitHub and installed on the user's machine
+when the user invokes
+<a href='https://github.com/chanzuckerberg/shasta/blob/master/scripts/InstallPrerequisites-Ubuntu.sh'>
+scripts/InstallPrerequisites-Ubuntu.sh</a>.
+It is 
+
+
+
+<h3> Spoa</h3>
+<p>
+The <a href='https://github.com/rvaser/spoa'>Spoa</a> software 
+is used as an option for multiple sequence alignment
+of sequences encountered in edges of the Shasta marker graph.
+It is not directly included in the Shasta repository.
+Instead, it is downloaded from GitHub, built, and installed on the user's machine
+when the user invokes
+<a href='https://github.com/chanzuckerberg/shasta/blob/master/scripts/InstallPrerequisites-Ubuntu.sh'>
+scripts/InstallPrerequisites-Ubuntu.sh</a>.
+
+
+
+</body>
+</html>
+
