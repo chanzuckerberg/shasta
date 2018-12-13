@@ -46,7 +46,7 @@ SOFTWARE.
 LICENSING NOTICE FOR GITHUB REPOSITORY aappleby/smhasher
 
 Files src/MurmurHash2.hpp and src/MurmurHash2.cpp are from GitHub
-repository aappleby/smhasher, with a minor name changes (".hpp" 
+repository aappleby/smhasher, with a minor name change (".hpp" 
 instead of "*.cpp" for the first file). 
 
 This repository does not contain a licensing notice.
