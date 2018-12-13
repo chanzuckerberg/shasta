@@ -304,6 +304,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("accessAssemblyGraphSequences",
              &Assembler::accessAssemblyGraphSequences)
+         .def("computeAssemblyStatistics",
+              &Assembler::computeAssemblyStatistics)
         .def("writeGfa1",
             &Assembler::writeGfa1,
             arg("fileName"))

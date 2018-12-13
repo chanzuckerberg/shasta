@@ -1175,6 +1175,7 @@ private:
 public:
     void assemble(size_t threadCount);
     void accessAssemblyGraphSequences();
+    void computeAssemblyStatistics();
 private:
     class AssembleData {
     public:
@@ -1202,6 +1203,8 @@ private:
         const MemoryAsContainer<uint8_t>& repeatCounts1,
         string&
         );
+
+public:
 
 
 

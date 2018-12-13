@@ -7,6 +7,7 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/pending/disjoint_sets.hpp>
 
 // Standard library.
 #include "chrono.hpp"
@@ -465,6 +466,147 @@ void Assembler::accessAssemblyGraphSequences()
         largeDataName("AssembledSequences"));
     assemblyGraph.repeatCounts.accessExistingReadOnly(
         largeDataName("AssembledRepeatCounts"));
+}
+
+
+
+void Assembler::computeAssemblyStatistics()
+{
+    using VertexId = AssemblyGraph::VertexId;
+    // using EdgeId = AssemblyGraph::EdgeId;
+
+    // Check that we have what we need.
+    CZI_ASSERT(assemblyGraph.vertices.isOpen());
+    const size_t vertexCount = assemblyGraph.vertices.size();
+    CZI_ASSERT(assemblyGraph.edges.isOpen);
+    const size_t edgeCount = assemblyGraph.edges.size();
+    CZI_ASSERT(assemblyGraph.repeatCounts.isOpen());
+
+    // Compute raw sequence length of each vertex.
+    vector<size_t> vertexRawSequenceLength(vertexCount);
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[vertexId];
+        size_t rawSequenceLength = 0;
+        for(uint8_t repeatCount: repeatCounts) {
+            rawSequenceLength += repeatCount;
+        }
+        vertexRawSequenceLength[vertexId] = rawSequenceLength;
+    }
+    const size_t totalRawSequenceLength = accumulate(
+        vertexRawSequenceLength.begin(), vertexRawSequenceLength.end(), 0);
+
+    cout << "Number of vertices in the assembly graph: " << vertexCount << endl;
+    cout << "Number of edges in the assembly graph: " << edgeCount << endl;
+    cout << "Edge/vertex ratio: " << double(edgeCount)/double(vertexCount) << endl;
+    cout << "Edge/vertex ratio is 5/4=1.25 for a long chain containing only diploid bubbles." << endl;
+    cout << "Total raw sequence length for all assembly graph vertices (both strands, and including overlap): " <<
+        totalRawSequenceLength << endl;
+
+
+
+    // Compute connected components of the assembly graph.
+    vector<VertexId> rank(vertexCount);
+    vector<VertexId> parent(vertexCount);
+    boost::disjoint_sets<VertexId*, VertexId*> disjointSets(&rank[0], &parent[0]);
+    cout << timestamp << "Computing connected components of the assembly graph." << endl;
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        disjointSets.make_set(vertexId);
+    }
+    for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
+        disjointSets.union_set(edge.source, edge.target);
+    }
+
+
+    // Gather the vertices of each component.
+    std::map<VertexId, vector<VertexId> > componentMap;
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        const VertexId componentId = disjointSets.find_set(vertexId);
+        componentMap[componentId].push_back(vertexId);
+    }
+
+
+
+    // Sort the components by decreasing size,
+    // where size = total raw sequence length.
+    // componentTable contains pairs(size, componentId as key in componentMap).
+    vector< pair<size_t, VertexId> > componentTable;
+    for(const auto& p: componentMap) {
+        const vector<VertexId>& component = p.second;
+
+        size_t componentRawSequenceLength = 0;
+        for(const VertexId vertexId: component) {
+            componentRawSequenceLength += vertexRawSequenceLength[vertexId];
+        }
+
+        componentTable.push_back(make_pair(componentRawSequenceLength, p.first));
+    }
+    sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, VertexId>>());
+
+
+
+    // Store components in this order of decreasing size.
+    vector< vector<VertexId> > components;
+    for(const auto& p: componentTable) {
+        components.push_back(componentMap[p.second]);
+    }
+    cout << timestamp << "Done computing connected components of the assembly graph." << endl;
+
+
+
+    // Compute statistics for each component.
+    ofstream csv("AssemblyGraphStatistics.csv");
+    csv << "Component,Vertices,RawSequenceLength,"
+        "AccumulatedRawSequenceLength,AccumulatedRawSequenceFraction\n";
+    size_t accumulatedRawSequenceLength = 0;
+    bool halfReached = false;
+    for(VertexId componentId=0; componentId<components.size(); componentId++) {
+        const vector<VertexId>& component = components[componentId];
+        const size_t componentRawSequenceLength = componentTable[componentId].first;
+        accumulatedRawSequenceLength += componentRawSequenceLength;
+        const double accumulatedRawSequenceFraction =
+            double(accumulatedRawSequenceLength)/double(totalRawSequenceLength);
+
+        // See if we reached the N50.
+        if(!halfReached) {
+            if(accumulatedRawSequenceFraction > 0.5) {
+                halfReached = true;
+                cout << "Approximate N50 based on connected components " <<
+                    componentRawSequenceLength << endl;
+            }
+        }
+
+        // Write out.
+        csv << componentId << ",";
+        csv << component.size() << ",";
+        csv << componentRawSequenceLength << ",";
+        csv << accumulatedRawSequenceLength << ",";
+        csv << accumulatedRawSequenceFraction << "\n";
+    }
+
+
+
+#if 0
+    // Create a boost graph in which each vertex
+    // stores the length of its sequence (in raw sequence representation),
+    // and each edge stores the overlap between the two sequences,
+    // (the lowest of the overlap on the two sides, if different).
+    using Vertex = uint32_t;
+    using Edge = uint32_t;
+    using boost::vecS;
+    using Graph = boost::adjacency_list<vecS, vecS, boost::bidirectionalS, Vertex, Edge>;
+    Graph graph(vertexCount);
+
+    // Store the length of the raw sequence of each vertex.
+    using VertexId = AssemblyGraph::VertexId;
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[vertexId];
+        size_t rawSequenceLength = 0;
+        for(uint8_t repeatCount: repeatCounts) {
+            rawSequenceLength += repeatCount;
+        }
+        graph[vertexId] = uint32_t(rawSequenceLength);
+    }
+#endif
 }
 
 
