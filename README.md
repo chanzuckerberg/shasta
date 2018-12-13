@@ -61,6 +61,13 @@ machine with sufficient memory and 32 cores.
 
 
 
+#### Acknowledgments
+
+The Shasta software uses various external software packages.
+See (https://github.com/chanzuckerberg/shasta/blob/master/LICENSE)[here] for more information.
+
+
+
 #### Contributions and comments
 
 Contributions of code, ideas, computational experiments, or documentation are welcome. 
@@ -80,34 +87,5 @@ For more detailed information,  see the complete documentation
 
 
 
-#### Acknowledgment for file src/dset64.hpp
 
-File `src/dset64.hpp` is a modified version of file `dset.h` from GitHub repository
-[wjakob/dset](https://github.com/wjakob/dset) by Wenzel Jakob. 
-
-See the LICENSE file for 
-licensing information specific to dset64.hpp.
-
-The code in `dset64.hpp` and `dset.h` implement the parallel 
-algorithm described in 
-*Wait-free Parallel Algorithms for the Union-Find Problem*
-by Richard J. Anderson and Heather Woll,
-STOC '91 Proceedings of the twenty-third annual ACM symposium on Theory of computing,
-Pages 370-380.
-It is used for efficient parallel
-computation of the global marker graph.
-
-See [this Wikipedia article](https://en.wikipedia.org/wiki/Disjoint-set_data_structure)
-for more information on the sequential version of the algorithm.
-
-The original implementation by Wenzel Jakob uses 64-bit
-atomic primitives, and implements the union-find 
-algorithm for 32-bit item ids, which allows up to 
-2<sup>32</sup> items. The modified version in src/dset64.hpp
-uses 128-bit primitives for 64-bit item ids,
-which brings the maximum number of items to 2<sup>64</sup>.
-
-Many thanks to Wenzel Jakob for making his implementation
-available as open source software, and for providing 
-helpful information during the conversion process to 64 bits.
 

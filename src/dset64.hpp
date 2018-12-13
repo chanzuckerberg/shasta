@@ -17,7 +17,7 @@
  * This file is a modified version of dset.h from GitHub repository
  * wjakob/dset by Wenzel Jacob.
  *
- * The original implementation by Wenzel Jacob uses 64-bit
+ * The original implementation by Wenzel Jakob uses 64-bit
  * atomic primitives, and implements the union-find
  * algorithm for 32-bit item ids, which allows up to
  * 2^32^ items. This modified version

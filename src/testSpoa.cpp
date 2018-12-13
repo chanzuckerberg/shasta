@@ -30,10 +30,11 @@ void ChanZuckerberg::shasta::testSpoa()
         graph->add_alignment(alignment, it);
     }
 
+    /*
     std::string consensus = graph->generate_consensus();
-
     fprintf(stderr, "Consensus (%zu)\n", consensus.size());
     fprintf(stderr, "%s\n", consensus.c_str());
+    */
 
     std::vector<std::string> msa;
     graph->generate_multiple_sequence_alignment(msa);

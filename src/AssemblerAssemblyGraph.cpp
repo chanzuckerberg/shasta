@@ -857,7 +857,7 @@ void Assembler::assembleAssemblyGraphVertex(
     vector< vector<Base> > edgeSequences(edgeCount);
     vector< vector<uint32_t> > edgeRepeatCounts(edgeCount);
     for(size_t i=0; i<edgeCount; i++) {
-        computeMarkerGraphEdgeConsensusSequence(
+        computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
     }
 

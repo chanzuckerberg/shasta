@@ -1127,7 +1127,12 @@ private:
     // Compute consensus sequence for an edge of the marker graph.
     // This includes the k bases corresponding to the flanking markers,
     // but computed only using reads on this edge.
-    void computeMarkerGraphEdgeConsensusSequence(
+    void computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
+        GlobalMarkerGraphEdgeId,
+        vector<Base>& sequence,
+        vector<uint32_t>& repeatCounts
+        );
+    void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         GlobalMarkerGraphEdgeId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts

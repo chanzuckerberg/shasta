@@ -11,6 +11,9 @@ using namespace shasta;
 #include <seqan/graph_msa.h>
 #include <seqan/version.h>
 
+// Spoa.
+#include "spoa/spoa.hpp"
+
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
 
@@ -2725,7 +2728,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 // Compute consensus sequence for an edge of the marker graph.
 // This includes the k bases corresponding to the flanking markers,
 // but computed only using reads on this edge.
-void Assembler::computeMarkerGraphEdgeConsensusSequence(
+void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
     GlobalMarkerGraphEdgeId edgeId,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts
@@ -2809,6 +2812,107 @@ void Assembler::computeMarkerGraphEdgeConsensusSequence(
                 ++positions[i];
                 coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), repeatCount);
                 // cout << base << int(repeatCount) << endl;
+            }
+        }
+
+        // Compute the consensus at this position.
+        const Consensus consensus = (*consensusCaller)(coverage);
+
+        // If not a gap, store the base and repeat count.
+        if(!consensus.base.isGap()) {
+            sequence.push_back(Base(consensus.base));
+            repeatCounts.push_back(uint32_t(consensus.repeatCount));
+        }
+    }
+}
+
+
+
+// Compute consensus sequence for an edge of the marker graph.
+// This includes the k bases corresponding to the flanking markers,
+// but computed only using reads on this edge.
+void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
+    GlobalMarkerGraphEdgeId edgeId,
+    vector<Base>& sequence,
+    vector<uint32_t>& repeatCounts
+    )
+{
+
+    // Access the markerIntervals for this edge.
+    // Each corresponds to an oriented read on this edge.
+    const MemoryAsContainer<MarkerInterval> markerIntervals =
+        markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+    const size_t markerCount = markerIntervals.size();
+
+    // Initialize a spoa alignment.
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kSW;
+    const int8_t match = 1;
+    const int8_t mismatch = -1;
+    const int8_t gap = -1;
+    auto alignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
+    auto alignmentGraph = spoa::createGraph();
+
+
+    // Add all the sequences to the alignment,
+    // including the flanking markers.
+    vector<uint32_t> positions(markerCount);
+    string sequenceString;
+    vector<string> msa;
+    for(size_t i=0; i!=markerCount; i++) {
+        const MarkerInterval& markerInterval = markerIntervals[i];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers.
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+        // Get the position range, including the flanking markers.
+        const uint32_t positionBegin = marker0.position;
+        const uint32_t positionEnd = marker1.position + uint32_t(assemblerInfo->k);
+        positions[i] = positionBegin;
+
+        // Get the sequence.
+        sequenceString.clear();
+        for(uint32_t position=positionBegin; position!=positionEnd; position++) {
+            sequenceString.push_back(getOrientedReadBase(orientedReadId, position).character());
+        }
+
+        // Add it to the alignment.
+        auto alignment = alignmentEngine->align_sequence_with_graph(sequenceString, alignmentGraph);
+        alignmentGraph->add_alignment(alignment, sequenceString);
+    }
+
+    // Use seqan to compute the multiple sequence alignment.
+    msa.clear();
+    alignmentGraph->generate_multiple_sequence_alignment(msa);
+
+    // The length of the alignment.
+    // This includes gaps.
+    const size_t alignmentLength = msa.front().size();
+
+
+
+    // Loop over all positions in the alignment.
+    // At each position compute a consensus base and repeat count.
+    // If the consensus base is not "-", store the base and repeat count.
+    sequence.clear();
+    repeatCounts.clear();
+    for(size_t position=0; position<alignmentLength; position++) {
+
+        // Create and fill in a Coverage object for this position.
+        Coverage coverage;
+        for(size_t i=0; i!=markerCount; i++) {
+            const MarkerInterval& markerInterval = markerIntervals[i];
+            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+            if(msa[i][position] == '-') {
+                coverage.addRead(AlignedBase::gap(), orientedReadId.getStrand(), 0);
+            } else {
+                Base base;
+                uint8_t repeatCount;
+                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, positions[i]);
+                ++positions[i];
+                coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), repeatCount);
             }
         }
 
