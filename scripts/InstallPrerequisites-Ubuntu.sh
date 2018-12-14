@@ -40,7 +40,7 @@ cd build
 cmake ../spoa-v1.1.3 -DBUILD_SHARED_LIBS=ON
 make -j all
 make install
-cd ..
+cd 
 rm -rf $tmpDirectoryName
 
 # Make sure the newly created library is immediately visible to the loader.
