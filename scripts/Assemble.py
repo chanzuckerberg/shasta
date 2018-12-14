@@ -9,7 +9,7 @@ a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphConnectivity()
 a.accessAssemblyGraphVertices()
-a.setupConsensusCaller('SimpleConsensusCaller')
+a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 a.assemble()
 
 

@@ -99,8 +99,15 @@ a.pruneMarkerGraphStrongSubgraph(
     iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
 
 # Create vertices and edges of the assembly graph.
-# Skip this for now, until flagMarkerGraphWeakEdges is done.
 a.createAssemblyGraphVertices()
 a.createAssemblyGraphEdges()
+
+# Use the assembly graph for global assembly.
+a.setupConsensusCaller(config['Assembly']['consensusCaller'])
+a.assemble()
+a.computeAssemblyStatistics()
+a.writeGfa1('Assembly.gfa')
+
+
 
 
