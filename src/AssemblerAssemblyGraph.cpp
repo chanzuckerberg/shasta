@@ -11,9 +11,10 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include "iterator.hpp"
+#include <numeric>
 #include <queue>
 #include <unordered_map>
-#include "iterator.hpp"
 
 
 
@@ -492,7 +493,7 @@ void Assembler::computeAssemblyStatistics()
         }
         vertexRawSequenceLength[vertexId] = rawSequenceLength;
     }
-    const size_t totalRawSequenceLength = accumulate(
+    const size_t totalRawSequenceLength = std::accumulate(
         vertexRawSequenceLength.begin(), vertexRawSequenceLength.end(), 0);
 
     cout << "Number of vertices in the assembly graph: " << vertexCount << endl;
