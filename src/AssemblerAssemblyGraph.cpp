@@ -557,7 +557,8 @@ void Assembler::computeAssemblyStatistics()
     // Compute statistics for each component.
     ofstream csv("AssemblyGraphStatistics.csv");
     csv << "Component,Vertices,RawSequenceLength,"
-        "AccumulatedRawSequenceLength,AccumulatedRawSequenceFraction\n";
+        "AccumulatedRawSequenceLength,AccumulatedRawSequenceFraction,"
+        "RepresentingVertex\n";
     size_t accumulatedRawSequenceLength = 0;
     bool halfReached = false;
     for(VertexId componentId=0; componentId<components.size(); componentId++) {
@@ -581,7 +582,8 @@ void Assembler::computeAssemblyStatistics()
         csv << component.size() << ",";
         csv << componentRawSequenceLength << ",";
         csv << accumulatedRawSequenceLength << ",";
-        csv << accumulatedRawSequenceFraction << "\n";
+        csv << accumulatedRawSequenceFraction << ",";
+        csv << component.front() << "\n";
     }
 
 
