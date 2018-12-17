@@ -761,3 +761,125 @@ void Assembler::accessChimericReadsFlags()
     isChimericRead.accessExistingReadOnly(
         largeDataName("IsChimericRead"));
 }
+
+
+
+// Compute connected components of the read graph.
+// This treats chimeric reads as isolated.
+void Assembler::computeReadGraphConnectedComponents()
+{
+    // Check that we have what we need.
+    checkReadGraphIsOpen();
+    const size_t readCount = reads.size();
+    CZI_ASSERT(readGraphConnectivity.size() == readCount);
+    checkAlignmentDataAreOpen();
+
+    // Compute the raw sequence length of each vertex (read).
+    cout << timestamp << "Computing the raw read length of each read." << endl;
+    vector<size_t> vertexRawSequenceLength(readCount, 0);
+    for(ReadId readId=0; readId<readCount; readId++) {
+        const MemoryAsContainer<uint8_t> repeatCounts = readRepeatCounts[readId];
+        size_t rawSequenceLength = 0;
+        for(uint8_t repeatCount: repeatCounts) {
+            rawSequenceLength += repeatCount;
+        }
+        vertexRawSequenceLength[readId] = rawSequenceLength;
+    }
+    const size_t totalRawSequenceLength = std::accumulate(
+        vertexRawSequenceLength.begin(), vertexRawSequenceLength.end(), 0ULL);
+    cout << "Found " << readCount;
+    cout << " reads for a total " << totalRawSequenceLength << " bases." << endl;
+
+
+
+    // Compute connected components of the read graph,
+    // threating chimeric reads as isolated.
+    vector<ReadId> rank(readCount);
+    vector<ReadId> parent(readCount);
+    boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
+    cout << timestamp << "Computing connected components of the read graph." << endl;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        disjointSets.make_set(readId);
+    }
+    for(const ReadGraphEdge& edge: readGraphEdges) {
+        const AlignmentData& alignment = alignmentData[edge.alignmentId];
+        const ReadId readId0 = alignment.readIds[0];
+        const ReadId readId1 = alignment.readIds[1];
+        if(isChimericRead[readId0]) {
+            continue;
+        }
+        if(isChimericRead[readId1]) {
+            continue;
+        }
+        disjointSets.union_set(readId0, readId1);
+    }
+
+
+
+    // Gather the vertices of each component.
+    std::map<ReadId, vector<ReadId> > componentMap;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        const ReadId componentId = disjointSets.find_set(readId);
+        componentMap[componentId].push_back(readId);
+    }
+    cout << "The read graph has " << componentMap.size() <<
+        " connected components." << endl;
+
+
+
+    // Sort the components by decreasing size,
+    // where size = total raw sequence length.
+    // componentTable contains pairs(size, componentId as key in componentMap).
+    vector< pair<size_t, ReadId> > componentTable;
+    for(const auto& p: componentMap) {
+        const vector<ReadId>& component = p.second;
+
+        size_t componentRawSequenceLength = 0;
+        for(const ReadId readId: component) {
+            componentRawSequenceLength += vertexRawSequenceLength[readId];
+        }
+
+        componentTable.push_back(make_pair(componentRawSequenceLength, p.first));
+    }
+    sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, ReadId>>());
+
+
+
+    // Store components in this order of decreasing size.
+    vector< vector<ReadId> > components;
+    for(const auto& p: componentTable) {
+        components.push_back(componentMap[p.second]);
+    }
+    cout << timestamp << "Done computing connected components of the read graph." << endl;
+
+
+
+    // Write information for each component.
+    ofstream csv("ReadGraphComponents.csv");
+    csv << "Component,RepresentingRead,ReadCount,RawSequenceLength,"
+        "AccumulatedReadCount,AccumulatedRawSequenceLength,"
+        "AccumulatedReadCountFraction,AccumulatedRawSequenceLengthFraction\n";
+    size_t accumulatedReadCount = 0;
+    size_t accumulatedRawSequenceLength = 0;
+    for(ReadId componentId=0; componentId<components.size(); componentId++) {
+        const vector<ReadId>& component = components[componentId];
+        accumulatedReadCount += component.size();
+        const size_t componentRawSequenceLength = componentTable[componentId].first;
+        accumulatedRawSequenceLength += componentRawSequenceLength;
+        const double accumulatedReadCountFraction =
+            double(accumulatedReadCount)/double(readCount);
+        const double accumulatedRawSequenceFraction =
+            double(accumulatedRawSequenceLength)/double(totalRawSequenceLength);
+
+
+        // Write out.
+        csv << componentId << ",";
+        csv << component.front() << ",";
+        csv << component.size() << ",";
+        csv << componentRawSequenceLength << ",";
+        csv << accumulatedReadCount << ",";
+        csv << accumulatedRawSequenceLength << ",";
+        csv << accumulatedReadCountFraction << ",";
+        csv << accumulatedRawSequenceFraction << "\n";
+    }
+}

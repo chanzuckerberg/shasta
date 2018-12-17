@@ -208,6 +208,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("accessChimericReadsFlags",
             &Assembler::accessChimericReadsFlags)
+        .def("computeReadGraphConnectedComponents",
+            &Assembler::computeReadGraphConnectedComponents)
 
 
 

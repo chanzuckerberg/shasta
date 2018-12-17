@@ -842,7 +842,15 @@ private:
 
 
 
+    // Compute connected components of the read graph.
+    // This treats chimeric reads as isolated.
+public:
+    void computeReadGraphConnectedComponents();
+
+
+
     // Private functions and data used by createMarkerGraphVertices.
+private:
     void createMarkerGraphVerticesThreadFunction1(size_t threadId);
     void createMarkerGraphVerticesThreadFunction2(size_t threadId);
     void createMarkerGraphVerticesThreadFunction3(size_t threadId);
