@@ -123,7 +123,7 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
         "&strand=0\"" <<
         " width=" << sqrt(1.e-5 * vertex.markerCount);
     if(vertex.distance == 0) {
-        s << " color=lightGreen fillcolor=lightGreen";
+        s << " color=LightGreen fillcolor=LightGreen";
     } else if(vertex.distance == maxDistance) {
             s << " color=cyan fillcolor=cyan";
     } else if(vertex.isChimeric) {

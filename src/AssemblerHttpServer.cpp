@@ -1836,6 +1836,9 @@ void Assembler::exploreReadGraph(
     uint32_t sizePixels = 1200;
     getParameterValue(request, "sizePixels", sizePixels);
 
+    string format = "png";
+    getParameterValue(request, "format", format);
+
     double timeout= 30;
     getParameterValue(request, "timeout", timeout);
 
@@ -1879,6 +1882,16 @@ void Assembler::exploreReadGraph(
         "<td><input type=text required name=sizePixels size=8 style='text-align:center'" <<
         " value='" << sizePixels <<
         "'>"
+
+        "<tr>"
+        "<td>Graphics format"
+        "<td class=centered>"
+        "svg <input type=radio required name=format value='svg'" <<
+        (format == "svg" ? " checked=on" : "") <<
+        ">"
+        "<td class=centered>png <input type=radio required name=format value='png'" <<
+        (format == "png" ? " checked=on" : "") <<
+        ">"
 
         "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
         "<td>Timeout (seconds) for graph creation and layout"
@@ -2024,66 +2037,141 @@ void Assembler::exploreReadGraph(
     const string dotFileName = "/dev/shm/" + uuid + ".dot";
     graph.write(dotFileName, maxDistance);
 
-    // Compute layout in svg format.
-    const string command =
-        "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-        " sfdp -O -T svg " + dotFileName +
-        " -Gsize=" + to_string(sizePixels/72.);
-    const int commandStatus = ::system(command.c_str());
-    if(WIFEXITED(commandStatus)) {
-        const int exitStatus = WEXITSTATUS(commandStatus);
-        if(exitStatus == 124) {
-            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            filesystem::remove(dotFileName);
-            return;
-        }
-        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-            filesystem::remove(dotFileName);
-            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
-        }
-    } else if(WIFSIGNALED(commandStatus)) {
-        const int signalNumber = WTERMSIG(commandStatus);
-        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
-    } else {
-        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
 
+
+    // Display the graph in svg format.
+    if(format == "svg") {
+        const string command =
+            "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+            " sfdp -O -T svg " + dotFileName +
+            " -Gsize=" + to_string(sizePixels/72.);
+        const int commandStatus = ::system(command.c_str());
+        if(WIFEXITED(commandStatus)) {
+            const int exitStatus = WEXITSTATUS(commandStatus);
+            if(exitStatus == 124) {
+                html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+                filesystem::remove(dotFileName);
+                return;
+            }
+            else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+                filesystem::remove(dotFileName);
+                throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+            }
+        } else if(WIFSIGNALED(commandStatus)) {
+            const int signalNumber = WTERMSIG(commandStatus);
+            throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+        } else {
+            throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+
+        }
+        // Remove the .dot file.
+        filesystem::remove(dotFileName);
+
+
+
+        // Write a title and display the graph.
+        html <<
+            "<h1 style='line-height:10px'>Read graph near read " << readId << "</h1>"
+            "Color legend: "
+            "<span style='background-color:LightGreen'>start vertex</span> "
+            "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
+            ") from the start vertex</span> "
+            "<span style='background-color:red'>chimeric vertices</span>.<br>";
+
+
+        // Display the graph.
+        const string svgFileName = dotFileName + ".svg";
+        ifstream svgFile(svgFileName);
+        html << svgFile.rdbuf();
+        svgFile.close();
+
+
+
+        // Add to each vertex a cursor that shows you can click on it.
+        html <<
+            "<script>"
+            "var vertices = document.getElementsByClassName('node');"
+            "for (var i=0;i<vertices.length; i++) {"
+            "    vertices[i].style.cursor = 'pointer';"
+            "}"
+            "</script>";
+
+
+
+        // Remove the .svg file.
+        filesystem::remove(svgFileName);
     }
-    // Remove the .dot file.
-    filesystem::remove(dotFileName);
 
 
 
-    // Write a title and display the graph.
-    html <<
-        "<h1 style='line-height:10px'>Read graph near read " << readId << "</h1>"
-        "Color legend: "
-        "<span style='background-color:LightGreen'>start vertex</span> "
-        "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
-        ") from the start vertex</span> "
-        "<span style='background-color:red'>chimeric vertices</span>.<br>";
+    // Display the graph in png format.
+    else if(format == "png") {
+
+        // Run graphviz to create the png file and the cmapx file.
+        // The cmapx file is used to create links on the image.
+        // See here for more information:
+        // https://www.graphviz.org/doc/info/output.html#d:imap
+        const string command =
+            "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+            " sfdp -O -T png -T cmapx " + dotFileName +
+            " -Gsize=" + to_string(sizePixels/72.);
+        const int commandStatus = ::system(command.c_str());
+        if(WIFEXITED(commandStatus)) {
+            const int exitStatus = WEXITSTATUS(commandStatus);
+            if(exitStatus == 124) {
+                html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+                filesystem::remove(dotFileName);
+                return;
+            }
+            else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+                filesystem::remove(dotFileName);
+                throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+            }
+        } else if(WIFSIGNALED(commandStatus)) {
+            const int signalNumber = WTERMSIG(commandStatus);
+            filesystem::remove(dotFileName);
+            throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+        } else {
+            filesystem::remove(dotFileName);
+            throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+
+        }
+        // Remove the .dot file.
+        filesystem::remove(dotFileName);
+
+        // Get the names of the files we created.
+        const string pngFileName = dotFileName + ".png";
+        const string cmapxFileName = dotFileName + ".cmapx";
+
+        // Create a base64 version of the png file.
+        const string base64FileName = pngFileName + ".base64";
+        const string base64Command = "base64 " + pngFileName + " > " +
+            base64FileName;
+        ::system(base64Command.c_str());
 
 
-    // Display the graph.
-    const string svgFileName = dotFileName + ".svg";
-    ifstream svgFile(svgFileName);
-    html << svgFile.rdbuf();
-    svgFile.close();
+        // Write out the png image.
+        html << "<p><img usemap='#G' src=\"data:image/png;base64,";
+        ifstream png(base64FileName);
+        html << png.rdbuf();
+        html << "\"/>";
+        ifstream cmapx(cmapxFileName);
+        html << cmapx.rdbuf();
+
+        // Remove the files we created.
+        filesystem::remove(pngFileName);
+        filesystem::remove(cmapxFileName);
+        filesystem::remove(base64FileName);
+    }
 
 
 
-    // Add to each vertex a cursor that shows you can click on it.
-    html <<
-        "<script>"
-        "var vertices = document.getElementsByClassName('node');"
-        "for (var i=0;i<vertices.length; i++) {"
-        "    vertices[i].style.cursor = 'pointer';"
-        "}"
-        "</script>";
-
-
-
-    // Remove the .svg file.
-    filesystem::remove(svgFileName);
+    // If got here, the format string is not one of the ones
+    // we support.
+    else {
+        html << "Invalid format " << format << " specified";
+        filesystem::remove(dotFileName);
+    }
 }
 
 
