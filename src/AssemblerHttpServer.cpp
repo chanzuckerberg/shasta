@@ -36,6 +36,7 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(blastRead);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignments);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
+    CZI_ADD_TO_FUNCTION_TABLE(computeAllAlignments);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
@@ -196,10 +197,11 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Reads", {
         {"Reads", "exploreRead"},
-        {"Alignments", "exploreAlignments"},
-        {"Align two reads", "exploreAlignment"},
         });
-    writeNavigation(html, "Alignment graph", {
+    writeNavigation(html, "Alignments", {
+        {"Stored alignments", "exploreAlignments"},
+        {"Align two reads", "exploreAlignment"},
+        {"Align one read with all", "computeAllAlignments"},
         {"Alignment graph", "exploreAlignmentGraph"},
         });
     writeNavigation(html, "Read graph", {
@@ -1301,6 +1303,8 @@ void Assembler::exploreAlignments(
         << " (" << markers[orientedReadId0.getValue()].size() << " markers)"
         "</h1>";
 
+
+#if 0
     // Begin the table.
     html <<
         "<table><tr>"
@@ -1317,12 +1321,16 @@ void Assembler::exploreAlignments(
             "<th title='Total number of markers on the oriented read'>Total"
             "<th title='Fraction of aligned markers in the alignment range'>Aligned<br>fraction";
     }
-
+#endif
 
 
     // Loop over the alignments that this oriented read is involved in, with the proper orientation.
     const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
         findOrientedAlignments(orientedReadId0);
+    html << "<p>Found " << alignments.size() << " alignments.";
+    displayAlignments(orientedReadId0, alignments, html);
+
+#if 0
     vector<uint32_t> coverage;
     computeAlignmentCoverage(orientedReadId0, alignments, coverage);
     const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
@@ -1359,7 +1367,78 @@ void Assembler::exploreAlignments(
             double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second);
     }
     html << "</table>";
+#endif
+}
 
+
+
+// Display alignments in an html table.
+void Assembler::displayAlignments(
+    OrientedReadId orientedReadId0,
+    const vector< pair<OrientedReadId, AlignmentInfo> >& alignments,
+    ostream& html)
+{
+    const ReadId readId0 = orientedReadId0.getReadId();
+    const Strand strand0 = orientedReadId0.getStrand();
+
+    // Begin the table.
+    html <<
+        "<table><tr>"
+        "<th rowspan=2>Index"
+        "<th rowspan=2>Other<br>oriented<br>read"
+        "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
+        "<th colspan=5>Markers on oriented read " << orientedReadId0 <<
+        "<th colspan=5>Markers on other oriented read"
+        "<tr>";
+    for(int i=0; i<2; i++) {
+        html <<
+            "<th title='Number of aligned markers on the left of the alignment'>Left<br>unaligned"
+            "<th title='Number of markers in the aligned range'>Alignment<br>range"
+            "<th title='Number of aligned markers on the right of the alignment'>Right<br>unaligned"
+            "<th title='Total number of markers on the oriented read'>Total"
+            "<th title='Fraction of aligned markers in the alignment range'>Aligned<br>fraction";
+    }
+
+
+
+    // Loop over the alignments.
+    const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+    for(size_t i=0; i<alignments.size(); i++) {
+        const auto& p = alignments[i];
+
+        // Access information for this alignment.
+        const OrientedReadId orientedReadId1 = p.first;
+        const AlignmentInfo& alignmentInfo = p.second;
+        const ReadId readId1 = orientedReadId1.getReadId();
+        const ReadId strand1 = orientedReadId1.getStrand();
+        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+
+        // Write a row in the table for this alignment.
+        html <<
+            "<tr>"
+            "<td class=centered>" << i <<
+            "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 <<
+            "' title='Click to see this read'>" << orientedReadId1 << "</a>"
+            "<td class=centered>"
+            "<a href='exploreAlignment"
+            "?readId0=" << readId0 << "&strand0=" << strand0 <<
+            "&readId1=" << readId1 << "&strand1=" << strand1 <<
+            "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
+            "<td class=centered>" << alignmentInfo.firstOrdinals.first <<
+            "<td class=centered>" << alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first <<
+            "<td class=centered>" << markerCount0 -1 - alignmentInfo.lastOrdinals.first <<
+            "<td class=centered>" << markerCount0 <<
+            "<td class=centered>" << std::setprecision(2) <<
+            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first) <<
+            "<td class=centered>" << alignmentInfo.firstOrdinals.second <<
+            "<td class=centered>" << alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second <<
+            "<td class=centered>" << markerCount1 -1 - alignmentInfo.lastOrdinals.second <<
+            "<td class=centered>" << markerCount1 <<
+            "<td class=centered>" << std::setprecision(2) <<
+            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second);
+    }
+
+    html << "</table>";
 }
 
 
@@ -1600,6 +1679,136 @@ void Assembler::exploreAlignment(
     }
 
     html << "</table>";
+}
+
+
+
+// Compute alignments on an oriented read against
+// all other oriented reads.
+void Assembler::computeAllAlignments(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the read id and strand from the request.
+    ReadId readId0 = 0;
+    const bool readId0IsPresent = getParameterValue(request, "readId0", readId0);
+    Strand strand0 = 0;
+    const bool strand0IsPresent = getParameterValue(request, "strand0", strand0);
+
+    // Get alignment parameters.
+    size_t minMarkerCount = 3000;
+    getParameterValue(request, "minMarkerCount", minMarkerCount);
+    size_t maxSkip = 30;
+    getParameterValue(request, "maxSkip", maxSkip);
+    size_t maxVertexCountPerKmer = 100;
+    getParameterValue(request, "maxVertexCountPerKmer", maxVertexCountPerKmer);
+    size_t minAlignedMarkerCount = 100;
+    getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
+    size_t maxTrim = 30;
+    getParameterValue(request, "maxTrim", maxTrim);
+
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Compute marker alignments'> of oriented read"
+        " <input type=text name=readId0 required size=8 " <<
+        (readId0IsPresent ? "value="+to_string(readId0) : "") <<
+        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html <<
+        " against all other oriented reads with at least"
+        "<input type=text name=minMarkerCount size=8 value=" << minMarkerCount <<
+        "> markers.<br>Maximum ordinal skip allowed: " <<
+        "<input type=text name=maxSkip required size=8 value=" << maxSkip << ">"
+        "<br>Maximum number of alignment graph vertices per k-mer: " <<
+        "<input type=text name=maxVertexCountPerKmer required size=8 value=" <<
+        maxVertexCountPerKmer << ">"
+        "<br>Minimum number of aligned markers"
+        "<input type=text name=minAlignedMarkerCount required size=8 value=" <<
+        minAlignedMarkerCount << ">"
+        "<br>Maximum number of trimmed markers"
+        "<input type=text name=maxTrim required size=8 value=" <<
+        maxTrim << ">"
+        "</form>";
+
+
+
+    // If the readId or strand are missing, stop here.
+    if(!readId0IsPresent || !strand0IsPresent) {
+        return;
+    }
+    const OrientedReadId orientedReadId0(readId0, strand0);
+
+    // Vectors to contain markers sorted by kmerId.
+    vector<MarkerWithOrdinal> markers0SortedByKmerId;
+    vector<MarkerWithOrdinal> markers1SortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
+
+    // Reusable data structures for alignOrientedReads.
+    AlignmentGraph graph;
+    Alignment alignment;
+
+    // Vector to store the good alignments we find.
+    vector< pair<OrientedReadId, AlignmentInfo> > alignments;
+
+    // Loop over oriented reads.
+    // Eventually this should be multithreaded if we want to use
+    // it for large assemblies.
+    size_t computedAlignmentCount = 0;
+    for(ReadId readId1=0; readId1<reads.size(); readId1++) {
+        for(Strand strand1=0; strand1<2; strand1++) {
+
+            // Skip alignments with self in the same orientation.
+            // Allow alignment with self reverse complemented.
+            if(readId0==readId1 && strand0==strand1) {
+                continue;
+            }
+
+            // If this read has less than the required number of markers, skip.
+            const OrientedReadId orientedReadId1(readId1, strand1);
+            if(markers[orientedReadId1.getValue()].size() < minMarkerCount) {
+                continue;
+            }
+
+            // Get markers sorted by kmer id.
+            getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
+
+            // Compute the alignment.
+            ++computedAlignmentCount;
+            const bool debug = false;
+            alignOrientedReads(
+                markers0SortedByKmerId,
+                markers1SortedByKmerId,
+                maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+
+            // If the alignment has too few markers skip it.
+            if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                continue;
+            }
+
+            // Compute the AlignmentInfo.
+            AlignmentInfo alignmentInfo;
+            alignmentInfo.create(alignment);
+
+            // If the alignment has too much trim, skip it.
+            uint32_t leftTrim;
+            uint32_t rightTrim;
+            tie(leftTrim, rightTrim) = computeTrim(
+                orientedReadId0,
+                orientedReadId1,
+                alignmentInfo);
+            if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                continue;
+            }
+            alignments.push_back(make_pair(orientedReadId1, alignmentInfo));
+        }
+    }
+    html << "<p>Computed " << computedAlignmentCount << " alignments.";
+    html << "<p>Found " << alignments.size() <<
+        " alignments satisfying the given criteria.";
+    displayAlignments(orientedReadId0, alignments, html);
 }
 
 

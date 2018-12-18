@@ -1237,6 +1237,7 @@ public:
     void blastRead(const vector<string>&, ostream&);
     void exploreAlignments(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
+    void computeAllAlignments(const vector<string>&, ostream&);
     void exploreAlignmentGraph(const vector<string>&, ostream&);
     void exploreReadGraph(const vector<string>&, ostream&);
     class HttpServerData {
@@ -1252,6 +1253,11 @@ public:
     };
     HttpServerData httpServerData;
 
+    // Display alignments in an html table.
+    void displayAlignments(
+        OrientedReadId,
+        const vector< pair<OrientedReadId, AlignmentInfo> >&,
+        ostream&);
 
 
     // Functions and data used by the http server

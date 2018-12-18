@@ -800,8 +800,35 @@ void Assembler::computeAlignmentTable()
         alignmentTable.store(orientedReadId1.getValue(), i);
     }
     alignmentTable.endPass2();
-    for(uint32_t i=0; i<alignmentTable.size(); i++) {
-        sort(alignmentTable.begin(i), alignmentTable.end(i));
+
+
+
+    // Sort each section of the alignment table by OrientedReadId.
+    vector< pair<OrientedReadId, uint32_t> > v;
+    for(ReadId readId0=0; readId0<reads.size(); readId0++) {
+        for(Strand strand0=0; strand0<2; strand0++) {
+            const OrientedReadId orientedReadId0(readId0, strand0);
+
+            // Access the section of the alignment table for this oriented read.
+            const MemoryAsContainer<uint32_t> alignmentTableSection =
+                alignmentTable[orientedReadId0.getValue()];
+
+            // Store pairs(OrientedReadId, alignmentIndex).
+            v.clear();
+            for(uint32_t alignmentIndex: alignmentTableSection) {
+                const AlignmentData& alignment = alignmentData[alignmentIndex];
+                const OrientedReadId orientedReadId1 = alignment.getOther(orientedReadId0);
+                v.push_back(make_pair(orientedReadId1, alignmentIndex));
+            }
+
+            // Sort.
+            sort(v.begin(), v.end());
+
+            // Store the sorted alignmentIndex.
+            for(size_t i=0; i<v.size(); i++) {
+                alignmentTableSection[i] = v[i].second;
+            }
+        }
     }
 
 
