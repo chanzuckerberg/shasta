@@ -1380,15 +1380,49 @@ void Assembler::displayAlignments(
 {
     const ReadId readId0 = orientedReadId0.getReadId();
     const Strand strand0 = orientedReadId0.getStrand();
+    const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
+
+
+    // Compute the maximum number of markers that orientedReadId1
+    // hangs out of orientedReadId0 on the left and right.
+    uint32_t maxLeftHang = 0;
+    uint32_t maxRightHang = 0;
+    for(size_t i=0; i<alignments.size(); i++) {
+        const auto& p = alignments[i];
+
+        // Access information for this alignment.
+        const OrientedReadId orientedReadId1 = p.first;
+        const AlignmentInfo& alignmentInfo = p.second;
+        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+
+        const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
+        const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
+        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
+        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
+
+        // Update the maximum left hang.
+        if(leftTrim1 > leftTrim0) {
+            maxLeftHang = max(maxLeftHang, leftTrim1 - leftTrim0);
+        }
+
+        // Update the maximum left hang.
+        if(rightTrim1 > rightTrim0) {
+            maxRightHang = max(maxRightHang, rightTrim1 - rightTrim0);
+        }
+    }
+
 
     // Begin the table.
+    const int bitShift = 4; // Controls the scaling of the alignment sketch.
     html <<
-        "<table><tr>"
+        "<table>"
+        "<tr>"
         "<th rowspan=2>Index"
         "<th rowspan=2>Other<br>oriented<br>read"
         "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
         "<th colspan=5>Markers on oriented read " << orientedReadId0 <<
         "<th colspan=5>Markers on other oriented read"
+        "<th rowspan=2>Alignment sketch"
         "<tr>";
     for(int i=0; i<2; i++) {
         html <<
@@ -1402,7 +1436,6 @@ void Assembler::displayAlignments(
 
 
     // Loop over the alignments.
-    const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
     for(size_t i=0; i<alignments.size(); i++) {
         const auto& p = alignments[i];
 
@@ -1412,6 +1445,11 @@ void Assembler::displayAlignments(
         const ReadId readId1 = orientedReadId1.getReadId();
         const ReadId strand1 = orientedReadId1.getStrand();
         const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
+
+        const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
+        const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
+        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
+        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
 
         // Write a row in the table for this alignment.
         html <<
@@ -1436,6 +1474,51 @@ void Assembler::displayAlignments(
             "<td class=centered>" << markerCount1 <<
             "<td class=centered>" << std::setprecision(2) <<
             double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second);
+
+
+
+        // Write the alignment sketch.
+        html <<
+            "<td class=centered style='line-height:8px'>"
+
+            // Oriented read 0.
+            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << (maxLeftHang>>bitShift) <<
+            "px;'></div>"
+            "<div title='Oriented read " << orientedReadId0 <<
+            "' style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:blue;height:6px;width:" << (markerCount0>>bitShift) <<
+            "px;'></div>"
+            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << (maxRightHang>>bitShift) <<
+            "px;'></div>"
+
+            // Aligned portion.
+            "<br>"
+            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0)>>bitShift) <<
+            "px;'></div>"
+            "<div title='Aligned portion'"
+            " style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:red;height:6px;width:" << ((markerCount0-leftTrim0-rightTrim0)>>bitShift) <<
+            "px;'></div>"
+            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0)>>bitShift) <<
+            "px;'></div>"
+
+            // Oriented read 1.
+            "<br>"
+            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0-leftTrim1)>>bitShift) <<
+            "px;'></div>"
+            "<div title='Oriented read " << orientedReadId1 <<
+            "' style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:green;height:6px;width:" << (markerCount1>>bitShift) <<
+            "px;'></div>"
+            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0-rightTrim1)>>bitShift) <<
+            "px;'></div>"
+             ;
     }
 
     html << "</table>";
