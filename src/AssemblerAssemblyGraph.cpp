@@ -87,7 +87,7 @@ void Assembler::createAssemblyGraphVertices()
         }
 
         // If we already found this edge, skip it.
-        // It is part of a chain we aready found.
+        // It is part of a chain we already found.
         if(wasFound[startEdgeId]) {
             if(debug) {
                 cout << "This edge is part of a chain we already found." << endl;
