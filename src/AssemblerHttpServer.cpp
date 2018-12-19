@@ -1840,7 +1840,11 @@ void Assembler::computeAllAlignments(
     // Eventually this should be multithreaded if we want to use
     // it for large assemblies.
     size_t computedAlignmentCount = 0;
+    const auto t0 = std::chrono::steady_clock::now();
     for(ReadId readId1=0; readId1<reads.size(); readId1++) {
+        if((readId1 % 10000) == 0) {
+            cout << timestamp << readId1 << "/" << reads.size() << " " << alignments.size() << endl;
+        }
         for(Strand strand1=0; strand1<2; strand1++) {
 
             // Skip alignments with self in the same orientation.
@@ -1888,9 +1892,12 @@ void Assembler::computeAllAlignments(
             alignments.push_back(make_pair(orientedReadId1, alignmentInfo));
         }
     }
+    const auto t1 = std::chrono::steady_clock::now();
     html << "<p>Computed " << computedAlignmentCount << " alignments.";
     html << "<p>Found " << alignments.size() <<
         " alignments satisfying the given criteria.";
+    html << "<p>Alignment computation took " <<
+        1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count()) << "s.";
     displayAlignments(orientedReadId0, alignments, html);
 }
 
