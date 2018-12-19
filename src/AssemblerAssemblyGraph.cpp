@@ -97,22 +97,29 @@ void Assembler::createAssemblyGraphVertices()
 
         // Follow the chain forward.
         EdgeId edgeId = startEdgeId;
+        bool isCircularChain = false;
         while(true) {
             edgeId = nextEdgeInMarkerGraphPrunedStrongSubgraphChain(edgeId);
             if(edgeId == invalidGlobalMarkerGraphEdgeId) {
                 break;
             }
             nextEdges.push_back(edgeId);
+            if(edgeId == startEdgeId) {
+                isCircularChain = true;
+                break;
+            }
         }
 
         // Follow the chain backward.
-        edgeId = startEdgeId;
-        while(true) {
-            edgeId = previousEdgeInMarkerGraphPrunedStrongSubgraphChain(edgeId);
-            if(edgeId == invalidGlobalMarkerGraphEdgeId) {
-                break;
+        if(!isCircularChain) {
+            edgeId = startEdgeId;
+            while(true) {
+                edgeId = previousEdgeInMarkerGraphPrunedStrongSubgraphChain(edgeId);
+                if(edgeId == invalidGlobalMarkerGraphEdgeId) {
+                    break;
+                }
+                previousEdges.push_back(edgeId);
             }
-            previousEdges.push_back(edgeId);
         }
 
         // Gather the chain.
