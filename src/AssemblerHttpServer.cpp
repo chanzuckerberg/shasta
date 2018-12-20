@@ -1543,7 +1543,7 @@ void Assembler::exploreAlignment(
     // Get alignment parameters.
     size_t maxSkip = 30;
     getParameterValue(request, "maxSkip", maxSkip);
-    size_t maxVertexCountPerKmer = 100;
+    size_t maxVertexCountPerKmer = 10000;
     getParameterValue(request, "maxVertexCountPerKmer", maxVertexCountPerKmer);
 
     // Write the form.
@@ -1783,7 +1783,7 @@ void Assembler::computeAllAlignments(
     getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
     computeAllAlignmentsData.maxSkip = 30;
     getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
-    computeAllAlignmentsData.maxVertexCountPerKmer = 100;
+    computeAllAlignmentsData.maxVertexCountPerKmer = 10000;
     getParameterValue(request, "maxVertexCountPerKmer", computeAllAlignmentsData.maxVertexCountPerKmer);
     computeAllAlignmentsData.minAlignedMarkerCount = 100;
     getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
