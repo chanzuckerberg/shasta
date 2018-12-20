@@ -284,6 +284,8 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
                     << child << "</a>";
             }
 
+
+
             // Assembled run-length sequence.
             const LongBaseSequenceView runLengthSequence = assemblyGraph.sequences[vertexId];
             const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[vertexId];
@@ -291,17 +293,51 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
             html << "<p>Assembled run-length sequence (" << runLengthSequence.baseCount <<
                 " bases):<br><span style='font-family:courier'>";
             html << runLengthSequence;
+
+
+
+            // Write repeat counts in 3 lines each containing
+            // a decimal digit of the repeat count.
+            uint32_t maxRepeatCount = 0;
+            for(size_t j=0; j<repeatCounts.size(); j++) {
+                maxRepeatCount = max(maxRepeatCount, uint32_t(repeatCounts[j]));
+            }
             html << "<br>";
+            for(size_t j=0; j<repeatCounts.size(); j++) {
+                html << (repeatCounts[j] % 10);
+            }
+            if(maxRepeatCount >= 10) {
+                html << "<br>";
+                for(size_t j=0; j<repeatCounts.size(); j++) {
+                    const uint32_t digit = uint32_t(repeatCounts[j] / 10) % 10;
+                    if(digit == 0) {
+                        html << "&nbsp;";
+                    } else {
+                        html << digit;
+                    }
+                }
+            }
+            if(maxRepeatCount >= 100) {
+                html << "<br>";
+                for(size_t j=0; j<repeatCounts.size(); j++) {
+                    const uint32_t digit = uint32_t(repeatCounts[j] / 100) % 10;
+                    if(digit == 0) {
+                        html << "&nbsp;";
+                    } else {
+                        html << digit;
+                    }
+                }
+            }
+            html << "</span>";
+
+
+
+            // Assembled raw sequence.
             size_t rawSequenceSize = 0;
             for(size_t j=0; j<repeatCounts.size(); j++) {
                 const uint32_t repeatCount = repeatCounts[j];
                 rawSequenceSize += repeatCount;
-                CZI_ASSERT(repeatCount < 10);  // Fix when it fails.
-                html << repeatCount%10;
             }
-            html << "</span>";
-
-            // Assembled raw sequence.
             html << "<p>Assembled raw sequence (" << rawSequenceSize <<
                 " bases):<br><span style='font-family:courier'>";
             for(size_t i=0; i<runLengthSequence.baseCount; i++) {
