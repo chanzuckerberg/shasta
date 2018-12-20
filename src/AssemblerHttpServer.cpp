@@ -2230,8 +2230,7 @@ void Assembler::exploreReadGraph(
     // Create the local read graph.
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
-    const uint32_t maxTrim = 30;
-    if(!createLocalReadGraph(readId, maxDistance, maxTrim, allowChimericReads, timeout, graph)) {
+    if(!createLocalReadGraph(readId, maxDistance, allowChimericReads, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }

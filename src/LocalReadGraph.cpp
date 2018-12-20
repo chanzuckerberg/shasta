@@ -36,8 +36,7 @@ void LocalReadGraph::addEdge(
     ReadId readId1,
     size_t globalEdgeId,
     uint8_t direction0,
-    uint8_t direction1,
-    bool isContainmentAlignment)
+    uint8_t direction1)
 {
     // Find the vertices corresponding to these two ReadId.
     const auto it0 = vertexMap.find(readId0);
@@ -49,7 +48,7 @@ void LocalReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(globalEdgeId, isContainmentAlignment, direction0, direction1),
+        LocalReadGraphEdge(globalEdgeId, direction0, direction1),
         *this);
 }
 
@@ -152,12 +151,6 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
         " dir=both arrowhead=" << direction0 <<
         " arrowtail=" << direction1 <<
         " arrowsize=0.4";
-
-    /*
-    if(edge.isContainmentAlignment) {
-        s << " color=red fillcolor=black";
-    }
-    */
 
     s << "]";
 }
