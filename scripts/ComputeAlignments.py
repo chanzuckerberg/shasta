@@ -12,7 +12,7 @@ a = shasta.Assembler()
 a.accessReadsReadOnly()
 a.accessKmers()
 a.accessMarkers()
-a.accessCandidateAlignments()
+a.accessAlignmentCandidates()
 
 # Do the computation.
 a.computeAlignments(
