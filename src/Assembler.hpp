@@ -193,34 +193,6 @@ public:
         );
 
 
-#if 0
-    // Compute an Alignment for each candidate alignment, but  only store the AlignmentInfo.
-    // Optionally, the alignments are used for creation of the global marker graph.
-    void computeAllAlignments(
-
-        // The  maximum number of vertices in the alignment graph
-        // that we allow a single k-mer to generate.
-        size_t alignmentMaxVertexCountPerKmer,
-
-        // The maximum ordinal skip to be tolerated between successive markers
-        // in the alignment.
-        size_t maxSkip,
-
-        // Minimum number of alignment markers for an alignment to be used.
-        size_t minAlignedMarkerCount,
-
-        // Maximum left/right trim (in bases) for an alignment to be used.
-        size_t maxTrim,
-
-        // Minimum coverage (number of markers) for a vertex
-        // of the marker graph to be kept.
-        size_t minCoverage,
-
-        // Number of threads. If zero, a number of threads equal to
-        // the number of virtual processors is used.
-        size_t threadCount
-    );
-#endif
 
     // Compute an alignment for each alignment candidate.
     // Store summary information for the ones that are good enough,
