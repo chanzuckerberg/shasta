@@ -1154,7 +1154,6 @@ public:
     void blastRead(const vector<string>&, ostream&);
     void exploreAlignments(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
-    void computeAllAlignments(const vector<string>&, ostream&);
     void exploreAlignmentGraph(const vector<string>&, ostream&);
     void exploreReadGraph(const vector<string>&, ostream&);
     class HttpServerData {
@@ -1212,6 +1211,25 @@ public:
         const LocalMarkerGraphRequestParameters&
         );
 
+
+
+    // Compute all alignments for a given read.
+    // This can be slow for large assemblies,
+    // and therefore the computation in multithreaded.
+    void computeAllAlignments(const vector<string>&, ostream&);
+    void computeAllAlignmentsThreadFunction(size_t threadId);
+    class ComputeAllAlignmentsData {
+    public:
+        OrientedReadId orientedReadId0;
+        size_t minMarkerCount;
+        size_t maxSkip;
+        size_t maxVertexCountPerKmer;
+        size_t minAlignedMarkerCount;
+        size_t maxTrim;
+        // The alignments found by each thread.
+        vector< vector< pair<OrientedReadId, AlignmentInfo> > > threadAlignments;
+    };
+    ComputeAllAlignmentsData computeAllAlignmentsData;
 
 
     // Access all available assembly data, without thorwing an exception

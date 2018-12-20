@@ -1779,16 +1779,16 @@ void Assembler::computeAllAlignments(
     const bool strand0IsPresent = getParameterValue(request, "strand0", strand0);
 
     // Get alignment parameters.
-    size_t minMarkerCount = 3000;
-    getParameterValue(request, "minMarkerCount", minMarkerCount);
-    size_t maxSkip = 30;
-    getParameterValue(request, "maxSkip", maxSkip);
-    size_t maxVertexCountPerKmer = 100;
-    getParameterValue(request, "maxVertexCountPerKmer", maxVertexCountPerKmer);
-    size_t minAlignedMarkerCount = 100;
-    getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
-    size_t maxTrim = 30;
-    getParameterValue(request, "maxTrim", maxTrim);
+    computeAllAlignmentsData.minMarkerCount = 3000;
+    getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
+    computeAllAlignmentsData.maxSkip = 30;
+    getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
+    computeAllAlignmentsData.maxVertexCountPerKmer = 100;
+    getParameterValue(request, "maxVertexCountPerKmer", computeAllAlignmentsData.maxVertexCountPerKmer);
+    computeAllAlignmentsData.minAlignedMarkerCount = 100;
+    getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
+    computeAllAlignmentsData.maxTrim = 30;
+    getParameterValue(request, "maxTrim", computeAllAlignmentsData.maxTrim);
 
 
     // Write the form.
@@ -1802,18 +1802,18 @@ void Assembler::computeAllAlignments(
     writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
     html <<
         " against all other oriented reads with at least"
-        "<input type=text name=minMarkerCount size=8 value=" << minMarkerCount <<
+        "<input type=text name=minMarkerCount size=8 value=" << computeAllAlignmentsData.minMarkerCount <<
         "> markers.<br>Maximum ordinal skip allowed: " <<
-        "<input type=text name=maxSkip required size=8 value=" << maxSkip << ">"
+        "<input type=text name=maxSkip required size=8 value=" << computeAllAlignmentsData.maxSkip << ">"
         "<br>Maximum number of alignment graph vertices per k-mer: " <<
         "<input type=text name=maxVertexCountPerKmer required size=8 value=" <<
-        maxVertexCountPerKmer << ">"
+        computeAllAlignmentsData.maxVertexCountPerKmer << ">"
         "<br>Minimum number of aligned markers"
         "<input type=text name=minAlignedMarkerCount required size=8 value=" <<
-        minAlignedMarkerCount << ">"
+        computeAllAlignmentsData.minAlignedMarkerCount << ">"
         "<br>Maximum number of trimmed markers"
         "<input type=text name=maxTrim required size=8 value=" <<
-        maxTrim << ">"
+        computeAllAlignmentsData.maxTrim << ">"
         "</form>";
 
 
@@ -1829,12 +1829,34 @@ void Assembler::computeAllAlignments(
     vector<MarkerWithOrdinal> markers1SortedByKmerId;
     getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
 
+
+    // Compute the alignments in parallel.
+    computeAllAlignmentsData.orientedReadId0 = orientedReadId0;
+    const size_t threadCount =std::thread::hardware_concurrency();
+    computeAllAlignmentsData.threadAlignments.resize(threadCount);
+    const size_t batchSize = 1000;
+    setupLoadBalancing(reads.size(), batchSize);
+    const auto t0 = std::chrono::steady_clock::now();
+    runThreads(&Assembler::computeAllAlignmentsThreadFunction, threadCount);
+    const auto t1 = std::chrono::steady_clock::now();
+    html << "<p>Alignment computation using " << threadCount << " threads took " <<
+        1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count()) << "s.";
+
+    // Gather the alignments found by each thread.
+    vector< pair<OrientedReadId, AlignmentInfo> > alignments;
+    for(size_t threadId=0; threadId<threadCount; threadId++) {
+        const vector< pair<OrientedReadId, AlignmentInfo> >& threadAlignments =
+            computeAllAlignmentsData.threadAlignments[threadId];
+        copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignments));
+    }
+    sort(alignments.begin(), alignments.end(),
+        OrderPairsByFirstOnly<OrientedReadId, AlignmentInfo>());
+
+#if 0
     // Reusable data structures for alignOrientedReads.
     AlignmentGraph graph;
     Alignment alignment;
 
-    // Vector to store the good alignments we find.
-    vector< pair<OrientedReadId, AlignmentInfo> > alignments;
 
     // Loop over oriented reads.
     // Eventually this should be multithreaded if we want to use
@@ -1898,7 +1920,98 @@ void Assembler::computeAllAlignments(
         " alignments satisfying the given criteria.";
     html << "<p>Alignment computation took " <<
         1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count()) << "s.";
+#endif
+
+    // Now we can display the alignments.
+    html << "<p>Found " << alignments.size() <<
+        " alignments satisfying the given criteria.";
     displayAlignments(orientedReadId0, alignments, html);
+}
+
+
+
+void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
+{
+    // Get the first oriented read.
+    const OrientedReadId orientedReadId0 = computeAllAlignmentsData.orientedReadId0;
+    const ReadId readId0 = orientedReadId0.getReadId();
+    const Strand strand0 = orientedReadId0.getStrand();
+
+    // Get parameters for alignment computation.
+    const size_t minMarkerCount = computeAllAlignmentsData.minMarkerCount;
+    const size_t maxSkip = computeAllAlignmentsData.maxSkip;
+    const size_t maxVertexCountPerKmer = computeAllAlignmentsData.maxVertexCountPerKmer;
+    const size_t minAlignedMarkerCount =computeAllAlignmentsData.minAlignedMarkerCount;
+    const size_t maxTrim =computeAllAlignmentsData.maxTrim;
+
+    // Vector where this thread will store the alignments it finds.
+    vector< pair<OrientedReadId, AlignmentInfo> >& alignments =
+        computeAllAlignmentsData.threadAlignments[threadId];
+
+    // Reusable data structures for alignOrientedReads.
+    AlignmentGraph graph;
+    Alignment alignment;
+
+    // Vectors to contain markers sorted by kmerId.
+    vector<MarkerWithOrdinal> markers0SortedByKmerId;
+    vector<MarkerWithOrdinal> markers1SortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
+
+    // Loop over batches assigned to this thread.
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over reads assigned to this batch.
+        for(ReadId readId1=ReadId(begin); readId1!=ReadId(end); ++readId1) {
+
+            // Loop over strands.
+            for(Strand strand1=0; strand1<2; strand1++) {
+
+                // Skip alignments with self in the same orientation.
+                // Allow alignment with self reverse complemented.
+                if(readId0==readId1 && strand0==strand1) {
+                    continue;
+                }
+
+                // If this read has less than the required number of markers, skip.
+                const OrientedReadId orientedReadId1(readId1, strand1);
+                if(markers[orientedReadId1.getValue()].size() < minMarkerCount) {
+                    continue;
+                }
+
+                // Get markers sorted by kmer id.
+                getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
+
+                // Compute the alignment.
+                const bool debug = false;
+                alignOrientedReads(
+                    markers0SortedByKmerId,
+                    markers1SortedByKmerId,
+                    maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+
+                // If the alignment has too few markers skip it.
+                if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                    continue;
+                }
+
+                // Compute the AlignmentInfo.
+                AlignmentInfo alignmentInfo;
+                alignmentInfo.create(alignment);
+
+                // If the alignment has too much trim, skip it.
+                uint32_t leftTrim;
+                uint32_t rightTrim;
+                tie(leftTrim, rightTrim) = computeTrim(
+                    orientedReadId0,
+                    orientedReadId1,
+                    alignmentInfo);
+                if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                    continue;
+                }
+                alignments.push_back(make_pair(orientedReadId1, alignmentInfo));
+            }
+        }
+    }
 }
 
 
