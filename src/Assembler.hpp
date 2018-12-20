@@ -646,50 +646,6 @@ private:
     MemoryMapped::VectorOfVectors<uint32_t, uint32_t> alignmentTable;
     void computeAlignmentTable();
 
-#if 0
-    // Thread functions for computeAllAlignments.
-
-    // Compute the alignments and update the disjoint set data structure
-    // for each good alignment.
-    void computeAllAlignmentsThreadFunction1(size_t threadId);
-
-    // Find the set that each marker belongs to.
-    void computeAllAlignmentsThreadFunction2(size_t threadId);
-
-    // Count the number of markers in each vertex.
-    void computeAllAlignmentsThreadFunction3(size_t threadId);
-
-    // Use the work area to convert raw vertex ids to final vertex ids.
-    void computeAllAlignmentsThreadFunction4(size_t threadId);
-
-
-
-    // Data for computeAllAlignments.
-    class ComputeAllAlignmentsData {
-    public:
-
-        // Parameters.
-        size_t maxSkip;
-        size_t maxVertexCountPerKmer;
-        size_t minAlignedMarkerCount;
-        size_t maxTrim;
-
-        // The total number of oriented markers.
-        uint64_t orientedMarkerCount;
-
-        // The AlignmentInfo found by each thread.
-        vector< vector<AlignmentData> > threadAlignmentData;
-
-        // Disjoint sets data structures.
-        MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
-        shared_ptr<DisjointSets> disjointSetsPointer;
-
-        // Work area used for multiple purposes.
-        // See computeAllAlignments for details.
-        MemoryMapped::Vector<GlobalMarkerGraphVertexId> workArea;
-    };
-    ComputeAllAlignmentsData computeAllAlignmentsData;
-#endif
 
 
     // Private functions and data used by computeAlignments.
