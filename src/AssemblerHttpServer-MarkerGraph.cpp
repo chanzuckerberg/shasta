@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "ConsensusCaller.hpp"
 #include "LocalMarkerGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -1094,3 +1095,261 @@ void Assembler::showLocalMarkerGraphAlignments(
 }
 
 
+
+void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream& html)
+{
+    // Get the vertex id.
+    GlobalMarkerGraphVertexId vertexId = 0;
+    const bool vertexIdIsPresent = getParameterValue(request, "vertexId", vertexId);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Show details for marker graph vertex'> "
+        "<input type=text name=vertexId required" <<
+        (vertexIdIsPresent ? (" value=" + to_string(vertexId)) : "") <<
+        " size=8 title='Enter a vertex id between 0 and " << globalMarkerGraphVertices.size()-1 << "'>";
+    html << "</form>";
+
+    // If the readId or strand are missing, stop here.
+    if(!vertexIdIsPresent || !vertexIdIsPresent) {
+        return;
+    }
+    if(vertexId >= globalMarkerGraphVertices.size()) {
+        html << "<p>Invalid vertex id. Must be less than " << globalMarkerGraphVertices.size() << ".";
+        return;
+    }
+
+    // Access the markers of this vertex.
+    MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
+    const size_t markerCount = markerIds.size();
+    CZI_ASSERT(markerCount > 0);
+
+    // Get the marker sequence.
+    const KmerId kmerId = markers.begin()[markerIds[0]].kmerId;
+    const size_t k = assemblerInfo->k;
+    const Kmer kmer(kmerId, k);
+
+
+
+    // Extract the information we need.
+    vector<OrientedReadId> orientedReadIds(markerCount);
+    vector<uint32_t> ordinals(markerCount);
+    vector< vector<uint8_t> > repeatCounts(markerCount, vector<uint8_t>(k));
+    for(size_t j=0; j<markerCount; j++) {
+        const MarkerId markerId = markerIds[j];
+        const CompressedMarker& marker = markers.begin()[markerId];
+        tie(orientedReadIds[j], ordinals[j]) = findMarkerId(markerId);
+
+        // Get the repeat count for this marker at each of the k positions.
+        for(size_t i=0; i<k; i++) {
+            Base base;
+            tie(base, repeatCounts[j][i]) =
+                getOrientedReadBaseAndRepeatCount(orientedReadIds[j], uint32_t(marker.position+i));
+            CZI_ASSERT(base == kmer[i]);
+        }
+    }
+
+
+
+    // Find all the repeat counts represented.
+    std::set<size_t> repeatCountsSet;
+    for(const auto& v: repeatCounts) {
+        for(const auto r: v) {
+            repeatCountsSet.insert(r);
+        }
+    }
+
+
+
+    // Compute consensus repeat counts at each of the k positions.
+    vector<size_t> consensusRepeatCounts(k);
+    for(size_t i=0; i<k; i++) {
+
+        Coverage coverage;
+        for(size_t j=0; j<markerCount; j++) {
+            coverage.addRead(
+                AlignedBase(kmer[i]),
+                orientedReadIds[j].getStrand(),
+                repeatCounts[j][i]);
+        }
+
+        const Consensus consensus = (*consensusCaller)(coverage);
+        CZI_ASSERT(Base(consensus.base) == kmer[i]);
+        consensusRepeatCounts[i] = consensus.repeatCount;
+    }
+
+
+
+    // Compute concordant and discordant coverage at each position.
+    vector<size_t> concordantCoverage(k, 0);
+    vector<size_t> discordantCoverage(k, 0);
+    for(size_t i=0; i<k; i++) {
+        for(size_t j=0; j<markerCount; j++) {
+            if(repeatCounts[j][i] == consensusRepeatCounts[i]) {
+                ++concordantCoverage[i];
+            } else {
+                ++discordantCoverage[i];
+            }
+        }
+    }
+
+
+    // Page title.
+    html << "<h1>Marker graph vertex "<< vertexId << "</h1>";
+    html << "<p>Vertex coverage (number of markers) is " << markerCount << ".";
+
+
+
+    // Write a table with one row for each marker.
+    html <<
+        "<table>"
+        "<tr>"
+        "<th>Oriented<br>read"
+        "<th title='Ordinal of the marker in the oriented read'>Ordinal"
+        "<th>Repeat<br>counts";
+    for(size_t j=0; j<markerIds.size(); j++) {
+        const OrientedReadId orientedReadId = orientedReadIds[j];
+        const ReadId readId = orientedReadId.getReadId();
+        const Strand strand = orientedReadId.getStrand();
+        const uint32_t ordinal = ordinals[j];
+
+        // Oriented read id.
+        html <<
+            "<tr>"
+            "<td class=centered>"
+            "<a href='exploreRead"
+            "?readId=" << readId <<
+            "&strand=" << strand << "'>" <<
+            orientedReadId << "</a>";
+
+        // Marker ordinal.
+        html <<
+            "<td class=centered>" <<
+            "<a href='exploreRead"
+            "?readId=" << readId <<
+            "&strand=" << strand <<
+            "&highlightMarker=" << ordinal <<
+            "'>" <<
+            ordinal << "</a>";
+
+        // Repeat counts.
+        html << "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<k; i++) {
+            const uint8_t repeatCount = repeatCounts[j][i];
+            if(repeatCount < 10) {
+                html << int(repeatCount);
+            } else {
+                html << "*";
+            }
+        }
+    }
+
+
+
+    // Write a row with consensus repeat counts.
+    html <<
+        "<tr><th colspan=2 class=left>Consensus repeat counts"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<k; i++) {
+        const size_t repeatCount = consensusRepeatCounts[i];
+        if(repeatCount < 10) {
+            html << repeatCount;
+        } else {
+            html << "*";
+        }
+    }
+
+
+
+    // Write a row with the marker sequence (run-length).
+    html <<
+        "<tr><th colspan=2 class=left>Run-length sequence"
+        "<td class=centered style='font-family:monospace'>";
+    kmer.write(html, assemblerInfo->k);
+
+
+
+    // Write rows with coverage information for each represented repeat value.
+    for(size_t repeatCount: repeatCountsSet) {
+        html <<
+            "<tr><th colspan=2 class=left>Coverage for repeat count " << repeatCount <<
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<k; i++) {
+
+            // Compute coverage for this repeat count, at this position.
+            size_t coverage = 0;
+            for(size_t j=0; j<markerCount; j++) {
+                if(repeatCounts[j][i] == repeatCount) {
+                    coverage++;
+                }
+            }
+
+            // Write it out.
+            if(coverage == 0) {
+                html << ".";
+            } else if(coverage < 10) {
+                html << coverage;
+            } else {
+                html << "*";
+            }
+        }
+    }
+
+
+
+    // Write a row with concordant coverage.
+    html <<
+        "<tr><th colspan=2 class=left>Concordant repeat count coverage"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<assemblerInfo->k; i++) {
+        const size_t coverage = concordantCoverage[i];
+        if(coverage == 0) {
+            html << ".";
+        } else if(coverage < 10) {
+            html << coverage;
+        } else {
+            html << "*";
+        }
+    }
+
+
+
+    // Write a row with discordant coverage.
+    html <<
+        "<tr><th colspan=2 class=left>Discordant repeat count coverage"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<assemblerInfo->k; i++) {
+        const size_t coverage = discordantCoverage[i];
+        if(coverage == 0) {
+            html << ".";
+        } else if(coverage < 10) {
+            html << coverage;
+        } else {
+            html << "*";
+        }
+    }
+
+
+
+    // Write a row with the consensus raw sequence.
+    html <<
+        "<tr><th colspan=2 class=left>Consensus raw sequence"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<k; i++) {
+        const Base base = kmer[i];
+        const size_t repeatCount = consensusRepeatCounts[i];
+        for(size_t r=0; r<repeatCount; r++) {
+            html << base;
+        }
+    }
+
+    html << "</table>";
+}
+
+
+
+void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& html)
+{
+    html << "<p>Not implemented.";
+}

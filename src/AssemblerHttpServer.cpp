@@ -40,6 +40,8 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphVertex);
 
@@ -208,7 +210,9 @@ void Assembler::writeNavigation(ostream& html) const
         {"Read graph", "exploreReadGraph"},
         });
     writeNavigation(html, "Marker graph", {
-        {"Marker graph", "exploreMarkerGraph"},
+        {"Local marker graph", "exploreMarkerGraph"},
+        {"Marker graph vertices", "exploreMarkerGraphVertex"},
+        {"Marker graph edges", "exploreMarkerGraphEdge"},
         });
     writeNavigation(html, "Assembly graph", {
         {"Local assembly graph", "exploreAssemblyGraph"},

@@ -1210,6 +1210,8 @@ public:
         const LocalMarkerGraph&,
         const LocalMarkerGraphRequestParameters&
         );
+    void exploreMarkerGraphVertex(const vector<string>&, ostream&);
+    void exploreMarkerGraphEdge(const vector<string>&, ostream&);
 
 
 
