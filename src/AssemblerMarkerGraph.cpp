@@ -2883,7 +2883,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         alignmentGraph->add_alignment(alignment, sequenceString);
     }
 
-    // Use seqan to compute the multiple sequence alignment.
+    // Use spoa to compute the multiple sequence alignment.
     msa.clear();
     alignmentGraph->generate_multiple_sequence_alignment(msa);
 

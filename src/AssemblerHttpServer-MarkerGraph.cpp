@@ -11,6 +11,9 @@ using namespace shasta;
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+// Spoa.
+#include "spoa/spoa.hpp"
+
 // Standard library.
 #include "chrono.hpp"
 
@@ -1111,7 +1114,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         " size=8 title='Enter a vertex id between 0 and " << globalMarkerGraphVertices.size()-1 << "'>";
     html << "</form>";
 
-    // If the readId or strand are missing, stop here.
+    // If the vertex id missing or invalid, stop here.
     if(!vertexIdIsPresent || !vertexIdIsPresent) {
         return;
     }
@@ -1351,5 +1354,375 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
 void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& html)
 {
-    html << "<p>Not implemented.";
+    // Get the edge id.
+    GlobalMarkerGraphEdgeId edgeId = 0;
+    const bool edgeIdIsPresent = getParameterValue(request, "edgeId", edgeId);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Show details for marker graph edge'> "
+        "<input type=text name=edgeId required" <<
+        (edgeIdIsPresent ? (" value=" + to_string(edgeId)) : "") <<
+        " size=8 title='Enter an edge id between 0 and " << markerGraphConnectivity.edges.size()-1 << "'>";
+    html << "</form>";
+
+    // If the edge id missing or invalid, stop here.
+    if(!edgeIdIsPresent || !edgeIdIsPresent) {
+        return;
+    }
+    if(edgeId >= markerGraphConnectivity.edges.size()) {
+        html << "<p>Invalid edge id. Must be less than " << markerGraphConnectivity.edges.size() << ".";
+        return;
+    }
+
+    // Access the edge.
+    const MarkerGraphConnectivity::Edge& edge = markerGraphConnectivity.edges[edgeId];
+    array<GlobalMarkerGraphVertexId, 2> vertexIds = {edge.source, edge.target};
+    const size_t markerCount = edge.coverage;
+
+    // The marker intervals of this edge.
+    const MemoryAsContainer<MarkerInterval> markerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+    CZI_ASSERT(markerIntervals.size() == markerCount);
+
+    // The length of each marker sequence.
+    const size_t k = assemblerInfo->k;
+
+
+
+    // Extract the sequences and repeat counts for each marker interval.
+    // This includes sequences and repeat counts for the flanking markers.
+    vector< vector<Base> > sequences(markerCount);
+    vector< vector<uint8_t> > repeatCounts(markerCount);
+    for(size_t j=0; j!=markerCount; j++) {
+        const MarkerInterval& markerInterval = markerIntervals[j];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers.
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+        // Get the position range, including the flanking markers.
+        const uint32_t positionBegin = marker0.position;
+        const uint32_t positionEnd = marker1.position + uint32_t(k);
+
+        // Store the bases and repeat counts in this interval.
+        for(uint32_t position=positionBegin; position!=positionEnd; ++position) {
+            Base base;
+            uint8_t repeatCount;
+            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            sequences[j].push_back(base);
+            repeatCounts[j].push_back(repeatCount);
+        }
+    }
+
+
+
+    // Initialize a spoa multiple sequence alignment.
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kSW;
+    const int8_t match = 1;
+    const int8_t mismatch = -1;
+    const int8_t gap = -1;
+    auto alignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
+    auto alignmentGraph = spoa::createGraph();
+
+
+    // Add all the sequences to the alignment,
+    // including the flanking markers.
+    string sequenceString;
+    vector<string> msa;
+    for(size_t j=0; j!=markerCount; j++) {
+
+        // Get the sequence.
+        sequenceString.clear();
+        for(const Base base: sequences[j]) {
+            sequenceString.push_back(base.character());
+        }
+
+        // Add it to the alignment.
+        auto alignment = alignmentEngine->align_sequence_with_graph(sequenceString, alignmentGraph);
+        alignmentGraph->add_alignment(alignment, sequenceString);
+    }
+
+    // Use spoa to compute the multiple sequence alignment.
+    msa.clear();
+    alignmentGraph->generate_multiple_sequence_alignment(msa);
+
+    // The length of the alignment, including gaps.
+    const size_t alignmentLength = msa.front().size();
+
+
+
+    // Compute coverage for each base (including "-")
+    // at each position of the alignment.
+    vector< array<size_t, 5> > baseCoverage(alignmentLength);
+    for(size_t i=0; i<alignmentLength; i++) {
+        fill(baseCoverage[i].begin(), baseCoverage[i].end(), 0);
+        for(size_t j=0; j<markerCount; j++) {
+            const AlignedBase base = AlignedBase::fromCharacter(msa[j][i]);
+            ++(baseCoverage[i][base.value]);
+        }
+    }
+
+
+
+    // Use the consensus caller to compute the consensus base
+    // and repeat count at each position of the alignment.
+    vector<AlignedBase> consensusBase(alignmentLength);
+    vector<size_t> consensusRepeatCount(alignmentLength);
+    vector<size_t> positions(markerCount, 0);
+    for(size_t i=0; i<alignmentLength; i++) {
+        Coverage coverage;
+        for(size_t j=0; j<markerCount; j++) {
+            const Strand strand = markerIntervals[j].orientedReadId.getStrand();
+            const AlignedBase base = AlignedBase::fromCharacter(msa[j][i]);
+            if(base.isGap()) {
+                coverage.addRead(base, strand, 0);  // Gap always gets repeat count of 0.
+            } else {
+                const AlignedBase base = AlignedBase(sequences[j][positions[j]]);
+                const size_t repeatCount = repeatCounts[j][positions[j]];
+                ++(positions[j]);
+                coverage.addRead(base, strand, repeatCount);
+            }
+
+        }
+        const Consensus consensus = (*consensusCaller)(coverage);
+        consensusBase[i] = consensus.base;
+        consensusRepeatCount[i] = consensus.repeatCount;
+    }
+
+
+
+    // Count the number of gaps in the consensus bases.
+    const size_t consensusGapCount =
+        count(consensusBase.begin(), consensusBase.end(), AlignedBase::gap());
+
+    // Compute concordant and discordant base coverage at each position.
+    vector<size_t> concordantBaseCoverage(alignmentLength, 0);
+    vector<size_t> discordantBaseCoverage(alignmentLength, 0);
+    for(size_t i=0; i<alignmentLength; i++) {
+        for(size_t b=0; b<5; b++) {
+            const size_t coverage = baseCoverage[i][b];
+            if(consensusBase[i] == AlignedBase::fromInteger(b)) {
+                concordantBaseCoverage[i] += coverage;
+            } else {
+                discordantBaseCoverage[i] += coverage;
+            }
+        }
+    }
+
+
+
+    // Page title.
+    html << "<h1>Marker graph edge "<< edgeId << "</h1>";
+
+    // Basic information about this edge.
+    html << "<p>Source vertex " << vertexIds[0];
+    html << ", target vertex " << vertexIds[1] << ".";
+    html << "<p>Edge coverage (number of markers) is " << markerCount << ".";
+
+    // Begin the table.
+    html <<
+        "<table>"
+        "<tr>"
+        "<th>Oriented<br>read"
+        "<th>Ordinal0"
+        "<th>Ordinal1"
+        "<th>Sequence<br>(includes flanking markers)"
+        "<th>Repeat<br>counts";
+
+
+
+
+    // Write one row for each marker interval.
+    for(size_t j=0; j<markerCount; j++) {
+        const MarkerInterval& markerInterval = markerIntervals[j];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const ReadId readId = orientedReadId.getReadId();
+        const Strand strand = orientedReadId.getStrand();
+
+        // Oriented read id.
+        html <<
+            "<tr>"
+            "<td class=centered>"
+            "<a href='exploreRead"
+            "?readId=" << readId <<
+            "&strand=" << strand << "'>" <<
+            orientedReadId << "</a>";
+
+        // Ordinals.
+        for(size_t m=0; m<2; m++) {
+            html <<
+                "<td class=centered>" <<
+                "<a href='exploreRead"
+                "?readId=" << readId <<
+                "&strand=" << strand <<
+                "&highlightMarker=" << markerInterval.ordinals[m] <<
+                "'>" <<
+                markerInterval.ordinals[m] << "</a>";
+        }
+
+        // Sequence, written aligned.
+        html << "<td class=centered style='font-family:monospace'>";
+        size_t position = 0;
+        for(size_t i=0; i<alignmentLength; i++) {
+            const char alignmentCharacter = msa[j][i];
+            if(alignmentCharacter == '-') {
+                html << "-";
+            } else {
+                if(sequences[j].size() > 2*k && position==k) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
+                const Base base = sequences[j][position];
+                ++position;
+                CZI_ASSERT(base == Base::fromCharacter(alignmentCharacter));
+                html << base;
+                if(sequences[j].size() > 2*k && position==sequences[j].size()-k) {
+                    html << "</span>";
+                }
+            }
+        }
+        CZI_ASSERT(position == sequences[j].size());
+        CZI_ASSERT(position == repeatCounts[j].size());
+
+
+
+        // Repeat counts, also written aligned.
+        html << "<td class=centered style='font-family:monospace'>";
+        position = 0;
+        for(size_t i=0; i<alignmentLength; i++) {
+            const char alignmentCharacter = msa[j][i];
+            if(alignmentCharacter == '-') {
+                html << "-";
+            } else {
+                if(sequences[j].size() > 2*k && position==k) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
+                const Base base = sequences[j][position];
+                const uint8_t repeatCount = repeatCounts[j][position];
+                ++position;
+                CZI_ASSERT(base == Base::fromCharacter(alignmentCharacter));
+                if(repeatCount < 10) {
+                    html << int(repeatCount);
+                } else {
+                    html << "*";
+                }
+                if(sequences[j].size() > 2*k && position==sequences[j].size()-k) {
+                    html << "</span>";
+                }
+            }
+        }
+        CZI_ASSERT(position == sequences[j].size());
+        CZI_ASSERT(position == repeatCounts[j].size());
+    }
+
+
+
+    // Consensus bases and repeat counts.
+    html <<
+        "<tr>"
+        "<th colspan=3 class=left>Consensus"
+        "<td class=centered style='font-family:monospace'>";
+    size_t position = 0;
+    for(size_t i=0; i<alignmentLength; i++) {
+        if(consensusBase[i].isGap()) {
+            html << "-";
+        } else {
+            if(alignmentLength-consensusGapCount > 2*k && position==k) {
+                html << "<span style='background-color:LightGreen'>";
+            }
+            html << consensusBase[i];
+            ++position;
+            if(alignmentLength-consensusGapCount > 2*k && position==alignmentLength-consensusGapCount-k) {
+                html << "</span>";
+            }
+        }
+    }
+    CZI_ASSERT(position == alignmentLength-consensusGapCount);
+    html << "<td class=centered style='font-family:monospace'>";
+    position = 0;
+    for(size_t i=0; i<alignmentLength; i++) {
+        if(consensusBase[i].isGap()) {
+            html << "-";
+        } else {
+            if(alignmentLength-consensusGapCount > 2*k && position==k) {
+                html << "<span style='background-color:LightGreen'>";
+            }
+            const size_t repeatCount = consensusRepeatCount[i];
+            if(repeatCount < 10) {
+                html << repeatCount;
+            } else {
+                html << "*";
+            }
+            ++position;
+            if(alignmentLength-consensusGapCount > 2*k && position==alignmentLength-consensusGapCount-k) {
+                html << "</span>";
+            }
+        }
+    }
+    CZI_ASSERT(position == alignmentLength-consensusGapCount);
+
+
+
+    // Concordant base coverage.
+    html <<
+        "<tr>"
+        "<th colspan=3 class=left>Concordant base coverage"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<alignmentLength; i++) {
+        const size_t coverage = concordantBaseCoverage[i];
+        if(coverage == 0) {
+            html << ".";
+        } else if(coverage < 10) {
+            html << coverage;
+        } else {
+            html << "*";
+        }
+    }
+    html << "<td>";
+
+
+
+    // Discordant base coverage.
+    html <<
+        "<tr>"
+        "<th colspan=3 class=left>Discordant base coverage"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<alignmentLength; i++) {
+        const size_t coverage = discordantBaseCoverage[i];
+        if(coverage == 0) {
+            html << ".";
+        } else if(coverage < 10) {
+            html << coverage;
+        } else {
+            html << "*";
+        }
+    }
+    html << "<td>";
+
+
+
+    // Base coverage.
+    for(size_t b=0; b<5; b++) {
+        html <<
+            "<tr>"
+            "<th colspan=3 class=left>Coverage for " << AlignedBase::fromInteger(b) <<
+            "<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<alignmentLength; i++) {
+            const size_t coverage = baseCoverage[i][b];
+            if(coverage == 0) {
+                html << ".";
+            } else if(coverage < 10) {
+                html << coverage;
+            } else {
+                html << "*";
+            }
+        }
+        html << "<td>";
+    }
+
+
+    // End the table.
+    html << "</table>";
 }
