@@ -1535,7 +1535,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
 
-    // Write one row for each marker interval.
+    // Write one row for each oriented read.
     for(size_t j=0; j<markerCount; j++) {
         const MarkerInterval& markerInterval = markerIntervals[j];
         const OrientedReadId orientedReadId = markerInterval.orientedReadId;
@@ -1622,7 +1622,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     // Consensus bases and repeat counts.
     html <<
         "<tr>"
-        "<th colspan=3 class=left>Consensus"
+        "<th colspan=3 class=left>Consensus (run-length)"
         "<td class=centered style='font-family:monospace'>";
     size_t position = 0;
     for(size_t i=0; i<alignmentLength; i++) {
@@ -1721,6 +1721,38 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         }
         html << "<td>";
     }
+
+
+
+    // Raw consensus sequence.
+    html <<
+        "<tr>"
+        "<th colspan=3 class=left>Consensus (raw)"
+        "<td class=centered style='font-family:monospace'>";
+    position = 0;
+    for(size_t i=0; i<alignmentLength; i++) {
+        const AlignedBase base = consensusBase[i];
+
+        if(base.isGap()) {
+            continue;
+        }
+
+        if(alignmentLength-consensusGapCount > 2*k && position==k) {
+            html << "<span style='background-color:LightGreen'>";
+        }
+
+        const size_t repeatCount = consensusRepeatCount[i];
+        for(size_t k=0; k<repeatCount; k++) {
+            html << base;
+        }
+        ++position;
+
+        if(alignmentLength-consensusGapCount > 2*k && position==alignmentLength-consensusGapCount-k) {
+            html << "</span>";
+        }
+    }
+    html << "<td>";
+
 
 
     // End the table.
