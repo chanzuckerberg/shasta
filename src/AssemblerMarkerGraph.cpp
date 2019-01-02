@@ -1446,9 +1446,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const int distance1 = distance0 + 1;
 
         // Loop over the children.
-        const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
+        const auto childEdges = markerGraph.edgesBySource[vertexId0];
         for(uint64_t edgeId: childEdges) {
-            const auto& edge = markerGraphConnectivity.edges[edgeId];
+            const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
             if(edge.isWeak && !useWeakEdges) {
@@ -1484,7 +1484,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 CZI_ASSERT(edgeExists);
 
                 // Fill in edge information.
-                const auto storedMarkerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+                const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
                 markerIntervals.resize(storedMarkerIntervals.size());
                 copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
@@ -1500,9 +1500,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         }
 
         // Loop over the parents.
-        const auto parentEdges = markerGraphConnectivity.edgesByTarget[vertexId0];
+        const auto parentEdges = markerGraph.edgesByTarget[vertexId0];
         for(uint64_t edgeId: parentEdges) {
-            const auto& edge = markerGraphConnectivity.edges[edgeId];
+            const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
             if(edge.isWeak && !useWeakEdges) {
@@ -1537,7 +1537,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 CZI_ASSERT(edgeExists);
 
                 // Fill in edge information.
-                const auto storedMarkerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+                const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
                 markerIntervals.resize(storedMarkerIntervals.size());
                 copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
@@ -1567,9 +1567,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
         // Loop over the children that exist in the local marker graph
         // and are also at maximum distance.
-        const auto childEdges = markerGraphConnectivity.edgesBySource[vertexId0];
+        const auto childEdges = markerGraph.edgesBySource[vertexId0];
         for(uint64_t edgeId: childEdges) {
-            const auto& edge = markerGraphConnectivity.edges[edgeId];
+            const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
             if(edge.isWeak && !useWeakEdges) {
@@ -1611,7 +1611,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             CZI_ASSERT(edgeExists);
 
             // Fill in edge information.
-            const auto storedMarkerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+            const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
             markerIntervals.resize(storedMarkerIntervals.size());
             copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
             graph.storeEdgeInfo(e, markerIntervals);
@@ -1699,8 +1699,8 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     cout << "Using " << threadCount << " threads." << endl;
 
     // Each thread stores the edges it finds in a separate vector.
-    markerGraphConnectivity.threadEdges.resize(threadCount);
-    markerGraphConnectivity.threadEdgeMarkerIntervals.resize(threadCount);
+    markerGraph.threadEdges.resize(threadCount);
+    markerGraph.threadEdgeMarkerIntervals.resize(threadCount);
     cout << timestamp << "Processing " << globalMarkerGraphVertices.size();
     cout << " marker graph vertices." << endl;
     setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
@@ -1709,55 +1709,55 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
 
     // Combine the edges found by each thread.
     cout << timestamp << "Combining the edges found by each thread." << endl;
-    markerGraphConnectivity.edges.createNew(
+    markerGraph.edges.createNew(
             largeDataName("GlobalMarkerGraphEdges"),
             largeDataPageSize);
-    markerGraphConnectivity.edgeMarkerIntervals.createNew(
+    markerGraph.edgeMarkerIntervals.createNew(
             largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"),
             largeDataPageSize);
     for(size_t threadId=0; threadId<threadCount; threadId++) {
-        auto& thisThreadEdges = *markerGraphConnectivity.threadEdges[threadId];
-        auto& thisThreadEdgeMarkerIntervals = *markerGraphConnectivity.threadEdgeMarkerIntervals[threadId];
+        auto& thisThreadEdges = *markerGraph.threadEdges[threadId];
+        auto& thisThreadEdgeMarkerIntervals = *markerGraph.threadEdgeMarkerIntervals[threadId];
         CZI_ASSERT(thisThreadEdges.size() == thisThreadEdgeMarkerIntervals.size());
         for(size_t i=0; i<thisThreadEdges.size(); i++) {
             const auto& edge = thisThreadEdges[i];
             const auto edgeMarkerIntervals = thisThreadEdgeMarkerIntervals[i];
-            markerGraphConnectivity.edges.push_back(edge);
-            markerGraphConnectivity.edgeMarkerIntervals.appendVector();
+            markerGraph.edges.push_back(edge);
+            markerGraph.edgeMarkerIntervals.appendVector();
             for(auto edgeMarkerInterval: edgeMarkerIntervals) {
-                markerGraphConnectivity.edgeMarkerIntervals.append(edgeMarkerInterval);
+                markerGraph.edgeMarkerIntervals.append(edgeMarkerInterval);
             }
         }
         thisThreadEdges.remove();
         thisThreadEdgeMarkerIntervals.remove();
     }
-    CZI_ASSERT(markerGraphConnectivity.edges.size() == markerGraphConnectivity.edgeMarkerIntervals.size());
-    cout << timestamp << "Found " << markerGraphConnectivity.edges.size();
+    CZI_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
+    cout << timestamp << "Found " << markerGraph.edges.size();
     cout << " edges for " << globalMarkerGraphVertices.size() << " vertices." << endl;
 
 
 
     // Now we need to create edgesBySource and edgesByTarget.
-    markerGraphConnectivity.edgesBySource.createNew(
+    markerGraph.edgesBySource.createNew(
         largeDataName("GlobalMarkerGraphEdgesBySource"),
         largeDataPageSize);
-    markerGraphConnectivity.edgesByTarget.createNew(
+    markerGraph.edgesByTarget.createNew(
         largeDataName("GlobalMarkerGraphEdgesByTarget"),
         largeDataPageSize);
 
     cout << timestamp << "Pass 1 begins." << endl;
-    markerGraphConnectivity.edgesBySource.beginPass1(globalMarkerGraphVertices.size());
-    markerGraphConnectivity.edgesByTarget.beginPass1(globalMarkerGraphVertices.size());
-    setupLoadBalancing(markerGraphConnectivity.edges.size(), 100000);
+    markerGraph.edgesBySource.beginPass1(globalMarkerGraphVertices.size());
+    markerGraph.edgesByTarget.beginPass1(globalMarkerGraphVertices.size());
+    setupLoadBalancing(markerGraph.edges.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction1, threadCount);
 
     cout << timestamp << "Pass 2 begins." << endl;
-    markerGraphConnectivity.edgesBySource.beginPass2();
-    markerGraphConnectivity.edgesByTarget.beginPass2();
-    setupLoadBalancing(markerGraphConnectivity.edges.size(), 100000);
+    markerGraph.edgesBySource.beginPass2();
+    markerGraph.edgesByTarget.beginPass2();
+    setupLoadBalancing(markerGraph.edges.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction2, threadCount);
-    markerGraphConnectivity.edgesBySource.endPass2();
-    markerGraphConnectivity.edgesByTarget.endPass2();
+    markerGraph.edgesBySource.endPass2();
+    markerGraph.edgesByTarget.endPass2();
 
     cout << timestamp << "createMarkerGraphEdges ends." << endl;
 }
@@ -1771,10 +1771,10 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
     ostream& out = getLog(threadId);
 
     // Create the vector to contain the edges found by this thread.
-    shared_ptr< MemoryMapped::Vector<MarkerGraphConnectivity::Edge> > thisThreadEdgesPointer =
-        make_shared< MemoryMapped::Vector<MarkerGraphConnectivity::Edge> >();
-    markerGraphConnectivity.threadEdges[threadId] = thisThreadEdgesPointer;
-    MemoryMapped::Vector<MarkerGraphConnectivity::Edge>& thisThreadEdges = *thisThreadEdgesPointer;
+    shared_ptr< MemoryMapped::Vector<MarkerGraph::Edge> > thisThreadEdgesPointer =
+        make_shared< MemoryMapped::Vector<MarkerGraph::Edge> >();
+    markerGraph.threadEdges[threadId] = thisThreadEdgesPointer;
+    MemoryMapped::Vector<MarkerGraph::Edge>& thisThreadEdges = *thisThreadEdgesPointer;
     thisThreadEdges.createNew(
             largeDataName("tmp-ThreadGlobalMarkerGraphEdges-" + to_string(threadId)),
             largeDataPageSize);
@@ -1783,7 +1783,7 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
     shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> >
         thisThreadEdgeMarkerIntervalsPointer =
         make_shared< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> >();
-    markerGraphConnectivity.threadEdgeMarkerIntervals[threadId] = thisThreadEdgeMarkerIntervalsPointer;
+    markerGraph.threadEdgeMarkerIntervals[threadId] = thisThreadEdgeMarkerIntervalsPointer;
     MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t>&
         thisThreadEdgeMarkerIntervals = *thisThreadEdgeMarkerIntervalsPointer;
     thisThreadEdgeMarkerIntervals.createNew(
@@ -1793,7 +1793,7 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
     // Some things used inside the loop but defined here for performance.
     vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > children;
     vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> > workArea;
-    MarkerGraphConnectivity::Edge edge;
+    MarkerGraph::Edge edge;
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -1851,13 +1851,13 @@ void Assembler::createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t p
 
         // Loop over all marker graph edges assigned to this batch.
         for(uint64_t i=begin; i!=end; ++i) {
-            const auto& edge = markerGraphConnectivity.edges[i];
+            const auto& edge = markerGraph.edges[i];
             if(pass == 1) {
-                markerGraphConnectivity.edgesBySource.incrementCountMultithreaded(edge.source);
-                markerGraphConnectivity.edgesByTarget.incrementCountMultithreaded(edge.target);
+                markerGraph.edgesBySource.incrementCountMultithreaded(edge.source);
+                markerGraph.edgesByTarget.incrementCountMultithreaded(edge.target);
             } else {
-                markerGraphConnectivity.edgesBySource.storeMultithreaded(edge.source, Uint40(i));
-                markerGraphConnectivity.edgesByTarget.storeMultithreaded(edge.target, Uint40(i));
+                markerGraph.edgesBySource.storeMultithreaded(edge.source, Uint40(i));
+                markerGraph.edgesByTarget.storeMultithreaded(edge.target, Uint40(i));
             }
         }
     }
@@ -1868,17 +1868,17 @@ void Assembler::createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t p
 void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
 {
     if(accessEdgesReadWrite) {
-        markerGraphConnectivity.edges.accessExistingReadWrite(
+        markerGraph.edges.accessExistingReadWrite(
             largeDataName("GlobalMarkerGraphEdges"));
     } else {
-        markerGraphConnectivity.edges.accessExistingReadOnly(
+        markerGraph.edges.accessExistingReadOnly(
             largeDataName("GlobalMarkerGraphEdges"));
     }
-    markerGraphConnectivity.edgeMarkerIntervals.accessExistingReadOnly(
+    markerGraph.edgeMarkerIntervals.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
-    markerGraphConnectivity.edgesBySource.accessExistingReadOnly(
+    markerGraph.edgesBySource.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesBySource"));
-    markerGraphConnectivity.edgesByTarget.accessExistingReadOnly(
+    markerGraph.edgesByTarget.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesByTarget"));
 }
 
@@ -1886,16 +1886,16 @@ void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
 
 void Assembler::checkMarkerGraphEdgesIsOpen()
 {
-    CZI_ASSERT(markerGraphConnectivity.edges.isOpen);
-    CZI_ASSERT(markerGraphConnectivity.edgesBySource.isOpen());
-    CZI_ASSERT(markerGraphConnectivity.edgesByTarget.isOpen());
+    CZI_ASSERT(markerGraph.edges.isOpen);
+    CZI_ASSERT(markerGraph.edgesBySource.isOpen());
+    CZI_ASSERT(markerGraph.edgesByTarget.isOpen());
 }
 
 
 
 // Locate the edge given the vertices.
-const Assembler::MarkerGraphConnectivity::Edge*
-    Assembler::MarkerGraphConnectivity::findEdge(Uint40 source, Uint40 target) const
+const Assembler::MarkerGraph::Edge*
+    Assembler::MarkerGraph::findEdge(Uint40 source, Uint40 target) const
 {
     const auto edgesWithThisSource = edgesBySource[source];
     for(const uint64_t i: edgesWithThisSource) {
@@ -1932,10 +1932,10 @@ void Assembler::flagMarkerGraphWeakEdges(
 {
     cout << timestamp << "Flagging weak edges of the marker graph." << endl;
     cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
-    cout << markerGraphConnectivity.edges.size() << " edges." << endl;
+    cout << markerGraph.edges.size() << " edges." << endl;
 
     // Initially flag all edges as strong.
-    auto& edges = markerGraphConnectivity.edges;
+    auto& edges = markerGraph.edges;
     for(auto& edge: edges) {
         edge.isWeak = 0;
     }
@@ -1948,14 +1948,14 @@ void Assembler::flagMarkerGraphWeakEdges(
             largeDataPageSize);
     edgesByCoverage.beginPass1(highCoverageThreshold);
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
-        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.incrementCount(edge.coverage);
         }
     }
     edgesByCoverage.beginPass2();
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
-        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.store(edge.coverage, edgeId);
         }
@@ -1998,16 +1998,16 @@ void Assembler::flagMarkerGraphWeakEdges(
 
     // Count the number of edges that were flagged as weak.
     uint64_t weakEdgeCount = 0;;
-    for(const auto& edge: markerGraphConnectivity.edges) {
+    for(const auto& edge: markerGraph.edges) {
         if(edge.isWeak) {
             ++weakEdgeCount;
         }
     }
     cout << "Marked as weak " << weakEdgeCount << " marker graph edges out of ";
-    cout << markerGraphConnectivity.edges.size() << " total." << endl;
+    cout << markerGraph.edges.size() << " total." << endl;
 
     cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
-    cout << markerGraphConnectivity.edges.size()-weakEdgeCount << " strong edges." << endl;
+    cout << markerGraph.edges.size()-weakEdgeCount << " strong edges." << endl;
 
     cout << timestamp << "Done flagging weak edges of the marker graph." << endl;
 }
@@ -2023,10 +2023,10 @@ void Assembler::flagMarkerGraphWeakEdges(
     size_t maxDistance)
 {
     // Some shorthands for readability.
-    auto& edges = markerGraphConnectivity.edges;
+    auto& edges = markerGraph.edges;
     using VertexId = GlobalMarkerGraphVertexId;
     using EdgeId = GlobalMarkerGraphEdgeId;
-    using Edge = MarkerGraphConnectivity::Edge;
+    using Edge = MarkerGraph::Edge;
 
     // Initial message.
     cout << timestamp << "Flagging weak edges of the marker graph "
@@ -2046,14 +2046,14 @@ void Assembler::flagMarkerGraphWeakEdges(
             largeDataPageSize);
     edgesByCoverage.beginPass1(highCoverageThreshold);
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
-        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.incrementCount(edge.coverage);
         }
     }
     edgesByCoverage.beginPass2();
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
-        const MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+        const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.store(edge.coverage, edgeId);
         }
@@ -2132,11 +2132,11 @@ void Assembler::flagMarkerGraphWeakEdges(
                 q.pop();
                 const int distance0 = vertexDistances[v0];
                 const int distance1 = distance0 + 1;
-                for(const auto edgeId01: markerGraphConnectivity.edgesBySource[v0]) {
+                for(const auto edgeId01: markerGraph.edgesBySource[v0]) {
                     if(edgeId01 == edgeId) {
                         continue;
                     }
-                    const Edge& edge01 = markerGraphConnectivity.edges[edgeId01];
+                    const Edge& edge01 = markerGraph.edges[edgeId01];
                     if(edge01.isWeak) {
                         continue;
                     }
@@ -2201,16 +2201,16 @@ void Assembler::flagMarkerGraphWeakEdges(
 
     // Count the number of edges that were flagged as weak.
     uint64_t weakEdgeCount = 0;;
-    for(const auto& edge: markerGraphConnectivity.edges) {
+    for(const auto& edge: markerGraph.edges) {
         if(edge.isWeak) {
             ++weakEdgeCount;
         }
     }
     cout << "Flagged as weak " << weakEdgeCount << " marker graph edges out of ";
-    cout << markerGraphConnectivity.edges.size() << " total." << endl;
+    cout << markerGraph.edges.size() << " total." << endl;
 
     cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
-    cout << markerGraphConnectivity.edges.size()-weakEdgeCount << " strong edges." << endl;
+    cout << markerGraph.edges.size()-weakEdgeCount << " strong edges." << endl;
 
     cout << timestamp << "Done flagging weak edges of the marker graph." << endl;
 }
@@ -2233,10 +2233,10 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
 {
 
     // Some shorthands for clarity.
-    auto& edges = markerGraphConnectivity.edges;
+    auto& edges = markerGraph.edges;
     using VertexId = GlobalMarkerGraphVertexId;
     using EdgeId = GlobalMarkerGraphEdgeId;
-    using Edge = MarkerGraphConnectivity::Edge;
+    using Edge = MarkerGraph::Edge;
 
     // Check that the work areas are sized as expected.
     for(size_t i=0; i<2; i++) {
@@ -2279,7 +2279,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
                 // cout << "VertexId0 " << vertexId0 << endl;
 
                 // Loop over children.
-                auto childEdgeIds = markerGraphConnectivity.edgesBySource[vertexId0];
+                auto childEdgeIds = markerGraph.edgesBySource[vertexId0];
                 for(EdgeId edgeId: childEdgeIds) {
                     if(edgeId == startEdgeId) {
                         continue;
@@ -2316,7 +2316,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
                 }
 
                 // Loop over parents.
-                auto parentEdgeIds = markerGraphConnectivity.edgesByTarget[vertexId0];
+                auto parentEdgeIds = markerGraph.edgesByTarget[vertexId0];
                 for(EdgeId edgeId: parentEdgeIds) {
                     if(edgeId == startEdgeId) {
                         continue;
@@ -2395,7 +2395,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
     checkMarkerGraphEdgesIsOpen();
 
     // Get the number of edges.
-    auto& edges = markerGraphConnectivity.edges;
+    auto& edges = markerGraph.edges;
     const EdgeId edgeCount = edges.size();
 
     // Flags to mark edges to prune at each iteration.
@@ -2407,7 +2407,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
     fill(edgesToBePruned.begin(), edgesToBePruned.end(), false);
 
     // Clear the wasPruned flag of all edges.
-    for(MarkerGraphConnectivity::Edge& edge: edges) {
+    for(MarkerGraph::Edge& edge: edges) {
         edge.wasPruned = 0;
     }
 
@@ -2419,7 +2419,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
 
         // Find the edges to be pruned at each iteration.
         for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
-            MarkerGraphConnectivity::Edge& edge = edges[edgeId];
+            MarkerGraph::Edge& edge = edges[edgeId];
             if(edge.isWeak) {
                 continue;
             }
@@ -2454,7 +2454,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
 
     // Count the number of surviving edges in the pruned strong subgraph.
     size_t count = 0;
-    for(MarkerGraphConnectivity::Edge& edge: edges) {
+    for(MarkerGraph::Edge& edge: edges) {
         if(!edge.isWeak && !edge.wasPruned) {
             ++count;
         }
@@ -2472,9 +2472,9 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
 // A backward leaf is a vertex with in-degree 0.
 bool Assembler::isForwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId vertexId) const
 {
-    const auto& forwardEdges = markerGraphConnectivity.edgesBySource[vertexId];
+    const auto& forwardEdges = markerGraph.edgesBySource[vertexId];
     for(const auto& edgeId: forwardEdges) {
-        const auto& edge = markerGraphConnectivity.edges[edgeId];
+        const auto& edge = markerGraph.edges[edgeId];
         if(!edge.isWeak && !edge.wasPruned) {
             return false;   // We found a forward edge, so this is not a forward leaf.
         }
@@ -2484,9 +2484,9 @@ bool Assembler::isForwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraph
 }
 bool Assembler::isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId vertexId) const
 {
-    const auto& backwardEdges = markerGraphConnectivity.edgesByTarget[vertexId];
+    const auto& backwardEdges = markerGraph.edgesByTarget[vertexId];
     for(const auto& edgeId: backwardEdges) {
-        const auto& edge = markerGraphConnectivity.edges[edgeId];
+        const auto& edge = markerGraph.edges[edgeId];
         if(!edge.isWeak && !edge.wasPruned) {
             return false;   // We found a backward edge, so this is not a backward leaf.
         }
@@ -2505,8 +2505,8 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
 {
     // Some shorthands.
     using EdgeId = GlobalMarkerGraphEdgeId;
-    using Edge = MarkerGraphConnectivity::Edge;
-    const auto& edges = markerGraphConnectivity.edges;
+    using Edge = MarkerGraph::Edge;
+    const auto& edges = markerGraph.edges;
 
     // Check that the edge we were passed belongs to the
     // pruned spanning subgraph of the marker graph.
@@ -2525,7 +2525,7 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
 
     // Loop over all edges following it.
     EdgeId nextEdgeId = invalidGlobalMarkerGraphEdgeId;
-    for(const EdgeId edgeId1: markerGraphConnectivity.edgesBySource[edge0.target]) {
+    for(const EdgeId edgeId1: markerGraph.edgesBySource[edge0.target]) {
         const Edge& edge1 = edges[edgeId1];
 
         // Skip the edge if it is not part of the
@@ -2565,8 +2565,8 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
 
     // Some shorthands.
     using EdgeId = GlobalMarkerGraphEdgeId;
-    using Edge = MarkerGraphConnectivity::Edge;
-    const auto& edges = markerGraphConnectivity.edges;
+    using Edge = MarkerGraph::Edge;
+    const auto& edges = markerGraph.edges;
 
     // Check that the edge we were passed belongs to the
     // pruned spanning subgraph of the marker graph.
@@ -2585,7 +2585,7 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
 
     // Loop over all edges preceding it.
     EdgeId previousEdgeId = invalidGlobalMarkerGraphEdgeId;
-    for(const EdgeId edgeId1: markerGraphConnectivity.edgesByTarget[edge0.source]) {
+    for(const EdgeId edgeId1: markerGraph.edgesByTarget[edge0.source]) {
         const Edge& edge1 = edges[edgeId1];
         if(debug) {
             cout << "Found " << edgeId1 << " " << edge1.source << "->" << edge1.target << endl;
@@ -2636,8 +2636,8 @@ size_t Assembler::markerGraphPrunedStrongSubgraphOutDegree(
     GlobalMarkerGraphVertexId vertexId) const
 {
     size_t outDegree = 0;
-    for(const auto edgeId: markerGraphConnectivity.edgesBySource[vertexId]) {
-        const auto& edge = markerGraphConnectivity.edges[edgeId];
+    for(const auto edgeId: markerGraph.edgesBySource[vertexId]) {
+        const auto& edge = markerGraph.edges[edgeId];
         if(!edge.isWeak && !edge.wasPruned) {
             ++outDegree;
         }
@@ -2648,8 +2648,8 @@ size_t Assembler::markerGraphPrunedStrongSubgraphInDegree(
     GlobalMarkerGraphVertexId vertexId) const
 {
     size_t inDegree = 0;
-    for(const auto edgeId: markerGraphConnectivity.edgesByTarget[vertexId]) {
-        const auto& edge = markerGraphConnectivity.edges[edgeId];
+    for(const auto edgeId: markerGraph.edgesByTarget[vertexId]) {
+        const auto& edge = markerGraph.edges[edgeId];
         if(!edge.isWeak && !edge.wasPruned) {
             ++inDegree;
         }
@@ -2737,7 +2737,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
     // Access the markerIntervals for this edge.
     // Each corresponds to an oriented read on this edge.
     const MemoryAsContainer<MarkerInterval> markerIntervals =
-        markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+        markerGraph.edgeMarkerIntervals[edgeId];
     const size_t markerCount = markerIntervals.size();
 
     // Initialize a seqan alignment.
@@ -2840,7 +2840,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // Access the markerIntervals for this edge.
     // Each corresponds to an oriented read on this edge.
     const MemoryAsContainer<MarkerInterval> markerIntervals =
-        markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+        markerGraph.edgeMarkerIntervals[edgeId];
     const size_t markerCount = markerIntervals.size();
 
     // Initialize a spoa alignment.

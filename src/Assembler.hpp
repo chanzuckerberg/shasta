@@ -826,9 +826,9 @@ private:
 
 
 
-    // Marker graph connectivity.
+    // Marker graph.
     // Also contains temporary data used by createMarkerGraphEdges.
-    class MarkerGraphConnectivity {
+    class MarkerGraph {
     public:
 
         // The edges of the marker graph.
@@ -890,7 +890,7 @@ private:
         MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
 
     };
-    MarkerGraphConnectivity markerGraphConnectivity;
+    MarkerGraph markerGraph;
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
     void createMarkerGraphEdgesThreadFunction1(size_t threadId);
     void createMarkerGraphEdgesThreadFunction2(size_t threadId);

@@ -1364,25 +1364,25 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         "<input type=submit value='Show details for marker graph edge'> "
         "<input type=text name=edgeId required" <<
         (edgeIdIsPresent ? (" value=" + to_string(edgeId)) : "") <<
-        " size=8 title='Enter an edge id between 0 and " << markerGraphConnectivity.edges.size()-1 << "'>";
+        " size=8 title='Enter an edge id between 0 and " << markerGraph.edges.size()-1 << "'>";
     html << "</form>";
 
     // If the edge id missing or invalid, stop here.
     if(!edgeIdIsPresent || !edgeIdIsPresent) {
         return;
     }
-    if(edgeId >= markerGraphConnectivity.edges.size()) {
-        html << "<p>Invalid edge id. Must be less than " << markerGraphConnectivity.edges.size() << ".";
+    if(edgeId >= markerGraph.edges.size()) {
+        html << "<p>Invalid edge id. Must be less than " << markerGraph.edges.size() << ".";
         return;
     }
 
     // Access the edge.
-    const MarkerGraphConnectivity::Edge& edge = markerGraphConnectivity.edges[edgeId];
+    const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
     array<GlobalMarkerGraphVertexId, 2> vertexIds = {edge.source, edge.target};
     const size_t markerCount = edge.coverage;
 
     // The marker intervals of this edge.
-    const MemoryAsContainer<MarkerInterval> markerIntervals = markerGraphConnectivity.edgeMarkerIntervals[edgeId];
+    const MemoryAsContainer<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
     CZI_ASSERT(markerIntervals.size() == markerCount);
 
     // The length of each marker sequence.

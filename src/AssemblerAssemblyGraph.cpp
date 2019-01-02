@@ -33,13 +33,13 @@ void Assembler::createAssemblyGraphVertices()
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
-    const auto& edges = markerGraphConnectivity.edges;
+    const auto& edges = markerGraph.edges;
 
     // Flag to control debug output.
     const bool debug = false;
 
     // Vector used to keep track of edges that were already found.
-    const EdgeId edgeCount = markerGraphConnectivity.edges.size();
+    const EdgeId edgeCount = markerGraph.edges.size();
     MemoryMapped::Vector<bool> wasFound;
     wasFound.createNew(
         largeDataName("tmp-createAssemblyGraphVertices-wasFound"),
@@ -156,7 +156,7 @@ void Assembler::createAssemblyGraphVertices()
     // Check that only and all edges of the pruned strong subgraph of the marker graph
     // were found.
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
-        const auto& edge = markerGraphConnectivity.edges[edgeId];
+        const auto& edge = markerGraph.edges[edgeId];
         if(edge.isWeak || edge.wasPruned) {
             CZI_ASSERT(!wasFound[edgeId]);
         } else {
@@ -249,8 +249,8 @@ void Assembler::createAssemblyGraphEdges()
         const auto chain = vertices[v];
         CZI_ASSERT(chain.size() > 0);
         const EdgeId firstChainEdgeId = *(chain.begin());
-        const MarkerGraphConnectivity::Edge& firstChainEdge =
-            markerGraphConnectivity.edges[firstChainEdgeId];
+        const MarkerGraph::Edge& firstChainEdge =
+            markerGraph.edges[firstChainEdgeId];
         const VertexId u = firstChainEdge.source;
         vertexMap[u].push_back(v);
     }
@@ -266,8 +266,8 @@ void Assembler::createAssemblyGraphEdges()
         const auto chain = vertices[v0];
         CZI_ASSERT(chain.size() > 0);
         const EdgeId lastChainEdgeId = chain[chain.size()-1];
-        const MarkerGraphConnectivity::Edge& lastChainEdge =
-            markerGraphConnectivity.edges[lastChainEdgeId];
+        const MarkerGraph::Edge& lastChainEdge =
+            markerGraph.edges[lastChainEdgeId];
         const VertexId u = lastChainEdge.target;
 
         // Looking up the map gives the children of this assembly graph vertex.
@@ -974,12 +974,12 @@ void Assembler::assembleAssemblyGraphVertex(
     vector<GlobalMarkerGraphVertexId> vertexIds;
     vertexIds.reserve(vertexCount);
     for(const GlobalMarkerGraphEdgeId edgeId: edgeIds) {
-        const MarkerGraphConnectivity::Edge& edge =
-            markerGraphConnectivity.edges[edgeId];
+        const MarkerGraph::Edge& edge =
+            markerGraph.edges[edgeId];
         vertexIds.push_back(edge.source);
     }
-    const MarkerGraphConnectivity::Edge& lastEdge =
-        markerGraphConnectivity.edges[edgeIds[edgeIds.size()-1]];
+    const MarkerGraph::Edge& lastEdge =
+        markerGraph.edges[edgeIds[edgeIds.size()-1]];
     vertexIds.push_back(lastEdge.target);
 
     // Vertex coverage.
@@ -991,7 +991,7 @@ void Assembler::assembleAssemblyGraphVertex(
     // Edge coverage.
     vector<uint32_t> edgeCoverage(edgeCount);
     for(size_t i=0; i<edgeCount; i++) {
-        edgeCoverage[i] = uint32_t(markerGraphConnectivity.edgeMarkerIntervals.size(edgeIds[i]));
+        edgeCoverage[i] = uint32_t(markerGraph.edgeMarkerIntervals.size(edgeIds[i]));
     }
 
 
@@ -1270,8 +1270,8 @@ void Assembler::assembleAssemblyGraphVertex(
 
             // Edge.
             const GlobalMarkerGraphEdgeId edgeId = edgeIds[i];
-            const MarkerGraphConnectivity::Edge& edge =
-                markerGraphConnectivity.edges[edgeId];
+            const MarkerGraph::Edge& edge =
+                markerGraph.edges[edgeId];
             const string sourceUrl = urlPrefix + to_string(edge.source) + urlSuffix;
             const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
             const vector<Base>& edgeSequence = edgeSequences[i];
