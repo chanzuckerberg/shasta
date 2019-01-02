@@ -86,7 +86,7 @@ a.createMarkerGraphVertices(
     maxCoverage = int(config['MarkerGraph']['maxCoverage']))
 
 # Create edges of the marker graph.
-a.createMarkerGraphConnectivity()
+a.createMarkerGraphEdges()
 
 a.flagMarkerGraphWeakEdges(
     lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),

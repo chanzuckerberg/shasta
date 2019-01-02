@@ -275,11 +275,11 @@ PYBIND11_MODULE(shasta, module)
 
 
         // Connectivity of the global marker graph.
-        .def("createMarkerGraphConnectivity",
-             &Assembler::createMarkerGraphConnectivity,
+        .def("createMarkerGraphEdges",
+             &Assembler::createMarkerGraphEdges,
              arg("threadCount") = 0)
-         .def("accessMarkerGraphConnectivity",
-              &Assembler::accessMarkerGraphConnectivity,
+         .def("accessMarkerGraphEdges",
+              &Assembler::accessMarkerGraphEdges,
               arg("accessEdgesReadWrite") = false)
          .def("flagMarkerGraphWeakEdges",
               &Assembler::flagMarkerGraphWeakEdges,

@@ -319,11 +319,10 @@ public:
 
 
 
-    // Compute connectivity of the global marker graph.
-    // Vertices with more than markerCountOverflow vertices are skipped.
-    void createMarkerGraphConnectivity(size_t threadCount);
-    void accessMarkerGraphConnectivity(bool accessEdgesReadWrite);
-    void checkMarkerGraphConnectivityIsOpen();
+    // Create edges of the global marker graph.
+    void createMarkerGraphEdges(size_t threadCount);
+    void accessMarkerGraphEdges(bool accessEdgesReadWrite);
+    void checkMarkerGraphEdgesIsOpen();
 
     // Find weak edges in the marker graph.
     void flagMarkerGraphWeakEdges(
@@ -828,7 +827,7 @@ private:
 
 
     // Marker graph connectivity.
-    // Also contains temporary data used by createMarkerGraphConnectivity.
+    // Also contains temporary data used by createMarkerGraphEdges.
     class MarkerGraphConnectivity {
     public:
 
@@ -892,10 +891,10 @@ private:
 
     };
     MarkerGraphConnectivity markerGraphConnectivity;
-    void createMarkerGraphConnectivityThreadFunction0(size_t threadId);
-    void createMarkerGraphConnectivityThreadFunction1(size_t threadId);
-    void createMarkerGraphConnectivityThreadFunction2(size_t threadId);
-    void createMarkerGraphConnectivityThreadFunction12(size_t threadId, size_t pass);
+    void createMarkerGraphEdgesThreadFunction0(size_t threadId);
+    void createMarkerGraphEdgesThreadFunction1(size_t threadId);
+    void createMarkerGraphEdgesThreadFunction2(size_t threadId);
+    void createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t pass);
 
 
 

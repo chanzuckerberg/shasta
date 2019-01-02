@@ -32,7 +32,7 @@ void Assembler::createAssemblyGraphVertices()
 
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
-    checkMarkerGraphConnectivityIsOpen();
+    checkMarkerGraphEdgesIsOpen();
     const auto& edges = markerGraphConnectivity.edges;
 
     // Flag to control debug output.
@@ -227,7 +227,7 @@ void Assembler::createAssemblyGraphEdges()
     // Check that we have what we need.
     auto& vertices = assemblyGraph.vertices;
     CZI_ASSERT(vertices.isOpen());
-    checkMarkerGraphConnectivityIsOpen();
+    checkMarkerGraphEdgesIsOpen();
 
     // Shorthands for vertex and edge ids.
     using VertexId = AssemblyGraph::VertexId;
@@ -329,7 +329,7 @@ void Assembler::assemble(size_t threadCount)
     checkReadsAreOpen();
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
-    checkMarkerGraphConnectivityIsOpen();
+    checkMarkerGraphEdgesIsOpen();
     CZI_ASSERT(assemblyGraph.vertices.isOpen());
 
     // Adjust the numbers of threads, if necessary.

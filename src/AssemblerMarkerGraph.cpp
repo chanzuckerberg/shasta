@@ -1404,7 +1404,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     )
 {
     // Sanity check.
-    checkMarkerGraphConnectivityIsOpen();
+    checkMarkerGraphEdgesIsOpen();
 
     // Some shorthands.
     using vertex_descriptor = LocalMarkerGraph::vertex_descriptor;
@@ -1684,11 +1684,10 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
 
 
 
-// Compute connectivity of the global marker graph.
-// Vertices with more than markerCountOverflow vertices are skipped.
-void Assembler::createMarkerGraphConnectivity(size_t threadCount)
+// Compute edges of the global marker graph.
+void Assembler::createMarkerGraphEdges(size_t threadCount)
 {
-    cout << timestamp << "createMarkerGraphConnectivity begins." << endl;
+    cout << timestamp << "createMarkerGraphEdges begins." << endl;
 
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
@@ -1705,8 +1704,8 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
     cout << timestamp << "Processing " << globalMarkerGraphVertices.size();
     cout << " marker graph vertices." << endl;
     setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
-    runThreads(&Assembler::createMarkerGraphConnectivityThreadFunction0, threadCount,
-        "threadLogs/createMarkerGraphConnectivity0");
+    runThreads(&Assembler::createMarkerGraphEdgesThreadFunction0, threadCount,
+        "threadLogs/createMarkerGraphEdges0");
 
     // Combine the edges found by each thread.
     cout << timestamp << "Combining the edges found by each thread." << endl;
@@ -1746,26 +1745,26 @@ void Assembler::createMarkerGraphConnectivity(size_t threadCount)
         largeDataName("GlobalMarkerGraphEdgesByTarget"),
         largeDataPageSize);
 
-    cout << timestamp << "Creating connectivity: pass 1 begins." << endl;
+    cout << timestamp << "Pass 1 begins." << endl;
     markerGraphConnectivity.edgesBySource.beginPass1(globalMarkerGraphVertices.size());
     markerGraphConnectivity.edgesByTarget.beginPass1(globalMarkerGraphVertices.size());
     setupLoadBalancing(markerGraphConnectivity.edges.size(), 100000);
-    runThreads(&Assembler::createMarkerGraphConnectivityThreadFunction1, threadCount);
+    runThreads(&Assembler::createMarkerGraphEdgesThreadFunction1, threadCount);
 
-    cout << timestamp << "Creating connectivity: pass 2 begins." << endl;
+    cout << timestamp << "Pass 2 begins." << endl;
     markerGraphConnectivity.edgesBySource.beginPass2();
     markerGraphConnectivity.edgesByTarget.beginPass2();
     setupLoadBalancing(markerGraphConnectivity.edges.size(), 100000);
-    runThreads(&Assembler::createMarkerGraphConnectivityThreadFunction2, threadCount);
+    runThreads(&Assembler::createMarkerGraphEdgesThreadFunction2, threadCount);
     markerGraphConnectivity.edgesBySource.endPass2();
     markerGraphConnectivity.edgesByTarget.endPass2();
 
-    cout << timestamp << "createMarkerGraphConnectivity ends." << endl;
+    cout << timestamp << "createMarkerGraphEdges ends." << endl;
 }
 
 
 
-void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
+void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
 {
     using std::shared_ptr;
     using std::make_shared;
@@ -1834,15 +1833,15 @@ void Assembler::createMarkerGraphConnectivityThreadFunction0(size_t threadId)
 
 
 
-void Assembler::createMarkerGraphConnectivityThreadFunction1(size_t threadId)
+void Assembler::createMarkerGraphEdgesThreadFunction1(size_t threadId)
 {
-    createMarkerGraphConnectivityThreadFunction12(threadId, 1);
+    createMarkerGraphEdgesThreadFunction12(threadId, 1);
 }
-void Assembler::createMarkerGraphConnectivityThreadFunction2(size_t threadId)
+void Assembler::createMarkerGraphEdgesThreadFunction2(size_t threadId)
 {
-    createMarkerGraphConnectivityThreadFunction12(threadId, 2);
+    createMarkerGraphEdgesThreadFunction12(threadId, 2);
 }
-void Assembler::createMarkerGraphConnectivityThreadFunction12(size_t threadId, size_t pass)
+void Assembler::createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t pass)
 {
     CZI_ASSERT(pass==1 || pass==2);
 
@@ -1866,7 +1865,7 @@ void Assembler::createMarkerGraphConnectivityThreadFunction12(size_t threadId, s
 }
 
 
-void Assembler::accessMarkerGraphConnectivity(bool accessEdgesReadWrite)
+void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
 {
     if(accessEdgesReadWrite) {
         markerGraphConnectivity.edges.accessExistingReadWrite(
@@ -1885,7 +1884,7 @@ void Assembler::accessMarkerGraphConnectivity(bool accessEdgesReadWrite)
 
 
 
-void Assembler::checkMarkerGraphConnectivityIsOpen()
+void Assembler::checkMarkerGraphEdgesIsOpen()
 {
     CZI_ASSERT(markerGraphConnectivity.edges.isOpen);
     CZI_ASSERT(markerGraphConnectivity.edgesBySource.isOpen());
@@ -2393,7 +2392,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
 
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
-    checkMarkerGraphConnectivityIsOpen();
+    checkMarkerGraphEdgesIsOpen();
 
     // Get the number of edges.
     auto& edges = markerGraphConnectivity.edges;

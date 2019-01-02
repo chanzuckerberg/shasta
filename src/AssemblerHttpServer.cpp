@@ -317,9 +317,9 @@ void Assembler::accessAllSoft()
     }
 
     try {
-        accessMarkerGraphConnectivity(false);
+        accessMarkerGraphEdges(false);
     } catch(exception e) {
-        cout << "Marker graph connectivity is not accessible." << endl;
+        cout << "Marker graph edges are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
