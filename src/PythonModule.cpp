@@ -274,21 +274,24 @@ PYBIND11_MODULE(shasta, module)
             arg("maxDistance"))
 
 
-        // Connectivity of the global marker graph.
+        // Edges of the global marker graph.
         .def("createMarkerGraphEdges",
-             &Assembler::createMarkerGraphEdges,
-             arg("threadCount") = 0)
-         .def("accessMarkerGraphEdges",
-              &Assembler::accessMarkerGraphEdges,
-              arg("accessEdgesReadWrite") = false)
-         .def("flagMarkerGraphWeakEdges",
-              &Assembler::flagMarkerGraphWeakEdges,
-              arg("lowCoverageThreshold"),
-              arg("highCoverageThreshold"),
-              arg("maxDistance"))
-         .def("pruneMarkerGraphStrongSubgraph",
-              &Assembler::pruneMarkerGraphStrongSubgraph,
-                 arg("iterationCount"))
+            &Assembler::createMarkerGraphEdges,
+            arg("threadCount") = 0)
+        .def("accessMarkerGraphEdges",
+            &Assembler::accessMarkerGraphEdges,
+            arg("accessEdgesReadWrite") = false)
+        .def("flagMarkerGraphWeakEdges",
+            &Assembler::flagMarkerGraphWeakEdges,
+            arg("lowCoverageThreshold"),
+            arg("highCoverageThreshold"),
+            arg("maxDistance"))
+        .def("pruneMarkerGraphStrongSubgraph",
+            &Assembler::pruneMarkerGraphStrongSubgraph,
+            arg("iterationCount"))
+        .def("removeMarkerGraphBubbles",
+            &Assembler::removeMarkerGraphBubbles,
+            arg("maxLength"))
 
 
 

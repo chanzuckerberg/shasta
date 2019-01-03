@@ -1064,6 +1064,14 @@ private:
 
 
 
+public:
+    // Remove short bubbles from the marker graph.
+    // The argument is the maximum length (number of edges)
+    // of a bubble branch to be considered for removal.
+    void removeMarkerGraphBubbles(size_t maxLength);
+private:
+
+
     // In the assembly graph, each vertex corresponds to a linear chain
     // of edges in the pruned strong subgraph of the marker graph.
     // A directed vertex A->B is created if the last marker graph vertex

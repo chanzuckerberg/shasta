@@ -2925,3 +2925,13 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         }
     }
 }
+
+
+
+// Remove short bubbles from the marker graph.
+// The argument is the maximum length (number of edges)
+// of a bubble branch to be considered for removal.
+void Assembler::removeMarkerGraphBubbles(size_t maxLength)
+{
+
+}
