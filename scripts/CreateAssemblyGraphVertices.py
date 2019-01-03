@@ -4,7 +4,7 @@ import shasta
 
 a = shasta.Assembler()
 a.accessMarkerGraphVertices()
-a.accessMarkerGraphConnectivity()
+a.accessMarkerGraphEdges()
 a.createAssemblyGraphVertices()
 
 
