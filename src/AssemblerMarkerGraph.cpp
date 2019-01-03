@@ -2940,10 +2940,13 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     createAssemblyGraphEdges();
     cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
 
+    // Vector to contain the new marker graph edges to be created.
+    vector< pair<GlobalMarkerGraphVertexId, GlobalMarkerGraphVertexId> > newEdges;
 
 
     // To find bubbles, loop over assembly graph vertices with out-degree > 1.
     size_t bubbleCount = 0;
+    size_t bubbleMarkerGraphEdgeCount = 0;
     for(AssemblyGraph::VertexId v0=0; v0<assemblyGraph.vertices.size(); v0++) {
 
         // Get the outgoing edges of v0.
@@ -3010,13 +3013,50 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
 
 
 
-        // If getting here, we wound a bubble that begins at v0 and ands at v2.
+        // If getting here, we found a bubble that begins at v0 and ands at v2.
+        CZI_ASSERT(v2 != AssemblyGraph::invalidVertexId);
         ++bubbleCount;
         const size_t degree = edgeIds01.size();
         cout << "Bubble between assembly graph vertices " << v0 << " " << v2;
         cout << " degree " << degree << endl;
+
+
+        // Mark edges of the marker graph that are internal to this bubble.
+        for(AssemblyGraph::EdgeId edgeId01: edgeIds01) {
+            const AssemblyGraph::Edge& edge01 = assemblyGraph.edges[edgeId01];
+            const AssemblyGraph::VertexId v1 = edge01.target;
+            const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds =
+                assemblyGraph.vertices[v1];
+            bubbleMarkerGraphEdgeCount += markerGraphEdgeIds.size();
+            for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdgeIds) {
+                markerGraph.edges[markerGraphEdgeId].isBubbleEdge = 1;
+            }
+        }
+
+
+
+        // The edges we just removed will be replaced with a single edge
+        // joining the last marker graph vertex of v0 with
+        // the first marker graph vertex of v2.
+        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds0 =
+            assemblyGraph.vertices[v0];
+        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds2 =
+            assemblyGraph.vertices[v2];
+        const GlobalMarkerGraphEdgeId lastMarkerGraphEdgeId0 =
+            markerGraphEdgeIds0[markerGraphEdgeIds0.size() - 1];
+        const GlobalMarkerGraphEdgeId firstMarkerGraphEdgeId2 =
+            markerGraphEdgeIds2[0];
+        const MarkerGraph::Edge& lastMarkerGraphEdge0 = markerGraph.edges[lastMarkerGraphEdgeId0];
+        const MarkerGraph::Edge& firstMarkerGraphEdge2 = markerGraph.edges[firstMarkerGraphEdgeId2];
+        newEdges.push_back(make_pair(lastMarkerGraphEdge0.target, firstMarkerGraphEdge2.source));
+
+        cout << "Source and target marker graph vertices: " <<
+            lastMarkerGraphEdge0.target<< " " << firstMarkerGraphEdge2.source << endl;
+
     }
     cout << "Found " << bubbleCount <<" bubbles to be removed." << endl;
+    cout << "Found " << bubbleMarkerGraphEdgeCount <<
+        " marker graph edges internals to bubbles to be removed." << endl;
 
 
 

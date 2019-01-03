@@ -844,8 +844,10 @@ private:
             // Set if this edge was pruned from the strong subgraph.
             uint8_t wasPruned : 1;
 
+            // Set if this edge was internal to a bubble to be removed.
+            uint8_t isBubbleEdge : 1;
+
             // The remaining flags are currently unused.
-            uint8_t flag2 : 1;
             uint8_t flag3 : 1;
             uint8_t flag4 : 1;
             uint8_t flag5 : 1;
@@ -855,7 +857,7 @@ private:
             {
                 isWeak = 0;
                 wasPruned = 0;
-                flag2 = 0;
+                isBubbleEdge = 0;
                 flag3 = 0;
                 flag4 = 0;
                 flag5 = 0;
