@@ -2940,6 +2940,86 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     createAssemblyGraphEdges();
     cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
 
+
+
+    // To find bubbles, loop over assembly graph vertices with out-degree > 1.
+    size_t bubbleCount = 0;
+    for(AssemblyGraph::VertexId v0=0; v0<assemblyGraph.vertices.size(); v0++) {
+
+        // Get the outgoing edges of v0.
+        const MemoryAsContainer<AssemblyGraph::EdgeId> edgeIds01 =
+            assemblyGraph.edgesBySource[v0];
+
+        // If 0 or 1 outgoing edges, this vertex cannot be the start of a bubble. Skip it.
+        if(edgeIds01.size() <= 1) {
+            continue;
+        }
+
+
+
+        // All of the child vertices must have in-degree and out-degree 1,
+        // and the same child v2.
+        bool isBubble = true;
+        AssemblyGraph::VertexId v2 = AssemblyGraph::invalidVertexId;
+        for(AssemblyGraph::EdgeId edgeId01: edgeIds01) {
+            const AssemblyGraph::Edge& edge01 = assemblyGraph.edges[edgeId01];
+            const AssemblyGraph::VertexId v1 = edge01.target;
+
+            // Check in-degree and out-degree of v1.
+            if(assemblyGraph.edgesBySource[v1].size() != 1) {
+                isBubble = false;
+                break;
+            }
+            if(assemblyGraph.edgesByTarget[v1].size() != 1) {
+                isBubble = false;
+                break;
+            }
+
+            // Get the one and only child of v1.
+            // Check that it is the same as for the previous v1.
+            const AssemblyGraph::EdgeId edgeId12 = assemblyGraph.edgesBySource[v1][0];
+            const AssemblyGraph::Edge& edge12 = assemblyGraph.edges[edgeId12];
+            const AssemblyGraph::VertexId v1Child = edge12.target;
+            if(v2 == AssemblyGraph::invalidVertexId) {
+                v2 = v1Child;
+            } else {
+                if(v1Child != v2) {
+                    isBubble = false;
+                    break;
+                }
+            }
+
+            // If this assembly graph vertex corresponds to too many marker graph edges,
+            // this bubble is too big and so we skip it.
+            if(assemblyGraph.vertices[v1].size() > maxLength) {
+                isBubble = false;
+                break;
+            }
+        }
+
+        // If we found that a bubble does not start at v0, skip.
+        if(!isBubble) {
+            continue;
+        }
+
+        // We also have to check that the in-degree of v2 is the
+        // same as the out-degree of v0.
+        if(edgeIds01.size() != assemblyGraph.edgesByTarget[v2].size()) {
+            continue;
+        }
+
+
+
+        // If getting here, we wound a bubble that begins at v0 and ands at v2.
+        ++bubbleCount;
+        const size_t degree = edgeIds01.size();
+        cout << "Bubble between assembly graph vertices " << v0 << " " << v2;
+        cout << " degree " << degree << endl;
+    }
+    cout << "Found " << bubbleCount <<" bubbles to be removed." << endl;
+
+
+
     // Remove the temporary assembly graph.
     // We will create the final one later, after bubble removal.
     assemblyGraph.remove();

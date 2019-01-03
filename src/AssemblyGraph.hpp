@@ -16,6 +16,9 @@ first marker graph vertex of the edge chain corresponding to B.
 #include "MarkerId.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 
+// Standard library.
+#include <limits>
+
 namespace ChanZuckerberg {
     namespace shasta {
         class AssemblyGraph;
@@ -31,6 +34,7 @@ public:
     // We could probably get away with 32 bits.
     using VertexId = GlobalMarkerGraphVertexId;
     using EdgeId = GlobalMarkerGraphEdgeId;
+    static const VertexId invalidVertexId = std::numeric_limits<VertexId>::max();
 
     // The edge ids of global marker graph edges of each vertex.
     // They describe the chain (path in the marker graph)
