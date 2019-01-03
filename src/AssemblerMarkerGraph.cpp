@@ -2934,4 +2934,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 void Assembler::removeMarkerGraphBubbles(size_t maxLength)
 {
 
+    // To facilitate locating the bubbles, create a temporary assembly graph.
+    cout << timestamp << "Creating a temporary assembly graph for bubble removal." << endl;
+    createAssemblyGraphVertices();
+    createAssemblyGraphEdges();
+    cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
+
+    // Remove the temporary assembly graph.
+    // We will create the final one later, after bubble removal.
+    assemblyGraph.remove();
+
 }

@@ -74,6 +74,9 @@ public:
     LongBaseSequences sequences;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> repeatCounts;
 
+    // Close and remove all open data.
+    void remove();
+
 };
 
 
