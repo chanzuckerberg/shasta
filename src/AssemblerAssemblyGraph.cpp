@@ -639,20 +639,20 @@ void Assembler::computeAssemblyStatistics()
 // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
 void Assembler::writeGfa1(const string& fileName)
 {
-    CZI_ASSERT(0);
+    using VertexId = AssemblyGraph::VertexId;
+    using EdgeId = AssemblyGraph::EdgeId;
 
-#if 0
     ofstream gfa(fileName);
 
     // Write the header line.
     gfa << "H\tVN:Z:1.0\n";
 
-    // Write a segment record for each vertex.
-    for(AssemblyGraph::VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
-        const auto sequence = assemblyGraph.sequences[vertexId];
-        const auto repeatCounts = assemblyGraph.repeatCounts[vertexId];
+    // Write a segment record for each edge.
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
+        const auto sequence = assemblyGraph.sequences[edgeId];
+        const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
         CZI_ASSERT(sequence.baseCount == repeatCounts.size());
-        gfa << "S\t" << vertexId << "\t";
+        gfa << "S\t" << edgeId << "\t";
         for(size_t i=0; i<sequence.baseCount; i++) {
             const Base b = sequence[i];
             const uint8_t repeatCount = repeatCounts[i];
@@ -665,40 +665,49 @@ void Assembler::writeGfa1(const string& fileName)
 
 
 
-    // Write a link for each edge.
+    // Write GFA links.
+    // For each vertex in the assembly graph there is a link for
+    // each combination of in-edges and out-edges.
+    // Therefore each assembly graph vertex generates a number of
+    // links equal to the product of its in-degree and out-degree.
     const size_t k = assemblerInfo->k;
     string cigarString;
-    for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
+    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
 
-        /// Locate the two vertices of this edge.
-        const AssemblyGraph::VertexId v0 = edge.source;
-        const AssemblyGraph::VertexId v1 = edge.target;
+        // In-edges.
+        const MemoryAsContainer<EdgeId> edges0 = assemblyGraph.edgesByTarget[vertexId];
 
-        // Locate the corresponding repeat counts.
-        const MemoryAsContainer<uint8_t> repeatCounts0 = assemblyGraph.repeatCounts[v0];
-        const MemoryAsContainer<uint8_t> repeatCounts1 = assemblyGraph.repeatCounts[v1];
+        // Out-edges.
+        const MemoryAsContainer<EdgeId> edges1 = assemblyGraph.edgesBySource[vertexId];
 
-        // Locate the last k repeat counts of v0 and the first k of v1.
-        const MemoryAsContainer<uint8_t> lastRepeatCounts0(
-            repeatCounts0.begin() + repeatCounts0.size() - k,
-            repeatCounts0.end());
-        const MemoryAsContainer<uint8_t> firstRepeatCounts1(
-            repeatCounts1.begin(),
-            repeatCounts1.begin() + k);
+        // Loop over combinations of in-edges and out-edges.
+        for(const EdgeId edge0: edges0) {
+            const MemoryAsContainer<uint8_t> repeatCounts0 = assemblyGraph.repeatCounts[edge0];
+            for(const EdgeId edge1: edges1) {
+                const MemoryAsContainer<uint8_t> repeatCounts1 = assemblyGraph.repeatCounts[edge1];
+
+                // Locate the last k repeat counts of v0 and the first k of v1.
+                const MemoryAsContainer<uint8_t> lastRepeatCounts0(
+                    repeatCounts0.begin() + repeatCounts0.size() - k,
+                    repeatCounts0.end());
+                const MemoryAsContainer<uint8_t> firstRepeatCounts1(
+                    repeatCounts1.begin(),
+                    repeatCounts1.begin() + k);
 
 
-        // Construct the cigar string.
-        constructCigarString(lastRepeatCounts0, firstRepeatCounts1, cigarString);
+                // Construct the cigar string.
+                constructCigarString(lastRepeatCounts0, firstRepeatCounts1, cigarString);
 
-        // Write out the link record for this edge.
-        gfa << "L\t" <<
-            v0 << "\t" <<
-            "+\t" <<
-            v1 << "\t" <<
-            "+\t" <<
-            cigarString << "\n";
+                // Write out the link record for this edge.
+                gfa << "L\t" <<
+                    edge0 << "\t" <<
+                    "+\t" <<
+                    edge1 << "\t" <<
+                    "+\t" <<
+                    cigarString << "\n";
+            }
+        }
     }
-#endif
 }
 
 
