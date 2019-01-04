@@ -1279,7 +1279,7 @@ private:
     void getLocalAssemblyGraphRequestParameters(
         const vector<string>&,
         LocalAssemblyGraphRequestParameters&) const;
-    void exploreAssemblyGraphVertex(const vector<string>&, ostream&);
+    void exploreAssemblyGraphEdge(const vector<string>&, ostream&);
 
 
     // The ConsensusCaller used to compute the "best"

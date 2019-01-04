@@ -201,41 +201,39 @@ bool Assembler::LocalAssemblyGraphRequestParameters::hasMissingRequiredParameter
 
 
 
-void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostream& html)
+void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream& html)
 {
-    html << "<h2>Show details about a vertex of the assembly graph</h2>";
-    CZI_ASSERT(0);
+    html << "<h2>Show details about an edge of the assembly graph</h2>";
 
-#if 0
     // Get the request parameters.
-    AssemblyGraph::VertexId vertexId = 0;
-    const bool vertexIdIsPresent = getParameterValue(
-        request, "vertexId", vertexId);
+    AssemblyGraph::EdgeId edgeId = 0;
+    const bool edgeIdIsPresent = getParameterValue(
+        request, "edgeId", edgeId);
     string showDetailsString;
     getParameterValue(request, "showDetails", showDetailsString);
     const bool showDetails = (showDetailsString == "on");
     cout << "showDetailsString " << showDetailsString << " " << int(showDetails) << endl;
 
-    // Write the form to get the vertex id.
+    // Write the form to get the edge id.
     html <<
         "<form>"
-        "<br>Assembly graph vertex id: <input type=text name=vertexId" <<
-        (vertexIdIsPresent ? (" value='" + to_string(vertexId)) + "'" : "") <<
-        " title='Enter an assembly graph vertex id between 0 and " << assemblyGraph.vertices.size()-1 << " inclusive'"
+        "<br>Assembly graph edge id: <input type=text name=edgeId" <<
+        (edgeIdIsPresent ? (" value='" + to_string(edgeId)) + "'" : "") <<
+        " title='Enter an assembly graph edge id between 0 and " << assemblyGraph.edges.size()-1 << " inclusive'"
         "><br>Show assembly details <input type=checkbox name=showDetails" <<
         (showDetails ? " checked=checked" : "") <<
         ">(this can be slow)<br><input type=submit value='Go'>"
         "</form>";
 
-    // If the vertex id is missing or invalid, don't do anything.
-    if(!vertexIdIsPresent) {
+    // If the edge id is missing or invalid, don't do anything.
+    if(!edgeIdIsPresent) {
         return;
     }
-    if(vertexId >= assemblyGraph.vertices.size()) {
+    if(edgeId >= assemblyGraph.edges.size()) {
         html <<
-            "<p>Invalid vertex id " << vertexId <<
-            ". Enter an assembly graph vertex id between 0 and " <<
-            assemblyGraph.vertices.size()-1 << " inclusive." << endl;
+            "<p>Invalid edge id " << edgeId <<
+            ". Enter an assembly graph edge id between 0 and " <<
+            assemblyGraph.edges.size()-1 << " inclusive." << endl;
         return;
     }
 
@@ -245,7 +243,7 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
     if(showDetails) {
         vector<Base> sequence;
         vector<uint32_t> repeatCounts;
-        assembleAssemblyGraphVertex(vertexId, sequence, repeatCounts, &html);
+        assembleAssemblyGraphEdge(edgeId, sequence, repeatCounts, &html);
     } else {
 
         // Assembly details were not requested but a global assembly
@@ -261,36 +259,18 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
             // Assembly details were not requested and a global assembly
             // is available. Get the sequence from the global assembly.
 
-            html << "<p>Add here the code to write assembled sequence.";
             // Write a title.
             html <<
-                "<h1>Assembly graph vertex <a href="
-                "'exploreAssemblyGraph?vertexId=" << vertexId <<
+                "<h1>Assembly graph edge <a href="
+                "'exploreAssemblyGraph?edgeId=" << edgeId <<
                 "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
-                vertexId << "</a></h1>";
-
-            // Write parent and child vertices in the assembly graph.
-            html << "<p>Parent vertices in the assembly graph:";
-            for(const auto parentEdge: assemblyGraph.edgesByTarget[vertexId]) {
-                const AssemblyGraph::VertexId parent = assemblyGraph.edges[parentEdge].source;
-                html <<
-                    " <a href='exploreAssemblyGraphVertex?vertexId=" << parent << "'>"
-                    << parent << "</a>";
-            }
-
-            html << "<p>Child vertices in the assembly graph:";
-            for(const auto childEdge: assemblyGraph.edgesBySource[vertexId]) {
-                const AssemblyGraph::VertexId child = assemblyGraph.edges[childEdge].target;
-                html <<
-                    " <a href='exploreAssemblyGraphVertex?vertexId=" << child << "'>"
-                    << child << "</a>";
-            }
+                edgeId << "</a></h1>";
 
 
 
             // Assembled run-length sequence.
-            const LongBaseSequenceView runLengthSequence = assemblyGraph.sequences[vertexId];
-            const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[vertexId];
+            const LongBaseSequenceView runLengthSequence = assemblyGraph.sequences[edgeId];
+            const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[edgeId];
             CZI_ASSERT(repeatCounts.size() == runLengthSequence.baseCount);
             html << "<p>Assembled run-length sequence (" << runLengthSequence.baseCount <<
                 " bases):<br><span style='font-family:courier'>";
@@ -352,5 +332,4 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
             html << "</span>";
         }
     }
-#endif
 }

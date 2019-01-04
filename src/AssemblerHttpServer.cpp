@@ -43,7 +43,7 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphVertex);
+    CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
 
 }
 #undef CZI_ADD_TO_FUNCTION_TABLE
@@ -216,7 +216,7 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Assembly graph", {
         {"Local assembly graph", "exploreAssemblyGraph"},
-        {"Assembly graph vertices", "exploreAssemblyGraphVertex"},
+        {"Assembly graph edges", "exploreAssemblyGraphEdge"},
         });
     writeNavigation(html, "Help", {
         {"Documentation", "docs/index.html"},
@@ -334,6 +334,13 @@ void Assembler::accessAllSoft()
         accessAssemblyGraphEdges();
     } catch(exception e) {
         cout << "Assembly graph edges are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessAssemblyGraphEdgeLists();
+    } catch(exception e) {
+        cout << "Assembly graph edge lists are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
