@@ -1103,11 +1103,11 @@ private:
         double timeout,
         LocalAssemblyGraph&) const;
 
-    // Assemble sequence for a vertex of the assembly graph.
+    // Assemble sequence for an edge of the assembly graph.
     // Optionally outputs detailed assembly information
     // in html (skipped if the html pointer is 0).
-    void assembleAssemblyGraphVertex(
-        AssemblyGraph::VertexId,
+    void assembleAssemblyGraphEdge(
+        AssemblyGraph::EdgeId,
         vector<Base>&,
         vector<uint32_t>& repeatCounts,
         ostream* html = 0);
@@ -1124,7 +1124,7 @@ private:
 
         // The results created by each thread.
         // All indexed by threadId.
-        vector< vector<AssemblyGraph::VertexId> > vertices;
+        vector< vector<AssemblyGraph::EdgeId> > edges;
         vector< shared_ptr<LongBaseSequences> > sequences;
         vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > repeatCounts;
         void allocate(size_t threadCount);

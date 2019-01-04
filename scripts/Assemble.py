@@ -12,7 +12,7 @@ a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
-a.accessAssemblyGraphVertices()
+a.accessAssemblyGraphEdgeLists()
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 a.assemble()
 

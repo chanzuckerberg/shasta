@@ -204,7 +204,9 @@ bool Assembler::LocalAssemblyGraphRequestParameters::hasMissingRequiredParameter
 void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostream& html)
 {
     html << "<h2>Show details about a vertex of the assembly graph</h2>";
+    CZI_ASSERT(0);
 
+#if 0
     // Get the request parameters.
     AssemblyGraph::VertexId vertexId = 0;
     const bool vertexIdIsPresent = getParameterValue(
@@ -350,5 +352,5 @@ void Assembler::exploreAssemblyGraphVertex(const vector<string>& request, ostrea
             html << "</span>";
         }
     }
-
+#endif
 }
