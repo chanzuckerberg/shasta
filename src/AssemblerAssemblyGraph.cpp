@@ -18,13 +18,11 @@ using namespace shasta;
 
 
 
-// In the assembly graph, each vertex corresponds to a linear chain
-// of edges in the pruned spanning subgraph of the marker graph.
-// This code finds all linear chains of edges in
-// the pruned spanning subgraph of the marker graph,
-// and generates a vertex of the assembly graph
-// for each chain it finds.
-void Assembler::createAssemblyGraphVertices()
+// In the assembly graph, each edge corresponds to a linear chain
+// of edges the marker graph.
+// This code finds all linear chains of edges in the marker graph,
+// and generates an assembly graph edge for each chain it finds.
+void Assembler::createAssemblyGraphEdges()
 {
     // Some shorthands.
     using VertexId = AssemblyGraph::VertexId;
@@ -38,7 +36,7 @@ void Assembler::createAssemblyGraphVertices()
     // Flag to control debug output.
     const bool debug = false;
 
-    // Vector used to keep track of edges that were already found.
+    // Vector used to keep track of marker graph edges that were already found.
     const EdgeId edgeCount = markerGraph.edges.size();
     MemoryMapped::Vector<bool> wasFound;
     wasFound.createNew(
@@ -47,9 +45,9 @@ void Assembler::createAssemblyGraphVertices()
     wasFound.resize(edgeCount);
     fill(wasFound.begin(), wasFound.end(), false);
 
-    // Initialize the vertices of the assembly graph.
-    assemblyGraph.vertices.createNew(
-        largeDataName("AssemblyGraphVertices"),
+    // Initialize the edge lists.
+    assemblyGraph.edgeLists.createNew(
+        largeDataName("AssemblyGraphEdgeLists"),
         largeDataPageSize);
 
 
@@ -61,8 +59,7 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
-    // Main loop over all edges of the pruned spanning subgraph
-    // of the marker graph.
+    // Main loop over all edges of the marker graph.
     // At each iteration we find a new linear chain of edges.
     for(EdgeId startEdgeId=0; startEdgeId<edgeCount; startEdgeId++) {
         const auto& startEdge = edges[startEdgeId];
@@ -72,7 +69,7 @@ void Assembler::createAssemblyGraphVertices()
             cout << " " << startEdge.source << "->" << startEdge.target << endl;
         }
 
-        // If this edge is not part of the pruned strong subgraph, skip it.
+        // If this edge is not part of cleaned up marker graph, skip it.
         if(startEdge.isWeak) {
             if(debug) {
                 cout << "Start edge is a weak edge." << endl;
@@ -82,6 +79,12 @@ void Assembler::createAssemblyGraphVertices()
         if(startEdge.wasPruned) {
             if(debug) {
                 cout << "Start edge was pruned." << endl;
+            }
+            continue;
+        }
+        if(startEdge.isBubbleEdge) {
+            if(debug) {
+                cout << "Start edge was a bubble edge." << endl;
             }
             continue;
         }
@@ -133,7 +136,7 @@ void Assembler::createAssemblyGraphVertices()
         }
 
         // Store this chain as a new vertex of the assembly graph.
-        assemblyGraph.vertices.appendVector(chain);
+        assemblyGraph.edgeLists.appendVector(chain);
 
         // Write out the chain.
         if(debug) {
@@ -153,11 +156,11 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
-    // Check that only and all edges of the pruned strong subgraph of the marker graph
+    // Check that only and all edges of the cleaned up marker graph
     // were found.
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(edge.isWeak || edge.wasPruned) {
+        if(edge.isWeak || edge.wasPruned || edge.isBubbleEdge) {
             CZI_ASSERT(!wasFound[edgeId]);
         } else {
             CZI_ASSERT(wasFound[edgeId]);
@@ -166,7 +169,7 @@ void Assembler::createAssemblyGraphVertices()
 
     wasFound.remove();
 
-    cout << "The assembly graph has " << assemblyGraph.vertices.size() << " vertices." << endl;
+    cout << "The assembly graph has " << assemblyGraph.edgeLists.size() << " edges." << endl;
 
 
 
@@ -179,11 +182,11 @@ void Assembler::createAssemblyGraphVertices()
         assemblyGraph.markerToAssemblyTable.begin(),
         assemblyGraph.markerToAssemblyTable.end(),
         make_pair(std::numeric_limits<VertexId>::max(), 0));
-    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
-        const MemoryAsContainer<EdgeId> chain = assemblyGraph.vertices[vertexId];
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.edgeLists.size(); edgeId++) {
+        const MemoryAsContainer<EdgeId> chain = assemblyGraph.edgeLists[edgeId];
         for(uint32_t position=0; position!=chain.size(); position++) {
             const EdgeId edgeId = chain[position];
-            assemblyGraph.markerToAssemblyTable[edgeId] = make_pair(vertexId, position);
+            assemblyGraph.markerToAssemblyTable[edgeId] = make_pair(edgeId, position);
         }
     }
 
@@ -191,8 +194,8 @@ void Assembler::createAssemblyGraphVertices()
 
     // Create a histogram of size (chain length) of assembly graph vertices.
     vector<size_t> histogram;
-    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
-        const size_t size = assemblyGraph.vertices.size(vertexId);
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.edgeLists.size(); edgeId++) {
+        const size_t size = assemblyGraph.edgeLists.size(edgeId);
         if(histogram.size() <= size) {
             histogram.resize(size+1);
         }
@@ -220,9 +223,12 @@ void Assembler::accessAssemblyGraphVertices()
 
 
 
-void Assembler::createAssemblyGraphEdges()
+void Assembler::createAssemblyGraphVertices()
 {
-    cout << timestamp << "Creating assembly graph edges." << endl;
+    CZI_ASSERT(0);
+#if 0
+
+    cout << timestamp << "Creating assembly graph vertices." << endl;
 
     // Check that we have what we need.
     auto& vertices = assemblyGraph.vertices;
@@ -304,7 +310,8 @@ void Assembler::createAssemblyGraphEdges()
     assemblyGraph.edgesBySource.endPass2();
     assemblyGraph.edgesByTarget.endPass2();
 
-    cout << timestamp << "Done creating assembly graph edges." << endl;
+    cout << timestamp << "Done creating assembly graph vertices." << endl;
+#endif
 }
 
 
@@ -324,6 +331,9 @@ void Assembler::accessAssemblyGraphEdges()
 // Assemble sequence for all vertices of the assembly graph.
 void Assembler::assemble(size_t threadCount)
 {
+    CZI_ASSERT(0);
+
+#if 0
     // Check that we have what we need.
     checkKmersAreOpen();
     checkReadsAreOpen();
@@ -397,10 +407,11 @@ void Assembler::assemble(size_t threadCount)
     }
     cout << timestamp << "Assembled a total " << totalBaseCount <<
         " bases for " << assemblyGraph.vertices.size() << " assembly graph vertices." << endl;
+#endif
 }
 
 
-
+#if 0
 void Assembler::assembleThreadFunction(size_t threadId)
 {
     ostream& out = getLog(threadId);;
@@ -441,7 +452,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
     }
 
 }
-
+#endif
 
 
 void Assembler::AssembleData::allocate(size_t threadCount)
@@ -480,6 +491,9 @@ void Assembler::accessAssemblyGraphSequences()
 
 void Assembler::computeAssemblyStatistics()
 {
+    CZI_ASSERT(0);
+#if 0
+
     using VertexId = AssemblyGraph::VertexId;
     // using EdgeId = AssemblyGraph::EdgeId;
 
@@ -617,6 +631,8 @@ void Assembler::computeAssemblyStatistics()
         graph[vertexId] = uint32_t(rawSequenceLength);
     }
 #endif
+
+#endif
 }
 
 
@@ -625,6 +641,9 @@ void Assembler::computeAssemblyStatistics()
 // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
 void Assembler::writeGfa1(const string& fileName)
 {
+    CZI_ASSERT(0);
+
+#if 0
     ofstream gfa(fileName);
 
     // Write the header line.
@@ -681,6 +700,7 @@ void Assembler::writeGfa1(const string& fileName)
             "+\t" <<
             cigarString << "\n";
     }
+#endif
 }
 
 
@@ -761,6 +781,8 @@ bool Assembler::extractLocalAssemblyGraph(
     double timeout,
     LocalAssemblyGraph& graph) const
 {
+    CZI_ASSERT(0);
+#if 0
     using vertex_descriptor = LocalAssemblyGraph::vertex_descriptor;
     using edge_descriptor = LocalAssemblyGraph::edge_descriptor;
     using VertexId = AssemblyGraph::VertexId;
@@ -950,10 +972,12 @@ bool Assembler::extractLocalAssemblyGraph(
 
 
     return true;
+#endif
 }
 
 
 
+#if 0
 // Assemble sequence for a vertex of the assembly graph.
 // Optionally outputs detailed assembly information
 // in html (skipped if the html pointer is 0).
@@ -1329,3 +1353,4 @@ void Assembler::assembleAssemblyGraphVertex(
     }
 
 }
+#endif

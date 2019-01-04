@@ -1,13 +1,17 @@
 #ifndef CZI_SHASTA_ASSEMBLY_GRAPH_HPP
 #define CZI_SHASTA_ASSEMBLY_GRAPH_HPP
 
+
+
 /***************************************************************************
 
-In the assembly graph, each vertex corresponds to a linear chain
-of edges in the pruned spanning subgraph of the marker graph.
-A directed vertex A->B is created if the last marker graph vertex
-of the edge chain corresponding to A coincides with the
-first marker graph vertex of the edge chain corresponding to B.
+The assembly graph is a "compressed" version of the marker graph,
+in which each linear chain of edges is replaced by a single edge.
+
+Each assembly graph vertex  corresponds to a marker graph vertex,
+but the reverse is not true, because marker graph vertices
+that are internal to a linear chain of edges don't have a corresponding
+vertex in the assembly graph.
 
 ***************************************************************************/
 
@@ -35,46 +39,52 @@ public:
     using VertexId = GlobalMarkerGraphVertexId;
     using EdgeId = GlobalMarkerGraphEdgeId;
     static const VertexId invalidVertexId = std::numeric_limits<VertexId>::max();
+    static const VertexId invalidEdgeId = std::numeric_limits<EdgeId>::max();
 
-    // The edge ids of global marker graph edges of each vertex.
-    // They describe the chain (path in the marker graph)
-    // corresponding to each vertex of the assembly graph.
-    // Indexed by the vertex id of the assembly graph vertex.
-    MemoryMapped::VectorOfVectors<EdgeId, EdgeId> vertices;
+    // The vertices of the assembly graph.
+    // Each assembly graph vertex  corresponds to a marker graph vertex.
+    // Indexed by vertex id in the assembly graph.
+    // Contains the corresponding vertex id in the marker graph.
+    MemoryMapped::Vector<VertexId> vertices;
 
     // The edges of the assembly graph.
-    // Each edge stores the vertex ids (in the assembly graph).
+    // Indexed by edge id in the assembly graph.
     class Edge {
     public:
         VertexId source;
         VertexId target;
-        Edge(VertexId source, VertexId target) :
-            source(source), target(target) {}
-        Edge() {}
     };
     MemoryMapped::Vector<Edge> edges;
 
     // The edges that each vertex is the source of.
-    // Contains indexes into the above edges vector.
-    MemoryMapped::VectorOfVectors<VertexId, EdgeId> edgesBySource;
+    // Indexed by vertex id in the assembly graph.
+    // Contains edge ids that can be used as indexes into edges and edgeLists.
+    MemoryMapped::VectorOfVectors<EdgeId, EdgeId> edgesBySource;
 
     // The edges that each vertex is the target of.
-    // Contains indexes into the above edges vector.
-    MemoryMapped::VectorOfVectors<VertexId, EdgeId> edgesByTarget;
+    // Indexed by vertex id in the assembly graph.
+    // Contains edge ids that can be used as indexes into edges and edgeLists.
+    MemoryMapped::VectorOfVectors<EdgeId, EdgeId> edgesByTarget;
+
+    // The edge ids of global marker graph edges corresponding
+    // to each edge of the assembly graph.
+    // Indexed by the edge id of the assembly graph edge.
+    MemoryMapped::VectorOfVectors<EdgeId, EdgeId> edgeLists;
 
     // A table that can be used to find the location of a marker graph
     // edge in the assembly graph, if any.
-    // Indexed by the GlobalMarkerGraphEdgeId, gives for each marker graph
-    // edge a pair(VertexId, position), where:
-    // - VertexId is the id of the assembly graph vertex containing the
-    //   given marker graph edge, or std::numeric_limits<VertexId>::max()
-    //   if the marker graph edge is not part of any assembly graph vertex.
+    // Indexed by the edge id in the marker graph, gives for each marker graph
+    // edge a pair(EdgeId, position), where:
+    // - EdgeId is the id of the assembly graph edge containing the
+    //   given marker graph edge, or invalidEdgeId
+    //   if the marker graph edge is not part of any assembly graph edge.
     // - Position is the index of this marker graph edge in the
-    //   chain corresponding to that assembly graph vertex.
-    MemoryMapped::Vector< pair<VertexId, uint32_t> > markerToAssemblyTable;
+    //   chain corresponding to that assembly graph edge.
+    MemoryMapped::Vector< pair<EdgeId, uint32_t> > markerToAssemblyTable;
 
-    // The assembled sequenced and repeat counts for each vertex of the
+    // The assembled sequenced and repeat counts for each edge of the
     // assembly graph.
+    // Indexed edge id in the assembly graph.
     LongBaseSequences sequences;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> repeatCounts;
 

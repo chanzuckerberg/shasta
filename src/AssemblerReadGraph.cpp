@@ -43,6 +43,7 @@ using namespace shasta;
 
 // Standard libraries.
 #include "chrono.hpp"
+#include <numeric>
 #include <queue>
 
 

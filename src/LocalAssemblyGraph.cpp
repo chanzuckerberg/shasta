@@ -53,8 +53,7 @@ std::pair<bool, LocalAssemblyGraph::vertex_descriptor>
     }
 }
 
-
-
+#if 0
 // Return the number of marker graph edges that the vertex corresponds to.
 size_t LocalAssemblyGraph::vertexLength(vertex_descriptor v) const
 {
@@ -62,7 +61,7 @@ size_t LocalAssemblyGraph::vertexLength(vertex_descriptor v) const
     const VertexId vertexId = graph[v].vertexId;
     return globalAssemblyGraph.vertices.size(vertexId);
 }
-
+#endif
 
 
 // Return the number of bases in the raw assembled sequence of a vertex,
