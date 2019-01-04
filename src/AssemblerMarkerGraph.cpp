@@ -1451,7 +1451,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
-            if(edge.isWeak && !useWeakEdges) {
+            if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
             if(edge.wasPruned && !usePrunedEdges) {
@@ -1505,7 +1505,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
-            if(edge.isWeak && !useWeakEdges) {
+            if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
             if(edge.wasPruned && !usePrunedEdges) {
@@ -1572,7 +1572,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const auto& edge = markerGraph.edges[edgeId];
 
             // Skip this edge if the arguments require it.
-            if(edge.isWeak && !useWeakEdges) {
+            if(edge.wasRemovedByTransitiveReduction && !useWeakEdges) {
                 continue;
             }
             if(edge.wasPruned && !usePrunedEdges) {
@@ -2034,9 +2034,9 @@ void Assembler::flagMarkerGraphWeakEdges(
     cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
     cout << edges.size() << " edges." << endl;
 
-    // Initially flag all edges as strong.
+    // Initially flag all edges as not removed by transitive reduction.
     for(auto& edge: edges) {
-        edge.isWeak = 0;
+        edge.wasRemovedByTransitiveReduction = 0;
     }
 
     // Gather edges for each coverage less than highCoverageThreshold.
@@ -2097,7 +2097,7 @@ void Assembler::flagMarkerGraphWeakEdges(
         cout << timestamp << "Flagging as weak " << edgesWithThisCoverage.size() <<
             " edges with coverage " << coverage << "." << endl;
         for(const EdgeId edgeId: edgesWithThisCoverage) {
-            edges[edgeId].isWeak = 1;
+            edges[edgeId].wasRemovedByTransitiveReduction = 1;
         }
     }
 
@@ -2114,7 +2114,7 @@ void Assembler::flagMarkerGraphWeakEdges(
         // Loop over edges with this coverage.
         for(const EdgeId edgeId: edgesWithThisCoverage) {
             const Edge& edge = edges[edgeId];
-            CZI_ASSERT(!edge.isWeak);
+            CZI_ASSERT(!edge.wasRemovedByTransitiveReduction);
             const VertexId u0 = edge.source;
             const VertexId u1 = edge.target;
 
@@ -2137,7 +2137,7 @@ void Assembler::flagMarkerGraphWeakEdges(
                         continue;
                     }
                     const Edge& edge01 = markerGraph.edges[edgeId01];
-                    if(edge01.isWeak) {
+                    if(edge01.wasRemovedByTransitiveReduction) {
                         continue;
                     }
                     const VertexId v1 = edge01.target;
@@ -2161,7 +2161,7 @@ void Assembler::flagMarkerGraphWeakEdges(
             }
 
             if(found) {
-                edges[edgeId].isWeak = 1;
+                edges[edgeId].wasRemovedByTransitiveReduction = 1;
                 ++count;
             }
 
@@ -2202,7 +2202,7 @@ void Assembler::flagMarkerGraphWeakEdges(
     // Count the number of edges that were flagged as weak.
     uint64_t weakEdgeCount = 0;;
     for(const auto& edge: markerGraph.edges) {
-        if(edge.isWeak) {
+        if(edge.wasRemovedByTransitiveReduction) {
             ++weakEdgeCount;
         }
     }
@@ -2285,7 +2285,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
                         continue;
                     }
                     const Edge& edge = edges[edgeId];
-                    if(edge.isWeak) {
+                    if(edge.wasRemovedByTransitiveReduction) {
                         continue;
                     }
                     const VertexId vertexId1 = edge.target;
@@ -2322,7 +2322,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
                         continue;
                     }
                     const Edge& edge = edges[edgeId];
-                    if(edge.isWeak) {
+                    if(edge.wasRemovedByTransitiveReduction) {
                         continue;
                     }
                     const VertexId vertexId1 = edge.source;
@@ -2420,7 +2420,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
         // Find the edges to be pruned at each iteration.
         for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
             MarkerGraph::Edge& edge = edges[edgeId];
-            if(edge.isWeak) {
+            if(edge.wasRemovedByTransitiveReduction) {
                 continue;
             }
             if(edge.wasPruned) {
@@ -2455,7 +2455,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
     // Count the number of surviving edges in the pruned strong subgraph.
     size_t count = 0;
     for(MarkerGraph::Edge& edge: edges) {
-        if(!edge.isWeak && !edge.wasPruned) {
+        if(!edge.wasRemovedByTransitiveReduction && !edge.wasPruned) {
             ++count;
         }
     }
@@ -2475,7 +2475,7 @@ bool Assembler::isForwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraph
     const auto& forwardEdges = markerGraph.edgesBySource[vertexId];
     for(const auto& edgeId: forwardEdges) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(!edge.isWeak && !edge.wasPruned) {
+        if(!edge.wasRemovedByTransitiveReduction && !edge.wasPruned) {
             return false;   // We found a forward edge, so this is not a forward leaf.
         }
 
@@ -2487,7 +2487,7 @@ bool Assembler::isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGrap
     const auto& backwardEdges = markerGraph.edgesByTarget[vertexId];
     for(const auto& edgeId: backwardEdges) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(!edge.isWeak && !edge.wasPruned) {
+        if(!edge.wasRemovedByTransitiveReduction && !edge.wasPruned) {
             return false;   // We found a backward edge, so this is not a backward leaf.
         }
 
@@ -2511,8 +2511,7 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
     // Check that the edge we were passed belongs to the
     // pruned spanning subgraph of the marker graph.
     const Edge& edge0 = edges[edgeId0];
-    CZI_ASSERT(!edge0.isWeak);
-    CZI_ASSERT(!edge0.wasPruned);
+    CZI_ASSERT(!edge0.wasRemoved());
 
     // If the out-degree and in-degree of the target of this edge are not both 1,
     // this edge is the last of its chain.
@@ -2530,10 +2529,7 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
 
         // Skip the edge if it is not part of the
         // pruned strong subgraph of the marker graph.
-        if(edge1.isWeak) {
-            continue;
-        }
-        if(edge1.wasPruned) {
+        if(edge1.wasRemoved()) {
             continue;
         }
 
@@ -2571,8 +2567,7 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
     // Check that the edge we were passed belongs to the
     // pruned spanning subgraph of the marker graph.
     const Edge& edge0 = edges[edgeId0];
-    CZI_ASSERT(!edge0.isWeak);
-    CZI_ASSERT(!edge0.wasPruned);
+    CZI_ASSERT(!edge0.wasRemoved());
 
     // If the out-degree and in-degree of the source of this edge are not both 1,
     // this edge is the last of its chain.
@@ -2593,15 +2588,9 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
 
         // Skip the edge if it is not part of the
         // pruned strong subgraph of the marker graph.
-        if(edge1.isWeak) {
+        if(edge1.wasRemoved()) {
             if(debug) {
-                cout << "Edge is weak." << endl;
-            }
-            continue;
-        }
-        if(edge1.wasPruned) {
-            if(debug) {
-                cout << "Edge was pruned." << endl;
+                cout << "Edge was removed." << endl;
             }
             continue;
         }
@@ -2638,7 +2627,7 @@ size_t Assembler::markerGraphPrunedStrongSubgraphOutDegree(
     size_t outDegree = 0;
     for(const auto edgeId: markerGraph.edgesBySource[vertexId]) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(!edge.isWeak && !edge.wasPruned) {
+        if(!edge.wasRemovedByTransitiveReduction && !edge.wasPruned) {
             ++outDegree;
         }
     }
@@ -2650,7 +2639,7 @@ size_t Assembler::markerGraphPrunedStrongSubgraphInDegree(
     size_t inDegree = 0;
     for(const auto edgeId: markerGraph.edgesByTarget[vertexId]) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(!edge.isWeak && !edge.wasPruned) {
+        if(!edge.wasRemovedByTransitiveReduction && !edge.wasPruned) {
             ++inDegree;
         }
     }

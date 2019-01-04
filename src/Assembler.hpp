@@ -838,13 +838,20 @@ private:
             Uint40 target;  // The target vertex (index into globalMarkerGraphVertices).
             uint8_t coverage;   // (255 indicates 255 or more).
 
-            // This flag gets set by flagWeakMarkerGraphEdges.
-            uint8_t isWeak : 1;
+            // Flags used to mark the edge as removed from the marker graph.
+            bool wasRemoved() const
+            {
+                return wasRemovedByTransitiveReduction || wasPruned || isBubbleEdge;
+            }
 
-            // Set if this edge was pruned from the strong subgraph.
+            // Flag that is set if the edge was removed during
+            // approximate transitive reduction by flagWeakMarkerGraphEdges.
+            uint8_t wasRemovedByTransitiveReduction : 1;
+
+            // Set if this edge was removed during pruning.
             uint8_t wasPruned : 1;
 
-            // Set if this edge was internal to a bubble to be removed.
+            // Set if this edge belongs to a bubble that was removed.
             uint8_t isBubbleEdge : 1;
 
             // The remaining flags are currently unused.
@@ -855,7 +862,7 @@ private:
             uint8_t flag7 : 1;
             void clearFlags()
             {
-                isWeak = 0;
+                wasRemovedByTransitiveReduction = 0;
                 wasPruned = 0;
                 isBubbleEdge = 0;
                 flag3 = 0;
@@ -1084,6 +1091,7 @@ public:
     void createAssemblyGraphVertices();
     void accessAssemblyGraphVertices();
     void createAssemblyGraphEdges();
+    void accessAssemblyGraphEdgeLists();
     void accessAssemblyGraphEdges();
 private:
 

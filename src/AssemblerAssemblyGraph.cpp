@@ -22,6 +22,9 @@ using namespace shasta;
 // of edges the marker graph.
 // This code finds all linear chains of edges in the marker graph,
 // and generates an assembly graph edge for each chain it finds.
+// This creates:
+// - assemblyGraph.edgeLists.
+// - assemblyGraph.markerToAssemblyTable
 void Assembler::createAssemblyGraphEdges()
 {
     // Some shorthands.
@@ -70,21 +73,9 @@ void Assembler::createAssemblyGraphEdges()
         }
 
         // If this edge is not part of cleaned up marker graph, skip it.
-        if(startEdge.isWeak) {
+        if(startEdge.wasRemoved()) {
             if(debug) {
-                cout << "Start edge is a weak edge." << endl;
-            }
-            continue;
-        }
-        if(startEdge.wasPruned) {
-            if(debug) {
-                cout << "Start edge was pruned." << endl;
-            }
-            continue;
-        }
-        if(startEdge.isBubbleEdge) {
-            if(debug) {
-                cout << "Start edge was a bubble edge." << endl;
+                cout << "Start edge was removed." << endl;
             }
             continue;
         }
@@ -160,7 +151,7 @@ void Assembler::createAssemblyGraphEdges()
     // were found.
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(edge.isWeak || edge.wasPruned || edge.isBubbleEdge) {
+        if(edge.wasRemovedByTransitiveReduction || edge.wasPruned || edge.isBubbleEdge) {
             CZI_ASSERT(!wasFound[edgeId]);
         } else {
             CZI_ASSERT(wasFound[edgeId]);
@@ -223,70 +214,98 @@ void Assembler::accessAssemblyGraphVertices()
 
 
 
+// This uses assemblyGraph.edgeLists to create:
+// - assemblyGraph.vertices
+// - assemblyGraph.edges
+// - assemblyGraph.edgesBySource
+// - assemblyGraph.edgesByTarget
+
+// In this function:
+// mgv indicates a marker graph vertex id.
+// mge indicates a marker graph edge id.
+// agv indicates an assembly graph vertex id.
+// age indicates an assembly graph edge id.
 void Assembler::createAssemblyGraphVertices()
 {
-    CZI_ASSERT(0);
-#if 0
 
     cout << timestamp << "Creating assembly graph vertices." << endl;
 
     // Check that we have what we need.
-    auto& vertices = assemblyGraph.vertices;
-    CZI_ASSERT(vertices.isOpen());
+    CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
     checkMarkerGraphEdgesIsOpen();
 
     // Shorthands for vertex and edge ids.
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
-    // In the code below:
-    // v indicates an assembly graph vertex id.
-    // u indicates a marker graph vertex id.
 
-    // Create a hash map with:
-    // Key: Vertex id of the initial marker graph vertex
-    // of the chain corresponding to an assembly graph vertex.
-    // Value: the ids of the assembly graph vertices that begin there..
-    // In the loop:
-    // v: vertex in the assembly graph.
-    // u: vertex in the marker graph.
-    std::unordered_map<VertexId, vector<VertexId> > vertexMap;
-    for(VertexId v=0; v<vertices.size(); v++) {
-        const auto chain = vertices[v];
+
+    // Create assemblyGraph.vertices.
+    // Each marker graph vertex that is the first or last vertex
+    // of a linear edge chain corresponding to an edge of the assembly graph.
+    // generates an assembly graph vertex.
+    assemblyGraph.vertices.createNew(
+        largeDataName("AssemblyGraphVertices"),
+        largeDataPageSize);
+    for(EdgeId age=0; age<assemblyGraph.edgeLists.size(); age++) {
+        const auto chain = assemblyGraph.edgeLists[age];
         CZI_ASSERT(chain.size() > 0);
         const EdgeId firstChainEdgeId = *(chain.begin());
-        const MarkerGraph::Edge& firstChainEdge =
-            markerGraph.edges[firstChainEdgeId];
-        const VertexId u = firstChainEdge.source;
-        vertexMap[u].push_back(v);
+        const EdgeId lastChainEdgeId = *(chain.end() - 1);
+        const MarkerGraph::Edge& firstChainEdge = markerGraph.edges[firstChainEdgeId];
+        const MarkerGraph::Edge& lastChainEdge = markerGraph.edges[lastChainEdgeId];
+        const VertexId mgv0 = firstChainEdge.source;
+        const VertexId mgv1 = lastChainEdge.target;
+        assemblyGraph.vertices.push_back(mgv0);
+        assemblyGraph.vertices.push_back(mgv1);
     }
 
-    // Initialize the assembly graph edges.
+    // Deduplicate.
+    sort(assemblyGraph.vertices.begin(), assemblyGraph.vertices.end());
+    assemblyGraph.vertices.resize(
+        std::unique(assemblyGraph.vertices.begin(), assemblyGraph.vertices.end()) -
+        assemblyGraph.vertices.begin());
+    assemblyGraph.vertices.unreserve();
+    cout << "The assembly graph has " << assemblyGraph.vertices.size() <<
+        " vertices and " << assemblyGraph.edgeLists.size() << " edges." << endl;
+
+    // Create a map that gives the assembly graph vertex corresponding to a
+    // marker graph vertex.
+    std::unordered_map<VertexId, VertexId> vertexMap;
+    for(VertexId agv=0; agv<assemblyGraph.vertices.size(); agv++) {
+        const VertexId mgv = assemblyGraph.vertices[agv];
+        vertexMap.insert(make_pair(mgv, agv));
+    }
+
+
+    // Create assemblyGraph.edges.
     assemblyGraph.edges.createNew(
         largeDataName("AssemblyGraphEdges"),
         largeDataPageSize);
-
-    // Now for each vertex in the assembly graph look up in the map
-    // the last vertex of its chain.
-    for(VertexId v0=0; v0<vertices.size(); v0++) {
-        const auto chain = vertices[v0];
+    assemblyGraph.edges.resize(assemblyGraph.edgeLists.size());
+    for(EdgeId age=0; age<assemblyGraph.edgeLists.size(); age++) {
+        const auto chain = assemblyGraph.edgeLists[age];
         CZI_ASSERT(chain.size() > 0);
-        const EdgeId lastChainEdgeId = chain[chain.size()-1];
-        const MarkerGraph::Edge& lastChainEdge =
-            markerGraph.edges[lastChainEdgeId];
-        const VertexId u = lastChainEdge.target;
-
-        // Looking up the map gives the children of this assembly graph vertex.
-        const vector<VertexId>& children = vertexMap[u];
-        for(const VertexId v1: children) {
-            assemblyGraph.edges.push_back(AssemblyGraph::Edge(v0, v1));
-        }
+        const EdgeId firstChainEdgeId = *(chain.begin());
+        const EdgeId lastChainEdgeId = *(chain.end() - 1);
+        const MarkerGraph::Edge& firstChainEdge = markerGraph.edges[firstChainEdgeId];
+        const MarkerGraph::Edge& lastChainEdge = markerGraph.edges[lastChainEdgeId];
+        const VertexId mgv0 = firstChainEdge.source;
+        const VertexId mgv1 = lastChainEdge.target;
+        const auto it0 = vertexMap.find(mgv0);
+        const auto it1 = vertexMap.find(mgv1);
+        CZI_ASSERT(it0 != vertexMap.end());
+        CZI_ASSERT(it1 != vertexMap.end());
+        const VertexId agv0 = it0->second;
+        const VertexId agv1 = it1->second;
+        auto& edge = assemblyGraph.edges[age];
+        edge.source = agv0;
+        edge.target = agv1;
     }
-    cout << timestamp << "The assembly graph has " << vertices.size() << " vertices and ";
-    cout << assemblyGraph.edges.size() << " edges." << endl;
 
 
-    cout << timestamp << "Creating assembly graph edge by source and by target." << endl;
+
+    cout << timestamp << "Creating assembly graph edges by source and by target." << endl;
 
     assemblyGraph.edgesBySource.createNew(
         largeDataName("AssemblyGraphEdgesBySource"),
@@ -294,8 +313,8 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesByTarget.createNew(
         largeDataName("AssemblyGraphEdgesByTarget"),
         largeDataPageSize);
-    assemblyGraph.edgesBySource.beginPass1(vertices.size());
-    assemblyGraph.edgesByTarget.beginPass1(vertices.size());
+    assemblyGraph.edgesBySource.beginPass1(assemblyGraph.vertices.size());
+    assemblyGraph.edgesByTarget.beginPass1(assemblyGraph.vertices.size());
     for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
         assemblyGraph.edgesBySource.incrementCount(edge.source);
         assemblyGraph.edgesByTarget.incrementCount(edge.target);
@@ -311,7 +330,14 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesByTarget.endPass2();
 
     cout << timestamp << "Done creating assembly graph vertices." << endl;
-#endif
+}
+
+
+
+void Assembler::accessAssemblyGraphEdgeLists()
+{
+    assemblyGraph.edgeLists.accessExistingReadOnly(
+        largeDataName("AssemblyGraphEdgeLists"));
 }
 
 
@@ -977,7 +1003,6 @@ bool Assembler::extractLocalAssemblyGraph(
 
 
 
-#if 0
 // Assemble sequence for a vertex of the assembly graph.
 // Optionally outputs detailed assembly information
 // in html (skipped if the html pointer is 0).
@@ -987,6 +1012,8 @@ void Assembler::assembleAssemblyGraphVertex(
     vector<uint32_t>& assembledRepeatCounts,
     ostream* htmlPointer)
 {
+    CZI_ASSERT(0);
+#if 0
     const auto k = assemblerInfo->k;
 
     // The edges of this chain in the marker graph.
@@ -1352,5 +1379,5 @@ void Assembler::assembleAssemblyGraphVertex(
          }
     }
 
-}
 #endif
+}
