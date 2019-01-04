@@ -85,7 +85,7 @@ void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_f
     vector<double> row;
     vector<vector<double> > matrix;
     char base;
-    int base_index;
+    unsigned long base_index;
 
     // Matrices are labeled via fasta-like headers
     while (getline(matrix_file, line)){
@@ -93,7 +93,7 @@ void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_f
         // Header line
         if (line[0] == '>'){
             base = line[1];
-            base_index = BASE_INDEXES.at(base);
+            base_index = ulong(BASE_INDEXES.at(base));
         }
 
         // Data line
