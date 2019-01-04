@@ -6,7 +6,7 @@
 A SimpleBayesianConsensusCaller uses a simple Bayesian approach
 to compute the "best" base and repeat count at a position of an alignment.
 
-Based on initial work by Ryan Lorigro at UCSC, the method works as follows.
+Based on initial work by Ryan Lorig-Roach at UCSC, the method works as follows.
 Here, n is the true repeat count, m is the observed repeat count,
 and mi the observed repeat counts in a set of reads.
 
@@ -102,10 +102,13 @@ private:
     // This converts each line to a vector of doubles, appending probability_matrices according to the matrix header.
     void load_probability_matrices(ifstream& matrix_file);
 
+    // For parsing any character separated file format
+    vector<double> split(string s, char separator_char);
+
     // For a given vector of likelihoods over each Y value, normalize by the maximum
     vector<double> normalize_likelihoods(vector<double> x, double x_max) const;
 
-        // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods
+    // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods
     map<int,int> factor_repeats(const Coverage& coverage) const;
     map<int,int> factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const;
 
