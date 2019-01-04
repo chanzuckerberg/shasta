@@ -1490,11 +1490,11 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph.storeEdgeInfo(e, markerIntervals);
                 graph[e].edgeId = edgeId;
 
-                // Link to assembly graph vertex.
+                // Link to assembly graph edge.
                 if(assemblyGraph.markerToAssemblyTable.isOpen) {
                     const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                    graph[e].assemblyVertexId = p.first;
-                    graph[e].positionInAssemblyVertex = p.second;
+                    graph[e].assemblyEdgeId = p.first;
+                    graph[e].positionInAssemblyEdge = p.second;
                 }
             }
         }
@@ -1546,8 +1546,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 // Link to assembly graph vertex.
                 if(assemblyGraph.markerToAssemblyTable.isOpen) {
                     const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                    graph[e].assemblyVertexId = p.first;
-                    graph[e].positionInAssemblyVertex = p.second;
+                    graph[e].assemblyEdgeId = p.first;
+                    graph[e].positionInAssemblyEdge = p.second;
                 }
             }
         }
@@ -1620,8 +1620,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             // Link to assembly graph vertex.
             if(assemblyGraph.markerToAssemblyTable.isOpen) {
                 const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                graph[e].assemblyVertexId = p.first;
-                graph[e].positionInAssemblyVertex = p.second;
+                graph[e].assemblyEdgeId = p.first;
+                graph[e].positionInAssemblyEdge = p.second;
             }
         }
     }

@@ -440,9 +440,9 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         }
 
         // Assembly vertex id.
-        if(showVertexId && (edge.assemblyVertexId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {
-            s << "<tr><td colspan=\"" << columnCount << "\"><b>Position " << edge.positionInAssemblyVertex <<
-                " in assembly graph vertex " << edge.assemblyVertexId << "</b></td></tr>";
+        if(showVertexId && (edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {
+            s << "<tr><td colspan=\"" << columnCount << "\"><b>Position " << edge.positionInAssemblyEdge <<
+                " in assembly graph edge " << edge.assemblyEdgeId << "</b></td></tr>";
         }
 
         // Consensus and coverage.

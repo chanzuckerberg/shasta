@@ -196,15 +196,15 @@ public:
     // Only filled in when the graph is created using stored connectivity.
     GlobalMarkerGraphEdgeId edgeId = invalidGlobalMarkerGraphEdgeId;
 
-    // The id of the assembly graph vertex that contains this marker graph edge,
-    // or std::numeric_limits<AssemblyGraph::VertexId>::max() if this
-    // marker graph edge is not part of any assembly graph vertex.
-    AssemblyGraph::VertexId assemblyVertexId = std::numeric_limits<AssemblyGraph::VertexId>::max();
+    // The id of the assembly graph edge that contains this marker graph edge,
+    // or std::numeric_limits<AssemblyGraph::EdgeId>::max() if this
+    // marker graph edge is not part of any assembly graph edge.
+    AssemblyGraph::EdgeId assemblyEdgeId = std::numeric_limits<AssemblyGraph::EdgeId>::max();
 
     // The position (index) of this marker graph edge
-    // in the chain corresponding to the containing assembly vertex.
-    // Onkly valid if assemblyVertexId!=std::numeric_limits<AssemblyGraph::VertexId>::max()
-    uint32_t positionInAssemblyVertex;
+    // in the chain corresponding to the containing assembly graph edge.
+    // Only valid if assemblyEdgeId!=std::numeric_limits<AssemblyGraph::EdgeId>::max()
+    uint32_t positionInAssemblyEdge;
 
 
 
