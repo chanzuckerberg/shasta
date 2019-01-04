@@ -25,7 +25,7 @@ namespace ChanZuckerberg {
         class LocalAssemblyGraphEdge;
         class LocalAssemblyGraph;
         using LocalAssemblyGraphBaseClass = boost::adjacency_list<
-            boost::setS,
+            boost::listS,   // Allow parallel edges!
             boost::listS,
             boost::bidirectionalS,
             LocalAssemblyGraphVertex,

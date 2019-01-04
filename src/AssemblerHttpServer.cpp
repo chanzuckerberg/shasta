@@ -115,7 +115,7 @@ void Assembler::processRequest(
         const auto function = it->second;
         (this->*function)(request, html);
     } catch(std::exception& e) {
-        html << e.what();
+        html << "<br><br><span style='color:purple'>" << e.what() << "</span>";
     }
     writeHtmlEnd(html);
 }

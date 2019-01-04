@@ -783,34 +783,36 @@ void Assembler::constructCigarString(
 // Extract a local assembly graph from the global assembly graph.
 // This returns false if the timeout was exceeded.
 bool Assembler::extractLocalAssemblyGraph(
-    AssemblyGraph::VertexId startVertexId,
+    AssemblyGraph::EdgeId startEdgeId,
     int distance,
     double timeout,
     LocalAssemblyGraph& graph) const
 {
-    CZI_ASSERT(0);
-#if 0
     using vertex_descriptor = LocalAssemblyGraph::vertex_descriptor;
     using edge_descriptor = LocalAssemblyGraph::edge_descriptor;
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
-    const bool debug = false;
+    const bool debug = true;
     if(debug) {
-        cout << "Begin extractLocalAssemblyGraph for vertex "
-            << startVertexId << " distance " << distance << endl;
+        cout << "Begin extractLocalAssemblyGraph for edge "
+            << startEdgeId << " distance " << distance << endl;
     }
 
     const auto startTime = steady_clock::now();
 
-    // Add the start vertex.
-    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0);
+    // Add the start vertices.
+    const AssemblyGraph::Edge startEdge = assemblyGraph.edges[startEdgeId];
+    const vertex_descriptor vStart0 = graph.addVertex(startEdge.source, 0);
+    const vertex_descriptor vStart1 = graph.addVertex(startEdge.target, 0);
 
     // Do the BFS.
     std::queue<vertex_descriptor> q;
     if(distance > 0) {
-        q.push(vStart);
+        q.push(vStart0);
+        q.push(vStart1);
     }
+    std::set<vertex_descriptor> processedVertices;
     while(!q.empty()) {
 
         // See if we exceeded the timeout.
@@ -857,11 +859,10 @@ bool Assembler::extractLocalAssemblyGraph(
                 }
             }
 
-            // Create the edge v0->v1, if it does not already exist.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v0, v1, graph);
-            if(!edgeExists) {
+            // Create the edge v0->v1.
+            if(processedVertices.find(v1) == processedVertices.end()) {
+                edge_descriptor e;
+                bool edgeExists;
                 tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
                 CZI_ASSERT(edgeExists);
                 if(debug) {
@@ -896,22 +897,23 @@ bool Assembler::extractLocalAssemblyGraph(
                 }
             }
 
-            // Create the edge v1->v0, if it does not already exist.
-            edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v1, v0, graph);
-            if(!edgeExists) {
-                tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
-                CZI_ASSERT(edgeExists);
-                if(debug) {
-                    cout << "Edge added " << vertexId1 << "->" << vertexId0 << endl;
+            // Create the edge v1->v0.
+            if(processedVertices.find(v1) == processedVertices.end()) {
+                edge_descriptor e;
+                bool edgeExists;
+                    tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
+                    CZI_ASSERT(edgeExists);
+                    if(debug) {
+                        cout << "Edge added " << vertexId1 << "->" << vertexId0 << endl;
                 }
             }
         }
+
+        processedVertices.insert(v0);
     }
 
 
-
+#if 0
     // The BFS process did not create edges between vertices at maximum distance.
     // Do it now.
     // Loop over all vertices at maximum distance.
@@ -948,19 +950,15 @@ bool Assembler::extractLocalAssemblyGraph(
                 continue;
             }
 
-            // There is no way we already created this edge.
-            // Check that this is the case.
+            // Add the edge.
             edge_descriptor e;
             bool edgeExists;
-            tie(e, edgeExists) = boost::edge(v0, v1, graph);
-            CZI_ASSERT(!edgeExists);
-
-            // Add the edge.
             tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
             CZI_ASSERT(edgeExists);
 
         }
     }
+#endif
 
     if(debug) {
         cout << "Vertices:" << endl;
@@ -979,7 +977,6 @@ bool Assembler::extractLocalAssemblyGraph(
 
 
     return true;
-#endif
 }
 
 

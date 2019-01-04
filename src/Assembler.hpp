@@ -1098,7 +1098,7 @@ private:
     // Extract a local assembly graph from the global assembly graph.
     // This returns false if the timeout was exceeded.
     bool extractLocalAssemblyGraph(
-        AssemblyGraph::VertexId,
+        AssemblyGraph::EdgeId,
         int distance,
         double timeout,
         LocalAssemblyGraph&) const;
@@ -1264,8 +1264,8 @@ private:
     void exploreAssemblyGraph(const vector<string>&, ostream&);
     class LocalAssemblyGraphRequestParameters {
     public:
-        AssemblyGraph::VertexId vertexId;
-        bool vertexIdIsPresent;
+        AssemblyGraph::EdgeId edgeId;
+        bool edgeIdIsPresent;
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
         bool detailed;
@@ -1273,7 +1273,7 @@ private:
         bool sizePixelsIsPresent;
         double timeout;
         bool timeoutIsPresent;
-        void writeForm(ostream&, AssemblyGraph::VertexId vertexCount) const;
+        void writeForm(ostream&, AssemblyGraph::EdgeId edgeCount) const;
         bool hasMissingRequiredParameters() const;
     };
     void getLocalAssemblyGraphRequestParameters(

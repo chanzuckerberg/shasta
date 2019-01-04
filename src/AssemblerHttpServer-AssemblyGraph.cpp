@@ -18,12 +18,23 @@ void Assembler::exploreAssemblyGraph(
     const vector<string>& request,
     ostream& html)
 {
+
+    // Debugging: write the entire assembly graph in graphviz format.
+    if(false) {
+        ofstream graphOut("AssemblyGraph.dot");
+        graphOut << "digraph G {\n";
+        for(const auto& edge: assemblyGraph.edges) {
+            graphOut << edge.source << "->" << edge.target << ";\n";
+        }
+        graphOut << "}\n";
+    }
+
     // Get the request parameters.
     LocalAssemblyGraphRequestParameters requestParameters;
     getLocalAssemblyGraphRequestParameters(request, requestParameters);
 
     // Write the form.
-    requestParameters.writeForm(html, assemblyGraph.vertices.size());
+    requestParameters.writeForm(html, assemblyGraph.edges.size());
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -31,9 +42,9 @@ void Assembler::exploreAssemblyGraph(
     }
 
     // Validity check.
-    if(requestParameters.vertexId > assemblyGraph.vertices.size()) {
-        html << "<p>Invalid vertex id " << requestParameters.vertexId;
-        html << ". Must be between 0 and " << assemblyGraph.vertices.size()-1 << " inclusive.";
+    if(requestParameters.edgeId > assemblyGraph.edges.size()) {
+        html << "<p>Invalid edge id " << requestParameters.edgeId;
+        html << ". Must be between 0 and " << assemblyGraph.edges.size()-1 << " inclusive.";
         return;
     }
 
@@ -44,7 +55,7 @@ void Assembler::exploreAssemblyGraph(
     LocalAssemblyGraph graph(assemblyGraph);
     const auto createStartTime = steady_clock::now();
     if(!extractLocalAssemblyGraph(
-        requestParameters.vertexId,
+        requestParameters.edgeId,
         requestParameters.maxDistance,
         requestParameters.timeout,
         graph)) {
@@ -117,9 +128,9 @@ void Assembler::getLocalAssemblyGraphRequestParameters(
     const vector<string>& request,
     LocalAssemblyGraphRequestParameters& parameters) const
 {
-    parameters.vertexId = 0;
-    parameters.vertexIdIsPresent = getParameterValue(
-        request, "vertexId", parameters.vertexId);
+    parameters.edgeId = 0;
+    parameters.edgeIdIsPresent = getParameterValue(
+        request, "edgeId", parameters.edgeId);
 
     parameters.maxDistance = 0;
     parameters.maxDistanceIsPresent = getParameterValue(
@@ -143,7 +154,7 @@ void Assembler::getLocalAssemblyGraphRequestParameters(
 
 void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
     ostream& html,
-    AssemblyGraph::VertexId vertexCount) const
+    AssemblyGraph::EdgeId edgeCount) const
 {
     html <<
         "<h3>Display a local subgraph of the global assembly graph</h3>"
@@ -151,13 +162,13 @@ void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
 
         "<table>"
 
-        "<tr title='Vertex id between 0 and " << vertexCount << "'>"
-        "<td>Vertex id"
-        "<td><input type=text required name=vertexId size=8 style='text-align:center'"
-        << (vertexIdIsPresent ? ("value='"+to_string(vertexId)+"'") : "") <<
+        "<tr title='Edge id between 0 and " << edgeCount << "'>"
+        "<td>Edge id"
+        "<td><input type=text required name=edgeId size=8 style='text-align:center'"
+        << (edgeIdIsPresent ? ("value='"+to_string(edgeId)+"'") : "") <<
         ">"
 
-        "<tr title='Maximum distance from start vertex (number of edges)'>"
+        "<tr title='Maximum distance from start edge (number of edges)'>"
         "<td>Maximum distance"
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
@@ -194,7 +205,7 @@ void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
 bool Assembler::LocalAssemblyGraphRequestParameters::hasMissingRequiredParameters() const
 {
     return
-        !vertexIdIsPresent ||
+        !edgeIdIsPresent ||
         !maxDistanceIsPresent ||
         !timeoutIsPresent;
 }

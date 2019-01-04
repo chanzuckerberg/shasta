@@ -149,7 +149,6 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s) const
 // Write a vertex in graphviz format.
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
-    CZI_ASSERT(0);
 #if 0
     const LocalAssemblyGraphVertex& vertex = graph[v];
     const size_t length = graph.vertexLength(v);
