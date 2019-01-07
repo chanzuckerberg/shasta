@@ -2923,11 +2923,10 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 void Assembler::removeMarkerGraphBubbles(size_t maxLength)
 {
 
-#if 0
     // To facilitate locating the bubbles, create a temporary assembly graph.
     cout << timestamp << "Creating a temporary assembly graph for bubble removal." << endl;
-    createAssemblyGraphVertices();
     createAssemblyGraphEdges();
+    createAssemblyGraphVertices();
     cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
 
     // Vector to contain the new marker graph edges to be created.
@@ -2950,41 +2949,28 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
 
 
 
-        // All of the child vertices must have in-degree and out-degree 1,
-        // and the same child v2.
+        // All of the child edges must have the same child v1Common.
         bool isBubble = true;
-        AssemblyGraph::VertexId v2 = AssemblyGraph::invalidVertexId;
+        AssemblyGraph::VertexId v1Common = AssemblyGraph::invalidVertexId;
         for(AssemblyGraph::EdgeId edgeId01: edgeIds01) {
             const AssemblyGraph::Edge& edge01 = assemblyGraph.edges[edgeId01];
             const AssemblyGraph::VertexId v1 = edge01.target;
 
-            // Check in-degree and out-degree of v1.
-            if(assemblyGraph.edgesBySource[v1].size() != 1) {
-                isBubble = false;
-                break;
-            }
-            if(assemblyGraph.edgesByTarget[v1].size() != 1) {
-                isBubble = false;
-                break;
-            }
-
-            // Get the one and only child of v1.
-            // Check that it is the same as for the previous v1.
-            const AssemblyGraph::EdgeId edgeId12 = assemblyGraph.edgesBySource[v1][0];
-            const AssemblyGraph::Edge& edge12 = assemblyGraph.edges[edgeId12];
-            const AssemblyGraph::VertexId v1Child = edge12.target;
-            if(v2 == AssemblyGraph::invalidVertexId) {
-                v2 = v1Child;
+            // Check that the child vertex is the same.
+            if(v1Common == AssemblyGraph::invalidVertexId) {
+                // This is the first child. Store it as v1Common.
+                v1Common = v1;
             } else {
-                if(v1Child != v2) {
+                // This is not the first child.
+                if(v1 != v1Common) {
                     isBubble = false;
                     break;
                 }
             }
 
-            // If this assembly graph vertex corresponds to too many marker graph edges,
+            // If this assembly graph edge corresponds to too many marker graph edges,
             // this bubble is too big and so we skip it.
-            if(assemblyGraph.vertices[v1].size() > maxLength) {
+            if(assemblyGraph.edgeLists[edgeId01].size() > maxLength) {
                 isBubble = false;
                 break;
             }
@@ -2995,54 +2981,40 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
             continue;
         }
 
-        // We also have to check that the in-degree of v2 is the
+        // We also have to check that the in-degree of v1Common is the
         // same as the out-degree of v0.
-        if(edgeIds01.size() != assemblyGraph.edgesByTarget[v2].size()) {
+        if(edgeIds01.size() != assemblyGraph.edgesByTarget[v1Common].size()) {
             continue;
         }
 
 
-
         // If getting here, we found a bubble that begins at v0 and ands at v2.
-        CZI_ASSERT(v2 != AssemblyGraph::invalidVertexId);
+        CZI_ASSERT(v1Common != AssemblyGraph::invalidVertexId);
         ++bubbleCount;
-        const size_t degree = edgeIds01.size();
-        cout << "Bubble between assembly graph vertices " << v0 << " " << v2;
-        cout << " degree " << degree << endl;
+        // const size_t degree = edgeIds01.size();
+        // cout << "Bubble between assembly graph vertices " << v0 << " " << v2;
+        // cout << " degree " << degree << endl;
 
 
         // Mark edges of the marker graph that are internal to this bubble.
         for(AssemblyGraph::EdgeId edgeId01: edgeIds01) {
-            const AssemblyGraph::Edge& edge01 = assemblyGraph.edges[edgeId01];
-            const AssemblyGraph::VertexId v1 = edge01.target;
             const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds =
-                assemblyGraph.vertices[v1];
+                assemblyGraph.edgeLists[edgeId01];
             bubbleMarkerGraphEdgeCount += markerGraphEdgeIds.size();
             for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdgeIds) {
                 markerGraph.edges[markerGraphEdgeId].isBubbleEdge = 1;
             }
         }
 
-
-
         // The edges we just removed will be replaced with a single edge
-        // joining the last marker graph vertex of v0 with
-        // the first marker graph vertex of v2.
-        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds0 =
-            assemblyGraph.vertices[v0];
-        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds2 =
-            assemblyGraph.vertices[v2];
-        const GlobalMarkerGraphEdgeId lastMarkerGraphEdgeId0 =
-            markerGraphEdgeIds0[markerGraphEdgeIds0.size() - 1];
-        const GlobalMarkerGraphEdgeId firstMarkerGraphEdgeId2 =
-            markerGraphEdgeIds2[0];
-        const MarkerGraph::Edge& lastMarkerGraphEdge0 = markerGraph.edges[lastMarkerGraphEdgeId0];
-        const MarkerGraph::Edge& firstMarkerGraphEdge2 = markerGraph.edges[firstMarkerGraphEdgeId2];
-        newEdges.push_back(make_pair(lastMarkerGraphEdge0.target, firstMarkerGraphEdge2.source));
+        // joining the marker graph vertices corresponding to v0 and v1Common.
+        newEdges.push_back(make_pair(
+            assemblyGraph.vertices[v0],
+            assemblyGraph.vertices[v1Common]));
 
         cout << "Source and target marker graph vertices: " <<
-            lastMarkerGraphEdge0.target<< " " << firstMarkerGraphEdge2.source << endl;
-
+            assemblyGraph.vertices[v0] << " " <<
+            assemblyGraph.vertices[v1Common] << endl;
     }
     cout << "Found " << bubbleCount <<" bubbles to be removed." << endl;
     cout << "Found " << bubbleMarkerGraphEdgeCount <<
@@ -3053,5 +3025,4 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     // Remove the temporary assembly graph.
     // We will create the final one later, after bubble removal.
     assemblyGraph.remove();
-#endif
 }
