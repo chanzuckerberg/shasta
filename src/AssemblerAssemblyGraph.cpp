@@ -712,6 +712,40 @@ void Assembler::writeGfa1(const string& fileName)
 
 
 
+// Write assembled sequences in FASTA format.
+void Assembler::writeFasta(const string& fileName)
+{
+    using EdgeId = AssemblyGraph::EdgeId;
+
+    ofstream fasta(fileName);
+
+    // Write a sequence for each edge of the assembly graph.
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
+        const auto sequence = assemblyGraph.sequences[edgeId];
+        const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
+        CZI_ASSERT(sequence.baseCount == repeatCounts.size());
+
+        // Compute the length so we can write it in the header.
+        size_t length = 0;
+        for(const uint8_t repeatCount: repeatCounts) {
+            length += repeatCount;
+        }
+
+        fasta << ">" << edgeId << " length " << length << "\n";
+        for(size_t i=0; i<sequence.baseCount; i++) {
+            const Base b = sequence[i];
+            const uint8_t repeatCount = repeatCounts[i];
+            for(size_t k=0; k<repeatCount; k++) {
+                fasta << b;
+            }
+        }
+        fasta << "\n";
+    }
+
+}
+
+
+
 // Construct the CIGAR string given two vectors of repeat counts.
 // Used by writeGfa1.
 void Assembler::constructCigarString(

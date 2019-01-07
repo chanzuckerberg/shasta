@@ -316,6 +316,9 @@ PYBIND11_MODULE(shasta, module)
         .def("writeGfa1",
             &Assembler::writeGfa1,
             arg("fileName"))
+        .def("writeFasta",
+            &Assembler::writeFasta,
+            arg("fileName"))
 
 
 

@@ -1152,6 +1152,9 @@ private:
 
 public:
 
+    // Write assembled sequences in FASTA format.
+    void writeFasta(const string& fileName);
+
 
 
     // Data and functions used for the http server.
