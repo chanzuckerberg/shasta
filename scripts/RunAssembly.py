@@ -99,7 +99,9 @@ a.flagMarkerGraphWeakEdges(
 a.pruneMarkerGraphStrongSubgraph(
     iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
 
-# Remove bubbles from the marker graph.
+# Remove short cycles and bubbles from the marker graph.
+a.removeShortMarkerGraphCycles(
+    maxLength = int(config['MarkerGraph']['shortCycleLengthThreshold']))
 a.removeMarkerGraphBubbles(
     maxLength = int(config['MarkerGraph']['bubbleLengthThreshold']))
 

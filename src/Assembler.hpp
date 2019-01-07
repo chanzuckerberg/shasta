@@ -841,7 +841,11 @@ private:
             // Flags used to mark the edge as removed from the marker graph.
             bool wasRemoved() const
             {
-                return wasRemovedByTransitiveReduction || wasPruned || isBubbleEdge;
+                return
+                    wasRemovedByTransitiveReduction ||
+                    wasPruned ||
+                    isBubbleEdge ||
+                    isShortCycleEdge;
             }
 
             // Flag that is set if the edge was removed during
@@ -857,8 +861,10 @@ private:
             // Set if this edge was create to replace to a bubble that was removed.
             uint8_t replacesBubbleEdges : 1;
 
+            // Set if this edge is part of a short cycle of the assembly graph that was removed.
+            uint8_t isShortCycleEdge;
+
             // The remaining flags are currently unused.
-            uint8_t flag4 : 1;
             uint8_t flag5 : 1;
             uint8_t flag6 : 1;
             uint8_t flag7 : 1;
@@ -868,7 +874,7 @@ private:
                 wasPruned = 0;
                 isBubbleEdge = 0;
                 replacesBubbleEdges = 0;
-                flag4 = 0;
+                isShortCycleEdge = 0;
                 flag5 = 0;
                 flag6 = 0;
                 flag7 = 0;
@@ -1078,6 +1084,12 @@ private:
 
 
 public:
+    // Remove short cycles from the marker graph.
+    // The argument is the maximum length (number of edges)
+    // of a cycle path to be considered for removal.
+    // For now this only processes self-edges of the assembly graph.
+    void removeShortMarkerGraphCycles(size_t maxLength);
+
     // Remove short bubbles from the marker graph.
     // The argument is the maximum length (number of edges)
     // of a bubble branch to be considered for removal.

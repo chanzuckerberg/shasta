@@ -2941,6 +2941,56 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
 
+// Remove short cycles from the marker graph.
+// The argument is the maximum length (number of edges)
+// of a cycle path to be considered for removal.
+// For now this only processes self-edges of the assembly graph.
+void Assembler::removeShortMarkerGraphCycles(size_t maxLength)
+{
+    // To facilitate locating the cycles, create a temporary assembly graph.
+    cout << timestamp << "Creating a temporary assembly graph for short cycle removal." << endl;
+    createAssemblyGraphEdges();
+    createAssemblyGraphVertices();
+    cout << timestamp << "Done creating a temporary assembly graph for short cycle removal." << endl;
+
+    // Flag all marker graph edges that correspond to self-edges of the assembly graph.
+    size_t assemblyGraphRemovedSelfEdgeCount = 0;
+    size_t markerGraphRemovedSelfEdgeCount = 0;
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+
+        // If not a self-edge, skip.
+        if(edge.source != edge.target) {
+            continue;
+        }
+
+        // If too long, skip.
+        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGrapEdgeIds =
+            assemblyGraph.edgeLists[edgeId];
+        if(markerGrapEdgeIds.size() > maxLength) {
+            continue;
+        }
+
+        // Mark edges of the marker graph that are internal to this edge.
+        ++assemblyGraphRemovedSelfEdgeCount;
+        for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGrapEdgeIds) {
+            markerGraph.edges[markerGraphEdgeId].isShortCycleEdge = 1;
+            ++markerGraphRemovedSelfEdgeCount;
+        }
+    }
+    cout << "Removed " << assemblyGraphRemovedSelfEdgeCount <<
+        " self-edges from the assembly graph\n"
+        "and the corresponding " << markerGraphRemovedSelfEdgeCount <<
+        " marker graph edges." << endl;
+
+    // Remove the temporary assembly graph.
+    // We will create the final one later, after bubble removal.
+    assemblyGraph.remove();
+
+}
+
+
+
 // Remove short bubbles from the marker graph.
 // The argument is the maximum length (number of edges)
 // of a bubble branch to be considered for removal.
@@ -2952,6 +3002,8 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
     cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
+
+
 
     // Vector to contain the new marker graph edges to be created.
     vector< pair<GlobalMarkerGraphVertexId, GlobalMarkerGraphVertexId> > newEdges;
@@ -3008,6 +3060,11 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
         // We also have to check that the in-degree of v1Common is the
         // same as the out-degree of v0.
         if(edgeIds01.size() != assemblyGraph.edgesByTarget[v1Common].size()) {
+            continue;
+        }
+
+        // Also skip if v0 and v1 coincide.
+        if(v0 == v1Common) {
             continue;
         }
 

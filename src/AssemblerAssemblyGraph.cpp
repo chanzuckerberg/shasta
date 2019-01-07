@@ -151,7 +151,7 @@ void Assembler::createAssemblyGraphEdges()
     // were found.
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(edge.wasRemovedByTransitiveReduction || edge.wasPruned || edge.isBubbleEdge) {
+        if(edge.wasRemoved()) {
             CZI_ASSERT(!wasFound[edgeId]);
         } else {
             CZI_ASSERT(wasFound[edgeId]);
@@ -827,7 +827,7 @@ bool Assembler::extractLocalAssemblyGraph(
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         cout << "Begin extractLocalAssemblyGraph for edge "
             << startEdgeId << " distance " << distance << endl;
