@@ -854,8 +854,10 @@ private:
             // Set if this edge belongs to a bubble that was removed.
             uint8_t isBubbleEdge : 1;
 
+            // Set if this edge was create to replace to a bubble that was removed.
+            uint8_t replacesBubbleEdges : 1;
+
             // The remaining flags are currently unused.
-            uint8_t flag3 : 1;
             uint8_t flag4 : 1;
             uint8_t flag5 : 1;
             uint8_t flag6 : 1;
@@ -865,7 +867,7 @@ private:
                 wasRemovedByTransitiveReduction = 0;
                 wasPruned = 0;
                 isBubbleEdge = 0;
-                flag3 = 0;
+                replacesBubbleEdges = 0;
                 flag4 = 0;
                 flag5 = 0;
                 flag6 = 0;
@@ -898,12 +900,14 @@ private:
         // Contains indexes into the above edges vector.
         MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
 
+
     };
     MarkerGraph markerGraph;
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
     void createMarkerGraphEdgesThreadFunction1(size_t threadId);
     void createMarkerGraphEdgesThreadFunction2(size_t threadId);
     void createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t pass);
+    void createMarkerGraphEdgesBySourceAndTarget(size_t threadCount);
 
 
 

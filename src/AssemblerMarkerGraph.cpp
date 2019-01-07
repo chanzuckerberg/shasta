@@ -1738,6 +1738,14 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
 
 
     // Now we need to create edgesBySource and edgesByTarget.
+    createMarkerGraphEdgesBySourceAndTarget(threadCount);
+    cout << timestamp << "createMarkerGraphEdges ends." << endl;
+}
+
+
+
+void Assembler::createMarkerGraphEdgesBySourceAndTarget(size_t threadCount)
+{
     markerGraph.edgesBySource.createNew(
         largeDataName("GlobalMarkerGraphEdgesBySource"),
         largeDataPageSize);
@@ -1745,13 +1753,13 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
         largeDataName("GlobalMarkerGraphEdgesByTarget"),
         largeDataPageSize);
 
-    cout << timestamp << "Pass 1 begins." << endl;
+    cout << timestamp << "Create marker graph edges by source and target: pass 1 begins." << endl;
     markerGraph.edgesBySource.beginPass1(globalMarkerGraphVertices.size());
     markerGraph.edgesByTarget.beginPass1(globalMarkerGraphVertices.size());
     setupLoadBalancing(markerGraph.edges.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction1, threadCount);
 
-    cout << timestamp << "Pass 2 begins." << endl;
+    cout << timestamp << "Create marker graph edges by source and target: pass 2 begins." << endl;
     markerGraph.edgesBySource.beginPass2();
     markerGraph.edgesByTarget.beginPass2();
     setupLoadBalancing(markerGraph.edges.size(), 100000);
@@ -1759,7 +1767,6 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     markerGraph.edgesBySource.endPass2();
     markerGraph.edgesByTarget.endPass2();
 
-    cout << timestamp << "createMarkerGraphEdges ends." << endl;
 }
 
 
@@ -1870,12 +1877,14 @@ void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
     if(accessEdgesReadWrite) {
         markerGraph.edges.accessExistingReadWrite(
             largeDataName("GlobalMarkerGraphEdges"));
+        markerGraph.edgeMarkerIntervals.accessExistingReadWrite(
+            largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
     } else {
         markerGraph.edges.accessExistingReadOnly(
             largeDataName("GlobalMarkerGraphEdges"));
+        markerGraph.edgeMarkerIntervals.accessExistingReadOnly(
+            largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
     }
-    markerGraph.edgeMarkerIntervals.accessExistingReadOnly(
-        largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
     markerGraph.edgesBySource.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesBySource"));
     markerGraph.edgesByTarget.accessExistingReadOnly(
@@ -2627,7 +2636,7 @@ size_t Assembler::markerGraphPrunedStrongSubgraphOutDegree(
     size_t outDegree = 0;
     for(const auto edgeId: markerGraph.edgesBySource[vertexId]) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(!edge.wasRemovedByTransitiveReduction && !edge.wasPruned) {
+        if(!edge.wasRemoved()) {
             ++outDegree;
         }
     }
@@ -2639,7 +2648,7 @@ size_t Assembler::markerGraphPrunedStrongSubgraphInDegree(
     size_t inDegree = 0;
     for(const auto edgeId: markerGraph.edgesByTarget[vertexId]) {
         const auto& edge = markerGraph.edges[edgeId];
-        if(!edge.wasRemovedByTransitiveReduction && !edge.wasPruned) {
+        if(!edge.wasRemoved()) {
             ++inDegree;
         }
     }
@@ -2831,6 +2840,19 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     const MemoryAsContainer<MarkerInterval> markerIntervals =
         markerGraph.edgeMarkerIntervals[edgeId];
     const size_t markerCount = markerIntervals.size();
+    CZI_ASSERT(markerCount > 0);
+
+#if 0
+    {
+        cout << "Working on edge " << edgeId << " ";
+        const auto& edge = markerGraph.edges[edgeId];
+        cout << int(edge.wasRemovedByTransitiveReduction);
+        cout << int(edge.wasPruned);
+        cout << int(edge.isBubbleEdge);
+        cout << int(edge.replacesBubbleEdges);
+        cout << " " << markerCount << endl;
+    }
+#endif
 
     // Initialize a spoa alignment.
     const spoa::AlignmentType alignmentType = spoa::AlignmentType::kSW;
@@ -2849,6 +2871,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     for(size_t i=0; i!=markerCount; i++) {
         const MarkerInterval& markerInterval = markerIntervals[i];
         const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        // cout << orientedReadId << endl;
         const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
         // Get the two markers.
@@ -2858,6 +2881,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         // Get the position range, including the flanking markers.
         const uint32_t positionBegin = marker0.position;
         const uint32_t positionEnd = marker1.position + uint32_t(assemblerInfo->k);
+        // cout << "Position range " << positionBegin << " " << positionEnd << endl;
         positions[i] = positionBegin;
 
         // Get the sequence.
@@ -3012,9 +3036,9 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
             assemblyGraph.vertices[v0],
             assemblyGraph.vertices[v1Common]));
 
-        cout << "Source and target marker graph vertices: " <<
-            assemblyGraph.vertices[v0] << " " <<
-            assemblyGraph.vertices[v1Common] << endl;
+        // cout << "Source and target marker graph vertices: " <<
+        //     assemblyGraph.vertices[v0] << " " <<
+        //     assemblyGraph.vertices[v1Common] << endl;
     }
     cout << "Found " << bubbleCount <<" bubbles to be removed." << endl;
     cout << "Found " << bubbleMarkerGraphEdgeCount <<
@@ -3025,4 +3049,61 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     // Remove the temporary assembly graph.
     // We will create the final one later, after bubble removal.
     assemblyGraph.remove();
+
+
+
+    // Add the new edges to the marker graph.
+    vector<MarkerInterval> markerIntervals;
+    for(const pair<GlobalMarkerGraphVertexId, GlobalMarkerGraphVertexId>& p: newEdges) {
+        const GlobalMarkerGraphVertexId v0 = p.first;
+        const GlobalMarkerGraphVertexId v1 = p.second;
+        const MemoryAsContainer<MarkerId> markers0 = globalMarkerGraphVertices[v0];
+        const MemoryAsContainer<MarkerId> markers1 = globalMarkerGraphVertices[v1];
+
+
+
+        // Find the marker intervals for the new edge and store them.
+        markerIntervals.clear();
+        auto it0 = markers0.begin();
+        auto it1 = markers1.begin();
+        while(it0!=markers0.end() && it1!=markers1.end()) {
+            const MarkerId markerId0 = *it0;
+            const MarkerId markerId1 = *it1;
+            OrientedReadId orientedReadId0;
+            OrientedReadId orientedReadId1;
+            uint32_t ordinal0;
+            uint32_t ordinal1;
+            tie(orientedReadId0, ordinal0) = findMarkerId(markerId0);
+            tie(orientedReadId1, ordinal1) = findMarkerId(markerId1);
+            if(orientedReadId0 < orientedReadId1) {
+                ++it0;
+            } else if (orientedReadId1 < orientedReadId0) {
+                ++it1;
+            } else {
+                CZI_ASSERT(orientedReadId0 == orientedReadId1);
+                if(ordinal1 > ordinal0) {
+                    markerIntervals.push_back(
+                        MarkerInterval(orientedReadId0, ordinal0, ordinal1));
+                }
+                ++it0;
+                ++it1;
+            }
+
+        }
+        CZI_ASSERT(!markerIntervals.empty());
+        markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
+
+
+
+        // Store the new edge.
+        MarkerGraph::Edge edge;
+        edge.source = v0;
+        edge.target = v1;
+        edge.coverage = uint8_t(min(size_t(255), markerIntervals.size()));
+        edge.replacesBubbleEdges = 1;
+        markerGraph.edges.push_back(edge);
+    }
+    markerGraph.edgesBySource.remove();
+    markerGraph.edgesByTarget.remove();
+    createMarkerGraphEdgesBySourceAndTarget(std::thread::hardware_concurrency());
 }

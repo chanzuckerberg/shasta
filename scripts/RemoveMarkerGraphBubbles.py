@@ -6,6 +6,7 @@ import GetConfig
 config = GetConfig.getConfig()
 
 a = shasta.Assembler()
+a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges(accessEdgesReadWrite = True)
 a.removeMarkerGraphBubbles(

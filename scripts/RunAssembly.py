@@ -88,6 +88,7 @@ a.createMarkerGraphVertices(
 # Create edges of the marker graph.
 a.createMarkerGraphEdges()
 
+# Approximate transitive reduction.
 a.flagMarkerGraphWeakEdges(
     lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
     highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
@@ -97,6 +98,10 @@ a.flagMarkerGraphWeakEdges(
 # Prune the strong subgraph of the marker graph.
 a.pruneMarkerGraphStrongSubgraph(
     iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
+
+# Remove bubbles from the marker graph.
+a.removeMarkerGraphBubbles(
+    maxLength = int(config['MarkerGraph']['bubbleLengthThreshold']))
 
 # Create the assembly graph.
 a.createAssemblyGraphEdges()
