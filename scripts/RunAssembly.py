@@ -112,6 +112,7 @@ a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 a.assemble()
 a.computeAssemblyStatistics()
 a.writeGfa1('Assembly.gfa')
+a.writeFasta('Assembly.fasta')
 
 
 
