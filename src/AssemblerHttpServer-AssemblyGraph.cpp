@@ -112,7 +112,7 @@ void Assembler::exploreAssemblyGraph(
     // Copy the svg to html.
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
-    html << svgFile.rdbuf();
+    html << "<br>" << svgFile.rdbuf();
     svgFile.close();
 
     // Remove the .svg file.

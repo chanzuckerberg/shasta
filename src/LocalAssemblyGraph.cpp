@@ -53,20 +53,20 @@ std::pair<bool, LocalAssemblyGraph::vertex_descriptor>
     }
 }
 
-#if 0
-// Return the number of marker graph edges that the vertex corresponds to.
-size_t LocalAssemblyGraph::vertexLength(vertex_descriptor v) const
+
+
+// Return the number of marker graph edges that an edge corresponds to.
+size_t LocalAssemblyGraph::edgeLength(edge_descriptor e) const
 {
     const LocalAssemblyGraph& graph = *this;
-    const VertexId vertexId = graph[v].vertexId;
-    return globalAssemblyGraph.vertices.size(vertexId);
+    const EdgeId edgeId = graph[e].edgeId;
+    return globalAssemblyGraph.edgeLists.size(edgeId);
 }
-#endif
 
 
-// Return the number of bases in the raw assembled sequence of a vertex,
+// Return the number of bases in the raw assembled sequence of an edge,
 // or -1 if not available.
-int LocalAssemblyGraph::baseCount(vertex_descriptor v) const
+int LocalAssemblyGraph::baseCount(edge_descriptor e) const
 {
     if(!globalAssemblyGraph.repeatCounts.isOpen()) {
         return -1;
@@ -74,8 +74,8 @@ int LocalAssemblyGraph::baseCount(vertex_descriptor v) const
 
     // Get the repeat counts for this vertex.
     const LocalAssemblyGraph& graph = *this;
-    const VertexId vertexId = graph[v].vertexId;
-    const MemoryAsContainer<uint8_t> repeatCounts = globalAssemblyGraph.repeatCounts[vertexId];
+    const EdgeId edgeId = graph[e].edgeId;
+    const MemoryAsContainer<uint8_t> repeatCounts = globalAssemblyGraph.repeatCounts[edgeId];
 
 
     // Add them up.
@@ -134,8 +134,8 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s) const
         s << "layout=dot;\n";
         s << "rankdir=LR;\n";
         s << "ratio=expand;\n";
-        s << "node [fontname=\"Courier New\" shape=rectangle style=filled];\n";
-        s << "edge [fontname=\"Courier New\"];\n";
+        s << "node [shape=point];\n";
+        s << "edge [decorate=true];\n";
     } else {
         s << "layout=sfdp;\n";
         s << "smoothing=triangle;\n";
@@ -232,4 +232,17 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
 
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
+    if(true) {
+        // const size_t length = graph.edgeLength(e);
+        const int baseCount = graph.baseCount(e);
+
+        // Begin edge attributes.
+        s << "[";
+
+        // Label.
+        s << "label=\"" << baseCount << "\"";
+
+        // End edge attributes.
+        s << "]";
+    }
 }

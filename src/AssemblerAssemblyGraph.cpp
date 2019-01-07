@@ -899,6 +899,7 @@ bool Assembler::extractLocalAssemblyGraph(
                 bool edgeExists;
                 tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
                 CZI_ASSERT(edgeExists);
+                graph[e].edgeId = edgeId;
                 if(debug) {
                     cout << "Edge added " << vertexId0 << "->" << vertexId1 << endl;
                 }
@@ -937,6 +938,7 @@ bool Assembler::extractLocalAssemblyGraph(
                 bool edgeExists;
                     tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
                     CZI_ASSERT(edgeExists);
+                    graph[e].edgeId = edgeId;
                     if(debug) {
                         cout << "Edge added " << vertexId1 << "->" << vertexId0 << endl;
                 }

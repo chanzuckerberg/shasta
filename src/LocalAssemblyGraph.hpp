@@ -60,6 +60,9 @@ public:
 
 class ChanZuckerberg::shasta::LocalAssemblyGraphEdge {
 public:
+    // The global edge id of the edge of the global assembly
+    // graph that corresponds to this edge.
+    AssemblyGraph::EdgeId edgeId;
 };
 
 
@@ -87,12 +90,12 @@ public:
     // Otherwise, return make_pair(false, null_vertex());
     pair<bool, vertex_descriptor> findVertex(VertexId) const;
 
-    // Return the number of marker graph edges that the vertex corresponds to.
-    size_t vertexLength(vertex_descriptor) const;
+    // Return the number of marker graph edges that an edge corresponds to.
+    size_t edgeLength(edge_descriptor) const;
 
-    // Return the number of bases in the raw assembled sequence of a vertex,
+    // Return the number of bases in the raw assembled sequence of an edge,
     // or -1 if not available.
-    int baseCount(vertex_descriptor) const;
+    int baseCount(edge_descriptor) const;
 
     // Write in Graphviz format.
     void write(
