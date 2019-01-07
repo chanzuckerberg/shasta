@@ -67,7 +67,7 @@ public:
 
     // Given a coverage object, return the most likely run length, and the normalized log likelihood vector for all run
     // lengths as a pair
-    pair<int, vector<double> > predict_runlength(const Coverage &coverage, AlignedBase base) const;
+    int predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const;
 
     AlignedBase predict_consensus_base(const Coverage& coverage) const;
 
@@ -93,19 +93,16 @@ private:
 
     /// ----- Methods ----- ///
 
-    // Read a single csv containing run length probability matrix
-    vector<vector<double> > load_probability_matrix(string file_path);
-
     // Read each probability matrix from its file and store them in a vector (assuming decibel units, aka base 10)
     // Each delimited table in text should be preceded by a fasta-like header e.g.: ">A" for the base it corresponds to.
     // This converts each line to a vector of doubles, appending probability_matrices according to the matrix header.
     void load_probability_matrices(ifstream& matrix_file);
 
     // For parsing any character separated file format
-    vector<double> split(string s, char separator_char);
+    void split(string s, char separator_char, vector<double>& tokens);
 
     // For a given vector of likelihoods over each Y value, normalize by the maximum
-    vector<double> normalize_likelihoods(vector<double> x, double x_max) const;
+    void normalize_likelihoods(vector<double>& x, double x_max) const;
 
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods
     map<int,int> factor_repeats(const Coverage& coverage) const;
@@ -113,7 +110,7 @@ private:
 
     // For debugging or exporting
     void print_probability_matrices(char separator=',');
-    void print_log_likelihood_vector(vector<double> log_likelihoods);
+    void print_log_likelihood_vector(vector<double>& log_likelihoods);
 
 };
 

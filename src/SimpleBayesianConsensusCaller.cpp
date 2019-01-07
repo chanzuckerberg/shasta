@@ -32,16 +32,13 @@ using namespace shasta;
 
 
 // Helper function
-vector<double> SimpleBayesianConsensusCaller::split(string s, char separator_char){
-    vector<double> tokens;
+void SimpleBayesianConsensusCaller::split(string s, char separator_char, vector<double>& tokens){
     Separator separator(&separator_char);
     Tokenizer tok{s, separator};
 
     for (string token: tok) {
         tokens.push_back(stod(token));
     }
-
-    return tokens;
 }
 
 
@@ -51,10 +48,11 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
     predict_gap_runlengths = false;
     count_gaps_as_zeros = false;
 
-    const string fileName = "SimpleBayesianConsensusCaller.csv";
+    const string fileName = "SimpleBayesianConsensusCaller-1.csv";
     ifstream matrix_file(fileName);
-    if (not matrix_file.good()){
-        throw runtime_error("Error opening " + fileName);
+    if (not matrix_file.good()) {
+        const string error_message = "Error opening file: " + fileName;
+        throw runtime_error(error_message);
     }
 
     load_probability_matrices(matrix_file);
@@ -85,8 +83,6 @@ void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
 
 void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_file){
     string line;
-    vector<double> row;
-    vector<vector<double> > matrix;
     char base;
     unsigned long base_index;
 
@@ -101,37 +97,18 @@ void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_f
 
         // Data line
         else if (line[0] != '>' && not line.empty()) {
+            // Initialize empty vector to fill with tokens from csv
+            vector<double> row;
+
             // Assume csv format
-            row = split(line, ',');
-            probability_matrices[ulong(base_index)].push_back(row);
+            split(line, ',', row);
+            probability_matrices[base_index].push_back(row);
         }
     }
 }
 
 
-vector<vector<double> > SimpleBayesianConsensusCaller::load_probability_matrix(string file_path){
-    ifstream matrix_file(file_path);
-    vector<vector<double> > matrix;
-    vector<double> row;
-    string line;
-
-    // Ensure that file pointer is not null
-    if (not matrix_file.good()){
-        throw runtime_error("ERROR: probability matrix file cannot be read: " + file_path);
-    }
-
-    // Read all lines in file and convert each to a vector of doubles, appending each to matrix
-    while (getline(matrix_file, line)){
-        // Assume csv format
-        row = split(line, ',');
-        matrix.push_back(row);
-    }
-
-    return matrix;
-}
-
-
-void SimpleBayesianConsensusCaller::print_log_likelihood_vector(vector<double> log_likelihoods){
+void SimpleBayesianConsensusCaller::print_log_likelihood_vector(vector<double>& log_likelihoods){
     int i = 0;
     for (auto& item: log_likelihoods){
         cout << i << " " << pow(10, item) << '\n';
@@ -140,14 +117,10 @@ void SimpleBayesianConsensusCaller::print_log_likelihood_vector(vector<double> l
 }
 
 
-vector<double> SimpleBayesianConsensusCaller::normalize_likelihoods(vector<double> x, double x_max) const{
-    vector<double> x_normalized(x.size());
-
+void SimpleBayesianConsensusCaller::normalize_likelihoods(vector<double>& x, double x_max) const{
     for (unsigned long i=0; i<x.size(); i++){
-        x_normalized[i] = x[i]-x_max;
+        x[i] = x[i]-x_max;
     }
-
-    return x_normalized;
 }
 
 
@@ -188,7 +161,7 @@ map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& cover
 }
 
 
-pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensusBase) const{
+int SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const{
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods/
     // Depending on class boolean "ignore_non_consensus_base_repeats" filter out observations
     map<int, int> factored_repeats;
@@ -205,7 +178,6 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
     unsigned long y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
 
     double log_sum;                                                   // Product (in logspace) of P(x_i|y_j) for each i
-    vector<double> log_likelihood_y(u_long(max_runlength), -INF);     // Loglikelihoods for all possible y_j
 
     double y_max_likelihood = -INF;
     int y_max = -1;
@@ -238,9 +210,9 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
         }
     }
 
-    log_likelihood_y = normalize_likelihoods(log_likelihood_y, y_max_likelihood);
+    normalize_likelihoods(log_likelihood_y, y_max_likelihood);
 
-    return make_pair(y_max, log_likelihood_y);
+    return y_max;
 }
 
 
@@ -279,18 +251,18 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
     // TODO: test that coverage is not empty?
     AlignedBase consensus_base;
     int consensus_repeat;
-    vector<double> log_likelihoods;
+    vector<double> log_likelihoods(u_long(max_runlength), -INF);    // initialize as zeros in log space
 
     consensus_base = predict_consensus_base(coverage);
 
     if (predict_gap_runlengths) {
         // Predict all run lengths regardless of whether consensus base is a gap
-        tie(consensus_repeat, log_likelihoods) = predict_runlength(coverage, consensus_base);
+        consensus_repeat = predict_runlength(coverage, consensus_base, log_likelihoods);
     }
     else {
         if (not consensus_base.isGap()) {
             // Consensus is NOT a gap character, and the configuration forbids predicting gaps
-            tie(consensus_repeat, log_likelihoods) = predict_runlength(coverage, consensus_base);
+            consensus_repeat = predict_runlength(coverage, consensus_base, log_likelihoods);
         } else {
             // Consensus IS a gap character, and the configuration forbids predicting gaps
             consensus_repeat = 0;
