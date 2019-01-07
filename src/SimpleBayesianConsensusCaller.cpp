@@ -62,8 +62,8 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
 
 
 void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
-    int length = int(probability_matrices[0].size());
-    int n_bases = 4;
+    unsigned int length = uint(probability_matrices[0].size());
+    unsigned int n_bases = 4;
 
     for (unsigned long b=0; b<n_bases; b++){
         cout << '>' << Base::fromInteger(b).character() << '\n';
@@ -212,7 +212,7 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
 
     // Iterate all possible Y from 0 to j to calculate p(Y_j|X) where X is all observations 0 to i,
     // assuming i and j are less than max_runlength
-    for (y_j = 0; y_j <= max_runlength; y_j++){
+    for (y_j = 0; y_j <= ulong(max_runlength); y_j++){
         // Initialize log_sum for this Y value
         log_sum = 0;
 
@@ -221,7 +221,7 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
             c_i = ulong(item.second);
 
             // In the case that observed runlength is too large for the matrix, cap it at max_runlength
-            if (x_i > max_runlength){
+            if (x_i > ulong(max_runlength)){
                 x_i = ulong(max_runlength);
             }
 
