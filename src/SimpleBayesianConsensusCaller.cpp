@@ -1,4 +1,5 @@
 #include <boost/tokenizer.hpp>
+#include <stdexcept>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -15,6 +16,7 @@
 using ChanZuckerberg::shasta::Consensus;
 using Separator = boost::char_separator<char>;
 using Tokenizer = boost::tokenizer<Separator>;
+using std::runtime_error;
 using std::ifstream;
 using std::vector;
 using std::string;
@@ -64,7 +66,8 @@ void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
     int n_bases = 4;
 
     for (unsigned long b=0; b<n_bases; b++){
-        cout << '>' << BASES[b] << '\n';
+        cout << '>' << Base::fromInteger(b).character() << '\n';
+
         for (unsigned long i=0; i<length; i++){
             for (unsigned long j=0; j<length; j++){
                 // Print with exactly 9 decimal values
@@ -93,7 +96,7 @@ void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_f
         // Header line
         if (line[0] == '>'){
             base = line[1];
-            base_index = ulong(BASE_INDEXES.at(base));
+            base_index = ulong(Base::fromCharacter(base).value);
         }
 
         // Data line
@@ -114,8 +117,7 @@ vector<vector<double> > SimpleBayesianConsensusCaller::load_probability_matrix(s
 
     // Ensure that file pointer is not null
     if (not matrix_file.good()){
-        cout << "ERROR: file read error: " << file_path << '\n';
-        exit(1);
+        throw runtime_error("ERROR: probability matrix file cannot be read: " + file_path);
     }
 
     // Read all lines in file and convert each to a vector of doubles, appending each to matrix
@@ -202,7 +204,7 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
     unsigned long c_i;    // Number of times x_i was observed
     unsigned long y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
 
-    double log_sum;                                                 // Product (in logspace) of P(x_i|y_j) for each i
+    double log_sum;                                                   // Product (in logspace) of P(x_i|y_j) for each i
     vector<double> log_likelihood_y(u_long(max_runlength), -INF);     // Loglikelihoods for all possible y_j
 
     double y_max_likelihood = -INF;
@@ -244,10 +246,9 @@ pair<int, vector<double> > SimpleBayesianConsensusCaller::predict_runlength(cons
 
 AlignedBase SimpleBayesianConsensusCaller::predict_consensus_base(const Coverage& coverage) const{
     const vector<CoverageData>& coverage_data_vector = coverage.getReadCoverageData();
-    vector<int> base_keys = {0, 1, 2, 3, 4};
-    vector<int> base_counts(base_keys.size(),0);
+    vector<int> base_counts(5,0);
     int max_base_count = 0;
-    int max_base;
+    uint8_t max_base = 4;   // Default to gap in case coverage is empty (is this possible?)
     unsigned long key;
 
     // Count bases. If it's a gap increment placeholder 4 in base_count vector
@@ -263,14 +264,14 @@ AlignedBase SimpleBayesianConsensusCaller::predict_consensus_base(const Coverage
     }
 
     // Determine most represented base (consensus)
-    for (auto& key: base_keys){
-        if (base_counts[ulong(key)] > max_base_count){
-            max_base_count = base_counts[ulong(key)];
-            max_base = key;
+    for (unsigned long i=0; i<5; i++){
+        if (base_counts[i] > max_base_count){
+            max_base_count = base_counts[i];
+            max_base = uint8_t(i);
         }
     }
 
-    return AlignedBase::fromInteger(uint8_t(max_base));
+    return AlignedBase::fromInteger(max_base);
 }
 
 
