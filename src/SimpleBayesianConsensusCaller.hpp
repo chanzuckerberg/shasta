@@ -52,8 +52,7 @@ namespace ChanZuckerberg {
 
 
 const double INF = std::numeric_limits<double>::infinity();;
-const vector<char> BASES = {'A', 'C', 'G', 'T'};
-const map<char,int> BASE_INDEXES = {{'A',0}, {'C',1}, {'G',2}, {'T',3}};
+
 
 // Given a set of observations (repeat, strand, base), predict the true repeat count
 class ChanZuckerberg::shasta::SimpleBayesianConsensusCaller:
