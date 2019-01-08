@@ -48,7 +48,7 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
     predict_gap_runlengths = false;
     count_gaps_as_zeros = false;
 
-    const string fileName = "SimpleBayesianConsensusCaller-1.csv";
+    const string fileName = "SimpleBayesianConsensusCaller.csv";
     ifstream matrix_file(fileName);
     if (not matrix_file.good()) {
         const string error_message = "Error opening file: " + fileName;
