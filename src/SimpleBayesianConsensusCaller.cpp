@@ -60,7 +60,7 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
 
 
 void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
-    unsigned int length = uint(probability_matrices[0].size());
+    const unsigned int length = uint(probability_matrices[0].size());
     unsigned int n_bases = 4;
 
     for (unsigned long b=0; b<n_bases; b++){
@@ -198,7 +198,7 @@ int SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, A
             }
 
             // Increment log likelihood for this y_j
-            log_sum += c_i*probability_matrices[consensusBase.value][y_j][x_i];
+            log_sum += double(c_i)*probability_matrices[consensusBase.value][y_j][x_i];
         }
 
         log_likelihood_y[y_j] = log_sum;
