@@ -190,9 +190,9 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
 
     // Label.
     if(showVertexLabels) {
-        s << " label=\""
-            "AGVID " << vertex.assemblyGraphVertexId <<
-            "\\nMGVID " << vertex.markerGraphVertexId <<
+        s << " label=\"" <<
+            vertex.assemblyGraphVertexId <<
+            "\\n" << vertex.markerGraphVertexId <<
             "\"";
     }
 
