@@ -60,14 +60,14 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
 
 
 void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
-    const unsigned int length = uint(probability_matrices[0].size());
-    unsigned int n_bases = 4;
+    const uint32_t length = uint(probability_matrices[0].size());
+    uint32_t n_bases = 4;
 
-    for (unsigned long b=0; b<n_bases; b++){
+    for (uint32_t b=0; b<n_bases; b++){
         cout << '>' << Base::fromInteger(b).character() << '\n';
 
-        for (unsigned long i=0; i<length; i++){
-            for (unsigned long j=0; j<length; j++){
+        for (uint32_t i=0; i<length; i++){
+            for (uint32_t j=0; j<length; j++){
                 // Print with exactly 9 decimal values
                 printf("%.9f",probability_matrices[b][i][j]);
                 if (j != length-1)
@@ -84,7 +84,7 @@ void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
 void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_file){
     string line;
     char base;
-    unsigned long base_index;
+    uint32_t base_index = 0;
 
     // Matrices are labeled via fasta-like headers
     while (getline(matrix_file, line)){
@@ -92,7 +92,7 @@ void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_f
         // Header line
         if (line[0] == '>'){
             base = line[1];
-            base_index = ulong(Base::fromCharacter(base).value);
+            base_index = uint32_t(Base::fromCharacter(base).value);
         }
 
         // Data line
@@ -118,19 +118,19 @@ void SimpleBayesianConsensusCaller::print_log_likelihood_vector(vector<double>& 
 
 
 void SimpleBayesianConsensusCaller::normalize_likelihoods(vector<double>& x, double x_max) const{
-    for (unsigned long i=0; i<x.size(); i++){
+    for (uint32_t i=0; i<x.size(); i++){
         x[i] = x[i]-x_max;
     }
 }
 
 
-map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage) const{
-    map<int,int> factored_repeats;
+map<uint16_t,uint16_t> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage) const{
+    map<uint16_t,uint16_t> factored_repeats;
 
     // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
         if (not observation.base.isGap()) {
-            factored_repeats[int(observation.repeatCount)]++;
+            factored_repeats[uint16_t(observation.repeatCount)]++;
         }
         else if (count_gaps_as_zeros){
             factored_repeats[0]++;
@@ -141,15 +141,15 @@ map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& cover
 }
 
 
-map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const{
-    map<int,int> factored_repeats;
+map<uint16_t,uint16_t> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const{
+    map<uint16_t,uint16_t> factored_repeats;
 
     // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
         // Ignore non consensus repeat values
         if (observation.base.value == consensus_base.value){
             if (not observation.base.isGap()) {
-                factored_repeats[int(observation.repeatCount)]++;
+                factored_repeats[uint16_t(observation.repeatCount)]++;
             }
             else if (count_gaps_as_zeros){
                 factored_repeats[0]++;
@@ -161,10 +161,10 @@ map<int,int> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& cover
 }
 
 
-int SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const{
+uint16_t SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const{
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods/
     // Depending on class boolean "ignore_non_consensus_base_repeats" filter out observations
-    map<int, int> factored_repeats;
+    map<uint16_t, uint16_t> factored_repeats;
 
     if (ignore_non_consensus_base_repeats) {
         factored_repeats = factor_repeats(coverage, consensusBase);
@@ -173,28 +173,28 @@ int SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, A
         factored_repeats = factor_repeats(coverage);
     }
 
-    unsigned long x_i;    // Element of X = {x_0, x_1, ..., x_i} observed repeats
-    unsigned long c_i;    // Number of times x_i was observed
-    unsigned long y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
+    uint16_t x_i;    // Element of X = {x_0, x_1, ..., x_i} observed repeats
+    uint16_t c_i;    // Number of times x_i was observed
+    uint16_t y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
 
     double log_sum;                                                   // Product (in logspace) of P(x_i|y_j) for each i
 
     double y_max_likelihood = -INF;
-    int y_max = -1;
+    uint16_t y_max = 0;
 
     // Iterate all possible Y from 0 to j to calculate p(Y_j|X) where X is all observations 0 to i,
     // assuming i and j are less than max_runlength
-    for (y_j = 0; y_j <= ulong(max_runlength); y_j++){
+    for (y_j = 0; y_j <= max_runlength; y_j++){
         // Initialize log_sum for this Y value
         log_sum = 0;
 
         for (auto& item: factored_repeats){
-            x_i = ulong(item.first);
-            c_i = ulong(item.second);
+            x_i = item.first;
+            c_i = item.second;
 
             // In the case that observed runlength is too large for the matrix, cap it at max_runlength
-            if (x_i > ulong(max_runlength)){
-                x_i = ulong(max_runlength);
+            if (x_i > max_runlength){
+                x_i = max_runlength;
             }
 
             // Increment log likelihood for this y_j
@@ -206,7 +206,7 @@ int SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, A
         // Update max Y value if log likelihood is greater than previous maximum... Should do this outside this loop?
         if (log_sum > y_max_likelihood){
             y_max_likelihood = log_sum;
-            y_max = int(y_j);
+            y_max = y_j;
         }
     }
 
@@ -218,10 +218,10 @@ int SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, A
 
 AlignedBase SimpleBayesianConsensusCaller::predict_consensus_base(const Coverage& coverage) const{
     const vector<CoverageData>& coverage_data_vector = coverage.getReadCoverageData();
-    vector<int> base_counts(5,0);
-    int max_base_count = 0;
+    vector<uint32_t> base_counts(5,0);
+    uint32_t max_base_count = 0;
     uint8_t max_base = 4;   // Default to gap in case coverage is empty (is this possible?)
-    unsigned long key;
+    uint32_t key;
 
     // Count bases. If it's a gap increment placeholder 4 in base_count vector
     for(const CoverageData& observation: coverage_data_vector) {
@@ -236,7 +236,7 @@ AlignedBase SimpleBayesianConsensusCaller::predict_consensus_base(const Coverage
     }
 
     // Determine most represented base (consensus)
-    for (unsigned long i=0; i<5; i++){
+    for (uint32_t i=0; i<5; i++){
         if (base_counts[i] > max_base_count){
             max_base_count = base_counts[i];
             max_base = uint8_t(i);
@@ -250,7 +250,7 @@ AlignedBase SimpleBayesianConsensusCaller::predict_consensus_base(const Coverage
 Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) const{
     // TODO: test that coverage is not empty?
     AlignedBase consensus_base;
-    int consensus_repeat;
+    uint16_t consensus_repeat;
     vector<double> log_likelihoods(u_long(max_runlength), -INF);    // initialize as zeros in log space
 
     consensus_base = predict_consensus_base(coverage);

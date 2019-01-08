@@ -67,7 +67,7 @@ public:
 
     // Given a coverage object, return the most likely run length, and the normalized log likelihood vector for all run
     // lengths as a pair
-    int predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const;
+    uint16_t predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const;
 
     AlignedBase predict_consensus_base(const Coverage& coverage) const;
 
@@ -80,7 +80,7 @@ private:
     /// ---- Attributes ---- ///
 
     // Defined at initialization, this is the size of the probability matrix generated from the data
-    int max_runlength;
+    uint16_t max_runlength;
 
     // Boolean flags for configuration
     bool ignore_non_consensus_base_repeats;
@@ -105,8 +105,8 @@ private:
     void normalize_likelihoods(vector<double>& x, double x_max) const;
 
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods
-    map<int,int> factor_repeats(const Coverage& coverage) const;
-    map<int,int> factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const;
+    map<uint16_t,uint16_t> factor_repeats(const Coverage& coverage) const;
+    map<uint16_t,uint16_t> factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const;
 
     // For debugging or exporting
     void print_probability_matrices(char separator=',');
