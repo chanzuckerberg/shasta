@@ -77,7 +77,9 @@ void Assembler::exploreAssemblyGraph(
     graph.write(
         dotFileName,
         requestParameters.maxDistance,
-        requestParameters.detailed);
+        requestParameters.useDotLayout,
+        requestParameters.showVertexLabels,
+        requestParameters.showEdgeLabels);
 
 
 
@@ -136,11 +138,19 @@ void Assembler::getLocalAssemblyGraphRequestParameters(
     parameters.maxDistanceIsPresent = getParameterValue(
         request, "maxDistance", parameters.maxDistance);
 
-    string detailedString;
-    parameters.detailed = getParameterValue(
-        request, "detailed", detailedString);
+    string useDotLayoutString;
+    parameters.useDotLayout = getParameterValue(
+        request, "useDotLayout", useDotLayoutString);
 
-    parameters.sizePixels = 800;
+    string showVertexLabelsString;
+    parameters.showVertexLabels = getParameterValue(
+        request, "showVertexLabels", showVertexLabelsString);
+
+    string showEdgeLabelsString;
+    parameters.showEdgeLabels = getParameterValue(
+        request, "showEdgeLabels", showEdgeLabelsString);
+
+    parameters.sizePixels = 600;
     parameters.sizePixelsIsPresent = getParameterValue(
         request, "sizePixels", parameters.sizePixels);
 
@@ -174,12 +184,23 @@ void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
         << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
         ">"
 
-        "<tr title='Check for detailed graph with labels'>"
-        "<td>Detailed"
-        "<td class=centered><input type=checkbox name=detailed"
-        << (detailed ? " checked=checked" : "") <<
+        "<tr title='Check to use graphviz dot layout. Uncheck to use graphviz sfdp layout.'>"
+        "<td>Use dot layout"
+        "<td class=centered><input type=checkbox name=useDotLayout"
+        << (useDotLayout ? " checked=checked" : "") <<
         ">"
 
+        "<tr title='Check to show vertex labels'>"
+        "<td>Label vertices"
+        "<td class=centered><input type=checkbox name=showVertexLabels"
+        << (showVertexLabels ? " checked=checked" : "") <<
+        ">"
+
+        "<tr title='Check to show edge labels'>"
+        "<td>Label edges"
+        "<td class=centered><input type=checkbox name=showEdgeLabels"
+        << (showEdgeLabels ? " checked=checked" : "") <<
+        ">"
 
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."

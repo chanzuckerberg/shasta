@@ -19,32 +19,34 @@ LocalAssemblyGraph::LocalAssemblyGraph(AssemblyGraph& globalAssemblyGraph) :
 
 
 
-// Add a vertex with the given VertexId
+// Add a vertex with the given vertex ids
 // and return its vertex descriptor.
 // A vertex with this VertexId must not exist.
 LocalAssemblyGraph::vertex_descriptor LocalAssemblyGraph::addVertex(
-    AssemblyGraph::VertexId vertexId,
+    AssemblyGraph::VertexId assemblyGraphVertexId,
+    GlobalMarkerGraphVertexId markerGraphVertexId,
     int distance)
 {
     // Check that the vertex does not already exist.
-    CZI_ASSERT(vertexMap.find(vertexId) == vertexMap.end());
+    CZI_ASSERT(vertexMap.find(assemblyGraphVertexId) == vertexMap.end());
 
     // Add the vertex and store it in the vertex map.
-    const vertex_descriptor v = add_vertex(LocalAssemblyGraphVertex(vertexId, distance), *this);
-    vertexMap.insert(make_pair(vertexId, v));
+    const vertex_descriptor v = add_vertex(LocalAssemblyGraphVertex(
+        assemblyGraphVertexId, markerGraphVertexId, distance), *this);
+    vertexMap.insert(make_pair(assemblyGraphVertexId, v));
 
     return v;
 }
 
 
 
-// Find out if a vertex with the given VertexId exists.
+// Find out if a vertex with the given assembly graph vertex id exists.
 // If it exists, return make_pair(true, v).
 // Otherwise, return make_pair(false, null_vertex());
 std::pair<bool, LocalAssemblyGraph::vertex_descriptor>
-    LocalAssemblyGraph::findVertex(AssemblyGraph::VertexId vertexId) const
+    LocalAssemblyGraph::findVertex(AssemblyGraph::VertexId assemblyGraphVertexId) const
 {
-    const auto it = vertexMap.find(vertexId);
+    const auto it = vertexMap.find(assemblyGraphVertexId);
     if(it == vertexMap.end()) {
         return make_pair(false, null_vertex());
     } else {
@@ -93,22 +95,26 @@ int LocalAssemblyGraph::baseCount(edge_descriptor e) const
 void LocalAssemblyGraph::write(
     const string& fileName,
     int maxDistance,
-    bool detailed)
+    bool useDotLayout,
+    bool showVertexLabels,
+    bool showEdgeLabels)
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance, detailed);
+    write(outputFileStream, maxDistance, useDotLayout, showVertexLabels, showEdgeLabels);
 }
 void LocalAssemblyGraph::write(
     ostream& s,
     int maxDistance,
-    bool detailed)
+    bool useDotLayout,
+    bool showVertexLabels,
+    bool showEdgeLabels)
 {
-    Writer writer(*this, maxDistance, detailed);
+    Writer writer(*this, maxDistance, useDotLayout, showVertexLabels, showEdgeLabels);
     boost::write_graphviz(s, *this, writer, writer, writer,
-        boost::get(&LocalAssemblyGraphVertex::vertexId, *this));
+        boost::get(&LocalAssemblyGraphVertex::assemblyGraphVertexId, *this));
 }
 
 
@@ -116,10 +122,14 @@ void LocalAssemblyGraph::write(
 LocalAssemblyGraph::Writer::Writer(
     LocalAssemblyGraph& graph,
     int maxDistance,
-    bool detailed) :
+    bool useDotLayout,
+    bool showVertexLabels,
+    bool showEdgeLabels) :
     graph(graph),
     maxDistance(maxDistance),
-    detailed(detailed)
+    useDotLayout(useDotLayout),
+    showVertexLabels(showVertexLabels),
+    showEdgeLabels(showEdgeLabels)
 {
 }
 
@@ -127,21 +137,28 @@ LocalAssemblyGraph::Writer::Writer(
 
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s) const
 {
-    // This turns off the tooltip on the graph.
+    // Turn off the tooltip on the graph.
     s << "tooltip = \" \";\n";
 
-    if(detailed) {
+    // Define how to use extra space.
+    s << "ratio=expand;\n";
+
+    // Graph layout.
+    if(useDotLayout) {
         s << "layout=dot;\n";
         s << "rankdir=LR;\n";
-        s << "ratio=expand;\n";
-        s << "node [shape=point];\n";
-        s << "edge [decorate=true];\n";
     } else {
         s << "layout=sfdp;\n";
         s << "smoothing=triangle;\n";
-        s << "ratio=expand;\n";
+    }
+
+    // Vertex shape.
+    if(showVertexLabels) {
+        s << "node [shape=rectangle];\n";
+    } else {
         s << "node [shape=point];\n";
     }
+
 }
 
 
@@ -149,7 +166,30 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s) const
 // Write a vertex in graphviz format.
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
-#if 0
+    const LocalAssemblyGraphVertex& vertex = graph[v];
+
+    // Begin vertex attributes.
+    s << "[";
+
+    // Tooltip.
+    s << "tooltip=\""
+        "Assembly graph vertex " << vertex.assemblyGraphVertexId <<
+        ", marker graph vertex " << vertex.markerGraphVertexId <<
+        "\"";
+
+    // Label.
+    if(showVertexLabels) {
+        s << "label=\""
+            "AGVID " << vertex.assemblyGraphVertexId <<
+            "\\nMGVID " << vertex.markerGraphVertexId <<
+            "\"";
+    }
+
+    // End vertex attributes.
+    s << "]";
+
+
+    #if 0
     const LocalAssemblyGraphVertex& vertex = graph[v];
     const size_t length = graph.vertexLength(v);
     const int baseCount = graph.baseCount(v);
@@ -232,17 +272,26 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
 
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
-    if(true) {
-        // const size_t length = graph.edgeLength(e);
-        const int baseCount = graph.baseCount(e);
+    const LocalAssemblyGraphEdge& edge = graph[e];
+    const size_t length = graph.edgeLength(e);
+    const int baseCount = graph.baseCount(e);
 
-        // Begin edge attributes.
-        s << "[";
+    // Begin edge attributes.
+    s << "[";
 
-        // Label.
+    // Tooltip.
+    s << "tooltip=\"Edge " << edge.edgeId << ", " << baseCount << " bases, " << length << " marker graph edges\"";
+    s << "labeltooltip=\"Edge " << edge.edgeId << ", " << baseCount << " bases, " << length << " marker graph edges\"";
+
+    // URL
+    s << " URL=\"exploreAssemblyGraphEdge?edgeId=" << edge.edgeId << "\"";
+
+    // Label.
+    if(showEdgeLabels) {
         s << "label=\"" << baseCount << "\"";
-
-        // End edge attributes.
-        s << "]";
     }
+
+
+    // End edge attributes.
+    s << "]";
 }

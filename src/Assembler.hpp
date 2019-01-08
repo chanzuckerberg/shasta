@@ -1287,7 +1287,9 @@ private:
         bool edgeIdIsPresent;
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
-        bool detailed;
+        bool useDotLayout;
+        bool showVertexLabels;
+        bool showEdgeLabels;
         uint32_t sizePixels;
         bool sizePixelsIsPresent;
         double timeout;

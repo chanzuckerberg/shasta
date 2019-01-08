@@ -40,17 +40,23 @@ namespace ChanZuckerberg {
 class ChanZuckerberg::shasta::LocalAssemblyGraphVertex {
 public:
 
-    // The global vertex id of the vertex of the global assembly
+    // The vertex id of the vertex of the global assembly
     // graph that corresponds to this vertex.
-    AssemblyGraph::VertexId vertexId;
+    AssemblyGraph::VertexId assemblyGraphVertexId;
+
+    // The vertex id of the vertex of the global marker
+    // graph that corresponds to this vertex.
+    GlobalMarkerGraphVertexId markerGraphVertexId;
 
     // The distance from the start vertex.
     int distance;
 
     LocalAssemblyGraphVertex(
-        AssemblyGraph::VertexId vertexId,
+        AssemblyGraph::VertexId assemblyGraphVertexId,
+        GlobalMarkerGraphVertexId markerGraphVertexId,
         int distance) :
-        vertexId(vertexId),
+        assemblyGraphVertexId(assemblyGraphVertexId),
+        markerGraphVertexId(markerGraphVertexId),
         distance(distance)
         {}
 
@@ -78,14 +84,15 @@ public:
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
-    // Add a vertex with the given vertex id
+    // Add a vertex with the given vertex ids
     // and return its vertex descriptor.
     // A vertex with this vertex id must not exist.
     vertex_descriptor addVertex(
         VertexId,
+        GlobalMarkerGraphVertexId,
         int distance);
 
-    // Find out if a vertex with the given VertexId exists.
+    // Find out if a vertex with the given assembly graph vertex id exists.
     // If it exists, return make_pair(true, v).
     // Otherwise, return make_pair(false, null_vertex());
     pair<bool, vertex_descriptor> findVertex(VertexId) const;
@@ -101,16 +108,20 @@ public:
     void write(
         ostream&,
         int maxDistance,
-        bool detailed);
+        bool useDotLayout,
+        bool showVertexLabels,
+        bool showEdgeLabels);
     void write(
         const string& fileName,
         int maxDistance,
-        bool detailed);
+        bool useDotLayout,
+        bool showVertexLabels,
+        bool showEdgeLabels);
 
 
 private:
 
-    // Map a global vertex id to a vertex descriptor for the local graph.
+    // Map a global assembly graph vertex id to a vertex descriptor for the local graph.
     std::map<VertexId, vertex_descriptor> vertexMap;
 
     // Reference to the global assembly graph.
@@ -122,13 +133,17 @@ private:
         Writer(
             LocalAssemblyGraph&,
             int maxDistance,
-            bool detailed);
+            bool useDotLayout,
+            bool showVertexLabels,
+            bool showEdgeLabels);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalAssemblyGraph& graph;
         int maxDistance;
-        bool detailed;
+        bool useDotLayout;
+        bool showVertexLabels;
+        bool showEdgeLabels;
     };
     friend class Writer;
 };

@@ -837,8 +837,14 @@ bool Assembler::extractLocalAssemblyGraph(
 
     // Add the start vertices.
     const AssemblyGraph::Edge startEdge = assemblyGraph.edges[startEdgeId];
-    const vertex_descriptor vStart0 = graph.addVertex(startEdge.source, 0);
-    const vertex_descriptor vStart1 = graph.addVertex(startEdge.target, 0);
+    const vertex_descriptor vStart0 = graph.addVertex(
+        startEdge.source,
+        assemblyGraph.vertices[startEdge.source],
+        0);
+    const vertex_descriptor vStart1 = graph.addVertex(
+        startEdge.target,
+        assemblyGraph.vertices[startEdge.target],
+        0);
 
     // Do the BFS.
     std::queue<vertex_descriptor> q;
@@ -859,37 +865,40 @@ bool Assembler::extractLocalAssemblyGraph(
         const vertex_descriptor v0 = q.front();
         q.pop();
         const LocalAssemblyGraphVertex& vertex0 = graph[v0];
-        const VertexId vertexId0 = vertex0.vertexId;
+        const VertexId assemblyGraphVertexId0 = vertex0.assemblyGraphVertexId;
         const int distance0 = vertex0.distance;
         const int distance1 = distance0 + 1;
 
         if(debug) {
-            cout << "Dequeued " << vertexId0 << " at distance " << distance0 << endl;
+            cout << "Dequeued " << assemblyGraphVertexId0 << " at distance " << distance0 << endl;
         }
 
 
 
         // Loop over children.
-        const auto childEdges = assemblyGraph.edgesBySource[vertexId0];
+        const auto childEdges = assemblyGraph.edgesBySource[assemblyGraphVertexId0];
         for(const EdgeId edgeId: childEdges) {
             const AssemblyGraph::Edge& globalEdge = assemblyGraph.edges[edgeId];
-            const VertexId vertexId1 = globalEdge.target;
+            const VertexId assemblyGraphVertexId1 = globalEdge.target;
 
             if(debug) {
-                cout << "Found child " << vertexId1 << endl;
+                cout << "Found child " << assemblyGraphVertexId1 << endl;
             }
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
             vertex_descriptor v1;
-            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            tie(vertexExists, v1) = graph.findVertex(assemblyGraphVertexId1);
             if(!vertexExists) {
-                v1 = graph.addVertex(vertexId1, distance1);
+                v1 = graph.addVertex(
+                    assemblyGraphVertexId1,
+                    assemblyGraph.vertices[assemblyGraphVertexId1],
+                    distance1);
                 if(distance1 < distance) {
                     q.push(v1);
                 }
                 if(debug) {
-                    cout << "Vertex added " << vertexId1 << endl;
+                    cout << "Vertex added " << assemblyGraphVertexId1 << endl;
                 }
             }
 
@@ -901,7 +910,7 @@ bool Assembler::extractLocalAssemblyGraph(
                 CZI_ASSERT(edgeExists);
                 graph[e].edgeId = edgeId;
                 if(debug) {
-                    cout << "Edge added " << vertexId0 << "->" << vertexId1 << endl;
+                    cout << "Edge added " << assemblyGraphVertexId0 << "->" << assemblyGraphVertexId1 << endl;
                 }
             }
         }
@@ -909,26 +918,29 @@ bool Assembler::extractLocalAssemblyGraph(
 
 
         // Loop over parents.
-        const auto parentEdges = assemblyGraph.edgesByTarget[vertexId0];
+        const auto parentEdges = assemblyGraph.edgesByTarget[assemblyGraphVertexId0];
         for(const EdgeId edgeId: parentEdges) {
             const AssemblyGraph::Edge& globalEdge = assemblyGraph.edges[edgeId];
-            const VertexId vertexId1 = globalEdge.source;
+            const VertexId assemblyGraphVertexId1 = globalEdge.source;
 
             if(debug) {
-                cout << "Found parent " << vertexId1 << endl;
+                cout << "Found parent " << assemblyGraphVertexId1 << endl;
             }
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
             vertex_descriptor v1;
-            tie(vertexExists, v1) = graph.findVertex(vertexId1);
+            tie(vertexExists, v1) = graph.findVertex(assemblyGraphVertexId1);
             if(!vertexExists) {
-                v1 = graph.addVertex(vertexId1, distance1);
+                v1 = graph.addVertex(
+                    assemblyGraphVertexId1,
+                    assemblyGraph.vertices[assemblyGraphVertexId1],
+                    distance1);
                 if(distance1 < distance) {
                     q.push(v1);
                 }
                 if(debug) {
-                    cout << "Vertex added " << vertexId1 << endl;
+                    cout << "Vertex added " << assemblyGraphVertexId1 << endl;
                 }
             }
 
@@ -940,7 +952,8 @@ bool Assembler::extractLocalAssemblyGraph(
                     CZI_ASSERT(edgeExists);
                     graph[e].edgeId = edgeId;
                     if(debug) {
-                        cout << "Edge added " << vertexId1 << "->" << vertexId0 << endl;
+                        cout << "Edge added " << assemblyGraphVertexId1 << "->"
+                            << assemblyGraphVertexId0 << endl;
                 }
             }
         }
@@ -999,14 +1012,14 @@ bool Assembler::extractLocalAssemblyGraph(
     if(debug) {
         cout << "Vertices:" << endl;
         BGL_FORALL_VERTICES(v, graph, LocalAssemblyGraph) {
-            cout << graph[v].vertexId << endl;
+            cout << graph[v].assemblyGraphVertexId << endl;
         }
         cout << "Edges:" << endl;
         BGL_FORALL_EDGES(e, graph, LocalAssemblyGraph) {
             const vertex_descriptor v0 = source(e, graph);
             const vertex_descriptor v1 = target(e, graph);
-            cout << graph[v0].vertexId << "->";
-            cout << graph[v1].vertexId << endl;
+            cout << graph[v0].assemblyGraphVertexId << "->";
+            cout << graph[v1].assemblyGraphVertexId << endl;
         }
 
     }
