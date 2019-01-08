@@ -210,7 +210,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Read graph", "exploreReadGraph"},
         });
     writeNavigation(html, "Marker graph", {
-        {"Local marker graph", "exploreMarkerGraph"},
+        {"Local marker graph", "exploreMarkerGraph?useBubbleReplacementEdges=on"},
         {"Marker graph vertices", "exploreMarkerGraphVertex"},
         {"Marker graph edges", "exploreMarkerGraphEdge"},
         });

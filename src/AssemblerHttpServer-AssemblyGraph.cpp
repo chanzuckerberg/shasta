@@ -207,7 +207,7 @@ void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
         " Ok to make it much larger than screen size.'>"
         "<td>Graphics size in pixels"
         "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
-        << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='1600'") <<
+        << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
 
         "<tr>"

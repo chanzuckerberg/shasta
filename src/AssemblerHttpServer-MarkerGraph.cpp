@@ -63,6 +63,9 @@ void Assembler::exploreMarkerGraph(
             requestParameters.timeout,
             requestParameters.useWeakEdges,
             requestParameters.usePrunedEdges,
+            requestParameters.useBubbleEdges,
+            requestParameters.useBubbleReplacementEdges,
+            requestParameters.useShortCycleEdges,
             graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             return;
@@ -406,6 +409,17 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.usePrunedEdges = getParameterValue(
         request, "usePrunedEdges", usePrunedEdgesString);
 
+    string useBubbleEdgesString;
+    parameters.useBubbleEdges = getParameterValue(
+        request, "useBubbleEdges", useBubbleEdgesString);
+
+    string useBubbleReplacementEdgesString;
+    parameters.useBubbleReplacementEdges = getParameterValue(
+        request, "useBubbleReplacementEdges", useBubbleReplacementEdgesString);
+
+    string useShortCycleEdgesString;
+    parameters.useShortCycleEdges = getParameterValue(
+        request, "useShortCycleEdges", useShortCycleEdgesString);
 
     string showVertexIdString;
     parameters.showVertexId = getParameterValue(
@@ -472,11 +486,12 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td>Use stored connectivity"
         "<td class=centered><input type=checkbox name=useStoredConnectivity"
         << (useStoredConnectivity ? " checked=checked" : "") <<
-        "><td class=centered>"
-        "Weak edges<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") <<
-        "><td class=centered>"
-        "Pruned edges<input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") <<
-        ">"
+        "><td class=left>"
+        "<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") << ">Weak edges"
+        "<br><input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") << ">Pruned edges"
+        "<br><input type=checkbox name=useBubbleEdges" << (useBubbleEdges ? " checked=checked" : "") << ">Bubble edges"
+        "<br><input type=checkbox name=useBubbleReplacementEdges" << (useBubbleReplacementEdges ? " checked=checked" : "") << ">Bubble replacement edges"
+        "<br><input type=checkbox name=useShortCycleEdges" << (useShortCycleEdges ? " checked=checked" : "") << ">Short cycle edges"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
         "<td>Show vertex ids"
@@ -510,7 +525,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         " Ok to make it much larger than screen size.'>"
         "<td>Graphics size in pixels"
         "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
-        << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='1600'") <<
+        << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
 
         "<tr>"

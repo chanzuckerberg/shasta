@@ -1381,6 +1381,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
+    bool useBubbleEdges,
+    bool useBubbleReplacementEdges,
+    bool useShortCycleEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1388,7 +1391,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     return extractLocalMarkerGraphUsingStoredConnectivity(
         startVertexId, distance, timeout,
-        useWeakEdges, usePrunedEdges, graph);
+        useWeakEdges, usePrunedEdges, useBubbleEdges, useBubbleReplacementEdges, useShortCycleEdges,
+        graph);
 
 }
 
@@ -1400,6 +1404,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
+    bool useBubbleEdges,
+    bool useBubbleReplacementEdges,
+    bool useShortCycleEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1457,6 +1464,15 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.wasPruned && !usePrunedEdges) {
                 continue;
             }
+            if(edge.isBubbleEdge && !useBubbleEdges) {
+                continue;
+            }
+            if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
+                continue;
+            }
+            if(edge.isShortCycleEdge && !useShortCycleEdges) {
+                continue;
+            }
 
             const GlobalMarkerGraphVertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
@@ -1509,6 +1525,15 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
             if(edge.wasPruned && !usePrunedEdges) {
+                continue;
+            }
+            if(edge.isBubbleEdge && !useBubbleEdges) {
+                continue;
+            }
+            if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
+                continue;
+            }
+            if(edge.isShortCycleEdge && !useShortCycleEdges) {
                 continue;
             }
 
@@ -1576,6 +1601,15 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
             if(edge.wasPruned && !usePrunedEdges) {
+                continue;
+            }
+            if(edge.isBubbleEdge && !useBubbleEdges) {
+                continue;
+            }
+            if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
+                continue;
+            }
+            if(edge.isShortCycleEdge && !useShortCycleEdges) {
                 continue;
             }
 
