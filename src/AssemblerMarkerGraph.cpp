@@ -3101,7 +3101,7 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     cout << timestamp << "Creating a temporary assembly graph for bubble removal." << endl;
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
-    assemblyGraph.writeGraphviz("AssemblyGraph-0.dot");
+    assemblyGraph.writeGraphviz("AssemblyGraph-1.dot");
     cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
 
 
