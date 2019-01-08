@@ -91,6 +91,9 @@ public:
     // Close and remove all open data.
     void remove();
 
+    // Basic Graphviz output of the global assembly graph.
+    void writeGraphviz(const string& fileName) const;
+
 };
 
 

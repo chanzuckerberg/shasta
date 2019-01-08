@@ -309,6 +309,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessAssemblyGraphEdges)
         .def("accessAssemblyGraphVertices",
             &Assembler::accessAssemblyGraphVertices)
+        .def("writeAssemblyGraph",
+            &Assembler::writeAssemblyGraph)
         .def("assemble",
             &Assembler::assemble,
             arg("threadCount") = 0)

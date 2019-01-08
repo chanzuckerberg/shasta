@@ -108,6 +108,7 @@ a.removeMarkerGraphBubbles(
 # Create the assembly graph.
 a.createAssemblyGraphEdges()
 a.createAssemblyGraphVertices()
+a.writeAssemblyGraph("AssemblyGraph-Final.dot")
 
 # Use the assembly graph for global assembly.
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])

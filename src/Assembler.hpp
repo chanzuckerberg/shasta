@@ -1115,6 +1115,7 @@ public:
     void createAssemblyGraphEdges();
     void accessAssemblyGraphEdgeLists();
     void accessAssemblyGraphEdges();
+    void writeAssemblyGraph(const string& fileName) const;
 private:
 
     // Extract a local assembly graph from the global assembly graph.

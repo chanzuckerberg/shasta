@@ -19,15 +19,6 @@ void Assembler::exploreAssemblyGraph(
     ostream& html)
 {
 
-    // Debugging: write the entire assembly graph in graphviz format.
-    if(false) {
-        ofstream graphOut("AssemblyGraph.dot");
-        graphOut << "digraph G {\n";
-        for(const auto& edge: assemblyGraph.edges) {
-            graphOut << edge.source << "->" << edge.target << ";\n";
-        }
-        graphOut << "}\n";
-    }
 
     // Get the request parameters.
     LocalAssemblyGraphRequestParameters requestParameters;

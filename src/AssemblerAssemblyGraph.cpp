@@ -352,6 +352,10 @@ void Assembler::accessAssemblyGraphEdges()
         largeDataName("AssemblyGraphEdgesByTarget"));
 }
 
+void Assembler::writeAssemblyGraph(const string& fileName) const
+{
+    assemblyGraph.writeGraphviz(fileName);
+}
 
 
 // Assemble sequence for all edges of the assembly graph.

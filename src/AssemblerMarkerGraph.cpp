@@ -2987,6 +2987,7 @@ void Assembler::removeShortMarkerGraphCycles(size_t maxLength)
     cout << timestamp << "Creating a temporary assembly graph for short cycle removal." << endl;
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
+    assemblyGraph.writeGraphviz("AssemblyGraph-0.dot");
     cout << timestamp << "Done creating a temporary assembly graph for short cycle removal." << endl;
 
     // The assembly graph edges we want to remove.
@@ -3100,6 +3101,7 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     cout << timestamp << "Creating a temporary assembly graph for bubble removal." << endl;
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
+    assemblyGraph.writeGraphviz("AssemblyGraph-0.dot");
     cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
 
 
