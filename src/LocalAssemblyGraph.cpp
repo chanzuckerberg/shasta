@@ -177,9 +177,20 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
         ", marker graph vertex " << vertex.markerGraphVertexId <<
         "\"";
 
+    // URL.
+    s << " URL=\"exploreMarkerGraph?"
+        "?vertexId=" << vertex.markerGraphVertexId <<
+        "&useStoredConnectivity=on"
+        "&maxDistance=10"
+        "&minCoverage=0"
+        "&timeout=30"
+        "&useBubbleReplacementEdges=on"
+        "&showVertexId=on"
+        "\"";
+
     // Label.
     if(showVertexLabels) {
-        s << "label=\""
+        s << " label=\""
             "AGVID " << vertex.assemblyGraphVertexId <<
             "\\nMGVID " << vertex.markerGraphVertexId <<
             "\"";
