@@ -845,7 +845,8 @@ private:
                     wasRemovedByTransitiveReduction ||
                     wasPruned ||
                     isBubbleEdge ||
-                    isShortCycleEdge;
+                    isShortCycleEdge ||
+                    isSuperBubbleEdge;
             }
 
             // Flag that is set if the edge was removed during
@@ -862,11 +863,15 @@ private:
             uint8_t replacesBubbleEdges : 1;
 
             // Set if this edge is part of a short cycle of the assembly graph that was removed.
-            uint8_t isShortCycleEdge;
+            uint8_t isShortCycleEdge : 1;
 
-            // The remaining flags are currently unused.
-            uint8_t flag5 : 1;
-            uint8_t flag6 : 1;
+            // Set if this edge belongs to a superbubble that was removed.
+            uint8_t isSuperBubbleEdge : 1;
+
+            // Set if this edge was create to replace to a superbubble that was removed.
+            uint8_t replacesSuperBubbleEdges : 1;
+
+            // Unused.
             uint8_t flag7 : 1;
             void clearFlags()
             {
@@ -875,8 +880,8 @@ private:
                 isBubbleEdge = 0;
                 replacesBubbleEdges = 0;
                 isShortCycleEdge = 0;
-                flag5 = 0;
-                flag6 = 0;
+                isSuperBubbleEdge = 0;
+                replacesSuperBubbleEdges = 0;
                 flag7 = 0;
             }
             Edge() :
@@ -1100,7 +1105,19 @@ public:
     // The argument is the maximum length (number of edges)
     // of a bubble branch to be considered for removal.
     void removeMarkerGraphBubbles(size_t maxLength);
+
+    // Remove short superbubbles from the marker graph.
+    // The argument is a number of marker graph edges.
+    // See the code for detail on its meaning and how it is used.
+    void removeMarkerGraphSuperBubbles(size_t maxLength);
 private:
+
+    // Used by removeMarkerGraphBubbles and removeMarkerGraphSuperBubbles.
+    void createBubbleReplacementEdge(
+        GlobalMarkerGraphVertexId,
+        GlobalMarkerGraphVertexId,
+        bool isSuperBubble,
+        vector<MarkerInterval>&);
 
 
     // In the assembly graph, each vertex corresponds to a linear chain

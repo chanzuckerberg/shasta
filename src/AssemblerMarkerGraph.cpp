@@ -3215,53 +3215,187 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     for(const pair<GlobalMarkerGraphVertexId, GlobalMarkerGraphVertexId>& p: newEdges) {
         const GlobalMarkerGraphVertexId v0 = p.first;
         const GlobalMarkerGraphVertexId v1 = p.second;
-        const MemoryAsContainer<MarkerId> markers0 = globalMarkerGraphVertices[v0];
-        const MemoryAsContainer<MarkerId> markers1 = globalMarkerGraphVertices[v1];
-
-
-
-        // Find the marker intervals for the new edge and store them.
-        markerIntervals.clear();
-        auto it0 = markers0.begin();
-        auto it1 = markers1.begin();
-        while(it0!=markers0.end() && it1!=markers1.end()) {
-            const MarkerId markerId0 = *it0;
-            const MarkerId markerId1 = *it1;
-            OrientedReadId orientedReadId0;
-            OrientedReadId orientedReadId1;
-            uint32_t ordinal0;
-            uint32_t ordinal1;
-            tie(orientedReadId0, ordinal0) = findMarkerId(markerId0);
-            tie(orientedReadId1, ordinal1) = findMarkerId(markerId1);
-            if(orientedReadId0 < orientedReadId1) {
-                ++it0;
-            } else if (orientedReadId1 < orientedReadId0) {
-                ++it1;
-            } else {
-                CZI_ASSERT(orientedReadId0 == orientedReadId1);
-                if(ordinal1 > ordinal0) {
-                    markerIntervals.push_back(
-                        MarkerInterval(orientedReadId0, ordinal0, ordinal1));
-                }
-                ++it0;
-                ++it1;
-            }
-
-        }
-        CZI_ASSERT(!markerIntervals.empty());
-        markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
-
-
-
-        // Store the new edge.
-        MarkerGraph::Edge edge;
-        edge.source = v0;
-        edge.target = v1;
-        edge.coverage = uint8_t(min(size_t(255), markerIntervals.size()));
-        edge.replacesBubbleEdges = 1;
-        markerGraph.edges.push_back(edge);
+        createBubbleReplacementEdge(v0, v1, false, markerIntervals);
     }
     markerGraph.edgesBySource.remove();
     markerGraph.edgesByTarget.remove();
     createMarkerGraphEdgesBySourceAndTarget(std::thread::hardware_concurrency());
 }
+
+
+
+// Remove short superbubbles from the marker graph.
+// This uses the following process:
+// - Create a temporary assembly graph.
+// - Compute connected components of the temporary assembly graph,
+//   considering only edges with length (number of corresponding
+//   marker graph edges) up to maxLength.
+// - Remove all edges internal to each connected component.
+// - Create a new edge for each entry point/exit point
+// conmbination for each connected component.
+void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength)
+{
+    // Create a temporary assembly graph.
+    cout << timestamp << "Creating a temporary assembly graph for superbubble removal." << endl;
+    createAssemblyGraphEdges();
+    createAssemblyGraphVertices();
+    assemblyGraph.writeGraphviz("AssemblyGraph-2.dot");
+    cout << timestamp << "Done creating a temporary assembly graph for superbubble removal." << endl;
+
+
+    // Compute connected components of the temporary assembly graph,
+    // considering only edges with length (number of corresponding
+    // marker graph edges) up to maxLength.
+    // Initialize the disjoint set data structures.
+    const size_t n = assemblyGraph.vertices.size();
+    vector<AssemblyGraph::VertexId> rank(n);
+    vector<AssemblyGraph::VertexId> parent(n);
+    boost::disjoint_sets<AssemblyGraph::VertexId*, AssemblyGraph::VertexId*> disjointSets(&rank[0], &parent[0]);
+    for(size_t i=0; i<n; i++) {
+        disjointSets.make_set(i);
+    }
+    for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edges.size(); assemblyGraphEdgeId++) {
+        if(assemblyGraph.edgeLists[assemblyGraphEdgeId].size() > maxLength) {
+            continue;
+        }
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[assemblyGraphEdgeId];
+        disjointSets.union_set(edge.source, edge.target);
+    }
+
+
+
+    // Remove all marker graph edges corresponding to assembly graph edges
+    // internal to these connected components.
+    vector<bool> isEntry(n, false);
+    vector<bool> isExit(n, false);
+    for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edges.size(); assemblyGraphEdgeId++) {
+        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds =
+            assemblyGraph.edgeLists[assemblyGraphEdgeId];
+
+        const AssemblyGraph::Edge& assemblyGraphEdge = assemblyGraph.edges[assemblyGraphEdgeId];
+        const AssemblyGraph::VertexId v0 = assemblyGraphEdge.source;
+        const AssemblyGraph::VertexId v1 = assemblyGraphEdge.target;
+
+
+        if(disjointSets.find_set(v0) == disjointSets.find_set(v1)) {
+            if(markerGraphEdgeIds.size() <= maxLength) {
+                // The edge is internal to a connected component.
+                // Mark all of its marker graph edges as superbubble edges.
+                cout << "Assembly graph edge " << v0 << "->" << v1 << " marked for removal " << markerGraphEdgeIds.size() << endl;
+                for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdgeIds) {
+                    markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
+                }
+            }
+        } else {
+
+            // The edge is across connected components.
+            // Mark the two vertices as entries and exits.
+            isExit[v0] = true;
+            isEntry[v1] = true;
+        }
+    }
+
+
+    // Create a new marker graph edge for each entry/exit combination
+    // in the same connected component.
+    // Vector to contain the new marker graph edges to be created.
+    vector< pair<GlobalMarkerGraphVertexId, GlobalMarkerGraphVertexId> > newEdges;
+    for(AssemblyGraph::VertexId v0=0; v0<n; v0++) {
+        if(!isEntry[v0]) {
+            continue;
+        }
+        const AssemblyGraph::VertexId component0 = disjointSets.find_set(v0);
+        for(AssemblyGraph::VertexId v1=0; v1<n; v1++) {
+            if(!isExit[v1]) {
+                continue;
+            }
+            const AssemblyGraph::VertexId component1 = disjointSets.find_set(v1);
+            if(component0 != component1) {
+                continue;
+            }
+            cout << "Entry/exit pair " << v0 << " " << v1 << endl;
+            newEdges.push_back(make_pair(
+                assemblyGraph.vertices[v0],
+                assemblyGraph.vertices[v1]));
+        }
+    }
+
+
+    // Remove the temporary assembly graph.
+    // We will create the final one later, after bubble removal.
+    assemblyGraph.remove();
+
+
+
+    // Add the new edges to the marker graph.
+    vector<MarkerInterval> markerIntervals;
+    for(const pair<GlobalMarkerGraphVertexId, GlobalMarkerGraphVertexId>& p: newEdges) {
+        const GlobalMarkerGraphVertexId v0 = p.first;
+        const GlobalMarkerGraphVertexId v1 = p.second;
+        createBubbleReplacementEdge(v0, v1, true, markerIntervals);
+    }
+    markerGraph.edgesBySource.remove();
+    markerGraph.edgesByTarget.remove();
+    createMarkerGraphEdgesBySourceAndTarget(std::thread::hardware_concurrency());
+}
+
+
+
+// Used by removeMarkerGraphBubbles and removeMarkerGraphSuperBubbles.
+void Assembler::createBubbleReplacementEdge(
+    GlobalMarkerGraphVertexId v0,
+    GlobalMarkerGraphVertexId v1,
+    bool isSuperBubble,
+    vector<MarkerInterval>& markerIntervals)
+{
+    // Access the markers of the two vertices.
+    const MemoryAsContainer<MarkerId> markers0 = globalMarkerGraphVertices[v0];
+    const MemoryAsContainer<MarkerId> markers1 = globalMarkerGraphVertices[v1];
+
+    // Find the marker intervals for the new edge and store them.
+    markerIntervals.clear();
+    auto it0 = markers0.begin();
+    auto it1 = markers1.begin();
+    while(it0!=markers0.end() && it1!=markers1.end()) {
+        const MarkerId markerId0 = *it0;
+        const MarkerId markerId1 = *it1;
+        OrientedReadId orientedReadId0;
+        OrientedReadId orientedReadId1;
+        uint32_t ordinal0;
+        uint32_t ordinal1;
+        tie(orientedReadId0, ordinal0) = findMarkerId(markerId0);
+        tie(orientedReadId1, ordinal1) = findMarkerId(markerId1);
+        if(orientedReadId0 < orientedReadId1) {
+            ++it0;
+        } else if (orientedReadId1 < orientedReadId0) {
+            ++it1;
+        } else {
+            CZI_ASSERT(orientedReadId0 == orientedReadId1);
+            if(ordinal1 > ordinal0) {
+                markerIntervals.push_back(
+                    MarkerInterval(orientedReadId0, ordinal0, ordinal1));
+            }
+            ++it0;
+            ++it1;
+        }
+
+    }
+    CZI_ASSERT(!markerIntervals.empty());
+    markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
+
+
+
+    // Store the new edge.
+    MarkerGraph::Edge edge;
+    edge.source = v0;
+    edge.target = v1;
+    edge.coverage = uint8_t(min(size_t(255), markerIntervals.size()));
+    if(isSuperBubble) {
+        edge.replacesSuperBubbleEdges = 1;
+    } else {
+        edge.replacesBubbleEdges = 1;
+    }
+    markerGraph.edges.push_back(edge);
+
+}
+

@@ -104,6 +104,8 @@ a.removeShortMarkerGraphCycles(
     maxLength = int(config['MarkerGraph']['shortCycleLengthThreshold']))
 a.removeMarkerGraphBubbles(
     maxLength = int(config['MarkerGraph']['bubbleLengthThreshold']))
+a.removeMarkerGraphSuperBubbles(
+    maxLength = int(config['MarkerGraph']['superBubbleLengthThreshold']))
 
 # Create the assembly graph.
 a.createAssemblyGraphEdges()

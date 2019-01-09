@@ -97,11 +97,11 @@ void Assembler::createAssemblyGraphEdges()
             if(edgeId == invalidGlobalMarkerGraphEdgeId) {
                 break;
             }
-            nextEdges.push_back(edgeId);
             if(edgeId == startEdgeId) {
                 isCircularChain = true;
                 break;
             }
+            nextEdges.push_back(edgeId);
         }
 
         // Follow the chain backward.
@@ -837,10 +837,14 @@ bool Assembler::extractLocalAssemblyGraph(
             << startEdgeId << " distance " << distance << endl;
     }
 
+
     const auto startTime = steady_clock::now();
 
     // Add the start vertices.
     const AssemblyGraph::Edge startEdge = assemblyGraph.edges[startEdgeId];
+    if(startEdge.source == startEdge.target) {
+        throw runtime_error("The local assembly graph starts at a self-edge. Display for this situation is not implemented.");
+    }
     const vertex_descriptor vStart0 = graph.addVertex(
         startEdge.source,
         assemblyGraph.vertices[startEdge.source],
@@ -849,6 +853,7 @@ bool Assembler::extractLocalAssemblyGraph(
         startEdge.target,
         assemblyGraph.vertices[startEdge.target],
         0);
+
 
     // Do the BFS.
     std::queue<vertex_descriptor> q;
