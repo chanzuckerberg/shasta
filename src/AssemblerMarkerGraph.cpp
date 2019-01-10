@@ -3385,7 +3385,7 @@ void Assembler::createBubbleReplacementEdge(
     if(markerIntervals.empty()) {
         cout << "Disconnected " <<
             (isSuperBubble ? "superbubble" : "bubble") <<
-            " at marker graph vertices" << v0 << " " << v1 << endl;
+            " at marker graph vertices " << v0 << " " << v1 << endl;
         return;
     }
 
