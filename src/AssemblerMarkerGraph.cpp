@@ -3380,7 +3380,16 @@ void Assembler::createBubbleReplacementEdge(
         }
 
     }
-    CZI_ASSERT(!markerIntervals.empty());
+
+    // If we found no marker intervals, don't do anything.
+    if(markerIntervals.empty()) {
+        cout << "Disconnected " <<
+            (isSuperBubble ? "superbubble" : "bubble") <<
+            " at marker graph vertices" << v0 << " " << v1 << endl;
+        return;
+    }
+
+    // Store the marker intervals.
     markerGraph.edgeMarkerIntervals.appendVector(markerIntervals);
 
 
