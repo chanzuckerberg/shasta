@@ -35,6 +35,7 @@ elif useRunLengthReadsString == 'False':
 else:
     raise RuntimeError("Configuration parameter useRunLengthReads in section Reads must be True or False.")
 a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
+a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 
 # Read the input fasta files.
 a.accessReadsReadWrite();
@@ -113,7 +114,6 @@ a.createAssemblyGraphVertices()
 a.writeAssemblyGraph("AssemblyGraph-Final.dot")
 
 # Use the assembly graph for global assembly.
-a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 a.assemble()
 a.computeAssemblyStatistics()
 a.writeGfa1('Assembly.gfa')
