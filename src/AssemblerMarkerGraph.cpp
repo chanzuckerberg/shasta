@@ -3348,6 +3348,19 @@ void Assembler::createBubbleReplacementEdge(
     bool isSuperBubble,
     vector<MarkerInterval>& markerIntervals)
 {
+    // If we already have this edge, don't do anything.
+    for(GlobalMarkerGraphEdgeId edgeId: markerGraph.edgesBySource[v0]) {
+        const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+        if(!edge.wasRemoved() && edge.target == v1) {
+            cout <<
+                (isSuperBubble ? "Superbubble" : "Bubble") <<
+                " edge replacement " << v0 << "->" << v1 <<
+                " already exists - not added." << endl;
+
+            return;
+        }
+    }
+
     // Access the markers of the two vertices.
     const MemoryAsContainer<MarkerId> markers0 = globalMarkerGraphVertices[v0];
     const MemoryAsContainer<MarkerId> markers1 = globalMarkerGraphVertices[v1];
