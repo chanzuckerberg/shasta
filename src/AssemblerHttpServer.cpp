@@ -2386,7 +2386,8 @@ void Assembler::exploreReadGraph(
         // Create the blast command and run it.
         const string blastOptions =
             "-outfmt '10 qseqid sseqid sstart send' "
-            "-evalue 1e-200 -max_hsps 1 -max_target_seqs 1";
+            "-evalue 1e-200 -max_hsps 1 -max_target_seqs 1 "
+            "-num_threads " + to_string(std::thread::hardware_concurrency());
         const string blastOutputFileName = "/dev/shm/" + uuid + ".txt";
         const string blastErrFileName = "/dev/shm/" + uuid + ".errtxt";
         const string command = "blastn -task megablast -subject " + httpServerData.referenceFastaFileName +
