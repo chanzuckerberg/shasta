@@ -9,6 +9,7 @@
 #include "MultitreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
+#include "testMarginCore.hpp"
 #include "testSpoa.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -384,6 +385,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testSpoa",
         testSpoa
+        );
+    module.def("testMarginCore",
+        testMarginCore
         );
     module.def("dset64Test",
         dset64Test,
