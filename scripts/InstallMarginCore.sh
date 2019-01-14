@@ -2,6 +2,7 @@
 
 # This gets the marginPhase code from GitHub (polisher_shasta branch),
 # builds the MarginCore library, and installs it in standard system locations.
+# This code is also in InstallPrerequisites-Ubuntu.sh.
 
 # Do everything in a temporary directory.
 tmpDirectoryName=$(mktemp --directory --tmpdir)
@@ -10,7 +11,7 @@ pushd $tmpDirectoryName
 # Get the code.
 git clone https://github.com/benedictpaten/marginPhase.git
 pushd marginPhase
-git checkout polisher_shasta
+git checkout a2d7855ddf680c460462aa60e7dfbd94d35af8d0
 git submodule update --init
 popd
 
@@ -30,8 +31,7 @@ sudo make install
 # Remove our temporary directory.
 popd
 popd 
-# rm -rf $tmpDirectoryName
-echo $tmpDirectoryName
+rm -rf $tmpDirectoryName
 
 # Make sure the newly created library is immediately visible to the loader.
 sudo ldconfig

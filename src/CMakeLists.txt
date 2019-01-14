@@ -37,7 +37,7 @@ execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PY
 add_definitions(${SHASTA_PYTHON_INCLUDES})
 
 # Libraries to link with.
-target_link_libraries(shasta atomic png pthread z spoa)
+target_link_libraries(shasta atomic png pthread z spoa MarginCore)
 # target_link_libraries(shasta MarginCore)
 
 # The shared library goes to the bin directory.

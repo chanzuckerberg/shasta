@@ -1,14 +1,15 @@
+
+// Shasta.
 #include "testMarginCore.hpp"
 #include "CZI_ASSERT.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
-#if 0
-#define delete deleteNotAKeyword
+// MarginCore.
 #include "marginPhase/callConsensus.h"
-#undef delete
-#endif
 
+// Standard library.
+#include "iostream.hpp"
 #include "stdexcept.hpp"
 #include "string.hpp"
 #include "vector.hpp"
@@ -17,9 +18,8 @@ using namespace shasta;
 
 void ChanZuckerberg::shasta::testMarginCore()
 {
-#if 0
     // Get the parameters.
-    const string fileName = "FileName";
+    const string fileName = "MarginCore.json";
     PolishParams* parameters = getConsensusParameters(
         const_cast<char*>(fileName.c_str()));
     if(!parameters) {
@@ -33,9 +33,15 @@ void ChanZuckerberg::shasta::testMarginCore()
     vector<uint8_t> strands;
 
     // Fill them in
-    sequences.push_back("ACTG");
-    repeatCounts.push_back(vector<uint8_t>({1, 1, 1, 1}));
-    strands.push_back(uint8_t(false));
+    sequences.push_back("AGTG");
+    repeatCounts.push_back(vector<uint8_t>({1, 1, 1, 3}));
+    strands.push_back(0);
+    sequences.push_back("AGTG");
+    repeatCounts.push_back(vector<uint8_t>({1, 1, 1, 3}));
+    strands.push_back(0);
+    sequences.push_back("AGTG");
+    repeatCounts.push_back(vector<uint8_t>({1, 1, 1, 3}));
+    strands.push_back(0);
 
     // Get the read count.
     const size_t readCount = sequences.size();
@@ -52,15 +58,27 @@ void ChanZuckerberg::shasta::testMarginCore()
         repeatCountPointers[i] = const_cast<uint8_t*>(repeatCounts[i].data());
     }
 
+    // Write out the input.
+    cout << "Input to callConsensus:" << endl;
+    for(size_t i=0; i<readCount; i++) {
+        cout << "Read " << i << ": ";
+        cout << sequences[i] << " strand " << int(strands[i]) << ", repeat counts ";
+        for(const uint8_t r: repeatCounts[i]) {
+            cout << " " << int(r);
+        }
+        cout << endl;
+    }
+
     // Do the work.
-    callConsensus(
+    char* consensus = callConsensus(
         readCount,
         sequencePointers.data(),
         repeatCountPointers.data(),
-        reinterpret_cast<bool*>(strands.data()),
+        strands.data(),
         parameters);
+    cout << "Output from callConsensus:" << endl;
+    cout << consensus << endl;
 
     // Destroy the parameters.
     destroyConsensusParameters(parameters);
-#endif
 }
