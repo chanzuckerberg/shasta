@@ -33,8 +33,8 @@ void ChanZuckerberg::shasta::testMarginCore()
     vector<uint8_t> strands;
 
     // Fill them in
-    sequences.push_back("AGTG");
-    repeatCounts.push_back(vector<uint8_t>({1, 1, 1, 3}));
+    sequences.push_back("AGTCG");
+    repeatCounts.push_back(vector<uint8_t>({1, 1, 1, 1, 3}));
     strands.push_back(0);
     sequences.push_back("AGTG");
     repeatCounts.push_back(vector<uint8_t>({1, 1, 1, 3}));
@@ -70,15 +70,24 @@ void ChanZuckerberg::shasta::testMarginCore()
     }
 
     // Do the work.
-    char* consensus = callConsensus(
+    RleString* consensusPointer = callConsensus(
         readCount,
         sequencePointers.data(),
         repeatCountPointers.data(),
         strands.data(),
         parameters);
+    const RleString& consensus = *consensusPointer;
     cout << "Output from callConsensus:" << endl;
-    cout << consensus << endl;
+    for(int64_t i=0; i<consensus.length; i++) {
+        cout << consensus.rleString[i];
+    }
+    cout << ", repeat counts";
+    for(int64_t i=0; i<consensus.length; i++) {
+        cout << " " << consensus.repeatCounts[i];
+    }
+    cout << endl;
 
-    // Destroy the parameters.
+    // Clean up.
+    // rleString_destruct(consensusPointer);
     destroyConsensusParameters(parameters);
 }
