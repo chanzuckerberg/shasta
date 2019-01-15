@@ -2975,6 +2975,95 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
 
+void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
+    GlobalMarkerGraphEdgeId edgeId,
+    vector<Base>& sequence,
+    vector<uint32_t>& repeatCounts
+    )
+{
+    checkMarginPhaseWasSetup();
+
+    // Access the markerIntervals for this edge.
+    // Each corresponds to an oriented read on this edge.
+    const MemoryAsContainer<MarkerInterval> markerIntervals =
+        markerGraph.edgeMarkerIntervals[edgeId];
+    const size_t markerCount = markerIntervals.size();
+    CZI_ASSERT(markerCount > 0);
+
+    // Vectors to contain the input to callConsensus.
+    vector<string> readSequences(markerCount);
+    vector< vector<uint8_t> > readRepeatCounts(markerCount);
+    vector<uint8_t> strands(markerCount);
+
+
+
+    // Fill in the input vectors.
+    for(size_t i=0; i!=markerCount; i++) {
+        const MarkerInterval& markerInterval = markerIntervals[i];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers.
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+        // Get the position range, including the flanking markers.
+        const uint32_t positionBegin = marker0.position;
+        const uint32_t positionEnd = marker1.position + uint32_t(assemblerInfo->k);
+        const uint32_t length = positionEnd - positionBegin;
+
+        // Fill in the sequence and repeat counts for this read the sequence.
+        string& s = readSequences[i];
+        vector<uint8_t>& r = readRepeatCounts[i];
+        s.resize(length);
+        r.resize(length);
+        size_t j = 0;
+        for(uint32_t position=positionBegin; position!=positionEnd; position++, j++) {
+            Base b;
+            uint8_t rr;
+            tie(b, rr) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            s[j] = b.character();
+            r[j] = rr;
+        }
+    }
+
+
+
+    // Create vectors of pointers to be passed to callConsensus.
+    vector<char*> readSequencePointers(markerCount);
+    vector<uint8_t*> readRepeatCountPointers(markerCount);
+    for(size_t i=0; i<markerCount; i++) {
+        readSequencePointers[i] = const_cast<char*>(readSequences[i].data());
+        readRepeatCountPointers[i] = const_cast<uint8_t*>(readRepeatCounts[i].data());
+    }
+
+    // Use marginPhase to compute consensus sequence
+    // and repeat counts.
+    RleString* consensusPointer = callConsensus(
+        markerCount,
+        readSequencePointers.data(),
+        readRepeatCountPointers.data(),
+        strands.data(),
+        marginPhaseParameters);
+    const RleString& consensus = *consensusPointer;
+
+    // Store the results.
+    sequence.resize(consensus.length);
+    repeatCounts.resize(consensus.length);
+    for(size_t i=0; i<size_t(consensus.length); i++) {
+        sequence[i] = Base::fromCharacter(consensus.rleString[i]);
+        const uint64_t r = consensus.repeatCounts[i];
+        CZI_ASSERT(r < 256);
+        repeatCounts[i] = uint8_t(r);
+    }
+
+    // Clean up.
+    destroyRleString(consensusPointer);
+
+}
+
+
+
 // Remove short cycles from the marker graph.
 // The argument is the maximum length (number of edges)
 // of a cycle path to be considered for removal.

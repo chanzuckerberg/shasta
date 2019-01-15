@@ -1091,6 +1091,11 @@ private:
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts
         );
+    void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
+        GlobalMarkerGraphEdgeId,
+        vector<Base>& sequence,
+        vector<uint32_t>& repeatCounts
+        );
 
 
 
@@ -1148,6 +1153,7 @@ private:
     // in html (skipped if the html pointer is 0).
     void assembleAssemblyGraphEdge(
         AssemblyGraph::EdgeId,
+        bool useMarginPhase,
         vector<Base>&,
         vector<uint32_t>& repeatCounts,
         ostream* html = 0);
@@ -1166,6 +1172,7 @@ public:
 private:
     class AssembleData {
     public:
+        bool useMarginPhase;
 
         // The results created by each thread.
         // All indexed by threadId.

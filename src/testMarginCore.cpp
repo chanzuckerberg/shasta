@@ -29,7 +29,6 @@ void ChanZuckerberg::shasta::testMarginCore()
     // Vectors to contain the input to callConsensus.
     vector<string> sequences;
     vector< vector<uint8_t> > repeatCounts;
-    static_assert(sizeof(bool) == sizeof(uint8_t), "Unexpected sizeof(bool) in testMarginCore.");
     vector<uint8_t> strands;
 
     // Fill them in

@@ -377,6 +377,7 @@ void Assembler::assemble(
     CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
     if(useMarginPhase) {
         checkMarginPhaseWasSetup();
+        assembleData.useMarginPhase = useMarginPhase;
     }
 
     // Adjust the numbers of threads, if necessary.
@@ -450,7 +451,8 @@ void Assembler::assemble(
 
 void Assembler::assembleThreadFunction(size_t threadId)
 {
-    ostream& out = getLog(threadId);;
+    ostream& out = getLog(threadId);
+    const bool useMarginPhase = assembleData.useMarginPhase;
 
     // Initialize data structures for this thread.
     vector<AssemblyGraph::EdgeId>& edges = assembleData.edges[threadId];
@@ -471,7 +473,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
     while(getNextBatch(begin, end)) {
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             out << timestamp << "Assembling edge " << edgeId << endl;
-            assembleAssemblyGraphEdge(edgeId, edgeSequence, edgeRepeatCounts);
+            assembleAssemblyGraphEdge(edgeId, useMarginPhase, edgeSequence, edgeRepeatCounts);
 
             // Store the edge id.
             edges.push_back(edgeId);
@@ -1053,6 +1055,7 @@ bool Assembler::extractLocalAssemblyGraph(
 // in html (skipped if the html pointer is 0).
 void Assembler::assembleAssemblyGraphEdge(
     AssemblyGraph::EdgeId edgeId,
+    bool useMarginPhase,
     vector<Base>& assembledRunLengthSequence,
     vector<uint32_t>& assembledRepeatCounts,
     ostream* htmlPointer)
@@ -1103,8 +1106,18 @@ void Assembler::assembleAssemblyGraphEdge(
     vector< vector<Base> > edgeSequences(edgeCount);
     vector< vector<uint32_t> > edgeRepeatCounts(edgeCount);
     for(size_t i=0; i<edgeCount; i++) {
-        computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-            edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
+        /*
+        if((i%1000) == 0) {
+            cout << timestamp << i << "/" << edgeCount << endl;
+        }
+        */
+        if(useMarginPhase) {
+            computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
+                edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
+        } else {
+            computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
+                edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
+        }
     }
 
 
