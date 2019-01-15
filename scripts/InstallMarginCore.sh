@@ -11,7 +11,7 @@ pushd $tmpDirectoryName
 # Get the code.
 git clone https://github.com/benedictpaten/marginPhase.git
 pushd marginPhase
-git checkout be0580665441f3b9ed38dc26a2b0e66babc0e86b
+git checkout ecad017dae4e0ee0b736aaffeddde605f0af69ef
 git submodule update --init
 popd
 

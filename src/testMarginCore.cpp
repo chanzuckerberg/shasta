@@ -88,6 +88,6 @@ void ChanZuckerberg::shasta::testMarginCore()
     cout << endl;
 
     // Clean up.
-    // rleString_destruct(consensusPointer);
+    destroyRleString(consensusPointer);
     destroyConsensusParameters(parameters);
 }
