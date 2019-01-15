@@ -359,7 +359,13 @@ void Assembler::writeAssemblyGraph(const string& fileName) const
 
 
 // Assemble sequence for all edges of the assembly graph.
-void Assembler::assemble(size_t threadCount)
+void Assembler::assemble(
+    size_t threadCount,
+
+    // Parameter to control whether we use spoa of marginPhase
+    // to compute consensus sequence for marker graph edges.
+    bool useMarginPhase
+    )
 {
 
     // Check that we have what we need.
@@ -369,6 +375,9 @@ void Assembler::assemble(size_t threadCount)
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
     CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
+    if(useMarginPhase) {
+        checkMarginPhaseWasSetup();
+    }
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {

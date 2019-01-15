@@ -14,7 +14,8 @@ Assembler::Assembler(
     bool useRunLengthReads) :
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize)
+    largeDataPageSize(largeDataPageSize),
+    marginPhaseParameters(0)
 {
     assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
     assemblerInfo->useRunLengthReads = useRunLengthReads;
@@ -46,7 +47,8 @@ Assembler::Assembler(
     size_t largeDataPageSize) :
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize)
+    largeDataPageSize(largeDataPageSize),
+    marginPhaseParameters(0)
 {
 
     assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
@@ -57,6 +59,18 @@ Assembler::Assembler(
     fillServerFunctionTable();
 
 }
+
+
+
+// Destructor.
+Assembler::~Assembler()
+{
+    if(marginPhaseParameters) {
+        destroyConsensusParameters(marginPhaseParameters);
+        marginPhaseParameters = 0;
+    }
+}
+
 
 
 // Set up the ConsensusCaller used to compute the "best"
@@ -82,3 +96,22 @@ void Assembler::setupConsensusCaller(const string& s)
     // consensus caller.
     throw runtime_error("Unsupported consensus caller " + s);
 }
+
+
+
+// Read marginPhase parameters from file MarginPhase.json in the run directory.
+void Assembler::setupMarginPhase()
+{
+    const string fileName = "MarginPhase.json";
+    marginPhaseParameters = getConsensusParameters(const_cast<char*>(fileName.c_str()));
+    if(!marginPhaseParameters) {
+        throw runtime_error("Error reading marginPhase parameters from " + fileName);
+    }
+}
+void Assembler::checkMarginPhaseWasSetup()
+{
+    if(!marginPhaseParameters) {
+        throw runtime_error("MarginPhase was not set up.");
+    }
+}
+

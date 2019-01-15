@@ -1,7 +1,7 @@
 #ifndef CZI_SHASTA_ASSEMBLER_HPP
 #define CZI_SHASTA_ASSEMBLER_HPP
 
-// Shasta
+// Shasta.
 #include "Alignment.hpp"
 #include "AssemblyGraph.hpp"
 #include "dset64.hpp"
@@ -14,6 +14,9 @@
 #include "MultitreadedObject.hpp"
 #include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
+
+// MarginPhase.
+#include "marginPhase/callConsensus.h"
 
 // Standard library.
 #include "memory.hpp"
@@ -101,6 +104,8 @@ public:
         size_t largeDataPageSize
         );
 
+    // Destructor.
+    ~Assembler();
 
     // Add reads from a fasta file.
     // The reads are added to those already previously present.
@@ -339,11 +344,6 @@ public:
     // file containing the reference to be used with Blast commands.
     void setReferenceFastaFileName(const string&);
 
-    // Set up the ConsensusCaller used to compute the "best"
-    // base and repeat count at each assembly position.
-    // The aregument specifies the consensus caller to be used.
-    // For now, the only supported value is "SimpleConsensusCaller".
-    void setupConsensusCaller(const string&);
 
 
 private:
@@ -1153,9 +1153,14 @@ private:
         ostream* html = 0);
 
 
-    // Assemble sequence for all vertices of the assembly graph.
+    // Assemble sequence for all edges of the assembly graph.
 public:
-    void assemble(size_t threadCount);
+    void assemble(
+        size_t threadCount,
+        // Parameter to control whether we use spoa or marginPhase
+        // to compute consensus sequence for marker graph edges.
+        bool useMarginPhase
+        );
     void accessAssemblyGraphSequences();
     void computeAssemblyStatistics();
 private:
@@ -1330,9 +1335,28 @@ private:
     void exploreAssemblyGraphEdge(const vector<string>&, ostream&);
 
 
+
     // The ConsensusCaller used to compute the "best"
     // base and repeat count at each assembly position.
+    // The argument to setupConsensusCaller specifies
+    // the consensus caller to be used.
+    // Supported values are:
+    // - SimpleConsensusCaller
+    // - SimpleBayesianConsensusCaller
+public:
+    void setupConsensusCaller(const string&);
+private:
     shared_ptr<ConsensusCaller> consensusCaller;
+
+
+
+    // Parameters for marginPhase.
+    // Read from file MarginPhase.json in the run directory.
+public:
+    void setupMarginPhase();
+private:
+    void checkMarginPhaseWasSetup();
+    PolishParams* marginPhaseParameters;
 };
 
 #endif

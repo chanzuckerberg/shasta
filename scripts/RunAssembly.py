@@ -2,6 +2,7 @@
 
 import shasta
 import GetConfig
+import ast
 import os
 import sys
 
@@ -34,8 +35,17 @@ elif useRunLengthReadsString == 'False':
     useRunLengthReads = False
 else:
     raise RuntimeError("Configuration parameter useRunLengthReads in section Reads must be True or False.")
+
+# Create the Assembler.
 a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
+
+# Set up the consensus caller.
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])
+
+# Figure out if we should use marginPhase, and if so set it up.
+useMarginPhase = ast.literal_eval(config['Assembly']['useMarginPhase'])
+if useMarginPhase:
+    a.setupMarginPhase()
 
 # Read the input fasta files.
 a.accessReadsReadWrite();
@@ -114,7 +124,7 @@ a.createAssemblyGraphVertices()
 a.writeAssemblyGraph("AssemblyGraph-Final.dot")
 
 # Use the assembly graph for global assembly.
-a.assemble()
+a.assemble(useMarginPhase = useMarginPhase)
 a.computeAssemblyStatistics()
 a.writeGfa1('Assembly.gfa')
 a.writeFasta('Assembly.fasta')

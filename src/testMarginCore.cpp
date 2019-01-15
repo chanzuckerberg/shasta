@@ -19,7 +19,7 @@ using namespace shasta;
 void ChanZuckerberg::shasta::testMarginCore()
 {
     // Get the parameters.
-    const string fileName = "MarginCore.json";
+    const string fileName = "MarginPhase.json";
     PolishParams* parameters = getConsensusParameters(
         const_cast<char*>(fileName.c_str()));
     if(!parameters) {

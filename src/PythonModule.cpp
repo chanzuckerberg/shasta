@@ -317,7 +317,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::writeAssemblyGraph)
         .def("assemble",
             &Assembler::assemble,
-            arg("threadCount") = 0)
+            arg("threadCount") = 0,
+            arg("useMarginPhase"))
         .def("accessAssemblyGraphSequences",
             &Assembler::accessAssemblyGraphSequences)
         .def("computeAssemblyStatistics",
@@ -347,7 +348,9 @@ PYBIND11_MODULE(shasta, module)
         .def("setupConsensusCaller",
             &Assembler::setupConsensusCaller)
 
-
+        // MarginPhase parameters.
+        .def("setupMarginPhase",
+            &Assembler::setupMarginPhase)
 
         // Definition of class_<Assembler> ends here.
     ;
