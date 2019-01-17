@@ -124,7 +124,7 @@ void AlignmentGraph::create(
         }
         const auto& vertex = (*this)[v];
         alignment.ordinals.push_back(
-            make_pair(vertex.ordinals[0], vertex.ordinals[1]));
+            array<uint32_t, 2>({uint32_t(vertex.ordinals[0]), uint32_t(vertex.ordinals[1])}));
     }
 
     if(debug) {
@@ -504,7 +504,7 @@ void AlignmentGraph::writeImage(
     // Write the alignment.
     const rgb8_pixel_t green(0, 255, 0);
     for(const auto& p: alignment.ordinals) {
-        imageView(p.first, p.second) = green;
+        imageView(p[0], p[1]) = green;
     }
 
     // Write it out.

@@ -26,7 +26,7 @@ public:
 
     // The ordinals in each of the two oriented reads of the
     // markers in the alignment.
-    vector< pair<uint32_t, uint32_t> > ordinals;
+    vector< array<uint32_t, 2> > ordinals;
 };
 
 
@@ -34,12 +34,21 @@ public:
 class ChanZuckerberg::shasta::AlignmentInfo {
 public:
 
-    // The first and last ordinals in each of the two oriented reads.
-    // These are not filled in if markerCount is zero.
-    pair<uint32_t, uint32_t> firstOrdinals;
-    pair<uint32_t, uint32_t> lastOrdinals;
+    // Alignment information for each of the oriented reads in the alignment.
+    class Data {
+    public:
+
+        // The ordinal of the first and last marker of this read
+        // involved in the alignment.
+        uint32_t firstOrdinal;
+        uint32_t lastOrdinal;
+    };
+    array<Data, 2> data;
+
+
 
     // The number of markers in the alignment.
+    // It is guaranteed to never be zero for a valid alignment.
     uint32_t markerCount;
 
     AlignmentInfo(const Alignment& alignment)
@@ -49,18 +58,18 @@ public:
     void create(const Alignment& alignment)
     {
         markerCount = uint32_t(alignment.ordinals.size());
-        if(markerCount) {
-            firstOrdinals = alignment.ordinals.front();
-            lastOrdinals  = alignment.ordinals.back();
+        CZI_ASSERT(markerCount > 0);
+        for(size_t i=0; i<2; i++) {
+            data[i].firstOrdinal = alignment.ordinals.front()[i];
+            data[i].lastOrdinal  = alignment.ordinals.back() [i];
         }
     }
-    AlignmentInfo() {}
+    AlignmentInfo() : markerCount(0) {}
 
     // Update the alignment to reflect a swap the two oriented reads.
     void swap()
     {
-        std::swap(firstOrdinals.first, firstOrdinals.second);
-        std::swap(lastOrdinals.first, lastOrdinals.second);
+        std::swap(data[0], data[1]);
     }
 
     // Update the alignment to reflect reverse complementing of the two reads.
@@ -69,14 +78,13 @@ public:
         uint32_t markerCount0,
         uint32_t markerCount1)
     {
-        std::swap(firstOrdinals.first, lastOrdinals.first);
-        firstOrdinals.first = markerCount0 - 1 - firstOrdinals.first;
-        lastOrdinals.first  = markerCount0 - 1 - lastOrdinals.first;
-
-        std::swap(firstOrdinals.second, lastOrdinals.second);
-        firstOrdinals.second = markerCount1 - 1 - firstOrdinals.second;
-        lastOrdinals.second  = markerCount1 - 1 - lastOrdinals.second;
-
+        for(size_t i=0; i<2; i++) {
+            const uint32_t& markerCount = (i==0 ? markerCount0 : markerCount1);
+            Data& d = data[i];
+            std::swap(d.firstOrdinal, d.lastOrdinal);
+            d.firstOrdinal = markerCount - 1 - d.firstOrdinal;
+            d.lastOrdinal  = markerCount - 1 - d.lastOrdinal;
+        }
     }
 
 
@@ -89,27 +97,15 @@ public:
         uint32_t markerCount0,
         uint32_t markerCount1) const
     {
-        if(markerCount) {
+        CZI_ASSERT(markerCount > 0);
 
-            // The alignment is not empty.
-            const uint32_t leftTrim = min(
-                firstOrdinals.first,
-                firstOrdinals.second);
-            const uint32_t rightTrim = min(
-                markerCount0 - 1 - lastOrdinals.first,
-                markerCount1 - 1 - lastOrdinals.second);
-            return make_pair(leftTrim, rightTrim);
-
-        } else {
-
-            // The alignment is empty.
-            // The trim on each side equals the number of markers
-            // of the shortest read.
-            const uint32_t trim = min(markerCount0, markerCount1);
-            return make_pair(trim, trim);
-
-        }
-
+        const uint32_t leftTrim = min(
+            data[0].firstOrdinal,
+            data[1].firstOrdinal);
+        const uint32_t rightTrim = min(
+            markerCount0 - 1 - data[0].lastOrdinal,
+            markerCount1 - 1 - data[1].lastOrdinal);
+        return make_pair(leftTrim, rightTrim);
     }
 };
 

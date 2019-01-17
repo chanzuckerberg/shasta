@@ -1406,10 +1406,10 @@ void Assembler::displayAlignments(
         const AlignmentInfo& alignmentInfo = p.second;
         const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
 
-        const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
-        const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
-        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
-        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
+        const uint32_t leftTrim0 = alignmentInfo.data[0].firstOrdinal;
+        const uint32_t leftTrim1 = alignmentInfo.data[1].firstOrdinal;
+        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.data[0].lastOrdinal;
+        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.data[1].lastOrdinal;
 
         // Update the maximum left hang.
         if(leftTrim1 > leftTrim0) {
@@ -1457,10 +1457,10 @@ void Assembler::displayAlignments(
         const ReadId strand1 = orientedReadId1.getStrand();
         const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
 
-        const uint32_t leftTrim0 = alignmentInfo.firstOrdinals.first;
-        const uint32_t leftTrim1 = alignmentInfo.firstOrdinals.second;
-        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.lastOrdinals.first;
-        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.lastOrdinals.second;
+        const uint32_t leftTrim0 = alignmentInfo.data[0].firstOrdinal;
+        const uint32_t leftTrim1 = alignmentInfo.data[1].firstOrdinal;
+        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.data[0].lastOrdinal;
+        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.data[1].lastOrdinal;
 
         // Write a row in the table for this alignment.
         html <<
@@ -1473,18 +1473,18 @@ void Assembler::displayAlignments(
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
             "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
-            "<td class=centered>" << alignmentInfo.firstOrdinals.first <<
-            "<td class=centered>" << alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first <<
-            "<td class=centered>" << markerCount0 -1 - alignmentInfo.lastOrdinals.first <<
+            "<td class=centered>" << alignmentInfo.data[0].firstOrdinal <<
+            "<td class=centered>" << alignmentInfo.data[0].lastOrdinal + 1 - alignmentInfo.data[0].firstOrdinal <<
+            "<td class=centered>" << markerCount0 -1 - alignmentInfo.data[0].lastOrdinal <<
             "<td class=centered>" << markerCount0 <<
             "<td class=centered>" << std::setprecision(2) <<
-            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first) <<
-            "<td class=centered>" << alignmentInfo.firstOrdinals.second <<
-            "<td class=centered>" << alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second <<
-            "<td class=centered>" << markerCount1 -1 - alignmentInfo.lastOrdinals.second <<
+            double(alignmentInfo.markerCount) / double(alignmentInfo.data[0].lastOrdinal + 1 - alignmentInfo.data[0].firstOrdinal) <<
+            "<td class=centered>" << alignmentInfo.data[1].firstOrdinal <<
+            "<td class=centered>" << alignmentInfo.data[1].lastOrdinal + 1 - alignmentInfo.data[1].firstOrdinal <<
+            "<td class=centered>" << markerCount1 -1 - alignmentInfo.data[1].lastOrdinal <<
             "<td class=centered>" << markerCount1 <<
             "<td class=centered>" << std::setprecision(2) <<
-            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second);
+            double(alignmentInfo.markerCount) / double(alignmentInfo.data[1].lastOrdinal + 1 - alignmentInfo.data[1].firstOrdinal);
 
 
 
@@ -1637,10 +1637,10 @@ void Assembler::exploreAlignment(
     const auto markerCount1 = markers1.size();
     const auto baseCount0 = reads[orientedReadId0.getReadId()].baseCount;
     const auto baseCount1 = reads[orientedReadId1.getReadId()].baseCount;
-    const auto firstOrdinal0 = alignment.ordinals.front().first;
-    const auto firstOrdinal1 = alignment.ordinals.front().second;
-    const auto lastOrdinal0 = alignment.ordinals.back().first;
-    const auto lastOrdinal1 = alignment.ordinals.back().second;
+    const auto firstOrdinal0 = alignment.ordinals.front()[0];
+    const auto firstOrdinal1 = alignment.ordinals.front()[1];
+    const auto lastOrdinal0 = alignment.ordinals.back()[0];
+    const auto lastOrdinal1 = alignment.ordinals.back()[1];
     const auto& firstMarker0 = markers0[firstOrdinal0];
     const auto& firstMarker1 = markers1[firstOrdinal1];
     const auto& lastMarker0 = markers0[lastOrdinal0];
@@ -1743,8 +1743,8 @@ void Assembler::exploreAlignment(
         "<th>" << orientedReadId1;
 
     for(const auto& ordinals: alignment.ordinals) {
-        const auto ordinal0 = ordinals.first;
-        const auto ordinal1 = ordinals.second;
+        const auto ordinal0 = ordinals[0];
+        const auto ordinal1 = ordinals[1];
         const auto& marker0 = markers0[ordinal0];
         const auto& marker1 = markers1[ordinal1];
         const auto kmerId = marker0.kmerId;

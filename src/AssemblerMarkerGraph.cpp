@@ -425,8 +425,8 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             // In the global marker graph, merge pairs
             // of aligned markers.
             for(const auto& p: alignment.ordinals) {
-                const uint32_t ordinal0 = p.first;
-                const uint32_t ordinal1 = p.second;
+                const uint32_t ordinal0 = p[0];
+                const uint32_t ordinal1 = p[1];
                 const MarkerId markerId0 = getMarkerId(orientedReadIds[0], ordinal0);
                 const MarkerId markerId1 = getMarkerId(orientedReadIds[1], ordinal1);
                 CZI_ASSERT(markers.begin()[markerId0].kmerId == markers.begin()[markerId1].kmerId);

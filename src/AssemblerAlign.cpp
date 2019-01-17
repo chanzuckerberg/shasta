@@ -534,8 +534,8 @@ void Assembler::computeAlignmentCoverage(
     // Loop over the alignments.
     for(const auto& p: alignments) {
         const AlignmentInfo& alignment = p.second;
-        const auto begin = alignment.firstOrdinals.first;
-        const auto end = alignment.lastOrdinals.first;
+        const auto begin = alignment.data[0].firstOrdinal;
+        const auto end = alignment.data[0].lastOrdinal;
         for(size_t ordinal=begin; ordinal<=end; ordinal++) {
             (coverage[ordinal])++;
         }
