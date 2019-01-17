@@ -122,12 +122,10 @@ void Assembler::createReadGraph(uint32_t maxTrim)
         const ReadId readId1 = alignment.readIds[1];
         const uint32_t markerCount0 = uint32_t(markers[OrientedReadId(readId0, 0).getValue()].size());
         const uint32_t markerCount1 = uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size());
-        CZI_ASSERT(alignmentInfo.data[0].lastOrdinal < markerCount0);
-        CZI_ASSERT(alignmentInfo.data[1].lastOrdinal < markerCount1);
-        const uint32_t leftTrim0 = alignmentInfo.data[0].firstOrdinal;
-        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.data[0].lastOrdinal;
-        const uint32_t leftTrim1 = alignmentInfo.data[1].firstOrdinal;
-        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.data[1].lastOrdinal;
+        const uint32_t leftTrim0  = alignmentInfo.data[0].leftTrim ();
+        const uint32_t rightTrim0 = alignmentInfo.data[0].rightTrim();
+        const uint32_t leftTrim1  = alignmentInfo.data[1].leftTrim ();
+        const uint32_t rightTrim1 = alignmentInfo.data[1].rightTrim();
 
         // Sanity check on the left and right trim.
         if(
@@ -140,8 +138,6 @@ void Assembler::createReadGraph(uint32_t maxTrim)
             cout << "Trims for first read: " << leftTrim0 << " " << rightTrim0 << endl;
             cout << "Trims for second read: " << leftTrim1 << " " << rightTrim1 << endl;
             cout << "Marker counts: " << markerCount0 << " " << markerCount1 << endl;
-            cout << "First ordinals: " << alignmentInfo.data[0].firstOrdinal << " " << alignmentInfo.data[1].firstOrdinal << endl;
-            cout << "Last ordinals: " << alignmentInfo.data[0].lastOrdinal << " " << alignmentInfo.data[1].lastOrdinal << endl;
             throw runtime_error("Found a bad alignment.");
         }
 

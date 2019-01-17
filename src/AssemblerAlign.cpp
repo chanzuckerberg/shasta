@@ -60,10 +60,7 @@ void Assembler::alignOrientedReads(
         uint32_t(markers1SortedByKmerId.size()));
     uint32_t leftTrim;
     uint32_t rightTrim;
-    tie(leftTrim, rightTrim) = computeTrim(
-        orientedReadId0,
-        orientedReadId1,
-        alignmentInfo);
+    tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
     cout << orientedReadId0 << " has " << reads[orientedReadId0.getReadId()].baseCount;
     cout << " bases and " << markers0SortedByKmerId.size() << " markers." << endl;
     cout << orientedReadId1 << " has " << reads[orientedReadId1.getReadId()].baseCount;
@@ -179,10 +176,7 @@ void Assembler::alignOverlappingOrientedReads(
             uint32_t(markers1SortedByKmerId.size()));
         uint32_t leftTrim;
         uint32_t rightTrim;
-        tie(leftTrim, rightTrim) = computeTrim(
-            orientedReadId0,
-            orientedReadId1,
-            alignmentInfo);
+        tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
 
         cout << orientedReadId0 << " " << orientedReadId1 << " " << alignmentInfo.markerCount;
         if(alignmentInfo.markerCount) {
@@ -199,29 +193,6 @@ void Assembler::alignOverlappingOrientedReads(
     cout << alignmentTable[orientedReadId0.getValue()].size() << "." << endl;
 
 }
-
-
-
-// Given two oriented reads and their computed AlignmentInfo,
-// compute the left and right trim, expressed in markers.
-// This is the minimum number of markers (over the two reads)
-// that are excluded from the alignment on each side.
-// If the trim is too high, the alignment is suspicious.
-pair<uint32_t, uint32_t> Assembler::computeTrim(
-    OrientedReadId orientedReadId0,
-    OrientedReadId orientedReadId1,
-    const AlignmentInfo& alignmentInfo) const
-{
-
-    const auto markers0 = markers[orientedReadId0.getValue()];
-    const auto markers1 = markers[orientedReadId1.getValue()];
-    const uint32_t markerCount0 = uint32_t(markers0.size());
-    const uint32_t markerCount1 = uint32_t(markers1.size());
-    return alignmentInfo.computeTrim(markerCount0, markerCount1);
-}
-
-
-
 
 
 
@@ -367,10 +338,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             // If the alignment has too much trim, skip it.
             uint32_t leftTrim;
             uint32_t rightTrim;
-            tie(leftTrim, rightTrim) = computeTrim(
-                orientedReadIds[0],
-                orientedReadIds[1],
-                alignmentInfo);
+            tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
             if(leftTrim>maxTrim || rightTrim>maxTrim) {
                 continue;
             }
@@ -497,16 +465,11 @@ vector< pair<OrientedReadId, AlignmentInfo> >
         }
         CZI_ASSERT(orientedReadId0.getReadId() == readId0);
 
-        // Get the number of markers for each of the two reads.
-        // We will need it below.
-        const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
-        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
-
         // Reverse complement, if necessary.
         if(orientedReadId0.getStrand() != strand0) {
             orientedReadId0.flipStrand();
             orientedReadId1.flipStrand();
-            alignmentInfo.reverseComplement(markerCount0, markerCount1);
+            alignmentInfo.reverseComplement();
         }
         CZI_ASSERT(orientedReadId0.getStrand() == strand0);
         CZI_ASSERT(orientedReadId0 == orientedReadId0Argument);
@@ -515,51 +478,4 @@ vector< pair<OrientedReadId, AlignmentInfo> >
     }
     return result;
 }
-
-
-
-// Given the oriented alignments computed by findOrientedAlignments,
-// compute a vector of alignment coverage for the given oriented read.
-// This is a vector that contains, for each marker of the given
-// oriented read, the number of alignments "covering" that marker.
-// An alignment "covers" as marker if it starts at or before
-// the marker and it ends at or after the marker.
-// It does not matter whether the marker is in the alignment.
-// This is used to detect portions of the read that may contain
-// unreliable alignments due to repeats (most commonly for a human genome,
-// LINE repeats).
-void Assembler::computeAlignmentCoverage(
-    OrientedReadId orientedReadId0,
-    const vector< pair<OrientedReadId, AlignmentInfo> >& alignments,   // Computed by findOrientedAlignments
-    vector<uint32_t>& coverage
-    ) const
-{
-    // Begin with zero coverage.
-    const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
-    coverage.clear();
-    coverage.resize(markerCount0, 0);
-
-    // Loop over the alignments.
-    for(const auto& p: alignments) {
-        const AlignmentInfo& alignment = p.second;
-        const auto begin = alignment.data[0].firstOrdinal;
-        const auto end = alignment.data[0].lastOrdinal;
-        for(size_t ordinal=begin; ordinal<=end; ordinal++) {
-            (coverage[ordinal])++;
-        }
-    }
-
-
-    // For debugging, write to csv file.
-    const bool debug = false;
-    if(debug) {
-        ofstream csv("AlignmentCoverage.csv");
-        csv << "Ordinal,Coverage\n";
-        for(uint32_t ordinal=0; ordinal<markerCount0; ordinal++) {
-            csv << ordinal << "," << coverage[ordinal] << "\n";
-        }
-    }
-}
-
-
 

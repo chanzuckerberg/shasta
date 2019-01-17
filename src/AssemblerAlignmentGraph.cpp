@@ -67,17 +67,12 @@ bool Assembler::createLocalAlignmentGraph(
                 continue;
             }
 
-            // To compute the trim, keep into account the fact
-            // that the stored AlignmentInfo was computed for
-            // the ReadId's stored in the Overlap, with the first one on strand 0.
-            const OrientedReadId overlapOrientedReadId0(ad.readIds[0], 0);
-            const OrientedReadId overlapOrientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
+            // If the trim does not satisfy our criteria, skip it.
+            // const OrientedReadId overlapOrientedReadId0(ad.readIds[0], 0);
+            // const OrientedReadId overlapOrientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
             uint32_t leftTrim;
             uint32_t rightTrim;
-            tie(leftTrim, rightTrim) = computeTrim(
-                overlapOrientedReadId0,
-                overlapOrientedReadId1,
-                ad.info);
+            tie(leftTrim, rightTrim) = ad.info.computeTrim();
             if(leftTrim>maxTrim || rightTrim>maxTrim) {
                 continue;
             }

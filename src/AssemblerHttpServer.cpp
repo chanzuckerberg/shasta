@@ -1341,44 +1341,7 @@ void Assembler::exploreAlignments(
     html << "<p>Found " << alignments.size() << " alignments.";
     displayAlignments(orientedReadId0, alignments, html);
 
-#if 0
-    vector<uint32_t> coverage;
-    computeAlignmentCoverage(orientedReadId0, alignments, coverage);
-    const uint32_t markerCount0 = uint32_t(markers[orientedReadId0.getValue()].size());
-    for(const auto& p: alignments) {
 
-        // Access information for this alignment.
-        const OrientedReadId orientedReadId1 = p.first;
-        const AlignmentInfo& alignmentInfo = p.second;
-        const ReadId readId1 = orientedReadId1.getReadId();
-        const ReadId strand1 = orientedReadId1.getStrand();
-        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
-
-        // Write a row in the table for this alignment.
-        html <<
-            "<tr>"
-            "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 <<
-            "' title='Click to see this read'>" << orientedReadId1 << "</a>"
-            "<td class=centered>"
-            "<a href='exploreAlignment"
-            "?readId0=" << readId0 << "&strand0=" << strand0 <<
-            "&readId1=" << readId1 << "&strand1=" << strand1 <<
-            "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
-            "<td class=centered>" << alignmentInfo.firstOrdinals.first <<
-            "<td class=centered>" << alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first <<
-            "<td class=centered>" << markerCount0 -1 - alignmentInfo.lastOrdinals.first <<
-            "<td class=centered>" << markerCount0 <<
-            "<td class=centered>" << std::setprecision(2) <<
-            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.first + 1 - alignmentInfo.firstOrdinals.first) <<
-            "<td class=centered>" << alignmentInfo.firstOrdinals.second <<
-            "<td class=centered>" << alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second <<
-            "<td class=centered>" << markerCount1 -1 - alignmentInfo.lastOrdinals.second <<
-            "<td class=centered>" << markerCount1 <<
-            "<td class=centered>" << std::setprecision(2) <<
-            double(alignmentInfo.markerCount) / double(alignmentInfo.lastOrdinals.second + 1 - alignmentInfo.firstOrdinals.second);
-    }
-    html << "</table>";
-#endif
 }
 
 
@@ -1402,14 +1365,11 @@ void Assembler::displayAlignments(
         const auto& p = alignments[i];
 
         // Access information for this alignment.
-        const OrientedReadId orientedReadId1 = p.first;
         const AlignmentInfo& alignmentInfo = p.second;
-        const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
-
-        const uint32_t leftTrim0 = alignmentInfo.data[0].firstOrdinal;
-        const uint32_t leftTrim1 = alignmentInfo.data[1].firstOrdinal;
-        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.data[0].lastOrdinal;
-        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.data[1].lastOrdinal;
+        const uint32_t leftTrim0  = alignmentInfo.data[0].leftTrim ();
+        const uint32_t leftTrim1  = alignmentInfo.data[1].leftTrim ();
+        const uint32_t rightTrim0 = alignmentInfo.data[0].rightTrim();
+        const uint32_t rightTrim1 = alignmentInfo.data[1].rightTrim();
 
         // Update the maximum left hang.
         if(leftTrim1 > leftTrim0) {
@@ -1457,10 +1417,10 @@ void Assembler::displayAlignments(
         const ReadId strand1 = orientedReadId1.getStrand();
         const uint32_t markerCount1 = uint32_t(markers[orientedReadId1.getValue()].size());
 
-        const uint32_t leftTrim0 = alignmentInfo.data[0].firstOrdinal;
-        const uint32_t leftTrim1 = alignmentInfo.data[1].firstOrdinal;
-        const uint32_t rightTrim0 = markerCount0 - 1 - alignmentInfo.data[0].lastOrdinal;
-        const uint32_t rightTrim1 = markerCount1 - 1 - alignmentInfo.data[1].lastOrdinal;
+        const uint32_t leftTrim0 = alignmentInfo.data[0].leftTrim();
+        const uint32_t leftTrim1 = alignmentInfo.data[1].leftTrim();
+        const uint32_t rightTrim0 = alignmentInfo.data[0].rightTrim();
+        const uint32_t rightTrim1 = alignmentInfo.data[1].rightTrim();
 
         // Write a row in the table for this alignment.
         html <<
@@ -1473,18 +1433,18 @@ void Assembler::displayAlignments(
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
             "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
-            "<td class=centered>" << alignmentInfo.data[0].firstOrdinal <<
-            "<td class=centered>" << alignmentInfo.data[0].lastOrdinal + 1 - alignmentInfo.data[0].firstOrdinal <<
-            "<td class=centered>" << markerCount0 -1 - alignmentInfo.data[0].lastOrdinal <<
+            "<td class=centered>" << alignmentInfo.leftTrim(0) <<
+            "<td class=centered>" << alignmentInfo.range(0) <<
+            "<td class=centered>" << alignmentInfo.rightTrim(0) <<
             "<td class=centered>" << markerCount0 <<
             "<td class=centered>" << std::setprecision(2) <<
-            double(alignmentInfo.markerCount) / double(alignmentInfo.data[0].lastOrdinal + 1 - alignmentInfo.data[0].firstOrdinal) <<
-            "<td class=centered>" << alignmentInfo.data[1].firstOrdinal <<
-            "<td class=centered>" << alignmentInfo.data[1].lastOrdinal + 1 - alignmentInfo.data[1].firstOrdinal <<
-            "<td class=centered>" << markerCount1 -1 - alignmentInfo.data[1].lastOrdinal <<
+            alignmentInfo.alignedFraction(0) <<
+            "<td class=centered>" << alignmentInfo.leftTrim(1) <<
+            "<td class=centered>" << alignmentInfo.range(1) <<
+            "<td class=centered>" << alignmentInfo.rightTrim(1) <<
             "<td class=centered>" << markerCount1 <<
             "<td class=centered>" << std::setprecision(2) <<
-            double(alignmentInfo.markerCount) / double(alignmentInfo.data[1].lastOrdinal + 1 - alignmentInfo.data[1].firstOrdinal);
+            alignmentInfo.alignedFraction(1);
 
 
 
@@ -2009,10 +1969,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 // If the alignment has too much trim, skip it.
                 uint32_t leftTrim;
                 uint32_t rightTrim;
-                tie(leftTrim, rightTrim) = computeTrim(
-                    orientedReadId0,
-                    orientedReadId1,
-                    alignmentInfo);
+                tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
                 if(leftTrim>maxTrim || rightTrim>maxTrim) {
                     continue;
                 }

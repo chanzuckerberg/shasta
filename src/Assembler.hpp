@@ -624,15 +624,6 @@ private:
     );
 
 
-    // Given two oriented reads and their computed AlignmentInfo,
-    // compute the left and right trim, expressed in markers.
-    // This is the minimum number of markers (over the two reads)
-    // that are excluded from the alignment on each side.
-    // If the trim is too high, the alignment is suspicious.
-    pair<uint32_t, uint32_t> computeTrim(
-        OrientedReadId orientedReadIds0,
-        OrientedReadId orientedReadIds1,
-        const AlignmentInfo&) const;
 
     // The good alignments we found.
     // They are stored with readId0<readId1 and with strand0==0.
@@ -671,22 +662,6 @@ private:
     // of the AlignmentInfo stored in the alignmentTable).
     vector< pair<OrientedReadId, AlignmentInfo> >
         findOrientedAlignments(OrientedReadId) const;
-
-    // Given the oriented alignments computed by findOrientedAlignments,
-    // compute a vector of alignment coverage for the given oriented read.
-    // This is a vector that contains, for each marker of the given
-    // oriented read, the number of alignments "covering" that marker.
-    // An alignment "covers" as marker if it starts at or before
-    // the marker and it ends at or after the marker.
-    // It does not matter whether the marker is in the alignment.
-    // This is used to detect portions of the read that may contain
-    // unreliable alignments due to repeats (most commonly for a human genome,
-    // LINE repeats).
-    void computeAlignmentCoverage(
-        OrientedReadId,
-        const vector< pair<OrientedReadId, AlignmentInfo> >&,    // Computed by findOrientedAlignments
-        vector<uint32_t>& coverage
-        ) const;
 
 
 
