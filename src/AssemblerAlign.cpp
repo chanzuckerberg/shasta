@@ -54,7 +54,10 @@ void Assembler::alignOrientedReads(
         maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
 
     // Compute the AlignmentInfo.
-    const AlignmentInfo alignmentInfo(alignment);
+    const AlignmentInfo alignmentInfo(
+        alignment,
+        uint32_t(markers0SortedByKmerId.size()),
+        uint32_t(markers1SortedByKmerId.size()));
     uint32_t leftTrim;
     uint32_t rightTrim;
     tie(leftTrim, rightTrim) = computeTrim(
@@ -170,7 +173,10 @@ void Assembler::alignOverlappingOrientedReads(
             maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
 
         // Compute the AlignmentInfo.
-        const AlignmentInfo alignmentInfo(alignment);
+        const AlignmentInfo alignmentInfo(
+            alignment,
+            uint32_t(markers0SortedByKmerId.size()),
+            uint32_t(markers1SortedByKmerId.size()));
         uint32_t leftTrim;
         uint32_t rightTrim;
         tie(leftTrim, rightTrim) = computeTrim(
@@ -353,8 +359,10 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             }
 
             // Compute the AlignmentInfo.
-            AlignmentInfo alignmentInfo;
-            alignmentInfo.create(alignment);
+            const AlignmentInfo alignmentInfo(
+                alignment,
+                uint32_t(markersSortedByKmerId[0].size()),
+                uint32_t(markersSortedByKmerId[1].size()));
 
             // If the alignment has too much trim, skip it.
             uint32_t leftTrim;

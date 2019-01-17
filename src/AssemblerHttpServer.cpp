@@ -1618,15 +1618,10 @@ void Assembler::exploreAlignment(
         html << "<p>The alignment is empty (it has no markers).";
         return;
     }
-    const AlignmentInfo alignmentInfo(alignment);
-    /*
-    uint32_t leftTrim;
-    uint32_t rightTrim;
-    tie(leftTrim, rightTrim) = computeTrim(
-        orientedReadId0,
-        orientedReadId1,
-        alignmentInfo);
-    */
+    const AlignmentInfo alignmentInfo(
+        alignment,
+        uint32_t(markers0SortedByKmerId.size()),
+        uint32_t(markers1SortedByKmerId.size()));
 
 
 
@@ -2006,8 +2001,10 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 }
 
                 // Compute the AlignmentInfo.
-                AlignmentInfo alignmentInfo;
-                alignmentInfo.create(alignment);
+                const AlignmentInfo alignmentInfo(
+                    alignment,
+                    uint32_t(markers0SortedByKmerId.size()),
+                    uint32_t(markers1SortedByKmerId.size()));
 
                 // If the alignment has too much trim, skip it.
                 uint32_t leftTrim;

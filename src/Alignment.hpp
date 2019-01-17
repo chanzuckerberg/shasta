@@ -38,33 +38,66 @@ public:
     class Data {
     public:
 
-        // The ordinal of the first and last marker of this read
+        // The total number of markers in this oriented read.
+        uint32_t markerCount;
+
+        // The ordinal of the first and last marker of this oriented read
         // involved in the alignment.
         uint32_t firstOrdinal;
         uint32_t lastOrdinal;
+
+        // Sanity check.
+        void check() const
+        {
+            CZI_ASSERT(firstOrdinal < markerCount);
+            CZI_ASSERT(lastOrdinal < markerCount);
+        }
     };
     array<Data, 2> data;
 
 
 
     // The number of markers in the alignment.
+    // This is the same for both reads!
     // It is guaranteed to never be zero for a valid alignment.
     uint32_t markerCount;
 
-    AlignmentInfo(const Alignment& alignment)
+
+
+    // Constructors.
+    AlignmentInfo(
+        const Alignment& alignment,
+        const array<uint32_t, 2>& markerCounts)
     {
-        create(alignment);
+        create(alignment, markerCounts);
     }
-    void create(const Alignment& alignment)
+    AlignmentInfo(
+        const Alignment& alignment,
+        uint32_t markerCount0,
+        uint32_t markerCount1)
     {
+        create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
+    }
+    void create(
+        const Alignment& alignment,
+        const array<uint32_t, 2>& markerCounts)
+    {
+        // Store the number of markers in the alignment.
         markerCount = uint32_t(alignment.ordinals.size());
         CZI_ASSERT(markerCount > 0);
+
+        // Store alignment information for each of the two oriented reads.
         for(size_t i=0; i<2; i++) {
-            data[i].firstOrdinal = alignment.ordinals.front()[i];
-            data[i].lastOrdinal  = alignment.ordinals.back() [i];
+            Data& d = data[i];
+            d.markerCount = markerCounts[i];
+            d.firstOrdinal = alignment.ordinals.front()[i];
+            d.lastOrdinal  = alignment.ordinals.back() [i];
+            d.check();
         }
     }
     AlignmentInfo() : markerCount(0) {}
+
+
 
     // Update the alignment to reflect a swap the two oriented reads.
     void swap()
