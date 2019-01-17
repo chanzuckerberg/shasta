@@ -375,6 +375,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
     Alignment alignment;
+    AlignmentInfo alignmentInfo;
 
     const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
@@ -416,10 +417,12 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             }
 
             // Compute the Alignment.
+            // We already know that this is a good alignmenmt, otherwise we
+            // would not have stored it.
             alignOrientedReads(
                 markersSortedByKmerId[0],
                 markersSortedByKmerId[1],
-                maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+                maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
 
 
             // In the global marker graph, merge pairs

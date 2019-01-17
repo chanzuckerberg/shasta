@@ -137,6 +137,13 @@ public:
             data[i].check();
         }
     }
+    void create(
+        const Alignment& alignment,
+        uint32_t markerCount0,
+        uint32_t markerCount1)
+    {
+        create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
+    }
     AlignmentInfo() : markerCount(0) {}
 
 

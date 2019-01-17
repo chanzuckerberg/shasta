@@ -38,19 +38,23 @@ void ChanZuckerberg::shasta::align(
     // that we allow a single k-mer to generate.
     size_t maxVertexCountPerKmer,
 
+    // Flag to control various types of debug output.
+    bool debug,
+
     // The AlignmentGraph can be reused.
     // For performance, it should be reused when doing many alignments.
     AlignmentGraph& graph,
 
-    // Flag to control various types of debug output.
-    bool debug,
-
     // The computed alignment.
     // This should also be reused when performance is important.
-    Alignment& alignment
+    Alignment& alignment,
+
+    // Also create alignment summary information.
+    AlignmentInfo& alignmentInfo
     )
 {
-    graph.create(markers0, markers1, maxSkip, maxVertexCountPerKmer, debug, alignment);
+    graph.create(markers0, markers1, maxSkip, maxVertexCountPerKmer, debug,
+        alignment, alignmentInfo);
 }
 
 
@@ -62,7 +66,8 @@ void AlignmentGraph::create(
     size_t maxSkip,
     size_t maxVertexCountPerKmer,
     bool debug,
-    Alignment& alignment)
+    Alignment& alignment,
+    AlignmentInfo& alignmentInfo)
 {
 
     // Start with an empty graph.
@@ -126,6 +131,9 @@ void AlignmentGraph::create(
         alignment.ordinals.push_back(
             array<uint32_t, 2>({uint32_t(vertex.ordinals[0]), uint32_t(vertex.ordinals[1])}));
     }
+
+    // Store the alignment info.
+    alignmentInfo.create(alignment, uint32_t(markers0.size()), uint32_t(markers1.size()));
 
     if(debug) {
         writeImage(markers0, markers1, alignment, "Alignment.png");

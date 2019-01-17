@@ -47,17 +47,14 @@ void Assembler::alignOrientedReads(
     // Call the lower level function.
     AlignmentGraph graph;
     Alignment alignment;
+    AlignmentInfo alignmentInfo;
     const bool debug = true;
     alignOrientedReads(
         markers0SortedByKmerId,
         markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
 
     // Compute the AlignmentInfo.
-    const AlignmentInfo alignmentInfo(
-        alignment,
-        uint32_t(markers0SortedByKmerId.size()),
-        uint32_t(markers1SortedByKmerId.size()));
     uint32_t leftTrim;
     uint32_t rightTrim;
     tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
@@ -89,11 +86,12 @@ void Assembler::alignOrientedReads(
     // Compute the alignment.
     AlignmentGraph graph;
     Alignment alignment;
+    AlignmentInfo alignmentInfo;
     const bool debug = true;
     alignOrientedReads(
         markers0SortedByKmerId,
         markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
 }
 
 
@@ -105,11 +103,12 @@ void Assembler::alignOrientedReads(
     size_t maxVertexCountPerKmer,
     bool debug,
     AlignmentGraph& graph,
-    Alignment& alignment
+    Alignment& alignment,
+    AlignmentInfo& alignmentInfo
 )
 {
     align(markers0SortedByKmerId, markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, graph, debug, alignment);
+        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
 }
 
 
@@ -163,17 +162,13 @@ void Assembler::alignOverlappingOrientedReads(
         // Compute the alignment.
         AlignmentGraph graph;
         Alignment alignment;
+        AlignmentInfo alignmentInfo;
         const bool debug = false;
         alignOrientedReads(
             markers0SortedByKmerId,
             markers1SortedByKmerId,
-            maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+            maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
 
-        // Compute the AlignmentInfo.
-        const AlignmentInfo alignmentInfo(
-            alignment,
-            uint32_t(markers0SortedByKmerId.size()),
-            uint32_t(markers1SortedByKmerId.size()));
         uint32_t leftTrim;
         uint32_t rightTrim;
         tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
@@ -283,6 +278,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
     Alignment alignment;
+    AlignmentInfo alignmentInfo;
 
     const bool debug = false;
     auto& data = computeAlignmentsData;
@@ -322,18 +318,12 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             alignOrientedReads(
                 markersSortedByKmerId[0],
                 markersSortedByKmerId[1],
-                maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+                maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
 
             // If the alignment has too few markers skip it.
             if(alignment.ordinals.size() < minAlignedMarkerCount) {
                 continue;
             }
-
-            // Compute the AlignmentInfo.
-            const AlignmentInfo alignmentInfo(
-                alignment,
-                uint32_t(markersSortedByKmerId[0].size()),
-                uint32_t(markersSortedByKmerId[1].size()));
 
             // If the alignment has too much trim, skip it.
             uint32_t leftTrim;

@@ -1569,19 +1569,16 @@ void Assembler::exploreAlignment(
     getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
     AlignmentGraph graph;
     Alignment alignment;
+    AlignmentInfo alignmentInfo;
     const bool debug = true;
     alignOrientedReads(
         markers0SortedByKmerId,
         markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
     if(alignment.ordinals.empty()) {
         html << "<p>The alignment is empty (it has no markers).";
         return;
     }
-    const AlignmentInfo alignmentInfo(
-        alignment,
-        uint32_t(markers0SortedByKmerId.size()),
-        uint32_t(markers1SortedByKmerId.size()));
 
 
 
@@ -1917,6 +1914,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     // Reusable data structures for alignOrientedReads.
     AlignmentGraph graph;
     Alignment alignment;
+    AlignmentInfo alignmentInfo;
 
     // Vectors to contain markers sorted by kmerId.
     vector<MarkerWithOrdinal> markers0SortedByKmerId;
@@ -1953,18 +1951,12 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 alignOrientedReads(
                     markers0SortedByKmerId,
                     markers1SortedByKmerId,
-                    maxSkip, maxVertexCountPerKmer, debug, graph, alignment);
+                    maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
 
                 // If the alignment has too few markers skip it.
                 if(alignment.ordinals.size() < minAlignedMarkerCount) {
                     continue;
                 }
-
-                // Compute the AlignmentInfo.
-                const AlignmentInfo alignmentInfo(
-                    alignment,
-                    uint32_t(markers0SortedByKmerId.size()),
-                    uint32_t(markers1SortedByKmerId.size()));
 
                 // If the alignment has too much trim, skip it.
                 uint32_t leftTrim;

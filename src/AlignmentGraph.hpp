@@ -57,16 +57,19 @@ namespace ChanZuckerberg {
             // that we allow a single k-mer to generate.
             size_t maxVertexCountPerKmer,
 
-            // The AlignmentGraph can be reused.
-            // For performance, it should be reused when doing many alignments.
-            AlignmentGraph& graph,
-
             // Flag to control various types of debug output.
             bool debug,
 
+            // The AlignmentGraph can be reused.
+            // For performance, it should be reused when doing many alignments.
+            AlignmentGraph&,
+
             // The computed alignment.
             // This should also be reused when performance is important.
-            Alignment&
+            Alignment&,
+
+            // Also create alignment summary information.
+            AlignmentInfo&
             );
 
 
@@ -128,7 +131,8 @@ public:
         size_t maxSkip,
         size_t maxVertexCountPerKmer,
         bool debug,
-        Alignment&);
+        Alignment&,
+        AlignmentInfo&);
 
 private:
 

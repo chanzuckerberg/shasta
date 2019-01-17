@@ -594,8 +594,9 @@ private:
         size_t maxSkip,             // Maximum ordinal skip allowed.
         size_t maxVertexCountPerKmer,
         bool debug,
-        AlignmentGraph& graph,
-        Alignment& alignment
+        AlignmentGraph&,
+        Alignment&,
+        AlignmentInfo&
     );
 
     // Create a local alignment graph starting from a given oriented read
