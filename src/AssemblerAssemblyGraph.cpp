@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "LocalAssemblyGraph.hpp"
+#include "orderPairs.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -543,109 +544,47 @@ void Assembler::computeAssemblyStatistics()
     CZI_ASSERT(assemblyGraph.repeatCounts.size() == edgeCount);
 
     // Compute raw sequence length of each edge.
-    vector<size_t> edgeRawSequenceLength(edgeCount);
+    vector< pair<EdgeId, size_t> > edgeTable(edgeCount);
+    size_t totalLength = 0;
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
         const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[edgeId];
-        size_t rawSequenceLength = 0;
+        size_t length = 0;
         for(uint8_t repeatCount: repeatCounts) {
-            rawSequenceLength += repeatCount;
+            length += repeatCount;
         }
-        edgeRawSequenceLength[edgeId] = rawSequenceLength;
-    }
-    const size_t totalRawSequenceLength = std::accumulate(
-        edgeRawSequenceLength.begin(), edgeRawSequenceLength.end(), 0);
-
-    cout << "Number of vertices in the assembly graph: " << vertexCount << endl;
-    cout << "Number of edges in the assembly graph: " << edgeCount << endl;
-    cout << "Edge/vertex ratio: " << double(edgeCount)/double(vertexCount) << endl;
-    cout << "Edge/vertex ratio is 3/2 = 1.5 for a long chain containing only diploid bubbles." << endl;
-    cout << "Total raw sequence length for all assembly graph edges (both strands, and including overlap): " <<
-        totalRawSequenceLength << " bases." << endl;
-
-#if 0
-
-
-    // Compute connected components of the assembly graph.
-    vector<VertexId> rank(vertexCount);
-    vector<VertexId> parent(vertexCount);
-    boost::disjoint_sets<VertexId*, VertexId*> disjointSets(&rank[0], &parent[0]);
-    cout << timestamp << "Computing connected components of the assembly graph." << endl;
-    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
-        disjointSets.make_set(vertexId);
-    }
-    for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
-        disjointSets.union_set(edge.source, edge.target);
+        edgeTable[edgeId] = make_pair(edgeId, length);
+        totalLength += length;
     }
 
+    cout << "The assembly graph has " << vertexCount << endl;
+    cout << "vertices and " << edgeCount << " edges." << endl;
+    cout << "Total length of assembled sequence is " << totalLength << endl;
 
-    // Gather the vertices of each component.
-    std::map<VertexId, vector<VertexId> > componentMap;
-    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
-        const VertexId componentId = disjointSets.find_set(vertexId);
-        componentMap[componentId].push_back(vertexId);
-    }
+    // Sort by decreasing length.
+    sort(edgeTable.begin(), edgeTable.end(), OrderPairsBySecondOnlyGreater<EdgeId, size_t>());
 
-
-
-    // Sort the components by decreasing size,
-    // where size = total raw sequence length.
-    // componentTable contains pairs(size, componentId as key in componentMap).
-    vector< pair<size_t, VertexId> > componentTable;
-    for(const auto& p: componentMap) {
-        const vector<VertexId>& component = p.second;
-
-        size_t componentRawSequenceLength = 0;
-        for(const VertexId vertexId: component) {
-            componentRawSequenceLength += vertexRawSequenceLength[vertexId];
+    // Write a csv file.
+    ofstream csv("AssemblySummary.csv");
+    csv << "Rank,EdgeId,Length,CumulativeLength,LengthFraction,CumulativeFraction\n";
+    size_t cumulativeLength = 0;
+    bool n50MessageWritten = false;
+    for(size_t rank=0; rank<edgeTable.size(); rank++) {
+        const pair<EdgeId, size_t>& p = edgeTable[rank];
+        const EdgeId edgeId = p.first;
+        const size_t length = p.second;
+        cumulativeLength += length;
+        csv << rank << ",";
+        csv << edgeId << ",";
+        csv << length << ",";
+        csv << cumulativeLength << ",";
+        csv << double(length) / double(totalLength) << ",";
+        csv << double(cumulativeLength) /double(totalLength) << "\n";
+        if(!n50MessageWritten && cumulativeLength >= totalLength/2) {
+            cout << "N50 for assembly segments is " << length << endl;
+            n50MessageWritten = true;
         }
-
-        componentTable.push_back(make_pair(componentRawSequenceLength, p.first));
     }
-    sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, VertexId>>());
 
-
-
-    // Store components in this order of decreasing size.
-    vector< vector<VertexId> > components;
-    for(const auto& p: componentTable) {
-        components.push_back(componentMap[p.second]);
-    }
-    cout << timestamp << "Done computing connected components of the assembly graph." << endl;
-
-
-
-    // Compute statistics for each component.
-    ofstream csv("AssemblyGraphStatistics.csv");
-    csv << "Component,Vertices,RawSequenceLength,"
-        "AccumulatedRawSequenceLength,AccumulatedRawSequenceFraction,"
-        "RepresentingVertex\n";
-    size_t accumulatedRawSequenceLength = 0;
-    bool halfReached = false;
-    for(VertexId componentId=0; componentId<components.size(); componentId++) {
-        const vector<VertexId>& component = components[componentId];
-        const size_t componentRawSequenceLength = componentTable[componentId].first;
-        accumulatedRawSequenceLength += componentRawSequenceLength;
-        const double accumulatedRawSequenceFraction =
-            double(accumulatedRawSequenceLength)/double(totalRawSequenceLength);
-
-        // See if we reached the N50.
-        if(!halfReached) {
-            if(accumulatedRawSequenceFraction > 0.5) {
-                halfReached = true;
-                cout << "Approximate N50 based on connected components " <<
-                    componentRawSequenceLength << endl;
-            }
-        }
-
-        // Write out.
-        csv << componentId << ",";
-        csv << component.size() << ",";
-        csv << componentRawSequenceLength << ",";
-        csv << accumulatedRawSequenceLength << ",";
-        csv << accumulatedRawSequenceFraction << ",";
-        csv << component.front() << "\n";
-    }
-#endif
 }
 
 
