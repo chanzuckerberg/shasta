@@ -315,10 +315,19 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             }
 
             // Compute the Alignment.
+            const auto t0 = std::chrono::steady_clock::now();
             alignOrientedReads(
                 markersSortedByKmerId[0],
                 markersSortedByKmerId[1],
                 maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+            const auto t1 = std::chrono::steady_clock::now();
+            const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
+            if(t01 > 0.1) {
+                out << timestamp << "Slow alignment computation for oriented reads ";
+                out << orientedReadIds[0] << " ";
+                out << orientedReadIds[1] << ": ";
+                out << t01 << " s.\n";
+            }
 
             // If the alignment has too few markers skip it.
             if(alignment.ordinals.size() < minAlignedMarkerCount) {
