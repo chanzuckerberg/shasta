@@ -17,20 +17,20 @@ void Assembler::alignOrientedReads(
     ReadId readId0, Strand strand0,
     ReadId readId1, Strand strand1,
     size_t maxSkip, // Maximum ordinal skip allowed.
-    size_t maxVertexCountPerKmer
+    uint32_t maxMarkerFrequency
 )
 {
     alignOrientedReads(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
-        maxSkip, maxVertexCountPerKmer
+        maxSkip, maxMarkerFrequency
         );
 }
 void Assembler::alignOrientedReads(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     size_t maxSkip, // Maximum ordinal skip allowed.
-    size_t maxVertexCountPerKmer
+    uint32_t maxMarkerFrequency
 )
 {
     checkReadsAreOpen();
@@ -39,10 +39,10 @@ void Assembler::alignOrientedReads(
 
 
     // Get the markers sorted by kmerId.
-    vector<MarkerWithOrdinal> markers0SortedByKmerId;
+    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     vector<MarkerWithOrdinal> markers1SortedByKmerId;
-    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
-    getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
+    getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
+    getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
 
     // Call the lower level function.
     AlignmentGraph graph;
@@ -50,18 +50,17 @@ void Assembler::alignOrientedReads(
     AlignmentInfo alignmentInfo;
     const bool debug = true;
     alignOrientedReads(
-        markers0SortedByKmerId,
-        markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+        markersSortedByKmerId,
+        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
     // Compute the AlignmentInfo.
     uint32_t leftTrim;
     uint32_t rightTrim;
     tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
     cout << orientedReadId0 << " has " << reads[orientedReadId0.getReadId()].baseCount;
-    cout << " bases and " << markers0SortedByKmerId.size() << " markers." << endl;
+    cout << " bases and " << markersSortedByKmerId[0].size() << " markers." << endl;
     cout << orientedReadId1 << " has " << reads[orientedReadId1.getReadId()].baseCount;
-    cout << " bases and " << markers1SortedByKmerId.size() << " markers." << endl;
+    cout << " bases and " << markersSortedByKmerId[1].size() << " markers." << endl;
     cout << "The alignment has " << alignmentInfo.markerCount;
     cout << " markers. Left trim " << leftTrim;
     cout << " markers, right trim " << rightTrim << " markers." << endl;
@@ -77,10 +76,9 @@ void Assembler::alignOrientedReads(
 // This lower level version takes as input vectors of
 // markers already sorted by kmerId.
 void Assembler::alignOrientedReads(
-    const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
-    const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
+    const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
     size_t maxSkip,             // Maximum ordinal skip allowed.
-    size_t maxVertexCountPerKmer
+    uint32_t maxMarkerFrequency
 )
 {
     // Compute the alignment.
@@ -89,26 +87,24 @@ void Assembler::alignOrientedReads(
     AlignmentInfo alignmentInfo;
     const bool debug = true;
     alignOrientedReads(
-        markers0SortedByKmerId,
-        markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+        markersSortedByKmerId,
+        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 }
 
 
 
 void Assembler::alignOrientedReads(
-    const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
-    const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
+    const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
     size_t maxSkip,             // Maximum ordinal skip allowed.
-    size_t maxVertexCountPerKmer,
+    uint32_t maxMarkerFrequency,
     bool debug,
     AlignmentGraph& graph,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo
 )
 {
-    align(markers0SortedByKmerId, markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+    align(markersSortedByKmerId,
+        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 }
 
 
@@ -118,14 +114,14 @@ void Assembler::alignOrientedReads(
 void Assembler::alignOverlappingOrientedReads(
     ReadId readId, Strand strand,
     size_t maxSkip,                 // Maximum ordinal skip allowed.
-    size_t maxVertexCountPerKmer,
+    uint32_t maxMarkerFrequency,
     size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
     size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
 )
 {
     alignOverlappingOrientedReads(
         OrientedReadId(readId, strand),
-        maxSkip, maxVertexCountPerKmer, minAlignedMarkerCount, maxTrim);
+        maxSkip, maxMarkerFrequency, minAlignedMarkerCount, maxTrim);
 }
 
 
@@ -133,7 +129,7 @@ void Assembler::alignOverlappingOrientedReads(
 void Assembler::alignOverlappingOrientedReads(
     OrientedReadId orientedReadId0,
     size_t maxSkip,                 // Maximum ordinal skip allowed.
-    size_t maxVertexCountPerKmer,
+    uint32_t maxMarkerFrequency,
     size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
     size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
 )
@@ -144,11 +140,10 @@ void Assembler::alignOverlappingOrientedReads(
     checkAlignmentCandidatesAreOpen();
 
     // Get the markers for orientedReadId0.
-    vector<MarkerWithOrdinal> markers0SortedByKmerId;
-    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
+    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
 
     // Loop over all alignments involving this oriented read.
-    vector<MarkerWithOrdinal> markers1SortedByKmerId;
     size_t goodAlignmentCount = 0;
     for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
         const AlignmentData& ad = alignmentData[i];
@@ -157,7 +152,7 @@ void Assembler::alignOverlappingOrientedReads(
         const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
 
         // Get the markers for orientedReadId1.
-        getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
+        getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
 
         // Compute the alignment.
         AlignmentGraph graph;
@@ -165,9 +160,8 @@ void Assembler::alignOverlappingOrientedReads(
         AlignmentInfo alignmentInfo;
         const bool debug = false;
         alignOrientedReads(
-            markers0SortedByKmerId,
-            markers1SortedByKmerId,
-            maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+            markersSortedByKmerId,
+            maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
         uint32_t leftTrim;
         uint32_t rightTrim;
@@ -196,9 +190,12 @@ void Assembler::alignOverlappingOrientedReads(
 // without storing details of the alignment.
 void Assembler::computeAlignments(
 
-    // The  maximum number of vertices in the alignment graph
-    // that we allow a single k-mer to generate.
-    size_t alignmentMaxVertexCountPerKmer,
+    // Marker frequency threshold.
+    // When computing an alignment between two oriented reads,
+    // marker kmers that appear more than this number of times
+    // in either of the two oriented reads are discarded
+    // (in both oriented reads).
+    uint32_t maxMarkerFrequency,
 
     // The maximum ordinal skip to be tolerated between successive markers
     // in the alignment.
@@ -227,8 +224,8 @@ void Assembler::computeAlignments(
 
     // Store parameters so they are accessible to the threads.
     auto& data = computeAlignmentsData;
+    data.maxMarkerFrequency = maxMarkerFrequency;
     data.maxSkip = maxSkip;
-    data.maxVertexCountPerKmer = alignmentMaxVertexCountPerKmer;
     data.minAlignedMarkerCount = minAlignedMarkerCount;
     data.maxTrim = maxTrim;
 
@@ -282,8 +279,8 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
     const bool debug = false;
     auto& data = computeAlignmentsData;
+    const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
     const size_t maxSkip = data.maxSkip;
-    const size_t maxVertexCountPerKmer = data.maxVertexCountPerKmer;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
     const size_t maxTrim = data.maxTrim;
 
@@ -317,9 +314,8 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             // Compute the Alignment.
             const auto t0 = std::chrono::steady_clock::now();
             alignOrientedReads(
-                markersSortedByKmerId[0],
-                markersSortedByKmerId[1],
-                maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+                markersSortedByKmerId,
+                maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
             const auto t1 = std::chrono::steady_clock::now();
             const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
             if(t01 > 0.1) {

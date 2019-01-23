@@ -27,16 +27,19 @@ using namespace shasta;
 void ChanZuckerberg::shasta::align(
 
     // Markers of the two oriented reads to be aligned, sorted by KmerId.
-    const vector<MarkerWithOrdinal>& markers0,
-    const vector<MarkerWithOrdinal>& markers1,
+    const array<vector<MarkerWithOrdinal>, 2>& markers,
 
     // The maximum ordinal skip to be tolerated between successive markers
     // in the alignment.
     size_t maxSkip,
 
-    // The  maximum number of vertices in the alignment graph
-    // that we allow a single k-mer to generate.
-    size_t maxVertexCountPerKmer,
+    // Marker frequency threshold.
+    // When computing an alignment between two oriented reads,
+    // marker kmers that appear more than this number of times
+    // in either of the two oriented reads are discarded
+    // (in both oriented reads).
+    // Change to size_t when conversion completed.
+    uint32_t maxMarkerFrequency,
 
     // Flag to control various types of debug output.
     bool debug,
@@ -53,7 +56,7 @@ void ChanZuckerberg::shasta::align(
     AlignmentInfo& alignmentInfo
     )
 {
-    graph.create(markers0, markers1, maxSkip, maxVertexCountPerKmer, debug,
+    graph.create(markers, maxMarkerFrequency, maxSkip, debug,
         alignment, alignmentInfo);
 }
 
@@ -61,10 +64,9 @@ void ChanZuckerberg::shasta::align(
 
 
 void AlignmentGraph::create(
-    const vector<MarkerWithOrdinal>& markers0,
-    const vector<MarkerWithOrdinal>& markers1,
+    const array<vector<MarkerWithOrdinal>, 2>& markers,
+    uint32_t maxMarkerFrequency,
     size_t maxSkip,
-    size_t maxVertexCountPerKmer,
     bool debug,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo)
@@ -75,12 +77,12 @@ void AlignmentGraph::create(
 
     // Write out the markers.
     if(debug) {
-        writeMarkers(markers0, "Markers-ByKmerId-0.csv");
-        writeMarkers(markers1, "Markers-ByKmerId-1.csv");
+        writeMarkers(markers[0], "Markers-ByKmerId-0.csv");
+        writeMarkers(markers[1], "Markers-ByKmerId-1.csv");
     }
 
     // Create the vertices - one for each pair of common markers.
-    createVertices(markers0, markers1, maxVertexCountPerKmer);
+    createVertices(markers, maxMarkerFrequency);
     sortVertices();
 
     // Add the start and finish vertices.
@@ -94,7 +96,7 @@ void AlignmentGraph::create(
     }
 
     // Create the edges.
-    createEdges(uint32_t(markers0.size()), uint32_t(markers1.size()), maxSkip);
+    createEdges(uint32_t(markers[0].size()), uint32_t(markers[1].size()), maxSkip);
     if(debug) {
         writeEdges("AlignmentGraphEdges.csv");
     }
@@ -133,10 +135,10 @@ void AlignmentGraph::create(
     }
 
     // Store the alignment info.
-    alignmentInfo.create(alignment, uint32_t(markers0.size()), uint32_t(markers1.size()));
+    alignmentInfo.create(alignment, uint32_t(markers[0].size()), uint32_t(markers[1].size()));
 
     if(debug) {
-        writeImage(markers0, markers1, alignment, "Alignment.png");
+        writeImage(markers[0], markers[1], alignment, "Alignment.png");
     }
 }
 
@@ -159,11 +161,12 @@ void AlignmentGraph::writeMarkers(
 
 
 void AlignmentGraph::createVertices(
-    const vector<MarkerWithOrdinal>& markers0,
-    const vector<MarkerWithOrdinal>& markers1,
-    size_t maxVertexCountPerKmer)
+    const array<vector<MarkerWithOrdinal>, 2>& markers,
+    uint32_t maxMarkerFrequency)
 {
-
+    // Some shorthands for readability.
+    const vector<MarkerWithOrdinal>& markers0 = markers[0];
+    const vector<MarkerWithOrdinal>& markers1 = markers[1];
 
     // Some iterators we will need.
     using MarkerIterator = vector<MarkerWithOrdinal>::const_iterator;
@@ -172,7 +175,13 @@ void AlignmentGraph::createVertices(
     const MarkerIterator begin1 = markers1.begin();
     const MarkerIterator end1   = markers1.end();
 
-
+    // Initialize isLowFrequencyMarker flags to all true.
+    // We will set to false the ones that need it,
+    // when we encounter long streaks of the same marker.
+    for(size_t i=0; i<2; i++) {
+        isLowFrequencyMarker[i].clear();
+        isLowFrequencyMarker[i].resize(markers[i].size(), true);
+    }
 
     // Joint loop over the markers, looking for common k-mer ids.
     auto it0 = begin0;
@@ -200,14 +209,27 @@ void AlignmentGraph::createVertices(
             while(it1End!=end1 && it1End->kmerId==kmerId) {
                 ++it1End;
             }
-
-            // Only do it if don't generate an excessive number of vertices.
             const size_t streakLength0 = it0End - it0Begin;
             const size_t streakLength1 = it1End - it1Begin;
-            const size_t streakVertexCount = streakLength0 * streakLength1;
-            if(streakVertexCount < maxVertexCountPerKmer) {
 
-                // Loop over pairs in the streak.
+
+            if(streakLength0>maxMarkerFrequency || streakLength1>maxMarkerFrequency) {
+
+                // At least one of these streaks is too long.
+                // Flag these markers as high frequency markers.
+                for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
+                    isLowFrequencyMarker[0][jt0->ordinal]= false;
+                }
+                for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
+                    isLowFrequencyMarker[1][jt1->ordinal]= false;
+                }
+
+            } else {
+
+                // Both streaks are short enough.
+                // Generate vertices in the alignment graph.
+
+                // Loop over pairs in the streaks.
                 for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
                     for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
 
@@ -224,11 +246,27 @@ void AlignmentGraph::createVertices(
                         addVertex(vertex);
                     }
                 }
+
             }
 
             // Continue joint loop over k-mers.
             it0 = it0End;
             it1 = it1End;
+        }
+    }
+
+
+    // Compute correctedOrdinals, the ordinals keeping into account
+    // only low frequency markers.
+    for(size_t i=0; i<2; i++) {
+        correctedOrdinals[i].resize(markers[i].size());
+        uint32_t correctedOrdinal = 0;
+        for(size_t j=0; j<markers[i].size(); j++) {
+            if(isLowFrequencyMarker[i][j]) {
+                correctedOrdinals[i][j] = correctedOrdinal++;
+            } else {
+                correctedOrdinals[i][j] =  std::numeric_limits<uint32_t>::max();
+            }
         }
     }
 }
@@ -281,6 +319,10 @@ void AlignmentGraph::createEdges(
         const auto& vertexA = graph[vA];
         const int ordinalA0 = int(vertexA.ordinals[0]);
         const int ordinalA1 = int(vertexA.ordinals[1]);
+        const int correctedOrdinalA0 = int(correctedOrdinals[0][ordinalA0]);
+        const int correctedOrdinalA1 = int(correctedOrdinals[1][ordinalA1]);
+        CZI_ASSERT(correctedOrdinalA0 < int(markerCount0));
+        CZI_ASSERT(correctedOrdinalA1 < int(markerCount1));
 
         vertex_iterator itB = itA;
         ++itB;
@@ -292,23 +334,27 @@ void AlignmentGraph::createEdges(
             const auto& vertexB = graph[vB];
             const int ordinalB0 = int(vertexB.ordinals[0]);
             CZI_ASSERT(ordinalB0 >= ordinalA0);
+            const int correctedOrdinalB0 = int(correctedOrdinals[0][ordinalB0]);
+            CZI_ASSERT(correctedOrdinalB0 < int(markerCount0));
 
             // If we got too far, we can end the inner loop,
             // because vertices are sorted by position in sequence 0.
-            if(ordinalB0 > ordinalA0 + int(maxSkip)) {
+            if(correctedOrdinalB0 > correctedOrdinalA0 + int(maxSkip)) {
                 break;
             }
             const int ordinalB1 = int(vertexB.ordinals[1]);
+            const int correctedOrdinalB1 = int(correctedOrdinals[1][ordinalB1]);
+            CZI_ASSERT(correctedOrdinalB1 < int(markerCount1));
 
             // Check that the skip in the 1 direction is less than maxSkip.
-            if(abs(ordinalB1 - ordinalA1) > maxSkip) {
+            if(abs(correctedOrdinalB1 - correctedOrdinalA1) > maxSkip) {
                 continue;
             }
 
             // If getting here, we will add an edge.
             // We need to compute the weight.
-            const int delta0 = ordinalB0 - ordinalA0;
-            const int delta1 = ordinalB1 - ordinalA1;
+            const int delta0 = correctedOrdinalB0 - correctedOrdinalA0;
+            const int delta1 = correctedOrdinalB1 - correctedOrdinalA1;
             // const size_t weight = delta0*delta0 + delta1*delta1;
             const size_t weight = abs(delta0-1) + abs(delta1-1);
 
@@ -327,8 +373,10 @@ void AlignmentGraph::createEdges(
         const auto& vertex = graph[v];
         const int ordinal0 = int(vertex.ordinals[0]);
         const int ordinal1 = int(vertex.ordinals[1]);
-        const int deltaFinish0 = int(markerCount0) - ordinal0;
-        const int deltaFinish1 = int(markerCount1) - ordinal1;
+        const int correctedOrdinal0 = int(correctedOrdinals[0][ordinal0]);
+        const int correctedOrdinal1 = int(correctedOrdinals[1][ordinal1]);
+        const int deltaFinish0 = int(markerCount0) - correctedOrdinal0;
+        const int deltaFinish1 = int(markerCount1) - correctedOrdinal1;
 
         /*
         addEdge(v, vStart,  AlignmentGraphEdge(
@@ -339,8 +387,8 @@ void AlignmentGraph::createEdges(
             deltaFinish1 * deltaFinish1));
         */
         addEdge(v, vStart,  AlignmentGraphEdge(
-            abs(ordinal0) +
-            abs(ordinal1)));
+            abs(correctedOrdinal0) +
+            abs(correctedOrdinal1)));
         addEdge(v, vFinish, AlignmentGraphEdge(
             abs(deltaFinish0) +
             abs(deltaFinish1)));

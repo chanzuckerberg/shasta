@@ -473,7 +473,10 @@ void Assembler::assembleThreadFunction(size_t threadId)
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
-            out << timestamp << "Assembling edge " << edgeId << endl;
+            out << timestamp << "Assembling assembly graph edge " << edgeId <<
+                " corresponding to " <<
+                assemblyGraph.edgeLists[edgeId].size() <<
+                " marker graph edges." << endl;
             assembleAssemblyGraphEdge(edgeId, useMarginPhase, edgeSequence, edgeRepeatCounts);
 
             // Store the edge id.

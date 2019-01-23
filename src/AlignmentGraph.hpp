@@ -46,16 +46,19 @@ namespace ChanZuckerberg {
         void align(
 
             // Markers of the two oriented reads to be aligned, sorted by KmerId.
-            const vector<MarkerWithOrdinal>& markers0,
-            const vector<MarkerWithOrdinal>& markers1,
+            const array<vector<MarkerWithOrdinal>, 2>& markers,
 
             // The maximum ordinal skip to be tolerated between successive markers
             // in the alignment.
             size_t maxSkip,
 
-            // The  maximum number of vertices in the alignment graph
-            // that we allow a single k-mer to generate.
-            size_t maxVertexCountPerKmer,
+            // Marker frequency threshold.
+            // When computing an alignment between two oriented reads,
+            // marker kmers that appear more than this number of times
+            // in either of the two oriented reads are discarded
+            // (in both oriented reads).
+            // Change to size_t when conversion completed.
+            uint32_t maxMarkerFrequency,
 
             // Flag to control various types of debug output.
             bool debug,
@@ -126,10 +129,9 @@ class ChanZuckerberg::shasta::AlignmentGraph : public AlignmentGraphBaseClass {
 public:
 
     void create(
-        const vector<MarkerWithOrdinal>& kmers0,
-        const vector<MarkerWithOrdinal>& kmers1,
+        const array<vector<MarkerWithOrdinal>, 2>&,
+        uint32_t maxMarkerFrequency,
         size_t maxSkip,
-        size_t maxVertexCountPerKmer,
         bool debug,
         Alignment&,
         AlignmentInfo&);
@@ -146,9 +148,8 @@ private:
         const string& fileName
         );
     void createVertices(
-        const vector<MarkerWithOrdinal>&,
-        const vector<MarkerWithOrdinal>&,
-        size_t maxVertexCountPerKmer);
+        const array<vector<MarkerWithOrdinal>, 2>&,
+        uint32_t maxMarkerFrequency);
     void writeVertices(const string& fileName) const;
     void createEdges(
         uint32_t markerCount0,
@@ -171,6 +172,17 @@ private:
     vector<vertex_descriptor> shortestPath;
     FindShortestPathQueue<AlignmentGraph> queue;
     void writeShortestPath(const string& fileName) const;
+
+    // Flags that are set for markers whose k-mers
+    // have frequency maxMarkerFrequency or less in
+    // both oriented reads being aligned.
+    // Indexed by [0 or 1][ordinal]
+    // (this is the standard marker ordinal that counts all markers).
+    array<vector<bool>, 2> isLowFrequencyMarker;
+
+    // The corrected ordinals, keeping into account only low frequency markers.
+    // Index by [01][ordinal].
+    array<vector<uint32_t>, 2> correctedOrdinals;
 
 };
 

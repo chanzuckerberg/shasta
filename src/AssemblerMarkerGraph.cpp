@@ -31,9 +31,9 @@ using namespace shasta;
 // with more than one marker on the same oriented read.
 void Assembler::createMarkerGraphVertices(
 
-    // The  maximum number of vertices in the alignment graph
-    // that we allow a single k-mer to generate.
-    size_t alignmentMaxVertexCountPerKmer,
+    // The maximum frequency of marker k-mers to be used in
+    // computing alignments.
+    uint32_t maxMarkerFrequency,
 
     // The maximum ordinal skip to be tolerated between successive markers
     // in the alignment.
@@ -73,7 +73,7 @@ void Assembler::createMarkerGraphVertices(
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
     data.maxSkip = maxSkip;
-    data.maxVertexCountPerKmer = alignmentMaxVertexCountPerKmer;
+    data.maxMarkerFrequency = maxMarkerFrequency;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -380,7 +380,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
     const size_t maxSkip = data.maxSkip;
-    const size_t maxVertexCountPerKmer = data.maxVertexCountPerKmer;
+    const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
 
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
 
@@ -417,12 +417,11 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             }
 
             // Compute the Alignment.
-            // We already know that this is a good alignmenmt, otherwise we
+            // We already know that this is a good alignment, otherwise we
             // would not have stored it.
             alignOrientedReads(
-                markersSortedByKmerId[0],
-                markersSortedByKmerId[1],
-                maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+                markersSortedByKmerId,
+                maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
 
             // In the global marker graph, merge pairs

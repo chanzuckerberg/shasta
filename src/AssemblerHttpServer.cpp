@@ -1514,8 +1514,8 @@ void Assembler::exploreAlignment(
     // Get alignment parameters.
     size_t maxSkip = 30;
     getParameterValue(request, "maxSkip", maxSkip);
-    size_t maxVertexCountPerKmer = 10000;
-    getParameterValue(request, "maxVertexCountPerKmer", maxVertexCountPerKmer);
+    uint32_t maxMarkerFrequency = 10;
+    getParameterValue(request, "maxMarkerFrequency", maxMarkerFrequency);
 
     // Write the form.
     html <<
@@ -1536,8 +1536,8 @@ void Assembler::exploreAlignment(
         "<br>Maximum ordinal skip allowed: " <<
         "<input type=text name=maxSkip required size=8 value=" << maxSkip << ">";
     html <<
-        "<br>Maximum number of alignment graph vertices per k-mer: " <<
-        "<input type=text name=maxVertexCountPerKmer required size=8 value=" << maxVertexCountPerKmer << ">";
+        "<br>Maximum k-mer frequency: " <<
+        "<input type=text name=maxVertexCountPerKmer required size=8 value=" << maxMarkerFrequency << ">";
     html << "</form>";
 
     // If the readId's or strand's are missing, stop here.
@@ -1557,24 +1557,23 @@ void Assembler::exploreAlignment(
         "<a href='exploreRead?readId=" << readId1 << "&strand=" << strand1 << "'>" << orientedReadId1 << "</a>" <<
         "</h1>"
         "<p>This alignment was computed allowing a skip of up to " << maxSkip << " markers "
-        "and up to " << maxVertexCountPerKmer << " alignment graph vertices for each k-mer.";
+        "and considering only marker k-mers that appear up to " << maxMarkerFrequency <<
+        " times in each oriented read.";
 
 
 
     // Compute the alignment.
     // This creates file Alignment.png.
-    vector<MarkerWithOrdinal> markers0SortedByKmerId;
-    vector<MarkerWithOrdinal> markers1SortedByKmerId;
-    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
-    getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
+    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
+    getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
     AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
     const bool debug = true;
     alignOrientedReads(
-        markers0SortedByKmerId,
-        markers1SortedByKmerId,
-        maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+        markersSortedByKmerId,
+        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
     if(alignment.ordinals.empty()) {
         html << "<p>The alignment is empty (it has no markers).";
         return;
@@ -1746,8 +1745,8 @@ void Assembler::computeAllAlignments(
     getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
     computeAllAlignmentsData.maxSkip = 30;
     getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
-    computeAllAlignmentsData.maxVertexCountPerKmer = 10000;
-    getParameterValue(request, "maxVertexCountPerKmer", computeAllAlignmentsData.maxVertexCountPerKmer);
+    computeAllAlignmentsData.maxMarkerFrequency = 10000;
+    getParameterValue(request, "maxMarkerFrequency", computeAllAlignmentsData.maxMarkerFrequency);
     computeAllAlignmentsData.minAlignedMarkerCount = 100;
     getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
     computeAllAlignmentsData.maxTrim = 30;
@@ -1768,9 +1767,9 @@ void Assembler::computeAllAlignments(
         "<input type=text name=minMarkerCount size=8 value=" << computeAllAlignmentsData.minMarkerCount <<
         "> markers.<br>Maximum ordinal skip allowed: " <<
         "<input type=text name=maxSkip required size=8 value=" << computeAllAlignmentsData.maxSkip << ">"
-        "<br>Maximum number of alignment graph vertices per k-mer: " <<
-        "<input type=text name=maxVertexCountPerKmer required size=8 value=" <<
-        computeAllAlignmentsData.maxVertexCountPerKmer << ">"
+        "<br>Maximum marker frequency: " <<
+        "<input type=text name=maxMarkerFrequency required size=8 value=" <<
+        computeAllAlignmentsData.maxMarkerFrequency << ">"
         "<br>Minimum number of aligned markers"
         "<input type=text name=minAlignedMarkerCount required size=8 value=" <<
         computeAllAlignmentsData.minAlignedMarkerCount << ">"
@@ -1903,7 +1902,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     // Get parameters for alignment computation.
     const size_t minMarkerCount = computeAllAlignmentsData.minMarkerCount;
     const size_t maxSkip = computeAllAlignmentsData.maxSkip;
-    const size_t maxVertexCountPerKmer = computeAllAlignmentsData.maxVertexCountPerKmer;
+    const uint32_t maxMarkerFrequency = computeAllAlignmentsData.maxMarkerFrequency;
     const size_t minAlignedMarkerCount =computeAllAlignmentsData.minAlignedMarkerCount;
     const size_t maxTrim =computeAllAlignmentsData.maxTrim;
 
@@ -1917,9 +1916,8 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     AlignmentInfo alignmentInfo;
 
     // Vectors to contain markers sorted by kmerId.
-    vector<MarkerWithOrdinal> markers0SortedByKmerId;
-    vector<MarkerWithOrdinal> markers1SortedByKmerId;
-    getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
+    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
+    getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
 
     // Loop over batches assigned to this thread.
     size_t begin, end;
@@ -1944,14 +1942,13 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 }
 
                 // Get markers sorted by kmer id.
-                getMarkersSortedByKmerId(orientedReadId1, markers1SortedByKmerId);
+                getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
 
                 // Compute the alignment.
                 const bool debug = false;
                 alignOrientedReads(
-                    markers0SortedByKmerId,
-                    markers1SortedByKmerId,
-                    maxSkip, maxVertexCountPerKmer, debug, graph, alignment, alignmentInfo);
+                    markersSortedByKmerId,
+                    maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
                 // If the alignment has too few markers skip it.
                 if(alignment.ordinals.size() < minAlignedMarkerCount) {

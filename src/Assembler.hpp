@@ -165,7 +165,7 @@ public:
         ReadId, Strand,
         ReadId, Strand,
         size_t maxSkip, // Maximum ordinal skip allowed.
-        size_t maxVertexCountPerKmer
+        uint32_t maxMarkerFrequency
     );
 
     // Compute marker alignments of an oriented read with all reads
@@ -173,7 +173,7 @@ public:
     void alignOverlappingOrientedReads(
         ReadId, Strand,
         size_t maxSkip,                 // Maximum ordinal skip allowed.
-        size_t maxVertexCountPerKmer,
+        uint32_t maxMarkerFrequency,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
         size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
     );
@@ -204,9 +204,13 @@ public:
     // without storing details of the alignment.
     void computeAlignments(
 
-        // The  maximum number of vertices in the alignment graph
-        // that we allow a single k-mer to generate.
-        size_t alignmentMaxVertexCountPerKmer,
+        // Marker frequency threshold.
+        // When computing an alignment between two oriented reads,
+        // marker kmers that appear more than this number of times
+        // in either of the two oriented reads are discarded
+        // (in both oriented reads).
+        // Change to size_t when conversion completed.
+        uint32_t maxMarkerFrequency,
 
         // The maximum ordinal skip to be tolerated between successive markers
         // in the alignment.
@@ -234,9 +238,9 @@ public:
     // with more than one marker on the same oriented read.
     void createMarkerGraphVertices(
 
-        // The  maximum number of vertices in the alignment graph
-        // that we allow a single k-mer to generate.
-        size_t alignmentMaxVertexCountPerKmer,
+        // The maximum frequency of marker k-mers to be used in
+        // computing alignments.
+        uint32_t maxMarkerFrequency,
 
         // The maximum ordinal skip to be tolerated between successive markers
         // in the alignment.
@@ -577,22 +581,20 @@ private:
         OrientedReadId,
         OrientedReadId,
         size_t maxSkip, // Maximum ordinal skip allowed.
-        size_t maxVertexCountPerKmer
+        uint32_t maxMarkerFrequency
     );
     // This lower level version takes as input vectors of
     // markers already sorted by kmerId.
     void alignOrientedReads(
-        const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
-        const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
+        const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
         size_t maxSkip,  // Maximum ordinal skip allowed.
-        size_t maxVertexCountPerKmer
+        uint32_t maxMarkerFrequency
     );
     // This version allows reusing the AlignmentGraph and Alignment
     void alignOrientedReads(
-        const vector<MarkerWithOrdinal>& markers0SortedByKmerId,
-        const vector<MarkerWithOrdinal>& markers1SortedByKmerId,
+        const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
         size_t maxSkip,             // Maximum ordinal skip allowed.
-        size_t maxVertexCountPerKmer,
+        uint32_t maxMarkerFrequency,
         bool debug,
         AlignmentGraph&,
         Alignment&,
@@ -619,7 +621,7 @@ private:
     void alignOverlappingOrientedReads(
         OrientedReadId,
         size_t maxSkip,                 // Maximum ordinal skip allowed.
-        size_t maxVertexCountPerKmer,
+        uint32_t maxMarkerFrequency,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
         size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
     );
@@ -645,8 +647,8 @@ private:
     public:
 
         // Parameters.
+        uint32_t maxMarkerFrequency;
         size_t maxSkip;
-        size_t maxVertexCountPerKmer;
         size_t minAlignedMarkerCount;
         size_t maxTrim;
 
@@ -756,7 +758,7 @@ private:
 
         // Parameters.
         size_t maxSkip;
-        size_t maxVertexCountPerKmer;
+        uint32_t maxMarkerFrequency;
 
         // The total number of oriented markers.
         uint64_t orientedMarkerCount;
@@ -1276,7 +1278,7 @@ public:
         OrientedReadId orientedReadId0;
         size_t minMarkerCount;
         size_t maxSkip;
-        size_t maxVertexCountPerKmer;
+        uint32_t maxMarkerFrequency;
         size_t minAlignedMarkerCount;
         size_t maxTrim;
         // The alignments found by each thread.

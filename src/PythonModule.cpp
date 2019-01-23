@@ -161,7 +161,7 @@ PYBIND11_MODULE(shasta, module)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand, size_t, size_t)
+                (ReadId, Strand, ReadId, Strand, size_t, uint32_t)
             )
             &Assembler::alignOrientedReads,
             arg("readId0"),
@@ -169,17 +169,17 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1"),
             arg("maxSkip"),
-            arg("maxVertexCountPerKmer"))
+            arg("maxMarkerFrequency"))
         .def("alignOverlappingOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, size_t, size_t, size_t, size_t)
+                (ReadId, Strand, size_t, uint32_t, size_t, size_t)
             )
             &Assembler::alignOverlappingOrientedReads,
             arg("readId"),
             arg("strand"),
             arg("maxSkip"),
-            arg("maxVertexCountPerKmer"),
+            arg("maxMarkerFrequency"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim")
             )
@@ -187,7 +187,7 @@ PYBIND11_MODULE(shasta, module)
         // Compute an alignment for each alignment candidate.
         .def("computeAlignments",
             &Assembler::computeAlignments,
-            arg("maxVertexCountPerKmer"),
+            arg("maxMarkerFrequency"),
             arg("maxSkip"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
@@ -217,7 +217,7 @@ PYBIND11_MODULE(shasta, module)
         // Global marker graph.
         .def("createMarkerGraphVertices",
             &Assembler::createMarkerGraphVertices,
-            arg("maxVertexCountPerKmer"),
+            arg("maxMarkerFrequency"),
             arg("maxSkip"),
             arg("minCoverage"),
             arg("maxCoverage"),

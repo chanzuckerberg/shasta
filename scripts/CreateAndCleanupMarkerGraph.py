@@ -18,7 +18,7 @@ a.accessChimericReadsFlags()
 
 # Create vertices of the marker graph.
 a.createMarkerGraphVertices(
-    maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
+    maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
     maxSkip = int(config['Align']['maxSkip']),
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']))

@@ -16,7 +16,7 @@ a.accessAlignmentCandidates()
 
 # Do the computation.
 a.computeAlignments(
-    maxVertexCountPerKmer = int(config['Align']['maxVertexCountPerKmer']),
+    maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
     maxSkip = int(config['Align']['maxSkip']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
     maxTrim = int(config['Align']['maxTrim']))
