@@ -1066,6 +1066,7 @@ private:
         );
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         GlobalMarkerGraphEdgeId,
+        uint32_t markerGraphEdgeLengthThresholdForConsensus,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts
         );
@@ -1131,6 +1132,7 @@ private:
     // in html (skipped if the html pointer is 0).
     void assembleAssemblyGraphEdge(
         AssemblyGraph::EdgeId,
+        uint32_t markerGraphEdgeLengthThresholdForConsensus,
         bool useMarginPhase,
         vector<Base>&,
         vector<uint32_t>& repeatCounts,
@@ -1141,6 +1143,8 @@ private:
 public:
     void assemble(
         size_t threadCount,
+        // This controls when we give up tryingto compute consensus for long edges.
+        uint32_t markerGraphEdgeLengthThresholdForConsensus,
         // Parameter to control whether we use spoa or marginPhase
         // to compute consensus sequence for marker graph edges.
         bool useMarginPhase
@@ -1150,6 +1154,7 @@ public:
 private:
     class AssembleData {
     public:
+        uint32_t markerGraphEdgeLengthThresholdForConsensus;
         bool useMarginPhase;
 
         // The results created by each thread.

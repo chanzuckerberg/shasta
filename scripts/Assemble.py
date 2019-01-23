@@ -24,7 +24,10 @@ a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
 a.accessAssemblyGraphEdgeLists()
-a.assemble(useMarginPhase = useMarginPhase)
+a.assemble(
+    markerGraphEdgeLengthThresholdForConsensus =
+    int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
+    useMarginPhase = useMarginPhase)
 
 
 

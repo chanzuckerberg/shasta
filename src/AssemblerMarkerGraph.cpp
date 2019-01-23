@@ -2864,8 +2864,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
 // Compute consensus sequence for an edge of the marker graph.
 // This includes the k bases corresponding to the flanking markers,
 // but computed only using reads on this edge.
+// If any of the marker intervals are longer than
+// markerGraphEdgeLengthThresholdForConsensus, the consensus is not computed using spoa
+// to avoid memory and performance problems.
+// Instead, we return as consensus the sequence of the shortest marker interval.
+// This should happen only exceptionally.
 void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     GlobalMarkerGraphEdgeId edgeId,
+    uint32_t markerGraphEdgeLengthThresholdForConsensus,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts
     )
@@ -2889,6 +2895,64 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         cout << " " << markerCount << endl;
     }
 #endif
+
+
+    // Find out if very long marker intervals are present.
+    bool hasLongMarkerInterval = false;
+    for(size_t i=0; i!=markerCount; i++) {
+        const MarkerInterval& markerInterval = markerIntervals[i];
+        const auto length = markerInterval.ordinals[1] - markerInterval.ordinals[0]; // Number of markers.
+        if(length > markerGraphEdgeLengthThresholdForConsensus) {
+            hasLongMarkerInterval = true;
+        }
+    }
+
+
+
+    // If very long marker intervals are present, the computation of consensus sequence
+    // would be prohibitive in memory and compute cost.
+    // Just return as consensus the sequence of the shortest marker interval.
+    if(hasLongMarkerInterval) {
+
+        // Find the shortest marker interval (number of markers).
+        uint32_t minLength = std::numeric_limits<uint32_t>::max();
+        size_t iShortest = 0;
+        for(size_t i=0; i!=markerCount; i++) {
+            const MarkerInterval& markerInterval = markerIntervals[i];
+            const uint32_t length = markerInterval.ordinals[1] - markerInterval.ordinals[0]; // Number of markers.
+            if(length < minLength) {
+                minLength = length;
+                iShortest = i;
+            }
+        }
+        const MarkerInterval& markerInterval = markerIntervals[iShortest];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers.
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+        // Get the position range, including the flanking markers.
+        const uint32_t positionBegin = marker0.position;
+        const uint32_t positionEnd = marker1.position + uint32_t(assemblerInfo->k);
+
+        // Get the sequence.
+        sequence.clear();
+        repeatCounts.clear();
+        for(uint32_t position=positionBegin; position!=positionEnd; position++) {
+            Base base;
+            uint32_t repeatCount;
+            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            sequence.push_back(base);
+            repeatCounts.push_back(repeatCount);
+        }
+
+        // Done handling pathological case.
+        return;
+    }
+
+
 
     // Initialize a spoa alignment.
     const spoa::AlignmentType alignmentType = spoa::AlignmentType::kSW;

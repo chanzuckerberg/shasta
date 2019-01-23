@@ -318,6 +318,7 @@ PYBIND11_MODULE(shasta, module)
         .def("assemble",
             &Assembler::assemble,
             arg("threadCount") = 0,
+            arg("markerGraphEdgeLengthThresholdForConsensus"),
             arg("useMarginPhase"))
         .def("accessAssemblyGraphSequences",
             &Assembler::accessAssemblyGraphSequences)

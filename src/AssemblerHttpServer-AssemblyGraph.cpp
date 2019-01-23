@@ -268,7 +268,8 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     if(showDetails) {
         vector<Base> sequence;
         vector<uint32_t> repeatCounts;
-        assembleAssemblyGraphEdge(edgeId, false, sequence, repeatCounts, &html);
+        const uint32_t markerGraphEdgeLengthThresholdForConsensus = 10000;
+        assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, false, sequence, repeatCounts, &html);
     } else {
 
         // Assembly details were not requested but a global assembly

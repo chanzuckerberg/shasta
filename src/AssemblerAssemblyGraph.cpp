@@ -363,6 +363,8 @@ void Assembler::writeAssemblyGraph(const string& fileName) const
 void Assembler::assemble(
     size_t threadCount,
 
+    uint32_t markerGraphEdgeLengthThresholdForConsensus,
+
     // Parameter to control whether we use spoa of marginPhase
     // to compute consensus sequence for marker graph edges.
     bool useMarginPhase
@@ -376,6 +378,7 @@ void Assembler::assemble(
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
     CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
+    assembleData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;
     if(useMarginPhase) {
         checkMarginPhaseWasSetup();
         assembleData.useMarginPhase = useMarginPhase;
@@ -453,6 +456,7 @@ void Assembler::assemble(
 void Assembler::assembleThreadFunction(size_t threadId)
 {
     ostream& out = getLog(threadId);
+    const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleData.markerGraphEdgeLengthThresholdForConsensus;
     const bool useMarginPhase = assembleData.useMarginPhase;
 
     // Initialize data structures for this thread.
@@ -477,7 +481,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
                 " corresponding to " <<
                 assemblyGraph.edgeLists[edgeId].size() <<
                 " marker graph edges." << endl;
-            assembleAssemblyGraphEdge(edgeId, useMarginPhase, edgeSequence, edgeRepeatCounts);
+            assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, edgeSequence, edgeRepeatCounts);
 
             // Store the edge id.
             edges.push_back(edgeId);
@@ -997,6 +1001,7 @@ bool Assembler::extractLocalAssemblyGraph(
 // in html (skipped if the html pointer is 0).
 void Assembler::assembleAssemblyGraphEdge(
     AssemblyGraph::EdgeId edgeId,
+    uint32_t markerGraphEdgeLengthThresholdForConsensus,
     bool useMarginPhase,
     vector<Base>& assembledRunLengthSequence,
     vector<uint32_t>& assembledRepeatCounts,
@@ -1058,7 +1063,7 @@ void Assembler::assembleAssemblyGraphEdge(
                 edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
         } else {
             computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-                edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
+                edgeIds[i], markerGraphEdgeLengthThresholdForConsensus, edgeSequences[i], edgeRepeatCounts[i]);
         }
     }
 
