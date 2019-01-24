@@ -291,7 +291,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     s << "[";
 
     // Tooltip.
-    s << "tooltip=\"Edge " << edge.edgeId << ", " << baseCount << " bases, " << length << " marker graph edges\"";
+    s << "tooltip=\"Assembly graph edge " << edge.edgeId << ", " << baseCount << " bases, " << length << " marker graph edges\"";
     s << "labeltooltip=\"Edge " << edge.edgeId << ", " << baseCount << " bases, " << length << " marker graph edges\"";
 
     // URL
@@ -299,7 +299,11 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
 
     // Label.
     if(showEdgeLabels) {
-        s << "label=\"" << baseCount << "\"";
+        s << "label=\"" << edge.edgeId;
+        if(baseCount > 0) {
+            s << "\\n" << baseCount;
+        }
+        s << "\"";
     }
 
 
