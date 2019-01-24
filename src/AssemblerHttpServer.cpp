@@ -1745,7 +1745,7 @@ void Assembler::computeAllAlignments(
     getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
     computeAllAlignmentsData.maxSkip = 30;
     getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
-    computeAllAlignmentsData.maxMarkerFrequency = 1000;
+    computeAllAlignmentsData.maxMarkerFrequency = 10;
     getParameterValue(request, "maxMarkerFrequency", computeAllAlignmentsData.maxMarkerFrequency);
     computeAllAlignmentsData.minAlignedMarkerCount = 100;
     getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
