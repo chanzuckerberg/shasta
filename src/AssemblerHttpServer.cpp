@@ -1741,11 +1741,11 @@ void Assembler::computeAllAlignments(
     const bool strand0IsPresent = getParameterValue(request, "strand0", strand0);
 
     // Get alignment parameters.
-    computeAllAlignmentsData.minMarkerCount = 3000;
+    computeAllAlignmentsData.minMarkerCount = 0;
     getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
     computeAllAlignmentsData.maxSkip = 30;
     getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
-    computeAllAlignmentsData.maxMarkerFrequency = 10000;
+    computeAllAlignmentsData.maxMarkerFrequency = 1000;
     getParameterValue(request, "maxMarkerFrequency", computeAllAlignmentsData.maxMarkerFrequency);
     computeAllAlignmentsData.minAlignedMarkerCount = 100;
     getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
