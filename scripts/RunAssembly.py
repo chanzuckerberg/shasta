@@ -88,6 +88,7 @@ a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
 # Flag chimeric reads.
 a.flagChimericReads(
     maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
+a.computeReadGraphConnectedComponents()
 
 # Create vertices of the marker graph.
 a.createMarkerGraphVertices(
