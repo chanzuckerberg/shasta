@@ -1,8 +1,12 @@
 #ifndef CZI_SHASTA_MARKER_INTERVAL_HPP
 #define CZI_SHASTA_MARKER_INTERVAL_HPP
 
+// Shasta.
 #include "ReadId.hpp"
 #include"tuple.hpp"
+
+// Standard library.
+#include "array.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {

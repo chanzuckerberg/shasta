@@ -1,35 +1,3 @@
-/*******************************************************************************
-
-The read graph is a bidirected graph in which each vertex
-represents a read.
-
-Using a bidirected graph, we only need
-one vertex per read, not two, like in the naive approach,
-which uses one vertex for each of the two orientations
-of a read.
-
-For more information on the bidirected approach, see
-Medvedev, Georgiou, Myers, and Brud,
-"Computability of Models for Sequence Assembly",
-International Workshop on Algorithms in Bioinformatics, pp 289-301 (2007).
-http://medvedevgroup.com/papers/wabi07.pdf
-In particular, see Fig. 1 and Section 2.2.
-
-In summary:
-- Each edge has two directions ("arrows"), one for each end.
-- In a valid path, the two edges into and from a given vertex
-  must have opposite orientations at that vertex.
-- If the two edge orientations out of a vertex agree
-  with the direction of the path,
-  the read associated with the vertex is on strand 0 (unchanged).
-  Otherwise, it is on strand 1 (reverse complemented).
-
-We store edges with the lowest numbered read as the first read.
-
-The read graph uses the best maxAlignmentCount alignments for each read.
-Additional alignments do not generate an edge of the read graph.
-
-*******************************************************************************/
 
 // Shasta.
 #include "Assembler.hpp"
@@ -104,117 +72,60 @@ void Assembler::createReadGraph(uint32_t maxTrim)
 
 
     // Now we can create the read graph.
-    // Only the alignments we marker as "keep" generate an edge in the read graph.
-    readGraphEdges.createNew(largeDataName("ReadGraphEdges"), largeDataPageSize);
+    // Only the alignments we marked as "keep" generate edges in the read graph.
+    readGraph.edges.createNew(largeDataName("ReadGraphEdges"), largeDataPageSize);
     for(size_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
         if(!keepAlignment[alignmentId]) {
             continue;
         }
         const AlignmentData& alignment = alignmentData[alignmentId];
-        const AlignmentInfo& alignmentInfo = alignment.info;
 
-        // Create the read graph edge.
-        ReadGraphEdge edge;
-        edge.alignmentId = alignmentId & 0x3fffffffffffffff;    // To suppress compiler warning
+        // Create the edge corresponding to this alignment.
+        ReadGraph::Edge edge;
+        edge.alignmentId = alignmentId;
+        edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
+        edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
+        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        readGraph.edges.push_back(edge);
 
-        // Compute the left and right trim for the two reads.
-        const ReadId readId0 = alignment.readIds[0];
-        const ReadId readId1 = alignment.readIds[1];
-        const uint32_t markerCount0 = uint32_t(markers[OrientedReadId(readId0, 0).getValue()].size());
-        const uint32_t markerCount1 = uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size());
-        const uint32_t leftTrim0  = alignmentInfo.data[0].leftTrim ();
-        const uint32_t rightTrim0 = alignmentInfo.data[0].rightTrim();
-        const uint32_t leftTrim1  = alignmentInfo.data[1].leftTrim ();
-        const uint32_t rightTrim1 = alignmentInfo.data[1].rightTrim();
-
-        // Sanity check on the left and right trim.
-        if(
-            (leftTrim0 > maxTrim && rightTrim0 > maxTrim) &&
-            (leftTrim1 > maxTrim && rightTrim1 > maxTrim)) {
-
-            cout << "Found a bad alignment:" << endl;
-            cout << "Read ids: " << readId0 << " " << readId1 << endl;
-            cout << "Is same strand: " << alignment.isSameStrand << endl;
-            cout << "Trims for first read: " << leftTrim0 << " " << rightTrim0 << endl;
-            cout << "Trims for second read: " << leftTrim1 << " " << rightTrim1 << endl;
-            cout << "Marker counts: " << markerCount0 << " " << markerCount1 << endl;
-            throw runtime_error("Found a bad alignment.");
-        }
-
-
-
-        // Fill in the direction bits.
-        // See comments at the beginning of this file for more information.
-        // This code is untested.
-        if(alignment.isSameStrand) {
-
-            // The two reads are on the same strand.
-            // Case 1 in Fig. 1 of the paper referenced above.
-            // The "leftmost" read has direction away from the vertex
-            // and the "rightmost" read has direction towards the vertex.
-            if(leftTrim1 <= maxTrim) {
-                edge.direction0 = ReadGraphEdge::awayFromVertex;
-                edge.direction1 = ReadGraphEdge::towardsVertex;
-            } else {
-                edge.direction0 = ReadGraphEdge::towardsVertex;
-                edge.direction1 = ReadGraphEdge::awayFromVertex;
-            }
-
-        } else {
-
-            // The two reads are on opposite strands.
-            if(leftTrim0 <= maxTrim) {
-                // Case 2 in Fig. 1 of the paper referenced above.
-                // Both directions are towards the vertex.
-                edge.direction0 = ReadGraphEdge::towardsVertex;
-                edge.direction1 = ReadGraphEdge::towardsVertex;
-
-            } else {
-                // Case 3 in Fig. 1 of the paper referenced above.
-                // Both directions are away from the vertex.
-                edge.direction0 = ReadGraphEdge::awayFromVertex;
-                edge.direction1 = ReadGraphEdge::awayFromVertex;
-            }
-
-        }
-
-        // Store the new edge.
-        readGraphEdges.push_back(edge);
+        // Also create the reverse complemented edge.
+        edge.orientedReadIds[0].flipStrand();
+        edge.orientedReadIds[1].flipStrand();
+        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        readGraph.edges.push_back(edge);
     }
 
 
 
     // Create read graph connectivity.
-    readGraphConnectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
-    readGraphConnectivity.beginPass1(readCount);
-    for(const ReadGraphEdge& edge: readGraphEdges) {
-        const AlignmentData& alignment = alignmentData[edge.alignmentId];
-        readGraphConnectivity.incrementCount(alignment.readIds[0]);
-        readGraphConnectivity.incrementCount(alignment.readIds[1]);
+    readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
+    readGraph.connectivity.beginPass1(orientedReadCount);
+    for(const ReadGraph::Edge& edge: readGraph.edges) {
+        readGraph.connectivity.incrementCount(edge.orientedReadIds[0].getValue());
+        readGraph.connectivity.incrementCount(edge.orientedReadIds[1].getValue());
     }
-    readGraphConnectivity.beginPass2();
-    for(size_t i=0; i<readGraphEdges.size(); i++) {
-        const ReadGraphEdge& edge = readGraphEdges[i];
-        const AlignmentData& alignment = alignmentData[edge.alignmentId];
-        readGraphConnectivity.store(alignment.readIds[0], uint32_t(i));
-        readGraphConnectivity.store(alignment.readIds[1], uint32_t(i));
+    readGraph.connectivity.beginPass2();
+    for(size_t i=0; i<readGraph.edges.size(); i++) {
+        const ReadGraph::Edge& edge = readGraph.edges[i];
+        readGraph.connectivity.store(edge.orientedReadIds[0].getValue(), uint32_t(i));
+        readGraph.connectivity.store(edge.orientedReadIds[1].getValue(), uint32_t(i));
     }
-    readGraphConnectivity.endPass2();
+    readGraph.connectivity.endPass2();
 }
 
 
 
 void Assembler::accessReadGraph()
 {
-    readGraphEdges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
-    readGraphConnectivity.accessExistingReadOnly(largeDataName("ReadGraphConnectivity"));
+    readGraph.edges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
+    readGraph.connectivity.accessExistingReadOnly(largeDataName("ReadGraphConnectivity"));
 }
 void Assembler::checkReadGraphIsOpen()
 {
-    if(!readGraphEdges.isOpen) {
+    if(!readGraph.edges.isOpen) {
         throw runtime_error("Read graph edges are not accessible.");
     }
-    if(!readGraphConnectivity.isOpen()) {
+    if(!readGraph.connectivity.isOpen()) {
         throw runtime_error("Read graph connectivity is not accessible.");
     }
 
@@ -225,12 +136,8 @@ void Assembler::checkReadGraphIsOpen()
 // Create a local subgraph of the global read graph,
 // starting at a given vertex and extending out to a specified
 // distance (number of edges).
-// If the specified ReadId corresponds to a contained read,
-// which does not have a corresponding vertex in the read graph,
-// the local subgraph starts instead from the containing read
-// of the specified read.
 bool Assembler::createLocalReadGraph(
-    ReadId& readIdStart,            // If the specified read is contained, modified to the containing read.
+    OrientedReadId start,
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
     double timeout,                 // Or 0 for no timeout.
@@ -239,17 +146,17 @@ bool Assembler::createLocalReadGraph(
     const auto startTime = steady_clock::now();
 
     // If the starting read is chimeric and we don't allow chimeric reads, do nothing.
-    if(!allowChimericReads && isChimericRead[readIdStart]) {
+    if(!allowChimericReads && isChimericRead[start.getReadId()]) {
         return true;
     }
 
     // Add the starting vertex.
-    graph.addVertex(readIdStart, uint32_t(markers[OrientedReadId(readIdStart, 0).getValue()].size()),
-        isChimericRead[readIdStart], 0);
+    graph.addVertex(start, uint32_t(markers[start.getValue()].size()),
+        isChimericRead[start.getReadId()], 0);
 
     // Initialize a BFS starting at the start vertex.
-    std::queue<ReadId> q;
-    q.push(readIdStart);
+    std::queue<OrientedReadId> q;
+    q.push(start);
 
 
 
@@ -263,22 +170,21 @@ bool Assembler::createLocalReadGraph(
         }
 
         // Dequeue a vertex.
-        const ReadId readId0 = q.front();
+        const OrientedReadId orientedReadId0 = q.front();
         q.pop();
-        const uint32_t distance0 = graph.getDistance(readId0);
+        const uint32_t distance0 = graph.getDistance(orientedReadId0);
         const uint32_t distance1 = distance0 + 1;
 
         // Loop over edges of the global read graph involving this vertex.
-        for(const uint64_t i: readGraphConnectivity[readId0]) {
-            CZI_ASSERT(i < readGraphEdges.size());
-            const ReadGraphEdge& globalEdge = readGraphEdges[i];
-            const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
+        for(const uint64_t i: readGraph.connectivity[orientedReadId0.getValue()]) {
+            CZI_ASSERT(i < readGraph.edges.size());
+            const ReadGraph::Edge& globalEdge = readGraph.edges[i];
 
-            // Get the other read involved in this edge of the read graph.
-            const ReadId readId1 = alignment.getOther(readId0);
+            // Get the other oriented read involved in this edge of the read graph.
+            const OrientedReadId orientedReadId1 = globalEdge.getOther(orientedReadId0);
 
             // If this read is flagged chimeric and we don't allow chimeric reads, skip.
-            if(!allowChimericReads && isChimericRead[readId1]) {
+            if(!allowChimericReads && isChimericRead[orientedReadId1.getReadId()]) {
                 continue;
             }
 
@@ -287,27 +193,23 @@ bool Assembler::createLocalReadGraph(
             // Note that we are pushing to the queue vertices at maxDistance,
             // so we can find all of their edges to other vertices at maxDistance.
             if(distance0 < maxDistance) {
-                if(!graph.vertexExists(readId1)) {
-                    graph.addVertex(readId1,
-                        uint32_t(markers[OrientedReadId(readId1, 0).getValue()].size()),
-                        isChimericRead[readId1], distance1);
-                    q.push(readId1);
+                if(!graph.vertexExists(orientedReadId1)) {
+                    graph.addVertex(orientedReadId1,
+                        uint32_t(markers[orientedReadId1.getValue()].size()),
+                        isChimericRead[orientedReadId1.getReadId()], distance1);
+                    q.push(orientedReadId1);
                 }
                 graph.addEdge(
-                    alignment.readIds[0],
-                    alignment.readIds[1],
-                    globalEdge.alignmentId,
-                    globalEdge.direction0,
-                    globalEdge.direction1);
+                    orientedReadId0,
+                    orientedReadId1,
+                    globalEdge.alignmentId);
             } else {
                 CZI_ASSERT(distance0 == maxDistance);
-                if(graph.vertexExists(readId1)) {
+                if(graph.vertexExists(orientedReadId1)) {
                     graph.addEdge(
-                        alignment.readIds[0],
-                        alignment.readIds[1],
-                        globalEdge.alignmentId,
-                        globalEdge.direction0,
-                        globalEdge.direction1);
+                        orientedReadId0,
+                        orientedReadId1,
+                        globalEdge.alignmentId);
                 }
             }
 
@@ -320,10 +222,11 @@ bool Assembler::createLocalReadGraph(
 
 
 // Use the read graph to flag chimeric reads.
-// For each read and corresponding vertex v0, we do
+// For each oriented read and corresponding vertex v0, we do
 // a BFS in the read graph up to the specified maxDistance.
 // We then compute connected components of the subgraph
-// consisting of the vertices reached by the bfs, minus v0.
+// consisting of the vertices reached by the bfs, minus v0
+// and possibly its reverse complement.
 // If not all the vertices at maximum distance are
 // in the same component, the read corresponding to v0
 // is flagged as chimeric.
@@ -333,7 +236,9 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
 
     // Check that we have what we need.
     checkReadGraphIsOpen();
-    const size_t readCount = readGraphConnectivity.size();
+    const size_t orientedReadCount = readGraph.connectivity.size();
+    CZI_ASSERT((orientedReadCount % 2) == 0);
+    const size_t readCount = orientedReadCount / 2;
 
     // Create the flags to indicate which reads are chimeric.
     isChimericRead.createNew(
@@ -374,27 +279,28 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
     // Vector used for BFS searches by this thread.
     // It stores the local vertex id in the current BFS assigned to each vertex,
     // or notReached for vertices not yet reached by the current BFS.
-    // This is of size equal to the number of reads, and each thread has its own copy.
+    // Indexed by orientedRead.getValue().
+    // This is of size equal to the number of oriented reads, and each thread has its own copy.
     // This is not prohibitive. For example, for a large human size run with
-    // 20 million reads and 100 threads, the total space is only 8 GB.
-    const ReadId notReached = std::numeric_limits<ReadId>::max();
-    MemoryMapped::Vector<ReadId> vertexTable;
+    // 20 million reads and 100 threads, the total space is only 16 GB.
+    MemoryMapped::Vector<uint32_t> vertexTable;
     vertexTable.createNew(
         largeDataName("tmp-FlagChimericReads-VertexTable" + to_string(threadId)),
         largeDataPageSize);
-    vertexTable.resize(readGraphConnectivity.size());
+    vertexTable.resize(readGraph.connectivity.size());
+    const uint32_t notReached = std::numeric_limits<uint32_t>::max();
     fill(vertexTable.begin(), vertexTable.end(), notReached);
 
     // Vector to contain the vertices we found in the current BFS,
     // each with the distance from the start vertex.
-    vector< pair<ReadId, uint32_t> > localVertices;
+    vector< pair<OrientedReadId, uint32_t> > localVertices;
 
     // The queue used for the BFS.
-    std::queue<ReadId> q;
+    std::queue<OrientedReadId> q;
 
-    // Vectors used to compute connected components after each BFS>
-    vector<ReadId> rank;
-    vector<ReadId> parent;
+    // Vectors used to compute connected components after each BFS.
+    vector<uint32_t> rank;
+    vector<uint32_t> parent;
 
 
     // Loop over all batches assigned to this thread.
@@ -403,42 +309,41 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         // Loop over all reads assigned to this batch.
-        for(ReadId vStart=ReadId(begin); vStart!=ReadId(end); vStart++) {
-            // out<< timestamp << "Working on read " << vStart << endl;
+        for(ReadId startReadId=ReadId(begin); startReadId!=ReadId(end); startReadId++) {
 
             // Check that there is no garbage left by the previous BFS.
             CZI_ASSERT(localVertices.empty());
             CZI_ASSERT(q.empty());
 
             // Begin by flagging this read as not chimeric.
-            isChimericRead[vStart] = false;
+            isChimericRead[startReadId] = false;
 
 
 
-            // Do the BFS for this read.
-            ReadId localVertexId = 0;
-            q.push(vStart);
-            localVertices.push_back(make_pair(vStart, 0));
-            vertexTable[vStart] = localVertexId++;
+            // Do the BFS for this read and strand 0.
+            const OrientedReadId startOrientedReadId(startReadId, 0);
+            uint32_t localVertexId = 0;
+            q.push(startOrientedReadId);
+            localVertices.push_back(make_pair(startOrientedReadId, 0));
+            vertexTable[startOrientedReadId.getValue()] = localVertexId++;
             while(!q.empty()) {
 
                 // Dequeue a vertex.
-                const ReadId v0 = q.front();
+                const OrientedReadId v0 = q.front();
                 q.pop();
-                const uint32_t distance0 = localVertices[vertexTable[v0]].second;
+                const uint32_t distance0 = localVertices[vertexTable[v0.getValue()]].second;
                 const uint32_t distance1 = distance0 + 1;
                 // out << "Dequeued " << v0 << endl;
 
                 // Loop over edges involving this vertex.
-                const auto edges = readGraphConnectivity[v0];
-                for(const uint32_t edgeId: edges) {
-                    const ReadGraphEdge& edge = readGraphEdges[edgeId];
-                    const AlignmentData& alignment = alignmentData[edge.alignmentId];
-                    const ReadId v1 = alignment.getOther(v0);
+                const auto edgeIds = readGraph.connectivity[v0.getValue()];
+                for(const uint32_t edgeId: edgeIds) {
+                    const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    const OrientedReadId v1 = edge.getOther(v0);
                     // out << "Found " << v1 << endl;
 
                     // If we already encountered this read in this BFS, do nothing.
-                    if(vertexTable[v1] != notReached) {
+                    if(vertexTable[v1.getValue()] != notReached) {
                         // out << "Previously reached." << endl;
                         continue;
                     }
@@ -446,7 +351,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                     // Record this vertex.
                     // out << "Recording " << v1 << endl;
                     localVertices.push_back(make_pair(v1, distance1));
-                    vertexTable[v1] = localVertexId++;
+                    vertexTable[v1.getValue()] = localVertexId++;
 
                     // If at distance less than maxDistance, also enqueue it.
                     if(distance1 < maxDistance) {
@@ -460,7 +365,8 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
 
 
             // Now that we have the list of vertices with maxDistance of vStart,
-            // compute connected components, disregarding edges that involve v0.
+            // compute connected components, disregarding edges that involve v0
+            // and possibly its reverse complement.
 
             // Initialize the disjoint set data structures.
             const ReadId n = ReadId(localVertices.size());
@@ -472,23 +378,22 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
             }
 
             // Loop over all edges involving the vertices we found during the BFS,
-            // but disregarding vertices involving vStart.
+            // but disregarding vertices involving vStart or its reverse complement.
             for(const auto& p: localVertices) {
-                const ReadId v0 = p.first;
-                if(v0 == vStart) {
-                    continue;   // Skip edges involving vStart.
+                const OrientedReadId v0 = p.first;
+                if(v0.getReadId() == startOrientedReadId.getReadId()) {
+                    continue;   // Skip edges involving vStart or its reverse complement.
                 }
-                const ReadId u0 = vertexTable[v0];
+                const uint32_t u0 = vertexTable[v0.getValue()];
                 CZI_ASSERT(u0 != notReached);
-                const auto edges = readGraphConnectivity[v0];
+                const auto edges = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edges) {
-                    const ReadGraphEdge& edge = readGraphEdges[edgeId];
-                    const AlignmentData& alignment = alignmentData[edge.alignmentId];
-                    const ReadId v1 = alignment.getOther(v0);
-                    if(v1 == vStart) {
-                        continue;   // Skip edges involving vStart.
+                    const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    const OrientedReadId v1 = edge.getOther(v0);
+                    if(v1.getReadId() == startOrientedReadId.getReadId()) {
+                        continue;   // Skip edges involving startOrientedReadId.
                     }
-                    const ReadId u1 = vertexTable[v1];
+                    const uint32_t u1 = vertexTable[v1.getValue()];
                     if(u1 != notReached) {
                         disjointSets.union_set(u0, u1);
                     }
@@ -500,21 +405,21 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
             // If they belong to more than one connected component,
             // removing vStart affects the large scale connectivity of the
             // read graph, and therefore we flag vStart as chimeric.
-            ReadId component = std::numeric_limits<ReadId>::max();
+            uint32_t component = std::numeric_limits<uint32_t>::max();
             for(const auto& p: localVertices) {
                 if(p.second != maxDistance) {
                     continue;
                 }
-                const ReadId v = p.first;
-                const ReadId u = vertexTable[v];
+                const OrientedReadId v = p.first;
+                const uint32_t u = vertexTable[v.getValue()];
                 CZI_ASSERT(u != notReached);
-                const ReadId uComponent = disjointSets.find_set(u);
+                const uint32_t uComponent = disjointSets.find_set(u);
                 if(component == std::numeric_limits<ReadId>::max()) {
                     component = uComponent;
                 } else {
                     if(uComponent != component) {
-                        isChimericRead[vStart] = true;
-                        out << "Flagged read " << vStart << " as chimeric." << endl;
+                        isChimericRead[startReadId] = true;
+                        out << "Flagged read " << startReadId << " as chimeric." << endl;
                         break;
                     }
                 }
@@ -522,11 +427,11 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
 
 
             // Before processing the next read, we need to reset
-            // all entries of the distance vector to not found,
+            // all entries of the distance vector to notReached,
             // then clear the verticesFound vector.
             for(const auto& p: localVertices) {
-                const ReadId readId = p.first;
-                vertexTable[readId] = notReached;;
+                const OrientedReadId orientedReadId = p.first;
+                vertexTable[orientedReadId.getValue()] = notReached;
             }
             localVertices.clear();
         }
@@ -554,7 +459,8 @@ void Assembler::computeReadGraphConnectedComponents()
     // Check that we have what we need.
     checkReadGraphIsOpen();
     const size_t readCount = reads.size();
-    CZI_ASSERT(readGraphConnectivity.size() == readCount);
+    const size_t orientedReadCount = 2*readCount;
+    CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
 
     // Compute the raw sequence length of each vertex (read).
@@ -576,34 +482,40 @@ void Assembler::computeReadGraphConnectedComponents()
 
 
     // Compute connected components of the read graph,
-    // threating chimeric reads as isolated.
-    vector<ReadId> rank(readCount);
-    vector<ReadId> parent(readCount);
+    // treating chimeric reads as isolated.
+    vector<ReadId> rank(orientedReadCount);
+    vector<ReadId> parent(orientedReadCount);
     boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
     cout << timestamp << "Computing connected components of the read graph." << endl;
     for(ReadId readId=0; readId<readCount; readId++) {
-        disjointSets.make_set(readId);
+        for(Strand strand=0; strand<2; strand++) {
+            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
+        }
     }
-    for(const ReadGraphEdge& edge: readGraphEdges) {
-        const AlignmentData& alignment = alignmentData[edge.alignmentId];
-        const ReadId readId0 = alignment.readIds[0];
-        const ReadId readId1 = alignment.readIds[1];
+    for(const ReadGraph::Edge& edge: readGraph.edges) {
+        const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
+        const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
+        const ReadId readId0 = orientedReadId0.getReadId();
+        const ReadId readId1 = orientedReadId1.getReadId();
         if(isChimericRead[readId0]) {
             continue;
         }
         if(isChimericRead[readId1]) {
             continue;
         }
-        disjointSets.union_set(readId0, readId1);
+        disjointSets.union_set(orientedReadId0.getValue(), orientedReadId1.getValue());
     }
 
 
 
     // Gather the vertices of each component.
-    std::map<ReadId, vector<ReadId> > componentMap;
+    std::map<ReadId, vector<OrientedReadId> > componentMap;
     for(ReadId readId=0; readId<readCount; readId++) {
-        const ReadId componentId = disjointSets.find_set(readId);
-        componentMap[componentId].push_back(readId);
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const ReadId componentId = disjointSets.find_set(orientedReadId.getValue());
+            componentMap[componentId].push_back(orientedReadId);
+        }
     }
     cout << "The read graph has " << componentMap.size() <<
         " connected components." << endl;
@@ -613,23 +525,23 @@ void Assembler::computeReadGraphConnectedComponents()
     // Sort the components by decreasing size,
     // where size = total raw sequence length.
     // componentTable contains pairs(size, componentId as key in componentMap).
-    vector< pair<size_t, ReadId> > componentTable;
+    vector< pair<size_t, uint32_t> > componentTable;
     for(const auto& p: componentMap) {
-        const vector<ReadId>& component = p.second;
+        const vector<OrientedReadId>& component = p.second;
 
         size_t componentRawSequenceLength = 0;
-        for(const ReadId readId: component) {
-            componentRawSequenceLength += vertexRawSequenceLength[readId];
+        for(const OrientedReadId orientedReadId: component) {
+            componentRawSequenceLength += vertexRawSequenceLength[orientedReadId.getReadId()];
         }
 
         componentTable.push_back(make_pair(componentRawSequenceLength, p.first));
     }
-    sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, ReadId>>());
+    sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, uint32_t>>());
 
 
 
     // Store components in this order of decreasing size.
-    vector< vector<ReadId> > components;
+    vector< vector<OrientedReadId> > components;
     for(const auto& p: componentTable) {
         components.push_back(componentMap[p.second]);
     }
@@ -639,18 +551,18 @@ void Assembler::computeReadGraphConnectedComponents()
 
     // Write information for each component.
     ofstream csv("ReadGraphComponents.csv");
-    csv << "Component,RepresentingRead,ReadCount,RawSequenceLength,"
-        "AccumulatedReadCount,AccumulatedRawSequenceLength,"
-        "AccumulatedReadCountFraction,AccumulatedRawSequenceLengthFraction\n";
-    size_t accumulatedReadCount = 0;
+    csv << "Component,RepresentingRead,OrientedReadCount,RawSequenceLength,"
+        "AccumulatedOrientedReadCount,AccumulatedRawSequenceLength,"
+        "AccumulatedOrientedReadCountFraction,AccumulatedRawSequenceLengthFraction\n";
+    size_t accumulatedOrientedReadCount = 0;
     size_t accumulatedRawSequenceLength = 0;
     for(ReadId componentId=0; componentId<components.size(); componentId++) {
-        const vector<ReadId>& component = components[componentId];
-        accumulatedReadCount += component.size();
+        const vector<OrientedReadId>& component = components[componentId];
+        accumulatedOrientedReadCount += component.size();
         const size_t componentRawSequenceLength = componentTable[componentId].first;
         accumulatedRawSequenceLength += componentRawSequenceLength;
-        const double accumulatedReadCountFraction =
-            double(accumulatedReadCount)/double(readCount);
+        const double accumulatedOrientedReadCountFraction =
+            double(accumulatedOrientedReadCount)/double(orientedReadCount);
         const double accumulatedRawSequenceFraction =
             double(accumulatedRawSequenceLength)/double(totalRawSequenceLength);
 
@@ -660,9 +572,9 @@ void Assembler::computeReadGraphConnectedComponents()
         csv << component.front() << ",";
         csv << component.size() << ",";
         csv << componentRawSequenceLength << ",";
-        csv << accumulatedReadCount << ",";
+        csv << accumulatedOrientedReadCount << ",";
         csv << accumulatedRawSequenceLength << ",";
-        csv << accumulatedReadCountFraction << ",";
+        csv << accumulatedOrientedReadCountFraction << ",";
         csv << accumulatedRawSequenceFraction << "\n";
     }
 }

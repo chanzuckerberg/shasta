@@ -194,7 +194,7 @@ public:
 
 
 class ChanZuckerberg::shasta::AlignmentData :
-    public ChanZuckerberg::shasta::OrientedReadPair{
+    public ChanZuckerberg::shasta::OrientedReadPair {
 public:
 
     // The AlignmentInfo computed with the first read on strand 0.

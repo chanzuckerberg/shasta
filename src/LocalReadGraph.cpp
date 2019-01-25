@@ -14,49 +14,48 @@ using namespace shasta;
 
 
 void LocalReadGraph::addVertex(
-    ReadId readId,
+    OrientedReadId orientedReadId,
     uint32_t baseCount,
     bool isChimeric,
     uint32_t distance)
 {
-    // Check that we don't already have a vertex with this ReadId.
-    CZI_ASSERT(vertexMap.find(readId) == vertexMap.end());
+    // Check that we don't already have a vertex with this OrientedReadId.
+    CZI_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
 
     // Create the vertex.
-    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(readId, baseCount, isChimeric, distance), *this);
+    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(
+        orientedReadId, baseCount, isChimeric, distance), *this);
 
     // Store it in the vertex map.
-    vertexMap.insert(make_pair(readId, v));
+    vertexMap.insert(make_pair(orientedReadId, v));
 }
 
 
 
 void LocalReadGraph::addEdge(
-    ReadId readId0,
-    ReadId readId1,
-    size_t globalEdgeId,
-    uint8_t direction0,
-    uint8_t direction1)
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    size_t globalEdgeId)
 {
-    // Find the vertices corresponding to these two ReadId.
-    const auto it0 = vertexMap.find(readId0);
+    // Find the vertices corresponding to these two OrientedReadId.
+    const auto it0 = vertexMap.find(orientedReadId0);
     CZI_ASSERT(it0 != vertexMap.end());
     const vertex_descriptor v0 = it0->second;
-    const auto it1 = vertexMap.find(readId1);
+    const auto it1 = vertexMap.find(orientedReadId1);
     CZI_ASSERT(it1 != vertexMap.end());
     const vertex_descriptor v1 = it1->second;
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(globalEdgeId, direction0, direction1),
+        LocalReadGraphEdge(globalEdgeId),
         *this);
 }
 
 
 
-uint32_t LocalReadGraph::getDistance(ReadId readId) const
+uint32_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
 {
-    const auto it = vertexMap.find(readId);
+    const auto it = vertexMap.find(orientedReadId);
     CZI_ASSERT(it != vertexMap.end());
     const vertex_descriptor v = it->second;
     return (*this)[v].distance;
@@ -64,9 +63,9 @@ uint32_t LocalReadGraph::getDistance(ReadId readId) const
 
 
 
-bool LocalReadGraph::vertexExists(ReadId readId) const
+bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
 {
-   return vertexMap.find(readId) != vertexMap.end();
+   return vertexMap.find(orientedReadId) != vertexMap.end();
 }
 
 
@@ -84,7 +83,7 @@ void LocalReadGraph::write(ostream& s, uint32_t maxDistance) const
 {
     Writer writer(*this, maxDistance);
     boost::write_graphviz(s, *this, writer, writer, writer,
-        boost::get(&LocalReadGraphVertex::readId, *this));
+        boost::get(&LocalReadGraphVertex::orientedReadIdValue, *this));
 }
 
 LocalReadGraph::Writer::Writer(
@@ -112,14 +111,15 @@ void LocalReadGraph::Writer::operator()(std::ostream& s) const
 void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
     const LocalReadGraphVertex& vertex = graph[v];
-    const ReadId readId(vertex.readId);
+    const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     s <<
         "["
-        " tooltip=\"Read " << readId << ", " << vertex.markerCount <<
+        " tooltip=\"Read " << orientedReadId << ", " << vertex.markerCount <<
         " markers, distance " << vertex.distance << vertex.additionalToolTipText << "\"" <<
-        " URL=\"exploreRead?readId=" << readId <<
-        "&strand=0\"" <<
+        " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
+        "&strand=" << orientedReadId.getStrand() <<
+        "\"" <<
         " width=" << sqrt(1.e-5 * vertex.markerCount);
     if(vertex.distance == 0) {
         s << " color=LightGreen fillcolor=LightGreen";
@@ -135,22 +135,15 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
 
 void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
-    const LocalReadGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
     const LocalReadGraphVertex& vertex0 = graph[v0];
     const LocalReadGraphVertex& vertex1 = graph[v1];
 
-    const string direction0 = edge.direction0 ? "normal" : "inv";
-    const string direction1 = edge.direction1 ? "normal" : "inv";
-
     s <<
         "["
-        "tooltip=\"" << vertex0.readId << " " <<
-        vertex1.readId << "\""
-        " dir=both arrowhead=" << direction0 <<
-        " arrowtail=" << direction1 <<
-        " arrowsize=0.4";
+        "tooltip=\"" << vertex0.orientedReadId << " " <<
+        vertex1.orientedReadId << "\"";
 
     s << "]";
 }

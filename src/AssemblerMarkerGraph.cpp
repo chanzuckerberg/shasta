@@ -96,10 +96,10 @@ void Assembler::createMarkerGraphVertices(
 
     // Update the disjoint set data structure for each alignment
     // in the read graph.
-    cout << "Begin processing " << readGraphEdges.size() << " alignments in the read graph." << endl;
+    cout << "Begin processing " << readGraph.edges.size() << " alignments in the read graph." << endl;
     cout << timestamp << "Disjoint set computation begins." << endl;
     size_t batchSize = 10000;
-    setupLoadBalancing(readGraphEdges.size(), batchSize);
+    setupLoadBalancing(readGraph.edges.size(), batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1,
         threadCount, "threadLogs/createMarkerGraphVertices1");
     cout << timestamp << "Disjoint set computation completed." << endl;
@@ -370,8 +370,6 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 {
     ostream& out = getLog(threadId);
 
-    array<OrientedReadId, 2> orientedReadIds;
-    array<OrientedReadId, 2> orientedReadIdsOppositeStrand;
     array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
     Alignment alignment;
@@ -389,29 +387,17 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         for(size_t i=begin; i!=end; i++) {
-            const ReadGraphEdge& readGraphEdge = readGraphEdges[i];
-            const uint64_t alignmentId = readGraphEdge.alignmentId;
-            const OrientedReadPair& candidate = alignmentData[alignmentId];
-            CZI_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
+            const ReadGraph::Edge& readGraphEdge = readGraph.edges[i];
+            const array<OrientedReadId, 2>& orientedReadIds = readGraphEdge.orientedReadIds;
+            CZI_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
 
             // If either of the reads is flagged chimeric, skip it.
-            if(isChimericRead[candidate.readIds[0]] || isChimericRead[candidate.readIds[1]]) {
+            if( isChimericRead[orientedReadIds[0].getReadId()] ||
+                isChimericRead[orientedReadIds[1].getReadId()]) {
                 continue;
             }
 
-            // Get the oriented read ids, with the first one on strand 0.
-            orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
-            orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
-
-            // Get the oriented read ids for the opposite strand.
-            orientedReadIdsOppositeStrand = orientedReadIds;
-            orientedReadIdsOppositeStrand[0].flipStrand();
-            orientedReadIdsOppositeStrand[1].flipStrand();
-
-
-            // out << timestamp << "Working on " << i << " " << orientedReadIds[0] << " " << orientedReadIds[1] << endl;
-
-            // Get the markers for the two oriented reads in this candidate.
+            // Get the markers for the two oriented reads.
             for(size_t j=0; j<2; j++) {
                 getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
             }
@@ -433,19 +419,6 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 const MarkerId markerId1 = getMarkerId(orientedReadIds[1], ordinal1);
                 CZI_ASSERT(markers.begin()[markerId0].kmerId == markers.begin()[markerId1].kmerId);
                 disjointSetsPointer->unite(markerId0, markerId1);
-
-                // Also do it for the corresponding oriented markers on
-                // the opposite strand.
-                const uint32_t ordinal0OppositeStrand = uint32_t(markersSortedByKmerId[0].size()) - 1 - ordinal0;
-                const uint32_t ordinal1OppositeStrand = uint32_t(markersSortedByKmerId[1].size()) - 1 - ordinal1;
-                const MarkerId markerId0OppositeStrand =
-                    getMarkerId(orientedReadIdsOppositeStrand[0], ordinal0OppositeStrand);
-                const MarkerId markerId1OppositeStrand =
-                    getMarkerId(orientedReadIdsOppositeStrand[1], ordinal1OppositeStrand);
-                CZI_ASSERT(markers.begin()[markerId0OppositeStrand].kmerId == markers.begin()[markerId1OppositeStrand].kmerId);
-                disjointSetsPointer->unite(
-                    markerId0OppositeStrand,
-                    markerId1OppositeStrand);
             }
         }
     }

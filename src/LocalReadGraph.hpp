@@ -33,7 +33,7 @@ namespace ChanZuckerberg {
         using LocalReadGraphBaseClass = boost::adjacency_list<
             boost::setS,
             boost::listS,
-            boost::bidirectionalS,
+            boost::undirectedS,
             LocalReadGraphVertex,
             LocalReadGraphEdge
             >;
@@ -45,13 +45,13 @@ namespace ChanZuckerberg {
 class ChanZuckerberg::shasta::LocalReadGraphVertex {
 public:
 
-    // The ReadId that this vertex corresponds to.
-    ReadId readId;
+    OrientedReadId orientedReadId;
+    uint32_t orientedReadIdValue;
 
     // The number of markers in this read.
     uint32_t markerCount;
 
-    // Flag that indicates whether this read is chimeric.
+    // Flag that indicates whether the associated read is chimeric.
     bool isChimeric;
 
     // The distance of this vertex from the starting vertex.
@@ -61,11 +61,12 @@ public:
     string additionalToolTipText;
 
     LocalReadGraphVertex(
-        ReadId readId,
+        OrientedReadId orientedReadId,
         uint32_t markerCount,
         bool isChimeric,
         uint32_t distance) :
-        readId(readId),
+        orientedReadId(orientedReadId),
+        orientedReadIdValue(orientedReadId.getValue()),
         markerCount(markerCount),
         isChimeric(isChimeric),
         distance(distance)
@@ -78,25 +79,12 @@ public:
 class ChanZuckerberg::shasta::LocalReadGraphEdge {
 public:
 
-    // The id of the global edge that corresponds to this edge.
-    // This is an index into Assembler::readGraphEdges.
+    // The id of the global read graph edge that corresponds to this edge.
+    // This is an index into ReadGraph::edges.
     size_t globalEdgeId;
 
-    // Bidirected edge information.
-    // Same as in Assembler::ReadGraphEdge.
-    // 0 = points towards vertex, 1 = points away from vertex
-    // For more information, see comments at the beginning
-    // of AssemblerReadGraph.cpp.
-    uint8_t direction0;
-    uint8_t direction1;
-
-    LocalReadGraphEdge(
-        size_t globalEdgeId,
-        uint8_t direction0,
-        uint8_t direction1) :
-        globalEdgeId(globalEdgeId),
-        direction0(direction0),
-        direction1(direction1) {}
+    LocalReadGraphEdge(size_t globalEdgeId) :
+        globalEdgeId(globalEdgeId) {}
 };
 
 
@@ -106,23 +94,21 @@ class ChanZuckerberg::shasta::LocalReadGraph :
 public:
 
     void addVertex(
-        ReadId,
+        OrientedReadId,
         uint32_t baseCount,
         bool isChimeric,
         uint32_t distance);
 
     void addEdge(
-        ReadId,
-        ReadId,
-        size_t globalEdgeId,
-        uint8_t direction0,
-        uint8_t direction1);
+        OrientedReadId,
+        OrientedReadId,
+        size_t globalEdgeId);
 
-    // Find out if a vertex with a given ReadId exists.
-    bool vertexExists(ReadId) const;
+    // Find out if a vertex with a given OrientedReadId exists.
+    bool vertexExists(OrientedReadId) const;
 
     // Get the distance of an existing vertex from the start vertex.
-    uint32_t getDistance(ReadId) const;
+    uint32_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
     void write(ostream&, uint32_t maxDistance) const;
@@ -130,8 +116,8 @@ public:
 
 private:
 
-    // Map that gives the vertex corresponding to a ReadId.
-    std::map<ReadId, vertex_descriptor> vertexMap;
+    // Map that gives the vertex corresponding to an OrientedReadId.
+    std::map<OrientedReadId, vertex_descriptor> vertexMap;
 
     // Graphviz writer.
     class Writer {

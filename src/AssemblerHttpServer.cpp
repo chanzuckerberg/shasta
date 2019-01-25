@@ -2194,6 +2194,9 @@ void Assembler::exploreReadGraph(
     ReadId readId = 0;
     const bool readIdIsPresent = getParameterValue(request, "readId", readId);
 
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
@@ -2226,6 +2229,10 @@ void Assembler::exploreReadGraph(
         "<td><input type=text required name=readId size=8 style='text-align:center'"
         << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
         ">";
+
+    html << "<tr><td>Strand<td class=centered>";
+        writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
+
 
 
     html <<
@@ -2280,7 +2287,7 @@ void Assembler::exploreReadGraph(
 
 
     // If any necessary values are missing, stop here.
-    if(!readIdIsPresent) {
+    if(! (readIdIsPresent && strandIsPresent)) {
         return;
     }
 
@@ -2298,7 +2305,8 @@ void Assembler::exploreReadGraph(
     // Create the local read graph.
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
-    if(!createLocalReadGraph(readId, maxDistance, allowChimericReads, timeout, graph)) {
+    if(!createLocalReadGraph(OrientedReadId(readId, strand),
+        maxDistance, allowChimericReads, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
@@ -2311,16 +2319,16 @@ void Assembler::exploreReadGraph(
     // Add Blast annotations, if requested.
     if(addBlastAnnotations) {
 
-        // Create a fasta file containing the sequences of all the reads
+        // Create a fasta file containing the sequences of all the oriented reads
         // in the local read graph.
         const string uuid = to_string(boost::uuids::random_generator()());
         const string fastaFileName = "/dev/shm/" + uuid + ".fa";
         ofstream fastaFile(fastaFileName);
         BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
             const LocalReadGraphVertex& vertex = graph[v];
-            const vector<Base> sequence = getOrientedReadRawSequence(OrientedReadId(vertex.readId, 0));
-            const auto readName = readNames[vertex.readId];
-            fastaFile << ">" << vertex.readId << " ";
+            const vector<Base> sequence = getOrientedReadRawSequence(vertex.orientedReadId);
+            const auto readName = readNames[vertex.orientedReadId.getReadId()];
+            fastaFile << ">" << vertex.orientedReadId << " ";
             copy(readName.begin(), readName.end(), ostream_iterator<char>(fastaFile));
             fastaFile << "\n";
             copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fastaFile));
@@ -2350,13 +2358,13 @@ void Assembler::exploreReadGraph(
             blastErrFile.close();
         }
 
-        // Store alignments, keyed by ReadId.
-        // For each ReadId we store all the alignments we found,
+        // Store alignments, keyed by OrientedReadId.
+        // For each OrientedReadId we store all the alignments we found,
         // already tokenized.
         using Separator = boost::char_separator<char>;
         using Tokenizer = boost::tokenizer<Separator>;
         const Separator separator(",");
-        std::map<ReadId, vector< vector<string> > > alignments;
+        std::map<OrientedReadId, vector< vector<string> > > alignments;
         ifstream blastOutputFile(blastOutputFileName);
         string line;
         vector<string> tokens;
@@ -2374,12 +2382,12 @@ void Assembler::exploreReadGraph(
             tokens.clear();
             tokens.insert(tokens.begin(), tokenizer.begin(), tokenizer.end());
 
-            // Extract the ReadId.
+            // Extract the OrientedReadId.
             CZI_ASSERT(!tokens.empty());
-            const ReadId readId = std::stoi(tokens.front());;
+            const OrientedReadId orientedReadId = OrientedReadId(tokens.front());
 
             // Store it.
-            alignments[readId].push_back(tokens);
+            alignments[orientedReadId].push_back(tokens);
         }
 
         // Remove the files we created.
@@ -2390,7 +2398,7 @@ void Assembler::exploreReadGraph(
         // Now store the alignments as additional text in the vertices tooltips.
         BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
             LocalReadGraphVertex& vertex = graph[v];
-            const auto& vertexAlignments = alignments[vertex.readId];
+            const auto& vertexAlignments = alignments[vertex.orientedReadId];
             for(const auto& alignment: vertexAlignments) {
                 CZI_ASSERT(alignment.size() == 4);
                 vertex.additionalToolTipText += " " + alignment[1] + ":" + alignment[2] + "-" + alignment[3];

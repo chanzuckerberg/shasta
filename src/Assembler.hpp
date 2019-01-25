@@ -13,6 +13,7 @@
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 #include "OrientedReadPair.hpp"
+#include "ReadGraph.hpp"
 #include "ReadId.hpp"
 
 // MarginPhase.
@@ -669,38 +670,10 @@ private:
 
 
     // Read graph and related functions and data.
-    // For more information, see comments at the beginning
-    // of AssemblerReadGraph.cpp.
+    // For more information, see comments in ReadGraph.hpp.
+    ReadGraph readGraph;
 public:
     void createReadGraph(uint32_t maxTrim);
-private:
-
-
-
-    // Edges of the read graph.
-    class ReadGraphEdge {
-    public:
-        // Index in alignmentData vector of the alignment that generated this vertex.
-        uint64_t alignmentId : 62;
-        // Bidirected edge information.
-        // 0 = points towards vertex, 1 = points away from vertex
-        // For more information, see comments at the beginning
-        // of AssemblerReadGraph.cpp.
-        uint64_t direction0: 1;
-        uint64_t direction1: 1;
-        static const int towardsVertex = 0;
-        static const int awayFromVertex = 1;
-    };
-    MemoryMapped::Vector<ReadGraphEdge> readGraphEdges;
-
-    // Connectivity of the read graph.
-    // Stores, for each ReadId, a vector of indexes into the readGraphEdges vector.
-    // Indexed by ReadId.
-    MemoryMapped::VectorOfVectors<uint32_t, uint32_t> readGraphConnectivity;
-
-public:
-    // This accesses containingOrientedReadId, readGraphEdges,
-    // and readGraphConnectivity.
     void accessReadGraph();
     void checkReadGraphIsOpen();
 
@@ -723,12 +696,8 @@ private:
     // Create a local subgraph of the global read graph,
     // starting at a given vertex and extending out to a specified
     // distance (number of edges).
-    // If the specified Readid corresponds to a contained read,
-    // which does not have a corresponding vertex in the read graph,
-    // the local subgraph starts instead from the containing read
-    // of the specified read.
     bool createLocalReadGraph(
-        ReadId& readIdStart,    // If the specified read is contained, modified to the containing read.
+        OrientedReadId start,
         uint32_t maxDistance,   // How far to go from starting oriented read.
         bool allowChimericReads,
         double timeout,         // Or 0 for no timeout.

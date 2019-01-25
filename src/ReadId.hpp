@@ -5,6 +5,7 @@
 #include "CZI_ASSERT.hpp"
 
 // Standard libraries.
+#include <cstdlib>
 #include "cstdint.hpp"
 #include "iostream.hpp"
 #include <limits>
@@ -42,6 +43,16 @@ public:
         CZI_ASSERT(strand < 2);
     }
     explicit OrientedReadId(ReadId value) : value(value) {}
+
+    // Constructor from a string of the form readId-strand.
+    explicit OrientedReadId(const string& s)
+    {
+        const auto dashPosition = s.find_first_of('-');
+        CZI_ASSERT(dashPosition != string::npos);
+        const ReadId readId = std::atoi(s.substr(0, dashPosition).c_str());
+        const Strand strand = std::atoi(s.substr(dashPosition+1, s.size()).c_str());
+        value = (readId<<1) | strand;
+    }
     ReadId getReadId() const
     {
         return value >> 1;
