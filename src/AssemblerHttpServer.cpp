@@ -1537,7 +1537,7 @@ void Assembler::exploreAlignment(
         "<input type=text name=maxSkip required size=8 value=" << maxSkip << ">";
     html <<
         "<br>Maximum k-mer frequency: " <<
-        "<input type=text name=maxVertexCountPerKmer required size=8 value=" << maxMarkerFrequency << ">";
+        "<input type=text name=maxMarkerFrequency required size=8 value=" << maxMarkerFrequency << ">";
     html << "</form>";
 
     // If the readId's or strand's are missing, stop here.
@@ -1811,6 +1811,7 @@ void Assembler::computeAllAlignments(
             computeAllAlignmentsData.threadAlignments[threadId];
         copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignments));
     }
+    computeAllAlignmentsData.threadAlignments.clear();
     sort(alignments.begin(), alignments.end(),
         OrderPairsByFirstOnly<OrientedReadId, AlignmentInfo>());
 
