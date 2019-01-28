@@ -3441,7 +3441,6 @@ void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength)
             if(component0 != component1) {
                 continue;
             }
-            cout << "Entry/exit pair " << v0 << " " << v1 << endl;
             newEdges.push_back(make_pair(
                 assemblyGraph.vertices[v0],
                 assemblyGraph.vertices[v1]));
