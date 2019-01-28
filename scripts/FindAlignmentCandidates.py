@@ -27,7 +27,6 @@ a.accessMarkers()
 a.findAlignmentCandidates(
     m = int(config['MinHash']['m']), 
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
-    log2MinHashBucketCount = int(config['MinHash']['log2MinHashBucketCount']),
     maxBucketSize = int(config['MinHash']['maxBucketSize']),
     minFrequency = int(config['MinHash']['minFrequency']))
 

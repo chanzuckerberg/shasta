@@ -20,6 +20,27 @@ void Assembler::findAlignmentCandidates(
     checkKmersAreOpen();
     checkMarkersAreOpen();
     const ReadId readCount = ReadId(markers.size() / 2);
+    CZI_ASSERT(readCount > 0);
+
+
+
+    // If log2MinHashBucketCount is 0, choose a reasonable value
+    // for the current number of reads.
+    if(log2MinHashBucketCount == 0) {
+
+        // Compute an approximate base 2 log of the number of reads.
+        static_assert(sizeof(readCount) == 4, "Unexpected readCount size.");
+        const int leadingZeroBitCount = __builtin_clz(readCount);
+        const int log2ReadCount = 32 - leadingZeroBitCount;
+
+        // Make log2MinHashBucketCount reasonably larger
+        // than the approximate base 2 log of the number of reads.
+        log2MinHashBucketCount = 5 + log2ReadCount;
+
+        cout << "Set log2MinHashBucketCount to " << log2MinHashBucketCount << endl;
+    }
+
+
 
     // Check that log2MinHashBucketCount is not unreasonably small.
     if((1ULL << (log2MinHashBucketCount-3ULL)) < readCount) {

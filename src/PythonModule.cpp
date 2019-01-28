@@ -142,7 +142,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::findAlignmentCandidates,
             arg("m"),
             arg("minHashIterationCount"),
-            arg("log2MinHashBucketCount"),
+            arg("log2MinHashBucketCount") = 0,
             arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)
