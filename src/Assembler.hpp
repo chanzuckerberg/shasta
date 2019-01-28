@@ -148,7 +148,7 @@ public:
 
     // Use the minHash algorithm to find candidate alignments.
     // Use as features sequences of m consecutive special k-mers.
-    void findAlignmentCandidates(
+    void findAlignmentCandidatesMinHash(
         size_t m,                       // Number of consecutive k-mers that define a feature.
         size_t minHashIterationCount,   // Number of minHash iterations.
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.

@@ -24,7 +24,7 @@ a.accessKmers()
 a.accessMarkers()
 
 # Do the computation.
-a.findAlignmentCandidates(
+a.findAlignmentCandidatesMinHash(
     m = int(config['MinHash']['m']), 
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
     maxBucketSize = int(config['MinHash']['maxBucketSize']),

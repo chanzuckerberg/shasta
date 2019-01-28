@@ -8,7 +8,7 @@ using namespace shasta;
 
 // Use the minHash algorithm to find alignment candidates.
 // Use as features sequences of m consecutive special k-mers.
-void Assembler::findAlignmentCandidates(
+void Assembler::findAlignmentCandidatesMinHash(
     size_t m,                       // Number of consecutive k-mers that define a feature.
     size_t minHashIterationCount,   // Number of minHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.

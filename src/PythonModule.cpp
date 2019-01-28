@@ -138,8 +138,8 @@ PYBIND11_MODULE(shasta, module)
 
 
         // Alignment candidates.
-        .def("findAlignmentCandidates",
-            &Assembler::findAlignmentCandidates,
+        .def("findAlignmentCandidatesMinHash",
+            &Assembler::findAlignmentCandidatesMinHash,
             arg("m"),
             arg("minHashIterationCount"),
             arg("log2MinHashBucketCount") = 0,
