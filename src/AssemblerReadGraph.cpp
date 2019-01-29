@@ -113,6 +113,29 @@ void Assembler::createReadGraph(
 
 
 
+// More sophisticated version of createReadGraph.
+// - If a read has at least one alignments that covers the entire
+//   read, it is flagged as contained.
+// - If a read is contained, only keep the best alignment
+//   that covers the entire read.
+// - Otherwise, keep the best maxAlignmentCount alignments
+//   that do not entirely cover another read.
+// In the above:
+// - An alignment is considered to cover the entire read
+//   if it at has most maxTrim unaligned markers on each side.
+// - "Best" alignment means the alignment with the greatest
+//   number of aligned markers.
+// This only works well in conjunction with the LowHash
+// algorithm to find alignments.
+void Assembler::createReadGraphNew(
+    uint32_t maxAlignmentCount,
+    uint32_t maxTrim)
+{
+    CZI_ASSERT(0);
+}
+
+
+
 void Assembler::accessReadGraph()
 {
     readGraph.edges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
