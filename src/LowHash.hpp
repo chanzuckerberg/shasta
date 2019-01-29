@@ -75,8 +75,21 @@ private:
     // corresponding to a hash value.
     uint64_t mask;
 
-    // The buckets containing oriented read ids.
-    MemoryMapped::VectorOfVectors<OrientedReadId, uint64_t> buckets;
+    // Each bucket entry consists of an oriented read id and
+    // the 32 most significant bits of the hash value, used
+    // for collision avoidance.
+    class BucketEntry {
+    public:
+        OrientedReadId orientedReadId;
+        uint32_t hashHighBits;
+        BucketEntry(
+            OrientedReadId orientedReadId,
+            uint64_t hash) :
+            orientedReadId(orientedReadId),
+            hashHighBits(uint32_t(hash >> 32)) {}
+        BucketEntry() {}
+    };
+    MemoryMapped::VectorOfVectors<BucketEntry, uint64_t> buckets;
 
 
 
@@ -161,11 +174,8 @@ private:
     // Pass 2: fill the buckets.
     void pass2ThreadFunction(size_t threadId);
 
-    // Pass 3: sort the buckets.
+    // Pass 3: inspect the buckets to find candidates.
     void pass3ThreadFunction(size_t threadId);
-
-    // Pass 4: inspect the buckets to find candidates.
-    void pass4ThreadFunction(size_t threadId);
 
 };
 

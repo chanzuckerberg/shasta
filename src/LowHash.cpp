@@ -128,16 +128,10 @@ LowHash::LowHash(
         runThreads(&LowHash::pass2ThreadFunction, threadCount);
         buckets.endPass2(false, false);
 
-        // Pass 3: sort the buckets.
-        batchSize = 1000;
-        setupLoadBalancing(bucketCount, batchSize);
-        runThreads(&LowHash::pass3ThreadFunction, threadCount);
-
-        // Pass 4: inspect the buckets to find candidates.
+        // Pass 3: inspect the buckets to find candidates.
         batchSize = 10000;
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHash::pass4ThreadFunction, threadCount,
-            "threadLogs/LowHash-pass4-iteration" + to_string(iteration));
+        runThreads(&LowHash::pass3ThreadFunction, threadCount);
 
         // Write a summary for this iteration.
         uint64_t highFrequency = 0;
@@ -308,7 +302,7 @@ void LowHash::pass2ThreadFunction(size_t threadId)
 
                 for(const uint64_t hash: orientedReadLowHashes) {
                     const uint64_t bucketId = hash & mask;
-                    buckets.storeMultithreaded(bucketId, orientedReadId);
+                    buckets.storeMultithreaded(bucketId, BucketEntry(orientedReadId, hash));
                 }
             }
         }
@@ -317,26 +311,8 @@ void LowHash::pass2ThreadFunction(size_t threadId)
 
 
 
-// Pass 3: sort the buckets.
+// Pass 3: inspect the buckets to find candidates.
 void LowHash::pass3ThreadFunction(size_t threadId)
-{
-    // Loop over batches assigned to this thread.
-    uint64_t begin, end;
-    while(getNextBatch(begin, end)) {
-
-        // Loop over buckets assigned to this batch.
-        for(size_t bucketId=begin; bucketId!=end; bucketId++) {
-            const MemoryAsContainer<OrientedReadId> bucket = buckets[bucketId];
-            sort(bucket.begin(), bucket.end());
-        }
-    }
-
-}
-
-
-
-// Pass 4: inspect the buckets to find candidates.
-void LowHash::pass4ThreadFunction(size_t threadId)
 {
 
     // The alignment candidates found at this iteration for a single read.
@@ -364,11 +340,16 @@ void LowHash::pass4ThreadFunction(size_t threadId)
                 // Loop over the low hashes for this oriented read.
                 const vector<uint64_t>& orientedReadLowHashes = lowHashes[orientedReadIdInt0];
                 for(const uint64_t hash: orientedReadLowHashes) {
+                    const uint32_t hashHighBits = uint32_t(hash >> 32);
 
                     // Loop over oriented read ids in the bucket corresponding to this hash.
                     const uint64_t bucketId = hash & mask;
-                    const MemoryAsContainer<OrientedReadId> bucket = buckets[bucketId];
-                    for(OrientedReadId orientedReadId1: bucket) {
+                    const MemoryAsContainer<BucketEntry> bucket = buckets[bucketId];
+                    for(const BucketEntry& bucketEntry: bucket) {
+                        if(bucketEntry.hashHighBits != hashHighBits) {
+                            continue;   // Collision.
+                        }
+                        const OrientedReadId orientedReadId1 = bucketEntry.orientedReadId;
                         const ReadId readId1 = orientedReadId1.getReadId();
 
                         // Only consider it if readId1 > readId0.
