@@ -77,7 +77,7 @@ def runAssembly(config, fastaFileNames):
     a.findMarkers()
     
     # Run MinHash to find pairs of reads that may overlap.
-    a.findAlignmentCandidates(
+    a.findAlignmentCandidatesMinHash(
         m = int(config['MinHash']['m']), 
         minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
         maxBucketSize = int(config['MinHash']['maxBucketSize']),
@@ -158,3 +158,4 @@ def main():
     
 if __name__ == "__main__":
     main()
+
