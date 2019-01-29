@@ -146,6 +146,15 @@ PYBIND11_MODULE(shasta, module)
             arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)
+        .def("findAlignmentCandidatesLowHash",
+            &Assembler::findAlignmentCandidatesLowHash,
+            arg("m"),
+            arg("hashFraction"),
+            arg("minHashIterationCount"),
+            arg("log2MinHashBucketCount") = 0,
+            arg("maxBucketSize"),
+            arg("minFrequency"),
+            arg("threadCount") = 0)
         .def("accessAlignmentCandidates",
             &Assembler::accessAlignmentCandidates)
         .def("writeOverlappingReads",
