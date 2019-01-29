@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from SetupSmallRunDirectory import setupSmallRunDirectory, verifyDirectoryFiles
 from RunAssembly import verifyConfigFiles, verifyFastaFiles, runAssembly
 import configparser
