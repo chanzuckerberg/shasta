@@ -19,12 +19,10 @@ using namespace shasta;
 // For each read, keep only the best maxAlignmentCount alignments.
 // Note that the connectivity of the resulting read graph can
 // be more than maxAlignmentCount.
-void Assembler::createReadGraph(uint32_t maxTrim)
+void Assembler::createReadGraph(
+    uint32_t maxAlignmentCount,
+    uint32_t maxTrim)
 {
-    // Number of alignments to be kept for each read.
-    // This should be passed in as an argument instead.
-    const size_t maxAlignmentCount = 6;
-
     // Find the number of reads and oriented reads.
     const ReadId orientedReadCount = uint32_t(markers.size());
     CZI_ASSERT((orientedReadCount % 2) == 0);

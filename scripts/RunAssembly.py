@@ -91,7 +91,9 @@ def runAssembly(config, fastaFileNames):
         maxTrim = int(config['Align']['maxTrim']))
         
     # Create the read graph.
-    a.createReadGraph(maxTrim = int(config['Align']['maxTrim']))
+    a.createReadGraph(
+        maxAlignmentCount = int(config['ReadGraph']['maxAlignmentCount']),
+        maxTrim = int(config['Align']['maxTrim']))
     
     # Flag chimeric reads.
     a.flagChimericReads(

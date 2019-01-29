@@ -682,7 +682,9 @@ private:
     // For more information, see comments in ReadGraph.hpp.
     ReadGraph readGraph;
 public:
-    void createReadGraph(uint32_t maxTrim);
+    void createReadGraph(
+        uint32_t maxAlignmentCount,
+        uint32_t maxTrim);
     void accessReadGraph();
     void checkReadGraphIsOpen();
 
