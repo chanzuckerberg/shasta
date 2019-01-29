@@ -240,8 +240,7 @@ void Assembler::computeAlignments(
     cout << timestamp << "Alignment computation begins." << endl;
     size_t batchSize = 10000;
     setupLoadBalancing(alignmentCandidates.size(), batchSize);
-    runThreads(&Assembler::computeAlignmentsThreadFunction,
-        threadCount, "threadLogs/computeAlignmentsThreadFunction");
+    runThreads(&Assembler::computeAlignmentsThreadFunction, threadCount);
     cout << timestamp << "Alignment computation completed." << endl;
 
 
@@ -268,7 +267,6 @@ void Assembler::computeAlignments(
 
 void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 {
-    ostream& out = getLog(threadId);
 
     array<OrientedReadId, 2> orientedReadIds;
     array<OrientedReadId, 2> orientedReadIdsOppositeStrand;
@@ -288,7 +286,11 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
     size_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << timestamp << "Working on batch " << begin << " " << end << endl;
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            cout << timestamp << "Working on alignments " << begin << " thorugh " << end;
+            cout << " of " << alignmentCandidates.size() << endl;
+        }
 
         for(size_t i=begin; i!=end; i++) {
             const OrientedReadPair& candidate = alignmentCandidates[i];
@@ -319,10 +321,11 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             const auto t1 = std::chrono::steady_clock::now();
             const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
             if(t01 > 0.1) {
-                out << timestamp << "Slow alignment computation for oriented reads ";
-                out << orientedReadIds[0] << " ";
-                out << orientedReadIds[1] << ": ";
-                out << t01 << " s.\n";
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << timestamp << "Slow alignment computation for oriented reads ";
+                cout << orientedReadIds[0] << " ";
+                cout << orientedReadIds[1] << ": ";
+                cout << t01 << " s.\n";
             }
 
             // If the alignment has too few markers skip it.
