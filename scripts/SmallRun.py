@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from SetupSmallRunDirectory import setupSmallRunDirectory, verifyDirectoryFiles
 from RunAssembly import verifyConfigFiles, verifyFastaFiles, runAssembly
 import configparser
@@ -47,79 +45,79 @@ def overrideDefaultConfig(config, args):
     Check all the possible params to see if the user provided an override value, and add any overrides
     to their appropriate location in the config dictionary
     """
-    if args.minReadLength != None:
+    if args.minReadLength is not None:
         config["Reads"]["minReadLength"] = str(args.minReadLength)
         
-    if args.k != None:
+    if args.k is not None:
         config["Kmers"]["k"] = str(args.k)
         
-    if args.probability != None:
+    if args.probability is not None:
         config["Kmers"]["probability"] = str(args.probability)
         
-    if args.m != None:
+    if args.m is not None:
         config["MinHash"]["m"] = str(args.m)
         
-    if args.minHashIterationCount != None:
+    if args.minHashIterationCount is not None:
         config["MinHash"]["minHashIterationCount"] = str(args.minHashIterationCount)
         
-    if args.maxBucketSize != None:
+    if args.maxBucketSize is not None:
         config["MinHash"]["maxBucketSize"] = str(args.maxBucketSize)
         
-    if args.minFrequency != None:
+    if args.minFrequency is not None:
         config["MinHash"]["minFrequency"] = str(args.minFrequency)
         
-    if args.maxSkip != None:
+    if args.maxSkip is not None:
         config["Align"]["maxSkip"] = str(args.maxSkip)
         
-    if args.maxMarkerFrequency != None:
+    if args.maxMarkerFrequency is not None:
         config["Align"]["maxMarkerFrequency"] = str(args.maxMarkerFrequency)
         
-    if args.minAlignedMarkerCount != None:
+    if args.minAlignedMarkerCount is not None:
         config["Align"]["minAlignedMarkerCount"] = str(args.minAlignedMarkerCount)
         
-    if args.maxTrim != None:
+    if args.maxTrim is not None:
         config["Align"]["maxTrim"] = str(args.maxTrim)
         
-    if args.minComponentSize != None:
+    if args.minComponentSize is not None:
         config["ReadGraph"]["minComponentSize"] = str(args.minComponentSize)
         
-    if args.maxChimericReadDistance != None:
+    if args.maxChimericReadDistance is not None:
         config["ReadGraph"]["maxChimericReadDistance"] = str(args.maxChimericReadDistance)
         
-    if args.minCoverage != None:
+    if args.minCoverage is not None:
         config["MarkerGraph"]["minCoverage"] = str(args.minCoverage)
         
-    if args.maxCoverage != None:
+    if args.maxCoverage is not None:
         config["MarkerGraph"]["maxCoverage"] = str(args.maxCoverage)
         
-    if args.lowCoverageThreshold != None:
+    if args.lowCoverageThreshold is not None:
         config["MarkerGraph"]["lowCoverageThreshold"] = str(args.lowCoverageThreshold)
         
-    if args.highCoverageThreshold != None:
+    if args.highCoverageThreshold is not None:
         config["MarkerGraph"]["highCoverageThreshold"] = str(args.highCoverageThreshold)
         
-    if args.maxDistance != None:
+    if args.maxDistance is not None:
         config["MarkerGraph"]["maxDistance"] = str(args.maxDistance)
         
-    if args.pruneIterationCount != None:
+    if args.pruneIterationCount is not None:
         config["MarkerGraph"]["pruneIterationCount"] = str(args.pruneIterationCount)
         
-    if args.shortCycleLengthThreshold != None:
+    if args.shortCycleLengthThreshold is not None:
         config["MarkerGraph"]["shortCycleLengthThreshold"] = str(args.shortCycleLengthThreshold)
         
-    if args.bubbleLengthThreshold != None:
+    if args.bubbleLengthThreshold is not None:
         config["MarkerGraph"]["bubbleLengthThreshold"] = str(args.bubbleLengthThreshold)
         
-    if args.superBubbleLengthThreshold != None:
+    if args.superBubbleLengthThreshold is not None:
         config["MarkerGraph"]["superBubbleLengthThreshold"] = str(args.superBubbleLengthThreshold)
         
-    if args.markerGraphEdgeLengthThresholdForConsensus != None:
+    if args.markerGraphEdgeLengthThresholdForConsensus is not None:
         config["Assembly"]["markerGraphEdgeLengthThresholdForConsensus"] = str(args.markerGraphEdgeLengthThresholdForConsensus)
         
-    if args.consensusCaller != None:
+    if args.consensusCaller is not None:
         config["Assembly"]["consensusCaller"] = str(args.consensusCaller) + "ConsensusCaller"
         
-    if args.useMarginPhase != None:
+    if args.useMarginPhase is not None:
         config["Assembly"]["useMarginPhase"] = str(args.useMarginPhase)
 
     return config
@@ -177,13 +175,13 @@ def main(readsSequencePath, outputParentDirectory, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--sequences",
+        "--inputSequences",
         type=str,
         required=True,
         help="File path of FASTQ or FASTA sequence file containing sequences for assembly"
     )
     parser.add_argument(
-        "--output_dir",
+        "--outputDir",
         type=str,
         default="./output/",
         required=False,
