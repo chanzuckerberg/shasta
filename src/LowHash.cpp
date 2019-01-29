@@ -51,6 +51,38 @@ LowHash::LowHash(
     }
     cout << "Using " << threadCount << " threads." << endl;
 
+
+    // Estimate the total number of low hashes and its base 2 log.
+    // Except for very short reads, each marker generates a feature,
+    // and each feature generates a low hash with probability hashFraction.
+    // So an estimate of the total number of hashes is:
+    const uint64_t totalLowHashCountEstimate =
+        uint64_t(hashFraction * double(markers.totalSize()));
+    const uint32_t leadingZeroBitCount = uint32_t(__builtin_clzl(totalLowHashCountEstimate));
+    const uint32_t log2TotalLowHashCountEstimate = 64 - leadingZeroBitCount;
+
+
+    // If log2MinHashBucketCount is 0, choose a reasonable value
+    // for the current number of reads.
+    // Otherwise, check that log2MinHashBucketCount is not unreasonably small.
+    if(log2MinHashBucketCount == 0) {
+        log2MinHashBucketCount = 5 + log2TotalLowHashCountEstimate;
+    } else {
+        if(log2MinHashBucketCount < log2TotalLowHashCountEstimate) {
+            throw runtime_error("log2MinHashBucketCount is unreasonably small.");
+        }
+    }
+    if(log2MinHashBucketCount > 31) {
+        throw runtime_error("log2MinHashBucketCount is too big.");
+    }
+    const uint32_t bucketCount = 1 << log2MinHashBucketCount;
+    mask = bucketCount - 1;
+    cout << "LowHash algorithm will use 2^" << log2MinHashBucketCount;
+    cout << " = " << bucketCount << " buckets. "<< endl;
+
+
+
+
     // Create vectors containing only the k-mer ids of all markers.
     // This is used to speed up the computation of hash functions.
     cout << timestamp << "Creating kmer ids for oriented reads." << endl;
@@ -64,15 +96,6 @@ LowHash::LowHash(
     const ReadId readCount = orientedReadCount / 2;
     cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
     CZI_ASSERT(orientedReadCount == 2*readCount);
-
-    // Compute the number of buckets and the corresponding mask
-    // used to convert a hash value to a bucket index.
-    if(log2MinHashBucketCount > 31) {
-        throw runtime_error("log2MinHashBucketCount can be up to 31.");
-    }
-    log2MinHashBucketCount = 26;   // ************************** FOR NOW
-    const uint32_t bucketCount = 1 << log2MinHashBucketCount;
-    mask = bucketCount - 1;
 
 
 
