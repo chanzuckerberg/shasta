@@ -76,7 +76,7 @@ private:
     uint64_t mask;
 
     // The buckets containing oriented read ids.
-    MemoryMapped::VectorOfVectors<OrientedReadId::Int, uint64_t> buckets;
+    MemoryMapped::VectorOfVectors<OrientedReadId, uint64_t> buckets;
 
 
 

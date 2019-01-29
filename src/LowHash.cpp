@@ -118,13 +118,13 @@ LowHash::LowHash(
         buckets.clear();
         buckets.beginPass1(bucketCount);
         size_t batchSize = 10000;
-        setupLoadBalancing(orientedReadCount, batchSize);
+        setupLoadBalancing(readCount, batchSize);
         runThreads(&LowHash::pass1ThreadFunction, threadCount);
 
         // Pass 2: fill the buckets.
         buckets.beginPass2();
         batchSize = 10000;
-        setupLoadBalancing(orientedReadCount, batchSize);
+        setupLoadBalancing(readCount, batchSize);
         runThreads(&LowHash::pass2ThreadFunction, threadCount);
         buckets.endPass2(false, false);
 
@@ -255,30 +255,34 @@ void LowHash::pass1ThreadFunction(size_t threadId)
     while(getNextBatch(begin, end)) {
 
         // Loop over oriented reads assigned to this batch.
-        for(size_t i=begin; i!=end; i++) {
-            vector<uint64_t>& orientedReadLowHashes = lowHashes[i];
-            orientedReadLowHashes.clear();
-            const size_t markerCount = kmerIds.size(i);
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            for(Strand strand=0; strand<2; strand++) {
+                const OrientedReadId orientedReadId(readId, strand);
 
-            // Handle the pathological case where there are fewer than m markers.
-            // This oriented read ends up in no bucket.
-            if(markerCount < m) {
-                continue;
-            }
+                vector<uint64_t>& orientedReadLowHashes = lowHashes[orientedReadId.getValue()];
+                orientedReadLowHashes.clear();
+                const size_t markerCount = kmerIds.size(orientedReadId.getValue());
+
+                // Handle the pathological case where there are fewer than m markers.
+                // This oriented read ends up in no bucket.
+                if(markerCount < m) {
+                    continue;
+                }
 
 
-            // Get the markers for this oriented read.
-            KmerId* kmerIdsPointer = kmerIds.begin(i);
-            const size_t featureCount = markerCount - m + 1;
+                // Get the markers for this oriented read.
+                KmerId* kmerIdsPointer = kmerIds.begin(orientedReadId.getValue());
+                const size_t featureCount = markerCount - m + 1;
 
-            // Loop over features of this oriented read.
-            // Features are sequences of m consecutive markers.
-            for(size_t j=0; j<featureCount; j++, kmerIdsPointer++) {
-                const uint64_t hash = MurmurHash64A(kmerIdsPointer, featureByteCount, seed);
-                if(hash < hashThreshold) {
-                    orientedReadLowHashes.push_back(hash);
-                    const uint64_t bucketId = hash & mask;
-                    buckets.incrementCountMultithreaded(bucketId);
+                // Loop over features of this oriented read.
+                // Features are sequences of m consecutive markers.
+                for(size_t j=0; j<featureCount; j++, kmerIdsPointer++) {
+                    const uint64_t hash = MurmurHash64A(kmerIdsPointer, featureByteCount, seed);
+                    if(hash < hashThreshold) {
+                        orientedReadLowHashes.push_back(hash);
+                        const uint64_t bucketId = hash & mask;
+                        buckets.incrementCountMultithreaded(bucketId);
+                    }
                 }
             }
         }
@@ -297,11 +301,15 @@ void LowHash::pass2ThreadFunction(size_t threadId)
     while(getNextBatch(begin, end)) {
 
         // Loop over oriented reads assigned to this batch.
-        for(size_t i=begin; i!=end; i++) {
-            const vector<uint64_t>& orientedReadLowHashes = lowHashes[i];
-            for(const uint64_t hash: orientedReadLowHashes) {
-                const uint64_t bucketId = hash & mask;
-                buckets.storeMultithreaded(bucketId, OrientedReadId::Int(i));
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            for(Strand strand=0; strand<2; strand++) {
+                const OrientedReadId orientedReadId(readId, strand);
+                const vector<uint64_t>& orientedReadLowHashes = lowHashes[orientedReadId.getValue()];
+
+                for(const uint64_t hash: orientedReadLowHashes) {
+                    const uint64_t bucketId = hash & mask;
+                    buckets.storeMultithreaded(bucketId, orientedReadId);
+                }
             }
         }
     }
@@ -318,7 +326,7 @@ void LowHash::pass3ThreadFunction(size_t threadId)
 
         // Loop over buckets assigned to this batch.
         for(size_t bucketId=begin; bucketId!=end; bucketId++) {
-            const MemoryAsContainer<OrientedReadId::Int> bucket = buckets[bucketId];
+            const MemoryAsContainer<OrientedReadId> bucket = buckets[bucketId];
             sort(bucket.begin(), bucket.end());
         }
     }
@@ -359,9 +367,8 @@ void LowHash::pass4ThreadFunction(size_t threadId)
 
                     // Loop over oriented read ids in the bucket corresponding to this hash.
                     const uint64_t bucketId = hash & mask;
-                    const MemoryAsContainer<OrientedReadId::Int> bucket = buckets[bucketId];
-                    for(OrientedReadId::Int orientedReadIdInt1: bucket) {
-                        const OrientedReadId orientedReadId1 = OrientedReadId(orientedReadIdInt1);
+                    const MemoryAsContainer<OrientedReadId> bucket = buckets[bucketId];
+                    for(OrientedReadId orientedReadId1: bucket) {
                         const ReadId readId1 = orientedReadId1.getReadId();
 
                         // Only consider it if readId1 > readId0.
