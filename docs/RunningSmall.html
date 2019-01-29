@@ -9,12 +9,12 @@
 
 <body>
 
-<h1>Running an assembly: simplified procedure for small runs</h1>
+<h1>Running an assembly: simplified procedures for small runs</h1>
 
 
 
 <p>
-This section describes a simplified procedure to use the
+This section describes two simplified procedures to use the
 <code>shasta</code> software for a small assembly run, perhaps for testing
 or experimentation.
 Keep in mind, however, that the <code>shasta</code> 
@@ -25,7 +25,31 @@ you can use the complete procedure described
 
 
 
-<h2 id=runDirectory>Setting up a run directory</h2>
+<h2>One-line command with some configurability</h2>
+<p>
+This provides a one line command to run a <code>shasta</code> assembly
+if full configurability and optimal performance are not necessary:
+<p>
+<code>
+shasta-install/bin/SetupSmallRunDirectory.py --sequences input.fasta
+</code>
+<p>
+This command provides a certain amount of configurability,
+but  does not provide full access to all of the Shasta 
+assembly parameters. 
+Invoke with the <code>--help</code> for details.
+
+
+
+<h2>Simple procedure with full configurability</h2>
+<p>This procedure offers full configurability of assembly parameters,
+but still does not provide the performance benefits for large runs
+available when using the 
+complete procedure described
+<a href=Running.html>here</a>.
+
+
+<h4 id=runDirectory>Setting up a run directory</h2>
 <p>Simply create a new directory
 to contain your run, <code>cd</code> to that new directory,
 and run <code>shasta-install/bin/SetupSmallRunDirectory.py</code>.
@@ -45,7 +69,7 @@ and edit it to customize it as necessary for your run.
 
 
  
-<h2 id=running>Running the assembly</h2>
+<h4 id=running>Running the assembly</h2>
 <p>
 You can now just invoke <code>shasta-install/bin/RunAssembly.py</code>,
 passing as arguments the names of your input FASTA files,
