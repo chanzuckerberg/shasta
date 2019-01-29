@@ -78,19 +78,57 @@ private:
     // The buckets containing oriented read ids.
     MemoryMapped::VectorOfVectors<OrientedReadId::Int, uint64_t> buckets;
 
-    // Data structure used to store candidate pairs.
-    // Indexed by readId0, the read id of the lower numbered
-    // read in the pair.
-    // For each readId0, this is sorted by (readId1,isSameStrand) (with readId1 > readId0).
+
+
+    // Class used to store candidate pairs.
     class Candidate {
     public:
-        ReadId readId1;      // The higher numbered read in the pair, readId1 > readId0.
-        uint16_t frequency;  // Number of times this pair was found during MinHash.
-        bool isSameStrand;   // True if the two reads are on the same strand.
-        Candidate(ReadId readId1, uint16_t frequency, bool isSameStrand) :
-            readId1(readId1), frequency(frequency), isSameStrand(isSameStrand) {}
+        ReadId readId1;             // The higher numbered read in the pair, readId1 > readId0.
+        uint8_t strand;             // 0=same strand, 1=opposite strands.
+        uint16_t frequency;         // Number of times this pair was found during LowHash.
+
+        // Create a new candidate with frequency 1.
+        Candidate(
+            ReadId readId1,
+            Strand strand) :
+            readId1(readId1), strand(uint8_t(strand)), frequency(1) {}
+
+        Candidate() {}
+
+        // Comparison operators.
+        bool operator==(const Candidate& that) const
+        {
+            return (readId1 == that.readId1) && (strand == that.strand);
+        }
+        bool operator<(const Candidate& that) const
+        {
+            return tie(readId1, strand) < tie(that.readId1, that.strand);
+        }
     };
+    static_assert(sizeof(Candidate) == 8, "Unexpected size of LowHash::Candidate.");
+
+
+
+    // Merge two sorted vectors of candidates into a third one.
+    // The input vectors can be sorted but can have duplicates.
+    // During merging, when two candidates with the same readId1
+    // and strand are found, they are combined, adding up their frequency.
+    // This is used by pass4ThreadFunction.
+    static void merge(
+        const vector<Candidate>&,
+        const vector<Candidate>&,
+        vector<Candidate>&
+        );
+
+
+
+    // The alignment candidates for each read.
+    // Indexed by readId0, the read id of the lower numbered read in the pair.
+    // We only store pairs with readId1>readId0.
+    // For each readId0, this is kept sorted.
     vector< vector<Candidate> > candidates;
+
+
 
     // Per-iteration statistics for each thread.
     class ThreadStatistics {

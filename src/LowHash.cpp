@@ -143,7 +143,7 @@ LowHash::LowHash(
                 const ReadId readId1 = candidate.readId1;
                 CZI_ASSERT(readId0 < readId1);
                 candidateAlignments.push_back(
-                    OrientedReadPair(readId0, readId1, candidate.isSameStrand));
+                    OrientedReadPair(readId0, readId1, candidate.strand==0));
             }
         }
     }
@@ -307,15 +307,12 @@ void LowHash::pass3ThreadFunction(size_t threadId)
 // Pass 4: inspect the buckets to find candidates.
 void LowHash::pass4ThreadFunction(size_t threadId)
 {
-    ostream& out = getLog(threadId);
-    const bool debug = true;
 
-    // Work area used to store the new candidates for a single readId0,
-    // for both strands. The second member of the pair is isSameStrand.
-    vector< pair<ReadId, bool> > workArea;
+    // The alignment candidates found at this iteration for a single read.
+    vector<Candidate> newCandidates;
 
-    // Work area to store the merged candidates for s single readId0.
-    vector<Candidate> mergedCandidates0;
+    // The merged candidates for a single readId0.
+    vector<Candidate> mergedCandidates;
 
     ThreadStatistics& thisThreadStatistics = threadStatistics[threadId];
     thisThreadStatistics.clear();
@@ -326,7 +323,7 @@ void LowHash::pass4ThreadFunction(size_t threadId)
 
         // Loop over reads assigned to this batch.
         for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {
-            workArea.clear();
+            newCandidates.clear();
 
             // Loop over two strands.
             for(Strand strand0=0; strand0<2; strand0++) {
@@ -351,104 +348,28 @@ void LowHash::pass4ThreadFunction(size_t threadId)
 
                         // Add it to our work area.
                         const bool isSameStrand = orientedReadId1.getStrand() == strand0;
-                        workArea.push_back(make_pair(readId1, isSameStrand));
+                        newCandidates.push_back(Candidate(readId1, isSameStrand? 0 : 1));
                     }
                 }
             }
 
-            // Sort  and deduplicate the work area.
-            sort(workArea.begin(), workArea.end());
-            workArea.resize(unique(workArea.begin(), workArea.end()) - workArea.begin());
-
-
-
-
-
+            // Sort the candidates found during this iteration.
+            sort(newCandidates.begin(), newCandidates.end());
 
             // Merge the contents of the work area
             // with the candidates previously stored.
-            vector<Candidate>& candidates0 = candidates[readId0];
-            if(debug) {
-                out << "Read id " << readId0 << endl;
-                out << "workArea:" << endl;
-                for(const auto& p: workArea) {
-                    out << p.first << " " << p.second << endl;
-                }
-                out << "candidates0:" << endl;
-                for(const Candidate& candidate: candidates0) {
-                    out << candidate.readId1 << " " << candidate.isSameStrand << " " << candidate.frequency << endl;
-                }
-            }
-            mergedCandidates0.clear();
-            vector<Candidate>::iterator begin0 = candidates0.begin();
-            vector<Candidate>::iterator end0 = candidates0.end();
-            vector< pair<ReadId, bool> >::iterator beginW = workArea.begin();
-            vector< pair<ReadId, bool> >::iterator endW = workArea.end();
-            vector<Candidate>::iterator it0 = begin0;
-            vector< pair<ReadId, bool> >::iterator itW = beginW;
-            while(true) {
-
-                // If we reached the end of the work area, just copy the
-                // remaining entries in the candidate list.
-                if(itW == endW) {
-                    copy(it0, end0, back_inserter(mergedCandidates0));
-                    break;
-                }
-
-                // If we reached the end of the existing candidate list,
-                // copy the remaining work area entries, with frequency 1.
-                if(it0 == end0) {
-                    for(; itW != endW; ++itW) {
-                        mergedCandidates0.push_back(Candidate(itW->first, 1, itW->second));
-                    }
-                    break;
-                }
-
-                if(*itW < make_pair(it0->readId1, it0->isSameStrand)) {
-                    // The work area has an entry that is not in the existing
-                    // candidate list for this read.
-                    // Create a new entry with frequency 1.
-                    mergedCandidates0.push_back(Candidate(itW->first, 1, itW->second));
-                    ++itW;
-                }
-
-                else if(make_pair(it0->readId1, it0->isSameStrand) < *itW) {
-                    // The existing candidate list for this read has an entry
-                    // that is not in the work area.
-                    // Just copy it.
-                    mergedCandidates0.push_back(*it0);
-                    ++it0;
-                }
-
-                else {
-                    // The work area has an entry that is already in the existing
-                    // candidate list for this read.
-                    // Merged then by incrementing its frequency.
-                    mergedCandidates0.push_back(*it0);
-                    mergedCandidates0.back().frequency++;
-                    ++itW;
-                    ++it0;
-                }
-
-            }
-            // out << readId0 << " " << candidates0.size() << " " << workArea.size();
-            // out << " " << mergedCandidates0.size() << endl;
-
-            if(debug) {
-                out << "mergedCandidates0:" << endl;
-                for(const Candidate& candidate: mergedCandidates0) {
-                    out << candidate.readId1 << " " << candidate.isSameStrand << " " << candidate.frequency << endl;
-                }
-            }
-
+            vector<Candidate>& storedCandidates = candidates[readId0];
+            mergedCandidates.clear();
+            merge(storedCandidates, newCandidates, mergedCandidates);
 
             // Store the merged candidates in place of the old ones.
-            candidates0.swap(mergedCandidates0);
+            storedCandidates.resize(mergedCandidates.size());
+            copy(mergedCandidates.begin(), mergedCandidates.end(), storedCandidates.begin());
 
             // Update thread statistics.
-            thisThreadStatistics.total += candidates0.size();
-            thisThreadStatistics.capacity += candidates0.capacity();
-            for(const Candidate& candidate: candidates0) {
+            thisThreadStatistics.total += storedCandidates.size();
+            thisThreadStatistics.capacity += storedCandidates.capacity();
+            for(const Candidate& candidate: storedCandidates) {
                 if(candidate.frequency >= minFrequency) {
                     ++thisThreadStatistics.highFrequency;
                 }
@@ -456,4 +377,96 @@ void LowHash::pass4ThreadFunction(size_t threadId)
         }
     }
 }
+
+
+
+// Merge two sorted vectors of candidates into a third one.
+// The input vectors can be sorted but can have duplicates.
+// During merging, when two candidates with the same readId1
+// and strand are found, they are combined, adding up their frequency.
+// This is used by pass4ThreadFunction.
+void LowHash::merge(
+    const vector<LowHash::Candidate>& x0,
+    const vector<LowHash::Candidate>& x1,
+    vector<LowHash::Candidate>& y
+    )
+{
+    using Iterator = vector<LowHash::Candidate>::const_iterator;
+    Iterator begin0 = x0.begin();
+    Iterator begin1 = x1.begin();
+    Iterator end0 = x0.end();
+    Iterator end1 = x1.end();
+
+
+
+    // Merge loop..
+    // At each step, we find the lowest of the two candidates
+    // currently pointed by the two iterators (ties allowed and are ok).
+    // If the merged vector is not empty and ends with an entry that compares equal,
+    // increment its frequency. Otherwise, just create a new entry in the merged vector.
+    Iterator it0 = begin0;
+    Iterator it1 = begin1;
+    while(true) {
+
+        // If we reached the end of x0, process the remaining portion of x1,
+        // then exit the merge loop.
+        if(it0 == end0) {
+            for(; it1!=end1; ++it1) {
+                if(!y.empty() && y.back() == *it1) {
+                    ++y.back().frequency = uint16_t(y.back().frequency + it1->frequency);
+                } else {
+                    y.push_back(*it1);
+                }
+            }
+            break;
+        }
+
+        // If we reached the end of x1, process the remaining portion of x0,
+        // then exit the merge loop.
+        if(it1 == end1) {
+            for(; it0!=end0; ++it0) {
+                if(!y.empty() && y.back() == *it0) {
+                    ++y.back().frequency = uint16_t(y.back().frequency + it0->frequency);
+                } else {
+                    y.push_back(*it0);
+                }
+            }
+            break;
+        }
+
+        // If we get here, neither iterator is at its end.
+        // Both iterators can be safely dereferenced.
+        CZI_ASSERT(it0 != end0);
+        CZI_ASSERT(it1 != end1);
+
+        // If the current x1 entry is not less than the current x0 entry,
+        // process the current x0 entry.
+        if(!(*it1 < *it0)) {
+            if(!y.empty() && y.back() == *it0) {
+                y.back().frequency  = uint16_t(y.back().frequency + it0->frequency);
+            } else {
+                y.push_back(*it0);
+            }
+            ++it0;
+        }
+
+        // If the current x0 entry is not less than the current x1 entry,
+        // process the current x1 entry.
+        else if(!(*it0 < *it1)) {
+            if(!y.empty() && y.back() == *it1) {
+                ++y.back().frequency = uint16_t(y.back().frequency + it1->frequency);
+            } else {
+                y.push_back(*it1);
+            }
+            ++it1;
+        }
+
+        // The above covers all cases.
+        else {
+            CZI_ASSERT(0);
+        }
+
+    }
+}
+
 
