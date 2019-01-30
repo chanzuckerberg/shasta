@@ -113,7 +113,8 @@ void Assembler::createReadGraph(
 
 
 
-// More sophisticated version of createReadGraph.
+// More sophisticated version of createReadGraph with better treatment
+// of containing alignments.
 // - If a read has at least one alignments that covers the entire
 //   read, it is flagged as contained.
 // - If a read is contained, only keep the best alignment
@@ -131,7 +132,165 @@ void Assembler::createReadGraphNew(
     uint32_t maxAlignmentCount,
     uint32_t maxTrim)
 {
-    CZI_ASSERT(0);
+    // Find the number of reads and oriented reads.
+    const ReadId orientedReadCount = uint32_t(markers.size());
+    CZI_ASSERT((orientedReadCount % 2) == 0);
+    const ReadId readCount = orientedReadCount / 2;
+
+    // Mark all alignments as not to be kept.
+    vector<bool> keepAlignment(alignmentData.size(), false);
+
+    // Flag to mark which reads are contained.
+    vector<bool> isContainedRead(readCount, false);
+
+    // Vector to keep the alignments for each read,
+    // with their number of markers.
+    // Contains pairs(marker count, alignment id).
+    vector< pair<uint32_t, uint32_t> > readAlignments;
+
+
+
+    // In a first loop over reads, we find contained reads -
+    // that is, reads that have at least an alignment that covers the entire read.
+    // For each contained read we keep the best such alignment.
+    // Loop over reads.
+    for(ReadId readId=0; readId<readCount; readId++) {
+
+        // Get alignments for this read on strand 0,
+        // permuting the reads if necessary to make sure this read is read 0
+        // in the alignment.
+        const vector< pair<OrientedReadId, AlignmentInfo> > orientedReadAlignments =
+            findOrientedAlignments(OrientedReadId(readId, 0));
+
+        // Find the best alignment that covers the entire read, if any.
+        bool containingAlignmentWasFound = false;
+        uint32_t bestContainingAlignmentMarkerCount = 0;
+        uint64_t bestContainingAlignmentId = std::numeric_limits<uint64_t>::max();
+        for(size_t i=0; i<orientedReadAlignments.size(); i++) {
+            const AlignmentInfo& alignmentInfo = orientedReadAlignments[i].second;
+            if( alignmentInfo.leftTrim(0)  <= maxTrim &&
+                alignmentInfo.rightTrim(0) <= maxTrim &&
+                alignmentInfo.leftTrim(1)  >  maxTrim &&
+                alignmentInfo.rightTrim(1) >  maxTrim) {
+                if(containingAlignmentWasFound) {
+                    if(alignmentInfo.markerCount > bestContainingAlignmentMarkerCount) {
+                        bestContainingAlignmentMarkerCount = alignmentInfo.markerCount;
+                        bestContainingAlignmentId = alignmentTable[OrientedReadId(readId, 0).getValue()][i];
+                    }
+                } else {
+                    containingAlignmentWasFound = true;
+                    bestContainingAlignmentMarkerCount = alignmentInfo.markerCount;
+                    bestContainingAlignmentId = alignmentTable[OrientedReadId(readId, 0).getValue()][i];
+                }
+            }
+        }
+
+        // Just mark to keep the best alignment that covers the entire read.
+        if(containingAlignmentWasFound) {
+            keepAlignment[bestContainingAlignmentId] = true;
+            isContainedRead[readId] = true;
+        }
+    }
+
+
+
+    // In a second loop over reads, we process reads that are not marked as contained.
+    // For each, we keep the best maxAlignmentCount alignments among those
+    // that don't involve contained reads.
+    for(ReadId readId=0; readId<readCount; readId++) {
+        if(isContainedRead[readId]) {
+            continue;
+        }
+
+        // Get alignments for this read on strand 0,
+        // permuting the reads if necessary to make sure this read is read 0
+        // in the alignment.
+        const vector< pair<OrientedReadId, AlignmentInfo> > orientedReadAlignments =
+            findOrientedAlignments(OrientedReadId(readId, 0));
+
+        // Find the alignments that we could keep.
+        readAlignments.clear();
+        for(size_t i=0; i<orientedReadAlignments.size(); i++) {
+            const ReadId otherReadId = orientedReadAlignments[i].first.getReadId();
+            if(isContainedRead[otherReadId]) {
+                continue;
+            }
+            const AlignmentInfo& alignmentInfo = orientedReadAlignments[i].second;
+            readAlignments.push_back(make_pair(
+                alignmentInfo.markerCount,
+                alignmentTable[OrientedReadId(readId, 0).getValue()][i]
+                ));
+        }
+
+#if 0
+        // Keep only up to maxAlignmentCount.
+        if(readAlignments.size() > maxAlignmentCount) {
+            std::nth_element(
+                readAlignments.begin(),
+                readAlignments.begin() + maxAlignmentCount,
+                readAlignments.end(),
+                std::greater< pair<uint32_t, uint32_t> >());
+            readAlignments.resize(maxAlignmentCount);
+        }
+#endif
+        for(const auto& p: readAlignments) {
+            const uint32_t alignmentId = p.second;
+            keepAlignment[alignmentId] = true;
+        }
+
+    }
+
+
+
+    const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
+    const size_t containedReadCount =
+        std::count(isContainedRead.begin(), isContainedRead.end(), true);
+    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+    cout << "Found " << containedReadCount;
+    cout << " contained reads out of " << readCount << " total." << endl;
+
+
+
+    // Now we can create the read graph.
+    // Only the alignments we marked as "keep" generate edges in the read graph.
+    readGraph.edges.createNew(largeDataName("ReadGraphEdges"), largeDataPageSize);
+    for(size_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
+        if(!keepAlignment[alignmentId]) {
+            continue;
+        }
+        const AlignmentData& alignment = alignmentData[alignmentId];
+
+        // Create the edge corresponding to this alignment.
+        ReadGraph::Edge edge;
+        edge.alignmentId = alignmentId;
+        edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
+        edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
+        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        readGraph.edges.push_back(edge);
+
+        // Also create the reverse complemented edge.
+        edge.orientedReadIds[0].flipStrand();
+        edge.orientedReadIds[1].flipStrand();
+        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        readGraph.edges.push_back(edge);
+    }
+
+
+
+    // Create read graph connectivity.
+    readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
+    readGraph.connectivity.beginPass1(orientedReadCount);
+    for(const ReadGraph::Edge& edge: readGraph.edges) {
+        readGraph.connectivity.incrementCount(edge.orientedReadIds[0].getValue());
+        readGraph.connectivity.incrementCount(edge.orientedReadIds[1].getValue());
+    }
+    readGraph.connectivity.beginPass2();
+    for(size_t i=0; i<readGraph.edges.size(); i++) {
+        const ReadGraph::Edge& edge = readGraph.edges[i];
+        readGraph.connectivity.store(edge.orientedReadIds[0].getValue(), uint32_t(i));
+        readGraph.connectivity.store(edge.orientedReadIds[1].getValue(), uint32_t(i));
+    }
+    readGraph.connectivity.endPass2();
 }
 
 
