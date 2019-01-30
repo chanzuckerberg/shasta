@@ -1384,7 +1384,7 @@ void Assembler::displayAlignments(
 
 
     // Begin the table.
-    const int bitShift = 4; // Controls the scaling of the alignment sketch.
+    const int bitShift = 6; // Controls the scaling of the alignment sketch.
     html <<
         "<table>"
         "<tr>"
