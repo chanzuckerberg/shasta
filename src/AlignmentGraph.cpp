@@ -346,6 +346,11 @@ void AlignmentGraph::createEdges(
             const int correctedOrdinalB1 = int(correctedOrdinals[1][ordinalB1]);
             CZI_ASSERT(correctedOrdinalB1 < int(markerCount1));
 
+            // Forbid the alignment from going backwards.
+            if(correctedOrdinalB1 < correctedOrdinalA1) {
+                continue;
+            }
+
             // Check that the skip in the 1 direction is less than maxSkip.
             if(abs(correctedOrdinalB1 - correctedOrdinalA1) > maxSkip) {
                 continue;
