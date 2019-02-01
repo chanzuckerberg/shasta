@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from SetupSmallRunDirectory import setupSmallRunDirectory, verifyDirectoryFiles
 from RunAssembly import verifyConfigFiles, verifyFastaFiles, runAssembly
 import configparser
@@ -133,7 +135,7 @@ def main(readsSequencePath, outputParentDirectory, args):
     ensureDirectoryExists(outputDirectory)
     
     # Setup run directory according to SetupSmallRunDirectory.py
-    verifyDirectoryFiles(outputDirectory)
+    verifyDirectoryFiles(parentDirectory=outputDirectory)
     setupSmallRunDirectory(outputDirectory)
 
     # Locate path of default configuration files relative to this script's "binary" file
@@ -389,6 +391,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(readsSequencePath=args.sequences, 
-         outputParentDirectory=args.output_dir,
+    main(readsSequencePath=args.inputSequences, 
+         outputParentDirectory=args.outputDir,
          args=args)

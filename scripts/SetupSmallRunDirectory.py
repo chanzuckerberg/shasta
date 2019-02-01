@@ -45,14 +45,14 @@ def verifyDirectoryFiles(parentDirectory=""):
             exit(1)
 
 
-def setupSmallRunDirectory(parent_directory=""):
+def setupSmallRunDirectory(parentDirectory=""):
     """
     Generate directories and symlink required for the assembler to run
     """
     # Generate absolute paths to the files that will be created
-    dataPath = os.path.abspath(os.path.join(parent_directory, "Data"))
-    dataOnDiskPath = os.path.abspath(os.path.join(parent_directory, "DataOnDisk"))
-    threadLogsPath = os.path.abspath(os.path.join(parent_directory, "threadLogs"))
+    dataPath = os.path.abspath(os.path.join(parentDirectory, "Data"))
+    dataOnDiskPath = os.path.abspath(os.path.join(parentDirectory, "DataOnDisk"))
+    threadLogsPath = os.path.abspath(os.path.join(parentDirectory, "threadLogs"))
 
     # Create the directories.
     os.mkdir(dataPath)

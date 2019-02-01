@@ -1007,6 +1007,8 @@ void Assembler::assembleAssemblyGraphEdge(
     vector<uint32_t>& assembledRepeatCounts,
     ostream* htmlPointer)
 {
+//    cout << "MarginPhase is: " << int(useMarginPhase) << endl;
+
     const auto k = assemblerInfo->k;
 
     // The edges of this chain in the marker graph.

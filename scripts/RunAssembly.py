@@ -132,11 +132,17 @@ def runAssembly(config, fastaFileNames):
     a.createAssemblyGraphVertices()
     a.writeAssemblyGraph("AssemblyGraph-Final.dot")
     
+    print("############# useMarginPhase = ", useMarginPhase)
+    print("############# type of useMarginPhase = ", type(useMarginPhase))
+    print("############# config['Assembly']['useMarginPhase'] = ", config['Assembly']['useMarginPhase'])
+    print("############# type of config['Assembly']['useMarginPhase'] = ", type(config['Assembly']['useMarginPhase']))
+
     # Use the assembly graph for global assembly.
     a.assemble(
         markerGraphEdgeLengthThresholdForConsensus =
         int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
         useMarginPhase = useMarginPhase)
+    
     a.computeAssemblyStatistics()
     a.writeGfa1('Assembly.gfa')
     a.writeFasta('Assembly.fasta')
