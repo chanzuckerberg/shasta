@@ -345,6 +345,9 @@ void LowHash::pass3ThreadFunction(size_t threadId)
                     // Loop over oriented read ids in the bucket corresponding to this hash.
                     const uint64_t bucketId = hash & mask;
                     const MemoryAsContainer<BucketEntry> bucket = buckets[bucketId];
+                    if(bucket.size() > maxBucketSize) {
+                        continue;   // The bucket is too big. Skip it.
+                    }
                     for(const BucketEntry& bucketEntry: bucket) {
                         if(bucketEntry.hashHighBits != hashHighBits) {
                             continue;   // Collision.
