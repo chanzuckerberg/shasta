@@ -184,10 +184,25 @@ def main(readsSequencePath, outputParentDirectory, args):
 
     # Run with user specified configuration and input files
     runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
-    
-    
+
+
+def stringAsBool(s):
+    s = s.lower()
+    boolean = None
+
+    if s in {"t", "true", "1", "y", "yes"}:
+        boolean = True
+    elif s in {"f", "false", "0", "n", "no"}:
+        boolean = False
+    else:
+        exit("Error: invalid argument specified for boolean flag: %s" % s)
+
+    return boolean
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.register("type", "bool", stringAsBool)  # add type keyword to registries
     parser.add_argument(
         "--inputSequences",
         type=str,
@@ -395,10 +410,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--useMarginPhase",
-        type=bool,
+        type="bool",
         # default=True,
         required=False,
-        help="Use margin polisher during consensus"
+        help="Use margin polisher during consensus. \n\n \
+              Any case insensitive variant of the following is accepted: \n \
+              t, true, 1, y, yes, f, false, 0, n, no"
     )
 
     args = parser.parse_args()

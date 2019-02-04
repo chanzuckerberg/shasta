@@ -237,7 +237,9 @@ if __name__ == "__main__":
         # default=10,
         required=False,
         help="Save page memory to disk before clearing the ephemeral page data. \n \
-              Convenient for post-assembly analysis using RunServerFromDisk.py."
+              Convenient for post-assembly analysis using RunServerFromDisk.py. \n\n \
+              Any case insensitive variant of the following is accepted: \n \
+              t, true, 1, y, yes, f, false, 0, n, no"
     )
     parser.add_argument(
         "--outputDir",
@@ -443,7 +445,9 @@ if __name__ == "__main__":
         type="bool",
         # default=True,
         required=False,
-        help="Use margin polisher during consensus"
+        help="Use margin polisher during consensus. \n\n \
+              Any case insensitive variant of the following is accepted: \n \
+              t, true, 1, y, yes, f, false, 0, n, no"
     )
 
     args = parser.parse_args()
