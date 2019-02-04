@@ -381,8 +381,8 @@ void Assembler::assemble(
     assembleData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;
     if(useMarginPhase) {
         checkMarginPhaseWasSetup();
-        assembleData.useMarginPhase = useMarginPhase;
     }
+    assembleData.useMarginPhase = useMarginPhase;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
