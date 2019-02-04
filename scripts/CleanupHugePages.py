@@ -25,18 +25,22 @@ def cleanUpHugePages(Data, largePagesMountPoint, requireUserInput=True):
         if not response in set(['Yes', 'Y', 'y', 'yes']):
             print('Nothing done.')
             exit(0)
-    
+
     # Create the Data directory.
-    os.system('sudo rm -rf %s' % Data)
-    
+    command = 'sudo rm -rf %s' % Data
+    os.system(command)
+
     # Unmount the huge page filesystem.
-    os.system('sudo umount %s' % largePagesMountPoint)
+    command = 'sudo umount %s' % largePagesMountPoint
+    os.system(command)
     
     # Remove the mount point for the huge page filesystem.
-    os.system('sudo rmdir %s' % largePagesMountPoint)
+    command = 'sudo rmdir %s' % largePagesMountPoint
+    os.system(command)
     
     # Free up the huge pages.
-    os.system('sudo hugeadm --pool-pages-min=2M:0')
+    command = 'sudo hugeadm --pool-pages-min=2M:0'
+    os.system(command)
 
 
 def main():

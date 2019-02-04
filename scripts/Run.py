@@ -159,7 +159,7 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, g
     # Copy config file to output directory
     localConfPath = os.path.join(outputDirectory, "shasta.conf")
     copyfile(defaultConfPath, localConfPath)
-
+    
     # Parse config file to fill in default parameters
     config = configparser.ConfigParser()
     if not config.read(localConfPath):
@@ -173,6 +173,12 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, g
         defaultMatrixPath = os.path.join(confDirectory, "SimpleBayesianConsensusCaller-1.csv")
         localMatrixPath = os.path.join(outputDirectory, "SimpleBayesianConsensusCaller.csv")
         copyfile(defaultMatrixPath, localMatrixPath)
+        
+    if args.useMarginPhase:
+        # Copy config file to output directory
+        defaultParamsPath = os.path.join(confDirectory, "MarginPhase-allParams.np.json")
+        localParamsPath = os.path.join(outputDirectory, "MarginPhase.json")
+        copyfile(defaultParamsPath, localParamsPath)
 
     # Ensure prerequisite files are present
     verifyConfigFiles(parentDirectory=outputDirectory)
@@ -181,16 +187,11 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, g
     # Set current working directory to the output dir
     os.chdir(outputDirectory)
     
-    try:
-        # Initialize Assembler object
-        assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
+    # Initialize Assembler object
+    assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
     
-        # Run with user specified configuration and input files
-        runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
-        
-    except:
-        print("cleaning up pages")
-        cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
+    # Run with user specified configuration and input files
+    runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
 
     # Save page memory to disk so it can be reused during RunServerFromDisk
     if savePageMemory:
@@ -199,8 +200,24 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, g
     cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
 
 
+def stringAsBool(s):
+    s = s.lower()
+    boolean = None
+    
+    if s in {"t", "true", "1", "y", "yes"}:
+        boolean = True
+    elif s in {"f", "false", "0", "n", "no"}:
+        boolean = False
+    else:
+        exit("Error: invalid argument specified for boolean flag: %s"%s)
+                
+    return boolean
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.register("type", "bool", stringAsBool)  # add type keyword to registries
+    
     parser.add_argument(
         "--inputSequences",
         type=str,
@@ -216,7 +233,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--savePageMemory",
-        type=bool,
+        type="bool",
         # default=10,
         required=False,
         help="Save page memory to disk before clearing the ephemeral page data. \n \
@@ -423,16 +440,16 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--useMarginPhase",
-        type=bool,
+        type="bool",
         # default=True,
         required=False,
         help="Use margin polisher during consensus"
     )
 
     args = parser.parse_args()
-    
+        
     # Assign default paths for page data
-    largePagesMountPoint = '/hugepages'
+    largePagesMountPoint = "/hugepages"
     Data = os.path.join(largePagesMountPoint, "Data")
 
     main(readsSequencePath=args.inputSequences,

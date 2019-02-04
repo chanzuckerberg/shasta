@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from SetupSmallRunDirectory import setupSmallRunDirectory, verifyDirectoryFiles
-from RunAssembly import verifyConfigFiles, verifyFastaFiles, runAssembly
+from RunAssembly import verifyConfigFiles, verifyFastaFiles, runAssembly, initializeAssembler
 import configparser
 
 from datetime import datetime
@@ -165,6 +165,12 @@ def main(readsSequencePath, outputParentDirectory, args):
         defaultMatrixPath = os.path.join(confDirectory, "SimpleBayesianConsensusCaller-1.csv")
         localMatrixPath = os.path.join(outputDirectory, "SimpleBayesianConsensusCaller.csv")
         copyfile(defaultMatrixPath, localMatrixPath)
+        
+    if args.useMarginPhase:
+        # Copy config file to output directory
+        defaultParamsPath = os.path.join(confDirectory, "MarginPhase-allParams.np.json")
+        localParamsPath = os.path.join(outputDirectory, "MarginPhase.json")
+        copyfile(defaultParamsPath, localParamsPath)
 
     # Ensure prerequisite files are present
     verifyConfigFiles(parentDirectory=outputDirectory)
@@ -173,8 +179,11 @@ def main(readsSequencePath, outputParentDirectory, args):
     # Set current working directory to the output dir
     os.chdir(outputDirectory)
     
+    # Initialize Assembler object
+    assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
+
     # Run with user specified configuration and input files
-    runAssembly(config=config, fastaFileNames=[readsSequencePath])
+    runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
     
     
 if __name__ == "__main__":
