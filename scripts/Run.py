@@ -10,12 +10,7 @@ import configparser
 from datetime import datetime
 from shutil import copyfile
 import argparse
-import traceback
-import inspect
-import signal
-import atexit
 import sys
-import gc
 import os
 
 
@@ -134,9 +129,12 @@ def overrideDefaultConfig(config, args):
     return config
 
 
-def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, gigaBytes, savePageMemory, args, exitHandler):
+def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, gigaBytes, savePageMemory, args):
     if not os.path.exists(readsSequencePath):
         raise Exception("ERROR: input file not found: %s" % readsSequencePath)
+
+    # Make sure given sequence file path is absolute, because CWD will be changed later
+    readsSequencePath = os.path.abspath(readsSequencePath)
 
     # Generate output directory to run shasta in
     outputDirectoryName = "run_" + getDatetimeString()
@@ -182,53 +180,23 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, g
 
     # Set current working directory to the output dir
     os.chdir(outputDirectory)
-
-    # Initialize Assembler object
-    assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
-
-    # Update exit handler so assembler can be released at SIGINT or SIGTERM
-    exitHandler.assembler = assembler
-
-    # Run with user specified configuration and input files
-    runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
+    
+    try:
+        # Initialize Assembler object
+        assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
+    
+        # Run with user specified configuration and input files
+        runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
+        
+    except:
+        print("cleaning up pages")
+        cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
 
     # Save page memory to disk so it can be reused during RunServerFromDisk
     if savePageMemory:
         saveRun(outputDirectory)
-
+    
     cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
-
-
-class ExitHandler:
-    def __init__(self, Data, largePagesMountPoint, assembler=None):
-        self.assembler = assembler
-        self.Data = Data
-        self.largePagesMountPoint = largePagesMountPoint
-
-    def handleExit(self, signum, frame):
-        """
-        Method to be called at (early) termination. By default, the native "signal" handler passes 2 arguments signum and
-        frame
-        :param signum:
-        :param frame:
-        :return:
-        """
-        
-        print(self.assembler)
-        
-        if self.assembler is not None:
-            del self.assembler
-            # self.assembler = None
-            # gc.collect()
-                    
-        sys.stderr.write("ERROR: script terminated or interrupted:\n")
-
-        traceback.print_stack(frame)
-
-        sys.stderr.write("Cleaning up page memory...")
-        cleanUpHugePages(Data=self.Data, largePagesMountPoint=self.largePagesMountPoint, requireUserInput=False)
-        sys.stderr.write("\rCleaning up page memory... Done\n")
-        exit(1)
 
 
 if __name__ == "__main__":
@@ -467,17 +435,10 @@ if __name__ == "__main__":
     largePagesMountPoint = '/hugepages'
     Data = os.path.join(largePagesMountPoint, "Data")
 
-    exitHandler = ExitHandler(Data=Data, largePagesMountPoint=largePagesMountPoint)
-
-    # Setup termination handling to deallocate large page memory, unmount on-disk page data, and delete disk data
-    signal.signal(signal.SIGTERM, exitHandler.handleExit)
-    signal.signal(signal.SIGINT, exitHandler.handleExit)
-
     main(readsSequencePath=args.inputSequences,
          outputParentDirectory=args.outputDir,
          largePagesMountPoint=largePagesMountPoint,
          Data=Data,
          args=args,
          gigaBytes=args.memory,
-         savePageMemory=args.savePageMemory,
-         exitHandler=exitHandler)
+         savePageMemory=args.savePageMemory)

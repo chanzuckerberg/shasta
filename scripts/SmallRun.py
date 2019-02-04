@@ -129,6 +129,9 @@ def main(readsSequencePath, outputParentDirectory, args):
     if not os.path.exists(readsSequencePath):
         raise Exception("ERROR: input file not found: %s" % readsSequencePath)
 
+    # Make sure given sequence file path is absolute, because CWD will be changed later
+    readsSequencePath = os.path.abspath(readsSequencePath)
+
     # Generate output directory to run shasta in
     outputDirectoryName = "run_" + getDatetimeString()
     outputDirectory = os.path.join(outputParentDirectory, outputDirectoryName)
