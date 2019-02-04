@@ -34,7 +34,7 @@ def verifyFastaFiles(fastaFileNames):
             raise Exception('Input file %s not found.' % fileName)
 
 
-def runAssembly(config, fastaFileNames):
+def initializeAssembler(config, fastaFileNames):
     # Create the assembler.
     useRunLengthReadsString = config['Reads']['useRunLengthReads']
     if useRunLengthReadsString == 'True':
@@ -47,6 +47,9 @@ def runAssembly(config, fastaFileNames):
     # Create the Assembler.
     a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
     
+    return a
+
+def runAssembly(a, config, fastaFileNames):
     # Set up the consensus caller.
     a.setupConsensusCaller(config['Assembly']['consensusCaller'])
     
@@ -145,7 +148,7 @@ def runAssembly(config, fastaFileNames):
 
 def main():
     # Parse arguments
-    fastaFileNames = sys.argv [1:]
+    fastaFileNames = sys.argv[1:]
 
     # Ensure prerequisite files are present
     verifyConfigFiles()
@@ -153,9 +156,12 @@ def main():
 
     # Read the config file.
     config = GetConfig.getConfig()
+    
+    # Initialize Assembler object
+    assembler = initializeAssembler(config=config, fastaFileNames=fastaFileNames)
 
     # Run with user specified configuration and input files
-    runAssembly(config=config, fastaFileNames=fastaFileNames)
+    runAssembly(config=config, fastaFileNames=fastaFileNames, a=assembler)
     
 if __name__ == "__main__":
     main()
