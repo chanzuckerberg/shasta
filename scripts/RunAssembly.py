@@ -76,12 +76,23 @@ def runAssembly(config, fastaFileNames):
     # Find the markers in the reads.
     a.findMarkers()
     
-    # Run MinHash to find pairs of reads that may overlap.
+    # Find alignment candidates.
+    a.findAlignmentCandidatesLowHash(
+        m = int(config['MinHash']['m']), 
+        hashFraction = float(config['MinHash']['hashFraction']),
+        minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
+        maxBucketSize = int(config['MinHash']['maxBucketSize']),
+        minFrequency = int(config['MinHash']['minFrequency']))
+    """
+    # Old MinHash code to find alignment candidates. 
+    # If using this, make sure to set MinHash.minHashIterationCount
+    # to a suitable value (100 was the defaulf when this code was active).
     a.findAlignmentCandidatesMinHash(
         m = int(config['MinHash']['m']), 
         minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
         maxBucketSize = int(config['MinHash']['maxBucketSize']),
         minFrequency = int(config['MinHash']['minFrequency']))
+    """
     
     # Compute alignments.
     a.computeAlignments(
