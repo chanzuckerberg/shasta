@@ -1007,7 +1007,6 @@ void Assembler::assembleAssemblyGraphEdge(
     vector<uint32_t>& assembledRepeatCounts,
     ostream* htmlPointer)
 {
-
     const auto k = assemblerInfo->k;
 
     // The edges of this chain in the marker graph.
