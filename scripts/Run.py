@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 
-from SetupSmallRunDirectory import setupSmallRunDirectory, verifyDirectoryFiles
+from SetupHugePages import verifyPageMemoryDirectory, allocatePages
+from SetupRunDirectory import verifyDirectoryFiles, setupRunDirectory
 from RunAssembly import verifyConfigFiles, verifyFastaFiles, runAssembly, initializeAssembler
+from CleanupHugePages import cleanUpHugePages
+from SaveRun import saveRun
 import configparser
 
 from datetime import datetime
@@ -40,7 +43,7 @@ def ensureDirectoryExists(directoryPath, i=0):
 
             if not os.path.exists(directoryPath):
                 os.mkdir(directoryPath)
-                
+
 
 def overrideDefaultConfig(config, args):
     """
@@ -49,83 +52,84 @@ def overrideDefaultConfig(config, args):
     """
     if args.minReadLength is not None:
         config["Reads"]["minReadLength"] = str(args.minReadLength)
-        
+
     if args.k is not None:
         config["Kmers"]["k"] = str(args.k)
-        
+
     if args.probability is not None:
         config["Kmers"]["probability"] = str(args.probability)
-        
+
     if args.m is not None:
         config["MinHash"]["m"] = str(args.m)
-        
+
     if args.minHashIterationCount is not None:
         config["MinHash"]["minHashIterationCount"] = str(args.minHashIterationCount)
-        
+
     if args.maxBucketSize is not None:
         config["MinHash"]["maxBucketSize"] = str(args.maxBucketSize)
-        
+
     if args.minFrequency is not None:
         config["MinHash"]["minFrequency"] = str(args.minFrequency)
-        
+
     if args.maxSkip is not None:
         config["Align"]["maxSkip"] = str(args.maxSkip)
-        
+
     if args.maxMarkerFrequency is not None:
         config["Align"]["maxMarkerFrequency"] = str(args.maxMarkerFrequency)
-        
+
     if args.minAlignedMarkerCount is not None:
         config["Align"]["minAlignedMarkerCount"] = str(args.minAlignedMarkerCount)
-        
+
     if args.maxTrim is not None:
         config["Align"]["maxTrim"] = str(args.maxTrim)
-        
+
     if args.minComponentSize is not None:
         config["ReadGraph"]["minComponentSize"] = str(args.minComponentSize)
-        
+
     if args.maxChimericReadDistance is not None:
         config["ReadGraph"]["maxChimericReadDistance"] = str(args.maxChimericReadDistance)
-        
+
     if args.minCoverage is not None:
         config["MarkerGraph"]["minCoverage"] = str(args.minCoverage)
-        
+
     if args.maxCoverage is not None:
         config["MarkerGraph"]["maxCoverage"] = str(args.maxCoverage)
-        
+
     if args.lowCoverageThreshold is not None:
         config["MarkerGraph"]["lowCoverageThreshold"] = str(args.lowCoverageThreshold)
-        
+
     if args.highCoverageThreshold is not None:
         config["MarkerGraph"]["highCoverageThreshold"] = str(args.highCoverageThreshold)
-        
+
     if args.maxDistance is not None:
         config["MarkerGraph"]["maxDistance"] = str(args.maxDistance)
-        
+
     if args.pruneIterationCount is not None:
         config["MarkerGraph"]["pruneIterationCount"] = str(args.pruneIterationCount)
-        
+
     if args.shortCycleLengthThreshold is not None:
         config["MarkerGraph"]["shortCycleLengthThreshold"] = str(args.shortCycleLengthThreshold)
-        
+
     if args.bubbleLengthThreshold is not None:
         config["MarkerGraph"]["bubbleLengthThreshold"] = str(args.bubbleLengthThreshold)
-        
+
     if args.superBubbleLengthThreshold is not None:
         config["MarkerGraph"]["superBubbleLengthThreshold"] = str(args.superBubbleLengthThreshold)
-        
+
     if args.markerGraphEdgeLengthThresholdForConsensus is not None:
-        config["Assembly"]["markerGraphEdgeLengthThresholdForConsensus"] = str(args.markerGraphEdgeLengthThresholdForConsensus)
-        
+        config["Assembly"]["markerGraphEdgeLengthThresholdForConsensus"] = str(
+            args.markerGraphEdgeLengthThresholdForConsensus)
+
     if args.consensusCaller is not None:
         config["Assembly"]["consensusCaller"] = str(args.consensusCaller) + "ConsensusCaller"
-        
+
     if args.useMarginPhase is not None:
         config["Assembly"]["useMarginPhase"] = str(args.useMarginPhase)
 
     return config
-    
 
-def main(readsSequencePath, outputParentDirectory, args):    
+
+def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, gigaBytes, savePageMemory, args):
     if not os.path.exists(readsSequencePath):
         raise Exception("ERROR: input file not found: %s" % readsSequencePath)
 
@@ -136,10 +140,14 @@ def main(readsSequencePath, outputParentDirectory, args):
     outputDirectoryName = "run_" + getDatetimeString()
     outputDirectory = os.path.join(outputParentDirectory, outputDirectoryName)
     ensureDirectoryExists(outputDirectory)
-    
-    # Setup run directory according to SetupSmallRunDirectory.py
-    verifyDirectoryFiles(parentDirectory=outputDirectory)
-    setupSmallRunDirectory(outputDirectory)
+
+    # Setup linux page file system according to SetupHugePages.py
+    verifyPageMemoryDirectory(largePagesMountPoint)
+    allocatePages(gigaBytes=gigaBytes, largePagesMountPoint=largePagesMountPoint, Data=Data)
+
+    # Setup run directory according to SetupRunDirectory.py
+    verifyDirectoryFiles(Data=Data, parentDirectory=outputDirectory)
+    setupRunDirectory(Data=Data, parentDirectory=outputDirectory)
 
     # Locate path of default configuration files relative to this script's "binary" file
     scriptPath = os.path.abspath(os.path.dirname(__file__))
@@ -147,11 +155,11 @@ def main(readsSequencePath, outputParentDirectory, args):
 
     defaultConfFilename = "shasta.conf"
     defaultConfPath = os.path.join(confDirectory, defaultConfFilename)
-    
+
     # Copy config file to output directory
     localConfPath = os.path.join(outputDirectory, "shasta.conf")
     copyfile(defaultConfPath, localConfPath)
-            
+    
     # Parse config file to fill in default parameters
     config = configparser.ConfigParser()
     if not config.read(localConfPath):
@@ -159,7 +167,7 @@ def main(readsSequencePath, outputParentDirectory, args):
 
     # Check if any params were specified by user and override the default config
     config = overrideDefaultConfig(config, args)
-    
+
     if args.consensusCaller == "SimpleBayesian":
         # Copy config file to output directory
         defaultMatrixPath = os.path.join(confDirectory, "SimpleBayesianConsensusCaller-1.csv")
@@ -181,33 +189,57 @@ def main(readsSequencePath, outputParentDirectory, args):
     
     # Initialize Assembler object
     assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
-
+    
     # Run with user specified configuration and input files
     runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
+
+    # Save page memory to disk so it can be reused during RunServerFromDisk
+    if savePageMemory:
+        saveRun(outputDirectory)
+    
+    cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
 
 
 def stringAsBool(s):
     s = s.lower()
     boolean = None
-
+    
     if s in {"t", "true", "1", "y", "yes"}:
         boolean = True
     elif s in {"f", "false", "0", "n", "no"}:
         boolean = False
     else:
-        exit("Error: invalid argument specified for boolean flag: %s" % s)
-
+        exit("Error: invalid argument specified for boolean flag: %s"%s)
+                
     return boolean
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.register("type", "bool", stringAsBool)  # add type keyword to registries
+    
     parser.add_argument(
         "--inputSequences",
         type=str,
         required=True,
         help="File path of FASTQ or FASTA sequence file containing sequences for assembly"
+    )
+    parser.add_argument(
+        "--memory",
+        type=int,
+        # default=10,
+        required=True,
+        help="The number of GB to allocate to large pages. NOT the total required memory for shasta"
+    )
+    parser.add_argument(
+        "--savePageMemory",
+        type="bool",
+        # default=10,
+        required=False,
+        help="Save page memory to disk before clearing the ephemeral page data. \n \
+              Convenient for post-assembly analysis using RunServerFromDisk.py. \n\n \
+              Any case insensitive variant of the following is accepted: \n \
+              t, true, 1, y, yes, f, false, 0, n, no"
     )
     parser.add_argument(
         "--outputDir",
@@ -405,7 +437,7 @@ if __name__ == "__main__":
         "--consensusCaller",
         type=str,
         required=False,
-        choices=["Simple","SimpleBayesian"],
+        choices=["Simple", "SimpleBayesian"],
         help="Whether to use Bayesian inference on read lengths during consensus calling"
     )
     parser.add_argument(
@@ -419,7 +451,15 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+        
+    # Assign default paths for page data
+    largePagesMountPoint = "/hugepages"
+    Data = os.path.join(largePagesMountPoint, "Data")
 
-    main(readsSequencePath=args.inputSequences, 
+    main(readsSequencePath=args.inputSequences,
          outputParentDirectory=args.outputDir,
-         args=args)
+         largePagesMountPoint=largePagesMountPoint,
+         Data=Data,
+         args=args,
+         gigaBytes=args.memory,
+         savePageMemory=args.savePageMemory)
