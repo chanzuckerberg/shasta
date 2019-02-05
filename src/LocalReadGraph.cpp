@@ -35,7 +35,8 @@ void LocalReadGraph::addVertex(
 void LocalReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    size_t globalEdgeId)
+    uint32_t markerCount,
+    bool isContaining)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -47,7 +48,7 @@ void LocalReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(globalEdgeId),
+        LocalReadGraphEdge(markerCount, isContaining),
         *this);
 }
 
@@ -135,6 +136,7 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
 
 void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
+    const LocalReadGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
     const LocalReadGraphVertex& vertex0 = graph[v0];
@@ -144,6 +146,13 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
         "["
         "tooltip=\"" << vertex0.orientedReadId << " " <<
         vertex1.orientedReadId << "\"";
+
+    if(edge.isContaining) {
+        s << " color=red";
+    } else {
+        const double thickness = 0.003*double(edge.markerCount);
+        s << " penwidth=" << thickness;
+    }
 
     s << "]";
 }

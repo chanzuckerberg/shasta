@@ -2200,6 +2200,9 @@ void Assembler::exploreReadGraph(
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
+    uint32_t maxTrim = 30;
+    getParameterValue(request, "maxTrim", maxTrim);
+
     string allowChimericReadsString;
     const bool allowChimericReads = getParameterValue(request, "allowChimericReads", allowChimericReadsString);
 
@@ -2241,6 +2244,12 @@ void Assembler::exploreReadGraph(
         "<td>Maximum distance"
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
+        "'>"
+
+        "<tr title='Maximum trim (markers) used to define containment'>"
+        "<td>Maximum trim"
+        "<td><input type=text required name=maxTrim size=8 style='text-align:center'"
+        " value='" << maxTrim <<
         "'>"
 
         "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
@@ -2306,7 +2315,7 @@ void Assembler::exploreReadGraph(
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
     if(!createLocalReadGraph(OrientedReadId(readId, strand),
-        maxDistance, allowChimericReads, timeout, graph)) {
+        maxDistance, allowChimericReads, maxTrim, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }

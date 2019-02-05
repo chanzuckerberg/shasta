@@ -79,12 +79,22 @@ public:
 class ChanZuckerberg::shasta::LocalReadGraphEdge {
 public:
 
-    // The id of the global read graph edge that corresponds to this edge.
-    // This is an index into ReadGraph::edges.
-    size_t globalEdgeId;
+    // The number of alignment markers in the alignment
+    // that created this edge.
+    uint32_t markerCount;
 
-    LocalReadGraphEdge(size_t globalEdgeId) :
-        globalEdgeId(globalEdgeId) {}
+    // Flag that indicates whether this is a containing
+    // alignment (that is, the alignment covers the entirety
+    // of one of the reads, except possibly for up to maxTrim markers
+    // on each side.
+    bool isContaining;
+
+    LocalReadGraphEdge(
+        uint32_t markerCount,
+        bool isContaining) :
+        markerCount(markerCount),
+        isContaining(isContaining)
+        {}
 };
 
 
@@ -102,7 +112,8 @@ public:
     void addEdge(
         OrientedReadId,
         OrientedReadId,
-        size_t globalEdgeId);
+        uint32_t markerCount,
+        bool isContaining);
 
     // Find out if a vertex with a given OrientedReadId exists.
     bool vertexExists(OrientedReadId) const;

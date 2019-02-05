@@ -320,6 +320,7 @@ bool Assembler::createLocalReadGraph(
     OrientedReadId start,
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
+    size_t maxTrim,                 // Used to define containment.
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
 {
@@ -368,6 +369,10 @@ bool Assembler::createLocalReadGraph(
                 continue;
             }
 
+            // Get alignment information.
+            const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
+            const uint32_t markerCount = alignment.info.markerCount;
+            const uint32_t isContaining = alignment.info.isContaining(maxTrim);
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,
@@ -382,14 +387,16 @@ bool Assembler::createLocalReadGraph(
                 graph.addEdge(
                     orientedReadId0,
                     orientedReadId1,
-                    globalEdge.alignmentId);
+                    markerCount,
+                    isContaining);
             } else {
                 CZI_ASSERT(distance0 == maxDistance);
                 if(graph.vertexExists(orientedReadId1)) {
                     graph.addEdge(
                         orientedReadId0,
                         orientedReadId1,
-                        globalEdge.alignmentId);
+                        markerCount,
+                        isContaining);
                 }
             }
 

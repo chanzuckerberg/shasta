@@ -189,6 +189,20 @@ public:
         const uint32_t rightTrim = min(data[0].rightTrim(), data[1].rightTrim());
         return make_pair(leftTrim, rightTrim);
     }
+
+    // Find out if this is a containing alignment,
+    // that is, if the alignment covers one read
+    // entirtely, except possibly for up to maxTim
+    // markers on each side.
+    bool isContaining(uint32_t maxTrim) const {
+        for(size_t i=0; i<2; i++) {
+            if(leftTrim(i)<=maxTrim && rightTrim(i)<=maxTrim) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 };
 
 

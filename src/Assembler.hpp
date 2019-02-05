@@ -714,6 +714,7 @@ private:
         OrientedReadId start,
         uint32_t maxDistance,   // How far to go from starting oriented read.
         bool allowChimericReads,
+        size_t maxTrim,         // Used to define containment.
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
 
