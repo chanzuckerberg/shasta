@@ -9,6 +9,37 @@
 
 <body>
 
+<h1>Running an assembly: simplified procedure for large runs</h1>
+<p>
+<p>
+This provides a one line command to run a large <code>shasta</code> assembly
+with full performance through the usage of large pages
+if full configurability and flexibility are not necessary.
+Note that this requires root privileges to configure large pages.
+Root privileges are obtained using the <code>sudo</code>
+command. Therefore, depending on configuration, this command may
+request your password.
+<p>
+<code>
+shasta-install/bin/Run.py --inputSequences /.../input.fasta --memory 100
+</code>
+<p>
+Arguments:
+<ul>
+<li><code>--memory</code> 
+specifies the number of memory GB to be allocated to large pages (2 MB pages).
+<li><code>--inputSequences</code> specifies the input fasta file to be used.
+This must be an absolute path.
+</ul>
+
+<p>
+This command provides a certain amount of configurability,
+but  does not provide full access to all of the Shasta 
+assembly parameters. 
+Invoke with the <code>--help</code> for details.
+
+
+
 <h1>Running an assembly: complete procedure for large runs</h1>
 
 <p>
