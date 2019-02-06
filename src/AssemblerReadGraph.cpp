@@ -372,7 +372,7 @@ bool Assembler::createLocalReadGraph(
             // Get alignment information.
             const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
             const uint32_t markerCount = alignment.info.markerCount;
-            const uint32_t isContaining = alignment.info.isContaining(maxTrim);
+            const bool isContaining = alignment.info.isContaining(uint32_t(maxTrim));
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,
