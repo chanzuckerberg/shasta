@@ -286,9 +286,9 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
     size_t begin, end;
     while(getNextBatch(begin, end)) {
-        {
+        if((begin % 1000000) == 0){
             std::lock_guard<std::mutex> lock(mutex);
-            cout << timestamp << "Working on alignments " << begin << " through " << end;
+            cout << timestamp << "Working on alignment " << begin;
             cout << " of " << alignmentCandidates.size() << endl;
         }
 
