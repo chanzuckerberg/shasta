@@ -1067,7 +1067,7 @@ public:
     // The argument is the maximum length (number of edges)
     // of a cycle path to be considered for removal.
     // For now this only processes self-edges of the assembly graph.
-    void removeShortMarkerGraphCycles(size_t maxLength);
+    void removeShortMarkerGraphCycles(size_t maxLength, bool debug);
 
     // Remove short bubbles from the marker graph.
     // The argument is the maximum length (number of edges)

@@ -314,7 +314,8 @@ PYBIND11_MODULE(shasta, module)
             arg("debug") = false)
         .def("removeShortMarkerGraphCycles",
             &Assembler::removeShortMarkerGraphCycles,
-            arg("maxLength"))
+            arg("maxLength"),
+            arg("debug") = false)
 
 
 

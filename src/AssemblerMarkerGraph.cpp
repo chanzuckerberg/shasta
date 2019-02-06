@@ -3109,7 +3109,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
 // For now this only processes:
 // - Self-edges of the assembly graph.
 // - Reversed edges of the assembly graphs (pairs v0->v1, v1->v0).
-void Assembler::removeShortMarkerGraphCycles(size_t maxLength)
+void Assembler::removeShortMarkerGraphCycles(size_t maxLength, bool debug)
 {
     // To facilitate locating the cycles, create a temporary assembly graph.
     cout << timestamp << "Creating a temporary assembly graph for short cycle removal." << endl;
@@ -3121,6 +3121,10 @@ void Assembler::removeShortMarkerGraphCycles(size_t maxLength)
     // The assembly graph edges we want to remove.
     vector<AssemblyGraph::EdgeId> edgesToBeRemoved;
 
+    ofstream debugOut;
+    if(debug) {
+        debugOut.open("removeShortMarkerGraphCycles.debugLog");
+    }
 
 
     // Flag self-edges of the assembly graph.
@@ -3203,6 +3207,12 @@ void Assembler::removeShortMarkerGraphCycles(size_t maxLength)
         for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGrapEdgeIds) {
             markerGraph.edges[markerGraphEdgeId].isShortCycleEdge = 1;
             ++markerGraphRemovedEdgeCount;
+            if(debug) {
+                const MarkerGraph::Edge& edge = markerGraph.edges[markerGraphEdgeId];
+                debugOut << "Marker graph edge " << markerGraphEdgeId << " " <<
+                    edge.source << "->" << edge.target <<
+                    " marked as cycle edge.\n";
+            }
         }
     }
     cout << "Removed " << edgesToBeRemoved.size() <<
