@@ -3409,7 +3409,7 @@ void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength)
             if(markerGraphEdgeIds.size() <= maxLength) {
                 // The edge is internal to a connected component.
                 // Mark all of its marker graph edges as superbubble edges.
-                cout << "Assembly graph edge " << v0 << "->" << v1 << " marked for removal " << markerGraphEdgeIds.size() << endl;
+                // cout << "Assembly graph edge " << v0 << "->" << v1 << " marked for removal " << markerGraphEdgeIds.size() << endl;
                 for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdgeIds) {
                     markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
                 }
