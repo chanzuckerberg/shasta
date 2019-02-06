@@ -3222,7 +3222,7 @@ void Assembler::removeShortMarkerGraphCycles(size_t maxLength)
 // Remove short bubbles from the marker graph.
 // The argument is the maximum length (number of edges)
 // of a bubble branch to be considered for removal.
-void Assembler::removeMarkerGraphBubbles(size_t maxLength)
+void Assembler::removeMarkerGraphBubbles(size_t maxLength, bool debug)
 {
 
     // To facilitate locating the bubbles, create a temporary assembly graph.
@@ -3232,6 +3232,10 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
     assemblyGraph.writeGraphviz("AssemblyGraph-1.dot");
     cout << timestamp << "Done creating a temporary assembly graph for bubble removal." << endl;
 
+    ofstream debugOut;
+    if(debug) {
+        debugOut.open("removeMarkerGraphBubbles.debugLog");
+    }
 
 
     // Vector to contain the new marker graph edges to be created.
@@ -3298,12 +3302,17 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
         }
 
 
-        // If getting here, we found a bubble that begins at v0 and ands at v2.
+        // If getting here, we found a bubble that begins at v0 and ends at v1Common.
         CZI_ASSERT(v1Common != AssemblyGraph::invalidVertexId);
         ++bubbleCount;
-        // const size_t degree = edgeIds01.size();
-        // cout << "Bubble between assembly graph vertices " << v0 << " " << v2;
-        // cout << " degree " << degree << endl;
+        if(debug) {
+            const size_t degree = edgeIds01.size();
+            debugOut << "Bubble of degree " << degree << " between assembly graph vertices " <<
+                v0 << " " << v1Common << "\n";
+            debugOut << "These correspond to marker graph vertices "<<
+                assemblyGraph.vertices[v0] << " " <<
+                assemblyGraph.vertices[v1Common] << "\n";
+        }
 
 
         // Mark edges of the marker graph that are internal to this bubble.
@@ -3311,8 +3320,19 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
             const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdgeIds =
                 assemblyGraph.edgeLists[edgeId01];
             bubbleMarkerGraphEdgeCount += markerGraphEdgeIds.size();
+            if(debug) {
+                debugOut << "Assembly graph edge " << edgeId01 <<
+                    " corresponding to the following " << markerGraphEdgeIds.size() <<
+                    " marker graph edges marked as internal to a bubble:\n";
+            }
             for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdgeIds) {
                 markerGraph.edges[markerGraphEdgeId].isBubbleEdge = 1;
+                if(debug) {
+                    const MarkerGraph::Edge& edge = markerGraph.edges[markerGraphEdgeId];
+                    debugOut << "Marker graph edge " << markerGraphEdgeId << " " <<
+                        edge.source << "->" << edge.target <<
+                        " marked as bubble edge.\n";
+                }
             }
         }
 
@@ -3361,7 +3381,7 @@ void Assembler::removeMarkerGraphBubbles(size_t maxLength)
 // - Remove all edges internal to each connected component.
 // - Create a new edge for each entry point/exit point
 // conmbination for each connected component.
-void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength)
+void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength, bool debug)
 {
     // Create a temporary assembly graph.
     cout << timestamp << "Creating a temporary assembly graph for superbubble removal." << endl;
@@ -3370,6 +3390,10 @@ void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength)
     assemblyGraph.writeGraphviz("AssemblyGraph-2.dot");
     cout << timestamp << "Done creating a temporary assembly graph for superbubble removal." << endl;
 
+    ofstream debugOut;
+    if(debug) {
+        debugOut.open("removeMarkerGraphSuperBubbles.debugLog");
+    }
 
     // Compute connected components of the temporary assembly graph,
     // considering only edges with length (number of corresponding
@@ -3409,9 +3433,19 @@ void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength)
             if(markerGraphEdgeIds.size() <= maxLength) {
                 // The edge is internal to a connected component.
                 // Mark all of its marker graph edges as superbubble edges.
-                // cout << "Assembly graph edge " << v0 << "->" << v1 << " marked for removal " << markerGraphEdgeIds.size() << endl;
+                if(debug) {
+                    debugOut << "Assembly graph edge " << v0 << "->" << v1 <<
+                        " corresponding to the following " << markerGraphEdgeIds.size() <<
+                        " marker graph edges marked as internal to a superbubble:\n";
+                }
                 for(GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdgeIds) {
                     markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
+                    if(debug) {
+                        const MarkerGraph::Edge& edge = markerGraph.edges[markerGraphEdgeId];
+                        debugOut << "Marker graph edge " << markerGraphEdgeId << " " <<
+                            edge.source << "->" << edge.target <<
+                            " marked as superbubble edge.\n";
+                    }
                 }
             }
         } else {
@@ -3444,6 +3478,13 @@ void Assembler::removeMarkerGraphSuperBubbles(size_t maxLength)
             newEdges.push_back(make_pair(
                 assemblyGraph.vertices[v0],
                 assemblyGraph.vertices[v1]));
+            if(debug) {
+                debugOut << "A superbubble replacement edge will be created "
+                    " between assembly graph vertices " << v0 << " " << v1 <<
+                    " corresponding to marker graph vertices " <<
+                    assemblyGraph.vertices[v0] << " " <<
+                    assemblyGraph.vertices[v1] << "\n";
+            }
         }
     }
 
@@ -3483,7 +3524,6 @@ void Assembler::createBubbleReplacementEdge(
                 (isSuperBubble ? "Superbubble" : "Bubble") <<
                 " edge replacement " << v0 << "->" << v1 <<
                 " already exists - not added." << endl;
-
             return;
         }
     }
@@ -3546,5 +3586,10 @@ void Assembler::createBubbleReplacementEdge(
     }
     markerGraph.edges.push_back(edge);
 
+    /*
+    cout << "Added to the marker graph a " <<
+        (isSuperBubble ? "superbubble" : "bubble") <<
+        " replacement edge " << v0 << "->" << v1 << endl;
+    */
 }
 

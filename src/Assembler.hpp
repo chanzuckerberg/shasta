@@ -1072,12 +1072,12 @@ public:
     // Remove short bubbles from the marker graph.
     // The argument is the maximum length (number of edges)
     // of a bubble branch to be considered for removal.
-    void removeMarkerGraphBubbles(size_t maxLength);
+    void removeMarkerGraphBubbles(size_t maxLength, bool debug);
 
     // Remove short superbubbles from the marker graph.
     // The argument is a number of marker graph edges.
     // See the code for detail on its meaning and how it is used.
-    void removeMarkerGraphSuperBubbles(size_t maxLength);
+    void removeMarkerGraphSuperBubbles(size_t maxLength, bool debug);
 private:
 
     // Used by removeMarkerGraphBubbles and removeMarkerGraphSuperBubbles.

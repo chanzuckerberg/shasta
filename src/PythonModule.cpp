@@ -306,10 +306,12 @@ PYBIND11_MODULE(shasta, module)
             arg("iterationCount"))
         .def("removeMarkerGraphBubbles",
             &Assembler::removeMarkerGraphBubbles,
-            arg("maxLength"))
+            arg("maxLength"),
+            arg("debug") = false)
         .def("removeMarkerGraphSuperBubbles",
             &Assembler::removeMarkerGraphSuperBubbles,
-            arg("maxLength"))
+            arg("maxLength"),
+            arg("debug") = false)
         .def("removeShortMarkerGraphCycles",
             &Assembler::removeShortMarkerGraphCycles,
             arg("maxLength"))
