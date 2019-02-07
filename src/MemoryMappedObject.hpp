@@ -309,7 +309,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
     } catch(std::exception& e) {
         cout << e.what() << endl;
         throw runtime_error("Error " + to_string(errno)
-            + " opening MemoryMapped::Object " + name + ": " + strerror(errno));
+            + " creating MemoryMapped::Object " + name + ": " + strerror(errno));
     }
 
 }
