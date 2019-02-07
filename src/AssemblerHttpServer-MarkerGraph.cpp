@@ -63,9 +63,11 @@ void Assembler::exploreMarkerGraph(
             requestParameters.timeout,
             requestParameters.useWeakEdges,
             requestParameters.usePrunedEdges,
+            requestParameters.useShortCycleEdges,
             requestParameters.useBubbleEdges,
             requestParameters.useBubbleReplacementEdges,
-            requestParameters.useShortCycleEdges,
+            requestParameters.useSuperBubbleEdges,
+            requestParameters.useSuperBubbleReplacementEdges,
             graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             return;
@@ -409,6 +411,10 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.usePrunedEdges = getParameterValue(
         request, "usePrunedEdges", usePrunedEdgesString);
 
+    string useShortCycleEdgesString;
+    parameters.useShortCycleEdges = getParameterValue(
+        request, "useShortCycleEdges", useShortCycleEdgesString);
+
     string useBubbleEdgesString;
     parameters.useBubbleEdges = getParameterValue(
         request, "useBubbleEdges", useBubbleEdgesString);
@@ -417,9 +423,13 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.useBubbleReplacementEdges = getParameterValue(
         request, "useBubbleReplacementEdges", useBubbleReplacementEdgesString);
 
-    string useShortCycleEdgesString;
-    parameters.useShortCycleEdges = getParameterValue(
-        request, "useShortCycleEdges", useShortCycleEdgesString);
+    string useSuperBubbleEdgesString;
+    parameters.useSuperBubbleEdges = getParameterValue(
+        request, "useSuperBubbleEdges", useSuperBubbleEdgesString);
+
+    string useSuperBubbleReplacementEdgesString;
+    parameters.useSuperBubbleReplacementEdges = getParameterValue(
+        request, "useSuperBubbleReplacementEdges", useSuperBubbleReplacementEdgesString);
 
     string showVertexIdString;
     parameters.showVertexId = getParameterValue(
@@ -487,11 +497,14 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td class=centered><input type=checkbox name=useStoredConnectivity"
         << (useStoredConnectivity ? " checked=checked" : "") <<
         "><td class=left>"
+        "Options only used when \"Use stored connectivity\" is checked:<br>"
         "<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") << ">Weak edges"
         "<br><input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") << ">Pruned edges"
+        "<br><input type=checkbox name=useShortCycleEdges" << (useShortCycleEdges ? " checked=checked" : "") << ">Short cycle edges"
         "<br><input type=checkbox name=useBubbleEdges" << (useBubbleEdges ? " checked=checked" : "") << ">Bubble edges"
         "<br><input type=checkbox name=useBubbleReplacementEdges" << (useBubbleReplacementEdges ? " checked=checked" : "") << ">Bubble replacement edges"
-        "<br><input type=checkbox name=useShortCycleEdges" << (useShortCycleEdges ? " checked=checked" : "") << ">Short cycle edges"
+        "<br><input type=checkbox name=useSuperBubbleEdges" << (useSuperBubbleEdges ? " checked=checked" : "") << ">Superbubble edges"
+        "<br><input type=checkbox name=useSuperBubbleReplacementEdges" << (useSuperBubbleReplacementEdges ? " checked=checked" : "") << ">Superbubble replacement edges"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
         "<td>Show vertex ids"

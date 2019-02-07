@@ -1356,9 +1356,11 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
+    bool useShortCycleEdges,
     bool useBubbleEdges,
     bool useBubbleReplacementEdges,
-    bool useShortCycleEdges,
+    bool useSuperBubbleEdges,
+    bool useSuperBubbleReplacementEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1366,7 +1368,13 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     return extractLocalMarkerGraphUsingStoredConnectivity(
         startVertexId, distance, timeout,
-        useWeakEdges, usePrunedEdges, useBubbleEdges, useBubbleReplacementEdges, useShortCycleEdges,
+        useWeakEdges,
+        usePrunedEdges,
+        useShortCycleEdges,
+        useBubbleEdges,
+        useBubbleReplacementEdges,
+        useSuperBubbleEdges,
+        useSuperBubbleReplacementEdges,
         graph);
 
 }
@@ -1379,9 +1387,11 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
+    bool useShortCycleEdges,
     bool useBubbleEdges,
     bool useBubbleReplacementEdges,
-    bool useShortCycleEdges,
+    bool useSuperBubbleEdges,
+    bool useSuperBubbleReplacementEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1439,13 +1449,19 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.wasPruned && !usePrunedEdges) {
                 continue;
             }
+            if(edge.isShortCycleEdge && !useShortCycleEdges) {
+                continue;
+            }
             if(edge.isBubbleEdge && !useBubbleEdges) {
                 continue;
             }
             if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
                 continue;
             }
-            if(edge.isShortCycleEdge && !useShortCycleEdges) {
+            if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
+                continue;
+            }
+            if(edge.replacesSuperBubbleEdges && !useSuperBubbleReplacementEdges) {
                 continue;
             }
 
@@ -1502,13 +1518,19 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.wasPruned && !usePrunedEdges) {
                 continue;
             }
+            if(edge.isShortCycleEdge && !useShortCycleEdges) {
+                continue;
+            }
             if(edge.isBubbleEdge && !useBubbleEdges) {
                 continue;
             }
             if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
                 continue;
             }
-            if(edge.isShortCycleEdge && !useShortCycleEdges) {
+            if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
+                continue;
+            }
+            if(edge.replacesSuperBubbleEdges && !useSuperBubbleReplacementEdges) {
                 continue;
             }
 
@@ -1578,13 +1600,19 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.wasPruned && !usePrunedEdges) {
                 continue;
             }
+            if(edge.isShortCycleEdge && !useShortCycleEdges) {
+                continue;
+            }
             if(edge.isBubbleEdge && !useBubbleEdges) {
                 continue;
             }
             if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
                 continue;
             }
-            if(edge.isShortCycleEdge && !useShortCycleEdges) {
+            if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
+                continue;
+            }
+            if(edge.replacesSuperBubbleEdges && !useSuperBubbleReplacementEdges) {
                 continue;
             }
 

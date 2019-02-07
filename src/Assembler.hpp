@@ -1016,9 +1016,11 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
+        bool useShortCycleEdges,
         bool useBubbleEdges,
         bool useBubbleReplacementEdges,
-        bool useShortCycleEdges,
+        bool useSuperBubbleEdges,
+        bool useSuperBubbleReplacementEdges,
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
@@ -1027,9 +1029,11 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
+        bool useShortCycleEdges,
         bool useBubbleEdges,
         bool useBubbleReplacementEdges,
-        bool useShortCycleEdges,
+        bool useSuperBubbleEdges,
+        bool useSuperBubbleReplacementEdges,
         LocalMarkerGraph&
         );
 
@@ -1228,9 +1232,11 @@ public:
         bool useStoredConnectivity;
         bool useWeakEdges;
         bool usePrunedEdges;
+        bool useShortCycleEdges;
         bool useBubbleEdges;
         bool useBubbleReplacementEdges;
-        bool useShortCycleEdges;
+        bool useSuperBubbleEdges;
+        bool useSuperBubbleReplacementEdges;
         bool showVertexId;
         bool showOptimalSpanningTree;
         bool showAssembledSequence;
