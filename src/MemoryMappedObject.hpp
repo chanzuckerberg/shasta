@@ -208,7 +208,8 @@ template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Object<T>::op
             O_CREAT | O_TRUNC | O_RDWR,
             S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if(fileDescriptor == -1) {
-        throw runtime_error("Error opening " + name);
+        throw runtime_error("Error " + to_string(errno)
+            + " opening MemoryMapped::Object " + name + ": " + strerror(errno));
     }
     return fileDescriptor;
 }
@@ -307,7 +308,8 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
 
     } catch(std::exception& e) {
         cout << e.what() << endl;
-        throw runtime_error("Error creating " + name);
+        throw runtime_error("Error " + to_string(errno)
+            + " opening MemoryMapped::Object " + name + ": " + strerror(errno));
     }
 
 }
