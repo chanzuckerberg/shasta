@@ -185,6 +185,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
         "&minCoverage=0"
         "&timeout=30"
         "&useBubbleReplacementEdges=on"
+        "&useSuperbubbleReplacementEdges=on"
         "&showVertexId=on"
         "\"";
 
