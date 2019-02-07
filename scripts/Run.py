@@ -11,8 +11,10 @@ from datetime import datetime
 from shutil import copyfile
 import subprocess
 import signal
+import traceback
 import argparse
 import sys
+import gc
 import os
 
 
@@ -199,7 +201,7 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, p
     # print(outputDirectory, os.path.lexists(outputDirectory))
 
     arguments = [executablePath, readsSequencePath]
-    processHandler.launchProcess(arguments=arguments, working_directory=outputDirectory)
+    processHandler.launchProcess(arguments=arguments, working_directory=outputDirectory, wait=True)
 
     # # Initialize Assembler object
     # assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
@@ -220,9 +222,11 @@ class ProcessHandler:
         self.Data = Data
         self.largePagesMountPoint = largePagesMountPoint
 
-    def launchProcess(self, arguments, working_directory):
+    def launchProcess(self, arguments, working_directory, wait):
         if self.process is None:
             self.process = subprocess.Popen(arguments, cwd=working_directory)
+            if wait:
+                self.process.wait()
         else:
             exit("ERROR: process already launched")
 
@@ -236,18 +240,18 @@ class ProcessHandler:
         """
         pass
         
-        # if self.process is not None:
-        #     process.kill()  # kill or terminate?
-        #     gc.collect()
+        if self.process is not None:
+            self.process.kill()  # kill or terminate?
+            gc.collect()
 
-        # sys.stderr.write("ERROR: script terminated or interrupted:\n")
-        # 
-        # traceback.print_stack(frame)
-        # 
-        # sys.stderr.write("Cleaning up page memory...")
-        # cleanUpHugePages(Data=self.Data, largePagesMountPoint=self.largePagesMountPoint, requireUserInput=False)
-        # sys.stderr.write("\rCleaning up page memory... Done\n")
-        # exit(1)
+        sys.stderr.write("\nERROR: script terminated or interrupted:\n")
+
+        traceback.print_stack(frame)
+
+        sys.stderr.write("Cleaning up page memory...")
+        cleanUpHugePages(Data=self.Data, largePagesMountPoint=self.largePagesMountPoint, requireUserInput=False)
+        sys.stderr.write("\rCleaning up page memory... Done\n")
+        exit(1)
 
 
 def stringAsBool(s):
