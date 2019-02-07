@@ -194,26 +194,17 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, p
 
     # Launch assembler as a separate process using the saved (updated) config file
     executablePath = os.path.join(scriptPath, "RunAssembly.py")
-    localDataPath = os.path.abspath(os.path.join(outputDirectory, "Data"))
-
-    # print(Data, os.path.lexists(Data))
-    # print(localDataPath, os.path.lexists(localDataPath))
-    # print(outputDirectory, os.path.lexists(outputDirectory))
 
     arguments = [executablePath, readsSequencePath]
     processHandler.launchProcess(arguments=arguments, working_directory=outputDirectory, wait=True)
 
-    # # Initialize Assembler object
-    # assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
-    # 
-    # # Run with user specified configuration and input files
-    # runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
-
     # Save page memory to disk so it can be reused during RunServerFromDisk
     if savePageMemory:
         saveRun(outputDirectory)
-    
+
+    sys.stderr.write("Cleaning up page memory...")
     cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
+    sys.stderr.write("\rCleaning up page memory... Done\n")
 
 
 class ProcessHandler:
@@ -224,9 +215,11 @@ class ProcessHandler:
 
     def launchProcess(self, arguments, working_directory, wait):
         if self.process is None:
+            
             self.process = subprocess.Popen(arguments, cwd=working_directory)
             if wait:
                 self.process.wait()
+
         else:
             exit("ERROR: process already launched")
 
@@ -243,10 +236,11 @@ class ProcessHandler:
         if self.process is not None:
             self.process.kill()  # kill or terminate?
             gc.collect()
+            
+        self.cleanup()
 
-        sys.stderr.write("\nERROR: script terminated or interrupted:\n")
-
-        traceback.print_stack(frame)
+    def cleanup(self):
+        sys.stderr.write("\nERROR: script terminated or interrupted\n")
 
         sys.stderr.write("Cleaning up page memory...")
         cleanUpHugePages(Data=self.Data, largePagesMountPoint=self.largePagesMountPoint, requireUserInput=False)
