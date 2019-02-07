@@ -3631,3 +3631,329 @@ void Assembler::createBubbleReplacementEdge(
     */
 }
 
+
+
+// Simplify the marker graph.
+// This is a more robust replacement for removeShortMarkerGraphCycles +
+// removeMarkerGraphBubbles + removeMarkerGraphSuperBubbles.
+// The first argument is a number of marker graph edges.
+// See the code for detail on its meaning and how it is used.
+// This never adds any edges. It only marks some edges
+// as superbubble edges. Those edges will then be excluded from assembly.
+// In the future we can also keep track of edges that were removed
+// to generate alternative assembled sequence.
+void Assembler::simplifyMarkerGraph(size_t maxLength, bool debug)
+{
+    // Start by clearing all edge flags except for
+    // wasRemovedByTransitiveReduction and wasPruned.
+    for(MarkerGraph::Edge& edge: markerGraph.edges) {
+
+        // If the marker graph contains replacement edges,
+        // we must have run bubble/superbubble removal which add edges.
+        // We don't want that.
+        // If these assertions happen, rerun CreateAndCleanupMarkerGraph.py
+        // to recreate the marker graph from scratch.
+        CZI_ASSERT(!edge.replacesBubbleEdges);
+        CZI_ASSERT(!edge.replacesSuperBubbleEdges);
+
+        edge.isBubbleEdge = 0;
+        edge.replacesBubbleEdges = 0;
+        edge.isShortCycleEdge = 0;
+        edge.isSuperBubbleEdge = 0;
+        edge.replacesSuperBubbleEdges = 0;
+    }
+
+    // Create a temporary assembly graph.
+    cout << timestamp << "Creating a temporary assembly graph to be used to simplify the marker graph." << endl;
+    createAssemblyGraphEdges();
+    createAssemblyGraphVertices();
+    assemblyGraph.writeGraphviz("AssemblyGraph-BeforeMarkerGraphSimplify.dot");
+    cout << timestamp << "Done creating a temporary assembly graph to simplify the marker graph." << endl;
+
+    ofstream debugOut;
+    if(debug) {
+        debugOut.open("simplifyMarkerGraph.debugLog");
+    }
+
+
+
+    // Compute connected components of the temporary assembly graph,
+    // considering only edges with length (number of corresponding
+    // marker graph edges) up to maxLength.
+    // Initialize the disjoint set data structures.
+    const size_t n = assemblyGraph.vertices.size();
+    vector<AssemblyGraph::VertexId> rank(n);
+    vector<AssemblyGraph::VertexId> parent(n);
+    boost::disjoint_sets<AssemblyGraph::VertexId*, AssemblyGraph::VertexId*> disjointSets(&rank[0], &parent[0]);
+    for(AssemblyGraph::VertexId vertexId=0; vertexId<n; vertexId++) {
+        disjointSets.make_set(vertexId);
+    }
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        if(assemblyGraph.edgeLists[edgeId].size() > maxLength) {
+            continue;
+        }
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+        disjointSets.union_set(edge.source, edge.target);
+    }
+
+
+
+    // Mark as to be kept all edges in between components.
+    vector<bool> keepAssemblyGraphEdge(assemblyGraph.edges.size(), false);
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+        const AssemblyGraph::VertexId v0 = edge.source;
+        const AssemblyGraph::VertexId v1 = edge.target;
+        if(disjointSets.find_set(v0) != disjointSets.find_set(v1)) {
+            keepAssemblyGraphEdge[edgeId] = true;
+        }
+    }
+
+
+    // Gather the vertices in each connected component.
+    vector< vector<AssemblyGraph::VertexId> > componentTable(n);
+    for(AssemblyGraph::VertexId vertexId=0; vertexId<n; vertexId++) {
+        componentTable[disjointSets.find_set(vertexId)].push_back(vertexId);
+    }
+
+
+    // Find entries and exits.
+    // An entry is a vertex with an in-edge from another component.
+    // An exit is a vertex with an out-edge to another component.
+    vector<bool> isEntry(n, false);
+    vector<bool> isExit(n, false);
+    for(AssemblyGraph::VertexId v0=0; v0<n; v0++) {
+        const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
+        const MemoryAsContainer<AssemblyGraph::EdgeId> inEdges = assemblyGraph.edgesByTarget[v0];
+        for(AssemblyGraph::EdgeId edgeId : inEdges) {
+            const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+            CZI_ASSERT(edge.target == v0);
+            const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.source);
+            if(componentId1 != componentId0) {
+                isEntry[v0] = true;
+                break;
+            }
+        }
+        const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+        for(AssemblyGraph::EdgeId edgeId : outEdges) {
+            const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+            CZI_ASSERT(edge.source == v0);
+            const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
+            if(componentId1 != componentId0) {
+                isExit[v0] = true;
+                break;
+            }
+        }
+    }
+
+
+
+
+    // Process one connected component at a time.
+    for(AssemblyGraph::VertexId componentId=0; componentId<n; componentId++) {
+
+        // Get the assembly graph vertices in this connected component
+        // and skip it if it is empty.
+        const vector<AssemblyGraph::VertexId>& component = componentTable[componentId];
+        if(component.empty()) {
+            continue;
+        }
+
+        if(debug) {
+            debugOut << "\nProcessing connected component with " << component.size() <<
+                " assembly/marker graph vertices:" << "\n";
+            for(const AssemblyGraph::VertexId assemblyGraphVertexId: component) {
+                const GlobalMarkerGraphVertexId markerGraphVertexId = assemblyGraph.vertices[assemblyGraphVertexId];
+                debugOut << assemblyGraphVertexId << "/" << markerGraphVertexId;
+                if(isEntry[assemblyGraphVertexId]) {
+                    debugOut << " entry";
+                }
+                if(isExit[assemblyGraphVertexId]) {
+                    debugOut << " exit";
+                }
+                debugOut << "\n";
+            }
+        }
+
+
+
+        // If there are no entries, skip this component.
+        bool entriesExist = false;
+        for(const AssemblyGraph::VertexId assemblyGraphVertexId: component) {
+            if(isEntry[assemblyGraphVertexId]) {
+                entriesExist = true;
+                break;
+            }
+        }
+        if(!entriesExist) {
+            if(debug) {
+                debugOut << "Component skipped because it has no entries.\n";
+            }
+            continue;
+        }
+
+
+
+        // If there are no exits, skip this component.
+        bool exitsExist = false;
+        for(const AssemblyGraph::VertexId assemblyGraphVertexId: component) {
+            if(isExit[assemblyGraphVertexId]) {
+                exitsExist = true;
+                break;
+            }
+        }
+        if(!exitsExist) {
+            if(debug) {
+                debugOut << "Component skipped because it has no exits.\n";
+            }
+            continue;
+        }
+
+
+        // Work areas used for shortest path computation.
+        std::priority_queue<
+            pair<size_t, AssemblyGraph::VertexId>,
+            vector<pair<size_t, AssemblyGraph::VertexId> >,
+            OrderPairsByFirstOnlyGreater<size_t, AssemblyGraph::VertexId> > q;
+        vector<AssemblyGraph::EdgeId> predecessorEdge(n, AssemblyGraph::invalidEdgeId);
+        vector<uint8_t> color(n);
+        vector< pair<size_t, AssemblyGraph::EdgeId> > sortedOutEdges;
+
+
+
+        // Loop over entry/exit pairs.
+        // We already checked that there is at least one entry
+        // and one exit, so the inner body of this loop
+        // gets executed at least once.
+        for(const AssemblyGraph::VertexId entryId: component) {
+            if(!isEntry[entryId]) {
+                continue;
+            }
+
+
+
+            // Compute shortest paths (measured by number of marker graph edges)
+            // from this vertex to all other vertices in this component.
+            if(debug) {
+                debugOut << "Computing shortest paths starting at " <<
+                    entryId << "/" << assemblyGraph.vertices[entryId] << "\n";
+            }
+            CZI_ASSERT(q.empty());
+            q.push(make_pair(0, entryId));
+            for(const AssemblyGraph::VertexId v: component) {
+                color[v] = 0;
+                predecessorEdge[v] = AssemblyGraph::invalidEdgeId;
+            }
+            color[entryId] = 1;
+            const AssemblyGraph::VertexId entryComponentId = disjointSets.find_set(entryId);
+            while(!q.empty()) {
+
+                // Dequeue.
+                const pair<size_t, AssemblyGraph::VertexId> p = q.top();
+                const size_t distance0 = p.first;
+                const AssemblyGraph::VertexId v0 = p.second;
+                q.pop();
+                if(debug) {
+                    debugOut << "Dequeued " << v0 << "/" << assemblyGraph.vertices[v0] <<
+                        " at distance " << distance0 << "\n";
+                }
+                CZI_ASSERT(color[v0] == 1);
+
+                // Find the out edges and sort them.
+                const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+                sortedOutEdges.clear();
+                for(const AssemblyGraph::EdgeId e01: outEdges) {
+                    sortedOutEdges.push_back(make_pair(assemblyGraph.edgeLists.size(e01), e01));
+                }
+                sort(sortedOutEdges.begin(), sortedOutEdges.end(),
+                    OrderPairsByFirstOnly<size_t, AssemblyGraph::EdgeId>());
+
+                // Loop over out-edges internal to this component.
+                for(const pair<size_t, AssemblyGraph::EdgeId>& edgePair: sortedOutEdges) {
+                    const AssemblyGraph::EdgeId e01 = edgePair.second;
+                    const size_t length01 = edgePair.first;
+                    const AssemblyGraph::VertexId v1 = assemblyGraph.edges[e01].target;
+                    if(disjointSets.find_set(v1) != entryComponentId) {
+                        continue;
+                    }
+                    if(color[v1] == 1) {
+                        continue;
+                    }
+                    color[v1] = 1;
+                    predecessorEdge[v1] = e01;
+                    const size_t distance1 = distance0 + length01;
+                    q.push(make_pair(distance1, v1));
+                    if(debug) {
+                        debugOut << "Enqueued " << v1 << "/" << assemblyGraph.vertices[v1] <<
+                            " at distance " << distance1 << "\n";
+                    }
+                }
+            }
+
+
+
+            for(const AssemblyGraph::VertexId exitId: component) {
+                if(!isExit[exitId]) {
+                    continue;
+                }
+                if(exitId == entryId) {
+                    continue;
+                }
+                if(predecessorEdge[exitId] == AssemblyGraph::invalidEdgeId) {
+                    continue;   // This exit is not reachable from this entry.
+                }
+
+                if(debug) {
+                    debugOut << "The following assembly graph edges will be kept because they are "
+                        "on the shortest path between entry " << entryId << "/" <<
+                        assemblyGraph.vertices[entryId] <<
+                        " and exit " << exitId << "/" << assemblyGraph.vertices[exitId] << "\n";
+                }
+
+                AssemblyGraph::VertexId v = exitId;
+                while(true) {
+                    AssemblyGraph::EdgeId e = predecessorEdge[v];
+                    keepAssemblyGraphEdge[e] = true;
+                    if(debug) {
+                        debugOut << e << endl;
+                    }
+                    CZI_ASSERT(e != AssemblyGraph::invalidEdgeId);
+                    v = assemblyGraph.edges[e].source;
+                    if(v == entryId) {
+                        break;
+                    }
+                }
+                if(debug) {
+                    debugOut << "\n";
+                }
+            }
+        }
+    }
+
+
+
+    // Mark as superbubble edges all marker graph edges that correspond
+    // to assembly graph edges not marked to be kept.
+    size_t removedAssemblyGraphEdgeCount = 0;
+    size_t removedMarkerGraphEdgeCount = 0;
+    for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edges.size(); assemblyGraphEdgeId++) {
+        if(keepAssemblyGraphEdge[assemblyGraphEdgeId]) {
+            continue;
+        }
+        ++removedAssemblyGraphEdgeCount;
+
+        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        removedMarkerGraphEdgeCount += markerGraphEdges.size();
+        for(const GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdges) {
+            markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
+        }
+    }
+    cout << "Found " << removedAssemblyGraphEdgeCount <<
+        " superbubble edges in the assembly graph out of " <<
+        assemblyGraph.edges.size() << endl;
+    cout << "Found " << removedMarkerGraphEdgeCount <<
+        " superbubble edges in the marker graph out of " <<
+        markerGraph.edges.size() << endl;
+
+}
+

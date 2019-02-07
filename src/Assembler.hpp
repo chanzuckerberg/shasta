@@ -1082,6 +1082,13 @@ public:
     // The argument is a number of marker graph edges.
     // See the code for detail on its meaning and how it is used.
     void removeMarkerGraphSuperBubbles(size_t maxLength, bool debug);
+
+    // Simplify the marker graph.
+    // This is a more robust replacement for removeShortMarkerGraphCycles +
+    // removeMarkerGraphBubbles + removeMarkerGraphSuperBubbles.
+    // The first argument is a number of marker graph edges.
+    // See the code for detail on its meaning and how it is used.
+    void simplifyMarkerGraph(size_t maxLength, bool debug);
 private:
 
     // Used by removeMarkerGraphBubbles and removeMarkerGraphSuperBubbles.

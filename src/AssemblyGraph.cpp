@@ -46,8 +46,28 @@ void AssemblyGraph::writeGraphviz(const string& fileName) const
 {
     ofstream graphOut(fileName);
     graphOut << "digraph AssemblyGraph {\n";
-    for(const Edge& edge: edges) {
-        graphOut << edge.source << "->" << edge.target << ";\n";
+
+    // Write the vertices.
+    // The label contains the corresponding marker graph vertex id.
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+        graphOut <<
+            vertexId <<
+            " [label=\"" <<
+            vertexId << "\\n" << vertices[vertexId] <<
+             "\"];\n";
     }
+
+    // Write the edges.
+    // The label contains the edge id and the number of maker graph edges
+    // that correspond to this assembly graph edge.
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        const Edge& edge = edges[edgeId];
+        graphOut <<
+            edge.source << "->" << edge.target <<
+            " [label=\"" << edgeId << "\\n" <<
+            edgeLists.size(edgeId) <<
+            "\"];\n";
+    }
+
     graphOut << "}\n";
 }
