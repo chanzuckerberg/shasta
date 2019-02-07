@@ -320,7 +320,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
                 maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
             const auto t1 = std::chrono::steady_clock::now();
             const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
-            if(t01 > 0.1) {
+            if(t01 > 1.) {
                 std::lock_guard<std::mutex> lock(mutex);
                 cout << timestamp << "Slow alignment computation for oriented reads ";
                 cout << orientedReadIds[0] << " ";
