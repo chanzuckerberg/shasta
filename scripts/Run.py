@@ -9,6 +9,8 @@ import configparser
 
 from datetime import datetime
 from shutil import copyfile
+import subprocess
+import signal
 import argparse
 import sys
 import os
@@ -129,7 +131,7 @@ def overrideDefaultConfig(config, args):
     return config
 
 
-def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, gigaBytes, savePageMemory, args):
+def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, processHandler, gigaBytes, savePageMemory, args):
     if not os.path.exists(readsSequencePath):
         raise Exception("ERROR: input file not found: %s" % readsSequencePath)
 
@@ -138,8 +140,40 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, g
 
     # Generate output directory to run shasta in
     outputDirectoryName = "run_" + getDatetimeString()
-    outputDirectory = os.path.join(outputParentDirectory, outputDirectoryName)
+    outputDirectory = os.path.abspath(os.path.join(outputParentDirectory, outputDirectoryName))
     ensureDirectoryExists(outputDirectory)
+
+    # Locate path of default configuration files relative to this script's "binary" file
+    scriptPath = os.path.abspath(os.path.dirname(__file__))
+    confDirectory = os.path.join(os.path.dirname(scriptPath), "conf")
+
+    defaultConfFilename = "shasta.conf"
+    defaultConfPath = os.path.join(confDirectory, defaultConfFilename)
+    localConfPath = os.path.join(outputDirectory, "shasta.conf")
+
+    # Parse config file to fill in default parameters
+    config = configparser.ConfigParser()
+    if not config.read(defaultConfPath):
+        raise Exception("Error reading config file %s." % defaultConfPath)
+
+    # Check if any params were specified by user and override the default config
+    config = overrideDefaultConfig(config, args)
+
+    # Write updated config file to output directory so RunAssembly.py can be called as a separate process
+    with open(localConfPath, "w") as file:
+        config.write(file)
+
+    # Add bayesian params file to the output directory if needed
+    if args.consensusCaller == "SimpleBayesian":
+        defaultMatrixPath = os.path.join(confDirectory, "SimpleBayesianConsensusCaller-1.csv")
+        localMatrixPath = os.path.join(outputDirectory, "SimpleBayesianConsensusCaller.csv")
+        copyfile(defaultMatrixPath, localMatrixPath)
+
+    # Add marginphase params file to the output directory if needed
+    if args.useMarginPhase:
+        defaultParamsPath = os.path.join(confDirectory, "MarginPhase-allParams.np.json")
+        localParamsPath = os.path.join(outputDirectory, "MarginPhase.json")
+        copyfile(defaultParamsPath, localParamsPath)
 
     # Setup linux page file system according to SetupHugePages.py
     verifyPageMemoryDirectory(largePagesMountPoint)
@@ -149,55 +183,71 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, g
     verifyDirectoryFiles(Data=Data, parentDirectory=outputDirectory)
     setupRunDirectory(Data=Data, parentDirectory=outputDirectory)
 
-    # Locate path of default configuration files relative to this script's "binary" file
-    scriptPath = os.path.abspath(os.path.dirname(__file__))
-    confDirectory = os.path.join(os.path.dirname(scriptPath), "conf")
-
-    defaultConfFilename = "shasta.conf"
-    defaultConfPath = os.path.join(confDirectory, defaultConfFilename)
-
-    # Copy config file to output directory
-    localConfPath = os.path.join(outputDirectory, "shasta.conf")
-    copyfile(defaultConfPath, localConfPath)
-    
-    # Parse config file to fill in default parameters
-    config = configparser.ConfigParser()
-    if not config.read(localConfPath):
-        raise Exception("Error reading config file %s." % localConfPath)
-
-    # Check if any params were specified by user and override the default config
-    config = overrideDefaultConfig(config, args)
-
-    if args.consensusCaller == "SimpleBayesian":
-        # Copy config file to output directory
-        defaultMatrixPath = os.path.join(confDirectory, "SimpleBayesianConsensusCaller-1.csv")
-        localMatrixPath = os.path.join(outputDirectory, "SimpleBayesianConsensusCaller.csv")
-        copyfile(defaultMatrixPath, localMatrixPath)
-        
-    if args.useMarginPhase:
-        # Copy config file to output directory
-        defaultParamsPath = os.path.join(confDirectory, "MarginPhase-allParams.np.json")
-        localParamsPath = os.path.join(outputDirectory, "MarginPhase.json")
-        copyfile(defaultParamsPath, localParamsPath)
-
     # Ensure prerequisite files are present
     verifyConfigFiles(parentDirectory=outputDirectory)
     verifyFastaFiles(fastaFileNames=[readsSequencePath])
-
+    
     # Set current working directory to the output dir
     os.chdir(outputDirectory)
-    
-    # Initialize Assembler object
-    assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
-    
-    # Run with user specified configuration and input files
-    runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
+
+    # Launch assembler as a separate process using the saved (updated) config file
+    executablePath = os.path.join(scriptPath, "RunAssembly.py")
+    localDataPath = os.path.abspath(os.path.join(outputDirectory, "Data"))
+
+    # print(Data, os.path.lexists(Data))
+    # print(localDataPath, os.path.lexists(localDataPath))
+    # print(outputDirectory, os.path.lexists(outputDirectory))
+
+    arguments = [executablePath, readsSequencePath]
+    processHandler.launchProcess(arguments=arguments, working_directory=outputDirectory)
+
+    # # Initialize Assembler object
+    # assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
+    # 
+    # # Run with user specified configuration and input files
+    # runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
 
     # Save page memory to disk so it can be reused during RunServerFromDisk
     if savePageMemory:
         saveRun(outputDirectory)
     
     cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
+
+
+class ProcessHandler:
+    def __init__(self, Data, largePagesMountPoint, process=None):
+        self.process = process
+        self.Data = Data
+        self.largePagesMountPoint = largePagesMountPoint
+
+    def launchProcess(self, arguments, working_directory):
+        if self.process is None:
+            self.process = subprocess.Popen(arguments, cwd=working_directory)
+        else:
+            exit("ERROR: process already launched")
+
+    def handleExit(self, signum, frame):
+        """
+        Method to be called at (early) termination. By default, the native "signal" handler passes 2 arguments signum
+        and frame
+        :param signum:
+        :param frame:
+        :return:
+        """
+        pass
+        
+        # if self.process is not None:
+        #     process.kill()  # kill or terminate?
+        #     gc.collect()
+
+        # sys.stderr.write("ERROR: script terminated or interrupted:\n")
+        # 
+        # traceback.print_stack(frame)
+        # 
+        # sys.stderr.write("Cleaning up page memory...")
+        # cleanUpHugePages(Data=self.Data, largePagesMountPoint=self.largePagesMountPoint, requireUserInput=False)
+        # sys.stderr.write("\rCleaning up page memory... Done\n")
+        # exit(1)
 
 
 def stringAsBool(s):
@@ -456,10 +506,19 @@ if __name__ == "__main__":
     largePagesMountPoint = "/hugepages"
     Data = os.path.join(largePagesMountPoint, "Data")
 
+    # Initialize a class to deal with the subprocess that is opened for the assembler
+    processHandler = ProcessHandler(Data=Data, largePagesMountPoint=largePagesMountPoint)
+
+    # Setup termination handling to deallocate large page memory, unmount on-disk page data, and delete disk data
+    # This is done by mapping the signal handler to the member function of an instance of ProcessHandler
+    signal.signal(signal.SIGTERM, processHandler.handleExit)
+    signal.signal(signal.SIGINT, processHandler.handleExit)
+
     main(readsSequencePath=args.inputSequences,
          outputParentDirectory=args.outputDir,
          largePagesMountPoint=largePagesMountPoint,
          Data=Data,
          args=args,
          gigaBytes=args.memory,
+         processHandler=processHandler,
          savePageMemory=args.savePageMemory)

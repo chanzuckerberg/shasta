@@ -6,6 +6,7 @@ import configparser
 
 from datetime import datetime
 from shutil import copyfile
+import subprocess
 import argparse
 import sys
 import os
@@ -123,7 +124,7 @@ def overrideDefaultConfig(config, args):
         config["Assembly"]["useMarginPhase"] = str(args.useMarginPhase)
 
     return config
-    
+
 
 def main(readsSequencePath, outputParentDirectory, args):    
     if not os.path.exists(readsSequencePath):
@@ -147,27 +148,28 @@ def main(readsSequencePath, outputParentDirectory, args):
 
     defaultConfFilename = "shasta.conf"
     defaultConfPath = os.path.join(confDirectory, defaultConfFilename)
-    
-    # Copy config file to output directory
     localConfPath = os.path.join(outputDirectory, "shasta.conf")
-    copyfile(defaultConfPath, localConfPath)
-            
+
     # Parse config file to fill in default parameters
     config = configparser.ConfigParser()
-    if not config.read(localConfPath):
-        raise Exception("Error reading config file %s." % localConfPath)
+    if not config.read(defaultConfPath):
+        raise Exception("Error reading config file %s." % defaultConfPath)
 
     # Check if any params were specified by user and override the default config
     config = overrideDefaultConfig(config, args)
-    
+
+    # Write updated config file to output directory so RunAssembly.py can be called as a separate process
+    with open(localConfPath, "w") as file:
+        config.write(file)
+
+    # Add bayesian params file to the output directory if needed
     if args.consensusCaller == "SimpleBayesian":
-        # Copy config file to output directory
         defaultMatrixPath = os.path.join(confDirectory, "SimpleBayesianConsensusCaller-1.csv")
         localMatrixPath = os.path.join(outputDirectory, "SimpleBayesianConsensusCaller.csv")
         copyfile(defaultMatrixPath, localMatrixPath)
-        
+
+    # Add marginphase params file to the output directory if needed
     if args.useMarginPhase:
-        # Copy config file to output directory
         defaultParamsPath = os.path.join(confDirectory, "MarginPhase-allParams.np.json")
         localParamsPath = os.path.join(outputDirectory, "MarginPhase.json")
         copyfile(defaultParamsPath, localParamsPath)
@@ -179,11 +181,11 @@ def main(readsSequencePath, outputParentDirectory, args):
     # Set current working directory to the output dir
     os.chdir(outputDirectory)
     
-    # Initialize Assembler object
-    assembler = initializeAssembler(config=config, fastaFileNames=[readsSequencePath])
+    executablePath = os.path.join(scriptPath, "RunAssembly.py")
+    arguments = [executablePath, readsSequencePath]
 
-    # Run with user specified configuration and input files
-    runAssembly(config=config, fastaFileNames=[readsSequencePath], a=assembler)
+    # processHandler.launchProcess(Data=Data, largePagesMountPoint=largePagesMountPoint, arguments=arguments)
+    assemblyProcess = subprocess.Popen(arguments)
 
 
 def stringAsBool(s):

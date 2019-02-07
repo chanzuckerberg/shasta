@@ -49,6 +49,7 @@ def initializeAssembler(config, fastaFileNames):
     
     return a
 
+
 def runAssembly(a, config, fastaFileNames):
     # Set up the consensus caller.
     a.setupConsensusCaller(config['Assembly']['consensusCaller'])
@@ -169,13 +170,13 @@ def main():
 
     # Read the config file.
     config = GetConfig.getConfig()
-    
+
     # Initialize Assembler object
     assembler = initializeAssembler(config=config, fastaFileNames=fastaFileNames)
 
     # Run with user specified configuration and input files
     runAssembly(config=config, fastaFileNames=fastaFileNames, a=assembler)
-    
+
+
 if __name__ == "__main__":
     main()
-
