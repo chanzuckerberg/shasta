@@ -5,7 +5,7 @@ import pwd
 import sys
 
 
-def parseArguments():
+def parseArguments(argv):
     helpMessage = """
     This script can be used to clean up huge pages after a shasta run 
     was completed and saved to disk.
@@ -14,7 +14,7 @@ def parseArguments():
     Invoke without arguments.
     """
     
-    if not len(sys.argv) == 1:
+    if not len(argv) == 1:
         print(helpMessage)
         exit(1)
 
@@ -47,7 +47,7 @@ def main():
     largePagesMountPoint = '/hugepages'
     Data = os.path.join(largePagesMountPoint, "Data")
     
-    parseArguments()
+    parseArguments(sys.argv)
     cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint)
 
 

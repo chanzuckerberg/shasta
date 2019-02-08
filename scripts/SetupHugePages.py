@@ -5,7 +5,7 @@ import pwd
 import sys
 
 
-def parseArguments():
+def parseArguments(argv):
     helpMessage = """
     This sets up huge pages for a shasta run.
     It must run with root privileges.
@@ -22,7 +22,7 @@ def parseArguments():
     Invoke with one argument, the number of GB to allocate to large pages.
     """
 
-    if not len(sys.argv) == 2:
+    if not len(argv) == 2:
         print(helpMessage)
         exit(1)
 
@@ -59,10 +59,10 @@ def allocatePages(gigaBytes, largePagesMountPoint, Data):
 def main():
     largePagesMountPoint = '/hugepages'
     Data = os.path.join(largePagesMountPoint, "Data")
+    parseArguments(sys.argv)
 
     gigaBytes = int(sys.argv[1])
 
-    parseArguments()
     verifyPageMemoryDirectory(largePagesMountPoint)
     allocatePages(gigaBytes=gigaBytes, largePagesMountPoint=largePagesMountPoint, Data=Data)
 
