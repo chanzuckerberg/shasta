@@ -19,6 +19,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include <map>
 #include <queue>
 
 
@@ -3642,7 +3643,9 @@ void Assembler::createBubbleReplacementEdge(
 // as superbubble edges. Those edges will then be excluded from assembly.
 // In the future we can also keep track of edges that were removed
 // to generate alternative assembled sequence.
-void Assembler::simplifyMarkerGraph(size_t maxLength, bool debug)
+void Assembler::simplifyMarkerGraph(
+    const vector<size_t>& maxLengthVector, // One value for each iteration.
+    bool debug)
 {
     // Start by clearing all edge flags except for
     // wasRemovedByTransitiveReduction and wasPruned.
@@ -3663,17 +3666,136 @@ void Assembler::simplifyMarkerGraph(size_t maxLength, bool debug)
         edge.replacesSuperBubbleEdges = 0;
     }
 
-    // Create a temporary assembly graph.
-    cout << timestamp << "Creating a temporary assembly graph to be used to simplify the marker graph." << endl;
-    createAssemblyGraphEdges();
-    createAssemblyGraphVertices();
-    assemblyGraph.writeGraphviz("AssemblyGraph-BeforeMarkerGraphSimplify.dot");
-    cout << timestamp << "Done creating a temporary assembly graph to simplify the marker graph." << endl;
 
+
+
+
+    // At each iteration we use a different maxLength value.
+    for(size_t iteration=0; iteration<maxLengthVector.size(); iteration++) {
+        const size_t maxLength = maxLengthVector[iteration];
+        cout << timestamp << "Begin simplifyMarkerGraph iteration " << iteration <<
+            " with maxLength = " << maxLength << endl;
+        simplifyMarkerGraphIterationPart1(iteration, maxLength, debug);
+        simplifyMarkerGraphIterationPart2(iteration, maxLength, debug);
+    }
+}
+
+
+
+// Part 1 of each iteration: handle bubbles.
+// For each set of parallel edges in the assembly graph in which all edges
+// have at most maxLength markers, keep only the shortest.
+// At some point we will want to do something more sophisticated,
+// and pick the one with the most coverage.
+void Assembler::simplifyMarkerGraphIterationPart1(
+    size_t iteration,
+    size_t maxLength,
+    bool debug)
+{
+    // Setup debug output for this iteration, if requested.
     ofstream debugOut;
     if(debug) {
-        debugOut.open("simplifyMarkerGraph.debugLog");
+        debugOut.open("simplifyMarkerGraphIterationPart1-" + to_string(iteration) + ".debugLog");
     }
+
+    // Create a temporary assembly graph.
+    createAssemblyGraphEdges();
+    createAssemblyGraphVertices();
+    assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart1-" + to_string(iteration) + ".dot");
+    cout << "Before iteration " << iteration << " part 1, the assembly graph has " <<
+        assemblyGraph.vertices.size() << " vertices and " <<
+        assemblyGraph.edges.size() << " edges." << endl;
+
+
+
+    // Loop over vertices in the assembly graph.
+    vector<bool> keepAssemblyGraphEdge(assemblyGraph.edges.size(), true);
+    for(AssemblyGraph::VertexId v0=0; v0<assemblyGraph.vertices.size(); v0++) {
+
+        // Get edges that have this vertex as the source.
+        const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+
+        // If any of these edges have more than maxLength markers, do nothing.
+        bool longEdgeExists = false;
+        for(AssemblyGraph::EdgeId edgeId: outEdges) {
+            if(assemblyGraph.edgeLists.size(edgeId) > maxLength) {
+                longEdgeExists = true;
+                break;
+            }
+        }
+        if(longEdgeExists) {
+            continue;
+        }
+
+        // Gather the out edges, for each target.
+        // Map key = target vertex id
+        // Map value: pairs(edgeId, number of markers).
+        std::map<AssemblyGraph::VertexId, vector< pair<AssemblyGraph::EdgeId, uint32_t> > > edgeTable;
+        for(AssemblyGraph::EdgeId edgeId: outEdges) {
+            const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+            edgeTable[edge.target].push_back(make_pair(edgeId, assemblyGraph.edgeLists.size(edgeId)));
+        }
+
+        // For each set of parallel edges, only keep the shortest one.
+        for(auto& p: edgeTable) {
+            vector< pair<AssemblyGraph::EdgeId, uint32_t> >& v = p.second;
+            sort(v.begin(), v.end(), OrderPairsBySecondOnly<AssemblyGraph::EdgeId, uint32_t>());
+            for(auto it=v.begin()+1; it!=v.end(); ++it) {
+                keepAssemblyGraphEdge[it->first] = false;
+            }
+        }
+    }
+
+    // Mark as superbubble edges all marker graph edges that correspond
+    // to assembly graph edges not marked to be kept.
+    size_t removedAssemblyGraphEdgeCount = 0;
+    size_t removedMarkerGraphEdgeCount = 0;
+    for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edges.size(); assemblyGraphEdgeId++) {
+        if(keepAssemblyGraphEdge[assemblyGraphEdgeId]) {
+            continue;
+        }
+        ++removedAssemblyGraphEdgeCount;
+
+        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        removedMarkerGraphEdgeCount += markerGraphEdges.size();
+        for(const GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdges) {
+            markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
+        }
+    }
+    cout << "Simplify iteration " << iteration << " part 1 found " << removedAssemblyGraphEdgeCount <<
+        " superbubble edges in the assembly graph out of " <<
+        assemblyGraph.edges.size() << endl;
+    cout << "Simplify iteration " << iteration << " part 1 found " << removedMarkerGraphEdgeCount <<
+        " superbubble edges in the marker graph out of " <<
+        markerGraph.edges.size() << endl;
+
+    // Remove the assembly graph we created at this iteration.
+    assemblyGraph.remove();
+
+
+}
+
+
+
+// Part 2 of each iteration: handle superbubbles.
+void Assembler::simplifyMarkerGraphIterationPart2(
+    size_t iteration,
+    size_t maxLength,
+    bool debug)
+{
+    // Setup debug output for this iteration, if requested.
+    ofstream debugOut;
+    if(debug) {
+        debugOut.open("simplifyMarkerGraphIterationPart2-" + to_string(iteration) + ".debugLog");
+    }
+
+    // Create a temporary assembly graph.
+    createAssemblyGraphEdges();
+    createAssemblyGraphVertices();
+    assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart2-" + to_string(iteration) + ".dot");
+    cout << "Before iteration " << iteration << " part 2, the assembly graph has " <<
+        assemblyGraph.vertices.size() << " vertices and " <<
+        assemblyGraph.edges.size() << " edges." << endl;
 
 
 
@@ -3777,7 +3899,7 @@ void Assembler::simplifyMarkerGraph(size_t maxLength, bool debug)
 
 
 
-        // If there are no entries, skip this component.
+        // Find out if this component has any entries/exits.
         bool entriesExist = false;
         for(const AssemblyGraph::VertexId assemblyGraphVertexId: component) {
             if(isEntry[assemblyGraphVertexId]) {
@@ -3785,16 +3907,6 @@ void Assembler::simplifyMarkerGraph(size_t maxLength, bool debug)
                 break;
             }
         }
-        if(!entriesExist) {
-            if(debug) {
-                debugOut << "Component skipped because it has no entries.\n";
-            }
-            continue;
-        }
-
-
-
-        // If there are no exits, skip this component.
         bool exitsExist = false;
         for(const AssemblyGraph::VertexId assemblyGraphVertexId: component) {
             if(isExit[assemblyGraphVertexId]) {
@@ -3802,9 +3914,31 @@ void Assembler::simplifyMarkerGraph(size_t maxLength, bool debug)
                 break;
             }
         }
-        if(!exitsExist) {
+
+
+
+        // Handle the case where there are no entries or no exits.
+        // This means that this component is actually an entire connected component
+        // of the full assembly graph (counting all edges).
+        if(!(entriesExist && exitsExist)) {
             if(debug) {
-                debugOut << "Component skipped because it has no exits.\n";
+                debugOut << "Component skipped because it has no entries or no exits.\n";
+                debugOut << "Due to this, the following edges will be kept:\n";
+            }
+            for(const AssemblyGraph::VertexId v0: component) {
+                const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
+                const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+                for(AssemblyGraph::EdgeId edgeId : outEdges) {
+                    const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+                    CZI_ASSERT(edge.source == v0);
+                    const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
+                    if(componentId1 == componentId0) {
+                        keepAssemblyGraphEdge[edgeId] = true;
+                        if(debug) {
+                            debugOut << edgeId << "\n";
+                        }
+                    }
+                }
             }
             continue;
         }
@@ -3948,12 +4082,15 @@ void Assembler::simplifyMarkerGraph(size_t maxLength, bool debug)
             markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
         }
     }
-    cout << "Found " << removedAssemblyGraphEdgeCount <<
+    cout << "Simplify iteration " << iteration << " part 2 found " << removedAssemblyGraphEdgeCount <<
         " superbubble edges in the assembly graph out of " <<
         assemblyGraph.edges.size() << endl;
-    cout << "Found " << removedMarkerGraphEdgeCount <<
+    cout << "Simplify iteration " << iteration << " part 2 found " << removedMarkerGraphEdgeCount <<
         " superbubble edges in the marker graph out of " <<
         markerGraph.edges.size() << endl;
+
+    // Remove the assembly graph we created at this iteration.
+    assemblyGraph.remove();
 
 }
 

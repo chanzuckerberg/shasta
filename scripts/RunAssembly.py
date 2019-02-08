@@ -136,13 +136,12 @@ def runAssembly(a, config, fastaFileNames):
     a.pruneMarkerGraphStrongSubgraph(
         iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
     
-    # Remove short cycles and bubbles from the marker graph.
-    a.removeShortMarkerGraphCycles(
-        maxLength = int(config['MarkerGraph']['shortCycleLengthThreshold']))
-    a.removeMarkerGraphBubbles(
-        maxLength = int(config['MarkerGraph']['bubbleLengthThreshold']))
-    a.removeMarkerGraphSuperBubbles(
-        maxLength = int(config['MarkerGraph']['superBubbleLengthThreshold']))
+    # Simnplify the marker graph to remove bubbles and superbubbles.
+    # The maxLength parameter controls the maximum number of markers
+    # for a branch to be collapsed during each iteration.
+    a.simplifyMarkerGraph(
+        maxLength = [int(s) for s in config['MarkerGraph']['simplifyMaxLength'].split(',')],
+        debug = True)
     
     # Create the assembly graph.
     a.createAssemblyGraphEdges()

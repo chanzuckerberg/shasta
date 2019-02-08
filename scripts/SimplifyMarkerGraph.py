@@ -10,7 +10,7 @@ a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges(accessEdgesReadWrite = True)
 a.simplifyMarkerGraph(
-    maxLength = 10,
+    maxLength = [int(s) for s in config['MarkerGraph']['simplifyMaxLength'].split(',')],
     debug = True)
 
 

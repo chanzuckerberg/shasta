@@ -1088,8 +1088,18 @@ public:
     // removeMarkerGraphBubbles + removeMarkerGraphSuperBubbles.
     // The first argument is a number of marker graph edges.
     // See the code for detail on its meaning and how it is used.
-    void simplifyMarkerGraph(size_t maxLength, bool debug);
+    void simplifyMarkerGraph(
+        const vector<size_t>& maxLength, // One value for each iteration.
+        bool debug);
 private:
+    void simplifyMarkerGraphIterationPart1(
+        size_t iteration,
+        size_t maxLength,
+        bool debug);
+    void simplifyMarkerGraphIterationPart2(
+        size_t iteration,
+        size_t maxLength,
+        bool debug);
 
     // Used by removeMarkerGraphBubbles and removeMarkerGraphSuperBubbles.
     void createBubbleReplacementEdge(

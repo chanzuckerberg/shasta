@@ -161,7 +161,7 @@ void Assembler::createAssemblyGraphEdges()
 
     wasFound.remove();
 
-    cout << "The assembly graph has " << assemblyGraph.edgeLists.size() << " edges." << endl;
+    // cout << "The assembly graph has " << assemblyGraph.edgeLists.size() << " edges." << endl;
 
 
 
@@ -229,7 +229,7 @@ void Assembler::accessAssemblyGraphVertices()
 void Assembler::createAssemblyGraphVertices()
 {
 
-    cout << timestamp << "Creating assembly graph vertices." << endl;
+    // cout << timestamp << "Creating assembly graph vertices." << endl;
 
     // Check that we have what we need.
     CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
@@ -267,8 +267,8 @@ void Assembler::createAssemblyGraphVertices()
         std::unique(assemblyGraph.vertices.begin(), assemblyGraph.vertices.end()) -
         assemblyGraph.vertices.begin());
     assemblyGraph.vertices.unreserve();
-    cout << "The assembly graph has " << assemblyGraph.vertices.size() <<
-        " vertices and " << assemblyGraph.edgeLists.size() << " edges." << endl;
+    // cout << "The assembly graph has " << assemblyGraph.vertices.size() <<
+    //    " vertices and " << assemblyGraph.edgeLists.size() << " edges." << endl;
 
     // Create a map that gives the assembly graph vertex corresponding to a
     // marker graph vertex.
@@ -306,7 +306,7 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
-    cout << timestamp << "Creating assembly graph edges by source and by target." << endl;
+    // cout << timestamp << "Creating assembly graph edges by source and by target." << endl;
 
     assemblyGraph.edgesBySource.createNew(
         largeDataName("AssemblyGraphEdgesBySource"),
@@ -330,7 +330,7 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesBySource.endPass2();
     assemblyGraph.edgesByTarget.endPass2();
 
-    cout << timestamp << "Done creating assembly graph vertices." << endl;
+    // cout << timestamp << "Done creating assembly graph vertices." << endl;
 }
 
 
