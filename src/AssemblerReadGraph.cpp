@@ -597,6 +597,10 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                     continue;
                 }
                 const OrientedReadId v = p.first;
+                if(v.getReadId() == startOrientedReadId.getReadId()) {
+                    // Skip the reverse complement of the start vertex.
+                    continue;
+                }
                 const uint32_t u = vertexTable[v.getValue()];
                 CZI_ASSERT(u != notReached);
                 const uint32_t uComponent = disjointSets.find_set(u);
