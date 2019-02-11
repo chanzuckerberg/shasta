@@ -47,14 +47,22 @@ public:
     // Contains the corresponding vertex id in the marker graph.
     MemoryMapped::Vector<VertexId> vertices;
 
+
+
     // The edges of the assembly graph.
     // Indexed by edge id in the assembly graph.
     class Edge {
     public:
         VertexId source;
         VertexId target;
+
+        // The minimum coverage on any of the marker graph edges
+        // corresponding to this assembly graph edge.
+        uint32_t minCoverage;
     };
     MemoryMapped::Vector<Edge> edges;
+
+
 
     // The edges that each vertex is the source of.
     // Indexed by vertex id in the assembly graph.

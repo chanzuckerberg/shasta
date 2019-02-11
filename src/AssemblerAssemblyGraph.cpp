@@ -279,6 +279,7 @@ void Assembler::createAssemblyGraphVertices()
     }
 
 
+
     // Create assemblyGraph.edges.
     assemblyGraph.edges.createNew(
         largeDataName("AssemblyGraphEdges"),
@@ -299,9 +300,16 @@ void Assembler::createAssemblyGraphVertices()
         CZI_ASSERT(it1 != vertexMap.end());
         const VertexId agv0 = it0->second;
         const VertexId agv1 = it1->second;
-        auto& edge = assemblyGraph.edges[age];
-        edge.source = agv0;
-        edge.target = agv1;
+        AssemblyGraph::Edge& assemblyGraphEdge = assemblyGraph.edges[age];
+        assemblyGraphEdge.source = agv0;
+        assemblyGraphEdge.target = agv1;
+
+        // Compute and store minimum coverage along the edges of this chain.
+        assemblyGraphEdge.minCoverage = 0;
+        for(GlobalMarkerGraphEdgeId markerGraphEdgeId: chain) {
+            const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
+            assemblyGraphEdge.minCoverage = min(assemblyGraphEdge.minCoverage, uint32_t(markerGraphEdge.coverage));
+        }
     }
 
 
