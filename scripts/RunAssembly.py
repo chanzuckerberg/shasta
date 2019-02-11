@@ -61,13 +61,15 @@ def runAssembly(a, config, fastaFileNames):
     
     # Read the input fasta files.
     a.accessReadsReadWrite()
-    a.accessReadNamesReadWrite()
-    
+    a.accessReadNamesReadWrite()   
     for fileName in fastaFileNames:  
         print('Reading input file', fileName, flush=True) 
         a.addReadsFromFasta(
             fileName = fileName, 
             minReadLength = int(config['Reads']['minReadLength']))
+
+    # Initialize read flags.
+    a.initializeReadFlags()            
     
     # Create a histogram of read lengths.
     a.histogramReadLength(fileName="ReadLengthHistogram.csv")

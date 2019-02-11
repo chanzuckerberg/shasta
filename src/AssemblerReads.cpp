@@ -350,3 +350,15 @@ vector<uint32_t> Assembler::getRawPositions(OrientedReadId orientedReadId) const
 
     return v;
 }
+
+
+
+void Assembler::initializeReadFlags()
+{
+    readFlags.createNew(largeDataName("ReadFlags"), largeDataPageSize);
+    readFlags.resize(reads.size());
+}
+void Assembler::accessReadFlags(bool readWriteAccess)
+{
+    readFlags.accessExisting(largeDataName("ReadFlags"), readWriteAccess);
+}

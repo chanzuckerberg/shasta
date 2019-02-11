@@ -268,6 +268,14 @@ void Assembler::accessAllSoft()
     }
 
     try {
+        accessReadFlags(false);
+    } catch(exception e) {
+        cout << "Read flags are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+
+    try {
         accessKmers();
     } catch(exception e) {
         cout << "K-mers are not accessible." << endl;
@@ -299,13 +307,6 @@ void Assembler::accessAllSoft()
         accessReadGraph();
     } catch(exception e) {
         cout << "The read graph is not accessible." << endl;
-        allDataAreAvailable = false;
-    }
-
-    try {
-        accessChimericReadsFlags();
-    } catch(exception e) {
-        cout << "Chimeric read flags are not accessible." << endl;
         allDataAreAvailable = false;
     }
 

@@ -14,7 +14,7 @@ a.accessKmers()
 a.accessMarkers()
 a.accessAlignmentData()
 a.accessReadGraph()
-a.accessChimericReadsFlags()
+a.accessReadFlags()
 
 # Do the computation.
 a.createMarkerGraphVertices(

@@ -11,6 +11,7 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessAlignmentData()
 a.accessReadGraph()
+a.accessReadFlags(readWriteAccess = True)
 a.flagChimericReads(
     maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
 

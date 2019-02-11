@@ -327,13 +327,13 @@ bool Assembler::createLocalReadGraph(
     const auto startTime = steady_clock::now();
 
     // If the starting read is chimeric and we don't allow chimeric reads, do nothing.
-    if(!allowChimericReads && isChimericRead[start.getReadId()]) {
+    if(!allowChimericReads && readFlags[start.getReadId()].isChimeric) {
         return true;
     }
 
     // Add the starting vertex.
     graph.addVertex(start, uint32_t(markers[start.getValue()].size()),
-        isChimericRead[start.getReadId()], 0);
+        readFlags[start.getReadId()].isChimeric, 0);
 
     // Initialize a BFS starting at the start vertex.
     std::queue<OrientedReadId> q;
@@ -365,7 +365,7 @@ bool Assembler::createLocalReadGraph(
             const OrientedReadId orientedReadId1 = globalEdge.getOther(orientedReadId0);
 
             // If this read is flagged chimeric and we don't allow chimeric reads, skip.
-            if(!allowChimericReads && isChimericRead[orientedReadId1.getReadId()]) {
+            if(!allowChimericReads && readFlags[orientedReadId1.getReadId()].isChimeric) {
                 continue;
             }
 
@@ -381,7 +381,7 @@ bool Assembler::createLocalReadGraph(
                 if(!graph.vertexExists(orientedReadId1)) {
                     graph.addVertex(orientedReadId1,
                         uint32_t(markers[orientedReadId1.getValue()].size()),
-                        isChimericRead[orientedReadId1.getReadId()], distance1);
+                        readFlags[orientedReadId1.getReadId()].isChimeric, distance1);
                     q.push(orientedReadId1);
                 }
                 graph.addEdge(
@@ -427,12 +427,6 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
     CZI_ASSERT((orientedReadCount % 2) == 0);
     const size_t readCount = orientedReadCount / 2;
 
-    // Create the flags to indicate which reads are chimeric.
-    isChimericRead.createNew(
-        largeDataName("IsChimericRead"),
-        largeDataPageSize);
-    isChimericRead.resize(readCount);
-
     // Store the argument so it is accessible by all threads.
     CZI_ASSERT(maxDistance < 255);
     flagChimericReadsData.maxDistance = maxDistance;
@@ -450,7 +444,12 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
 
     cout << timestamp << "Done flagging chimeric reads." << endl;
 
-    const size_t chimericReadCount = std::count(isChimericRead.begin(), isChimericRead.end(), true);
+    size_t chimericReadCount = 0;
+    for(ReadId readId=0; readId!=readCount; readId++) {
+        if(readFlags[readId].isChimeric) {
+            ++chimericReadCount;
+        }
+    }
     cout << timestamp << "Flagged " << chimericReadCount << " reads as chimeric out of ";
     cout << readCount << " total." << endl;
     cout << "Chimera rate is " << double(chimericReadCount) / double(readCount) << endl;
@@ -503,7 +502,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
             CZI_ASSERT(q.empty());
 
             // Begin by flagging this read as not chimeric.
-            isChimericRead[startReadId] = false;
+            readFlags[startReadId].isChimeric = 0;
 
 
 
@@ -605,7 +604,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                     component = uComponent;
                 } else {
                     if(uComponent != component) {
-                        isChimericRead[startReadId] = true;
+                        readFlags[startReadId].isChimeric = 1;
                         out << "Flagged read " << startReadId << " as chimeric." << endl;
                         break;
                     }
@@ -627,14 +626,6 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
     // Remove our work vector.
     vertexTable.remove();
 
-}
-
-
-
-void Assembler::accessChimericReadsFlags()
-{
-    isChimericRead.accessExistingReadOnly(
-        largeDataName("IsChimericRead"));
 }
 
 
@@ -684,10 +675,10 @@ void Assembler::computeReadGraphConnectedComponents()
         const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
         const ReadId readId0 = orientedReadId0.getReadId();
         const ReadId readId1 = orientedReadId1.getReadId();
-        if(isChimericRead[readId0]) {
+        if(readFlags[readId0].isChimeric) {
             continue;
         }
-        if(isChimericRead[readId1]) {
+        if(readFlags[readId1].isChimeric) {
             continue;
         }
         disjointSets.union_set(orientedReadId0.getValue(), orientedReadId1.getValue());

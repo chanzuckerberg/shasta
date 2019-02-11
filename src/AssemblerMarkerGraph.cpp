@@ -66,6 +66,7 @@ void Assembler::createMarkerGraphVertices(
 
     // Check that we have what we need.
     checkReadsAreOpen();
+    CZI_ASSERT(readFlags.isOpen);
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentDataAreOpen();
@@ -393,8 +394,8 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             CZI_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
 
             // If either of the reads is flagged chimeric, skip it.
-            if( isChimericRead[orientedReadIds[0].getReadId()] ||
-                isChimericRead[orientedReadIds[1].getReadId()]) {
+            if( readFlags[orientedReadIds[0].getReadId()].isChimeric ||
+                readFlags[orientedReadIds[1].getReadId()].isChimeric) {
                 continue;
             }
 

@@ -539,6 +539,28 @@ private:
     void writeOrientedRead(OrientedReadId, ostream&);
     void writeOrientedRead(OrientedReadId, const string& fileName);
 
+    // Read flags.
+    class ReadFlags {
+    public:
+        uint8_t isChimeric : 1;
+        uint8_t bit1 : 1;
+        uint8_t bit2 : 1;
+        uint8_t bit3 : 1;
+        uint8_t bit4 : 1;
+        uint8_t bit5 : 1;
+        uint8_t bit6 : 1;
+        uint8_t bit7 : 1;
+        ReadFlags()
+        {
+            static_assert(sizeof(ReadFlags) == 1, "Unexpected size of ReadFlags.");
+            *reinterpret_cast<uint8_t*>(this) = 0;
+        }
+    };
+    MemoryMapped::Vector<ReadFlags> readFlags;
+public:
+    void initializeReadFlags();
+    void accessReadFlags(bool readWriteAccess);
+private:
 
 
     // Table of all k-mers of length k.
@@ -695,9 +717,7 @@ public:
 
     // Use the read graph to flag chimeric reads.
     void flagChimericReads(size_t maxDistance, size_t threadCount);
-    void accessChimericReadsFlags();
 private:
-    MemoryMapped::Vector<bool> isChimericRead;
     class FlagChimericReadsData {
     public:
         size_t maxDistance;

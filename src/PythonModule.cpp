@@ -81,25 +81,30 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::writeReads,
             "Write all reads to a file in fasta format.",
             arg("fileName"))
-            .def("writeRead",
-                (
-                    void (Assembler::*)
-                    (ReadId, const string&)
-                )
+        .def("writeRead",
+            (
+                void (Assembler::*)
+                (ReadId, const string&)
+            )
             &Assembler::writeRead,
             "Write one read to a file in fasta format.",
             arg("readId"),
             arg("fileName"))
-            .def("writeOrientedRead",
-                (
-                    void (Assembler::*)
-                    (ReadId, Strand, const string&)
-                )
+        .def("writeOrientedRead",
+            (
+                void (Assembler::*)
+                (ReadId, Strand, const string&)
+            )
             &Assembler::writeOrientedRead,
             "Write one oriented read to a file in fasta format.",
             arg("readId"),
             arg("strand"),
             arg("fileName"))
+        .def("initializeReadFlags",
+            &Assembler::initializeReadFlags)
+        .def("accessReadFlags",
+            &Assembler::accessReadFlags,
+            arg("readWriteAccess") = false)
 
 
 
@@ -221,8 +226,6 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::flagChimericReads,
             arg("maxChimericReadDistance"),
             arg("threadCount") = 0)
-        .def("accessChimericReadsFlags",
-            &Assembler::accessChimericReadsFlags)
         .def("computeReadGraphConnectedComponents",
             &Assembler::computeReadGraphConnectedComponents)
 
