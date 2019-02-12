@@ -3959,12 +3959,12 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
         // Work areas used for shortest path computation.
         std::priority_queue<
-            pair<size_t, AssemblyGraph::VertexId>,
-            vector<pair<size_t, AssemblyGraph::VertexId> >,
+            pair<float, AssemblyGraph::VertexId>,
+            vector<pair<float, AssemblyGraph::VertexId> >,
             OrderPairsByFirstOnlyGreater<size_t, AssemblyGraph::VertexId> > q;
         vector<AssemblyGraph::EdgeId> predecessorEdge(n, AssemblyGraph::invalidEdgeId);
         vector<uint8_t> color(n);
-        vector< pair<size_t, AssemblyGraph::EdgeId> > sortedOutEdges;
+        vector< pair<float, AssemblyGraph::EdgeId> > sortedOutEdges;
 
 
 
@@ -3979,14 +3979,16 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 
 
-            // Compute shortest paths (measured by number of marker graph edges)
+            // Compute shortest paths
             // from this vertex to all other vertices in this component.
+            // Use as edge weight the inverse of average coverage,
+            // so the path prefers high coverage.
             if(debug) {
                 debugOut << "Computing shortest paths starting at " <<
                     entryId << "/" << assemblyGraph.vertices[entryId] << "\n";
             }
             CZI_ASSERT(q.empty());
-            q.push(make_pair(0, entryId));
+            q.push(make_pair(0., entryId));
             for(const AssemblyGraph::VertexId v: component) {
                 color[v] = 0;
                 predecessorEdge[v] = AssemblyGraph::invalidEdgeId;
@@ -3996,8 +3998,8 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             while(!q.empty()) {
 
                 // Dequeue.
-                const pair<size_t, AssemblyGraph::VertexId> p = q.top();
-                const size_t distance0 = p.first;
+                const pair<float, AssemblyGraph::VertexId> p = q.top();
+                const float distance0 = p.first;
                 const AssemblyGraph::VertexId v0 = p.second;
                 q.pop();
                 if(debug) {
@@ -4010,15 +4012,15 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
                 sortedOutEdges.clear();
                 for(const AssemblyGraph::EdgeId e01: outEdges) {
-                    sortedOutEdges.push_back(make_pair(assemblyGraph.edgeLists.size(e01), e01));
+                    sortedOutEdges.push_back(make_pair(1./assemblyGraph.edges[e01].averageCoverage, e01));
                 }
                 sort(sortedOutEdges.begin(), sortedOutEdges.end(),
-                    OrderPairsByFirstOnly<size_t, AssemblyGraph::EdgeId>());
+                    OrderPairsByFirstOnly<double, AssemblyGraph::EdgeId>());
 
                 // Loop over out-edges internal to this component.
-                for(const pair<size_t, AssemblyGraph::EdgeId>& edgePair: sortedOutEdges) {
+                for(const pair<float, AssemblyGraph::EdgeId>& edgePair: sortedOutEdges) {
                     const AssemblyGraph::EdgeId e01 = edgePair.second;
-                    const size_t length01 = edgePair.first;
+                    const float length01 = edgePair.first;
                     const AssemblyGraph::VertexId v1 = assemblyGraph.edges[e01].target;
                     if(disjointSets.find_set(v1) != entryComponentId) {
                         continue;
@@ -4028,7 +4030,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                     }
                     color[v1] = 1;
                     predecessorEdge[v1] = e01;
-                    const size_t distance1 = distance0 + length01;
+                    const float distance1 = distance0 + length01;
                     q.push(make_pair(distance1, v1));
                     if(debug) {
                         debugOut << "Enqueued " << v1 << "/" << assemblyGraph.vertices[v1] <<
