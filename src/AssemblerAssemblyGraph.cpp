@@ -280,7 +280,7 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
-    // Create assemblyGraph.edges.
+    // Create assemblyGraph edges.
     assemblyGraph.edges.createNew(
         largeDataName("AssemblyGraphEdges"),
         largeDataPageSize);
@@ -304,12 +304,13 @@ void Assembler::createAssemblyGraphVertices()
         assemblyGraphEdge.source = agv0;
         assemblyGraphEdge.target = agv1;
 
-        // Compute and store minimum coverage along the edges of this chain.
-        assemblyGraphEdge.minCoverage = 0;
+        // Compute and store average coverage along the edges of this chain.
+        size_t sum = 0;
         for(GlobalMarkerGraphEdgeId markerGraphEdgeId: chain) {
             const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
-            assemblyGraphEdge.minCoverage = min(assemblyGraphEdge.minCoverage, uint32_t(markerGraphEdge.coverage));
+            sum += markerGraphEdge.coverage;
         }
+        assemblyGraphEdge.averageCoverage = uint32_t(sum / chain.size());
     }
 
 
@@ -1219,10 +1220,39 @@ void Assembler::assembleAssemblyGraphEdge(
         copy(assembledRunLengthSequence.begin(), assembledRunLengthSequence.end(),
             ostream_iterator<Base>(html));
         html << "<br>";
+        const uint32_t maxRepeatCount =
+            *max_element(assembledRepeatCounts.begin(), assembledRepeatCounts.end());
         for(size_t j=0; j<assembledRepeatCounts.size(); j++) {
             const uint32_t repeatCount = assembledRepeatCounts[j];
-            CZI_ASSERT(repeatCount < 10);  // Fix when it fails.
             html << repeatCount%10;
+        }
+        if(maxRepeatCount >= 10) {
+            html << "<br>";
+            for(size_t j=0; j<assembledRepeatCounts.size(); j++) {
+                const uint32_t repeatCount = assembledRepeatCounts[j];
+                const uint32_t digit = (repeatCount/10) % 10;
+                if(digit == 0) {
+                    html << "&nbsp;";
+                } else {
+                    html << digit;
+                }
+            }
+        }
+        if(maxRepeatCount >= 100) {
+            html << "<br>";
+            for(size_t j=0; j<assembledRepeatCounts.size(); j++) {
+                const uint32_t repeatCount = assembledRepeatCounts[j];
+                if(repeatCount >= 1000) {
+                    html << "*";
+                } else {
+                    const uint32_t digit = (repeatCount/100) % 10;
+                    if(digit == 0) {
+                        html << "&nbsp;";
+                    } else {
+                        html << digit;
+                    }
+                }
+            }
         }
         html << "</span>";
 
@@ -1275,9 +1305,8 @@ void Assembler::assembleAssemblyGraphEdge(
             const string url = urlPrefix + to_string(vertexId) + urlSuffix;
             const vector<Base>& vertexSequence = vertexSequences[i];
             const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
-            const uint32_t maxVertexRepeatCount =
-                *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
-            CZI_ASSERT(maxVertexRepeatCount < 10);  // For now. Add additional code when this fails.
+            // const uint32_t maxVertexRepeatCount =
+            //     *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
             html <<
                  "<tr><td>Vertex" <<
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
@@ -1301,7 +1330,11 @@ void Assembler::assembleAssemblyGraphEdge(
                 if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
                 }
-                html << repeatCount % 10;
+                if(repeatCount < 10) {
+                    html << repeatCount % 10;
+                } else {
+                    html << "*";
+                }
                 if(j==vertexAssembledPortion[i].second-1 && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
                     html << "</span>";
                 }
@@ -1341,9 +1374,9 @@ void Assembler::assembleAssemblyGraphEdge(
             const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
             const size_t edgeSequenceLength = edgeSequence.size();
             CZI_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
-            const uint32_t maxEdgeRepeatCount =
-                *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
-            CZI_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
+            // const uint32_t maxEdgeRepeatCount =
+            //    *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
+            // CZI_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
             html <<
                 "<tr><td>Edge<td class=centered>" << edgeId <<
                 "<td class=centered>" << edgeCoverage[i] <<
@@ -1366,7 +1399,11 @@ void Assembler::assembleAssemblyGraphEdge(
                 if(edgeSequenceLength>2*k && j==k) {
                     html << "<span style='background-color:LightGreen'>";
                 }
-                html << repeatCount % 10;
+                if(repeatCount < 10) {
+                    html << repeatCount % 10;
+                } else {
+                    html << "*";
+                }
                 if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
                     html << "</span>";
                 }

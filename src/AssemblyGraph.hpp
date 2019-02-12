@@ -56,9 +56,9 @@ public:
         VertexId source;
         VertexId target;
 
-        // The minimum coverage on any of the marker graph edges
+        // The average coverage of the marker graph edges
         // corresponding to this assembly graph edge.
-        uint32_t minCoverage;
+        uint32_t averageCoverage;
     };
     MemoryMapped::Vector<Edge> edges;
 

@@ -3730,19 +3730,31 @@ void Assembler::simplifyMarkerGraphIterationPart1(
 
         // Gather the out edges, for each target.
         // Map key = target vertex id
-        // Map value: pairs(edgeId, number of markers).
+        // Map value: pairs(edgeId, average coverage).
         std::map<AssemblyGraph::VertexId, vector< pair<AssemblyGraph::EdgeId, uint32_t> > > edgeTable;
         for(AssemblyGraph::EdgeId edgeId: outEdges) {
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-            edgeTable[edge.target].push_back(make_pair(edgeId, assemblyGraph.edgeLists.size(edgeId)));
+            edgeTable[edge.target].push_back(make_pair(edgeId, edge.averageCoverage));
         }
 
         // For each set of parallel edges, only keep the shortest one.
         for(auto& p: edgeTable) {
             vector< pair<AssemblyGraph::EdgeId, uint32_t> >& v = p.second;
-            sort(v.begin(), v.end(), OrderPairsBySecondOnly<AssemblyGraph::EdgeId, uint32_t>());
+            if(v.size() < 2) {
+                continue;
+            }
+            sort(v.begin(), v.end(), OrderPairsBySecondOnlyGreater<AssemblyGraph::EdgeId, uint32_t>());
             for(auto it=v.begin()+1; it!=v.end(); ++it) {
                 keepAssemblyGraphEdge[it->first] = false;
+            }
+            if(debug) {
+                debugOut << "Parallel edges:\n";
+                for(const auto& p: v) {
+                    const AssemblyGraph::EdgeId edgeId = p.first;
+                    const uint32_t averageCoverage = p.second;
+                    debugOut << edgeId << " " << assemblyGraph.edgeLists.size(edgeId) <<
+                        " " << averageCoverage << "\n";
+                }
             }
         }
     }
