@@ -73,7 +73,10 @@ LowHash::LowHash(
         }
     }
     if(log2MinHashBucketCount > 31) {
-        throw runtime_error("log2MinHashBucketCount is too big.");
+
+        cout << "log2MinHashBucketCount reduced from " << log2MinHashBucketCount <<
+            " to maximum allowed value 31."  << endl;
+        log2MinHashBucketCount = 31;
     }
     const uint32_t bucketCount = 1 << log2MinHashBucketCount;
     mask = bucketCount - 1;
