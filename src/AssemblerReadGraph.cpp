@@ -652,12 +652,6 @@ void Assembler::computeReadGraphConnectedComponents(
     CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
 
-    // Clear the read flags that will be set later.
-    // Note that we are not changing the isChimeric flags.
-    for(ReadFlags& f: readFlags) {
-        f.isInSmallComponent = 0;
-        f.strand = 0;
-    }
 
 
     // Compute connected components of the read graph,
@@ -746,5 +740,73 @@ void Assembler::computeReadGraphConnectedComponents(
         csv << (isSelfComplementary ? "Yes" : "No") << ",";
         csv << accumulatedOrientedReadCount << ",";
         csv << accumulatedOrientedReadCountFraction << "\n";
+    }
+
+
+
+    // Clear the read flags that will be set below.
+    // Note that we are not changing the isChimeric flags.
+    for(ReadFlags& f: readFlags) {
+        f.isInSmallComponent = 0;
+        f.strand = 0;
+    }
+
+
+
+    // Strand separation. Process the connected components one at a time.
+    for(ReadId componentId=0; componentId<components.size(); componentId++) {
+        const vector<OrientedReadId>& component = components[componentId];
+
+        // If this component is small, set the isInSmallComponent flag for all
+        // the reads it contains.
+        if(component.size() < minComponentSize) {
+            for(const OrientedReadId orientedReadId: component) {
+                const ReadId readId = orientedReadId.getReadId();
+                readFlags[readId].isInSmallComponent = 1;
+            }
+            continue;
+        }
+
+        // Find out if this component is self-complementary.
+        const bool isSelfComplementary =
+            component.size() > 1 &&
+            (component[0].getReadId() == component[1].getReadId());
+        if(isSelfComplementary) {
+            CZI_ASSERT((component.size() % 2) == 0);
+        }
+
+        // If this component is not self-complementary,
+        // use it for assembly only if its first read is on strand 0.
+        // Set the strand of all the reads as
+        // the strand present in this component.
+        if(!isSelfComplementary) {
+            if(component[0].getStrand() == 0) {
+                for(const OrientedReadId orientedReadId: component) {
+                    const ReadId readId = orientedReadId.getReadId();
+                    const Strand strand = orientedReadId.getStrand();
+                    readFlags[readId].strand = strand & 1;
+                }
+            } else {
+                // No need to set any strand flags here.
+                // They will be set when processing the complementary component.
+            }
+            continue;
+        }
+
+        // If getting here, the component is self-complementary
+        // and we need to do strand separation.
+        CZI_ASSERT(isSelfComplementary);
+        cout << "Processing self-complementary component " << componentId <<
+            " with " << component.size() << " oriented reads." << endl;
+
+    }
+
+
+
+    // Check that any read flagged isChimeric is also flagged isInSmallComponent.
+    for(const ReadFlags& flags: readFlags) {
+        if(flags.isChimeric) {
+            CZI_ASSERT(flags.isInSmallComponent);
+        }
     }
 }
