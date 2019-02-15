@@ -115,7 +115,8 @@ def runAssembly(a, config, fastaFileNames):
     # Flag chimeric reads.
     a.flagChimericReads(
         maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
-    a.computeReadGraphConnectedComponents()
+    a.computeReadGraphConnectedComponents(
+        minComponentSize = int(config['ReadGraph']['minComponentSize']))
     
     # Create vertices of the marker graph.
     a.createMarkerGraphVertices(

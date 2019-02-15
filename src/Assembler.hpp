@@ -539,12 +539,27 @@ private:
     void writeOrientedRead(OrientedReadId, ostream&);
     void writeOrientedRead(OrientedReadId, const string& fileName);
 
+
+
     // Read flags.
     class ReadFlags {
     public:
+
+        // Set if the read is marked as chimeric.
         uint8_t isChimeric : 1;
-        uint8_t bit1 : 1;
-        uint8_t bit2 : 1;
+
+        // Set if the read belongs to a small component of the read graph
+        // that is not used for assembly.
+        // If isChimeric is set, this is also set.
+        uint8_t isInSmallComponent : 1;
+
+        // Strand used when assembling this read.
+        // If 0, the read is assembled unchanged.
+        // If 1, the read is assembled reverse complemented.
+        // Not valid if isChimeric or isInSmallComponent is set.
+        uint8_t strand : 1;
+
+        // Unused bits.
         uint8_t bit3 : 1;
         uint8_t bit4 : 1;
         uint8_t bit5 : 1;
@@ -561,6 +576,7 @@ public:
     void initializeReadFlags();
     void accessReadFlags(bool readWriteAccess);
 private:
+
 
 
     // Table of all k-mers of length k.
@@ -707,9 +723,11 @@ public:
     void createReadGraph(
         uint32_t maxAlignmentCount,
         uint32_t maxTrim);
+#if 0
     void createReadGraphNew(
         uint32_t maxAlignmentCount,
         uint32_t maxTrim);
+#endif
     void accessReadGraph();
     void checkReadGraphIsOpen();
 
@@ -738,12 +756,15 @@ private:
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
 
+public:
 
 
     // Compute connected components of the read graph.
     // This treats chimeric reads as isolated.
-public:
-    void computeReadGraphConnectedComponents();
+    // Components with fewer than minComponentSize are considered
+    // small and excluded from assembly by setting the
+    // isInSmallComponent for all the reads they contain.
+    void computeReadGraphConnectedComponents(size_t minComponentSize);
 
 
 

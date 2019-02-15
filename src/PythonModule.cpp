@@ -216,10 +216,12 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::createReadGraph,
             arg("maxAlignmentCount"),
             arg("maxTrim"))
+        /*
         .def("createReadGraphNew",
             &Assembler::createReadGraphNew,
             arg("maxAlignmentCount"),
             arg("maxTrim"))
+        */
         .def("accessReadGraph",
             &Assembler::accessReadGraph)
         .def("flagChimericReads",
@@ -227,7 +229,8 @@ PYBIND11_MODULE(shasta, module)
             arg("maxChimericReadDistance"),
             arg("threadCount") = 0)
         .def("computeReadGraphConnectedComponents",
-            &Assembler::computeReadGraphConnectedComponents)
+            &Assembler::computeReadGraphConnectedComponents,
+            arg("minComponentSize"))
 
 
 

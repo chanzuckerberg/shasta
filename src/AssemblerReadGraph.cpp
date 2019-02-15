@@ -112,7 +112,7 @@ void Assembler::createReadGraph(
 }
 
 
-
+#if 0
 // More sophisticated version of createReadGraph with better treatment
 // of containing alignments.
 // - If a read has at least one alignments that covers the entire
@@ -292,6 +292,7 @@ void Assembler::createReadGraphNew(
     }
     readGraph.connectivity.endPass2();
 }
+#endif
 
 
 
@@ -636,31 +637,27 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
 
 // Compute connected components of the read graph.
 // This treats chimeric reads as isolated.
-void Assembler::computeReadGraphConnectedComponents()
+// Components with fewer than minComponentSize are considered
+// small and excluded from assembly by setting the
+// isInSmallComponent for all the reads they contain.
+void Assembler::computeReadGraphConnectedComponents(
+    size_t minComponentSize
+    )
 {
     // Check that we have what we need.
+    CZI_ASSERT(readFlags.isOpenWithWriteAccess);
     checkReadGraphIsOpen();
     const size_t readCount = reads.size();
     const size_t orientedReadCount = 2*readCount;
     CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
 
-    // Compute the raw sequence length of each vertex (read).
-    cout << timestamp << "Computing the raw read length of each read." << endl;
-    vector<size_t> vertexRawSequenceLength(readCount, 0);
-    for(ReadId readId=0; readId<readCount; readId++) {
-        const MemoryAsContainer<uint8_t> repeatCounts = readRepeatCounts[readId];
-        size_t rawSequenceLength = 0;
-        for(uint8_t repeatCount: repeatCounts) {
-            rawSequenceLength += repeatCount;
-        }
-        vertexRawSequenceLength[readId] = rawSequenceLength;
+    // Clear the read flags that will be set later.
+    // Note that we are not changing the isChimeric flags.
+    for(ReadFlags& f: readFlags) {
+        f.isInSmallComponent = 0;
+        f.strand = 0;
     }
-    const size_t totalRawSequenceLength = std::accumulate(
-        vertexRawSequenceLength.begin(), vertexRawSequenceLength.end(), 0ULL);
-    cout << "Found " << readCount;
-    cout << " reads for a total " << totalRawSequenceLength << " bases." << endl;
-
 
 
     // Compute connected components of the read graph,
@@ -704,19 +701,12 @@ void Assembler::computeReadGraphConnectedComponents()
 
 
 
-    // Sort the components by decreasing size,
-    // where size = total raw sequence length.
+    // Sort the components by decreasing size (number of reads).
     // componentTable contains pairs(size, componentId as key in componentMap).
     vector< pair<size_t, uint32_t> > componentTable;
     for(const auto& p: componentMap) {
         const vector<OrientedReadId>& component = p.second;
-
-        size_t componentRawSequenceLength = 0;
-        for(const OrientedReadId orientedReadId: component) {
-            componentRawSequenceLength += vertexRawSequenceLength[orientedReadId.getReadId()];
-        }
-
-        componentTable.push_back(make_pair(componentRawSequenceLength, p.first));
+        componentTable.push_back(make_pair(component.size(), p.first));
     }
     sort(componentTable.begin(), componentTable.end(), std::greater<pair<size_t, uint32_t>>());
 
@@ -733,30 +723,28 @@ void Assembler::computeReadGraphConnectedComponents()
 
     // Write information for each component.
     ofstream csv("ReadGraphComponents.csv");
-    csv << "Component,RepresentingRead,OrientedReadCount,RawSequenceLength,"
-        "AccumulatedOrientedReadCount,AccumulatedRawSequenceLength,"
-        "AccumulatedOrientedReadCountFraction,AccumulatedRawSequenceLengthFraction\n";
+    csv << "Component,RepresentingRead,OrientedReadCount,IsSmall,IsSelfComplementary,"
+        "AccumulatedOrientedReadCount,"
+        "AccumulatedOrientedReadCountFraction\n";
     size_t accumulatedOrientedReadCount = 0;
-    size_t accumulatedRawSequenceLength = 0;
     for(ReadId componentId=0; componentId<components.size(); componentId++) {
         const vector<OrientedReadId>& component = components[componentId];
         accumulatedOrientedReadCount += component.size();
-        const size_t componentRawSequenceLength = componentTable[componentId].first;
-        accumulatedRawSequenceLength += componentRawSequenceLength;
         const double accumulatedOrientedReadCountFraction =
             double(accumulatedOrientedReadCount)/double(orientedReadCount);
-        const double accumulatedRawSequenceFraction =
-            double(accumulatedRawSequenceLength)/double(totalRawSequenceLength);
+
+        const bool isSelfComplementary =
+            component.size() > 1 &&
+            (component[0].getReadId() == component[1].getReadId());
 
 
         // Write out.
         csv << componentId << ",";
         csv << component.front() << ",";
         csv << component.size() << ",";
-        csv << componentRawSequenceLength << ",";
+        csv << ((component.size() < minComponentSize) ? "Yes" : "No") << ",";
+        csv << (isSelfComplementary ? "Yes" : "No") << ",";
         csv << accumulatedOrientedReadCount << ",";
-        csv << accumulatedRawSequenceLength << ",";
-        csv << accumulatedOrientedReadCountFraction << ",";
-        csv << accumulatedRawSequenceFraction << "\n";
+        csv << accumulatedOrientedReadCountFraction << "\n";
     }
 }
