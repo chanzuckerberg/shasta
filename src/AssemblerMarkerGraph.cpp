@@ -3882,6 +3882,10 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     }
 
 
+    // Work areas used below.
+    // Allocate them here to reduce memory allocation activity.
+    vector<AssemblyGraph::EdgeId> predecessorEdge(n);
+    vector<uint8_t> color(n);
 
 
     // Process one connected component at a time.
@@ -3962,8 +3966,6 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             pair<float, AssemblyGraph::VertexId>,
             vector<pair<float, AssemblyGraph::VertexId> >,
             OrderPairsByFirstOnlyGreater<size_t, AssemblyGraph::VertexId> > q;
-        vector<AssemblyGraph::EdgeId> predecessorEdge(n, AssemblyGraph::invalidEdgeId);
-        vector<uint8_t> color(n);
         vector< pair<float, AssemblyGraph::EdgeId> > sortedOutEdges;
 
 
