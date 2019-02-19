@@ -17,6 +17,9 @@ using namespace shasta;
 #include <queue>
 #include <unordered_map>
 
+// This is needed for mallinfo.
+#include <malloc.h>
+
 
 
 // In the assembly graph, each edge corresponds to a linear chain
@@ -402,6 +405,9 @@ void Assembler::assemble(
     // Allocate data structures to store assembly results for each thread.
     assembleData.allocate(threadCount);
 
+    // Attempt to reduce memory fragmentation.
+    mallopt(M_MMAP_THRESHOLD, 16*1024);
+
     // Do all the assemblies.
     cout << "Assembly begins for " << assemblyGraph.edgeLists.size() <<
         " edges of the assembly graph." << endl;
@@ -491,6 +497,22 @@ void Assembler::assembleThreadFunction(size_t threadId)
                     assemblyGraph.edgeLists.size() <<
                     " length " <<
                     assemblyGraph.edgeLists[edgeId].size() << endl;
+
+                // Write statistics for memory allocated via malloc.
+                // This does not include memory allocated by Shasta via mmap
+                // using classed in namespace MemoryMapped.
+                const struct ::mallinfo info = ::mallinfo();
+                cout <<
+                    // " sbrk:"  << info.arena <<
+                    // " mmap:" << info.hblkhd <<
+                    " sbrk+mmap " << info.arena+info.hblkhd <<
+                    " bytes, in use " << info.uordblks <<
+                    " bytes, mmap chunks " << info.hblks <<
+                    // " free:" << info.fordblks <<
+                    // " allocated+free:" << info.uordblks+info.fordblks <<
+                    ", allocated fraction " << double(info.uordblks)/double(info.arena+info.hblkhd) <<
+                    endl;
+                // malloc_stats();
             }
             assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, edgeSequence, edgeRepeatCounts);
 
