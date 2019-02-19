@@ -464,7 +464,6 @@ void Assembler::assemble(
 
 void Assembler::assembleThreadFunction(size_t threadId)
 {
-    ostream& out = getLog(threadId);
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleData.markerGraphEdgeLengthThresholdForConsensus;
     const bool useMarginPhase = assembleData.useMarginPhase;
 
@@ -486,10 +485,13 @@ void Assembler::assembleThreadFunction(size_t threadId)
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
-            out << timestamp << "Assembling assembly graph edge " << edgeId <<
-                " corresponding to " <<
-                assemblyGraph.edgeLists[edgeId].size() <<
-                " marker graph edges." << endl;
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << timestamp << edgeId << "/" <<
+                    assemblyGraph.edgeLists.size() <<
+                    " length " <<
+                    assemblyGraph.edgeLists[edgeId].size() << endl;
+            }
             assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, edgeSequence, edgeRepeatCounts);
 
             // Store the edge id.
