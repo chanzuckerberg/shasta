@@ -4303,3 +4303,10 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     }
 }
 
+
+
+void Assembler::accessMarkerGraphEdgeConsensus()
+{
+    markerGraph.edgeConsensus.accessExistingReadOnly(largeDataName("MarkerGraphEdgesConsensus"));
+
+}

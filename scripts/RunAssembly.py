@@ -154,6 +154,12 @@ def runAssembly(a, config, fastaFileNames):
     # Compute optimal repeat counts for each vertex of the marker graph.
     a.assembleMarkerGraphVertices()
     
+    # Compute consensus sequence for marker graph edges to be used for assembly.
+    a.assembleMarkerGraphEdges(
+        markerGraphEdgeLengthThresholdForConsensus =
+        int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
+        useMarginPhase = useMarginPhase)
+    
     # Use the assembly graph for global assembly.
     a.assemble(
         markerGraphEdgeLengthThresholdForConsensus =

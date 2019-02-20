@@ -24,6 +24,8 @@ a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
 a.accessAssemblyGraphEdgeLists()
+a.accessMarkerGraphVertexRepeatCounts()
+a.accessMarkerGraphEdgeConsensus()
 a.assemble(
     markerGraphEdgeLengthThresholdForConsensus =
     int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),

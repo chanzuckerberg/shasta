@@ -1071,23 +1071,44 @@ void Assembler::assembleAssemblyGraphEdge(
 
 
 
-    // Compute consensus sequence for the vertices of the chain.
+    // Extract consensus sequence for the vertices of the chain.
     vector< vector<Base> > vertexSequences(vertexCount);
     vector< vector<uint32_t> > vertexRepeatCounts(vertexCount);
     for(size_t i=0; i<vertexCount; i++) {
+
+        /*
         computeMarkerGraphVertexConsensusSequence(
             vertexIds[i], vertexSequences[i], vertexRepeatCounts[i]);
+        */
+
+        // Get the sequence.
+        const MarkerId firstMarkerId = globalMarkerGraphVertices[vertexIds[i]][0];
+        const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
+        const KmerId kmerId = firstMarker.kmerId;
+        const Kmer kmer(kmerId, assemblerInfo->k);
+
+        // Get the repeat counts.
+        const auto& storedConsensus = markerGraph.vertexRepeatCounts.begin() + k * vertexIds[i];
+
+        // Store in local variables.
+        vertexSequences[i].resize(k);
+        vertexRepeatCounts[i].resize(k);
+        for(size_t j=0; j<k; j++) {
+            vertexSequences[i][j] = kmer[j];
+            vertexRepeatCounts[i][j] = storedConsensus[j];
+        }
     }
 
-    // Compute consensus sequence for the edges of the chain.
+
+
+    // Extract consensus sequence for the edges of the chain.
     vector< vector<Base> > edgeSequences(edgeCount);
     vector< vector<uint32_t> > edgeRepeatCounts(edgeCount);
     for(size_t i=0; i<edgeCount; i++) {
+
         /*
-        if((i%1000) == 0) {
-            cout << timestamp << i << "/" << edgeCount << endl;
-        }
-        */
+        // This is the old code that was computing the consensus here.
+        // Instead, this is now done by assembleMarkerGraphEdges.
         if(useMarginPhase) {
             computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
                 edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
@@ -1095,7 +1116,17 @@ void Assembler::assembleAssemblyGraphEdge(
             computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                 edgeIds[i], markerGraphEdgeLengthThresholdForConsensus, edgeSequences[i], edgeRepeatCounts[i]);
         }
+        */
+
+        const auto& storedConsensus = markerGraph.edgeConsensus[edgeIds[i]];
+        edgeSequences[i].resize(storedConsensus.size());
+        edgeRepeatCounts[i].resize(storedConsensus.size());
+        for(size_t j=0; j<storedConsensus.size(); j++) {
+            edgeSequences[i][j] = storedConsensus[j].first;
+            edgeRepeatCounts[i][j] = storedConsensus[j].second;
+        }
     }
+
 
 
     // Compute offsets for edges and vertices.

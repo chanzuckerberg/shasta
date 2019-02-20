@@ -1203,6 +1203,7 @@ public:
         // Parameter to control whether we use spoa or marginPhase
         // to compute consensus sequence.
         bool useMarginPhase);
+    void accessMarkerGraphEdgeConsensus();
 private:
     void assembleMarkerGraphEdgesThreadFunction(size_t threadId);
     class AssembleMarkerGraphEdgesData {
