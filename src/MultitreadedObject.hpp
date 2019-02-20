@@ -95,6 +95,13 @@ protected:
 private:
     T& t;
 
+
+
+    // The function run by each thread.
+    // Note that the catch block calls abort.
+    // A slightly cleaner termination may be possible
+    // via pthread_cancel, but even that would result in
+    // lack of destruction of objects created by the other threads.
     static void runThreadFunction(T& t, ThreadFunction f, size_t threadId)
     {
         try {
@@ -104,12 +111,16 @@ private:
             std::lock_guard<std::mutex> lock(t.mutex);
             cout << "A standard exception occurred in thread " << threadId << ": ";
             cout << e.what() << endl;
+            abort();
         } catch(...) {
             t.exceptionsOccurred = true;
             std::lock_guard<std::mutex> lock(t.mutex);
             cout << "A non-standard exception occurred in thread " << threadId << "." << endl;
+            abort();
         }
     }
+
+
 
     vector< std::shared_ptr<std::thread> > threads;
 
