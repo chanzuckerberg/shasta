@@ -151,6 +151,9 @@ def runAssembly(a, config, fastaFileNames):
     a.createAssemblyGraphVertices()
     a.writeAssemblyGraph("AssemblyGraph-Final.dot")
     
+    # Compute optimal repeat counts for each vertex of the marker graph.
+    a.assembleMarkerGraphVertices()
+    
     # Use the assembly graph for global assembly.
     a.assemble(
         markerGraphEdgeLengthThresholdForConsensus =

@@ -914,6 +914,11 @@ private:
         // Contains indexes into the above edges vector.
         MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
 
+        // The optimal repeat counts of each vertex of the marker graph.
+        // There are assemblerInfo->k entries for each vertex.
+        // The first entry for a vertex is at index vertexId*assemblerInfo->k.
+        MemoryMapped::Vector<uint8_t> vertexRepeatCounts;
+
 
     };
     MarkerGraph markerGraph;
@@ -1172,6 +1177,13 @@ private:
         int distance,
         double timeout,
         LocalAssemblyGraph&) const;
+public:
+
+
+    // Compute optimal repeat counts for each vertex of the marker graph.
+    void assembleMarkerGraphVertices(size_t threadCount);
+private:
+    void assembleMarkerGraphVerticesThreadFunction(size_t threadId);
 
     // Assemble sequence for an edge of the assembly graph.
     // Optionally outputs detailed assembly information

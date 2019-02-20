@@ -326,6 +326,9 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::removeShortMarkerGraphCycles,
             arg("maxLength"),
             arg("debug") = false)
+        .def("assembleMarkerGraphVertices",
+            &Assembler::assembleMarkerGraphVertices,
+            arg("threadCount") = 0)
 
 
 

@@ -4111,3 +4111,57 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 }
 
+
+
+// Compute optimal repeat counts for each vertex of the marker graph.
+void Assembler::assembleMarkerGraphVertices(size_t threadCount)
+{
+    // Check that we have what we need.
+    checkKmersAreOpen();
+    checkReadsAreOpen();
+    checkMarkersAreOpen();
+    checkMarkerGraphVerticesAreAvailable();
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Initialize the vector to contain assemblerInfo->k optimal repeat counts for each vertex.
+    markerGraph.vertexRepeatCounts.createNew(
+        largeDataName("MarkerGraphVertexRepeatCounts"),
+        largeDataPageSize);
+    markerGraph.vertexRepeatCounts.resize(assemblerInfo->k * globalMarkerGraphVertices.size());
+
+    // Do the work in parallel.
+    size_t batchSize = 100000;
+    setupLoadBalancing(globalMarkerGraphVertices.size(), batchSize);
+    runThreads(&Assembler::assembleMarkerGraphVerticesThreadFunction, threadCount);
+}
+
+
+
+void Assembler::assembleMarkerGraphVerticesThreadFunction(size_t threadId)
+{
+    vector<Base> sequence;
+    vector<uint32_t> repeatCounts;
+    const size_t k = assemblerInfo->k;
+
+    // Loop over batches assigned to this thread.
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over marker graph vertices assigned to this batch.
+        for(GlobalMarkerGraphVertexId vertexId=begin; vertexId!=end; vertexId++) {
+
+            // Compute the optimal repeat counts for this vertex.
+            computeMarkerGraphVertexConsensusSequence(vertexId, sequence, repeatCounts);
+
+            // Store them.
+            CZI_ASSERT(repeatCounts.size() == k);
+            copy(repeatCounts.begin(), repeatCounts.end(),
+                markerGraph.vertexRepeatCounts.begin() + vertexId * k);
+        }
+    }
+}
