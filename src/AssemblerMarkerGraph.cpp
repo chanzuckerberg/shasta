@@ -4113,7 +4113,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 
 
-// Compute optimal repeat counts for each vertex of the marker graph.
+// Compute consensus repeat counts for each vertex of the marker graph.
 void Assembler::assembleMarkerGraphVertices(size_t threadCount)
 {
     // Check that we have what we need.
@@ -4165,3 +4165,141 @@ void Assembler::assembleMarkerGraphVerticesThreadFunction(size_t threadId)
         }
     }
 }
+
+
+
+void Assembler::accessMarkerGraphVertexRepeatCounts()
+{
+    markerGraph.vertexRepeatCounts.accessExistingReadOnly(
+        largeDataName("MarkerGraphVertexRepeatCounts"));
+
+}
+
+
+
+// Assemble consensus sequence and repeat counts for each marker graph edge.
+void Assembler::assembleMarkerGraphEdges(
+    size_t threadCount,
+
+    // This controls when we give up trying to compute consensus for long edges.
+    uint32_t markerGraphEdgeLengthThresholdForConsensus,
+
+    // Parameter to control whether we use spoa or marginPhase
+    // to compute consensus sequence.
+    bool useMarginPhase)
+{
+    // Check that we have what we need.
+    checkKmersAreOpen();
+    checkReadsAreOpen();
+    checkMarkersAreOpen();
+    checkMarkerGraphVerticesAreAvailable();
+    checkMarkerGraphEdgesIsOpen();
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Do the computation in parallel.
+    assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;
+    assembleMarkerGraphEdgesData.useMarginPhase = useMarginPhase;
+    assembleMarkerGraphEdgesData.threadEdgeIds.resize(threadCount);
+    assembleMarkerGraphEdgesData.threadEdgeConsensus.resize(threadCount);
+    const size_t batchSize = 10000;
+    setupLoadBalancing(markerGraph.edges.size(), batchSize);
+    runThreads(&Assembler::assembleMarkerGraphEdgesThreadFunction, threadCount);
+
+
+    // Figure out where the results for each edge are.
+    // For each edge we store pair(threadId, index in thread).
+    const size_t invalidValue = std::numeric_limits<size_t>::max();
+    vector< pair<size_t, size_t > > edgeTable(markerGraph.edges.size(), make_pair(invalidValue, invalidValue));
+    for(size_t threadId=0; threadId!=threadCount; threadId++) {
+        const auto& edgeIds = *assembleMarkerGraphEdgesData.threadEdgeIds[threadId];
+        for(size_t i=0; i<edgeIds.size(); i++) {
+            edgeTable[edgeIds[i]] = make_pair(threadId, i);
+        }
+    }
+
+    // Gather the results.
+    markerGraph.edgeConsensus.createNew(largeDataName("MarkerGraphEdgesConsensus"), largeDataPageSize);
+    for(GlobalMarkerGraphEdgeId edgeId=0; edgeId!=markerGraph.edges.size(); edgeId++) {
+        const auto& p = edgeTable[edgeId];
+        const size_t threadId = p.first;
+        const size_t i = p.second;
+        CZI_ASSERT(threadId != invalidValue);
+        CZI_ASSERT(i != invalidValue);
+        const auto& results = (*assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId])[i];
+        markerGraph.edgeConsensus.appendVector();
+        for(const auto& q: results) {
+            markerGraph.edgeConsensus.append(q);
+        }
+    }
+
+
+    // Remove the results computed by each thread.
+    for(size_t threadId=0; threadId!=threadCount; threadId++) {
+        assembleMarkerGraphEdgesData.threadEdgeIds[threadId]->remove();
+        assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId]->remove();
+    }
+    assembleMarkerGraphEdgesData.threadEdgeIds.clear();
+    assembleMarkerGraphEdgesData.threadEdgeConsensus.clear();
+}
+
+
+
+void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
+{
+    const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus;
+    const bool useMarginPhase = assembleMarkerGraphEdgesData.useMarginPhase;
+
+    // Allocate space for the results computed by this thread.
+    assembleMarkerGraphEdgesData.threadEdgeIds[threadId] = make_shared< MemoryMapped::Vector<GlobalMarkerGraphEdgeId> >();
+    assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId] = make_shared<MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> >();
+    MemoryMapped::Vector<GlobalMarkerGraphEdgeId>& edgeIds = *assembleMarkerGraphEdgesData.threadEdgeIds[threadId];
+    MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t>& consensus = *assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId];
+    edgeIds.createNew(largeDataName("tmp-assembleMarkerGraphEdges-edgeIds-" + to_string(threadId)), largeDataPageSize);
+    consensus.createNew(largeDataName("tmp-assembleMarkerGraphEdges-consensus-" + to_string(threadId)), largeDataPageSize);
+
+    vector<Base> sequence;
+    vector<uint32_t> repeatCounts;
+
+    // Loop over batches assigned to this thread.
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        if((begin % 1000000) == 0){
+            std::lock_guard<std::mutex> lock(mutex);
+            cout << timestamp << begin << "/" << markerGraph.edges.size() << endl;
+        }
+
+        // Loop over marker graph vertices assigned to this batch.
+        for(GlobalMarkerGraphEdgeId edgeId=begin; edgeId!=end; edgeId++) {
+
+            // Compute the consensus, but only if the edge is not marker as removed.
+            if(markerGraph.edges[edgeId].wasRemoved()) {
+                sequence.clear();
+                repeatCounts.clear();
+            } else {
+                if(useMarginPhase) {
+                    computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
+                        edgeId, sequence, repeatCounts);
+                } else {
+                    computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
+                        edgeId, markerGraphEdgeLengthThresholdForConsensus, sequence, repeatCounts);
+                }
+            }
+
+            // Store the results.
+            edgeIds.push_back(edgeId);
+            const size_t n = sequence.size();
+            CZI_ASSERT(repeatCounts.size() == n);
+            consensus.appendVector();
+            for(size_t i=0; i<n; i++) {
+                consensus.append(make_pair(sequence[i], repeatCounts[i]));
+            }
+
+        }
+    }
+}
+

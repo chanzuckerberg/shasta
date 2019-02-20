@@ -329,6 +329,13 @@ PYBIND11_MODULE(shasta, module)
         .def("assembleMarkerGraphVertices",
             &Assembler::assembleMarkerGraphVertices,
             arg("threadCount") = 0)
+        .def("accessMarkerGraphVertexRepeatCounts",
+            &Assembler::accessMarkerGraphVertexRepeatCounts)
+        .def("assembleMarkerGraphEdges",
+            &Assembler::assembleMarkerGraphEdges,
+            arg("threadCount") = 0,
+            arg("markerGraphEdgeLengthThresholdForConsensus"),
+            arg("useMarginPhase"))
 
 
 

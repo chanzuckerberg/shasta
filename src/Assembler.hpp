@@ -914,11 +914,15 @@ private:
         // Contains indexes into the above edges vector.
         MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
 
-        // The optimal repeat counts of each vertex of the marker graph.
+        // The consensus repeat counts of each vertex of the marker graph.
         // There are assemblerInfo->k entries for each vertex.
         // The first entry for a vertex is at index vertexId*assemblerInfo->k.
         MemoryMapped::Vector<uint8_t> vertexRepeatCounts;
 
+        // Consensus sequence and repeat counts for each marker graph edge.
+        // Indexed by the marker graph edge id.
+        // This will be empty for edges that were marked as removed.
+        MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> edgeConsensus;
 
     };
     MarkerGraph markerGraph;
@@ -1180,10 +1184,48 @@ private:
 public:
 
 
-    // Compute optimal repeat counts for each vertex of the marker graph.
+    // Compute consensus repeat counts for each vertex of the marker graph.
     void assembleMarkerGraphVertices(size_t threadCount);
+    void accessMarkerGraphVertexRepeatCounts();
 private:
     void assembleMarkerGraphVerticesThreadFunction(size_t threadId);
+
+
+
+public:
+    // Assemble consensus sequence and repeat counts for each marker graph edge.
+    void assembleMarkerGraphEdges(
+        size_t threadCount,
+
+        // This controls when we give up trying to compute consensus for long edges.
+        uint32_t markerGraphEdgeLengthThresholdForConsensus,
+
+        // Parameter to control whether we use spoa or marginPhase
+        // to compute consensus sequence.
+        bool useMarginPhase);
+private:
+    void assembleMarkerGraphEdgesThreadFunction(size_t threadId);
+    class AssembleMarkerGraphEdgesData {
+    public:
+
+        // The arguments to assembleMarkerGraphEdges, stored here so
+        // they are accessible to the threads.
+        uint32_t markerGraphEdgeLengthThresholdForConsensus;
+        bool useMarginPhase;
+
+        // The results computed by each thread.
+        // For each threadId:
+        // threadEdgeIds[threadId] contains the edge ids processed ny each thread.
+        // threadEdgeConsensusSequence[threadId] contains the corresponding
+        // consensus sequence and repeat counts.
+        // These are temporary data which are eventually gathered into
+        // MarkerGraph::edgeConsensus before assembleMarkerGraphEdges completes.
+        vector< shared_ptr< MemoryMapped::Vector<GlobalMarkerGraphEdgeId> > > threadEdgeIds;
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> > > threadEdgeConsensus;
+    };
+    AssembleMarkerGraphEdgesData assembleMarkerGraphEdgesData;
+
+
 
     // Assemble sequence for an edge of the assembly graph.
     // Optionally outputs detailed assembly information
@@ -1201,7 +1243,7 @@ private:
 public:
     void assemble(
         size_t threadCount,
-        // This controls when we give up tryingto compute consensus for long edges.
+        // This controls when we give up trying to compute consensus for long edges.
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         // Parameter to control whether we use spoa or marginPhase
         // to compute consensus sequence for marker graph edges.
