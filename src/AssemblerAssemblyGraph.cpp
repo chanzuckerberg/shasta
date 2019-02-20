@@ -493,12 +493,25 @@ void Assembler::assembleThreadFunction(size_t threadId)
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                cout << timestamp << edgeId << "/" <<
+                cout << timestamp << "Thread " << threadId << ": " << edgeId << "/" <<
                     assemblyGraph.edgeLists.size() <<
                     " length " <<
                     assemblyGraph.edgeLists[edgeId].size() << endl;
             }
-            assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, edgeSequence, edgeRepeatCounts);
+            try {
+                assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, edgeSequence, edgeRepeatCounts);
+            } catch(std::exception e) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << timestamp << "Thread " << threadId <<
+                    " threw a standard exception while processing assembly graph edge " << edgeId << ":" << endl;
+                cout << e.what() << endl;
+                throw;
+            } catch(...) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << timestamp << "Thread " << threadId <<
+                    " threw a non-standard exception while processing assembly graph edge " << edgeId << endl;
+                throw;
+            }
 
             // Store the edge id.
             edges.push_back(edgeId);
