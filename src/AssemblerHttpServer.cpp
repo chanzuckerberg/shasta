@@ -1,3 +1,18 @@
+// Boost gil library.
+// The boost gil library includes png.h,
+// then uses int_p_NULL which is not defined in
+// all versions of boost (see Boost bug 3908,
+// flaged as fixed but it is not obvious that that
+// is the case). To deal with this, we defensively
+// include png.h, then define int_p_NULL if necessary.
+#include <png.h>
+#ifndef int_p_NULL
+#define int_p_NULL (int *)NULL
+#endif
+#include <boost/gil/gil_all.hpp>
+#include <boost/gil/extension/io/png_dynamic_io.hpp>
+
+
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
@@ -8,10 +23,12 @@ using namespace ChanZuckerberg;
 using namespace shasta;
 
 // Boost libraries.
-#include<boost/tokenizer.hpp>
+#include <boost/tokenizer.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+
+
 
 // Standard library.
 #include "chrono.hpp"
@@ -38,6 +55,7 @@ void Assembler::fillServerFunctionTable()
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
     CZI_ADD_TO_FUNCTION_TABLE(computeAllAlignments);
     CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
+    CZI_ADD_TO_FUNCTION_TABLE(displayAlignmentMatrix);
     CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
     CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
@@ -205,6 +223,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Align two reads", "exploreAlignment"},
         {"Align one read with all", "computeAllAlignments"},
         {"Alignment graph", "exploreAlignmentGraph"},
+        {"Alignment matrix", "displayAlignmentMatrix"},
         });
     writeNavigation(html, "Read graph", {
         {"Read graph", "exploreReadGraph"},
@@ -1725,6 +1744,129 @@ void Assembler::exploreAlignment(
     }
 
     html << "</table>";
+}
+
+
+
+// Display a base-by-base alignment matrix between two given sequences.
+void Assembler::displayAlignmentMatrix(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the request parameters.
+    string sequenceString0;
+    getParameterValue(request, "sequence0", sequenceString0);
+    string sequenceString1;
+    getParameterValue(request, "sequence1", sequenceString1);
+    int zoom = 1;
+    getParameterValue(request, "zoom", zoom);
+
+    // Get the zoom factor.
+
+    // Write the form.
+    html <<
+        "<p>Display a base-by-base alignment matrix of these two sequences:"
+        "<form>"
+        "<input type=text name=sequence0 required size=64 value='" << sequenceString0 << "'>"
+        "<input type=text name=sequence1 required size=64 value='" << sequenceString1 << "'>"
+        "<br>Zoom factor: <input type=text name=zoom required value=" << zoom << ">"
+        "<br><input type=submit value='Display'>"
+        "</form>";
+
+    // If either sequence is empty, do nothing.
+    if(sequenceString0.empty() || sequenceString1.empty()) {
+        return;
+    }
+
+    // Convert to base sequences, discarding all characters that
+    // dont'r reoresent a base.
+    vector<Base> sequence0;
+    for(const char c: sequenceString0) {
+        try {
+            const Base b = Base::fromCharacter(c);
+            sequence0.push_back(b);
+        } catch (std::exception) {
+            // Just discard the character.
+        }
+    }
+    vector<Base> sequence1;
+    for(const char c: sequenceString1) {
+        try {
+            const Base b = Base::fromCharacter(c);
+            sequence1.push_back(b);
+        } catch (std::exception) {
+            // Just discard the character.
+        }
+    }
+
+    // If either sequence is empty, do nothing.
+    if(sequenceString0.empty() || sequenceString1.empty()) {
+        return;
+    }
+    if(sequence0.empty() || sequence1.empty()) {
+        return;
+    }
+
+
+
+    // If getting here, we have two non-empty sequences and
+    // we can display they alignment matrix.
+
+    using namespace boost::gil;
+
+    // Create the image and the view.
+    const size_t n0 = sequence0.size();
+    const size_t n1 = sequence1.size();
+    rgb8_image_t image(n0*zoom, n1*zoom);
+    rgb8_image_t::view_t imageView = view(image);
+
+    // Initialize it to black.
+    const rgb8_pixel_t black(0, 0, 0);
+    for(size_t i0=0; i0<n0*zoom; i0++) {
+        for(size_t i1=0; i1<n1*zoom; i1++) {
+            imageView(i0, i1) = black;
+        }
+    }
+
+
+
+    // Fill in pixel values.
+    const rgb8_pixel_t green(0, 255, 0);
+    for(size_t i0=0; i0<n0; i0++) {
+        const Base base0 = sequence0[i0];
+        const size_t begin0 = i0 *zoom;
+        const size_t end0 = begin0 + zoom;
+        for(size_t i1=0; i1<n1; i1++) {
+            const Base base1 = sequence1[i1];
+            if(!(base1 == base0)) {
+                continue;
+            }
+            const size_t begin1 = i1 *zoom;
+            const size_t end1 = begin1 + zoom;
+            for(size_t j0=begin0; j0!=end0; j0++) {
+                for(size_t j1=begin1; j1!=end1; j1++) {
+                    imageView(j0, j1) = green;
+                }
+            }
+        }
+    }
+
+
+
+    // Write it out.
+    png_write_view("AlignmentMatrix.png", imageView);
+
+    // Create a base64 version of the png file.
+    const string command = "base64 AlignmentMatrix.png > AlignmentMatrix.png.base64";
+    ::system(command.c_str());
+
+
+    // Write out the png file.
+    html << "<p><img src=\"data:image/png;base64,";
+    ifstream png("AlignmentMatrix.png.base64");
+    html << png.rdbuf();
+    html << "\"/>";
+
 }
 
 
