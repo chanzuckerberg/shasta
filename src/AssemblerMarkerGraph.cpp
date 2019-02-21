@@ -4281,12 +4281,25 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                 sequence.clear();
                 repeatCounts.clear();
             } else {
-                if(useMarginPhase) {
-                    computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-                        edgeId, sequence, repeatCounts);
-                } else {
-                    computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-                        edgeId, markerGraphEdgeLengthThresholdForConsensus, sequence, repeatCounts);
+                try {
+                    if(useMarginPhase) {
+                        computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
+                            edgeId, sequence, repeatCounts);
+                    } else {
+                        computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
+                            edgeId, markerGraphEdgeLengthThresholdForConsensus, sequence, repeatCounts);
+                    }
+                } catch(std::exception e) {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    cout << "A standard exception was thrown while assembling "
+                        "marker graph edge " << edgeId << ":" << endl;
+                    cout << e.what() << endl;
+                    throw;
+                } catch(...) {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    cout << "A non-standard exception was thrown while assembling "
+                        "marker graph edge " << edgeId << ":" << endl;
+                    throw;
                 }
             }
 
