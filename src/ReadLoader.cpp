@@ -126,9 +126,18 @@ ReadLoader::ReadLoader(
                 readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
                 reads.append(thisThreadReads[i]);
                 if(useRunLengthReads) {
+                    /*
                     readRepeatCounts.appendVector(
                         thisThreadReadRepeatCounts->begin(i),
                         thisThreadReadRepeatCounts->end(i));
+                    */
+                    // Faster:
+                    const size_t j = readRepeatCounts.size();
+                    readRepeatCounts.appendVector(thisThreadReadRepeatCounts->size(i));
+                    copy(
+                        thisThreadReadRepeatCounts->begin(i),
+                        thisThreadReadRepeatCounts->end(i),
+                        readRepeatCounts.begin(j));
                 }
             }
             thisThreadReadNames.clear();
