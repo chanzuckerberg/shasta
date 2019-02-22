@@ -28,6 +28,9 @@ using namespace shasta;
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+// Seqan
+#include <seqan/align.h>
+
 
 
 // Standard library.
@@ -1753,6 +1756,12 @@ void Assembler::displayAlignmentMatrix(
     const vector<string>& request,
     ostream& html)
 {
+    html << "<h1>Base-by-base alignment of two sequences</h1>"
+        "<p>This page does not use run-length representation of sequences. "
+        "It also does not use markers. "
+        "Alignments computed and displayed here are standard "
+        "base-by-base alignments.";
+
     // Get the request parameters.
     string sequenceString0;
     getParameterValue(request, "sequence0", sequenceString0);
@@ -1760,15 +1769,32 @@ void Assembler::displayAlignmentMatrix(
     getParameterValue(request, "sequence1", sequenceString1);
     int zoom = 1;
     getParameterValue(request, "zoom", zoom);
+    string clip0String;
+    getParameterValue(request, "clip0", clip0String);
+    const bool clip0 = (clip0String == "on");
+    string clip1String;
+    getParameterValue(request, "clip1", clip1String);
+    const bool clip1 = (clip1String == "on");
+    string showAlignmentString;
+    getParameterValue(request, "showAlignment", showAlignmentString);
+    const bool showAlignment = (showAlignmentString == "on");
+    string showGridString;
+    getParameterValue(request, "showGrid", showGridString);
+    const bool showGrid = (showGridString == "on");
+
 
     // Get the zoom factor.
 
     // Write the form.
     html <<
-        "<p>Display a base-by-base alignment matrix of these two sequences:"
+        "<p>Display a base-by-base alignment of these two sequences:"
         "<form>"
-        "<input type=text name=sequence0 required size=64 value='" << sequenceString0 << "'>"
-        "<input type=text name=sequence1 required size=64 value='" << sequenceString1 << "'>"
+        "<input style='font-family:monospace' type=text name=sequence0 required size=64 value='" << sequenceString0 << "'>"
+        "<br><input style='font-family:monospace' type=text name=sequence1 required size=64 value='" << sequenceString1 << "'>"
+        "<br><input type=checkbox name=clip0" << (clip0 ? " checked" : "") << "> Allow clipping on both ends of first sequence."
+        "<br><input type=checkbox name=clip1" << (clip1 ? " checked" : "") << "> Allow clipping on both ends of second sequence."
+        "<br><input type=checkbox name=showAlignment" << (showAlignment ? " checked" : "") << "> Show the alignment and highlight it in the alignment matrix."
+        "<br><input type=checkbox name=showGrid" << (showGrid ? " checked" : "") << "> Show a grid on the alignment matrix."
         "<br>Zoom factor: <input type=text name=zoom required value=" << zoom << ">"
         "<br><input type=submit value='Display'>"
         "</form>";
@@ -1779,7 +1805,7 @@ void Assembler::displayAlignmentMatrix(
     }
 
     // Convert to base sequences, discarding all characters that
-    // dont'r reoresent a base.
+    // don't represent a base.
     vector<Base> sequence0;
     for(const char c: sequenceString0) {
         try {
@@ -1830,6 +1856,70 @@ void Assembler::displayAlignmentMatrix(
 
 
 
+    // Display a position grid.
+    if(showGrid) {
+
+        // Every 10.
+        const rgb8_pixel_t grey10(128, 128, 128);
+        for(size_t i0=0; i0<n0; i0+=10) {
+            for(size_t i1=0; i1<n1; i1++) {
+                const size_t begin0 = i0 *zoom;
+                const size_t end0 = begin0 + zoom;
+                const size_t begin1 = i1 *zoom;
+                const size_t end1 = begin1 + zoom;
+                for(size_t j0=begin0; j0!=end0; j0++) {
+                    for(size_t j1=begin1; j1!=end1; j1++) {
+                        imageView(j0, j1) = grey10;
+                    }
+                }
+            }
+        }
+        for(size_t i1=0; i1<n1; i1+=10) {
+            for(size_t i0=0; i0<n0; i0++) {
+                const size_t begin0 = i0 *zoom;
+                const size_t end0 = begin0 + zoom;
+                const size_t begin1 = i1 *zoom;
+                const size_t end1 = begin1 + zoom;
+                for(size_t j0=begin0; j0!=end0; j0++) {
+                    for(size_t j1=begin1; j1!=end1; j1++) {
+                        imageView(j0, j1) = grey10;
+                    }
+                }
+            }
+        }
+
+        // Every 100.
+        const rgb8_pixel_t grey100(192,192,192);
+        for(size_t i0=0; i0<n0; i0+=100) {
+            for(size_t i1=0; i1<n1; i1++) {
+                const size_t begin0 = i0 *zoom;
+                const size_t end0 = begin0 + zoom;
+                const size_t begin1 = i1 *zoom;
+                const size_t end1 = begin1 + zoom;
+                for(size_t j0=begin0; j0!=end0; j0++) {
+                    for(size_t j1=begin1; j1!=end1; j1++) {
+                        imageView(j0, j1) = grey100;
+                    }
+                }
+            }
+        }
+        for(size_t i1=0; i1<n1; i1+=100) {
+            for(size_t i0=0; i0<n0; i0++) {
+                const size_t begin0 = i0 *zoom;
+                const size_t end0 = begin0 + zoom;
+                const size_t begin1 = i1 *zoom;
+                const size_t end1 = begin1 + zoom;
+                for(size_t j0=begin0; j0!=end0; j0++) {
+                    for(size_t j1=begin1; j1!=end1; j1++) {
+                        imageView(j0, j1) = grey100;
+                    }
+                }
+            }
+        }
+    }
+
+
+
     // Fill in pixel values.
     const rgb8_pixel_t green(0, 255, 0);
     for(size_t i0=0; i0<n0; i0++) {
@@ -1851,6 +1941,133 @@ void Assembler::displayAlignmentMatrix(
         }
     }
 
+
+
+    // Use SeqAn to compute an alignment free at both ends
+    // and highlight it in the image.
+    // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
+    if(showAlignment){
+        using namespace seqan;
+        using seqan::Alignment; // Hide shasta::Alignment.
+
+        typedef String<char> TSequence;
+        typedef StringSet<TSequence> TStringSet;
+        typedef StringSet<TSequence, Dependent<> > TDepStringSet;
+        typedef Graph<Alignment<TDepStringSet> > TAlignGraph;
+        // typedef Align<TSequence, ArrayGaps> TAlign;
+
+        TSequence seq0;
+        for(const Base b: sequence0) {
+            appendValue(seq0, b.character());
+        }
+        TSequence seq1;
+        for(const Base b: sequence1) {
+            appendValue(seq1, b.character());
+        }
+
+        TStringSet sequences;
+        appendValue(sequences, seq0);
+        appendValue(sequences, seq1);
+
+
+        // Call the globalAlignment with AlignConfig arguments
+        // determined by clip0 and clip1.
+        TAlignGraph graph(sequences);
+        int score;
+        if(clip0) {
+            if(clip1) {
+                score = globalAlignment(
+                    graph,
+                    Score<int, Simple>(1, -1, -1),
+                    AlignConfig<true, true, true, true>(),
+                    LinearGaps());
+            } else {
+                score = globalAlignment(
+                    graph,
+                    Score<int, Simple>(1, -1, -1),
+                    AlignConfig<true, false, true, false>(),
+                    LinearGaps());
+            }
+        } else {
+            if(clip1) {
+                score = globalAlignment(
+                    graph,
+                    Score<int, Simple>(1, -1, -1),
+                    AlignConfig<false, true, false, true>(),
+                    LinearGaps());
+            } else {
+                score = globalAlignment(
+                    graph,
+                    Score<int, Simple>(1, -1, -1),
+                    AlignConfig<false, false, false, false>(),
+                    LinearGaps());
+            }
+
+        }
+
+
+
+        // Extract the alignment from the graph.
+        // This creates a single sequence consisting of the two rows
+        // of the alignment, concatenated.
+        TSequence align;
+        convertAlignment(graph, align);
+        const size_t totalAlignmentLength = seqan::length(align);
+        CZI_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
+        const size_t alignmentLength = totalAlignmentLength / 2;
+
+        // Extract the two rows of the alignment.
+        array<vector<AlignedBase>, 2> alignment;
+        alignment[0].resize(alignmentLength);
+        alignment[1].resize(alignmentLength);
+        for(size_t i=0; i<alignmentLength; i++) {
+            alignment[0][i] = AlignedBase::fromCharacter(align[i]);
+            alignment[1][i] = AlignedBase::fromCharacter(align[i + alignmentLength]);
+        }
+        html << "<br>Sequence lengths: " << n0 << " " << n1 <<
+            "<br>Optimal alignment has length " << alignmentLength <<
+            ", score " << score <<
+            ":<div style='font-family:monospace'>";
+        for(size_t i=0; i<2; i++) {
+            html << "<br>";
+            for(size_t j=0; j<alignmentLength; j++) {
+                html << alignment[i][j];
+            }
+        }
+        html << "</div>";
+
+
+        size_t i0 = 0;
+        size_t i1 = 0;
+        const rgb8_pixel_t red(255, 0, 0);
+        const rgb8_pixel_t yellow(255, 255, 0);
+        for(size_t position=0; position<alignmentLength; position++) {
+            const AlignedBase b0 = alignment[0][position];
+            const AlignedBase b1 = alignment[1][position];
+
+            if(!(b0.isGap() || b1.isGap())) {
+
+                // This pixel is part of the optimal alignment
+                const size_t begin0 = i0 *zoom;
+                const size_t end0 = begin0 + zoom;
+                const size_t begin1 = i1 *zoom;
+                const size_t end1 = begin1 + zoom;
+                for(size_t j0=begin0; j0!=end0; j0++) {
+                    for(size_t j1=begin1; j1!=end1; j1++) {
+                        imageView(j0, j1) = (b0==b1 ? red : yellow);
+                    }
+                }
+            }
+
+            if(!b0.isGap()) {
+                ++i0;
+            }
+            if(!b1.isGap()) {
+                ++i1;
+            }
+        }
+
+    }
 
 
     // Write it out.
