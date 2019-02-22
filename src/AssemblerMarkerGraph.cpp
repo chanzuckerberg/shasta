@@ -4213,6 +4213,8 @@ void Assembler::assembleMarkerGraphEdges(
 
     // Figure out where the results for each edge are.
     // For each edge we store pair(threadId, index in thread).
+    // This edge table can get big and we shoud store it
+    // in a MemoryMapped::Vector instead.
     const size_t invalidValue = std::numeric_limits<size_t>::max();
     vector< pair<size_t, size_t > > edgeTable(markerGraph.edges.size(), make_pair(invalidValue, invalidValue));
     for(size_t threadId=0; threadId!=threadCount; threadId++) {
