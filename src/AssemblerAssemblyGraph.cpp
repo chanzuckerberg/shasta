@@ -1138,6 +1138,7 @@ void Assembler::assembleAssemblyGraphEdge(
     vertexOffsets[0] = 0;
     for(size_t i=0; i<edgeCount; i++) {
         edgeOffsets[i] = vertexOffsets[i];
+        CZI_ASSERT(edgeSequences[i].size() > k);
         vertexOffsets[i+1] = edgeOffsets[i] + uint32_t(edgeSequences[i].size()) - uint32_t(k);
     }
 
@@ -1182,6 +1183,7 @@ void Assembler::assembleAssemblyGraphEdge(
             vertexAssembledPortion[i].first = 0;
             vertexAssembledPortion[i].second = 0;
         }
+        CZI_ASSERT(vertexAssembledPortion[i].second <= k);
     }
 
 
