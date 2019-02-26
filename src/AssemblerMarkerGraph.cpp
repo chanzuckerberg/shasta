@@ -2879,6 +2879,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     vector<uint32_t>& repeatCounts
     )
 {
+    // Get the marker length.
+    const uint32_t k = uint32_t(assemblerInfo->k);
 
     // Access the markerIntervals for this edge.
     // Each corresponds to an oriented read on this edge.
@@ -2957,8 +2959,219 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
 
+    // We will process the edge in one of two modes:
+    // - Mode 1 supports only marker intervals in which the left and right
+    //   markers are adjacent or overlapping.
+    // - Mode 2 supports only marker intervals in which there is at least
+    //   one base of sequence intervening between the left and right
+    //   markers.
+    // It would be nice if we could find a mode that supports all of the
+    // reads, but in general this is not possible. So we do the following:
+    // - Count the number of marker intervals supported by mode 1 and mode 2.
+    // - Pick the mode that supports the most marker intervals.
+    // - Discard the marker intervals that are not supported by the mode we picked.
+    // In the worst case, this results in discarding half of the marker intervals.
+    // But in most cases, the number of marker intervals that must be discarded
+    // is small, and often zero.
+    // See comments below for details of the processing for each mode.
+    size_t mode1Count = 0;
+    size_t mode2Count = 0;
+    for(size_t i=0; i!=markerCount; i++) {
+        const MarkerInterval& markerInterval = markerIntervals[i];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers.
+        CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+        // Get the positions of the markers in the read.
+        const uint32_t position0 = marker0.position;
+        const uint32_t position1 = marker1.position;
+        CZI_ASSERT(position1 > position0);
+
+        // Compute the offset between the markers.
+        const uint32_t offset = position1 - position0;
+
+        // Update counts for mode 1 and mode 2.
+        if(offset <= k) {
+            // The markers are adjacent or overlapping.
+            ++mode1Count;
+        }
+        if(offset > k) {
+            // The markers are adjacent or non-overlapping.
+            ++mode2Count;
+        }
+    }
+    CZI_ASSERT(mode1Count + mode2Count == markerCount);
+
+
+
+    // Mode 1: only use marker intervals in which the two markers
+    // are adjacent or overlapping.
+    // To construct the sequence, we use the most frequent
+    // offset between the two markers. We set all repeat counts
+    // to zero, as they will never be used.
+    if(mode1Count >= mode2Count) {
+
+        // Offset histogram.
+        // Count marker offsets up to k.
+        // Since we are at it, also get the kmerIds.
+        KmerId kmerId0;
+        KmerId kmerId1;
+        vector<uint32_t> offsetHistogram(k+1, 0);
+        for(size_t i=0; i!=markerCount; i++) {
+            const MarkerInterval& markerInterval = markerIntervals[i];
+            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+            const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+            // Get the two markers.
+            CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+            const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+            const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+            if(i == 0) {
+                kmerId0 = marker0.kmerId;
+                kmerId1 = marker1.kmerId;
+            }
+
+            // Get the positions of the markers in the read.
+            const uint32_t position0 = marker0.position;
+            const uint32_t position1 = marker1.position;
+            CZI_ASSERT(position1 > position0);
+
+            // Compute the offset between the markers.
+            const uint32_t offset = position1 - position0;
+
+            // Update the offset, but only if the markers are adjacent or overlapping.
+            if(offset <= k) {
+                ++offsetHistogram[offset];
+            }
+        }
+
+
+        // Compute the most frequent offset.
+        const uint32_t bestOffset = uint32_t(
+            std::max_element(offsetHistogram.begin(), offsetHistogram.end())
+            - offsetHistogram.begin());
+
+        // Construct the sequence for this offset and zero the repeat counts,
+        // as they will never be used.
+        const uint32_t sequenceLength = bestOffset + k;
+        repeatCounts.clear();
+        repeatCounts.resize(sequenceLength);
+        fill(repeatCounts.begin(), repeatCounts.end(), 0);
+        sequence.resize(sequenceLength);
+        const Kmer kmer0(kmerId0, k);
+        const Kmer kmer1(kmerId1, k);
+        for(size_t i=0; i<k; i++) {
+            sequence[i] = kmer0[i];
+        }
+        for(size_t i=k; i<sequenceLength; i++) {
+            sequence[i] = kmer1[i-bestOffset];
+        }
+
+        return;
+    }
+
+
+
+    // Mode 2: only use marker intervals in which there is at least
+    // one base of sequence intervening between the left and right
+    // markers.
+    // We do a multiple sequence alignment using spoa
+    // of the sequences between the two markers.
+    // For performance, we enter each distinct sequence once,
+    // with weight equal to its frequency.
+    // Results from spoa are dependent on the order in which the
+    // sequences are entered, and so we enter the sequences in order
+    // of decreasing frequency.
+    CZI_ASSERT(mode2Count > mode1Count);
+
+
+
+    // Gather all of the intervening sequences and repeatCounts, keeping track of distinct
+    // sequences. For each sequence we store a vector of i values
+    // where each sequence appear.
+    vector< vector<Base> > distinctSequences;
+    vector< vector<size_t> > distinctSequenceOccurrences;
+    vector<bool> isUsed(markerCount);
+    vector<Base> interveningSequence;
+    vector< vector<uint8_t> > interveningRepeatCounts(markerCount);
+    KmerId kmerId0 = 0;
+    KmerId kmerId1 = 0;
+    for(size_t i=0; i!=markerCount; i++) {
+        const MarkerInterval& markerInterval = markerIntervals[i];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers and their positions.
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+        const uint32_t position0 = marker0.position;
+        const uint32_t position1 = marker1.position;
+        CZI_ASSERT(position1 > position0);
+        const uint32_t offset = position1 - position0;
+
+        if(i == 0) {
+            kmerId0 = marker0.kmerId;
+            kmerId1 = marker1.kmerId;
+        }
+
+        // If the offset is too small, discard this marker interval.
+        if(offset <= k) {
+            isUsed[i] = false;
+            continue;
+        }
+        isUsed[i] = true;
+
+        // Construct the sequence and repeat counts between the markers.
+        const uint32_t begin = position0 + k;
+        const uint32_t end = position1;
+        interveningSequence.clear();
+        for(uint32_t position=begin; position!=end; position++) {
+            Base base;
+            uint8_t repeatCount;
+            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            interveningSequence.push_back(getOrientedReadBase(orientedReadId, position));
+            interveningRepeatCounts[i].push_back(repeatCount);
+        }
+
+        // Store, making sure to check if we already encountered this sequence.
+        const auto it = find(distinctSequences.begin(), distinctSequences.end(), interveningSequence);
+        if(it == distinctSequences.end()) {
+            // We did not already encountered this sequence.
+            distinctSequences.push_back(interveningSequence);
+            distinctSequenceOccurrences.resize(distinctSequenceOccurrences.size() + 1);
+            distinctSequenceOccurrences.back().push_back(i);
+        } else {
+            // We already encountered this sequence,
+            distinctSequenceOccurrences[it - distinctSequences.begin()].push_back(i);
+        }
+    }
+    const Kmer kmer0(kmerId0, k);
+    const Kmer kmer1(kmerId1, k);
+
+
+
+    // We want to enter the distinct sequences in order of decreasing frequency,
+    // so we create a table of distinct sequences.
+    // For each pair stored:
+    // first = index of the distinct sequence in distintSequenced, distinctSequenceOccurrences.
+    // second = frequency.
+    vector< pair<size_t, uint32_t> > distinctSequenceTable;
+    for(size_t j=0; j<distinctSequences.size(); j++) {
+        distinctSequenceTable.push_back(make_pair(j, distinctSequenceOccurrences[j].size()));
+    }
+    sort(distinctSequenceTable.begin(), distinctSequenceTable.end(),
+        OrderPairsBySecondOnlyGreater<size_t, uint32_t>());
+
+
+    // We are now ready to compute the spoa alignment for the distinct sequences.
+
     // Initialize a spoa alignment.
-    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kSW;
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
@@ -2966,68 +3179,85 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     auto alignmentGraph = spoa::createGraph();
 
 
-    // Add all the sequences to the alignment,
-    // including the flanking markers.
-    vector<uint32_t> positions(markerCount);
+    // Add the sequences to the alignment, in order of decreasing frequency.
     string sequenceString;
-    vector<string> msa;
-    for(size_t i=0; i!=markerCount; i++) {
-        const MarkerInterval& markerInterval = markerIntervals[i];
-        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-        // cout << orientedReadId << endl;
-        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-
-        // Get the two markers.
-        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-
-        // Get the position range, including the flanking markers.
-        const uint32_t positionBegin = marker0.position;
-        const uint32_t positionEnd = marker1.position + uint32_t(assemblerInfo->k);
-        // cout << "Position range " << positionBegin << " " << positionEnd << endl;
-        positions[i] = positionBegin;
-
-        // Get the sequence.
-        sequenceString.clear();
-        for(uint32_t position=positionBegin; position!=positionEnd; position++) {
-            sequenceString.push_back(getOrientedReadBase(orientedReadId, position).character());
-        }
+    for(const auto& p: distinctSequenceTable) {
+        const vector<Base>& distinctSequence = distinctSequences[p.first];
 
         // Add it to the alignment.
+        sequenceString.clear();
+        for(const Base base: distinctSequence) {
+            sequenceString += base.character();
+        }
         auto alignment = (*alignmentEngine)(sequenceString, alignmentGraph);
         alignmentGraph->add_alignment(alignment, sequenceString);
     }
 
+
+
     // Use spoa to compute the multiple sequence alignment.
-    msa.clear();
+    vector<string>msa;
     alignmentGraph->generate_multiple_sequence_alignment(msa);
 
     // The length of the alignment.
-    // This includes gaps.
+    // This includes alignment gaps.
     const size_t alignmentLength = msa.front().size();
 
 
 
-    // Loop over all positions in the alignment.
-    // At each position compute a consensus base and repeat count.
-    // If the consensus base is not "-", store the base and repeat count.
+    // We construct the edge sequence and repeat counts as follows:
+    // - First, we add k bases with the sequence of the left marker
+    // and zero repeat counts (these repeat counts will never be used).
+    // - Then, we loop over all positions in the alignment.
+    // At each position we compute a consensus base and repeat count.
+    // If the consensus base is not '-', we store the base and repeat count.
+    // - Finally, we add k bases with the sequence of the right marker
+    // and zero repeat counts (these repeat counts will never be used).
     sequence.clear();
     repeatCounts.clear();
+
+
+
+    // First, we add k bases with the sequence of the left marker
+    // and zero repeat counts (these repeat counts will never be used).
+    for(size_t j=0; j<10; j++) {
+        sequence.push_back(kmer0[j]);
+        repeatCounts.push_back(0);
+    }
+
+
+
+    // - Then, we loop over all positions in the alignment.
+    // At each position we compute a consensus base and repeat count.
+    // If the consensus bases is not '-', we store the base and repeat count.
+    vector<uint32_t> positions(markerCount, 0);
     for(size_t position=0; position<alignmentLength; position++) {
 
-        // Create and fill in a Coverage object for this position.
+        // Create a Coverage object for this position.
         Coverage coverage;
-        for(size_t i=0; i!=markerCount; i++) {
-            const MarkerInterval& markerInterval = markerIntervals[i];
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-            if(msa[i][position] == '-') {
-                coverage.addRead(AlignedBase::gap(), orientedReadId.getStrand(), 0);
-            } else {
-                Base base;
-                uint8_t repeatCount;
-                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, positions[i]);
-                ++positions[i];
-                coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), repeatCount);
+
+        // Loop over distinct sequences, in the same order in
+        // which we presented them to spoa.
+        for(size_t j=0; j<distinctSequenceTable.size(); j++) {
+            const auto& p = distinctSequenceTable[j];
+            const size_t index = p.first;
+            // const vector<Base>& distinctSequence = distinctSequences[index];
+            const vector<size_t>& occurrences = distinctSequenceOccurrences[index];
+
+            // Loop over the marker intervals that have this sequence.
+            for(const size_t i: occurrences) {
+                const MarkerInterval& markerInterval = markerIntervals[i];
+                const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+                const AlignedBase base = AlignedBase::fromCharacter(msa[j][position]);
+                if(base.isGap()) {
+                    coverage.addRead(base, orientedReadId.getStrand(), 0);
+                } else {
+                    coverage.addRead(
+                        base,
+                        orientedReadId.getStrand(),
+                        interveningRepeatCounts[i][positions[i]]);
+                    ++positions[i];
+                }
             }
         }
 
@@ -3037,8 +3267,17 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         // If not a gap, store the base and repeat count.
         if(!consensus.base.isGap()) {
             sequence.push_back(Base(consensus.base));
+            CZI_ASSERT(consensus.repeatCount > 0);
             repeatCounts.push_back(uint32_t(consensus.repeatCount));
         }
+    }
+
+
+    // Finally, we add k bases with the sequence of the right marker
+    // and zero repeat counts (these repeat counts will never be used).
+    for(size_t j=0; j<10; j++) {
+        sequence.push_back(kmer1[j]);
+        repeatCounts.push_back(0);
     }
 }
 

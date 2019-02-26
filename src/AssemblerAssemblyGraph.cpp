@@ -1205,6 +1205,7 @@ void Assembler::assembleAssemblyGraphEdge(
         for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
             const Base base = vertexSequences[i][j];
             const uint32_t repeatCount = vertexRepeatCounts[i][j];
+            CZI_ASSERT(repeatCount > 0);
             assembledRunLengthSequence.push_back(base);
             assembledRepeatCounts.push_back(repeatCount);
             for(uint32_t k=0; k!=repeatCount; k++) {
@@ -1226,6 +1227,7 @@ void Assembler::assembleAssemblyGraphEdge(
             for(uint32_t j=uint32_t(k); j!=uint32_t(edgeSequences[i].size()-k); j++) {
                 const Base base = edgeSequences[i][j];
                 const uint32_t repeatCount = edgeRepeatCounts[i][j];
+                CZI_ASSERT(repeatCount > 0);
                 assembledRunLengthSequence.push_back(base);
                 assembledRepeatCounts.push_back(repeatCount);
                 for(uint32_t k=0; k!=repeatCount; k++) {

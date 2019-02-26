@@ -17,7 +17,7 @@ void ChanZuckerberg::shasta::testSpoa()
         "CCGTAACCTTCATCGGATCACCGGAAAGGACCCGTAAATAGACCTGATTATCATCTACAT"
     };
 
-    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kSW;
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
     const int8_t match = 5;
     const int8_t mismatch = -4;
     const int8_t gap = -8;

@@ -1448,7 +1448,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
     // Initialize a spoa multiple sequence alignment.
-    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kSW;
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
