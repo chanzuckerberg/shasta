@@ -347,7 +347,8 @@ public:
     void flagMarkerGraphWeakEdges(
         size_t lowCoverageThreshold,
         size_t highCoverageThreshold,
-        size_t maxDistance);
+        size_t maxDistance,
+        size_t edgeMarkerSkipThreshold);
 
 
 

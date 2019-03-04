@@ -133,6 +133,7 @@ def runAssembly(a, config, fastaFileNames):
         lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
         highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
         maxDistance = int(config['MarkerGraph']['maxDistance']),
+        edgeMarkerSkipThreshold = int(config['MarkerGraph']['edgeMarkerSkipThreshold'])
         )
     
     # Prune the strong subgraph of the marker graph.

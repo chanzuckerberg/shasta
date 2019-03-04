@@ -2068,7 +2068,8 @@ void Assembler::flagMarkerGraphWeakEdges(
 void Assembler::flagMarkerGraphWeakEdges(
     size_t lowCoverageThreshold,
     size_t highCoverageThreshold,
-    size_t maxDistance)
+    size_t maxDistance,
+    size_t edgeMarkerSkipThreshold)
 {
     // Some shorthands for readability.
     auto& edges = markerGraph.edges;
@@ -2151,6 +2152,33 @@ void Assembler::flagMarkerGraphWeakEdges(
 
 
 
+    // Flag as weak all edges with coverage 1 and a marker skip
+    // greater than edgeMarkerSkipThreshold
+    const auto& edgesWithCoverage1 = edgesByCoverage[1];
+    size_t coverage1HighSkipCount = 0;
+    cout << timestamp << "Flagging as weak edges with coverage 1 "
+        "and marker skip greater than " << edgeMarkerSkipThreshold << endl;
+    for(const EdgeId edgeId: edgesWithCoverage1) {
+        const MemoryAsContainer<MarkerInterval> markerIntervals =
+            markerGraph.edgeMarkerIntervals[edgeId];
+        if(markerIntervals.size() > 1) {
+            continue;
+        }
+        const MarkerInterval& markerInterval = markerIntervals[0];
+        const uint32_t skip = markerInterval.ordinals[1] - markerInterval.ordinals[0];
+        if(skip > edgeMarkerSkipThreshold) {
+            if(edges[edgeId].wasRemovedByTransitiveReduction == 0) {
+                edges[edgeId].wasRemovedByTransitiveReduction = 1;
+                coverage1HighSkipCount++;
+            }
+        }
+    }
+    cout << timestamp << "Flagged as weak " << coverage1HighSkipCount <<
+        " edges with coverage 1 and marker skip greater than " <<
+        edgeMarkerSkipThreshold << endl;
+
+
+
     // Process edges of intermediate coverage.
     for(size_t coverage=lowCoverageThreshold+1;
         coverage<highCoverageThreshold; coverage++) {
@@ -2162,7 +2190,9 @@ void Assembler::flagMarkerGraphWeakEdges(
         // Loop over edges with this coverage.
         for(const EdgeId edgeId: edgesWithThisCoverage) {
             const Edge& edge = edges[edgeId];
-            CZI_ASSERT(!edge.wasRemovedByTransitiveReduction);
+            if(edge.wasRemovedByTransitiveReduction) {
+                continue;
+            }
             const VertexId u0 = edge.source;
             const VertexId u1 = edge.target;
 

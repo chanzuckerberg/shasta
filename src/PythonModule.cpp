@@ -306,7 +306,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::flagMarkerGraphWeakEdges,
             arg("lowCoverageThreshold"),
             arg("highCoverageThreshold"),
-            arg("maxDistance"))
+            arg("maxDistance"),
+            arg("edgeMarkerSkipThreshold"))
         .def("pruneMarkerGraphStrongSubgraph",
             &Assembler::pruneMarkerGraphStrongSubgraph,
             arg("iterationCount"))
