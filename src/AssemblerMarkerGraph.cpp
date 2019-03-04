@@ -354,8 +354,8 @@ void Assembler::createMarkerGraphVertices(
 
     // Check that the data structures we created are consistent with each other.
     // This could be expensive. Remove when we know this code works.
-    cout << timestamp << "Checking marker graph vertices." << endl;
-    checkMarkerGraphVertices(minCoverage, maxCoverage);
+    // cout << timestamp << "Checking marker graph vertices." << endl;
+    // checkMarkerGraphVertices(minCoverage, maxCoverage);
 
 
 
