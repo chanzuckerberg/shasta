@@ -44,16 +44,46 @@ not by assembly algorithms.
 <h2 id=currentStatus>Current status</h2>
 
 <p>
-This project is at an early stage. Its main output is currently
-in the form of a <i>marker graph</i>, not assembled sequence. 
-It does include functionality to extract and display a
-local portion of the global marker graph, 
-and to use it interactively for local assembly.
+This project is at an early stage. 
+As of March 2019,
+the Shasta code creates assembly output in 
+<a href='https://en.wikipedia.org/wiki/FASTA_format'>FASTA</a>
+and 
+<a href='https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md'>GFA 1.0</a>
+ formats.
+The current implementation redundantly assembles both strands.
 
 <p>
-This limited computation currently runs in a few hours 
-for a typical human genome with coverage 40x, 
-using a single machine with sufficient memory and 32 cores.
+A human assembly from Oxford Nanopore data with 60x coverage
+completed in 6.4 hours on a large AWS instance (<code>x1.32xlarge</code>, 
+with 64 cores, 1952 GB RAM)
+at a compute cost under $100. 
+The run used an on demand instance. At spot prices or reserved prices,
+compute cost would have been under $30.
+
+<p>
+Assembly results have not yet been analyzed,
+but here are some preliminary metrics:
+<ul>
+<li>Total length of assembled sequence: 2.78 Gb (per strand).
+<li>N<sub>50</sub> of assembled segments: 20.5 Mb.
+<li>Sequence identity around 99%, dominated by deletions in homopolymer runs.
+Many of these deletion errors should disappear 
+once the Bayesian model for repeat counts becomes functional.
+</ul>
+<p> It is expected that assembly quality as measured 
+by these and other metrics will improve as the code matures.
+
+<p>
+An <i>E. coli</i> assembly with similar characteristics runs
+in about 2 minutes on a quad-core 32 GB laptop.
+For each strand, it assembles a single circular contig that closes on itself.
+
+<p>
+It is emphasized that, 
+despite these encouraging results,
+the Shasta software is still at an early stage
+and is therefore not recommended for any application.
 
 
 
