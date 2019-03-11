@@ -921,10 +921,23 @@ private:
         MemoryMapped::Vector<uint8_t> vertexRepeatCounts;
 
         // Consensus sequence and repeat counts for each marker graph edge.
+        // This excludes the sequence of flanking markers and their repeat counts.
         // Indexed by the marker graph edge id.
-        // This will be empty for edges that were marked as removed.
+        // - For edges that were marked as removed,
+        //   edgeConsensusOverlappingBaseCount is 0 and edgeConsensus is empty.
+        // - For edges that were not marked as removed:
+        //   * If the consensus sequence has one or more intervening bases
+        //     between the flanking markers,
+        //     edgeConsensusOverlappingBaseCount is 0 and edgeConsensus
+        //     stores those intervening bases with their repeat count consensus.
+        //   * Otherwise, edgeConsensus is empty and
+        //     edgeConsensusOverlappingBaseCount stores the number of
+        //     overlapping bases (for the consensus sequence)
+        //     between the two flanking markers. This can be zero
+        //     if the consensus sequence has tghe flanking markers
+        //     exactly adjacent.
         MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> edgeConsensus;
-
+        MemoryMapped::Vector<uint8_t> edgeConsensusOverlappingBaseCount;
     };
     MarkerGraph markerGraph;
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
@@ -1096,23 +1109,25 @@ private:
         );
 
     // Compute consensus sequence for an edge of the marker graph.
-    // This includes the k bases corresponding to the flanking markers,
-    // but computed only using reads on this edge.
+    // This does not include the bases corresponding to the flanking markers.
     void computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
         GlobalMarkerGraphEdgeId,
         vector<Base>& sequence,
-        vector<uint32_t>& repeatCounts
+        vector<uint32_t>& repeatCounts,
+        uint8_t& overlappingBaseCount
         );
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         GlobalMarkerGraphEdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         vector<Base>& sequence,
-        vector<uint32_t>& repeatCounts
+        vector<uint32_t>& repeatCounts,
+        uint8_t& overlappingBaseCount
         );
     void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         GlobalMarkerGraphEdgeId,
         vector<Base>& sequence,
-        vector<uint32_t>& repeatCounts
+        vector<uint32_t>& repeatCounts,
+        uint8_t& overlappingBaseCount
         );
 
 
@@ -1217,13 +1232,17 @@ private:
 
         // The results computed by each thread.
         // For each threadId:
-        // threadEdgeIds[threadId] contains the edge ids processed ny each thread.
-        // threadEdgeConsensusSequence[threadId] contains the corresponding
+        // threadEdgeIds[threadId] contains the edge ids processed by each thread.
+        // threadEdgeConsensusSequence[threadId]  and
+        // threadEdgeConsensusOverlappingBaseCount[threadId] contains the corresponding
         // consensus sequence and repeat counts.
         // These are temporary data which are eventually gathered into
-        // MarkerGraph::edgeConsensus before assembleMarkerGraphEdges completes.
+        // MarkerGraph::edgeConsensus and MarkerGraph::edgeConsensusOverlappingBaseCount
+        // before assembleMarkerGraphEdges completes.
+        // See their definition for more details about their meaning.
         vector< shared_ptr< MemoryMapped::Vector<GlobalMarkerGraphEdgeId> > > threadEdgeIds;
         vector< shared_ptr< MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> > > threadEdgeConsensus;
+        vector< shared_ptr< MemoryMapped::Vector<uint8_t> > > threadEdgeConsensusOverlappingBaseCount;
     };
     AssembleMarkerGraphEdgesData assembleMarkerGraphEdgesData;
 

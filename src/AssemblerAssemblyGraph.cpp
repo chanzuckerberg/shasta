@@ -1104,6 +1104,7 @@ void Assembler::assembleAssemblyGraphEdge(
     // Extract consensus sequence for the edges of the chain.
     vector< vector<Base> > edgeSequences(edgeCount);
     vector< vector<uint32_t> > edgeRepeatCounts(edgeCount);
+    vector<uint8_t> edgeOverlappingBaseCounts(edgeCount);
     for(size_t i=0; i<edgeCount; i++) {
 
         /*
@@ -1125,21 +1126,26 @@ void Assembler::assembleAssemblyGraphEdge(
             edgeSequences[i][j] = storedConsensus[j].first;
             edgeRepeatCounts[i][j] = storedConsensus[j].second;
         }
+        edgeOverlappingBaseCounts[i] = markerGraph.edgeConsensusOverlappingBaseCount[edgeIds[i]];
     }
 
 
 
-    // Compute offsets for edges and vertices.
-    // A vertex/edge offset is the position of the first base
-    // of the vertex/edge consensus sequence (run-length)
+    // Compute vertex offsets.
+    // A vertex offset is the position of the first base
+    // of the vertex consensus sequence (run-length)
     // relative to the first base of assembled sequence (run-length).
     vector<uint32_t> vertexOffsets(vertexCount);
-    vector<uint32_t> edgeOffsets(edgeCount);
     vertexOffsets[0] = 0;
     for(size_t i=0; i<edgeCount; i++) {
-        edgeOffsets[i] = vertexOffsets[i];
-        CZI_ASSERT(edgeSequences[i].size() > k);
-        vertexOffsets[i+1] = edgeOffsets[i] + uint32_t(edgeSequences[i].size()) - uint32_t(k);
+        const uint8_t overlap = edgeOverlappingBaseCounts[i];
+        if(overlap > 0) {
+            CZI_ASSERT(edgeSequences[i].empty());
+            CZI_ASSERT(edgeRepeatCounts[i].empty());
+            vertexOffsets[i+1] = uint32_t(vertexOffsets[i] + k - overlap);
+        } else {
+            vertexOffsets[i+1] = uint32_t(vertexOffsets[i] + k + edgeSequences[i].size());
+        }
     }
 
 
@@ -1147,8 +1153,9 @@ void Assembler::assembleAssemblyGraphEdge(
     // Compute, for each vertex, the portion of vertex sequence that contributes
     // to the assembly. This is the portion that does not overlap a vertex with greater coverage.
     // (Break ties using vertex ids).
-    // An edge always contributes to the assembly all but its first and last k bases
-    // (this can mean no bases, for edges between overlapping vertices).
+    // An edge with overlapping markers does not contribute to the assembly.
+    // An edge with at least one intervening base contributes all of its bases
+    // to the assembly.
     vector< pair<uint32_t, uint32_t> > vertexAssembledPortion(vertexCount);
     for(int i=0; i<int(vertexCount); i++) {
 
@@ -1223,8 +1230,8 @@ void Assembler::assembleAssemblyGraphEdge(
         // Edge.
         edgeRunLengthRange[i].first = uint32_t(assembledRunLengthSequence.size());
         edgeRawRange[i].first = uint32_t(assembledRawSequence.size());
-        if(edgeSequences[i].size() > 2*k) {
-            for(uint32_t j=uint32_t(k); j!=uint32_t(edgeSequences[i].size()-k); j++) {
+        if(edgeSequences[i].size() > 0) {
+            for(uint32_t j=0; j!=uint32_t(edgeSequences[i].size()); j++) {
                 const Base base = edgeSequences[i][j];
                 const uint32_t repeatCount = edgeRepeatCounts[i][j];
                 CZI_ASSERT(repeatCount > 0);
@@ -1436,7 +1443,7 @@ void Assembler::assembleAssemblyGraphEdge(
             html <<
                 "<tr><td>Edge<td class=centered>" << edgeId <<
                 "<td class=centered>" << edgeCoverage[i] <<
-                "<td class=centered>" << edgeOffsets[i] <<
+                "<td class=centered>" <<
                 "<td class=centered>" << edgeRunLengthRange[i].first <<
                 "<td class=centered>" << edgeRunLengthRange[i].second <<
                 "<td style='font-family:courier'>";
