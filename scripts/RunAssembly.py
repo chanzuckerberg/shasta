@@ -159,7 +159,8 @@ def runAssembly(a, config, fastaFileNames):
     a.assembleMarkerGraphEdges(
         markerGraphEdgeLengthThresholdForConsensus =
         int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
-        useMarginPhase = useMarginPhase)
+        useMarginPhase = useMarginPhase,
+        storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']))
     
     # Use the assembly graph for global assembly.
     a.assemble(

@@ -29,6 +29,7 @@ namespace ChanZuckerberg {
     namespace shasta {
         class Coverage;
         class CoverageData;
+        class CompressedCoverageData;
     }
 }
 
@@ -47,6 +48,18 @@ public:
     // Otherwise, it must not be zero.
     CoverageData(AlignedBase base, Strand strand, size_t repeatCount);
 };
+
+
+
+class ChanZuckerberg::shasta::CompressedCoverageData {
+public:
+    uint8_t base: 4;     // Used to code the AlignedBase.
+    uint8_t strand: 4;
+    uint8_t repeatCount; // Clipped at 255.
+    uint8_t frequency;   // How many times present. Clipped at 255.
+};
+static_assert(sizeof(ChanZuckerberg::shasta::CompressedCoverageData) == 3*sizeof(uint8_t),
+    "Unexpected size of CompressedCoverageData");
 
 
 
@@ -106,6 +119,9 @@ public:
     // This can be used to loop over repeat counts for that base.
     // Note that, if the base is '-', this will always return 0.
     size_t repeatCountEnd(AlignedBase) const;
+
+    // Get a vector of CompressedCoverageData.
+    void count(vector<CompressedCoverageData>&) const;
 
 private:
 

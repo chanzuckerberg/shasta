@@ -223,6 +223,28 @@ size_t Coverage::repeatCountEnd(AlignedBase base) const
 
 
 
+// Get a vector of CompressedCoverageData.
+void Coverage::count(vector<CompressedCoverageData>& compressedCoverageData) const
+{
+    compressedCoverageData.clear();
+    for(uint8_t base=0; base<5; base++) {
+        const array<vector<size_t>, 2>& x = detailedCoverage[base];
+        for(uint8_t strand=0; strand<2; strand++) {
+            const vector<size_t>& y = x[strand];
+            for(size_t repeatCount=0; repeatCount<y.size(); repeatCount++) {
+                const size_t frequency = y[repeatCount];
+                if(frequency > 0) {
+                    CompressedCoverageData c;
+                    c.base = base & 7;
+                    c.strand = strand & 1;
+                    c.repeatCount = uint8_t(min(size_t(255), repeatCount));
+                    c.frequency = uint8_t(min(size_t(255), frequency));
+                    compressedCoverageData.push_back(c);
+                }
+            }
+        }
+    }
+}
 
 
 

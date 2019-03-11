@@ -29,7 +29,8 @@ a.accessMarkerGraphEdges()
 a.assembleMarkerGraphEdges(
     markerGraphEdgeLengthThresholdForConsensus =
     int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
-    useMarginPhase = useMarginPhase)
+    useMarginPhase = useMarginPhase,
+    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']))
 
 
 

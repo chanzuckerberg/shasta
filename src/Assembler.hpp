@@ -4,6 +4,7 @@
 // Shasta.
 #include "Alignment.hpp"
 #include "AssemblyGraph.hpp"
+#include "Coverage.hpp"
 #include "dset64.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
@@ -938,6 +939,16 @@ private:
         //     exactly adjacent.
         MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> edgeConsensus;
         MemoryMapped::Vector<uint8_t> edgeConsensusOverlappingBaseCount;
+
+
+        // Details of edge coverage.
+        // These are not stored by default.
+        // They can be used to calibrate the Bayesian model for repeat counts
+        // and for some types of analyses.
+        // Indeed by EdgeId. For each edge, contains pairs (position, CompressedCoverageData),
+        // ordered by position.
+        MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t>
+            edgeCoverageData;
     };
     MarkerGraph markerGraph;
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
@@ -1121,7 +1132,8 @@ private:
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
-        uint8_t& overlappingBaseCount
+        uint8_t& overlappingBaseCount,
+        vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
         );
     void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         GlobalMarkerGraphEdgeId,
@@ -1218,7 +1230,11 @@ public:
 
         // Parameter to control whether we use spoa or marginPhase
         // to compute consensus sequence.
-        bool useMarginPhase);
+        bool useMarginPhase,
+
+        // Request storing detailed coverage information.
+        bool storeCoverageData
+        );
     void accessMarkerGraphEdgeConsensus();
 private:
     void assembleMarkerGraphEdgesThreadFunction(size_t threadId);
@@ -1229,6 +1245,7 @@ private:
         // they are accessible to the threads.
         uint32_t markerGraphEdgeLengthThresholdForConsensus;
         bool useMarginPhase;
+        bool storeCoverageData;
 
         // The results computed by each thread.
         // For each threadId:
@@ -1243,6 +1260,10 @@ private:
         vector< shared_ptr< MemoryMapped::Vector<GlobalMarkerGraphEdgeId> > > threadEdgeIds;
         vector< shared_ptr< MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> > > threadEdgeConsensus;
         vector< shared_ptr< MemoryMapped::Vector<uint8_t> > > threadEdgeConsensusOverlappingBaseCount;
+
+        vector< shared_ptr<
+            MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t> > >
+            threadEdgeCoverageData;
     };
     AssembleMarkerGraphEdgesData assembleMarkerGraphEdgesData;
 

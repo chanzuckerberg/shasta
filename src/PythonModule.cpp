@@ -336,7 +336,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::assembleMarkerGraphEdges,
             arg("threadCount") = 0,
             arg("markerGraphEdgeLengthThresholdForConsensus"),
-            arg("useMarginPhase"))
+            arg("useMarginPhase"),
+            arg("storeCoverageData"))
         .def("accessMarkerGraphEdgeConsensus",
             &Assembler::accessMarkerGraphEdgeConsensus)
 

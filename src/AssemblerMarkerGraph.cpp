@@ -2913,7 +2913,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
-    uint8_t& overlappingBaseCount
+    uint8_t& overlappingBaseCount,
+    vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
     )
 {
     // Get the marker length.
@@ -2982,6 +2983,9 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         // Get the sequence.
         sequence.clear();
         repeatCounts.clear();
+        if(coverageData) {
+            coverageData->clear();
+        }
         if(position1 > position0 + k) {
             for(uint32_t position=position0+k; position!=position1; position++) {
                 Base base;
@@ -2989,6 +2993,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                 tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
                 sequence.push_back(base);
                 repeatCounts.push_back(repeatCount);
+                if(coverageData) {
+                    CompressedCoverageData c;
+                    c.base = base.value & 7;
+                    c.strand = orientedReadId.getStrand() & 1;
+                    c.repeatCount = uint8_t(min(uint32_t(255), repeatCount));
+                    c.frequency = 1;
+                    coverageData->push_back(make_pair(position - (position0+k), c));
+                }
             }
             overlappingBaseCount = 0;
         } else {
@@ -3094,6 +3106,9 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         sequence.clear();
         repeatCounts.clear();
         overlappingBaseCount = uint8_t(k - bestOffset);
+        if(coverageData) {
+            coverageData->clear();
+        }
         return;
     }
 
@@ -3225,6 +3240,9 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     sequence.clear();
     repeatCounts.clear();
     overlappingBaseCount = 0;
+    if(coverageData) {
+        coverageData->clear();
+    }
 
 
 
@@ -3270,6 +3288,15 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             sequence.push_back(Base(consensus.base));
             CZI_ASSERT(consensus.repeatCount > 0);
             repeatCounts.push_back(uint32_t(consensus.repeatCount));
+
+            // Also store detailed coverage data, if requested.
+            if(coverageData) {
+                vector<CompressedCoverageData> c;
+                coverage.count(c);
+                for(const CompressedCoverageData& cd: c) {
+                    coverageData->push_back(make_pair(sequence.size()-1, cd));
+                }
+            }
         }
     }
 }
@@ -4426,7 +4453,11 @@ void Assembler::assembleMarkerGraphEdges(
 
     // Parameter to control whether we use spoa or marginPhase
     // to compute consensus sequence.
-    bool useMarginPhase)
+    bool useMarginPhase,
+
+    // Request storing detailed coverage information.
+    bool storeCoverageData
+    )
 {
     // Check that we have what we need.
     checkKmersAreOpen();
@@ -4444,9 +4475,13 @@ void Assembler::assembleMarkerGraphEdges(
     // Do the computation in parallel.
     assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;
     assembleMarkerGraphEdgesData.useMarginPhase = useMarginPhase;
+    assembleMarkerGraphEdgesData.storeCoverageData = storeCoverageData;
     assembleMarkerGraphEdgesData.threadEdgeIds.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensus.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount.resize(threadCount);
+    if(storeCoverageData) {
+        assembleMarkerGraphEdgesData.threadEdgeCoverageData.resize(threadCount);
+    }
     const size_t batchSize = 10000;
     setupLoadBalancing(markerGraph.edges.size(), batchSize);
     runThreads(&Assembler::assembleMarkerGraphEdgesThreadFunction, threadCount);
@@ -4471,6 +4506,10 @@ void Assembler::assembleMarkerGraphEdges(
     markerGraph.edgeConsensusOverlappingBaseCount.createNew(
         largeDataName("MarkerGraphEdgesConsensusOverlappingBaseCount"), largeDataPageSize);
     markerGraph.edgeConsensusOverlappingBaseCount.resize(markerGraph.edges.size());
+    if(storeCoverageData) {
+        markerGraph.edgeCoverageData.createNew(
+            largeDataName("MarkerGraphEdgesCoverageData"), largeDataPageSize);
+    }
     for(GlobalMarkerGraphEdgeId edgeId=0; edgeId!=markerGraph.edges.size(); edgeId++) {
         const auto& p = edgeTable[edgeId];
         const size_t threadId = p.first;
@@ -4484,6 +4523,11 @@ void Assembler::assembleMarkerGraphEdges(
         }
         markerGraph.edgeConsensusOverlappingBaseCount[edgeId] =
             (*assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount[threadId])[i];
+
+        if(storeCoverageData) {
+            const auto& v = (*assembleMarkerGraphEdgesData.threadEdgeCoverageData[threadId])[i];
+            markerGraph.edgeCoverageData.appendVector(v.begin(), v.end());
+        }
     }
 
 
@@ -4492,10 +4536,16 @@ void Assembler::assembleMarkerGraphEdges(
         assembleMarkerGraphEdgesData.threadEdgeIds[threadId]->remove();
         assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId]->remove();
         assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount[threadId]->remove();
+        if(storeCoverageData) {
+            assembleMarkerGraphEdgesData.threadEdgeCoverageData[threadId]->remove();
+        }
     }
     assembleMarkerGraphEdgesData.threadEdgeIds.clear();
     assembleMarkerGraphEdgesData.threadEdgeConsensus.clear();
     assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount.clear();
+    if(storeCoverageData) {
+        assembleMarkerGraphEdgesData.threadEdgeCoverageData.clear();
+    }
 }
 
 
@@ -4504,6 +4554,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 {
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus;
     const bool useMarginPhase = assembleMarkerGraphEdgesData.useMarginPhase;
+    const bool storeCoverageData = assembleMarkerGraphEdgesData.storeCoverageData;
 
     // Allocate space for the results computed by this thread.
     assembleMarkerGraphEdgesData.threadEdgeIds[threadId] =
@@ -4526,9 +4577,17 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     overlappingBaseCountVector.createNew(
         largeDataName("tmp-assembleMarkerGraphEdges-consensus-overlappingBaseCount" + to_string(threadId)), largeDataPageSize);
 
+    if(storeCoverageData) {
+        assembleMarkerGraphEdgesData.threadEdgeCoverageData[threadId] =
+            make_shared<MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t> >();
+        assembleMarkerGraphEdgesData.threadEdgeCoverageData[threadId]->createNew(
+            largeDataName("tmp-assembleMarkerGraphEdges-edgeCoverageData" + to_string(threadId)), largeDataPageSize);
+    }
+
     vector<Base> sequence;
     vector<uint32_t> repeatCounts;
     uint8_t overlappingBaseCount;
+    vector< pair<uint32_t, CompressedCoverageData> > coverageData;
 
     // Loop over batches assigned to this thread.
     size_t begin, end;
@@ -4553,7 +4612,10 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                             edgeId, sequence, repeatCounts, overlappingBaseCount);
                     } else {
                         computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-                            edgeId, markerGraphEdgeLengthThresholdForConsensus, sequence, repeatCounts, overlappingBaseCount);
+                            edgeId, markerGraphEdgeLengthThresholdForConsensus,
+                            sequence, repeatCounts, overlappingBaseCount,
+                            storeCoverageData ? &coverageData : 0
+                            );
                     }
                 } catch(std::exception e) {
                     std::lock_guard<std::mutex> lock(mutex);
@@ -4578,6 +4640,9 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                 consensus.append(make_pair(sequence[i], repeatCounts[i]));
             }
             overlappingBaseCountVector.push_back(overlappingBaseCount);
+            if(storeCoverageData) {
+                assembleMarkerGraphEdgesData.threadEdgeCoverageData[threadId]->appendVector(coverageData);
+            }
 
         }
     }
