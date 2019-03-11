@@ -633,6 +633,8 @@ void Assembler::writeGfa1(const string& fileName)
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
+    cout << timestamp << "writeGfa1 begins" << endl;
+
     ofstream gfa(fileName);
 
     // Write the header line.
@@ -699,6 +701,7 @@ void Assembler::writeGfa1(const string& fileName)
             }
         }
     }
+    cout << timestamp << "writeGfa1 ends" << endl;
 }
 
 
@@ -707,6 +710,8 @@ void Assembler::writeGfa1(const string& fileName)
 void Assembler::writeFasta(const string& fileName)
 {
     using EdgeId = AssemblyGraph::EdgeId;
+
+    cout << timestamp << "writeFasta begins" << endl;
 
     ofstream fasta(fileName);
 
@@ -732,6 +737,7 @@ void Assembler::writeFasta(const string& fileName)
         }
         fasta << "\n";
     }
+    cout << timestamp << "writeFasta ends" << endl;
 
 }
 
