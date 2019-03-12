@@ -1310,8 +1310,7 @@ private:
         AssemblyGraph::EdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         bool useMarginPhase,
-        AssembledSegment&,
-        ostream* html = 0);
+        AssembledSegment&);
 
 
     // Assemble sequence for all edges of the assembly graph.

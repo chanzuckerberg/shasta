@@ -1039,27 +1039,28 @@ void Assembler::assembleAssemblyGraphEdge(
     AssemblyGraph::EdgeId edgeId,
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
     bool useMarginPhase,
-    AssembledSegment& assembledSegment,
-    ostream* htmlPointer)
+    AssembledSegment& assembledSegment)
 {
     assembledSegment.clear();
     const auto k = assemblerInfo->k;
     assembledSegment.k = k;
 
     // The edges of this chain in the marker graph.
-    const MemoryAsContainer<GlobalMarkerGraphEdgeId> edgeIds = assemblyGraph.edgeLists[edgeId];
-    assembledSegment.edgeCount = edgeIds.size();
+    const MemoryAsContainer<GlobalMarkerGraphEdgeId> assemblerEdgeIds = assemblyGraph.edgeLists[edgeId];
+    assembledSegment.edgeCount = assemblerEdgeIds.size();
     assembledSegment.vertexCount = assembledSegment.edgeCount + 1;
+    assembledSegment.edgeIds.resize(assembledSegment.edgeCount);
+    copy(assemblerEdgeIds.begin(), assemblerEdgeIds.end(), assembledSegment.edgeIds.begin());
 
     // Gather the vertices of this chain in the marker graph.
     assembledSegment.vertexIds.reserve(assembledSegment.vertexCount);
-    for(const GlobalMarkerGraphEdgeId edgeId: edgeIds) {
+    for(const GlobalMarkerGraphEdgeId edgeId: assembledSegment.edgeIds) {
         const MarkerGraph::Edge& edge =
             markerGraph.edges[edgeId];
         assembledSegment.vertexIds.push_back(edge.source);
     }
     const MarkerGraph::Edge& lastEdge =
-        markerGraph.edges[edgeIds[edgeIds.size()-1]];
+        markerGraph.edges[assembledSegment.edgeIds[assembledSegment.edgeIds.size()-1]];
     assembledSegment.vertexIds.push_back(lastEdge.target);
 
     // Get vertex coverage.
@@ -1071,7 +1072,8 @@ void Assembler::assembleAssemblyGraphEdge(
     // Edge coverage.
     assembledSegment.edgeCoverage.resize(assembledSegment.edgeCount);
     for(size_t i=0; i<assembledSegment.edgeCount; i++) {
-        assembledSegment.edgeCoverage[i] = uint32_t(markerGraph.edgeMarkerIntervals.size(edgeIds[i]));
+        assembledSegment.edgeCoverage[i] =
+            uint32_t(markerGraph.edgeMarkerIntervals.size(assembledSegment.edgeIds[i]));
     }
 
 
@@ -1107,14 +1109,15 @@ void Assembler::assembleAssemblyGraphEdge(
     assembledSegment.edgeOverlappingBaseCounts.resize(assembledSegment.edgeCount);
     for(size_t i=0; i<assembledSegment.edgeCount; i++) {
 
-        const auto& storedConsensus = markerGraph.edgeConsensus[edgeIds[i]];
+        const auto& storedConsensus = markerGraph.edgeConsensus[assembledSegment.edgeIds[i]];
         assembledSegment.edgeSequences[i].resize(storedConsensus.size());
         assembledSegment.edgeRepeatCounts[i].resize(storedConsensus.size());
         for(size_t j=0; j<storedConsensus.size(); j++) {
             assembledSegment.edgeSequences[i][j] = storedConsensus[j].first;
             assembledSegment.edgeRepeatCounts[i][j] = storedConsensus[j].second;
         }
-        assembledSegment.edgeOverlappingBaseCounts[i] = markerGraph.edgeConsensusOverlappingBaseCount[edgeIds[i]];
+        assembledSegment.edgeOverlappingBaseCounts[i] =
+            markerGraph.edgeConsensusOverlappingBaseCount[assembledSegment.edgeIds[i]];
     }
 
 
@@ -1136,256 +1139,5 @@ void Assembler::assembleAssemblyGraphEdge(
     // Assemble run-length sequence and raw sequence.
     // Keep track of the range each vertex and edge contributes.
     assembledSegment.assemble();
-
-
-
-    // If requested, write out details in html format.
-    if(htmlPointer) {
-        ostream& html = *htmlPointer;
-
-        // Write a title.
-        html <<
-            "<h1>Assembly graph edge <a href="
-            "'exploreAssemblyGraph?edgeId=" << edgeId <<
-            "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
-            edgeId << "</a></h1>";
-
-#if 0
-        // Write parent and child vertices in the assembly graph.
-        html << "<p>Parent vertices in the assembly graph:";
-        for(const auto parentEdge: assemblyGraph.edgesByTarget[vertexId]) {
-            const AssemblyGraph::VertexId parent = assemblyGraph.edges[parentEdge].source;
-            html <<
-                " <a href='exploreAssemblyGraphVertex?vertexId=" << parent << "'>"
-                << parent << "</a>";
-        }
-
-        html << "<p>Child vertices in the assembly graph:";
-        for(const auto childEdge: assemblyGraph.edgesBySource[vertexId]) {
-            const AssemblyGraph::VertexId child = assemblyGraph.edges[childEdge].target;
-            html <<
-                " <a href='exploreAssemblyGraphVertex?vertexId=" << child << "'>"
-                << child << "</a>";
-        }
-#endif
-        // Assembled run-length sequence.
-        html << "<p>Assembled run-length sequence (" << assembledSegment.runLengthSequence.size() <<
-            " bases):<br><span style='font-family:courier'>";
-        copy(assembledSegment.runLengthSequence.begin(), assembledSegment.runLengthSequence.end(),
-            ostream_iterator<Base>(html));
-        html << "<br>";
-        const uint32_t maxRepeatCount =
-            *max_element(assembledSegment.repeatCounts.begin(), assembledSegment.repeatCounts.end());
-        for(size_t j=0; j<assembledSegment.repeatCounts.size(); j++) {
-            const uint32_t repeatCount = assembledSegment.repeatCounts[j];
-            html << repeatCount%10;
-        }
-        if(maxRepeatCount >= 10) {
-            html << "<br>";
-            for(size_t j=0; j<assembledSegment.repeatCounts.size(); j++) {
-                const uint32_t repeatCount = assembledSegment.repeatCounts[j];
-                const uint32_t digit = (repeatCount/10) % 10;
-                if(digit == 0) {
-                    html << "&nbsp;";
-                } else {
-                    html << digit;
-                }
-            }
-        }
-        if(maxRepeatCount >= 100) {
-            html << "<br>";
-            for(size_t j=0; j<assembledSegment.repeatCounts.size(); j++) {
-                const uint32_t repeatCount = assembledSegment.repeatCounts[j];
-                if(repeatCount >= 1000) {
-                    html << "*";
-                } else {
-                    const uint32_t digit = (repeatCount/100) % 10;
-                    if(digit == 0) {
-                        html << "&nbsp;";
-                    } else {
-                        html << digit;
-                    }
-                }
-            }
-        }
-        html << "</span>";
-
-        // Assembled raw sequence.
-        html << "<p>Assembled raw sequence (" << assembledSegment.assembledRawSequence.size() <<
-            " bases):<br><span style='font-family:courier'>";
-        copy(assembledSegment.assembledRawSequence.begin(), assembledSegment.assembledRawSequence.end(),
-            ostream_iterator<Base>(html));
-        html << "</span>";
-
-
-
-
-        // Write a table with a row for each marker graph vertex or edge
-        // in the marker graph chain.
-        html <<
-            "<p>This vertex of the assembly graph corresponds to a chain of " <<
-            edgeIds.size() << " edges in the marker graph. "
-            "The table below shows consensus sequences "
-            "for the vertices and edges of this chain of the marker graph. "
-            "All vertex and edge ids in the table refer to the marker graph."
-            "<p><table><tr>"
-            "<th rowspan=2>Vertex<br>or<br>edge"
-            "<th rowspan=2>Id"
-            "<th rowspan=2>Coverage"
-            "<th colspan=4>Run-length"
-            "<th colspan=3>Raw"
-            "<tr>"
-            "<th>Offset"
-            "<th>Begin"
-            "<th>End"
-            "<th>Sequence"
-            "<th>Begin"
-            "<th>End"
-            "<th>Sequence";
-        const string urlPrefix = "exploreMarkerGraph?vertexId=";
-        const string urlSuffix =
-            "&maxDistance=5"
-            "&detailed=on"
-            "&minCoverage=3"
-            "&minConsensus=3"
-            "&sizePixels=600&timeout=10"
-            "&useStoredConnectivity=on"
-            "&showVertexId=on"
-            "&showAssembledSequence=on";
-        for(size_t i=0; ; i++) {
-
-            // Vertex.
-            const GlobalMarkerGraphVertexId vertexId = assembledSegment.vertexIds[i];
-            const string url = urlPrefix + to_string(vertexId) + urlSuffix;
-            const vector<Base>& vertexSequence = assembledSegment.vertexSequences[i];
-            const vector<uint32_t>& vertexRepeatCount = assembledSegment.vertexRepeatCounts[i];
-            // const uint32_t maxVertexRepeatCount =
-            //     *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
-            html <<
-                 "<tr><td>Vertex" <<
-                "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
-                "<td class=centered>" << assembledSegment.vertexCoverage[i] <<
-                "<td class=centered>" << assembledSegment.vertexOffsets[i] <<
-                "<td class=centered>" << assembledSegment.vertexRunLengthRange[i].first <<
-                "<td class=centered>" << assembledSegment.vertexRunLengthRange[i].second <<
-                "<td style='font-family:courier'>";
-            for(size_t j=0; j<vertexSequence.size(); j++) {
-                if(j==assembledSegment.vertexAssembledPortion[i].first &&
-                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
-                    html << "<span style='background-color:LightGreen'>";
-                }
-                html << vertexSequence[j];
-                if(j==assembledSegment.vertexAssembledPortion[i].second-1  &&
-                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
-                    html << "</span>";
-                }
-            }
-            html << "<br>";
-            for(size_t j=0; j<vertexSequence.size(); j++) {
-                const uint32_t repeatCount = vertexRepeatCount[j];
-                if(j==assembledSegment.vertexAssembledPortion[i].first &&
-                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
-                    html << "<span style='background-color:LightGreen'>";
-                }
-                if(repeatCount < 10) {
-                    html << repeatCount % 10;
-                } else {
-                    html << "*";
-                }
-                if(j==assembledSegment.vertexAssembledPortion[i].second-1 &&
-                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
-                    html << "</span>";
-                }
-            }
-            html <<
-                "<td class=centered>" << assembledSegment.vertexRawRange[i].first <<
-                "<td class=centered>" << assembledSegment.vertexRawRange[i].second <<
-                "<td style='font-family:courier'>";
-            for(size_t j=0; j<vertexSequence.size(); j++) {
-                if(j==assembledSegment.vertexAssembledPortion[i].first &&
-                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
-                    html << "<span style='background-color:LightGreen'>";
-                }
-                const Base b = vertexSequence[j];
-                const uint32_t repeatCount = vertexRepeatCount[j];
-                for(uint32_t k=0; k<repeatCount; k++) {
-                    html << b;
-                }
-                if(j==assembledSegment.vertexAssembledPortion[i].second-1 &&
-                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
-                    html << "</span>";
-                }
-            }
-
-            // This was the last vertex.
-            if(i == assembledSegment.edgeCount) {
-                break;
-            }
-
-
-
-            // Edge.
-            const GlobalMarkerGraphEdgeId edgeId = edgeIds[i];
-            const MarkerGraph::Edge& edge =
-                markerGraph.edges[edgeId];
-            const string sourceUrl = urlPrefix + to_string(edge.source) + urlSuffix;
-            const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
-            const vector<Base>& edgeSequence = assembledSegment.edgeSequences[i];
-            const vector<uint32_t>& edgeRepeatCount = assembledSegment.edgeRepeatCounts[i];
-            const size_t edgeSequenceLength = edgeSequence.size();
-            CZI_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
-            // const uint32_t maxEdgeRepeatCount =
-            //    *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
-            // CZI_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
-            html <<
-                "<tr><td>Edge<td class=centered>" << edgeId <<
-                "<td class=centered>" << assembledSegment.edgeCoverage[i] <<
-                "<td class=centered>" <<
-                "<td class=centered>" << assembledSegment.edgeRunLengthRange[i].first <<
-                "<td class=centered>" << assembledSegment.edgeRunLengthRange[i].second <<
-                "<td style='font-family:courier'>";
-            for(size_t j=0; j<edgeSequenceLength; j++) {
-                if(edgeSequenceLength>2*k && j==k) {
-                    html << "<span style='background-color:LightGreen'>";
-                }
-                html << edgeSequence[j];
-                if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
-                    html << "</span>";
-                }
-            }
-            html << "<br>";
-            for(size_t j=0; j<edgeSequenceLength; j++) {
-                const uint32_t repeatCount = edgeRepeatCount[j];
-                if(edgeSequenceLength>2*k && j==k) {
-                    html << "<span style='background-color:LightGreen'>";
-                }
-                if(repeatCount < 10) {
-                    html << repeatCount % 10;
-                } else {
-                    html << "*";
-                }
-                if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
-                    html << "</span>";
-                }
-            }
-            html <<
-                "<td class=centered>" << assembledSegment.edgeRawRange[i].first <<
-                "<td class=centered>" << assembledSegment.edgeRawRange[i].second <<
-                "<td style='font-family:courier'>";
-            for(size_t j=0; j<edgeSequenceLength; j++) {
-                const Base b = edgeSequence[j];
-                const uint32_t repeatCount = edgeRepeatCount[j];
-                if(edgeSequenceLength>2*k && j==k) {
-                    html << "<span style='background-color:LightGreen'>";
-                }
-                for(uint32_t k=0; k<repeatCount; k++) {
-                    html << b;
-                }
-                if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
-                    html << "</span>";
-                }
-            }
-         }
-    }
 
 }

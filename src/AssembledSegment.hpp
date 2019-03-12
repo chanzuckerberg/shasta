@@ -34,8 +34,9 @@ public:
     size_t edgeCount;
     size_t vertexCount;
 
-    // The marker graph vertices of the chain corresponding to this segment.
+    // The marker graph vertices and edges of the chain corresponding to this segment.
     vector<GlobalMarkerGraphVertexId> vertexIds;
+    vector<GlobalMarkerGraphEdgeId> edgeIds;
 
     // Vertex and edge coverage.
     vector<uint32_t> vertexCoverage;
@@ -81,6 +82,9 @@ public:
     // Put back into default-constructed state
     // (except for vector capacities).
     void clear();
+
+    // Write out details in html.
+    void writeHtml(ostream&) const;
 };
 
 
