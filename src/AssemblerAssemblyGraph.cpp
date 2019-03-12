@@ -1047,30 +1047,29 @@ void Assembler::assembleAssemblyGraphEdge(
 
     // The edges of this chain in the marker graph.
     const MemoryAsContainer<GlobalMarkerGraphEdgeId> edgeIds = assemblyGraph.edgeLists[edgeId];
-    const size_t edgeCount = edgeIds.size();
-    const size_t vertexCount = edgeCount + 1;
+    assembledSegment.edgeCount = edgeIds.size();
+    assembledSegment.vertexCount = assembledSegment.edgeCount + 1;
 
-    // The vertices of this chain in the marker graph.
-    vector<GlobalMarkerGraphVertexId> vertexIds;
-    vertexIds.reserve(vertexCount);
+    // Gather the vertices of this chain in the marker graph.
+    assembledSegment.vertexIds.reserve(assembledSegment.vertexCount);
     for(const GlobalMarkerGraphEdgeId edgeId: edgeIds) {
         const MarkerGraph::Edge& edge =
             markerGraph.edges[edgeId];
-        vertexIds.push_back(edge.source);
+        assembledSegment.vertexIds.push_back(edge.source);
     }
     const MarkerGraph::Edge& lastEdge =
         markerGraph.edges[edgeIds[edgeIds.size()-1]];
-    vertexIds.push_back(lastEdge.target);
+    assembledSegment.vertexIds.push_back(lastEdge.target);
 
-    // Vertex coverage.
-    vector<uint32_t> vertexCoverage(vertexCount);
-    for(size_t i=0; i<vertexCount; i++) {
-        vertexCoverage[i] = uint32_t(globalMarkerGraphVertices.size(vertexIds[i]));
+    // Get vertex coverage.
+    assembledSegment.vertexCoverage.resize(assembledSegment.vertexCount);
+    for(size_t i=0; i<assembledSegment.vertexCount; i++) {
+        assembledSegment.vertexCoverage[i] = uint32_t(globalMarkerGraphVertices.size(assembledSegment.vertexIds[i]));
     }
 
     // Edge coverage.
-    vector<uint32_t> edgeCoverage(edgeCount);
-    for(size_t i=0; i<edgeCount; i++) {
+    vector<uint32_t> edgeCoverage(assembledSegment.edgeCount);
+    for(size_t i=0; i<assembledSegment.edgeCount; i++) {
         edgeCoverage[i] = uint32_t(markerGraph.edgeMarkerIntervals.size(edgeIds[i]));
     }
 
@@ -1078,9 +1077,9 @@ void Assembler::assembleAssemblyGraphEdge(
 
 
     // Extract consensus sequence for the vertices of the chain.
-    vector< vector<Base> > vertexSequences(vertexCount);
-    vector< vector<uint32_t> > vertexRepeatCounts(vertexCount);
-    for(size_t i=0; i<vertexCount; i++) {
+    vector< vector<Base> > vertexSequences(assembledSegment.vertexCount);
+    vector< vector<uint32_t> > vertexRepeatCounts(assembledSegment.vertexCount);
+    for(size_t i=0; i<assembledSegment.vertexCount; i++) {
 
         /*
         computeMarkerGraphVertexConsensusSequence(
@@ -1088,13 +1087,13 @@ void Assembler::assembleAssemblyGraphEdge(
         */
 
         // Get the sequence.
-        const MarkerId firstMarkerId = globalMarkerGraphVertices[vertexIds[i]][0];
+        const MarkerId firstMarkerId = globalMarkerGraphVertices[assembledSegment.vertexIds[i]][0];
         const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
         const KmerId kmerId = firstMarker.kmerId;
         const Kmer kmer(kmerId, assemblerInfo->k);
 
         // Get the repeat counts.
-        const auto& storedConsensus = markerGraph.vertexRepeatCounts.begin() + k * vertexIds[i];
+        const auto& storedConsensus = markerGraph.vertexRepeatCounts.begin() + k * assembledSegment.vertexIds[i];
 
         // Store in local variables.
         vertexSequences[i].resize(k);
@@ -1108,10 +1107,10 @@ void Assembler::assembleAssemblyGraphEdge(
 
 
     // Extract consensus sequence for the edges of the chain.
-    vector< vector<Base> > edgeSequences(edgeCount);
-    vector< vector<uint32_t> > edgeRepeatCounts(edgeCount);
-    vector<uint8_t> edgeOverlappingBaseCounts(edgeCount);
-    for(size_t i=0; i<edgeCount; i++) {
+    vector< vector<Base> > edgeSequences(assembledSegment.edgeCount);
+    vector< vector<uint32_t> > edgeRepeatCounts(assembledSegment.edgeCount);
+    vector<uint8_t> edgeOverlappingBaseCounts(assembledSegment.edgeCount);
+    for(size_t i=0; i<assembledSegment.edgeCount; i++) {
 
         /*
         // This is the old code that was computing the consensus here.
@@ -1141,9 +1140,9 @@ void Assembler::assembleAssemblyGraphEdge(
     // A vertex offset is the position of the first base
     // of the vertex consensus sequence (run-length)
     // relative to the first base of assembled sequence (run-length).
-    vector<uint32_t> vertexOffsets(vertexCount);
+    vector<uint32_t> vertexOffsets(assembledSegment.vertexCount);
     vertexOffsets[0] = 0;
-    for(size_t i=0; i<edgeCount; i++) {
+    for(size_t i=0; i<assembledSegment.edgeCount; i++) {
         const uint8_t overlap = edgeOverlappingBaseCounts[i];
         if(overlap > 0) {
             CZI_ASSERT(edgeSequences[i].empty());
@@ -1162,8 +1161,8 @@ void Assembler::assembleAssemblyGraphEdge(
     // An edge with overlapping markers does not contribute to the assembly.
     // An edge with at least one intervening base contributes all of its bases
     // to the assembly.
-    vector< pair<uint32_t, uint32_t> > vertexAssembledPortion(vertexCount);
-    for(int i=0; i<int(vertexCount); i++) {
+    vector< pair<uint32_t, uint32_t> > vertexAssembledPortion(assembledSegment.vertexCount);
+    for(int i=0; i<int(assembledSegment.vertexCount); i++) {
 
         // Check previous vertices.
         vertexAssembledPortion[i].first = 0;
@@ -1171,8 +1170,8 @@ void Assembler::assembleAssemblyGraphEdge(
             if(vertexOffsets[j]+k < vertexOffsets[i]) {
                 break;
             }
-            if(vertexCoverage[j]>vertexCoverage[i] ||
-                (vertexCoverage[j]==vertexCoverage[i] && vertexIds[j]<vertexIds[i])) {
+            if(assembledSegment.vertexCoverage[j]>assembledSegment.vertexCoverage[i] ||
+                (assembledSegment.vertexCoverage[j]==assembledSegment.vertexCoverage[i] && assembledSegment.vertexIds[j]<assembledSegment.vertexIds[i])) {
                 vertexAssembledPortion[i].first = vertexOffsets[j] + uint32_t(k) - vertexOffsets[i];
                 break;
             }
@@ -1180,12 +1179,12 @@ void Assembler::assembleAssemblyGraphEdge(
 
         // Check following vertices.
         vertexAssembledPortion[i].second = uint32_t(k);
-        for(int j=i+1; j<int(vertexCount); j++) {
+        for(int j=i+1; j<int(assembledSegment.vertexCount); j++) {
             if(vertexOffsets[i]+k < vertexOffsets[j]) {
                 break;
             }
-            if(vertexCoverage[j]>vertexCoverage[i] ||
-                (vertexCoverage[j]==vertexCoverage[i] && vertexIds[j]<vertexIds[i])) {
+            if(assembledSegment.vertexCoverage[j]>assembledSegment.vertexCoverage[i] ||
+                (assembledSegment.vertexCoverage[j]==assembledSegment.vertexCoverage[i] && assembledSegment.vertexIds[j]<assembledSegment.vertexIds[i])) {
                 vertexAssembledPortion[i].second = vertexOffsets[j] - vertexOffsets[i];
                 break;
             }
@@ -1204,10 +1203,10 @@ void Assembler::assembleAssemblyGraphEdge(
     // Assemble run-length sequence and raw sequence.
     // Keep track of the range each vertex and edge contributes.
     vector<Base> assembledRawSequence;
-    vector< pair<uint32_t, uint32_t> > vertexRunLengthRange(vertexCount);
-    vector< pair<uint32_t, uint32_t> > vertexRawRange(vertexCount);
-    vector< pair<uint32_t, uint32_t> > edgeRunLengthRange(edgeCount);
-    vector< pair<uint32_t, uint32_t> > edgeRawRange(edgeCount);
+    vector< pair<uint32_t, uint32_t> > vertexRunLengthRange(assembledSegment.vertexCount);
+    vector< pair<uint32_t, uint32_t> > vertexRawRange(assembledSegment.vertexCount);
+    vector< pair<uint32_t, uint32_t> > edgeRunLengthRange(assembledSegment.edgeCount);
+    vector< pair<uint32_t, uint32_t> > edgeRawRange(assembledSegment.edgeCount);
     for(size_t i=0; ; i++) {
 
         // Vertex.
@@ -1227,7 +1226,7 @@ void Assembler::assembleAssemblyGraphEdge(
         vertexRawRange[i].second = uint32_t(assembledRawSequence.size());
 
         // This was the last vertex.
-        if(i == edgeCount) {
+        if(i == assembledSegment.edgeCount) {
             break;
         }
 
@@ -1368,7 +1367,7 @@ void Assembler::assembleAssemblyGraphEdge(
         for(size_t i=0; ; i++) {
 
             // Vertex.
-            const GlobalMarkerGraphVertexId vertexId = vertexIds[i];
+            const GlobalMarkerGraphVertexId vertexId = assembledSegment.vertexIds[i];
             const string url = urlPrefix + to_string(vertexId) + urlSuffix;
             const vector<Base>& vertexSequence = vertexSequences[i];
             const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
@@ -1377,7 +1376,7 @@ void Assembler::assembleAssemblyGraphEdge(
             html <<
                  "<tr><td>Vertex" <<
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
-                "<td class=centered>" << vertexCoverage[i] <<
+                "<td class=centered>" << assembledSegment.vertexCoverage[i] <<
                 "<td class=centered>" << vertexOffsets[i] <<
                 "<td class=centered>" << vertexRunLengthRange[i].first <<
                 "<td class=centered>" << vertexRunLengthRange[i].second <<
@@ -1425,7 +1424,7 @@ void Assembler::assembleAssemblyGraphEdge(
             }
 
             // This was the last vertex.
-            if(i == edgeCount) {
+            if(i == assembledSegment.edgeCount) {
                 break;
             }
 
