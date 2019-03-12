@@ -1229,8 +1229,28 @@ private:
     void assembleMarkerGraphVerticesThreadFunction(size_t threadId);
 public:
 
+
+
     // Optional computation of coverage data for marker graph vertices.
-    void computeMarkerGraphVerticesCoverageData();
+    // This is only called if Assembly.storeCoverageData in shasta.conf is True.
+    void computeMarkerGraphVerticesCoverageData(size_t threadCount);
+private:
+    void computeMarkerGraphVerticesCoverageDataThreadFunction(size_t threadId);
+    class ComputeMarkerGraphVerticesCoverageDataData {
+    public:
+
+        // The results computed by each thread.
+        // For each threadId:
+        // - threadVertexIds[threadId] contains the vertex ids processed by each thread.
+        // - threadVertexCoverageData[threadId] contains the coverage data for those vertices.
+        vector< shared_ptr<
+            MemoryMapped::Vector<GlobalMarkerGraphVertexId> > > threadVertexIds;
+        vector< shared_ptr<
+            MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t> > >
+            threadVertexCoverageData;
+    };
+    ComputeMarkerGraphVerticesCoverageDataData computeMarkerGraphVerticesCoverageDataData;
+
 
 
 public:

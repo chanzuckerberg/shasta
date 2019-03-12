@@ -4451,7 +4451,7 @@ void Assembler::accessMarkerGraphVertexRepeatCounts()
 
 // Optional computation of coverage data for marker graph vertices.
 // This is only called if Assembly.storeCoverageData in shasta.conf is True.
-void Assembler::computeMarkerGraphVerticesCoverageData()
+void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
 {
     cout << timestamp<< "computeMarkerGraphVerticesCoverageData begins." << endl;
 
@@ -4461,9 +4461,79 @@ void Assembler::computeMarkerGraphVerticesCoverageData()
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
 
-    // Initialize the vertex coverage data.
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Resize the data structures to contain results computed by each thread.
+    computeMarkerGraphVerticesCoverageDataData.threadVertexIds.resize(threadCount);
+    computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData.resize(threadCount);
+
+    // Do the computation in parallel.
+    setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
+    runThreads(&Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction, threadCount);
+
+    // Figure out where the results for each vertex are.
+    // For each vertex we store pair(threadId, index in thread).
+    // This vertex table can get big and we should store it
+    // in a MemoryMapped::Vector instead.
+    const size_t invalidValue = std::numeric_limits<size_t>::max();
+    vector< pair<size_t, size_t > > vertexTable(
+        globalMarkerGraphVertices.size(),
+        make_pair(invalidValue, invalidValue));
+    for(size_t threadId=0; threadId!=threadCount; threadId++) {
+        const auto& vertexIds = *computeMarkerGraphVerticesCoverageDataData.threadVertexIds[threadId];
+        for(size_t i=0; i<vertexIds.size(); i++) {
+            vertexTable[vertexIds[i]] = make_pair(threadId, i);
+        }
+    }
+
+
+
+    // Gather the results computed by all the threads.
     markerGraph.vertexCoverageData.createNew(
         largeDataName("MarkerGraphVerticesCoverageData"), largeDataPageSize);
+    for(GlobalMarkerGraphVertexId vertexId=0; vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
+        const auto& p = vertexTable[vertexId];
+        const size_t threadId = p.first;
+        const size_t i = p.second;
+        CZI_ASSERT(threadId != invalidValue);
+        CZI_ASSERT(i != invalidValue);
+        const auto v = (*computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData[threadId])[i];
+        markerGraph.vertexCoverageData.appendVector(v.begin(), v.end());
+    }
+
+    // Remove the results computed by each thread.
+    for(size_t threadId=0; threadId!=threadCount; threadId++) {
+        computeMarkerGraphVerticesCoverageDataData.threadVertexIds[threadId]->remove();
+        computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData[threadId]->remove();
+    }
+    computeMarkerGraphVerticesCoverageDataData.threadVertexIds.clear();
+    computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData.clear();
+
+    cout << timestamp<< "computeMarkerGraphVerticesCoverageData ends." << endl;
+}
+
+
+
+void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t threadId)
+{
+
+    // Allocate space for the results computed by this thread.
+    ComputeMarkerGraphVerticesCoverageDataData& data = computeMarkerGraphVerticesCoverageDataData;
+    data.threadVertexIds[threadId] =
+        make_shared< MemoryMapped::Vector<GlobalMarkerGraphVertexId> >();
+    data.threadVertexCoverageData[threadId] =
+        make_shared< MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t> >();
+    auto& threadVertexIds = *data.threadVertexIds[threadId];
+    auto& threadCoverageData = *data.threadVertexCoverageData[threadId];
+    threadVertexIds.createNew(
+        largeDataName("tmp-computeMarkerGraphVertices-vertexIds" + to_string(threadId)), largeDataPageSize);
+    threadCoverageData.createNew(
+        largeDataName("tmp-markerGraphVerticesCoverageData" + to_string(threadId)), largeDataPageSize);
+
 
     // Some work areas used in the loop and defined here to reduce memory allocation
     // activity.
@@ -4471,67 +4541,67 @@ void Assembler::computeMarkerGraphVerticesCoverageData()
     vector<uint32_t> markerPositions;
     vector<CompressedCoverageData> compressedCoverageData;
 
-    // Loop over all marker graph vertices.
-    // For now this is done sequentially.
-    // This is not performance critical as it does not run by default.
-    // It can be parallelized if necessary.
-    for(GlobalMarkerGraphVertexId vertexId=0; vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
-        if((vertexId % 1000000) == 0) {
-            cout << timestamp << vertexId << "/" << globalMarkerGraphVertices.size() << endl;
-        }
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
 
-        // Access the markers of this vertex.
-        const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
-        const size_t markerCount = markerIds.size();
-        CZI_ASSERT(markerCount > 0);
+        // Loop over all vertices of this batch.
+        for(GlobalMarkerGraphVertexId vertexId=begin; vertexId!=end; vertexId++) {
 
-        // Find the corresponding oriented read ids, marker ordinals,
-        // and marker positions in each oriented read id.
-        markerInfos.clear();
-        markerPositions.clear();
-        for(const MarkerId markerId: markerIds) {
-            markerInfos.push_back(findMarkerId(markerId));
-            markerPositions.push_back(markers.begin()[markerId].position);
-        }
+            // Access the markers of this vertex.
+            const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
+            const size_t markerCount = markerIds.size();
+            CZI_ASSERT(markerCount > 0);
 
-        // Loop over the k base positions in this vertex.
-        markerGraph.vertexCoverageData.appendVector();
-        for(uint32_t position=0; position<uint32_t(assemblerInfo->k); position++) {
-
-            // Object to store base and repeat count information
-            // at this position.
-            Coverage coverage;
-
-            // Loop over markers.
-            for(size_t i=0; i<markerCount; i++) {
-
-                // Get the base and repeat count.
-                const OrientedReadId orientedReadId = markerInfos[i].first;
-                const uint32_t markerPosition = markerPositions[i];
-                Base base;
-                uint8_t repeatCount;
-                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
-
-                // Add it to the Coverage object.
-                coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), size_t(repeatCount));
+            // Find the corresponding oriented read ids, marker ordinals,
+            // and marker positions in each oriented read id.
+            markerInfos.clear();
+            markerPositions.clear();
+            for(const MarkerId markerId: markerIds) {
+                markerInfos.push_back(findMarkerId(markerId));
+                markerPositions.push_back(markers.begin()[markerId].position);
             }
 
-            // Sanity check that all the bases are the same.
-            const vector<CoverageData>& coverageData = coverage.getReadCoverageData();
-            CZI_ASSERT(coverageData.size() == markerCount);
-            const Base firstBase = Base(coverageData.front().base);
-            for(const CoverageData& c: coverageData) {
-                CZI_ASSERT(Base(c.base) == firstBase);
-            }
+            // Loop over the k base positions in this vertex.
+            threadVertexIds.push_back(vertexId);
+            threadCoverageData.appendVector();
+            for(uint32_t position=0; position<uint32_t(assemblerInfo->k); position++) {
 
-            coverage.count(compressedCoverageData);
-            for(const CompressedCoverageData& cd: compressedCoverageData) {
-                markerGraph.vertexCoverageData.append(make_pair(position, cd));
+                // Object to store base and repeat count information
+                // at this position.
+                Coverage coverage;
+
+                // Loop over markers.
+                for(size_t i=0; i<markerCount; i++) {
+
+                    // Get the base and repeat count.
+                    const OrientedReadId orientedReadId = markerInfos[i].first;
+                    const uint32_t markerPosition = markerPositions[i];
+                    Base base;
+                    uint8_t repeatCount;
+                    tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
+
+                    // Add it to the Coverage object.
+                    coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), size_t(repeatCount));
+                }
+
+                // Sanity check that all the bases are the same.
+                const vector<CoverageData>& coverageData = coverage.getReadCoverageData();
+                CZI_ASSERT(coverageData.size() == markerCount);
+                const Base firstBase = Base(coverageData.front().base);
+                for(const CoverageData& c: coverageData) {
+                    CZI_ASSERT(Base(c.base) == firstBase);
+                }
+
+                // Store the results.
+                coverage.count(compressedCoverageData);
+                for(const CompressedCoverageData& cd: compressedCoverageData) {
+                    threadCoverageData.append(make_pair(position, cd));
+                }
             }
         }
     }
 
-    cout << timestamp<< "computeMarkerGraphVerticesCoverageData ends." << endl;
 }
 
 
