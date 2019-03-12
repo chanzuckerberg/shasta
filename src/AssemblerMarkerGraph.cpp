@@ -4383,6 +4383,8 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 // Compute consensus repeat counts for each vertex of the marker graph.
 void Assembler::assembleMarkerGraphVertices(size_t threadCount)
 {
+    cout << timestamp << "assembleMarkerGraphVertices begins." << endl;
+
     // Check that we have what we need.
     checkKmersAreOpen();
     checkReadsAreOpen();
@@ -4405,6 +4407,8 @@ void Assembler::assembleMarkerGraphVertices(size_t threadCount)
     size_t batchSize = 100000;
     setupLoadBalancing(globalMarkerGraphVertices.size(), batchSize);
     runThreads(&Assembler::assembleMarkerGraphVerticesThreadFunction, threadCount);
+
+    cout << timestamp << "assembleMarkerGraphVertices ends." << endl;
 }
 
 
@@ -4459,6 +4463,8 @@ void Assembler::assembleMarkerGraphEdges(
     bool storeCoverageData
     )
 {
+    cout << timestamp << "assembleMarkerGraphEdges begins." << endl;
+
     // Check that we have what we need.
     checkKmersAreOpen();
     checkReadsAreOpen();
@@ -4546,6 +4552,8 @@ void Assembler::assembleMarkerGraphEdges(
     if(storeCoverageData) {
         assembleMarkerGraphEdgesData.threadEdgeCoverageData.clear();
     }
+
+    cout << timestamp << "assembleMarkerGraphEdges ends." << endl;
 }
 
 
@@ -4592,7 +4600,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     // Loop over batches assigned to this thread.
     size_t begin, end;
     while(getNextBatch(begin, end)) {
-        if((begin % 1000000) == 0){
+        if((begin % 10000000) == 0){
             std::lock_guard<std::mutex> lock(mutex);
             cout << timestamp << begin << "/" << markerGraph.edges.size() << endl;
         }
