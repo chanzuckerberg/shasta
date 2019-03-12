@@ -1042,8 +1042,9 @@ void Assembler::assembleAssemblyGraphEdge(
     AssembledSegment& assembledSegment,
     ostream* htmlPointer)
 {
-    const auto k = assemblerInfo->k;
     assembledSegment.clear();
+    const auto k = assemblerInfo->k;
+    assembledSegment.k = k;
 
     // The edges of this chain in the marker graph.
     const MemoryAsContainer<GlobalMarkerGraphEdgeId> edgeIds = assemblyGraph.edgeLists[edgeId];
@@ -1075,16 +1076,10 @@ void Assembler::assembleAssemblyGraphEdge(
 
 
 
-
     // Extract consensus sequence for the vertices of the chain.
-    vector< vector<Base> > vertexSequences(assembledSegment.vertexCount);
-    vector< vector<uint32_t> > vertexRepeatCounts(assembledSegment.vertexCount);
+    assembledSegment.vertexSequences.resize(assembledSegment.vertexCount);
+    assembledSegment.vertexRepeatCounts.resize(assembledSegment.vertexCount);
     for(size_t i=0; i<assembledSegment.vertexCount; i++) {
-
-        /*
-        computeMarkerGraphVertexConsensusSequence(
-            vertexIds[i], vertexSequences[i], vertexRepeatCounts[i]);
-        */
 
         // Get the sequence.
         const MarkerId firstMarkerId = globalMarkerGraphVertices[assembledSegment.vertexIds[i]][0];
@@ -1095,43 +1090,31 @@ void Assembler::assembleAssemblyGraphEdge(
         // Get the repeat counts.
         const auto& storedConsensus = markerGraph.vertexRepeatCounts.begin() + k * assembledSegment.vertexIds[i];
 
-        // Store in local variables.
-        vertexSequences[i].resize(k);
-        vertexRepeatCounts[i].resize(k);
+        // Store in the AssembledSegment.
+        assembledSegment.vertexSequences[i].resize(k);
+        assembledSegment.vertexRepeatCounts[i].resize(k);
         for(size_t j=0; j<k; j++) {
-            vertexSequences[i][j] = kmer[j];
-            vertexRepeatCounts[i][j] = storedConsensus[j];
+            assembledSegment.vertexSequences[i][j] = kmer[j];
+            assembledSegment.vertexRepeatCounts[i][j] = storedConsensus[j];
         }
     }
 
 
 
     // Extract consensus sequence for the edges of the chain.
-    vector< vector<Base> > edgeSequences(assembledSegment.edgeCount);
-    vector< vector<uint32_t> > edgeRepeatCounts(assembledSegment.edgeCount);
-    vector<uint8_t> edgeOverlappingBaseCounts(assembledSegment.edgeCount);
+    assembledSegment.edgeSequences.resize(assembledSegment.edgeCount);
+    assembledSegment.edgeRepeatCounts.resize(assembledSegment.edgeCount);
+    assembledSegment.edgeOverlappingBaseCounts.resize(assembledSegment.edgeCount);
     for(size_t i=0; i<assembledSegment.edgeCount; i++) {
 
-        /*
-        // This is the old code that was computing the consensus here.
-        // Instead, this is now done by assembleMarkerGraphEdges.
-        if(useMarginPhase) {
-            computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-                edgeIds[i], edgeSequences[i], edgeRepeatCounts[i]);
-        } else {
-            computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-                edgeIds[i], markerGraphEdgeLengthThresholdForConsensus, edgeSequences[i], edgeRepeatCounts[i]);
-        }
-        */
-
         const auto& storedConsensus = markerGraph.edgeConsensus[edgeIds[i]];
-        edgeSequences[i].resize(storedConsensus.size());
-        edgeRepeatCounts[i].resize(storedConsensus.size());
+        assembledSegment.edgeSequences[i].resize(storedConsensus.size());
+        assembledSegment.edgeRepeatCounts[i].resize(storedConsensus.size());
         for(size_t j=0; j<storedConsensus.size(); j++) {
-            edgeSequences[i][j] = storedConsensus[j].first;
-            edgeRepeatCounts[i][j] = storedConsensus[j].second;
+            assembledSegment.edgeSequences[i][j] = storedConsensus[j].first;
+            assembledSegment.edgeRepeatCounts[i][j] = storedConsensus[j].second;
         }
-        edgeOverlappingBaseCounts[i] = markerGraph.edgeConsensusOverlappingBaseCount[edgeIds[i]];
+        assembledSegment.edgeOverlappingBaseCounts[i] = markerGraph.edgeConsensusOverlappingBaseCount[edgeIds[i]];
     }
 
 
@@ -1140,18 +1123,7 @@ void Assembler::assembleAssemblyGraphEdge(
     // A vertex offset is the position of the first base
     // of the vertex consensus sequence (run-length)
     // relative to the first base of assembled sequence (run-length).
-    vector<uint32_t> vertexOffsets(assembledSegment.vertexCount);
-    vertexOffsets[0] = 0;
-    for(size_t i=0; i<assembledSegment.edgeCount; i++) {
-        const uint8_t overlap = edgeOverlappingBaseCounts[i];
-        if(overlap > 0) {
-            CZI_ASSERT(edgeSequences[i].empty());
-            CZI_ASSERT(edgeRepeatCounts[i].empty());
-            vertexOffsets[i+1] = uint32_t(vertexOffsets[i] + k - overlap);
-        } else {
-            vertexOffsets[i+1] = uint32_t(vertexOffsets[i] + k + edgeSequences[i].size());
-        }
-    }
+    assembledSegment.computeVertexOffsets();
 
 
 
@@ -1167,12 +1139,13 @@ void Assembler::assembleAssemblyGraphEdge(
         // Check previous vertices.
         vertexAssembledPortion[i].first = 0;
         for(int j=i-1; j>=0; j--) {
-            if(vertexOffsets[j]+k < vertexOffsets[i]) {
+            if(assembledSegment.vertexOffsets[j]+k < assembledSegment.vertexOffsets[i]) {
                 break;
             }
             if(assembledSegment.vertexCoverage[j]>assembledSegment.vertexCoverage[i] ||
                 (assembledSegment.vertexCoverage[j]==assembledSegment.vertexCoverage[i] && assembledSegment.vertexIds[j]<assembledSegment.vertexIds[i])) {
-                vertexAssembledPortion[i].first = vertexOffsets[j] + uint32_t(k) - vertexOffsets[i];
+                vertexAssembledPortion[i].first =
+                    assembledSegment.vertexOffsets[j] + uint32_t(k) - assembledSegment.vertexOffsets[i];
                 break;
             }
         }
@@ -1180,12 +1153,12 @@ void Assembler::assembleAssemblyGraphEdge(
         // Check following vertices.
         vertexAssembledPortion[i].second = uint32_t(k);
         for(int j=i+1; j<int(assembledSegment.vertexCount); j++) {
-            if(vertexOffsets[i]+k < vertexOffsets[j]) {
+            if(assembledSegment.vertexOffsets[i]+k < assembledSegment.vertexOffsets[j]) {
                 break;
             }
             if(assembledSegment.vertexCoverage[j]>assembledSegment.vertexCoverage[i] ||
                 (assembledSegment.vertexCoverage[j]==assembledSegment.vertexCoverage[i] && assembledSegment.vertexIds[j]<assembledSegment.vertexIds[i])) {
-                vertexAssembledPortion[i].second = vertexOffsets[j] - vertexOffsets[i];
+                vertexAssembledPortion[i].second = assembledSegment.vertexOffsets[j] - assembledSegment.vertexOffsets[i];
                 break;
             }
         }
@@ -1213,8 +1186,8 @@ void Assembler::assembleAssemblyGraphEdge(
         vertexRunLengthRange[i].first = uint32_t(assembledSegment.runLengthSequence.size());
         vertexRawRange[i].first = uint32_t(assembledRawSequence.size());
         for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
-            const Base base = vertexSequences[i][j];
-            const uint32_t repeatCount = vertexRepeatCounts[i][j];
+            const Base base = assembledSegment.vertexSequences[i][j];
+            const uint32_t repeatCount = assembledSegment.vertexRepeatCounts[i][j];
             CZI_ASSERT(repeatCount > 0);
             assembledSegment.runLengthSequence.push_back(base);
             assembledSegment.repeatCounts.push_back(repeatCount);
@@ -1233,10 +1206,10 @@ void Assembler::assembleAssemblyGraphEdge(
         // Edge.
         edgeRunLengthRange[i].first = uint32_t(assembledSegment.runLengthSequence.size());
         edgeRawRange[i].first = uint32_t(assembledRawSequence.size());
-        if(edgeSequences[i].size() > 0) {
-            for(uint32_t j=0; j!=uint32_t(edgeSequences[i].size()); j++) {
-                const Base base = edgeSequences[i][j];
-                const uint32_t repeatCount = edgeRepeatCounts[i][j];
+        if(assembledSegment.edgeSequences[i].size() > 0) {
+            for(uint32_t j=0; j!=uint32_t(assembledSegment.edgeSequences[i].size()); j++) {
+                const Base base = assembledSegment.edgeSequences[i][j];
+                const uint32_t repeatCount = assembledSegment.edgeRepeatCounts[i][j];
                 CZI_ASSERT(repeatCount > 0);
                 assembledSegment.runLengthSequence.push_back(base);
                 assembledSegment.repeatCounts.push_back(repeatCount);
@@ -1369,15 +1342,15 @@ void Assembler::assembleAssemblyGraphEdge(
             // Vertex.
             const GlobalMarkerGraphVertexId vertexId = assembledSegment.vertexIds[i];
             const string url = urlPrefix + to_string(vertexId) + urlSuffix;
-            const vector<Base>& vertexSequence = vertexSequences[i];
-            const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
+            const vector<Base>& vertexSequence = assembledSegment.vertexSequences[i];
+            const vector<uint32_t>& vertexRepeatCount = assembledSegment.vertexRepeatCounts[i];
             // const uint32_t maxVertexRepeatCount =
             //     *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
             html <<
                  "<tr><td>Vertex" <<
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
                 "<td class=centered>" << assembledSegment.vertexCoverage[i] <<
-                "<td class=centered>" << vertexOffsets[i] <<
+                "<td class=centered>" << assembledSegment.vertexOffsets[i] <<
                 "<td class=centered>" << vertexRunLengthRange[i].first <<
                 "<td class=centered>" << vertexRunLengthRange[i].second <<
                 "<td style='font-family:courier'>";
@@ -1436,8 +1409,8 @@ void Assembler::assembleAssemblyGraphEdge(
                 markerGraph.edges[edgeId];
             const string sourceUrl = urlPrefix + to_string(edge.source) + urlSuffix;
             const string targetUrl = urlPrefix + to_string(edge.target) + urlSuffix;
-            const vector<Base>& edgeSequence = edgeSequences[i];
-            const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
+            const vector<Base>& edgeSequence = assembledSegment.edgeSequences[i];
+            const vector<uint32_t>& edgeRepeatCount = assembledSegment.edgeRepeatCounts[i];
             const size_t edgeSequenceLength = edgeSequence.size();
             CZI_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
             // const uint32_t maxEdgeRepeatCount =
