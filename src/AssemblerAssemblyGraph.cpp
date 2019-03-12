@@ -1133,43 +1133,7 @@ void Assembler::assembleAssemblyGraphEdge(
     // An edge with overlapping markers does not contribute to the assembly.
     // An edge with at least one intervening base contributes all of its bases
     // to the assembly.
-    vector< pair<uint32_t, uint32_t> > vertexAssembledPortion(assembledSegment.vertexCount);
-    for(int i=0; i<int(assembledSegment.vertexCount); i++) {
-
-        // Check previous vertices.
-        vertexAssembledPortion[i].first = 0;
-        for(int j=i-1; j>=0; j--) {
-            if(assembledSegment.vertexOffsets[j]+k < assembledSegment.vertexOffsets[i]) {
-                break;
-            }
-            if(assembledSegment.vertexCoverage[j]>assembledSegment.vertexCoverage[i] ||
-                (assembledSegment.vertexCoverage[j]==assembledSegment.vertexCoverage[i] && assembledSegment.vertexIds[j]<assembledSegment.vertexIds[i])) {
-                vertexAssembledPortion[i].first =
-                    assembledSegment.vertexOffsets[j] + uint32_t(k) - assembledSegment.vertexOffsets[i];
-                break;
-            }
-        }
-
-        // Check following vertices.
-        vertexAssembledPortion[i].second = uint32_t(k);
-        for(int j=i+1; j<int(assembledSegment.vertexCount); j++) {
-            if(assembledSegment.vertexOffsets[i]+k < assembledSegment.vertexOffsets[j]) {
-                break;
-            }
-            if(assembledSegment.vertexCoverage[j]>assembledSegment.vertexCoverage[i] ||
-                (assembledSegment.vertexCoverage[j]==assembledSegment.vertexCoverage[i] && assembledSegment.vertexIds[j]<assembledSegment.vertexIds[i])) {
-                vertexAssembledPortion[i].second = assembledSegment.vertexOffsets[j] - assembledSegment.vertexOffsets[i];
-                break;
-            }
-        }
-
-        // Handle the case of a vertex that contributes nothing.
-        if(vertexAssembledPortion[i].second <= vertexAssembledPortion[i].first) {
-            vertexAssembledPortion[i].first = 0;
-            vertexAssembledPortion[i].second = 0;
-        }
-        CZI_ASSERT(vertexAssembledPortion[i].second <= k);
-    }
+    assembledSegment.computeVertexAssembledPortion();
 
 
 
@@ -1185,7 +1149,7 @@ void Assembler::assembleAssemblyGraphEdge(
         // Vertex.
         vertexRunLengthRange[i].first = uint32_t(assembledSegment.runLengthSequence.size());
         vertexRawRange[i].first = uint32_t(assembledRawSequence.size());
-        for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
+        for(uint32_t j=assembledSegment.vertexAssembledPortion[i].first; j!=assembledSegment.vertexAssembledPortion[i].second; j++) {
             const Base base = assembledSegment.vertexSequences[i][j];
             const uint32_t repeatCount = assembledSegment.vertexRepeatCounts[i][j];
             CZI_ASSERT(repeatCount > 0);
@@ -1355,18 +1319,21 @@ void Assembler::assembleAssemblyGraphEdge(
                 "<td class=centered>" << vertexRunLengthRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
-                if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                if(j==assembledSegment.vertexAssembledPortion[i].first &&
+                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
                 }
                 html << vertexSequence[j];
-                if(j==vertexAssembledPortion[i].second-1  && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                if(j==assembledSegment.vertexAssembledPortion[i].second-1  &&
+                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
                     html << "</span>";
                 }
             }
             html << "<br>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
                 const uint32_t repeatCount = vertexRepeatCount[j];
-                if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                if(j==assembledSegment.vertexAssembledPortion[i].first &&
+                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
                 }
                 if(repeatCount < 10) {
@@ -1374,7 +1341,8 @@ void Assembler::assembleAssemblyGraphEdge(
                 } else {
                     html << "*";
                 }
-                if(j==vertexAssembledPortion[i].second-1 && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                if(j==assembledSegment.vertexAssembledPortion[i].second-1 &&
+                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
                     html << "</span>";
                 }
             }
@@ -1383,7 +1351,8 @@ void Assembler::assembleAssemblyGraphEdge(
                 "<td class=centered>" << vertexRawRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
-                if(j==vertexAssembledPortion[i].first && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                if(j==assembledSegment.vertexAssembledPortion[i].first &&
+                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
                     html << "<span style='background-color:LightGreen'>";
                 }
                 const Base b = vertexSequence[j];
@@ -1391,7 +1360,8 @@ void Assembler::assembleAssemblyGraphEdge(
                 for(uint32_t k=0; k<repeatCount; k++) {
                     html << b;
                 }
-                if(j==vertexAssembledPortion[i].second-1 && vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                if(j==assembledSegment.vertexAssembledPortion[i].second-1 &&
+                    assembledSegment.vertexAssembledPortion[i].first!=assembledSegment.vertexAssembledPortion[i].second) {
                     html << "</span>";
                 }
             }

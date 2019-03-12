@@ -56,6 +56,14 @@ public:
     vector<uint32_t> vertexOffsets;
     void computeVertexOffsets();
 
+    // Compute, for each vertex, the portion of vertex sequence that contributes
+    // to the assembly. This is the portion that does not overlap a vertex with greater coverage.
+    // (Break ties using vertex ids).
+    // An edge with overlapping markers does not contribute to the assembly.
+    // An edge with at least one intervening base contributes all of its bases
+    // to the assembly.
+    vector< pair<uint32_t, uint32_t> > vertexAssembledPortion;
+    void computeVertexAssembledPortion();
 
     // The assembled run-length sequence  and repeat counts.
     vector<Base> runLengthSequence;

@@ -46,3 +46,54 @@ void AssembledSegment::computeVertexOffsets()
     }
 }
 
+
+
+void AssembledSegment::computeVertexAssembledPortion()
+{
+    // Compute, for each vertex, the portion of vertex sequence that contributes
+    // to the assembly. This is the portion that does not overlap a vertex with greater coverage.
+    // (Break ties using vertex ids).
+    // An edge with overlapping markers does not contribute to the assembly.
+    // An edge with at least one intervening base contributes all of its bases
+    // to the assembly.
+
+    vertexAssembledPortion.resize(vertexCount);
+
+    for(int i=0; i<int(vertexCount); i++) {
+
+        // Check previous vertices.
+        vertexAssembledPortion[i].first = 0;
+        for(int j=i-1; j>=0; j--) {
+            if(vertexOffsets[j]+k < vertexOffsets[i]) {
+                break;
+            }
+            if(vertexCoverage[j]>vertexCoverage[i] ||
+                (vertexCoverage[j]==vertexCoverage[i] && vertexIds[j]<vertexIds[i])) {
+                vertexAssembledPortion[i].first =
+                    vertexOffsets[j] + uint32_t(k) - vertexOffsets[i];
+                break;
+            }
+        }
+
+        // Check following vertices.
+        vertexAssembledPortion[i].second = uint32_t(k);
+        for(int j=i+1; j<int(vertexCount); j++) {
+            if(vertexOffsets[i]+k < vertexOffsets[j]) {
+                break;
+            }
+            if(vertexCoverage[j]>vertexCoverage[i] ||
+                (vertexCoverage[j]==vertexCoverage[i] && vertexIds[j]<vertexIds[i])) {
+                vertexAssembledPortion[i].second = vertexOffsets[j] - vertexOffsets[i];
+                break;
+            }
+        }
+
+        // Handle the case of a vertex that contributes nothing.
+        if(vertexAssembledPortion[i].second <= vertexAssembledPortion[i].first) {
+            vertexAssembledPortion[i].first = 0;
+            vertexAssembledPortion[i].second = 0;
+        }
+        CZI_ASSERT(vertexAssembledPortion[i].second <= k);
+    }
+}
+
