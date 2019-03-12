@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "AssembledSegment.hpp"
 #include "LocalAssemblyGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -266,10 +267,9 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     // Note that this always uses spoa, not marginPhase, regardless of
     // what was done during assembly.
     if(showDetails) {
-        vector<Base> sequence;
-        vector<uint32_t> repeatCounts;
+        AssembledSegment assembledSegment;
         const uint32_t markerGraphEdgeLengthThresholdForConsensus = 10000;
-        assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, false, sequence, repeatCounts, &html);
+        assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, false, assembledSegment, &html);
     } else {
 
         // Assembly details were not requested but a global assembly

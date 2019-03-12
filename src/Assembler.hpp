@@ -36,6 +36,7 @@ namespace ChanZuckerberg {
         class Alignment;
         class AlignmentGraph;
         class AlignmentInfo;
+        class AssembledSegment;
         class ConsensusCaller;
         class LocalAlignmentGraph;
         class LocalAssemblyGraph;
@@ -1309,8 +1310,7 @@ private:
         AssemblyGraph::EdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         bool useMarginPhase,
-        vector<Base>&,
-        vector<uint32_t>& repeatCounts,
+        AssembledSegment&,
         ostream* html = 0);
 
 

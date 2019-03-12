@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "AssembledSegment.hpp"
 #include "LocalAssemblyGraph.hpp"
 #include "orderPairs.hpp"
 #include "timestamp.hpp"
@@ -484,8 +485,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& repeatCounts = *(assembleData.repeatCounts[threadId]);
     repeatCounts.createNew(largeDataName("tmp-RepeatCounts-" + to_string(threadId)), largeDataPageSize);
 
-    vector<Base> edgeSequence;
-    vector<uint32_t> edgeRepeatCounts;
+    AssembledSegment assembledSegment;
 
     // Loop over batches allocated to this thread.
     size_t begin, end;
@@ -499,7 +499,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
                     assemblyGraph.edgeLists[edgeId].size() << endl;
             }
             try {
-                assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, edgeSequence, edgeRepeatCounts);
+                assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, assembledSegment);
             } catch(std::exception e) {
                 std::lock_guard<std::mutex> lock(mutex);
                 cout << timestamp << "Thread " << threadId <<
@@ -517,11 +517,11 @@ void Assembler::assembleThreadFunction(size_t threadId)
             edges.push_back(edgeId);
 
             // Store the sequence.
-            sequences.append(edgeSequence);
+            sequences.append(assembledSegment.runLengthSequence);
 
             // Store the repeat counts.
             repeatCounts.appendVector();
-            for(const uint32_t r: edgeRepeatCounts) {
+            for(const uint32_t r: assembledSegment.repeatCounts) {
                 repeatCounts.append(uint8_t(min(uint32_t(255), r)));
             }
         }
@@ -1039,11 +1039,11 @@ void Assembler::assembleAssemblyGraphEdge(
     AssemblyGraph::EdgeId edgeId,
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
     bool useMarginPhase,
-    vector<Base>& assembledRunLengthSequence,
-    vector<uint32_t>& assembledRepeatCounts,
+    AssembledSegment& assembledSegment,
     ostream* htmlPointer)
 {
     const auto k = assemblerInfo->k;
+    assembledSegment.clear();
 
     // The edges of this chain in the marker graph.
     const MemoryAsContainer<GlobalMarkerGraphEdgeId> edgeIds = assemblyGraph.edgeLists[edgeId];
@@ -1203,8 +1203,6 @@ void Assembler::assembleAssemblyGraphEdge(
 
     // Assemble run-length sequence and raw sequence.
     // Keep track of the range each vertex and edge contributes.
-    assembledRunLengthSequence.clear();
-    assembledRepeatCounts.clear();
     vector<Base> assembledRawSequence;
     vector< pair<uint32_t, uint32_t> > vertexRunLengthRange(vertexCount);
     vector< pair<uint32_t, uint32_t> > vertexRawRange(vertexCount);
@@ -1213,19 +1211,19 @@ void Assembler::assembleAssemblyGraphEdge(
     for(size_t i=0; ; i++) {
 
         // Vertex.
-        vertexRunLengthRange[i].first = uint32_t(assembledRunLengthSequence.size());
+        vertexRunLengthRange[i].first = uint32_t(assembledSegment.runLengthSequence.size());
         vertexRawRange[i].first = uint32_t(assembledRawSequence.size());
         for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
             const Base base = vertexSequences[i][j];
             const uint32_t repeatCount = vertexRepeatCounts[i][j];
             CZI_ASSERT(repeatCount > 0);
-            assembledRunLengthSequence.push_back(base);
-            assembledRepeatCounts.push_back(repeatCount);
+            assembledSegment.runLengthSequence.push_back(base);
+            assembledSegment.repeatCounts.push_back(repeatCount);
             for(uint32_t k=0; k!=repeatCount; k++) {
                 assembledRawSequence.push_back(base);
             }
         }
-        vertexRunLengthRange[i].second = uint32_t(assembledRunLengthSequence.size());
+        vertexRunLengthRange[i].second = uint32_t(assembledSegment.runLengthSequence.size());
         vertexRawRange[i].second = uint32_t(assembledRawSequence.size());
 
         // This was the last vertex.
@@ -1234,21 +1232,21 @@ void Assembler::assembleAssemblyGraphEdge(
         }
 
         // Edge.
-        edgeRunLengthRange[i].first = uint32_t(assembledRunLengthSequence.size());
+        edgeRunLengthRange[i].first = uint32_t(assembledSegment.runLengthSequence.size());
         edgeRawRange[i].first = uint32_t(assembledRawSequence.size());
         if(edgeSequences[i].size() > 0) {
             for(uint32_t j=0; j!=uint32_t(edgeSequences[i].size()); j++) {
                 const Base base = edgeSequences[i][j];
                 const uint32_t repeatCount = edgeRepeatCounts[i][j];
                 CZI_ASSERT(repeatCount > 0);
-                assembledRunLengthSequence.push_back(base);
-                assembledRepeatCounts.push_back(repeatCount);
+                assembledSegment.runLengthSequence.push_back(base);
+                assembledSegment.repeatCounts.push_back(repeatCount);
                 for(uint32_t k=0; k!=repeatCount; k++) {
                     assembledRawSequence.push_back(base);
                 }
             }
         }
-        edgeRunLengthRange[i].second = uint32_t(assembledRunLengthSequence.size());
+        edgeRunLengthRange[i].second = uint32_t(assembledSegment.runLengthSequence.size());
         edgeRawRange[i].second = uint32_t(assembledRawSequence.size());
     }
 
@@ -1284,21 +1282,21 @@ void Assembler::assembleAssemblyGraphEdge(
         }
 #endif
         // Assembled run-length sequence.
-        html << "<p>Assembled run-length sequence (" << assembledRunLengthSequence.size() <<
+        html << "<p>Assembled run-length sequence (" << assembledSegment.runLengthSequence.size() <<
             " bases):<br><span style='font-family:courier'>";
-        copy(assembledRunLengthSequence.begin(), assembledRunLengthSequence.end(),
+        copy(assembledSegment.runLengthSequence.begin(), assembledSegment.runLengthSequence.end(),
             ostream_iterator<Base>(html));
         html << "<br>";
         const uint32_t maxRepeatCount =
-            *max_element(assembledRepeatCounts.begin(), assembledRepeatCounts.end());
-        for(size_t j=0; j<assembledRepeatCounts.size(); j++) {
-            const uint32_t repeatCount = assembledRepeatCounts[j];
+            *max_element(assembledSegment.repeatCounts.begin(), assembledSegment.repeatCounts.end());
+        for(size_t j=0; j<assembledSegment.repeatCounts.size(); j++) {
+            const uint32_t repeatCount = assembledSegment.repeatCounts[j];
             html << repeatCount%10;
         }
         if(maxRepeatCount >= 10) {
             html << "<br>";
-            for(size_t j=0; j<assembledRepeatCounts.size(); j++) {
-                const uint32_t repeatCount = assembledRepeatCounts[j];
+            for(size_t j=0; j<assembledSegment.repeatCounts.size(); j++) {
+                const uint32_t repeatCount = assembledSegment.repeatCounts[j];
                 const uint32_t digit = (repeatCount/10) % 10;
                 if(digit == 0) {
                     html << "&nbsp;";
@@ -1309,8 +1307,8 @@ void Assembler::assembleAssemblyGraphEdge(
         }
         if(maxRepeatCount >= 100) {
             html << "<br>";
-            for(size_t j=0; j<assembledRepeatCounts.size(); j++) {
-                const uint32_t repeatCount = assembledRepeatCounts[j];
+            for(size_t j=0; j<assembledSegment.repeatCounts.size(); j++) {
+                const uint32_t repeatCount = assembledSegment.repeatCounts[j];
                 if(repeatCount >= 1000) {
                     html << "*";
                 } else {
