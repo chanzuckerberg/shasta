@@ -155,12 +155,17 @@ def runAssembly(a, config, fastaFileNames):
     # Compute optimal repeat counts for each vertex of the marker graph.
     a.assembleMarkerGraphVertices()
     
+    # Optionally compute coverage data for marker graph vertices.
+    storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData'])
+    if storeCoverageData:
+        a.computeMarkerGraphVerticesCoverageData()
+    
     # Compute consensus sequence for marker graph edges to be used for assembly.
     a.assembleMarkerGraphEdges(
         markerGraphEdgeLengthThresholdForConsensus =
         int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
         useMarginPhase = useMarginPhase,
-        storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData']))
+        storeCoverageData = storeCoverageData)
     
     # Use the assembly graph for global assembly.
     a.assemble(

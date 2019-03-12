@@ -332,6 +332,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("accessMarkerGraphVertexRepeatCounts",
             &Assembler::accessMarkerGraphVertexRepeatCounts)
+        .def("computeMarkerGraphVerticesCoverageData",
+            &Assembler::computeMarkerGraphVerticesCoverageData)
         .def("assembleMarkerGraphEdges",
             &Assembler::assembleMarkerGraphEdges,
             arg("threadCount") = 0,

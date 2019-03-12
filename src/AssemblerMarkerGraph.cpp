@@ -2733,6 +2733,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
     vector<uint32_t>& repeatCounts
     )
 {
+
     // Access the markers of this vertex.
     const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
     const size_t markerCount = markerIds.size();
@@ -4444,6 +4445,93 @@ void Assembler::accessMarkerGraphVertexRepeatCounts()
     markerGraph.vertexRepeatCounts.accessExistingReadOnly(
         largeDataName("MarkerGraphVertexRepeatCounts"));
 
+}
+
+
+
+// Optional computation of coverage data for marker graph vertices.
+// This is only called if Assembly.storeCoverageData in shasta.conf is True.
+void Assembler::computeMarkerGraphVerticesCoverageData()
+{
+    cout << timestamp<< "computeMarkerGraphVerticesCoverageData begins." << endl;
+
+    // Check that we have what we need.
+    checkKmersAreOpen();
+    checkReadsAreOpen();
+    checkMarkersAreOpen();
+    checkMarkerGraphVerticesAreAvailable();
+
+    // Initialize the vertex coverage data.
+    markerGraph.vertexCoverageData.createNew(
+        largeDataName("MarkerGraphVerticesCoverageData"), largeDataPageSize);
+
+    // Some work areas used in the loop and defined here to reduce memory allocation
+    // activity.
+    vector< pair<OrientedReadId, uint32_t> > markerInfos;
+    vector<uint32_t> markerPositions;
+    vector<CompressedCoverageData> compressedCoverageData;
+
+    // Loop over all marker graph vertices.
+    // For now this is done sequentially.
+    // This is not performance critical as it does not run by default.
+    // It can be parallelized if necessary.
+    for(GlobalMarkerGraphVertexId vertexId=0; vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
+        if((vertexId % 1000000) == 0) {
+            cout << timestamp << vertexId << "/" << globalMarkerGraphVertices.size() << endl;
+        }
+
+        // Access the markers of this vertex.
+        const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
+        const size_t markerCount = markerIds.size();
+        CZI_ASSERT(markerCount > 0);
+
+        // Find the corresponding oriented read ids, marker ordinals,
+        // and marker positions in each oriented read id.
+        markerInfos.clear();
+        markerPositions.clear();
+        for(const MarkerId markerId: markerIds) {
+            markerInfos.push_back(findMarkerId(markerId));
+            markerPositions.push_back(markers.begin()[markerId].position);
+        }
+
+        // Loop over the k base positions in this vertex.
+        markerGraph.vertexCoverageData.appendVector();
+        for(uint32_t position=0; position<uint32_t(assemblerInfo->k); position++) {
+
+            // Object to store base and repeat count information
+            // at this position.
+            Coverage coverage;
+
+            // Loop over markers.
+            for(size_t i=0; i<markerCount; i++) {
+
+                // Get the base and repeat count.
+                const OrientedReadId orientedReadId = markerInfos[i].first;
+                const uint32_t markerPosition = markerPositions[i];
+                Base base;
+                uint8_t repeatCount;
+                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
+
+                // Add it to the Coverage object.
+                coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), size_t(repeatCount));
+            }
+
+            // Sanity check that all the bases are the same.
+            const vector<CoverageData>& coverageData = coverage.getReadCoverageData();
+            CZI_ASSERT(coverageData.size() == markerCount);
+            const Base firstBase = Base(coverageData.front().base);
+            for(const CoverageData& c: coverageData) {
+                CZI_ASSERT(Base(c.base) == firstBase);
+            }
+
+            coverage.count(compressedCoverageData);
+            for(const CompressedCoverageData& cd: compressedCoverageData) {
+                markerGraph.vertexCoverageData.append(make_pair(position, cd));
+            }
+        }
+    }
+
+    cout << timestamp<< "computeMarkerGraphVerticesCoverageData ends." << endl;
 }
 
 

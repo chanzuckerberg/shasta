@@ -941,6 +941,16 @@ private:
         MemoryMapped::Vector<uint8_t> edgeConsensusOverlappingBaseCount;
 
 
+        // Details of vertex coverage.
+        // These are not stored by default.
+        // They can be used to calibrate the Bayesian model for repeat counts
+        // and for some types of analyses.
+        // Indeed by VertexId. For each vertex, contains pairs (position, CompressedCoverageData),
+        // ordered by position.
+        // Note that the bases at a given position are all identical by construction.
+        MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t>
+            vertexCoverageData;
+
         // Details of edge coverage.
         // These are not stored by default.
         // They can be used to calibrate the Bayesian model for repeat counts
@@ -1217,7 +1227,10 @@ public:
     void accessMarkerGraphVertexRepeatCounts();
 private:
     void assembleMarkerGraphVerticesThreadFunction(size_t threadId);
+public:
 
+    // Optional computation of coverage data for marker graph vertices.
+    void computeMarkerGraphVerticesCoverageData();
 
 
 public:
