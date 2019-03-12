@@ -1069,9 +1069,9 @@ void Assembler::assembleAssemblyGraphEdge(
     }
 
     // Edge coverage.
-    vector<uint32_t> edgeCoverage(assembledSegment.edgeCount);
+    assembledSegment.edgeCoverage.resize(assembledSegment.edgeCount);
     for(size_t i=0; i<assembledSegment.edgeCount; i++) {
-        edgeCoverage[i] = uint32_t(markerGraph.edgeMarkerIntervals.size(edgeIds[i]));
+        assembledSegment.edgeCoverage[i] = uint32_t(markerGraph.edgeMarkerIntervals.size(edgeIds[i]));
     }
 
 
@@ -1125,8 +1125,6 @@ void Assembler::assembleAssemblyGraphEdge(
     // relative to the first base of assembled sequence (run-length).
     assembledSegment.computeVertexOffsets();
 
-
-
     // Compute, for each vertex, the portion of vertex sequence that contributes
     // to the assembly. This is the portion that does not overlap a vertex with greater coverage.
     // (Break ties using vertex ids).
@@ -1135,56 +1133,9 @@ void Assembler::assembleAssemblyGraphEdge(
     // to the assembly.
     assembledSegment.computeVertexAssembledPortion();
 
-
-
     // Assemble run-length sequence and raw sequence.
     // Keep track of the range each vertex and edge contributes.
-    vector<Base> assembledRawSequence;
-    vector< pair<uint32_t, uint32_t> > vertexRunLengthRange(assembledSegment.vertexCount);
-    vector< pair<uint32_t, uint32_t> > vertexRawRange(assembledSegment.vertexCount);
-    vector< pair<uint32_t, uint32_t> > edgeRunLengthRange(assembledSegment.edgeCount);
-    vector< pair<uint32_t, uint32_t> > edgeRawRange(assembledSegment.edgeCount);
-    for(size_t i=0; ; i++) {
-
-        // Vertex.
-        vertexRunLengthRange[i].first = uint32_t(assembledSegment.runLengthSequence.size());
-        vertexRawRange[i].first = uint32_t(assembledRawSequence.size());
-        for(uint32_t j=assembledSegment.vertexAssembledPortion[i].first; j!=assembledSegment.vertexAssembledPortion[i].second; j++) {
-            const Base base = assembledSegment.vertexSequences[i][j];
-            const uint32_t repeatCount = assembledSegment.vertexRepeatCounts[i][j];
-            CZI_ASSERT(repeatCount > 0);
-            assembledSegment.runLengthSequence.push_back(base);
-            assembledSegment.repeatCounts.push_back(repeatCount);
-            for(uint32_t k=0; k!=repeatCount; k++) {
-                assembledRawSequence.push_back(base);
-            }
-        }
-        vertexRunLengthRange[i].second = uint32_t(assembledSegment.runLengthSequence.size());
-        vertexRawRange[i].second = uint32_t(assembledRawSequence.size());
-
-        // This was the last vertex.
-        if(i == assembledSegment.edgeCount) {
-            break;
-        }
-
-        // Edge.
-        edgeRunLengthRange[i].first = uint32_t(assembledSegment.runLengthSequence.size());
-        edgeRawRange[i].first = uint32_t(assembledRawSequence.size());
-        if(assembledSegment.edgeSequences[i].size() > 0) {
-            for(uint32_t j=0; j!=uint32_t(assembledSegment.edgeSequences[i].size()); j++) {
-                const Base base = assembledSegment.edgeSequences[i][j];
-                const uint32_t repeatCount = assembledSegment.edgeRepeatCounts[i][j];
-                CZI_ASSERT(repeatCount > 0);
-                assembledSegment.runLengthSequence.push_back(base);
-                assembledSegment.repeatCounts.push_back(repeatCount);
-                for(uint32_t k=0; k!=repeatCount; k++) {
-                    assembledRawSequence.push_back(base);
-                }
-            }
-        }
-        edgeRunLengthRange[i].second = uint32_t(assembledSegment.runLengthSequence.size());
-        edgeRawRange[i].second = uint32_t(assembledRawSequence.size());
-    }
+    assembledSegment.assemble();
 
 
 
@@ -1260,9 +1211,9 @@ void Assembler::assembleAssemblyGraphEdge(
         html << "</span>";
 
         // Assembled raw sequence.
-        html << "<p>Assembled raw sequence (" << assembledRawSequence.size() <<
+        html << "<p>Assembled raw sequence (" << assembledSegment.assembledRawSequence.size() <<
             " bases):<br><span style='font-family:courier'>";
-        copy(assembledRawSequence.begin(), assembledRawSequence.end(),
+        copy(assembledSegment.assembledRawSequence.begin(), assembledSegment.assembledRawSequence.end(),
             ostream_iterator<Base>(html));
         html << "</span>";
 
@@ -1315,8 +1266,8 @@ void Assembler::assembleAssemblyGraphEdge(
                 "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
                 "<td class=centered>" << assembledSegment.vertexCoverage[i] <<
                 "<td class=centered>" << assembledSegment.vertexOffsets[i] <<
-                "<td class=centered>" << vertexRunLengthRange[i].first <<
-                "<td class=centered>" << vertexRunLengthRange[i].second <<
+                "<td class=centered>" << assembledSegment.vertexRunLengthRange[i].first <<
+                "<td class=centered>" << assembledSegment.vertexRunLengthRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
                 if(j==assembledSegment.vertexAssembledPortion[i].first &&
@@ -1347,8 +1298,8 @@ void Assembler::assembleAssemblyGraphEdge(
                 }
             }
             html <<
-                "<td class=centered>" << vertexRawRange[i].first <<
-                "<td class=centered>" << vertexRawRange[i].second <<
+                "<td class=centered>" << assembledSegment.vertexRawRange[i].first <<
+                "<td class=centered>" << assembledSegment.vertexRawRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<vertexSequence.size(); j++) {
                 if(j==assembledSegment.vertexAssembledPortion[i].first &&
@@ -1388,10 +1339,10 @@ void Assembler::assembleAssemblyGraphEdge(
             // CZI_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
             html <<
                 "<tr><td>Edge<td class=centered>" << edgeId <<
-                "<td class=centered>" << edgeCoverage[i] <<
+                "<td class=centered>" << assembledSegment.edgeCoverage[i] <<
                 "<td class=centered>" <<
-                "<td class=centered>" << edgeRunLengthRange[i].first <<
-                "<td class=centered>" << edgeRunLengthRange[i].second <<
+                "<td class=centered>" << assembledSegment.edgeRunLengthRange[i].first <<
+                "<td class=centered>" << assembledSegment.edgeRunLengthRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<edgeSequenceLength; j++) {
                 if(edgeSequenceLength>2*k && j==k) {
@@ -1418,8 +1369,8 @@ void Assembler::assembleAssemblyGraphEdge(
                 }
             }
             html <<
-                "<td class=centered>" << edgeRawRange[i].first <<
-                "<td class=centered>" << edgeRawRange[i].second <<
+                "<td class=centered>" << assembledSegment.edgeRawRange[i].first <<
+                "<td class=centered>" << assembledSegment.edgeRawRange[i].second <<
                 "<td style='font-family:courier'>";
             for(size_t j=0; j<edgeSequenceLength; j++) {
                 const Base b = edgeSequence[j];

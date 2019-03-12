@@ -13,6 +13,7 @@ void AssembledSegment::clear()
 
     vertexIds.clear();
     vertexCoverage.clear();
+    edgeCoverage.clear();
 
     vertexSequences.clear();
     vertexRepeatCounts.clear();
@@ -25,6 +26,12 @@ void AssembledSegment::clear()
 
     runLengthSequence.clear();
     repeatCounts.clear();
+
+    assembledRawSequence.clear();
+    vertexRunLengthRange.clear();
+    vertexRawRange.clear();
+    edgeRunLengthRange.clear();
+    edgeRawRange.clear();
 }
 
 
@@ -97,3 +104,54 @@ void AssembledSegment::computeVertexAssembledPortion()
     }
 }
 
+
+
+void AssembledSegment::assemble()
+{
+    vertexRunLengthRange.resize(vertexCount);
+    vertexRawRange.resize(vertexCount);
+    edgeRunLengthRange.resize(edgeCount);
+    edgeRawRange.resize(edgeCount);
+
+    for(size_t i=0; ; i++) {
+
+        // Vertex.
+        vertexRunLengthRange[i].first = uint32_t(runLengthSequence.size());
+        vertexRawRange[i].first = uint32_t(assembledRawSequence.size());
+        for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
+            const Base base = vertexSequences[i][j];
+            const uint32_t repeatCount = vertexRepeatCounts[i][j];
+            CZI_ASSERT(repeatCount > 0);
+            runLengthSequence.push_back(base);
+            repeatCounts.push_back(repeatCount);
+            for(uint32_t k=0; k!=repeatCount; k++) {
+                assembledRawSequence.push_back(base);
+            }
+        }
+        vertexRunLengthRange[i].second = uint32_t(runLengthSequence.size());
+        vertexRawRange[i].second = uint32_t(assembledRawSequence.size());
+
+        // This was the last vertex.
+        if(i == edgeCount) {
+            break;
+        }
+
+        // Edge.
+        edgeRunLengthRange[i].first = uint32_t(runLengthSequence.size());
+        edgeRawRange[i].first = uint32_t(assembledRawSequence.size());
+        if(edgeSequences[i].size() > 0) {
+            for(uint32_t j=0; j!=uint32_t(edgeSequences[i].size()); j++) {
+                const Base base = edgeSequences[i][j];
+                const uint32_t repeatCount = edgeRepeatCounts[i][j];
+                CZI_ASSERT(repeatCount > 0);
+                runLengthSequence.push_back(base);
+                repeatCounts.push_back(repeatCount);
+                for(uint32_t k=0; k!=repeatCount; k++) {
+                    assembledRawSequence.push_back(base);
+                }
+            }
+        }
+        edgeRunLengthRange[i].second = uint32_t(runLengthSequence.size());
+        edgeRawRange[i].second = uint32_t(assembledRawSequence.size());
+    }
+}

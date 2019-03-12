@@ -37,8 +37,9 @@ public:
     // The marker graph vertices of the chain corresponding to this segment.
     vector<GlobalMarkerGraphVertexId> vertexIds;
 
-    // Vertex coverage.
+    // Vertex and edge coverage.
     vector<uint32_t> vertexCoverage;
+    vector<uint32_t> edgeCoverage;
 
     // The consensus sequences and repeat counts for the vertices in the chain.
     vector< vector<Base> > vertexSequences;
@@ -68,6 +69,14 @@ public:
     // The assembled run-length sequence  and repeat counts.
     vector<Base> runLengthSequence;
     vector<uint32_t> repeatCounts;
+    vector<Base> assembledRawSequence;
+
+    // Keep track of the range each vertex and edge contributes.
+    vector< pair<uint32_t, uint32_t> > vertexRunLengthRange;
+    vector< pair<uint32_t, uint32_t> > vertexRawRange;
+    vector< pair<uint32_t, uint32_t> > edgeRunLengthRange;
+    vector< pair<uint32_t, uint32_t> > edgeRawRange;
+    void assemble();
 
     // Put back into default-constructed state
     // (except for vector capacities).
