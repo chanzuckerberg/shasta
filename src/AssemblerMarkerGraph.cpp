@@ -4716,6 +4716,25 @@ void Assembler::assembleMarkerGraphEdges(
 
 
 
+// Access coverage data for vertices and edges of the marker graph.
+// This is only available if the run had Assembly.storeCoverageData set to True
+// in sshasta.conf.
+void Assembler::accessMarkerGraphCoverageData()
+{
+    try {
+        markerGraph.vertexCoverageData.accessExistingReadOnly(
+            largeDataName("MarkerGraphVerticesCoverageData"));
+        markerGraph.edgeCoverageData.accessExistingReadOnly(
+            largeDataName("MarkerGraphEdgesCoverageData"));
+
+    } catch (std::exception) {
+        throw runtime_error("Coverage data is not available. It is only stored if shasta.conf has "
+            "Assembly.storeCoverageData set to True.");
+    }
+}
+
+
+
 void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 {
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus;

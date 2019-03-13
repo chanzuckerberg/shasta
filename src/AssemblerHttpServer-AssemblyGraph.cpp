@@ -268,7 +268,7 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     // what was done during assembly.
     if(showDetails) {
         AssembledSegment assembledSegment;
-        assembleAssemblyGraphEdge(edgeId, assembledSegment);
+        assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
         assembledSegment.writeHtml(html);
     } else {
 

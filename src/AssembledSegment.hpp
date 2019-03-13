@@ -4,6 +4,7 @@
 // Shasta.
 #include "AssemblyGraph.hpp"
 #include "Base.hpp"
+#include "Coverage.hpp"
 #include "MarkerId.hpp"
 
 // Standard library.
@@ -85,6 +86,44 @@ public:
 
     // Write out details in html.
     void writeHtml(ostream&) const;
+
+
+    // Coverage data is computed optionally under control of the storeCoverageData
+    // argument to Assembler::assembleAssemblyGraphEdge.
+    // Indexed by [i][position] where:
+    // - i is the index for the vertex or edge in the chain.
+    // - position is in run-length coordinates.
+    vector< vector < vector<CompressedCoverageData> > > vertexCoverageData;
+    vector< vector < vector<CompressedCoverageData> > > edgeCoverageData;
+
+    // Coverage data for assembled sequence.
+    // Indexed by the assembled position in run-length coordinates.
+    vector< vector<CompressedCoverageData> > assembledCoverageData;
+
+
+
+    // Python-callable accessors.
+    // Unless otherwise specified, positions are in run-length coordinates.
+    size_t size() const
+    {
+        return runLengthSequence.size();
+    }
+    char getBase(uint32_t position) const
+    {
+        CZI_ASSERT(position < runLengthSequence.size());
+        return runLengthSequence[position].character();
+    }
+    uint32_t getRepeatCount(uint32_t position) const
+    {
+        CZI_ASSERT(position < repeatCounts.size());
+        return repeatCounts[position];
+    }
+    const vector<CompressedCoverageData> getCoverageData(uint32_t position) const
+    {
+        CZI_ASSERT(position < assembledCoverageData.size());
+        return assembledCoverageData[position];
+    }
+
 };
 
 

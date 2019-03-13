@@ -484,7 +484,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
                     assemblyGraph.edgeLists[edgeId].size() << endl;
             }
             try {
-                assembleAssemblyGraphEdge(edgeId, assembledSegment);
+                assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
             } catch(std::exception e) {
                 std::lock_guard<std::mutex> lock(mutex);
                 cout << timestamp << "Thread " << threadId <<
@@ -1017,11 +1017,24 @@ bool Assembler::extractLocalAssemblyGraph(
 
 
 
+// Python-callable.
+AssembledSegment Assembler::assembleAssemblyGraphEdge(
+    AssemblyGraph::EdgeId edgeId,
+    bool storeCoverageData)
+{
+    AssembledSegment assembledSegment;
+    assembleAssemblyGraphEdge(edgeId, storeCoverageData, assembledSegment);
+    return assembledSegment;
+}
+
+
+
 // Assemble sequence for an edge of the assembly graph.
 // Optionally outputs detailed assembly information
 // in html (skipped if the html pointer is 0).
 void Assembler::assembleAssemblyGraphEdge(
     AssemblyGraph::EdgeId edgeId,
+    bool storeCoverageData,
     AssembledSegment& assembledSegment)
 {
     assembledSegment.clear();
@@ -1101,6 +1114,47 @@ void Assembler::assembleAssemblyGraphEdge(
         }
         assembledSegment.edgeOverlappingBaseCounts[i] =
             markerGraph.edgeConsensusOverlappingBaseCount[assembledSegment.edgeIds[i]];
+    }
+
+
+
+    // Extract coverage data for vertices and edges.
+    if(storeCoverageData) {
+
+        // Check that coverage data is available.
+        if( !markerGraph.vertexCoverageData.isOpen() ||
+            !markerGraph.edgeCoverageData.isOpen()) {
+            throw runtime_error("Coverage data is not accessible.");
+        }
+
+        // Vertices.
+        assembledSegment.vertexCoverageData.resize(assembledSegment.vertexCount);
+        for(size_t i=0; i<assembledSegment.vertexCount; i++) {
+            const auto& input = markerGraph.vertexCoverageData[assembledSegment.vertexIds[i]];
+            auto& output = assembledSegment.vertexCoverageData[i];
+            output.resize(k);
+            for(const pair<uint32_t, CompressedCoverageData>& p: input) {
+                const uint32_t position = p.first;
+                CZI_ASSERT(position < k);
+                const CompressedCoverageData& cd = p.second;
+                output[position].push_back(cd);
+            }
+        }
+
+        // Edges.
+        assembledSegment.edgeCoverageData.resize(assembledSegment.edgeCount);
+        for(size_t i=0; i<assembledSegment.edgeCount; i++) {
+            const auto& input = markerGraph.edgeCoverageData[assembledSegment.edgeIds[i]];
+            auto& output = assembledSegment.edgeCoverageData[i];
+            for(const pair<uint32_t, CompressedCoverageData>& p: input) {
+                const uint32_t position = p.first;
+                if(position >= output.size()) {
+                    output.resize(position+1);
+                }
+                const CompressedCoverageData& cd = p.second;
+                output[position].push_back(cd);
+            }
+        }
     }
 
 

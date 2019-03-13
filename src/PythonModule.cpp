@@ -343,8 +343,8 @@ PYBIND11_MODULE(shasta, module)
             arg("storeCoverageData"))
         .def("accessMarkerGraphEdgeConsensus",
             &Assembler::accessMarkerGraphEdgeConsensus)
-
-
+        .def("accessMarkerGraphCoverageData",
+            &Assembler::accessMarkerGraphCoverageData)
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",
@@ -372,6 +372,14 @@ PYBIND11_MODULE(shasta, module)
         .def("writeFasta",
             &Assembler::writeFasta,
             arg("fileName"))
+        .def("assembleAssemblyGraphEdge",
+            (
+                AssembledSegment (Assembler::*)
+                (AssemblyGraph::EdgeId, bool)
+            )
+            &Assembler::assembleAssemblyGraphEdge,
+            arg("edgeId"),
+            arg("storeCoverageData") = true)
 
 
 
@@ -397,6 +405,26 @@ PYBIND11_MODULE(shasta, module)
 
         // Definition of class_<Assembler> ends here.
     ;
+
+
+
+    // Expose class AssembledSegment to Python.
+    class_<AssembledSegment>(module, "AssembledSegment")
+        .def("size", &AssembledSegment::size)
+        .def("getBase", &AssembledSegment::getBase)
+        .def("getRepeatCount", &AssembledSegment::getRepeatCount)
+        .def("getCoverageData", &AssembledSegment::getCoverageData)
+        ;
+
+
+
+    // Expose class CompressedCoverageData to Python.
+    class_<CompressedCoverageData>(module, "CompressedCoverageData")
+        .def("getBase", &CompressedCoverageData::getBase)
+        .def("getStrand", &CompressedCoverageData::getStrand)
+        .def("getRepeatCount", &CompressedCoverageData::getRepeatCount)
+        .def("getFrequency", &CompressedCoverageData::getFrequency)
+        ;
 
 
 

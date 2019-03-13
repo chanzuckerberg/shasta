@@ -111,6 +111,11 @@ void AssembledSegment::computeVertexAssembledPortion()
 
 void AssembledSegment::assemble()
 {
+    // Figure out if we should store coverage data for assembled sequence.
+    const bool storeCoverageData =
+        vertexCoverageData.size() == vertexCount &&
+        edgeCoverageData.size()   == edgeCount;
+
     vertexRunLengthRange.resize(vertexCount);
     vertexRawRange.resize(vertexCount);
     edgeRunLengthRange.resize(edgeCount);
@@ -127,6 +132,9 @@ void AssembledSegment::assemble()
             CZI_ASSERT(repeatCount > 0);
             runLengthSequence.push_back(base);
             repeatCounts.push_back(repeatCount);
+            if(storeCoverageData) {
+                assembledCoverageData.push_back(vertexCoverageData[i][j]);
+            }
             for(uint32_t k=0; k!=repeatCount; k++) {
                 assembledRawSequence.push_back(base);
             }
@@ -149,6 +157,9 @@ void AssembledSegment::assemble()
                 CZI_ASSERT(repeatCount > 0);
                 runLengthSequence.push_back(base);
                 repeatCounts.push_back(repeatCount);
+                if(storeCoverageData) {
+                    assembledCoverageData.push_back(edgeCoverageData[i][j]);
+                }
                 for(uint32_t k=0; k!=repeatCount; k++) {
                     assembledRawSequence.push_back(base);
                 }

@@ -57,6 +57,35 @@ public:
     uint8_t strand: 4;
     uint8_t repeatCount; // Clipped at 255.
     uint8_t frequency;   // How many times present. Clipped at 255.
+
+    // Python-callable accessors.
+    char getBase() const
+    {
+        const AlignedBase alignedBase = AlignedBase::fromInteger(base);
+        if(alignedBase.isGap()) {
+            return '_';
+        } else {
+            return alignedBase.character();
+        }
+    }
+    char getStrand() const
+    {
+        if(strand == 0) {
+            return '+';
+        } else if(strand == 1) {
+            return '-';
+        } else {
+            CZI_ASSERT(0);
+        }
+    }
+    int getRepeatCount() const
+    {
+        return repeatCount;
+    }
+    int getFrequency() const
+    {
+        return frequency;
+    }
 };
 static_assert(sizeof(ChanZuckerberg::shasta::CompressedCoverageData) == 3*sizeof(uint8_t),
     "Unexpected size of CompressedCoverageData");

@@ -3,6 +3,7 @@
 
 // Shasta.
 #include "Alignment.hpp"
+#include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
 #include "dset64.hpp"
@@ -1301,6 +1302,12 @@ private:
     };
     AssembleMarkerGraphEdgesData assembleMarkerGraphEdgesData;
 
+    // Access coverage data for vertices and edges of the marker graph.
+    // This is only available if the run had Assembly.storeCoverageData set to True
+    // in shasta.conf.
+public:
+    void accessMarkerGraphCoverageData();
+private:
 
 
     // Assemble sequence for an edge of the assembly graph.
@@ -1308,11 +1315,15 @@ private:
     // in html (skipped if the html pointer is 0).
     void assembleAssemblyGraphEdge(
         AssemblyGraph::EdgeId,
+        bool storeCoverageData,
         AssembledSegment&);
+public:
+    AssembledSegment assembleAssemblyGraphEdge(
+        AssemblyGraph::EdgeId,
+        bool storeCoverageData);
 
 
     // Assemble sequence for all edges of the assembly graph.
-public:
     void assemble(size_t threadCount);
     void accessAssemblyGraphSequences();
     void computeAssemblyStatistics();
