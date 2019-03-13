@@ -268,8 +268,7 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     // what was done during assembly.
     if(showDetails) {
         AssembledSegment assembledSegment;
-        const uint32_t markerGraphEdgeLengthThresholdForConsensus = 10000;
-        assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, false, assembledSegment);
+        assembleAssemblyGraphEdge(edgeId, assembledSegment);
         assembledSegment.writeHtml(html);
     } else {
 

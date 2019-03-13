@@ -168,10 +168,7 @@ def runAssembly(a, config, fastaFileNames):
         storeCoverageData = storeCoverageData)
     
     # Use the assembly graph for global assembly.
-    a.assemble(
-        markerGraphEdgeLengthThresholdForConsensus =
-        int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
-        useMarginPhase = useMarginPhase)
+    a.assemble()
     
     a.computeAssemblyStatistics()
     a.writeGfa1('Assembly.gfa')

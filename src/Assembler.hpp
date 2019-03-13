@@ -1308,28 +1308,17 @@ private:
     // in html (skipped if the html pointer is 0).
     void assembleAssemblyGraphEdge(
         AssemblyGraph::EdgeId,
-        uint32_t markerGraphEdgeLengthThresholdForConsensus,
-        bool useMarginPhase,
         AssembledSegment&);
 
 
     // Assemble sequence for all edges of the assembly graph.
 public:
-    void assemble(
-        size_t threadCount,
-        // This controls when we give up trying to compute consensus for long edges.
-        uint32_t markerGraphEdgeLengthThresholdForConsensus,
-        // Parameter to control whether we use spoa or marginPhase
-        // to compute consensus sequence for marker graph edges.
-        bool useMarginPhase
-        );
+    void assemble(size_t threadCount);
     void accessAssemblyGraphSequences();
     void computeAssemblyStatistics();
 private:
     class AssembleData {
     public:
-        uint32_t markerGraphEdgeLengthThresholdForConsensus;
-        bool useMarginPhase;
 
         // The results created by each thread.
         // All indexed by threadId.

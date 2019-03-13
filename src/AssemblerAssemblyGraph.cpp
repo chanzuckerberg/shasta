@@ -373,15 +373,7 @@ void Assembler::writeAssemblyGraph(const string& fileName) const
 
 
 // Assemble sequence for all edges of the assembly graph.
-void Assembler::assemble(
-    size_t threadCount,
-
-    uint32_t markerGraphEdgeLengthThresholdForConsensus,
-
-    // Parameter to control whether we use spoa of marginPhase
-    // to compute consensus sequence for marker graph edges.
-    bool useMarginPhase
-    )
+void Assembler::assemble(size_t threadCount)
 {
 
     // Check that we have what we need.
@@ -391,11 +383,6 @@ void Assembler::assemble(
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
     CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
-    assembleData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;
-    if(useMarginPhase) {
-        checkMarginPhaseWasSetup();
-    }
-    assembleData.useMarginPhase = useMarginPhase;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -471,8 +458,6 @@ void Assembler::assemble(
 
 void Assembler::assembleThreadFunction(size_t threadId)
 {
-    const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleData.markerGraphEdgeLengthThresholdForConsensus;
-    const bool useMarginPhase = assembleData.useMarginPhase;
 
     // Initialize data structures for this thread.
     vector<AssemblyGraph::EdgeId>& edges = assembleData.edges[threadId];
@@ -499,7 +484,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
                     assemblyGraph.edgeLists[edgeId].size() << endl;
             }
             try {
-                assembleAssemblyGraphEdge(edgeId, markerGraphEdgeLengthThresholdForConsensus, useMarginPhase, assembledSegment);
+                assembleAssemblyGraphEdge(edgeId, assembledSegment);
             } catch(std::exception e) {
                 std::lock_guard<std::mutex> lock(mutex);
                 cout << timestamp << "Thread " << threadId <<
@@ -1037,8 +1022,6 @@ bool Assembler::extractLocalAssemblyGraph(
 // in html (skipped if the html pointer is 0).
 void Assembler::assembleAssemblyGraphEdge(
     AssemblyGraph::EdgeId edgeId,
-    uint32_t markerGraphEdgeLengthThresholdForConsensus,
-    bool useMarginPhase,
     AssembledSegment& assembledSegment)
 {
     assembledSegment.clear();
