@@ -480,16 +480,14 @@ vector< pair<OrientedReadId, AlignmentInfo> >
 
 
 // Flag palindromic reads.
-void Assembler::flagPalindromicReads()
+void Assembler::flagPalindromicReads(
+    uint32_t maxSkip,
+    uint32_t maxMarkerFrequency,
+    double alignedFractionThreshold,
+    double nearDiagonalFractionThreshold,
+    uint32_t deltaThreshold)
 {
     cout << timestamp << "Finding palindromic reads." << endl;
-
-    // These must become arguments.
-    const size_t maxSkip = 100;
-    const size_t maxMarkerFrequency = 10;
-    const double alignedFractionThreshold = 0.1;
-    const double nearDiagonalFractionThreshold = 0.1;
-    const size_t deltaThreshold = 100;
 
     // First, reset all palindromic flags.
     const ReadId readCount = ReadId(readFlags.size());

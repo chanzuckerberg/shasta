@@ -20,5 +20,10 @@ a.accessReadFlags(readWriteAccess = True)
 a.accessMarkers()
 
 # Do the computation.
-a.flagPalindromicReads()
+a.flagPalindromicReads(
+    maxSkip = int(config['Reads']['palindromicReads.maxSkip']),
+    maxMarkerFrequency = int(config['Reads']['palindromicReads.maxMarkerFrequency']),
+    alignedFractionThreshold = float(config['Reads']['palindromicReads.alignedFractionThreshold']),
+    nearDiagonalFractionThreshold = float(config['Reads']['palindromicReads.nearDiagonalFractionThreshold']),
+    deltaThreshold = int(config['Reads']['palindromicReads.deltaThreshold']))
 

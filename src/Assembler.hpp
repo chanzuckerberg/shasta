@@ -549,6 +549,10 @@ private:
     class ReadFlags {
     public:
 
+        // This is set for reads that are approximate palindromic,
+        // that is, are well aligned with their own reverse complement.
+        uint8_t isPalindromic : 1;
+
         // Set if the read is marked as chimeric.
         uint8_t isChimeric : 1;
 
@@ -560,12 +564,8 @@ private:
         // Strand used when assembling this read.
         // If 0, the read is assembled unchanged.
         // If 1, the read is assembled reverse complemented.
-        // Not valid if isChimeric or isInSmallComponent is set.
+        // Not valid if isPalindromic, isChimeric or isInSmallComponent is set.
         uint8_t strand : 1;
-
-        // This is set for reads that are approximate palindromic,
-        // that is, are well aligned with their own reverse complement.
-        uint8_t isPalindromic : 1;
 
         // Unused bits.
         uint8_t bit4 : 1;
@@ -625,7 +625,12 @@ private:
 
     // Flag palindromic reads.
 public:
-    void flagPalindromicReads();
+    void flagPalindromicReads(
+        uint32_t maxSkip,
+        uint32_t maxMarkerFrequency,
+        double alignedFractionThreshold,
+        double nearDiagonalFractionThreshold,
+        uint32_t deltaThreshold);
 private:
 
 
