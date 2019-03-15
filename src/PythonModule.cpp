@@ -174,7 +174,8 @@ PYBIND11_MODULE(shasta, module)
             arg("maxMarkerFrequency"),
             arg("alignedFractionThreshold"),
             arg("nearDiagonalFractionThreshold"),
-            arg("deltaThreshold"))
+            arg("deltaThreshold"),
+            arg("threadCount") = 0)
 
         // Alignments.
         .def("alignOrientedReads",

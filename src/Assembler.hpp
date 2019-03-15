@@ -630,8 +630,19 @@ public:
         uint32_t maxMarkerFrequency,
         double alignedFractionThreshold,
         double nearDiagonalFractionThreshold,
-        uint32_t deltaThreshold);
+        uint32_t deltaThreshold,
+        size_t threadCount);
 private:
+    void flagPalindromicReadsThreadFunction(size_t threadId);
+    class FlagPalindromicReadsData {
+    public:
+        uint32_t maxSkip;
+        uint32_t maxMarkerFrequency;
+        double alignedFractionThreshold;
+        double nearDiagonalFractionThreshold;
+        uint32_t deltaThreshold;
+    };
+    FlagPalindromicReadsData flagPalindromicReadsData;
 
 
     // Alignment candidate found by the MinHash algorithm.

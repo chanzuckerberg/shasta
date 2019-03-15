@@ -485,65 +485,33 @@ void Assembler::flagPalindromicReads(
     uint32_t maxMarkerFrequency,
     double alignedFractionThreshold,
     double nearDiagonalFractionThreshold,
-    uint32_t deltaThreshold)
+    uint32_t deltaThreshold,
+    size_t threadCount)
 {
     cout << timestamp << "Finding palindromic reads." << endl;
 
-    // First, reset all palindromic flags.
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "Using " << threadCount << " threads." << endl;
+
+    // Store the parameters so all threads can see them.
+    flagPalindromicReadsData.maxSkip = maxSkip;
+    flagPalindromicReadsData.maxMarkerFrequency = maxMarkerFrequency;
+    flagPalindromicReadsData.alignedFractionThreshold = alignedFractionThreshold;
+    flagPalindromicReadsData.nearDiagonalFractionThreshold = nearDiagonalFractionThreshold;
+    flagPalindromicReadsData.deltaThreshold = deltaThreshold;
+
+    // Reset all palindromic flags.
     const ReadId readCount = ReadId(readFlags.size());
     for(ReadId readId=0; readId<readCount; readId++) {
         readFlags[readId].isPalindromic = 0;
     }
 
-    // Work areas used inside the loop and defined here
-    // to reduce memory allocation activity.
-    AlignmentGraph graph;
-    Alignment alignment;
-    AlignmentInfo alignmentInfo;
-    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
-
-    // Loop over all reads.
-    for(ReadId readId=0; readId<readCount; readId++) {
-
-        // Get markers sorted by KmerId for this read and its reverse complement.
-        for(Strand strand=0; strand<2; strand++) {
-            getMarkersSortedByKmerId(OrientedReadId(readId, strand), markersSortedByKmerId[strand]);
-        }
-
-        // Compute a marker alignment of this read versus its reverse complement.
-        alignOrientedReads(markersSortedByKmerId, maxSkip, maxMarkerFrequency, false,
-            graph, alignment, alignmentInfo);
-
-        // If the alignment has too few markers, skip it.
-        const size_t alignedMarkerCount = alignment.ordinals.size();
-        const size_t totalMarkerCount = markersSortedByKmerId[0].size();
-        const double alignedFraction = double(alignedMarkerCount)/double(totalMarkerCount);
-        if(alignedFraction < alignedFractionThreshold) {
-            continue;
-        }
-
-        // If the alignment has too few markers near the diagonal, skip it.
-        size_t nearDiagonalMarkerCount = 0;
-        for(size_t i=0; i<alignment.ordinals.size(); i++) {
-            const array<uint32_t, 2>& ordinals = alignment.ordinals[i];
-            const int32_t ordinal0 = int32_t(ordinals[0]);
-            const int32_t ordinal1 = int32_t(ordinals[1]);
-            const uint32_t delta = abs(ordinal0 - ordinal1);
-            if(delta < deltaThreshold) {
-                nearDiagonalMarkerCount++;
-            }
-        }
-        const double nearDiagonalFraction = double(nearDiagonalMarkerCount)/double(totalMarkerCount);
-        if(nearDiagonalFraction < nearDiagonalFractionThreshold) {
-            continue;
-        }
-
-        // If we got here, mark the read as palindromic.
-        readFlags[readId].isPalindromic = 1;
-
-    }
-
-
+    // Do it in parallel.
+    setupLoadBalancing(readCount, 1000);
+    runThreads(&Assembler::flagPalindromicReadsThreadFunction, threadCount);
 
     // Count the reads flagged as palindromic.
     size_t palindromicReadCount = 0;
@@ -556,6 +524,77 @@ void Assembler::flagPalindromicReads(
         " reads as palindromic out of " << readCount << " total." << endl;
     cout << "Palindromic fraction is " <<
         double(palindromicReadCount)/double(readCount) << endl;
+}
+
+
+
+void Assembler::flagPalindromicReadsThreadFunction(size_t threadId)
+{
+
+    // Work areas used inside the loop and defined here
+    // to reduce memory allocation activity.
+    AlignmentGraph graph;
+    Alignment alignment;
+    AlignmentInfo alignmentInfo;
+    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
+
+    // Make local copies of the parameters.
+    const uint32_t maxSkip = flagPalindromicReadsData.maxSkip;
+    const uint32_t maxMarkerFrequency = flagPalindromicReadsData.maxMarkerFrequency;
+    const double alignedFractionThreshold = flagPalindromicReadsData.alignedFractionThreshold;
+    const double nearDiagonalFractionThreshold = flagPalindromicReadsData.nearDiagonalFractionThreshold;
+    const uint32_t deltaThreshold = flagPalindromicReadsData.deltaThreshold;
+
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+        if((begin%1000000) == 0) {
+            std::lock_guard<std::mutex> lock(mutex);
+            cout << timestamp << begin << "/" << readFlags.size() << endl;
+        }
+
+        // Loop over all reads in this batch.
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+
+            // Get markers sorted by KmerId for this read and its reverse complement.
+            for(Strand strand=0; strand<2; strand++) {
+                getMarkersSortedByKmerId(OrientedReadId(readId, strand), markersSortedByKmerId[strand]);
+            }
+
+            // Compute a marker alignment of this read versus its reverse complement.
+            alignOrientedReads(markersSortedByKmerId, maxSkip, maxMarkerFrequency, false,
+                graph, alignment, alignmentInfo);
+
+            // If the alignment has too few markers, skip it.
+            const size_t alignedMarkerCount = alignment.ordinals.size();
+            const size_t totalMarkerCount = markersSortedByKmerId[0].size();
+            const double alignedFraction = double(alignedMarkerCount)/double(totalMarkerCount);
+            if(alignedFraction < alignedFractionThreshold) {
+                continue;
+            }
+
+            // If the alignment has too few markers near the diagonal, skip it.
+            size_t nearDiagonalMarkerCount = 0;
+            for(size_t i=0; i<alignment.ordinals.size(); i++) {
+                const array<uint32_t, 2>& ordinals = alignment.ordinals[i];
+                const int32_t ordinal0 = int32_t(ordinals[0]);
+                const int32_t ordinal1 = int32_t(ordinals[1]);
+                const uint32_t delta = abs(ordinal0 - ordinal1);
+                if(delta < deltaThreshold) {
+                    nearDiagonalMarkerCount++;
+                }
+            }
+            const double nearDiagonalFraction = double(nearDiagonalMarkerCount)/double(totalMarkerCount);
+            if(nearDiagonalFraction < nearDiagonalFractionThreshold) {
+                continue;
+            }
+
+            // If we got here, mark the read as palindromic.
+            readFlags[readId].isPalindromic = 1;
+
+        }
+    }
 }
 
 
