@@ -524,6 +524,17 @@ void Assembler::flagPalindromicReads(
         " reads as palindromic out of " << readCount << " total." << endl;
     cout << "Palindromic fraction is " <<
         double(palindromicReadCount)/double(readCount) << endl;
+
+
+    // Write a csv file with the list of palindromic reads.
+    // This should not too big as the typical rate of
+    // palindromic reads is around 1e-4.
+    ofstream csvOut("PalindromicReads.csv");
+    for(ReadId readId=0; readId<readCount; readId++) {
+        if(readFlags[readId].isPalindromic) {
+            csvOut << readId << "\n";
+        }
+    }
 }
 
 
