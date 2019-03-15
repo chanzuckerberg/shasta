@@ -82,6 +82,15 @@ def runAssembly(a, config, fastaFileNames):
     # Find the markers in the reads.
     a.findMarkers()
     
+    # Flag palindromic reads.
+    # These wil be excluded from further processing.
+    a.flagPalindromicReads(
+        maxSkip = int(config['Reads']['palindromicReads.maxSkip']),
+        maxMarkerFrequency = int(config['Reads']['palindromicReads.maxMarkerFrequency']),
+        alignedFractionThreshold = float(config['Reads']['palindromicReads.alignedFractionThreshold']),
+        nearDiagonalFractionThreshold = float(config['Reads']['palindromicReads.nearDiagonalFractionThreshold']),
+        deltaThreshold = int(config['Reads']['palindromicReads.deltaThreshold']))
+        
     # Find alignment candidates.
     a.findAlignmentCandidatesLowHash(
         m = int(config['MinHash']['m']), 

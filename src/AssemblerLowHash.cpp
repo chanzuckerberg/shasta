@@ -37,6 +37,7 @@ void Assembler::findAlignmentCandidatesLowHash(
         minFrequency,
         threadCount,
         kmerTable,
+        readFlags,
         markers,
         alignmentCandidates,
         largeDataFileNamePrefix,

@@ -1,5 +1,6 @@
 // Shasta.
 #include "LowHash.hpp"
+#include "ReadFlags.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -25,6 +26,7 @@ LowHash::LowHash(
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
+    const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     MemoryMapped::Vector<OrientedReadPair>& candidateAlignments,
     const string& largeDataFileNamePrefix,
@@ -37,6 +39,7 @@ LowHash::LowHash(
     minFrequency(minFrequency),
     threadCount(threadCountArgument),
     kmerTable(kmerTable),
+    readFlags(readFlags),
     markers(markers),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize)
@@ -253,6 +256,9 @@ void LowHash::pass1ThreadFunction(size_t threadId)
 
         // Loop over oriented reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            if(readFlags[readId].isPalindromic) {
+                continue;
+            }
             for(Strand strand=0; strand<2; strand++) {
                 const OrientedReadId orientedReadId(readId, strand);
 
@@ -299,6 +305,9 @@ void LowHash::pass2ThreadFunction(size_t threadId)
 
         // Loop over oriented reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            if(readFlags[readId].isPalindromic) {
+                continue;
+            }
             for(Strand strand=0; strand<2; strand++) {
                 const OrientedReadId orientedReadId(readId, strand);
                 const vector<uint64_t>& orientedReadLowHashes = lowHashes[orientedReadId.getValue()];
