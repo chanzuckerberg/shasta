@@ -168,8 +168,8 @@ PYBIND11_MODULE(shasta, module)
             arg("readId"),
             arg("strand"),
             arg("fileName") = "OverlappingReads.fasta")
-
-
+        .def("flagPalindromicReads",
+            &Assembler::flagPalindromicReads)
 
         // Alignments.
         .def("alignOrientedReads",

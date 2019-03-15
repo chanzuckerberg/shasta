@@ -563,8 +563,11 @@ private:
         // Not valid if isChimeric or isInSmallComponent is set.
         uint8_t strand : 1;
 
+        // This is set for reads that are approximate palindromic,
+        // that is, are well aligned with their own reverse complement.
+        uint8_t isPalindromic : 1;
+
         // Unused bits.
-        uint8_t bit3 : 1;
         uint8_t bit4 : 1;
         uint8_t bit5 : 1;
         uint8_t bit6 : 1;
@@ -619,6 +622,11 @@ private:
     // an additional 4 bytes per marker.
     pair<OrientedReadId, uint32_t> findMarkerId(MarkerId) const;
 
+
+    // Flag palindromic reads.
+public:
+    void flagPalindromicReads();
+private:
 
 
     // Alignment candidate found by the MinHash algorithm.
