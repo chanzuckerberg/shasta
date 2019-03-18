@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "BiasedGaussianConsensusCaller.hpp"
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "TrainedBayesianConsensusCaller.hpp"
@@ -89,6 +90,11 @@ void Assembler::setupConsensusCaller(const string& s)
 
     if(s == "TrainedBayesianConsensusCaller") {
         consensusCaller = std::make_shared<TrainedBayesianConsensusCaller>();
+        return;
+    }
+
+    if(s == "BiasedGaussianConsensusCaller") {
+        consensusCaller = std::make_shared<BiasedGaussianConsensusCaller>();
         return;
     }
 
