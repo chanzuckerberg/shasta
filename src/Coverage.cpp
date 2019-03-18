@@ -98,7 +98,12 @@ size_t Coverage::mostFrequentRepeatCount(AlignedBase base) const
 
     for(size_t repeatCount=0; repeatCount<countEnd; repeatCount++) {
         const size_t coverageForRepeatCount = coverage(base, repeatCount);
-        if(coverageForRepeatCount > bestCountCoverage) {
+
+        // Changed ">" to ">=" here to break ties in favor
+        // of the longer alternative.
+        // This improves sequence identity a bit.
+        // but it is still biased in favor of deletions.
+        if(coverageForRepeatCount >= bestCountCoverage) {
             bestCount = repeatCount;
             bestCountCoverage = coverageForRepeatCount;
         }
