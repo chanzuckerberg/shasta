@@ -1355,6 +1355,34 @@ public:
 
 
 
+    // Analyze assembled sequence by mapping it to
+    // a given reference sequence used as ground truth.
+    // The first one is python-callable.
+    // The edgeId is the same as in FASTA or GFA output
+    // Begin and end specify the portion of the assembled
+    // segment to be analyzed and they are expressed in
+    // raw coordinates (not run-length).
+    // The reference sequence is given in its raw
+    // representation (not run-length).
+    // Assembled sequenceis mapped to reference sequence
+    // using SeqAn's implementation of the Needleman-Wunsch
+    // algorithm, which is very expensive in time and memory
+    // when the sequences are long.
+    void analyzeAssembledSequence(
+        AssemblyGraph::EdgeId edgeId,   // Same as in fasta, gfa output.
+        uint32_t begin,
+        uint32_t end,
+        const string& referenceSequence
+    );
+    void analyzeAssembledSequence(
+        AssemblyGraph::EdgeId edgeId,
+        uint32_t begin,
+        uint32_t end,
+        const vector<Base>& referenceSequence
+    );
+
+
+
     // Data and functions used for the http server.
     // This function puts the server into an endless loop
     // of processing requests.

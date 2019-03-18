@@ -1,5 +1,6 @@
 // shasta.
 #include "ReadLoader.hpp"
+#include "computeRunLengthRepresentation.hpp"
 #include "splitRange.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
@@ -401,26 +402,6 @@ bool ReadLoader::computeRunLengthRead(
     vector<Base>& runLengthRead,
     vector<uint8_t>& readRepeatCount)
 {
-    runLengthRead.clear();
-    readRepeatCount.clear();
-
-    for(auto it=read.begin(); it!=read.end(); ) {
-        const Base base = *it;
-        uint32_t count = 0;
-        while(it!=read.end() && *it==base) {
-            ++it;
-            ++count;
-            if(count == 256) {
-                return false;
-            }
-        }
-        CZI_ASSERT(count > 0);
-        CZI_ASSERT(count <= 255);
-        runLengthRead.push_back(base);
-        readRepeatCount.push_back(uint8_t(count));
-    }
-
-    CZI_ASSERT(runLengthRead.size() == readRepeatCount.size());
-    return true;
+    return computeRunLengthRepresentation(read, runLengthRead, readRepeatCount);
 }
 
