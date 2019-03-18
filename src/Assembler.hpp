@@ -756,6 +756,15 @@ private:
 public:
 
 
+    // Write a FASTA file containing all reads that appear in
+    // the local read graph.
+    void writeLocalReadGraphReads(
+        ReadId,
+        Strand,
+        uint32_t maxDistance,
+        bool allowChimericReads);
+
+
     // Compute connected components of the read graph.
     // This treats chimeric reads as isolated.
     // Components with fewer than minComponentSize are considered

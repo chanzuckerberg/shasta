@@ -237,6 +237,12 @@ PYBIND11_MODULE(shasta, module)
         .def("computeReadGraphConnectedComponents",
             &Assembler::computeReadGraphConnectedComponents,
             arg("minComponentSize"))
+        .def("writeLocalReadGraphReads",
+            &Assembler::writeLocalReadGraphReads,
+            arg("readId"),
+            arg("strand"),
+            arg("maxDistance"),
+            arg("allowChimericReads"))
 
 
 

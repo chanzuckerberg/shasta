@@ -8,9 +8,11 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
+#include <boost/graph/iteration_macros.hpp>
 
 // Standard libraries.
 #include "chrono.hpp"
+#include "iterator.hpp"
 #include <numeric>
 #include <queue>
 
@@ -346,7 +348,7 @@ bool Assembler::createLocalReadGraph(
     while(!q.empty()) {
 
         // See if we exceeded the timeout.
-        if(seconds(steady_clock::now() - startTime) > timeout) {
+        if(timeout>0. && (seconds(steady_clock::now() - startTime) > timeout)) {
             graph.clear();
             return false;
         }
@@ -809,4 +811,62 @@ void Assembler::computeReadGraphConnectedComponents(
             CZI_ASSERT(flags.isInSmallComponent);
         }
     }
+}
+
+
+
+// Write a FASTA file containing all reads that appear in
+// the local read graph.
+void Assembler::writeLocalReadGraphReads(
+    ReadId readId,
+    Strand strand,
+    uint32_t maxDistance,
+    bool allowChimericReads)
+{
+    // Create the requested local read graph.
+    LocalReadGraph localReadGraph;
+    CZI_ASSERT(createLocalReadGraph(
+        OrientedReadId(readId, strand),
+        maxDistance,
+        allowChimericReads,
+        std::numeric_limits<size_t>::max(),
+        0.,
+        localReadGraph));
+
+    // Gather the reads.
+    std::set<ReadId> readsSet;
+    BGL_FORALL_VERTICES(v, localReadGraph, LocalReadGraph) {
+        readsSet.insert(localReadGraph[v].orientedReadId.getReadId());
+    }
+
+
+
+    // Write the fasta file.
+    const string fileName = "LocalReadGraph.fasta";
+    ofstream fasta(fileName);
+    for(const ReadId readId: readsSet) {
+
+        // Write the header line with the read name.
+        const auto readName = readNames[readId];
+        fasta << ">" << readId << " ";
+        copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
+        fasta << "\n";
+
+        // Write the sequence.
+        const auto& sequence = reads[readId];
+        const auto& counts = readRepeatCounts[readId];
+        const size_t n = sequence.baseCount;
+        CZI_ASSERT(counts.size() == n);
+        for(size_t i=0; i<n; i++) {
+            const Base base = sequence[i];
+            const uint8_t count = counts[i];
+            for(size_t k=0; k<count; k++) {
+                fasta << base;
+            }
+        }
+        fasta << "\n";
+    }
+    cout << "Wrote " << readsSet.size() << " reads to " << fileName << endl;
+
+
 }
