@@ -108,7 +108,10 @@ public:
         // The id of the alignment that corresponds to the edge.
         // Note  that if an alignment is used to generate an edge,
         // it is also used to generate the corresponding reverse complemented edge.
-        uint64_t alignmentId;
+        uint64_t alignmentId : 63;
+
+        // Flag set for an edge that jumps across strands.
+        uint64_t crossesStrands : 1;
 
         // Given one of the oriented read ids, get the other.
         OrientedReadId getOther(OrientedReadId orientedReadId) const

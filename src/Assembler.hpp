@@ -726,7 +726,9 @@ public:
         uint32_t maxTrim);
 #endif
     void accessReadGraph();
+    void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
+    void flagCrossStrandReadGraphEdges();
 
 
 

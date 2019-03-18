@@ -2,6 +2,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "LocalReadGraph.hpp"
+#include "orderPairs.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -82,7 +83,7 @@ void Assembler::createReadGraph(
 
         // Create the edge corresponding to this alignment.
         ReadGraph::Edge edge;
-        edge.alignmentId = alignmentId;
+        edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
         edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
         edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
         CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
@@ -302,6 +303,11 @@ void Assembler::accessReadGraph()
 {
     readGraph.edges.accessExistingReadOnly(largeDataName("ReadGraphEdges"));
     readGraph.connectivity.accessExistingReadOnly(largeDataName("ReadGraphConnectivity"));
+}
+void Assembler::accessReadGraphReadWrite()
+{
+    readGraph.edges.accessExistingReadWrite(largeDataName("ReadGraphEdges"));
+    readGraph.connectivity.accessExistingReadWrite(largeDataName("ReadGraphConnectivity"));
 }
 void Assembler::checkReadGraphIsOpen()
 {
@@ -869,4 +875,89 @@ void Assembler::writeLocalReadGraphReads(
     cout << "Wrote " << readsSet.size() << " reads to " << fileName << endl;
 
 
+}
+
+
+
+void Assembler::flagCrossStrandReadGraphEdges()
+{
+    // Check that we have what we need.
+    checkReadGraphIsOpen();
+    const size_t readCount = reads.size();
+    const size_t orientedReadCount = 2*readCount;
+    CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
+    checkAlignmentDataAreOpen();
+
+    // Clear the crossesStrands flag for all edges.
+    const size_t edgeCount = readGraph.edges.size();
+    for(size_t edgeId=0; edgeId!=edgeCount; edgeId++) {
+        readGraph.edges[edgeId].crossesStrands = 0;
+    }
+
+    // Create a list of all the edges and the number of aligned markers for each.
+    vector< pair<uint32_t, uint32_t > > edgeTable(edgeCount);
+    for(size_t edgeId=0; edgeId!=edgeCount; edgeId++) {
+        const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+        const AlignmentData& alignment = alignmentData[edge.alignmentId];
+        const uint32_t markerCount = alignment.info.markerCount;
+        edgeTable[edgeId] = make_pair(edgeId, markerCount);
+    }
+
+    // Sort by decreasing number of markers.
+    sort(edgeTable.begin(), edgeTable.end(),
+        OrderPairsBySecondOnlyGreater<uint32_t, uint32_t >());
+
+    // Initialize the disjoint set data structure.
+    vector<ReadId> rank(orientedReadCount);
+    vector<ReadId> parent(orientedReadCount);
+    boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
+        }
+    }
+
+
+
+    // Loop over edges in order of decreasing number of markers.
+    size_t crossStrandEdgeCount = 0;
+    for(const auto& p: edgeTable) {
+        const uint32_t edgeId = p.first;
+        const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+
+        // Get the oriented reads of this edge.
+        const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
+        const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
+
+        // Get their reverse complemented oriented reads.
+        OrientedReadId orientedReadId0rc = orientedReadId0;
+        orientedReadId0rc.flipStrand();
+        OrientedReadId orientedReadId1rc = orientedReadId1;
+        orientedReadId1rc.flipStrand();
+
+        // Get everybody's component.
+        const uint32_t component0 = disjointSets.find_set(orientedReadId0.getValue());
+        const uint32_t component1 = disjointSets.find_set(orientedReadId1.getValue());
+        const uint32_t component0rc = disjointSets.find_set(orientedReadId0rc.getValue());
+        const uint32_t component1rc = disjointSets.find_set(orientedReadId1rc.getValue());
+
+        // Check that we have not already screwed up earlier.
+        CZI_ASSERT(component0 != component0rc);
+        CZI_ASSERT(component1 != component1rc);
+
+        // If adding this edge would bring (orientedReadId0, orientedReadId1rc)
+        // or (orientedReadId1, orientedReadId0rc)
+        // in the same component, mark it as a cross strand edge.
+        if(component0==component1rc || component1==component0rc) {
+            readGraph.edges[edgeId].crossesStrands = 1;
+            ++crossStrandEdgeCount;
+            cout << "Edge " << edge.orientedReadIds[0] << " " <<
+                edge.orientedReadIds[1] << " marked as cross-strand." << endl;
+        } else {
+            disjointSets.union_set(orientedReadId0.getValue(), orientedReadId1.getValue());
+        }
+    }
+    cout << "Marked " << crossStrandEdgeCount << " read graph edges out of " <<
+        edgeCount <<
+        " total as cross-strand." << endl;
 }
