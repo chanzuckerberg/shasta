@@ -541,6 +541,9 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 const auto edgeIds = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edgeIds) {
                     const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    if(edge.crossesStrands) {
+                        continue;
+                    }
                     const OrientedReadId v1 = edge.getOther(v0);
                     // out << "Found " << v1 << endl;
 
@@ -591,6 +594,9 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 const auto edges = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edges) {
                     const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    if(edge.crossesStrands) {
+                        continue;
+                    }
                     const OrientedReadId v1 = edge.getOther(v0);
                     if(v1.getReadId() == startOrientedReadId.getReadId()) {
                         continue;   // Skip edges involving startOrientedReadId.
@@ -681,6 +687,9 @@ void Assembler::computeReadGraphConnectedComponents(
         }
     }
     for(const ReadGraph::Edge& edge: readGraph.edges) {
+        if(edge.crossesStrands) {
+            continue;
+        }
         const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
         const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
         const ReadId readId0 = orientedReadId0.getReadId();

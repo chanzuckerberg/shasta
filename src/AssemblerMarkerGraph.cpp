@@ -390,6 +390,9 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
         for(size_t i=begin; i!=end; i++) {
             const ReadGraph::Edge& readGraphEdge = readGraph.edges[i];
+            if(readGraphEdge.crossesStrands) {
+                continue;
+            }
             const array<OrientedReadId, 2>& orientedReadIds = readGraphEdge.orientedReadIds;
             CZI_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
 

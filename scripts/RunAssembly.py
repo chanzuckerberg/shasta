@@ -120,6 +120,9 @@ def runAssembly(a, config, fastaFileNames):
     a.createReadGraph(
         maxAlignmentCount = int(config['ReadGraph']['maxAlignmentCount']),
         maxTrim = int(config['Align']['maxTrim']))
+
+    # Flag read graph edges that cross strands.
+    a.flagCrossStrandReadGraphEdges()
     
     # Flag chimeric reads.
     a.flagChimericReads(
