@@ -44,7 +44,7 @@ void SimpleBayesianConsensusCaller::split(string s, char separator_char, vector<
 
 SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
     max_runlength = 50;
-    ignore_non_consensus_base_repeats = false;
+    ignore_non_consensus_base_repeats = true;
     predict_gap_runlengths = false;
     count_gaps_as_zeros = false;
 
@@ -185,8 +185,9 @@ uint16_t SimpleBayesianConsensusCaller::predict_runlength(const Coverage &covera
     // Iterate all possible Y from 0 to j to calculate p(Y_j|X) where X is all observations 0 to i,
     // assuming i and j are less than max_runlength
     for (y_j = 0; y_j <= max_runlength; y_j++){
-        // Initialize log_sum for this Y value
-        log_sum = 0;
+        // Initialize log_sum for this Y value.
+        // Use a prior (penalty) of a factor 1/4 for each new base.
+        log_sum = (y_j==0) ? -20. : (-y_j * log10(4.));
 
         for (auto& item: factored_repeats){
             x_i = item.first;
