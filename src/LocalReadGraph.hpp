@@ -89,11 +89,16 @@ public:
     // on each side.
     bool isContaining;
 
+    // Flag that indicates this edge jumps across strands.
+    bool crossesStrands;
+
     LocalReadGraphEdge(
         uint32_t markerCount,
-        bool isContaining) :
+        bool isContaining,
+        bool crossesStrands) :
         markerCount(markerCount),
-        isContaining(isContaining)
+        isContaining(isContaining),
+        crossesStrands(crossesStrands)
         {}
 };
 
@@ -113,7 +118,8 @@ public:
         OrientedReadId,
         OrientedReadId,
         uint32_t markerCount,
-        bool isContaining);
+        bool isContaining,
+        bool crossesStrands);
 
     // Find out if a vertex with a given OrientedReadId exists.
     bool vertexExists(OrientedReadId) const;

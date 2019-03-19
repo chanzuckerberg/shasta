@@ -329,6 +329,7 @@ bool Assembler::createLocalReadGraph(
     OrientedReadId start,
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
+    bool allowCrossStrandEdges,
     size_t maxTrim,                 // Used to define containment.
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
@@ -370,6 +371,10 @@ bool Assembler::createLocalReadGraph(
             CZI_ASSERT(i < readGraph.edges.size());
             const ReadGraph::Edge& globalEdge = readGraph.edges[i];
 
+            if(!allowCrossStrandEdges && globalEdge.crossesStrands) {
+                continue;
+            }
+
             // Get the other oriented read involved in this edge of the read graph.
             const OrientedReadId orientedReadId1 = globalEdge.getOther(orientedReadId0);
 
@@ -397,7 +402,8 @@ bool Assembler::createLocalReadGraph(
                     orientedReadId0,
                     orientedReadId1,
                     markerCount,
-                    isContaining);
+                    isContaining,
+                    globalEdge.crossesStrands == 1);
             } else {
                 CZI_ASSERT(distance0 == maxDistance);
                 if(graph.vertexExists(orientedReadId1)) {
@@ -405,7 +411,8 @@ bool Assembler::createLocalReadGraph(
                         orientedReadId0,
                         orientedReadId1,
                         markerCount,
-                        isContaining);
+                        isContaining,
+                        globalEdge.crossesStrands == 1);
                 }
             }
 
@@ -827,7 +834,8 @@ void Assembler::writeLocalReadGraphReads(
     ReadId readId,
     Strand strand,
     uint32_t maxDistance,
-    bool allowChimericReads)
+    bool allowChimericReads,
+    bool allowCrossStrandEdges)
 {
     // Create the requested local read graph.
     LocalReadGraph localReadGraph;
@@ -835,6 +843,7 @@ void Assembler::writeLocalReadGraphReads(
         OrientedReadId(readId, strand),
         maxDistance,
         allowChimericReads,
+        allowCrossStrandEdges,
         std::numeric_limits<size_t>::max(),
         0.,
         localReadGraph));

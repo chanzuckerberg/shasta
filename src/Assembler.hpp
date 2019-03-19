@@ -751,6 +751,7 @@ private:
         OrientedReadId start,
         uint32_t maxDistance,   // How far to go from starting oriented read.
         bool allowChimericReads,
+        bool allowCrossStrandEdges,
         size_t maxTrim,         // Used to define containment.
         double timeout,         // Or 0 for no timeout.
         LocalReadGraph&);
@@ -764,7 +765,8 @@ public:
         ReadId,
         Strand,
         uint32_t maxDistance,
-        bool allowChimericReads);
+        bool allowChimericReads,
+        bool allowCrossStrandEdges);
 
 
     // Compute connected components of the read graph.

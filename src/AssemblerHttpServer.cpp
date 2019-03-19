@@ -2566,6 +2566,9 @@ void Assembler::exploreReadGraph(
     string allowChimericReadsString;
     const bool allowChimericReads = getParameterValue(request, "allowChimericReads", allowChimericReadsString);
 
+    string allowCrossStrandEdgesString;
+    const bool allowCrossStrandEdges = getParameterValue(request, "allowCrossStrandEdges", allowCrossStrandEdgesString);
+
     uint32_t sizePixels = 1200;
     getParameterValue(request, "sizePixels", sizePixels);
 
@@ -2616,6 +2619,12 @@ void Assembler::exploreReadGraph(
         "<td>Allow chimeric reads"
         "<td class=centered><input type=checkbox name=allowChimericReads" <<
         (allowChimericReads ? " checked" : "") <<
+        ">"
+
+        "<tr title='Allow edges that skip across strands.'>"
+        "<td>Allow cross-strand edges"
+        "<td class=centered><input type=checkbox name=allowCrossStrandEdges" <<
+        (allowCrossStrandEdges ? " checked" : "") <<
         ">"
 
         "<tr title='Graphics size in pixels. "
@@ -2675,7 +2684,7 @@ void Assembler::exploreReadGraph(
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
     if(!createLocalReadGraph(OrientedReadId(readId, strand),
-        maxDistance, allowChimericReads, maxTrim, timeout, graph)) {
+        maxDistance, allowChimericReads, allowCrossStrandEdges, maxTrim, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }

@@ -36,7 +36,8 @@ void LocalReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     uint32_t markerCount,
-    bool isContaining)
+    bool isContaining,
+    bool crossesStrands)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -48,7 +49,7 @@ void LocalReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(markerCount, isContaining),
+        LocalReadGraphEdge(markerCount, isContaining, crossesStrands),
         *this);
 }
 
@@ -152,6 +153,10 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
     } else {
         const double thickness = 0.003*double(edge.markerCount);
         s << " penwidth=" << thickness;
+    }
+
+    if(edge.crossesStrands) {
+        s << " style=dashed";
     }
 
     s << "]";
