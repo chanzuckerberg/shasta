@@ -133,6 +133,9 @@ public:
     // Stores, for each OrientedReadId, indexes into the edges vector
     // of the edges that this OrientedReadId is involved in.
     MemoryMapped::VectorOfVectors<uint32_t, uint32_t> connectivity;
+
+    // Count the triangles that have an edge as one of the sides.
+    size_t countTriangles(uint32_t edgeId) const;
 };
 
 #endif
