@@ -1,5 +1,6 @@
 // Shasta.
 #include "LocalReadGraph.hpp"
+#include "Alignment.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -36,7 +37,7 @@ void LocalReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     uint32_t markerCount,
-    bool isContaining,
+    AlignmentType alignmentType,
     bool crossesStrands)
 {
     // Find the vertices corresponding to these two OrientedReadId.
@@ -49,7 +50,7 @@ void LocalReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(markerCount, isContaining, crossesStrands),
+        LocalReadGraphEdge(markerCount, alignmentType, crossesStrands),
         *this);
 }
 
@@ -148,16 +149,49 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
         "tooltip=\"" << vertex0.orientedReadId << " " <<
         vertex1.orientedReadId << "\"";
 
-    if(edge.isContaining) {
+
+
+    // A containment alignment is drawn in red, at default thickness.
+    // A non-containment alignment is drawn in black,
+    // with thickness determined by the number of aligned markers.
+    if( edge.alignmentType == AlignmentType::read0IsContained ||
+        edge.alignmentType == AlignmentType::read1IsContained) {
         s << " color=red";
     } else {
         const double thickness = 0.003*double(edge.markerCount);
         s << " penwidth=" << thickness;
     }
 
+
+    // An edge that crosses strands is drawn dashed.
     if(edge.crossesStrands) {
         s << " style=dashed";
     }
+
+
+#if 1
+    // The AlignmentType determines the edge endings.
+    // Note that the Graphviz convention for undirected graphs
+    // is that the head is the second vertex and the tail is the first vertex.
+    s << " dir=both ";
+    switch(edge.alignmentType) {
+    case AlignmentType::read0IsContained:
+        s << "arrowhead=none arrowtail=tee";
+        break;
+    case AlignmentType::read1IsContained:
+        s << "arrowhead=tee arrowtail=none";
+        break;
+    case AlignmentType::read0IsBackward:
+        s << "arrowhead=normal arrowtail=none";
+        break;
+    case AlignmentType::read1IsBackward:
+        s << "arrowhead=none arrowtail=normal";
+        break;
+    case AlignmentType::ambiguous:
+    default:
+        s << "arrowhead=diamond arrowtail=diamond";
+    }
+#endif
 
     s << "]";
 }

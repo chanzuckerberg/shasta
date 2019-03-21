@@ -115,7 +115,7 @@ void Assembler::createReadGraph(
 }
 
 
-#if 0
+#if 1
 // More sophisticated version of createReadGraph with better treatment
 // of containing alignments.
 // - If a read has at least one alignments that covers the entire
@@ -265,7 +265,7 @@ void Assembler::createReadGraphNew(
 
         // Create the edge corresponding to this alignment.
         ReadGraph::Edge edge;
-        edge.alignmentId = alignmentId;
+        edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
         edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
         edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
         CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
@@ -386,7 +386,11 @@ bool Assembler::createLocalReadGraph(
             // Get alignment information.
             const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
             const uint32_t markerCount = alignment.info.markerCount;
-            const bool isContaining = alignment.info.isContaining(uint32_t(maxTrim));
+            AlignmentType alignmentType = alignment.info.classify(uint32_t(maxTrim));
+            if(globalEdge.orientedReadIds[0] != orientedReadId0) {
+                CZI_ASSERT(globalEdge.orientedReadIds[0] == orientedReadId1);
+                reverse(alignmentType);
+            }
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,
@@ -402,7 +406,7 @@ bool Assembler::createLocalReadGraph(
                     orientedReadId0,
                     orientedReadId1,
                     markerCount,
-                    isContaining,
+                    alignmentType,
                     globalEdge.crossesStrands == 1);
             } else {
                 CZI_ASSERT(distance0 == maxDistance);
@@ -411,7 +415,7 @@ bool Assembler::createLocalReadGraph(
                         orientedReadId0,
                         orientedReadId1,
                         markerCount,
-                        isContaining,
+                        alignmentType,
                         globalEdge.crossesStrands == 1);
                 }
             }
@@ -912,6 +916,9 @@ void Assembler::flagCrossStrandReadGraphEdges()
         readGraph.edges[edgeId].crossesStrands = 0;
     }
 
+    // For now, don't mark any edges.
+
+#if 0
     // Create a list of all the edges and the number of aligned markers for each.
     vector< pair<uint32_t, uint32_t > > edgeTable(edgeCount);
     for(size_t edgeId=0; edgeId!=edgeCount; edgeId++) {
@@ -978,4 +985,5 @@ void Assembler::flagCrossStrandReadGraphEdges()
     cout << "Marked " << crossStrandEdgeCount << " read graph edges out of " <<
         edgeCount <<
         " total as cross-strand." << endl;
+#endif
 }

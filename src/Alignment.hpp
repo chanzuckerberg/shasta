@@ -16,6 +16,8 @@ namespace ChanZuckerberg {
         class Alignment;
         class AlignmentData;
         class AlignmentInfo;
+        enum class AlignmentType;
+        void reverse(AlignmentType&);
     }
 }
 
@@ -28,6 +30,38 @@ public:
     // markers in the alignment.
     vector< array<uint32_t, 2> > ordinals;
 };
+
+
+
+// Enum used to classify an alignment.
+enum class ChanZuckerberg::shasta::AlignmentType {
+    read0IsContained,   // 0 is contained in 1. Draw as 0tee--1.
+    read1IsContained,   // 1 is contained in 0. Draw as 1tee--0.
+    read0IsBackward,    // No containement, 0 is backward of 1 at both ends. Draw as 0->1.
+    read1IsBackward,    // No containement, 1 is backward of 0 at both ends. Draw as 1->0.
+    ambiguous           // Draw as 0diamond--diamond1
+};
+inline void ChanZuckerberg::shasta::reverse(AlignmentType& alignmentType)
+{
+    switch(alignmentType) {
+    case AlignmentType::read0IsContained:
+        alignmentType = AlignmentType::read1IsContained;
+        return;
+    case AlignmentType::read1IsContained:
+        alignmentType = AlignmentType::read0IsContained;
+        return;
+    case AlignmentType::read0IsBackward:
+        alignmentType = AlignmentType::read1IsBackward;
+        return;
+    case AlignmentType::read1IsBackward:
+        alignmentType = AlignmentType::read0IsBackward;
+        return;
+    case AlignmentType::ambiguous:
+        return;
+    default:
+        CZI_ASSERT(0);
+    }
+}
 
 
 
@@ -192,7 +226,7 @@ public:
 
     // Find out if this is a containing alignment,
     // that is, if the alignment covers one read
-    // entirtely, except possibly for up to maxTim
+    // entirely, except possibly for up to maxTim
     // markers on each side.
     bool isContaining(uint32_t maxTrim) const {
         for(size_t i=0; i<2; i++) {
@@ -203,6 +237,51 @@ public:
         return false;
     }
 
+
+
+    // Classify this alignment.
+    AlignmentType classify(uint32_t maxTrim) const
+    {
+        // Compute trim.
+        const uint32_t leftTrim0  = leftTrim(0);
+        const uint32_t leftTrim1  = leftTrim(1);
+        const uint32_t rightTrim0 = rightTrim(0);
+        const uint32_t rightTrim1 = rightTrim(1);
+
+        // Check for containment.
+        const bool isContained0 = (leftTrim0<=maxTrim) && (rightTrim0<=maxTrim);
+        const bool isContained1 = (leftTrim1<=maxTrim) && (rightTrim1<=maxTrim);
+        if(isContained0 && !isContained1) {
+            // 0 is unambiguously contained in 1.
+            return AlignmentType::read0IsContained;
+        }
+        if(isContained1 && !isContained0) {
+            // 1 is unambiguously contained in 0.
+            return AlignmentType::read1IsContained;
+        }
+        if(isContained0 && isContained1) {
+            // Near complete overlap.
+            return AlignmentType::ambiguous;
+        }
+
+        // If getting here, no containment found.
+        CZI_ASSERT(!isContained0 && !isContained1);
+
+        // Figure out if one of the two reads is backward at both ends.
+        const bool read0IsBackward =
+            leftTrim0>maxTrim  && rightTrim0<=maxTrim &&
+            leftTrim1<=maxTrim && rightTrim1>=maxTrim;
+        const bool read1IsBackward =
+            leftTrim1>maxTrim  && rightTrim1<=maxTrim &&
+            leftTrim0<=maxTrim && rightTrim0>=maxTrim;
+        if(read0IsBackward && !read1IsBackward) {
+            return AlignmentType::read0IsBackward;
+        }
+        if(read1IsBackward && !read0IsBackward) {
+            return AlignmentType::read1IsBackward;
+        }
+        return AlignmentType::ambiguous;
+    }
 };
 
 

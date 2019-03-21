@@ -38,6 +38,9 @@ namespace ChanZuckerberg {
             LocalReadGraphEdge
             >;
 
+        // Forward declarations of identifiers defined elsewhere.
+        enum class AlignmentType;
+
     }
 }
 
@@ -83,21 +86,17 @@ public:
     // that created this edge.
     uint32_t markerCount;
 
-    // Flag that indicates whether this is a containing
-    // alignment (that is, the alignment covers the entirety
-    // of one of the reads, except possibly for up to maxTrim markers
-    // on each side.
-    bool isContaining;
+    AlignmentType alignmentType;
 
     // Flag that indicates this edge jumps across strands.
     bool crossesStrands;
 
     LocalReadGraphEdge(
         uint32_t markerCount,
-        bool isContaining,
+        AlignmentType alignmentType,
         bool crossesStrands) :
         markerCount(markerCount),
-        isContaining(isContaining),
+        alignmentType(alignmentType),
         crossesStrands(crossesStrands)
         {}
 };
@@ -118,7 +117,7 @@ public:
         OrientedReadId,
         OrientedReadId,
         uint32_t markerCount,
-        bool isContaining,
+        AlignmentType alignmentType,
         bool crossesStrands);
 
     // Find out if a vertex with a given OrientedReadId exists.
