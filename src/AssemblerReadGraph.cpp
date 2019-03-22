@@ -385,12 +385,21 @@ bool Assembler::createLocalReadGraph(
 
             // Get alignment information.
             const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
-            const uint32_t markerCount = alignment.info.markerCount;
-            AlignmentType alignmentType = alignment.info.classify(uint32_t(maxTrim));
-            if(globalEdge.orientedReadIds[0] != orientedReadId0) {
-                CZI_ASSERT(globalEdge.orientedReadIds[0] == orientedReadId1);
-                reverse(alignmentType);
+            OrientedReadId alignmentOrientedReadId0(alignment.readIds[0], 0);
+            OrientedReadId alignmentOrientedReadId1(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
+            AlignmentInfo alignmentInfo = alignment.info;
+            if(alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
+                swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
+                alignmentInfo.swap();
             }
+            if(alignmentOrientedReadId0.getStrand() != orientedReadId0.getStrand()) {
+                alignmentOrientedReadId0.flipStrand();
+                alignmentOrientedReadId1.flipStrand();
+                alignmentInfo.reverseComplement();
+            }
+            CZI_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
+            const AlignmentType alignmentType = alignmentInfo.classify(uint32_t(maxTrim));
+            const uint32_t markerCount = alignmentInfo.markerCount;
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,

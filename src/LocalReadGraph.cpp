@@ -169,17 +169,17 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
     }
 
 
-#if 0
+#if 1
     // The AlignmentType determines the edge endings.
     // Note that the Graphviz convention for undirected graphs
     // is that the head is the second vertex and the tail is the first vertex.
     s << " dir=both ";
     switch(edge.alignmentType) {
     case AlignmentType::read0IsContained:
-        s << "arrowhead=none arrowtail=tee";
+        s << "arrowhead=none arrowtail=none";
         break;
     case AlignmentType::read1IsContained:
-        s << "arrowhead=tee arrowtail=none";
+        s << "arrowhead=none arrowtail=none";
         break;
     case AlignmentType::read0IsBackward:
         s << "arrowhead=normal arrowtail=none";
