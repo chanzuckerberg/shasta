@@ -130,10 +130,13 @@ def overrideDefaultConfig(config, args):
     if args.useMarginPhase is not None:
         config["Assembly"]["useMarginPhase"] = str(args.useMarginPhase)
 
+    if args.storeCoverageData is not None:
+        config["Assembly"]["storeCoverageData"] = str(args.storeCoverageData)
+
     return config
 
 
-def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, processHandler, gigaBytes, savePageMemory, args):
+def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, processHandler, gigaBytes, savePageMemory, performPageCleanUp, args):
     if not os.path.exists(readsSequencePath):
         raise Exception("ERROR: input file not found: %s" % readsSequencePath)
 
@@ -202,9 +205,10 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, p
     if savePageMemory:
         saveRun(outputDirectory)
 
-    sys.stderr.write("Cleaning up page memory...")
-    cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
-    sys.stderr.write("\rCleaning up page memory... Done\n")
+    if performPageCleanUp:
+        sys.stderr.write("Cleaning up page memory...")
+        cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
+        sys.stderr.write("\rCleaning up page memory... Done\n")
 
 
 class ProcessHandler:
@@ -286,6 +290,24 @@ if __name__ == "__main__":
         required=False,
         help="Save page memory to disk before clearing the ephemeral page data. \n \
               Convenient for post-assembly analysis using RunServerFromDisk.py. \n\n \
+              Any case insensitive variant of the following is accepted: \n \
+              t, true, 1, y, yes, f, false, 0, n, no"
+    )
+    parser.add_argument(
+        "--performPageCleanUp",
+        type="bool",
+        # default=10,
+        required=False,
+        help="Whether to perform post-assembly cleanup of page files. \n \
+              Any case insensitive variant of the following is accepted: \n \
+              t, true, 1, y, yes, f, false, 0, n, no"
+    )
+    parser.add_argument(
+        "--storeCoverageData",
+        type="bool",
+        # default=10,
+        required=False,
+        help="Whether to store read-level data: observed bases and run lengths. \n \
               Any case insensitive variant of the following is accepted: \n \
               t, true, 1, y, yes, f, false, 0, n, no"
     )
@@ -519,4 +541,5 @@ if __name__ == "__main__":
          args=args,
          gigaBytes=args.memory,
          processHandler=processHandler,
-         savePageMemory=args.savePageMemory)
+         savePageMemory=args.savePageMemory,
+         performPageCleanUp=args.performPageCleanUp)
