@@ -296,7 +296,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--performPageCleanUp",
         type="bool",
-        # default=10,
+        default="True",
         required=False,
         help="Whether to perform post-assembly cleanup of page files. \n \
               Any case insensitive variant of the following is accepted: \n \
