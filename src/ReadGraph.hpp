@@ -11,10 +11,6 @@ in which an undirected edge is created if we found an alignment
 between the corresponding oriented reads. However,
 the read graph only uses a subset of the alignments.
 
-Class DynamicReadGraph is used for construction of the read graph.
-It uses the Boost graph library to represent and manipulate the
-read graph or a subset of it.
-
 Class ReadGraph is used to store the ReadGraph in permanent
 but read-only form using MemoryMapped data structures.
 
@@ -29,69 +25,29 @@ but read-only form using MemoryMapped data structures.
 
 // Standard library.
 #include "cstdint.hpp"
+#include <limits>
 #include <unordered_map>
 
 namespace ChanZuckerberg {
     namespace shasta {
         class ReadGraph;
-        class DynamicReadGraph;
-        class DynamicReadGraphEdge;
-        class DynamicReadGraphVertex;
-        using DynamicReadGraphBaseClass = boost::adjacency_list<
-            boost::listS,
-            boost::listS,
+
+
+        // Class RawReadGraph is only used inside flagCrossStrandReadGraphEdges.
+        // Here, each vertex corresponds to a Read, not an OrientedRead.
+        // It has one vertex per read instead of two.
+        class RawReadGraph;
+        class RawReadGraphEdge;
+        class RawReadGraphVertex;
+        using RawReadGraphBaseClass = boost::adjacency_list<
+            boost::vecS,
+            boost::vecS,
             boost::undirectedS,
-            DynamicReadGraphVertex,
-            DynamicReadGraphEdge>;
+            RawReadGraphVertex,
+            RawReadGraphEdge>;
     }
 }
 
-
-class ChanZuckerberg::shasta::DynamicReadGraphVertex {
-public:
-
-    // We store the OrientedReadId as an integer
-    // so we can also use it as a vertex id for Graphviz output.
-    OrientedReadId::Int orientedReadIdInt;
-    OrientedReadId getOrientedReadId() const
-    {
-        return OrientedReadId(orientedReadIdInt);
-    }
-
-    DynamicReadGraphVertex(OrientedReadId orientedReadId) :
-        orientedReadIdInt(orientedReadId.getValue()) {}
-};
-
-
-
-class ChanZuckerberg::shasta::DynamicReadGraphEdge {
-public:
-    // The id of the alignment that corresponds to the edge.
-    uint64_t alignmentId;
-
-    DynamicReadGraphEdge(uint64_t alignmentId) :
-        alignmentId(alignmentId) {}
-};
-
-
-
-// Class DynamicReadGraph is used for construction of the read graph.
-// It uses the Boost graph library to represent and manipulate the
-// read graph or a subset of it.
-class ChanZuckerberg::shasta::DynamicReadGraph : public DynamicReadGraphBaseClass {
-public:
-
-    // Create a vertex for each of the two oriented reads
-    // corresponding to readCount reads.
-    // Used to create a DynamicReadGraph representing
-    // the entire global read graph.
-    DynamicReadGraph(ReadId readCount);
-
-    // Table that gives the vertex_descriptor corresponding to an
-    // OrientedReadId. Keyed by orientedReadId.getValue().
-    std::unordered_map<OrientedReadId::Int, vertex_descriptor> vertexMap;
-
-};
 
 
 
@@ -134,8 +90,86 @@ public:
     // of the edges that this OrientedReadId is involved in.
     MemoryMapped::VectorOfVectors<uint32_t, uint32_t> connectivity;
 
-    // Count the triangles that have an edge as one of the sides.
-    size_t countTriangles(uint32_t edgeId) const;
+    // Functions and data for the computation of shortest paths.
+    void setupShortPathComputation();
+    void cleanupShortPathComputation();
+    // Compute a shortest path, disregarding edges flagged as cross-strand edges.
+    void computeShortPath(
+        OrientedReadId orientedReadId0,
+        OrientedReadId orientedReadId1,
+        size_t maxDistance,
+
+        // Edge ids of the shortest path starting at orientedReadId0 and
+        // ending at orientedReadId1.
+        vector<uint32_t>& path
+        );
+private:
+    const uint32_t infiniteDistance = std::numeric_limits<uint32_t>::max();
+    vector<uint32_t> distance; // Or infiniteDistance, for vertices not reached.
+    vector<OrientedReadId> reachedVertices;   // For which distance is not infiniteDistance.
+    vector<uint32_t> parentEdges;
 };
+
+
+
+class ChanZuckerberg::shasta::RawReadGraphVertex {
+public:
+    RawReadGraphVertex() : strand(0) {}
+    uint8_t strand;     // Or RawReadGraph::undiscovered
+};
+
+
+
+class ChanZuckerberg::shasta::RawReadGraphEdge {
+public:
+    bool isSameStrand;
+    RawReadGraphEdge(bool isSameStrand) :
+        isSameStrand(isSameStrand) {}
+};
+
+
+
+// Class RawReadGraph is only used inside flagCrossStrandReadGraphEdges.
+// Here, each vertex corresponds to a Read, not an OrientedRead.
+// It has one vertex per read instead of two.
+class ChanZuckerberg::shasta::RawReadGraph : public RawReadGraphBaseClass {
+public:
+    using RawReadGraphBaseClass::RawReadGraphBaseClass;
+    static const uint8_t undiscovered = 2;
+
+    // Visitor for maximum_adjacency_search.
+    class Visitor {
+    public:
+        Visitor(vector<edge_descriptor>& crossStrandEdges) :
+            crossStrandEdges(crossStrandEdges) {}
+        void initialize_vertex(vertex_descriptor, const RawReadGraph&)
+        {
+        }
+        void start_vertex(vertex_descriptor, const RawReadGraph&)
+        {
+        }
+        void examine_edge(edge_descriptor, const RawReadGraph&);
+        void finish_vertex(vertex_descriptor, const RawReadGraph&)
+        {
+        }
+        vector<edge_descriptor>& crossStrandEdges;
+    };
+
+    // Write in Graphviz format.
+    void write(ostream&) const;
+    void write(const string& fileName) const;
+
+    // Graphviz writer.
+    class Writer {
+    public:
+        Writer(const RawReadGraph&);
+        void operator()(ostream&) const;
+        void operator()(ostream&, vertex_descriptor) const;
+        void operator()(ostream&, edge_descriptor) const;
+        const RawReadGraph& graph;
+    };
+};
+
+
 
 #endif
