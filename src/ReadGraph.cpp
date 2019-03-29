@@ -82,23 +82,6 @@ void RawReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 }
 
 
-// Functions and data for the computation of shortest paths.
-void ReadGraph::setupShortPathComputation()
-{
-    const size_t n = connectivity.size();
-    distance.clear();
-    distance.resize(n, infiniteDistance);
-    reachedVertices.clear();
-    parentEdges.resize(n);
-}
-void ReadGraph::cleanupShortPathComputation()
-{
-    distance.clear();
-    distance.shrink_to_fit();
-    reachedVertices.clear();
-    parentEdges.clear();
-    parentEdges.shrink_to_fit();
-}
 
 // Compute a shortest path, disregarding edges flagged as cross-strand edges.
 void ReadGraph::computeShortPath(
@@ -108,7 +91,12 @@ void ReadGraph::computeShortPath(
 
     // Edge ids of the shortest path starting at orientedReadId0 and
     // ending at orientedReadId1.
-    vector<uint32_t>& path
+    vector<uint32_t>& path,
+
+    // Work areas.
+    vector<uint32_t>& distance, // One per vertex, equals infiniteDistance before and after.
+    vector<OrientedReadId>& reachedVertices,   // For which distance is not infiniteDistance.
+    vector<uint32_t>& parentEdges  // One per vertex
     )
 {
     const bool debug = false;
@@ -123,6 +111,7 @@ void ReadGraph::computeShortPath(
     std::queue<OrientedReadId> queuedVertices;
     queuedVertices.push(orientedReadId0);
     distance[orientedReadId0.getValue()] = 0;
+    reachedVertices.clear();
     reachedVertices.push_back(orientedReadId0);
 
 

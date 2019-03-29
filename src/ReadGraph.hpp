@@ -90,9 +90,6 @@ public:
     // of the edges that this OrientedReadId is involved in.
     MemoryMapped::VectorOfVectors<uint32_t, uint32_t> connectivity;
 
-    // Functions and data for the computation of shortest paths.
-    void setupShortPathComputation();
-    void cleanupShortPathComputation();
     // Compute a shortest path, disregarding edges flagged as cross-strand edges.
     void computeShortPath(
         OrientedReadId orientedReadId0,
@@ -101,13 +98,15 @@ public:
 
         // Edge ids of the shortest path starting at orientedReadId0 and
         // ending at orientedReadId1.
-        vector<uint32_t>& path
+        vector<uint32_t>& path,
+
+        // Work areas.
+        vector<uint32_t>& distance, // One per vertex, equals infiniteDistance before and after.
+        vector<OrientedReadId>& reachedVertices,   // For which distance is not infiniteDistance.
+        vector<uint32_t>& parentEdges  // One per vertex
+
         );
-private:
-    const uint32_t infiniteDistance = std::numeric_limits<uint32_t>::max();
-    vector<uint32_t> distance; // Or infiniteDistance, for vertices not reached.
-    vector<OrientedReadId> reachedVertices;   // For which distance is not infiniteDistance.
-    vector<uint32_t> parentEdges;
+    static const uint32_t infiniteDistance = std::numeric_limits<uint32_t>::max();
 };
 
 

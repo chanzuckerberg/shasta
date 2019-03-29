@@ -728,10 +728,21 @@ public:
     void accessReadGraph();
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
+
+
     void flagCrossStrandReadGraphEdges();
+private:
+    void flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId);
+    class FlagCrossStrandReadGraphEdgesData {
+    public:
+        size_t maxDistance;
+        vector<bool> isNearStrandJump;
+    };
+    FlagCrossStrandReadGraphEdgesData flagCrossStrandReadGraphEdgesData;
 
 
 
+public:
     // Use the read graph to flag chimeric reads.
     void flagChimericReads(size_t maxDistance, size_t threadCount);
 private:

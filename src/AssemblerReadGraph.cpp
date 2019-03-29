@@ -936,24 +936,28 @@ void Assembler::flagCrossStrandReadGraphEdges()
         readGraph.edges[edgeId].crossesStrands = 0;
     }
 
-    // Prepare for shortest paths computations in the read graph.
-    const size_t maxDistance = 4;
-    readGraph.setupShortPathComputation();
-    vector<uint32_t> shortestPath;
+    // DON'T TURN THIS ON FOR NOW.
+    return;
+
+    // Store the maximum distance so all threads can see it.
+    const size_t maxDistance = 6;
+    flagCrossStrandReadGraphEdgesData.maxDistance = maxDistance;
 
     // Find which vertices are close to their reverse complement.
     // "Close" means that there is a path of distance up to maxDistance.
-    vector<bool> isNearStrandJump(orientedReadCount, false);
+    flagCrossStrandReadGraphEdgesData.isNearStrandJump.clear();
+    flagCrossStrandReadGraphEdgesData.isNearStrandJump.resize(orientedReadCount, false);
+    const size_t batchSize = 10000;
+    const size_t threadCount = std::thread::hardware_concurrency();
+    setupLoadBalancing(readCount, batchSize);
+    runThreads(&Assembler::flagCrossStrandReadGraphEdgesThreadFunction, threadCount);
+    const auto& isNearStrandJump = flagCrossStrandReadGraphEdgesData.isNearStrandJump;
+
+
     size_t nearStrandJumpVertexCount = 0;
     for(ReadId readId=0; readId<readCount; readId++) {
-        const OrientedReadId orientedReadId0(readId, 0);
-        const OrientedReadId orientedReadId1(readId, 1);
-        readGraph.computeShortPath(orientedReadId0, orientedReadId1,
-            maxDistance, shortestPath);
-        if(!shortestPath.empty()) {
-            isNearStrandJump[orientedReadId0.getValue()] = true;
-            isNearStrandJump[orientedReadId1.getValue()] = true;
-            nearStrandJumpVertexCount += 2;
+        if(isNearStrandJump[readId]) {
+            ++nearStrandJumpVertexCount;
         }
     }
     cout << "Of " << orientedReadCount << " vertices in the read graph, " <<
@@ -993,6 +997,28 @@ void Assembler::flagCrossStrandReadGraphEdges()
         }
     }
 
+#if 0
+    // Reinitialize the disjoint sets adding only edges
+    // that involve one or two vertices that are not near strand jumps.
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
+        }
+    }
+    //To keep the process local, this should not be done.
+    /*
+    for(const ReadGraph::Edge& edge: readGraph.edges) {
+        const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
+        const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
+        const auto v0 = orientedReadId0.getValue();
+        const auto v1 = orientedReadId1.getValue();
+        if(!(isNearStrandJump[v0] && isNearStrandJump[v1])) {
+            disjointSets.union_set(v0, v1);
+        }
+    }
+    */
+#endif
+
 
     // Loop over connected components.
     // Each connected component corresponds to a region of the read graph
@@ -1000,37 +1026,125 @@ void Assembler::flagCrossStrandReadGraphEdges()
     // For each such region we process edges in order of decreasing
     // number of markers. We mark an edge as crossing strands if adding it
     // would cause a vertex to become reachable from its reverse complement.
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
-        }
-    }
+    size_t strandJumpCount = 0;
    for(ReadId componentId=0; componentId!=orientedReadCount; componentId++) {
         const vector<OrientedReadId>& vertices = componentVertices[componentId];
         const size_t vertexCount = vertices.size();
         if(vertexCount <2) {
             continue;
         }
+        ++strandJumpCount;
         cout << "Found a strand jump region with " << vertexCount <<
             " vertices near read " << vertices.front().getReadId() << "." << endl;
 
+        // Verify that the vertices are a self-complementary set.
+        CZI_ASSERT((vertexCount %2) == 0);
+        for(size_t i=0; i<vertexCount; i+=2) {
+            const OrientedReadId orientedReadId0 = vertices[i];
+            const OrientedReadId orientedReadId1 = vertices[i+1];
+            CZI_ASSERT(orientedReadId0.getReadId() == orientedReadId1.getReadId());
+            CZI_ASSERT(orientedReadId0.getStrand() == 0);
+            CZI_ASSERT(orientedReadId1.getStrand() == 1);
+        }
+
+        // Map the vertices to integers in (0, vertexCount-1).
+        std::map<OrientedReadId, uint32_t> vertexMap;
+        for(uint32_t i=0; i<vertexCount; i++) {
+            vertexMap.insert(make_pair(vertices[i], i));
+        }
+
         // Gather the edges within this region.
-        vector<uint32_t> edgeIds;
+        // Store its edge with its alignmentId.
+        // This allows us later to match edges into reverse complemented pairs.
+        vector< pair<uint32_t, uint64_t> > edgeIds;  // pair(edgeId, alignmentId).
         for(const OrientedReadId orientedReadId0: vertices) {
             const OrientedReadId::Int v0 = orientedReadId0.getValue();
             for(const uint32_t edgeId: readGraph.connectivity[v0]) {
                 const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                const OrientedReadId orientedReadId1 = edge.getOther(orientedReadId0);
+                if(vertexMap.find(orientedReadId1) == vertexMap.end()) {
+                    continue;
+                }
                 if(edge.orientedReadIds[0] == orientedReadId0) { // So we don't add it twice.
-                    edgeIds.push_back(edgeId);
+                    edgeIds.push_back(make_pair(edgeId, edge.alignmentId));
                 }
             }
         }
         cout << "This strand jump region contains " << edgeIds.size() << " edges." << endl;
+
+        // Sort them by alignment  id, so pairs of reverse complemented edges come together.
+        CZI_ASSERT((edgeIds.size() %2) == 0);
+        sort(edgeIds.begin(), edgeIds.end(),
+            OrderPairsBySecondOnly<uint32_t, uint64_t>());
+        for(size_t i=0; i<edgeIds.size(); i+=2){
+            CZI_ASSERT(edgeIds[i].second == edgeIds[i+1].second);
+        }
+
+        // Gather pairs of reverse complemented edges, each with their
+        // number of markers.
+        vector< pair< array<uint32_t, 2>, uint32_t> > edgePairs;
+        for(size_t i=0; i<edgeIds.size(); i+=2){
+            const uint64_t alignmentId = edgeIds[i].second;
+            CZI_ASSERT(alignmentId == edgeIds[i+1].second);
+            const uint32_t markerCount = alignmentData[alignmentId].info.markerCount;
+            const array<uint32_t, 2> edgePair = {edgeIds[i].first, edgeIds[i+1].first};
+            edgePairs.push_back(make_pair(edgePair, markerCount));
+        }
+        sort(edgePairs.begin(), edgePairs.end(),
+            OrderPairsBySecondOnlyGreater<array<uint32_t, 2>, uint32_t>());
+
+        // Initialize a disjoint set data structure for this region.
+        vector<ReadId> rank(vertexCount);
+        vector<ReadId> parent(vertexCount);
+        boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
+        for(size_t i=0; i<vertexCount; i++) {
+            disjointSets.make_set(i);
+        }
+
+
+        // Process the edge pairs, in order of decreasing number of markers.
+        for(const auto& p: edgePairs) {
+            const array<uint32_t, 2>& edgeIds = p.first;
+            for(const uint32_t edgeId: edgeIds) {
+                const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+
+                // Get the oriented reads of this edge.
+                const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
+                const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
+                const uint32_t i0 = vertexMap[orientedReadId0];
+                const uint32_t i1 = vertexMap[orientedReadId1];
+
+                // Get their reverse complemented oriented reads.
+                OrientedReadId orientedReadId0rc = orientedReadId0;
+                orientedReadId0rc.flipStrand();
+                OrientedReadId orientedReadId1rc = orientedReadId1;
+                orientedReadId1rc.flipStrand();
+                const uint32_t i0rc = vertexMap[orientedReadId0rc];
+                const uint32_t i1rc = vertexMap[orientedReadId1rc];
+
+                // Get everybody's component.
+                const uint32_t component0 = disjointSets.find_set(i0);
+                const uint32_t component1 = disjointSets.find_set(i1);
+                const uint32_t component0rc = disjointSets.find_set(i0rc);
+                const uint32_t component1rc = disjointSets.find_set(i1rc);
+
+                // Check that we have not already screwed up earlier.
+                CZI_ASSERT(component0 != component0rc);
+                CZI_ASSERT(component1 != component1rc);
+
+                // If adding this edge would bring (orientedReadId0, orientedReadId1rc)
+                // or (orientedReadId1, orientedReadId0rc)
+                // in the same component, mark it as a cross strand edge.
+                if(component0==component1rc || component1==component0rc) {
+                    readGraph.edges[edgeId].crossesStrands = 1;
+                } else {
+                    disjointSets.union_set(i0, i1);
+                    disjointSets.union_set(i0rc, i1rc);
+                }
+            }
+        }
     }
-
-
-    // Clean up shortest paths computations in the read graph.
-    readGraph.cleanupShortPathComputation();
+    cout << "Found " << strandJumpCount << " strand jump regions." << endl;
 
     // Count the number of edges we flagged as cross-strand.
     size_t crossStrandEdgeCount = 0;
@@ -1047,6 +1161,39 @@ void Assembler::flagCrossStrandReadGraphEdges()
     cout << timestamp << "End flagCrossStrandReadGraphEdges." << endl;
 }
 
+
+
+void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
+{
+    const size_t readCount = reads.size();
+    const size_t maxDistance = flagCrossStrandReadGraphEdgesData.maxDistance;
+    auto& isNearStrandJump = flagCrossStrandReadGraphEdgesData.isNearStrandJump;
+    vector<uint32_t> distance(2*readCount, ReadGraph::infiniteDistance);
+    vector<OrientedReadId> reachedVertices;
+    vector<uint32_t> parentEdges(2*readCount);
+    vector<uint32_t> shortestPath;
+    size_t begin, end;
+
+    while(getNextBatch(begin, end)) {
+
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            if((readId %100000) == 0) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << timestamp << threadId << " " << readId << "/" << readCount << endl;
+            }
+            const OrientedReadId orientedReadId0(readId, 0);
+            const OrientedReadId orientedReadId1(readId, 1);
+            readGraph.computeShortPath(orientedReadId0, orientedReadId1,
+                maxDistance, shortestPath,
+                distance, reachedVertices, parentEdges);
+            if(!shortestPath.empty()) {
+                isNearStrandJump[orientedReadId0.getValue()] = true;
+                isNearStrandJump[orientedReadId1.getValue()] = true;
+            }
+        }
+    }
+
+}
 
 
 #if 0
