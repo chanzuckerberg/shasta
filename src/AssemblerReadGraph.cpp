@@ -994,16 +994,38 @@ void Assembler::flagCrossStrandReadGraphEdges()
     }
 
 
-    // Loop over connected component.
+    // Loop over connected components.
     // Each connected component corresponds to a region of the read graph
     // that has a strand jump.
-    for(ReadId componentId=0; componentId!=orientedReadCount; componentId++) {
+    // For each such region we process edges in order of decreasing
+    // number of markers. We mark an edge as crossing strands if adding it
+    // would cause a vertex to become reachable from its reverse complement.
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
+        }
+    }
+   for(ReadId componentId=0; componentId!=orientedReadCount; componentId++) {
         const vector<OrientedReadId>& vertices = componentVertices[componentId];
         const size_t vertexCount = vertices.size();
         if(vertexCount <2) {
             continue;
         }
-        cout << "Found a strand jump region with " << vertexCount << " vertices." << endl;
+        cout << "Found a strand jump region with " << vertexCount <<
+            " vertices near read " << vertices.front().getReadId() << "." << endl;
+
+        // Gather the edges within this region.
+        vector<uint32_t> edgeIds;
+        for(const OrientedReadId orientedReadId0: vertices) {
+            const OrientedReadId::Int v0 = orientedReadId0.getValue();
+            for(const uint32_t edgeId: readGraph.connectivity[v0]) {
+                const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                if(edge.orientedReadIds[0] == orientedReadId0) { // So we don't add it twice.
+                    edgeIds.push_back(edgeId);
+                }
+            }
+        }
+        cout << "This strand jump region contains " << edgeIds.size() << " edges." << endl;
     }
 
 
