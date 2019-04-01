@@ -936,9 +936,6 @@ void Assembler::flagCrossStrandReadGraphEdges()
         readGraph.edges[edgeId].crossesStrands = 0;
     }
 
-    // DON'T TURN THIS ON FOR NOW.
-    return;
-
     // Store the maximum distance so all threads can see it.
     const size_t maxDistance = 6;
     flagCrossStrandReadGraphEdgesData.maxDistance = maxDistance;
