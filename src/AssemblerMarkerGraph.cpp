@@ -3314,12 +3314,10 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     uint8_t& overlappingBaseCount
     )
 {
-    // This needs to be modified
-    // to not include the flanking markers in the returned sequence,
-    // and also set overlappingBaseCount.
-    CZI_ASSERT(0);
+    // Get the marker length.
+    const uint32_t k = uint32_t(assemblerInfo->k);
 
-#if 0
+    // Check that MarginPhase was setup.
     checkMarginPhaseWasSetup();
 
     // Access the markerIntervals for this edge.
@@ -3329,12 +3327,212 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     const size_t markerCount = markerIntervals.size();
     CZI_ASSERT(markerCount > 0);
 
+    // We will process the edge in one of two modes:
+    // - Mode 1 supports only marker intervals in which the left and right
+    //   markers are adjacent or overlapping.
+    // - Mode 2 supports only marker intervals in which there is at least
+    //   one base of sequence intervening between the left and right
+    //   markers.
+    // It would be nice if we could find a mode that supports all of the
+    // reads, but in general this is not possible. So we do the following:
+    // - Count the number of marker intervals supported by mode 1 and mode 2.
+    // - Pick the mode that supports the most marker intervals.
+    // - Discard the marker intervals that are not supported by the mode we picked.
+    // In the worst case, this results in discarding half of the marker intervals.
+    // But in most cases, the number of marker intervals that must be discarded
+    // is small, and often zero.
+    // See comments below for details of the processing for each mode.
+    size_t mode1Count = 0;
+    size_t mode2Count = 0;
+    for(size_t i=0; i!=markerCount; i++) {
+        const MarkerInterval& markerInterval = markerIntervals[i];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers.
+        CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+        // Get the positions of the markers in the read.
+        const uint32_t position0 = marker0.position;
+        const uint32_t position1 = marker1.position;
+        CZI_ASSERT(position1 > position0);
+
+        // Compute the offset between the markers.
+        const uint32_t offset = position1 - position0;
+
+        // Update counts for mode 1 and mode 2.
+        if(offset <= k) {
+            // The markers are adjacent or overlapping.
+            ++mode1Count;
+        }
+        if(offset > k) {
+            // The markers are adjacent or non-overlapping.
+            ++mode2Count;
+        }
+    }
+    CZI_ASSERT(mode1Count + mode2Count == markerCount);
+
+
+
+    // Mode 1: only use marker intervals in which the two markers
+    // are adjacent or overlapping.
+    // To construct the sequence, we use the most frequent
+    // offset between the two markers.
+    if(mode1Count >= mode2Count) {
+
+        // Offset histogram.
+        // Count marker offsets up to k.
+        // Since we are at it, also get the kmerIds.
+        vector<uint32_t> offsetHistogram(k+1, 0);
+        for(size_t i=0; i!=markerCount; i++) {
+            const MarkerInterval& markerInterval = markerIntervals[i];
+            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+            const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+            // Get the two markers.
+            CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+            const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+            const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+
+            // Get the positions of the markers in the read.
+            const uint32_t position0 = marker0.position;
+            const uint32_t position1 = marker1.position;
+            CZI_ASSERT(position1 > position0);
+
+            // Compute the offset between the markers.
+            const uint32_t offset = position1 - position0;
+
+            // Update the offset, but only if the markers are adjacent or overlapping.
+            if(offset <= k) {
+                ++offsetHistogram[offset];
+            }
+        }
+
+
+        // Compute the most frequent offset.
+        const uint32_t bestOffset = uint32_t(
+            std::max_element(offsetHistogram.begin(), offsetHistogram.end())
+            - offsetHistogram.begin());
+
+        // Set the output accordingly.
+        sequence.clear();
+        repeatCounts.clear();
+        overlappingBaseCount = uint8_t(k - bestOffset);
+        return;
+    }
+
+
+
+    // Mode 2: only use marker intervals in which there is at least
+    // one base of sequence intervening between the left and right
+    // markers.
+    // We do a multiple sequence alignment using MarginPhase
+    // of the sequences between the two markers.
+    // Results are dependent on the order in which the
+    // sequences are entered, and so we enter the sequences in order
+    // of decreasing frequency.
+    CZI_ASSERT(mode2Count > mode1Count);
+
+
+
+    // Gather all of the intervening sequences and repeatCounts, keeping track of distinct
+    // sequences. For each sequence we store a vector of i values
+    // where each sequence appear.
+    vector< vector<Base> > distinctSequences;
+    vector< vector<size_t> > distinctSequenceOccurrences;
+    vector<bool> isUsed(markerCount);
+    vector<Base> interveningSequence;
+    vector< vector<uint8_t> > interveningRepeatCounts(markerCount);
+    for(size_t i=0; i!=markerCount; i++) {
+        const MarkerInterval& markerInterval = markerIntervals[i];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+        // Get the two markers and their positions.
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+        const uint32_t position0 = marker0.position;
+        const uint32_t position1 = marker1.position;
+        CZI_ASSERT(position1 > position0);
+        const uint32_t offset = position1 - position0;
+
+        // If the offset is too small, discard this marker interval.
+        if(offset <= k) {
+            isUsed[i] = false;
+            continue;
+        }
+        isUsed[i] = true;
+
+        // Construct the sequence and repeat counts between the markers.
+        const uint32_t begin = position0 + k;
+        const uint32_t end = position1;
+        interveningSequence.clear();
+        for(uint32_t position=begin; position!=end; position++) {
+            Base base;
+            uint8_t repeatCount;
+            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            interveningSequence.push_back(getOrientedReadBase(orientedReadId, position));
+            interveningRepeatCounts[i].push_back(repeatCount);
+        }
+
+        // Store, making sure to check if we already encountered this sequence.
+        const auto it = find(distinctSequences.begin(), distinctSequences.end(), interveningSequence);
+        if(it == distinctSequences.end()) {
+            // We did not already encountered this sequence.
+            distinctSequences.push_back(interveningSequence);
+            distinctSequenceOccurrences.resize(distinctSequenceOccurrences.size() + 1);
+            distinctSequenceOccurrences.back().push_back(i);
+        } else {
+            // We already encountered this sequence,
+            distinctSequenceOccurrences[it - distinctSequences.begin()].push_back(i);
+        }
+    }
+
+
+
+    // We want to enter the distinct sequences in order of decreasing frequency,
+    // so we create a table of distinct sequences.
+    // For each pair stored:
+    // first = index of the distinct sequence in distinctSequences, distinctSequenceOccurrences.
+    // second = frequency.
+    vector< pair<size_t, uint32_t> > distinctSequenceTable;
+    for(size_t j=0; j<distinctSequences.size(); j++) {
+        distinctSequenceTable.push_back(make_pair(j, distinctSequenceOccurrences[j].size()));
+    }
+    sort(distinctSequenceTable.begin(), distinctSequenceTable.end(),
+        OrderPairsBySecondOnlyGreater<size_t, uint32_t>());
+
+
+    // We are now ready to compute the MarginPhase alignment for the distinct sequences.
+
     // Vectors to contain the input to callConsensus.
-    vector<string> readSequences(markerCount);
-    vector< vector<uint8_t> > readRepeatCounts(markerCount);
-    vector<uint8_t> strands(markerCount);
+    vector<string> marginPhaseSequences;
+    vector< vector<uint8_t> > marginPhaseRepeatCounts;
+    vector<uint8_t> marginPhaseStrands;
 
 
+    // Fill in the input vectors.
+    for(const auto& p: distinctSequenceTable) {
+    	const size_t j = p.first;
+        const vector<Base>& sequence = distinctSequences[j];
+        const vector<size_t>& occurrences = distinctSequenceOccurrences[j];
+        string sequenceString;
+        for(const Base b: sequence) {
+        	sequenceString.push_back(b.character());
+        }
+        for(const size_t i: occurrences) {
+            const MarkerInterval& markerInterval = markerIntervals[i];
+            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        	marginPhaseSequences.push_back(sequenceString);
+        	marginPhaseRepeatCounts.push_back(interveningRepeatCounts[i]);
+        	marginPhaseStrands.push_back(uint8_t(orientedReadId.getStrand()));
+        }
+
+    }
+
+#if 0
 
     // Fill in the input vectors.
     for(size_t i=0; i!=markerCount; i++) {
@@ -3365,28 +3563,31 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
             r[j] = rr;
         }
     }
-
+#endif
 
 
     // Create vectors of pointers to be passed to callConsensus.
-    vector<char*> readSequencePointers(markerCount);
-    vector<uint8_t*> readRepeatCountPointers(markerCount);
-    for(size_t i=0; i<markerCount; i++) {
-        readSequencePointers[i] = const_cast<char*>(readSequences[i].data());
-        readRepeatCountPointers[i] = const_cast<uint8_t*>(readRepeatCounts[i].data());
+    vector<char*> marginPhaseSequencePointers;
+    vector<uint8_t*> marginPhaseRepeatCountPointers;
+    CZI_ASSERT(marginPhaseSequences.size() == marginPhaseRepeatCounts.size());
+    CZI_ASSERT(marginPhaseSequences.size() == marginPhaseStrands.size());
+    for(size_t i=0; i<marginPhaseSequences.size(); i++) {
+    	marginPhaseSequencePointers.push_back(const_cast<char*>(marginPhaseSequences[i].data()));
+    	marginPhaseRepeatCountPointers.push_back(const_cast<uint8_t*>(marginPhaseRepeatCounts[i].data()));
     }
 
     // Use marginPhase to compute consensus sequence
     // and repeat counts.
     RleString* consensusPointer = callConsensus(
-        markerCount,
-        readSequencePointers.data(),
-        readRepeatCountPointers.data(),
-        strands.data(),
+    	marginPhaseSequencePointers.size(),
+		marginPhaseSequencePointers.data(),
+		marginPhaseRepeatCountPointers.data(),
+        marginPhaseStrands.data(),
         marginPhaseParameters);
     const RleString& consensus = *consensusPointer;
 
     // Store the results.
+    overlappingBaseCount = 0;
     sequence.resize(consensus.length);
     repeatCounts.resize(consensus.length);
     for(size_t i=0; i<size_t(consensus.length); i++) {
@@ -3399,7 +3600,6 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     // Clean up.
     destroyRleString(consensusPointer);
 
-#endif
 }
 
 
