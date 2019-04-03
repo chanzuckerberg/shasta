@@ -9,8 +9,10 @@ project(shasta-static-executable)
 file(GLOB SOURCES main.cpp ../src/*.cpp)
 include_directories(../src)
 
-add_executable(shasta ${SOURCES})
-set_target_properties(shasta PROPERTIES LINK_FLAGS "-static" )
+add_executable(shasta-static-executable ${SOURCES})
+set_target_properties(shasta-static-executable PROPERTIES LINK_FLAGS "-static" )
+set_target_properties(shasta-static-executable PROPERTIES OUTPUT_NAME "shasta")
+
 
 # Compiler options.
 add_definitions(-std=c++14)
@@ -28,5 +30,9 @@ add_definitions(-mcx16)
 add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 
 # Specify the libraries.
-target_link_libraries(shasta pthread boost_system spoa)
+target_link_libraries(shasta-static-executable pthread boost_system spoa)
+
+# The static executable goes to the bin directory.
+install(TARGETS shasta-static-executable DESTINATION shasta-install/bin)
+
 

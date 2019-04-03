@@ -29,15 +29,29 @@ rm /dev/shm/seqan-library-2.4.0.deb
 
 # The spoa library is not available in the Ubuntu repository.
 # Download it from GitHub, then install it.
+
+# Create a temporary directory.
 tmpDirectoryName=$(mktemp --directory --tmpdir)
 echo $tmpDirectoryName
 cd $tmpDirectoryName
+
+# Get the code.
 curl -L https://github.com/rvaser/spoa/releases/download/2.0.1/spoa-v2.0.1.tar.gz \
     -o spoa-v2.0.1.tar.gz
 tar -xvf spoa-v2.0.1.tar.gz
+
+# Build the shared library.
 mkdir build
 cd build
 cmake ../spoa-v2.0.1 -DBUILD_SHARED_LIBS=ON
+make -j all
+make install
+
+# Build the static library.
+cd ..
+mkdir build-static
+cd build-static
+cmake ../spoa-v2.0.1 -DBUILD_SHARED_LIBS=OFF
 make -j all
 make install
 cd 

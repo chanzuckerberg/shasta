@@ -4,6 +4,7 @@ project(shasta)
 set(CMAKE_INSTALL_PREFIX .)
 
 add_subdirectory(src)
+add_subdirectory(src-static-executable)
 
 # Install the scripts.
 file(GLOB SCRIPTS scripts/*.py scripts/*.sh)
@@ -16,6 +17,7 @@ install(DIRECTORY conf DESTINATION shasta-install USE_SOURCE_PERMISSIONS)
 install(DIRECTORY docs DESTINATION shasta-install)
 
 # The shared library is installed by the cmake file in the src directory.
+# The static executable is installed by the cmake file in the src-static-executable directory.
 
 
 
