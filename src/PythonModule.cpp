@@ -1,5 +1,6 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
 
-// shasta.
+// Shasta.
 #include "Assembler.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
@@ -502,3 +503,4 @@ PYBIND11_MODULE(shasta, module)
 
 }
 
+#endif

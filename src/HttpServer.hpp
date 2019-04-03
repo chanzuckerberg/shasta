@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Class http server can be used as a base class to provide simple
 // http server functionality to facilitate data exploration and debugging.
 // The derived class only has to override
@@ -159,3 +161,4 @@ private:
 };
 #endif
 
+#endif

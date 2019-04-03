@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Implementation of class HttpServer - see HttpServer.hpp for more information.
 
 #include "HttpServer.hpp"
@@ -660,3 +662,4 @@ void HttpServer::processPostRequest(
     cout << "\nPOST request ignored." << endl;
 }
 
+#endif

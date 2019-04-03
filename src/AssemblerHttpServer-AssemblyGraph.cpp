@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Shasta.
 #include "Assembler.hpp"
 #include "AssembledSegment.hpp"
@@ -359,3 +361,5 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
         }
     }
 }
+
+#endif

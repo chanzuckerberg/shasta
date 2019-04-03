@@ -3307,6 +3307,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     GlobalMarkerGraphEdgeId edgeId,
     vector<Base>& sequence,
@@ -3601,6 +3602,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     destroyRleString(consensusPointer);
 
 }
+#endif
 
 
 
@@ -4996,8 +4998,13 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
             } else {
                 try {
                     if(useMarginPhase) {
+#ifndef SHASTA_STATIC_EXECUTABLE
                         computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
                             edgeId, sequence, repeatCounts, overlappingBaseCount);
+#else
+                        // The static executable does not support MarginPhase.
+                        CZI_ASSERT(0);
+#endif
                     } else {
                         computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                             edgeId, markerGraphEdgeLengthThresholdForConsensus,

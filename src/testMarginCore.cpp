@@ -1,3 +1,4 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
 
 // Shasta.
 #include "testMarginCore.hpp"
@@ -90,3 +91,6 @@ void ChanZuckerberg::shasta::testMarginCore()
     destroyRleString(consensusPointer);
     destroyConsensusParameters(parameters);
 }
+
+#endif
+

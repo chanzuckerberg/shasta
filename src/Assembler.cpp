@@ -36,8 +36,9 @@ Assembler::Assembler(
     // assemblerInfo is the only open object
     // when the constructor finishes.
 
+#ifndef SHASTA_STATIC_EXECUTABLE
     fillServerFunctionTable();
-
+#endif
 }
 
 
@@ -57,8 +58,9 @@ Assembler::Assembler(
     // assemblerInfo is the only open object
     // when the constructor finishes.
 
+#ifndef SHASTA_STATIC_EXECUTABLE
     fillServerFunctionTable();
-
+#endif
 }
 
 
@@ -66,10 +68,12 @@ Assembler::Assembler(
 // Destructor.
 Assembler::~Assembler()
 {
+#ifndef SHASTA_STATIC_EXECUTABLE
     if(marginPhaseParameters) {
         destroyConsensusParameters(marginPhaseParameters);
         marginPhaseParameters = 0;
     }
+#endif
 }
 
 
@@ -108,11 +112,16 @@ void Assembler::setupConsensusCaller(const string& s)
 // Read marginPhase parameters from file MarginPhase.json in the run directory.
 void Assembler::setupMarginPhase()
 {
+#ifndef SHASTA_STATIC_EXECUTABLE
     const string fileName = "MarginPhase.json";
     marginPhaseParameters = getConsensusParameters(const_cast<char*>(fileName.c_str()));
     if(!marginPhaseParameters) {
         throw runtime_error("Error reading marginPhase parameters from " + fileName);
     }
+#else
+    // The static executable does not support MarginPhase.
+    CZI_ASSERT(0);
+#endif
 }
 void Assembler::checkMarginPhaseWasSetup()
 {

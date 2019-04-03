@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Boost gil library.
 // The boost gil library includes png.h,
 // then uses int_p_NULL which is not defined in
@@ -2951,3 +2953,4 @@ void ChanZuckerberg::shasta::writeStrandSelection(
 
 }
 
+#endif

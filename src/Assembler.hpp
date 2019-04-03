@@ -77,8 +77,11 @@ public:
 
 
 class ChanZuckerberg::shasta::Assembler :
-    public MultithreadedObject<Assembler>,
-    public HttpServer {
+    public MultithreadedObject<Assembler>
+#ifndef SHASTA_STATIC_EXECUTABLE
+    , public HttpServer
+#endif
+	{
 public:
 
 
@@ -1406,6 +1409,7 @@ public:
     );
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 
     // Data and functions used for the http server.
     // This function puts the server into an endless loop
@@ -1492,6 +1496,7 @@ public:
         );
     void exploreMarkerGraphVertex(const vector<string>&, ostream&);
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
+#endif
 
 
 

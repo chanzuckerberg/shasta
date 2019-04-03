@@ -4,11 +4,13 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+
+#ifndef SHASTA_STATIC_EXECUTABLE
 // Boost libraries.
 // The boost gil library includes png.h,
 // then uses int_p_NULL which is not defined in
 // all versions of boost (see Boost bug 3908,
-// flaged as fixed but it is not obvious that that
+// flagged as fixed but it is not obvious that that
 // is the case). To deal with this, we defensively
 // include png.h, then define int_p_NULL if necessary.
 #include <png.h>
@@ -17,6 +19,7 @@ using namespace shasta;
 #endif
 #include <boost/gil/gil_all.hpp>
 #include <boost/gil/extension/io/png_dynamic_io.hpp>
+#endif
 
 // Standard library.
 #include "algorithm.hpp"
@@ -137,9 +140,11 @@ void AlignmentGraph::create(
     // Store the alignment info.
     alignmentInfo.create(alignment, uint32_t(markers[0].size()), uint32_t(markers[1].size()));
 
+#ifndef SHASTA_STATIC_EXECUTABLE
     if(debug) {
         writeImage(markers[0], markers[1], alignment, "Alignment.png");
     }
+#endif
 }
 
 
@@ -499,6 +504,8 @@ void AlignmentGraph::writeShortestPath(const string& fileName) const
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Write an image representing the markers and the computed alignment
 // in 2-D ordinal space.
 void AlignmentGraph::writeImage(
@@ -571,3 +578,5 @@ void AlignmentGraph::writeImage(
     // Write it out.
     png_write_view(fileName, imageView);
 }
+#endif
+

@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Shasta.
 #include "Assembler.hpp"
 #include "ConsensusCaller.hpp"
@@ -1786,3 +1788,6 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     // End the table.
     html << "</table>";
 }
+
+#endif
+
