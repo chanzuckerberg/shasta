@@ -1909,8 +1909,8 @@ void Assembler::checkMarkerGraphEdgesIsOpen()
 
 
 // Locate the edge given the vertices.
-const Assembler::MarkerGraph::Edge*
-    Assembler::MarkerGraph::findEdge(Uint40 source, Uint40 target) const
+const MarkerGraph::Edge*
+    MarkerGraph::findEdge(Uint40 source, Uint40 target) const
 {
     const auto edgesWithThisSource = edgesBySource[source];
     for(const uint64_t i: edgesWithThisSource) {
