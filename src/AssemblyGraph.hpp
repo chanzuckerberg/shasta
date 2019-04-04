@@ -18,7 +18,6 @@ vertex in the assembly graph.
 // Shasta.
 #include "LongBaseSequence.hpp"
 #include "MarkerGraph.hpp"
-#include "MarkerId.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 
 // Standard library.

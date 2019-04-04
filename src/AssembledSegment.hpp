@@ -6,7 +6,6 @@
 #include "Base.hpp"
 #include "Coverage.hpp"
 #include "MarkerGraph.hpp"
-#include "MarkerId.hpp"
 
 // Standard library.
 #include "vector.hpp"

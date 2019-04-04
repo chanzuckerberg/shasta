@@ -12,7 +12,6 @@
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
-#include "MarkerId.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 #include "OrientedReadPair.hpp"

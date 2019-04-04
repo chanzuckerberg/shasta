@@ -19,7 +19,6 @@ a group of aligned markers.
 #include "Coverage.hpp"
 #include "Kmer.hpp"
 #include "MarkerGraph.hpp"
-#include "MarkerId.hpp"
 #include "MarkerInterval.hpp"
 #include "MemoryAsContainer.hpp"
 #include "ReadId.hpp"
