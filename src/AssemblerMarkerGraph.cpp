@@ -312,17 +312,17 @@ void Assembler::createMarkerGraphVertices(
     // That becomes the vertex id assigned to that marker.
     // This could be multithreaded.
     cout << timestamp << "Assigning vertex ids to markers." << endl;
-    globalMarkerGraphVertex.createNew(
+    markerGraph.vertexTable.createNew(
         largeDataName("GlobalMarkerGraphVertex"),
         largeDataPageSize);
-    globalMarkerGraphVertex.reserveAndResize(data.orientedMarkerCount);
+    markerGraph.vertexTable.reserveAndResize(data.orientedMarkerCount);
     for(MarkerGraph::VertexId markerId=0;
         markerId<data.orientedMarkerCount; ++markerId) {
         auto oldValue = data.disjointSetTable[markerId];
         if(oldValue == MarkerGraph::invalidVertexId) {
-            globalMarkerGraphVertex[markerId] = MarkerGraph::invalidCompressedVertexId;
+            markerGraph.vertexTable[markerId] = MarkerGraph::invalidCompressedVertexId;
         } else {
-            globalMarkerGraphVertex[markerId] = data.workArea[oldValue];
+        	markerGraph.vertexTable[markerId] = data.workArea[oldValue];
         }
     }
 
@@ -552,24 +552,24 @@ void Assembler::createMarkerGraphVerticesThreadFunction45(int value)
 
 
 
-// Check for consistency of globalMarkerGraphVertex and markerGraph.vertices.
+// Check for consistency of markerGraph.vertexTable and markerGraph.vertices.
 void Assembler::checkMarkerGraphVertices(
     size_t minCoverage,
     size_t maxCoverage)
 {
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
-    CZI_ASSERT(markers.totalSize() == globalMarkerGraphVertex.size());
+    CZI_ASSERT(markers.totalSize() == markerGraph.vertexTable.size());
     const MarkerId markerCount = markers.totalSize();
 
 
 
     // Dump everything. Only turn on for a very small test case.
     if(false) {
-        ofstream out1("globalMarkerGraphVertex.csv");
+        ofstream out1("MarkerGraphVertexTable.csv");
         out1 << "MarkerId,VertexId\n";
         for(MarkerId markerId=0; markerId<markerCount; markerId++) {
-            out1 << markerId << "," << globalMarkerGraphVertex[markerId] << "\n";
+            out1 << markerId << "," << markerGraph.vertexTable[markerId] << "\n";
         }
         ofstream out2("MarkerGraphVertices.csv");
         out1 << "VertexId,MarkerId\n";
@@ -591,10 +591,10 @@ void Assembler::checkMarkerGraphVertices(
         CZI_ASSERT(markers.size() >= minCoverage);
         CZI_ASSERT(markers.size() <= maxCoverage);
         for(const MarkerId markerId: markers) {
-            if(globalMarkerGraphVertex[markerId] != vertexId) {
+            if(markerGraph.vertexTable[markerId] != vertexId) {
                 cout << "Failure at vertex " << vertexId << " marker " << markerId << endl;
             }
-            CZI_ASSERT(globalMarkerGraphVertex[markerId] == vertexId);
+            CZI_ASSERT(markerGraph.vertexTable[markerId] == vertexId);
         }
     }
 }
@@ -610,7 +610,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
-            const MarkerId rawVertexId = globalMarkerGraphVertex[i];
+            const MarkerId rawVertexId = markerGraph.vertexTable[i];
             __sync_fetch_and_add(workArea + rawVertexId, 1ULL);
         }
     }
@@ -628,10 +628,10 @@ void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
-            const MarkerId rawVertexId = globalMarkerGraphVertex[i];
+            const MarkerId rawVertexId = markerGraph.vertexTable[i];
             CZI_ASSERT(rawVertexId != maxValueMinus1);
             const MarkerId finalVertexId = workArea[rawVertexId];
-            globalMarkerGraphVertex[i] = finalVertexId;
+            markerGraph.vertexTable[i] = finalVertexId;
         }
     }
 }
@@ -641,8 +641,8 @@ void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
 
 void Assembler::accessMarkerGraphVertices()
 {
-    globalMarkerGraphVertex.accessExistingReadOnly(
-        largeDataName("GlobalMarkerGraphVertex"));
+    markerGraph.vertexTable.accessExistingReadOnly(
+        largeDataName("MarkerGraphVertexTable"));
 
     markerGraph.vertices.accessExistingReadOnly(
         largeDataName("MarkerGraphVertices"));
@@ -652,7 +652,7 @@ void Assembler::accessMarkerGraphVertices()
 
 void Assembler::checkMarkerGraphVerticesAreAvailable()
 {
-    if(!markerGraph.vertices.isOpen() || !globalMarkerGraphVertex.isOpen) {
+    if(!markerGraph.vertices.isOpen() || !markerGraph.vertexTable.isOpen) {
         throw runtime_error("Vertices of the marker graph are not accessible.");
     }
 }
@@ -673,7 +673,7 @@ MarkerGraph::VertexId Assembler::getGlobalMarkerGraphVertex(
     uint32_t ordinal) const
 {
     const MarkerId markerId =  getMarkerId(orientedReadId, ordinal);
-    return globalMarkerGraphVertex[markerId];
+    return markerGraph.vertexTable[markerId];
 }
 
 
@@ -749,7 +749,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
             // Find the vertex id.
             const MarkerId childMarkerId =  getMarkerId(orientedReadId, ordinal);
             const MarkerGraph::VertexId childVertexId =
-                globalMarkerGraphVertex[childMarkerId];
+                markerGraph.vertexTable[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
             if(childVertexId != MarkerGraph::invalidCompressedVertexId &&
@@ -799,7 +799,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
             // Find the vertex id.
             const MarkerId childMarkerId =  getMarkerId(info.orientedReadId, info.ordinals[1]);
             const MarkerGraph::VertexId childVertexId =
-                globalMarkerGraphVertex[childMarkerId];
+                markerGraph.vertexTable[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
             if( childVertexId!=MarkerGraph::invalidCompressedVertexId &&
@@ -877,7 +877,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
             // Find the vertex id.
             const MarkerId parentMarkerId =  getMarkerId(orientedReadId, ordinal);
             const MarkerGraph::VertexId parentVertexId =
-                globalMarkerGraphVertex[parentMarkerId];
+                markerGraph.vertexTable[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
             if(parentVertexId != MarkerGraph::invalidCompressedVertexId &&
@@ -930,7 +930,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
             // Find the vertex id.
             const MarkerId parentMarkerId =  getMarkerId(info.orientedReadId, info.ordinals[1]);
             const MarkerGraph::VertexId parentVertexId =
-                globalMarkerGraphVertex[parentMarkerId];
+                markerGraph.vertexTable[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
             if( parentVertexId!=MarkerGraph::invalidCompressedVertexId &&
@@ -1063,7 +1063,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
             // Find the vertex id.
             const MarkerId markerId1 =  getMarkerId(orientedReadId, ordinal1);
             const MarkerGraph::VertexId vertexId1Candidate =
-                globalMarkerGraphVertex[markerId1];
+                markerGraph.vertexTable[markerId1];
 
             // If this marker correspond to vertexId1, add it to our list.
             if(vertexId1Candidate != MarkerGraph::invalidCompressedVertexId &&
@@ -1128,7 +1128,7 @@ void Assembler::extractLocalMarkerGraph(
         assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
-        globalMarkerGraphVertex,
+        markerGraph.vertexTable,
         *consensusCaller);
     extractLocalMarkerGraph(OrientedReadId(readId, strand), ordinal, distance, 0., graph);
 
@@ -1664,7 +1664,7 @@ vector<MarkerGraph::VertexId> Assembler::getLocalAssemblyPath(
         assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
-        globalMarkerGraphVertex,
+        markerGraph.vertexTable,
         *consensusCaller);
     extractLocalMarkerGraph(startVertexId, maxDistance, 0., graph);
 

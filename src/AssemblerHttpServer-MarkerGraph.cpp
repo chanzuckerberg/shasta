@@ -55,7 +55,7 @@ void Assembler::exploreMarkerGraph(
         assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
-        globalMarkerGraphVertex,
+        markerGraph.vertexTable,
         *consensusCaller);
     const auto createStartTime = steady_clock::now();
     if(requestParameters.useStoredConnectivity) {

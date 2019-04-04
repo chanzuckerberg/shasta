@@ -46,6 +46,12 @@ public:
     // For a given vertex, the marker ids are sorted.
     MemoryMapped::VectorOfVectors<MarkerId, MarkerGraph::CompressedVertexId> vertices;
 
+    // The global marker graph vertex corresponding to each marker.
+    // Indexed by MarkerId.
+    // For markers that don't correspond ot a marker graph vertex,
+    // this stores invalidCompressedVertexId.
+    MemoryMapped::Vector<MarkerGraph::CompressedVertexId> vertexTable;
+
     // The edges of the marker graph.
     class Edge {
     public:

@@ -828,10 +828,6 @@ private:
 
 
 
-    // The global marker graph vertex corresponding to each marker.
-    // Indexed by MarkerId.
-    MemoryMapped::Vector<MarkerGraph::CompressedVertexId> globalMarkerGraphVertex;
-
     void checkMarkerGraphVerticesAreAvailable();
 
     // Check for consistency of globalMarkerGraphVertex and globalMarkerGraphVertices.
