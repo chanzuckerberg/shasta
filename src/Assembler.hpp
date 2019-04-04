@@ -1179,28 +1179,11 @@ private:
 
 
 
-public:
-    // Remove short cycles from the marker graph.
-    // The argument is the maximum length (number of edges)
-    // of a cycle path to be considered for removal.
-    // For now this only processes self-edges of the assembly graph.
-    void removeShortMarkerGraphCycles(size_t maxLength, bool debug);
-
-    // Remove short bubbles from the marker graph.
-    // The argument is the maximum length (number of edges)
-    // of a bubble branch to be considered for removal.
-    void removeMarkerGraphBubbles(size_t maxLength, bool debug);
-
-    // Remove short superbubbles from the marker graph.
-    // The argument is a number of marker graph edges.
-    // See the code for detail on its meaning and how it is used.
-    void removeMarkerGraphSuperBubbles(size_t maxLength, bool debug);
 
     // Simplify the marker graph.
-    // This is a more robust replacement for removeShortMarkerGraphCycles +
-    // removeMarkerGraphBubbles + removeMarkerGraphSuperBubbles.
     // The first argument is a number of marker graph edges.
     // See the code for detail on its meaning and how it is used.
+public:
     void simplifyMarkerGraph(
         const vector<size_t>& maxLength, // One value for each iteration.
         bool debug);
@@ -1214,12 +1197,6 @@ private:
         size_t maxLength,
         bool debug);
 
-    // Used by removeMarkerGraphBubbles and removeMarkerGraphSuperBubbles.
-    void createBubbleReplacementEdge(
-        GlobalMarkerGraphVertexId,
-        GlobalMarkerGraphVertexId,
-        bool isSuperBubble,
-        vector<MarkerInterval>&);
 
 
     // In the assembly graph, each vertex corresponds to a linear chain

@@ -327,20 +327,8 @@ PYBIND11_MODULE(shasta, module)
         .def("pruneMarkerGraphStrongSubgraph",
             &Assembler::pruneMarkerGraphStrongSubgraph,
             arg("iterationCount"))
-        .def("removeMarkerGraphBubbles",
-            &Assembler::removeMarkerGraphBubbles,
-            arg("maxLength"),
-            arg("debug") = false)
-        .def("removeMarkerGraphSuperBubbles",
-            &Assembler::removeMarkerGraphSuperBubbles,
-            arg("maxLength"),
-            arg("debug") = false)
         .def("simplifyMarkerGraph",
             &Assembler::simplifyMarkerGraph,
-            arg("maxLength"),
-            arg("debug") = false)
-        .def("removeShortMarkerGraphCycles",
-            &Assembler::removeShortMarkerGraphCycles,
             arg("maxLength"),
             arg("debug") = false)
         .def("assembleMarkerGraphVertices",
