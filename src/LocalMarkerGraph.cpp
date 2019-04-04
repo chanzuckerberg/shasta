@@ -32,7 +32,7 @@ LocalMarkerGraph::LocalMarkerGraph(
     bool useRunLengthReads,
     const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex,
+    const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
     const ConsensusCaller& consensusCaller
     ) :
     k(k),

@@ -1021,7 +1021,7 @@ void Assembler::exploreRead(
         const MarkerGraph::VertexId vertexId =
             getGlobalMarkerGraphVertex(orientedReadId, ordinal);
         const bool hasMarkerGraphVertex =
-            (vertexId != invalidCompressedGlobalMarkerGraphVertexId);
+            (vertexId != MarkerGraph::invalidCompressedVertexId);
 
 
 

@@ -20,14 +20,6 @@ namespace ChanZuckerberg {
 		// where uint32_t is sufficient.
 		using MarkerId = uint64_t;
 
-		// To save memory, store marker ids using 5 bytes.
-        // This allows for up to 2^40 = 1 Ti markers (both strands).
-        // A human size run with 40x coverage and 10% markers
-        // has around 25 G markers (both strands).
-        using CompressedGlobalMarkerGraphVertexId = Uint40;
-        const CompressedGlobalMarkerGraphVertexId
-            invalidCompressedGlobalMarkerGraphVertexId = std::numeric_limits<uint64_t>::max();
-
     }
 }
 
@@ -40,6 +32,14 @@ public:
 	using EdgeId = MarkerId;
 	static const VertexId invalidVertexId;
 	static const EdgeId invalidEdgeId;
+
+	// To save memory, store vertex ids using 5 bytes.
+    // This allows for up to 2^40 = 1 Ti markers (both strands).
+    // A human size run with 40x coverage and 10% markers
+    // has around 25 G markers (both strands).
+    using CompressedVertexId = Uint40;
+    static const CompressedVertexId invalidCompressedVertexId ;
+
 
     // The edges of the marker graph.
     class Edge {
@@ -86,8 +86,8 @@ public:
             flag7 = 0;
         }
         Edge() :
-            source(invalidCompressedGlobalMarkerGraphVertexId),
-            target(invalidCompressedGlobalMarkerGraphVertexId),
+            source(MarkerGraph::invalidCompressedVertexId),
+            target(MarkerGraph::invalidCompressedVertexId),
             coverage(0)
         {
             clearFlags();

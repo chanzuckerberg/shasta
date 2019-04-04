@@ -320,7 +320,7 @@ void Assembler::createMarkerGraphVertices(
         markerId<data.orientedMarkerCount; ++markerId) {
         auto oldValue = data.disjointSetTable[markerId];
         if(oldValue == MarkerGraph::invalidVertexId) {
-            globalMarkerGraphVertex[markerId] = invalidCompressedGlobalMarkerGraphVertexId;
+            globalMarkerGraphVertex[markerId] = MarkerGraph::invalidCompressedVertexId;
         } else {
             globalMarkerGraphVertex[markerId] = data.workArea[oldValue];
         }
@@ -752,7 +752,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
                 globalMarkerGraphVertex[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if(childVertexId != invalidCompressedGlobalMarkerGraphVertexId &&
+            if(childVertexId != MarkerGraph::invalidCompressedVertexId &&
                 !isBadMarkerGraphVertex(childVertexId)) {
                 children.push_back(childVertexId);
                 break;
@@ -802,7 +802,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
                 globalMarkerGraphVertex[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if( childVertexId!=invalidCompressedGlobalMarkerGraphVertexId &&
+            if( childVertexId!=MarkerGraph::invalidCompressedVertexId &&
                 !isBadMarkerGraphVertex(childVertexId)) {
                 workArea.push_back(make_pair(childVertexId, info));
                 break;
@@ -880,7 +880,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
                 globalMarkerGraphVertex[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if(parentVertexId != invalidCompressedGlobalMarkerGraphVertexId &&
+            if(parentVertexId != MarkerGraph::invalidCompressedVertexId &&
                 !isBadMarkerGraphVertex(parentVertexId)) {
                 parents.push_back(parentVertexId);
                 break;
@@ -933,7 +933,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
                 globalMarkerGraphVertex[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if( parentVertexId!=invalidCompressedGlobalMarkerGraphVertexId &&
+            if( parentVertexId!=MarkerGraph::invalidCompressedVertexId &&
                 !isBadMarkerGraphVertex(parentVertexId)) {
                 workArea.push_back(make_pair(parentVertexId, info));
                 break;
@@ -1066,7 +1066,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
                 globalMarkerGraphVertex[markerId1];
 
             // If this marker correspond to vertexId1, add it to our list.
-            if(vertexId1Candidate != invalidCompressedGlobalMarkerGraphVertexId &&
+            if(vertexId1Candidate != MarkerGraph::invalidCompressedVertexId &&
                 !isBadMarkerGraphVertex(vertexId1Candidate)) {
                 if(vertexId1Candidate == vertexId1) {
                     intervals.push_back(MarkerInterval(orientedReadId, ordinal0, ordinal1));
@@ -1173,7 +1173,7 @@ bool Assembler::extractLocalMarkerGraph(
     const auto startTime = steady_clock::now();
 
     // Add the start vertex.
-    if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
+    if(startVertexId == MarkerGraph::invalidCompressedVertexId) {
         return true;    // Because no timeout occurred.
     }
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
@@ -1411,7 +1411,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     const auto startTime = steady_clock::now();
 
     // Add the start vertex.
-    if(startVertexId == invalidCompressedGlobalMarkerGraphVertexId) {
+    if(startVertexId == MarkerGraph::invalidCompressedVertexId) {
         return true;    // Because no timeout occurred.
     }
     const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);

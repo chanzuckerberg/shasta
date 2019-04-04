@@ -242,7 +242,7 @@ public:
         bool useRunLengthReads,
         const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-        const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex,
+        const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
         const ConsensusCaller&
         );
 
@@ -411,7 +411,7 @@ private:
     // A reference to the vector containing the global marker graph vertex id
     // corresponding to each marker.
     // Indexed by MarkerId.
-    const MemoryMapped::Vector<CompressedGlobalMarkerGraphVertexId>& globalMarkerGraphVertex;
+    const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex;
 
     // Object used to compute consensus bases and repeat counts.
     // This is owned by the caller (the Assembler object).
