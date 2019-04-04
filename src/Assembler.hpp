@@ -832,11 +832,6 @@ private:
     // Indexed by MarkerId.
     MemoryMapped::Vector<MarkerGraph::CompressedVertexId> globalMarkerGraphVertex;
 
-    // The oriented marker ids of the markers corresponding to
-    // each vertex of the global marker graph.
-    // Indexed by MarkerGraph::VertexId.
-    // For a given vertex, the oriented marker ids are sorted.
-    MemoryMapped::VectorOfVectors<MarkerId, MarkerGraph::CompressedVertexId> globalMarkerGraphVertices;
     void checkMarkerGraphVerticesAreAvailable();
 
     // Check for consistency of globalMarkerGraphVertex and globalMarkerGraphVertices.

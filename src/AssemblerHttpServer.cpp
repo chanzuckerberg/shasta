@@ -463,7 +463,7 @@ void Assembler::exploreSummary(
         "<td class=right>" << alignmentData.size() <<
 
         "<tr><td title='Number of vertices in the global marker graph'>Marker graph vertices"
-        "<td class=right>" << globalMarkerGraphVertices.size() <<
+        "<td class=right>" << markerGraph.vertices.size() <<
 
         "</table>";
 }
@@ -1029,7 +1029,7 @@ void Assembler::exploreRead(
         const Kmer kmer(marker.kmerId, k);
         html << "<a xlink:title='Marker " << ordinal << ", position " << marker.position;
         if(hasMarkerGraphVertex) {
-            html << ", coverage " << globalMarkerGraphVertices.size(vertexId);
+            html << ", coverage " << markerGraph.vertices.size(vertexId);
         }
         html << "' id='" << ordinal << "'";
         if(hasMarkerGraphVertex) {

@@ -1062,7 +1062,7 @@ void Assembler::assembleAssemblyGraphEdge(
     // Get vertex coverage.
     assembledSegment.vertexCoverage.resize(assembledSegment.vertexCount);
     for(size_t i=0; i<assembledSegment.vertexCount; i++) {
-        assembledSegment.vertexCoverage[i] = uint32_t(globalMarkerGraphVertices.size(assembledSegment.vertexIds[i]));
+        assembledSegment.vertexCoverage[i] = uint32_t(markerGraph.vertices.size(assembledSegment.vertexIds[i]));
     }
 
     // Edge coverage.
@@ -1080,7 +1080,7 @@ void Assembler::assembleAssemblyGraphEdge(
     for(size_t i=0; i<assembledSegment.vertexCount; i++) {
 
         // Get the sequence.
-        const MarkerId firstMarkerId = globalMarkerGraphVertices[assembledSegment.vertexIds[i]][0];
+        const MarkerId firstMarkerId = markerGraph.vertices[assembledSegment.vertexIds[i]][0];
         const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
         const KmerId kmerId = firstMarker.kmerId;
         const Kmer kmer(kmerId, assemblerInfo->k);

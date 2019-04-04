@@ -30,7 +30,7 @@ void Assembler::exploreMarkerGraph(
     getLocalMarkerGraphRequestParameters(request, requestParameters);
 
     // Write the form.
-    requestParameters.writeForm(html, globalMarkerGraphVertices.size());
+    requestParameters.writeForm(html, markerGraph.vertices.size());
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -40,9 +40,9 @@ void Assembler::exploreMarkerGraph(
 
 
     // Validity checks.
-    if(requestParameters.vertexId > globalMarkerGraphVertices.size()) {
+    if(requestParameters.vertexId > markerGraph.vertices.size()) {
         html << "<p>Invalid vertex id " << requestParameters.vertexId;
-        html << ". Must be between 0 and " << globalMarkerGraphVertices.size()-1 << " inclusive.";
+        html << ". Must be between 0 and " << markerGraph.vertices.size()-1 << " inclusive.";
         return;
     }
 
@@ -1141,20 +1141,20 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         "<input type=submit value='Show details for marker graph vertex'> "
         "<input type=text name=vertexId required" <<
         (vertexIdIsPresent ? (" value=" + to_string(vertexId)) : "") <<
-        " size=8 title='Enter a vertex id between 0 and " << globalMarkerGraphVertices.size()-1 << "'>";
+        " size=8 title='Enter a vertex id between 0 and " << markerGraph.vertices.size()-1 << "'>";
     html << "</form>";
 
     // If the vertex id missing or invalid, stop here.
     if(!vertexIdIsPresent || !vertexIdIsPresent) {
         return;
     }
-    if(vertexId >= globalMarkerGraphVertices.size()) {
-        html << "<p>Invalid vertex id. Must be less than " << globalMarkerGraphVertices.size() << ".";
+    if(vertexId >= markerGraph.vertices.size()) {
+        html << "<p>Invalid vertex id. Must be less than " << markerGraph.vertices.size() << ".";
         return;
     }
 
     // Access the markers of this vertex.
-    MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
+    MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
     const size_t markerCount = markerIds.size();
     CZI_ASSERT(markerCount > 0);
 

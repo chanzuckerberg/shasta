@@ -332,18 +332,18 @@ void Assembler::createMarkerGraphVertices(
     // Each corresponds to a vertex of the global marker graph.
     // This could be multithreaded.
     cout << timestamp << "Gathering the markers of each vertex of the marker graph." << endl;
-    globalMarkerGraphVertices.createNew(
-        largeDataName("GlobalMarkerGraphVertices"),
+    markerGraph.vertices.createNew(
+        largeDataName("MarkerGraphVertices"),
         largeDataPageSize);
     for(MarkerGraph::VertexId oldDisjointSetId=0;
         oldDisjointSetId<disjointSetCount; ++oldDisjointSetId) {
         if(data.isBadDisjointSet[oldDisjointSetId]) {
             continue;
         }
-        globalMarkerGraphVertices.appendVector();
+        markerGraph.vertices.appendVector();
         const auto markers = data.disjointSetMarkers[oldDisjointSetId];
         for(const MarkerId markerId: markers) {
-            globalMarkerGraphVertices.append(markerId);
+            markerGraph.vertices.append(markerId);
         }
     }
     data.isBadDisjointSet.remove();
@@ -552,7 +552,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction45(int value)
 
 
 
-// Check for consistency of globalMarkerGraphVertex and globalMarkerGraphVertices.
+// Check for consistency of globalMarkerGraphVertex and markerGraph.vertices.
 void Assembler::checkMarkerGraphVertices(
     size_t minCoverage,
     size_t maxCoverage)
@@ -571,11 +571,11 @@ void Assembler::checkMarkerGraphVertices(
         for(MarkerId markerId=0; markerId<markerCount; markerId++) {
             out1 << markerId << "," << globalMarkerGraphVertex[markerId] << "\n";
         }
-        ofstream out2("globalMarkerGraphVertices.csv");
+        ofstream out2("MarkerGraphVertices.csv");
         out1 << "VertexId,MarkerId\n";
         for(MarkerGraph::VertexId vertexId=0;
-            vertexId<globalMarkerGraphVertices.size(); vertexId++) {
-            const auto markers = globalMarkerGraphVertices[vertexId];
+            vertexId<markerGraph.vertices.size(); vertexId++) {
+            const auto markers = markerGraph.vertices[vertexId];
             for(const MarkerId markerId: markers) {
                 out2 << vertexId << "," << markerId << "\n";
             }
@@ -585,9 +585,9 @@ void Assembler::checkMarkerGraphVertices(
 
 
     for(MarkerGraph::VertexId vertexId=0;
-        vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
+        vertexId!=markerGraph.vertices.size(); vertexId++) {
         CZI_ASSERT(!isBadMarkerGraphVertex(vertexId));
-        const auto markers = globalMarkerGraphVertices[vertexId];
+        const auto markers = markerGraph.vertices[vertexId];
         CZI_ASSERT(markers.size() >= minCoverage);
         CZI_ASSERT(markers.size() <= maxCoverage);
         for(const MarkerId markerId: markers) {
@@ -644,15 +644,15 @@ void Assembler::accessMarkerGraphVertices()
     globalMarkerGraphVertex.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphVertex"));
 
-    globalMarkerGraphVertices.accessExistingReadOnly(
-        largeDataName("GlobalMarkerGraphVertices"));
+    markerGraph.vertices.accessExistingReadOnly(
+        largeDataName("MarkerGraphVertices"));
 }
 
 
 
 void Assembler::checkMarkerGraphVerticesAreAvailable()
 {
-    if(!globalMarkerGraphVertices.isOpen() || !globalMarkerGraphVertex.isOpen) {
+    if(!markerGraph.vertices.isOpen() || !globalMarkerGraphVertex.isOpen) {
         throw runtime_error("Vertices of the marker graph are not accessible.");
     }
 }
@@ -701,7 +701,7 @@ void Assembler::getGlobalMarkerGraphVertexMarkers(
     vector< pair<OrientedReadId, uint32_t> >& markers) const
 {
     markers.clear();
-    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
         OrientedReadId orientedReadId;
         uint32_t ordinal;
         tie(orientedReadId, ordinal) = findMarkerId(markerId);
@@ -735,7 +735,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
 
         // Find the OrientedReadId and ordinal.
         OrientedReadId orientedReadId;
@@ -786,7 +786,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
 
         // Find the OrientedReadId and ordinal.
         MarkerInterval info;
@@ -860,7 +860,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
 
         // Find the OrientedReadId and ordinal.
         OrientedReadId orientedReadId;
@@ -915,7 +915,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: globalMarkerGraphVertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
 
         // Find the OrientedReadId and ordinal.
         MarkerInterval info;
@@ -1051,7 +1051,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
     }
 
     // Loop over markers of vertex0.
-    for(const MarkerId markerId0: globalMarkerGraphVertices[vertexId0]) {
+    for(const MarkerId markerId0: markerGraph.vertices[vertexId0]) {
         OrientedReadId orientedReadId;
         uint32_t ordinal0;
         tie(orientedReadId, ordinal0) = findMarkerId(markerId0);
@@ -1084,7 +1084,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
 bool Assembler::isBadMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 {
     // Get the markers of this vertex.
-    const auto& vertexMarkerIds = globalMarkerGraphVertices[vertexId];
+    const auto& vertexMarkerIds = markerGraph.vertices[vertexId];
 
     // The markers are sorted by OrientedReadId, so we can just check each
     // consecutive pairs.
@@ -1176,7 +1176,7 @@ bool Assembler::extractLocalMarkerGraph(
     if(startVertexId == MarkerGraph::invalidCompressedVertexId) {
         return true;    // Because no timeout occurred.
     }
-    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
+    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, markerGraph.vertices[startVertexId]);
 
     // Some vectors used inside the BFS.
     // Define them here to reduce memory allocation activity.
@@ -1222,7 +1222,7 @@ bool Assembler::extractLocalMarkerGraph(
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(!vertexExists) {
                 v1 = graph.addVertex(
-                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                    vertexId1, distance1, markerGraph.vertices[vertexId1]);
                 if(distance1 < distance) {
                     q.push(v1);
                 }
@@ -1258,7 +1258,7 @@ bool Assembler::extractLocalMarkerGraph(
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(!vertexExists) {
                 v1 = graph.addVertex(
-                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                    vertexId1, distance1, markerGraph.vertices[vertexId1]);
                 if(distance1 < distance) {
                     q.push(v1);
                 }
@@ -1414,7 +1414,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     if(startVertexId == MarkerGraph::invalidCompressedVertexId) {
         return true;    // Because no timeout occurred.
     }
-    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, globalMarkerGraphVertices[startVertexId]);
+    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, markerGraph.vertices[startVertexId]);
 
     // Some vectors used inside the BFS.
     // Define them here to reduce memory allocation activity.
@@ -1460,7 +1460,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
-            CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
+            CZI_ASSERT(vertexId1 < markerGraph.vertices.size());
             CZI_ASSERT(!isBadMarkerGraphVertex(vertexId1));
 
             // Find the vertex corresponding to this child, creating it if necessary.
@@ -1469,7 +1469,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(!vertexExists) {
                 v1 = graph.addVertex(
-                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                    vertexId1, distance1, markerGraph.vertices[vertexId1]);
                 if(distance1 < distance) {
                     q.push(v1);
                 }
@@ -1517,7 +1517,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
             const MarkerGraph::VertexId vertexId1 = edge.source;
             CZI_ASSERT(edge.target == vertexId0);
-            CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
+            CZI_ASSERT(vertexId1 < markerGraph.vertices.size());
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1525,7 +1525,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(!vertexExists) {
                 v1 = graph.addVertex(
-                    vertexId1, distance1, globalMarkerGraphVertices[vertexId1]);
+                    vertexId1, distance1, markerGraph.vertices[vertexId1]);
                 if(distance1 < distance) {
                     q.push(v1);
                 }
@@ -1587,7 +1587,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
-            CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
+            CZI_ASSERT(vertexId1 < markerGraph.vertices.size());
 
             // See if we have a vertex for this global vertex id.
             bool vertexExists;
@@ -1707,9 +1707,9 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     // Each thread stores the edges it finds in a separate vector.
     createMarkerGraphEdgesData.threadEdges.resize(threadCount);
     createMarkerGraphEdgesData.threadEdgeMarkerIntervals.resize(threadCount);
-    cout << timestamp << "Processing " << globalMarkerGraphVertices.size();
+    cout << timestamp << "Processing " << markerGraph.vertices.size();
     cout << " marker graph vertices." << endl;
-    setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
+    setupLoadBalancing(markerGraph.vertices.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction0, threadCount,
         "threadLogs/createMarkerGraphEdges0");
 
@@ -1739,7 +1739,7 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     }
     CZI_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
     cout << timestamp << "Found " << markerGraph.edges.size();
-    cout << " edges for " << globalMarkerGraphVertices.size() << " vertices." << endl;
+    cout << " edges for " << markerGraph.vertices.size() << " vertices." << endl;
 
 
 
@@ -1760,8 +1760,8 @@ void Assembler::createMarkerGraphEdgesBySourceAndTarget(size_t threadCount)
         largeDataPageSize);
 
     cout << timestamp << "Create marker graph edges by source and target: pass 1 begins." << endl;
-    markerGraph.edgesBySource.beginPass1(globalMarkerGraphVertices.size());
-    markerGraph.edgesByTarget.beginPass1(globalMarkerGraphVertices.size());
+    markerGraph.edgesBySource.beginPass1(markerGraph.vertices.size());
+    markerGraph.edgesByTarget.beginPass1(markerGraph.vertices.size());
     setupLoadBalancing(markerGraph.edges.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction1, threadCount);
 
@@ -1815,7 +1815,7 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
 
         // Loop over all marker graph vertices assigned to this batch.
         for(MarkerGraph::VertexId vertex0=begin; vertex0!=end; ++vertex0) {
-            // out << timestamp << vertex0 << " " << globalMarkerGraphVertices.size(vertex0) << endl;
+            // out << timestamp << vertex0 << " " << markerGraph.vertices.size(vertex0) << endl;
             edge.source = vertex0;
 
             getGlobalMarkerGraphVertexChildren(vertex0, children, workArea);
@@ -1925,7 +1925,7 @@ void Assembler::flagMarkerGraphWeakEdges(
     // Initial message.
     cout << timestamp << "Flagging weak edges of the marker graph "
         "via approximate transitive reduction." << endl;
-    cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
+    cout << "The marker graph has " << markerGraph.vertices.size() << " vertices and ";
     cout << edges.size() << " edges." << endl;
 
     // Initially flag all edges as not removed by transitive reduction.
@@ -1974,7 +1974,7 @@ void Assembler::flagMarkerGraphWeakEdges(
     vertexDistances.createNew(
         largeDataName("tmp-flagMarkerGraphWeakEdges-vertexDistances"),
         largeDataPageSize);
-    vertexDistances.resize(globalMarkerGraphVertices.size());
+    vertexDistances.resize(markerGraph.vertices.size());
     fill(vertexDistances.begin(), vertexDistances.end(), -1);
 
     // Queue to be used for all BFSs.
@@ -2132,7 +2132,7 @@ void Assembler::flagMarkerGraphWeakEdges(
     cout << "Flagged as weak " << weakEdgeCount << " marker graph edges out of ";
     cout << markerGraph.edges.size() << " total." << endl;
 
-    cout << "The marker graph has " << globalMarkerGraphVertices.size() << " vertices and ";
+    cout << "The marker graph has " << markerGraph.vertices.size() << " vertices and ";
     cout << markerGraph.edges.size()-weakEdgeCount << " strong edges." << endl;
 
     cout << timestamp << "Done flagging weak edges of the marker graph." << endl;
@@ -2148,7 +2148,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
     // Each of these two must be sized maxDistance.
     array<vector< vector<MarkerGraph::EdgeId> >, 2>& verticesByDistance,
 
-    // Each of these two must be sized globalMarkerGraphVertices.size()
+    // Each of these two must be sized markerGraph.vertices.size()
     // and set to all false on entry.
     // It is left set to all false on exit, so it can be reused.
     array<vector<bool>, 2>& vertexFlags
@@ -2164,7 +2164,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
     // Check that the work areas are sized as expected.
     for(size_t i=0; i<2; i++) {
         CZI_ASSERT(verticesByDistance[i].size() == maxDistance+1);
-        CZI_ASSERT(vertexFlags[i].size() == globalMarkerGraphVertices.size());
+        CZI_ASSERT(vertexFlags[i].size() == markerGraph.vertices.size());
     }
 
     // Find the two vertices of the starting edge.
@@ -2382,9 +2382,9 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
             ++count;
         }
     }
-    cout << "The marker graph has " << globalMarkerGraphVertices.size();
+    cout << "The marker graph has " << markerGraph.vertices.size();
     cout << " vertices and " << edgeCount << " edges." << endl;
-    cout << "The pruned strong subgraph has " << globalMarkerGraphVertices.size();
+    cout << "The pruned strong subgraph has " << markerGraph.vertices.size();
     cout << " vertices and " << count << " edges." << endl;
 }
 
@@ -2580,7 +2580,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 {
 
     // Access the markers of this vertex.
-    const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
+    const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
     const size_t markerCount = markerIds.size();
     CZI_ASSERT(markerCount > 0);
 
@@ -3918,11 +3918,11 @@ void Assembler::assembleMarkerGraphVertices(size_t threadCount)
     markerGraph.vertexRepeatCounts.createNew(
         largeDataName("MarkerGraphVertexRepeatCounts"),
         largeDataPageSize);
-    markerGraph.vertexRepeatCounts.resize(assemblerInfo->k * globalMarkerGraphVertices.size());
+    markerGraph.vertexRepeatCounts.resize(assemblerInfo->k * markerGraph.vertices.size());
 
     // Do the work in parallel.
     size_t batchSize = 100000;
-    setupLoadBalancing(globalMarkerGraphVertices.size(), batchSize);
+    setupLoadBalancing(markerGraph.vertices.size(), batchSize);
     runThreads(&Assembler::assembleMarkerGraphVerticesThreadFunction, threadCount);
 
     cout << timestamp << "assembleMarkerGraphVertices ends." << endl;
@@ -3988,7 +3988,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData.resize(threadCount);
 
     // Do the computation in parallel.
-    setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
+    setupLoadBalancing(markerGraph.vertices.size(), 100000);
     runThreads(&Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction, threadCount);
 
     // Figure out where the results for each vertex are.
@@ -3997,7 +3997,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     // in a MemoryMapped::Vector instead.
     const size_t invalidValue = std::numeric_limits<size_t>::max();
     vector< pair<size_t, size_t > > vertexTable(
-        globalMarkerGraphVertices.size(),
+        markerGraph.vertices.size(),
         make_pair(invalidValue, invalidValue));
     for(size_t threadId=0; threadId!=threadCount; threadId++) {
         const auto& vertexIds = *computeMarkerGraphVerticesCoverageDataData.threadVertexIds[threadId];
@@ -4011,7 +4011,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     // Gather the results computed by all the threads.
     markerGraph.vertexCoverageData.createNew(
         largeDataName("MarkerGraphVerticesCoverageData"), largeDataPageSize);
-    for(MarkerGraph::VertexId vertexId=0; vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
+    for(MarkerGraph::VertexId vertexId=0; vertexId!=markerGraph.vertices.size(); vertexId++) {
         const auto& p = vertexTable[vertexId];
         const size_t threadId = p.first;
         const size_t i = p.second;
@@ -4065,7 +4065,7 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
         for(MarkerGraph::VertexId vertexId=begin; vertexId!=end; vertexId++) {
 
             // Access the markers of this vertex.
-            const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
+            const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
             const size_t markerCount = markerIds.size();
             CZI_ASSERT(markerCount > 0);
 

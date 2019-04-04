@@ -40,6 +40,11 @@ public:
     using CompressedVertexId = Uint40;
     static const CompressedVertexId invalidCompressedVertexId ;
 
+    // The marker ids of the markers corresponding to
+    // each vertex of the global marker graph.
+    // Indexed by VertexId.
+    // For a given vertex, the marker ids are sorted.
+    MemoryMapped::VectorOfVectors<MarkerId, MarkerGraph::CompressedVertexId> vertices;
 
     // The edges of the marker graph.
     class Edge {
