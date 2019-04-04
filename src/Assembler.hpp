@@ -343,13 +343,6 @@ public:
         int maxDistance
         );
 
-
-
-    // Create edges of the global marker graph.
-    void createMarkerGraphEdges(size_t threadCount);
-    void accessMarkerGraphEdges(bool accessEdgesReadWrite);
-    void checkMarkerGraphEdgesIsOpen();
-
     // Find weak edges in the marker graph.
     void flagMarkerGraphWeakEdges(
         size_t lowCoverageThreshold,
@@ -925,11 +918,6 @@ private:
         // The MarkerIntervals for each of the above edges.
         MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> edgeMarkerIntervals;
 
-        // The edges and their MarkerIntervals found by each thread.
-        // This is temporary and only used inside createMarkerGraphConnectivity.
-        vector< shared_ptr<MemoryMapped::Vector<Edge> > > threadEdges;
-        vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
-
         // The edges that each vertex is the source of.
         // Contains indexes into the above edges vector.
         MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesBySource;
@@ -983,11 +971,26 @@ private:
             edgeCoverageData;
     };
     MarkerGraph markerGraph;
+
+
+
+    // Create marker graph edges.
+public:
+    void createMarkerGraphEdges(size_t threadCount);
+    void accessMarkerGraphEdges(bool accessEdgesReadWrite);
+    void checkMarkerGraphEdgesIsOpen();        // The edges and their MarkerIntervals found by each thread.
+private:
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
     void createMarkerGraphEdgesThreadFunction1(size_t threadId);
     void createMarkerGraphEdgesThreadFunction2(size_t threadId);
     void createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t pass);
     void createMarkerGraphEdgesBySourceAndTarget(size_t threadCount);
+    class CreateMarkerGraphEdgesData {
+    public:
+		vector< shared_ptr<MemoryMapped::Vector<MarkerGraph::Edge> > > threadEdges;
+		vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
+    };
+    CreateMarkerGraphEdgesData createMarkerGraphEdgesData;
 
 
 

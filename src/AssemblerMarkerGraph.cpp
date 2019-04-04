@@ -1741,8 +1741,8 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     cout << "Using " << threadCount << " threads." << endl;
 
     // Each thread stores the edges it finds in a separate vector.
-    markerGraph.threadEdges.resize(threadCount);
-    markerGraph.threadEdgeMarkerIntervals.resize(threadCount);
+    createMarkerGraphEdgesData.threadEdges.resize(threadCount);
+    createMarkerGraphEdgesData.threadEdgeMarkerIntervals.resize(threadCount);
     cout << timestamp << "Processing " << globalMarkerGraphVertices.size();
     cout << " marker graph vertices." << endl;
     setupLoadBalancing(globalMarkerGraphVertices.size(), 100000);
@@ -1758,8 +1758,8 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
             largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"),
             largeDataPageSize);
     for(size_t threadId=0; threadId<threadCount; threadId++) {
-        auto& thisThreadEdges = *markerGraph.threadEdges[threadId];
-        auto& thisThreadEdgeMarkerIntervals = *markerGraph.threadEdgeMarkerIntervals[threadId];
+        auto& thisThreadEdges = *createMarkerGraphEdgesData.threadEdges[threadId];
+        auto& thisThreadEdgeMarkerIntervals = *createMarkerGraphEdgesData.threadEdgeMarkerIntervals[threadId];
         CZI_ASSERT(thisThreadEdges.size() == thisThreadEdgeMarkerIntervals.size());
         for(size_t i=0; i<thisThreadEdges.size(); i++) {
             const auto& edge = thisThreadEdges[i];
@@ -1822,7 +1822,7 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
     // Create the vector to contain the edges found by this thread.
     shared_ptr< MemoryMapped::Vector<MarkerGraph::Edge> > thisThreadEdgesPointer =
         make_shared< MemoryMapped::Vector<MarkerGraph::Edge> >();
-    markerGraph.threadEdges[threadId] = thisThreadEdgesPointer;
+    createMarkerGraphEdgesData.threadEdges[threadId] = thisThreadEdgesPointer;
     MemoryMapped::Vector<MarkerGraph::Edge>& thisThreadEdges = *thisThreadEdgesPointer;
     thisThreadEdges.createNew(
             largeDataName("tmp-ThreadGlobalMarkerGraphEdges-" + to_string(threadId)),
@@ -1832,7 +1832,7 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
     shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> >
         thisThreadEdgeMarkerIntervalsPointer =
         make_shared< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> >();
-    markerGraph.threadEdgeMarkerIntervals[threadId] = thisThreadEdgeMarkerIntervalsPointer;
+    createMarkerGraphEdgesData.threadEdgeMarkerIntervals[threadId] = thisThreadEdgeMarkerIntervalsPointer;
     MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t>&
         thisThreadEdgeMarkerIntervals = *thisThreadEdgeMarkerIntervalsPointer;
     thisThreadEdgeMarkerIntervals.createNew(
