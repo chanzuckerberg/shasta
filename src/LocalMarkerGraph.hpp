@@ -18,6 +18,7 @@ a group of aligned markers.
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
 #include "Kmer.hpp"
+#include "MarkerGraph.hpp"
 #include "MarkerId.hpp"
 #include "MarkerInterval.hpp"
 #include "MemoryAsContainer.hpp"
@@ -194,7 +195,7 @@ public:
 
     // Id of the global edge corresponding to this edge.
     // Only filled in when the graph is created using stored connectivity.
-    GlobalMarkerGraphEdgeId edgeId = invalidGlobalMarkerGraphEdgeId;
+    GlobalMarkerGraphEdgeId edgeId = MarkerGraph::invalidEdgeId;
 
     // The id of the assembly graph edge that contains this marker graph edge,
     // or std::numeric_limits<AssemblyGraph::EdgeId>::max() if this

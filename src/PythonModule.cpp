@@ -443,7 +443,7 @@ PYBIND11_MODULE(shasta, module)
 
 
     // Constants.
-    module.attr("invalidGlobalMarkerGraphVertexId") = invalidGlobalMarkerGraphVertexId;
+    module.attr("invalidGlobalMarkerGraphVertexId") = MarkerGraph::invalidVertexId;
     module.attr("invalidCompressedGlobalMarkerGraphVertexId") =
         uint64_t(invalidCompressedGlobalMarkerGraphVertexId);
 

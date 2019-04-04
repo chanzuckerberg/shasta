@@ -1,6 +1,9 @@
 #ifndef CZI_SHASTA_MARKER_GRAPH_HPP
 #define CZI_SHASTA_MARKER_GRAPH_HPP
 
+#include "Base.hpp"
+#include "Coverage.hpp"
+#include "MarkerId.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "Uint.hpp"
 #include "cstdint.hpp"
@@ -15,6 +18,11 @@ namespace ChanZuckerberg {
 
 class ChanZuckerberg::shasta::MarkerGraph {
 public:
+
+	using VertexId = MarkerId;
+	using EdgeId = MarkerId;
+	static const VertexId invalidVertexId;
+	static const EdgeId invalidEdgeId;
 
     // The edges of the marker graph.
     class Edge {

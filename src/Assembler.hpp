@@ -286,7 +286,7 @@ public:
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
     // it belongs to, plus the ordinal of the marker in the oriented read.
-    GlobalMarkerGraphVertexId getGlobalMarkerGraphVertex(
+    MarkerGraph::VertexId getGlobalMarkerGraphVertex(
         ReadId,
         Strand,
         uint32_t ordinal) const;
@@ -294,15 +294,15 @@ public:
     // Find the markers contained in a given vertex of the global marker graph.
     // Returns the markers as tuples(read id, strand, ordinal).
     vector< tuple<ReadId, Strand, uint32_t> >
-        getGlobalMarkerGraphVertexMarkers(GlobalMarkerGraphVertexId) const;
+        getGlobalMarkerGraphVertexMarkers(MarkerGraph::VertexId) const;
 
     // Find the children or parents of a vertex of the global marker graph.
-    vector<GlobalMarkerGraphVertexId>
+    vector<MarkerGraph::VertexId>
         getGlobalMarkerGraphVertexChildren(
-        GlobalMarkerGraphVertexId) const;
-    vector<GlobalMarkerGraphVertexId>
+        MarkerGraph::VertexId) const;
+    vector<MarkerGraph::VertexId>
         getGlobalMarkerGraphVertexParents(
-        GlobalMarkerGraphVertexId) const;
+        MarkerGraph::VertexId) const;
 
 
 
@@ -321,16 +321,16 @@ public:
         string sequence;
     };
     vector<GlobalMarkerGraphEdgeInformation> getGlobalMarkerGraphEdgeInformation(
-        GlobalMarkerGraphVertexId,
-        GlobalMarkerGraphVertexId
+        MarkerGraph::VertexId,
+        MarkerGraph::VertexId
         );
 
 private:
     // Lower-level, more efficient version of the above
     // (but it returns less information).
     void getGlobalMarkerGraphEdgeInfo(
-        GlobalMarkerGraphVertexId,
-        GlobalMarkerGraphVertexId,
+        MarkerGraph::VertexId,
+        MarkerGraph::VertexId,
         vector<MarkerInterval>&
         );
 public:
@@ -339,8 +339,8 @@ public:
     // Create a local marker graph and return its local assembly path.
     // The local marker graph is specified by its start vertex
     // and maximum distance (number of edges) form the start vertex.
-    vector<GlobalMarkerGraphVertexId> getLocalAssemblyPath(
-        GlobalMarkerGraphVertexId,
+    vector<MarkerGraph::VertexId> getLocalAssemblyPath(
+        MarkerGraph::VertexId,
         int maxDistance
         );
 
@@ -812,14 +812,14 @@ private:
 
         // The disjoint set that each oriented marker was assigned to.
         // See createMarkerGraphVertices for details.
-        MemoryMapped::Vector<GlobalMarkerGraphVertexId> disjointSetTable;
+        MemoryMapped::Vector<MarkerGraph::VertexId> disjointSetTable;
 
         // Work area used for multiple purposes.
         // See createMarkerGraphVertices for details.
-        MemoryMapped::Vector<GlobalMarkerGraphVertexId> workArea;
+        MemoryMapped::Vector<MarkerGraph::VertexId> workArea;
 
         // The markers in each disjoint set with coverage in the requested range.
-        MemoryMapped::VectorOfVectors<MarkerId, GlobalMarkerGraphVertexId> disjointSetMarkers;
+        MemoryMapped::VectorOfVectors<MarkerId, MarkerGraph::VertexId> disjointSetMarkers;
 
         // Flag disjoint sets that contain more than one marker on the same oriented read.
         MemoryMapped::Vector<bool> isBadDisjointSet;
@@ -835,7 +835,7 @@ private:
 
     // The oriented marker ids of the markers corresponding to
     // each vertex of the global marker graph.
-    // Indexed by GlobalMarkerGraphVertexId.
+    // Indexed by MarkerGraph::VertexId.
     // For a given vertex, the oriented marker ids are sorted.
     MemoryMapped::VectorOfVectors<MarkerId, CompressedGlobalMarkerGraphVertexId> globalMarkerGraphVertices;
     void checkMarkerGraphVerticesAreAvailable();
@@ -887,63 +887,63 @@ private:
     // The marker is specified by the ReadId and Strand of the oriented read
     // it belongs to, plus the ordinal of the marker in the oriented read.
     // If the marker is not contained in any vertex, return
-    // invalidGlobalMarkerGraphVertexId.
-    GlobalMarkerGraphVertexId getGlobalMarkerGraphVertex(
+    // MarkerGraph::invalidVertexId.
+    MarkerGraph::VertexId getGlobalMarkerGraphVertex(
         OrientedReadId,
         uint32_t ordinal) const;
 
     // Find the markers contained in a given vertex of the global marker graph.
     // The markers are stored as pairs(oriented read id, ordinal).
     void getGlobalMarkerGraphVertexMarkers(
-        GlobalMarkerGraphVertexId,
+        MarkerGraph::VertexId,
         vector< pair<OrientedReadId, uint32_t> >&) const;
 
     // Find the children or parents of a vertex of the global marker graph.
     void getGlobalMarkerGraphVertexChildren(
-        GlobalMarkerGraphVertexId,
-        vector<GlobalMarkerGraphVertexId>&,
+        MarkerGraph::VertexId,
+        vector<MarkerGraph::VertexId>&,
         bool append = false
         ) const;
     void getGlobalMarkerGraphVertexParents(
-        GlobalMarkerGraphVertexId,
-        vector<GlobalMarkerGraphVertexId>&,
+        MarkerGraph::VertexId,
+        vector<MarkerGraph::VertexId>&,
         bool append = false
         ) const;
 
     // This version also returns the oriented read ids and ordinals
     // that caused a child to be marked as such.
     void getGlobalMarkerGraphVertexChildren(
-        GlobalMarkerGraphVertexId,
-        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >&,
-        vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
+        MarkerGraph::VertexId,
+        vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > >&,
+        vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
         ) const;
     void getGlobalMarkerGraphVertexParents(
-        GlobalMarkerGraphVertexId,
-        vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >&,
-        vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
+        MarkerGraph::VertexId,
+        vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > >&,
+        vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
         ) const;
 
     // Return true if a vertex of the global marker graph has more than
     // one marker for at least one oriented read id.
-    bool isBadMarkerGraphVertex(GlobalMarkerGraphVertexId) const;
+    bool isBadMarkerGraphVertex(MarkerGraph::VertexId) const;
 
     // Find out if a vertex is a forward or backward leaf of the pruned
     // strong subgraph of the marker graph.
     // A forward leaf is a vertex with out-degree 0.
     // A backward leaf is a vertex with in-degree 0.
-    bool isForwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId) const;
-    bool isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId) const;
+    bool isForwardLeafOfMarkerGraphPrunedStrongSubgraph(MarkerGraph::VertexId) const;
+    bool isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(MarkerGraph::VertexId) const;
 
     // Given an edge of the pruned strong subgraph of the marker graph,
     // return the next/previous edge in the linear chain the edge belongs to.
-    // If the edge is the last/first edge in its linear chain, return invalidGlobalMarkerGraphEdgeId.
+    // If the edge is the last/first edge in its linear chain, return MarkerGraph::invalidEdgeId.
     GlobalMarkerGraphEdgeId nextEdgeInMarkerGraphPrunedStrongSubgraphChain(GlobalMarkerGraphEdgeId) const;
     GlobalMarkerGraphEdgeId previousEdgeInMarkerGraphPrunedStrongSubgraphChain(GlobalMarkerGraphEdgeId) const;
 
     // Return the out-degree or in-degree (number of outgoing/incoming edges)
     // of a vertex of the pruned strong subgraph of the marker graph.
-    size_t markerGraphPrunedStrongSubgraphOutDegree(GlobalMarkerGraphVertexId) const;
-    size_t markerGraphPrunedStrongSubgraphInDegree (GlobalMarkerGraphVertexId) const;
+    size_t markerGraphPrunedStrongSubgraphOutDegree(MarkerGraph::VertexId) const;
+    size_t markerGraphPrunedStrongSubgraphInDegree (MarkerGraph::VertexId) const;
 
     // Return true if an edge disconnects the local subgraph.
     bool markerGraphEdgeDisconnectsLocalStrongSubgraph(
@@ -989,7 +989,7 @@ private:
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraph(
-        GlobalMarkerGraphVertexId,
+        MarkerGraph::VertexId,
         int distance,
         double timeout,                 // Or 0 for no timeout.
         LocalMarkerGraph&
@@ -1012,7 +1012,7 @@ private:
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
-        GlobalMarkerGraphVertexId,
+        MarkerGraph::VertexId,
         int distance,
         double timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
@@ -1027,7 +1027,7 @@ private:
 
     // Compute consensus sequence for a vertex of the marker graph.
     void computeMarkerGraphVertexConsensusSequence(
-        GlobalMarkerGraphVertexId,
+        MarkerGraph::VertexId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts
         );
@@ -1124,7 +1124,7 @@ private:
         // - threadVertexIds[threadId] contains the vertex ids processed by each thread.
         // - threadVertexCoverageData[threadId] contains the coverage data for those vertices.
         vector< shared_ptr<
-            MemoryMapped::Vector<GlobalMarkerGraphVertexId> > > threadVertexIds;
+            MemoryMapped::Vector<MarkerGraph::VertexId> > > threadVertexIds;
         vector< shared_ptr<
             MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t> > >
             threadVertexCoverageData;
@@ -1318,7 +1318,7 @@ public:
     void exploreMarkerGraph(const vector<string>&, ostream&);
     class LocalMarkerGraphRequestParameters {
     public:
-        GlobalMarkerGraphVertexId vertexId;
+        MarkerGraph::VertexId vertexId;
         bool vertexIdIsPresent;
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
@@ -1341,7 +1341,7 @@ public:
         double timeout;
         bool timeoutIsPresent;
         string portionToDisplay;
-        void writeForm(ostream&, GlobalMarkerGraphVertexId vertexCount) const;
+        void writeForm(ostream&, MarkerGraph::VertexId vertexCount) const;
         bool hasMissingRequiredParameters() const;
     };
     void getLocalMarkerGraphRequestParameters(

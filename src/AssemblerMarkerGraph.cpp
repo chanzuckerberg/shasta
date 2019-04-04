@@ -181,7 +181,7 @@ void Assembler::createMarkerGraphVertices(
         auto& w = data.workArea[oldDisjointSetId];
         const GlobalMarkerGraphVertexId markerCount = w;
         if(markerCount<minCoverage || markerCount>maxCoverage) {
-            w = invalidGlobalMarkerGraphVertexId;
+            w = MarkerGraph::invalidVertexId;
         } else {
             w = newDisjointSetId;
             ++newDisjointSetId;
@@ -202,7 +202,7 @@ void Assembler::createMarkerGraphVertices(
 
 
     // Reassign vertices to disjoint sets using this new numbering.
-    // Vertices assigned to no disjoint set will store invalidGlobalMarkerGraphVertexId.
+    // Vertices assigned to no disjoint set will store MarkerGraph::invalidVertexId.
     // This could be multithreaded if necessary.
     cout << timestamp << "Assigning vertices to renumbered disjoint sets." << endl;
     for(GlobalMarkerGraphVertexId markerId=0;
@@ -230,7 +230,7 @@ void Assembler::createMarkerGraphVertices(
     // the disjoint set that the oriented marker is assigned to,
     // and all disjoint sets have a number of markers in the requested range.
     // Vertices not assigned to any disjoint set store a disjoint set
-    // equal to invalidGlobalMarkerGraphVertexId.
+    // equal to MarkerGraph::invalidVertexId.
 
 
 
@@ -289,7 +289,7 @@ void Assembler::createMarkerGraphVertices(
         oldDisjointSetId<disjointSetCount; ++oldDisjointSetId) {
         auto& w = data.workArea[oldDisjointSetId];
         if(data.isBadDisjointSet[oldDisjointSetId]) {
-            w = invalidGlobalMarkerGraphVertexId;
+            w = MarkerGraph::invalidVertexId;
         } else {
             w = newDisjointSetId;
             ++newDisjointSetId;
@@ -319,7 +319,7 @@ void Assembler::createMarkerGraphVertices(
     for(GlobalMarkerGraphVertexId markerId=0;
         markerId<data.orientedMarkerCount; ++markerId) {
         auto oldValue = data.disjointSetTable[markerId];
-        if(oldValue == invalidGlobalMarkerGraphVertexId) {
+        if(oldValue == MarkerGraph::invalidVertexId) {
             globalMarkerGraphVertex[markerId] = invalidCompressedGlobalMarkerGraphVertexId;
         } else {
             globalMarkerGraphVertex[markerId] = data.workArea[oldValue];
@@ -538,7 +538,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction45(int value)
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const uint64_t disjointSetId = disjointSetTable[i];
-            if(disjointSetId == invalidGlobalMarkerGraphVertexId) {
+            if(disjointSetId == MarkerGraph::invalidVertexId) {
                 continue;
             }
             if(value == 4) {
@@ -1908,23 +1908,6 @@ void Assembler::checkMarkerGraphEdgesIsOpen()
 
 
 
-// Locate the edge given the vertices.
-const MarkerGraph::Edge*
-    MarkerGraph::findEdge(Uint40 source, Uint40 target) const
-{
-    const auto edgesWithThisSource = edgesBySource[source];
-    for(const uint64_t i: edgesWithThisSource) {
-        const Edge& edge = edges[i];
-        if(edge.target == target) {
-            return &edge;
-        }
-    }
-    return 0;
-
-}
-
-
-
 // Find weak edges in the marker graph.
 // This new version uses approximate transitive reduction.
 void Assembler::flagMarkerGraphWeakEdges(
@@ -2439,7 +2422,7 @@ bool Assembler::isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGrap
 
 // Given an edge of the pruned strong subgraph of the marker graph,
 // return the next edge in the linear chain the edge belongs to.
-// If the edge is the last edge in its linear chain, return invalidGlobalMarkerGraphEdgeId.
+// If the edge is the last edge in its linear chain, return MarkerGraph::invalidEdgeId.
 GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChain(
     GlobalMarkerGraphEdgeId edgeId0) const
 {
@@ -2459,11 +2442,11 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
         (markerGraphPrunedStrongSubgraphOutDegree(edge0.target) != 1) ||
         (markerGraphPrunedStrongSubgraphInDegree( edge0.target) != 1)
         ) {
-        return invalidGlobalMarkerGraphEdgeId;
+        return MarkerGraph::invalidEdgeId;
     }
 
     // Loop over all edges following it.
-    EdgeId nextEdgeId = invalidGlobalMarkerGraphEdgeId;
+    EdgeId nextEdgeId = MarkerGraph::invalidEdgeId;
     for(const EdgeId edgeId1: markerGraph.edgesBySource[edge0.target]) {
         const Edge& edge1 = edges[edgeId1];
 
@@ -2474,12 +2457,12 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
         }
 
         // Ok, this a possible next edge.
-        if(nextEdgeId == invalidGlobalMarkerGraphEdgeId) {
+        if(nextEdgeId == MarkerGraph::invalidEdgeId) {
             // This is the first one we find.
             nextEdgeId = edgeId1;
         } else {
             // This is not the first one we found, so the next edge is not unique.
-            return invalidGlobalMarkerGraphEdgeId;
+            return MarkerGraph::invalidEdgeId;
         }
     }
 
@@ -2490,7 +2473,7 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
 
 // Given an edge of the pruned strong subgraph of the marker graph,
 // return the previous edge in the linear chain the edge belongs to.
-// If the edge is the first edge in its linear chain, return invalidGlobalMarkerGraphEdgeId.
+// If the edge is the first edge in its linear chain, return MarkerGraph::invalidEdgeId.
 GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraphChain(
     GlobalMarkerGraphEdgeId edgeId0) const
 {
@@ -2515,11 +2498,11 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
         (markerGraphPrunedStrongSubgraphOutDegree(edge0.source) != 1) ||
         (markerGraphPrunedStrongSubgraphInDegree( edge0.source) != 1)
         ) {
-        return invalidGlobalMarkerGraphEdgeId;
+        return MarkerGraph::invalidEdgeId;
     }
 
     // Loop over all edges preceding it.
-    EdgeId previousEdgeId = invalidGlobalMarkerGraphEdgeId;
+    EdgeId previousEdgeId = MarkerGraph::invalidEdgeId;
     for(const EdgeId edgeId1: markerGraph.edgesByTarget[edge0.source]) {
         const Edge& edge1 = edges[edgeId1];
         if(debug) {
@@ -2536,7 +2519,7 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
         }
 
         // Ok, this a possible previous edge.
-        if(previousEdgeId == invalidGlobalMarkerGraphEdgeId) {
+        if(previousEdgeId == MarkerGraph::invalidEdgeId) {
             // This is the first one we find.
             if(debug) {
                 cout << "Tentative previous edge " << edgeId1 << " " << edge1.source << "->" << edge1.target << endl;
@@ -2547,7 +2530,7 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
             if(debug) {
                 cout << "previousEdgeInMarkerGraphPrunedStrongSubgraphChain ends, case 1." << endl;
             }
-            return invalidGlobalMarkerGraphEdgeId;
+            return MarkerGraph::invalidEdgeId;
         }
     }
     if(debug) {

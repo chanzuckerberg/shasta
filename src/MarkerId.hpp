@@ -20,12 +20,9 @@ namespace ChanZuckerberg {
         using MarkerId = uint64_t;
 
         // Types used to identify a vertex and edge of the global marker graph.
+        // Phase these out in favor of MarkerGraph::VertexId and MarkerGraph::EdgeId.
         using GlobalMarkerGraphVertexId = MarkerId;
-        const GlobalMarkerGraphVertexId invalidGlobalMarkerGraphVertexId =
-            std::numeric_limits<GlobalMarkerGraphVertexId>::max();
-        using GlobalMarkerGraphEdgeId = GlobalMarkerGraphVertexId;
-        const GlobalMarkerGraphEdgeId invalidGlobalMarkerGraphEdgeId =
-            invalidGlobalMarkerGraphVertexId;
+        using GlobalMarkerGraphEdgeId = MarkerId;
 
 
         // To save memory, store it using 5 bytes.
@@ -34,7 +31,7 @@ namespace ChanZuckerberg {
         // has around 25 G markers (both strands).
         using CompressedGlobalMarkerGraphVertexId = Uint40;
         const CompressedGlobalMarkerGraphVertexId
-            invalidCompressedGlobalMarkerGraphVertexId = invalidGlobalMarkerGraphVertexId;
+            invalidCompressedGlobalMarkerGraphVertexId = std::numeric_limits<uint64_t>::max();
 
     }
 }

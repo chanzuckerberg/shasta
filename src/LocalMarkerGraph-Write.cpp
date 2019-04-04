@@ -435,7 +435,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
         // Edge id.
         const int columnCount = graph.useRunLengthReads ? 5 : 4;
-        if(showVertexId && (edge.edgeId != invalidGlobalMarkerGraphEdgeId)) {
+        if(showVertexId && (edge.edgeId != MarkerGraph::invalidEdgeId)) {
             s << "<tr><td colspan=\"" << columnCount << "\"><b>Edge " << edge.edgeId << "</b></td></tr>";
         }
 

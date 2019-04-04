@@ -99,7 +99,7 @@ void Assembler::createAssemblyGraphEdges()
         bool isCircularChain = false;
         while(true) {
             edgeId = nextEdgeInMarkerGraphPrunedStrongSubgraphChain(edgeId);
-            if(edgeId == invalidGlobalMarkerGraphEdgeId) {
+            if(edgeId == MarkerGraph::invalidEdgeId) {
                 break;
             }
             if(edgeId == startEdgeId) {
@@ -114,7 +114,7 @@ void Assembler::createAssemblyGraphEdges()
             edgeId = startEdgeId;
             while(true) {
                 edgeId = previousEdgeInMarkerGraphPrunedStrongSubgraphChain(edgeId);
-                if(edgeId == invalidGlobalMarkerGraphEdgeId) {
+                if(edgeId == MarkerGraph::invalidEdgeId) {
                     break;
                 }
                 previousEdges.push_back(edgeId);
