@@ -587,6 +587,10 @@ private:
     // an additional 4 bytes per marker.
     pair<OrientedReadId, uint32_t> findMarkerId(MarkerId) const;
 
+    // Given a MarkerId, compute the MarkerId of the
+    // reverse complemented marker.
+    MarkerId findReverseComplement(MarkerId) const;
+
 
     // Flag palindromic reads.
 public:
@@ -839,6 +843,10 @@ private:
 
     // Marker graph.
     MarkerGraph markerGraph;
+
+    // Find the reverse complement of each marker graph vertex.
+public:
+    void findMarkerGraphReverseComplementVertices();
 
 
 

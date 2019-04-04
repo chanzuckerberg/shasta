@@ -108,3 +108,21 @@ pair<OrientedReadId, uint32_t>
     return shasta::findMarkerId(markerId, markers);
 }
 
+
+
+// Given a MarkerId, compute the MarkerId of the
+// reverse complemented marker.
+MarkerId Assembler::findReverseComplement(MarkerId markerId) const
+{
+	// Find the oriented read id and marker ordinal.
+	OrientedReadId orientedReadId;
+	uint32_t ordinal;
+	tie(orientedReadId, ordinal) = findMarkerId(markerId);
+
+	// Reverse complement.
+	ordinal = uint32_t(markers.size(orientedReadId.getValue()) - 1 - ordinal);
+	orientedReadId.flipStrand();
+
+	// Return the corresponding Markerid.
+	return getMarkerId(orientedReadId, ordinal);
+}

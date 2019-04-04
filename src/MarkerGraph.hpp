@@ -38,19 +38,23 @@ public:
     // A human size run with 40x coverage and 10% markers
     // has around 25 G markers (both strands).
     using CompressedVertexId = Uint40;
-    static const CompressedVertexId invalidCompressedVertexId ;
+    static const CompressedVertexId invalidCompressedVertexId;
 
     // The marker ids of the markers corresponding to
     // each vertex of the global marker graph.
     // Indexed by VertexId.
     // For a given vertex, the marker ids are sorted.
-    MemoryMapped::VectorOfVectors<MarkerId, MarkerGraph::CompressedVertexId> vertices;
+    MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> vertices;
 
     // The global marker graph vertex corresponding to each marker.
     // Indexed by MarkerId.
     // For markers that don't correspond ot a marker graph vertex,
     // this stores invalidCompressedVertexId.
-    MemoryMapped::Vector<MarkerGraph::CompressedVertexId> vertexTable;
+    MemoryMapped::Vector<CompressedVertexId> vertexTable;
+
+    // The reverse complement of each vertex.
+    // Indexed by VertexId.
+    MemoryMapped::Vector<VertexId> reverseComplementVertex;
 
     // The edges of the marker graph.
     class Edge {

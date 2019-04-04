@@ -313,7 +313,7 @@ void Assembler::createMarkerGraphVertices(
     // This could be multithreaded.
     cout << timestamp << "Assigning vertex ids to markers." << endl;
     markerGraph.vertexTable.createNew(
-        largeDataName("GlobalMarkerGraphVertex"),
+        largeDataName("MarkerGraphVertexTable"),
         largeDataPageSize);
     markerGraph.vertexTable.reserveAndResize(data.orientedMarkerCount);
     for(MarkerGraph::VertexId markerId=0;
@@ -967,6 +967,68 @@ void Assembler::getGlobalMarkerGraphVertexParents(
         // Process the next streak.
         streakBegin = streakEnd;
     }
+}
+
+
+
+// Find the reverse complement of each marker graph vertex.
+void Assembler::findMarkerGraphReverseComplementVertices()
+{
+	const bool debug = true;
+
+	// Check that we have what we need.
+	checkMarkersAreOpen();
+	checkMarkerGraphVerticesAreAvailable();
+
+	// Get the number of vertices in the marker graph.
+	using VertexId = MarkerGraph::VertexId;
+	const VertexId vertexCount = markerGraph.vertices.size();
+
+	// Loop over all marker graph vertices.
+	for(VertexId vertexId=0; vertexId!=vertexCount; vertexId++) {
+
+		// Get the markers of this vertex.
+		const MemoryAsContainer<MarkerId> vertexMarkers = markerGraph.vertices[vertexId];
+		CZI_ASSERT(vertexMarkers.size() > 0);
+
+		if(debug) {
+			cout << "Working on marker graph vertex " << vertexId << " with " <<
+				vertexMarkers.size() << " markers:" << endl;
+			for(const MarkerId markerId: vertexMarkers) {
+				OrientedReadId orientedReadId;
+				uint32_t ordinal;
+				tie(orientedReadId, ordinal) = findMarkerId(markerId);
+				cout << orientedReadId << " " << ordinal << endl;
+			}
+		}
+
+		// Get the first marker of this vertex.
+		const MarkerId firstMarkerId = vertexMarkers[0];
+
+		/// Find the reverse complemented marker.
+		const MarkerId firstMarkerIdReverseComplement = findReverseComplement(firstMarkerId);
+
+		// Find the corresponding vertex.
+		const VertexId vertexIdReverseComplement = markerGraph.vertexTable[firstMarkerIdReverseComplement];
+		CZI_ASSERT(vertexIdReverseComplement != MarkerGraph::invalidCompressedVertexId);
+
+		// Get the markers of the reverse complemented vertex.
+		const MemoryAsContainer<MarkerId> vertexMarkersReverseComplement =
+				markerGraph.vertices[vertexIdReverseComplement];
+
+		if(debug) {
+			cout << "Reverse complemented vertex is " << vertexIdReverseComplement <<
+				" with " << vertexMarkersReverseComplement.size() << " markers." << endl;
+			for(const MarkerId markerId: vertexMarkersReverseComplement) {
+				OrientedReadId orientedReadId;
+				uint32_t ordinal;
+				tie(orientedReadId, ordinal) = findMarkerId(markerId);
+				cout << orientedReadId << " " << ordinal << endl;
+			}
+		}
+
+		CZI_ASSERT(vertexMarkers.size() == vertexMarkersReverseComplement.size());
+	}
 }
 
 
