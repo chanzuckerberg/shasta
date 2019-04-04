@@ -47,11 +47,11 @@ LocalMarkerGraph::LocalMarkerGraph(
 }
 
 
-// Find out if a vertex with the given GlobalMarkerGraphVertexId exists.
+// Find out if a vertex with the given MarkerGraph::VertexId exists.
 // If it exists, return make_pair(true, v).
 // Otherwise, return make_pair(false, null_vertex());
 std::pair<bool, LocalMarkerGraph::vertex_descriptor>
-    LocalMarkerGraph::findVertex(GlobalMarkerGraphVertexId vertexId) const
+    LocalMarkerGraph::findVertex(MarkerGraph::VertexId vertexId) const
 {
     const auto it = vertexMap.find(vertexId);
     if(it == vertexMap.end()) {
@@ -63,12 +63,12 @@ std::pair<bool, LocalMarkerGraph::vertex_descriptor>
 }
 
 
-// Add a vertex with the given GlobalMarkerGraphVertexId
+// Add a vertex with the given MarkerGraph::VertexId
 // and return its vertex descriptor.
-// A vertex with this GlobalMarkerGraphVertexId must not exist.
+// A vertex with this MarkerGraph::VertexId must not exist.
 LocalMarkerGraph::vertex_descriptor
     LocalMarkerGraph::addVertex(
-    GlobalMarkerGraphVertexId vertexId,
+    MarkerGraph::VertexId vertexId,
     int distance,
     MemoryAsContainer<MarkerId> vertexMarkers)
 {

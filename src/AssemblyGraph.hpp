@@ -17,6 +17,7 @@ vertex in the assembly graph.
 
 // Shasta.
 #include "LongBaseSequence.hpp"
+#include "MarkerGraph.hpp"
 #include "MarkerId.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 
@@ -36,8 +37,8 @@ public:
 
     // Use the same vertex and edge ids of the marker graph.
     // We could probably get away with 32 bits.
-    using VertexId = GlobalMarkerGraphVertexId;
-    using EdgeId = GlobalMarkerGraphEdgeId;
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
     static const VertexId invalidVertexId = std::numeric_limits<VertexId>::max();
     static const VertexId invalidEdgeId = std::numeric_limits<EdgeId>::max();
 

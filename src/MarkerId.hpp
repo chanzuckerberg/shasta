@@ -21,8 +21,7 @@ namespace ChanZuckerberg {
 
         // Types used to identify a vertex and edge of the global marker graph.
         // Phase these out in favor of MarkerGraph::VertexId and MarkerGraph::EdgeId.
-        using GlobalMarkerGraphVertexId = MarkerId;
-        using GlobalMarkerGraphEdgeId = MarkerId;
+        // using GlobalMarkerGraphEdgeId __attribute__ ((deprecated)) = MarkerId;
 
 
         // To save memory, store it using 5 bytes.

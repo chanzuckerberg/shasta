@@ -1018,7 +1018,7 @@ void Assembler::exploreRead(
         const CompressedMarker& marker = orientedReadMarkers[ordinal];
 
         // See if this marker is contained in a vertex of the marker graph.
-        const GlobalMarkerGraphVertexId vertexId =
+        const MarkerGraph::VertexId vertexId =
             getGlobalMarkerGraphVertex(orientedReadId, ordinal);
         const bool hasMarkerGraphVertex =
             (vertexId != invalidCompressedGlobalMarkerGraphVertexId);

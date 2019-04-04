@@ -262,7 +262,7 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::accessMarkerGraphVertices)
         .def("getGlobalMarkerGraphVertex",
             (
-                GlobalMarkerGraphVertexId (Assembler::*)
+                MarkerGraph::VertexId (Assembler::*)
                 (ReadId, Strand, uint32_t) const
             )
             &Assembler::getGlobalMarkerGraphVertex,
@@ -272,21 +272,21 @@ PYBIND11_MODULE(shasta, module)
         .def("getGlobalMarkerGraphVertexMarkers",
             (
                 vector< std::tuple<ReadId, Strand, uint32_t> > (Assembler::*)
-                (GlobalMarkerGraphVertexId) const
+                (MarkerGraph::VertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexMarkers,
             arg("vertexId"))
         .def("getGlobalMarkerGraphVertexChildren",
             (
-                vector<GlobalMarkerGraphVertexId> (Assembler::*)
-                (GlobalMarkerGraphVertexId) const
+                vector<MarkerGraph::VertexId> (Assembler::*)
+                (MarkerGraph::VertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexChildren,
             arg("vertexId"))
         .def("getGlobalMarkerGraphVertexParents",
             (
-                vector<GlobalMarkerGraphVertexId> (Assembler::*)
-                (GlobalMarkerGraphVertexId) const
+                vector<MarkerGraph::VertexId> (Assembler::*)
+                (MarkerGraph::VertexId) const
             )
             &Assembler::getGlobalMarkerGraphVertexParents,
             arg("vertexId"))

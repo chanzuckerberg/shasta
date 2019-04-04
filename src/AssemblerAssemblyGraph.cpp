@@ -310,7 +310,7 @@ void Assembler::createAssemblyGraphVertices()
 
         // Compute and store average coverage along the edges of this chain.
         size_t sum = 0;
-        for(GlobalMarkerGraphEdgeId markerGraphEdgeId: chain) {
+        for(MarkerGraph::EdgeId markerGraphEdgeId: chain) {
             const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
             sum += markerGraphEdge.coverage;
         }
@@ -1042,7 +1042,7 @@ void Assembler::assembleAssemblyGraphEdge(
     assembledSegment.k = k;
 
     // The edges of this chain in the marker graph.
-    const MemoryAsContainer<GlobalMarkerGraphEdgeId> assemblerEdgeIds = assemblyGraph.edgeLists[edgeId];
+    const MemoryAsContainer<MarkerGraph::EdgeId> assemblerEdgeIds = assemblyGraph.edgeLists[edgeId];
     assembledSegment.edgeCount = assemblerEdgeIds.size();
     assembledSegment.vertexCount = assembledSegment.edgeCount + 1;
     assembledSegment.edgeIds.resize(assembledSegment.edgeCount);
@@ -1050,7 +1050,7 @@ void Assembler::assembleAssemblyGraphEdge(
 
     // Gather the vertices of this chain in the marker graph.
     assembledSegment.vertexIds.reserve(assembledSegment.vertexCount);
-    for(const GlobalMarkerGraphEdgeId edgeId: assembledSegment.edgeIds) {
+    for(const MarkerGraph::EdgeId edgeId: assembledSegment.edgeIds) {
         const MarkerGraph::Edge& edge =
             markerGraph.edges[edgeId];
         assembledSegment.vertexIds.push_back(edge.source);

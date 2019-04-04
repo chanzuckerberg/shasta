@@ -937,8 +937,8 @@ private:
     // Given an edge of the pruned strong subgraph of the marker graph,
     // return the next/previous edge in the linear chain the edge belongs to.
     // If the edge is the last/first edge in its linear chain, return MarkerGraph::invalidEdgeId.
-    GlobalMarkerGraphEdgeId nextEdgeInMarkerGraphPrunedStrongSubgraphChain(GlobalMarkerGraphEdgeId) const;
-    GlobalMarkerGraphEdgeId previousEdgeInMarkerGraphPrunedStrongSubgraphChain(GlobalMarkerGraphEdgeId) const;
+    MarkerGraph::EdgeId nextEdgeInMarkerGraphPrunedStrongSubgraphChain(MarkerGraph::EdgeId) const;
+    MarkerGraph::EdgeId previousEdgeInMarkerGraphPrunedStrongSubgraphChain(MarkerGraph::EdgeId) const;
 
     // Return the out-degree or in-degree (number of outgoing/incoming edges)
     // of a vertex of the pruned strong subgraph of the marker graph.
@@ -947,13 +947,13 @@ private:
 
     // Return true if an edge disconnects the local subgraph.
     bool markerGraphEdgeDisconnectsLocalStrongSubgraph(
-        GlobalMarkerGraphEdgeId edgeId,
+        MarkerGraph::EdgeId edgeId,
         size_t maxDistance,
 
         // Work areas, to reduce memory allocation activity.
 
         // Each of these two must be sized maxDistance+1.
-        array<vector< vector<GlobalMarkerGraphEdgeId> >, 2>& verticesByDistance,
+        array<vector< vector<MarkerGraph::EdgeId> >, 2>& verticesByDistance,
 
         // Each of these two must be sized globalMarkerGraphVertices.size()
         // and set to all false on entry.
@@ -1035,13 +1035,13 @@ private:
     // Compute consensus sequence for an edge of the marker graph.
     // This does not include the bases corresponding to the flanking markers.
     void computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
-        GlobalMarkerGraphEdgeId,
+        MarkerGraph::EdgeId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount
         );
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-        GlobalMarkerGraphEdgeId,
+        MarkerGraph::EdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
@@ -1049,7 +1049,7 @@ private:
         vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
         );
     void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-        GlobalMarkerGraphEdgeId,
+        MarkerGraph::EdgeId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount
@@ -1170,7 +1170,7 @@ private:
         // MarkerGraph::edgeConsensus and MarkerGraph::edgeConsensusOverlappingBaseCount
         // before assembleMarkerGraphEdges completes.
         // See their definition for more details about their meaning.
-        vector< shared_ptr< MemoryMapped::Vector<GlobalMarkerGraphEdgeId> > > threadEdgeIds;
+        vector< shared_ptr< MemoryMapped::Vector<MarkerGraph::EdgeId> > > threadEdgeIds;
         vector< shared_ptr< MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> > > threadEdgeConsensus;
         vector< shared_ptr< MemoryMapped::Vector<uint8_t> > > threadEdgeConsensusOverlappingBaseCount;
 

@@ -46,14 +46,14 @@ public:
 
     // The vertex id of the vertex of the global marker
     // graph that corresponds to this vertex.
-    GlobalMarkerGraphVertexId markerGraphVertexId;
+    MarkerGraph::VertexId markerGraphVertexId;
 
     // The distance from the start vertex.
     int distance;
 
     LocalAssemblyGraphVertex(
         AssemblyGraph::VertexId assemblyGraphVertexId,
-        GlobalMarkerGraphVertexId markerGraphVertexId,
+        MarkerGraph::VertexId markerGraphVertexId,
         int distance) :
         assemblyGraphVertexId(assemblyGraphVertexId),
         markerGraphVertexId(markerGraphVertexId),
@@ -89,7 +89,7 @@ public:
     // A vertex with this vertex id must not exist.
     vertex_descriptor addVertex(
         VertexId,
-        GlobalMarkerGraphVertexId,
+        MarkerGraph::VertexId,
         int distance);
 
     // Find out if a vertex with the given assembly graph vertex id exists.

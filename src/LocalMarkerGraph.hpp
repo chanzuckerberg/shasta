@@ -71,7 +71,7 @@ public:
 
     // The global vertex id of the vertex of the global marker
     // graph that corresponds to this vertex.
-    GlobalMarkerGraphVertexId vertexId;
+    MarkerGraph::VertexId vertexId;
 
     // The distance from the start vertex.
     int distance;
@@ -90,7 +90,7 @@ public:
     size_t rank = 0;
 
     LocalMarkerGraphVertex(
-        GlobalMarkerGraphVertexId vertexId,
+        MarkerGraph::VertexId vertexId,
         int distance) :
         vertexId(vertexId),
         distance(distance)
@@ -195,7 +195,7 @@ public:
 
     // Id of the global edge corresponding to this edge.
     // Only filled in when the graph is created using stored connectivity.
-    GlobalMarkerGraphEdgeId edgeId = MarkerGraph::invalidEdgeId;
+    MarkerGraph::EdgeId edgeId = MarkerGraph::invalidEdgeId;
 
     // The id of the assembly graph edge that contains this marker graph edge,
     // or std::numeric_limits<AssemblyGraph::EdgeId>::max() if this
@@ -251,16 +251,16 @@ public:
     // Use shasta::Base instead.
     using Base = shasta::Base;
 
-    // Find out if a vertex with the given GlobalMarkerGraphVertexId exists.
+    // Find out if a vertex with the given MarkerGraph::VertexId exists.
     // If it exists, return make_pair(true, v).
     // Otherwise, return make_pair(false, null_vertex());
-    pair<bool, vertex_descriptor> findVertex(GlobalMarkerGraphVertexId) const;
+    pair<bool, vertex_descriptor> findVertex(MarkerGraph::VertexId) const;
 
-    // Add a vertex with the given GlobalMarkerGraphVertexId
+    // Add a vertex with the given MarkerGraph::VertexId
     // and return its vertex descriptor.
-    // A vertex with this GlobalMarkerGraphVertexId must not exist.
+    // A vertex with this MarkerGraph::VertexId must not exist.
     vertex_descriptor addVertex(
-        GlobalMarkerGraphVertexId,
+        MarkerGraph::VertexId,
         int distance,
         MemoryAsContainer<MarkerId> markers);
 
@@ -397,7 +397,7 @@ public:
 private:
 
     // Map a global vertex id to a vertex descriptor for the local graph.
-    std::map<GlobalMarkerGraphVertexId, vertex_descriptor> vertexMap;
+    std::map<MarkerGraph::VertexId, vertex_descriptor> vertexMap;
 
     // The length of k-mers used as markers.
     uint32_t k;

@@ -5,6 +5,7 @@
 #include "AssemblyGraph.hpp"
 #include "Base.hpp"
 #include "Coverage.hpp"
+#include "MarkerGraph.hpp"
 #include "MarkerId.hpp"
 
 // Standard library.
@@ -36,8 +37,8 @@ public:
     size_t vertexCount;
 
     // The marker graph vertices and edges of the chain corresponding to this segment.
-    vector<GlobalMarkerGraphVertexId> vertexIds;
-    vector<GlobalMarkerGraphEdgeId> edgeIds;
+    vector<MarkerGraph::VertexId> vertexIds;
+    vector<MarkerGraph::EdgeId> edgeIds;
 
     // Vertex and edge coverage.
     vector<uint32_t> vertexCoverage;

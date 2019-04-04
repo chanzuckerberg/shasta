@@ -24,7 +24,7 @@ LocalAssemblyGraph::LocalAssemblyGraph(AssemblyGraph& globalAssemblyGraph) :
 // A vertex with this VertexId must not exist.
 LocalAssemblyGraph::vertex_descriptor LocalAssemblyGraph::addVertex(
     AssemblyGraph::VertexId assemblyGraphVertexId,
-    GlobalMarkerGraphVertexId markerGraphVertexId,
+    MarkerGraph::VertexId markerGraphVertexId,
     int distance)
 {
     // Check that the vertex does not already exist.

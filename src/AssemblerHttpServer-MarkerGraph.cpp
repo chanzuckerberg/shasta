@@ -467,7 +467,7 @@ void Assembler::getLocalMarkerGraphRequestParameters(
 
 void Assembler::LocalMarkerGraphRequestParameters::writeForm(
     ostream& html,
-    GlobalMarkerGraphVertexId vertexCount) const
+    MarkerGraph::VertexId vertexCount) const
 {
     html <<
         "<h3>Display a local subgraph of the global marker graph</h3>"
@@ -1132,7 +1132,7 @@ void Assembler::showLocalMarkerGraphAlignments(
 void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream& html)
 {
     // Get the vertex id.
-    GlobalMarkerGraphVertexId vertexId = 0;
+    MarkerGraph::VertexId vertexId = 0;
     const bool vertexIdIsPresent = getParameterValue(request, "vertexId", vertexId);
 
     // Write the form.
@@ -1385,7 +1385,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& html)
 {
     // Get the edge id.
-    GlobalMarkerGraphEdgeId edgeId = 0;
+    MarkerGraph::EdgeId edgeId = 0;
     const bool edgeIdIsPresent = getParameterValue(request, "edgeId", edgeId);
 
     // Write the form.
@@ -1408,7 +1408,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
     // Access the edge.
     const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
-    array<GlobalMarkerGraphVertexId, 2> vertexIds = {edge.source, edge.target};
+    array<MarkerGraph::VertexId, 2> vertexIds = {edge.source, edge.target};
     const size_t markerCount = edge.coverage;
 
     // The marker intervals of this edge.

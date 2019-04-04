@@ -270,7 +270,7 @@ void AssembledSegment::writeHtml(ostream& html) const
     for(size_t i=0; ; i++) {
 
         // Vertex.
-        const GlobalMarkerGraphVertexId vertexId = vertexIds[i];
+        const MarkerGraph::VertexId vertexId = vertexIds[i];
         const string url = urlPrefix + to_string(vertexId) + urlSuffix;
         const vector<Base>& vertexSequence = vertexSequences[i];
         const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
@@ -340,7 +340,7 @@ void AssembledSegment::writeHtml(ostream& html) const
 
 
         // Edge.
-        const GlobalMarkerGraphEdgeId edgeId = edgeIds[i];
+        const MarkerGraph::EdgeId edgeId = edgeIds[i];
         // const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
         const string sourceUrl = urlPrefix + to_string(vertexIds[i]) + urlSuffix;
         const string targetUrl = urlPrefix + to_string(vertexIds[i+1]) + urlSuffix;

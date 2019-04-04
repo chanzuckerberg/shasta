@@ -58,7 +58,7 @@ void Assembler::createMarkerGraphVertices(
     // Only turn on for a very small test run with just a few reads.
     const bool debug = false;
 
-    // using VertexId = GlobalMarkerGraphVertexId;
+    // using VertexId = MarkerGraph::VertexId;
     // using CompressedVertexId = CompressedGlobalMarkerGraphVertexId;
 
     const auto tBegin = steady_clock::now();
@@ -175,11 +175,11 @@ void Assembler::createMarkerGraphVertices(
     // (vertices with more than one marker on the same read).
     // This block is recursive and cannot be multithreaded.
     cout << timestamp << "Renumbering the disjoint sets." << endl;
-    GlobalMarkerGraphVertexId newDisjointSetId = 0ULL;
-    for(GlobalMarkerGraphVertexId oldDisjointSetId=0;
+    MarkerGraph::VertexId newDisjointSetId = 0ULL;
+    for(MarkerGraph::VertexId oldDisjointSetId=0;
         oldDisjointSetId<data.orientedMarkerCount; ++oldDisjointSetId) {
         auto& w = data.workArea[oldDisjointSetId];
-        const GlobalMarkerGraphVertexId markerCount = w;
+        const MarkerGraph::VertexId markerCount = w;
         if(markerCount<minCoverage || markerCount>maxCoverage) {
             w = MarkerGraph::invalidVertexId;
         } else {
@@ -205,7 +205,7 @@ void Assembler::createMarkerGraphVertices(
     // Vertices assigned to no disjoint set will store MarkerGraph::invalidVertexId.
     // This could be multithreaded if necessary.
     cout << timestamp << "Assigning vertices to renumbered disjoint sets." << endl;
-    for(GlobalMarkerGraphVertexId markerId=0;
+    for(MarkerGraph::VertexId markerId=0;
         markerId<data.orientedMarkerCount; ++markerId) {
         auto& d = data.disjointSetTable[markerId];
         const auto oldId = d;
@@ -285,7 +285,7 @@ void Assembler::createMarkerGraphVertices(
         largeDataPageSize);
     data.workArea.reserveAndResize(disjointSetCount);
     newDisjointSetId = 0ULL;
-    for(GlobalMarkerGraphVertexId oldDisjointSetId=0;
+    for(MarkerGraph::VertexId oldDisjointSetId=0;
         oldDisjointSetId<disjointSetCount; ++oldDisjointSetId) {
         auto& w = data.workArea[oldDisjointSetId];
         if(data.isBadDisjointSet[oldDisjointSetId]) {
@@ -316,7 +316,7 @@ void Assembler::createMarkerGraphVertices(
         largeDataName("GlobalMarkerGraphVertex"),
         largeDataPageSize);
     globalMarkerGraphVertex.reserveAndResize(data.orientedMarkerCount);
-    for(GlobalMarkerGraphVertexId markerId=0;
+    for(MarkerGraph::VertexId markerId=0;
         markerId<data.orientedMarkerCount; ++markerId) {
         auto oldValue = data.disjointSetTable[markerId];
         if(oldValue == MarkerGraph::invalidVertexId) {
@@ -335,7 +335,7 @@ void Assembler::createMarkerGraphVertices(
     globalMarkerGraphVertices.createNew(
         largeDataName("GlobalMarkerGraphVertices"),
         largeDataPageSize);
-    for(GlobalMarkerGraphVertexId oldDisjointSetId=0;
+    for(MarkerGraph::VertexId oldDisjointSetId=0;
         oldDisjointSetId<disjointSetCount; ++oldDisjointSetId) {
         if(data.isBadDisjointSet[oldDisjointSetId]) {
             continue;
@@ -486,7 +486,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction6(size_t threadId)
 
     size_t begin, end;
     while(getNextBatch(begin, end)) {
-        for(GlobalMarkerGraphVertexId i=begin; i!=end; ++i) {
+        for(MarkerGraph::VertexId i=begin; i!=end; ++i) {
             auto markers = disjointSetMarkers[i];
             sort(markers.begin(), markers.end());
         }
@@ -502,7 +502,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
 
     size_t begin, end;
     while(getNextBatch(begin, end)) {
-        for(GlobalMarkerGraphVertexId disjointSetId=begin; disjointSetId!=end; ++disjointSetId) {
+        for(MarkerGraph::VertexId disjointSetId=begin; disjointSetId!=end; ++disjointSetId) {
             auto markers = disjointSetMarkers[disjointSetId];
             const size_t markerCount = markers.size();
             CZI_ASSERT(markerCount > 0);
@@ -573,7 +573,7 @@ void Assembler::checkMarkerGraphVertices(
         }
         ofstream out2("globalMarkerGraphVertices.csv");
         out1 << "VertexId,MarkerId\n";
-        for(GlobalMarkerGraphVertexId vertexId=0;
+        for(MarkerGraph::VertexId vertexId=0;
             vertexId<globalMarkerGraphVertices.size(); vertexId++) {
             const auto markers = globalMarkerGraphVertices[vertexId];
             for(const MarkerId markerId: markers) {
@@ -584,7 +584,7 @@ void Assembler::checkMarkerGraphVertices(
 
 
 
-    for(GlobalMarkerGraphVertexId vertexId=0;
+    for(MarkerGraph::VertexId vertexId=0;
         vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
         CZI_ASSERT(!isBadMarkerGraphVertex(vertexId));
         const auto markers = globalMarkerGraphVertices[vertexId];
@@ -604,7 +604,7 @@ void Assembler::checkMarkerGraphVertices(
 #if 0
 void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)
 {
-    GlobalMarkerGraphVertexId* workArea =
+    MarkerGraph::VertexId* workArea =
         createMarkerGraphVerticesData.workArea.begin();
 
     size_t begin, end;
@@ -620,7 +620,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)
 
 void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
 {
-    GlobalMarkerGraphVertexId* workArea =
+    MarkerGraph::VertexId* workArea =
         createMarkerGraphVerticesData.workArea.begin();
     const uint64_t maxValue = std::numeric_limits<uint64_t>::max();
     const uint64_t maxValueMinus1 = maxValue - 1ULL;
@@ -660,7 +660,7 @@ void Assembler::checkMarkerGraphVerticesAreAvailable()
 
 
 // Find the vertex of the global marker graph that contains a given marker.
-GlobalMarkerGraphVertexId Assembler::getGlobalMarkerGraphVertex(
+MarkerGraph::VertexId Assembler::getGlobalMarkerGraphVertex(
     ReadId readId,
     Strand strand,
     uint32_t ordinal) const
@@ -668,7 +668,7 @@ GlobalMarkerGraphVertexId Assembler::getGlobalMarkerGraphVertex(
     return getGlobalMarkerGraphVertex(OrientedReadId(readId, strand), ordinal);
 
 }
-GlobalMarkerGraphVertexId Assembler::getGlobalMarkerGraphVertex(
+MarkerGraph::VertexId Assembler::getGlobalMarkerGraphVertex(
     OrientedReadId orientedReadId,
     uint32_t ordinal) const
 {
@@ -681,7 +681,7 @@ GlobalMarkerGraphVertexId Assembler::getGlobalMarkerGraphVertex(
 // Returns the markers as tuples(read id, strand, ordinal).
 vector< tuple<ReadId, Strand, uint32_t> >
     Assembler::getGlobalMarkerGraphVertexMarkers(
-        GlobalMarkerGraphVertexId globalMarkerGraphVertexId) const
+        MarkerGraph::VertexId globalMarkerGraphVertexId) const
 {
     // Call the lower level function.
     vector< pair<OrientedReadId, uint32_t> > markers;
@@ -697,7 +697,7 @@ vector< tuple<ReadId, Strand, uint32_t> >
     return returnVector;
 }
 void Assembler::getGlobalMarkerGraphVertexMarkers(
-    GlobalMarkerGraphVertexId vertexId,
+    MarkerGraph::VertexId vertexId,
     vector< pair<OrientedReadId, uint32_t> >& markers) const
 {
     markers.clear();
@@ -712,17 +712,17 @@ void Assembler::getGlobalMarkerGraphVertexMarkers(
 
 
 // Find the children of a vertex of the global marker graph.
-vector<GlobalMarkerGraphVertexId>
+vector<MarkerGraph::VertexId>
     Assembler::getGlobalMarkerGraphVertexChildren(
-    GlobalMarkerGraphVertexId vertexId) const
+    MarkerGraph::VertexId vertexId) const
 {
-    vector<GlobalMarkerGraphVertexId> children;
+    vector<MarkerGraph::VertexId> children;
     getGlobalMarkerGraphVertexChildren(vertexId, children);
     return children;
 }
 void Assembler::getGlobalMarkerGraphVertexChildren(
-    GlobalMarkerGraphVertexId vertexId,
-    vector<GlobalMarkerGraphVertexId>& children,
+    MarkerGraph::VertexId vertexId,
+    vector<MarkerGraph::VertexId>& children,
     bool append
     ) const
 {
@@ -748,7 +748,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
             // Find the vertex id.
             const MarkerId childMarkerId =  getMarkerId(orientedReadId, ordinal);
-            const GlobalMarkerGraphVertexId childVertexId =
+            const MarkerGraph::VertexId childVertexId =
                 globalMarkerGraphVertex[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
@@ -773,9 +773,9 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 // This version also returns the oriented read ids and ordinals
 // that caused a child to be marked as such.
 void Assembler::getGlobalMarkerGraphVertexChildren(
-    GlobalMarkerGraphVertexId vertexId,
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >& children,
-    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
+    MarkerGraph::VertexId vertexId,
+    vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > >& children,
+    vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
     ) const
 {
     children.clear();
@@ -798,7 +798,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
             // Find the vertex id.
             const MarkerId childMarkerId =  getMarkerId(info.orientedReadId, info.ordinals[1]);
-            const GlobalMarkerGraphVertexId childVertexId =
+            const MarkerGraph::VertexId childVertexId =
                 globalMarkerGraphVertex[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
@@ -837,17 +837,17 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
 
 
 // Find the parents of a vertex of the global marker graph.
-vector<GlobalMarkerGraphVertexId>
+vector<MarkerGraph::VertexId>
     Assembler::getGlobalMarkerGraphVertexParents(
-    GlobalMarkerGraphVertexId vertexId) const
+    MarkerGraph::VertexId vertexId) const
 {
-    vector<GlobalMarkerGraphVertexId> parents;
+    vector<MarkerGraph::VertexId> parents;
     getGlobalMarkerGraphVertexParents(vertexId, parents);
     return parents;
 }
 void Assembler::getGlobalMarkerGraphVertexParents(
-    GlobalMarkerGraphVertexId vertexId,
-    vector<GlobalMarkerGraphVertexId>& parents,
+    MarkerGraph::VertexId vertexId,
+    vector<MarkerGraph::VertexId>& parents,
     bool append
     ) const
 {
@@ -876,7 +876,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 
             // Find the vertex id.
             const MarkerId parentMarkerId =  getMarkerId(orientedReadId, ordinal);
-            const GlobalMarkerGraphVertexId parentVertexId =
+            const MarkerGraph::VertexId parentVertexId =
                 globalMarkerGraphVertex[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
@@ -902,9 +902,9 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 // This version also returns the oriented read ids and ordinals
 // that caused a parent to be marked as such.
 void Assembler::getGlobalMarkerGraphVertexParents(
-    GlobalMarkerGraphVertexId vertexId,
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > >& parents,
-    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> >& workArea
+    MarkerGraph::VertexId vertexId,
+    vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > >& parents,
+    vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
     ) const
 {
     parents.clear();
@@ -929,7 +929,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 
             // Find the vertex id.
             const MarkerId parentMarkerId =  getMarkerId(info.orientedReadId, info.ordinals[1]);
-            const GlobalMarkerGraphVertexId parentVertexId =
+            const MarkerGraph::VertexId parentVertexId =
                 globalMarkerGraphVertex[parentMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
@@ -975,15 +975,15 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 // global marker graph. Returns an empty vector if the specified
 // edge does not exist.
 vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGraphEdgeInformation(
-    GlobalMarkerGraphVertexId vertexId0,
-    GlobalMarkerGraphVertexId vertexId1
+    MarkerGraph::VertexId vertexId0,
+    MarkerGraph::VertexId vertexId1
     )
 {
     const uint32_t k = uint32_t(assemblerInfo->k);
 
     // Find the children of vertexId0.
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > children;
-    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> > workArea;
+    vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > > children;
+    vector< pair<MarkerGraph::VertexId, MarkerInterval> > workArea;
     getGlobalMarkerGraphVertexChildren(vertexId0, children, workArea);
 
     // Find vertexId1 in the children.
@@ -1037,8 +1037,8 @@ vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGr
 // Lower-level, more efficient version of the above
 // (but it returns less information).
 void Assembler::getGlobalMarkerGraphEdgeInfo(
-    GlobalMarkerGraphVertexId vertexId0,
-    GlobalMarkerGraphVertexId vertexId1,
+    MarkerGraph::VertexId vertexId0,
+    MarkerGraph::VertexId vertexId1,
     vector<MarkerInterval>& intervals
     )
 {
@@ -1062,7 +1062,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
 
             // Find the vertex id.
             const MarkerId markerId1 =  getMarkerId(orientedReadId, ordinal1);
-            const GlobalMarkerGraphVertexId vertexId1Candidate =
+            const MarkerGraph::VertexId vertexId1Candidate =
                 globalMarkerGraphVertex[markerId1];
 
             // If this marker correspond to vertexId1, add it to our list.
@@ -1081,7 +1081,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
 
 // Return true if a vertex of the global marker graph has more than
 // one marker for at least one oriented read id.
-bool Assembler::isBadMarkerGraphVertex(GlobalMarkerGraphVertexId vertexId) const
+bool Assembler::isBadMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 {
     // Get the markers of this vertex.
     const auto& vertexMarkerIds = globalMarkerGraphVertices[vertexId];
@@ -1151,7 +1151,7 @@ bool Assembler::extractLocalMarkerGraph(
     LocalMarkerGraph& graph
     )
 {
-    const GlobalMarkerGraphVertexId startVertexId =
+    const MarkerGraph::VertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     return extractLocalMarkerGraph(startVertexId, distance, timeout, graph);
 
@@ -1160,7 +1160,7 @@ bool Assembler::extractLocalMarkerGraph(
 
 
 bool Assembler::extractLocalMarkerGraph(
-    GlobalMarkerGraphVertexId startVertexId,
+    MarkerGraph::VertexId startVertexId,
     int distance,
     double timeout,                 // Or 0 for no timeout.
     LocalMarkerGraph& graph
@@ -1180,9 +1180,9 @@ bool Assembler::extractLocalMarkerGraph(
 
     // Some vectors used inside the BFS.
     // Define them here to reduce memory allocation activity.
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > children;
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > parents;
-    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> > workArea;
+    vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > > children;
+    vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > > parents;
+    vector< pair<MarkerGraph::VertexId, MarkerInterval> > workArea;
     vector<MarkerInterval> markerIntervalVector;
 
 
@@ -1204,7 +1204,7 @@ bool Assembler::extractLocalMarkerGraph(
         const vertex_descriptor v0 = q.front();
         q.pop();
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
-        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
+        const MarkerGraph::VertexId vertexId0 = vertex0.vertexId;
         const int distance0 = vertex0.distance;
         const int distance1 = distance0 + 1;
 
@@ -1214,7 +1214,7 @@ bool Assembler::extractLocalMarkerGraph(
 
         // Loop over the children.
         for(const auto& p: children) {
-            const GlobalMarkerGraphVertexId vertexId1 = p.first;
+            const MarkerGraph::VertexId vertexId1 = p.first;
             bool vertexExists;
 
             // Find the vertex corresponding to this child, creating it if necessary.
@@ -1250,7 +1250,7 @@ bool Assembler::extractLocalMarkerGraph(
 
         // Loop over the parents.
         for(const auto& p: parents) {
-            const GlobalMarkerGraphVertexId vertexId1 = p.first;
+            const MarkerGraph::VertexId vertexId1 = p.first;
             bool vertexExists;
 
             // Find the vertex corresponding to this parent, creating it if necessary.
@@ -1300,7 +1300,7 @@ bool Assembler::extractLocalMarkerGraph(
         // and are also at maximum distance.
         getGlobalMarkerGraphVertexChildren(vertex0.vertexId, children, workArea);
         for(const auto& p: children) {
-            const GlobalMarkerGraphVertexId vertexId1 = p.first;
+            const MarkerGraph::VertexId vertexId1 = p.first;
             bool vertexExists;
             vertex_descriptor v1;
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
@@ -1369,7 +1369,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     LocalMarkerGraph& graph
     )
 {
-    const GlobalMarkerGraphVertexId startVertexId =
+    const MarkerGraph::VertexId startVertexId =
         getGlobalMarkerGraphVertex(orientedReadId, ordinal);
     return extractLocalMarkerGraphUsingStoredConnectivity(
         startVertexId, distance, timeout,
@@ -1387,7 +1387,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
 
 bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
-    GlobalMarkerGraphVertexId startVertexId,
+    MarkerGraph::VertexId startVertexId,
     int distance,
     double timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
@@ -1438,7 +1438,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         const vertex_descriptor v0 = q.front();
         q.pop();
         const LocalMarkerGraphVertex& vertex0 = graph[v0];
-        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
+        const MarkerGraph::VertexId vertexId0 = vertex0.vertexId;
         const int distance0 = vertex0.distance;
         const int distance1 = distance0 + 1;
 
@@ -1458,7 +1458,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
 
-            const GlobalMarkerGraphVertexId vertexId1 = edge.target;
+            const MarkerGraph::VertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
             CZI_ASSERT(!isBadMarkerGraphVertex(vertexId1));
@@ -1515,7 +1515,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
 
-            const GlobalMarkerGraphVertexId vertexId1 = edge.source;
+            const MarkerGraph::VertexId vertexId1 = edge.source;
             CZI_ASSERT(edge.target == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
 
@@ -1566,7 +1566,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         if(vertex0.distance != distance) {
             continue;
         }
-        const GlobalMarkerGraphVertexId vertexId0 = vertex0.vertexId;
+        const MarkerGraph::VertexId vertexId0 = vertex0.vertexId;
 
         // Loop over the children that exist in the local marker graph
         // and are also at maximum distance.
@@ -1585,7 +1585,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 continue;
             }
 
-            const GlobalMarkerGraphVertexId vertexId1 = edge.target;
+            const MarkerGraph::VertexId vertexId1 = edge.target;
             CZI_ASSERT(edge.source == vertexId0);
             CZI_ASSERT(vertexId1 < globalMarkerGraphVertices.size());
 
@@ -1651,8 +1651,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 // Create a local marker graph and return its local assembly path.
 // The local marker graph is specified by its start vertex
 // and maximum distance (number of edges) form the start vertex.
-vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
-    GlobalMarkerGraphVertexId startVertexId,
+vector<MarkerGraph::VertexId> Assembler::getLocalAssemblyPath(
+    MarkerGraph::VertexId startVertexId,
     int maxDistance
     )
 {
@@ -1675,7 +1675,7 @@ vector<GlobalMarkerGraphVertexId> Assembler::getLocalAssemblyPath(
     graph.computeLocalAssemblyPath(maxDistance);
 
     // Get the vertex ids in the assembly path.
-    vector<GlobalMarkerGraphVertexId> path;
+    vector<MarkerGraph::VertexId> path;
     if(!graph.localAssemblyPath.empty()) {
         LocalMarkerGraph::edge_descriptor e = graph.localAssemblyPath.front();
         const LocalMarkerGraph::vertex_descriptor v = source(e, graph);
@@ -1804,8 +1804,8 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
             largeDataPageSize);
 
     // Some things used inside the loop but defined here for performance.
-    vector< pair<GlobalMarkerGraphVertexId, vector<MarkerInterval> > > children;
-    vector< pair<GlobalMarkerGraphVertexId, MarkerInterval> > workArea;
+    vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > > children;
+    vector< pair<MarkerGraph::VertexId, MarkerInterval> > workArea;
     MarkerGraph::Edge edge;
 
     // Loop over all batches assigned to this thread.
@@ -1814,7 +1814,7 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
         out << timestamp << begin << endl;
 
         // Loop over all marker graph vertices assigned to this batch.
-        for(GlobalMarkerGraphVertexId vertex0=begin; vertex0!=end; ++vertex0) {
+        for(MarkerGraph::VertexId vertex0=begin; vertex0!=end; ++vertex0) {
             // out << timestamp << vertex0 << " " << globalMarkerGraphVertices.size(vertex0) << endl;
             edge.source = vertex0;
 
@@ -1918,8 +1918,8 @@ void Assembler::flagMarkerGraphWeakEdges(
 {
     // Some shorthands for readability.
     auto& edges = markerGraph.edges;
-    using VertexId = GlobalMarkerGraphVertexId;
-    using EdgeId = GlobalMarkerGraphEdgeId;
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
     using Edge = MarkerGraph::Edge;
 
     // Initial message.
@@ -2142,11 +2142,11 @@ void Assembler::flagMarkerGraphWeakEdges(
 
 // Return true if an edge disconnects the local subgraph.
 bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
-    GlobalMarkerGraphEdgeId startEdgeId,
+    MarkerGraph::EdgeId startEdgeId,
     size_t maxDistance,
 
     // Each of these two must be sized maxDistance.
-    array<vector< vector<GlobalMarkerGraphEdgeId> >, 2>& verticesByDistance,
+    array<vector< vector<MarkerGraph::EdgeId> >, 2>& verticesByDistance,
 
     // Each of these two must be sized globalMarkerGraphVertices.size()
     // and set to all false on entry.
@@ -2157,8 +2157,8 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
 
     // Some shorthands for clarity.
     auto& edges = markerGraph.edges;
-    using VertexId = GlobalMarkerGraphVertexId;
-    using EdgeId = GlobalMarkerGraphEdgeId;
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
     using Edge = MarkerGraph::Edge;
 
     // Check that the work areas are sized as expected.
@@ -2310,7 +2310,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
 void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
 {
     // Some shorthands.
-    using VertexId = GlobalMarkerGraphVertexId;
+    using VertexId = MarkerGraph::VertexId;
     using EdgeId = VertexId;
 
     // Check that we have what we need.
@@ -2393,7 +2393,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
 // strong subgraph of the marker graph.
 // A forward leaf is a vertex with out-degree 0.
 // A backward leaf is a vertex with in-degree 0.
-bool Assembler::isForwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId vertexId) const
+bool Assembler::isForwardLeafOfMarkerGraphPrunedStrongSubgraph(MarkerGraph::VertexId vertexId) const
 {
     const auto& forwardEdges = markerGraph.edgesBySource[vertexId];
     for(const auto& edgeId: forwardEdges) {
@@ -2405,7 +2405,7 @@ bool Assembler::isForwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraph
     }
     return true;    // We did not find any forward edges, so this is a forward leaf.
 }
-bool Assembler::isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGraphVertexId vertexId) const
+bool Assembler::isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(MarkerGraph::VertexId vertexId) const
 {
     const auto& backwardEdges = markerGraph.edgesByTarget[vertexId];
     for(const auto& edgeId: backwardEdges) {
@@ -2423,11 +2423,11 @@ bool Assembler::isBackwardLeafOfMarkerGraphPrunedStrongSubgraph(GlobalMarkerGrap
 // Given an edge of the pruned strong subgraph of the marker graph,
 // return the next edge in the linear chain the edge belongs to.
 // If the edge is the last edge in its linear chain, return MarkerGraph::invalidEdgeId.
-GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChain(
-    GlobalMarkerGraphEdgeId edgeId0) const
+MarkerGraph::EdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChain(
+    MarkerGraph::EdgeId edgeId0) const
 {
     // Some shorthands.
-    using EdgeId = GlobalMarkerGraphEdgeId;
+    using EdgeId = MarkerGraph::EdgeId;
     using Edge = MarkerGraph::Edge;
     const auto& edges = markerGraph.edges;
 
@@ -2474,8 +2474,8 @@ GlobalMarkerGraphEdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChai
 // Given an edge of the pruned strong subgraph of the marker graph,
 // return the previous edge in the linear chain the edge belongs to.
 // If the edge is the first edge in its linear chain, return MarkerGraph::invalidEdgeId.
-GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraphChain(
-    GlobalMarkerGraphEdgeId edgeId0) const
+MarkerGraph::EdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraphChain(
+    MarkerGraph::EdgeId edgeId0) const
 {
     const bool debug = false;
     if(debug) {
@@ -2483,7 +2483,7 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
     }
 
     // Some shorthands.
-    using EdgeId = GlobalMarkerGraphEdgeId;
+    using EdgeId = MarkerGraph::EdgeId;
     using Edge = MarkerGraph::Edge;
     const auto& edges = markerGraph.edges;
 
@@ -2545,7 +2545,7 @@ GlobalMarkerGraphEdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraph
 // Return the out-degree or in-degree (number of outgoing/incoming edges)
 // of a vertex of the pruned spanning subgraph of the marker graph.
 size_t Assembler::markerGraphPrunedStrongSubgraphOutDegree(
-    GlobalMarkerGraphVertexId vertexId) const
+    MarkerGraph::VertexId vertexId) const
 {
     size_t outDegree = 0;
     for(const auto edgeId: markerGraph.edgesBySource[vertexId]) {
@@ -2557,7 +2557,7 @@ size_t Assembler::markerGraphPrunedStrongSubgraphOutDegree(
     return outDegree;
 }
 size_t Assembler::markerGraphPrunedStrongSubgraphInDegree(
-    GlobalMarkerGraphVertexId vertexId) const
+    MarkerGraph::VertexId vertexId) const
 {
     size_t inDegree = 0;
     for(const auto edgeId: markerGraph.edgesByTarget[vertexId]) {
@@ -2573,7 +2573,7 @@ size_t Assembler::markerGraphPrunedStrongSubgraphInDegree(
 
 // Compute consensus sequence for a vertex of the marker graph.
 void Assembler::computeMarkerGraphVertexConsensusSequence(
-    GlobalMarkerGraphVertexId vertexId,
+    MarkerGraph::VertexId vertexId,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts
     )
@@ -2641,7 +2641,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 // This includes the k bases corresponding to the flanking markers,
 // but computed only using reads on this edge.
 void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
-    GlobalMarkerGraphEdgeId edgeId,
+    MarkerGraph::EdgeId edgeId,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount
@@ -2755,7 +2755,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
 // Instead, we return as consensus the sequence of the shortest marker interval.
 // This should happen only exceptionally.
 void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-    GlobalMarkerGraphEdgeId edgeId,
+    MarkerGraph::EdgeId edgeId,
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
@@ -3140,7 +3140,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 #ifndef SHASTA_STATIC_EXECUTABLE
 void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-    GlobalMarkerGraphEdgeId edgeId,
+    MarkerGraph::EdgeId edgeId,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount
@@ -3553,9 +3553,9 @@ void Assembler::simplifyMarkerGraphIterationPart1(
         }
         ++removedAssemblyGraphEdgeCount;
 
-        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         removedMarkerGraphEdgeCount += markerGraphEdges.size();
-        for(const GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdges) {
+        for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
             markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
         }
     }
@@ -3686,7 +3686,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             debugOut << "\nProcessing connected component with " << component.size() <<
                 " assembly/marker graph vertices:" << "\n";
             for(const AssemblyGraph::VertexId assemblyGraphVertexId: component) {
-                const GlobalMarkerGraphVertexId markerGraphVertexId = assemblyGraph.vertices[assemblyGraphVertexId];
+                const MarkerGraph::VertexId markerGraphVertexId = assemblyGraph.vertices[assemblyGraphVertexId];
                 debugOut << assemblyGraphVertexId << "/" << markerGraphVertexId;
                 if(isEntry[assemblyGraphVertexId]) {
                     debugOut << " entry";
@@ -3877,9 +3877,9 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         }
         ++removedAssemblyGraphEdgeCount;
 
-        const MemoryAsContainer<GlobalMarkerGraphEdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         removedMarkerGraphEdgeCount += markerGraphEdges.size();
-        for(const GlobalMarkerGraphEdgeId markerGraphEdgeId: markerGraphEdges) {
+        for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
             markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
         }
     }
@@ -3941,7 +3941,7 @@ void Assembler::assembleMarkerGraphVerticesThreadFunction(size_t threadId)
     while(getNextBatch(begin, end)) {
 
         // Loop over marker graph vertices assigned to this batch.
-        for(GlobalMarkerGraphVertexId vertexId=begin; vertexId!=end; vertexId++) {
+        for(MarkerGraph::VertexId vertexId=begin; vertexId!=end; vertexId++) {
 
             // Compute the optimal repeat counts for this vertex.
             computeMarkerGraphVertexConsensusSequence(vertexId, sequence, repeatCounts);
@@ -4011,7 +4011,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     // Gather the results computed by all the threads.
     markerGraph.vertexCoverageData.createNew(
         largeDataName("MarkerGraphVerticesCoverageData"), largeDataPageSize);
-    for(GlobalMarkerGraphVertexId vertexId=0; vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
+    for(MarkerGraph::VertexId vertexId=0; vertexId!=globalMarkerGraphVertices.size(); vertexId++) {
         const auto& p = vertexTable[vertexId];
         const size_t threadId = p.first;
         const size_t i = p.second;
@@ -4040,7 +4040,7 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
     // Allocate space for the results computed by this thread.
     ComputeMarkerGraphVerticesCoverageDataData& data = computeMarkerGraphVerticesCoverageDataData;
     data.threadVertexIds[threadId] =
-        make_shared< MemoryMapped::Vector<GlobalMarkerGraphVertexId> >();
+        make_shared< MemoryMapped::Vector<MarkerGraph::VertexId> >();
     data.threadVertexCoverageData[threadId] =
         make_shared< MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t> >();
     auto& threadVertexIds = *data.threadVertexIds[threadId];
@@ -4062,7 +4062,7 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
     while(getNextBatch(begin, end)) {
 
         // Loop over all vertices of this batch.
-        for(GlobalMarkerGraphVertexId vertexId=begin; vertexId!=end; vertexId++) {
+        for(MarkerGraph::VertexId vertexId=begin; vertexId!=end; vertexId++) {
 
             // Access the markers of this vertex.
             const MemoryAsContainer<MarkerId> markerIds = globalMarkerGraphVertices[vertexId];
@@ -4190,7 +4190,7 @@ void Assembler::assembleMarkerGraphEdges(
         markerGraph.edgeCoverageData.createNew(
             largeDataName("MarkerGraphEdgesCoverageData"), largeDataPageSize);
     }
-    for(GlobalMarkerGraphEdgeId edgeId=0; edgeId!=markerGraph.edges.size(); edgeId++) {
+    for(MarkerGraph::EdgeId edgeId=0; edgeId!=markerGraph.edges.size(); edgeId++) {
         const auto& p = edgeTable[edgeId];
         const size_t threadId = p.first;
         const size_t i = p.second;
@@ -4259,12 +4259,12 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 
     // Allocate space for the results computed by this thread.
     assembleMarkerGraphEdgesData.threadEdgeIds[threadId] =
-        make_shared< MemoryMapped::Vector<GlobalMarkerGraphEdgeId> >();
+        make_shared< MemoryMapped::Vector<MarkerGraph::EdgeId> >();
     assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId] =
         make_shared<MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> >();
     assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount[threadId] =
         make_shared< MemoryMapped::Vector<uint8_t> >();
-    MemoryMapped::Vector<GlobalMarkerGraphEdgeId>& edgeIds =
+    MemoryMapped::Vector<MarkerGraph::EdgeId>& edgeIds =
         *assembleMarkerGraphEdgesData.threadEdgeIds[threadId];
     MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t>& consensus =
         *assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId];
@@ -4299,7 +4299,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
         }
 
         // Loop over marker graph vertices assigned to this batch.
-        for(GlobalMarkerGraphEdgeId edgeId=begin; edgeId!=end; edgeId++) {
+        for(MarkerGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
 
             // Compute the consensus, but only if the edge is not marked as removed.
             if(markerGraph.edges[edgeId].wasRemoved()) {
