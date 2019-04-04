@@ -1454,19 +1454,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.wasPruned && !usePrunedEdges) {
                 continue;
             }
-            if(edge.isShortCycleEdge && !useShortCycleEdges) {
-                continue;
-            }
-            if(edge.isBubbleEdge && !useBubbleEdges) {
-                continue;
-            }
-            if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
-                continue;
-            }
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
-                continue;
-            }
-            if(edge.replacesSuperBubbleEdges && !useSuperBubbleReplacementEdges) {
                 continue;
             }
 
@@ -1523,19 +1511,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.wasPruned && !usePrunedEdges) {
                 continue;
             }
-            if(edge.isShortCycleEdge && !useShortCycleEdges) {
-                continue;
-            }
-            if(edge.isBubbleEdge && !useBubbleEdges) {
-                continue;
-            }
-            if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
-                continue;
-            }
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
-                continue;
-            }
-            if(edge.replacesSuperBubbleEdges && !useSuperBubbleReplacementEdges) {
                 continue;
             }
 
@@ -1605,19 +1581,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             if(edge.wasPruned && !usePrunedEdges) {
                 continue;
             }
-            if(edge.isShortCycleEdge && !useShortCycleEdges) {
-                continue;
-            }
-            if(edge.isBubbleEdge && !useBubbleEdges) {
-                continue;
-            }
-            if(edge.replacesBubbleEdges && !useBubbleReplacementEdges) {
-                continue;
-            }
             if(edge.isSuperBubbleEdge && !useSuperBubbleEdges) {
-                continue;
-            }
-            if(edge.replacesSuperBubbleEdges && !useSuperBubbleReplacementEdges) {
                 continue;
             }
 
@@ -2931,17 +2895,6 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     const size_t markerCount = markerIntervals.size();
     CZI_ASSERT(markerCount > 0);
 
-#if 0
-    {
-        cout << "Working on edge " << edgeId << " ";
-        const auto& edge = markerGraph.edges[edgeId];
-        cout << int(edge.wasRemovedByTransitiveReduction);
-        cout << int(edge.wasPruned);
-        cout << int(edge.isBubbleEdge);
-        cout << int(edge.replacesBubbleEdges);
-        cout << " " << markerCount << endl;
-    }
-#endif
 
 
     // Find out if very long marker intervals are present.
@@ -3617,26 +3570,10 @@ void Assembler::simplifyMarkerGraph(
     const vector<size_t>& maxLengthVector, // One value for each iteration.
     bool debug)
 {
-    // Start by clearing all edge flags except for
-    // wasRemovedByTransitiveReduction and wasPruned.
+    // Clear the superbubble flag for all edges.
     for(MarkerGraph::Edge& edge: markerGraph.edges) {
-
-        // If the marker graph contains replacement edges,
-        // we must have run bubble/superbubble removal which add edges.
-        // We don't want that.
-        // If these assertions happen, rerun CreateAndCleanupMarkerGraph.py
-        // to recreate the marker graph from scratch.
-        CZI_ASSERT(!edge.replacesBubbleEdges);
-        CZI_ASSERT(!edge.replacesSuperBubbleEdges);
-
-        edge.isBubbleEdge = 0;
-        edge.replacesBubbleEdges = 0;
-        edge.isShortCycleEdge = 0;
         edge.isSuperBubbleEdge = 0;
-        edge.replacesSuperBubbleEdges = 0;
     }
-
-
 
 
 

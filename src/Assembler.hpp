@@ -864,8 +864,6 @@ private:
                 return
                     wasRemovedByTransitiveReduction ||
                     wasPruned ||
-                    isBubbleEdge ||
-                    isShortCycleEdge ||
                     isSuperBubbleEdge;
             }
 
@@ -876,32 +874,25 @@ private:
             // Set if this edge was removed during pruning.
             uint8_t wasPruned : 1;
 
-            // Set if this edge belongs to a bubble that was removed.
-            uint8_t isBubbleEdge : 1;
-
-            // Set if this edge was create to replace to a bubble that was removed.
-            uint8_t replacesBubbleEdges : 1;
-
-            // Set if this edge is part of a short cycle of the assembly graph that was removed.
-            uint8_t isShortCycleEdge : 1;
-
-            // Set if this edge belongs to a superbubble that was removed.
+            // Set if this edge belongs to a bubble/superbubble that was removed.
             uint8_t isSuperBubbleEdge : 1;
 
-            // Set if this edge was create to replace to a superbubble that was removed.
-            uint8_t replacesSuperBubbleEdges : 1;
-
             // Unused.
+            uint8_t flag3 : 1;
+            uint8_t flag4 : 1;
+            uint8_t flag5 : 1;
+            uint8_t flag6 : 1;
             uint8_t flag7 : 1;
+
             void clearFlags()
             {
                 wasRemovedByTransitiveReduction = 0;
                 wasPruned = 0;
-                isBubbleEdge = 0;
-                replacesBubbleEdges = 0;
-                isShortCycleEdge = 0;
                 isSuperBubbleEdge = 0;
-                replacesSuperBubbleEdges = 0;
+                flag3 = 0;
+                flag4 = 0;
+                flag5 = 0;
+                flag6 = 0;
                 flag7 = 0;
             }
             Edge() :
