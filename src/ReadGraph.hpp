@@ -106,7 +106,7 @@ public:
         vector<uint32_t>& parentEdges  // One per vertex
 
         );
-    static const uint32_t infiniteDistance = std::numeric_limits<uint32_t>::max();
+    static const uint32_t infiniteDistance;
 };
 
 

@@ -10,6 +10,8 @@ using namespace shasta;
 #include "fstream.hpp"
 #include <queue>
 
+const uint32_t ReadGraph::infiniteDistance = std::numeric_limits<uint32_t>::max();
+
 
 void RawReadGraph::Visitor::examine_edge(edge_descriptor e, const RawReadGraph& constGraph)
 {
