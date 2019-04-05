@@ -1008,6 +1008,12 @@ void Assembler::findMarkerGraphReverseComplementVertices()
 	using VertexId = MarkerGraph::VertexId;
 	const VertexId vertexCount = markerGraph.vertices.size();
 
+	// Allocate the vector to hold the reverse complemented
+	// vertex id for each vertex.
+	markerGraph.reverseComplementVertex.createNew(
+			largeDataName("MarkerGraphReverseComplementeVertex"), largeDataPageSize);
+	markerGraph.reverseComplementVertex.resize(vertexCount);
+
 	// Loop over all marker graph vertices.
 	for(VertexId vertexId=0; vertexId!=vertexCount; vertexId++) {
 
@@ -1051,8 +1057,23 @@ void Assembler::findMarkerGraphReverseComplementVertices()
 			}
 		}
 
+		// Check that the markers are all consistent.
+		// This could become expensive.
+		// It can be taken out when we are confident that this code works.
 		CZI_ASSERT(vertexMarkers.size() == vertexMarkersReverseComplement.size());
+		for(size_t i=0; i<vertexMarkers.size(); i++) {
+			const MarkerId markerId = vertexMarkers[i];
+			const MarkerId markerIdReverseComplement = vertexMarkersReverseComplement[i];
+			CZI_ASSERT(markerIdReverseComplement == findReverseComplement(markerId));
+		}
+
+		markerGraph.reverseComplementVertex[vertexId] = vertexIdReverseComplement;
 	}
+}
+void Assembler::accessMarkerGraphReverseComplementVertices()
+{
+	markerGraph.reverseComplementVertex.accessExistingReadOnly(
+		largeDataName("MarkerGraphReverseComplementeVertex"));
 }
 
 

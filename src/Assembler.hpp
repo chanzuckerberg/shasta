@@ -847,6 +847,7 @@ private:
     // Find the reverse complement of each marker graph vertex.
 public:
     void findMarkerGraphReverseComplementVertices();
+    void accessMarkerGraphReverseComplementVertices();
 
 
 

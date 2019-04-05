@@ -136,6 +136,7 @@ def runAssembly(a, config, fastaFileNames):
         maxSkip = int(config['Align']['maxSkip']),
         minCoverage = int(config['MarkerGraph']['minCoverage']),
         maxCoverage = int(config['MarkerGraph']['maxCoverage']))
+    a.findMarkerGraphReverseComplementVertices()
     
     # Create edges of the marker graph.
     a.createMarkerGraphEdges()

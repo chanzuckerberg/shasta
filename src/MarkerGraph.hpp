@@ -48,7 +48,7 @@ public:
 
     // The global marker graph vertex corresponding to each marker.
     // Indexed by MarkerId.
-    // For markers that don't correspond ot a marker graph vertex,
+    // For markers that don't correspond to a marker graph vertex,
     // this stores invalidCompressedVertexId.
     MemoryMapped::Vector<CompressedVertexId> vertexTable;
 
