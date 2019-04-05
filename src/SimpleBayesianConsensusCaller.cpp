@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <cstdio>
+#include <array>
 #include <cmath>
 #include <map>
 #include "SimpleBayesianConsensusCaller.hpp"
@@ -21,6 +22,7 @@ using std::ifstream;
 using std::vector;
 using std::string;
 using std::printf;
+using std::array;
 using std::pair;
 using std::make_pair;
 using std::cout;
@@ -124,60 +126,54 @@ void SimpleBayesianConsensusCaller::normalize_likelihoods(vector<double>& x, dou
 }
 
 
-map<uint16_t,uint16_t> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage) const{
-    map<uint16_t,uint16_t> factored_repeats;
-
+void SimpleBayesianConsensusCaller::factor_repeats(array<map<uint16_t,uint16_t>,2>& factored_repeats, const Coverage& coverage) const{
     // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
+        // If NOT a gap, always increment
         if (not observation.base.isGap()) {
-            factored_repeats[uint16_t(observation.repeatCount)]++;
-        }
-        else if (count_gaps_as_zeros){
-            factored_repeats[0]++;
+            factored_repeats[uint16_t(observation.strand)][uint16_t(observation.repeatCount)]++;
+        // If IS a gap only increment if "count_gaps_as_zeros" is true
+        }else if (count_gaps_as_zeros){
+            factored_repeats[uint16_t(observation.strand)][0]++;
         }
     }
-
-    return factored_repeats;
 }
 
 
-map<uint16_t,uint16_t> SimpleBayesianConsensusCaller::factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const{
-    map<uint16_t,uint16_t> factored_repeats;
-
+void SimpleBayesianConsensusCaller::factor_repeats(array<map<uint16_t,uint16_t>,2>& factored_repeats, const Coverage& coverage, AlignedBase consensus_base) const{
     // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
         // Ignore non consensus repeat values
         if (observation.base.value == consensus_base.value){
+            // If NOT a gap, always increment
             if (not observation.base.isGap()) {
-                factored_repeats[uint16_t(observation.repeatCount)]++;
-            }
-            else if (count_gaps_as_zeros){
-                factored_repeats[0]++;
+                factored_repeats[uint16_t(observation.strand)][uint16_t(observation.repeatCount)]++;
+            // If IS a gap only increment if "count_gaps_as_zeros" is true
+            }else if (count_gaps_as_zeros){
+                factored_repeats[uint16_t(observation.strand)][0]++;
             }
         }
     }
-
-    return factored_repeats;
 }
 
 
 uint16_t SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const{
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods/
     // Depending on class boolean "ignore_non_consensus_base_repeats" filter out observations
-    map<uint16_t, uint16_t> factored_repeats;
+    array <map <uint16_t,uint16_t>, 2> factored_repeats;
 
     if (ignore_non_consensus_base_repeats) {
-        factored_repeats = factor_repeats(coverage, consensusBase);
+        factor_repeats(factored_repeats, coverage, consensusBase);
     }
     else {
-        factored_repeats = factor_repeats(coverage);
+        factor_repeats(factored_repeats, coverage);
     }
 
     uint16_t x_i;    // Element of X = {x_0, x_1, ..., x_i} observed repeats
     uint16_t c_i;    // Number of times x_i was observed
     uint16_t y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
 
-    double log_sum;                                                   // Product (in logspace) of P(x_i|y_j) for each i
+    double log_sum;  // Product (in logspace) of P(x_i|y_j) for each i
 
     double y_max_likelihood = -INF;
     uint16_t y_max = 0;
@@ -189,17 +185,19 @@ uint16_t SimpleBayesianConsensusCaller::predict_runlength(const Coverage &covera
         // Use a prior (penalty) of a factor 1/4 for each new base.
         log_sum = (y_j==0) ? -20. : (-y_j * log10(4.));
 
-        for (auto& item: factored_repeats){
-            x_i = item.first;
-            c_i = item.second;
+        for (uint16_t strand = 0; strand <= factored_repeats.size() - 1; strand++){
+            for (auto& item: factored_repeats[strand]){
+                x_i = item.first;
+                c_i = item.second;
 
-            // In the case that observed runlength is too large for the matrix, cap it at max_runlength
-            if (x_i > max_runlength){
-                x_i = max_runlength;
+                // In the case that observed runlength is too large for the matrix, cap it at max_runlength
+                if (x_i > max_runlength){
+                    x_i = max_runlength;
+                }
+
+                // Increment log likelihood for this y_j
+                log_sum += double(c_i)*probability_matrices[consensusBase.value][y_j][x_i];
             }
-
-            // Increment log likelihood for this y_j
-            log_sum += double(c_i)*probability_matrices[consensusBase.value][y_j][x_i];
         }
 
         log_likelihood_y[y_j] = log_sum;
@@ -271,4 +269,28 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
     }
 
     return Consensus(AlignedBase::fromInteger(consensus_base.value), consensus_repeat);
+}
+
+
+void testConsensusCaller(){
+    SimpleBayesianConsensusCaller classifier;
+    Coverage c;
+
+    c.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 1);    // Arguments are base, strand, repeat count.
+    c.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
+    c.addRead(AlignedBase::fromInteger((uint8_t)2), 1, 3);
+    c.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
+    c.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 2);
+    c.addRead(AlignedBase::fromInteger((uint8_t)2), 0, 2);
+    c.addRead(AlignedBase::fromInteger((uint8_t)4), 0, 0);
+
+    AlignedBase consensus_base;
+
+    consensus_base = c.mostFrequentBase();
+
+    cout << "CONSENSUS BASE = " << consensus_base << "\n";
+
+    const Consensus consensus = classifier(c);
+
+    cout << consensus.base << " " << consensus.repeatCount << '\n';
 }

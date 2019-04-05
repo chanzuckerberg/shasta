@@ -12,6 +12,7 @@
 #include "splitRange.hpp"
 #include "testMarginCore.hpp"
 #include "testSpoa.hpp"
+#include "SimpleBayesianConsensusCaller.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -481,6 +482,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testMarginCore",
         testMarginCore
+        );
+    module.def("testConsensusCaller",
+        testConsensusCaller
         );
     module.def("dset64Test",
         dset64Test,

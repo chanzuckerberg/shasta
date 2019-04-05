@@ -105,13 +105,15 @@ private:
     void normalize_likelihoods(vector<double>& x, double x_max) const;
 
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods
-    map<uint16_t,uint16_t> factor_repeats(const Coverage& coverage) const;
-    map<uint16_t,uint16_t> factor_repeats(const Coverage& coverage, AlignedBase consensus_base) const;
+    void factor_repeats(array<map<uint16_t,uint16_t>,2>& factored_repeats, const Coverage& coverage) const;
+    void factor_repeats(array<map<uint16_t,uint16_t>,2>& factored_repeats, const Coverage& coverage, AlignedBase consensus_base) const;
 
     // For debugging or exporting
     void print_probability_matrices(char separator=',');
     void print_log_likelihood_vector(vector<double>& log_likelihoods);
 
 };
+
+void testConsensusCaller();
 
 #endif
