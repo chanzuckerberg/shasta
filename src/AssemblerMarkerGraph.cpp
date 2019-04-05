@@ -1069,6 +1069,14 @@ void Assembler::findMarkerGraphReverseComplementVertices()
 
 		markerGraph.reverseComplementVertex[vertexId] = vertexIdReverseComplement;
 	}
+
+	// Check that the reverse complement of the reverse complement of a
+	// vertex is the vertex itself.
+	for(VertexId vertexId=0; vertexId!=vertexCount; vertexId++) {
+		const VertexId vertexIdReverseComplement = markerGraph.reverseComplementVertex[vertexId];
+		CZI_ASSERT(markerGraph.reverseComplementVertex[vertexIdReverseComplement] == vertexId);
+	}
+
 }
 void Assembler::accessMarkerGraphReverseComplementVertices()
 {
