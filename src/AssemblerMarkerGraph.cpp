@@ -388,8 +388,25 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     while(getNextBatch(begin, end)) {
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
-        for(size_t i=begin; i!=end; i++) {
+        // We process read graph edges in pairs.
+        // In each pair, the second edge is the reverse complement of the first.
+        CZI_ASSERT((begin%2) == 0);
+        CZI_ASSERT((end%2) == 0);
+
+        for(size_t i=begin; i!=end; i+=2) {
             const ReadGraph::Edge& readGraphEdge = readGraph.edges[i];
+
+            // Check that the next edge is the reverse complement of
+            // this edge.
+            {
+				const ReadGraph::Edge& readGraphNextEdge = readGraph.edges[i+1];
+				array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
+				nextEdgeOrientedReadIds[0].flipStrand();
+				nextEdgeOrientedReadIds[1].flipStrand();
+				CZI_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
+            }
+
+
             if(readGraphEdge.crossesStrands) {
                 continue;
             }
@@ -424,6 +441,13 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 const MarkerId markerId1 = getMarkerId(orientedReadIds[1], ordinal1);
                 CZI_ASSERT(markers.begin()[markerId0].kmerId == markers.begin()[markerId1].kmerId);
                 disjointSetsPointer->unite(markerId0, markerId1);
+
+                // Also merge the reverse complemented markers.
+                // This guarantees that the marker graph remains invariant
+                // under strand swap.
+                disjointSetsPointer->unite(
+                	findReverseComplement(markerId0),
+					findReverseComplement(markerId1));
             }
         }
     }
@@ -974,7 +998,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 // Find the reverse complement of each marker graph vertex.
 void Assembler::findMarkerGraphReverseComplementVertices()
 {
-	const bool debug = true;
+	const bool debug = false;
 
 	// Check that we have what we need.
 	checkMarkersAreOpen();
