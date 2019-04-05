@@ -313,6 +313,10 @@ PYBIND11_MODULE(shasta, module)
 			&Assembler::findMarkerGraphReverseComplementVertices)
 		.def("accessMarkerGraphReverseComplementVertices",
 			&Assembler::accessMarkerGraphReverseComplementVertices)
+		.def("findMarkerGraphReverseComplementEdges",
+			&Assembler::findMarkerGraphReverseComplementEdges)
+		.def("accessMarkerGraphReverseComplementEdges",
+			&Assembler::accessMarkerGraphReverseComplementEdges)
 
 
 

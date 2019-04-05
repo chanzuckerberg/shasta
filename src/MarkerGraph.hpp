@@ -110,6 +110,7 @@ public:
     };
     MemoryMapped::Vector<Edge> edges;
     const Edge* findEdge(Uint40 source, Uint40 target) const;
+    EdgeId findEdgeId(Uint40 source, Uint40 target) const;
 
     // The MarkerIntervals for each of the above edges.
     MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> edgeMarkerIntervals;
@@ -121,6 +122,10 @@ public:
     // The edges that each vertex is the target of.
     // Contains indexes into the above edges vector.
     MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
+
+    // The reverse complement of each edge.
+    // Indexed by EdgeId.
+    MemoryMapped::Vector<EdgeId> reverseComplementEdge;
 
     // The consensus repeat counts of each vertex of the marker graph.
     // There are assemblerInfo->k entries for each vertex.

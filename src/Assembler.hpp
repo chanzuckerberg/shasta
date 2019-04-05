@@ -871,6 +871,13 @@ private:
 
 
 
+    // Find the reverse complement of each marker graph edge.
+public:
+    void findMarkerGraphReverseComplementEdges();
+    void accessMarkerGraphReverseComplementEdges();
+
+
+
 public:
 
     // Prune leaves from the strong subgraph of the global marker graph.

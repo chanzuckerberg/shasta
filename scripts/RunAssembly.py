@@ -140,6 +140,7 @@ def runAssembly(a, config, fastaFileNames):
     
     # Create edges of the marker graph.
     a.createMarkerGraphEdges()
+    a.findMarkerGraphReverseComplementEdges()
     
     # Approximate transitive reduction.
     a.flagMarkerGraphWeakEdges(

@@ -998,6 +998,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 // Find the reverse complement of each marker graph vertex.
 void Assembler::findMarkerGraphReverseComplementVertices()
 {
+	cout << timestamp << "Begin findMarkerGraphReverseComplementVertices." << endl;
 	const bool debug = false;
 
 	// Check that we have what we need.
@@ -1076,12 +1077,62 @@ void Assembler::findMarkerGraphReverseComplementVertices()
 		const VertexId vertexIdReverseComplement = markerGraph.reverseComplementVertex[vertexId];
 		CZI_ASSERT(markerGraph.reverseComplementVertex[vertexIdReverseComplement] == vertexId);
 	}
+	cout << timestamp << "Begin findMarkerGraphReverseComplementVertices." << endl;
 
 }
 void Assembler::accessMarkerGraphReverseComplementVertices()
 {
 	markerGraph.reverseComplementVertex.accessExistingReadOnly(
 		largeDataName("MarkerGraphReverseComplementeVertex"));
+}
+
+
+
+// Find the reverse complement of each marker graph edge.
+void Assembler::findMarkerGraphReverseComplementEdges()
+{
+	cout << timestamp << "Begin findMarkerGraphReverseComplementEdges." << endl;
+
+	// Check that we have what we need.
+	checkMarkerGraphVerticesAreAvailable();
+	checkMarkerGraphEdgesIsOpen();
+	CZI_ASSERT(markerGraph.reverseComplementVertex.isOpen);
+
+	// Get the number of edges in the marker graph.
+	using VertexId = MarkerGraph::VertexId;
+	using EdgeId = MarkerGraph::EdgeId;
+	const EdgeId edgeCount = markerGraph.edges.size();
+
+	// Allocate the vector to hold the reverse complemented
+	// edge id for each edge.
+	markerGraph.reverseComplementEdge.createNew(
+			largeDataName("MarkerGraphReverseComplementeEdge"), largeDataPageSize);
+	markerGraph.reverseComplementEdge.resize(edgeCount);
+
+	// Loop over all marker graph edges.
+	for(EdgeId edgeId=0; edgeId!=edgeCount; edgeId++) {
+		const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+		const VertexId v0 = edge.source;
+		const VertexId v1 = edge.target;
+		const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
+		const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
+		const EdgeId edgeIdReverseComplement = markerGraph.findEdgeId(v1rc, v0rc);
+		markerGraph.reverseComplementEdge[edgeId] = edgeIdReverseComplement;
+	}
+
+	// Check that the reverse complement of the reverse complement of an
+	// edge is the edge itself.
+	for(EdgeId edgeId=0; edgeId!=edgeCount; edgeId++) {
+		const EdgeId edgeIdReverseComplement = markerGraph.reverseComplementEdge[edgeId];
+		CZI_ASSERT(markerGraph.reverseComplementEdge[edgeIdReverseComplement] == edgeId);
+	}
+	cout << timestamp << "End findMarkerGraphReverseComplementEdges." << endl;
+
+}
+void Assembler::accessMarkerGraphReverseComplementEdges()
+{
+	markerGraph.reverseComplementEdge.accessExistingReadOnly(
+		largeDataName("MarkerGraphReverseComplementeEdge"));
 }
 
 
