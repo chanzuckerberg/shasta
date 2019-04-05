@@ -30,7 +30,7 @@ add_definitions(-mcx16)
 add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 
 # Specify the libraries.
-target_link_libraries(shasta-static-executable pthread boost_system spoa)
+target_link_libraries(shasta-static-executable atomic pthread boost_system spoa)
 
 # The static executable goes to the bin directory.
 install(TARGETS shasta-static-executable DESTINATION shasta-install/bin)
