@@ -847,7 +847,7 @@ private:
     // Find the reverse complement of each marker graph vertex.
 public:
     void findMarkerGraphReverseComplementVertices();
-    void accessMarkerGraphReverseComplementVertices();
+    void accessMarkerGraphReverseComplementVertex();
 
 
 
@@ -874,7 +874,7 @@ private:
     // Find the reverse complement of each marker graph edge.
 public:
     void findMarkerGraphReverseComplementEdges();
-    void accessMarkerGraphReverseComplementEdges();
+    void accessMarkerGraphReverseComplementEdge();
 
     // Check that the marker graph is strand symmetric.
     // This can only be called after both findMarkerGraphReverseComplementVertices

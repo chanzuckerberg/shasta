@@ -11,8 +11,16 @@ void AssemblyGraph::remove()
         vertices.remove();
     }
 
+    if(reverseComplementVertex.isOpen) {
+    	reverseComplementVertex.remove();
+    }
+
     if(edges.isOpen) {
         edges.remove();
+    }
+
+    if(reverseComplementEdge.isOpen) {
+    	reverseComplementEdge.remove();
     }
 
     if(edgesBySource.isOpen()) {

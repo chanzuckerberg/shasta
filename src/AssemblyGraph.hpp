@@ -47,6 +47,10 @@ public:
     // Contains the corresponding vertex id in the marker graph.
     MemoryMapped::Vector<VertexId> vertices;
 
+    // The reverse complement of each vertex.
+    // Indexed by VertexId.
+    MemoryMapped::Vector<VertexId> reverseComplementVertex;
+
 
 
     // The edges of the assembly graph.
@@ -61,6 +65,10 @@ public:
         uint32_t averageCoverage;
     };
     MemoryMapped::Vector<Edge> edges;
+
+    // The reverse complement of each edge.
+    // Indexed by EdgeId.
+    MemoryMapped::Vector<EdgeId> reverseComplementEdge;
 
 
 

@@ -1080,7 +1080,7 @@ void Assembler::findMarkerGraphReverseComplementVertices()
 	cout << timestamp << "Begin findMarkerGraphReverseComplementVertices." << endl;
 
 }
-void Assembler::accessMarkerGraphReverseComplementVertices()
+void Assembler::accessMarkerGraphReverseComplementVertex()
 {
 	markerGraph.reverseComplementVertex.accessExistingReadOnly(
 		largeDataName("MarkerGraphReverseComplementeVertex"));
@@ -1153,7 +1153,7 @@ void Assembler::findMarkerGraphReverseComplementEdges()
 	cout << timestamp << "End findMarkerGraphReverseComplementEdges." << endl;
 
 }
-void Assembler::accessMarkerGraphReverseComplementEdges()
+void Assembler::accessMarkerGraphReverseComplementEdge()
 {
 	markerGraph.reverseComplementEdge.accessExistingReadOnly(
 		largeDataName("MarkerGraphReverseComplementeEdge"));

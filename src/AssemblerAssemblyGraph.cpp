@@ -213,6 +213,8 @@ void Assembler::accessAssemblyGraphVertices()
 {
     assemblyGraph.vertices.accessExistingReadOnly(
         largeDataName("AssemblyGraphVertices"));
+    assemblyGraph.reverseComplementVertex.accessExistingReadOnly(
+        largeDataName("AssemblyGraphReverseComplementVertex"));
     assemblyGraph.markerToAssemblyTable.accessExistingReadOnly(
         largeDataName("MarkerToAssemblyTable"));
 }
@@ -284,6 +286,12 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
+    // Find the reverse complement of each vertex.
+    assemblyGraph.reverseComplementVertex.createNew(
+        largeDataName("AssemblyGraphReverseComplementVertex"), largeDataPageSize);
+
+
+
     // Create assemblyGraph edges.
     assemblyGraph.edges.createNew(
         largeDataName("AssemblyGraphEdges"),
@@ -343,6 +351,14 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesBySource.endPass2();
     assemblyGraph.edgesByTarget.endPass2();
 
+
+
+    // Find the reverse complement of each edge.
+    assemblyGraph.reverseComplementEdge.createNew(
+        largeDataName("AssemblyGraphReverseComplementEdge"), largeDataPageSize);
+
+
+
     // cout << timestamp << "Done creating assembly graph vertices." << endl;
 }
 
@@ -360,6 +376,8 @@ void Assembler::accessAssemblyGraphEdges()
 {
     assemblyGraph.edges.accessExistingReadOnly(
         largeDataName("AssemblyGraphEdges"));
+    assemblyGraph.reverseComplementEdge.accessExistingReadOnly(
+        largeDataName("AssemblyGraphReverseComplementEdge"));
     assemblyGraph.edgesBySource.accessExistingReadOnly(
         largeDataName("AssemblyGraphEdgesBySource"));
     assemblyGraph.edgesByTarget.accessExistingReadOnly(
