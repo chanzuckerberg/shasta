@@ -318,6 +318,8 @@ PYBIND11_MODULE(shasta, module)
 			&Assembler::findMarkerGraphReverseComplementEdges)
 		.def("accessMarkerGraphReverseComplementEdges",
 			&Assembler::accessMarkerGraphReverseComplementEdges)
+		.def("checkMarkerGraphIsStrandSymmetric",
+			&Assembler::checkMarkerGraphIsStrandSymmetric)
 
 
 

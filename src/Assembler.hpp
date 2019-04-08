@@ -876,6 +876,11 @@ public:
     void findMarkerGraphReverseComplementEdges();
     void accessMarkerGraphReverseComplementEdges();
 
+    // Check that the marker graph is strand symmetric.
+    // This can only be called after both findMarkerGraphReverseComplementVertices
+    // and findMarkerGraphReverseComplementEdges have been called.
+    void checkMarkerGraphIsStrandSymmetric();
+
 
 
 public:
