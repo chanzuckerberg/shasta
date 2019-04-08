@@ -11,6 +11,7 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges(accessEdgesReadWrite=True)
+a.accessMarkerGraphReverseComplementEdges()
 a.flagMarkerGraphWeakEdges(
     lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
     highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),

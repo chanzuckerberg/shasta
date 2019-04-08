@@ -2188,6 +2188,11 @@ void Assembler::checkMarkerGraphEdgesIsOpen()
 
 // Find weak edges in the marker graph.
 // This new version uses approximate transitive reduction.
+// The marker graph is guaranteed to be strand symmetric
+// when this begins, and we have to guarantee that it remains
+// strand symmetric when this ends.
+// To achieve this, we always process the two edges
+// in a reverse complemented pair together.
 void Assembler::flagMarkerGraphWeakEdges(
     size_t lowCoverageThreshold,
     size_t highCoverageThreshold,
@@ -2207,17 +2212,25 @@ void Assembler::flagMarkerGraphWeakEdges(
     cout << edges.size() << " edges." << endl;
 
     // Initially flag all edges as not removed by transitive reduction.
+    // To facilitate debugging, also clear the other flags, which are
+    // set later in the normal assembly process.
     for(auto& edge: edges) {
         edge.wasRemovedByTransitiveReduction = 0;
+        edge.wasPruned = 0;
+        edge.isSuperBubbleEdge = 0;
     }
 
     // Gather edges for each coverage less than highCoverageThreshold.
+    // Only add to the list those with id less than the id of their reverse complement.
     MemoryMapped::VectorOfVectors<EdgeId, EdgeId>  edgesByCoverage;
     edgesByCoverage.createNew(
             largeDataName("tmp-flagMarkerGraphWeakEdges-edgesByCoverage"),
             largeDataPageSize);
     edgesByCoverage.beginPass1(highCoverageThreshold);
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
+    	if(markerGraph.reverseComplementEdge[edgeId] < edgeId) {
+    		continue;
+    	}
         const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.incrementCount(edge.coverage);
@@ -2225,6 +2238,9 @@ void Assembler::flagMarkerGraphWeakEdges(
     }
     edgesByCoverage.beginPass2();
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
+    	if(markerGraph.reverseComplementEdge[edgeId] < edgeId) {
+    		continue;
+    	}
         const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.store(edge.coverage, edgeId);
@@ -2266,10 +2282,11 @@ void Assembler::flagMarkerGraphWeakEdges(
     // Flag as weak all edges with coverage <= lowCoverageThreshold
     for(size_t coverage=1; coverage<=lowCoverageThreshold; coverage++) {
         const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
-        cout << timestamp << "Flagging as weak " << edgesWithThisCoverage.size() <<
+        cout << timestamp << "Flagging as weak " << 2*edgesWithThisCoverage.size() <<
             " edges with coverage " << coverage << "." << endl;
         for(const EdgeId edgeId: edgesWithThisCoverage) {
             edges[edgeId].wasRemovedByTransitiveReduction = 1;
+            edges[markerGraph.reverseComplementEdge[edgeId]].wasRemovedByTransitiveReduction = 1;
         }
     }
 
@@ -2292,7 +2309,8 @@ void Assembler::flagMarkerGraphWeakEdges(
         if(skip > edgeMarkerSkipThreshold) {
             if(edges[edgeId].wasRemovedByTransitiveReduction == 0) {
                 edges[edgeId].wasRemovedByTransitiveReduction = 1;
-                coverage1HighSkipCount++;
+                edges[markerGraph.reverseComplementEdge[edgeId]].wasRemovedByTransitiveReduction = 1;
+                coverage1HighSkipCount += 2;
             }
         }
     }
@@ -2363,7 +2381,8 @@ void Assembler::flagMarkerGraphWeakEdges(
 
             if(found) {
                 edges[edgeId].wasRemovedByTransitiveReduction = 1;
-                ++count;
+                edges[markerGraph.reverseComplementEdge[edgeId]].wasRemovedByTransitiveReduction = 1;
+                count += 2;
             }
 
             // Clean up to be ready to process the next edge.
