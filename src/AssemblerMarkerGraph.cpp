@@ -1109,6 +1109,8 @@ void Assembler::findMarkerGraphReverseComplementEdges()
 			largeDataName("MarkerGraphReverseComplementeEdge"), largeDataPageSize);
 	markerGraph.reverseComplementEdge.resize(edgeCount);
 
+
+
 	// Loop over all marker graph edges.
 	for(EdgeId edgeId=0; edgeId!=edgeCount; edgeId++) {
 		const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
@@ -1116,9 +1118,31 @@ void Assembler::findMarkerGraphReverseComplementEdges()
 		const VertexId v1 = edge.target;
 		const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
 		const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
-		const EdgeId edgeIdReverseComplement = markerGraph.findEdgeId(v1rc, v0rc);
-		markerGraph.reverseComplementEdge[edgeId] = edgeIdReverseComplement;
+		const EdgeId edgeIdRc = markerGraph.findEdgeId(v1rc, v0rc);
+		markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
+
+		// Check that marker intervals of the two are consistent.
+		const MemoryAsContainer<MarkerInterval> markerIntervals =
+			markerGraph.edgeMarkerIntervals[edgeId];
+		const MemoryAsContainer<MarkerInterval> markerIntervalsRc =
+			markerGraph.edgeMarkerIntervals[edgeIdRc];
+		CZI_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
+		for(size_t i=0; i<markerIntervals.size(); i++) {
+			const MarkerInterval& markerInterval = markerIntervals[i];
+			const MarkerInterval& markerIntervalRc = markerIntervalsRc[i];
+			CZI_ASSERT(markerInterval.orientedReadId.getReadId() ==
+				markerIntervalRc.orientedReadId.getReadId());
+			CZI_ASSERT(markerInterval.orientedReadId.getStrand() ==
+				1 - markerIntervalRc.orientedReadId.getStrand());
+			const uint32_t markerCount = uint32_t(markers.size(markerInterval.orientedReadId.getValue()));
+			CZI_ASSERT(markerInterval.ordinals[0] ==
+				markerCount - 1 - markerIntervalRc.ordinals[1]);
+			CZI_ASSERT(markerInterval.ordinals[1] ==
+				markerCount - 1 - markerIntervalRc.ordinals[0]);
+		}
 	}
+
+
 
 	// Check that the reverse complement of the reverse complement of an
 	// edge is the edge itself.
