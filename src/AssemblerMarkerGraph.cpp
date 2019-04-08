@@ -1185,6 +1185,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetric()
 		const VertexId v1 = markerGraph.reverseComplementVertex[v0];
 		const VertexId v2 = markerGraph.reverseComplementVertex[v1];
 		CZI_ASSERT(v2 == v0);
+		CZI_ASSERT(v1 != v0);
 
 		const MemoryAsContainer<MarkerId> markers0 = markerGraph.vertices[v0];
 		const MemoryAsContainer<MarkerId> markers1 = markerGraph.vertices[v1];
@@ -1206,6 +1207,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetric()
 		const EdgeId e1 = markerGraph.reverseComplementEdge[e0];
 		const EdgeId e2 = markerGraph.reverseComplementEdge[e1];
 		CZI_ASSERT(e2 == e0);
+		CZI_ASSERT(e1 != e0);
 
 		const MarkerGraph::Edge& edge0 = markerGraph.edges[e0];
 		const MarkerGraph::Edge& edge1 = markerGraph.edges[e1];
