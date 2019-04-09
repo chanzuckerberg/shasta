@@ -29,6 +29,7 @@ using namespace shasta;
 // and generates an assembly graph edge for each chain it finds.
 // This creates:
 // - assemblyGraph.edgeLists.
+// - assemblyGraph.reverseComplementEdge.
 // - assemblyGraph.markerToAssemblyTable
 void Assembler::createAssemblyGraphEdges()
 {
@@ -53,10 +54,12 @@ void Assembler::createAssemblyGraphEdges()
     wasFound.resize(edgeCount);
     fill(wasFound.begin(), wasFound.end(), false);
 
-    // Initialize the edge lists.
+    // Initialize the data structures we are going to fill in.
     assemblyGraph.edgeLists.createNew(
         largeDataName("AssemblyGraphEdgeLists"),
         largeDataPageSize);
+    assemblyGraph.reverseComplementEdge.createNew(
+        largeDataName("AssemblyGraphReverseComplementEdge"), largeDataPageSize);
 
 
 
@@ -64,6 +67,7 @@ void Assembler::createAssemblyGraphEdges()
     vector<EdgeId> nextEdges;
     vector<EdgeId> previousEdges;
     vector<EdgeId> chain;
+    vector<EdgeId> reverseComplementedChain;
 
 
 
@@ -131,23 +135,75 @@ void Assembler::createAssemblyGraphEdges()
             wasFound[edgeId] = true;
         }
 
-        // Store this chain as a new vertex of the assembly graph.
+        // Store this chain as a new edge of the assembly graph.
+        const EdgeId chainId = assemblyGraph.edgeLists.size();
         assemblyGraph.edgeLists.appendVector(chain);
 
-        // Write out the chain.
-        if(debug) {
-            cout << "Chain: ";
-            cout << edges[chain.front()].source << " ";
-            for(const EdgeId edgeId: chain) {
-                cout << edges[edgeId].target << " ";
-            }
-            cout << endl;
+        // Also construct the reverse complemented chain.
+        for(const EdgeId edgeId: chain) {
+        	reverseComplementedChain.push_back(markerGraph.reverseComplementEdge[edgeId]);
         }
+        std::reverse(reverseComplementedChain.begin(), reverseComplementedChain.end());
+
+
+
+        // Figure out if the reverse complemented chain is the same
+        // as the original chain. This can happen in exceptional cases.
+        bool isSelfComplementary = false;
+        if(!isCircularChain) {
+        	isSelfComplementary = (chain == reverseComplementedChain);
+        } else {
+
+        	// For a circular chain the test is more complex.
+        	// We check if the reverse complement of the first edge
+        	// is in the chain.
+        	isSelfComplementary =
+        		find(chain.begin(), chain.end(), reverseComplementedChain.front()) != chain.end();
+        }
+        if(isSelfComplementary) {
+        	cout << "Found a self-complementary chain." << endl;
+        }
+
+
+        // Store the reverse complemented chain, if different from the original one.
+        // Also update assemblyGraph.reverseComplementEdge.
+        if(isSelfComplementary) {
+        	assemblyGraph.reverseComplementEdge.push_back(chainId);
+        } else {
+            for(const EdgeId edgeId: reverseComplementedChain) {
+#if 0
+            	if(wasFound[edgeId]) {
+            		cout << "****** " << edgeId << " " << markerGraph.edges[edgeId].source <<
+            			" " << markerGraph.edges[edgeId].target <<endl;
+            		CZI_ASSERT(chain.size() == reverseComplementedChain.size());
+            		for(size_t i=0; i<chain.size(); i++) {
+            			cout << i << " " << chain[i] << " " << reverseComplementedChain[i];
+            			cout << " " << int(wasFound[chain[i]]) << " " <<
+            					int(wasFound[reverseComplementedChain[i]]) << endl;
+            		}
+            	}
+#endif
+            	CZI_ASSERT(!wasFound[edgeId]);
+                wasFound[edgeId] = true;
+            }
+            assemblyGraph.edgeLists.appendVector(reverseComplementedChain);
+        	assemblyGraph.reverseComplementEdge.push_back(chainId+1);
+        	assemblyGraph.reverseComplementEdge.push_back(chainId);
+
+#if 0
+        	cout << "Chain " << chain.front() << "..." << chain.back();
+            cout << ", reverse complement " << reverseComplementedChain.front() <<
+            		"..." << reverseComplementedChain.back() << endl;
+#endif
+        }
+
+
 
         // Cleanup.
         nextEdges.clear();
         previousEdges.clear();
         chain.clear();
+        reverseComplementedChain.clear();
     }
 
 
@@ -285,11 +341,22 @@ void Assembler::createAssemblyGraphVertices()
     }
 
 
-
     // Find the reverse complement of each vertex.
     assemblyGraph.reverseComplementVertex.createNew(
         largeDataName("AssemblyGraphReverseComplementVertex"), largeDataPageSize);
-
+    assemblyGraph.reverseComplementVertex.resize(assemblyGraph.vertices.size());
+    for(AssemblyGraph::VertexId agv=0; agv<assemblyGraph.vertices.size(); agv++) {
+    	const MarkerGraph::VertexId mgv = assemblyGraph.vertices[agv];
+    	const MarkerGraph::VertexId mgvRc = markerGraph.reverseComplementVertex[mgv];
+    	const auto it = vertexMap.find(mgvRc);
+    	if(it == vertexMap.end()) {
+    		cout << "Could not find reverse complement for assembly graph vertex " <<
+    			agv << "/" << mgv << endl;
+    	} else {
+			const MarkerGraph::VertexId agvRc = it->second;
+			assemblyGraph.reverseComplementVertex[agv] = agvRc;
+    	}
+    }
 
 
     // Create assemblyGraph edges.
@@ -351,15 +418,6 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesBySource.endPass2();
     assemblyGraph.edgesByTarget.endPass2();
 
-
-
-    // Find the reverse complement of each edge.
-    assemblyGraph.reverseComplementEdge.createNew(
-        largeDataName("AssemblyGraphReverseComplementEdge"), largeDataPageSize);
-
-
-
-    // cout << timestamp << "Done creating assembly graph vertices." << endl;
 }
 
 
@@ -386,6 +444,9 @@ void Assembler::accessAssemblyGraphEdges()
 
 void Assembler::writeAssemblyGraph(const string& fileName) const
 {
+    cout << "The assembly graph has " <<
+        assemblyGraph.vertices.size() << " vertices and " <<
+        assemblyGraph.edges.size() << " edges." << endl;
     assemblyGraph.writeGraphviz(fileName);
 }
 

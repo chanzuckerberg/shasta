@@ -3757,9 +3757,12 @@ void Assembler::simplifyMarkerGraph(
         const size_t maxLength = maxLengthVector[iteration];
         cout << timestamp << "Begin simplifyMarkerGraph iteration " << iteration <<
             " with maxLength = " << maxLength << endl;
+        checkMarkerGraphIsStrandSymmetric();
         simplifyMarkerGraphIterationPart1(iteration, maxLength, debug);
+        checkMarkerGraphIsStrandSymmetric();
         simplifyMarkerGraphIterationPart2(iteration, maxLength, debug);
     }
+    checkMarkerGraphIsStrandSymmetric();
 }
 
 
@@ -3820,6 +3823,11 @@ void Assembler::simplifyMarkerGraphIterationPart1(
 
         // For each set of parallel edges, only keep the shortest one.
         for(auto& p: edgeTable) {
+        	const AssemblyGraph::VertexId v1 = p.first;
+        	if(v1 == assemblyGraph.reverseComplementVertex[v0]) {
+        		// v0 and v1 are reverse complement of each other: skip for now.
+        		continue;
+        	}
             vector< pair<AssemblyGraph::EdgeId, uint32_t> >& v = p.second;
             if(v.size() < 2) {
                 continue;
@@ -3842,26 +3850,19 @@ void Assembler::simplifyMarkerGraphIterationPart1(
 
     // Mark as superbubble edges all marker graph edges that correspond
     // to assembly graph edges not marked to be kept.
-    size_t removedAssemblyGraphEdgeCount = 0;
-    size_t removedMarkerGraphEdgeCount = 0;
+    // Whenever marking an edge, always also mark the reverse complemented edge,
+    // so we keep the marker graph strand-symmatric.
     for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edges.size(); assemblyGraphEdgeId++) {
         if(keepAssemblyGraphEdge[assemblyGraphEdgeId]) {
             continue;
         }
-        ++removedAssemblyGraphEdgeCount;
 
         const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
-        removedMarkerGraphEdgeCount += markerGraphEdges.size();
         for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
-            markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
+        	markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
+            markerGraph.edges[markerGraph.reverseComplementEdge[markerGraphEdgeId]].isSuperBubbleEdge = 1;
         }
     }
-    cout << "Simplify iteration " << iteration << " part 1 found " << removedAssemblyGraphEdgeCount <<
-        " superbubble edges in the assembly graph out of " <<
-        assemblyGraph.edges.size() << endl;
-    cout << "Simplify iteration " << iteration << " part 1 found " << removedMarkerGraphEdgeCount <<
-        " superbubble edges in the marker graph out of " <<
-        markerGraph.edges.size() << endl;
 
     // Remove the assembly graph we created at this iteration.
     assemblyGraph.remove();
@@ -3933,6 +3934,54 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     }
 
 
+
+    // The marker graph and the assembly graph are strand-symmetric, so
+    // most components come in reverse complemented pairs,
+    // and some are self-complementary.
+    // Find the pairs.
+    vector< AssemblyGraph::VertexId > rcComponentTable(n);
+    for(AssemblyGraph::VertexId componentId=0; componentId<n; componentId++) {
+
+        // Get the assembly graph vertices in this connected component
+        // and skip it if it is empty.
+        const vector<AssemblyGraph::VertexId>& component = componentTable[componentId];
+        if(component.empty()) {
+            continue;
+        }
+
+        // Find the reverse complement of the first vertex.
+        const AssemblyGraph::VertexId v = component.front();
+        const AssemblyGraph::VertexId vRc = assemblyGraph.reverseComplementVertex[v];
+        const AssemblyGraph::VertexId componentRcId = disjointSets.find_set(vRc);
+
+        rcComponentTable[componentId] = componentRcId;
+    }
+
+    // Sanity checks.
+    for(AssemblyGraph::VertexId componentId=0; componentId<n; componentId++) {
+        const vector<AssemblyGraph::VertexId>& component = componentTable[componentId];
+        if(component.empty()) {
+        	continue;
+        }
+        const AssemblyGraph::VertexId componentRcId = rcComponentTable[componentId];
+        CZI_ASSERT(rcComponentTable[componentRcId] == componentId);
+        if(componentRcId == componentId) {
+        	cout << "Found a self-complementary component with " << component.size() << " vertices." << endl;
+        }
+    }
+
+    // More sanity checks.
+    for(AssemblyGraph::VertexId v0=0; v0<n; v0++) {
+    	const AssemblyGraph::VertexId v1 = assemblyGraph.reverseComplementVertex[v0];
+    	const AssemblyGraph::VertexId c0 = disjointSets.find_set(v0);
+    	const AssemblyGraph::VertexId c1 = disjointSets.find_set(v1);
+    	CZI_ASSERT(rcComponentTable[c0] == c1);
+    	CZI_ASSERT(rcComponentTable[c1] == c0);
+    }
+
+
+
+
     // Find entries and exits.
     // An entry is a vertex with an in-edge from another component.
     // An exit is a vertex with an out-edge to another component.
@@ -3997,6 +4046,35 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 
 
+        // If this component is self-complementary, it requires special handling.
+        // Skip for now.
+        if(rcComponentTable[componentId] == componentId) {
+        	cout << "Skipped a self-complementary component with " <<
+        		component.size() << " vertices." << endl;
+            for(const AssemblyGraph::VertexId v0: component) {
+                const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
+                const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+                for(AssemblyGraph::EdgeId edgeId : outEdges) {
+                    const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+                    CZI_ASSERT(edge.source == v0);
+                    const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
+                    if(componentId1 == componentId0) {
+                        keepAssemblyGraphEdge[edgeId] = true;
+                    }
+                }
+            }
+            continue;
+        }
+
+        // This componet is not self complementary.
+        // We want ro handle each pair of components in the same way.
+        // Only process one of the two in each pair.
+        if(rcComponentTable[componentId] < componentId) {
+        	continue;
+        }
+
+
+
         // Find out if this component has any entries/exits.
         bool entriesExist = false;
         for(const AssemblyGraph::VertexId assemblyGraphVertexId: component) {
@@ -4032,6 +4110,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                     const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
                     if(componentId1 == componentId0) {
                         keepAssemblyGraphEdge[edgeId] = true;
+                        keepAssemblyGraphEdge[assemblyGraph.reverseComplementEdge[edgeId]] = true;
                         if(debug) {
                             debugOut << edgeId << "\n";
                         }
@@ -4146,6 +4225,8 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 while(true) {
                     AssemblyGraph::EdgeId e = predecessorEdge[v];
                     keepAssemblyGraphEdge[e] = true;
+                    // Also keep the reverse complement. This keeps the assembly and marker graph symmetric.
+                    keepAssemblyGraphEdge[assemblyGraph.reverseComplementEdge[e]] = true;
                     if(debug) {
                         debugOut << e << endl;
                     }
@@ -4166,26 +4247,16 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
     // Mark as superbubble edges all marker graph edges that correspond
     // to assembly graph edges not marked to be kept.
-    size_t removedAssemblyGraphEdgeCount = 0;
-    size_t removedMarkerGraphEdgeCount = 0;
     for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edges.size(); assemblyGraphEdgeId++) {
         if(keepAssemblyGraphEdge[assemblyGraphEdgeId]) {
             continue;
         }
-        ++removedAssemblyGraphEdgeCount;
 
         const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
-        removedMarkerGraphEdgeCount += markerGraphEdges.size();
         for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
             markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
         }
     }
-    cout << "Simplify iteration " << iteration << " part 2 found " << removedAssemblyGraphEdgeCount <<
-        " superbubble edges in the assembly graph out of " <<
-        assemblyGraph.edges.size() << endl;
-    cout << "Simplify iteration " << iteration << " part 2 found " << removedMarkerGraphEdgeCount <<
-        " superbubble edges in the marker graph out of " <<
-        markerGraph.edges.size() << endl;
 
     // Remove the assembly graph we created at this iteration.
     assemblyGraph.remove();

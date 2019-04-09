@@ -8,7 +8,9 @@ if not len(sys.argv) == 2:
 fileName = sys.argv[1];
 
 a = shasta.Assembler()
+a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
+a.accessAssemblyGraphEdgeLists()
 a.writeAssemblyGraph(fileName)
 
 

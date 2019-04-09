@@ -7,6 +7,6 @@ a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
-a.accessMarkerGraphReverseComplementVertices()
+a.accessMarkerGraphReverseComplementVertex()
 a.findMarkerGraphReverseComplementEdges()
 
