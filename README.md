@@ -83,9 +83,9 @@ Please use the [Wiki](https://github.com/chanzuckerberg/shasta/wiki)
 or [Issues](https://github.com/chanzuckerberg/shasta/issues) 
 sections of the repository as appropriate for these purposes.
 
-For more detailed information,  see the complete documentation
-[here](https://chanzuckerberg.github.io/shasta/).
-
+___
+:question: **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
+___
 
 
 
