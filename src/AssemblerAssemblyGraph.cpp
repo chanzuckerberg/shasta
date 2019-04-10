@@ -775,6 +775,12 @@ void Assembler::writeFasta(const string& fileName)
 
     // Write a sequence for each edge of the assembly graph.
     for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
+
+        // Only output one of each pair of reverse complemented edges.
+        if(!assemblyGraph.isAssembledEdge(edgeId)) {
+            continue;
+        }
+
         const auto sequence = assemblyGraph.sequences[edgeId];
         const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
         CZI_ASSERT(sequence.baseCount == repeatCounts.size());
