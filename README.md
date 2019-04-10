@@ -1,6 +1,6 @@
 # chanzuckerberg/shasta
 
-(See [here](https://chanzuckerberg.github.io/shasta/) for the complete documentation.)
+:question: **The complete documentation user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
 
 It was [recently shown](https://www.nature.com/articles/nbt.4060) 
 that de novo assembly for human genomes 
