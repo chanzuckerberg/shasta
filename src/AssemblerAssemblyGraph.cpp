@@ -234,11 +234,11 @@ void Assembler::createAssemblyGraphEdges()
         assemblyGraph.markerToAssemblyTable.begin(),
         assemblyGraph.markerToAssemblyTable.end(),
         make_pair(std::numeric_limits<VertexId>::max(), 0));
-    for(EdgeId edgeId=0; edgeId<assemblyGraph.edgeLists.size(); edgeId++) {
-        const MemoryAsContainer<EdgeId> chain = assemblyGraph.edgeLists[edgeId];
+    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edgeLists.size(); assemblyGraphEdgeId++) {
+        const MemoryAsContainer<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         for(uint32_t position=0; position!=chain.size(); position++) {
-            const EdgeId edgeId = chain[position];
-            assemblyGraph.markerToAssemblyTable[edgeId] = make_pair(edgeId, position);
+            const EdgeId markerGraphEdgeId = chain[position];
+            assemblyGraph.markerToAssemblyTable[markerGraphEdgeId] = make_pair(assemblyGraphEdgeId, position);
         }
     }
 
