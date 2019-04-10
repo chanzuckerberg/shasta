@@ -2282,8 +2282,10 @@ void Assembler::flagMarkerGraphWeakEdges(
     // Flag as weak all edges with coverage <= lowCoverageThreshold
     for(size_t coverage=1; coverage<=lowCoverageThreshold; coverage++) {
         const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
-        cout << timestamp << "Flagging as weak " << 2*edgesWithThisCoverage.size() <<
-            " edges with coverage " << coverage << "." << endl;
+        if(coverage <= 40) {
+			cout << timestamp << "Flagging as weak " << 2*edgesWithThisCoverage.size() <<
+				" edges with coverage " << coverage << "." << endl;
+        }
         for(const EdgeId edgeId: edgesWithThisCoverage) {
             edges[edgeId].wasRemovedByTransitiveReduction = 1;
             edges[markerGraph.reverseComplementEdge[edgeId]].wasRemovedByTransitiveReduction = 1;
