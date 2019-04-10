@@ -555,13 +555,6 @@ void Assembler::assembleThreadFunction(size_t threadId)
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
-            {
-                std::lock_guard<std::mutex> lock(mutex);
-                cout << timestamp << "Thread " << threadId << ": " << edgeId << "/" <<
-                    assemblyGraph.edgeLists.size() <<
-                    " length " <<
-                    assemblyGraph.edgeLists[edgeId].size() << endl;
-            }
             try {
                 assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
             } catch(std::exception e) {
