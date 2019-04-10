@@ -70,6 +70,14 @@ public:
     // Indexed by EdgeId.
     MemoryMapped::Vector<EdgeId> reverseComplementEdge;
 
+    // Return true if this edge is an assembled edge.
+    // To avoid assembling both strands, we only assemble
+    // one edge in each reverse complemented pair.
+    bool isAssembledEdge(EdgeId edgeId) const
+    {
+        return edgeId < reverseComplementEdge[edgeId];
+    }
+
 
 
     // The edges that each vertex is the source of.
