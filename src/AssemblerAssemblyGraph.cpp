@@ -659,7 +659,7 @@ void Assembler::computeAssemblyStatistics()
 
     // Write a csv file.
     ofstream csv("AssemblySummary.csv");
-    csv << "Rank,EdgeId,Length,CumulativeLength,LengthFraction,CumulativeFraction\n";
+    csv << "Rank,EdgeId,EdgeIdRc,Length,CumulativeLength,LengthFraction,CumulativeFraction\n";
     size_t cumulativeLength = 0;
     bool n50MessageWritten = false;
     for(size_t rank=0; rank<edgeTable.size(); rank++) {
@@ -669,6 +669,7 @@ void Assembler::computeAssemblyStatistics()
         cumulativeLength += length;
         csv << rank << ",";
         csv << edgeId << ",";
+        csv << assemblyGraph.reverseComplementEdge[edgeId] << ",";
         csv << length << ",";
         csv << cumulativeLength << ",";
         csv << double(length) / double(totalLength) << ",";
