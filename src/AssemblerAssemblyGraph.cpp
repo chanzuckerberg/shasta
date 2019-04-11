@@ -700,6 +700,12 @@ void Assembler::writeGfa1(const string& fileName)
 
     // Write a segment record for each edge.
     for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
+
+        // Only output one of each pair of reverse complemented edges.
+        if(!assemblyGraph.isAssembledEdge(edgeId)) {
+            continue;
+        }
+
         const auto sequence = assemblyGraph.sequences[edgeId];
         const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
         CZI_ASSERT(sequence.baseCount == repeatCounts.size());
@@ -749,12 +755,34 @@ void Assembler::writeGfa1(const string& fileName)
                 // Construct the cigar string.
                 constructCigarString(lastRepeatCounts0, firstRepeatCounts1, cigarString);
 
+                // Keep track of which edges are actually assembled and output.
+                EdgeId edge0Out = edge0;
+                EdgeId edge1Out = edge1;
+                bool reverse0 = false;
+                bool reverse1 = false;
+                if(!assemblyGraph.isAssembledEdge(edge0Out)) {
+                    edge0Out = assemblyGraph.reverseComplementEdge[edge0Out];
+                    reverse0 = true;
+                }
+                if(!assemblyGraph.isAssembledEdge(edge1Out)) {
+                    edge1Out = assemblyGraph.reverseComplementEdge[edge1Out];
+                    reverse1 = true;
+                }
+
+                // Avoid writing links twice.
+                if(edge0Out > edge1Out) {
+                    continue;
+                }
+                if(edge0Out == edge1Out && reverse0) {
+                    continue;
+                }
+
                 // Write out the link record for this edge.
                 gfa << "L\t" <<
-                    edge0 << "\t" <<
-                    "+\t" <<
-                    edge1 << "\t" <<
-                    "+\t" <<
+                    edge0Out << "\t" <<
+                    (reverse0 ? "-" : "+") << "\t" <<
+                    edge1Out << "\t" <<
+                    (reverse1 ? "-" : "+") << "\t" <<
                     cigarString << "\n";
             }
         }
