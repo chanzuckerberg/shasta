@@ -1,10 +1,22 @@
 cmake_minimum_required(VERSION 2.6)
 project(shasta)
 
-set(CMAKE_INSTALL_PREFIX .)
+# Add the directory that build the shared library.
+option(BUILD_LIBRARY "Build the shared library." ON)
+message(STATUS "BUILD_LIBRARY is " ${BUILD_LIBRARY})
+if(BUILD_LIBRARY)
+    add_subdirectory(src)
+endif(BUILD_LIBRARY)
 
-add_subdirectory(src)
-add_subdirectory(src-static-executable)
+# Add the directory that builds the static executable.
+option(BUILD_EXECUTABLE "Build the static executable." OFF)
+message(STATUS "BUILD_EXECUTABLE is " ${BUILD_EXECUTABLE})
+if(BUILD_EXECUTABLE)
+    add_subdirectory(src-static-executable)
+endif(BUILD_EXECUTABLE)
+
+# Install to the shasta-install directory.
+set(CMAKE_INSTALL_PREFIX .)
 
 # Install the scripts.
 file(GLOB SCRIPTS scripts/*.py scripts/*.sh)
