@@ -498,7 +498,14 @@ void Assembler::assemble(size_t threadCount)
     // Store the assembly results found by each thread.
     assemblyGraph.sequences.createNew(largeDataName("AssembledSequences"), largeDataPageSize);
     assemblyGraph.repeatCounts.createNew(largeDataName("AssembledRepeatCounts"), largeDataPageSize);
+    size_t assembledEdgeCount = 0;
     for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edgeLists.size(); edgeId++) {
+        if(!assemblyGraph.isAssembledEdge(edgeId)) {
+            assemblyGraph.sequences.append(0);
+            assemblyGraph.repeatCounts.appendVector();
+            continue;
+        }
+        ++assembledEdgeCount;
         const auto& p = edgeTable[edgeId];
         CZI_ASSERT(p != uninitializedPair);
         const size_t threadId = p.first;
@@ -521,7 +528,7 @@ void Assembler::assemble(size_t threadCount)
     }
 
 
-    // Clean up the results stores by each thread.
+    // Clean up the results stored by each thread.
     assembleData.free();
 
     // Compute the total number of bases assembled.
@@ -530,7 +537,8 @@ void Assembler::assemble(size_t threadCount)
         totalBaseCount += assemblyGraph.repeatCounts.begin()[i];
     }
     cout << timestamp << "Assembled a total " << totalBaseCount <<
-        " bases for " << assemblyGraph.edgeLists.size() << " assembly graph edges." << endl;
+        " bases for " << assemblyGraph.edgeLists.size() << " assembly graph edges of which " <<
+        assembledEdgeCount << " where assembled." << endl;
 }
 
 
@@ -555,6 +563,9 @@ void Assembler::assembleThreadFunction(size_t threadId)
     size_t begin, end;
     while(getNextBatch(begin, end)) {
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
+            if(!assemblyGraph.isAssembledEdge(edgeId)) {
+                continue;
+            }
             try {
                 assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
             } catch(std::exception e) {
