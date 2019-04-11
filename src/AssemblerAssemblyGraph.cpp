@@ -638,20 +638,28 @@ void Assembler::computeAssemblyStatistics()
     CZI_ASSERT(assemblyGraph.repeatCounts.size() == edgeCount);
 
     // Compute raw sequence length of each edge.
-    vector< pair<EdgeId, size_t> > edgeTable(edgeCount);
+    vector< pair<EdgeId, size_t> > edgeTable;
     size_t totalLength = 0;
+    size_t assembledEdgeCount = 0;
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
+
+        // Only consider one of each pair of reverse complemented edges.
+        if(!assemblyGraph.isAssembledEdge(edgeId)) {
+            continue;
+        }
+        assembledEdgeCount++;
         const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[edgeId];
         size_t length = 0;
         for(uint8_t repeatCount: repeatCounts) {
             length += repeatCount;
         }
-        edgeTable[edgeId] = make_pair(edgeId, length);
+        edgeTable.push_back(make_pair(edgeId, length));
         totalLength += length;
     }
 
-    cout << "The assembly graph has " << vertexCount << endl;
-    cout << "vertices and " << edgeCount << " edges." << endl;
+    cout << "The assembly graph has " << vertexCount;
+    cout << " vertices and " << edgeCount << " edges of which " <<
+            assembledEdgeCount << " were assembled." << endl;
     cout << "Total length of assembled sequence is " << totalLength << endl;
 
     // Sort by decreasing length.
