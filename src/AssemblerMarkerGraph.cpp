@@ -4671,8 +4671,25 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
         // Loop over marker graph vertices assigned to this batch.
         for(MarkerGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
 
-            // Compute the consensus, but only if the edge is not marked as removed.
+            // Figure out if we need to assemble this edge.
+            bool shouldAssemble = true;
             if(markerGraph.edges[edgeId].wasRemoved()) {
+                // The marker graph edge was removed.
+                shouldAssemble = false;
+            } else {
+                // This marker graph edge was not removed.
+                // Find the corresponding assembly graph edge.
+                const AssemblyGraph::EdgeId assemblyGraphEdgeId =
+                    assemblyGraph.markerToAssemblyTable[edgeId].first;
+                if(!assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
+                    // The assembly graph edge will not be assembled.
+                    // Se we don't need to assemble this marker graph edge.
+                    shouldAssemble = false;
+                }
+            }
+
+            // Compute the consensus, if necessary.
+            if(!shouldAssemble) {
                 sequence.clear();
                 repeatCounts.clear();
                 overlappingBaseCount = 0;
