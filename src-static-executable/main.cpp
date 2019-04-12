@@ -6,6 +6,8 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "filesystem.hpp"
+#include "timestamp.hpp"
 namespace ChanZuckerberg {
     namespace shasta {
         void shastaMain(int argumentCount, const char** arguments);
@@ -21,6 +23,7 @@ using namespace shasta;
 // Standard library.
 #include "fstream.hpp"
 #include "iostream.hpp"
+#include "iterator.hpp"
 #include "stdexcept.hpp"
 
 
@@ -45,8 +48,22 @@ public:
             double alignedFractionThreshold;
             double nearDiagonalFractionThreshold;
             int deltaThreshold;
+            void write(ostream& s) const
+            {
+                s << "Reads.palindromicReads.maxSkip = " << maxSkip << "\n";
+                s << "Reads.palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
+                s << "Reads.palindromicReads.alignedFractionThreshold = " << alignedFractionThreshold << "\n";
+                s << "Reads.palindromicReads.nearDiagonalFractionThreshold = " << nearDiagonalFractionThreshold << "\n";
+                s << "Reads.palindromicReads.deltaThreshold = " << deltaThreshold << "\n";
+            }
         };
         PalindromicReadOptions palindromicReads;
+
+        void write(ostream& s) const
+        {
+            s << "Reads.minReadLength = " << minReadLength << "\n";
+            palindromicReads.write(s);
+        }
     };
     ReadsOptions Reads;
 
@@ -56,6 +73,11 @@ public:
     public:
         int k;
         double probability;
+        void write(ostream& s) const
+        {
+            s << "Kmers.k = " << k << "\n";
+            s << "Kmers.probability = " << probability << "\n";
+        }
     };
     KmersOptions Kmers;
 
@@ -68,6 +90,14 @@ public:
         int minHashIterationCount;
         int maxBucketSize;
         int minFrequency;
+        void write(ostream& s) const
+        {
+            s << "MinHash.m = " << m << "\n";
+            s << "MinHash.hashFraction = " << hashFraction << "\n";
+            s << "MinHash.minHashIterationCount = " << minHashIterationCount << "\n";
+            s << "MinHash.maxBucketSize = " << maxBucketSize << "\n";
+            s << "MinHash.minFrequency = " << minFrequency << "\n";
+        }
     };
     MinHashOptions MinHash;
 
@@ -79,6 +109,13 @@ public:
         int maxMarkerFrequency;
         int minAlignedMarkerCount;
         int maxTrim;
+        void write(ostream& s) const
+        {
+            s << "Align.m = " << maxSkip << "\n";
+            s << "Align.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
+            s << "Align.minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
+            s << "Align.maxTrim = " << maxTrim << "\n";
+        }
     };
     AlignOptions Align;
 
@@ -89,6 +126,12 @@ public:
         int maxAlignmentCount;
         int minComponentSize;
         int maxChimericReadDistance;
+        void write(ostream& s) const
+        {
+            s << "ReadGraph.maxAlignmentCount = " << maxAlignmentCount << "\n";
+            s << "ReadGraph.minComponentSize = " << minComponentSize << "\n";
+            s << "ReadGraph.maxChimericReadDistance = " << maxChimericReadDistance << "\n";
+        }
     };
     ReadGraphOptions ReadGraph;
 
@@ -104,6 +147,17 @@ public:
         int edgeMarkerSkipThreshold;
         int pruneIterationCount;
         string simplifyMaxLength;
+        void write(ostream& s) const
+        {
+            s << "MarkerGraph.minCoverage = " << minCoverage << "\n";
+            s << "MarkerGraph.maxCoverage = " << maxCoverage << "\n";
+            s << "MarkerGraph.lowCoverageThreshold = " << lowCoverageThreshold << "\n";
+            s << "MarkerGraph.highCoverageThreshold = " << highCoverageThreshold << "\n";
+            s << "MarkerGraph.maxDistance = " << maxDistance << "\n";
+            s << "MarkerGraph.edgeMarkerSkipThreshold = " << edgeMarkerSkipThreshold << "\n";
+            s << "MarkerGraph.pruneIterationCount = " << pruneIterationCount << "\n";
+            s << "MarkerGraph.simplifyMaxLength = " << simplifyMaxLength << "\n";
+        }
     };
     MarkerGraphOptions MarkerGraph;
 
@@ -112,8 +166,26 @@ public:
     class AssemblyOptionsInner {
     public:
         int markerGraphEdgeLengthThresholdForConsensus;
+        void write(ostream& s) const
+        {
+            s << "Assembly.markerGraphEdgeLengthThresholdForConsensus = " <<
+                    markerGraphEdgeLengthThresholdForConsensus << "\n";
+        }
     };
     AssemblyOptionsInner Assembly;
+
+
+    void write(ostream& s) const
+    {
+        Reads.write(s);
+        Kmers.write(s);
+        MinHash.write(s);
+        Align.write(s);
+        ReadGraph.write(s);
+        MarkerGraph.write(s);
+        Assembly.write(s);
+        s << endl;
+    }
 };
 
 
@@ -161,12 +233,19 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         "Options allowed on the command line and in the config file");
     AssemblyOptions assemblyOptions;
     vector < string > inputFastaFileNames;
+    string outputDirectory;
 
     options.add_options()
+
         ("input", 
-        value< vector<string> >(&inputFastaFileNames), 
+        value< vector<string> >(&inputFastaFileNames)->multitoken(),
         "Names of input FASTA files. Specify at least one.")
         
+        ("output",
+        value<string>(&outputDirectory)->
+        default_value("ShastaRun"),
+        "Name of the output directory. Must not exist.")
+
         ("Reads.minReadLength", 
         value<int>(&assemblyOptions.Reads.minReadLength)->
         default_value(10000),
@@ -349,6 +428,31 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         throw runtime_error("Specify at least one input FASTA file.");
     }
 
+
+    // Write a startup message
+    cout << timestamp <<
+        "\n\nThis is the static executable for the Shasta assembler. "
+        "It provides limited Shasta functionality "
+        "at reduced performance but has no dependencies and requires no installation.\n\n"
+        "Default values of assembly parameters are optimized for an assembly "
+        "at coverage 60x. If your data have significantly different coverage, "
+        "some changes in assembly parameters may be necessary to get good results.\n\n"
+        "For more information about the Shasta assembler, see\n"
+        "https://github.com/chanzuckerberg/shasta\n\n"
+        "Complete documentation for the latest version of Shasta is available here:\n"
+        "https://chanzuckerberg.github.io/shasta\n\n";
+
+
+
+    // Write out the option values we are using.
+    cout << "Options in use:" << endl;
+    cout << "Input FASTA files: ";
+    copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
+    cout << endl;
+    cout << "outputDirectory = " << outputDirectory << endl;
+    assemblyOptions.write(cout);
+
+
     // The rest is not implemented.
     throw runtime_error("The Shasta static executable is not yet functional.");
     // Assembler assembler("Data/", 2*1024*1024, true);
@@ -366,15 +470,15 @@ int main(int argumentCount, const char** arguments)
         cout << "Invalid option: " << e.what() << endl;
         return 1;
     } catch (runtime_error e) {
-        cout << "Terminated after catching a runtime error exception:" << endl;
+        cout << timestamp << "Terminated after catching a runtime error exception:" << endl;
         cout << e.what() << endl;
         return 2;
     } catch (exception e) {
-        cout << "Terminated after catching a standard exception:" << endl;
+        cout << timestamp << "Terminated after catching a standard exception:" << endl;
         cout << e.what() << endl;
         return 3;
     } catch (...) {
-        cout << "Terminated after catching a non-standard exception." << endl;
+        cout << timestamp << "Terminated after catching a non-standard exception." << endl;
         return 4;
     }
     return 0;
