@@ -154,7 +154,7 @@ def runAssembly(a, config, fastaFileNames):
     a.pruneMarkerGraphStrongSubgraph(
         iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
     
-    # Simnplify the marker graph to remove bubbles and superbubbles.
+    # Simplify the marker graph to remove bubbles and superbubbles.
     # The maxLength parameter controls the maximum number of markers
     # for a branch to be collapsed during each iteration.
     a.simplifyMarkerGraph(
