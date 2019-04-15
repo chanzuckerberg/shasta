@@ -452,6 +452,13 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     cout << "outputDirectory = " << outputDirectory << endl;
     assemblyOptions.write(cout);
 
+    // Find absolute paths of the input fasta files.
+    // We will use them below after changing directory to the outpiut directory.
+    vector<string> inputFastaFileAbsolutePaths;
+    for(const string& inputFastaFileName: inputFastaFileNames) {
+        inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
+    }
+
 
     // If the output directory exists, stop.
     // Otherwise, create it and make it current..
@@ -470,10 +477,9 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     assembler.setupConsensusCaller("SimpleConsensusCaller");
 
     // Add reads from the specified FASTA files.
-    // WE NEED TO USE ABSOLUTE PATHS FOR THE NAMES OF THE FASTA FILES
     assembler.accessReadsReadWrite();
     assembler.accessReadNamesReadWrite();
-    for(const string& inputFastaFileName: inputFastaFileNames) {
+    for(const string& inputFastaFileName: inputFastaFileAbsolutePaths) {
         assembler.addReadsFromFasta(
             inputFastaFileName,
             assemblyOptions.Reads.minReadLength,

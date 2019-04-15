@@ -30,7 +30,15 @@ add_definitions(-mcx16)
 add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 
 # Specify the libraries.
-target_link_libraries(shasta-static-executable atomic pthread boost_system boost_program_options spoa)
+# For arcane reasons, statically linking with the pthread
+# library requires "--whole-archive". 
+target_link_libraries(
+    shasta-static-executable 
+    -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
+    atomic boost_system boost_program_options spoa)
+    
+# Also request the glibc library to be linked statically.    
+SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 
 # The static executable goes to the bin directory.
 install(TARGETS shasta-static-executable DESTINATION shasta-install/bin)

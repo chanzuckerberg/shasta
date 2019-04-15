@@ -67,7 +67,8 @@ bool ChanZuckerberg::shasta::filesystem::isDirectory(const string& path)
 // Create a directory. In case of failure, throw an exception.
 void ChanZuckerberg::shasta::filesystem::createDirectory(const string& path)
 {
-    if(::mkdir(path.c_str(), -1) == -1) {
+
+    if(::mkdir(path.c_str(), 0777) == -1) {
         throw runtime_error("Unable to create directory " + path);
     }
 }
@@ -77,7 +78,7 @@ void ChanZuckerberg::shasta::filesystem::createDirectory(const string& path)
 // Return the current directory.
 string ChanZuckerberg::shasta::filesystem::getCurrentDirectory()
 {
-    const size_t bufferSize = 4096;
+    const size_t bufferSize = PATH_MAX;
     array<char, bufferSize> buffer;
     ::getcwd(buffer.data(), bufferSize);
     return string(buffer.data());
@@ -214,4 +215,15 @@ size_t ChanZuckerberg::shasta::filesystem::fileSize(const string& path)
         throw runtime_error("Could not determine the size of file " + path);
     }
     return fileInformation.st_size;
+}
+
+
+
+// Find the absolute path.
+string ChanZuckerberg::shasta::filesystem::getAbsolutePath(const string& path)
+{
+    const size_t bufferSize = PATH_MAX;
+    array<char, bufferSize> buffer;
+    ::realpath(path.c_str(), buffer.data());
+    return string(buffer.data());
 }

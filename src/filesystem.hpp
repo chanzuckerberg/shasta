@@ -57,6 +57,9 @@ namespace ChanZuckerberg {
 
             // Find the size of a file.
             size_t fileSize(const string&);
+
+            // Find the absolute path.
+            string getAbsolutePath(const string& path);
         }
     }
 }
