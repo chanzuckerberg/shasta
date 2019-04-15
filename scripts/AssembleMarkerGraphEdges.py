@@ -24,6 +24,8 @@ a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
+a.accessAssemblyGraphVertices()
+a.accessAssemblyGraphEdges()
 
 # Do it.
 a.assembleMarkerGraphEdges(
