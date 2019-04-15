@@ -846,8 +846,11 @@ private:
 
     // Find the reverse complement of each marker graph vertex.
 public:
-    void findMarkerGraphReverseComplementVertices();
+    void findMarkerGraphReverseComplementVertices(size_t threadCount);
     void accessMarkerGraphReverseComplementVertex();
+private:
+    void findMarkerGraphReverseComplementVerticesThreadFunction1(size_t threadId);
+    void findMarkerGraphReverseComplementVerticesThreadFunction2(size_t threadId);
 
 
 

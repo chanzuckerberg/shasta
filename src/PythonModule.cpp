@@ -311,7 +311,8 @@ PYBIND11_MODULE(shasta, module)
             arg("startVertexId"),
             arg("maxDistance"))
         .def("findMarkerGraphReverseComplementVertices",
-            &Assembler::findMarkerGraphReverseComplementVertices)
+            &Assembler::findMarkerGraphReverseComplementVertices,
+            arg("threadCount") = 0)
         .def("accessMarkerGraphReverseComplementVertex",
             &Assembler::accessMarkerGraphReverseComplementVertex)
         .def("findMarkerGraphReverseComplementEdges",

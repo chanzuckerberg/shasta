@@ -996,15 +996,19 @@ void Assembler::getGlobalMarkerGraphVertexParents(
 
 
 // Find the reverse complement of each marker graph vertex.
-void Assembler::findMarkerGraphReverseComplementVertices()
+void Assembler::findMarkerGraphReverseComplementVertices(size_t threadCount)
 {
     cout << timestamp << "Begin findMarkerGraphReverseComplementVertices."
         << endl;
-    const bool debug = false;
 
     // Check that we have what we need.
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
 
     // Get the number of vertices in the marker graph.
     using VertexId = MarkerGraph::VertexId;
@@ -1017,85 +1021,91 @@ void Assembler::findMarkerGraphReverseComplementVertices()
         largeDataPageSize);
     markerGraph.reverseComplementVertex.resize(vertexCount);
 
-    // Loop over all marker graph vertices.
-    for (VertexId vertexId=0; vertexId!=vertexCount; vertexId++) {
-
-        // Get the markers of this vertex.
-        const MemoryAsContainer<MarkerId> vertexMarkers =
-            markerGraph.vertices[vertexId];
-        CZI_ASSERT(vertexMarkers.size() > 0);
-
-        if (debug) {
-            cout << "Working on marker graph vertex " << vertexId << " with "
-                << vertexMarkers.size() << " markers:" << endl;
-            for (const MarkerId markerId: vertexMarkers) {
-                OrientedReadId orientedReadId;
-                uint32_t ordinal;
-                tie(orientedReadId, ordinal) = findMarkerId(markerId);
-                cout << orientedReadId << " " << ordinal << endl;
-            }
-        }
-
-        // Get the first marker of this vertex.
-        const MarkerId firstMarkerId = vertexMarkers[0];
-
-        /// Find the reverse complemented marker.
-        const MarkerId firstMarkerIdReverseComplement = findReverseComplement(
-            firstMarkerId);
-
-        // Find the corresponding vertex.
-        const VertexId vertexIdReverseComplement =
-            markerGraph.vertexTable[firstMarkerIdReverseComplement];
-        CZI_ASSERT(
-            vertexIdReverseComplement
-                != MarkerGraph::invalidCompressedVertexId);
-
-        // Get the markers of the reverse complemented vertex.
-        const MemoryAsContainer<MarkerId> vertexMarkersReverseComplement =
-            markerGraph.vertices[vertexIdReverseComplement];
-
-        if (debug) {
-            cout << "Reverse complemented vertex is "
-                << vertexIdReverseComplement << " with "
-                << vertexMarkersReverseComplement.size() << " markers." << endl;
-            for (const MarkerId markerId: vertexMarkersReverseComplement) {
-                OrientedReadId orientedReadId;
-                uint32_t ordinal;
-                tie(orientedReadId, ordinal) = findMarkerId(markerId);
-                cout << orientedReadId << " " << ordinal << endl;
-            }
-        }
-
-        // Check that the markers are all consistent.
-        // This could become expensive.
-        // It can be taken out when we are confident that this code works.
-        CZI_ASSERT(
-            vertexMarkers.size() == vertexMarkersReverseComplement.size());
-        for (size_t i=0; i<vertexMarkers.size(); i++) {
-            const MarkerId markerId = vertexMarkers[i];
-            const MarkerId markerIdReverseComplement =
-                vertexMarkersReverseComplement[i];
-            CZI_ASSERT(
-                markerIdReverseComplement == findReverseComplement(markerId));
-        }
-
-        markerGraph.reverseComplementVertex[vertexId] =
-            vertexIdReverseComplement;
-    }
+    // Check each vertex.
+    setupLoadBalancing(vertexCount, 10000);
+    runThreads(&Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1,
+        threadCount);
 
     // Check that the reverse complement of the reverse complement of a
     // vertex is the vertex itself.
-    for (VertexId vertexId=0; vertexId!=vertexCount; vertexId++) {
-        const VertexId vertexIdReverseComplement =
-            markerGraph.reverseComplementVertex[vertexId];
-        CZI_ASSERT(
-            markerGraph.reverseComplementVertex[vertexIdReverseComplement]
-                == vertexId);
-    }
-    cout << timestamp << "Begin findMarkerGraphReverseComplementVertices."
-        << endl;
+    setupLoadBalancing(vertexCount, 10000);
+    runThreads(&Assembler::findMarkerGraphReverseComplementVerticesThreadFunction2,
+        threadCount);
+    cout << timestamp << "Begin findMarkerGraphReverseComplementVertices." << endl;
 
 }
+
+
+
+void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t threadId)
+{
+    using VertexId = MarkerGraph::VertexId;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        for (VertexId vertexId=begin; vertexId!=end; vertexId++) {
+
+            // Get the markers of this vertex.
+            const MemoryAsContainer<MarkerId> vertexMarkers =
+                markerGraph.vertices[vertexId];
+            CZI_ASSERT(vertexMarkers.size() > 0);
+
+            // Get the first marker of this vertex.
+            const MarkerId firstMarkerId = vertexMarkers[0];
+
+            /// Find the reverse complemented marker.
+            const MarkerId firstMarkerIdReverseComplement = findReverseComplement(
+                firstMarkerId);
+
+            // Find the corresponding vertex.
+            const VertexId vertexIdReverseComplement =
+                markerGraph.vertexTable[firstMarkerIdReverseComplement];
+            CZI_ASSERT(vertexIdReverseComplement != MarkerGraph::invalidCompressedVertexId);
+
+            // Get the markers of the reverse complemented vertex.
+            const MemoryAsContainer<MarkerId> vertexMarkersReverseComplement =
+                markerGraph.vertices[vertexIdReverseComplement];
+
+            // Check that the markers are all consistent.
+            // This could become expensive.
+            // It can be taken out when we are confident that this code works.
+            CZI_ASSERT(vertexMarkers.size() == vertexMarkersReverseComplement.size());
+            for (size_t i=0; i<vertexMarkers.size(); i++) {
+                const MarkerId markerId = vertexMarkers[i];
+                const MarkerId markerIdReverseComplement =
+                    vertexMarkersReverseComplement[i];
+                CZI_ASSERT(
+                    markerIdReverseComplement == findReverseComplement(markerId));
+            }
+
+            markerGraph.reverseComplementVertex[vertexId] =
+                vertexIdReverseComplement;
+
+        }
+    }
+}
+
+
+
+void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction2(size_t threadId)
+{
+    using VertexId = MarkerGraph::VertexId;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        for (VertexId vertexId=begin; vertexId!=end; vertexId++) {
+            const VertexId vertexIdReverseComplement =
+                markerGraph.reverseComplementVertex[vertexId];
+            CZI_ASSERT(
+                markerGraph.reverseComplementVertex[vertexIdReverseComplement] == vertexId);
+        }
+    }
+}
+
+
+
 void Assembler::accessMarkerGraphReverseComplementVertex()
 {
     markerGraph.reverseComplementVertex.accessExistingReadOnly(
