@@ -1166,7 +1166,7 @@ void Assembler::accessMarkerGraphReverseComplementEdge()
 // and findMarkerGraphReverseComplementEdges have been called,
 // as it requires markerGraph.reverseComplementVertex
 // and markerGraph.reverseComplementEdge.
-void Assembler::checkMarkerGraphIsStrandSymmetric()
+void Assembler::checkMarkerGraphIsStrandSymmetric(size_t threadCount)
 {
     cout << timestamp << "Begin checkMarkerGraphIsStrandSymmetric." << endl;
 
@@ -1176,80 +1176,112 @@ void Assembler::checkMarkerGraphIsStrandSymmetric()
     checkMarkerGraphEdgesIsOpen();
     CZI_ASSERT(markerGraph.reverseComplementVertex.isOpen);
 
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
     // Check the vertices.
     using VertexId = MarkerGraph::VertexId;
     const VertexId vertexCount = markerGraph.vertices.size();
-    for (VertexId v0 = 0; v0 != vertexCount; v0++) {
-        const VertexId v1 = markerGraph.reverseComplementVertex[v0];
-        const VertexId v2 = markerGraph.reverseComplementVertex[v1];
-        CZI_ASSERT(v2 == v0);
-        CZI_ASSERT(v1 != v0);
-
-        const MemoryAsContainer<MarkerId> markers0 = markerGraph.vertices[v0];
-        const MemoryAsContainer<MarkerId> markers1 = markerGraph.vertices[v1];
-        CZI_ASSERT(markers0.size() == markers1.size());
-        for (size_t i = 0; i < markers0.size(); i++) {
-            const MarkerId markerId0 = markers0[i];
-            const MarkerId markerId1 = markers1[i];
-            CZI_ASSERT(markerId1 == findReverseComplement(markerId0));
-            CZI_ASSERT(markerId0 == findReverseComplement(markerId1));
-        }
-    }
-
-
+    setupLoadBalancing(vertexCount, 10000);
+    runThreads(&Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1, threadCount);
 
     // Check the edges.
     using EdgeId = MarkerGraph::EdgeId;
     const EdgeId edgeCount = markerGraph.edges.size();
-    for (EdgeId e0 = 0; e0 != edgeCount; e0++) {
-        const EdgeId e1 = markerGraph.reverseComplementEdge[e0];
-        const EdgeId e2 = markerGraph.reverseComplementEdge[e1];
-        CZI_ASSERT(e2 == e0);
-        CZI_ASSERT(e1 != e0);
-
-        const MarkerGraph::Edge& edge0 = markerGraph.edges[e0];
-        const MarkerGraph::Edge& edge1 = markerGraph.edges[e1];
-        CZI_ASSERT(edge0.coverage == edge1.coverage);
-        CZI_ASSERT(
-            edge0.wasRemovedByTransitiveReduction
-            == edge1.wasRemovedByTransitiveReduction);
-        CZI_ASSERT(edge0.wasPruned == edge1.wasPruned);
-        CZI_ASSERT(edge0.isSuperBubbleEdge == edge1.isSuperBubbleEdge);
-
-
-        const VertexId v0 = edge0.source;
-        const VertexId v1 = edge0.target;
-        const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
-        const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
-        const EdgeId e0rc = markerGraph.findEdgeId(v1rc, v0rc);
-        CZI_ASSERT(e0rc == e1);
-
-        const MemoryAsContainer<MarkerInterval> markerIntervals0 =
-            markerGraph.edgeMarkerIntervals[e0];
-        const MemoryAsContainer<MarkerInterval> markerIntervals1 =
-            markerGraph.edgeMarkerIntervals[e1];
-        CZI_ASSERT(markerIntervals0.size() == markerIntervals1.size());
-        for (size_t i=0; i<markerIntervals0.size(); i++) {
-            const MarkerInterval& markerInterval0 = markerIntervals0[i];
-            const MarkerInterval& markerInterval1 = markerIntervals1[i];
-            CZI_ASSERT(
-                markerInterval0.orientedReadId.getReadId()
-                == markerInterval1.orientedReadId.getReadId());
-            CZI_ASSERT(
-                markerInterval0.orientedReadId.getStrand()
-                == 1 - markerInterval1.orientedReadId.getStrand());
-            const uint32_t markerCount = uint32_t(
-                markers.size(markerInterval0.orientedReadId.getValue()));
-            CZI_ASSERT(
-                markerInterval0.ordinals[0]
-                == markerCount - 1 - markerInterval1.ordinals[1]);
-            CZI_ASSERT(
-                markerInterval0.ordinals[1]
-                == markerCount - 1 - markerInterval1.ordinals[0]);
-        }
-    }
+    setupLoadBalancing(edgeCount, 10000);
+    runThreads(&Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2, threadCount);
 
     cout << timestamp << "End checkMarkerGraphIsStrandSymmetric." << endl;
+}
+
+
+
+// Check the vertices.
+void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId)
+{
+    using VertexId = MarkerGraph::VertexId;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for (VertexId v0=begin; v0!=end; v0++) {
+            const VertexId v1 = markerGraph.reverseComplementVertex[v0];
+            const VertexId v2 = markerGraph.reverseComplementVertex[v1];
+            CZI_ASSERT(v2 == v0);
+            CZI_ASSERT(v1 != v0);
+
+            const MemoryAsContainer<MarkerId> markers0 = markerGraph.vertices[v0];
+            const MemoryAsContainer<MarkerId> markers1 = markerGraph.vertices[v1];
+            CZI_ASSERT(markers0.size() == markers1.size());
+            for (size_t i = 0; i < markers0.size(); i++) {
+                const MarkerId markerId0 = markers0[i];
+                const MarkerId markerId1 = markers1[i];
+                CZI_ASSERT(markerId1 == findReverseComplement(markerId0));
+                CZI_ASSERT(markerId0 == findReverseComplement(markerId1));
+            }
+        }
+    }
+}
+
+
+
+// Check the edges.
+void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId)
+{
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for (EdgeId e0=begin; e0!=end; e0++) {
+            const EdgeId e1 = markerGraph.reverseComplementEdge[e0];
+            const EdgeId e2 = markerGraph.reverseComplementEdge[e1];
+            CZI_ASSERT(e2 == e0);
+            CZI_ASSERT(e1 != e0);
+
+            const MarkerGraph::Edge& edge0 = markerGraph.edges[e0];
+            const MarkerGraph::Edge& edge1 = markerGraph.edges[e1];
+            CZI_ASSERT(edge0.coverage == edge1.coverage);
+            CZI_ASSERT(
+                edge0.wasRemovedByTransitiveReduction
+                == edge1.wasRemovedByTransitiveReduction);
+            CZI_ASSERT(edge0.wasPruned == edge1.wasPruned);
+            CZI_ASSERT(edge0.isSuperBubbleEdge == edge1.isSuperBubbleEdge);
+
+
+            const VertexId v0 = edge0.source;
+            const VertexId v1 = edge0.target;
+            const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
+            const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
+            const EdgeId e0rc = markerGraph.findEdgeId(v1rc, v0rc);
+            CZI_ASSERT(e0rc == e1);
+
+            const MemoryAsContainer<MarkerInterval> markerIntervals0 =
+                markerGraph.edgeMarkerIntervals[e0];
+            const MemoryAsContainer<MarkerInterval> markerIntervals1 =
+                markerGraph.edgeMarkerIntervals[e1];
+            CZI_ASSERT(markerIntervals0.size() == markerIntervals1.size());
+            for (size_t i=0; i<markerIntervals0.size(); i++) {
+                const MarkerInterval& markerInterval0 = markerIntervals0[i];
+                const MarkerInterval& markerInterval1 = markerIntervals1[i];
+                CZI_ASSERT(
+                    markerInterval0.orientedReadId.getReadId()
+                    == markerInterval1.orientedReadId.getReadId());
+                CZI_ASSERT(
+                    markerInterval0.orientedReadId.getStrand()
+                    == 1 - markerInterval1.orientedReadId.getStrand());
+                const uint32_t markerCount = uint32_t(
+                    markers.size(markerInterval0.orientedReadId.getValue()));
+                CZI_ASSERT(
+                    markerInterval0.ordinals[0]
+                    == markerCount - 1 - markerInterval1.ordinals[1]);
+                CZI_ASSERT(
+                    markerInterval0.ordinals[1]
+                    == markerCount - 1 - markerInterval1.ordinals[0]);
+            }
+        }
+    }
 }
 
 

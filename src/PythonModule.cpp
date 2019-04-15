@@ -310,16 +310,17 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::getLocalAssemblyPath,
             arg("startVertexId"),
             arg("maxDistance"))
-		.def("findMarkerGraphReverseComplementVertices",
-			&Assembler::findMarkerGraphReverseComplementVertices)
-		.def("accessMarkerGraphReverseComplementVertex",
-			&Assembler::accessMarkerGraphReverseComplementVertex)
-		.def("findMarkerGraphReverseComplementEdges",
-			&Assembler::findMarkerGraphReverseComplementEdges)
-		.def("accessMarkerGraphReverseComplementEdge",
-			&Assembler::accessMarkerGraphReverseComplementEdge)
-		.def("checkMarkerGraphIsStrandSymmetric",
-			&Assembler::checkMarkerGraphIsStrandSymmetric)
+        .def("findMarkerGraphReverseComplementVertices",
+            &Assembler::findMarkerGraphReverseComplementVertices)
+        .def("accessMarkerGraphReverseComplementVertex",
+            &Assembler::accessMarkerGraphReverseComplementVertex)
+        .def("findMarkerGraphReverseComplementEdges",
+            &Assembler::findMarkerGraphReverseComplementEdges)
+        .def("accessMarkerGraphReverseComplementEdge",
+            &Assembler::accessMarkerGraphReverseComplementEdge)
+        .def("checkMarkerGraphIsStrandSymmetric",
+            &Assembler::checkMarkerGraphIsStrandSymmetric,
+            arg("threadCount") = 0)
 
 
 
