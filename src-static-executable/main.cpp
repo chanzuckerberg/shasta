@@ -453,9 +453,35 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     assemblyOptions.write(cout);
 
 
-    // The rest is not implemented.
-    throw runtime_error("The Shasta static executable is not yet functional.");
-    // Assembler assembler("Data/", 2*1024*1024, true);
+    // If the output directory exists, stop.
+    // Otherwise, create it and make it current..
+    if(filesystem::exists(outputDirectory)) {
+        throw runtime_error("Output directory " + outputDirectory + " already exists.");
+    }
+    filesystem::createDirectory(outputDirectory);
+    filesystem::changeDirectory(outputDirectory);
+
+    // Create the Data and threadLogs directories.
+    filesystem::createDirectory("Data");
+    filesystem::createDirectory("threadLogs");
+
+    // Create the Assembler.
+    Assembler assembler("Data/", 2*1024*1024, true);
+    assembler.setupConsensusCaller("SimpleConsensusCaller");
+
+    // Add reads from the specified FASTA files.
+    // WE NEED TO USE ABSOLUTE PATHS FOR THE NAMES OF THE FASTA FILES
+    assembler.accessReadsReadWrite();
+    assembler.accessReadNamesReadWrite();
+    for(const string& inputFastaFileName: inputFastaFileNames) {
+        assembler.addReadsFromFasta(
+            inputFastaFileName,
+            assemblyOptions.Reads.minReadLength,
+            2ULL * 1024ULL * 1024ULL * 1024ULL,
+            1,
+            0);
+    }
+
 }
 
 

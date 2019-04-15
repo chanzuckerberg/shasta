@@ -25,6 +25,9 @@ using namespace ChanZuckerberg::shasta::filesystem;
 #include <sys/stat.h>
 #include <unistd.h>
 
+// Standard library.
+#include "array.hpp"
+
 
 // Return true if the path exists.
 bool ChanZuckerberg::shasta::filesystem::exists(const string& path)
@@ -68,6 +71,29 @@ void ChanZuckerberg::shasta::filesystem::createDirectory(const string& path)
         throw runtime_error("Unable to create directory " + path);
     }
 }
+
+
+
+// Return the current directory.
+string ChanZuckerberg::shasta::filesystem::getCurrentDirectory()
+{
+    const size_t bufferSize = 4096;
+    array<char, bufferSize> buffer;
+    ::getcwd(buffer.data(), bufferSize);
+    return string(buffer.data());
+}
+
+
+
+// Change the current directory.
+void ChanZuckerberg::shasta::filesystem::changeDirectory(const string& path)
+{
+    if(::chdir(path.c_str()) == -1) {
+        throw runtime_error("Unable to change directory to " + path);
+    }
+
+}
+
 
 
 // Remove the specified path. In case of failure, throw an exception.

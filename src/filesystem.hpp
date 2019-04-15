@@ -34,6 +34,12 @@ namespace ChanZuckerberg {
             // Create a directory. In case of failure, throw an exception.
             void createDirectory(const string&);
 
+            // Return the current directory.
+            string getCurrentDirectory();
+
+            // Change the current directory.
+            void changeDirectory(const string&);
+
             // Remove the specified path. In case of failure, throw an exception.
             void remove(const string&);
 
