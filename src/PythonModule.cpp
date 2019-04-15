@@ -316,7 +316,8 @@ PYBIND11_MODULE(shasta, module)
         .def("accessMarkerGraphReverseComplementVertex",
             &Assembler::accessMarkerGraphReverseComplementVertex)
         .def("findMarkerGraphReverseComplementEdges",
-            &Assembler::findMarkerGraphReverseComplementEdges)
+            &Assembler::findMarkerGraphReverseComplementEdges,
+            arg("threadCount") = 0)
         .def("accessMarkerGraphReverseComplementEdge",
             &Assembler::accessMarkerGraphReverseComplementEdge)
         .def("checkMarkerGraphIsStrandSymmetric",

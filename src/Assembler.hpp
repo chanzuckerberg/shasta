@@ -867,8 +867,8 @@ private:
     void createMarkerGraphEdgesBySourceAndTarget(size_t threadCount);
     class CreateMarkerGraphEdgesData {
     public:
-		vector< shared_ptr<MemoryMapped::Vector<MarkerGraph::Edge> > > threadEdges;
-		vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
+        vector< shared_ptr< MemoryMapped::Vector<MarkerGraph::Edge> > > threadEdges;
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<MarkerInterval, uint64_t> > > threadEdgeMarkerIntervals;
     };
     CreateMarkerGraphEdgesData createMarkerGraphEdgesData;
 
@@ -876,12 +876,17 @@ private:
 
     // Find the reverse complement of each marker graph edge.
 public:
-    void findMarkerGraphReverseComplementEdges();
+    void findMarkerGraphReverseComplementEdges(size_t threadCount);
     void accessMarkerGraphReverseComplementEdge();
+private:
+    void findMarkerGraphReverseComplementEdgesThreadFunction1(size_t threadId);
+    void findMarkerGraphReverseComplementEdgesThreadFunction2(size_t threadId);
+
 
     // Check that the marker graph is strand symmetric.
     // This can only be called after both findMarkerGraphReverseComplementVertices
     // and findMarkerGraphReverseComplementEdges have been called.
+public:
     void checkMarkerGraphIsStrandSymmetric(size_t threadCount = 0);
 private:
     void checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId);

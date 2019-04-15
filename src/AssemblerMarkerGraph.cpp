@@ -1115,7 +1115,7 @@ void Assembler::accessMarkerGraphReverseComplementVertex()
 
 
 // Find the reverse complement of each marker graph edge.
-void Assembler::findMarkerGraphReverseComplementEdges()
+void Assembler::findMarkerGraphReverseComplementEdges(size_t threadCount)
 {
     cout << timestamp << "Begin findMarkerGraphReverseComplementEdges." << endl;
 
@@ -1124,8 +1124,12 @@ void Assembler::findMarkerGraphReverseComplementEdges()
     checkMarkerGraphEdgesIsOpen();
     CZI_ASSERT(markerGraph.reverseComplementVertex.isOpen);
 
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
     // Get the number of edges in the marker graph.
-    using VertexId = MarkerGraph::VertexId;
     using EdgeId = MarkerGraph::EdgeId;
     const EdgeId edgeCount = markerGraph.edges.size();
 
@@ -1135,56 +1139,89 @@ void Assembler::findMarkerGraphReverseComplementEdges()
         largeDataName("MarkerGraphReverseComplementeEdge"), largeDataPageSize);
     markerGraph.reverseComplementEdge.resize(edgeCount);
 
-
-
-    // Loop over all marker graph edges.
-    for (EdgeId edgeId=0; edgeId!=edgeCount; edgeId++) {
-        const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
-        const VertexId v0 = edge.source;
-        const VertexId v1 = edge.target;
-        const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
-        const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
-        const EdgeId edgeIdRc = markerGraph.findEdgeId(v1rc, v0rc);
-        markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
-
-        // Check that marker intervals of the two are consistent.
-        const MemoryAsContainer<MarkerInterval> markerIntervals =
-            markerGraph.edgeMarkerIntervals[edgeId];
-        const MemoryAsContainer<MarkerInterval> markerIntervalsRc =
-            markerGraph.edgeMarkerIntervals[edgeIdRc];
-        CZI_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
-        for (size_t i=0; i<markerIntervals.size(); i++) {
-            const MarkerInterval& markerInterval = markerIntervals[i];
-            const MarkerInterval& markerIntervalRc = markerIntervalsRc[i];
-            CZI_ASSERT(
-                markerInterval.orientedReadId.getReadId()
-                    == markerIntervalRc.orientedReadId.getReadId());
-            CZI_ASSERT(
-                markerInterval.orientedReadId.getStrand()
-                    == 1 - markerIntervalRc.orientedReadId.getStrand());
-            const uint32_t markerCount = uint32_t(
-                markers.size(markerInterval.orientedReadId.getValue()));
-            CZI_ASSERT(
-                markerInterval.ordinals[0]
-                    == markerCount - 1 - markerIntervalRc.ordinals[1]);
-            CZI_ASSERT(
-                markerInterval.ordinals[1]
-                    == markerCount - 1 - markerIntervalRc.ordinals[0]);
-        }
-    }
+    // Check all marker graph edges.
+    setupLoadBalancing(edgeCount, 10000);
+    runThreads(&Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1,
+        threadCount);
 
     // Check that the reverse complement of the reverse complement of an
     // edge is the edge itself.
-    for (EdgeId edgeId=0; edgeId!=edgeCount; edgeId++) {
-        const EdgeId edgeIdReverseComplement =
-            markerGraph.reverseComplementEdge[edgeId];
-        CZI_ASSERT(
-            markerGraph.reverseComplementEdge[edgeIdReverseComplement]
-                == edgeId);
-    }
+    setupLoadBalancing(edgeCount, 10000);
+    runThreads(&Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2,
+        threadCount);
+
     cout << timestamp << "End findMarkerGraphReverseComplementEdges." << endl;
 
 }
+
+
+
+void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t threadId)
+{
+    using VertexId = MarkerGraph::VertexId;
+    using EdgeId = MarkerGraph::EdgeId;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
+            const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+            const VertexId v0 = edge.source;
+            const VertexId v1 = edge.target;
+            const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
+            const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
+            const EdgeId edgeIdRc = markerGraph.findEdgeId(v1rc, v0rc);
+            markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
+
+            // Check that marker intervals of the two are consistent.
+            const MemoryAsContainer<MarkerInterval> markerIntervals =
+                markerGraph.edgeMarkerIntervals[edgeId];
+            const MemoryAsContainer<MarkerInterval> markerIntervalsRc =
+                markerGraph.edgeMarkerIntervals[edgeIdRc];
+            CZI_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
+            for (size_t i=0; i<markerIntervals.size(); i++) {
+                const MarkerInterval& markerInterval = markerIntervals[i];
+                const MarkerInterval& markerIntervalRc = markerIntervalsRc[i];
+                CZI_ASSERT(
+                    markerInterval.orientedReadId.getReadId()
+                        == markerIntervalRc.orientedReadId.getReadId());
+                CZI_ASSERT(
+                    markerInterval.orientedReadId.getStrand()
+                        == 1 - markerIntervalRc.orientedReadId.getStrand());
+                const uint32_t markerCount = uint32_t(
+                    markers.size(markerInterval.orientedReadId.getValue()));
+                CZI_ASSERT(
+                    markerInterval.ordinals[0]
+                        == markerCount - 1 - markerIntervalRc.ordinals[1]);
+                CZI_ASSERT(
+                    markerInterval.ordinals[1]
+                        == markerCount - 1 - markerIntervalRc.ordinals[0]);
+            }
+        }
+    }
+}
+
+
+
+// Check that the reverse complement of the reverse complement of an
+// edge is the edge itself.
+void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2(size_t threadId)
+{
+    using EdgeId = MarkerGraph::EdgeId;
+
+    size_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
+            const EdgeId edgeIdReverseComplement =
+                markerGraph.reverseComplementEdge[edgeId];
+            CZI_ASSERT(
+                markerGraph.reverseComplementEdge[edgeIdReverseComplement]
+                    == edgeId);
+        }
+    }
+}
+
+
+
 void Assembler::accessMarkerGraphReverseComplementEdge()
 {
     markerGraph.reverseComplementEdge.accessExistingReadOnly(
