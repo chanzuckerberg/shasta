@@ -298,7 +298,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
 
         ("MinHash.minHashIterationCount",
         value<int>(&assemblyOptions.MinHash.minHashIterationCount)->
-        default_value(100),
+        default_value(10),
         "The number of MinHash/LowHash iterations.")
 
         ("MinHash.maxBucketSize",
@@ -444,14 +444,6 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
 
 
 
-    // Write out the option values we are using.
-    cout << "Options in use:" << endl;
-    cout << "Input FASTA files: ";
-    copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
-    cout << endl;
-    cout << "outputDirectory = " << outputDirectory << endl;
-    assemblyOptions.write(cout);
-
     // Find absolute paths of the input fasta files.
     // We will use them below after changing directory to the outpiut directory.
     vector<string> inputFastaFileAbsolutePaths;
@@ -472,6 +464,14 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     filesystem::createDirectory("Data");
     filesystem::createDirectory("threadLogs");
 
+    // Write out the option values we are using.
+    cout << "Options in use:" << endl;
+    cout << "Input FASTA files: ";
+    copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
+    cout << endl;
+    cout << "outputDirectory = " << outputDirectory << endl;
+    assemblyOptions.write(cout);
+
     // Create the Assembler.
     Assembler assembler("Data/", 2*1024*1024, true);
     assembler.setupConsensusCaller("SimpleConsensusCaller");
@@ -488,6 +488,123 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
             0);
     }
 
+
+    // Initialize read flags.
+    assembler.initializeReadFlags();
+
+    // Create a histogram of read lengths.
+    assembler.histogramReadLength("ReadLengthHistogram.csv");
+
+    // Randomly select the k-mers that will be used as markers.
+    assembler.randomlySelectKmers(
+        assemblyOptions.Kmers.k,
+        assemblyOptions.Kmers.probability, 231);
+
+    // Find the markers in the reads.
+    assembler.findMarkers(0);
+
+    // Flag palindromic reads.
+    // These wil be excluded from further processing.
+    assembler.flagPalindromicReads(
+        assemblyOptions.Reads.palindromicReads.maxSkip,
+        assemblyOptions.Reads.palindromicReads.maxMarkerFrequency,
+        assemblyOptions.Reads.palindromicReads.alignedFractionThreshold,
+        assemblyOptions.Reads.palindromicReads.nearDiagonalFractionThreshold,
+        assemblyOptions.Reads.palindromicReads.deltaThreshold,
+        0);
+
+    // Find alignment candidates.
+    assembler.findAlignmentCandidatesLowHash(
+        assemblyOptions.MinHash.m,
+        assemblyOptions.MinHash.hashFraction,
+        assemblyOptions.MinHash.minHashIterationCount,
+        0,
+        assemblyOptions.MinHash.maxBucketSize,
+        assemblyOptions.MinHash.minFrequency,
+        0);
+
+
+    // Compute alignments.
+    assembler.computeAlignments(
+        assemblyOptions.Align.maxMarkerFrequency,
+        assemblyOptions.Align.maxSkip,
+        assemblyOptions.Align.minAlignedMarkerCount,
+        assemblyOptions.Align.maxTrim,
+        0);
+
+    // Create the read graph.
+    assembler.createReadGraph(
+        assemblyOptions.ReadGraph.maxAlignmentCount,
+        assemblyOptions.Align.maxTrim);
+
+    // Flag read graph edges that cross strands.
+    assembler.flagCrossStrandReadGraphEdges();
+
+#if 0
+# Flag chimeric reads.
+a.flagChimericReads(
+    maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
+a.computeReadGraphConnectedComponents(
+    minComponentSize = int(config['ReadGraph']['minComponentSize']))
+
+# Create vertices of the marker graph.
+a.createMarkerGraphVertices(
+    maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
+    maxSkip = int(config['Align']['maxSkip']),
+    minCoverage = int(config['MarkerGraph']['minCoverage']),
+    maxCoverage = int(config['MarkerGraph']['maxCoverage']))
+a.findMarkerGraphReverseComplementVertices()
+
+# Create edges of the marker graph.
+a.createMarkerGraphEdges()
+a.findMarkerGraphReverseComplementEdges()
+
+# Approximate transitive reduction.
+a.flagMarkerGraphWeakEdges(
+    lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
+    highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
+    maxDistance = int(config['MarkerGraph']['maxDistance']),
+    edgeMarkerSkipThreshold = int(config['MarkerGraph']['edgeMarkerSkipThreshold'])
+    )
+
+# Prune the strong subgraph of the marker graph.
+a.pruneMarkerGraphStrongSubgraph(
+    iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
+
+# Simplify the marker graph to remove bubbles and superbubbles.
+# The maxLength parameter controls the maximum number of markers
+# for a branch to be collapsed during each iteration.
+a.simplifyMarkerGraph(
+    maxLength = [int(s) for s in config['MarkerGraph']['simplifyMaxLength'].split(',')],
+    debug = True)
+
+# Create the assembly graph.
+a.createAssemblyGraphEdges()
+a.createAssemblyGraphVertices()
+a.writeAssemblyGraph("AssemblyGraph-Final.dot")
+
+# Compute optimal repeat counts for each vertex of the marker graph.
+a.assembleMarkerGraphVertices()
+
+# Optionally compute coverage data for marker graph vertices.
+storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData'])
+if storeCoverageData:
+    a.computeMarkerGraphVerticesCoverageData()
+
+# Compute consensus sequence for marker graph edges to be used for assembly.
+a.assembleMarkerGraphEdges(
+    markerGraphEdgeLengthThresholdForConsensus =
+    int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
+    useMarginPhase = useMarginPhase,
+    storeCoverageData = storeCoverageData)
+
+# Use the assembly graph for global assembly.
+a.assemble()
+
+a.computeAssemblyStatistics()
+a.writeGfa1('Assembly.gfa')
+a.writeFasta('Assembly.fasta')
+#endif
 }
 
 
