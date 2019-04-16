@@ -428,8 +428,29 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         throw runtime_error("Specify at least one input FASTA file.");
     }
 
+    // Parse MarkerGraph.simplifyMaxLength
+    vector<size_t> simplifyMaxLength;
+    {
+        boost::tokenizer< boost::char_separator<char> > tokenizer(
+            assemblyOptions.MarkerGraph.simplifyMaxLength, boost::char_separator<char>(","));
+        for(const string token: tokenizer) {
+            try {
+                size_t numberEndsHere;
+                const size_t value = std::stoi(token, &numberEndsHere);
+                if(numberEndsHere != token.size()) {
+                    throw runtime_error("Error parsing MarkerGraph.simplifyMaxLength " +
+                        assemblyOptions.MarkerGraph.simplifyMaxLength);
+                }
+                simplifyMaxLength.push_back(value);
+            } catch(std::invalid_argument e) {
+                throw runtime_error("Error parsing MarkerGraph,simplifyMaxLength " +
+                    assemblyOptions.MarkerGraph.simplifyMaxLength);
+            }
+        }
+    }
 
-    // Write a startup message
+
+    // Write a startup message.
     cout << timestamp <<
         "\n\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality "
@@ -445,7 +466,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
 
 
     // Find absolute paths of the input fasta files.
-    // We will use them below after changing directory to the outpiut directory.
+    // We will use them below after changing directory to the output directory.
     vector<string> inputFastaFileAbsolutePaths;
     for(const string& inputFastaFileName: inputFastaFileNames) {
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
@@ -540,71 +561,59 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     // Flag read graph edges that cross strands.
     assembler.flagCrossStrandReadGraphEdges();
 
-#if 0
-# Flag chimeric reads.
-a.flagChimericReads(
-    maxChimericReadDistance = int(config['ReadGraph']['maxChimericReadDistance']))
-a.computeReadGraphConnectedComponents(
-    minComponentSize = int(config['ReadGraph']['minComponentSize']))
+    // Flag chimeric reads.
+    assembler.flagChimericReads(assemblyOptions.ReadGraph.maxChimericReadDistance, 0);
+    assembler.computeReadGraphConnectedComponents(assemblyOptions.ReadGraph.minComponentSize);
 
-# Create vertices of the marker graph.
-a.createMarkerGraphVertices(
-    maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
-    maxSkip = int(config['Align']['maxSkip']),
-    minCoverage = int(config['MarkerGraph']['minCoverage']),
-    maxCoverage = int(config['MarkerGraph']['maxCoverage']))
-a.findMarkerGraphReverseComplementVertices()
+    // Create vertices of the marker graph.
+    assembler.createMarkerGraphVertices(
+        assemblyOptions.Align.maxMarkerFrequency,
+        assemblyOptions.Align.maxSkip,
+        assemblyOptions.MarkerGraph.minCoverage,
+        assemblyOptions.MarkerGraph.maxCoverage,
+        0);
+    assembler.findMarkerGraphReverseComplementVertices(0);
 
-# Create edges of the marker graph.
-a.createMarkerGraphEdges()
-a.findMarkerGraphReverseComplementEdges()
+    // Create edges of the marker graph.
+    assembler.createMarkerGraphEdges(0);
+    assembler.findMarkerGraphReverseComplementEdges(0);
 
-# Approximate transitive reduction.
-a.flagMarkerGraphWeakEdges(
-    lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
-    highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
-    maxDistance = int(config['MarkerGraph']['maxDistance']),
-    edgeMarkerSkipThreshold = int(config['MarkerGraph']['edgeMarkerSkipThreshold'])
-    )
+    // Approximate transitive reduction.
+    assembler.flagMarkerGraphWeakEdges(
+        assemblyOptions.MarkerGraph.lowCoverageThreshold,
+        assemblyOptions.MarkerGraph.highCoverageThreshold,
+        assemblyOptions.MarkerGraph.maxDistance,
+        assemblyOptions.MarkerGraph.edgeMarkerSkipThreshold);
 
-# Prune the strong subgraph of the marker graph.
-a.pruneMarkerGraphStrongSubgraph(
-    iterationCount = int(config['MarkerGraph']['pruneIterationCount']))
+    // Prune the strong subgraph of the marker graph.
+    assembler.pruneMarkerGraphStrongSubgraph(
+        assemblyOptions.MarkerGraph.pruneIterationCount);
 
-# Simplify the marker graph to remove bubbles and superbubbles.
-# The maxLength parameter controls the maximum number of markers
-# for a branch to be collapsed during each iteration.
-a.simplifyMarkerGraph(
-    maxLength = [int(s) for s in config['MarkerGraph']['simplifyMaxLength'].split(',')],
-    debug = True)
+    // Simplify the marker graph to remove bubbles and superbubbles.
+    // The maxLength parameter controls the maximum number of markers
+    // for a branch to be collapsed during each iteration.
+    assembler.simplifyMarkerGraph(simplifyMaxLength, false);
 
-# Create the assembly graph.
-a.createAssemblyGraphEdges()
-a.createAssemblyGraphVertices()
-a.writeAssemblyGraph("AssemblyGraph-Final.dot")
+    // Create the assembly graph.
+    assembler.createAssemblyGraphEdges();
+    assembler.createAssemblyGraphVertices();
+    assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 
-# Compute optimal repeat counts for each vertex of the marker graph.
-a.assembleMarkerGraphVertices()
+    // Compute optimal repeat counts for each vertex of the marker graph.
+    assembler.assembleMarkerGraphVertices(0);
 
-# Optionally compute coverage data for marker graph vertices.
-storeCoverageData = ast.literal_eval(config['Assembly']['storeCoverageData'])
-if storeCoverageData:
-    a.computeMarkerGraphVerticesCoverageData()
+    // Compute consensus sequence for marker graph edges to be used for assembly.
+    assembler.assembleMarkerGraphEdges(
+        0,
+        assemblyOptions.Assembly.markerGraphEdgeLengthThresholdForConsensus,
+        false,
+        false);
 
-# Compute consensus sequence for marker graph edges to be used for assembly.
-a.assembleMarkerGraphEdges(
-    markerGraphEdgeLengthThresholdForConsensus =
-    int(config['Assembly']['markerGraphEdgeLengthThresholdForConsensus']),
-    useMarginPhase = useMarginPhase,
-    storeCoverageData = storeCoverageData)
-
-# Use the assembly graph for global assembly.
-a.assemble()
-
-a.computeAssemblyStatistics()
-a.writeGfa1('Assembly.gfa')
-a.writeFasta('Assembly.fasta')
-#endif
+    // Use the assembly graph for global assembly.
+    assembler.assemble(0);
+    assembler.computeAssemblyStatistics();
+    assembler.writeGfa1("Assembly.gfa");
+    assembler.writeFasta("Assembly.fasta");
 }
 
 
