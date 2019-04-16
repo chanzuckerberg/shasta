@@ -19,8 +19,10 @@
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 // MarginPhase.
 #include "marginPhase/callConsensus.h"
+#endif
 
 // Standard library.
 #include "memory.hpp"
