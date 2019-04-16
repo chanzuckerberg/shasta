@@ -1455,7 +1455,9 @@ public:
     void setupMarginPhase();
 private:
     void checkMarginPhaseWasSetup();
+#ifndef SHASTA_STATIC_EXECUTABLE
     PolishParams* marginPhaseParameters;
+#endif
 };
 
 #endif

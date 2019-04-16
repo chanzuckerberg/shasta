@@ -15,8 +15,10 @@ Assembler::Assembler(
     bool useRunLengthReads) :
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize),
-    marginPhaseParameters(0)
+    largeDataPageSize(largeDataPageSize)
+#ifndef SHASTA_STATIC_EXECUTABLE
+    , marginPhaseParameters(0)
+#endif
 {
     assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
     assemblerInfo->useRunLengthReads = useRunLengthReads;
@@ -49,8 +51,10 @@ Assembler::Assembler(
     size_t largeDataPageSize) :
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize),
-    marginPhaseParameters(0)
+    largeDataPageSize(largeDataPageSize)
+#ifndef SHASTA_STATIC_EXECUTABLE
+    , marginPhaseParameters(0)
+#endif
 {
 
     assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
@@ -123,10 +127,18 @@ void Assembler::setupMarginPhase()
     CZI_ASSERT(0);
 #endif
 }
+
+
+
 void Assembler::checkMarginPhaseWasSetup()
 {
+#ifndef SHASTA_STATIC_EXECUTABLE
     if(!marginPhaseParameters) {
         throw runtime_error("MarginPhase was not set up.");
     }
+#else
+    // The static executable does not support MarginPhase.
+    CZI_ASSERT(0);
+#endif
 }
 
