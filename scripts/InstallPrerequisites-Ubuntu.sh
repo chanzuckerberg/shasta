@@ -36,14 +36,14 @@ echo $tmpDirectoryName
 cd $tmpDirectoryName
 
 # Get the code.
-curl -L https://github.com/rvaser/spoa/releases/download/2.0.1/spoa-v2.0.1.tar.gz \
-    -o spoa-v2.0.1.tar.gz
-tar -xvf spoa-v2.0.1.tar.gz
+curl -L https://github.com/rvaser/spoa/releases/download/3.0.0/spoa-v3.0.0.tar.gz \
+    -o spoa-v3.0.0.tar.gz
+tar -xvf spoa-v3.0.0.tar.gz
 
 # Build the shared library.
 mkdir build
 cd build
-cmake ../spoa-v2.0.1 -DBUILD_SHARED_LIBS=ON
+cmake ../spoa-v3.0.0 -DBUILD_SHARED_LIBS=ON
 make -j all
 make install
 
@@ -51,7 +51,7 @@ make install
 cd ..
 mkdir build-static
 cd build-static
-cmake ../spoa-v2.0.1 -DBUILD_SHARED_LIBS=OFF
+cmake ../spoa-v3.0.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_optimize_for_native=OFF
 make -j all
 make install
 cd 

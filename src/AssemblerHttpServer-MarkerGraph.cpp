@@ -1471,7 +1471,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         }
 
         // Add it to the alignment.
-        auto alignment = (*alignmentEngine)(sequenceString, alignmentGraph);
+        auto alignment = alignmentEngine->align(sequenceString, alignmentGraph);
         alignmentGraph->add_alignment(alignment, sequenceString);
     }
 

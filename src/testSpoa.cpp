@@ -26,7 +26,7 @@ void ChanZuckerberg::shasta::testSpoa()
     auto graph = spoa::createGraph();
 
     for (const auto& it: sequences) {
-        auto alignment = (*alignment_engine)(it, graph);
+        auto alignment = alignment_engine->align(it, graph);
         graph->add_alignment(alignment, it);
     }
 

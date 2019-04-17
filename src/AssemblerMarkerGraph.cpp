@@ -3457,7 +3457,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         for(const Base base: distinctSequence) {
             sequenceString += base.character();
         }
-        auto alignment = (*alignmentEngine)(sequenceString, alignmentGraph);
+        auto alignment = alignmentEngine->align(sequenceString, alignmentGraph);
         alignmentGraph->add_alignment(alignment, sequenceString);
     }
 
