@@ -384,7 +384,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
@@ -399,11 +399,11 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             // Check that the next edge is the reverse complement of
             // this edge.
             {
-				const ReadGraph::Edge& readGraphNextEdge = readGraph.edges[i+1];
-				array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
-				nextEdgeOrientedReadIds[0].flipStrand();
-				nextEdgeOrientedReadIds[1].flipStrand();
-				CZI_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
+                const ReadGraph::Edge& readGraphNextEdge = readGraph.edges[i + 1];
+                array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
+                nextEdgeOrientedReadIds[0].flipStrand();
+                nextEdgeOrientedReadIds[1].flipStrand();
+                CZI_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
             }
 
 
@@ -461,7 +461,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction2(size_t threadId)
     DisjointSets& disjointSets = *createMarkerGraphVerticesData.disjointSetsPointer;
     auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const uint64_t disjointSetId = disjointSets.find(i);
@@ -477,7 +477,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)
     const auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
     auto& workArea = createMarkerGraphVerticesData.workArea;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const uint64_t disjointSetId = disjointSetTable[i];
@@ -508,7 +508,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction6(size_t threadId)
 {
     auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerGraph::VertexId i=begin; i!=end; ++i) {
             auto markers = disjointSetMarkers[i];
@@ -524,7 +524,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
     const auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
     auto& isBadDisjointSet = createMarkerGraphVerticesData.isBadDisjointSet;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerGraph::VertexId disjointSetId=begin; disjointSetId!=end; ++disjointSetId) {
             auto markers = disjointSetMarkers[disjointSetId];
@@ -558,7 +558,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction45(int value)
     const auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
     auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const uint64_t disjointSetId = disjointSetTable[i];
@@ -631,7 +631,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)
     MarkerGraph::VertexId* workArea =
         createMarkerGraphVerticesData.workArea.begin();
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const MarkerId rawVertexId = markerGraph.vertexTable[i];
@@ -649,7 +649,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
     const uint64_t maxValue = std::numeric_limits<uint64_t>::max();
     const uint64_t maxValueMinus1 = maxValue - 1ULL;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const MarkerId rawVertexId = markerGraph.vertexTable[i];
@@ -1041,7 +1041,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
 {
     using VertexId = MarkerGraph::VertexId;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
 
         for (VertexId vertexId=begin; vertexId!=end; vertexId++) {
@@ -1092,7 +1092,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction2(size_t t
 {
     using VertexId = MarkerGraph::VertexId;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
 
         for (VertexId vertexId=begin; vertexId!=end; vertexId++) {
@@ -1161,7 +1161,7 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
     using VertexId = MarkerGraph::VertexId;
     using EdgeId = MarkerGraph::EdgeId;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
@@ -1208,7 +1208,7 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2(size_t thre
 {
     using EdgeId = MarkerGraph::EdgeId;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             const EdgeId edgeIdReverseComplement =
@@ -1272,7 +1272,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId
 {
     using VertexId = MarkerGraph::VertexId;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for (VertexId v0=begin; v0!=end; v0++) {
             const VertexId v1 = markerGraph.reverseComplementVertex[v0];
@@ -1301,7 +1301,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId
     using VertexId = MarkerGraph::VertexId;
     using EdgeId = MarkerGraph::EdgeId;
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for (EdgeId e0=begin; e0!=end; e0++) {
             const EdgeId e1 = markerGraph.reverseComplementEdge[e0];
@@ -4413,7 +4413,7 @@ void Assembler::assembleMarkerGraphVerticesThreadFunction(size_t threadId)
     const size_t k = assemblerInfo->k;
 
     // Loop over batches assigned to this thread.
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
 
         // Loop over marker graph vertices assigned to this batch.
@@ -4767,7 +4767,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     vector< pair<uint32_t, CompressedCoverageData> > coverageData;
 
     // Loop over batches assigned to this thread.
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         if((begin % 10000000) == 0){
             std::lock_guard<std::mutex> lock(mutex);

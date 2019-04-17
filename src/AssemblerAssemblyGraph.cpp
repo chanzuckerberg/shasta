@@ -560,7 +560,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
     AssembledSegment assembledSegment;
 
     // Loop over batches allocated to this thread.
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             if(!assemblyGraph.isAssembledEdge(edgeId)) {

@@ -526,7 +526,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
 
 
     // Loop over all batches assigned to this thread.
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         out << timestamp << "Working on batch " << begin << " " << end << endl;
 
@@ -1169,7 +1169,7 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
     vector<OrientedReadId> reachedVertices;
     vector<uint32_t> parentEdges(2*readCount);
     vector<uint32_t> shortestPath;
-    size_t begin, end;
+    uint64_t begin, end;
 
     while(getNextBatch(begin, end)) {
 

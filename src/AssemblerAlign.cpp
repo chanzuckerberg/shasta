@@ -284,7 +284,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
 
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         if((begin % 1000000) == 0){
             std::lock_guard<std::mutex> lock(mutex);

@@ -2283,7 +2283,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
 
     // Loop over batches assigned to this thread.
-    size_t begin, end;
+    uint64_t begin, end;
     while(getNextBatch(begin, end)) {
 
         // Loop over reads assigned to this batch.
