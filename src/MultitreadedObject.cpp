@@ -17,7 +17,7 @@ public:
         x.resize(n);
         y.resize(n);
         z.resize(n);
-        for(size_t i=0; i<n; i++) {
+        for(uint64_t i=0; i<n; i++) {
             x[i] = i;
             y[i] = 2 * i;
             z[i] = 18;
@@ -27,12 +27,12 @@ public:
     {
         ostream& out = getLog(threadId);
 
-        size_t begin, end;
+        uint64_t begin, end;
         while(getNextBatch(begin, end)) {
             out << timestamp << begin << " " << end << endl;
-            for(size_t i=begin; i!=end; i++) {
-                size_t s = 0;
-                for(size_t j=0; j<n; j++) {
+            for(uint64_t i=begin; i!=end; i++) {
+                uint64_t s = 0;
+                for(uint64_t j=0; j<n; j++) {
                     s += x[i] * y[j];
                 }
                 z[i] = s;
@@ -41,19 +41,19 @@ public:
     }
     void check() const
     {
-        for(size_t i=0; i<x.size(); i++) {
-            size_t s = 0;
-            for(size_t j=0; j<n; j++) {
+        for(uint64_t i=0; i<x.size(); i++) {
+            uint64_t s = 0;
+            for(uint64_t j=0; j<n; j++) {
                 s += x[i] * y[j];
             }
             CZI_ASSERT(z[i] == s);
         }
     }
 
-    size_t n;
-    vector<size_t> x;
-    vector<size_t> y;
-    vector<size_t> z;
+    uint64_t n;
+    vector<uint64_t> x;
+    vector<uint64_t> y;
+    vector<uint64_t> z;
 };
 
 
@@ -61,9 +61,9 @@ public:
 void ChanZuckerberg::shasta::testMultithreadedObject()
 {
 
-    const size_t n = 32 * 1024;
-    const size_t batchSize = 64;
-    const size_t threadCount = 8;
+    const uint64_t n = 32 * 1024;
+    const uint64_t batchSize = 64;
+    const uint64_t threadCount = 8;
     MultithreadedObjectTestClass x(n);
     for(int i=0; i<10; i++) {
         x.setupLoadBalancing(n, batchSize);

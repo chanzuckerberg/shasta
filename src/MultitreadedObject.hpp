@@ -74,8 +74,8 @@ protected:
     MultithreadedObject(T&);
 
     bool getNextBatch(
-        size_t& begin,
-        size_t& end);
+        uint64_t& begin,
+        uint64_t& end);
 
     ostream& getLog(size_t threadId)
     {
@@ -129,9 +129,9 @@ private:
     bool exceptionsOccurred= false;
 
     // Load balancing.
-    size_t n = 0;
-    size_t batchSize = 0;
-    size_t nextBatch = 0;
+    uint64_t n = 0;
+    uint64_t batchSize = 0;
+    uint64_t nextBatch = 0;
 };
 
 
@@ -205,16 +205,16 @@ template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::wa
 
 
 template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::setupLoadBalancing(
-    size_t nArgument,
-    size_t batchSizeArgument)
+    uint64_t nArgument,
+    uint64_t batchSizeArgument)
 {
     n = nArgument;
     batchSize = batchSizeArgument;
     nextBatch = 0;
 }
 template<class T> inline bool ChanZuckerberg::shasta::MultithreadedObject<T>:: getNextBatch(
-    size_t& begin,
-    size_t& end)
+    uint64_t& begin,
+    uint64_t& end)
 {
     begin = __sync_fetch_and_add(&nextBatch, batchSize);
     if(begin < n) {
