@@ -418,7 +418,8 @@ template<class T> inline void* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::
     void* pointer = ::mmap(0, fileSize, PROT_READ | (writeAccess ? PROT_WRITE : 0), MAP_SHARED, fileDescriptor, 0);
     if(pointer == reinterpret_cast<void*>(-1LL)) {
         ::close(fileDescriptor);
-        throw runtime_error("Error during mmap.");
+        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+            + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
     }
     return pointer;
 }
@@ -668,7 +669,15 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
             truncate(fileDescriptor, headerOnStack.fileSize);
 
             // Remap it.
-            void* pointer = map(fileDescriptor, headerOnStack.fileSize, true);
+            void* pointer = 0;
+            try {
+                pointer = map(fileDescriptor, headerOnStack.fileSize, true);
+            } catch(runtime_error e) {
+                throw runtime_error("An error occurred while resizing MemoryMapped::Vector "
+                    + name + ":\n" +
+                    e.what());
+            }
+
             ::close(fileDescriptor);
 
             // Figure out where the data and the header are.
