@@ -1,19 +1,38 @@
 cmake_minimum_required(VERSION 2.6)
 project(shasta)
 
-# Add the directory that build the shared library.
-option(BUILD_LIBRARY "Build the shared library." ON)
-message(STATUS "BUILD_LIBRARY is " ${BUILD_LIBRARY})
+# Figure out if we are on macOS.
+set(MACOS OFF)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(MACOS ON)
+endif()
+message(STATUS "CMAKE_SYSTEM_NAME is " ${CMAKE_SYSTEM_NAME})
+message(STATUS "MACOS is " ${MACOS})
+
+
+
+# Figure out what we want to build.
+# By default, we build only the executable on macOS,
+# and only the library on Linux.
+if(MACOS)
+    option(BUILD_LIBRARY "Build the shared library." OFF)
+    option(BUILD_EXECUTABLE "Build the static executable." ON)
+else(MACOS)
+    option(BUILD_LIBRARY "Build the shared library." ON)
+    option(BUILD_EXECUTABLE "Build the static executable." OFF)
+endif(MACOS)
+
+# Add the subdirectories.
 if(BUILD_LIBRARY)
     add_subdirectory(src)
 endif(BUILD_LIBRARY)
-
-# Add the directory that builds the static executable.
-option(BUILD_EXECUTABLE "Build the static executable." OFF)
-message(STATUS "BUILD_EXECUTABLE is " ${BUILD_EXECUTABLE})
 if(BUILD_EXECUTABLE)
     add_subdirectory(src-static-executable)
 endif(BUILD_EXECUTABLE)
+message(STATUS "BUILD_LIBRARY is " ${BUILD_LIBRARY})
+message(STATUS "BUILD_EXECUTABLE is " ${BUILD_EXECUTABLE})
+
+
 
 # Install to the shasta-install directory.
 set(CMAKE_INSTALL_PREFIX .)

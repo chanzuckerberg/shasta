@@ -13,12 +13,18 @@ add_executable(shasta-static-executable ${SOURCES})
 set_target_properties(shasta-static-executable PROPERTIES LINK_FLAGS "-static" )
 set_target_properties(shasta-static-executable PROPERTIES OUTPUT_NAME "shasta")
 
-
 # Compiler options.
 add_definitions(-std=c++14)
 add_definitions(-ggdb3)
-add_definitions(-O3 -msse4.2)
-add_definitions(-Wall -Wconversion -Wno-unused-result)
+add_definitions(-O3)
+if(NOT MACOS)
+    add_definitions(-Wall -Wconversion -Wno-unused-result)
+endif(NOT MACOS)
+
+# Include directory required for Boost on macOS.
+if(MACOS)
+    include_directories(/usr/local/Cellar/boost/1.69.0/include)
+endif(MACOS)
 
 # This is required by dset64.hpp.
 # It allows std::atomic<__uint128_t>::is_lock_free()
