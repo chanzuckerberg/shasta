@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Shasta
 #include "LocalMarkerGraph.hpp"
 #include "approximateTopologicalSort.hpp"
@@ -1099,3 +1101,5 @@ bool LocalMarkerGraphEdge::getOrdinals(
     // If getting here, we did not find it.
     return false;
 }
+
+#endif

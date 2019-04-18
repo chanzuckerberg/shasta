@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Shasta
 #include "LocalMarkerGraph.hpp"
 #include "ConsensusCaller.hpp"
@@ -940,3 +942,4 @@ void LocalMarkerGraph::assembleDominantSequenceUsingSeqan(ostream& html) const
         "document.getElementById('assemblyTable').style.visibility = 'visible';"
         "</script>";
 }
+#endif
