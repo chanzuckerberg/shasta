@@ -147,8 +147,9 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, p
     outputDirectory = os.path.abspath(os.path.join(outputParentDirectory, outputDirectoryName))
     ensureDirectoryExists(outputDirectory)
 
-    # Locate path of default configuration files relative to this script's "binary" file
-    scriptPath = os.path.abspath(os.path.dirname(__file__))
+    # Locate path of default configuration files relative to this script's "binary" file.
+    # Use of realpath is needed to make sure symbolic links are resolved.
+    scriptPath = os.path.dirname(os.path.realpath(__file__))
     confDirectory = os.path.join(os.path.dirname(scriptPath), "conf")
 
     defaultConfFilename = "shasta.conf"
