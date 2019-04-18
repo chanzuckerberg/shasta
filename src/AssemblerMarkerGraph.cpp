@@ -7,9 +7,11 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 // SeqAn.
 #include <seqan/graph_msa.h>
 #include <seqan/version.h>
+#endif
 
 // Spoa.
 #include "spoa/spoa.hpp"
@@ -3029,6 +3031,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 // Compute consensus sequence for an edge of the marker graph.
 // This includes the k bases corresponding to the flanking markers,
 // but computed only using reads on this edge.
@@ -3136,6 +3139,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
     }
 #endif
 }
+#endif
 
 
 

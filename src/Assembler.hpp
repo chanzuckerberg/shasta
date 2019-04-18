@@ -1058,12 +1058,14 @@ private:
 
     // Compute consensus sequence for an edge of the marker graph.
     // This does not include the bases corresponding to the flanking markers.
+#ifndef SHASTA_STATIC_EXECUTABLE
     void computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
         MarkerGraph::EdgeId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount
         );
+#endif
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         MarkerGraph::EdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
@@ -1072,13 +1074,14 @@ private:
         uint8_t& overlappingBaseCount,
         vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
         );
+#ifndef SHASTA_STATIC_EXECUTABLE
     void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         MarkerGraph::EdgeId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount
         );
-
+#endif
 
 
 

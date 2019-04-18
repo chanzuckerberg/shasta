@@ -73,10 +73,10 @@ void Coverage::addRead(AlignedBase base, Strand strand, size_t repeatCount)
 // This can return ACGT or '-'.
 AlignedBase Coverage::mostFrequentBase() const
 {
-    size_t bestBaseValue = 4;
+    uint8_t bestBaseValue = 4;
     size_t bestBaseCoverage = 0;
 
-    for(size_t baseValue=0; baseValue<5; baseValue++) {
+    for(uint8_t baseValue=0; baseValue<5; baseValue++) {
         const size_t baseCoverage = coverage(AlignedBase::fromInteger(baseValue));
         if(baseCoverage > bestBaseCoverage) {
             bestBaseValue = baseValue;
