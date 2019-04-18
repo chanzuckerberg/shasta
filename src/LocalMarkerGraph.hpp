@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 #ifndef CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
 #define CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
 
@@ -443,5 +445,7 @@ private:
     };
     friend class Writer;
 };
+
+#endif
 
 #endif

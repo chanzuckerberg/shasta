@@ -44,7 +44,9 @@ namespace ChanZuckerberg {
         class ConsensusCaller;
         class LocalAlignmentGraph;
         class LocalAssemblyGraph;
+#ifndef SHASTA_STATIC_EXECUTABLE
         class LocalMarkerGraph;
+#endif
         class LocalReadGraph;
         class MarkerInterval;
         namespace MemoryMapped {
@@ -199,6 +201,7 @@ public:
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
     // Extract a local marker graph from the global marker graph.
     void extractLocalMarkerGraph(
 
@@ -215,6 +218,7 @@ public:
         // Minimum coverage for a strong vertex or edge (affects coloring).
         size_t minCoverage
         );
+#endif
 
 
 
@@ -337,6 +341,7 @@ private:
 public:
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
     // Create a local marker graph and return its local assembly path.
     // The local marker graph is specified by its start vertex
     // and maximum distance (number of edges) form the start vertex.
@@ -344,6 +349,7 @@ public:
         MarkerGraph::VertexId,
         int maxDistance
         );
+#endif
 
     // Find weak edges in the marker graph.
     void flagMarkerGraphWeakEdges(
@@ -986,7 +992,7 @@ private:
         ) const;
 
 
-
+#ifndef SHASTA_STATIC_EXECUTABLE
     // Extract a local marker graph from the global marker graph.
     void extractLocalMarkerGraph(
 
@@ -1048,6 +1054,7 @@ private:
         bool useSuperBubbleReplacementEdges,
         LocalMarkerGraph&
         );
+#endif
 
     // Compute consensus sequence for a vertex of the marker graph.
     void computeMarkerGraphVertexConsensusSequence(

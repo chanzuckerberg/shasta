@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Shasta.
 #include "LocalMarkerGraph.hpp"
 #include "ConsensusCaller.hpp"
@@ -733,3 +735,4 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     }
 
 }
+#endif

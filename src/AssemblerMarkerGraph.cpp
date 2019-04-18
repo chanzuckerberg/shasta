@@ -2,7 +2,9 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
+#ifndef SHASTA_STATIC_EXECUTABLE
 #include "LocalMarkerGraph.hpp"
+#endif
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -1481,6 +1483,7 @@ bool Assembler::isBadMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 void Assembler::extractLocalMarkerGraph(
 
     // The ReadId, Strand, and ordinal that identify the
@@ -2064,6 +2067,7 @@ vector<MarkerGraph::VertexId> Assembler::getLocalAssemblyPath(
     }
     return path;
 }
+#endif
 
 
 

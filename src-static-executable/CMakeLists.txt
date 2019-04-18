@@ -23,6 +23,7 @@ endif(NOT MACOS)
 
 # Include directory required for Boost on macOS.
 if(MACOS)
+    include_directories(/usr/local/include/)
     include_directories(/usr/local/Cellar/boost/1.69.0/include)
 endif(MACOS)
 
