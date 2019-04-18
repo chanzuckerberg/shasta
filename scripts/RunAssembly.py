@@ -10,14 +10,11 @@ import sys
 def verifyConfigFiles(parentDirectory=""):
     # Generate absolute paths to the files that will be created
     dataPath = os.path.abspath(os.path.join(parentDirectory, "Data"))
-    threadLogsPath = os.path.abspath(os.path.join(parentDirectory, "threadLogs"))
     confPath = os.path.abspath(os.path.join(parentDirectory, "shasta.conf"))
 
     # Check that we have what we need.
     if not os.path.lexists(dataPath):
         raise Exception('Missing: Data. Use SetupRunDirectory.py to set up the run directory.')
-    if not os.path.lexists(threadLogsPath):
-        raise Exception('Missing: threadLogs. Use SetupRunDirectory.py to set up the run directory.')
     if not os.path.lexists(confPath):
         raise Exception('Missing: configuration file shasta.conf. Sample available in shasta-install/conf.')
 

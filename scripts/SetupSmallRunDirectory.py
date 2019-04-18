@@ -15,9 +15,8 @@ def verifyArguments():
 
     All binary files are created on disk, not on the huge page filesystem.
 
-    This script creates empty directories data, data, and threadLogs directory.
-    It also creates symbolik links dataOnDist and DataOnDisk pointing
-    to data and Data respectively.
+    This script creates empty directory Data.
+    It also creates symbolic link DataOnDisk pointing to Data.
 
     When using this script, there is not need to use SetuHugePages.py to 
     set up the huge pages.
@@ -35,7 +34,7 @@ def verifyDirectoryFiles(parentDirectory=""):
     Make sure the run directory is clean before starting
     """
     # If any of these is present, don't do anything.
-    mustNotExist = ['Data', 'threadLogs']
+    mustNotExist = ['Data']
     
     for name in mustNotExist:
         path = os.path.abspath(os.path.join(parentDirectory, name))
@@ -52,12 +51,10 @@ def setupSmallRunDirectory(parentDirectory=""):
     # Generate absolute paths to the files that will be created
     dataPath = os.path.abspath(os.path.join(parentDirectory, "Data"))
     dataOnDiskPath = os.path.abspath(os.path.join(parentDirectory, "DataOnDisk"))
-    threadLogsPath = os.path.abspath(os.path.join(parentDirectory, "threadLogs"))
 
     # Create the directories.
     os.mkdir(dataPath)
-    os.mkdir(threadLogsPath)
-    
+     
     # Create the symbolic links.
     os.symlink(dataPath, dataOnDiskPath)
 
@@ -70,3 +67,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -6,7 +6,7 @@ import sys
 
 def parseArguments():
     helpMessage = """
-    This sets up the Data and threadLogs directories in the current directory required for a Shasta run.
+    This sets up the Data directory required for a Shasta run.
     The Data directory becomes the mount point of a huge page filesystem.
     
     After this runs, you can use RunAssembly.py to start a Shasta run can be started in the current directory.
@@ -27,7 +27,7 @@ def parseArguments():
 def verifyDirectoryFiles(runDirectory = ''):
 
     # If any of these is present in the run directory, don't do anything.
-    mustNotExist = ['Data', 'threadLogs']
+    mustNotExist = ['Data']
     for name in mustNotExist:
         path = os.path.abspath(os.path.join(runDirectory, name))
 
@@ -64,10 +64,6 @@ def setupRunDirectory(runDirectory = ''):
     # Mount the huge page filesystem.
     command = 'sudo mount -t hugetlbfs -o uid=%s,gid=%s,pagesize=2M none %s' % (os.getuid(), os.getgid(), dataPath)
     os.system(command)
-
-    # Create the threadLogs directory.
-    threadLogsPath = os.path.abspath(os.path.join(runDirectory, 'threadLogs'))
-    os.mkdir(threadLogsPath)
 
 
 
