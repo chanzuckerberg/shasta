@@ -243,7 +243,7 @@ class ProcessHandler:
         sys.stderr.write("\nERROR: script terminated or interrupted\n")
 
         sys.stderr.write("Cleaning up page memory...")
-        cleanUpHugePages(Data=self.Data, largePagesMountPoint=self.largePagesMountPoint, requireUserInput=False)
+        cleanUpRunDirectory(requireUserInput=False)
         sys.stderr.write("\rCleaning up page memory... Done\n")
         exit(1)
 
