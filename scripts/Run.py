@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 
-from SetupHugePages import verifyPageMemoryDirectory, allocatePages
 from SetupRunDirectory import verifyDirectoryFiles, setupRunDirectory
+from CleanupRunDirectory import cleanUpRunDirectory
 from RunAssembly import verifyConfigFiles, verifyFastaFiles, runAssembly, initializeAssembler
-from CleanupHugePages import cleanUpHugePages
 from SaveRun import saveRun
 import configparser
 
@@ -136,7 +135,7 @@ def overrideDefaultConfig(config, args):
     return config
 
 
-def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, processHandler, gigaBytes, savePageMemory, performPageCleanUp, args):
+def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, processHandler, savePageMemory, performPageCleanUp, args):
     if not os.path.exists(readsSequencePath):
         raise Exception("ERROR: input file not found: %s" % readsSequencePath)
 
@@ -180,13 +179,9 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, p
         localParamsPath = os.path.join(outputDirectory, "MarginPhase.json")
         copyfile(defaultParamsPath, localParamsPath)
 
-    # Setup linux page file system according to SetupHugePages.py
-    verifyPageMemoryDirectory(largePagesMountPoint)
-    allocatePages(gigaBytes=gigaBytes, largePagesMountPoint=largePagesMountPoint, Data=Data)
-
     # Setup run directory according to SetupRunDirectory.py
-    verifyDirectoryFiles(Data=Data, parentDirectory=outputDirectory)
-    setupRunDirectory(Data=Data, parentDirectory=outputDirectory)
+    verifyDirectoryFiles(runDirectory=outputDirectory)
+    setupRunDirectory(runDirectory=outputDirectory)
 
     # Ensure prerequisite files are present
     verifyConfigFiles(parentDirectory=outputDirectory)
@@ -207,7 +202,7 @@ def main(readsSequencePath, outputParentDirectory, Data, largePagesMountPoint, p
 
     if performPageCleanUp:
         sys.stderr.write("Cleaning up page memory...")
-        cleanUpHugePages(Data=Data, largePagesMountPoint=largePagesMountPoint, requireUserInput=False)
+        cleanUpRunDirectory(requireUserInput=False)
         sys.stderr.write("\rCleaning up page memory... Done\n")
 
 
@@ -275,13 +270,6 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="File path of FASTQ or FASTA sequence file containing sequences for assembly"
-    )
-    parser.add_argument(
-        "--memory",
-        type=int,
-        # default=10,
-        required=True,
-        help="The number of GB to allocate to large pages. NOT the total required memory for shasta"
     )
     parser.add_argument(
         "--savePageMemory",
@@ -539,7 +527,6 @@ if __name__ == "__main__":
          largePagesMountPoint=largePagesMountPoint,
          Data=Data,
          args=args,
-         gigaBytes=args.memory,
          processHandler=processHandler,
          savePageMemory=args.savePageMemory,
          performPageCleanUp=args.performPageCleanUp)

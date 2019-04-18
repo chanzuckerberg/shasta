@@ -16,9 +16,6 @@ For large assemblies, <code>shasta</code> uses Linux huge pages
 This section describes two different procedures that can
 be used for this purpose.
 
-<p>
-<b><span style='font-size:200%'>&#9888;</span>The procedures described here assume that only one such
-large assembly is active on the entire machine.</b>
 
 
 <h2>Running an assembly: simplified procedure for large runs</h2>
@@ -33,13 +30,11 @@ command. Therefore, depending on configuration, this command may
 request your password.
 <p>
 <code>
-shasta-install/bin/Run.py --inputSequences .../input.fasta --memory 100
+shasta-install/bin/Run.py --inputSequences .../input.fasta
 </code>
 <p>
 Arguments:
 <ul>
-<li><code>--memory</code> 
-specifies the number of memory GB to be allocated to large pages (2 MB pages).
 <li><code>--inputSequences</code> specifies the input fasta file to be used.
 </ul>
 
@@ -67,62 +62,39 @@ the <code>shasta</code> code stores data on non-swappable virtual memory support
 2 MB pages, as provided by the 
 <a href="https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt">
 Linux hugetlbfs filesystem</a>.
-Script <code>SetupHugePages.py</code>, 
-located in the <code>shasta-install/bin</code> directory, provides an easy 
-way to configure memory in this way.
-
-It takes as an argument the number of GB of memory
-that should allocated to the hugetlbfs filesystem.
-Most of the system memory should be configured in this way, leaving only
-20-50 GB of memory allocated to standard 4KB pages.
-
-<p>
-Running <code>SetupHugePages.py</code> requires root privileges.
-Usually, the simplest and safest way to achieve this is to
-use the Linux <code>sudo</code> command.
-
-<p>
-After running <code>SetupHugePages.py</code>, run the following
-command (shown here with sample output) 
-to display the number of 2 MB pages that were
-successfully configured:
-
-<pre>
-grep HugePages_Total /proc/meminfo
-HugePages_Total:  460800
-</pre>
-
-The total number of pages should equal the number of GB
-passed as an argument to <code>SetupHugePages.py</code>
-times 512, the number of 2 MB pages in 1 GB.
-On a machine that has been running for a long time,
-<code>SetupHugePages.py</code> may only be able to
-configure less than the requested amount of memory.
-This is normal and due to memory fragmentation.
-In this case, it may be necessary to reboot the system.
 
 
 
 <h2 id=runDirectory>Setting up a run directory</h2>
 <p>
-After running <code>SetupHugePages.py</code>, you can create a new directory
-to contain your run. After <code>cd</code> to that new directory,
+Create a new directory for your run. 
+After <code>cd</code> to that new directory,
 run <code>shasta-install/bin/SetupRunDirectory.py</code>.
-This will create symbolic links <code>data</code> and 
-<code>Data</code> pointing to filesystems in memory backed by 4KB and 2MB pages respectively,
+This will create a
+<code>Data</code> directory and mount on it a huge page filesystem in memory
+backed by 2MB pages,
 as well as a <code>threadLogs</code> directory 
 to contain logs for individual threads, for assembly phases
-that run in parallel.
+that run in parallel. 
+This command uses <code>sudo</code> to obtain root privileges when needed.  
+As a result, depending on your <code>sudo</code> setup, it may
+ask for your password.
+
 
 <p>
 Next, you need to create a configuration file where the <code>shasta</code>
 software will find values for various assembly parameters.
 This configuration file must be named <code>shasta.conf</code>.
-Sample configuration files are available in the 
+A sample configuration files is available in the 
 <code>shasta-install/conf</code> directory. 
-You can select one of them, copy it to the run directory
-under the new name <code>shasta.conf</code>, 
+You copy it to the run directory 
 and edit it to customize it as necessary for your run.
+The provided sample <code>shasta.conf</code>
+contains assembly parameters optimized for a human
+assembly at coverage around 60x.
+In other situations, some of the assembly
+parameters will need to be changed to
+obtain good results.
 
 
  
@@ -225,8 +197,13 @@ After saving to disk the run results, you can clean up allocated memory
 using the following command:
 
 <pre>
-shasta-install/bin/CleanupHugePages.py
+shasta-install/bin/CleanupRunDirectory.py
 </pre>
+
+<p>
+This command uses <code>sudo</code> to obtain root privileges when needed.  
+As a result, depending on your <code>sudo</code> setup, it may
+ask for your password.
 
 
 
