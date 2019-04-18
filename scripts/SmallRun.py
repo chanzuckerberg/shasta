@@ -185,8 +185,8 @@ def main(readsSequencePath, outputParentDirectory, args):
     executablePath = os.path.join(scriptPath, "RunAssembly.py")
     arguments = [executablePath, readsSequencePath]
 
-    # processHandler.launchProcess(Data=Data, largePagesMountPoint=largePagesMountPoint, arguments=arguments)
-    assemblyProcess = subprocess.Popen(arguments)
+    # Launch the assembler, and keep Python running while it assembles
+    assemblyProcess = subprocess.Popen(arguments).wait()
 
 
 def stringAsBool(s):
