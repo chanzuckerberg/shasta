@@ -475,8 +475,7 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
     // Multithreaded loop over all reads.
     cout << timestamp << "Processing " << readCount << " reads." << endl;
     setupLoadBalancing(readCount, 10000);
-    runThreads(&Assembler::flagChimericReadsThreadFunction, threadCount,
-        "threadLogs/flagChimericReads");
+    runThreads(&Assembler::flagChimericReadsThreadFunction, threadCount);
 
     cout << timestamp << "Done flagging chimeric reads." << endl;
 
@@ -495,7 +494,6 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
 
 void Assembler::flagChimericReadsThreadFunction(size_t threadId)
 {
-    ostream& out = getLog(threadId);
     const size_t maxDistance = flagChimericReadsData.maxDistance;
 
     // Vector used for BFS searches by this thread.
@@ -528,7 +526,6 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         // Loop over all reads assigned to this batch.
         for(ReadId startReadId=ReadId(begin); startReadId!=ReadId(end); startReadId++) {
@@ -651,7 +648,6 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 } else {
                     if(uComponent != component) {
                         readFlags[startReadId].isChimeric = 1;
-                        out << "Flagged read " << startReadId << " as chimeric." << endl;
                         break;
                     }
                 }

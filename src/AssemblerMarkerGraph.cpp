@@ -102,8 +102,7 @@ void Assembler::createMarkerGraphVertices(
     cout << timestamp << "Disjoint set computation begins." << endl;
     size_t batchSize = 10000;
     setupLoadBalancing(readGraph.edges.size(), batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1,
-        threadCount, "threadLogs/createMarkerGraphVertices1");
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1, threadCount);
     cout << timestamp << "Disjoint set computation completed." << endl;
 
 
@@ -117,8 +116,7 @@ void Assembler::createMarkerGraphVertices(
     batchSize = 1000000;
     cout << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction2, threadCount,
-        "threadLogs/createMarkerGraphVertices2");
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction2, threadCount);
 
     // Free the disjoint set data structure.
     data.disjointSetsPointer = 0;
@@ -150,8 +148,7 @@ void Assembler::createMarkerGraphVertices(
     fill(data.workArea.begin(), data.workArea.end(), 0ULL);
     cout << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction3, threadCount,
-        "threadLogs/createMarkerGraphVertices3");
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction3, threadCount);
 
 
 
@@ -242,14 +239,12 @@ void Assembler::createMarkerGraphVertices(
     data.disjointSetMarkers.beginPass1(disjointSetCount);
     cout << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction4, threadCount,
-        "threadLogs/createMarkerGraphVertices4");
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction4, threadCount);
     cout << timestamp << "Gathering markers in disjoint sets, pass2." << endl;
     data.disjointSetMarkers.beginPass2();
     cout << timestamp << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
     setupLoadBalancing(data.orientedMarkerCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction5, threadCount,
-        "threadLogs/createMarkerGraphVertices5");
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction5, threadCount);
     data.disjointSetMarkers.endPass2();
 
 
@@ -257,8 +252,7 @@ void Assembler::createMarkerGraphVertices(
     // Sort the markers in each disjoint set.
     cout << timestamp << "Sorting the markers in each disjoint set." << endl;
     setupLoadBalancing(disjointSetCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction6, threadCount,
-        "threadLogs/createMarkerGraphVertices6");
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction6, threadCount);
 
 
 
@@ -269,8 +263,7 @@ void Assembler::createMarkerGraphVertices(
     data.isBadDisjointSet.reserveAndResize(disjointSetCount);
     cout << timestamp << "Flagging bad disjoint sets." << endl;
     setupLoadBalancing(disjointSetCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction7, threadCount,
-        "threadLogs/createMarkerGraphVertices7");
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction7, threadCount);
     const size_t badDisjointSetCount = std::count(
         data.isBadDisjointSet.begin(), data.isBadDisjointSet.end(), true);
     cout << "Found " << badDisjointSetCount << " bad disjoint sets "
@@ -370,7 +363,6 @@ void Assembler::createMarkerGraphVertices(
 
 void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 {
-    ostream& out = getLog(threadId);
 
     array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
@@ -386,7 +378,6 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << timestamp << "Working on batch " << begin << " " << end << endl;
 
         // We process read graph edges in pairs.
         // In each pair, the second edge is the reverse complement of the first.
@@ -2094,8 +2085,7 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     cout << timestamp << "Processing " << markerGraph.vertices.size();
     cout << " marker graph vertices." << endl;
     setupLoadBalancing(markerGraph.vertices.size(), 100000);
-    runThreads(&Assembler::createMarkerGraphEdgesThreadFunction0, threadCount,
-        "threadLogs/createMarkerGraphEdges0");
+    runThreads(&Assembler::createMarkerGraphEdgesThreadFunction0, threadCount);
 
     // Combine the edges found by each thread.
     cout << timestamp << "Combining the edges found by each thread." << endl;
@@ -2165,7 +2155,6 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
 {
     using std::shared_ptr;
     using std::make_shared;
-    ostream& out = getLog(threadId);
 
     // Create the vector to contain the edges found by this thread.
     shared_ptr< MemoryMapped::Vector<MarkerGraph::Edge> > thisThreadEdgesPointer =
@@ -2195,11 +2184,9 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << timestamp << begin << endl;
 
         // Loop over all marker graph vertices assigned to this batch.
         for(MarkerGraph::VertexId vertex0=begin; vertex0!=end; ++vertex0) {
-            // out << timestamp << vertex0 << " " << markerGraph.vertices.size(vertex0) << endl;
             edge.source = vertex0;
 
             getGlobalMarkerGraphVertexChildren(vertex0, children, workArea);

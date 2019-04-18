@@ -38,12 +38,12 @@ MarkerFinder::MarkerFinder(
     markers.beginPass1(2 * reads.size());
     setupLoadBalancing(reads.size(), batchSize);
     pass = 1;
-    runThreads(&MarkerFinder::threadFunction, threadCount, "threadLogs/MarkerFinder-Pass1");
+    runThreads(&MarkerFinder::threadFunction, threadCount);
     markers.beginPass2();
     markers.endPass2(false);
     setupLoadBalancing(reads.size(), batchSize);
     pass = 2;
-    runThreads(&MarkerFinder::threadFunction, threadCount, "threadLogs/MarkerFinder-Pass2");
+    runThreads(&MarkerFinder::threadFunction, threadCount);
 
     // Final message.
     const auto tEnd = std::chrono::steady_clock::now();
@@ -55,13 +55,10 @@ MarkerFinder::MarkerFinder(
 
 void MarkerFinder::threadFunction(size_t threadId)
 {
-    ostream& out = getLog(threadId);
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << timestamp << "Working on reads ";
-        out << begin << " through " << end << " of " << reads.size() << endl;
 
         // Loop over reads of this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {

@@ -119,7 +119,7 @@ MinHash::MinHash(
         // Inspect the buckets to find candidates.
         const auto t2 = steady_clock::now();
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&MinHash::inspectBuckets, threadCount, "threadLogs/inspectBuckets");
+        runThreads(&MinHash::inspectBuckets, threadCount);
         const auto t3 = steady_clock::now();
 
         // Write a summary fo rthis iteration.
@@ -200,7 +200,7 @@ void MinHash::createKmerIds()
     kmerIds.endPass2(false);
     const size_t batchSize = 10000;
     setupLoadBalancing(readCount, batchSize);
-    runThreads(&MinHash::createKmerIds, threadCount, "threadLogs/createKmerIds");
+    runThreads(&MinHash::createKmerIds, threadCount);
 }
 
 
@@ -208,12 +208,10 @@ void MinHash::createKmerIds()
 // Thread function for createKmerIds.
 void MinHash::createKmerIds(size_t threadId)
 {
-    ostream& out = getLog(threadId);
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << begin << " " << end << endl;
 
         // Loop over reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
@@ -277,14 +275,12 @@ void MinHash::computeMinHash(size_t threadId)
 // Thread function used to inspect the buckets to find candidates.
 void MinHash::inspectBuckets(size_t threadId)
 {
-    ostream& out = getLog(threadId);
     size_t& totalCountForThread = totalCandidateCountByThread[threadId];
     totalCountForThread = 0;
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << timestamp << "Working on block " << begin << " " << end << endl;
 
         // Loop over reads assigned to this batch.
         for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {

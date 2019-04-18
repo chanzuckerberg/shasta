@@ -209,7 +209,7 @@ void LowHash::createKmerIds()
     kmerIds.endPass2(false);
     const size_t batchSize = 10000;
     setupLoadBalancing(readCount, batchSize);
-    runThreads(&LowHash::createKmerIds, threadCount, "threadLogs/createKmerIds");
+    runThreads(&LowHash::createKmerIds, threadCount);
 }
 
 
@@ -217,12 +217,10 @@ void LowHash::createKmerIds()
 // Thread function for createKmerIds.
 void LowHash::createKmerIds(size_t threadId)
 {
-    ostream& out = getLog(threadId);
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        out << begin << " " << end << endl;
 
         // Loop over reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {

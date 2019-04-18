@@ -479,8 +479,7 @@ void Assembler::assemble(size_t threadCount)
     cout << "Assembly begins for " << assemblyGraph.edgeLists.size() <<
         " edges of the assembly graph." << endl;
     setupLoadBalancing(assemblyGraph.edgeLists.size(), 1);
-    runThreads(&Assembler::assembleThreadFunction, threadCount,
-        "threadLogs/assemble");
+    runThreads(&Assembler::assembleThreadFunction, threadCount);
 
     // Find the pair(thread, index in thread) that the assembly for each edge is stored in.
     const auto uninitializedPair = make_pair(
