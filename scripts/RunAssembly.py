@@ -156,7 +156,7 @@ def runAssembly(a, config, fastaFileNames):
     # for a branch to be collapsed during each iteration.
     a.simplifyMarkerGraph(
         maxLength = [int(s) for s in config['MarkerGraph']['simplifyMaxLength'].split(',')],
-        debug = True)
+        debug = False)
     
     # Create the assembly graph.
     a.createAssemblyGraphEdges()
