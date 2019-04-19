@@ -114,6 +114,6 @@ private:
 
 };
 
-void testConsensusCaller();
+void testSimpleBayesianConsensusCaller();
 
 #endif
