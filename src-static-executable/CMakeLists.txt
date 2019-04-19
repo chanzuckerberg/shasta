@@ -65,7 +65,7 @@ else(MACOS)
     target_link_libraries(
         shasta-static-executable
         atomic boost_system boost_program_options spoa
-        -Wl,--whole-archive -pthread -Wl,--no-whole-archive)
+        -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 endif(MACOS)
   
   
