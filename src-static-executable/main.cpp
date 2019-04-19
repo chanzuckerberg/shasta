@@ -481,9 +481,8 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     filesystem::createDirectory(outputDirectory);
     filesystem::changeDirectory(outputDirectory);
 
-    // Create the Data and threadLogs directories.
+    // Create the Data directory.
     filesystem::createDirectory("Data");
-    filesystem::createDirectory("threadLogs");
 
     // Write out the option values we are using.
     cout << "Options in use:" << endl;
