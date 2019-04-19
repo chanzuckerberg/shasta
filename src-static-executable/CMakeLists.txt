@@ -46,25 +46,25 @@ add_definitions(-mcx16)
 add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 
 # Directories that will be searched for libraries during linking.
-if(MACOS)
-    link_directories(/usr/local/lib)
-    link_directories(/usr/local/Cellar/boost/1.69.0/lib)
-endif(MACOS)
+# This is commented out because we are specifying the libraries by full path.
+# if(MACOS)
+#    link_directories(/usr/local/lib)
+#    link_directories(/usr/local/Cellar/boost/1.69.0/lib)
+# endif(MACOS)
 
 
 
 # Specify the libraries to link with.
-# For arcane reasons, statically linking with the pthread
-# library on Linux requires "--whole-archive". 
-target_link_libraries(
-    shasta-static-executable 
-    boost_program_options spoa)
 if(MACOS)
     target_link_libraries(shasta-static-executable pthread)
+    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /usr/local/Cellar/boost/1.69.0/lib/libboost_program_options.a")
+    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /usr/local/lib/libspoa.a")
 else(MACOS)
+    # For arcane reasons, statically linking with the pthread
+    # library on Linux requires "--whole-archive". 
     target_link_libraries(
         shasta-static-executable
-        atomic boost_system
+        atomic boost_system boost_program_options spoa
         -Wl,--whole-archive -pthread -Wl,--no-whole-archive)
 endif(MACOS)
   
