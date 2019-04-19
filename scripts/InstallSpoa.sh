@@ -31,4 +31,8 @@ make install
 cd 
 rm -rf $tmpDirectoryName
 
+# Make sure the newly created libraries are immediately visible to the loader.
+ldconfig
+
+
 
