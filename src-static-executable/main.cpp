@@ -476,7 +476,8 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     // If the output directory exists, stop.
     // Otherwise, create it and make it current..
     if(filesystem::exists(outputDirectory)) {
-        throw runtime_error("Output directory " + outputDirectory + " already exists.");
+        throw runtime_error("Output directory " + outputDirectory + " already exists.\n"
+            "Remove it or use --output to specify a different output directory.");
     }
     filesystem::createDirectory(outputDirectory);
     filesystem::changeDirectory(outputDirectory);
