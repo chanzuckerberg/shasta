@@ -6,22 +6,31 @@
 cmake_minimum_required(VERSION 3.0)
 project(shasta-static-executable)
 
+# Define the source files that go into our executable.
 file(GLOB SOURCES main.cpp ../src/*.cpp)
 include_directories(../src)
 
+# Define our executable.
 add_executable(shasta-static-executable ${SOURCES})
-set_target_properties(shasta-static-executable PROPERTIES LINK_FLAGS "-static" )
 set_target_properties(shasta-static-executable PROPERTIES OUTPUT_NAME "shasta")
+
+# For Linux, link statically.
+# For macOS, this is not supported, and we only link some of the libraries statically.
+if(NOT MACOS)
+    set_target_properties(shasta-static-executable PROPERTIES LINK_FLAGS "-static" )
+endif(NOT MACOS)
 
 # Compiler options.
 add_definitions(-std=c++14)
 add_definitions(-ggdb3)
 add_definitions(-O3)
+
+# Turn compilation warnings on, but not on macOS.
 if(NOT MACOS)
     add_definitions(-Wall -Wconversion -Wno-unused-result)
 endif(NOT MACOS)
 
-# Include directory required for Boost on macOS.
+# Include directories required on macOS.
 if(MACOS)
     include_directories(/usr/local/include/)
     include_directories(/usr/local/Cellar/boost/1.69.0/include)
@@ -36,16 +45,36 @@ add_definitions(-mcx16)
 # code that should not be included in the static executable.
 add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 
-# Specify the libraries.
+# Directories that will be searched for libraries during linking.
+if(MACOS)
+    link_directories(/usr/local/lib)
+    link_directories(/usr/local/Cellar/boost/1.69.0/lib)
+endif(MACOS)
+
+
+
+# Specify the libraries to link with.
 # For arcane reasons, statically linking with the pthread
-# library requires "--whole-archive". 
+# library on Linux requires "--whole-archive". 
 target_link_libraries(
     shasta-static-executable 
-    -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
-    atomic boost_system boost_program_options spoa)
+    boost_program_options spoa)
+if(MACOS)
+    target_link_libraries(shasta-static-executable pthread)
+else(MACOS)
+    target_link_libraries(
+        shasta-static-executable
+        atomic boost_system
+        -Wl,--whole-archive -pthread -Wl,--no-whole-archive)
+endif(MACOS)
+  
+  
     
-# Also request the glibc library to be linked statically.    
-SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+# Also request the glibc library to be linked statically. 
+# This is notsupported on macOS.   
+if(NOT MACOS)
+    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+endif(NOT MACOS)
 
 # The static executable goes to the bin directory.
 install(TARGETS shasta-static-executable DESTINATION shasta-install/bin)
