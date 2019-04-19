@@ -22,6 +22,7 @@ Assembler::Assembler(
 {
     assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
     assemblerInfo->useRunLengthReads = useRunLengthReads;
+    assemblerInfo->largeDataPageSize = largeDataPageSize;
 
     reads.createNew(largeDataName("Reads"), largeDataPageSize);
     reads.close();
@@ -46,20 +47,18 @@ Assembler::Assembler(
 
 
 // Constructor to be called to continue an existing run.
-Assembler::Assembler(
-    const string& largeDataFileNamePrefix,
-    size_t largeDataPageSize) :
+Assembler::Assembler(const string& largeDataFileNamePrefix) :
     MultithreadedObject(*this),
-    largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize)
+    largeDataFileNamePrefix(largeDataFileNamePrefix)
 #ifndef SHASTA_STATIC_EXECUTABLE
     , marginPhaseParameters(0)
 #endif
 {
 
     assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
+    largeDataPageSize = assemblerInfo->largeDataPageSize;
 
-    // assemblerInfo is the only open object
+    // AssemblerInfo is the only open object
     // when the constructor finishes.
 
 #ifndef SHASTA_STATIC_EXECUTABLE

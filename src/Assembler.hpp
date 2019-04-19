@@ -76,6 +76,9 @@ public:
     // true:  Run-length representation.
     // See comments later near Assembler::reads for more information.
     bool useRunLengthReads = false;
+
+    // The page size in use for this run.
+    size_t largeDataPageSize;
 };
 
 
@@ -111,10 +114,7 @@ public:
         );
 
     // Constructor to be called to continue an existing run.
-    Assembler(
-        const string& largeDataFileNamePrefix,
-        size_t largeDataPageSize
-        );
+    Assembler(const string& largeDataFileNamePrefix);
 
     // Destructor.
     ~Assembler();
