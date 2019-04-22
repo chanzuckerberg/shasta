@@ -105,9 +105,6 @@ def overrideDefaultConfig(config, args):
     if args.pruneIterationCount is not None:
         config["MarkerGraph"]["pruneIterationCount"] = str(args.pruneIterationCount)
         
-    if args.shortCycleLengthThreshold is not None:
-        config["MarkerGraph"]["shortCycleLengthThreshold"] = str(args.shortCycleLengthThreshold)
-        
     if args.bubbleLengthThreshold is not None:
         config["MarkerGraph"]["bubbleLengthThreshold"] = str(args.bubbleLengthThreshold)
         
@@ -373,13 +370,6 @@ if __name__ == "__main__":
         # default=6,
         required=False,
         help="Number of iterations for pruneMarkerGraphStrongSubgraph."
-    )
-    parser.add_argument(
-        "--shortCycleLengthThreshold",
-        type=int,
-        # default=30,
-        required=False,
-        help="Maximum length (number of edges) for a short cycle to be removed."
     )
     parser.add_argument(
         "--bubbleLengthThreshold",
