@@ -166,10 +166,19 @@ public:
     class AssemblyOptionsInner {
     public:
         int markerGraphEdgeLengthThresholdForConsensus;
+        string consensusCaller;
+        string useMarginPhase;      // False or True
+        string storeCoverageData;   // False or True
         void write(ostream& s) const
         {
             s << "Assembly.markerGraphEdgeLengthThresholdForConsensus = " <<
-                    markerGraphEdgeLengthThresholdForConsensus << "\n";
+                markerGraphEdgeLengthThresholdForConsensus << "\n";
+            s << "Assembly.consensusCaller = " <<
+                consensusCaller << "\n";
+            s << "Assembly.useMarginPhase = " <<
+                useMarginPhase << "\n";
+            s << "Assembly.storeCoverageData = " <<
+                storeCoverageData << "\n";
         }
     };
     AssemblyOptionsInner Assembly;
@@ -393,6 +402,21 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         default_value(1000),
         "Controls assembly of long marker graph edges.")
 
+        ("Assembly.consensusCaller",
+        value<string>(&assemblyOptions.Assembly.consensusCaller)->
+        default_value("SimpleConsensusCaller"),
+        "Selects the consensus caller for repeat counts.")
+
+        ("Assembly.useMarginPhase",
+        value<string>(&assemblyOptions.Assembly.useMarginPhase)->
+        default_value("False"),
+        "Used to turn on margin phase.")
+
+        ("Assembly.storeCoverageData",
+        value<string>(&assemblyOptions.Assembly.storeCoverageData)->
+        default_value("False"),
+        "Used to request storing coverage data.")
+
         ;
     
 
@@ -450,6 +474,22 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     }
 
 
+
+    // Check for options unsupported by the static executable.
+    if(assemblyOptions.Assembly.consensusCaller != "SimpleConsensusCaller") {
+        throw runtime_error("Assembly.consensusCaller value " + assemblyOptions.Assembly.consensusCaller +
+            " is not supported.\n"
+            "Only value supported by the Shasta static executable is SimpleConsensusCaller.");
+    }
+    if(assemblyOptions.Assembly.useMarginPhase != "False") {
+        throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
+    }
+    if(assemblyOptions.Assembly.storeCoverageData != "False") {
+        throw runtime_error("Assembly.storeCoverageData is not supported by the Shasta static executable.");
+    }
+
+
+
     // Write a startup message.
     cout << timestamp <<
         "\n\nThis is the static executable for the Shasta assembler. "
@@ -474,7 +514,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
 
 
     // If the output directory exists, stop.
-    // Otherwise, create it and make it current..
+    // Otherwise, create it and make it current.
     if(filesystem::exists(outputDirectory)) {
         throw runtime_error("Output directory " + outputDirectory + " already exists.\n"
             "Remove it or use --output to specify a different output directory.");
