@@ -115,7 +115,7 @@ public:
         void write(ostream& s) const
         {
             s << "[Align]\n";
-            s << "m = " << maxSkip << "\n";
+            s << "maxSkip = " << maxSkip << "\n";
             s << "maxMarkerFrequency = " << maxMarkerFrequency << "\n";
             s << "minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
             s << "maxTrim = " << maxTrim << "\n";
@@ -543,6 +543,10 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     cout << endl;
     cout << "outputDirectory = " << outputDirectory << endl << endl;
     assemblyOptions.write(cout);
+    {
+        ofstream configurationFile("shasta.conf");
+        assemblyOptions.write(configurationFile);
+    }
 
     // Create the Assembler.
     Assembler assembler("Data/", true, 2*1024*1024);
