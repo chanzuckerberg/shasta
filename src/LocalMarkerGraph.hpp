@@ -241,7 +241,6 @@ public:
     LocalMarkerGraph(
         uint32_t k,
         LongBaseSequences& reads,
-        bool useRunLengthReads,
         const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
@@ -406,7 +405,6 @@ private:
     // Reference to the global data structure containing all reads and markers
     // (not just those in this local marker graph).
     LongBaseSequences& reads;
-    bool useRunLengthReads;
     const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
 

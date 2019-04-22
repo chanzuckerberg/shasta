@@ -1505,7 +1505,6 @@ void Assembler::extractLocalMarkerGraph(
     LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
-        assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
         markerGraph.vertexTable,
@@ -2041,7 +2040,6 @@ vector<MarkerGraph::VertexId> Assembler::getLocalAssemblyPath(
     LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
-        assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
         markerGraph.vertexTable,

@@ -52,7 +52,6 @@ void Assembler::exploreMarkerGraph(
     LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
-        assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
         markerGraph.vertexTable,

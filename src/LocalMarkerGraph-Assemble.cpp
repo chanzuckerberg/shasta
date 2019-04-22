@@ -38,9 +38,6 @@ void LocalMarkerGraph::assembleDominantSequence(
     CZI_ASSERT(!path.empty());
     const LocalMarkerGraph& graph = *this;
 
-    // This is only used with the run-length representation of reads.
-    CZI_ASSERT(useRunLengthReads);
-
     // Compute SeqAn alignments for all edges on the local assembly path.
     computeSeqanAlignments();
 
