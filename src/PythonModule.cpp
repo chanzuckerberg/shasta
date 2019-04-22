@@ -45,15 +45,13 @@ PYBIND11_MODULE(shasta, module)
 
     class_<Assembler>(module, "Assembler")
 
-        // Constructors.
-        .def(init<string, size_t, bool>(),
-            "Create a new assembler.",
+        // Constructor.
+        .def(pybind11::init<const string&, bool, size_t, bool>(),
+            "Assembler constructor.",
             arg("largeDataFileNamePrefix") = "Data/",
+            arg("createNew") = false,
             arg("largeDataPageSize") = 2*1024*1024,
-            arg("useRunLengthReads"))
-        .def(init<string>(),
-            "Access an existing Assembler.",
-            arg("largeDataFileNamePrefix") = "Data/")
+            arg("useRunLengthReads") = true)
 
 
 

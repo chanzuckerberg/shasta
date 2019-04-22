@@ -42,7 +42,7 @@ def initializeAssembler(config, fastaFileNames):
         raise RuntimeError("Configuration parameter useRunLengthReads in section Reads must be True or False.")
     
     # Create the Assembler.
-    a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
+    a = shasta.Assembler(createNew=True, useRunLengthReads = useRunLengthReads)
     
     return a
 

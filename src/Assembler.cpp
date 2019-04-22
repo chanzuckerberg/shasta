@@ -11,8 +11,10 @@ using namespace shasta;
 // Constructor to be called one to create a new run.
 Assembler::Assembler(
     const string& largeDataFileNamePrefix,
+    bool createNew,
     size_t largeDataPageSize,
     bool useRunLengthReads) :
+
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize)
@@ -20,45 +22,32 @@ Assembler::Assembler(
     , marginPhaseParameters(0)
 #endif
 {
-    assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
-    assemblerInfo->useRunLengthReads = useRunLengthReads;
-    assemblerInfo->largeDataPageSize = largeDataPageSize;
 
-    reads.createNew(largeDataName("Reads"), largeDataPageSize);
-    reads.close();
+    if(createNew) {
 
-    readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
-    readNames.close();
+        // Create a new assembly.
+        assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
+        assemblerInfo->useRunLengthReads = useRunLengthReads;
+        assemblerInfo->largeDataPageSize = largeDataPageSize;
 
-    if(useRunLengthReads) {
+        reads.createNew(largeDataName("Reads"), largeDataPageSize);
+        reads.close();
+
+        readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
+        readNames.close();
+
         readRepeatCounts.createNew(largeDataName("ReadRepeatCounts"), largeDataPageSize);
         readRepeatCounts.close();
 
+    } else {
+
+        // Access an existing assembly.
+        assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
+        largeDataPageSize = assemblerInfo->largeDataPageSize;
+
     }
 
-    // assemblerInfo is the only open object
-    // when the constructor finishes.
-
-#ifndef SHASTA_STATIC_EXECUTABLE
-    fillServerFunctionTable();
-#endif
-}
-
-
-
-// Constructor to be called to continue an existing run.
-Assembler::Assembler(const string& largeDataFileNamePrefix) :
-    MultithreadedObject(*this),
-    largeDataFileNamePrefix(largeDataFileNamePrefix)
-#ifndef SHASTA_STATIC_EXECUTABLE
-    , marginPhaseParameters(0)
-#endif
-{
-
-    assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
-    largeDataPageSize = assemblerInfo->largeDataPageSize;
-
-    // AssemblerInfo is the only open object
+    // In both cases, assemblerInfo is the only open object
     // when the constructor finishes.
 
 #ifndef SHASTA_STATIC_EXECUTABLE

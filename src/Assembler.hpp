@@ -88,7 +88,7 @@ class ChanZuckerberg::shasta::Assembler :
 #ifndef SHASTA_STATIC_EXECUTABLE
     , public HttpServer
 #endif
-	{
+    {
 public:
 
 
@@ -109,12 +109,10 @@ public:
     // Constructor to be called one to create a new run.
     Assembler(
         const string& largeDataFileNamePrefix,
+        bool createNew,
         size_t largeDataPageSize,
         bool useRunLengthReads
         );
-
-    // Constructor to be called to continue an existing run.
-    Assembler(const string& largeDataFileNamePrefix);
 
     // Destructor.
     ~Assembler();

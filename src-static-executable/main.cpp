@@ -494,7 +494,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     assemblyOptions.write(cout);
 
     // Create the Assembler.
-    Assembler assembler("Data/", 2*1024*1024, true);
+    Assembler assembler("Data/", true, 2*1024*1024, true);
     assembler.setupConsensusCaller("SimpleConsensusCaller");
 
     // Add reads from the specified FASTA files.
