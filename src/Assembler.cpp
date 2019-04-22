@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "buildId.hpp"
 #include "BiasedGaussianConsensusCaller.hpp"
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
@@ -21,6 +22,7 @@ Assembler::Assembler(
     , marginPhaseParameters(0)
 #endif
 {
+    cout << buildId << endl;
 
     if(createNew) {
 

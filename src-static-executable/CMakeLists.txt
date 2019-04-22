@@ -36,6 +36,9 @@ if(MACOS)
     include_directories(/usr/local/Cellar/boost/1.69.0/include)
 endif(MACOS)
 
+# Pass the build id to the compile command line.
+add_definitions(-DBUILD_ID=${BUILD_ID})
+
 # This is required by dset64.hpp.
 # It allows std::atomic<__uint128_t>::is_lock_free()
 # to return true. However this does not happen in all gcc versions.

@@ -23,10 +23,23 @@ else(MACOS)
 endif(MACOS)
 
 
+
 # Option to build the shared library with -march=native.
 # The static executable is never built with -march=native,
 # regardless of how this is set.
 option(BUILD_NATIVE "Build with -march=native (shared library only)." ON)
+message(STATUS "BUILD_NATIVE is " ${BUILD_NATIVE})
+
+
+# The BUILD_ID can be specified to identify the build
+# This is normally used only when building a new GitHub release,
+# in which case we use the following option when running Cmake:
+# -DBUILD_ID="Shasta Release X.Y.Z"
+if(NOT DEFINED BUILD_ID)
+    set(BUILD_ID "Shasta development build (not a released version)")
+endif(NOT DEFINED BUILD_ID)
+message(STATUS "BUILD_ID is: " ${BUILD_ID})
+
 
 
 # Add the subdirectories.

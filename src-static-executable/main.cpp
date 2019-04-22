@@ -6,6 +6,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "buildId.hpp"
 #include "filesystem.hpp"
 #include "timestamp.hpp"
 namespace ChanZuckerberg {
@@ -222,7 +223,8 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
 
 
     const string executableDescription =
-        "\nThis is the static executable for the Shasta assembler. "
+        buildId +
+        "\n\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality "
         "at reduced performance but has no dependencies and requires no installation.\n\n"
         "To run an assembly, use the \"--input\" option to specify the input Fasta files. "

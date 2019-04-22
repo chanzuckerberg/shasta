@@ -12,6 +12,9 @@ if(BUILD_NATIVE)
     add_definitions(-march=native)
 endif(BUILD_NATIVE)
 
+# Pass the build id to the compile command line.
+add_definitions(-DBUILD_ID=${BUILD_ID})
+
 # This is required by dset64.hpp.
 # It allows std::atomic<__uint128_t>::is_lock_free()
 # to return true.
