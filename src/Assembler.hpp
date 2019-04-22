@@ -71,12 +71,6 @@ public:
     // The length of k-mers used to define markers.
     size_t k;
 
-    // Flag for the read representation in use:
-    // false: Raw reads.
-    // true:  Run-length representation.
-    // See comments later near Assembler::reads for more information.
-    bool useRunLengthReads = false;
-
     // The page size in use for this run.
     size_t largeDataPageSize;
 };
@@ -110,9 +104,7 @@ public:
     Assembler(
         const string& largeDataFileNamePrefix,
         bool createNew,
-        size_t largeDataPageSize,
-        bool useRunLengthReads
-        );
+        size_t largeDataPageSize);
 
     // Destructor.
     ~Assembler();
@@ -390,32 +382,21 @@ private:
     The reads used for this assembly.
     Indexed by ReadId.
 
-    Depending on the setting of assemblerInfo->useRunLengthReads,
-    we represent reads in one of two ways:
-
-    - If assemblerInfo->useRunLengthReads is false, we represent
-      reads as raw reads just as read from the input fasta files.
-      In this case, repeat base counts are not used.
-
-    - If assemblerInfo->useRunLengthReads is true, we use a run-length
-      representation (https://en.wikipedia.org/wiki/Run-length_encoding)
-      for reads: all repeated bases are removed, and
-      for each base we store a repeat base count that says how many
-      times that base was repeated in the original read.
-      Many assembly phases use only the run-length representation
-      (without using the base repeat count).
-      This includes the generation of markers, the computation of
-      alignments, and the creation of the marker graph.
+    We use a run-length representation
+    (https://en.wikipedia.org/wiki/Run-length_encoding)
+    for reads: all repeated bases are removed, and
+    for each base we store a repeat base count that says how many
+    times that base was repeated in the original read.
+    Many assembly phases use only the run-length representation
+    (without using the base repeat count).
+    This includes the generation of markers, the computation of
+    alignments, and the creation of the marker graph.
 
     For example, suppose we have the following read sequence:
 
     TAATCATTTTGATGTAAGTCTAAAAATTTCACCTTAATACTTATTTTTCC
 
-    If assemblerInfo->useRunLengthReads is false, the read is represented
-    just as written above, this sequence is stored in reads[readId],
-    and readRepeatCount is not used.
-
-    If assemblerInfo->useRunLengthReads is true, the read is stored like this:
+    The read is stored like this:
 
     TATCATGATGTAGTCTATCACTATACTATC
     121114111112111153112221112152
@@ -490,8 +471,6 @@ private:
         OrientedReadId orientedReadId,
         uint32_t position)
     {
-        // This should only be called when using run-length read representation.
-        CZI_ASSERT(assemblerInfo->useRunLengthReads);
 
         // Extract the read id and strand.
         const ReadId readId = orientedReadId.getReadId();

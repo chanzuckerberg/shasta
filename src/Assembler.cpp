@@ -12,8 +12,7 @@ using namespace shasta;
 Assembler::Assembler(
     const string& largeDataFileNamePrefix,
     bool createNew,
-    size_t largeDataPageSize,
-    bool useRunLengthReads) :
+    size_t largeDataPageSize) :
 
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
@@ -27,7 +26,6 @@ Assembler::Assembler(
 
         // Create a new assembly.
         assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
-        assemblerInfo->useRunLengthReads = useRunLengthReads;
         assemblerInfo->largeDataPageSize = largeDataPageSize;
 
         reads.createNew(largeDataName("Reads"), largeDataPageSize);

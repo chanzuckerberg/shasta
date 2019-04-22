@@ -16,13 +16,6 @@ if not os.path.lexists('shasta.conf'):
 config = GetConfig.getConfig()
 
 # Create the assembler.
-useRunLengthReadsString = config['Reads']['useRunLengthReads']
-if useRunLengthReadsString == 'True':
-    useRunLengthReads = True
-elif useRunLengthReadsString == 'False':
-    useRunLengthReads = False
-else:
-    raise RuntimeError("Configuration parameter useRunLengthReads in section Reads must be True or False.")
-a = shasta.Assembler(createNew=True, useRunLengthReads = useRunLengthReads)
+a = shasta.Assembler(createNew=True)
 
 
