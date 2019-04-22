@@ -388,7 +388,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         default_value("10,100,1000"),
         "Maximum lengths (in markers) used at each iteration of simplifyMarkerGraph.")
 
-        ("AssemblyOptions.markerGraphEdgeLengthThresholdForConsensus",
+        ("Assembly.markerGraphEdgeLengthThresholdForConsensus",
         value<int>(&assemblyOptions.Assembly.markerGraphEdgeLengthThresholdForConsensus)->
         default_value(1000),
         "Controls assembly of long marker graph edges.")
