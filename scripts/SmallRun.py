@@ -231,9 +231,7 @@ if __name__ == "__main__":
         type=int,
         # default=10,
         required=False,
-        help="The length of the k-mers used as markers. \n \
-              When useRunLengthReads is False, suggested choice is k = 8. \n \
-              When useRunLengthReads is True, suggested choice is k = 10."
+        help="The length of the k-mers used as markers. \n"
     )
     parser.add_argument(
         "--probability",
