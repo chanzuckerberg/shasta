@@ -36,7 +36,6 @@ size_t MedianConsensusCaller::predict_runlength(const Coverage &coverage, Aligne
                 median = length;
             }else{
                 // Flanking observations differ in value (use the ceiling of their average)
-//                cout << double(prev_length+length)/2 << "\n";
                 median = size_t(ceil(double(prev_length+length)/2));
             }
             break;

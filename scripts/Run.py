@@ -496,7 +496,7 @@ if __name__ == "__main__":
         "--consensusCaller",
         type=str,
         required=False,
-        choices=["Simple", "SimpleBayesian"],
+        choices=["Simple", "SimpleBayesian", "Median"],
         help="Whether to use Bayesian inference on read lengths during consensus calling"
     )
     parser.add_argument(
