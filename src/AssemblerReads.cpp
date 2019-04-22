@@ -12,16 +12,12 @@ using namespace shasta;
 void Assembler::accessReadsReadOnly()
 {
     reads.accessExistingReadOnly(largeDataName("Reads"));
-    if(assemblerInfo->useRunLengthReads) {
-        readRepeatCounts.accessExistingReadOnly(largeDataName("ReadRepeatCounts"));
-    }
+    readRepeatCounts.accessExistingReadOnly(largeDataName("ReadRepeatCounts"));
 }
 void Assembler::accessReadsReadWrite()
 {
     reads.accessExistingReadWrite(largeDataName("Reads"));
-    if(assemblerInfo->useRunLengthReads) {
-        readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
-    }
+    readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
 }
 void Assembler::accessReadNamesReadOnly()
 {
@@ -36,7 +32,7 @@ void Assembler::checkReadsAreOpen() const
     if(!reads.isOpen()) {
         throw runtime_error("Reads are not accessible.");
     }
-    if(assemblerInfo->useRunLengthReads && !readRepeatCounts.isOpen()) {
+    if(!readRepeatCounts.isOpen()) {
         throw runtime_error("Read repeat counts are not accessible.");
     }
 }
@@ -166,7 +162,7 @@ void Assembler::histogramReadLength(const string& fileName)
 void Assembler::writeReads(const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+    CZI_ASSERT(0);
 
     ofstream file(fileName);
     for(ReadId readId=0; readId<readCount(); readId++) {
@@ -180,7 +176,7 @@ void Assembler::writeReads(const string& fileName)
 void Assembler::writeRead(ReadId readId, const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+    CZI_ASSERT(0);
 
     ofstream file(fileName);
     writeRead(readId, file);
@@ -190,7 +186,7 @@ void Assembler::writeRead(ReadId readId, const string& fileName)
 void Assembler::writeRead(ReadId readId, ostream& file)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+    CZI_ASSERT(0);
 
     checkReadsAreOpen();
     checkReadNamesAreOpen();
@@ -212,7 +208,7 @@ void Assembler::writeRead(ReadId readId, ostream& file)
 void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+    CZI_ASSERT(!0);
 
     writeOrientedRead(OrientedReadId(readId, strand), fileName);
 }
@@ -222,7 +218,7 @@ void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fi
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+    CZI_ASSERT(0);
 
     ofstream file(fileName);
     writeOrientedRead(orientedReadId, file);
@@ -233,7 +229,7 @@ void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& f
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(!assemblerInfo->useRunLengthReads);
+    CZI_ASSERT(0);
 
     checkReadsAreOpen();
     checkReadNamesAreOpen();
@@ -261,30 +257,19 @@ vector<Base> Assembler::getOrientedReadRawSequence(OrientedReadId orientedReadId
     // The sequence we will return;
     vector<Base> sequence;
 
-    // The number of bases stored.
+    // The number of bases stored, in run-length representation.
     const uint32_t storedBaseCount = uint32_t(reads[orientedReadId.getReadId()].baseCount);
 
-    if(assemblerInfo->useRunLengthReads) {
 
-        // We are storing a run-length representation of the read.
-        // Expand it base by base to create the raw representation.
-        for(uint32_t position=0; position<storedBaseCount; position++) {
-            Base base;
-            uint8_t count;
-            tie(base, count) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-            for(uint32_t i=0; i<uint32_t(count); i++) {
-                sequence.push_back(base);
-            }
+    // We are storing a run-length representation of the read.
+    // Expand it base by base to create the raw representation.
+    for(uint32_t position=0; position<storedBaseCount; position++) {
+        Base base;
+        uint8_t count;
+        tie(base, count) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+        for(uint32_t i=0; i<uint32_t(count); i++) {
+            sequence.push_back(base);
         }
-
-    } else {
-
-        // We are storing raw read sequence, so we can just copy the stored sequence.
-        sequence.resize(storedBaseCount);
-        for(size_t position=0; position<storedBaseCount; position++) {
-            sequence[position] = getOrientedReadBase(orientedReadId, uint32_t(position));
-        }
-
     }
 
     return sequence;
@@ -298,9 +283,7 @@ vector<Base> Assembler::getOrientedReadRawSequence(OrientedReadId orientedReadId
 size_t Assembler::getReadRawSequenceLength(ReadId readId)
 {
 
-    if(assemblerInfo->useRunLengthReads) {
-
-        // We are not using the run-length representation.
+        // We are using the run-length representation.
         // The number of raw bases equals the sum of all
         // the repeat counts.
         // Don't use std::accumulate to compute the sum,
@@ -312,12 +295,6 @@ size_t Assembler::getReadRawSequenceLength(ReadId readId)
         }
         return sum;
 
-    } else {
-
-        // We are not using the run-length representation.
-        // The number of raw bases equals the number of stored bases.
-        return reads[readId].baseCount;
-    }
 }
 
 
@@ -327,7 +304,6 @@ size_t Assembler::getReadRawSequenceLength(ReadId readId)
 // representation of an oriented read.
 vector<uint32_t> Assembler::getRawPositions(OrientedReadId orientedReadId) const
 {
-    CZI_ASSERT(assemblerInfo->useRunLengthReads);
     const ReadId readId = orientedReadId.getReadId();
     const ReadId strand = orientedReadId.getStrand();
     const auto repeatCounts = readRepeatCounts[readId];
