@@ -671,6 +671,15 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeFasta("Assembly.fasta");
+
+    // Final disclaimer message.
+    cout << "\nThis run was done using the Shasta static executable,\n"
+        "which provides limited functionality at reduced performance.\n"
+        "Depending on run and machine characteristics, the performance penalty\n"
+        "can be large (up to a slow down of a factor of 3).\n"
+        "The Shasta static executable should not be used for\n"
+        "large runs or for benchmarking." << endl;
+
 }
 
 
