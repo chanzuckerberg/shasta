@@ -22,6 +22,13 @@ else(MACOS)
     option(BUILD_EXECUTABLE "Build the static executable." OFF)
 endif(MACOS)
 
+
+# Option to build the shared library with -march=native.
+# The static executable is never built with -march=native,
+# regardless of how this is set.
+option(BUILD_NATIVE "Build with -march=native (shared library only)." ON)
+
+
 # Add the subdirectories.
 if(BUILD_LIBRARY)
     add_subdirectory(src)
