@@ -4,6 +4,7 @@
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "TrainedBayesianConsensusCaller.hpp"
+#include "MedianConsensusCaller.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -93,6 +94,12 @@ void Assembler::setupConsensusCaller(const string& s)
         consensusCaller = std::make_shared<BiasedGaussianConsensusCaller>();
         return;
     }
+
+    if(s == "MedianConsensusCaller") {
+        consensusCaller = std::make_shared<MedianConsensusCaller>();
+        return;
+    }
+
 
     // If getting here, the argument does not specify a supported
     // consensus caller.

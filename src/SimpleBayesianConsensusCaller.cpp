@@ -272,25 +272,25 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
 }
 
 
-void testConsensusCaller(){
+void testSimpleBayesianConsensusCaller(){
     SimpleBayesianConsensusCaller classifier;
-    Coverage c;
+    Coverage coverage;
 
-    c.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 1);    // Arguments are base, strand, repeat count.
-    c.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
-    c.addRead(AlignedBase::fromInteger((uint8_t)2), 1, 3);
-    c.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
-    c.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 2);
-    c.addRead(AlignedBase::fromInteger((uint8_t)2), 0, 2);
-    c.addRead(AlignedBase::fromInteger((uint8_t)4), 0, 0);
+    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 1);    // Arguments are base, strand, repeat count.
+    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
+    coverage.addRead(AlignedBase::fromInteger((uint8_t)2), 1, 3);
+    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
+    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 2);
+    coverage.addRead(AlignedBase::fromInteger((uint8_t)2), 0, 2);
+    coverage.addRead(AlignedBase::fromInteger((uint8_t)4), 0, 0);
 
     AlignedBase consensus_base;
 
-    consensus_base = c.mostFrequentBase();
+    consensus_base = coverage.mostFrequentBase();
 
     cout << "CONSENSUS BASE = " << consensus_base << "\n";
 
-    const Consensus consensus = classifier(c);
+    const Consensus consensus = classifier(coverage);
 
     cout << consensus.base << " " << consensus.repeatCount << '\n';
 }

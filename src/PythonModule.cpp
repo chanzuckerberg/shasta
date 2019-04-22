@@ -13,6 +13,7 @@
 #include "testMarginCore.hpp"
 #include "testSpoa.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
+#include "MedianConsensusCaller.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -488,8 +489,11 @@ PYBIND11_MODULE(shasta, module)
     module.def("testMarginCore",
         testMarginCore
         );
-    module.def("testConsensusCaller",
-        testConsensusCaller
+    module.def("testSimpleBayesianConsensusCaller",
+        testSimpleBayesianConsensusCaller
+        );
+    module.def("testMedianConsensusCaller",
+        testMedianConsensusCaller
         );
     module.def("dset64Test",
         dset64Test,
