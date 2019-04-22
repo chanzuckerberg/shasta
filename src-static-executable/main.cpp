@@ -50,18 +50,19 @@ public:
             int deltaThreshold;
             void write(ostream& s) const
             {
-                s << "Reads.palindromicReads.maxSkip = " << maxSkip << "\n";
-                s << "Reads.palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
-                s << "Reads.palindromicReads.alignedFractionThreshold = " << alignedFractionThreshold << "\n";
-                s << "Reads.palindromicReads.nearDiagonalFractionThreshold = " << nearDiagonalFractionThreshold << "\n";
-                s << "Reads.palindromicReads.deltaThreshold = " << deltaThreshold << "\n";
+                s << "palindromicReads.maxSkip = " << maxSkip << "\n";
+                s << "palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
+                s << "palindromicReads.alignedFractionThreshold = " << alignedFractionThreshold << "\n";
+                s << "palindromicReads.nearDiagonalFractionThreshold = " << nearDiagonalFractionThreshold << "\n";
+                s << "palindromicReads.deltaThreshold = " << deltaThreshold << "\n";
             }
         };
         PalindromicReadOptions palindromicReads;
 
         void write(ostream& s) const
         {
-            s << "Reads.minReadLength = " << minReadLength << "\n";
+            s << "[Reads]\n";
+            s << "minReadLength = " << minReadLength << "\n";
             palindromicReads.write(s);
         }
     };
@@ -75,8 +76,9 @@ public:
         double probability;
         void write(ostream& s) const
         {
-            s << "Kmers.k = " << k << "\n";
-            s << "Kmers.probability = " << probability << "\n";
+            s << "[Kmers]\n";
+            s << "k = " << k << "\n";
+            s << "probability = " << probability << "\n";
         }
     };
     KmersOptions Kmers;
@@ -92,11 +94,12 @@ public:
         int minFrequency;
         void write(ostream& s) const
         {
-            s << "MinHash.m = " << m << "\n";
-            s << "MinHash.hashFraction = " << hashFraction << "\n";
-            s << "MinHash.minHashIterationCount = " << minHashIterationCount << "\n";
-            s << "MinHash.maxBucketSize = " << maxBucketSize << "\n";
-            s << "MinHash.minFrequency = " << minFrequency << "\n";
+            s << "[MinHash]\n";
+            s << "m = " << m << "\n";
+            s << "hashFraction = " << hashFraction << "\n";
+            s << "minHashIterationCount = " << minHashIterationCount << "\n";
+            s << "maxBucketSize = " << maxBucketSize << "\n";
+            s << "minFrequency = " << minFrequency << "\n";
         }
     };
     MinHashOptions MinHash;
@@ -111,10 +114,11 @@ public:
         int maxTrim;
         void write(ostream& s) const
         {
-            s << "Align.m = " << maxSkip << "\n";
-            s << "Align.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
-            s << "Align.minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
-            s << "Align.maxTrim = " << maxTrim << "\n";
+            s << "[Align]\n";
+            s << "m = " << maxSkip << "\n";
+            s << "maxMarkerFrequency = " << maxMarkerFrequency << "\n";
+            s << "minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
+            s << "maxTrim = " << maxTrim << "\n";
         }
     };
     AlignOptions Align;
@@ -128,9 +132,10 @@ public:
         int maxChimericReadDistance;
         void write(ostream& s) const
         {
-            s << "ReadGraph.maxAlignmentCount = " << maxAlignmentCount << "\n";
-            s << "ReadGraph.minComponentSize = " << minComponentSize << "\n";
-            s << "ReadGraph.maxChimericReadDistance = " << maxChimericReadDistance << "\n";
+            s << "[ReadGraph]\n";
+            s << "maxAlignmentCount = " << maxAlignmentCount << "\n";
+            s << "minComponentSize = " << minComponentSize << "\n";
+            s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
         }
     };
     ReadGraphOptions ReadGraph;
@@ -149,14 +154,15 @@ public:
         string simplifyMaxLength;
         void write(ostream& s) const
         {
-            s << "MarkerGraph.minCoverage = " << minCoverage << "\n";
-            s << "MarkerGraph.maxCoverage = " << maxCoverage << "\n";
-            s << "MarkerGraph.lowCoverageThreshold = " << lowCoverageThreshold << "\n";
-            s << "MarkerGraph.highCoverageThreshold = " << highCoverageThreshold << "\n";
-            s << "MarkerGraph.maxDistance = " << maxDistance << "\n";
-            s << "MarkerGraph.edgeMarkerSkipThreshold = " << edgeMarkerSkipThreshold << "\n";
-            s << "MarkerGraph.pruneIterationCount = " << pruneIterationCount << "\n";
-            s << "MarkerGraph.simplifyMaxLength = " << simplifyMaxLength << "\n";
+            s << "[MarkerGraph]\n";
+            s << "minCoverage = " << minCoverage << "\n";
+            s << "maxCoverage = " << maxCoverage << "\n";
+            s << "lowCoverageThreshold = " << lowCoverageThreshold << "\n";
+            s << "highCoverageThreshold = " << highCoverageThreshold << "\n";
+            s << "maxDistance = " << maxDistance << "\n";
+            s << "edgeMarkerSkipThreshold = " << edgeMarkerSkipThreshold << "\n";
+            s << "pruneIterationCount = " << pruneIterationCount << "\n";
+            s << "simplifyMaxLength = " << simplifyMaxLength << "\n";
         }
     };
     MarkerGraphOptions MarkerGraph;
@@ -171,13 +177,14 @@ public:
         string storeCoverageData;   // False or True
         void write(ostream& s) const
         {
-            s << "Assembly.markerGraphEdgeLengthThresholdForConsensus = " <<
+            s << "[Assembly]\n";
+            s << "markerGraphEdgeLengthThresholdForConsensus = " <<
                 markerGraphEdgeLengthThresholdForConsensus << "\n";
-            s << "Assembly.consensusCaller = " <<
+            s << "consensusCaller = " <<
                 consensusCaller << "\n";
-            s << "Assembly.useMarginPhase = " <<
+            s << "useMarginPhase = " <<
                 useMarginPhase << "\n";
-            s << "Assembly.storeCoverageData = " <<
+            s << "storeCoverageData = " <<
                 storeCoverageData << "\n";
         }
     };
@@ -187,11 +194,17 @@ public:
     void write(ostream& s) const
     {
         Reads.write(s);
+        s << "\n";
         Kmers.write(s);
+        s << "\n";
         MinHash.write(s);
+        s << "\n";
         Align.write(s);
+        s << "\n";
         ReadGraph.write(s);
+        s << "\n";
         MarkerGraph.write(s);
+        s << "\n";
         Assembly.write(s);
         s << endl;
     }
@@ -226,12 +239,21 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     options_description commandLineOnlyOptions(
         "Options allowed only on the command line");
     string configFileName;
+    vector < string > inputFastaFileNames;
+    string outputDirectory;
     commandLineOnlyOptions.add_options()
         ("help", 
         "Write a help message.")
         ("config", 
         boost::program_options::value<string>(&configFileName),
         "Configuration file name.")
+        ("input",
+        value< vector<string> >(&inputFastaFileNames)->multitoken(),
+        "Names of input FASTA files. Specify at least one.")
+        ("output",
+        value<string>(&outputDirectory)->
+        default_value("ShastaRun"),
+        "Name of the output directory. Must not exist.")
         ;
 
 
@@ -241,19 +263,8 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     options_description options(
         "Options allowed on the command line and in the config file");
     AssemblyOptions assemblyOptions;
-    vector < string > inputFastaFileNames;
-    string outputDirectory;
 
     options.add_options()
-
-        ("input", 
-        value< vector<string> >(&inputFastaFileNames)->multitoken(),
-        "Names of input FASTA files. Specify at least one.")
-        
-        ("output",
-        value<string>(&outputDirectory)->
-        default_value("ShastaRun"),
-        "Name of the output directory. Must not exist.")
 
         ("Reads.minReadLength", 
         value<int>(&assemblyOptions.Reads.minReadLength)->
@@ -530,7 +541,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     cout << "Input FASTA files: ";
     copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
     cout << endl;
-    cout << "outputDirectory = " << outputDirectory << endl;
+    cout << "outputDirectory = " << outputDirectory << endl << endl;
     assemblyOptions.write(cout);
 
     // Create the Assembler.
