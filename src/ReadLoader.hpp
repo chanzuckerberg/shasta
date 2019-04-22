@@ -27,7 +27,6 @@ public:
     ReadLoader(
         const string& fileName,
         size_t minReadLength,
-        bool useRunLengthReads,
         size_t blockSize,
         size_t threadCountForReading,
         size_t threadCountForProcessing,
@@ -47,11 +46,6 @@ private:
 
     // The minimum read length. Shorter reads are not stored.
     size_t minReadLength;
-
-    // Flag for the read representation in use:
-    // false: Raw reads.
-    // true:  Run-length representation.
-    bool useRunLengthReads;
 
     // The block size we are using.
     size_t blockSize;
