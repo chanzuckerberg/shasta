@@ -23,7 +23,7 @@ Assembler::Assembler(
     , marginPhaseParameters(0)
 #endif
 {
-    cout << buildId << endl;
+    cout << buildId() << endl;
 
     if(createNew) {
 

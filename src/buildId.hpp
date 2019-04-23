@@ -13,7 +13,7 @@
 
 namespace ChanZuckerberg {
     namespace shasta {
-        extern const string buildId;
+        string buildId();
     }
 }
 
