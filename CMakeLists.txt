@@ -36,7 +36,7 @@ message(STATUS "BUILD_NATIVE is " ${BUILD_NATIVE})
 # in which case we use the following option when running Cmake:
 # -DBUILD_ID="Shasta Release X.Y.Z"
 if(NOT DEFINED BUILD_ID)
-    set(BUILD_ID "Shasta development build (not a released version)")
+    set(BUILD_ID "Shasta development build. This is not a released version.")
 endif(NOT DEFINED BUILD_ID)
 message(STATUS "BUILD_ID is: " ${BUILD_ID})
 
