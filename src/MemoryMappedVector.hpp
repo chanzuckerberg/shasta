@@ -24,6 +24,7 @@
 
 // Linux.
 #include <fcntl.h>
+#include <asm/mman.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -220,6 +221,7 @@ private:
         {
             std::memset(this, 0, sizeof(Header));
         }
+
     };
     static_assert(sizeof(Header) == 256, "Unexpected header size for MemoryMapped::Vector.");
     Header* header;
@@ -260,6 +262,11 @@ private:
 
     // Find the size of the file corresponding to an open file descriptor.
     size_t getFileSize(int fileDescriptor);
+
+
+    void createNewAnonymous(size_t pageSize, size_t n=0, size_t requiredCapacity=0);
+    void resizeAnonymous(size_t newSize);
+    void unmapAnonymous();
 };
 
 
@@ -351,10 +358,18 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::p
 template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Vector<T>::~Vector()
 {
     if(isOpen) {
-        if(isOpenWithWriteAccess) {
-            unreserve();
+
+        if(fileName.empty()) {
+
+            unmapAnonymous();
+
+        } else {
+
+            if(isOpenWithWriteAccess) {
+                unreserve();
+            }
+            close();
         }
-        close();
     }
 }
 
@@ -448,6 +463,13 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
     size_t n,
     size_t requiredCapacity)
 {
+    CZI_ASSERT(pageSize==4096 || pageSize==2*1024*1024);
+
+    if(name.empty()) {
+        createNewAnonymous(pageSize, n, requiredCapacity);
+        return;
+    }
+
     try {
         // If already open, should have called close first.
         CZI_ASSERT(!isOpen);
@@ -496,6 +518,56 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
 
 }
 
+
+
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::createNewAnonymous(
+    size_t pageSize,
+    size_t n,
+    size_t requiredCapacity)
+{
+    try {
+        // If already open, should have called close first.
+        CZI_ASSERT(!isOpen);
+
+        // Create the header.
+        requiredCapacity = std::max(requiredCapacity, n);
+        const Header headerOnStack(n, requiredCapacity, pageSize);
+        const size_t fileSize = headerOnStack.fileSize;
+
+        // Map it in memory.
+        int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+        if(pageSize == 2*1024*1024) {
+            flags |= MAP_HUGETLB | MAP_HUGE_2MB;
+        }
+        void* pointer = ::mmap(0, fileSize,
+            PROT_READ | PROT_WRITE, flags,
+            -1, 0);
+        if(pointer == reinterpret_cast<void*>(-1LL)) {
+            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+        }
+
+        // Figure out where the data and the header go.
+        header = static_cast<Header*>(pointer);
+        data = reinterpret_cast<T*>(header+1);
+
+        // Store the header.
+        *header = headerOnStack;
+
+        // Call the default constructor on the data.
+        for(size_t i=0; i<n; i++) {
+            new(data+i) T();
+        }
+
+        // Indicate that the mapped vector is open with write access.
+        isOpen = true;
+        isOpenWithWriteAccess = true;
+        fileName = "";
+
+    } catch(std::exception& e) {
+        throw; // Nothing to contribute here.
+    }
+}
 
 
 // Open a previously created vector with read-only or read-write access.
@@ -595,6 +667,27 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::u
 
 }
 
+
+
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::unmapAnonymous()
+{
+    CZI_ASSERT(isOpen);
+
+    const int munmapReturnCode = ::munmap(header, header->fileSize);
+    if(munmapReturnCode == -1) {
+        throw runtime_error("Error unmapping.");
+    }
+
+    // Mark it as not open.
+    isOpen = false;
+    isOpenWithWriteAccess = false;
+    header = 0;
+    data = 0;
+    fileName = "";
+
+}
+
+
 // Sync the mapped memory to disk, then unmap it.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::close()
 {
@@ -606,9 +699,13 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
 // Close it and remove the supporting file.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::remove()
 {
-    const string savedFileName = fileName;
-    close();	// This forgets the fileName.
-    filesystem::remove(savedFileName);
+    if(fileName.empty()) {
+        unmapAnonymous();
+    } else {
+        const string savedFileName = fileName;
+        close();    // This forgets the fileName.
+        filesystem::remove(savedFileName);
+    }
 }
 
 
@@ -617,6 +714,11 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::resize(size_t newSize)
 {
     CZI_ASSERT(isOpenWithWriteAccess);
+
+    if(fileName.empty()) {
+        resizeAnonymous(newSize);
+        return;
+    }
 
     const size_t oldSize = size();
     if(newSize == oldSize) {
@@ -699,6 +801,110 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
         }
     }
 
+}
+
+
+
+// Resize works as for std::vector.
+template<class T> inline void
+    ChanZuckerberg::shasta::MemoryMapped::Vector<T>::resizeAnonymous(size_t newSize)
+{
+    const size_t oldSize = size();
+    if(newSize == oldSize) {
+
+        // No change in length - nothing to do.
+
+    }
+    if(newSize < oldSize) {
+
+        // The vector is shrinking.
+        // Just call the destructor on the elements that go away.
+        for(size_t i=newSize; i<oldSize; i++) {
+            (data+i)->~T();
+        }
+        header->objectCount = newSize;
+
+    } else {
+
+        // The vector is getting longer.
+        if(newSize <= capacity()) {
+
+            // No reallocation needed.
+            header->objectCount = newSize;
+
+            // Call the constructor on the elements we added.
+            for(size_t i=oldSize; i<newSize; i++) {
+                new(data+i) T();
+            }
+
+
+        } else {
+
+            // The vector is growing beyond the current capacity.
+            // We need to resize the mapped file.
+            // Note that we don't have to copy the existing vector elements.
+
+            // Save the page size.
+            const size_t pageSize = header->pageSize;
+
+            // Create a header corresponding to increased capacity.
+            const Header headerOnStack(newSize, size_t(1.5*double(newSize)), pageSize);
+
+
+
+            // Remap it.
+            // We can only use remap for Linux, and for 4K pages.
+            bool useMremap = false;
+#ifdef __linux__
+            useMremap = (pageSize == 4096);
+#endif
+            void* pointer = 0;
+            if(useMremap) {
+                pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
+                if(pointer == reinterpret_cast<void*>(-1LL)) {
+                    throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                        + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+                }
+            } else {
+
+                // We cannot use mremap. We have to create a new mapping
+                // and copy the data.
+                int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_HUGE_2MB;
+                void* newPointer = ::mmap(0, headerOnStack.fileSize,
+                    PROT_READ | PROT_WRITE, flags,
+                    -1, 0);
+                if(newPointer == reinterpret_cast<void*>(-1LL)) {
+                    throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                        + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+                }
+                std::copy(
+                    reinterpret_cast<char*>(header),
+                    reinterpret_cast<char*>(header) + header->fileSize,
+                    static_cast<char*>(newPointer));
+                ::munmap(header, header->fileSize);
+                pointer = newPointer;
+            }
+
+
+
+            // Figure out where the data and the header are.
+            header = static_cast<Header*>(pointer);
+            data = reinterpret_cast<T*>(header+1);
+
+            // Store the header.
+            *header = headerOnStack;
+
+            // Indicate that the mapped vector is open with write access.
+            isOpen = true;
+            isOpenWithWriteAccess = true;
+            fileName = "";
+
+            // Call the constructor on the elements we added.
+            for(size_t i=oldSize; i<newSize; i++) {
+                new(data+i) T();
+            }
+        }
+    }
 }
 
 
