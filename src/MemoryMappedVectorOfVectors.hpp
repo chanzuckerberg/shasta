@@ -31,9 +31,16 @@ public:
     {
         name = nameArgument;
         pageSize = pageSizeArgument;
-        toc.createNew(name + ".toc", pageSize);
+
+        if(nameArgument.empty()) {
+            toc.createNew("", pageSize);
+            data.createNew("", pageSize);
+        } else {
+            toc.createNew(name + ".toc", pageSize);
+            data.createNew(name + ".data", pageSize);
+        }
+
         toc.push_back(0);
-        data.createNew(name + ".data", pageSize);
     }
 
 
