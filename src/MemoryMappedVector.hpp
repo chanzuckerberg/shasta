@@ -35,7 +35,7 @@ namespace ChanZuckerberg {
         namespace MemoryMapped {
             template<class T> class Vector;
         }
-        inline void testMemoryMappedVector();
+        void testMemoryMappedVector();
     }
 }
 
@@ -776,17 +776,5 @@ template<class T> inline uint64_t ChanZuckerberg::shasta::MemoryMapped::Vector<T
     CZI_ASSERT(byteCount <= uint64_t(std::numeric_limits<int>::max()));
     return MurmurHash64A(begin(), int(byteCount), 231);
 }
-
-
-
-inline void ChanZuckerberg::shasta::testMemoryMappedVector()
-{
-    // Test creation of a temporary vector.
-    MemoryMapped::Vector<int> x;
-    x.createNew("./", 5);
-    x[4] = 18;
-    CZI_ASSERT(x[4] == 18);
-}
-
 
 #endif

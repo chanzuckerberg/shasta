@@ -465,6 +465,9 @@ PYBIND11_MODULE(shasta, module)
     module.def("testMultithreadedObject",
         testMultithreadedObject
         );
+    module.def("testMemoryMappedVector",
+        testMemoryMappedVector
+        );
     module.def("testBase",
         testBase
         );
