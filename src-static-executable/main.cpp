@@ -41,7 +41,6 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     using boost::program_options::variables_map;
 
     const string executableDescription =
-        buildId() +
         "\n\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality "
         "at reduced performance but has no dependencies and requires no installation.\n\n"
