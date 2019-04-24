@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.0)
 project(shasta-static-executable)
 
 # Define the source files that go into our executable.
-file(GLOB SOURCES main.cpp ../src/*.cpp)
+file(GLOB SOURCES *.cpp ../src/*.cpp)
 include_directories(../src)
 
 # Define our executable.
