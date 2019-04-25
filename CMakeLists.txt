@@ -13,13 +13,13 @@ message(STATUS "MACOS is " ${MACOS})
 
 # Figure out what we want to build.
 # By default, we build only the executable on macOS,
-# and only the library on Linux.
+# and both the executable and the library on Linux.
 if(MACOS)
     option(BUILD_LIBRARY "Build the shared library." OFF)
     option(BUILD_EXECUTABLE "Build the static executable." ON)
 else(MACOS)
     option(BUILD_LIBRARY "Build the shared library." ON)
-    option(BUILD_EXECUTABLE "Build the static executable." OFF)
+    option(BUILD_EXECUTABLE "Build the static executable." ON)
 endif(MACOS)
 
 
