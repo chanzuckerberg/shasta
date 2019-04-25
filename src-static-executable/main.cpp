@@ -78,9 +78,10 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     using boost::program_options::variables_map;
 
     const string executableDescription =
-        "\n\nThis is the static executable for the Shasta assembler. "
-        "It provides limited Shasta functionality "
-        "at reduced performance but has no dependencies and requires no installation.\n\n"
+        "\nThis is the static executable for the Shasta assembler. "
+        "It provides limited Shasta functionality, "
+        "at reduced performance when using the default options,"
+        "but has no dependencies and requires no installation.\n\n"
         "To run an assembly, use the \"--input\" option to specify the input Fasta files. "
         "See below for a description of the other options and parameters.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
@@ -99,6 +100,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     string configFileName;
     vector < string > inputFastaFileNames;
     string outputDirectory;
+    string command;
     string memoryMode;
     string memoryBacking;
     commandLineOnlyOptions.add_options()
@@ -119,6 +121,14 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         default_value("ShastaRun"),
         "Name of the output directory. Must not exist.")
 
+        ("command",
+        value<string>(&command)->
+        default_value("assemble"),
+        "Command to run. Must be one of:\n"
+        "assemble (default): run an assembly\n"
+        "cleanup: cleanup the Data directory that was created during assembly\n"
+        "    if --memoryMode filesystem.\n")
+
         ("memoryMode",
         value<string>(&memoryMode)->
         default_value("anonymous"),
@@ -129,7 +139,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         value<string>(&memoryBacking)->
         default_value("4K"),
         "Specify the type of  pages used to back memory.\n"
-        "Allowed values: disk, 4K (default), 2M. "
+        "Allowed values: disk, 4K (default), 2M (Linux only). "
         "All combinations (memoryMode, memoryBacking) are allowed "
         "except for (anonymous, disk).\n"
         "Some combinations require root privilege, which is obtained using sudo "
@@ -171,6 +181,26 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         store(parse_config_file(configFile, options), variablesMap);
         notify(variablesMap);
     }
+
+
+
+    // If command is "cleanup", just do it and exit.
+    if(command == "cleanup") {
+        const string dataDirectory = outputDirectory + "/Data";
+        if(!filesystem::exists(dataDirectory)) {
+            cout << dataDirectory << " does not exist, nothing done." << endl;
+        }
+        ::system(("sudo umount " + dataDirectory).c_str());
+        const int errorCode = ::system(string("rm -rf " + dataDirectory).c_str());
+        if(errorCode != 0) {
+            throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+                " removing " + dataDirectory);
+        }
+        cout << "Cleanup of " << dataDirectory << " successful." << endl;
+        return;
+    }
+
+
 
     // Check that we have at least one input FASTA file.     
     if (inputFastaFileNames.empty()) {
@@ -300,7 +330,6 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
                 ",uid=" + to_string(userId) +
                 ",gid=" + to_string(groupId) +
                 " none Data";
-            cout<< command << endl;
             const int errorCode = ::system(command.c_str());
             if(errorCode != 0) {
                 throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
@@ -341,12 +370,12 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
 
     // Final disclaimer message.
     cout << "\n" << buildId() << endl;
-    cout << "This run was done using the Shasta static executable,\n"
-        "which provides limited functionality at reduced performance.\n"
-        "Depending on run and machine characteristics, the performance penalty\n"
-        "can be large (up to a slow down of a factor of 3).\n"
-        "The Shasta static executable should not be used for\n"
-        "large runs or for benchmarking." << endl;
+    if(memoryBacking != "2M") {
+        cout << "This run was done with --memoryBacking " << memoryBacking << ".\n";
+        cout << "This could have resulted in performance degradation,\n"
+            "and therefore the results of this run should not be used\n"
+            "for benchmarking purposes." << endl;
+    }
 
 }
 
