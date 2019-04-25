@@ -2,6 +2,12 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/tokenizer.hpp>
+
+// Standard library.
+#include"stdexcept.hpp"
+
 
 
 // Add the AssemblyOptions to a Boost option description object.
@@ -161,7 +167,10 @@ void AssemblyOptions::add(boost::program_options::options_description& options)
         ("Assembly.consensusCaller",
         value<string>(&Assembly.consensusCaller)->
         default_value("SimpleConsensusCaller"),
-        "Selects the consensus caller for repeat counts.")
+        "Selects the consensus caller for repeat counts.\n"
+        "SimpleConsensusCaller is the only choice currently\n"
+        "supported by the Shasta executable.\n"
+        "Other choices are available with the Shasta library.")
 
         ("Assembly.useMarginPhase",
         value<string>(&Assembly.useMarginPhase)->
@@ -284,6 +293,31 @@ void AssemblyOptions::write(ostream& s) const
     s << "\n";
     Assembly.write(s);
     s << endl;
+}
+
+
+
+void AssemblyOptions::MarkerGraphOptions::parseSimplifyMaxLength()
+{
+    simplifyMaxLengthVector.clear();
+
+    boost::tokenizer< boost::char_separator<char> > tokenizer(
+        simplifyMaxLength, boost::char_separator<char>(","));
+    for(const string token: tokenizer) {
+        try {
+            size_t numberEndsHere;
+            const size_t value = std::stoi(token, &numberEndsHere);
+            if(numberEndsHere != token.size()) {
+                throw runtime_error("Error parsing MarkerGraph.simplifyMaxLength " +
+                    simplifyMaxLength);
+            }
+            simplifyMaxLengthVector.push_back(value);
+        } catch(std::invalid_argument e) {
+            throw runtime_error("Error parsing MarkerGraph,simplifyMaxLength " +
+                simplifyMaxLength);
+        }
+    }
+
 }
 
 

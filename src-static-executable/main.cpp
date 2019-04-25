@@ -12,7 +12,13 @@
 #include "timestamp.hpp"
 namespace ChanZuckerberg {
     namespace shasta {
-        void shastaMain(int argumentCount, const char** arguments);
+        namespace main {
+            void main(int argumentCount, const char** arguments);
+            void runAssembly(
+                Assembler&,
+                const AssemblyOptions&,
+                vector<string> inputFastaFileNames);
+        }
         class AssemblyOptions;
     }
 }
@@ -30,7 +36,33 @@ using namespace shasta;
 
 
 
-void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** arguments)
+int main(int argumentCount, const char** arguments)
+{
+    try {
+
+        shasta::main::main(argumentCount, arguments);
+
+    } catch(boost::program_options::error_with_option_name e) {
+        cout << "Invalid option: " << e.what() << endl;
+        return 1;
+    } catch (runtime_error e) {
+        cout << timestamp << "Terminated after catching a runtime error exception:" << endl;
+        cout << e.what() << endl;
+        return 2;
+    } catch (exception e) {
+        cout << timestamp << "Terminated after catching a standard exception:" << endl;
+        cout << e.what() << endl;
+        return 3;
+    } catch (...) {
+        cout << timestamp << "Terminated after catching a non-standard exception." << endl;
+        return 4;
+    }
+    return 0;
+}
+
+
+
+void ChanZuckerberg::shasta::main::main(int argumentCount, const char** arguments)
 {
     cout << buildId() << endl;
 
@@ -117,28 +149,8 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         throw runtime_error("Specify at least one input FASTA file.");
     }
 
-    // Parse MarkerGraph.simplifyMaxLength
-    vector<size_t> simplifyMaxLength;
-    {
-        boost::tokenizer< boost::char_separator<char> > tokenizer(
-            assemblyOptions.MarkerGraph.simplifyMaxLength, boost::char_separator<char>(","));
-        for(const string token: tokenizer) {
-            try {
-                size_t numberEndsHere;
-                const size_t value = std::stoi(token, &numberEndsHere);
-                if(numberEndsHere != token.size()) {
-                    throw runtime_error("Error parsing MarkerGraph.simplifyMaxLength " +
-                        assemblyOptions.MarkerGraph.simplifyMaxLength);
-                }
-                simplifyMaxLength.push_back(value);
-            } catch(std::invalid_argument e) {
-                throw runtime_error("Error parsing MarkerGraph,simplifyMaxLength " +
-                    assemblyOptions.MarkerGraph.simplifyMaxLength);
-            }
-        }
-    }
-
-
+    // Parse MarkerGraph.simplifyMaxLength.
+    assemblyOptions.MarkerGraph.parseSimplifyMaxLength();
 
     // Check for options unsupported by the static executable.
     if(assemblyOptions.Assembly.consensusCaller != "SimpleConsensusCaller") {
@@ -153,11 +165,9 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         throw runtime_error("Assembly.storeCoverageData is not supported by the Shasta static executable.");
     }
 
-
-
     // Write a startup message.
     cout << timestamp <<
-        "\n\nThis is the static executable for the Shasta assembler. "
+        "\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality "
         "at reduced performance but has no dependencies and requires no installation.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
@@ -168,15 +178,12 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n\n";
 
-
-
     // Find absolute paths of the input fasta files.
     // We will use them below after changing directory to the output directory.
     vector<string> inputFastaFileAbsolutePaths;
     for(const string& inputFastaFileName: inputFastaFileNames) {
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
     }
-
 
     // If the output directory exists, stop.
     // Otherwise, create it and make it current.
@@ -204,12 +211,41 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
 
     // Create the Assembler.
     Assembler assembler("Data/", true, 2*1024*1024);
+
+    // Run the assembly.
+    runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths);
+
+    // Final disclaimer message.
+    cout << "\n" << buildId() << endl;
+    cout << "This run was done using the Shasta static executable,\n"
+        "which provides limited functionality at reduced performance.\n"
+        "Depending on run and machine characteristics, the performance penalty\n"
+        "can be large (up to a slow down of a factor of 3).\n"
+        "The Shasta static executable should not be used for\n"
+        "large runs or for benchmarking." << endl;
+
+}
+
+
+
+// This runs the entire assembly, under the following assumptions:
+// - The current directory is the run directory.
+// - The Data directory has already been created and set up, if necessary.
+// - The input Fasta file names are either absolute,
+//   or relative to the run directory, which is the current directory.
+void ChanZuckerberg::shasta::main::runAssembly(
+    Assembler& assembler,
+    const AssemblyOptions& assemblyOptions,
+    vector<string> inputFastaFileNames)
+{
+    // The executable only supports SimpleConsensusCaller,
+    // at least for now.
     assembler.setupConsensusCaller("SimpleConsensusCaller");
 
     // Add reads from the specified FASTA files.
     assembler.accessReadsReadWrite();
     assembler.accessReadNamesReadWrite();
-    for(const string& inputFastaFileName: inputFastaFileAbsolutePaths) {
+    for(const string& inputFastaFileName: inputFastaFileNames) {
         assembler.addReadsFromFasta(
             inputFastaFileName,
             assemblyOptions.Reads.minReadLength,
@@ -301,7 +337,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     // Simplify the marker graph to remove bubbles and superbubbles.
     // The maxLength parameter controls the maximum number of markers
     // for a branch to be collapsed during each iteration.
-    assembler.simplifyMarkerGraph(simplifyMaxLength, false);
+    assembler.simplifyMarkerGraph(assemblyOptions.MarkerGraph.simplifyMaxLengthVector, false);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
@@ -324,39 +360,4 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeFasta("Assembly.fasta");
 
-    // Final disclaimer message.
-    cout << "\n" << buildId() << endl;
-    cout << "This run was done using the Shasta static executable,\n"
-        "which provides limited functionality at reduced performance.\n"
-        "Depending on run and machine characteristics, the performance penalty\n"
-        "can be large (up to a slow down of a factor of 3).\n"
-        "The Shasta static executable should not be used for\n"
-        "large runs or for benchmarking." << endl;
-
-}
-
-
-
-int main(int argumentCount, const char** arguments)
-{
-    try {
-    
-        shastaMain(argumentCount, arguments);      
-          
-    } catch(boost::program_options::error_with_option_name e) {
-        cout << "Invalid option: " << e.what() << endl;
-        return 1;
-    } catch (runtime_error e) {
-        cout << timestamp << "Terminated after catching a runtime error exception:" << endl;
-        cout << e.what() << endl;
-        return 2;
-    } catch (exception e) {
-        cout << timestamp << "Terminated after catching a standard exception:" << endl;
-        cout << e.what() << endl;
-        return 3;
-    } catch (...) {
-        cout << timestamp << "Terminated after catching a non-standard exception." << endl;
-        return 4;
-    }
-    return 0;
 }

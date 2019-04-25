@@ -7,6 +7,7 @@
 // Standard library.
 #include "iostream.hpp"
 #include "string.hpp"
+#include "vector.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {
@@ -99,6 +100,8 @@ public:
         int edgeMarkerSkipThreshold;
         int pruneIterationCount;
         string simplifyMaxLength;
+        vector<size_t> simplifyMaxLengthVector;
+        void parseSimplifyMaxLength();
         void write(ostream&) const;
     };
     MarkerGraphOptions MarkerGraph;
