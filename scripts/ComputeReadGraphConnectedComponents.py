@@ -6,7 +6,6 @@ import GetConfig
 config = GetConfig.getConfig()
 
 a = shasta.Assembler()
-a.accessReadsReadOnly()
 a.accessAlignmentData()
 a.accessReadGraph()
 a.accessReadFlags(readWriteAccess = True)

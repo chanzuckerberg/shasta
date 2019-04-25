@@ -22,7 +22,5 @@ if not (strand==0 or strand==1):
 fileName = str(readId) + '-' + str(strand) + '.fasta'
 
 a = shasta.Assembler()
-a.accessReadsReadOnly()
-a.accessReadNamesReadOnly()
 a.writeOrientedRead(readId=readId, strand=strand, fileName=fileName)
 

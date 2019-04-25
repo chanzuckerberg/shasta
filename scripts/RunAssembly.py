@@ -47,8 +47,6 @@ def runAssembly(a, config, fastaFileNames):
         a.setupMarginPhase()
     
     # Read the input fasta files.
-    a.accessReadsReadWrite()
-    a.accessReadNamesReadWrite()   
     for fileName in fastaFileNames:  
         print('Reading input file', fileName, flush=True) 
         a.addReadsFromFasta(

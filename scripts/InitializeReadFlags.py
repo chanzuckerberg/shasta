@@ -3,7 +3,6 @@
 import shasta
 
 a = shasta.Assembler()
-a.accessReadsReadOnly()
 a.initializeReadFlags()
 
 

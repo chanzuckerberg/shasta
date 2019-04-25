@@ -21,7 +21,6 @@ import shasta
 # Create the Assembler object and access what we need.
 a = shasta.Assembler(
     largeDataFileNamePrefix='DataOnDisk/')
-a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 

@@ -10,8 +10,13 @@ void LongBaseSequences::createNew(
     const string& name,
     size_t pageSize)
 {
-    baseCount.createNew(name + "-BaseCount", pageSize);
-    data.createNew(name + "-Bases", pageSize);
+    if(name.empty()) {
+        baseCount.createNew("", pageSize);
+        data.createNew("", pageSize);
+    } else {
+        baseCount.createNew(name + "-BaseCount", pageSize);
+        data.createNew(name + "-Bases", pageSize);
+    }
 }
 
 

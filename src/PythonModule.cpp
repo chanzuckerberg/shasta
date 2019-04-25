@@ -64,14 +64,6 @@ PYBIND11_MODULE(shasta, module)
             arg("blockSize") = 2ULL * 1024ULL * 1024ULL * 1024ULL,
             arg("threadCountForReading") = 1,
             arg("threadCountForProcessing") = 0)
-        .def("accessReadsReadOnly",
-            &Assembler::accessReadsReadOnly)
-        .def("accessReadsReadWrite",
-            &Assembler::accessReadsReadWrite)
-        .def("accessReadNamesReadOnly",
-            &Assembler::accessReadNamesReadOnly)
-        .def("accessReadNamesReadWrite",
-            &Assembler::accessReadNamesReadWrite)
         .def("histogramReadLength",
             &Assembler::histogramReadLength,
             "Create a histogram of read length and write it to a csv file.",

@@ -86,25 +86,49 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n";
 
+
+
     // Options that are only allowed on the command line.
     options_description commandLineOnlyOptions(
         "Options allowed only on the command line");
     string configFileName;
     vector < string > inputFastaFileNames;
     string outputDirectory;
+    string memoryMode;
+    string memoryBacking;
     commandLineOnlyOptions.add_options()
+
         ("help", 
         "Write a help message.")
+
         ("config", 
         boost::program_options::value<string>(&configFileName),
         "Configuration file name.")
+
         ("input",
         value< vector<string> >(&inputFastaFileNames)->multitoken(),
         "Names of input FASTA files. Specify at least one.")
+
         ("output",
         value<string>(&outputDirectory)->
         default_value("ShastaRun"),
         "Name of the output directory. Must not exist.")
+
+        ("memoryMode",
+        value<string>(&memoryMode)->
+        default_value("anonymous"),
+        "Specify whether allocated memory is anonymous or backed by a filesystem. "
+        "Allowed values: anonymous (default), filesystem.")
+
+        ("memoryBacking",
+        value<string>(&memoryBacking)->
+        default_value("4K"),
+        "Specify the type of  pages used to back memory.\n"
+        "Allowed values: disk, 4K (default), 2M. "
+        "All combinations (memoryMode, memoryBacking) are allowed "
+        "except for (anonymous, disk).\n"
+        "Some combinations require root privilege, which is obtained using sudo "
+        "and may result in a password prompting depending on your sudo set up.")
         ;
 
 
@@ -194,15 +218,90 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     filesystem::createDirectory(outputDirectory);
     filesystem::changeDirectory(outputDirectory);
 
-    // Create the Data directory.
-    filesystem::createDirectory("Data");
+
+
+    // Set up the run directory as required by the memoryMode and memoryBacking option.
+    size_t pageSize = 0;
+    string dataDirectory;
+    if(memoryMode == "anonymous") {
+
+        if(memoryBacking == "disk") {
+
+            // This combination is meaningless.
+            throw runtime_error("\"--memoryMode anonymous\" is not allowed in combination "
+                "with \"--memoryBacking disk\".");
+
+        } else if(memoryBacking == "4K") {
+
+            // Anonymous memory on 4KB pages.
+            // This combination is the default.
+            // It does not require root privilege.
+            dataDirectory = "";
+            pageSize = 4096;
+
+        } else if(memoryBacking == "2M") {
+
+            // Anonymous memory on 2MB pages.
+            // This may require root privilege, which is obtained using sudo
+            // and may result in a password prompting depending on sudo set up.
+            // Root privilege is not required if 2M pages have already
+            // been set up as required.
+            throw runtime_error("--memoryMode " + memoryMode +
+                " --memoryBacking " + memoryBacking + " not yet implemented.");
+
+        } else {
+            throw runtime_error("Invalid value specified for --memoryBacking: " + memoryBacking +
+                "\nValid values are: disk, 4K, 2M.");
+        }
+
+    } else if(memoryMode == "filesystem") {
+
+        if(memoryBacking == "disk") {
+
+            // Binary files on disk.
+            // This does not require root privilege.
+            filesystem::createDirectory("Data");
+            dataDirectory = "Data/";
+            pageSize = 4096;
+
+        } else if(memoryBacking == "4K") {
+
+            // Binary files on the tmpfs filesystem
+            // (filesystem in memory backed by 4K pages).
+            // This requires root privilege, which is obtained using sudo
+            // and may result in a password prompting depending on sudo set up.
+            throw runtime_error("--memoryMode " + memoryMode +
+                " --memoryBacking " + memoryBacking + " not yet implemented.");
+
+        } else if(memoryBacking == "2M") {
+
+            // Binary files on the hutetlbfs filesystem
+            // (filesystem in memory backed by 2M pages).
+            // This requires root privilege, which is obtained using sudo
+            // and may result in a password prompting depending on sudo set up.
+            throw runtime_error("--memoryMode " + memoryMode +
+                " --memoryBacking " + memoryBacking + " not yet implemented.");
+
+        } else {
+            throw runtime_error("Invalid value specified for --memoryBacking: " + memoryBacking +
+                "\nValid values are: disk, 4K, 2M.");
+        }
+
+    } else {
+        throw runtime_error("Invalid value specified for --memoryMode: " + memoryMode +
+            "\nValid values are: anonymous, filesystem.");
+    }
+
+
 
     // Write out the option values we are using.
     cout << "Options in use:" << endl;
     cout << "Input FASTA files: ";
     copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
     cout << endl;
-    cout << "outputDirectory = " << outputDirectory << endl << endl;
+    cout << "outputDirectory = " << outputDirectory << endl;
+    cout << "memoryMode = " << memoryMode << endl;
+    cout << "memoryBacking = " << memoryBacking << "\n" << endl;
     assemblyOptions.write(cout);
     {
         ofstream configurationFile("shasta.conf");
@@ -210,7 +309,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     }
 
     // Create the Assembler.
-    Assembler assembler("Data/", true, 2*1024*1024);
+    Assembler assembler(dataDirectory, true, pageSize);
 
     // Run the assembly.
     runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths);
@@ -243,8 +342,6 @@ void ChanZuckerberg::shasta::main::runAssembly(
     assembler.setupConsensusCaller("SimpleConsensusCaller");
 
     // Add reads from the specified FASTA files.
-    assembler.accessReadsReadWrite();
-    assembler.accessReadNamesReadWrite();
     for(const string& inputFastaFileName: inputFastaFileNames) {
         assembler.addReadsFromFasta(
             inputFastaFileName,

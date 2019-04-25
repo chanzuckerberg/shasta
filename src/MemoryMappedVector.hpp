@@ -266,6 +266,7 @@ private:
 
     void createNewAnonymous(size_t pageSize, size_t n=0, size_t requiredCapacity=0);
     void resizeAnonymous(size_t newSize);
+    void reserveAnonymous(size_t newSize);
     void unmapAnonymous();
 };
 
@@ -924,6 +925,11 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
         return;
     }
 
+    if(fileName.empty()) {
+        reserveAnonymous(capacity);
+        return;
+    }
+
     // Save what we need and close it.
     const size_t currentSize = size();
     const string name = fileName;
@@ -952,6 +958,70 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
     isOpen = true;
     isOpenWithWriteAccess = true;
     fileName = name;
+}
+
+
+
+template<class T> inline
+    void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::reserveAnonymous(
+    size_t capacity)
+{
+
+    // Save what we need and close it.
+    const size_t currentSize = size();
+    const string name = fileName;
+    const size_t pageSize = header->pageSize;
+
+    // Create a header corresponding to increased capacity.
+    const Header headerOnStack(currentSize, capacity, pageSize);
+
+
+    // Remap it.
+    // We can only use remap for Linux, and for 4K pages.
+    bool useMremap = false;
+#ifdef __linux__
+    useMremap = (pageSize == 4096);
+#endif
+    void* pointer = 0;
+    if(useMremap) {
+        pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
+        if(pointer == reinterpret_cast<void*>(-1LL)) {
+            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+        }
+    } else {
+
+        // We cannot use mremap. We have to create a new mapping
+        // and copy the data.
+        int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_HUGE_2MB;
+        void* newPointer = ::mmap(0, headerOnStack.fileSize,
+            PROT_READ | PROT_WRITE, flags,
+            -1, 0);
+        if(newPointer == reinterpret_cast<void*>(-1LL)) {
+            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+        }
+        std::copy(
+            reinterpret_cast<char*>(header),
+            reinterpret_cast<char*>(header) + header->fileSize,
+            static_cast<char*>(newPointer));
+        ::munmap(header, header->fileSize);
+        pointer = newPointer;
+    }
+
+
+
+    // Figure out where the data and the header are.
+    header = static_cast<Header*>(pointer);
+    data = reinterpret_cast<T*>(header+1);
+
+    // Store the header.
+    *header = headerOnStack;
+
+    // Indicate that the mapped vector is open with write access.
+    isOpen = true;
+    isOpenWithWriteAccess = true;
+    fileName = "";
 }
 
 

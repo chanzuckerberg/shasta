@@ -278,20 +278,6 @@ void Assembler::accessAllSoft()
     bool allDataAreAvailable = true;
 
     try {
-        accessReadsReadOnly();
-    } catch(exception e) {
-        cout << "Reads are not accessible." << endl;
-        allDataAreAvailable = false;
-    }
-
-    try {
-        accessReadNamesReadOnly();
-    } catch(exception e) {
-        cout << "Read names are not accessible." << endl;
-        allDataAreAvailable = false;
-    }
-
-    try {
         accessReadFlags(false);
     } catch(exception e) {
         cout << "Read flags are not accessible." << endl;

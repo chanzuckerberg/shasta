@@ -24,5 +24,4 @@ fileName = 'Markers-' + str(readId) + '-' + str(strand) + '.csv'
 a = shasta.Assembler()
 a.accessKmers()
 a.accessMarkers()
-a.accessReadsReadOnly()
 a.writeMarkers(readId=readId, strand=strand, fileName=fileName)

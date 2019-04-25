@@ -9,24 +9,6 @@ using namespace shasta;
 
 
 
-void Assembler::accessReadsReadOnly()
-{
-    reads.accessExistingReadOnly(largeDataName("Reads"));
-    readRepeatCounts.accessExistingReadOnly(largeDataName("ReadRepeatCounts"));
-}
-void Assembler::accessReadsReadWrite()
-{
-    reads.accessExistingReadWrite(largeDataName("Reads"));
-    readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
-}
-void Assembler::accessReadNamesReadOnly()
-{
-    readNames.accessExistingReadOnly(largeDataName("ReadNames"));
-}
-void Assembler::accessReadNamesReadWrite()
-{
-    readNames.accessExistingReadWrite(largeDataName("ReadNames"));
-}
 void Assembler::checkReadsAreOpen() const
 {
     if(!reads.isOpen()) {

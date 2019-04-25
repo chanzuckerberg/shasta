@@ -118,12 +118,6 @@ public:
         size_t threadCountForReading,
         size_t threadCountForProcessing);
 
-    // Access the reads and read names.
-    void accessReadsReadOnly();
-    void accessReadsReadWrite();
-    void accessReadNamesReadOnly();
-    void accessReadNamesReadWrite();
-
     // Create a histogram of read lengths.
     void histogramReadLength(const string& fileName);
 
@@ -368,7 +362,11 @@ private:
     // Function to construct names for binary objects.
     string largeDataName(const string& name) const
     {
-        return largeDataFileNamePrefix + name;
+        if(largeDataFileNamePrefix.empty()) {
+            return "";  // Anonymous;
+        } else {
+            return largeDataFileNamePrefix + name;
+        }
     }
 
     // Various pieces of assembler information stored in shared memory.

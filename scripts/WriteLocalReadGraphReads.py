@@ -21,9 +21,7 @@ allowChimericReads = arguments.allowChimericReads
 allowCrossStrandEdges = arguments.allowCrossStrandEdges
 
 a = shasta.Assembler()
-a.accessReadsReadOnly()
 a.accessReadFlags()
-a.accessReadNamesReadOnly()
 a.accessAlignmentData()
 a.accessReadGraph()
 a.accessMarkers()

@@ -25,8 +25,6 @@ config = GetConfig.getConfig()
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
 a.accessKmers()
-a.accessReadsReadOnly()
-a.accessReadNamesReadOnly()
 a.accessMarkers()
 
 # For convenience, write the markers sorted by position.

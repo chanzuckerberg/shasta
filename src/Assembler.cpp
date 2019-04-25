@@ -32,13 +32,8 @@ Assembler::Assembler(
         assemblerInfo->largeDataPageSize = largeDataPageSize;
 
         reads.createNew(largeDataName("Reads"), largeDataPageSize);
-        reads.close();
-
         readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
-        readNames.close();
-
         readRepeatCounts.createNew(largeDataName("ReadRepeatCounts"), largeDataPageSize);
-        readRepeatCounts.close();
 
     } else {
 
@@ -46,10 +41,13 @@ Assembler::Assembler(
         assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
         largeDataPageSize = assemblerInfo->largeDataPageSize;
 
+        reads.accessExistingReadWrite(largeDataName("Reads"));
+        readNames.accessExistingReadWrite(largeDataName("ReadNames"));
+        readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
+
     }
 
-    // In both cases, assemblerInfo is the only open object
-    // when the constructor finishes.
+    // In both cases, assemblerInfo, reads, readNames, readRepeatCounts are all open for write.
 
 #ifndef SHASTA_STATIC_EXECUTABLE
     fillServerFunctionTable();
