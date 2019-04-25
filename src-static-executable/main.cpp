@@ -275,17 +275,37 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
             // (filesystem in memory backed by 4K pages).
             // This requires root privilege, which is obtained using sudo
             // and may result in a password prompting depending on sudo set up.
-            throw runtime_error("--memoryMode " + memoryMode +
-                " --memoryBacking " + memoryBacking + " not yet implemented.");
+            filesystem::createDirectory("Data");
+            dataDirectory = "Data/";
+            pageSize = 4096;
+            const string command = "sudo mount -t tmpfs -o size=0 tmpfs Data";
+            const int errorCode = ::system(command.c_str());
+            if(errorCode != 0) {
+                throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+                    " running command: " + command);
+            }
 
         } else if(memoryBacking == "2M") {
 
-            // Binary files on the hutetlbfs filesystem
+            // Binary files on the hugetlbfs filesystem
             // (filesystem in memory backed by 2M pages).
             // This requires root privilege, which is obtained using sudo
             // and may result in a password prompting depending on sudo set up.
-            throw runtime_error("--memoryMode " + memoryMode +
-                " --memoryBacking " + memoryBacking + " not yet implemented.");
+            filesystem::createDirectory("Data");
+            dataDirectory = "Data/";
+            pageSize = 2 * 1024 * 1024;
+            const uid_t userId = ::getuid();
+            const gid_t groupId = ::getgid();
+            const string command = "sudo mount -t hugetlbfs -o pagesize=2M"
+                ",uid=" + to_string(userId) +
+                ",gid=" + to_string(groupId) +
+                " none Data";
+            cout<< command << endl;
+            const int errorCode = ::system(command.c_str());
+            if(errorCode != 0) {
+                throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+                    " running command: " + command);
+            }
 
         } else {
             throw runtime_error("Invalid value specified for --memoryBacking: " + memoryBacking +
@@ -503,9 +523,10 @@ void ChanZuckerberg::shasta::main::setupHugePages()
         "sudo sh -c \"echo " +
         to_string(maximumHugePageMemoryHugePages) +
         " > " + fileName + "\"";
-    const int errorCode = system(command.c_str());
+    const int errorCode = ::system(command.c_str());
     if(errorCode != 0) {
-        throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode));
+        throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+            " running command: " + command);
     }
 
 }
