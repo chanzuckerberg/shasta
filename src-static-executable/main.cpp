@@ -18,6 +18,7 @@ namespace ChanZuckerberg {
                 Assembler&,
                 const AssemblyOptions&,
                 vector<string> inputFastaFileNames);
+            void setupHugePages();
         }
         class AssemblyOptions;
     }
@@ -27,6 +28,10 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/program_options.hpp>
+
+//  Linux.
+#include <stdlib.h>
+#include <unistd.h>
 
 // Standard library.
 #include "fstream.hpp"
@@ -246,8 +251,8 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
             // and may result in a password prompting depending on sudo set up.
             // Root privilege is not required if 2M pages have already
             // been set up as required.
-            throw runtime_error("--memoryMode " + memoryMode +
-                " --memoryBacking " + memoryBacking + " not yet implemented.");
+            setupHugePages();
+            pageSize = 2 * 1024 * 1024;
 
         } else {
             throw runtime_error("Invalid value specified for --memoryBacking: " + memoryBacking +
@@ -456,5 +461,51 @@ void ChanZuckerberg::shasta::main::runAssembly(
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeFasta("Assembly.fasta");
+
+}
+
+
+// This function sets nr_overcommit_hugepages for 2MB pages
+// to a little below total memory.
+// If the setting needs to be modified, it acquires
+// root privilege via sudo. This may result in the
+// user having to enter a password.
+void ChanZuckerberg::shasta::main::setupHugePages()
+{
+
+    // Get the total memory size.
+    const uint64_t totalMemoryBytes = sysconf(_SC_PAGESIZE) * sysconf(_SC_PHYS_PAGES);
+
+    // Figure out how much memory we want to allow for 2MB pages.
+    const uint64_t MB = 1024 * 1024;
+    const uint64_t GB = MB * 1024;
+    const uint64_t maximumHugePageMemoryBytes = totalMemoryBytes - 8 * GB;
+    const uint64_t maximumHugePageMemoryHugePages = maximumHugePageMemoryBytes / (2 * MB);
+
+    // Check what we have it set to.
+    const string fileName = "/sys/kernel/mm/hugepages/hugepages-2048kB/nr_overcommit_hugepages";
+    ifstream file(fileName);
+    if(!file) {
+        throw runtime_error("Error opening " + fileName + " for read.");
+    }
+    uint64_t currentValue = 0;
+    file >> currentValue;
+    file.close();
+
+    // If it's set to at least what we want, don't do anything.
+    // When this happens, root access is not required.
+    if(currentValue >= maximumHugePageMemoryHugePages) {
+        return;
+    }
+
+    // Use sudo to set.
+    const string command =
+        "sudo sh -c \"echo " +
+        to_string(maximumHugePageMemoryHugePages) +
+        " > " + fileName + "\"";
+    const int errorCode = system(command.c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode));
+    }
 
 }
