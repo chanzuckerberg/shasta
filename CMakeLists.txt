@@ -19,7 +19,7 @@ if(MACOS)
     option(BUILD_EXECUTABLE "Build the static executable." ON)
 else(MACOS)
     option(BUILD_LIBRARY "Build the shared library." ON)
-    option(BUILD_EXECUTABLE "Build the static executable." OFF)
+    option(BUILD_EXECUTABLE "Build the static executable." ON)
 endif(MACOS)
 
 
