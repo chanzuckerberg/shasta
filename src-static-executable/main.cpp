@@ -228,7 +228,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     cout << timestamp <<
         "\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality "
-        "at reduced performance but has no dependencies and requires no installation.\n\n"
+        "at but has no dependencies and requires no installation.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
         "at coverage 60x. If your data have significantly different coverage, "
         "some changes in assembly parameters may be necessary to get good results.\n\n"
@@ -371,9 +371,11 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     // Final disclaimer message.
     cout << "\n" << buildId() << endl;
     if(memoryBacking != "2M") {
-        cout << "This run was done with --memoryBacking " << memoryBacking << ".\n";
-        cout << "This could have resulted in performance degradation,\n"
-            "and therefore the results of this run should not be used\n"
+        cout << "This run was done with \"--memoryBacking " << memoryBacking << "\".\n";
+        cout << "This could have resulted in performance degradation.\n"
+            "For full performance, use \"--memoryBacking 2M\"\n"
+            "(root privilege via sudo required).\n"
+            "Therefore the results of this run should not be used\n"
             "for benchmarking purposes." << endl;
     }
 
