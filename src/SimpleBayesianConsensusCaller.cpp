@@ -34,12 +34,23 @@ using namespace shasta;
 
 
 // Helper function
-void SimpleBayesianConsensusCaller::split(string s, char separator_char, vector<double>& tokens){
+void SimpleBayesianConsensusCaller::split_as_double(string s, char separator_char, vector<double>& tokens){
     Separator separator(&separator_char);
     Tokenizer tok{s, separator};
 
     for (string token: tok) {
         tokens.push_back(stod(token));
+    }
+}
+
+
+// Helper function
+void SimpleBayesianConsensusCaller::split_as_string(string s, char separator_char, vector<string>& tokens){
+    Separator separator(&separator_char);
+    Tokenizer tok{s, separator};
+
+    for (string token: tok) {
+        tokens.push_back(token);
     }
 }
 
@@ -57,7 +68,9 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
         throw runtime_error(error_message);
     }
 
-    load_probability_matrices(matrix_file);
+    load_configuration(matrix_file);
+
+    cout << "Using SimpleBayesianConsensusCaller with '"<< configuration_name <<"' configuration\n";
 }
 
 
@@ -66,45 +79,120 @@ void SimpleBayesianConsensusCaller::print_probability_matrices(char separator){
     uint32_t n_bases = 4;
 
     for (uint32_t b=0; b<n_bases; b++){
-        cout << '>' << Base::fromInteger(b).character() << '\n';
+        cout << '>' << Base::fromInteger(b).character() << " " << probability_matrices[b].size() << '\n';
 
         for (uint32_t i=0; i<length; i++){
             for (uint32_t j=0; j<length; j++){
                 // Print with exactly 9 decimal values
                 printf("%.9f",probability_matrices[b][i][j]);
-                if (j != length-1)
+                if (j != length-1){
                     cout << separator;
+                }
             }
             cout << '\n';
         }
-        if (b != n_bases-1)
+        if (b != n_bases-1){
             cout << '\n';
+        }
     }
 }
 
 
-void SimpleBayesianConsensusCaller::load_probability_matrices(ifstream& matrix_file){
-    string line;
+void SimpleBayesianConsensusCaller::print_priors(char separator){
+    const uint32_t length = uint(priors[0].size());
+    uint32_t n_bases = 2;
+
+    for (uint32_t b=0; b<n_bases; b++){
+        cout << '>' << Base::fromInteger(b).character() << " " << priors[b].size() << '\n';
+
+        for (uint32_t i=0; i<length; i++){
+            printf("%d %.9f",int(i), priors[b][i]);
+            if (i != length-1){
+                cout << separator;
+            }
+        }
+        if (b != n_bases-1){
+            cout << '\n';
+        }
+    }
+}
+
+
+void SimpleBayesianConsensusCaller::parse_name(ifstream& matrix_file, string& line){
+    // Expect only one line to follow
+    getline(matrix_file, line);
+    configuration_name = line;
+}
+
+
+void SimpleBayesianConsensusCaller::parse_prior(ifstream& matrix_file, string& line, vector<string>& tokens){
+    // Expect only one line to follow
+    getline(matrix_file, line);
+
+    // Initialize empty vector to fill with tokens from csv
+    vector<double> row;
+
+    // Assume csv format
+    split_as_double(line, ',', row);
+
+    // Two prior distributions exist. One for AT and one for GC, since observed reads are bidirectional
+    if (tokens[0] == "AT"){
+        priors[0] = row;
+    }
+    else if (tokens[0] == "GC"){
+        priors[1] = row;
+    }
+}
+
+
+void SimpleBayesianConsensusCaller::parse_likelihood(ifstream& matrix_file, string& line, vector<string>& tokens){
     char base;
     uint32_t base_index = 0;
 
-    // Matrices are labeled via fasta-like headers
+    // Expect many lines (usually 51)
     while (getline(matrix_file, line)){
 
-        // Header line
-        if (line[0] == '>'){
-            base = line[1];
-            base_index = uint32_t(Base::fromCharacter(base).value);
+        // Stop iterating lines when blank line is encountered
+        if (line.empty()){
+            break;
         }
 
-        // Data line
-        else if (line[0] != '>' && not line.empty()) {
-            // Initialize empty vector to fill with tokens from csv
-            vector<double> row;
+        // Initialize empty vector to fill with tokens from csv
+        vector<double> row;
 
-            // Assume csv format
-            split(line, ',', row);
-            probability_matrices[base_index].push_back(row);
+        // Assume csv format
+        split_as_double(line, ',', row);
+
+        base = tokens[0][0];
+        base_index = uint32_t(Base::fromCharacter(base).value);
+
+        probability_matrices[base_index].push_back(row);
+    }
+}
+
+
+void SimpleBayesianConsensusCaller::load_configuration(ifstream& matrix_file){
+    string line;
+
+    while (getline(matrix_file, line)){
+
+        // Header line (labeled via fasta-like headers)
+        if (line[0] == '>'){
+            vector<string> tokens;
+
+            // Store the header
+            line = line.substr(1, line.size()-1);
+            split_as_string(line, ' ', tokens);
+
+            if (tokens[0] == "Name"){
+                parse_name(matrix_file, line);
+
+            }else if (tokens[1] == "prior"){
+                parse_prior(matrix_file, line, tokens);
+
+            }else if (tokens[1] == "likelihood"){
+                parse_likelihood(matrix_file, line, tokens);
+            }
         }
     }
 }
@@ -158,10 +246,27 @@ void SimpleBayesianConsensusCaller::factor_repeats(array<map<uint16_t,uint16_t>,
 
 
 uint16_t SimpleBayesianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const{
+    array <map <uint16_t,uint16_t>, 2> factored_repeats;    // Repeats grouped by strand and length
+
+    size_t prior_index = -1;    // Used to determine which prior probability vector to access (AT=0 or GC=1)
+    uint16_t x_i;               // Element of X = {x_0, x_1, ..., x_i} observed repeats
+    uint16_t c_i;               // Number of times x_i was observed
+    uint16_t y_j;               // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength
+    double log_sum;             // Product (in logspace) of P(x_i|y_j) for each i
+
+    double y_max_likelihood = -INF;     // Probability of most probable true repeat length
+    uint16_t y_max = 0;                 // Most probable repeat length
+
+    // Determine which index to use for this->priors
+    if (consensusBase.character() == 'A' || consensusBase.character() == 'T'){
+        prior_index = 0;
+    }
+    else if (consensusBase.character() == 'G' || consensusBase.character() == 'C'){
+        prior_index = 1;
+    }
+
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods/
     // Depending on class boolean "ignore_non_consensus_base_repeats" filter out observations
-    array <map <uint16_t,uint16_t>, 2> factored_repeats;
-
     if (ignore_non_consensus_base_repeats) {
         factor_repeats(factored_repeats, coverage, consensusBase);
     }
@@ -169,21 +274,11 @@ uint16_t SimpleBayesianConsensusCaller::predict_runlength(const Coverage &covera
         factor_repeats(factored_repeats, coverage);
     }
 
-    uint16_t x_i;    // Element of X = {x_0, x_1, ..., x_i} observed repeats
-    uint16_t c_i;    // Number of times x_i was observed
-    uint16_t y_j;    // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength (50)
-
-    double log_sum;  // Product (in logspace) of P(x_i|y_j) for each i
-
-    double y_max_likelihood = -INF;
-    uint16_t y_max = 0;
-
     // Iterate all possible Y from 0 to j to calculate p(Y_j|X) where X is all observations 0 to i,
     // assuming i and j are less than max_runlength
     for (y_j = 0; y_j <= max_runlength; y_j++){
-        // Initialize log_sum for this Y value.
-        // Use a prior (penalty) of a factor 1/4 for each new base.
-        log_sum = (y_j==0) ? -20. : (-y_j * log10(4.));
+        // Initialize log_sum for this Y value using empirically determined priors
+        log_sum = priors[prior_index][y_j];
 
         for (uint16_t strand = 0; strand <= factored_repeats.size() - 1; strand++){
             for (auto& item: factored_repeats[strand]){
