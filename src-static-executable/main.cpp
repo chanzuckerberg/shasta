@@ -138,8 +138,8 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         ("memoryBacking",
         value<string>(&memoryBacking)->
         default_value("4K"),
-        "Specify the type of  pages used to back memory.\n"
-        "Allowed values: disk, 4K (default), 2M (Linux only). "
+        "Specify the type of pages used to back memory.\n"
+        "Allowed values: disk, 4K (default), 2M (for best performance, Linux only). "
         "All combinations (memoryMode, memoryBacking) are allowed "
         "except for (anonymous, disk).\n"
         "Some combinations require root privilege, which is obtained using sudo "
