@@ -24,7 +24,7 @@
 
 // Linux.
 #include <fcntl.h>
-#include <asm/mman.h>
+#include <linux/mman.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
