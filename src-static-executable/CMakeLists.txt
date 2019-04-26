@@ -24,6 +24,9 @@ endif(NOT MACOS)
 add_definitions(-std=c++14)
 add_definitions(-ggdb3)
 add_definitions(-O3)
+if(BUILD_NATIVE)
+    add_definitions(-march=native)
+endif(BUILD_NATIVE)
 
 # Turn compilation warnings on, but not on macOS.
 if(NOT MACOS)

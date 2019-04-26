@@ -24,11 +24,16 @@ endif(MACOS)
 
 
 
-# Option to build the shared library with -march=native.
+# Option to build with -march=native.
 # The static executable is never built with -march=native,
 # regardless of how this is set.
-option(BUILD_NATIVE "Build with -march=native (shared library only)." ON)
+if(MACOS)
+    option(BUILD_NATIVE "Build with -march=native." OFF)
+else(MACOS)
+    option(BUILD_NATIVE "Build with -march=native." ON)
+endif(MACOS)
 message(STATUS "BUILD_NATIVE is " ${BUILD_NATIVE})
+
 
 
 # The BUILD_ID can be specified to identify the build
