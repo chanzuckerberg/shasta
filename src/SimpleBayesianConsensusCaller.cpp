@@ -28,6 +28,7 @@ using std::make_pair;
 using std::cout;
 using std::pow;
 using std::map;
+using std::max;
 
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -306,7 +307,7 @@ uint16_t SimpleBayesianConsensusCaller::predict_runlength(const Coverage &covera
 
     normalize_likelihoods(log_likelihood_y, y_max_likelihood);
 
-    return y_max;
+    return max(uint16_t(1), y_max);   // Don't allow zeroes...
 }
 
 
