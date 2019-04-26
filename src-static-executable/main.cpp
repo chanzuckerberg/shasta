@@ -321,6 +321,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
             // (filesystem in memory backed by 2M pages).
             // This requires root privilege, which is obtained using sudo
             // and may result in a password prompting depending on sudo set up.
+            setupHugePages();
             filesystem::createDirectory("Data");
             dataDirectory = "Data/";
             pageSize = 2 * 1024 * 1024;
