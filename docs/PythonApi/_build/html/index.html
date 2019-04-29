@@ -64,21 +64,43 @@
 <em class="property">class </em><code class="descclassname">shasta.</code><code class="descname">Assembler</code><a class="headerlink" href="#shasta.Assembler" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="shasta.Assembler.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#shasta.Assembler.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Overloaded function.</p>
-<ol class="arabic simple">
-<li>__init__(self: shasta.Assembler, smallDataFileNamePrefix: str=&#8217;data/&#8217;, largeDataFileNamePrefix: str=&#8217;Data/&#8217;, smallDataPageSize: int=4096, largeDataPageSize: int=2097152, useRunLengthReads: bool) -&gt; None</li>
-</ol>
-<p>Create a new assembler.</p>
-<ol class="arabic simple" start="2">
-<li>__init__(self: shasta.Assembler, smallDataFileNamePrefix: str=&#8217;data/&#8217;, largeDataFileNamePrefix: str=&#8217;Data/&#8217;, smallDataPageSize: int=4096, largeDataPageSize: int=2097152) -&gt; None</li>
-</ol>
-<p>Access an existing Assembler.</p>
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>largeDataFileNamePrefix: str='Data/'</em>, <em>createNew: bool=False</em>, <em>largeDataPageSize: int=2097152</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assembler constructor.</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessAlignmentCandidates">
+<code class="descname">accessAlignmentCandidates</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAlignmentCandidates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="shasta.Assembler.accessAlignmentData">
 <code class="descname">accessAlignmentData</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAlignmentData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessAllSoft">
+<code class="descname">accessAllSoft</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAllSoft" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessAssemblyGraphEdgeLists">
+<code class="descname">accessAssemblyGraphEdgeLists</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAssemblyGraphEdgeLists" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessAssemblyGraphEdges">
+<code class="descname">accessAssemblyGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAssemblyGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessAssemblyGraphSequences">
+<code class="descname">accessAssemblyGraphSequences</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAssemblyGraphSequences" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessAssemblyGraphVertices">
+<code class="descname">accessAssemblyGraphVertices</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessAssemblyGraphVertices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -87,8 +109,33 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.accessMarkerGraphConnectivity">
-<code class="descname">accessMarkerGraphConnectivity</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>accessEdgesReadWrite: bool=False</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphConnectivity" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.accessMarkerGraphCoverageData">
+<code class="descname">accessMarkerGraphCoverageData</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphCoverageData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkerGraphEdgeConsensus">
+<code class="descname">accessMarkerGraphEdgeConsensus</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphEdgeConsensus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkerGraphEdges">
+<code class="descname">accessMarkerGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>accessEdgesReadWrite: bool=False</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkerGraphReverseComplementEdge">
+<code class="descname">accessMarkerGraphReverseComplementEdge</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphReverseComplementEdge" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkerGraphReverseComplementVertex">
+<code class="descname">accessMarkerGraphReverseComplementVertex</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphReverseComplementVertex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.accessMarkerGraphVertexRepeatCounts">
+<code class="descname">accessMarkerGraphVertexRepeatCounts</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessMarkerGraphVertexRepeatCounts" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -102,28 +149,18 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.accessOverlaps">
-<code class="descname">accessOverlaps</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessOverlaps" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.accessReadFlags">
+<code class="descname">accessReadFlags</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readWriteAccess: bool=False</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadFlags" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.accessReadNamesReadOnly">
-<code class="descname">accessReadNamesReadOnly</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadNamesReadOnly" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.accessReadGraph">
+<code class="descname">accessReadGraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.accessReadNamesReadWrite">
-<code class="descname">accessReadNamesReadWrite</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadNamesReadWrite" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="shasta.Assembler.accessReadsReadOnly">
-<code class="descname">accessReadsReadOnly</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadsReadOnly" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="shasta.Assembler.accessReadsReadWrite">
-<code class="descname">accessReadsReadWrite</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadsReadWrite" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.accessReadGraphReadWrite">
+<code class="descname">accessReadGraphReadWrite</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.accessReadGraphReadWrite" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -134,32 +171,92 @@
 
 <dl class="method">
 <dt id="shasta.Assembler.alignOrientedReads">
-<code class="descname">alignOrientedReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId0: int</em>, <em>strand0: int</em>, <em>readId1: int</em>, <em>strand1: int</em>, <em>maxSkip: int</em>, <em>maxVertexCountPerKmer: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.alignOrientedReads" title="Permalink to this definition">¶</a></dt>
+<code class="descname">alignOrientedReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId0: int</em>, <em>strand0: int</em>, <em>readId1: int</em>, <em>strand1: int</em>, <em>maxSkip: int</em>, <em>maxMarkerFrequency: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.alignOrientedReads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="shasta.Assembler.alignOverlappingOrientedReads">
-<code class="descname">alignOverlappingOrientedReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>maxSkip: int</em>, <em>maxVertexCountPerKmer: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.alignOverlappingOrientedReads" title="Permalink to this definition">¶</a></dt>
+<code class="descname">alignOverlappingOrientedReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>maxSkip: int</em>, <em>maxMarkerFrequency: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.alignOverlappingOrientedReads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.computeAllAlignments">
-<code class="descname">computeAllAlignments</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxVertexCountPerKmer: int</em>, <em>maxSkip: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em>, <em>minCoverage: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeAllAlignments" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.analyzeAssembledSequence">
+<code class="descname">analyzeAssembledSequence</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>edgeId: int</em>, <em>begin: int</em>, <em>end: int</em>, <em>referenceSequence: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.analyzeAssembledSequence" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.computeReadGraphComponents">
-<code class="descname">computeReadGraphComponents</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>minComponentSize: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeReadGraphComponents" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.assemble">
+<code class="descname">assemble</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.assemble" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.createLocalReadGraph">
-<code class="descname">createLocalReadGraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em>, <em>distance: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createLocalReadGraph" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.assembleAssemblyGraphEdge">
+<code class="descname">assembleAssemblyGraphEdge</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>edgeId: int</em>, <em>storeCoverageData: bool=True</em><span class="sig-paren">)</span> &rarr; ChanZuckerberg::shasta::AssembledSegment<a class="headerlink" href="#shasta.Assembler.assembleAssemblyGraphEdge" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.createMarkerGraphConnectivity">
-<code class="descname">createMarkerGraphConnectivity</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em>, <em>markerCountOverflow: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createMarkerGraphConnectivity" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.assembleMarkerGraphEdges">
+<code class="descname">assembleMarkerGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em>, <em>markerGraphEdgeLengthThresholdForConsensus: int</em>, <em>useMarginPhase: bool</em>, <em>storeCoverageData: bool</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.assembleMarkerGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.assembleMarkerGraphVertices">
+<code class="descname">assembleMarkerGraphVertices</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.assembleMarkerGraphVertices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.checkMarkerGraphIsStrandSymmetric">
+<code class="descname">checkMarkerGraphIsStrandSymmetric</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.checkMarkerGraphIsStrandSymmetric" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.computeAlignments">
+<code class="descname">computeAlignments</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxMarkerFrequency: int</em>, <em>maxSkip: int</em>, <em>minAlignedMarkerCount: int</em>, <em>maxTrim: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeAlignments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.computeAssemblyStatistics">
+<code class="descname">computeAssemblyStatistics</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeAssemblyStatistics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.computeMarkerGraphVerticesCoverageData">
+<code class="descname">computeMarkerGraphVerticesCoverageData</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeMarkerGraphVerticesCoverageData" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.computeReadGraphConnectedComponents">
+<code class="descname">computeReadGraphConnectedComponents</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>minComponentSize: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.computeReadGraphConnectedComponents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createAssemblyGraphEdges">
+<code class="descname">createAssemblyGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createAssemblyGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createAssemblyGraphVertices">
+<code class="descname">createAssemblyGraphVertices</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createAssemblyGraphVertices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createMarkerGraphEdges">
+<code class="descname">createMarkerGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createMarkerGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createMarkerGraphVertices">
+<code class="descname">createMarkerGraphVertices</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxMarkerFrequency: int</em>, <em>maxSkip: int</em>, <em>minCoverage: int</em>, <em>maxCoverage: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createMarkerGraphVertices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createReadGraph">
+<code class="descname">createReadGraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxAlignmentCount: int</em>, <em>maxTrim: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createReadGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.createReadGraphNew">
+<code class="descname">createReadGraphNew</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxAlignmentCount: int</em>, <em>maxTrim: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.createReadGraphNew" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -173,19 +270,49 @@
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="shasta.Assembler.findAlignmentCandidatesLowHash">
+<code class="descname">findAlignmentCandidatesLowHash</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>m: int</em>, <em>hashFraction: float</em>, <em>minHashIterationCount: int</em>, <em>log2MinHashBucketCount: int=0</em>, <em>maxBucketSize: int</em>, <em>minFrequency: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findAlignmentCandidatesLowHash" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.findAlignmentCandidatesMinHash">
+<code class="descname">findAlignmentCandidatesMinHash</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>m: int</em>, <em>minHashIterationCount: int</em>, <em>log2MinHashBucketCount: int=0</em>, <em>maxBucketSize: int</em>, <em>minFrequency: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findAlignmentCandidatesMinHash" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.findMarkerGraphReverseComplementEdges">
+<code class="descname">findMarkerGraphReverseComplementEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findMarkerGraphReverseComplementEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.findMarkerGraphReverseComplementVertices">
+<code class="descname">findMarkerGraphReverseComplementVertices</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findMarkerGraphReverseComplementVertices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="shasta.Assembler.findMarkers">
 <code class="descname">findMarkers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findMarkers" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find markers in reads.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.findOverlaps">
-<code class="descname">findOverlaps</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>m: int</em>, <em>minHashIterationCount: int</em>, <em>log2MinHashBucketCount: int</em>, <em>maxBucketSize: int</em>, <em>minFrequency: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.findOverlaps" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.flagChimericReads">
+<code class="descname">flagChimericReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxChimericReadDistance: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.flagChimericReads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="shasta.Assembler.flagMarkerGraphEdges">
-<code class="descname">flagMarkerGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>threadCount: int=0</em>, <em>minCoverage: int</em>, <em>maxPathLength: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.flagMarkerGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dt id="shasta.Assembler.flagCrossStrandReadGraphEdges">
+<code class="descname">flagCrossStrandReadGraphEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.flagCrossStrandReadGraphEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.flagMarkerGraphWeakEdges">
+<code class="descname">flagMarkerGraphWeakEdges</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>lowCoverageThreshold: int</em>, <em>highCoverageThreshold: int</em>, <em>maxDistance: int</em>, <em>edgeMarkerSkipThreshold: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.flagMarkerGraphWeakEdges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.flagPalindromicReads">
+<code class="descname">flagPalindromicReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>maxSkip: int</em>, <em>maxMarkerFrequency: int</em>, <em>alignedFractionThreshold: float</em>, <em>nearDiagonalFractionThreshold: float</em>, <em>deltaThreshold: int</em>, <em>threadCount: int=0</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.flagPalindromicReads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -225,6 +352,16 @@
 </dd></dl>
 
 <dl class="method">
+<dt id="shasta.Assembler.initializeReadFlags">
+<code class="descname">initializeReadFlags</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.initializeReadFlags" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.pruneMarkerGraphStrongSubgraph">
+<code class="descname">pruneMarkerGraphStrongSubgraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>iterationCount: int</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.pruneMarkerGraphStrongSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="shasta.Assembler.randomlySelectKmers">
 <code class="descname">randomlySelectKmers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>k: int</em>, <em>probability: float</em>, <em>seed: int=231</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.randomlySelectKmers" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -235,8 +372,48 @@
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="shasta.Assembler.setReferenceFastaFileName">
+<code class="descname">setReferenceFastaFileName</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>arg0: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.setReferenceFastaFileName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.setupConsensusCaller">
+<code class="descname">setupConsensusCaller</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>arg0: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.setupConsensusCaller" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.setupMarginPhase">
+<code class="descname">setupMarginPhase</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.setupMarginPhase" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.simplifyMarkerGraph">
+<code class="descname">simplifyMarkerGraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler, maxLength: List[int], debug: bool=False</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.simplifyMarkerGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeAssemblyGraph">
+<code class="descname">writeAssemblyGraph</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>arg0: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeAssemblyGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeFasta">
+<code class="descname">writeFasta</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>fileName: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeFasta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeGfa1">
+<code class="descname">writeGfa1</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>fileName: str</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeGfa1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="shasta.Assembler.writeKmers">
 <code class="descname">writeKmers</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>fileName: str='Kmers.csv'</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeKmers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="shasta.Assembler.writeLocalReadGraphReads">
+<code class="descname">writeLocalReadGraphReads</code><span class="sig-paren">(</span><em>self: shasta.Assembler</em>, <em>readId: int</em>, <em>strand: int</em>, <em>maxDistance: int</em>, <em>allowChimericReads: bool</em>, <em>allowCrossStrandEdges: bool</em><span class="sig-paren">)</span> &rarr; None<a class="headerlink" href="#shasta.Assembler.writeLocalReadGraphReads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
