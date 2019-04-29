@@ -18,11 +18,18 @@
 
 // Linux.
 #include <fcntl.h>
-#include <linux/mman.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+// Linux/macOS
+#ifdef __linux__
+#include <linux/mman.h>
+#else
+#include <mach/vm_statistics.h>
+#define MAP_HUGE_2MB VM_FLAGS_SUPERPAGE_SIZE_2MB
+#endif
 
 namespace ChanZuckerberg {
     namespace shasta {
