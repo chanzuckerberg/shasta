@@ -3,7 +3,7 @@ ___
 
 **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
 
-**For quick start information see here [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
+**For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
 ___
 
 The goal of the Shasta long read assembler is to rapidly 
@@ -42,12 +42,12 @@ in assembly quality when compared to other long read assemblers.
 The Shasta software uses various external software packages.
 See [here](https://chanzuckerberg.github.io/shasta/Acknowledgments.html) for more information.
 
-
-
 ___
+
 **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
-___
 
+**For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
+___
 
 
 
