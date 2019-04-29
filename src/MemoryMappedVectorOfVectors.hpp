@@ -31,9 +31,16 @@ public:
     {
         name = nameArgument;
         pageSize = pageSizeArgument;
-        toc.createNew(name + ".toc", pageSize);
+
+        if(nameArgument.empty()) {
+            toc.createNew("", pageSize);
+            data.createNew("", pageSize);
+        } else {
+            toc.createNew(name + ".toc", pageSize);
+            data.createNew(name + ".data", pageSize);
+        }
+
         toc.push_back(0);
-        data.createNew(name + ".data", pageSize);
     }
 
 
@@ -266,8 +273,13 @@ private:
 template<class T, class Int>
     void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::beginPass1(Int n)
 {
+
     if(!count.isOpen) {
-        count.createNew(name + ".count", pageSize);
+        if(name.empty()) {
+            count.createNew("", pageSize);
+        } else {
+            count.createNew(name + ".count", pageSize);
+        }
     }
     count.reserveAndResize(n);
     fill(count.begin(), count.end(), Int(0));

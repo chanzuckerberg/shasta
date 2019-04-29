@@ -1,0 +1,36 @@
+* {
+font-family: sans-serif,Helvetica,Arial;
+}
+pre, code {
+font-family: courier;
+}
+p, input {
+font-size: 16px;
+}
+h1, h2, h3 {
+color: DarkSlateBlue;
+}
+table {
+border-collapse: collapse;
+}
+th, td {
+border: 2px solid MediumSlateBlue;
+}
+th {
+font-weight: bold;
+text-align: center;
+}
+th.left {
+text-align: left;
+}
+td.centered {
+text-align: center;
+}
+a {
+color: DarkSlateBlue;
+}
+div.codeSnippet {
+background-color:Linen;
+display:inline-block;
+}
+

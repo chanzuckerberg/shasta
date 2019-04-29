@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Shasta.
 #include "LocalMarkerGraph.hpp"
 #include "ConsensusCaller.hpp"
@@ -169,7 +171,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
-        const int columnCount = graph.useRunLengthReads ? 4 : 3;
+        const int columnCount = 4;
 
         // Vertex id.
         if(showVertexId) {
@@ -202,9 +204,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
         // Column headers.
         s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td>";
-        if(graph.useRunLengthReads) {
-            s << "<td><b>Repeat</b></td>";
-        }
+        s << "<td><b>Repeat</b></td>";
         s << "</tr>";
 
         // A row for each marker of this vertex.
@@ -229,18 +229,16 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
             s << "<td align=\"right\"><b>" << marker.position << "</b></td>";
 
             // Repeat counts.
-            if(graph.useRunLengthReads) {
-                const vector<uint8_t> counts = graph.getRepeatCounts(markerInfo);
-                s << "<td><b>";
-                for(size_t i=0; i<k; i++) {
-                    if(counts[i] < 10) {
-                        s << int(counts[i]);
-                    } else {
-                        s << "*";
-                    }
+            const vector<uint8_t> counts = graph.getRepeatCounts(markerInfo);
+            s << "<td><b>";
+            for(size_t i=0; i<k; i++) {
+                if(counts[i] < 10) {
+                    s << int(counts[i]);
+                } else {
+                    s << "*";
                 }
-                s << "</b></td>";
             }
+            s << "</b></td>";
 
             s << "</tr>";
         }
@@ -248,66 +246,64 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
 
         // Repeat count consensus.
-        if(graph.useRunLengthReads) {
 
-            // Use the consensus caller to compute the consensus base and repeat count
-            // at each of the k positions. The consensus base should be equal
-            // to the corresponding base of the k-mer for this vertex!
-            vector<Consensus> consensus(k);
-            for(size_t position=0; position<graph.k; position++) {
-                consensus[position] = graph.consensusCaller(vertex.coverages[position]);
-                CZI_ASSERT(consensus[position].base == AlignedBase(kmer[position]));
+        // Use the consensus caller to compute the consensus base and repeat count
+        // at each of the k positions. The consensus base should be equal
+        // to the corresponding base of the k-mer for this vertex!
+        vector<Consensus> consensus(k);
+        for(size_t position=0; position<graph.k; position++) {
+            consensus[position] = graph.consensusCaller(vertex.coverages[position]);
+            CZI_ASSERT(consensus[position].base == AlignedBase(kmer[position]));
+        }
+
+        s << "<tr><td colspan=\"3\" align=\"left\"><b>Repeat consensus</b></td>";
+        s << "<td><b>";
+        for(size_t position=0; position<graph.k; position++) {
+            const size_t repeatCount = consensus[position].repeatCount;
+            if(repeatCount < 10) {
+                s << repeatCount;
+            } else {
+                s << "*";
             }
+        }
+        s << "</b></td></tr>";
 
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Repeat consensus</b></td>";
-            s << "<td><b>";
-            for(size_t position=0; position<graph.k; position++) {
-                const size_t repeatCount = consensus[position].repeatCount;
-                if(repeatCount < 10) {
-                    s << repeatCount;
-                } else {
-                    s << "*";
-                }
-            }
-            s << "</b></td></tr>";
-
-            // Coverage for each repeat count at each position.
-            const std::set<size_t> repeatCounts =
-                graph.consensusCaller.findRepeatCounts(vertex.coverages);
-            for(const size_t repeatCount: repeatCounts) {
-                s << "<tr>";
-                s << "<td colspan=\"3\" align=\"left\"><b>Coverage for repeat ";
-                s << repeatCount << "</b></td>";
-                s << "<td><b>";
-                for(size_t position=0; position<graph.k; position++) {
-                    const AlignedBase base = AlignedBase(kmer[position]);
-                    s << vertex.coverages[position].coverageCharacter(base, repeatCount);
-                }
-                s << "</b></td></tr>";
-            }
-
-            // Coverage for the consensus best repeat count at each position.
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for repeat consensus</b></td>";
+        // Coverage for each repeat count at each position.
+        const std::set<size_t> repeatCounts =
+            graph.consensusCaller.findRepeatCounts(vertex.coverages);
+        for(const size_t repeatCount: repeatCounts) {
+            s << "<tr>";
+            s << "<td colspan=\"3\" align=\"left\"><b>Coverage for repeat ";
+            s << repeatCount << "</b></td>";
             s << "<td><b>";
             for(size_t position=0; position<graph.k; position++) {
                 const AlignedBase base = AlignedBase(kmer[position]);
-                const size_t repeatCount = consensus[position].repeatCount;
                 s << vertex.coverages[position].coverageCharacter(base, repeatCount);
             }
             s << "</b></td></tr>";
-
-            // The raw sequence, based on the best repeat counts.
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Raw consensus</b></td>";
-            s << "<td align=\"left\"><b>";
-            for(size_t position=0; position<graph.k; position++) {
-                const AlignedBase base = AlignedBase(kmer[position]);
-                const size_t repeatCount = consensus[position].repeatCount;
-                for(size_t k=0; k<repeatCount; k++) {
-                    s << base;
-            }
-            }
-            s << "</b></td></tr>";
         }
+
+        // Coverage for the consensus best repeat count at each position.
+        s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for repeat consensus</b></td>";
+        s << "<td><b>";
+        for(size_t position=0; position<graph.k; position++) {
+            const AlignedBase base = AlignedBase(kmer[position]);
+            const size_t repeatCount = consensus[position].repeatCount;
+            s << vertex.coverages[position].coverageCharacter(base, repeatCount);
+        }
+        s << "</b></td></tr>";
+
+        // The raw sequence, based on the best repeat counts.
+        s << "<tr><td colspan=\"3\" align=\"left\"><b>Raw consensus</b></td>";
+        s << "<td align=\"left\"><b>";
+        for(size_t position=0; position<graph.k; position++) {
+            const AlignedBase base = AlignedBase(kmer[position]);
+            const size_t repeatCount = consensus[position].repeatCount;
+            for(size_t k=0; k<repeatCount; k++) {
+                s << base;
+        }
+        }
+        s << "</b></td></tr>";
 
 
 
@@ -434,7 +430,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << ">";
 
         // Edge id.
-        const int columnCount = graph.useRunLengthReads ? 5 : 4;
+        const int columnCount = 5;
         if(showVertexId && (edge.edgeId != MarkerGraph::invalidEdgeId)) {
             s << "<tr><td colspan=\"" << columnCount << "\"><b>Edge " << edge.edgeId << "</b></td></tr>";
         }
@@ -456,9 +452,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
             "<td align=\"center\"><b>Ord0</b></td>"
             "<td align=\"center\"><b>Ord1</b></td>"
             "<td align=\"center\"><b>Seq</b></td>";
-        if(graph.useRunLengthReads) {
-            s << "<td align=\"center\"><b>Repeat</b></td>";
-        }
+        s << "<td align=\"center\"><b>Repeat</b></td>";
         s << "</tr>";
 
         // Loop over the infos table for this edge.
@@ -514,7 +508,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
                 s << "</b></td>";
 
                 // Write out the repeat counts, if necessary.
-                if(graph.useRunLengthReads && !info.repeatCounts.empty()) {
+                if(!info.repeatCounts.empty()) {
                     s << "<td align=\"center\"><b>";
                     if(sequenceString.size() > 100) {
                         s << "Too long";
@@ -733,3 +727,4 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     }
 
 }
+#endif

@@ -4,17 +4,17 @@ font-family: sans-serif,Helvetica,Arial;
 pre, code {
 font-family: courier;
 }
-p, input {
+p {
 font-size: 16px;
 }
 h1, h2, h3 {
-color: DarkSlateBlue;
+color: Teal;
 }
 table {
 border-collapse: collapse;
 }
 th, td {
-border: 2px solid MediumSlateBlue;
+border: 2px solid Teal;
 }
 th {
 font-weight: bold;
@@ -27,10 +27,9 @@ td.centered {
 text-align: center;
 }
 a {
-color: DarkSlateBlue;
+color: Teal;
+text-decoration: none;
 }
-div.codeSnippet {
-background-color:Linen;
-display:inline-block;
+a:hover {
+text-decoration: underline;
 }
-

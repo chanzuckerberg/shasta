@@ -6,11 +6,20 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblyOptions.hpp"
+#include "buildId.hpp"
 #include "filesystem.hpp"
 #include "timestamp.hpp"
 namespace ChanZuckerberg {
     namespace shasta {
-        void shastaMain(int argumentCount, const char** arguments);
+        namespace main {
+            void main(int argumentCount, const char** arguments);
+            void runAssembly(
+                Assembler&,
+                const AssemblyOptions&,
+                vector<string> inputFastaFileNames);
+            void setupHugePages();
+        }
         class AssemblyOptions;
     }
 }
@@ -20,6 +29,10 @@ using namespace shasta;
 // Boost libraries.
 #include <boost/program_options.hpp>
 
+//  Linux.
+#include <stdlib.h>
+#include <unistd.h>
+
 // Standard library.
 #include "fstream.hpp"
 #include "iostream.hpp"
@@ -28,181 +41,47 @@ using namespace shasta;
 
 
 
-// In class AssemblyOptions, we choose names that are
-// consistent with options names in shasta.conf,
-// even though we are violating naming conventions used
-// in the rest of the Shasta code.
-class ChanZuckerberg::shasta::AssemblyOptions {
-public:
-
-
-
-    class ReadsOptions {
-    public:
-        // useRunLengthReads; This will be phased out and always be true.
-        int minReadLength;
-        class PalindromicReadOptions {
-        public:
-            int maxSkip;
-            int maxMarkerFrequency;
-            double alignedFractionThreshold;
-            double nearDiagonalFractionThreshold;
-            int deltaThreshold;
-            void write(ostream& s) const
-            {
-                s << "Reads.palindromicReads.maxSkip = " << maxSkip << "\n";
-                s << "Reads.palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
-                s << "Reads.palindromicReads.alignedFractionThreshold = " << alignedFractionThreshold << "\n";
-                s << "Reads.palindromicReads.nearDiagonalFractionThreshold = " << nearDiagonalFractionThreshold << "\n";
-                s << "Reads.palindromicReads.deltaThreshold = " << deltaThreshold << "\n";
-            }
-        };
-        PalindromicReadOptions palindromicReads;
-
-        void write(ostream& s) const
-        {
-            s << "Reads.minReadLength = " << minReadLength << "\n";
-            palindromicReads.write(s);
-        }
-    };
-    ReadsOptions Reads;
-
-
-
-    class KmersOptions {
-    public:
-        int k;
-        double probability;
-        void write(ostream& s) const
-        {
-            s << "Kmers.k = " << k << "\n";
-            s << "Kmers.probability = " << probability << "\n";
-        }
-    };
-    KmersOptions Kmers;
-
-
-
-    class MinHashOptions {
-    public:
-        int m;
-        double hashFraction;
-        int minHashIterationCount;
-        int maxBucketSize;
-        int minFrequency;
-        void write(ostream& s) const
-        {
-            s << "MinHash.m = " << m << "\n";
-            s << "MinHash.hashFraction = " << hashFraction << "\n";
-            s << "MinHash.minHashIterationCount = " << minHashIterationCount << "\n";
-            s << "MinHash.maxBucketSize = " << maxBucketSize << "\n";
-            s << "MinHash.minFrequency = " << minFrequency << "\n";
-        }
-    };
-    MinHashOptions MinHash;
-
-
-
-    class AlignOptions {
-    public:
-        int maxSkip;
-        int maxMarkerFrequency;
-        int minAlignedMarkerCount;
-        int maxTrim;
-        void write(ostream& s) const
-        {
-            s << "Align.m = " << maxSkip << "\n";
-            s << "Align.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
-            s << "Align.minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
-            s << "Align.maxTrim = " << maxTrim << "\n";
-        }
-    };
-    AlignOptions Align;
-
-
-
-    class ReadGraphOptions {
-    public:
-        int maxAlignmentCount;
-        int minComponentSize;
-        int maxChimericReadDistance;
-        void write(ostream& s) const
-        {
-            s << "ReadGraph.maxAlignmentCount = " << maxAlignmentCount << "\n";
-            s << "ReadGraph.minComponentSize = " << minComponentSize << "\n";
-            s << "ReadGraph.maxChimericReadDistance = " << maxChimericReadDistance << "\n";
-        }
-    };
-    ReadGraphOptions ReadGraph;
-
-
-
-    class MarkerGraphOptions {
-    public:
-        int minCoverage;
-        int maxCoverage;
-        int lowCoverageThreshold;
-        int highCoverageThreshold;
-        int maxDistance;
-        int edgeMarkerSkipThreshold;
-        int pruneIterationCount;
-        string simplifyMaxLength;
-        void write(ostream& s) const
-        {
-            s << "MarkerGraph.minCoverage = " << minCoverage << "\n";
-            s << "MarkerGraph.maxCoverage = " << maxCoverage << "\n";
-            s << "MarkerGraph.lowCoverageThreshold = " << lowCoverageThreshold << "\n";
-            s << "MarkerGraph.highCoverageThreshold = " << highCoverageThreshold << "\n";
-            s << "MarkerGraph.maxDistance = " << maxDistance << "\n";
-            s << "MarkerGraph.edgeMarkerSkipThreshold = " << edgeMarkerSkipThreshold << "\n";
-            s << "MarkerGraph.pruneIterationCount = " << pruneIterationCount << "\n";
-            s << "MarkerGraph.simplifyMaxLength = " << simplifyMaxLength << "\n";
-        }
-    };
-    MarkerGraphOptions MarkerGraph;
-
-
-
-    class AssemblyOptionsInner {
-    public:
-        int markerGraphEdgeLengthThresholdForConsensus;
-        void write(ostream& s) const
-        {
-            s << "Assembly.markerGraphEdgeLengthThresholdForConsensus = " <<
-                    markerGraphEdgeLengthThresholdForConsensus << "\n";
-        }
-    };
-    AssemblyOptionsInner Assembly;
-
-
-    void write(ostream& s) const
-    {
-        Reads.write(s);
-        Kmers.write(s);
-        MinHash.write(s);
-        Align.write(s);
-        ReadGraph.write(s);
-        MarkerGraph.write(s);
-        Assembly.write(s);
-        s << endl;
-    }
-};
-
-
-
-void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** arguments)
+int main(int argumentCount, const char** arguments)
 {
+    try {
+
+        shasta::main::main(argumentCount, arguments);
+
+    } catch(boost::program_options::error_with_option_name e) {
+        cout << "Invalid option: " << e.what() << endl;
+        return 1;
+    } catch (runtime_error e) {
+        cout << timestamp << "Terminated after catching a runtime error exception:" << endl;
+        cout << e.what() << endl;
+        return 2;
+    } catch (exception e) {
+        cout << timestamp << "Terminated after catching a standard exception:" << endl;
+        cout << e.what() << endl;
+        return 3;
+    } catch (...) {
+        cout << timestamp << "Terminated after catching a non-standard exception." << endl;
+        return 4;
+    }
+    return 0;
+}
+
+
+
+void ChanZuckerberg::shasta::main::main(int argumentCount, const char** arguments)
+{
+    cout << buildId() << endl;
+
     // Some names in the boost program_options library.
     using boost::program_options::command_line_parser;
     using boost::program_options::options_description;
     using boost::program_options::value;
     using boost::program_options::variables_map;
 
-
     const string executableDescription =
         "\nThis is the static executable for the Shasta assembler. "
-        "It provides limited Shasta functionality "
-        "at reduced performance but has no dependencies and requires no installation.\n\n"
+        "It provides limited Shasta functionality, "
+        "at reduced performance when using the default options,"
+        "but has no dependencies and requires no installation.\n\n"
         "To run an assembly, use the \"--input\" option to specify the input Fasta files. "
         "See below for a description of the other options and parameters.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
@@ -213,16 +92,58 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n";
 
-    // Options that are only allowed only on the command line.
+
+
+    // Options that are only allowed on the command line.
     options_description commandLineOnlyOptions(
         "Options allowed only on the command line");
     string configFileName;
+    vector < string > inputFastaFileNames;
+    string outputDirectory;
+    string command;
+    string memoryMode;
+    string memoryBacking;
     commandLineOnlyOptions.add_options()
+
         ("help", 
         "Write a help message.")
+
         ("config", 
         boost::program_options::value<string>(&configFileName),
         "Configuration file name.")
+
+        ("input",
+        value< vector<string> >(&inputFastaFileNames)->multitoken(),
+        "Names of input FASTA files. Specify at least one.")
+
+        ("output",
+        value<string>(&outputDirectory)->
+        default_value("ShastaRun"),
+        "Name of the output directory. Must not exist.")
+
+        ("command",
+        value<string>(&command)->
+        default_value("assemble"),
+        "Command to run. Must be one of:\n"
+        "assemble (default): run an assembly\n"
+        "cleanup: cleanup the Data directory that was created during assembly\n"
+        "    if --memoryMode filesystem.\n")
+
+        ("memoryMode",
+        value<string>(&memoryMode)->
+        default_value("anonymous"),
+        "Specify whether allocated memory is anonymous or backed by a filesystem. "
+        "Allowed values: anonymous (default), filesystem.")
+
+        ("memoryBacking",
+        value<string>(&memoryBacking)->
+        default_value("4K"),
+        "Specify the type of pages used to back memory.\n"
+        "Allowed values: disk, 4K (default), 2M (for best performance, Linux only). "
+        "All combinations (memoryMode, memoryBacking) are allowed "
+        "except for (anonymous, disk).\n"
+        "Some combinations require root privilege, which is obtained using sudo "
+        "and may result in a password prompting depending on your sudo set up.")
         ;
 
 
@@ -232,168 +153,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     options_description options(
         "Options allowed on the command line and in the config file");
     AssemblyOptions assemblyOptions;
-    vector < string > inputFastaFileNames;
-    string outputDirectory;
-
-    options.add_options()
-
-        ("input", 
-        value< vector<string> >(&inputFastaFileNames)->multitoken(),
-        "Names of input FASTA files. Specify at least one.")
-        
-        ("output",
-        value<string>(&outputDirectory)->
-        default_value("ShastaRun"),
-        "Name of the output directory. Must not exist.")
-
-        ("Reads.minReadLength", 
-        value<int>(&assemblyOptions.Reads.minReadLength)->
-        default_value(10000),
-        "Read length cutoff.")
-    
-        ("Reads.palindromicReads.maxSkip", 
-        value<int>(&assemblyOptions.Reads.palindromicReads.maxSkip)->
-        default_value(100),
-        "Used for palindromic read detection.")
-    
-        ("Reads.palindromicReads.maxMarkerFrequency", 
-        value<int>(&assemblyOptions.Reads.palindromicReads.maxMarkerFrequency)->
-        default_value(10),
-        "Used for palindromic read detection.")
-    
-        ("Reads.palindromicReads.alignedFractionThreshold", 
-        value<double>(&assemblyOptions.Reads.palindromicReads.alignedFractionThreshold)->
-        default_value(0.1, "0.1"),
-        "Used for palindromic read detection.")
-    
-        ("Reads.palindromicReads.nearDiagonalFractionThreshold", 
-        value<double>(&assemblyOptions.Reads.palindromicReads.nearDiagonalFractionThreshold)->
-        default_value(0.1, "0.1"),
-        "Used for palindromic read detection.")
-
-        ("Reads.palindromicReads.deltaThreshold",
-         value<int>(&assemblyOptions.Reads.palindromicReads.deltaThreshold)->
-         default_value(100),
-         "Used for palindromic read detection.")
-
-        ("Kmers.k",
-        value<int>(&assemblyOptions.Kmers.k)->
-        default_value(10),
-        "Length of marker k-mers (in run-length space).")
-
-        ("Kmers.probability",
-        value<double>(&assemblyOptions.Kmers.probability)->
-        default_value(0.1, "0.1"),
-        "Probability that a k-mer is used as a marker.")
-
-        ("MinHash.m",
-        value<int>(&assemblyOptions.MinHash.m)->
-        default_value(4),
-        "The number of consecutive markers that define a MinHash/LowHash feature.")
-
-        ("MinHash.hashFraction",
-        value<double>(&assemblyOptions.MinHash.hashFraction)->
-        default_value(0.01, "0.01"),
-        "Defines how low a hash has to be to be used with the LowHash algorithm.")
-
-        ("MinHash.minHashIterationCount",
-        value<int>(&assemblyOptions.MinHash.minHashIterationCount)->
-        default_value(10),
-        "The number of MinHash/LowHash iterations.")
-
-        ("MinHash.maxBucketSize",
-        value<int>(&assemblyOptions.MinHash.maxBucketSize)->
-        default_value(10),
-        "The maximum bucket size to be used by the MinHash/LowHash algoritm.")
-
-        ("MinHash.minFrequency",
-        value<int>(&assemblyOptions.MinHash.minFrequency)->
-        default_value(2),
-        "The minimum number of times a pair of reads must be found by the MinHash/LowHash algorithm "
-        "in order to be considered a candidate alignment.")
-
-        ("Align.maxSkip",
-        value<int>(&assemblyOptions.Align.maxSkip)->
-        default_value(30),
-        "The maximum number of markers that an alignment is allowed to skip.")
-
-        ("Align.maxMarkerFrequency",
-        value<int>(&assemblyOptions.Align.maxMarkerFrequency)->
-        default_value(10),
-        "Marker frequency threshold.")
-
-        ("Align.minAlignedMarkerCount",
-        value<int>(&assemblyOptions.Align.minAlignedMarkerCount)->
-        default_value(100),
-        "The minimum number of aligned markers for an alignment to be used.")
-
-        ("Align.maxTrim",
-        value<int>(&assemblyOptions.Align.maxTrim)->
-        default_value(30),
-        "The maximum number of trim markers tolerated at the beginning and end of an alignment.")
-
-        ("ReadGraph.maxAlignmentCount",
-        value<int>(&assemblyOptions.ReadGraph.maxAlignmentCount)->
-        default_value(6),
-        "The maximum alignments to be kept for each read.")
-
-        ("ReadGraph.minComponentSize",
-        value<int>(&assemblyOptions.ReadGraph.minComponentSize)->
-        default_value(100),
-        "The minimum size (number of oriented reads) of a connected component "
-        "of the read graph to be kept.")
-
-        ("ReadGraph.maxChimericReadDistance",
-        value<int>(&assemblyOptions.ReadGraph.maxChimericReadDistance)->
-        default_value(2),
-        "Used for chimeric read detection.")
-
-        ("MarkerGraph.minCoverage",
-        value<int>(&assemblyOptions.MarkerGraph.minCoverage)->
-        default_value(10),
-        "Minimum number of markers for a marker graph vertex.")
-
-        ("MarkerGraph.maxCoverage",
-        value<int>(&assemblyOptions.MarkerGraph.maxCoverage)->
-        default_value(100),
-        "Maximum number of markers for a marker graph vertex.")
-
-        ("MarkerGraph.lowCoverageThreshold",
-        value<int>(&assemblyOptions.MarkerGraph.lowCoverageThreshold)->
-        default_value(0),
-        "Used during approximate transitive reduction.")
-
-        ("MarkerGraph.highCoverageThreshold",
-        value<int>(&assemblyOptions.MarkerGraph.highCoverageThreshold)->
-        default_value(256),
-        "Used during approximate transitive reduction.")
-
-        ("MarkerGraph.maxDistance",
-        value<int>(&assemblyOptions.MarkerGraph.maxDistance)->
-        default_value(30),
-        "Used during approximate transitive reduction.")
-
-        ("MarkerGraph.edgeMarkerSkipThreshold",
-        value<int>(&assemblyOptions.MarkerGraph.edgeMarkerSkipThreshold)->
-        default_value(100),
-        "Used during approximate transitive reduction.")
-
-        ("MarkerGraph.pruneIterationCount",
-        value<int>(&assemblyOptions.MarkerGraph.pruneIterationCount)->
-        default_value(6),
-        "Number of prune iterations.")
-
-        ("MarkerGraph.simplifyMaxLength",
-        value<string>(&assemblyOptions.MarkerGraph.simplifyMaxLength)->
-        default_value("10,100,1000"),
-        "Maximum lengths (in markers) used at each iteration of simplifyMarkerGraph.")
-
-        ("AssemblyOptions.markerGraphEdgeLengthThresholdForConsensus",
-        value<int>(&assemblyOptions.Assembly.markerGraphEdgeLengthThresholdForConsensus)->
-        default_value(1000),
-        "Controls assembly of long marker graph edges.")
-
-        ;
+    assemblyOptions.add(options);
     
 
         
@@ -422,39 +182,53 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         notify(variablesMap);
     }
 
+
+
+    // If command is "cleanup", just do it and exit.
+    if(command == "cleanup") {
+        const string dataDirectory = outputDirectory + "/Data";
+        if(!filesystem::exists(dataDirectory)) {
+            cout << dataDirectory << " does not exist, nothing done." << endl;
+        }
+        ::system(("sudo umount " + dataDirectory).c_str());
+        const int errorCode = ::system(string("rm -rf " + dataDirectory).c_str());
+        if(errorCode != 0) {
+            throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+                " removing " + dataDirectory);
+        }
+        cout << "Cleanup of " << dataDirectory << " successful." << endl;
+        return;
+    }
+
+
+
     // Check that we have at least one input FASTA file.     
     if (inputFastaFileNames.empty()) {
         cout << executableDescription << commandLineOptions << endl;
         throw runtime_error("Specify at least one input FASTA file.");
     }
 
-    // Parse MarkerGraph.simplifyMaxLength
-    vector<size_t> simplifyMaxLength;
-    {
-        boost::tokenizer< boost::char_separator<char> > tokenizer(
-            assemblyOptions.MarkerGraph.simplifyMaxLength, boost::char_separator<char>(","));
-        for(const string token: tokenizer) {
-            try {
-                size_t numberEndsHere;
-                const size_t value = std::stoi(token, &numberEndsHere);
-                if(numberEndsHere != token.size()) {
-                    throw runtime_error("Error parsing MarkerGraph.simplifyMaxLength " +
-                        assemblyOptions.MarkerGraph.simplifyMaxLength);
-                }
-                simplifyMaxLength.push_back(value);
-            } catch(std::invalid_argument e) {
-                throw runtime_error("Error parsing MarkerGraph,simplifyMaxLength " +
-                    assemblyOptions.MarkerGraph.simplifyMaxLength);
-            }
-        }
-    }
+    // Parse MarkerGraph.simplifyMaxLength.
+    assemblyOptions.MarkerGraph.parseSimplifyMaxLength();
 
+    // Check for options unsupported by the static executable.
+    if(assemblyOptions.Assembly.consensusCaller != "SimpleConsensusCaller") {
+        throw runtime_error("Assembly.consensusCaller value " + assemblyOptions.Assembly.consensusCaller +
+            " is not supported.\n"
+            "Only value supported by the Shasta static executable is SimpleConsensusCaller.");
+    }
+    if(assemblyOptions.Assembly.useMarginPhase != "False") {
+        throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
+    }
+    if(assemblyOptions.Assembly.storeCoverageData != "False") {
+        throw runtime_error("Assembly.storeCoverageData is not supported by the Shasta static executable.");
+    }
 
     // Write a startup message.
     cout << timestamp <<
-        "\n\nThis is the static executable for the Shasta assembler. "
+        "\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality "
-        "at reduced performance but has no dependencies and requires no installation.\n\n"
+        "at but has no dependencies and requires no installation.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
         "at coverage 60x. If your data have significantly different coverage, "
         "some changes in assembly parameters may be necessary to get good results.\n\n"
@@ -463,8 +237,6 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n\n";
 
-
-
     // Find absolute paths of the input fasta files.
     // We will use them below after changing directory to the output directory.
     vector<string> inputFastaFileAbsolutePaths;
@@ -472,18 +244,110 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
     }
 
-
     // If the output directory exists, stop.
-    // Otherwise, create it and make it current..
+    // Otherwise, create it and make it current.
     if(filesystem::exists(outputDirectory)) {
-        throw runtime_error("Output directory " + outputDirectory + " already exists.");
+        throw runtime_error("Output directory " + outputDirectory + " already exists.\n"
+            "Remove it or use --output to specify a different output directory.");
     }
     filesystem::createDirectory(outputDirectory);
     filesystem::changeDirectory(outputDirectory);
 
-    // Create the Data and threadLogs directories.
-    filesystem::createDirectory("Data");
-    filesystem::createDirectory("threadLogs");
+
+
+    // Set up the run directory as required by the memoryMode and memoryBacking option.
+    size_t pageSize = 0;
+    string dataDirectory;
+    if(memoryMode == "anonymous") {
+
+        if(memoryBacking == "disk") {
+
+            // This combination is meaningless.
+            throw runtime_error("\"--memoryMode anonymous\" is not allowed in combination "
+                "with \"--memoryBacking disk\".");
+
+        } else if(memoryBacking == "4K") {
+
+            // Anonymous memory on 4KB pages.
+            // This combination is the default.
+            // It does not require root privilege.
+            dataDirectory = "";
+            pageSize = 4096;
+
+        } else if(memoryBacking == "2M") {
+
+            // Anonymous memory on 2MB pages.
+            // This may require root privilege, which is obtained using sudo
+            // and may result in a password prompting depending on sudo set up.
+            // Root privilege is not required if 2M pages have already
+            // been set up as required.
+            setupHugePages();
+            pageSize = 2 * 1024 * 1024;
+
+        } else {
+            throw runtime_error("Invalid value specified for --memoryBacking: " + memoryBacking +
+                "\nValid values are: disk, 4K, 2M.");
+        }
+
+    } else if(memoryMode == "filesystem") {
+
+        if(memoryBacking == "disk") {
+
+            // Binary files on disk.
+            // This does not require root privilege.
+            filesystem::createDirectory("Data");
+            dataDirectory = "Data/";
+            pageSize = 4096;
+
+        } else if(memoryBacking == "4K") {
+
+            // Binary files on the tmpfs filesystem
+            // (filesystem in memory backed by 4K pages).
+            // This requires root privilege, which is obtained using sudo
+            // and may result in a password prompting depending on sudo set up.
+            filesystem::createDirectory("Data");
+            dataDirectory = "Data/";
+            pageSize = 4096;
+            const string command = "sudo mount -t tmpfs -o size=0 tmpfs Data";
+            const int errorCode = ::system(command.c_str());
+            if(errorCode != 0) {
+                throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+                    " running command: " + command);
+            }
+
+        } else if(memoryBacking == "2M") {
+
+            // Binary files on the hugetlbfs filesystem
+            // (filesystem in memory backed by 2M pages).
+            // This requires root privilege, which is obtained using sudo
+            // and may result in a password prompting depending on sudo set up.
+            setupHugePages();
+            filesystem::createDirectory("Data");
+            dataDirectory = "Data/";
+            pageSize = 2 * 1024 * 1024;
+            const uid_t userId = ::getuid();
+            const gid_t groupId = ::getgid();
+            const string command = "sudo mount -t hugetlbfs -o pagesize=2M"
+                ",uid=" + to_string(userId) +
+                ",gid=" + to_string(groupId) +
+                " none Data";
+            const int errorCode = ::system(command.c_str());
+            if(errorCode != 0) {
+                throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+                    " running command: " + command);
+            }
+
+        } else {
+            throw runtime_error("Invalid value specified for --memoryBacking: " + memoryBacking +
+                "\nValid values are: disk, 4K, 2M.");
+        }
+
+    } else {
+        throw runtime_error("Invalid value specified for --memoryMode: " + memoryMode +
+            "\nValid values are: anonymous, filesystem.");
+    }
+
+
 
     // Write out the option values we are using.
     cout << "Options in use:" << endl;
@@ -491,16 +355,54 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
     cout << endl;
     cout << "outputDirectory = " << outputDirectory << endl;
+    cout << "memoryMode = " << memoryMode << endl;
+    cout << "memoryBacking = " << memoryBacking << "\n" << endl;
     assemblyOptions.write(cout);
+    {
+        ofstream configurationFile("shasta.conf");
+        assemblyOptions.write(configurationFile);
+    }
 
     // Create the Assembler.
-    Assembler assembler("Data/", 2*1024*1024, true);
+    Assembler assembler(dataDirectory, true, pageSize);
+
+    // Run the assembly.
+    runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths);
+
+    // Final disclaimer message.
+    if(memoryBacking != "2M" && memoryMode != "filesystem") {
+        cout << "This run was done with \"--memoryBacking " << memoryBacking <<
+            " --memoryMode " << memoryMode << "\".\n"
+            "This could have resulted in performance degradation.\n"
+            "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
+            "(root privilege via sudo required).\n"
+            "Therefore the results of this run should not be used\n"
+            "for benchmarking purposes." << endl;
+    }
+
+    // Write out the build id again.
+    cout << buildId() << endl;
+
+}
+
+
+
+// This runs the entire assembly, under the following assumptions:
+// - The current directory is the run directory.
+// - The Data directory has already been created and set up, if necessary.
+// - The input Fasta file names are either absolute,
+//   or relative to the run directory, which is the current directory.
+void ChanZuckerberg::shasta::main::runAssembly(
+    Assembler& assembler,
+    const AssemblyOptions& assemblyOptions,
+    vector<string> inputFastaFileNames)
+{
+    // The executable only supports SimpleConsensusCaller,
+    // at least for now.
     assembler.setupConsensusCaller("SimpleConsensusCaller");
 
     // Add reads from the specified FASTA files.
-    assembler.accessReadsReadWrite();
-    assembler.accessReadNamesReadWrite();
-    for(const string& inputFastaFileName: inputFastaFileAbsolutePaths) {
+    for(const string& inputFastaFileName: inputFastaFileNames) {
         assembler.addReadsFromFasta(
             inputFastaFileName,
             assemblyOptions.Reads.minReadLength,
@@ -592,7 +494,7 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     // Simplify the marker graph to remove bubbles and superbubbles.
     // The maxLength parameter controls the maximum number of markers
     // for a branch to be collapsed during each iteration.
-    assembler.simplifyMarkerGraph(simplifyMaxLength, false);
+    assembler.simplifyMarkerGraph(assemblyOptions.MarkerGraph.simplifyMaxLengthVector, false);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
@@ -614,30 +516,52 @@ void ChanZuckerberg::shasta::shastaMain(int argumentCount, const char** argument
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeFasta("Assembly.fasta");
+
 }
 
 
-
-int main(int argumentCount, const char** arguments)
+// This function sets nr_overcommit_hugepages for 2MB pages
+// to a little below total memory.
+// If the setting needs to be modified, it acquires
+// root privilege via sudo. This may result in the
+// user having to enter a password.
+void ChanZuckerberg::shasta::main::setupHugePages()
 {
-    try {
-    
-        shastaMain(argumentCount, arguments);      
-          
-    } catch(boost::program_options::error_with_option_name e) {
-        cout << "Invalid option: " << e.what() << endl;
-        return 1;
-    } catch (runtime_error e) {
-        cout << timestamp << "Terminated after catching a runtime error exception:" << endl;
-        cout << e.what() << endl;
-        return 2;
-    } catch (exception e) {
-        cout << timestamp << "Terminated after catching a standard exception:" << endl;
-        cout << e.what() << endl;
-        return 3;
-    } catch (...) {
-        cout << timestamp << "Terminated after catching a non-standard exception." << endl;
-        return 4;
+
+    // Get the total memory size.
+    const uint64_t totalMemoryBytes = sysconf(_SC_PAGESIZE) * sysconf(_SC_PHYS_PAGES);
+
+    // Figure out how much memory we want to allow for 2MB pages.
+    const uint64_t MB = 1024 * 1024;
+    const uint64_t GB = MB * 1024;
+    const uint64_t maximumHugePageMemoryBytes = totalMemoryBytes - 8 * GB;
+    const uint64_t maximumHugePageMemoryHugePages = maximumHugePageMemoryBytes / (2 * MB);
+
+    // Check what we have it set to.
+    const string fileName = "/sys/kernel/mm/hugepages/hugepages-2048kB/nr_overcommit_hugepages";
+    ifstream file(fileName);
+    if(!file) {
+        throw runtime_error("Error opening " + fileName + " for read.");
     }
-    return 0;
+    uint64_t currentValue = 0;
+    file >> currentValue;
+    file.close();
+
+    // If it's set to at least what we want, don't do anything.
+    // When this happens, root access is not required.
+    if(currentValue >= maximumHugePageMemoryHugePages) {
+        return;
+    }
+
+    // Use sudo to set.
+    const string command =
+        "sudo sh -c \"echo " +
+        to_string(maximumHugePageMemoryHugePages) +
+        " > " + fileName + "\"";
+    const int errorCode = ::system(command.c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+            " running command: " + command);
+    }
+
 }

@@ -22,7 +22,6 @@ import shasta
 a = shasta.Assembler(
     largeDataFileNamePrefix='DataOnDisk/')
 
-a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.setupConsensusCaller('SimpleConsensusCaller')

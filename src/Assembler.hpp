@@ -44,7 +44,9 @@ namespace ChanZuckerberg {
         class ConsensusCaller;
         class LocalAlignmentGraph;
         class LocalAssemblyGraph;
+#ifndef SHASTA_STATIC_EXECUTABLE
         class LocalMarkerGraph;
+#endif
         class LocalReadGraph;
         class MarkerInterval;
         namespace MemoryMapped {
@@ -69,11 +71,8 @@ public:
     // The length of k-mers used to define markers.
     size_t k;
 
-    // Flag for the read representation in use:
-    // false: Raw reads.
-    // true:  Run-length representation.
-    // See comments later near Assembler::reads for more information.
-    bool useRunLengthReads = false;
+    // The page size in use for this run.
+    size_t largeDataPageSize;
 };
 
 
@@ -83,7 +82,7 @@ class ChanZuckerberg::shasta::Assembler :
 #ifndef SHASTA_STATIC_EXECUTABLE
     , public HttpServer
 #endif
-	{
+    {
 public:
 
 
@@ -104,15 +103,8 @@ public:
     // Constructor to be called one to create a new run.
     Assembler(
         const string& largeDataFileNamePrefix,
-        size_t largeDataPageSize,
-        bool useRunLengthReads
-        );
-
-    // Constructor to be called to continue an existing run.
-    Assembler(
-        const string& largeDataFileNamePrefix,
-        size_t largeDataPageSize
-        );
+        bool createNew,
+        size_t largeDataPageSize);
 
     // Destructor.
     ~Assembler();
@@ -125,12 +117,6 @@ public:
         size_t blockSize,
         size_t threadCountForReading,
         size_t threadCountForProcessing);
-
-    // Access the reads and read names.
-    void accessReadsReadOnly();
-    void accessReadsReadWrite();
-    void accessReadNamesReadOnly();
-    void accessReadNamesReadWrite();
 
     // Create a histogram of read lengths.
     void histogramReadLength(const string& fileName);
@@ -199,6 +185,7 @@ public:
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
     // Extract a local marker graph from the global marker graph.
     void extractLocalMarkerGraph(
 
@@ -215,6 +202,7 @@ public:
         // Minimum coverage for a strong vertex or edge (affects coloring).
         size_t minCoverage
         );
+#endif
 
 
 
@@ -337,6 +325,7 @@ private:
 public:
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
     // Create a local marker graph and return its local assembly path.
     // The local marker graph is specified by its start vertex
     // and maximum distance (number of edges) form the start vertex.
@@ -344,6 +333,7 @@ public:
         MarkerGraph::VertexId,
         int maxDistance
         );
+#endif
 
     // Find weak edges in the marker graph.
     void flagMarkerGraphWeakEdges(
@@ -372,7 +362,11 @@ private:
     // Function to construct names for binary objects.
     string largeDataName(const string& name) const
     {
-        return largeDataFileNamePrefix + name;
+        if(largeDataFileNamePrefix.empty()) {
+            return "";  // Anonymous;
+        } else {
+            return largeDataFileNamePrefix + name;
+        }
     }
 
     // Various pieces of assembler information stored in shared memory.
@@ -386,32 +380,21 @@ private:
     The reads used for this assembly.
     Indexed by ReadId.
 
-    Depending on the setting of assemblerInfo->useRunLengthReads,
-    we represent reads in one of two ways:
-
-    - If assemblerInfo->useRunLengthReads is false, we represent
-      reads as raw reads just as read from the input fasta files.
-      In this case, repeat base counts are not used.
-
-    - If assemblerInfo->useRunLengthReads is true, we use a run-length
-      representation (https://en.wikipedia.org/wiki/Run-length_encoding)
-      for reads: all repeated bases are removed, and
-      for each base we store a repeat base count that says how many
-      times that base was repeated in the original read.
-      Many assembly phases use only the run-length representation
-      (without using the base repeat count).
-      This includes the generation of markers, the computation of
-      alignments, and the creation of the marker graph.
+    We use a run-length representation
+    (https://en.wikipedia.org/wiki/Run-length_encoding)
+    for reads: all repeated bases are removed, and
+    for each base we store a repeat base count that says how many
+    times that base was repeated in the original read.
+    Many assembly phases use only the run-length representation
+    (without using the base repeat count).
+    This includes the generation of markers, the computation of
+    alignments, and the creation of the marker graph.
 
     For example, suppose we have the following read sequence:
 
     TAATCATTTTGATGTAAGTCTAAAAATTTCACCTTAATACTTATTTTTCC
 
-    If assemblerInfo->useRunLengthReads is false, the read is represented
-    just as written above, this sequence is stored in reads[readId],
-    and readRepeatCount is not used.
-
-    If assemblerInfo->useRunLengthReads is true, the read is stored like this:
+    The read is stored like this:
 
     TATCATGATGTAGTCTATCACTATACTATC
     121114111112111153112221112152
@@ -486,8 +469,6 @@ private:
         OrientedReadId orientedReadId,
         uint32_t position)
     {
-        // This should only be called when using run-length read representation.
-        CZI_ASSERT(assemblerInfo->useRunLengthReads);
 
         // Extract the read id and strand.
         const ReadId readId = orientedReadId.getReadId();
@@ -986,7 +967,7 @@ private:
         ) const;
 
 
-
+#ifndef SHASTA_STATIC_EXECUTABLE
     // Extract a local marker graph from the global marker graph.
     void extractLocalMarkerGraph(
 
@@ -1048,6 +1029,7 @@ private:
         bool useSuperBubbleReplacementEdges,
         LocalMarkerGraph&
         );
+#endif
 
     // Compute consensus sequence for a vertex of the marker graph.
     void computeMarkerGraphVertexConsensusSequence(
@@ -1058,12 +1040,14 @@ private:
 
     // Compute consensus sequence for an edge of the marker graph.
     // This does not include the bases corresponding to the flanking markers.
+#ifndef SHASTA_STATIC_EXECUTABLE
     void computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
         MarkerGraph::EdgeId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount
         );
+#endif
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         MarkerGraph::EdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
@@ -1072,13 +1056,14 @@ private:
         uint8_t& overlappingBaseCount,
         vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
         );
+#ifndef SHASTA_STATIC_EXECUTABLE
     void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         MarkerGraph::EdgeId,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount
         );
-
+#endif
 
 
 

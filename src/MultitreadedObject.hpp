@@ -65,8 +65,8 @@ public:
 
     // Dynamic load balancing.
     void setupLoadBalancing(
-        size_t n,
-        size_t batchSize);
+        uint64_t n,
+        uint64_t batchSize);
 
 protected:
 

@@ -19,6 +19,8 @@ using namespace shasta;
 // algorithm, which is very expensive in time and memory
 // when the sequences are long.
 
+// This is incomplete and unused.
+
 void Assembler::analyzeAssembledSequence(
     AssemblyGraph::EdgeId edgeId,
     uint32_t begin,

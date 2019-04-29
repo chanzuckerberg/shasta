@@ -13,14 +13,39 @@ message(STATUS "MACOS is " ${MACOS})
 
 # Figure out what we want to build.
 # By default, we build only the executable on macOS,
-# and only the library on Linux.
+# and both the executable and the library on Linux.
 if(MACOS)
     option(BUILD_LIBRARY "Build the shared library." OFF)
     option(BUILD_EXECUTABLE "Build the static executable." ON)
 else(MACOS)
     option(BUILD_LIBRARY "Build the shared library." ON)
-    option(BUILD_EXECUTABLE "Build the static executable." OFF)
+    option(BUILD_EXECUTABLE "Build the static executable." ON)
 endif(MACOS)
+
+
+
+# Option to build with -march=native.
+# The static executable is never built with -march=native,
+# regardless of how this is set.
+if(MACOS)
+    option(BUILD_NATIVE "Build with -march=native." OFF)
+else(MACOS)
+    option(BUILD_NATIVE "Build with -march=native." ON)
+endif(MACOS)
+message(STATUS "BUILD_NATIVE is " ${BUILD_NATIVE})
+
+
+
+# The BUILD_ID can be specified to identify the build
+# This is normally used only when building a new GitHub release,
+# in which case we use the following option when running Cmake:
+# -DBUILD_ID="Shasta Release X.Y.Z"
+if(NOT DEFINED BUILD_ID)
+    set(BUILD_ID "Shasta development build. This is not a released version.")
+endif(NOT DEFINED BUILD_ID)
+message(STATUS "BUILD_ID is: " ${BUILD_ID})
+
+
 
 # Add the subdirectories.
 if(BUILD_LIBRARY)

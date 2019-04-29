@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+
+<body>
+
+<h1>GitHub repository 
+<a href="https://github.com/chanzuckerberg/shasta">chanzuckerberg/shasta</a>
+</h1>
+
+<p>
+<hr>
+<span style='font-size:24px'>&#9995;</span><br>
+This is the old documentation, which is not up to date
+and does not reflect significant recent changes and usability improvements.
+The <a href=../indexNew.html>new documentation</a> is work in progress and still incomplete.
+<hr>
+
+<h2 id=motivation>Motivation and wish list</h2>
+
+<p>
+It was  
+<a href="https://www.nature.com/articles/nbt.4060"> recently shown</a>
+that <i>de novo</i> assembly for human genomes
+from <a href="https://nanoporetech.com">Oxford Nanopore</a> reads
+is possible, but computationally very expensive and laborious.
+The aim of this project is to
+enable <i>de novo</i> assembly of human genomes
+on a routine/production basis and at reasonable 
+computational cost.
+
+For this to be possible, <i>de novo</i> assembly must be:
+
+<ul>
+<li>Fast: under one day elapsed time.
+<li>Accurate: accuracy and other assembly metrics must be
+comparable to those provided by existing tools.
+Assembly accuracy should be limited by data quality,
+not by assembly algorithms.
+<li>Logistically simple and easy to run. 
+</ul>
+
+
+
+<h2 id=currentStatus>Current status</h2>
+
+<p>
+This project is at an early stage. 
+As of March 2019,
+the Shasta code creates assembly output in 
+<a href='https://en.wikipedia.org/wiki/FASTA_format'>FASTA</a>
+and 
+<a href='https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md'>GFA 1.0</a>
+ formats.
+The current implementation redundantly assembles both strands.
+
+<p>
+A human assembly from Oxford Nanopore data with 60x coverage
+completed in 6.4 hours on a large AWS instance (<code>x1.32xlarge</code>, 
+with 64 cores, 1952 GB RAM)
+at a compute cost under $100. 
+The run used an on demand instance. At spot prices or reserved prices,
+compute cost would have been under $30.
+
+<p>
+Assembly results have not yet been analyzed,
+but here are some preliminary metrics:
+<ul>
+<li>Total length of assembled sequence: 2.78 Gb (per strand).
+<li>N<sub>50</sub> of assembled segments: 20.5 Mb.
+<li>Sequence identity around 99%, dominated by deletions in homopolymer runs.
+Many of these deletion errors should disappear 
+once the Bayesian model for repeat counts becomes functional.
+</ul>
+<p> It is expected that assembly quality as measured 
+by these and other metrics will improve as the code matures.
+
+<p>
+An <i>E. coli</i> assembly with similar characteristics runs
+in about 2 minutes on a quad-core 32 GB laptop.
+For each strand, it assembles a single circular contig that closes on itself.
+
+<p>
+It is emphasized that, 
+despite these encouraging results,
+the Shasta software is still at an early stage
+and is therefore not recommended for any application.
+
+
+
+<h2 id=acknowledgments>Acknowledgments</h2>
+<p>
+The Shasta software uses several external software packages which are acknowledged 
+<a href=Acknowledgments.html>here</a>. 
+Licensing information for each of these packages is contained in the Shasta 
+<a href='https://github.com/chanzuckerberg/shasta/blob/master/LICENSE'>LICENSE</a> file.
+
+
+<h2 id=approach>Computational approach</h2>
+
+<p>
+See <a href=ShastaSlides-June2018-v2.pdf>this somewhat obsolete presentation</a>
+for information on the computational methods currently being explored. 
+Key computational ideas under considerations include:
+
+<ul>
+<li>Use a fixed subset of all k-mers (with short k, typically 10), called markers,
+as a concise representation of reads useful to find pairs of overlapping reads 
+and to efficiently compute alignments.
+<li>Use a <a href='https://en.wikipedia.org/wiki/MinHash'>MinHash</a> approach
+on this concise representation to find pairs
+of potentially overlapping reads.
+<li>To check if two reads actually overlap, compute a marker alignment, rather than a 
+complete alignment.
+<li>Use a <a href='https://en.wikipedia.org/wiki/Run-length_encoding'>run-length encoding</a> of reads, 
+as first proposed 
+<a href='https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0046679'>here</a> for
+error correction of Pacific Biosciences reads.
+The run-length representation of reads in insensitive to one of the most
+common types of errors in Nanopore reads, namely errors in the length of a homopolymer run.
+</ul>
+
+<p>
+In addition to Oxford Nanopore reads, these methods might also apply 
+to long reads from other technologies, such as the
+<a href="https://www.pacb.com/">Pacific Biosciences</a> DNA sequencing platforms.
+
+
+<p>
+To facilititate run logistics and code development, 
+an assembly runs in memory on a single, dedicated large machine 
+with a large amount of memory (&asymp; 1 TB)
+and a relatively large number of processors (&asymp; 32 cores). 
+Input data are copied to memory, the entire assembly runs
+in memory without disk access (except for log files
+and small summary files), and the output is then copied
+to persistent storage. This minimizes delays due to data movement,
+and facilitates algorithmic development, as all data
+structures are always loaded in memory and immediately
+accessible at memory speed.
+In addition, it simplifies run logistics, eliminating
+the need to set up and maintain a cluster with high performance 
+networking and with access to a large, high performance
+storage server.
+
+<p>
+The requirement for such a large machine may seem extravagant.
+However, machines with these characteristics are
+currently easily available at reasonable prices on the major
+cloud computing platforms. 
+For example, on 
+<a href="https://aws.amazon.com/ec2">AWS EC2</a>, 
+instance type <code>x1.16xlarge</code>,
+with 976 GB of memory and 32 cores (64 "virtual processors"
+because of hyperthreading)
+is available at the time of writing for an hourly price around 
+$7 (on demand pricing), 
+$4 (reserved pricing), 
+$2 (spot pricing).
+And on <a href="https://cloud.google.com">Google Cloud</a>, 
+machine type <code>n1-ultramem-40</code>, 
+with similar characteristics,
+is available at similar prices.
+And machines with 1-2 TB of memory are often available
+as departmental machines.
+
+
+
+<h2 id=platforms>Supported platforms</h2>
+<p>
+The code is currently set up to build and run on Ubuntu 16.04 and Ubuntu 18.04.
+The documentation assumes that one of these platforms is used
+both for building and running the code.
+
+<p>
+Porting to other Linux systems should be relatively easy once the 
+gcc problem described in the next section is fixed.
+It will likely require just minor changes to the build process
+(in particular, <code>cmake</code> file <code>src/CMakeLists.txt</code>). 
+If you are interested in portability to a specific Linux platform,
+please open a 
+<a href="https://github.com/chanzuckerberg/shasta/issues">GitHub Issue</a> 
+on the repository.
+
+
+
+<h4 id=ubuntu18Performance>Platform-dependent performance considerations</h3>
+<p>
+Because of  
+<a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878">bug 80878</a> 
+in the gcc compiler, on Ubuntu 18.04 some phases of the code
+run at reduced performance. 
+This will also be the case for other Linux platforms that use gcc 7.1 or later,
+until the gcc bug is fixed.
+
+
+<h2 id=building>Building the code from source</h2>
+<p>
+This section, as the rest of the documentation,
+assumes that you are on an Ubuntu 16.04 or 18.04 machine.
+
+<p>
+If you have the necessary 
+<a href=Prerequisites.html>prerequisite packages</a> installed, 
+you can get a local copy of the code and build it
+using the following commands: 
+<pre>
+git clone https://github.com/chanzuckerberg/shasta.git
+mkdir shasta-build
+cd shasta-build
+cmake ../shasta
+make all
+make install
+</pre>
+
+<p>
+If you are not sure if you have the necessary prerequisite packages installed, 
+you can instead
+use the following commands
+(this assumes that you are authorized to acquire root privileges
+using the <code>sudo</code> command - depending on set up you may be asked 
+to enter your password):
+<pre>
+sudo apt install git
+git clone https://github.com/chanzuckerberg/shasta.git
+sudo shasta/scripts/InstallPrerequisites-Ubuntu.sh
+mkdir shasta-build
+cd shasta-build
+cmake ../shasta
+make all
+make install
+</pre>
+
+
+
+
+<p>
+This creates in the <code>shasta-build</code> directory
+a <code>shasta-install</code> directory that 
+needs to be copied to the machine where the code will run
+and that contains the following:
+
+<ul>
+<li>A <code>bin</code> directory containing shared library
+<code>shasta.so</code> and several scripts.
+<li>A <code>conf</code> directory containing sample config files.
+<li>A <code>docs</code> directory containing this and other documentation. 
+</ul>
+
+<p>
+If your build system has more than one processor
+and enough memory, you can speed up the build using the <code>-j</code>
+option in the <code>make all</code> command.
+
+<p>
+If you don't plan to use your build for debugging, you
+can use command <code>make install/strip</code>
+instead of <code>make install</code> as the last
+step of the build process.
+This will strip debug symbols from shared library
+<code>shasta-install/bin/shasta.so</code>, which significantly reduces
+the size of the
+build directory.
+
+
+
+
+<h2 id=input>Input files</h2>
+<p>
+The <code>shasta</code>
+software uses as input one or more 
+<a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
+files containing the input reads.
+If you have a <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a> file, 
+you can convert it to FASTA using script 
+<code>shasta-install/bin/FastqToFasta.py</code>.
+If your FASTQ file is compressed (extension <code>.gz</code>),
+you can decompress it and convert to FASTA in one step,
+saving a round trip to disk, using 
+script 
+<code>shasta-install/bin/FastqGzToFasta.py</code>.
+
+
+ 
+<h2 id=running>Running the assembly</h2>
+
+<p>
+There are two ways to run an assembly:
+<ul>
+<li>
+If you just want to run a small test assembly for which 
+performance is not essential, use the simpler 
+procedure described 
+<a href=RunningSmall.html>here</a>.
+<li>
+The complete assembly procedure for large runs is described 
+<a href=Running.html>here</a>.
+</ul>
+
+
+<h2 id=inspecting>Inspecting assembly results</h2>
+
+<p>
+Currently, the only output produced by the <code>shasta</code>
+software consists of various data structures stored in binary files in memory,
+visible as files in the <code>data</code> and <code>Data</code> directories.
+The most important such data structure is the global marker graph,
+as defined <a href=ShastaSlides-June2018-v2.pdf>here</a>.
+The <code>shasta</code>
+software implements <code>http</code> functionality 
+that allows you to inspect these data structures using a Web browser.
+To do this, use the following command:
+
+<pre>
+shasta-install/bin/RunServerFromDisk.py
+</pre>
+
+This starts the <code>shasta</code> software in a mode that behaves like an 
+<code>http</code> server. You can connect to it by pointing your Web browser to it.
+If the browser is running on the same machine where the server is,
+enter this URL in your browser:
+
+<pre>
+http://localhost:17100
+</pre>
+
+(the port number following the colon could change - see the output of the 
+<code>RunServerFromDisk.py</code> command to find out what port the server is using).
+If the browser is running on a different machine, you will have to replace
+<code>localhost</code> in the above URL with the name or IP address
+of the machine where the server is running.
+
+<p>
+Once in the browser, the server functionality should
+be reasonably self-explanatory. You can look at individual reads
+and their markers, and inspect the global marker graph around 
+any marker associated with a vertex of the
+global marker graph. The local marker graph can be shown
+in a detailed format that shows the sequence associated with
+each vertex and edge, or in a compact format that shows only the
+graph connectivity.
+You can also show the optimal spanning tree of the local marker graph
+and the sequence that is assembled from it using a simple
+assembly algorithm.
+
+
+
+
+<h2 id=contributions>Contributions</h2>
+<p>
+Contributions of code, ideas, computational experiments,
+or documentation are welcome. 
+To contribute, please use the standard GitHub Pull Request process.
+To facilitate and encourage contributions, the 
+<a href=CONTRIBUTING.html>guidelines</a>
+for contributing are minimal.
+
+<p>
+Comments and criticism are also welcome.
+Please use the GitHub 
+<a href="https://github.com/chanzuckerberg/shasta/wiki">Wiki</a>
+or 
+<a href="https://github.com/chanzuckerberg/shasta/issues">Issues</a>
+sections of the GitHub repository as appropriate for these purposes.
+
+
+
+<h2 id=python>Python API</h2>
+<p>
+The code is packaged as a shared library <code>shasta.so</code>
+which behaves as a Python module. Python code can <code>import shasta</code>
+to use the functionality provided by the module through the API 
+documented 
+<a href='PythonApi/_build/html/index.html'>here</a>.
+For the Python interpreter to find the module you must either:
+<ul>
+<li>Make sure the Python script that contains <code>import shasta</code> is in the same directory
+that contains <code>shasta.so</code> (for example, <code>shasta-install/bin</code>).
+<li>Or, set environment variable <code>PYTHONPATH</code>
+to the name of the directory that contains <code>shasta.so</code>.
+</ul>
+
+
+
+</body>
+</html>
+

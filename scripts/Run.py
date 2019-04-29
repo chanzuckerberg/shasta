@@ -110,15 +110,6 @@ def overrideDefaultConfig(config, args):
     if args.pruneIterationCount is not None:
         config["MarkerGraph"]["pruneIterationCount"] = str(args.pruneIterationCount)
 
-    if args.shortCycleLengthThreshold is not None:
-        config["MarkerGraph"]["shortCycleLengthThreshold"] = str(args.shortCycleLengthThreshold)
-
-    if args.bubbleLengthThreshold is not None:
-        config["MarkerGraph"]["bubbleLengthThreshold"] = str(args.bubbleLengthThreshold)
-
-    if args.superBubbleLengthThreshold is not None:
-        config["MarkerGraph"]["superBubbleLengthThreshold"] = str(args.superBubbleLengthThreshold)
-
     if args.markerGraphEdgeLengthThresholdForConsensus is not None:
         config["Assembly"]["markerGraphEdgeLengthThresholdForConsensus"] = str(
             args.markerGraphEdgeLengthThresholdForConsensus)
@@ -319,9 +310,7 @@ if __name__ == "__main__":
         type=int,
         # default=10,
         required=False,
-        help="The length of the k-mers used as markers. \n \
-              When useRunLengthReads is False, suggested choice is k = 8. \n \
-              When useRunLengthReads is True, suggested choice is k = 10."
+        help="The length of the k-mers used as markers. \n"
     )
     parser.add_argument(
         "--probability",
@@ -463,27 +452,6 @@ if __name__ == "__main__":
         # default=6,
         required=False,
         help="Number of iterations for pruneMarkerGraphStrongSubgraph."
-    )
-    parser.add_argument(
-        "--shortCycleLengthThreshold",
-        type=int,
-        # default=30,
-        required=False,
-        help="Maximum length (number of edges) for a short cycle to be removed."
-    )
-    parser.add_argument(
-        "--bubbleLengthThreshold",
-        type=int,
-        # default=1000,
-        required=False,
-        help="Maximum length (number of edges) for a bubble to be removed."
-    )
-    parser.add_argument(
-        "--superBubbleLengthThreshold",
-        type=int,
-        # default=100,
-        required=False,
-        help="Length threshold (number of edges) used for superbubble removal."
     )
     parser.add_argument(
         "--markerGraphEdgeLengthThresholdForConsensus",

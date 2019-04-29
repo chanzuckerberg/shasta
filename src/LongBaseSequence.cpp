@@ -10,8 +10,13 @@ void LongBaseSequences::createNew(
     const string& name,
     size_t pageSize)
 {
-    baseCount.createNew(name + "-BaseCount", pageSize);
-    data.createNew(name + "-Bases", pageSize);
+    if(name.empty()) {
+        baseCount.createNew("", pageSize);
+        data.createNew("", pageSize);
+    } else {
+        baseCount.createNew(name + "-BaseCount", pageSize);
+        data.createNew(name + "-Bases", pageSize);
+    }
 }
 
 
@@ -141,9 +146,9 @@ void ChanZuckerberg::shasta::testLongBaseSequence()
         LongBaseSequences sequences;
         sequences.createNew("abc", 4096);
 
-        for(size_t i=0; i<8; i++) {
+        for(uint8_t i=0; i<8; i++) {
             LongBaseSequence sequence(i*50);
-            const Base base = Base::fromInteger(i%4);
+            const Base base = Base::fromInteger(uint8_t(i%4));
             for(size_t j=0; j<sequence.baseCount; j++) {
                 sequence.set(j, base);
             }
@@ -151,10 +156,10 @@ void ChanZuckerberg::shasta::testLongBaseSequence()
             sequences.append(sequence);
         }
         cout << endl;
-        for(size_t i=0; i<sequences.size(); i++) {\
+        for(uint8_t i=0; i<sequences.size(); i++) {\
             cout << i << endl;
             LongBaseSequenceView sequence = sequences[i];
-            const Base base = Base::fromInteger(i%4);
+            const Base base = Base::fromInteger(uint8_t(i%4));
             for(size_t j=0; j<sequence.baseCount; j++) {
                 sequence.set(j, base);
             }

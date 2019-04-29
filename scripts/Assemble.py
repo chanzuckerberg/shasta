@@ -19,7 +19,6 @@ if useMarginPhase:
     a.setupMarginPhase()
 
 a.accessKmers()
-a.accessReadsReadOnly()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()

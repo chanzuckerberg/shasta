@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "buildId.hpp"
 #include "BiasedGaussianConsensusCaller.hpp"
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
@@ -12,8 +13,9 @@ using namespace shasta;
 // Constructor to be called one to create a new run.
 Assembler::Assembler(
     const string& largeDataFileNamePrefix,
-    size_t largeDataPageSize,
-    bool useRunLengthReads) :
+    bool createNew,
+    size_t largeDataPageSize) :
+
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize)
@@ -21,47 +23,31 @@ Assembler::Assembler(
     , marginPhaseParameters(0)
 #endif
 {
-    assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
-    assemblerInfo->useRunLengthReads = useRunLengthReads;
+    cout << buildId() << endl;
 
-    reads.createNew(largeDataName("Reads"), largeDataPageSize);
-    reads.close();
+    if(createNew) {
 
-    readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
-    readNames.close();
+        // Create a new assembly.
+        assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
+        assemblerInfo->largeDataPageSize = largeDataPageSize;
 
-    if(useRunLengthReads) {
+        reads.createNew(largeDataName("Reads"), largeDataPageSize);
+        readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
         readRepeatCounts.createNew(largeDataName("ReadRepeatCounts"), largeDataPageSize);
-        readRepeatCounts.close();
+
+    } else {
+
+        // Access an existing assembly.
+        assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
+        largeDataPageSize = assemblerInfo->largeDataPageSize;
+
+        reads.accessExistingReadWrite(largeDataName("Reads"));
+        readNames.accessExistingReadWrite(largeDataName("ReadNames"));
+        readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
 
     }
 
-    // assemblerInfo is the only open object
-    // when the constructor finishes.
-
-#ifndef SHASTA_STATIC_EXECUTABLE
-    fillServerFunctionTable();
-#endif
-}
-
-
-
-// Constructor to be called to continue an existing run.
-Assembler::Assembler(
-    const string& largeDataFileNamePrefix,
-    size_t largeDataPageSize) :
-    MultithreadedObject(*this),
-    largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize)
-#ifndef SHASTA_STATIC_EXECUTABLE
-    , marginPhaseParameters(0)
-#endif
-{
-
-    assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
-
-    // assemblerInfo is the only open object
-    // when the constructor finishes.
+    // In both cases, assemblerInfo, reads, readNames, readRepeatCounts are all open for write.
 
 #ifndef SHASTA_STATIC_EXECUTABLE
     fillServerFunctionTable();

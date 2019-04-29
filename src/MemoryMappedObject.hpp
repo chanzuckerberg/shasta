@@ -23,6 +23,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// Linux/macOS
+#ifdef __linux__
+#include <linux/mman.h>
+#else
+#include <mach/vm_statistics.h>
+#define MAP_HUGE_2MB VM_FLAGS_SUPERPAGE_SIZE_2MB
+#endif
+
 namespace ChanZuckerberg {
     namespace shasta {
         namespace MemoryMapped {
@@ -175,6 +183,8 @@ private:
 
     // Find the size of the file corresponding to an open file descriptor.
     size_t getFileSize(int fileDescriptor);
+
+    void createNewAnonymous(size_t pageSize);
 };
 
 
@@ -268,6 +278,13 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
     const string& name,
     size_t pageSize)
 {
+    CZI_ASSERT(pageSize==4096 || pageSize==2*1024*1024);
+
+    if(name.empty()) {
+        createNewAnonymous(pageSize);
+        return;
+    }
+
     try {
         // If already open, should have called close first.
         CZI_ASSERT(!isOpen);
@@ -310,6 +327,56 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
         cout << e.what() << endl;
         throw runtime_error("Error " + to_string(errno)
             + " creating MemoryMapped::Object " + name + ": " + strerror(errno));
+    }
+
+}
+
+
+
+// Create a new mapped object.
+template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::createNewAnonymous(
+    size_t pageSize)
+{
+    try {
+        // If already open, should have called close first.
+        CZI_ASSERT(!isOpen);
+
+        // Create the header.
+        const Header headerOnStack(pageSize);
+        const size_t fileSize = headerOnStack.fileSize;
+
+        // Map it in memory.
+        int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+        if(pageSize == 2*1024*1024) {
+            flags |= MAP_HUGETLB | MAP_HUGE_2MB;
+        }
+        void* pointer = ::mmap(0, fileSize,
+            PROT_READ | PROT_WRITE, flags,
+            -1, 0);
+        if(pointer == reinterpret_cast<void*>(-1LL)) {
+            throw runtime_error("Error " + to_string(errno)
+                + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+        }
+
+        // Figure out where the data and the header go.
+        header = static_cast<Header*>(pointer);
+        data = reinterpret_cast<T*>(header+1);
+
+        // Store the header.
+        *header = headerOnStack;
+
+        // Call the default constructor on the data.
+        new(data) T();
+
+        // Indicate that the mapped vector is open with write access.
+        isOpen = true;
+        isOpenWithWriteAccess = true;
+        fileName = "";
+
+    } catch(std::exception& e) {
+        cout << e.what() << endl;
+        throw runtime_error("Error " + to_string(errno)
+            + " creating MemoryMapped::Object: " + strerror(errno));
     }
 
 }
@@ -403,7 +470,10 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::u
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::close()
 {
     CZI_ASSERT(isOpen);
-    syncToDisk();
+
+    if(!fileName.empty()) {
+        syncToDisk();
+    }
     unmap();
 }
 

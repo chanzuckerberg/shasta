@@ -278,20 +278,6 @@ void Assembler::accessAllSoft()
     bool allDataAreAvailable = true;
 
     try {
-        accessReadsReadOnly();
-    } catch(exception e) {
-        cout << "Reads are not accessible." << endl;
-        allDataAreAvailable = false;
-    }
-
-    try {
-        accessReadNamesReadOnly();
-    } catch(exception e) {
-        cout << "Read names are not accessible." << endl;
-        allDataAreAvailable = false;
-    }
-
-    try {
         accessReadFlags(false);
     } catch(exception e) {
         cout << "Read flags are not accessible." << endl;
@@ -413,9 +399,6 @@ void Assembler::exploreSummary(
     html <<
         "<h1>Run summary</h1>"
         "<table>"
-
-        "<tr><td title='The representation used to store read sequence'>Read representation"
-        "<td class=right>" << (assemblerInfo->useRunLengthReads ? "Run-length" : "Raw") <<
 
         "<tr><td title='Total number of input reads'>Reads"
         "<td class=right>" << reads.size() <<
@@ -568,24 +551,18 @@ void Assembler::exploreRead(
 
     // Read length.
     html << "<p>This read is " << rawOrientedReadSequence.size() << " bases long";
-    if(assemblerInfo->useRunLengthReads) {
-        html << " (" << readStoredSequence.baseCount << " bases in run-length representation)";
-    }
+    html << " (" << readStoredSequence.baseCount << " bases in run-length representation)";
     html << " and has " << orientedReadMarkers.size() << " markers.";
 
     // Begin/end position (in raw sequence).
     if(beginPositionIsPresent || endPositionIsPresent) {
         html <<
             " Displaying only " << endPosition-beginPosition << " bases";
-        if(assemblerInfo->useRunLengthReads) {
-            html << " of raw read sequences";
-        }
+        html << " of raw read sequences";
         html << " beginning at base position " << beginPosition <<
             " and ending at base position " << endPosition <<
             " .";
-        if(assemblerInfo->useRunLengthReads) {
-            html << " For sequence in run-length representation see below.";
-        }
+        html << " For sequence in run-length representation see below.";
     }
 
 
@@ -665,26 +642,13 @@ void Assembler::exploreRead(
 
 
     // Display the selected portion of raw sequence.
-    // This is skipped if we are using raw read representation
-    // and the display of the entire read is selected,
-    // because it would be redundant (the same information
-    // is in the display with markers that comes next).
     const bool partialSequenceRequested =  beginPositionIsPresent || endPositionIsPresent;
-    if(assemblerInfo->useRunLengthReads || partialSequenceRequested) {
+    if(true) {
         html << "<h3>";
-        if(assemblerInfo->useRunLengthReads) {
-            if(partialSequenceRequested) {
-                html << "Selected portion of raw sequence of this oriented read";
-            } else {
-                html << "Raw sequence of this oriented read";
-            }
+        if(partialSequenceRequested) {
+            html << "Selected portion of raw sequence of this oriented read";
         } else {
-            if(partialSequenceRequested) {
-                html << "Selected portion of sequence of this oriented read";
-            } else {
-                CZI_ASSERT(0);
-            }
-
+            html << "Raw sequence of this oriented read";
         }
         html << "</h3>";
 
@@ -694,9 +658,7 @@ void Assembler::exploreRead(
 
         // Labels for position scale.
         html << "<pre style='font-family:monospace;margin:0'";
-        if(assemblerInfo->useRunLengthReads) {
-            html << " title='Position in raw read sequence'";
-        }
+        html << " title='Position in raw read sequence'";
         html<< ">";
         for(size_t position=beginPosition; position<endPosition; ) {
             if((position%10)==0) {
@@ -737,7 +699,7 @@ void Assembler::exploreRead(
 
 
         // Also write a position scale for positions in the run-length representation.
-        if(assemblerInfo->useRunLengthReads) {
+        if(true) {
             html << "<pre style='font-family:monospace;margin:0'";
             html << " title='Position in run-length read sequence'>";
 
@@ -876,12 +838,7 @@ void Assembler::exploreRead(
 
 
     // Title for the next portion of the display, which shows the markers.
-    if(assemblerInfo->useRunLengthReads) {
-        html << "<h3>Run-length representation of oriented read sequence and its markers</h3>";
-    } else {
-        html << "<h3>Oriented read sequence and its markers</h3>";
-    }
-
+    html << "<h3>Run-length representation of oriented read sequence and its markers</h3>";
 
 
 
@@ -896,9 +853,7 @@ void Assembler::exploreRead(
     const int verticalSpacing = 13;
     const int charactersPerLine = int(readStoredSequence.baseCount) + 10; // Add space for labels
     int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
-    if(assemblerInfo->useRunLengthReads) {
-        svgLineCount++;     // Add a line with the repeat counts.
-    }
+    svgLineCount++;     // Add a line with the repeat counts.
     const int svgWidth = horizontalSpacing * charactersPerLine;
     const int svgHeight = verticalSpacing * svgLineCount;
     const int highlightedMarkerVerticalOffset = 2;
@@ -954,25 +909,23 @@ void Assembler::exploreRead(
 
 
     // Repeat counts.
-    if(assemblerInfo->useRunLengthReads) {
-        for(size_t position=0; position!=readStoredSequence.baseCount; position++) {
-            Base base;
-            uint8_t repeatCount;
-            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
-            html <<
-                "<text class='mono'" <<
-                " x='" << position*horizontalSpacing << "'" <<
-                " y='" << 3*verticalSpacing << "'"
-                " textLength='" << horizontalSpacing<< "'>";
-            if(repeatCount < 10) {
-                html << int(repeatCount);
-            } else {
-                html << "*";
-            }
-            html << "<title>" << base << " at run-length position " << position <<
-                " is repeated " << int(repeatCount) << " times</title>";
-            html << "</text>";
+    for(size_t position=0; position!=readStoredSequence.baseCount; position++) {
+        Base base;
+        uint8_t repeatCount;
+        tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
+        html <<
+            "<text class='mono'" <<
+            " x='" << position*horizontalSpacing << "'" <<
+            " y='" << 3*verticalSpacing << "'"
+            " textLength='" << horizontalSpacing<< "'>";
+        if(repeatCount < 10) {
+            html << int(repeatCount);
+        } else {
+            html << "*";
         }
+        html << "<title>" << base << " at run-length position " << position <<
+            " is repeated " << int(repeatCount) << " times</title>";
+        html << "</text>";
     }
 
 
@@ -982,7 +935,7 @@ void Assembler::exploreRead(
     // This way you can select sequence text without getting a
     // new line after each character, while still achieving good
     // alignment.
-    const uint32_t readSequenceLine = assemblerInfo->useRunLengthReads ? 4 : 3;
+    const uint32_t readSequenceLine = 4;
     for(size_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
         const size_t blockEnd = min(blockBegin+blockSize, readStoredSequence.baseCount);
         html <<

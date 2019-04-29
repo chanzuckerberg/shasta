@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+
+<body>
+
+<h1>Running a large assembly</h1>
+<p>
+For large assemblies, <code>shasta</code> uses Linux huge pages
+(2 MB pages) for efficiency and reduced system overhead.
+This section describes two different procedures that can
+be used for this purpose.
+
+
+
+<h2>Running an assembly: simplified procedure for large runs</h2>
+<p>
+<p>
+This provides a one line command to run a large <code>shasta</code> assembly
+with full performance through the usage of large pages
+if full configurability and flexibility are not necessary.
+Note that this requires root privileges to configure large pages.
+Root privileges are obtained using the <code>sudo</code>
+command. Therefore, depending on configuration, this command may
+request your password.
+<p>
+<code>
+shasta-install/bin/Run.py --inputSequences .../input.fasta
+</code>
+<p>
+Arguments:
+<ul>
+<li><code>--inputSequences</code> specifies the input fasta file to be used.
+</ul>
+
+<p>
+This command provides a certain amount of configurability,
+but  does not provide full access to all of the Shasta 
+assembly parameters. 
+Invoke with the <code>--help</code> for details.
+
+
+
+<h2>Running an assembly: complete procedure for large runs</h2>
+
+<p>
+This section describes the complete procedure for a large assembly run.
+For a small test run for which performance is not essential,
+you can use the simpler procedure described
+<a href=RunningSmall.html>here</a>.
+
+
+<h2 id=memory>Memory configuration</h2>
+<p>
+For efficient utilization of the large amount of memory required by a large assembly,
+the <code>shasta</code> code stores data on non-swappable virtual memory supported by 
+2 MB pages, as provided by the 
+<a href="https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt">
+Linux hugetlbfs filesystem</a>.
+
+
+
+<h2 id=runDirectory>Setting up a run directory</h2>
+<p>
+Create a new directory for your run. 
+After <code>cd</code> to that new directory,
+run <code>shasta-install/bin/SetupRunDirectory.py</code>.
+This will create a
+<code>Data</code> directory and mount on it a huge page filesystem in memory
+backed by 2MB pages,
+as well as a <code>threadLogs</code> directory 
+to contain logs for individual threads, for assembly phases
+that run in parallel. 
+This command uses <code>sudo</code> to obtain root privileges when needed.  
+As a result, depending on your <code>sudo</code> setup, it may
+ask for your password.
+
+
+<p>
+Next, you need to create a configuration file where the <code>shasta</code>
+software will find values for various assembly parameters.
+This configuration file must be named <code>shasta.conf</code>.
+A sample configuration files is available in the 
+<code>shasta-install/conf</code> directory. 
+You copy it to the run directory 
+and edit it to customize it as necessary for your run.
+The provided sample <code>shasta.conf</code>
+contains assembly parameters optimized for a human
+assembly at coverage around 60x.
+In other situations, some of the assembly
+parameters will need to be changed to
+obtain good results.
+
+
+ 
+<h2 id=running>Running the assembly</h2>
+<p>
+With the run directory set up as described and the
+input FASTA files ready, you can run the assembly.
+Just invoke <code>shasta-install/bin/RunAssembly.py</code>,
+passing as arguments the names of your input FASTA files,
+and the assembly will start.
+
+<p>
+To prevent interruptions of the run due to network issues
+that break your ssh connection to the machine running the assembly, 
+you can use the <code>nohup</code> command:
+
+<pre>
+nohup shasta-install/bin/RunAssembly.py Input.fasta 1>RunAssembly.stdout 2>&1 &
+</pre>
+
+This way, the assembly runs in the background, is not interrupted
+if your terminal window is closed, and all log output
+to <code>stdout</code> and <code>stderr</code>
+is saved to file <code>RunAssembly.stdout</code>.
+
+<p>
+Because of the large memory utilization, it is recommended
+that a machine be dedicated to a single assembly run.
+The machine should not be concurrently used for other purposes, 
+and multiple concurrent runs on the same machine
+are not advisable. 
+If the code runs in virtualized or containerized
+environments, appropriate amounts of physical resources
+should be dedicated to it.
+If adequate computational resources are not available,
+the assembly run will crash or slow down intolerably,
+and potentially crash the entire physical or virtual
+machine used.
+
+
+
+<h2 id=saving>Saving assembly results</h2>
+
+<p>
+The data structures created during assembly are stored in memory,
+so they use valuable system resources. In addition, they are
+not persistent, which means they are lost 
+when the system reboots.
+You can save these data structures persistently using the following
+command:
+
+<pre>
+shasta-install/bin/SaveRun.py
+</pre>
+
+This will create directories <code>dataOnDisk</code> and
+<code>DataOnDisk</code>
+which are copies of <code>data</code> and
+<code>Data</code>.
+After this command completes, you can delete the 
+contents of the <code>data</code> and
+<code>Data</code> directory to free the memory 
+resources they use. 
+
+<p>
+You can also restore the run in memory from the data on disk at a later time.
+For this, make sure the run directory is set up and that the 
+<code>data</code> and
+<code>Data</code> directories are empty. Then, use the following command:
+
+<pre>
+shasta-install/bin/RestoreRun.py
+</pre>
+
+
+
+<p>
+The <code>SaveRun.py</code> and <code>RestoreRun.py</code> commands
+perform large amounts of sequential I/O to/from storage.
+In some environments, the performance of this sequential I/O
+can be substantially improved using the following command to
+increase the size of individual I/O operations:
+
+<pre>
+blockdev --setra 65536 /dev/xvdf
+</pre>
+
+Here, replace <code>/dev/xvdf</code> with the name of the block device
+that your filesystem is mounted on. The above command
+requires root privileges.
+The above command is particularly helpful when using
+an EBS "Throughput Optimized HDD Volume" (volume type <code>st1</code>) on AWS EC2.
+
+
+
+<h2 id=cleaningUp>Cleaning up allocated memory</h2>
+
+<p>
+After saving to disk the run results, you can clean up allocated memory
+using the following command:
+
+<pre>
+shasta-install/bin/CleanupRunDirectory.py
+</pre>
+
+<p>
+This command uses <code>sudo</code> to obtain root privileges when needed.  
+As a result, depending on your <code>sudo</code> setup, it may
+ask for your password.
+
+
+
+</body>
+</html>
+

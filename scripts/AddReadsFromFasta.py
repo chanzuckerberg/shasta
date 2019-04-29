@@ -16,8 +16,6 @@ if not len(sys.argv)==2:
 fileName = sys.argv[1]
 
 a = shasta.Assembler()
-a.accessReadsReadWrite();
-a.accessReadNamesReadWrite();
 a.addReadsFromFasta(
     fileName = fileName, 
     minReadLength = int(config['Reads']['minReadLength']))

@@ -2,14 +2,18 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
+#ifndef SHASTA_STATIC_EXECUTABLE
 #include "LocalMarkerGraph.hpp"
+#endif
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 // SeqAn.
 #include <seqan/graph_msa.h>
 #include <seqan/version.h>
+#endif
 
 // Spoa.
 #include "spoa/spoa.hpp"
@@ -1479,6 +1483,7 @@ bool Assembler::isBadMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 void Assembler::extractLocalMarkerGraph(
 
     // The ReadId, Strand, and ordinal that identify the
@@ -1500,7 +1505,6 @@ void Assembler::extractLocalMarkerGraph(
     LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
-        assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
         markerGraph.vertexTable,
@@ -1718,11 +1722,8 @@ bool Assembler::extractLocalMarkerGraph(
     // Fill in the oriented read ids represented in the graph.
     graph.findOrientedReadIds();
 
-    // If using run-length reads, also fill in the ConsensusInfo's
-    // for each vertex.
-    if(assemblerInfo->useRunLengthReads) {
-        graph.computeVertexConsensusInfo();
-    }
+    // Also fill in the ConsensusInfo's for each vertex.
+    graph.computeVertexConsensusInfo();
 
     return true;
 }
@@ -2012,11 +2013,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     // Fill in the oriented read ids represented in the graph.
     graph.findOrientedReadIds();
 
-    // If using run-length reads, also fill in the ConsensusInfo's
-    // for each vertex.
-    if(assemblerInfo->useRunLengthReads) {
-        graph.computeVertexConsensusInfo();
-    }
+    // Also fill in the ConsensusInfo's for each vertex.
+    graph.computeVertexConsensusInfo();
 
     return true;
 }
@@ -2036,7 +2034,6 @@ vector<MarkerGraph::VertexId> Assembler::getLocalAssemblyPath(
     LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
         reads,
-        assemblerInfo->useRunLengthReads,
         readRepeatCounts,
         markers,
         markerGraph.vertexTable,
@@ -2062,6 +2059,7 @@ vector<MarkerGraph::VertexId> Assembler::getLocalAssemblyPath(
     }
     return path;
 }
+#endif
 
 
 
@@ -3029,6 +3027,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 
 
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 // Compute consensus sequence for an edge of the marker graph.
 // This includes the k bases corresponding to the flanking markers,
 // but computed only using reads on this edge.
@@ -3136,6 +3135,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
     }
 #endif
 }
+#endif
 
 
 

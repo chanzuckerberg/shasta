@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+<body>
+
+<h1>Quick start</h1>
+It is expected that the first Shasta release will become available in early May 2019.
+When that happens, it will become very easy for users to get started using Shasta
+for assembly on a variety of platforms including most current 64 bit Linux platforms, macOS, and Windows.
+This can be done in three commands - more details below:
+<p>
+<code>
+wget https://github.com/chanzuckerberg/shasta/releases/download/0.1.0/shasta-Linux-0.1.0
+<br>chmod ugo+x shasta-Linux-0.1.0
+<br>shasta-Linux-0.1.0 --input input.fasta
+</code>
+<p>See below for more information, including some small changes required for macOS and Windows.
+
+
+
+<h2>Before the first release becomes available</h2>
+Before the first release becomes available, 
+users are forced to build the code from source
+and run the assembly using the more complex procedures described
+in the <a href=oldDocs/index.html>old documentation</a>.
+This requires a Linux machine running Ubuntu 16.04 or Ubuntu 18.04
+and root privilege.
+
+
+
+<h2>When the first release becomes available</h2>
+When the first release becomes available, 
+users can simply download from GitHub a highly portable executable 
+that has no dependencies and requires no installation or set up,
+except for setting the execute permission bit.
+
+<h3>Linux</h3>
+
+<ul>
+<li>Download the Linux static executable <code>shasta-Linux-X.Y.Z</code> for your selected release. 
+You can use your browser or the following command, replacing <code>X.Y.Z</code> with 
+the release you want to use:
+<br>
+<code>wget https://github.com/chanzuckerberg/shasta/releases/download/X.Y.Z/shasta-Linux-X.Y.Z</code>
+<li>Use this command to set its permission bits: 
+<br>
+<code>chmod ugo+x shasta-Linux-X.Y.Z</code>
+<li>Use this command to run your assembly, making sure to specify
+the correct path to the location where you stored the executable,
+or to add that location to your <code>PATH</code>
+environment variable:
+<br><code>./shasta-Linux-X.Y.Z --input input.fasta</code>
+<br>You can specify multiple input FASTA files, if necessary.
+On a typical laptop, this will run in minutes for a bacterial genome.
+For a human size assembly, AWS instance type <code>x1.32xlarge</code>
+is recommended. It is usually available at a cost around $4/hour
+on the AWS spot market and should complete the human size assembly
+in a few hours, at coverage around 60x.
+<li>Assembly output will be created in a new directory named
+<code>ShastaRun</code>. 
+Output includes the assembly in FASTA and GFA 1.0 formats in files:
+<ul>
+<li><code>ShastaRun/Assembly.fasta</code>
+<li><code>ShastaRun/Assembly.gfa</code>
+</ul>
+</ul>
+This will work on most current 64 bit Linux distributions. 
+It was tested on at least the following Linux distributions for the 
+<code>x86_64</code> architecture, but it is likely
+that it will run on any Linux distribution for <code>x86_64</code>
+that uses a current kernel.
+<ul>
+<li>Ubuntu 16.04 and 18.04
+<li>Linux Mint 18.3
+<li>CentOS 7.6
+<li>Debian 9
+<li>Fedora 29
+</ul>
+
+<p>
+Note that the procedure above does not require root privilege,
+unless some non-default options are used when invoking the
+executable. 
+Those non-default options are, however, necessary
+to achieve maximum performance.
+
+
+<h3>macOS</h3>
+Use the Linux directions, but change the name of the executable from
+<code>shasta-Linux-X.Y.Z</code>
+to
+<code>shasta-macOS-X.Y.Z</code>.
+
+
+<h3>Windows</h3>
+<ul>
+<li>
+Install 
+<a href="https://docs.microsoft.com/en-us/windows/wsl/install-win10">
+Windows Subsystem for Linux (WSL)</a>.
+<li>Working in a Linux shell created using WSL, follow the directions for Linux above.
+</ul>
+
+
+
+</body>
+</html>
+

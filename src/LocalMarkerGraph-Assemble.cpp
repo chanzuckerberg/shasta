@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 // Shasta
 #include "LocalMarkerGraph.hpp"
 #include "ConsensusCaller.hpp"
@@ -35,9 +37,6 @@ void LocalMarkerGraph::assembleDominantSequence(
 {
     CZI_ASSERT(!path.empty());
     const LocalMarkerGraph& graph = *this;
-
-    // This is only used with the run-length representation of reads.
-    CZI_ASSERT(useRunLengthReads);
 
     // Compute SeqAn alignments for all edges on the local assembly path.
     computeSeqanAlignments();
@@ -940,3 +939,4 @@ void LocalMarkerGraph::assembleDominantSequenceUsingSeqan(ostream& html) const
         "document.getElementById('assemblyTable').style.visibility = 'visible';"
         "</script>";
 }
+#endif

@@ -32,18 +32,8 @@ def verifyFastaFiles(fastaFileNames):
 
 
 def initializeAssembler(config, fastaFileNames):
-    # Create the assembler.
-    useRunLengthReadsString = config['Reads']['useRunLengthReads']
-    if useRunLengthReadsString == 'True':
-        useRunLengthReads = True
-    elif useRunLengthReadsString == 'False':
-        useRunLengthReads = False
-    else:
-        raise RuntimeError("Configuration parameter useRunLengthReads in section Reads must be True or False.")
-    
     # Create the Assembler.
-    a = shasta.Assembler(useRunLengthReads = useRunLengthReads)
-    
+    a = shasta.Assembler(createNew=True)    
     return a
 
 
@@ -57,8 +47,6 @@ def runAssembly(a, config, fastaFileNames):
         a.setupMarginPhase()
     
     # Read the input fasta files.
-    a.accessReadsReadWrite()
-    a.accessReadNamesReadWrite()   
     for fileName in fastaFileNames:  
         print('Reading input file', fileName, flush=True) 
         a.addReadsFromFasta(
@@ -156,7 +144,7 @@ def runAssembly(a, config, fastaFileNames):
     # for a branch to be collapsed during each iteration.
     a.simplifyMarkerGraph(
         maxLength = [int(s) for s in config['MarkerGraph']['simplifyMaxLength'].split(',')],
-        debug = True)
+        debug = False)
     
     # Create the assembly graph.
     a.createAssemblyGraphEdges()

@@ -1,3 +1,5 @@
+#ifndef SHASTA_STATIC_EXECUTABLE
+
 #ifndef CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
 #define CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
 
@@ -239,7 +241,6 @@ public:
     LocalMarkerGraph(
         uint32_t k,
         LongBaseSequences& reads,
-        bool useRunLengthReads,
         const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
@@ -404,7 +405,6 @@ private:
     // Reference to the global data structure containing all reads and markers
     // (not just those in this local marker graph).
     LongBaseSequences& reads;
-    bool useRunLengthReads;
     const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
 
@@ -443,5 +443,7 @@ private:
     };
     friend class Writer;
 };
+
+#endif
 
 #endif
