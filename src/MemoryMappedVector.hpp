@@ -996,11 +996,13 @@ template<class T> inline
 #endif
     void* pointer = 0;
     if(useMremap) {
+#ifdef __linux__
         pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
         if(pointer == reinterpret_cast<void*>(-1LL)) {
             throw runtime_error("Error " + boost::lexical_cast<string>(errno)
                 + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
         }
+#endif
     } else {
 
         // We cannot use mremap. We have to create a new mapping
