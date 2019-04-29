@@ -14,11 +14,12 @@
 <li>Make sure there are no outstanding commits or
 pull requests that should be in the new release.
 <li>Do some testing.
-<li>Pick a release number X.Y.Z. 
+<li>Pick a release number <code>X.Y.Z</code>. 
 To stay consistent with
 <a href='https://semver.org'>Semantic Versioning</a>,
-for now stay with X=0.
-Increment Z if only bug fixes were made, Y otherwise.
+for now stay with <code>X=0</code>.
+Increment <code>Z</code> by one if only bug fixes were made, and otherwise 
+increment <code>Y</code> by one and reset <code>Z</code> to zero.
 <li>Create the release on GitHub and write some release notes.
 
 <li>On Ubuntu 16.04, with the prerequisites installed:

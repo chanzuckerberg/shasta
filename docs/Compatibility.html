@@ -10,14 +10,59 @@
 
 <h1>Compatibility across releases</h1>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<h2>Binary data compatibility</h2>
+<p>
+Depending on how you use Shasta, the code may generate for each run a
+<code>Data</code> directory containing binary data
+containing the data structures used for assembly. 
+These binary data can be used for processing in two ways:
 
+<ul>
+<li>For 
+<a href=InspectingResults.html>visualization/debugging</a> using the Shasta http server.
+<li>For analysis using the Shasta 
+<a href=Python.html>Python API</a>.
+</ul>
+
+Binary data created by a version of the Shasta assembler 
+will generally be incompatible with a different version.
+In other words, you will only be able to use the http server
+or the Python API using the same Shasta version that 
+was used for the run that you want to postprocess.
+
+
+
+<h2>API compatibility</h2>
+<p>
+The Python API is subject to changes across Shasta versions.
+Therefore, a Python script that was developed for a
+specific Shasta version is generally not going to continue
+to work with future versions.
+
+<p>
+Command line options for the Shasta executable and scripts
+will generally change across releases.
+There is no guarantee that options that were valid in a release
+will remain valid in a future release.
+It is also possible that the meaning of some options
+will change from release to release, although a reasonable
+effort will be made to limit this.
+
+
+<h2>Release numbering</h2>
+
+<p>
+Shasta releases are named using
+<a href='https://semver.org'>Semantic Versioning</a>
+conventions. 
+Because of the lack of compatibility described above,
+it is likely that the Shasta major release number will
+stay at 0 for the foreseeable future - that is, 
+Shasta releases will be numbered <code>0.Y.Z</code>.
+Releases that contain only bug fixes will keep the same
+<code>Y</code> and increment <code>Z</code> by one.
+Other releases will increment <code>Y</code> by one
+and set <code>Z</code> to zero.
 
 </body>
 </html>
