@@ -10,13 +10,34 @@
 
 <h1>Motivation</h1>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<p>
+<i>De novo</i> assembly for human genomes
+from <a href="https://nanoporetech.com">Oxford Nanopore</a> reads
+was first demonstrated by
+<a href="https://www.nature.com/articles/nbt.4060">Jain <i>et al.</i>, 2018</a>,
+but at substantial computational cost and complexity.
+The goal of the Shast project is to reduce
+this computational cost and complexity to the point
+of enabling routine and/or clinical <i>de novo</i>
+assembly for human genomes.
+For this, the assembler must be:
+
+<ol>
+<li>Fast: under one day elapsed time.
+<li>Logistically simple and easy to run. 
+<li>Accurate: accuracy and other assembly metrics must be
+comparable to those provided by existing tools.
+Assembly accuracy should be limited by data quality,
+not by assembly algorithms.
+</ol>
+
+<p>
+The Shasta assembler has fulfilled the first two goals.
+An evaluation is in process regarding the third goal,
+but early indications are that Shasta accuracy
+is at least comparable to alternative, less performant assemblers.
+See 
+<a href=CurrentStatus.html>here</a> for more information on current status.
 
 </body>
 </html>
