@@ -370,6 +370,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths);
 
     // Final disclaimer message.
+#ifdef __linux
     if(memoryBacking != "2M" && memoryMode != "filesystem") {
         cout << "This run was done with \"--memoryBacking " << memoryBacking <<
             " --memoryMode " << memoryMode << "\".\n"
@@ -379,6 +380,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
             "Therefore the results of this run should not be used\n"
             "for benchmarking purposes." << endl;
     }
+#endif
 
     // Write out the build id again.
     cout << buildId() << endl;
