@@ -370,15 +370,18 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths);
 
     // Final disclaimer message.
-    cout << "\n" << buildId() << endl;
-    if(memoryBacking != "2M") {
-        cout << "This run was done with \"--memoryBacking " << memoryBacking << "\".\n";
-        cout << "This could have resulted in performance degradation.\n"
-            "For full performance, use \"--memoryBacking 2M\"\n"
+    if(memoryBacking != "2M" && memoryMode != "filesystem") {
+        cout << "This run was done with \"--memoryBacking " << memoryBacking <<
+            " --memoryMode " << memoryMode << "\".\n"
+            "This could have resulted in performance degradation.\n"
+            "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
             "(root privilege via sudo required).\n"
             "Therefore the results of this run should not be used\n"
             "for benchmarking purposes." << endl;
     }
+
+    // Write out the build id again.
+    cout << buildId() << endl;
 
 }
 
