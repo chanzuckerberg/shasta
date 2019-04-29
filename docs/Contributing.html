@@ -6,17 +6,59 @@
 <link rel=icon href=CZI-new-logo.png />
 </head>
 
+
 <body>
 
-<h1>Contributing to Shasta</h1>
+<h2>Guidelines for contributing</h2>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<p>
+Contributions of code, ideas, computational experiments,
+or documentation are welcome. 
+To contribute, please use the standard GitHub Pull Request process.
+To facilitate integration of your code,
+you can use a new branch for each Pull Request.
+You can choose any name you like for the branch you create for this purpose,
+as long as it does not conflict with the name of an existing branch.
+
+<p>
+If you contribute C++ code, please:
+<ul>
+<li>Add at least a minimal amount
+of comments to explain or clarify what the code does. 
+<li>Use blank lines generously to separate code blocks.
+<li>Set your editor to convert tabs to 4 spaces.
+<li>To minimize name pollution of the global namespace,
+all code should be in the <code>ChanZuckerberg::shasta</code> namespace.
+Do not use <code>using</code> directives at global scope.
+<li>If you need to add a large amount of code to an existing
+file, consider creating a new file instead.
+<li>Keep in mind that the code is currently compiled
+using the C++14 standard. Use features in that standard
+liberally. However, you cannot use C++ features
+that were introduced in the C++17 standard
+or that are slated for the C++20 standard.
+<li>For functionality not provided
+by the standard libraries, you can also use the Boost libraries.
+<li>If possible, avoid adding dependencies on other packages.
+</ul>
+
+<p>
+To contribute ideas, computational experiments,
+comments, or criticism, please use the GitHub 
+ 
+<a href="https://github.com/chanzuckerberg/shasta/issues">Issues</a>
+section of the GitHub repository.
+
+<p>
+If you contribute documentation, please:
+<ul>
+<li>Put it in the <code>docs</code>
+directory, so it becomes automatically visible in GitHub Pages.
+<li>Feel free to create new <code>.html</code> files, if appropriate.
+<li>Attempt to harmonize your new materials with the existing
+documentation, if possible.
+</ul>
+
 
 </body>
 </html>
