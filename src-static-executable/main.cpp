@@ -129,6 +129,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         "cleanup: cleanup the Data directory that was created during assembly\n"
         "    if --memoryMode filesystem.\n")
 
+#ifdef __linux__
         ("memoryMode",
         value<string>(&memoryMode)->
         default_value("anonymous"),
@@ -144,7 +145,18 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         "except for (anonymous, disk).\n"
         "Some combinations require root privilege, which is obtained using sudo "
         "and may result in a password prompting depending on your sudo set up.")
+#endif
         ;
+
+
+    // For reasons not completely understood and that there was no time to investigate,
+    // the only combination that works is "--memoryMode filesystem --memoryBacking disk".
+    // This incurs a performance price but this is not too much of a big deal
+    // as macOS  is only to be used for small test runs.
+#ifndef __linux__
+    memoryMode = "filesystem";
+    memoryBacking = "disk";
+#endif
 
 
 
@@ -355,8 +367,10 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
     cout << endl;
     cout << "outputDirectory = " << outputDirectory << endl;
+#ifdef __linux__
     cout << "memoryMode = " << memoryMode << endl;
     cout << "memoryBacking = " << memoryBacking << "\n" << endl;
+#endif
     assemblyOptions.write(cout);
     {
         ofstream configurationFile("shasta.conf");
@@ -380,6 +394,11 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
             "Therefore the results of this run should not be used\n"
             "for benchmarking purposes." << endl;
     }
+#else
+    cout << "The macOS version of the Shasta assembler runs at degraded performance.\n";
+    cout << "Use Linux for full performance.\n";
+    cout << "Therefore the results of this run should not be used\n"
+        "for benchmarking purposes." << endl;
 #endif
 
     // Write out the build id again.
