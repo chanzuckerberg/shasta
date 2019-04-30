@@ -43,16 +43,19 @@ signal if transported to a different machine with a
 less powerful instruction set. 
 To disable the <code>-march=native</code> option
 and build portable but less performing code,
-specify <code>-DBUILD_NATIVE=OFF</code> when running <code>cmake</code>.
+specify <code>-DBUILD_NATIVE=OFF</code> when running <code>cmake</code>
+(release builds do this).
 
 
 <li>
 If you are using <code>SmallRun.py</code>, switch to <code>Run.py</code> instead.
+The latter, however, requires root privilege to be acquired via <code>sudo</code>. 
 
 <li>
 If you are using <code>RunAssembly.py</code>, use <code>SetupRunDirectory.py</code>
 and not <code>SetupSmallRunDirectory.py</code>
 to prepare the run directory.
+The former, however, requires root privilege to be acquired via <code>sudo</code>. 
 
 </ul>
 
