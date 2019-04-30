@@ -42,6 +42,8 @@ in assembly quality when compared to other long read assemblers.
 The Shasta software uses various external software packages.
 See [here](https://chanzuckerberg.github.io/shasta/Acknowledgments.html) for more information.
 
+#### Reporting Security Issues
+Please note: If you believe you have found a security issue, please responsibly disclose by contacting security@chanzuckerberg.com.
 ___
 
 **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
