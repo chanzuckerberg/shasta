@@ -79,6 +79,9 @@ private:
 
     /// ---- Attributes ---- ///
 
+    // The name specified under the field ">Name" in the configuration file
+    string configuration_name;
+
     // Defined at initialization, this is the size of the probability matrix generated from the data
     uint16_t max_runlength;
 
@@ -90,16 +93,24 @@ private:
     // p(X|Y) normalized for each Y, where X = observed and Y = True run length
     array<vector<vector<double> >, 4> probability_matrices;
 
+    // priors p(Y) normalized for each Y, where X = observed and Y = True run length
+    array<vector<double>, 2> priors;
 
     /// ----- Methods ----- ///
+
+    // For parsing any character separated file format
+    void split_as_double(string s, char separator_char, vector<double>& tokens);
+    void split_as_string(string s, char separator_char, vector<string>& tokens);
 
     // Read each probability matrix from its file and store them in a vector (assuming decibel units, aka base 10)
     // Each delimited table in text should be preceded by a fasta-like header e.g.: ">A" for the base it corresponds to.
     // This converts each line to a vector of doubles, appending probability_matrices according to the matrix header.
-    void load_probability_matrices(ifstream& matrix_file);
+    void load_configuration(ifstream& matrix_file);
 
-    // For parsing any character separated file format
-    void split(string s, char separator_char, vector<double>& tokens);
+    // Parsing functions broken out for readability
+    void parse_name(ifstream& matrix_file, string& line);
+    void parse_prior(ifstream& matrix_file, string& line, vector<string>& tokens);
+    void parse_likelihood(ifstream& matrix_file, string& line, vector<string>& tokens);
 
     // For a given vector of likelihoods over each Y value, normalize by the maximum
     void normalize_likelihoods(vector<double>& x, double x_max) const;
@@ -109,9 +120,9 @@ private:
     void factor_repeats(array<map<uint16_t,uint16_t>,2>& factored_repeats, const Coverage& coverage, AlignedBase consensus_base) const;
 
     // For debugging or exporting
+    void print_priors(char separator);
     void print_probability_matrices(char separator=',');
     void print_log_likelihood_vector(vector<double>& log_likelihoods);
-
 };
 
 void testSimpleBayesianConsensusCaller();
