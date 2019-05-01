@@ -343,24 +343,33 @@ AlignedBase SimpleBayesianConsensusCaller::predict_consensus_base(const Coverage
 
 
 Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) const{
-    // TODO: test that coverage is not empty?
     AlignedBase consensus_base;
     uint16_t consensus_repeat;
+    uint16_t modal_consensus_repeat;
+
     vector<double> log_likelihoods(u_long(max_runlength), -INF);    // initialize as zeros in log space
 
     consensus_base = predict_consensus_base(coverage);
+    modal_consensus_repeat = uint16_t(coverage.mostFrequentRepeatCount(consensus_base));
 
-    if (predict_gap_runlengths) {
-        // Predict all run lengths regardless of whether consensus base is a gap
-        consensus_repeat = predict_runlength(coverage, consensus_base, log_likelihoods);
+    // If the simple modal consensus is 1 or 2, use it instead of the bayesian consensus
+    if (modal_consensus_repeat < 3){
+        consensus_repeat = modal_consensus_repeat;
     }
-    else {
-        if (not consensus_base.isGap()) {
-            // Consensus is NOT a gap character, and the configuration forbids predicting gaps
+    else{
+        if (predict_gap_runlengths) {
+            // Predict all run lengths regardless of whether consensus base is a gap
             consensus_repeat = predict_runlength(coverage, consensus_base, log_likelihoods);
-        } else {
-            // Consensus IS a gap character, and the configuration forbids predicting gaps
-            consensus_repeat = 0;
+        }
+        else{
+            if (not consensus_base.isGap()) {
+                // Consensus is NOT a gap character, and the configuration forbids predicting gaps
+                consensus_repeat = predict_runlength(coverage, consensus_base, log_likelihoods);
+            }
+            else{
+                // Consensus IS a gap character, and the configuration forbids predicting gaps
+                consensus_repeat = 0;
+            }
         }
     }
 
