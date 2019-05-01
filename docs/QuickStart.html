@@ -9,37 +9,25 @@
 <body>
 
 <h1>Quick start</h1>
-It is expected that the first Shasta release will become available in early May 2019.
-When that happens, it will become very easy for users to get started using Shasta
-for assembly on a variety of platforms including most current 64 bit Linux platforms, macOS, and Windows.
-This can be done in three commands - more details below:
+
+
+<h2>Summary</h2>
 <p>
-<code>
+You can use the following commands to download the executable and run an assembly:
+<pre>
 wget https://github.com/chanzuckerberg/shasta/releases/download/0.1.0/shasta-Linux-0.1.0
-<br>chmod ugo+x shasta-Linux-0.1.0
-<br>shasta-Linux-0.1.0 --input input.fasta
-</code>
-<p>See below for more information, including some small changes required for macOS and Windows.
+chmod ugo+x shasta-Linux-0.1.0
+./shasta-Linux-0.1.0 --input input.fasta
+</pre>
 
 
-
-<h2>Before the first release becomes available</h2>
-Before the first release becomes available, 
-users are forced to build the code from source
-and run the assembly using the more complex procedures described
-in the <a href=oldDocs/index.html>old documentation</a>.
-This requires a Linux machine running Ubuntu 16.04 or Ubuntu 18.04
-and root privilege.
+<p>
+Note that the Shasta executable has no dependencies and requires no installation
+or set up, except for setting its execute permission.
+See below for more information, including some small changes required for macOS and Windows.
 
 
-
-<h2>When the first release becomes available</h2>
-When the first release becomes available, 
-users can simply download from GitHub a highly portable executable 
-that has no dependencies and requires no installation or set up,
-except for setting the execute permission bit.
-
-<h3>Linux</h3>
+<h2>Linux</h2>
 
 <ul>
 <li>Download the Linux static executable <code>shasta-Linux-X.Y.Z</code> for your selected release. 
@@ -90,14 +78,14 @@ Those non-default options are, however, necessary
 to achieve maximum performance.
 
 
-<h3>macOS</h3>
+<h2>macOS</h2>
 Use the Linux directions, but change the name of the executable from
 <code>shasta-Linux-X.Y.Z</code>
 to
 <code>shasta-macOS-X.Y.Z</code>.
 
 
-<h3>Windows</h3>
+<h2>Windows</h2>
 <ul>
 <li>
 Install 

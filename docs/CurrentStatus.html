@@ -12,12 +12,13 @@
 
 <h3>Release</h3>
 <p>
-An initial release 0.1.0 of the Shasta assembler is imminent and expected
-in early May 2019.
+An initial release 0.1.0 of the Shasta assembler is now available.
+This initial release is functional but the documentation is incomplete in several areas, 
+and lacks an evaluation of assembly accuracy.
 
 <h3>Performance and cost</h3>
 <p>
-As of April 2019, the Shasta assembler is functional and is
+As of May 2019, the Shasta assembler is functional and is
 capable of performing a human assembly at typical coverage
 in a few hours on a large machine with an appropriate configuration,
 using as input long reads from Oxford Nanopore flowcells.
@@ -39,9 +40,8 @@ can also assemble bacterial genomes in minutes on a typical laptop
 An evaluation of the quality of assembled sequence is in progress.
 Early indications are that,
 when comparing with alternative, less performant long read assemblers,
-Shasta assembly quality is similar or better.
-This evaluation is expected to be complete soon, and its results will
-be made available.
+Shasta assembly quality is comparable or better.
+This evaluation is expected to be completed soon.
 
 
 <h3>Assembly parameters</h3>
@@ -66,6 +66,19 @@ or for studying assembler behavior at locations of interest.
 An overhaul of the present documentation is currently in progress,
 but will not be complete on time for the upcoming initial release 0.1.0.
 
+<h3>Platforms</h3>
+<p>
+Basic assembly functionality is provided by the Shasta executable 
+which runs on most current 64-bit Linux plus macOS and Windows.
+The Shasta executable has no dependencies and does not require
+installation. 
+
+<p>
+Extended functionality, a Python API that enables Python scripting
+and an http server that can be used to inspect assembly details,
+are only available on Ubuntu 16.04 and Ubuntu 18.04.
+A script to install the necessary dependencies is
+provided.
 
 <h3>Development</h3>
 <p>
