@@ -75,6 +75,9 @@ for sample in samples:
     for inputFileName in inputFileNames:
         print(inputFileName, flush=True)
         
+    # Clear Linux caches before running each sample.
+    os.system('sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"')
+
     # Run this sample.
     command = ' '.join([
         shastaExecutable,
