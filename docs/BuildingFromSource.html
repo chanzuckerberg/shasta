@@ -10,13 +10,155 @@
 
 <h1>Building the code from source</h1>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<h2>When is it necessary to build from source?</h2>
+<p>
+In many cases, you don't need to worry about building from source,
+and instead you can use a release build
+downloaded from the 
+<a href='https://github.com/chanzuckerberg/shasta/releases'>Releases</a> page on GitHub. 
+You only need to build from source in one of the
+following circumstances:
+<ul>
+<li>
+To maximimize performance. 
+See <a href=Performance.html>here</a> for more information.
+<li>
+To build a version of Shasta for which no release exists.
+For example, if you want to get a recently added feature
+that is not available in the most recent release build.
+<li>
+To test, develop, or debug Shasta code.
+<li>
+To port the Shasta build to a different platform.
+</ul>
+
+
+
+
+<h2>How to build from source</h2>
+
+<h3>Build platforms</h3>
+<p>
+Building from source is currently only possible on an 
+Ubuntu 16.04 or 18.04 machine.
+Porting the build process to other Linux platforms is possible.
+If you are specifically interested in porting to a different Linux
+platorm, please file an Issue on GitHub.
+Even better, submit a Pull Request with the necessary changes.
+
+<p>
+For best performance, the build process described below
+creates binaries optimized for the build machine.
+If you plan on using the build on a different
+machine, see 
+<a href='#Portability'>Build portability</a> below.
+
+
+
+<h3>Build commands</h3>
+<p>
+If you have the necessary 
+<a href=Prerequisites.html>prerequisite packages</a> installed, 
+you can get a local copy of the latest code and build it
+using the following commands: 
+<pre>
+git clone https://github.com/chanzuckerberg/shasta.git
+mkdir shasta-build
+cd shasta-build
+cmake ../shasta
+make all
+make install
+</pre>
+
+<p>
+If you are not sure if you have the necessary prerequisite packages installed, 
+you can instead
+use the following commands
+(this assumes that you are authorized to acquire root privileges
+using the <code>sudo</code> command - depending on set up you may be asked 
+to enter your password):
+<pre>
+sudo apt install git
+git clone https://github.com/chanzuckerberg/shasta.git
+sudo shasta/scripts/InstallPrerequisites-Ubuntu.sh
+mkdir shasta-build
+cd shasta-build
+cmake ../shasta
+make all
+make install
+</pre>
+
+<p>
+If your build system has more than one processor
+and enough memory, you can speed up the build using the <code>-j</code>
+option in the <code>make all</code> command.
+
+
+
+
+<h3>Build contents</h3>
+<p>
+The build process described above creates in the <code>shasta-build</code> directory
+a <code>shasta-install</code> directory that 
+contains the following:
+
+<ul>
+<li>A <code>bin</code> directory containing the Shasta executable, 
+named <code>shasta</code>, Shasta shared library
+<code>shasta.so</code>, and several scripts.
+<li>A <code>conf</code> directory containing sample config files.
+<li>A <code>docs</code> directory containing this and other documentation. 
+</ul>
+
+
+<h3>Building smaller binaries</h3>
+<p>
+If you don't plan to use your build for debugging, you
+can use command <code>make install/strip</code>
+instead of <code>make install</code> as the last
+step of the build process.
+This will strip debug symbols from the Shaste executable and shared library, which significantly reduces
+the size of the
+build directory.
+
+
+
+<h3 id=Portability>Build portability</h3>
+<p>
+For best assembly performance, the build process described above
+creates binaries that use the full instruction set
+available on the build machine (via gcc option <code>-march=native</code>).
+This gives the best possible runtime performance on the build machine,
+but <b>creates a build that is not necessarily portable across machines</b>.
+If you run the build created in this way on a different machine
+with a smaller instruction set, you may get a crash with an 
+<code>Illegal instruction</code> signal.
+
+<p>
+To create a build that is portable but less performant,
+add the following to your <code>cmake</code> command:
+<pre>
+-DBUILD_NATIVE=OFF
+</pre>
+<p>
+This generates a build that only uses instructions
+available on all <code>x64_86</code> machines.
+Release builds use this option for portability.
+For this reason, it is best not to use release builds
+for large runs where performance is important.
+See <a href=Performance.html>here</a>
+for other tips to improve performance.
+
+<p>
+If you want to build a more performant but non-portable version of
+a release build for your machine,
+make sure to use the following command (while in the <code>shasta</code> directory) before running
+the <code>cmake</code> command, replacing <code>0.1.0</code> with the desired release number.
+<pre>
+git checkout 0.1.0
+</pre>
+
+
 
 </body>
 </html>

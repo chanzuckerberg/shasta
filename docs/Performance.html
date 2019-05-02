@@ -30,7 +30,7 @@ Don't use macOS or Windows. Use a 64-bit Linux system instead.
 The Shasta executable runs on most current 64-bit Linux distributions.
 
 <li>
-Do not use a release build. 
+<b>Do not use a release build</b>. 
 Use Shasta code built on the same machine where it will run
 (this will limit you to Ubuntu 16.04 or Ubuntu 18.04).
 Except for release builds, Shasta code is compiled using
@@ -45,6 +45,8 @@ To disable the <code>-march=native</code> option
 and build portable but less performing code,
 specify <code>-DBUILD_NATIVE=OFF</code> when running <code>cmake</code>
 (release builds do this).
+See <a href=BuildingFromSource.html>here</a>
+for more information on how to build from source.
 
 
 <li>

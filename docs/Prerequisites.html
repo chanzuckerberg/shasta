@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+
+<body>
+
+<h2>Prerequisite packages</h2>
+
+<p>
+To download, build and run the <code>shasta</code> software on a
+ubuntu 16.04 or 18.04 machine, the following packages are required:
+
+<table>
+<tr>
+<th>Package
+<th>Ubuntu package name
+<th>Needed<br>to build<br>from<br>source?
+<th>Needed<br>to run<br>assembly?
+<th>Used by<br>http server?
+<th>Comments
+
+<tr>
+<td>Git
+<td>git
+<td>
+<td>
+<td>
+<td>Only needed to get the source code from GitHub.
+
+<tr>
+<td>The g++ compiler
+<td>g++
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td>Runtime libraries only needed at run time.
+
+
+<tr>
+<td>Cmake
+<td>cmake
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>
+
+<tr>
+<td>The Boost libraries
+<td>libboost-dev
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>
+
+<tr>
+<td>Graphviz
+<td>graphviz
+<td>
+<td>
+<td style='text-align:center'>&#x2714;
+<td>Used for graph layout.
+
+<tr>
+<td>Blast
+<td>ncbi-blast+
+<td>
+<td>
+<td style='text-align:center'>&#x2714;
+<td>Used by the http server for interactively computing alignments.
+
+<tr>
+<td>Python 3
+<td>python3
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td>
+
+<tr>
+<td>pip3
+<td>pip3
+<td>
+<td>
+<td>
+<td>Only needed to install <code>pybind11</code> (see below)
+
+<tr>
+<td>Pybind11
+<td>pybind11 (pip3 package)
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>Used to provide Python bindings to C++ code.
+
+<tr>
+<td>The png library
+<td>libpng-dev
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td>Used to display marker alignments in the http server. But it is a dependency of <code>shasta.so</code>, so it must be installed whether it is used or not.
+
+<tr>
+<td>SeqAn 2.4.0
+<td>
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>See <code>InstallPrerequisites-Ubuntu.sh</code> for installation from GitHub.
+
+</table>
+
+<p>
+Script <code>shasta/scripts/InstallPrerequisites-Ubuntu.sh</code>
+can be used to install these prerequisites. 
+It must be run with root privileges.
+After building the code, this script is also available as
+<code>shasta-install/bin/InstallPrerequisites-Ubuntu.sh</code>.
+
+</body>
+</html>
+
