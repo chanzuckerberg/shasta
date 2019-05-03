@@ -7,7 +7,38 @@
 </head>
 
 <body>
-
+    <nav role="navigation">
+        <div class="nav-container">
+        <ul>
+                <li class="main-nav"><a href=index.html>Shasta</a></li>
+                <li><a href=QuickStart.html>Quick start</a></li>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <li><a href=Running.html>Run an assembly</a>
+                <li><a href=Performance.html>Maximize assembly performance</a>
+                <li><a href=BuildingFromSource.html>Build the code from source</a>
+                <li><a href=InspectingResults.html>Inspect or debug assembly results
+                <li><a href=Contributing.html>Contribute to Shasta</a>
+                <li><a href=ReportingBugs.html>Report problems or ask questions</a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <li><a href=Motivation.html>Motivation</a></li>
+                            <li><a href=CurrentStatus.html>Current status</a></li>
+                            <li><a href=SupportedPlatforms.html>Supported platforms</a></li>
+                            <li><a href=Acknowledgments.html>Acknowledgments</a></li>
+                            <li><a href=ComputationalMethods.html>Computational methods</a></li>
+                            <li><a href=Compatibility.html>Compatibility across releases</a></li>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+        </div>
+    </nav>
+    <main>
 <h1>Creating a new release</h1>
 
 <ul>
@@ -71,7 +102,7 @@ mv shasta-install/bin/shasta shasta-macOS-X.Y.Z
 <li>Publish the release on GitHub.
 <li>After the release has been published it should not be modified or deleted.
 </ul>
-
+</main>
 </body>
 </html>
 
