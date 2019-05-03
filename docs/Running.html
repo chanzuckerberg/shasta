@@ -7,7 +7,10 @@
 </head>
 
 <body>
+<nav>
 
+</nav>
+<main>
 <h1>Running an assembly</h1>
 
 <p>
@@ -147,8 +150,8 @@ in the table below.
 <tr>
 <td rowspan=3><code>--memoryBacking</code>
 <td class=centered><code>disk</code>
-<td class=centered style='background-color:#ff6666'>Not allowed
-<td style='background-color:#66ff66'>
+<td class="centered error">Not allowed
+<td class="success">
 Memory allocated by <code>mmap</code> uses 4 KB pages
 on a the filesystem on disk that
 the run output directory is in.
@@ -162,7 +165,7 @@ the Python API to inspect assembly results.
 
 <tr>
 <td class=centered><code>4K</code><br>(default)
-<td style='background-color:#66ff66'>
+<td class="success">
 The default option.
 Memory allocated by <code>mmap</code> uses anonymous 4 KB pages.
 After the run terminates, binary data are destroyed,
@@ -170,7 +173,7 @@ which means you cannot use the http server or
 the Python API to inspect assembly results.
 <b>Performance is less than optimal</b> (typically 30% degradation 
 on a large run).
-<td style='background-color:#ffff66'>
+<td class="warning">
 Memory allocated by <code>mmap</code> uses 4 KB pages
 on a <code>tmpfs</code> filesystem which is created
 and mounted on the <code>Data</code> directory
@@ -186,14 +189,14 @@ the  memory using the following command:
 
 <tr>
 <td class=centered><code>2M</code>
-<td style='background-color:#ffff66'>
+<td class="warning">
 Memory allocated by <code>mmap</code> uses anonymous 2 MB pages.
 After the run terminates, binary data are destroyed,
 which means you cannot use the http server or
 the Python API to inspect assembly results.
 <b>Performance is less than optimal</b> (typically 30% degradation 
 on a large run).
-<td style='background-color:#ffff66'>
+<td class="warning">
 Memory allocated by <code>mmap</code> uses 2 MB pages
 on a <code>hugetlbfs</code> filesystem which is created
 and mounted on the <code>Data</code> directory
@@ -209,29 +212,27 @@ the  memory using the following command:
 
 </table>
 
-<p>
+<div class="table-legend">
 The table is color coded with the following meaning:
 
-<br>
-<svg width=24pt height=12pt>
-<rect width=100% height=100% style='fill:#ff6666'>
-</svg>
+<div>
+        <div class="color-box error"></div>
 This combination is not allowed.
-<br>
-<svg width=24pt height=12pt>
-<rect width=100% height=100% style='fill:#ffff66'>
-</svg>
+</div>
+<div>
+    <div class="color-box warning"></div>
 This combination requires root privilege to be acquired
 via <code>sudo</code>.
 Depending on <code>sudo</code> settings, this
 may fail or ask for a user password.
-
-<br>
-<svg width=24pt height=12pt>
-<rect width=100% height=100% style='fill:#66ff66'>
-</svg>
+</div>
+<div>
+        <div class="color-box success"></div>
 This combination is allowed and does not require
 root privilege.
+</div>
+</div>
+
 
 <p>
 In summary:
@@ -291,7 +292,7 @@ Existing assembly scripts, which are currently undocumented, include:
 </ul>
 
 
-
+</main>
 
 </body>
 </html>

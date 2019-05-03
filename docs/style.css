@@ -1,35 +1,256 @@
+:root {
+    --primary: #2eccc1;
+    --secondary: #bfbfbf;
+    --accent: #dd4b66;
+    --info: hsl(242, 80%, 75%);
+    --success: hsl(112, 80%, 75%);
+    --warning: hsl(55, 80%, 75%);
+    --error: hsl(8, 80%, 75%);
+    --light: #e8e8e8;
+    --dark: #666666;
+}
+
 * {
-font-family: sans-serif,Helvetica,Arial;
+  font-family: sans-serif, Helvetica, Arial;
 }
-pre, code {
-font-family: courier;
+main {
+    /* padding: 2rem; */
+    max-width: 46rem;
+    margin: auto;
 }
+
+
+.primary {
+    background-color: var(--primary);
+}
+.secondary {
+    background-color: var(--secondary);
+}
+.info {
+    background-color: var(--info);
+}
+.success {
+    background-color: var(--success);
+}
+.warning {
+    background-color: var(--warning);
+}
+.error {
+    background-color: var(--error);
+}
+.light {
+    background-color: var(--light);
+}
+.dark {
+    background-color: var(--dark);
+}
+.accent {
+    background-color: var(--accent);
+}
+
+@media screen and (min-width: 46em) {
+    main {
+        max-width:46rem;
+        padding: 2rem 6rem;
+        margin: 0 auto;
+        font-size: 1.1rem
+    }
+}
+
+@media screen and (min-width: 42em) and (max-width: 46em) {
+    main {
+        padding:2rem 4rem;
+        font-size: 1.1rem
+    }
+}
+
+@media screen and (max-width: 42em) {
+    main {
+        padding:2rem;
+        font-size: 1rem
+    }
+}
+
 p {
-font-size: 16px;
+   
+  font-size: 1rem;
 }
-h1, h2, h3 {
-color: Teal;
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--primary, Teal);
 }
+
+hr {
+    height: 1px;
+    padding: 0;
+    margin: 1rem 0;
+    background-color: var(--dark, Teal);
+    border: 0
+}
+
 table {
-border-collapse: collapse;
+    display: block;
+    overflow: auto;
+    word-break: normal;
+    word-break: keep-all;
+    -webkit-overflow-scrolling: touch
 }
-th, td {
-border: 2px solid Teal;
+@media screen and (min-width: 60em) and (max-width: 76em) {
+    table {
+        max-width: 60rem;
+        margin-left: -7rem;
+        margin-right: -7rem;
+        border-collapse: collapse;
+    }
+    .table-legend {
+        margin-left: -7rem;
+        max-width: 46rem;
+    }
 }
+
+@media screen and (min-width: 76em){
+    table {
+        max-width: 76rem;
+        margin-left: -15rem;
+        margin-right: -15rem;
+        border-collapse: collapse;
+    }
+    .table-legend {
+        margin-left: -15rem;
+        max-width: 46rem;
+    }
+}
+
+th,
+td {
+  border: 1px solid var(--secondary);
+  padding: 1rem 0.5rem;
+}
+
 th {
-font-weight: bold;
-text-align: center;
+  font-weight: bold;
+  text-align: center;
 }
+
 th.left {
-text-align: left;
+  text-align: left;
 }
+
 td.centered {
-text-align: center;
+  text-align: center;
 }
+
 a {
-color: Teal;
-text-decoration: none;
+  color: var(--primary, Teal);
+  text-decoration: none;
 }
+
 a:hover {
-text-decoration: underline;
+  text-decoration: underline;
+}
+
+div.color-box {
+    display: inline-block;
+    height: 1rem;
+    width: 1rem;
+    content: " "
+}
+
+code, pre {
+    font-family: Consolas, Courier, monospace;
+}
+
+pre {
+    padding: .5rem 2rem;
+    color: var(--dark);
+    font-size: 0.9rem;
+    background-color: var(--light);
+    border: 1px dotted var(--primary);
+    border-radius: 5px;
+}
+  
+  nav {
+      display: block;
+      font-family: monospace;
+      max-width: 46rem;
+      margin: auto;
+      font-size: 1.2rem;
+  }
+  
+  nav ul {
+    background: var(--light);
+      list-style: none;
+      margin: 0;
+      padding-left: 0;
+  }
+  
+  nav li {
+      color: var(--dark);
+      min-width: 5rem;
+    background:var(--light);
+      display: block;
+      float: left;
+      padding: 1rem;
+      position: relative;
+      text-decoration: none;
+  }
+
+  nav>ul>li {
+margin-bottom: 20px
+}
+    
+  nav li a {
+    color: var(--dark);
+    margin: auto;
+  }
+  
+  nav li:hover,
+  nav li:focus-within {
+      background: var(--primary);
+      cursor: pointer;
+  }
+  
+  nav li:focus-within a {
+    outline: none;
+  }
+  
+  nav ul li ul {
+    background:var(--light);
+      visibility: hidden;
+    opacity: 0;
+    min-width: 5rem;
+      position: absolute;
+    margin-top: 1rem;
+      left: 0;
+    display: none;
+  }
+  
+  nav ul li:hover > ul,
+  nav ul li:focus-within > ul,
+  nav ul li ul:hover,
+  nav ul li ul:focus {
+     visibility: visible;
+     opacity: 1;
+     display: block;
+  }
+  
+  nav ul li ul li {
+      clear: both;
+    width: 100%;
+  }
+  nav li.main-nav {
+      background-color: var(--primary);
+      color: var(--light);
+  }
+  nav li.main-nav a {
+    color: white;
+    font-weight: bold;
+}
+nav .nav-container {
+    margin-bottom: 1rem;
 }
