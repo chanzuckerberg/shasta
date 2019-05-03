@@ -2,10 +2,10 @@
   --primary: #2eccc1;
   --secondary: #bfbfbf;
   --accent: #2fa39b;
-  --info: hsl(242, 80%, 75%);
-  --success: hsl(112, 80%, 75%);
-  --warning: hsl(55, 80%, 75%);
-  --error: hsl(8, 80%, 75%);
+  --info: hsl(242, 80%, 80%);
+  --success: hsl(112, 80%, 80%);
+  --warning: hsl(55, 80%, 80%);
+  --error: hsl(8, 80%, 80%);
   --light: #e8e8e8;
   --dark: #666666;
 }
@@ -58,9 +58,6 @@ main {
   }
   nav {
     flex-direction: column;
-  }
-  nav ul {
-    max-width: 46rem;
   }
   nav li {
     min-width: 7rem;
@@ -185,6 +182,10 @@ p code {
   overflow-wrap: break-word;
 }
 
+table code {
+  color: var(--dark);
+}
+
 code,
 pre {
   font-family: Consolas, Courier, monospace;
@@ -208,6 +209,8 @@ nav {
   background: var(--light);
   font-size: 1.2rem;
   box-shadow: 0px 2px 10px var(--secondary);
+  /* align-content: flex-start; */
+  justify-content: flex-start;
 }
 
 nav ul {
@@ -216,35 +219,38 @@ nav ul {
   background: var(--light);
   list-style: none;
   padding-left: 0;
+  width: 100%;
 }
 
 nav li {
   color: var(--dark);
   background: var(--light);
+  flex-grow: 1;
   padding: 1rem;
   position: relative;
   text-decoration: none;
   display: inherit;
+  text-align: left;
 }
 
-nav li a {
+nav a {
   color: var(--dark);
-  margin: auto;
+  text-decoration: none;
+  flex-grow: 1;
 }
 
-nav li:hover > a,
-nav li:focus-within > a {
-  color: var(--light);
-}
 
+nav a:hover,
+nav a:focus-within,
 nav li:hover,
 nav li:focus-within {
   background: var(--primary);
   cursor: pointer;
   color: var(--light);
+  text-decoration: none;
 }
 
-nav li:focus-within a {
+nav a li:focus-within {
   outline: none;
 }
 
@@ -259,20 +265,28 @@ nav ul li ul {
   display: none;
 }
 
-nav ul li:hover > ul,
+nav ul  a:hover > ul,
+nav ul a:focus-within > ul,
+nav ul a ul:hover,
+nav ul a ul:focus,
+nav ul  li:hover > ul,
 nav ul li:focus-within > ul,
 nav ul li ul:hover,
-nav ul li ul:focus {
+nav ul li ul:focus
+ {
   visibility: visible;
   opacity: 1;
   display: block;
 }
-
-nav li.main-nav {
-  background-color: var(--primary);
-  color: var(--light);
+nav ul li ul a {
+  display: block;
 }
-nav li.main-nav a {
-  color: white;
+nav a.main-nav {
+  flex-grow: 2;
   font-weight: bold;
+}
+
+nav a.main-nav li {
+  background-color: var(--primary);
+  color: white;
 }
