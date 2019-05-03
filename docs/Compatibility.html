@@ -7,7 +7,36 @@
 </head>
 
 <body>
-
+    <nav role="navigation">
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+    <main>
 <h1>Compatibility across releases</h1>
 
 <h2>Binary data compatibility</h2>
@@ -63,7 +92,7 @@ Releases that contain only bug fixes will keep the same
 <code>Y</code> and increment <code>Z</code> by one.
 Other releases will increment <code>Y</code> by one
 and set <code>Z</code> to zero.
-
+</main>
 </body>
 </html>
 

@@ -8,7 +8,36 @@
 
 
 <body>
-
+    <nav role="navigation">
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+    <main>
 <h2>Acknowledgments</h2>
 
 <p>
@@ -94,7 +123,7 @@ Instead, it is downloaded from GitHub, built, and installed on the user's machin
 when the user invokes
 <a href='https://github.com/chanzuckerberg/shasta/blob/master/scripts/InstallPrerequisites-Ubuntu.sh'>
 scripts/InstallPrerequisites-Ubuntu.sh</a>.
-
+</main>
 
 </body>
 </html>
