@@ -221,8 +221,6 @@ nav ul {
 nav li {
   color: var(--dark);
   background: var(--light);
-  /* display: flex;
-  float: left;  */
   padding: 1rem;
   position: relative;
   text-decoration: none;
