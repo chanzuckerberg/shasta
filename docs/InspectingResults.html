@@ -37,15 +37,103 @@
         </ul>
     </nav>
 <main>
+
+
 <h1>Inspecting or debugging assembly results</h1>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<h2>The <code>Data</code> directory</h2>
+
+<p>
+A Shasta run creates in the run directory various files with standard 
+formats that can be inspected using many available tools -
+see <a href="Running.html#OutputFiles">here</a> for more information. 
+In addition, it can also create memory mapped data structures
+stored in the <code>Data</code> directory.
+If using the Shasta executable, these data structures are only created
+if option <code>--memoryMode filesystem</code> was used.
+
+<p>
+These data structures reside in "files" stored in memory, 
+and so they disappear if the machine is rebooted
+(unless option <code>--memoryBacking disk</code> was used).
+You can use script <code>shasta-install/bin/SaveRun.py</code>
+to make a permanent copy on disk of these data structures.
+The permanent copy is stored in directory 
+<code>DataOnDisk</code>.
+
+<p>
+To free the memory used by these data structures, invoke the Shasta executable with
+<code>--command clenanup</code>
+(and <code>--output</code> if needed).
+
+<p>
+The contents of the <code>Data</code> directory
+can be used using the following Shasta extended functionality
+available only on Ubuntu 16.04 and Ubuntu 18.04:
+
+<ul>
+<li>A <a href=Python.html>Python API</a> that
+allows using Python scripts to explore assembler data structures.
+The Python API can also be used to rerun selected portions of
+an assembly for testing or debugging.
+<li>An http server that makes it possible to interactively explore 
+assembler data structures.
+</ul>
+
+
+
+
+
+<h2>Exploring the assembly interactively using the http server</h2>
+<p>
+
+The Shasta
+assembler implements <code>http</code> functionality 
+(available only on Ubuntu 16.04 and Ubuntu 18.04)
+that allows you to inspect the binary data structures using a Web browser.
+To do this, use one of the following commands:
+
+<ul>
+<li>
+If you have a copy of the data structures in memory stored in the <code>Data</code>
+directory:
+<pre>
+shasta-install/bin/RunServer.py
+</pre>
+
+<li>
+If you have a copy of the data structures on disk stored in the <code>DataOnDisk</code>
+directory:
+<pre>
+shasta-install/bin/RunServerFromDisk.py
+</pre>
+</ul>
+
+
+This starts the Shasta assembler in a mode that behaves like an 
+<code>http</code> server. You can connect to it by pointing your Web browser to it.
+If the browser is running on the same machine where the server is,
+enter this URL in your browser:
+
+<pre>
+http://localhost:17100
+</pre>
+
+(the port number following the colon could change - see the output of the 
+<code>RunServer.py</code> or 
+<code>RunServerFromDisk.py</code> command to find out what port the server is using).
+If the browser is running on a different machine, you will have to replace
+<code>localhost</code> in the above URL with the name or IP address
+of the machine where the server is running.
+
+<p>
+Once in the browser, the server functionality should
+be reasonably self-explanatory. You can look at individual reads
+and their markers, and inspect the various graphs
+used by the assembler (read graph, marker graph, assembly graph).
+
+
+
 </main>
 
 </body>
