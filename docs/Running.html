@@ -324,15 +324,14 @@ The Shasta
 assembler uses as input one or more 
 <a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
 files containing the input reads.
-The body of each read should not contain
+The body of each read should be on a single line and should not contain
 extraneous characters such as no-called bases (<code>N</code>),
 spaces, tabs, carriage returns (CR, ASCII 13), or any characters
 other than 
 <code>A</code>,
 <code>C</code>,
 <code>G</code>,
-<code>T</code>,
-or new line characters (LF, ASCII 10).
+<code>T</code>.
 If the file contains Window-style line ends (ASCII 13 carriage return CR
 followed by ASCII 10 line feed LF) it should first be
 converted to Linux-style line ends, for example using
