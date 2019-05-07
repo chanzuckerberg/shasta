@@ -78,7 +78,7 @@ ReadLoader::ReadLoader(
 
         // Read this block.
         blockEnd = min(blockBegin+blockSize, fileSize);
-        cout << timestamp << "Reading block " << blockBegin << " " << blockEnd << ", " << blockEnd-blockBegin << " bytes." << endl;
+        cout << timestamp << "Reading " << fileName << " block " << blockBegin << " " << blockEnd << ", " << blockEnd-blockBegin << " bytes." << endl;
         const auto t0 = std::chrono::steady_clock::now();
         readBlock(threadCountForReading);
         const auto t1 = std::chrono::steady_clock::now();

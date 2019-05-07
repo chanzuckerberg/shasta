@@ -64,7 +64,12 @@ public:
         Base base;
         base.value = BaseInitializer::table[uint8_t(c)];
         if(base.value == 255) {
-            throw runtime_error("Invalid base character " + to_string(c));
+            string message = "Invalid base character: " + to_string(c);
+            if(std::isprint(c)) {
+                message += ' ';
+                message += c;
+            }
+            throw runtime_error(message);
         }
         return base;
     }
@@ -181,7 +186,12 @@ public:
         AlignedBase base;
         base.value = AlignedBaseInitializer::table[uint8_t(c)];
         if(base.value == 255) {
-            throw runtime_error("Invalid base character " + to_string(c));
+            string message = "Invalid base character: " + to_string(c);
+            if(std::isprint(c)) {
+                message += ' ';
+                message += c;
+            }
+            throw runtime_error(message);
         }
         return base;
     }
