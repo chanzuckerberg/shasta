@@ -312,10 +312,126 @@ during <code>import</code>.
 <p>
 Existing assembly scripts, which are currently undocumented, include:
 <ul>
-<li><code>RunAssembly.py<code>
-<li><code>Run.py<code>
-<li><code>SmallRun.py<code>
+<li><code>RunAssembly.py</code>
+<li><code>Run.py</code>
+<li><code>SmallRun.py</code>
 </ul>
+
+
+<h2>Input files</h2>
+<p>
+The Shasta
+assembler uses as input one or more 
+<a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
+files containing the input reads.
+The body of each read should not contain
+extraneous characters such as no-called bases (<code>N</code>),
+spaces, tabs, carriage returns (CR, ASCII 13), or any characters
+other than 
+<code>A</code>,
+<code>C</code>,
+<code>G</code>,
+<code>T</code>,
+or new line characters (LF, ASCII 10).
+If the file contains Window-style line ends (ASCII 13 carriage return CR
+followed by ASCII 10 line feed LF) it should first be
+converted to Linux-style line ends, for example using
+command <code>dos2unix</code>.
+
+<p>
+Direct input of <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a>
+to Shasta is currently not supported.
+If you have a FASTQ file, 
+you can convert it to FASTA using script 
+<code>shasta-install/bin/FastqToFasta.py</code>.
+If your FASTQ file is compressed (extension <code>.gz</code>),
+you can decompress it and convert to FASTA in one step,
+saving a round trip to disk, using 
+script 
+<code>shasta-install/bin/FastqGzToFasta.py</code>.
+
+
+
+<h2>Output files</h2>
+<p>
+The Shasta executable creates output in a directory with a name
+specified by the <code>--output</code> option (default <code>ShastaRun</code>).
+The directory is created automatically at the beginning of the run. 
+The run stops if the directory already exists.
+This reduces the possibility of unwanted deletion of data.
+
+<p>
+Contents of the output directory after a successful run
+include the following:
+
+<ul>
+
+<li>
+<code>Assembly.fasta</code>: 
+The assembly results in FASTA format.
+
+<li><code>Assembly.gfa</code>: 
+The assembly results in 
+<a href=https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md>GFA 1.0</a> format.
+This contains the same sequences in the FASTA file (as GFA segments),
+plus their connectivity information (as GFA links). 
+A convenient tool to inspect and study these files is
+<a href='https://rrwick.github.io/Bandage'>Bandage</a>.
+Segment ids in the GFA file correspond to FASTA ids 
+in the FASTA file.
+
+<li><code>shasta.conf</code>: 
+a configuration file containing
+the values of all assembly parameters used. 
+This file uses a format that can also be used as input for 
+a subsequent Shasta run using option <code>--config</code>.
+
+<li><code>ReadLengthHistogram.csv</code>:
+A spreadsheet file containing statistics of the read length distribution.
+This only includes reads that were used by the assembler.
+The assembler discards reads shorter than 
+<code>Reads.minReadLength</code> bases (default 10000)
+and reads that contain bases repeated more than 255 times.
+The fifth field of the last line of this file
+contains the total number of input bases
+used by the assembler in this run.
+
+<li><code>Binned-ReadLengthHistogram.csv</code>:
+Similar to <code>ReadLengthHistogram.csv</code>,
+but using 1 Kb bins of read lengths.
+
+<li><code>Data</code>:
+A directory containing binary data
+that can later be used by the Shasta http server
+or with the Shasta Python API.
+This is only created if option
+<code>--memoryMode filesystem</code> 
+was used for the run.
+Keep in mind that, unless you used
+option <code>--memoryBacking disk</code>,
+these data are in memory, not on disk,
+and will disappear at next reboot.
+If you want to save them permanently, you can use
+script <code>shasta-install/bin/SaveRun.py</code>
+to create a copy on disk of the binary data directory named
+<code>DataOnDisk</code>. 
+(You can also make the copy yourself using the <code>cp</code> command).
+To free up the memory used without rebooting, you can invoke the 
+Shasta executable again using the following options:
+
+<pre>
+--command cleanup --output outputDirectoryName
+</pre>
+Here, <code>outputDirectoryName</code>
+should specify the same value used in the assembly run
+(that is, the name of the directory containing the <code>Data</code>
+directory).
+Equivalently, you can just <code>umount</code> the <code>Data</code>
+directory, then remove it. 
+
+
+</ul>
+
 
 
 </main>
