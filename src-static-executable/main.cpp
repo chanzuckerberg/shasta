@@ -431,6 +431,9 @@ void ChanZuckerberg::shasta::main::runAssembly(
             1,
             0);
     }
+    if(assembler.readCount() == 0) {
+        throw runtime_error("There are no input reads.");
+    }
 
 
     // Initialize read flags.

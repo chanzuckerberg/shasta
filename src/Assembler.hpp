@@ -439,10 +439,12 @@ private:
 
     LongBaseSequences reads;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCounts;
+public:
     ReadId readCount() const
     {
         return ReadId(reads.size());
     }
+private:
     void checkReadsAreOpen() const;
     void checkReadNamesAreOpen() const;
     void checkReadId(ReadId) const;
