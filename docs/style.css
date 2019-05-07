@@ -1,7 +1,7 @@
 :root {
   --primary: #2eccc1;
   --secondary: #bfbfbf;
-  --accent: #cc2e3c;
+  --accent: hsl(355, 63%, 38%);
   --info: hsl(242, 80%, 80%);
   --success: hsl(112, 80%, 80%);
   --warning: hsl(55, 80%, 80%);
@@ -86,10 +86,6 @@ main {
   nav {
     flex-direction: column;
   }
-}
-
-p {
-  font-size: 1rem;
 }
 
 h1,
