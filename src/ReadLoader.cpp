@@ -290,7 +290,11 @@ void ReadLoader::processThreadFunction(size_t threadId)
     while(bufferIndex < sliceEnd) {
 
         // Skip the '>' that introduces the new read.
-        CZI_ASSERT(buffer[bufferIndex++] == '>');
+        if(buffer[bufferIndex++] != '>')
+        {
+            throw runtime_error("The sequence of each read must be on a "
+                "single line of the input fasta file.");
+        }
 
         // Extract the read name and discard the rest of the line.
         readName.clear();
