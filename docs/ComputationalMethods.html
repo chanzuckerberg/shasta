@@ -118,7 +118,7 @@ the <i>de novo</i> assembly process:
 <ul>
 <li>
 The sequence of input reads is represented using 
-<a href='https://en.wikipedia.org/wiki/Run-length_encoding'>run-Length Encoding</a>.
+<a href='https://en.wikipedia.org/wiki/Run-length_encoding'>run-length encoding</a>.
 <li>
 In many assembly steps, the sequence of input reads is described
 by using occurrences of a pre-determined subset of short k-mers
@@ -133,7 +133,7 @@ representing the input reads.
 <h2>Run-length encoding of input reads</h2>
 
 <p>
-With <a href='https://en.wikipedia.org/wiki/Run-length_encoding'>run-Length Encoding</a>,
+With <a href='https://en.wikipedia.org/wiki/Run-length_encoding'>run-length encoding</a>,
 the sequence of each input read is represented as a sequence of bases,
 each with a repeat count that says how many times each of the bases is repeated. 
 For example, the following read
@@ -149,10 +149,6 @@ CGATAGTA
 11132121
 </pre>
 
-Note that, in the sequence portion of the run-length encoding,
-adjacent bases always differ (if they did not, the second one
-would be removed from the run-length encoded sequence,
-while increasing the repeat count for the first one).
 
 <p>
 Using run-length encoding makes the assembly process
@@ -208,7 +204,111 @@ number of repeated bases is probably a symptom
 that something is wrong with the read anyway.
 
 
+
+<h5>Some properties of base sequences in run-length encoding</h5>
+<ul>
+
+<li>In the sequence portion of the run-length encoding,
+consecutive bases always are always distinct. If they were not, the second one
+would be removed from the run-length encoded sequence,
+while increasing the repeat count for the first one.
+
+<li>
+With ordinary base sequences, the number of distinct k-mers of length k is 4<sup>k</sup>.
+But run-length base sequences, the number of distinct k-mers of length k
+is 4&#215;3<sup>k-1</sup>.
+This is a consequence of the previous bullet.
+
+<li>The run-length sequence is generally shorter than the raw sequence,
+and cannot be longer. For a long random sequence, the number
+of bases in the run-length representation is 3/4  of the number of bases
+in the raw representation.
+
+</ul>
+
+
+
 <h2>Markers</h2>
+
+<p>
+Even with run-length encoding, error in input reads are still frequent.
+To further reduce sensitivity to errors, and also to speed up
+some of the computatioal steps in the assembly process,
+the Shasta assembler also uses a read representation
+ased on <i>markers</i>. Markers are 
+occurrences in reads of a pre-determined subset of short k-mers.
+By default, Shasta uses for this purpose k-mers with k=10 in run-length
+encoding, corresponding to an average approximately 13 bases
+in raw read representation. 
+
+<p>Just for the purposes of illustration, consider a description
+using markers of length 3 in run-length encoding.
+There is a total 4&times;3<sup>2</sup> = 36 distinct such markers. 
+We arbitrarily choose the following fixed subset of the 36, and we assign an id 
+to each of the kmers in the subset:
+
+<table>
+<tr><td><code>TGC</code><td>0
+<tr><td><code>GCA</code><td>1
+<tr><td><code>GAC</code><td>2
+<tr><td><code>CGC</code><td>3
+</table>
+
+<p>
+Consider now the following portion of a read in run-length representation (here, the
+repeat counts are irrelevant an so they are omitted):
+<pre>
+CGACACGTATGCGCACGCTGCGCTCTGCAGC
+ GAC        GCA   TGC     GCA
+                    CGC
+</pre>
+Occurrences of the k-mers defined in the table above are hightlighted
+and define the markers in this read. Note that markers
+can overlap. Using the marker ids defined in the table above,
+we can summarize the sequence of this read portion as follows:
+
+<pre>
+2 1 0 3 1
+</pre>
+
+This is the marker representation of the read portion above.
+It just includes the sequence of markers occurring in the read,
+not their positions.
+
+<p>
+Note that the marker representation loses information,
+as it is not possible to reconstruct the complete initial sequence
+from the marker representation. This also means that the 
+marker representation is insensitive to errors in the sequence
+portions that don't belong to any markers.
+
+<p>
+The Shasta assembler uses a random choice of the k-mers to be used
+as markers. The length of the markers k is controlled by
+assembly parameter <code>Kmers.k</code> with a default value of 10.
+Each k-mer is randomly choosen to be used as a marker
+with probability determined by assembly parameter 
+<code>Kmers.probability</code> with a default value of 0.1.
+With these default values, the total number of distinct
+markers is approximately 0.1&times;4<sup>10</sup>&times;3<sup>9</sup>&#8776;7900.
+
+<p>
+It is possible that the random selection of markers
+is not optimal, and it may best to select the markers
+based on their frequency in the input reads. 
+This possibility has not yet been investigated.
+
+<p>
+Below is the run-length representation of a portion of a read
+and its markers, as displayed by the Shasta http server.
+
+<p>
+<img src=Markers.png>
+
+
+
+<br><br><hr>
+<b>This page is work in progress...</b>
 
 
 
