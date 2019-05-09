@@ -316,8 +316,11 @@ and its markers, as displayed by the Shasta http server.
 
 
 
-<h3>Marker alignments</h3>
-<p>
+<h2>Marker alignments</h2>
+
+
+<h5>The marker representation is a sequence</h5>
+
 The marker representation of a read is a sequence 
 in an alphabet consisting of the marker ids.
 This sequence is much shorter than the original sequence of the read,
@@ -334,7 +337,7 @@ read sequence uses.
 Because the marker representation of a read is a sequence,
 we can compute an alignment of two reads directly in
 marker representation. Computing an alignment in this way
-has several advantages:
+has two important advantages:
 <ul>
 <li>The shorter sequences and larger alphabet make
 the alignment much faster to compute.
@@ -342,32 +345,163 @@ the alignment much faster to compute.
 the portions that are not covered by any marker.
 </ul>
 
+These advantages are illustrated below using alignment 
+matrices.
 
+
+<h5>Alignment matrix</h5>
 <p>
-Given 
-read X with n<sub>X</sub> markers X<sub>i</sub> (i=0,...n<sub>X</sub>-1)
+Consider two sequences on any alphabet, 
+sequence x with n<sub>x</sub> symbols x<sub>i</sub> (i=0,...n<sub>x</sub>-1)
 and 
-read Y with n<sub>Y</sub> markers Y<sub>j</sub> (j=0,...n<sub>Y</sub>-1),
-the alignment matrix A<sub>ij</sub> is a n<sub>X</sub>&times;n<sub>Y</sub>
+sequence y with n<sub>y</sub> symbols y<sub>j</sub> (j=0,...n<sub>y</sub>-1).
+The alignment matrix of the two sequences,
+, A<sub>ij</sub>, is a n<sub>x</sub>&times;n<sub>y</sub>
 matrix with elements
 <p>
-A<sub>ij</sub> = <span style='font-family:serif'>&delta;</span><sub>X<sub>i</sub>Y<sub>j</sub></sub>
+A<sub>ij</sub> = <span style='font-family:serif'>&delta;</span><sub>x<sub>i</sub>y<sub>j</sub></sub>
 <p>
-or, in words, A<sub>ij</sub> is 1 if X<sub>i</sub>=Y<sub>j</sub>
+or, in words, A<sub>ij</sub> is 1 if x<sub>i</sub>=y<sub>j</sub>
 and 0 otherwise.
+(The Shasta assembler never explicitly constructs alignment matrices
+except for display when requested interactively.
+Alignment matrices are used here just for the purpose of illustration).
+<p>
+In portions where the sequences x and y are perfectly aligned,
+the alignment matrix consists of a matrix diagonal set to 1.
+Most of the remaining elements will be 0,
+but many can be 1 just because the same symbol appears
+at two unrelated locations in the two sequences.
 
-In portion where the reads X and Y are perfectly aligned,
-the matrix consists of a matrix diagonal set to 1 with everything
-else set to 0, except for occasional 1's that appear by chance.
-These occasional 1's are rare because of the large alphabet.
+<h5>Alignment matrix in raw base representation</h5>
+<p>
+The picture below shows a portion of a typical
+alignment matrix of two reads in their representation
+as a raw base sequence (not the run-length encoded representation),
+with an optimal alignment shown in red and yellow.
+(The Shasta assembler never performs such a computation, except
+when requested interactively).
 
 <p>
-The picture below shows a portion of the alignment matrix
+<img src=RawAlignment.png>
+
+<p>
+Here, elements of the alignment matrix that are 0 are displayed
+in yellow or black/grey:
+<ul>
+<li>Yellow matrix elements are matrix element that are
+0 but that were computed to be part of the optimal alignment 
+(as mismatching alignment positions).
+<li>Black or grey matrix elements are matrix element that are
+0 and that were not computed to be part of the optimal alignment.
+</ul>
+
+Elements of the alignment matrix that are 1 are displayed
+in red or green:
+<ul>
+<li>Red matrix elements are matrix element that are
+1 and that were computed to be part of the optimal alignment 
+(as matching alignment positions).
+<li>Green matrix elements are matrix element that are
+1 and that were not computed to be part of the optimal alignment.
+</ul>
+The grey lines are drawn 10 markers apart from each other
+and their only purpose is to facilitate reading the picture -
+the corresponding matrix elements are 0.
+
+<p>
+On average, about 25% of the matrix elements are 1, simply
+because the alphabet has 4 symbols. 
+because of the large fraction f 1 elements,
+it would be hard to visually locate the
+optimal alignment in this picture, if it was not highlighted using colors.
+
+<p>
+Noe that the alignment matrix contains frequent square
+or rectangular blocks of 1 elements. They correspond to
+homopolymer run. A square block indicates that the
+two reads agree on the length of that homopolymer run,
+and a non-square rectangular block indicates that the
+two reads disagree. 
+If we were using run-length encoding for this picture,
+these blocks would all collapse to a single matrix element.
+
+
+
+<h5>Alignment matrix in marker representation</h5>
+
+<p>
+For comparison, the picture below shows a portion of the alignment matrix
 of two reads, in marker representation, as displayed by the Shasta
-http server.
+http server. 
+Here, matrix elements that are 1 are displayed in green or red.
+The ones in green are the ones that are part of the optimal alignment
+computed by the Shasta assembler - see below for more information.
+The grey lines are drawn 10 markers apart from each other
+and their only purpose is to facilitate reading the picture -
+the corresponding matrix elements are 0.
 
 <p>
+<img src=MarkerAlignment.png>
 
+<p>
+Because of the much larger alphabet, matrix elements
+that are 1 but are not part of the optimal alignment are rare.
+In addition, each alignment matrix element here corresponds
+on average to a 13&times;13 block in the alignment matrix in raw base sequence
+shown above. For these reasons, the marker representation
+is orders of magnitude more efficient than the raw base 
+representation when computing read
+alignments.
+
+
+<h5>Computing optimal alignments in marker representation</h5>
+<p>
+To compute the optimal alignment highlighted in green,
+the Shasta assembler uses a simple alignment algorithm
+on the marker representations of the two reads to be aligned.
+It effectively costructs an optimal path in the alignment matrix,
+but using some heuristics to speed up the computation:
+<ul>
+<li>The maximum number of markers that an alignment 
+can skip on either read is limited to a maximum,
+under control of assembly parameter <code>Align.maxSkip</code>
+(default value 30 markers, corresponding to around 400
+bases when all other Shasta parameters are at their default).
+This reflects the fact that Oxford Nanopore reads can often
+have long stretches in error.
+In the alignment matrix shown above, the top left of the matrix has a skip of
+about 20 markers (2 grey squares).
+<li>The maximum number of markers that an alignment 
+can skip at the beginning or end of a read is limited to a maximum,
+under control of assembly parameter <code>Align.maxTrim</code>
+(default value 30 markers, corresponding to around 400
+bases when all other Shasta parameters are at their default).
+This reflects the fact that Oxford Nanopore reads often
+have an initial or final portion that is not usable.
+<li>To avoid alignment artifacts,
+marker k-mers that are too frequent in either of the two reads
+being aligned are not used in the alignment computation.
+For this purpose, the Shasta assembler uses a criterion based
+on absolute number of occurrences of marker k-mers in the two reads,
+altough a relative criterion (occurrences per Kb) may be more appropriate.
+The current absolute frequency threshold is under control of assembly parameter
+<code>Align.maxMarkerFrequency</code> (default 10 occurrences).
+
+
+</ul>
+Using these techniques and with the default
+assembly parameters, the time to compute
+an optimal alignment is &#8776;10<sup>-3</sup>-10<sup>-2</sup> seconds
+in the Shasta implementation as of release 0.1.0 (April 2019).
+A typical human assembly needs to compute &#8776;10<sup>8</sup> read
+alignments which results in a total compute time &#8776;10<sup>-5</sup>-10<sup>-6</sup> seconds, or
+&#8776;10<sup>-3</sup>-range 10<sup>-4</sup> seconds of elapsed time (&#8776; 1-3 hours) 
+on a machine with 128 virtual processors.
+This is one of the most computationally expensive portions of a Shasta assembly.
+Some additional optimizations are possible in the code
+that implement this computation,
+and may be implemented in future releases.
 
 
 
