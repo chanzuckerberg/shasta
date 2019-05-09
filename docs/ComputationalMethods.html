@@ -412,12 +412,15 @@ the corresponding matrix elements are 0.
 <p>
 On average, about 25% of the matrix elements are 1, simply
 because the alphabet has 4 symbols. 
-because of the large fraction f 1 elements,
+Because of the large fraction of 1 elements and because of the high error rate,
 it would be hard to visually locate the
-optimal alignment in this picture, if it was not highlighted using colors.
+optimal alignment in this picture, if it was not highlighted using colors:
 
 <p>
-Noe that the alignment matrix contains frequent square
+<img src=RawAlignmentUnmarked.png>
+
+<p>
+Note that the alignment matrix contains frequent square
 or rectangular blocks of 1 elements. They correspond to
 homopolymer run. A square block indicates that the
 two reads agree on the length of that homopolymer run,
@@ -440,16 +443,26 @@ computed by the Shasta assembler - see below for more information.
 The grey lines are drawn 10 markers apart from each other
 and their only purpose is to facilitate reading the picture -
 the corresponding matrix elements are 0.
+<b>Note that the colors in this picture are inconsistent
+with those used in the illustration of the alignment
+matrix in raw base representation above.</b>
 
 <p>
-<img src=MarkerAlignment.png>
+<img id=MarkerAlignment src=MarkerAlignment.png>
 
 <p>
 Because of the much larger alphabet, matrix elements
-that are 1 but are not part of the optimal alignment are rare.
+that are 1 but are not part of the optimal alignment are infrequent.
 In addition, each alignment matrix element here corresponds
 on average to a 13&times;13 block in the alignment matrix in raw base sequence
-shown above. For these reasons, the marker representation
+shown above. The portion of alignment matrix in marker space
+shown here covers about 120 markers or about 1500 bases
+in the original representation of the read, compared to
+only about
+100 bases in the alignment matrix in raw representation shown above .
+
+
+For these reasons, the marker representation
 is orders of magnitude more efficient than the raw base 
 representation when computing read
 alignments.
@@ -496,7 +509,7 @@ an optimal alignment is &#8776;10<sup>-3</sup>-10<sup>-2</sup> seconds
 in the Shasta implementation as of release 0.1.0 (April 2019).
 A typical human assembly needs to compute &#8776;10<sup>8</sup> read
 alignments which results in a total compute time &#8776;10<sup>-5</sup>-10<sup>-6</sup> seconds, or
-&#8776;10<sup>-3</sup>-range 10<sup>-4</sup> seconds of elapsed time (&#8776; 1-3 hours) 
+&#8776;10<sup>-3</sup>-10<sup>-4</sup> seconds of elapsed time (&#8776; 1-3 hours) 
 on a machine with 128 virtual processors.
 This is one of the most computationally expensive portions of a Shasta assembly.
 Some additional optimizations are possible in the code
@@ -505,11 +518,183 @@ and may be implemented in future releases.
 
 
 
+<h3>Finding overlapping reads</h3>
+<p>
+Even though computing read alignments in marker representation is fast,
+it still is not feasible to compute alignments among all possible pairs of reads.
+For a human size genome with &#8776;10<sup>6</sup>-10<sup>7</sup> reads,
+the number of pairs to consider would be &#8776;10<sup>12</sup>-10<sup>14</sup>,
+and even at 10<sup>-3</sup> seconds per alignment the compute time
+would be &#8776;10<sup>9</sup>-10<sup>11</sup> seconds,
+or &#8776;10<sup>7</sup>-10<sup>9</sup> seconds elapsed time
+(&#8776;10<sup>2</sup>-10<sup>4</sup> days) 
+when using 128 virtual processors.
+
+<p>
+Therefore some means of narrowing down substantially the number
+of pairs to be considered is essential.
+The Shasta assembler uses for this purpose a slightly modified MinHash
+scheme based on the marker representation of reads.
+<p>
+For a general description of the MinHash algorithm
+see the 
+<a href='https://en.wikipedia.org/wiki/MinHash'>Wikipedia article</a>
+or this 
+<a href='http://infolab.stanford.edu/~ullman/mmds/ch3.pdf'>excellent book chapter</a>.
+In summary, the MinHash algorithm takes as input a set of items
+each characterized by a set of features. Its goal is to find
+pairs of the input items that have a high 
+<a href='https://en.wikipedia.org/wiki/Jaccard_index'>Jaccard similarity index</a> -
+that is, pairs of items that have many features in common. 
+The algorithm proceeds by iterations. At each iteration, a
+new hash table is created and a
+hash function that operates on the feature set is selected.
+For each item, the hash function of each of its features is evaluated,
+and the minimum hash function value found is used to 
+select the hash table bucket that each item is stored in.
+It can be proven that the probability of two items ending up
+in the same bucket equals the Jacard similarity index of the two
+items - that is, items in the same bucket are more likely 
+to be highly similar than items in different buckets.
+The algorithm then adds to the pairs of potentially similar
+items all pairs of items that are in the same bucket.
+
+<p>
+When all iterations are complete, the probability that a pair
+of items was found at least once is an increasing function
+of the Jaccard similarity of the two items. 
+In other words, the pairs found are enriched for pairs
+that have high similarity. One can now consider all the pairs found
+(hopefully a much smaller set than all possible pairs)
+and compute the Jaccard similarity index for each,
+then keep only the pairs for which the index is sufficiently high.
+The algorithm does not guarantee that all pairs 
+with high similarity will be found - only that the probability
+of finding all pairs is an increasing function of their similarity.
+
+<p>
+The algorithm is used by Shasta with items being oriented reads
+(a read in either original or reverse complemented orientation)
+and features being consecutive occurrences of m markers in the
+marker representation of the oriented read. 
+For example, consider an oriented read with the following marker representation: 
+
+<pre>
+18,45,71,3,15,6,21
+</pre>
+
+If m is selected equal to 4 (the Shasta default, controlled 
+by assembly parameter <code>MinHash.m</code>),
+the oriented read is assigned the following features:
+
+<pre>
+(18,45,71,3)
+(45,71,3,15)
+(71,3,15,6)
+(3,15,6,21)
+</pre>
+
+<p>
+From the 
+<a href='#MarkerAlignment'>picture above</a> of an alignment matrix in
+marker representation, we see that streaks of 4 or more common consecutive
+markers are relatively common. We have to keep in mind that,
+with Shasta default parameters, 4 consecutive markers 
+span an average 40 bases in run-length encoding or about 52 bases
+in the original raw base representation.
+At a typical error rate around 10%, such a portion of a read would
+contain on average 5 errors. Yet, the marker representation
+in run-length space
+is sufficiently robust that these common "features"
+are relatively common despite the high error rate.
+This indicates that we can expect the
+MinHash algorith to be effective in finding pairs of overlapping reads.
+
+<p>
+However, the MinHash algorithm has a feature that is undesirable
+for our purposes: namely, that the algorithm is good at finding 
+read pairs with high Jaccard similarity index.
+For two sets X and Y, the Jaccard similarity index is defined as the ratio
+
+<pre>
+J = |X&#8745;Y| / |X&#8746;Y|
+</pre>
+
+Because the read length distribution of Oxford Nanopore reads
+is very wide, it is very common to have pairs of reads with 
+very different lengths. Consider now two reads with lengths n<sub>x</sub> and n<sub>y</sub>, with 
+n<sub>x</sub>&lt;n<sub>y</sub>, that overlap exactly over the entire length n<sub>x</sub>.
+The Jaccard similarity is in this case given by n<sub>x</sub>/n<sub>y</sub> &lt; 1.
+This means that, if one of the reads in a pair is much shorter than
+the other one, their Jaccard similarity will be low even in 
+the best case of exact overlap. As a result, the
+unmodified MinHash algorithm will not do a good job
+at finding overlapping pairs of reads with very different length.
+
+<p>
+For this reason, the Shasta assembler uses a small modification to
+the MinHash algorithm: instead of just using the minimum hash 
+for each oriented read for each iteration,
+it keeps all hashes below a given threshold. Each oriented read
+can be stored in multiple buckets, one for each low hash encountered.
+This has the effect of eliminating the bias against 
+pairs in which one read is much shorter than the other.
+The modified algorithm is referred to as <i>LowHash</i>
+in the Shasta source code.
+It is effectively equivalent to a an indexing approach
+in which we index all features with low hash.
+
+<p>
+The LowHash algorithm is controlled by the following 
+assembly parameters:
+
+<ul>
+<li><code>MinHash.m</code> (default 4):
+the number of consecutive markers that define a feature.
+<li><code>MinHash.hashFraction</code> (default 0.01):
+The fraction of hash values that count as "low".
+<li><code>MinHash.minHashIterationCount</code> (default 10):
+The number of iterations.
+<li><code>MinHash.maxBucketSize</code> (default 10):
+The maximum number of items for a bucket to be considered.
+Buckets with more than this number of items are ignored.
+The goal of this parameter is to mitigate
+the effect of common repeats, which 
+can result in buckets containing large numbers of
+unrelated oriented reads.
+<li><code>MinHash.minFrequency</code> (default 2):
+the number of times a pair of oriented reads has to be found to be considered 
+and stored as a possible pair of overlapping reads.
+</ul>
+
+
+<h5>Initial assembly steps</h5>
+<p>
+Initial steps of a Shasta assembly proceed as follows.
+If the assembly is setup for best performance
+(<code>--memoryMode filesystem --memoryBacking 2M</code>
+if using the Shasta executable), all data structures
+are stored in memory, and no disk activity takes
+place except for initial loading of the input reads,
+storing of assembly results, and storing a small number
+of small files with useful summary information.
+
+<ul>
+<li>Input reads are read from Fasta files and converted
+to run-length representation.
+<li>K-mers to be used as markers are randomly selected.
+<li>Occurrences of those marker k-mers in all oriented reads are found.
+<li>The LowHash algorithm finds candidate pairs of overlapping oriented reads.
+<li>A marker alignment is computed for each candidate pair of oriented reads.
+If the marker alignment contains a minimum number of aligned markers,
+the pair is stored as an aligned pair. The minimum number
+of aligned markers is controlled by assembly parameter
+<code>Align.minAlignedMarkerCount</code>.
+
+
+
 <br><br><hr>
 <b>This page is work in progress...</b>
-
-
-
 
 </main>
 
