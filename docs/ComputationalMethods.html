@@ -935,6 +935,38 @@ as the initial implementation by Wenzel Jakob only allowed
 for 32-bit vertex ids.
 
 
+<p>
+A portion of the marker graph, as displayed by the
+Shasta http server, is shown here:
+
+<p>
+<img style="max-width:120%" src=MarkerGraph5.png>
+
+<p>
+Each vertex, shown in green, contains a list
+of the oriented reads the contribute to it.
+Each oriented read is labeled with the read id 
+(a number) followed by "-0" for original orientation
+and "-1" for reverse complemented orientation. Each vertex
+is also lebeled with the marker sequence (run-length encoded).
+Edges are drawn with an arrow whose thickness is proportional to edge coverage,
+and labeled with the sequence contributed by each read.
+In edge labels, a sequence consisting of a number indicates
+the number of overlapping bases between adjacent markers.
+
+<p>
+On as larger scale and with less detail, a typical portion of the marker graph looks
+like this:
+
+<p>
+<img class=fit-in-main src=MarkerGraph6.png>
+
+<p>
+Here, each vertex is drawn with size proportional to its coverage.
+Edge arrows are again displayed with thickness porportional to edge coverage.
+
+
+
 
 <br><br><hr>
 <b>This page is work in progress...</b>
