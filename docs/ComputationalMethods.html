@@ -796,6 +796,143 @@ It is hoped that future Shasta releases will do a better
 job at handling these situations.
 
 
+<h3>Marker graph</h3>
+<p>
+Consider a read whose marker representation is: 
+<pre>
+a b c d e
+</pre>
+We can represent this read as a directed graph
+that the describes the sequence in which its markers appear:
+<p>
+<img src="MarkerGraph-1.dot.png">
+<p>
+This is not very useful but illustrates
+the simplest form of a <i>marker graph</i>
+as used in the Shasta assembler.
+The marker graph is a directed graph
+in which each vertex represents a marker
+and each edge represents the transition
+between consecutive markers.
+We can associate sequence with each vertex and edge of the
+marker graph:
+<ul>
+<li>Each vertex is associated with the sequence of the corrersponding 
+marker.
+<li>If the markers of the source and target vertex of an edge
+do not overlap, the edge is associated with the sequence
+intervening between the two markers.
+<li>If the markers of the source and target vertex of an edge
+do overlap, the edge is associated with the overlapping portion
+of the marker sequences.
+</ul>
+
+<p>
+Consider now a second read with the following marker
+representation, which differs from the previous one
+just by replacing marker <code>c</code> with <code>x</code>:
+
+<pre>
+a b x d e
+</pre>
+
+<p>
+The marker graph for the two reads is:
+<p>
+<img src="MarkerGraph-2.dot.png">
+
+<p>
+In the optimal alignment of the two reads, markers 
+<code>a, b, d, e</code> are aligned. We can redraw the marker graph
+grouping together vertices that correspond to aligned markers:
+
+<p>
+<img src="MarkerGraph-3.dot.png">
+
+<p>
+Finally, we can merge aligned vertices to obtain
+a marker graph describing the two aligned reads:
+
+<p>
+<img src="MarkerGraph-4.dot.png">
+
+<p>
+Here, by construction each vertex still has a unique
+sequence associated with it - the common sequence
+of the markers that were merged
+(however the corresponding repeat counts
+can be different for each contributing read).
+An edge, on the other hand, can have different sequences
+associated with it, one corresponding to each
+of the contributing reads. 
+In this example, edges <code>a->b</code>
+and <code>d->e</code> have two contributing reads,
+which can each have distinct sequence between 
+the two markers.
+
+<p>
+We call coverage of a vertex or edge the number of reads "contributing"
+to it. In this example, vertices <code>a, b, d, e</code> have coverage 2
+and vertices <code>c, x</code> have coverage 1.
+Edges <code>a->b</code>
+and <code>d->e</code> have coverage 2, and the remaining edges have coverage 1.
+
+<p>
+The construction of the marker graph was illustrated above 
+for two reads, but the Shasta assembler
+construct a global marker graph which takes into account
+all oriented reads:
+
+<ul>
+<li>The process starts with a distinct vertex for each marker of each
+oriented read. Note that at this stage the marker graph
+is large (&#8776; 2&times;10<sup>10</sup> vertices for a human assembly
+using default assembly parameters).
+<li>For each marker alignment
+corresponding to an edge of the read graph,
+we merge vertices corresponding to aligned markers.
+<li>Of the resulting merged vertices, we remove those whose 
+coverage in too low or two high, indicating that the contributing
+reads or some of the alignments involved are probably in error.
+This is controlled by assembly parameters
+<code>MarkerGraph.minCoverage</code> (default 10)
+and <code>MarkerGraph.maxCoverage</code> (default 100),
+which specify the minimum and maximum coverage
+for a vertex to be kept.
+<li>Edges are created. An edge <code>v0->v1</code> is created if
+there is at least a read contributing to both <code>v0</code> and <code>v1</code>
+and for which all markers intervening
+between <code>v0</code> and <code>v1</code>
+belong to vertices that were removed.
+</ul>
+
+Note that this does not mean that all vertices 
+with the same marker sequence are merged -
+two vertices are only merged if they have
+the same marker sequence, and if there are
+at least two reads for which the corresponding markers are aligned.
+
+<p>
+Given the large number of initial vertices involved, 
+this computation is not trivial. 
+To allow 
+efficient computation in parallel on many threads, a 
+<a href='https://github.com/wjakob/dset'>lock-free implementation</a> 
+of the 
+<a href='https://en.wikipedia.org/wiki/Disjoint-set_data_structure'>
+disjoint data set data structure</a>, 
+as first described by 
+<a href='http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.8354&rep=rep1&type=pdf'>
+Anderson and Woll (1994)</a>,
+is used
+for merging vertices.
+Some code changes 
+<a href='Acknowledgments.html#Dset'>were necessary</a> 
+to permit large numbers of vertices,
+as the initial implementation by Wenzel Jakob only allowed
+for 32-bit vertex ids.
+
+
 
 <br><br><hr>
 <b>This page is work in progress...</b>

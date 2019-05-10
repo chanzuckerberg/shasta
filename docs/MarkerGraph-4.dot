@@ -1,0 +1,12 @@
+digraph G {
+rankdir=LR;
+node [shape=rectangle style=rounded color="#9e242e" width=0.5];
+edge [color="#2eccc1"];
+a->b;
+b->c;
+c->d;
+d->e;
+b->x;
+x->d
+}
+

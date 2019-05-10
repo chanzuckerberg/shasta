@@ -1,0 +1,41 @@
+digraph G {
+rankdir=LR;
+node [shape=rectangle style=rounded color="#9e242e" width=0.5];
+edge [color="#2eccc1"];
+
+subgraph cluster_a {
+color="#000066";
+a1 [label="a"];
+a2 [label="a"];
+}
+
+subgraph cluster_b {
+color="#000066";
+b1 [label="b"];
+b2 [label="b"];
+}
+
+subgraph cluster_d {
+color="#000066";
+d1 [label="d"];
+d2 [label="d"];
+}
+
+subgraph cluster_e {
+color="#000066";
+e1 [label="e"];
+e2 [label="e"];
+}
+
+c1 [label="c"];
+a1->b1;
+b1->c1;
+c1->d1;
+d1->e1;
+x2 [label="x"];
+a2->b2;
+b2->x2;
+x2->d2;
+d2->e2;
+}
+
