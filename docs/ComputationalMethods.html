@@ -690,6 +690,110 @@ If the marker alignment contains a minimum number of aligned markers,
 the pair is stored as an aligned pair. The minimum number
 of aligned markers is controlled by assembly parameter
 <code>Align.minAlignedMarkerCount</code>.
+</ul>
+
+
+
+<h3>Read graph</h3>
+<p>
+Using the methods covered so far, an assembly has created
+a list of pairs of oriented reads, each pair having a plausible marker
+alignment. 
+How to use this type of information for assembly is a classical problem
+with a standard solution
+<a href='https://doi.org/10.1093/bioinformatics/bti1114'>(Myers, 2005)</a>,
+the <i>string graph</i>.
+
+<p>
+However, the prescriptions in the Myers paper cannot be directly used here,
+the main reason being that the process used to find pairs
+of overlapping reads is probabilistic and does not guarantee
+that all overlapping pairs will be found. 
+Direct application of the Myers approach in this context results
+in unnecessary breakages in continuity.
+
+<p>
+The approach currently used in the Shasta assembler is very simple, perhaps simplistic,
+and does not extract all the available information. 
+As a result, contiguity of assembled sequence is not 
+the best that can be achieved from the data. 
+Improvements are certainly possible here
+and will hopefully be made in future releases.
+Despite this shortcoming, the current
+implementation is still a useful tool for <i>de novo</i>
+assembly of Oxford Nanopore reads.
+
+<p>
+In the current simple approach, the Shasta assembler creates
+un undirected graph, the <i>Read Graph</i>, in which
+each vertex represents an oriented read
+(that is, a read in either original orientation or reverse
+complemented), and an undirected edge
+between two vertices is created if we have found an alignment
+between the corresponding oriented reads.
+
+<p>
+However, the read graph as constructed in this way suffers
+from high connectivity in repeat regions.
+Therefore, the Shasta assembler only keeps a
+k-Nearest-Neighbor subset of the edges.
+That is, for each vertex (oriented read)
+we only keep the k edges with the best alignments
+(greatest number of aligned markers). 
+The number of edges kept
+for each vertex is controlled by assembly parameter
+<code>ReadGraph.maxAlignmentCount</code>,
+with a default value of 6.
+Note that, despite the k-Nearest-Neighbor subset,
+it remains possible for a vertex to have degree
+more than k.
+
+<p>
+Note that each read contributes two vertice to the read graph,
+one in its original orientation, and one in reverse
+complemented orientation. 
+Therefore the read graph contains two strands,
+each strand at full coverage. 
+This makes it easy to investigate and potentially detect
+erroneous strand jumps that would be much less obvious
+if using approaches using one vertex per read.
+
+<p>
+An example of a portion of the read graph, as displayed
+by the Shasta http server, is shown here.
+
+<img class="fit-in-main" src=ReadGraph1.png>
+
+<p>
+Even though the graph is undirected, edges that
+correspond to overlap alignments are drawn with an arrow
+that points from the leftmost oriented read to the 
+rightmost one. 
+Edges that correspond to containment alignments
+are drawn in red and without an arrow.
+Vertices are drawn with area proportional to the length of
+the corresponding reads.
+
+<p>
+The linear structure of the read graph successfully reflects 
+the linear arrangement of the input reads
+and their origin on the genome being assembled. 
+
+<p>
+However, deviations from the linear structure can
+occur in the presence of long repeats,
+typically for high similarity segment duplications:
+
+<img class="fit-in-main" src=ReadGraph2.png>
+
+<p>
+The current Shasta implementation does not attempt
+to remove the obviously incorrect connections.
+This results in unnecessary breaks in assembly contiguity.
+Despite this, Shasta assembly contiguity is  adequate
+and comparable to what other, less performant long read assemblers achieve.
+It is hoped that future Shasta releases will do a better
+job at handling these situations.
 
 
 
