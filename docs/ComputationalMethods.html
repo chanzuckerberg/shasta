@@ -948,7 +948,7 @@ of the oriented reads the contribute to it.
 Each oriented read is labeled with the read id 
 (a number) followed by "-0" for original orientation
 and "-1" for reverse complemented orientation. Each vertex
-is also lebeled with the marker sequence (run-length encoded).
+is also labeled with the marker sequence (run-length encoded).
 Edges are drawn with an arrow whose thickness is proportional to edge coverage,
 and labeled with the sequence contributed by each read.
 In edge labels, a sequence consisting of a number indicates
@@ -964,6 +964,107 @@ like this:
 <p>
 Here, each vertex is drawn with size proportional to its coverage.
 Edge arrows are again displayed with thickness porportional to edge coverage.
+The marker graph has a linear structure with a dominant path
+and side branches due to errors.
+
+
+
+<h3>Using the marker graph to assemble sequence</h3>
+<p>
+The marker graph is a partial description of the multiple sequence
+alignment between reads and can be used to assemble consensus sequence.
+One simple way to do that is to only keep the "dominant" path
+in the graph, and then move on that path from vertex to edge to vertex,
+assembling run-length encoded sequence as follows:
+
+<ol>
+<li>On a vertex, all reads have the same sequence, by construction:
+the marker sequence associated with the vertex.
+There is trivial consensus among all the reads contributing
+to a vertex, and the marker sequence can be used directly as
+the contribution of the vertex to assembled sequence.
+<li>For edges, there are two situations plus a hybrid case:
+<ul style='list-style:none'>
+<li>2.1. If the adjacent markers overlap, in most cases all
+contributing reads have the same number of 
+overlapping bases between the two markers, and we are again in a situation
+of trivial consensus, where all reads contribute the same sequence,
+which also agrees with the sequence of adjacent vertices.
+In cases where not all reads are in agreement on the number
+of overlapping bases, only reads with the most
+frequent number of overlapping bases are taken into account.
+<li>2.2. If the adjacent markers don't overlap,
+then each read can have a different sequence between the two markers.
+In this situation, we use compute a multiple sequence
+alignment of the sequences and a consensus using the
+<a href='https://github.com/rvaser/spoa'>Spoa</a> library.
+The multiple sequence alignment is computed constrained
+at both ends, because all reads contributing
+to the edge have, by construction, identical
+markers at both sides.
+<li>
+2.3. A hybrid situation occasionally arises, in which
+some reads have the two markers overlapping,
+and some do not. In this case we count reads
+of the two kinds and discard the reads of the minority kind,
+then revert to one of the two cases 2.1 or 2.2 above.
+</ul>
+</ol>
+
+<p>
+This is the process used for sequence assembly by the current Shasta implementation.
+It requires a process to select and define dominant paths, 
+which is described in the next section. 
+It is algorithmically simple, but its main
+shortcoming is that it does not use for assembly reads that contribute to 
+the abundant side branches. This means that coverage is lost,
+and therefore the sequence of assembled accuracy is not
+as good as it could be if all available coverage was used.
+Means to eliminate this shortcoming and use information from the side branches of
+the marked graph could be a subject of future work on the Shasta assembler.
+
+<p>
+The process described above works
+with run-length encoded sequence and therefore
+assembles run-length encoded sequence. 
+The final step to create raw assembled sequence
+is to compute the most likely repeat count for
+each sequence position in run-length encoding.
+This is currently done by choosing as the
+most likely repeat count the one that appears
+the most frequently in the
+reads that contributed to each assembled position.
+Replacing the most frequent repeat count
+with the median of the repeat counts
+resulted in results of slightly inferior quality.
+Similarly, using the average instead of the mean
+also worsened assembled sequence quality,
+even when allowing for a fixed but tunable
+bias factor used in computing the mean.
+
+<p>
+A simple Bayesian model for repeat counts resulted
+in a modest improvement in the quality of assembled
+sequence. However the model appears to sensitive
+to calibration errors, and therefore
+it is not used by default in Shasta assemblies.
+
+<p>
+It is also possible that the quality of assembled sequence
+could be improved using a future base caller that also produces
+run-length encoded read sequence,
+plus a probability distribution of the repeat counts
+at each position. 
+The base caller is in a unique position to do this
+thanks to its access to signal information.
+Such information could be used to implement in the Shasta assembler
+a Bayesian model for repeat counts that does not require
+calibration and directly uses signal duration
+information available to the base caller.
+Some work in this direction is in progress,
+including a new experimental run-length base caller under development
+at Oxford Nanopore, <i>Runnie</i>.
+
 
 
 
