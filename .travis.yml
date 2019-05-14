@@ -12,7 +12,6 @@ compiler: gcc
 os: linux
 before_install:
   - ls
-  - ./travis-build.sh
 install:
   - sudo scripts/InstallPrerequisites-Ubuntu.sh
   - mkdir shasta-build
@@ -21,9 +20,5 @@ install:
   - make all
   - make install
 script:
-
-# Comment these out for now to avoid failed builds.
-#  - [ -e shasta-install/bin/shasta ]
-#  - [ -e shasta-install/bin/shasta.so ]
-  - true
+  - ./travis-build.sh
    
