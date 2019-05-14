@@ -1,0 +1,14 @@
+language: cpp
+sudo: required
+dist: xenial
+compiler: gcc
+os: linux
+before_install:
+  - ls
+install:
+  - sudo scripts/InstallPrerequisites-Ubuntu.sh
+  - mkdir shasta-build
+  - cd shasta-build
+  - cmake ..
+  - make all
+  - make install
