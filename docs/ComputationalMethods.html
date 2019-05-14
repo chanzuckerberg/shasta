@@ -518,7 +518,7 @@ and may be implemented in future releases.
 
 
 
-<h3>Finding overlapping reads</h3>
+<h2>Finding overlapping reads</h2>
 <p>
 Even though computing read alignments in marker representation is fast,
 it still is not feasible to compute alignments among all possible pairs of reads.
@@ -668,7 +668,7 @@ and stored as a possible pair of overlapping reads.
 </ul>
 
 
-<h5>Initial assembly steps</h5>
+<h2>Initial assembly steps</h2>
 <p>
 Initial steps of a Shasta assembly proceed as follows.
 If the assembly is setup for best performance
@@ -694,7 +694,7 @@ of aligned markers is controlled by assembly parameter
 
 
 
-<h3>Read graph</h3>
+<h2>Read graph</h2>
 <p>
 Using the methods covered so far, an assembly has created
 a list of pairs of oriented reads, each pair having a plausible marker
@@ -796,7 +796,7 @@ It is hoped that future Shasta releases will do a better
 job at handling these situations.
 
 
-<h3>Marker graph</h3>
+<h2>Marker graph</h2>
 <p>
 Consider a read whose marker representation is: 
 <pre>
@@ -969,7 +969,7 @@ and side branches due to errors.
 
 
 
-<h3>Using the marker graph to assemble sequence</h3>
+<h2>Using the marker graph to assemble sequence</h2>
 <p>
 The marker graph is a partial description of the multiple sequence
 alignment between reads and can be used to assemble consensus sequence.
@@ -983,7 +983,7 @@ the marker sequence associated with the vertex.
 There is trivial consensus among all the reads contributing
 to a vertex, and the marker sequence can be used directly as
 the contribution of the vertex to assembled sequence.
-<li>For edges, there are two situations plus a hybrid case:
+<li>For edges, there are two possible situations plus a hybrid case:
 <ul style='list-style:none'>
 <li>2.1. If the adjacent markers overlap, in most cases all
 contributing reads have the same number of 
@@ -995,7 +995,7 @@ of overlapping bases, only reads with the most
 frequent number of overlapping bases are taken into account.
 <li>2.2. If the adjacent markers don't overlap,
 then each read can have a different sequence between the two markers.
-In this situation, we use compute a multiple sequence
+In this situation, we compute a multiple sequence
 alignment of the sequences and a consensus using the
 <a href='https://github.com/rvaser/spoa'>Spoa</a> library.
 The multiple sequence alignment is computed constrained
@@ -1034,6 +1034,8 @@ This is currently done by choosing as the
 most likely repeat count the one that appears
 the most frequently in the
 reads that contributed to each assembled position.
+
+<p>
 Replacing the most frequent repeat count
 with the median of the repeat counts
 resulted in results of slightly inferior quality.
@@ -1064,6 +1066,214 @@ information available to the base caller.
 Some work in this direction is in progress,
 including a new experimental run-length base caller under development
 at Oxford Nanopore, <i>Runnie</i>.
+
+
+<h2>Selecting assembly paths</h2>
+<p>
+The sequence assembly procedure described in the previous section
+can be used to assemble sequence for any path in the marker graph.
+This section describes the selection of paths for assembly
+in the current Shasta implementation.
+This is done by a series of steps that "remove" edges
+(but not vertices) from the marker graph until the
+marker graph consists mainly of linear sections
+which can be used as the assembly paths. 
+For speed, edges are not actualy removed but just marked
+as removed using a set of flag bits allocated for this 
+purpose in each edge.
+However, the description below will use the loose term <q>remove</q>
+to indicate that an edge was flagged as removed.
+
+<p>
+This process consists of the following three steps,
+described in more detail in the following sections:
+
+<ul>
+<li><a href='#TransitiveReduction'>Approximate transitive reduction of the marker graph</a>.
+<li><a href='#Pruning'>Pruning of short side branches (leaves)</a>.
+<li><a href='#BubbleRemoval'>Removal of bubbles and super-bubbles</a>.
+</ul>
+
+<p>
+The last step, removal of bubbles and superbubbles,
+is consistent with Shasta's current assembly goal
+which is to compute a mostly haploid
+assembly, at least on short scales.
+It will undergo substantial changes in future releases,
+with the goal of enabling phased diploid assembly.
+
+
+
+<h5 id=TransitiveReduction>Approximate transitive reduction of the marker graph</h5>
+<p>
+The goal of this step is to eliminate the side branches in the marker
+graph, which are the result of errors. 
+Despite the fact that
+the number of side branches is substantially reduced thanks to the use of
+run-length encoding, side branches are still abundant.
+This step uses an approximate transitive reduction of the marker graph which only 
+considers reachability up to a maximum distance,
+controlled by assembly parameter <code>MarkerGraph.maxDistance</code>
+(default 30 marker graph edges).
+Using a maximum distance makes sure that the process remains computationally affordable,
+and also has the advantage of not removing long-range edges in the marker graph,
+which could be significant.
+<p>
+In detail, the process works as follows.
+In this description, the edge being considered for removal
+is the edge <code>v0&rarr;v1</code> with source vertex <code>v0</code>
+and target vertex <code>v1</code>.
+The first two steps are not really part of the transitive reduction
+but are performed by the same code for convenience.
+
+<p>
+<ul>
+<li>All edges with coverage less than or equal to
+<code>MarkerGraph.lowCoverageThreshold</code>
+are unconditionally removed.
+The default value for this assembly parameter is 0,
+so this step does nothing when using default parameters.
+<li>All edges with coverage 1
+and for which the only supporting read has a large marker skip
+are unconditionally removed.
+The marker skip of an edge, for a given read, is defined as the distance
+(in markers) between the <code>v0</code> marker for that read
+and the <code>v1</code> marker for the same read.
+Most marker skips are small, and a large skip is indicative of a 
+section of a read. Keeping 
+those edges could result in assembly errors.
+The marker skip threshold is controlled
+by assembly parameter <code>MarkerGraph.edgeMarkerSkipThreshold</code>
+(default 100 markers).
+<li>Edges 
+with coverage greater than <code>MarkerGraph.lowCoverageThreshold</code>
+(default 0) and less than <code>MarkerGraph.highCoverageThreshold</code>
+(default 256), and that were not previously removed,
+are processed in order of increasing coverage.
+Note that with the default values of these parameters all edges
+are processed, because edge coverage is stored using one byte
+and therefore can never be more than 255 (it is saturated at 255).
+For each edge <code>v0&rarr;v1</code>, 
+a <a href='https://en.wikipedia.org/wiki/Breadth-first_search'>Breadth-First Search</a> 
+(BFS) in the marker graph is performed
+starting at source vertex <code>v0</code>
+and with a limit of  
+<code>MarkerGraph.maxDistance</code> (default 30)
+edges distance from vertex <code>v0</code>.
+The BFS is constrained to not use edge <code>v0&rarr;v1</code>.
+If the BFS reaches <code>v1</code>, indicating that an
+alternative path from <code>v0</code> to <code>v1</code>
+exists, edge <code>v0&rarr;v1</code> is removed.
+Note that the BFS does not use edges that have already
+been removed, and so the process is guaranteed not to affect
+reachability. Processing edges in order of increasing coverage
+makes sure that low coverage edges are more the most likely to be removed.
+</ul>
+
+The transitive reduction step is intrinsically sequential and
+so it is currently performed in sequential code for simplicity.
+It could be in principle be parallelized, but that would
+require sophisticated locking of marker graph edges
+to make sure independent threads don't step on each other,
+possibly reducing reachability. 
+However, even with sequential code, this step is
+not computationally expensive, taking typically only a small fraction
+of total assembly time.
+
+<p>
+When the transitive reduction step is complete,
+the marker graph consists mostly of linear section
+composed of vertices with in-degree and out-degree one,
+with occasional side branches and bubbles or 
+<a href='https://arxiv.org/abs/1307.7925'>superbubbles</a>,
+which are handled in the next two phases described below.
+
+
+
+<h5 id=Pruning>Pruning of short side branches (leaves)</h5>
+<p>
+At this stage, a few iterations of pruning are done
+by simply removing, at each iteration,
+edge <code>v0&rarr;v1</code> if
+<code>v0</code> has in-degree 0 (that is, is a backward-pointing leaf)
+or <code>v1</code> has out-degree 0 (that is, is a forward-pointing leaf).
+The net effect is that all side branches of length
+(number of edges)
+at most equal to the number of iterations are removed.
+This leaves the leaf vertex isolated, which causes no problems.
+The number of iterations is controlled
+by assembly parameter <code>MarkerGraph.pruneIterationCount</code>
+(default 6).
+
+
+
+<h5 id=BubbleRemoval>Removal of bubbles and superbubbles</h5>
+<p>
+The marker graph now consists of mostly linear section
+with occasional bubbles or superbubbles. 
+Most of the bubbles and superbubbles are caused by errors,
+but some of those are due to heterozygous loci in
+the genome being assembled. 
+Bubbles and superbubbles of the latter type could be used for
+separating haplotypes (phasing) - a possibility
+that will be addressed in future Shasta releases. 
+However, the goal of the current
+Shasta implementation is to create a haploid assembly
+at all scales but the very long ones.
+Accordingly, bubbles and superbubbles
+at short scales are treated as errors, and the goal of
+the bubble/superbubble removalk step is to keep
+the most significant path in each bubble or superbubble.
+
+<p>
+The figures below show typical examples of a bubble 
+and superbubble in the marker graph.
+
+<p>
+<img src=Bubble.png>
+<p>
+<img src=Superbubble.png>
+
+<p>
+The bubble/superbubble removal process is iterative.
+Early iterations work on short scales, and late iterations
+fork on longer scales. Each iteration uses a threshold
+that controls the maximum number of marker graph edges for
+features to be considered for removal.
+The value of the threshold for each iteration
+is specified using assembly parameter 
+<code>MarkerGraph.simplifyMaxLength</code>,
+which consists of a comma-separated string of integer
+numbers, each specifying the threshold for one iteration
+in the process. The default value is
+<code>10,100,1000</code>, which means that three iterations 
+of this process are performed.
+The first iteration uses a threshold of 10 marker graph edges,
+and the second and third iterations 
+use thresholds of 100 and 1000 marker graph edges, respectively.
+The last and largest of the threshold values used
+determines the size of the smallest bubble or superbubble
+that will survive the process. 
+The default 1000 markers is equivalent to roughly 13 Kb.
+
+<p>
+The goal of the increasing threshold values is to work
+on small features at first, and on larger features in the later iterations.
+The choice of <code>MarkerGraph.simplifyMaxLength</code>
+could be application dependent. The default value
+is a reasonable compromise useful if one desires 
+a mostly haploid assembly with just some large heterozygous features.
+
+<p>
+At each iteration, two steps are done.
+The first removes bubbles
+and the second removes superbubbles.
+Only bubbles/superbubbles consisting of features shorter than
+the threshold for the current iteration are considered.
+ 
+
+
+
 
 
 
