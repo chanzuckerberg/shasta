@@ -20,5 +20,10 @@ install:
   - make all
   - make install
 script:
+<<<<<<< refs/remotes/origin/master
   - ./travis-build.sh
    
+=======
+  - ../scripts/travis-build.sh
+
+>>>>>>> move travis script
