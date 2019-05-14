@@ -940,7 +940,7 @@ A portion of the marker graph, as displayed by the
 Shasta http server, is shown here:
 
 <p>
-<img style="max-width:120%" src=MarkerGraph5.png>
+<img style="max-width:120%" src=MarkerGraph-5.png>
 
 <p>
 Each vertex, shown in green, contains a list
@@ -959,13 +959,42 @@ On as larger scale and with less detail, a typical portion of the marker graph l
 like this:
 
 <p>
-<img class=fit-in-main src=MarkerGraph6.png>
+<img class=fit-in-main src=MarkerGraph-6.png>
 
 <p>
 Here, each vertex is drawn with size proportional to its coverage.
 Edge arrows are again displayed with thickness porportional to edge coverage.
 The marker graph has a linear structure with a dominant path
 and side branches due to errors.
+
+
+
+<h2>Assembly graph</h2>
+<p>
+The Shasta assembly process also uses a
+compact representation of the marker graph,
+called the <i>assembly graph</i>,
+in which 
+each linear sequence of edges is replaced by a single
+edge.
+
+For example, this marker graph
+
+<p>
+<img src="MarkerGraph-7.dot.png">
+
+<p>
+can be represented as an assembly graph as follows.
+Colors were chosen to indicate the correspondance
+to marker graph edges:
+
+<p>
+<img src="MarkerGraph-8.dot.png">
+
+<p>
+The <i>length</i>
+of an edge of the assembly graph is defined as the number
+of marker graph edges that it corresponds to. 
 
 
 
@@ -1234,10 +1263,12 @@ and superbubble in the marker graph.
 <p>
 <img src=Superbubble.png>
 
+
 <p>
 The bubble/superbubble removal process is iterative.
 Early iterations work on short scales, and late iterations
-fork on longer scales. Each iteration uses a threshold
+fork on longer scales. 
+Each iteration uses a length threshold
 that controls the maximum number of marker graph edges for
 features to be considered for removal.
 The value of the threshold for each iteration
@@ -1250,11 +1281,15 @@ in the process. The default value is
 of this process are performed.
 The first iteration uses a threshold of 10 marker graph edges,
 and the second and third iterations 
-use thresholds of 100 and 1000 marker graph edges, respectively.
+use length thresholds of 100 and 1000 marker graph edges, respectively.
 The last and largest of the threshold values used
 determines the size of the smallest bubble or superbubble
 that will survive the process. 
 The default 1000 markers is equivalent to roughly 13 Kb.
+To suppress more bubble/superbubbles, increase
+the threshold for the last iterarion.
+To see more bubbles/superbubbles, decrease
+the length threshold for the last iteration, or remove the last iteration entirely. 
 
 <p>
 The goal of the increasing threshold values is to work
@@ -1265,22 +1300,87 @@ is a reasonable compromise useful if one desires
 a mostly haploid assembly with just some large heterozygous features.
 
 <p>
-At each iteration, two steps are done.
+Each iteration consists of two steps.
 The first removes bubbles
 and the second removes superbubbles.
 Only bubbles/superbubbles consisting of features shorter than
-the threshold for the current iteration are considered.
- 
+the threshold for the current iteration are considered:
 
 
 
+<ol>
+
+<li><b>Bubble removal</b>
+<ul>
+<li>An assembly graph corresponding to the current marker graph is created.
+<li>Bubbles are located in which the length of all branches
+(number of marker graph edges) is no more than the length threshold
+at the current iteration. In the assembly graph,
+a bubble appears as a set of parallel edges (edges with the same
+source and target).
+<li>In each bubble, only the shortest assembly graph edge
+is kept (that is, the edge corresponding to the smallest number of
+marker graph edges). 
+This is not a particularly good choice and should be changed
+in favor of a choice based on coverage.
+Marker graph edges corresponding to all other assembly graph edges
+in the bubble as flagged as removed.
+</ul>
+
+<li><b>Superbubble removal</b>:
+<ul>
+<li>An assembly graph corresponding to the current marker graph is created.
+<li>Connected components of the assembly graph are computed,
+but only considering edges below the current length threshold.
+This way, each connected component corresponds to a "cluster"
+of "short" assembly graph edges.
+<li>For each cluster, entries into the cluster are located.
+These are vertices that have in-edges from a vertex outside the cluster.
+Similarly, exists are located (vertices that have out-edges outside the cluster). 
+<li>For each entry/exit pair, the shortest path is located.
+However, in this case the "length" of an assembly graph edge
+is defined as the inverse of average coverage for all
+the contributing marker graph edges.
+<li>Edges on each shortest path are marked as edges to be kept.
+<li>All other edges internal to the cluster are removed.
+</ul>
+
+</ol>
 
 
 
+<h3>Towards phased diploid assembly</h3>
+<p>
+The current strategy of removing bubbles and superbubbles on small scales
+is a reasonable compromise for a haploid assembly.
+The extent to which bubbles are discarded or kept
+can be controlled using assembly parameter 
+<code>MarkerGraph.simplifyMaxLength</code>
+as described above.
 
+<p>
+It is, however, possible to use bubbles in the marker graph
+to assign reads to haplotypes and therefore enable
+a true diploid assembly. This possibility will be investigated
+in future Shasta work, but here is a possible outline:
 
-<br><br><hr>
-<b>This page is work in progress...</b>
+<ul>
+<li>Creation of the marker graph would work as described,
+up to and excluding the bubble/superbubble removal process.
+<li>Bubbles in which all branches have good coverage
+are likely to correspond to heterozygous loci and can be used
+to assign reads to haplotypes.
+<li>Read graph edges between reads corresponding to distinct haplotypes 
+would be removed.
+<li>The marker graph would then be recreated from scratch,
+with the result that haplotypes would now be separated, at least to the extent
+allowed by existing heterozygous loci (e. g. 
+long homozygous stretches could still have both haplotypes collapsed).
+<li>This process would not only help separate haplotypes,
+but it would also provide better separation of distinct copies
+of segment duplications, potentially resulting in 
+an assembly that is not only phased, but also more contiguous.
+</ul> 
 
 </main>
 

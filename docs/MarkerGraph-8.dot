@@ -1,0 +1,22 @@
+digraph G {
+rankdir=LR;
+node [shape=point];
+size="6!";
+0->2 [color="/dark27/1"];
+
+2->7 [color="/dark27/2"];
+
+
+7->9 [color="/dark27/3"];
+
+2->11 [color="/dark27/4"];
+
+11->14 [color="/dark27/6"];
+
+11->14 [color="/dark27/5"];
+
+14->7 [color="/dark27/7"];
+
+
+}
+
