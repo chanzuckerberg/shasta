@@ -12,7 +12,7 @@ compiler: gcc
 os: linux
 before_install:
   - ls
-  - [ -e LICENSE ]
+  - `[ -e LICENSE ]`
 install:
   - sudo scripts/InstallPrerequisites-Ubuntu.sh
   - mkdir shasta-build
