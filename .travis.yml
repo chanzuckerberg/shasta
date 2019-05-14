@@ -12,3 +12,7 @@ install:
   - cmake ..
   - make all
   - make install
+script:
+  - [ -e shasta-install/bin/shasta ]
+  - [ -e shasta-install/bin/shasta.so ]
+
