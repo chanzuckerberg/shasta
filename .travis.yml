@@ -20,9 +20,5 @@ install:
   - make all
   - make install
 script:
+  - ../scripts/travis-build.sh
 
-# Comment these out for now to avoid failed builds.
-#  - [ -e shasta-install/bin/shasta ]
-#  - [ -e shasta-install/bin/shasta.so ]
-  - true
-   
