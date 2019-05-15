@@ -998,7 +998,7 @@ of marker graph edges that it corresponds to.
 
 
 
-<h2>Using the marker graph to assemble sequence</h2>
+<h2 id=assembleSequence>Using the marker graph to assemble sequence</h2>
 <p>
 The marker graph is a partial description of the multiple sequence
 alignment between reads and can be used to assemble consensus sequence.
@@ -1347,6 +1347,25 @@ the contributing marker graph edges.
 
 </ol>
 
+<p>
+When all iterations of bubble/suprbubble removal are complete,
+the assembler creates a final version of the assembly graph.
+Each edge of the assemble graph corresponds to a path
+in the marker graph, for which sequence can be assembled
+using the 
+<a href='#assembleSequence'>method described above</a>.
+Note, however, that the marker graph and the assembly
+graph have been constructed to contain both strands.
+Special
+care is taken during al transformation steps to make sure
+that the marker graph (and therefore the assembly graph
+remain symmetric with respect to strand swaps.
+Therefore, the majority of assembly graph edges come in
+reverse complemented pairs, of which we assemble only one.
+It is however possible but rare
+for an assembly graph to be its own reverse complement.
+
+
 
 
 <h3>Towards phased diploid assembly</h3>
@@ -1381,6 +1400,96 @@ but it would also provide better separation of distinct copies
 of segment duplications, potentially resulting in 
 an assembly that is not only phased, but also more contiguous.
 </ul> 
+
+
+<h3 id=highPerformance>High performance computing techniques</h3>
+<p>
+The Shasta assembler is designed to run on a single machine
+with an amount of memory sufficient to hold all of its data structures
+(1-2 TB for a human assembly, depending on coverage).
+All data structures are memory mapped
+and can be set up to remain available after assembly completes.
+Note that using such a large memory machine does not substantially
+increase the cost per CPU cycle. For example,
+on Amazon AWS the cost per virtual processor hour for
+large memory instances is no more than twice the cost for laptop-sized instances.
+
+<p>
+There are various advantages to running assemblies in this way:
+<ul>
+<li>Running on a single machine simplifies the logistics of running
+an assembly, versus for example running on a cluster of smaller machines
+with shared storage. 
+<li>No disk input/output takes place during assembly,
+except for loading the reads in memory and writing out assembly
+results plus a few small files containing summary information.
+This eliminates performance bottlenecks commonly caused by disk I/O.
+<li>Having all data structures in memory makes it easier
+and more efficient to exploit parallelism, even at very low granularity.
+<li>Algorithm development is easier, as all data are immediately accessible
+without the need to read files from disk. For example, it is possible
+to easily rerun a specific portion of an assembly for experimentation
+and debugging without any wait time for data structures to be read from disk.
+<li>When the assembler data structures are set up to remain
+in memory after the assembler completes, 
+<a href=InspectingResults.html>it is possible</a> to
+use the Python API or the Shasta http server to
+inspect and analyze an assembly and its data structures
+(for example, display a portion of the read graph,
+marker graph, or assembly graph).
+<li>For optimal performance, assembler data structures can be mapped to
+Linux 2 MB pages (<q>huge pages</q>). This makes it faster for
+the operating system to allocate and manage the memory,
+and improves TLB efficiency. Using huge pages mapped on the
+<code>hugetlbfs</code> filesystem 
+(Shasta executable options <code>--memoryMode filesystem --memoryBacking 2M</code>)
+can result in a significant speed up (20-30%) for large assemblies.
+However it requires root privilege via <code>sudo</code>.
+</ul>
+
+<p>
+To optimize performance in this setting, the Shasta assembler
+uses various techniques:
+
+<ul>
+<li>
+In most parallel steps, the division of work among threads
+is not set up in advance but decided dynamically
+(<q>Dynamic load balancing</q>). As a
+thread finishes a piece of work assigned to it,
+it grabs another chunk of work to do.
+The process of assigning work items to threads is lock-free (that is, it uses atomic memory
+primitives rather than mutexes or other synchronization methods provided by the operating system).
+<li>Most large memory allocations are done via <code>mmap</code>
+and can optionally be mapped to Linux 2 MB pages.
+The Shasta code includes a C++ class for conveniently handling these large
+memory-mapped regions as C++ containers with familiar semantics
+(<code>class shasta::MemoryMapped::Vector</code>).
+<li>In situations where a large number of small vectors are required,
+a two-pass process is used (<code>class shasta::MemoryMapped::VectorOfVectors</code>). In the first
+pass, one computes the length of each of the vectors. A single large area
+is then allocated to hold all of the vectors contiguously,
+together with another area to hold indexes pointing to the beginning of each of the short
+vectors. In a second pass, the vectors are then filled. Both passes
+can be performed in parallel and are entirely lock-free.
+This process eliminates memory allocation overhead
+that would be incurred if each of the vectors were to be
+allocated individually.
+</ul>
+
+<p>
+Thanks to these techniques, Shasta achieves close to 100% CPU utilization
+during its parallel phases, even when using large numbers of threads. 
+However, a number of sequential phases
+remain, which typically result in average CPU utilization
+during a large assembly around 70%. Some of these sequential
+phases can be parallelized, which would result in increased
+average CPU utilization and improved assembly quality.
+
+<p>
+As of Shasta release 0.1.0, a typical human assembly at coverage 60x
+runs in about 6 hours on a <code>x1.32xlarge</code> AWS instance,
+which has 64 cores (128 virtual CPUs) and 1952 GB of memory.
 
 </main>
 
