@@ -109,6 +109,76 @@ entering <code>--input</code> only once, like this:
 
 
 
+<h2 id=MemoryRequirements>Memory requirements</h2>
+
+<p>
+For performance, the Shasta assembler uses a single large
+machine rather than a cluster of smaller machines, 
+and operates in memory,
+with no access to data on disk except during
+initial input of the reads, final output of the assembly,
+and for small output files containing summary assembly information.
+As a result, it has higher memory requirements than
+comparable tools that keep some or most of their data on disk.
+
+<p>
+Memory requirements are roughly proportional
+to genome size and coverage, and 
+are around 5 to 8 bytes per input base.
+For a human size genome (&#8776;3 Gb) at coverage 60x,
+this works out to around 
+1 TB of memory. 
+
+<p>
+Machine with 1 to 4 TB of memory have become available
+at reasonably prices in the last few years, and they are widely available
+on cloud computing platforms. 
+For example, for human assemblies using Shasta, we have routinely
+been using AWS <code>x1.32xlarge</code> instances with
+1952 TB of memory and 128 virtual processors 
+(64 cores with hyperthreading). 
+These machines are available at around $13/hour as on demand
+instances and they complete a typical human assembly at coverage
+60x in about 6 hours, at a compute cost around $80 per assembly,
+much lower than current sequencing costs to produce the input reads. 
+Much lower prices (2x to 3x lower) are also available for
+reserved instances and on the AWS spot market,
+which means that a production facility could achieve
+a compute cost around $30 per genome.
+
+<p>
+Shasta also supports a mode of operation
+with data structures physically on disk,
+mapped to virtual memory.
+In this mode of operation, the operating system
+dynamically moves pages to disk from memory and back as needed,
+which can result in a huge performance penalty.
+For this reason, this mode of operation is not suggested,
+except in a couple of conditions:
+
+<ul>
+<li>For very small genomes.
+<li>If the amount of memory available is not much smaller
+than the amount required.
+</ul>
+
+<p>
+Under these conditions, and if a substantial performance
+penalty is tolerable, this mode of operation can be
+selected using the following Shasta command line options:
+<br>
+<code>
+--memoryMode filesystem --memoryBacking disk
+</code>
+
+<p>
+See 
+<a href=#MemoryModes>the next section</a>
+for more information on these options.
+
+
+
+
 <h2 id=MemoryModes>Memory modes</h2>
 
 <p>
@@ -181,9 +251,8 @@ in the table below.
 Memory allocated by <code>mmap</code> uses 4 KB pages
 on a the filesystem on disk that
 the run output directory is in.
-<b>This mode of operation incurs severe performance degradation</b>,
-at least for large runs -
-a slowdown of a factor of 3 or more.
+<b>This mode of operation can incur severe performance degradation
+and is therefore not generally suggested</b>.
 After the run terminates, binary data are permanently available 
 on disk
 and you can use the http server or
