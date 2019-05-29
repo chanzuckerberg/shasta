@@ -215,7 +215,7 @@ while increasing the repeat count for the first one.
 
 <li>
 With ordinary base sequences, the number of distinct k-mers of length k is 4<sup>k</sup>.
-But run-length base sequences, the number of distinct k-mers of length k
+But with run-length base sequences, the number of distinct k-mers of length k
 is 4&#215;3<sup>k-1</sup>.
 This is a consequence of the previous bullet.
 
@@ -756,7 +756,7 @@ Therefore the read graph contains two strands,
 each strand at full coverage. 
 This makes it easy to investigate and potentially detect
 erroneous strand jumps that would be much less obvious
-if using approaches using one vertex per read.
+if using approaches with one vertex per read.
 
 <p>
 An example of a portion of the read graph, as displayed
@@ -880,7 +880,7 @@ and <code>d->e</code> have coverage 2, and the remaining edges have coverage 1.
 <p>
 The construction of the marker graph was illustrated above 
 for two reads, but the Shasta assembler
-construct a global marker graph which takes into account
+constructs a global marker graph which takes into account
 all oriented reads:
 
 <ul>
@@ -1053,7 +1053,7 @@ the abundant side branches. This means that coverage is lost,
 and therefore the sequence of assembled accuracy is not
 as good as it could be if all available coverage was used.
 Means to eliminate this shortcoming and use information from the side branches of
-the marked graph could be a subject of future work on the Shasta assembler.
+the marker graph could be a subject of future work on the Shasta assembler.
 
 <p>
 The process described above works
@@ -1171,8 +1171,8 @@ are unconditionally removed.
 The marker skip of an edge, for a given read, is defined as the distance
 (in markers) between the <code>v0</code> marker for that read
 and the <code>v1</code> marker for the same read.
-Most marker skips are small, and a large skip is indicative of a 
-section of a read. Keeping 
+Most marker skips are small, and a large skip is indicative of an 
+artifact. Keeping 
 those edges could result in assembly errors.
 The marker skip threshold is controlled
 by assembly parameter <code>MarkerGraph.edgeMarkerSkipThreshold</code>
@@ -1214,7 +1214,7 @@ of total assembly time.
 
 <p>
 When the transitive reduction step is complete,
-the marker graph consists mostly of linear section
+the marker graph consists mostly of linear sections
 composed of vertices with in-degree and out-degree one,
 with occasional side branches and bubbles or 
 <a href='https://arxiv.org/abs/1307.7925'>superbubbles</a>,
@@ -1338,7 +1338,7 @@ of "short" assembly graph edges.
 <li>For each cluster, entries into the cluster are located.
 These are vertices that have in-edges from a vertex outside the cluster.
 Similarly, exists are located (vertices that have out-edges outside the cluster). 
-<li>For each entry/exit pair, the shortest path is located.
+<li>For each entry/exit pair, the shortest path is computed.
 However, in this case the "length" of an assembly graph edge
 is defined as the inverse of its average coverage - that is, the inverse of average coverage for all
 the contributing marker graph edges.
@@ -1359,7 +1359,7 @@ Note, however, that the marker graph and the assembly
 graph have been constructed to contain both strands.
 Special
 care is taken during al transformation steps to make sure
-that the marker graph (and therefore the assembly graph
+that the marker graph (and therefore the assembly graph)
 remain symmetric with respect to strand swaps.
 Therefore, the majority of assembly graph edges come in
 reverse complemented pairs, of which we assemble only one.
@@ -1485,7 +1485,7 @@ However, a number of sequential phases
 remain, which typically result in average CPU utilization
 during a large assembly around 70%. Some of these sequential
 phases can be parallelized, which would result in increased
-average CPU utilization and improved assembly quality.
+average CPU utilization and improved assembly performance.
 
 <p>
 As of Shasta release 0.1.0, a typical human assembly at coverage 60x
