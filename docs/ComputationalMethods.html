@@ -995,6 +995,9 @@ to marker graph edges:
 The <i>length</i>
 of an edge of the assembly graph is defined as the number
 of marker graph edges that it corresponds to. 
+For each edge of the assembly graph,
+an average coverage is also computed, by averaging the
+coverage of the marker graph edges it corresponds to.
 
 
 
@@ -1251,7 +1254,7 @@ Shasta implementation is to create a haploid assembly
 at all scales but the very long ones.
 Accordingly, bubbles and superbubbles
 at short scales are treated as errors, and the goal of
-the bubble/superbubble removalk step is to keep
+the bubble/superbubble removal step is to keep
 the most significant path in each bubble or superbubble.
 
 <p>
@@ -1318,13 +1321,11 @@ the threshold for the current iteration are considered:
 at the current iteration. In the assembly graph,
 a bubble appears as a set of parallel edges (edges with the same
 source and target).
-<li>In each bubble, only the shortest assembly graph edge
-is kept (that is, the edge corresponding to the smallest number of
-marker graph edges). 
-This is not a particularly good choice and should be changed
-in favor of a choice based on coverage.
+<li>In each bubble, only the assembly graph edge
+with the highest average coverage
+is kept. 
 Marker graph edges corresponding to all other assembly graph edges
-in the bubble as flagged as removed.
+in the bubble are flagged as removed.
 </ul>
 
 <li><b>Superbubble removal</b>:
@@ -1339,7 +1340,7 @@ These are vertices that have in-edges from a vertex outside the cluster.
 Similarly, exists are located (vertices that have out-edges outside the cluster). 
 <li>For each entry/exit pair, the shortest path is located.
 However, in this case the "length" of an assembly graph edge
-is defined as the inverse of average coverage for all
+is defined as the inverse of its average coverage - that is, the inverse of average coverage for all
 the contributing marker graph edges.
 <li>Edges on each shortest path are marked as edges to be kept.
 <li>All other edges internal to the cluster are removed.
