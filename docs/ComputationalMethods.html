@@ -259,8 +259,9 @@ Consider now the following portion of a read in run-length representation (here,
 repeat counts are irrelevant and so they are omitted):
 <pre>
 CGACACGTATGCGCACGCTGCGCTCTGCAGC
- GAC        GCA   TGC     GCA
-                    CGC
+ GAC     TGC   CGC       TGC
+           CGC    TGC     GCA
+            GCA     CGC      
 </pre>
 Occurrences of the k-mers defined in the table above are shown
 and define the markers in this read. Note that markers
@@ -268,7 +269,7 @@ can overlap. Using the marker ids defined in the table above,
 we can summarize the sequence of this read portion as follows:
 
 <pre>
-2 1 0 3 1
+2 0 3 1 3 0 3 0 1
 </pre>
 
 This is the marker representation of the read portion above.
