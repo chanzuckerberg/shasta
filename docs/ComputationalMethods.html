@@ -378,44 +378,40 @@ at two unrelated locations in the two sequences.
 <p>
 The picture below shows a portion of a typical
 alignment matrix of two reads in their representation
-as a raw base sequence (not the run-length encoded representation),
-with an optimal alignment shown in red and yellow.
-(The Shasta assembler never performs such a computation, except
-when requested interactively).
+as a raw base sequence (not the run-length encoded representation)
+and a computed optimal alignment.
+This is for illustration only, as the Shasta assembler 
+never constructs such a matrix, except
+when requested interactively.
 
 <p>
 <img src=RawAlignment.png>
 
 <p>
-Here, elements of the alignment matrix that are 0 are displayed
-in yellow or black/grey:
+Here, elements of the alignment matrix are colored as follows:
 <ul>
-<li>Yellow matrix elements are matrix element that are
+<li>Red dots are alignment matrix elements that are 1 but that are not part of the
+computed optimal alignment.
+<li>Green dots are alignment matrix elements that are 1 and that are part of the
+computed optimal alignment.
+<li>Yellow matrix elements are alignment matrix elements that are
 0 but that were computed to be part of the optimal alignment 
-(as mismatching alignment positions).
-<li>Black or grey matrix elements are matrix element that are
+as mismatching alignment positions.
+<li>Black or grey matrix elements are matrix elements that are
 0 and that were not computed to be part of the optimal alignment.
+Grey is used instead of black every 10 bases to facilitate
+counting bases in the figure.
 </ul>
-
-Elements of the alignment matrix that are 1 are displayed
-in red or green:
-<ul>
-<li>Red matrix elements are matrix element that are
-1 and that were computed to be part of the optimal alignment 
-(as matching alignment positions).
-<li>Green matrix elements are matrix element that are
-1 and that were not computed to be part of the optimal alignment.
-</ul>
-The grey lines are drawn 10 markers apart from each other
-and their only purpose is to facilitate reading the picture -
-the corresponding matrix elements are 0.
 
 <p>
 On average, about 25% of the matrix elements are 1, simply
 because the alphabet has 4 symbols. 
 Because of the large fraction of 1 elements and because of the high error rate,
 it would be hard to visually locate the
-optimal alignment in this picture, if it was not highlighted using colors:
+optimal alignment in this picture, if it was not highlighted using colors.
+This is emphasized by the following figure, which represents
+the same matrix, but with all 1 elements now colored
+red and all 0 elements black.
 
 <p>
 <img src=RawAlignmentUnmarked.png>
@@ -444,9 +440,6 @@ computed by the Shasta assembler - see below for more information.
 The grey lines are drawn 10 markers apart from each other
 and their only purpose is to facilitate reading the picture -
 the corresponding matrix elements are 0.
-<b>Note that the colors in this picture are inconsistent
-with those used in the illustration of the alignment
-matrix in raw base representation above.</b>
 
 <p>
 <img id=MarkerAlignment src=MarkerAlignment.png>
