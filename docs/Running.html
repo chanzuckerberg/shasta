@@ -43,7 +43,7 @@
 For quick start information, see <a href=QuickStart.html>here</a>.
 This section provides additional background information.
 
-<h2>The Shasta executable</h3>
+<h2 id=ShastaExecutable>The Shasta executable</h2>
 <p>
 The Shasta executable provides the most convenient way of running
 an assembly. If you downloaded it as a single file from a release on GitHub, the
@@ -355,7 +355,7 @@ See
 select these options.
 
 
-<h2>Scripted approaches  to running an assembly</h3>
+<h2 id=ScriptedApproaches>Scripted approaches  to running an assembly</h2>
 <p>
 The Shasta assembler provides a
 <a href=Python.html>Python API</a> that can be used for scripting.
@@ -393,13 +393,19 @@ Existing assembly scripts, which are currently undocumented, include:
 </ul>
 
 
-<h2>Input files</h2>
+<h2 id=InputFiles>Input files</h2>
 <p>
 The Shasta
 assembler uses as input one or more 
 <a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
 files containing the input reads.
-The body of each read should be on a single line and should not contain
+The FASTA files must be <span style='background-color:yellow'>formatted strictly</span> 
+according to the following rules:
+
+<ul> 
+<li>The body of each read should be on a single line.
+Reads spanning multiple lines are not allowed.
+<li>The body of each read should not contain
 extraneous characters such as no-called bases (<code>N</code>),
 spaces, tabs, carriage returns (CR, ASCII 13), or any characters
 other than 
@@ -407,10 +413,13 @@ other than
 <code>C</code>,
 <code>G</code>,
 <code>T</code>.
-If the file contains Window-style line ends (ASCII 13 carriage return CR
+<li>
+If the file contains Windows-style line ends (ASCII 13 carriage return CR
 followed by ASCII 10 line feed LF) it should first be
-converted to Linux-style line ends, for example using
+converted to Linux-style line ends
+(that is, eliminate the CR characters), for example using Linux
 command <code>dos2unix</code>.
+</ul>
 
 <p>
 Direct input of <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a>
@@ -423,6 +432,11 @@ you can decompress it and convert to FASTA in one step,
 saving a round trip to disk, using 
 script 
 <code>shasta-install/bin/FastqGzToFasta.py</code>.
+
+<p>
+Other compressed formats are currently unsupported
+and should be converted to uncompressed FASTA
+before running Shasta.
 
 
 
