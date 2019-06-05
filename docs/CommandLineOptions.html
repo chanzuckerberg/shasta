@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+<body>
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 6/4/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+<main>
+
+<h1>Command line options</h1>
+
+<p>
+This page summarizes command line options for the Shasta executable.
+An effort will be made to keep this page consistent with the code,
+but it is possible that discrepancies may temporarily appear
+as new features are added. In that case, the list of command line options
+obtained by invoking the Shasta executable with 
+<code>--help</code> is, of course, more authoritative than the contents
+of this page.
+
+<p>
+Some options are only allowed on the command line,
+but most of them can also optionally be specified using a configuration file.
+If a configuration file is specified (via <code>--config</code>),
+values specified on the command line take precedence over
+values specified in the configuration file.
+Options that can be specified in both places are of the form 
+<code>--SectionName.optionName</code>. The format of the configuration file
+is as follows:
+
+<pre id=ConfigFile>
+[SectionA]
+option1 = valueA1
+option2 = valueA2
+[SectionB]
+option1 = valueB1
+option2 = valueB2
+</pre>
+The above is equivalent to using the following command line options:
+
+<code>
+--SectionA.option1 valueA1 
+--SectionA.option2 valueA2 
+--SectionB.option1 valueB1 
+--SectionB.option2 valueB2 
+</code>
+
+<p>
+For example, the value for option <code>MarkerGraph.minCoverage</code>
+can be specified in the <code>[MarkerGraph]</code>
+section of the configuration file as follows:
+
+<pre>
+[MarkerGraph]
+minCoverage = 0
+</pre>
+
+<p>
+A sample configuration file containing default values
+for all options is provided in the shasta source tree
+at <code>shasta/conf/shasta.conf</code>. I
+It is also available in a Shasta build
+as <code>shasta-install/conf/shasta.conf</code>.
+
+
+<p>
+In the configuration file, blank lines and lines begining with <code>#</code>
+are ignored and can be used to add coments and to improve readability
+of the configuration file.
+
+
+
+<h2>Options allowed only on the command line</h2> 
+
+<table>
+
+<tr><th>Option<th>Default<br>value<th>Description
+
+<tr><td><code>--help </code><td><td>
+Use this option to obtain a summary of allowed command line options.
+
+<tr><td><code>--config</code><td><td>
+Specifies the name of a configuration file.
+See <a href=#ConfigFile>above</a> for a description
+of the configuration file format.
+
+<tr><td><code>--input</code><td><td>
+Specifies the names of the input FASTA files for the assembly.
+This option is mandatory. At least one input FASTA file
+must be specified. To specify multiple input FASTA files,
+entered them separated by space after <code>--input</code>.
+See
+<a href='Running.html#InputFiles'>here</a>
+for more information on the input files.
+
+<tr><td><code>--output</code><td><code>ShastaRun</code><td>
+Specifies the name of the directory that will contain
+assembly output. This directory must not exists.
+It is automatically created in this directory.
+See
+<a href='Running.html#OutputFiles'>here</a>
+for more information on the output files
+created by Shasta.
+
+<tr><td><code>--command</code><td><code>assemble</code><td>
+Specifies requested processing. Can be one of the following:
+<dl>
+<dt><code>assemble</code>
+<dd>Shasta runs an assembly.
+<dt><code>cleanup</code>
+<dd>Shasta cleans up the <code>Data</code> directory of the 
+run directory. 
+The <code>Data</code> directory contains
+binary data representing assembly data structures.
+Depending on the <a href='Running.html#MemoryModes'>memory mode</a> in use,
+the <code>Data</code> directory can be
+the mount point of a filesystem in memory. 
+Not all memory modes actualy create a <code>Data</code> directory.
+After <code>Data</code> runs, you can no longer use
+the Python API or the Shasta http server to inspect assembly results.
+Make sure to use option <code>--output</code>
+to specify the run directory that you want to cleanup.
+
+<tr><td><code>--memoryMode</code><td><code>anonymous</code><td>
+Can be <code>anonymous</code> or <code>filesystem</code>.
+See 
+<a href='Running.html#MemoryModes'>here</a> for more information.
+For best performance use 
+<code>--memoryMode filesystem --memoryBacking 2M</code>.
+However, these options require root access via <code>sudo</code>.
+Depending on <code>sudo</code> setup, this may 
+result in prompting for a password.
+
+<tr><td><code>--memoryBacking</code><td><code>4K</code><td>
+Can be <code>disk</code>, <code>4K</code>,  or <code>2M</code>.
+See 
+<a href='Running.html#MemoryModes'>here</a> for more information.
+For best performance use 
+<code>--memoryMode filesystem --memoryBacking 2M</code>.
+However, these options require root access via <code>sudo</code>.
+Depending on <code>sudo</code> setup, this may 
+result in prompting for a password.
+
+</dl>
+
+</table>
+
+
+
+<h2>Options allowed on the command line and in the config file</h2> 
+
+<p><b>This section is work in progress</b>
+
+<table>
+<trow><th>Option<th>Default<br>value<th>Description
+<trow>
+</table>
+
+
+
+
+<pre>
+  --Reads.minReadLength arg (=10000)    Read length cutoff.
+  --Reads.palindromicReads.maxSkip arg (=100)
+                                        Used for palindromic read detection.
+  --Reads.palindromicReads.maxMarkerFrequency arg (=10)
+                                        Used for palindromic read detection.
+  --Reads.palindromicReads.alignedFractionThreshold arg (=0.1)
+                                        Used for palindromic read detection.
+  --Reads.palindromicReads.nearDiagonalFractionThreshold arg (=0.1)
+                                        Used for palindromic read detection.
+  --Reads.palindromicReads.deltaThreshold arg (=100)
+                                        Used for palindromic read detection.
+  --Kmers.k arg (=10)                   Length of marker k-mers (in run-length 
+                                        space).
+  --Kmers.probability arg (=0.1)        Probability that a k-mer is used as a 
+                                        marker.
+  --MinHash.m arg (=4)                  The number of consecutive markers that 
+                                        define a MinHash/LowHash feature.
+  --MinHash.hashFraction arg (=0.01)    Defines how low a hash has to be to be 
+                                        used with the LowHash algorithm.
+  --MinHash.minHashIterationCount arg (=10)
+                                        The number of MinHash/LowHash 
+                                        iterations.
+  --MinHash.maxBucketSize arg (=10)     The maximum bucket size to be used by 
+                                        the MinHash/LowHash algoritm.
+  --MinHash.minFrequency arg (=2)       The minimum number of times a pair of 
+                                        reads must be found by the 
+                                        MinHash/LowHash algorithm in order to 
+                                        be considered a candidate alignment.
+  --Align.maxSkip arg (=30)             The maximum number of markers that an 
+                                        alignment is allowed to skip.
+  --Align.maxMarkerFrequency arg (=10)  Marker frequency threshold.
+  --Align.minAlignedMarkerCount arg (=100)
+                                        The minimum number of aligned markers 
+                                        for an alignment to be used.
+  --Align.maxTrim arg (=30)             The maximum number of trim markers 
+                                        tolerated at the beginning and end of 
+                                        an alignment.
+  --ReadGraph.maxAlignmentCount arg (=6)
+                                        The maximum alignments to be kept for 
+                                        each read.
+  --ReadGraph.minComponentSize arg (=100)
+                                        The minimum size (number of oriented 
+                                        reads) of a connected component of the 
+                                        read graph to be kept.
+  --ReadGraph.maxChimericReadDistance arg (=2)
+                                        Used for chimeric read detection.
+  --MarkerGraph.minCoverage arg (=10)   Minimum number of markers for a marker 
+                                        graph vertex.
+  --MarkerGraph.maxCoverage arg (=100)  Maximum number of markers for a marker 
+                                        graph vertex.
+  --MarkerGraph.lowCoverageThreshold arg (=0)
+                                        Used during approximate transitive 
+                                        reduction.
+  --MarkerGraph.highCoverageThreshold arg (=256)
+                                        Used during approximate transitive 
+                                        reduction.
+  --MarkerGraph.maxDistance arg (=30)   Used during approximate transitive 
+                                        reduction.
+  --MarkerGraph.edgeMarkerSkipThreshold arg (=100)
+                                        Used during approximate transitive 
+                                        reduction.
+  --MarkerGraph.pruneIterationCount arg (=6)
+                                        Number of prune iterations.
+  --MarkerGraph.simplifyMaxLength arg (=10,100,1000)
+                                        Maximum lengths (in markers) used at 
+                                        each iteration of simplifyMarkerGraph.
+  --Assembly.markerGraphEdgeLengthThresholdForConsensus arg (=1000)
+                                        Controls assembly of long marker graph 
+                                        edges.
+  --Assembly.consensusCaller arg (=SimpleConsensusCaller)
+                                        Selects the consensus caller for repeat
+                                        counts.
+                                        SimpleConsensusCaller is the only 
+                                        choice currently
+                                        supported by the Shasta executable.
+                                        Other choices are available with the 
+                                        Shasta library.
+  --Assembly.useMarginPhase arg (=False)
+                                        Used to turn on margin phase.
+  --Assembly.storeCoverageData arg (=False)
+                                        Used to request storing coverage data.
+</pre>
+
+<p><b>This section is work in progress</b>
+
+
+</main>
+</body>
+</html>
