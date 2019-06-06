@@ -682,7 +682,15 @@ of small files with useful summary information.
 
 <ul>
 <li>Input reads are read from Fasta files and converted
-to run-length representation.
+to run-length representation. Read shorter
+than <code>Reads.minReadLength</code> bases (default 10000) are discarded.
+Reads that contain bases with repeat counts
+greater than 255 are also discarded. 
+This is a consequence of the fact that repeat counts
+are stored using one byte, and therefore there would
+be no way to store such reads. Reads with such
+long repeat counts are extremely rare, however,
+and when they occur they are of suspicious quality.
 <li>K-mers to be used as markers are randomly selected.
 <li>Occurrences of those marker k-mers in all oriented reads are found.
 <li>The LowHash algorithm finds candidate pairs of overlapping oriented reads.

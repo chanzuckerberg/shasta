@@ -110,19 +110,21 @@ of the configuration file.
 
 <h2>Options allowed only on the command line</h2> 
 
-<table>
+<table style='word-break:break-word'>
+<col style='width:200px'>
+<col style='width:200px'>
 
 <tr><th>Option<th>Default<br>value<th>Description
 
-<tr><td><code>--help </code><td><td>
+<tr id='help'><td><code>--help </code><td><td>
 Use this option to obtain a summary of allowed command line options.
 
-<tr><td><code>--config</code><td><td>
+<tr id='config'><td><code>--config</code><td><td>
 Specifies the name of a configuration file.
 See <a href=#ConfigFile>above</a> for a description
 of the configuration file format.
 
-<tr><td><code>--input</code><td><td>
+<tr id='input'><td><code>--input</code><td><td>
 Specifies the names of the input FASTA files for the assembly.
 This option is mandatory. At least one input FASTA file
 must be specified. To specify multiple input FASTA files,
@@ -131,7 +133,7 @@ See
 <a href='Running.html#InputFiles'>here</a>
 for more information on the input files.
 
-<tr><td><code>--output</code><td><code>ShastaRun</code><td>
+<tr id='output'><td><code>--output</code><td class=centered><code>ShastaRun</code><td>
 Specifies the name of the directory that will contain
 assembly output. This directory must not exists.
 It is automatically created in this directory.
@@ -140,7 +142,7 @@ See
 for more information on the output files
 created by Shasta.
 
-<tr><td><code>--command</code><td><code>assemble</code><td>
+<tr id='command'><td><code>--command</code><td class=centered><code>assemble</code><td>
 Specifies requested processing. Can be one of the following:
 <dl>
 <dt><code>assemble</code>
@@ -159,7 +161,7 @@ the Python API or the Shasta http server to inspect assembly results.
 Make sure to use option <code>--output</code>
 to specify the run directory that you want to cleanup.
 
-<tr><td><code>--memoryMode</code><td><code>anonymous</code><td>
+<tr id='memoryMode'><td><code>--memoryMode<br></code>(not supported on MacOS)<td class=centered><code>anonymous</code><td>
 Can be <code>anonymous</code> or <code>filesystem</code>.
 See 
 <a href='Running.html#MemoryModes'>here</a> for more information.
@@ -169,7 +171,7 @@ However, these options require root access via <code>sudo</code>.
 Depending on <code>sudo</code> setup, this may 
 result in prompting for a password.
 
-<tr><td><code>--memoryBacking</code><td><code>4K</code><td>
+<tr id='memoryBacking'><td><code>--memoryBacking</code><br>(not supported on MacOS)<td class=centered><code>4K</code><td>
 Can be <code>disk</code>, <code>4K</code>,  or <code>2M</code>.
 See 
 <a href='Running.html#MemoryModes'>here</a> for more information.
@@ -187,101 +189,188 @@ result in prompting for a password.
 
 <h2>Options allowed on the command line and in the config file</h2> 
 
-<p><b>This section is work in progress</b>
+<p>
+See <a href='#ConfigFile'>here</a> for the format required to
+enter these options in a configuration file. 
 
-<table>
-<trow><th>Option<th>Default<br>value<th>Description
-<trow>
+
+
+<table style='word-break:break-word'>
+<col style='width:400px'>
+<col style='width:150px'>
+<tr><th>Option<th>Default<br>value<th>Description
+
+<tr id='Reads.minReadLength'>
+<td><code>--Reads.minReadLength</code><td class=centered><code>10000</code><td>
+Read length cutoff. Reads shorter than this number of bases are discarded
+on input and not used in the assembly.
+
+<tr id='Reads.palindromicReads.maxSkip'>
+<td><code>--Reads.palindromicReads.maxSkip</code><td class=centered><code>100</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.maxMarkerFrequency'>
+<td><code>--Reads.palindromicReads.maxMarkerFrequency</code><td class=centered><code>10</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.alignedFractionThreshold'>
+<td><code>--Reads.palindromicReads.alignedFractionThreshold</code><td class=centered><code>0.1</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.nearDiagonalFractionThreshold'>
+<td><code>--Reads.palindromicReads.nearDiagonalFractionThreshold</code><td class=centered><code>0.1</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.deltaThreshold'>
+<td><code>--Reads.palindromicReads.deltaThreshold</code><td class=centered><code>100</code><td>
+Used for palindromic read detection.
+
+
+
+<tr id='Kmers.k'>
+<td><code>--Kmers.k</code><td class=centered><code>10</code><td>
+Length of marker k-mers (in run-length representation).
+
+
+<tr id='Kmers.probability'>
+<td><code>--Kmers.probability</code><td class=centered><code>0.1</code><td>
+Probability that a k-mer is selected to used as a marker.
+
+<tr id='MinHash.m'>
+<td><code>--MinHash.m</code><td class=centered><code>4</code><td>
+The number of consecutive markers that define a MinHash/LowHash feature.
+
+<tr id='MinHash.hashFraction'>
+<td><code>--MinHash.hashFraction</code><td class=centered><code>0.01</code><td>
+Defines how low a hash has to be to be used with the LowHash algorithm.
+
+<tr id='MinHash.minHashIterationCount'>
+<td><code>--MinHash.minHashIterationCount</code><td class=centered><code>10</code><td>
+The number of MinHash/LowHash iterations.
+
+<tr id='MinHash.maxBucketSize'>
+<td><code>--MinHash.maxBucketSize</code><td class=centered><code>10</code><td>
+The maximum size for a bucket to be used by the MinHash/LowHash algoritm.
+
+<tr id='MinHash.minFrequency'>
+<td><code>--MinHash.minFrequency</code><td class=centered><code>2</code><td>
+The minimum number of times a pair of reads must be found by the 
+MinHash/LowHash algorithm in order to be considered a candidate alignment.
+
+<tr id='Align.maxSkip'>
+<td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
+The maximum number of markers that an alignment is allowed to skip.
+
+<tr id='Align.maxTrim'>
+<td><code>--Align.maxTrim</code><td class=centered><code>30</code><td>
+The maximum number of skipped markers tolerated in an alignment 
+at the beginning and end of a read.
+
+<tr id='Align.maxMarkerFrequency'>
+<td><code>--Align.maxMarkerFrequency</code><td class=centered><code>10</code><td>
+Marker frequency threshold when computing alignments.
+Markers that occur more than this number of times
+in either ot the two reads to be aligned are ignored.
+
+<tr id='Align.minAlignedMarkerCount'>
+<td><code>--Align.minAlignedMarkerCount</code><td class=centered><code>100</code><td>
+The minimum number of aligned markers for an alignment to be used.
+
+<tr id='ReadGraph.maxAlignmentCount'>
+<td><code>--ReadGraph.maxAlignmentCount</code><td class=centered><code>6</code><td>
+The maximum alignments to be kept in the read graph for each read.
+
+<tr id='ReadGraph.minComponentSize'>
+<td><code>--ReadGraph.minComponentSize</code><td class=centered><code>100</code><td>
+The minimum size (number of oriented reads) of a connected component 
+of the read graph to be kept.
+
+<tr id='ReadGraph.maxChimericReadDistance'>
+<td><code>--ReadGraph.maxChimericReadDistance</code><td class=centered><code>2</code><td>
+Used for chimeric read detection.
+
+<tr id='MarkerGraph.minCoverage'>
+<td><code>--MarkerGraph.minCoverage</code><td class=centered><code>10</code><td>
+The minimum coverage for a marker graph vertex.
+Vertices with lower coverage are not generated.
+
+<tr id='MarkerGraph.maxCoverage'>
+<td><code>--MarkerGraph.maxCoverage</code><td class=centered><code>100</code><td>
+The maximum coverage for a marker graph vertex.
+Vertices with higher coverage are not generated.
+
+
+<tr id='MarkerGraph.lowCoverageThreshold'>
+<td><code>--MarkerGraph.lowCoverageThreshold</code><td class=centered><code>0</code><td>
+Used during approximate transitive reduction.
+Edges with coverage less than or equal to this value
+are unconditionally removed from the marker graph,
+even at the cost of breaking reachability.
+This never happens with the default value 0.
+
+<tr id='MarkerGraph.highCoverageThreshold'>
+<td><code>--MarkerGraph.highCoverageThreshold</code><td class=centered><code>256</code><td>
+Used during approximate transitive reduction.
+Edges with coverage greater than or equal to this value
+are unconditionally kept in the marker graph,
+even if they could be removed without breaking reachability.
+This never happens with the default value 256,
+because marker graph edge coverage is stored in one byte and
+saturates at 255.
+
+<tr id='MarkerGraph.maxDistance'>
+<td><code>--MarkerGraph.maxDistance</code><td class=centered><code>30</code><td>
+Used during approximate transitive reduction of the marker graph.
+It controls the length of each Breadth First Search (BFS)
+used to determine reachability. 
+This length is expressed in marker graph edges.
+
+<tr id='MarkerGraph.edgeMarkerSkipThreshold'>
+<td><code>--MarkerGraph.edgeMarkerSkipThreshold</code><td class=centered><code>100</code><td>
+Used during approximate transitive reduction of the marker graph.
+Edges with coverage 1 are unconditionally removed from the marker graph
+if the only supporting read has a marker skip 
+of more than  this number of markers on that edge.
+Large marker skips are indicative of artifacts or errors.
+                                        
+<tr id='MarkerGraph.pruneIterationCount'>
+<td><code>--MarkerGraph.pruneIterationCount</code><td class=centered><code>6</code><td>
+The number of marker graph prune iterations.
+This equals the maximum length of dead branches that are removed.
+
+<tr id='MarkerGraph.simplifyMaxLength'>
+<td><code>--MarkerGraph.simplifyMaxLength</code><td class=centered><code>10,100,100</code><td>
+Used for bubble removal. See
+<a href='ComputationalMethods.html#BubbleRemoval'>here</a> for more information.
+
+<tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
+<td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>
+<td class=centered><code>1000</code><td>
+Controls assembly of long marker graph edges.
+
+<tr id='Assembly.consensusCaller'>
+<td><code>--Assembly.consensusCaller</code>
+<td class=centered><code>SimpleConsensusCaller</code><td>
+Selects the consensus caller for repeat counts. 
+<code>SimpleConsensusCaller</code> is the only choice currently 
+supported by the Shasta executable. 
+Other choices are under development and supported by the Shasta Python API.
+
+<tr id='Assembly.useMarginPhase'>
+<td><code>--Assembly.useMarginPhase</code><td class=centered><code>False</code><td>
+Used to turn on MarginPhase for assembly of marker graph edges.
+This is under development and currently not supported
+by the Shasta executable. Therefore this option should be left
+at its default value <code>False</code>.
+
+<tr id='Assembly.storeCoverageData'>
+<td><code>--Assembly.storeCoverageData</code><td class=centered><code>False</code><td>
+Used to turn on storing of coverage data.
+This is not supported
+by the Shasta executable. Therefore this option should be left
+at its default value <code>False</code>.
+
 </table>
-
-
-
-
-<pre>
-  --Reads.minReadLength arg (=10000)    Read length cutoff.
-  --Reads.palindromicReads.maxSkip arg (=100)
-                                        Used for palindromic read detection.
-  --Reads.palindromicReads.maxMarkerFrequency arg (=10)
-                                        Used for palindromic read detection.
-  --Reads.palindromicReads.alignedFractionThreshold arg (=0.1)
-                                        Used for palindromic read detection.
-  --Reads.palindromicReads.nearDiagonalFractionThreshold arg (=0.1)
-                                        Used for palindromic read detection.
-  --Reads.palindromicReads.deltaThreshold arg (=100)
-                                        Used for palindromic read detection.
-  --Kmers.k arg (=10)                   Length of marker k-mers (in run-length 
-                                        space).
-  --Kmers.probability arg (=0.1)        Probability that a k-mer is used as a 
-                                        marker.
-  --MinHash.m arg (=4)                  The number of consecutive markers that 
-                                        define a MinHash/LowHash feature.
-  --MinHash.hashFraction arg (=0.01)    Defines how low a hash has to be to be 
-                                        used with the LowHash algorithm.
-  --MinHash.minHashIterationCount arg (=10)
-                                        The number of MinHash/LowHash 
-                                        iterations.
-  --MinHash.maxBucketSize arg (=10)     The maximum bucket size to be used by 
-                                        the MinHash/LowHash algoritm.
-  --MinHash.minFrequency arg (=2)       The minimum number of times a pair of 
-                                        reads must be found by the 
-                                        MinHash/LowHash algorithm in order to 
-                                        be considered a candidate alignment.
-  --Align.maxSkip arg (=30)             The maximum number of markers that an 
-                                        alignment is allowed to skip.
-  --Align.maxMarkerFrequency arg (=10)  Marker frequency threshold.
-  --Align.minAlignedMarkerCount arg (=100)
-                                        The minimum number of aligned markers 
-                                        for an alignment to be used.
-  --Align.maxTrim arg (=30)             The maximum number of trim markers 
-                                        tolerated at the beginning and end of 
-                                        an alignment.
-  --ReadGraph.maxAlignmentCount arg (=6)
-                                        The maximum alignments to be kept for 
-                                        each read.
-  --ReadGraph.minComponentSize arg (=100)
-                                        The minimum size (number of oriented 
-                                        reads) of a connected component of the 
-                                        read graph to be kept.
-  --ReadGraph.maxChimericReadDistance arg (=2)
-                                        Used for chimeric read detection.
-  --MarkerGraph.minCoverage arg (=10)   Minimum number of markers for a marker 
-                                        graph vertex.
-  --MarkerGraph.maxCoverage arg (=100)  Maximum number of markers for a marker 
-                                        graph vertex.
-  --MarkerGraph.lowCoverageThreshold arg (=0)
-                                        Used during approximate transitive 
-                                        reduction.
-  --MarkerGraph.highCoverageThreshold arg (=256)
-                                        Used during approximate transitive 
-                                        reduction.
-  --MarkerGraph.maxDistance arg (=30)   Used during approximate transitive 
-                                        reduction.
-  --MarkerGraph.edgeMarkerSkipThreshold arg (=100)
-                                        Used during approximate transitive 
-                                        reduction.
-  --MarkerGraph.pruneIterationCount arg (=6)
-                                        Number of prune iterations.
-  --MarkerGraph.simplifyMaxLength arg (=10,100,1000)
-                                        Maximum lengths (in markers) used at 
-                                        each iteration of simplifyMarkerGraph.
-  --Assembly.markerGraphEdgeLengthThresholdForConsensus arg (=1000)
-                                        Controls assembly of long marker graph 
-                                        edges.
-  --Assembly.consensusCaller arg (=SimpleConsensusCaller)
-                                        Selects the consensus caller for repeat
-                                        counts.
-                                        SimpleConsensusCaller is the only 
-                                        choice currently
-                                        supported by the Shasta executable.
-                                        Other choices are available with the 
-                                        Shasta library.
-  --Assembly.useMarginPhase arg (=False)
-                                        Used to turn on margin phase.
-  --Assembly.storeCoverageData arg (=False)
-                                        Used to request storing coverage data.
-</pre>
-
-<p><b>This section is work in progress</b>
 
 
 </main>

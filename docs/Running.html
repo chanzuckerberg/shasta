@@ -447,6 +447,18 @@ Other compressed formats are currently unsupported
 and should be converted to uncompressed FASTA
 before running Shasta.
 
+<p>
+Any reads shorter
+than <code>Reads.minReadLength</code> bases (default 10000) 
+present in the input files are discarded on input.
+Reads that contain bases with repeat counts
+greater than 255 are also discarded. 
+This is a consequence of the fact that repeat counts
+are stored using one byte, and therefore there would
+be no way to store such reads. Reads with such
+long repeat counts are extremely rare, however,
+and when they occur they are of suspicious quality.
+
 
 
 <h2 id=OutputFiles>Output files</h2>

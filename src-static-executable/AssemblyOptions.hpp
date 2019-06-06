@@ -70,9 +70,9 @@ public:
     class AlignOptions {
     public:
         int maxSkip;
+        int maxTrim;
         int maxMarkerFrequency;
         int minAlignedMarkerCount;
-        int maxTrim;
         void write(ostream&) const;
     };
     AlignOptions Align;
