@@ -50,7 +50,7 @@
     
 <h1>Computational methods</h1>
 
-<h2>Oxford Nanopore reads</h2>
+<h2 id=Reads>Oxford Nanopore reads</h2>
 
 <p>
 The Shasta assembler is being developed with the goal of assembling 
@@ -80,7 +80,7 @@ of such runs.
 
 
 
-<h2>Computational challenges</h2>
+<h2 id=Challenges>Computational challenges</h2>
 <p>
 Due to their length, Oxford Nanopore reads have
 unique value for <i>de novo</i>
@@ -116,7 +116,7 @@ any errors made in the error correction step
 are permanent and cannot be fixed during the assembly process.
 
 
-<h2>Read representation in the Shasta assembler</h2>
+<h2 id=ReadRepresentation>Read representation in the Shasta assembler</h2>
 
 <p> 
 The computational techniques used in the Shasta assembler
@@ -138,7 +138,7 @@ The next two sections expand on these two methods of
 representing the input reads.
 
 
-<h2>Run-length encoding of input reads</h2>
+<h2 id=RunLengthEncoding>Run-length encoding of input reads</h2>
 
 <p>
 With <a href='https://en.wikipedia.org/wiki/Run-length_encoding'>run-length encoding</a>,
@@ -236,7 +236,7 @@ in the raw representation.
 
 
 
-<h2>Markers</h2>
+<h2 id=Markers>Markers</h2>
 
 <p>
 Even with run-length encoding, error in input reads are still frequent.
@@ -326,10 +326,10 @@ and its markers, as displayed by the Shasta http server.
 
 
 
-<h2>Marker alignments</h2>
+<h2 id=MarkerAlignments>Marker alignments</h2>
 
 
-<h5>The marker representation is a sequence</h5>
+<h5 id=MarkerRepresentation>The marker representation is a sequence</h5>
 
 The marker representation of a read is a sequence 
 in an alphabet consisting of the marker ids.
@@ -359,7 +359,7 @@ These advantages are illustrated below using alignment
 matrices.
 
 
-<h5>Alignment matrix</h5>
+<h5 id=AlignmentMatrix>Alignment matrix</h5>
 <p>
 Consider two sequences on any alphabet, 
 sequence x with n<sub>x</sub> symbols x<sub>i</sub> (i=0,...n<sub>x</sub>-1)
@@ -383,7 +383,7 @@ Most of the remaining elements will be 0,
 but many can be 1 just because the same symbol appears
 at two unrelated locations in the two sequences.
 
-<h5>Alignment matrix in raw base representation</h5>
+<h5 id=AlignmentMagtrixRaw>Alignment matrix in raw base representation</h5>
 <p>
 The picture below shows a portion of a typical
 alignment matrix of two reads in their representation
@@ -437,7 +437,7 @@ these blocks would all collapse to a single matrix element.
 
 
 
-<h5>Alignment matrix in marker representation</h5>
+<h5 id=AlignmentMatrixMarkers>Alignment matrix in marker representation</h5>
 
 <p>
 For comparison, the picture below shows a portion of the alignment matrix
@@ -471,7 +471,7 @@ representation when computing read
 alignments.
 
 
-<h5>Computing optimal alignments in marker representation</h5>
+<h5 id=OptimalAlignments>Computing optimal alignments in marker representation</h5>
 <p>
 To compute the optimal alignment highlighted in green,
 the Shasta assembler uses a simple alignment algorithm
@@ -524,7 +524,7 @@ and may be implemented in future releases.
 
 
 
-<h2>Finding overlapping reads</h2>
+<h2 id=FindingOverlappingReads>Finding overlapping reads</h2>
 <p>
 Even though computing read alignments in marker representation is fast,
 it still is not feasible to compute alignments among all possible pairs of reads.
@@ -685,7 +685,7 @@ and stored as a possible pair of overlapping reads.
 </ul>
 
 
-<h2>Initial assembly steps</h2>
+<h2 id=InitialAssemblySteps>Initial assembly steps</h2>
 <p>
 Initial steps of a Shasta assembly proceed as follows.
 If the assembly is setup for 
@@ -722,7 +722,7 @@ of aligned markers is controlled by assembly parameter
 
 
 
-<h2>Read graph</h2>
+<h2 id=ReadGraph>Read graph</h2>
 <p>
 Using the methods covered so far, an assembly has created
 a list of pairs of oriented reads, each pair having a plausible marker
@@ -824,7 +824,7 @@ It is hoped that future Shasta releases will do a better
 job at handling these situations.
 
 
-<h2>Marker graph</h2>
+<h2 id=MarkerGraph>Marker graph</h2>
 <p>
 Consider a read whose marker representation is: 
 <pre>
@@ -997,7 +997,7 @@ and side branches due to errors.
 
 
 
-<h2>Assembly graph</h2>
+<h2 id=AssemblyGraph>Assembly graph</h2>
 <p>
 The Shasta assembly process also uses a
 compact representation of the marker graph,
@@ -1029,7 +1029,7 @@ coverage of the marker graph edges it corresponds to.
 
 
 
-<h2 id=assembleSequence>Using the marker graph to assemble sequence</h2>
+<h2 id=AssembleSequence>Using the marker graph to assemble sequence</h2>
 <p>
 The marker graph is a partial description of the multiple sequence
 alignment between reads and can be used to assemble consensus sequence.
@@ -1128,7 +1128,7 @@ including a new experimental run-length base caller under development
 at Oxford Nanopore, <i>Runnie</i>.
 
 
-<h2>Selecting assembly paths</h2>
+<h2 id=SelectingAssemblyPaths>Selecting assembly paths</h2>
 <p>
 The sequence assembly procedure described in the previous section
 can be used to assemble sequence for any path in the marker graph.
@@ -1389,7 +1389,7 @@ the assembler creates a final version of the assembly graph.
 Each edge of the assemble graph corresponds to a path
 in the marker graph, for which sequence can be assembled
 using the 
-<a href='#assembleSequence'>method described above</a>.
+<a href='#AssembleSequence'>method described above</a>.
 Note, however, that the marker graph and the assembly
 graph have been constructed to contain both strands.
 Special
@@ -1404,7 +1404,7 @@ for an assembly graph to be its own reverse complement.
 
 
 
-<h3>Towards phased diploid assembly</h3>
+<h3 id=DiploidAssembly>Towards phased diploid assembly</h3>
 <p>
 The current strategy of removing bubbles and superbubbles on small scales
 is a reasonable compromise for a haploid assembly.
@@ -1439,7 +1439,7 @@ an assembly that is not only phased, but also more contiguous.
 </ul> 
 
 
-<h3 id=highPerformance>High performance computing techniques</h3>
+<h3 id=HighPerformance>High performance computing techniques</h3>
 <p>
 The Shasta assembler is designed to run on a single machine
 with an amount of memory sufficient to hold all of its data structures

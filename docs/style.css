@@ -178,6 +178,23 @@ a:hover {
   text-decoration: underline;
 }
 
+
+a.qm {
+  title: "Click for more information";
+  color: var(--primary, Teal);
+  background-color: pink;
+  border-radius: 8px;
+  padding: 2px;
+}
+a.qm::after {
+  content: "\2753";
+}
+a.qm:hover {
+  background-color: var(--accent);
+  text-decoration: none;
+}
+
+
 div.color-box {
   display: inline-block;
   height: 1rem;

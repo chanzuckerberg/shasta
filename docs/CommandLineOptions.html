@@ -122,17 +122,16 @@ Use this option to obtain a summary of allowed command line options.
 
 <tr id='config'><td><code>--config</code><td><td>
 Specifies the name of a configuration file.
-See <a href=#ConfigFile>above</a> for a description
-of the configuration file format.
+<a class=qm href='#ConfigFile'/>
 
 <tr id='input'><td><code>--input</code><td><td>
 Specifies the names of the input FASTA files for the assembly.
 This option is mandatory. At least one input FASTA file
 must be specified. To specify multiple input FASTA files,
 entered them separated by space after <code>--input</code>.
-See
-<a href='Running.html#InputFiles'>here</a>
-for more information on the input files.
+<a class=qm href='Running.html#InputFiles'/>
+
+
 
 <tr id='output'><td><code>--output</code><td class=centered><code>ShastaRun</code><td>
 Specifies the name of the directory that will contain
@@ -164,24 +163,21 @@ to specify the run directory that you want to cleanup.
 
 <tr id='memoryMode'><td><code>--memoryMode<br></code>(not supported on MacOS)<td class=centered><code>anonymous</code><td>
 Can be <code>anonymous</code> or <code>filesystem</code>.
-See 
-<a href='Running.html#MemoryModes'>here</a> for more information.
 For best performance use 
 <code>--memoryMode filesystem --memoryBacking 2M</code>.
 However, these options require root access via <code>sudo</code>.
 Depending on <code>sudo</code> setup, this may 
 result in prompting for a password.
+<a class=qm href='Running.html#MemoryModes'/>
 
 <tr id='memoryBacking'><td><code>--memoryBacking</code><br>(not supported on MacOS)<td class=centered><code>4K</code><td>
 Can be <code>disk</code>, <code>4K</code>,  or <code>2M</code>.
-See 
-<a href='Running.html#MemoryModes'>here</a> for more information.
 For best performance use 
 <code>--memoryMode filesystem --memoryBacking 2M</code>.
 However, these options require root access via <code>sudo</code>.
 Depending on <code>sudo</code> setup, this may 
 result in prompting for a password.
-
+<a class=qm href='Running.html#MemoryModes'/>
 </dl>
 
 </table>
@@ -205,6 +201,9 @@ enter these options in a configuration file.
 <td><code>--Reads.minReadLength</code><td class=centered><code>10000</code><td>
 Read length cutoff. Reads shorter than this number of bases are discarded
 on input and not used in the assembly.
+<a class=qm href='Running.html#InputFiles'></a>   
+<a class=qm href='ComputationalMethods.html#InitialAssemblySteps'></a>
+
 
 <tr id='Reads.palindromicReads.maxSkip'>
 <td><code>--Reads.palindromicReads.maxSkip</code><td class=centered><code>100</code><td>
@@ -226,79 +225,92 @@ Used for palindromic read detection.
 <td><code>--Reads.palindromicReads.deltaThreshold</code><td class=centered><code>100</code><td>
 Used for palindromic read detection.
 
-
-
 <tr id='Kmers.k'>
 <td><code>--Kmers.k</code><td class=centered><code>10</code><td>
-Length of marker k-mers (in run-length representation).
-
+Length of marker <i>k</i>-mers (in run-length representation).
+<a class=qm href='ComputationalMethods.html#Markers'/>
 
 <tr id='Kmers.probability'>
 <td><code>--Kmers.probability</code><td class=centered><code>0.1</code><td>
-Probability that a k-mer is selected to used as a marker.
+Probability that a k-mer is selected to be used as a marker.
+<a class=qm href='ComputationalMethods.html#Markers'/>
 
 <tr id='MinHash.m'>
 <td><code>--MinHash.m</code><td class=centered><code>4</code><td>
 The number of consecutive markers that define a MinHash/LowHash feature.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='MinHash.hashFraction'>
 <td><code>--MinHash.hashFraction</code><td class=centered><code>0.01</code><td>
 Defines how low a hash has to be to be used with the LowHash algorithm.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='MinHash.minHashIterationCount'>
 <td><code>--MinHash.minHashIterationCount</code><td class=centered><code>10</code><td>
 The number of MinHash/LowHash iterations.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='MinHash.maxBucketSize'>
 <td><code>--MinHash.maxBucketSize</code><td class=centered><code>10</code><td>
 The maximum size for a bucket to be used by the MinHash/LowHash algoritm.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='MinHash.minFrequency'>
 <td><code>--MinHash.minFrequency</code><td class=centered><code>2</code><td>
 The minimum number of times a pair of reads must be found by the 
 MinHash/LowHash algorithm in order to be considered a candidate alignment.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='Align.maxSkip'>
 <td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
 The maximum number of markers that an alignment is allowed to skip.
+<a class=qm href='ComputationalMethods.html#MarkerAlignments'/>
 
 <tr id='Align.maxTrim'>
 <td><code>--Align.maxTrim</code><td class=centered><code>30</code><td>
 The maximum number of skipped markers tolerated in an alignment 
 at the beginning and end of a read.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='Align.maxMarkerFrequency'>
 <td><code>--Align.maxMarkerFrequency</code><td class=centered><code>10</code><td>
 Marker frequency threshold when computing alignments.
 Markers that occur more than this number of times
 in either ot the two reads to be aligned are ignored.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='Align.minAlignedMarkerCount'>
 <td><code>--Align.minAlignedMarkerCount</code><td class=centered><code>100</code><td>
 The minimum number of aligned markers for an alignment to be used.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='ReadGraph.maxAlignmentCount'>
 <td><code>--ReadGraph.maxAlignmentCount</code><td class=centered><code>6</code><td>
 The maximum alignments to be kept in the read graph for each read.
+<a class=qm href='ComputationalMethods.html#ReadGraph'/>
 
 <tr id='ReadGraph.minComponentSize'>
 <td><code>--ReadGraph.minComponentSize</code><td class=centered><code>100</code><td>
 The minimum size (number of oriented reads) of a connected component 
 of the read graph to be kept.
+<a class=qm href='ComputationalMethods.html#ReadGraph'/>
 
 <tr id='ReadGraph.maxChimericReadDistance'>
 <td><code>--ReadGraph.maxChimericReadDistance</code><td class=centered><code>2</code><td>
 Used for chimeric read detection.
+<a class=qm href='ComputationalMethods.html#ReadGraph'/>
 
 <tr id='MarkerGraph.minCoverage'>
 <td><code>--MarkerGraph.minCoverage</code><td class=centered><code>10</code><td>
 The minimum coverage for a marker graph vertex.
 Vertices with lower coverage are not generated.
+<a class=qm href='ComputationalMethods.html#MarkerGraph'/>
 
 <tr id='MarkerGraph.maxCoverage'>
 <td><code>--MarkerGraph.maxCoverage</code><td class=centered><code>100</code><td>
 The maximum coverage for a marker graph vertex.
 Vertices with higher coverage are not generated.
+<a class=qm href='ComputationalMethods.html#MarkerGraph'/>
 
 
 <tr id='MarkerGraph.lowCoverageThreshold'>
@@ -308,6 +320,7 @@ Edges with coverage less than or equal to this value
 are unconditionally removed from the marker graph,
 even at the cost of breaking reachability.
 This never happens with the default value 0.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
 
 <tr id='MarkerGraph.highCoverageThreshold'>
 <td><code>--MarkerGraph.highCoverageThreshold</code><td class=centered><code>256</code><td>
@@ -318,6 +331,7 @@ even if they could be removed without breaking reachability.
 This never happens with the default value 256,
 because marker graph edge coverage is stored in one byte and
 saturates at 255.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
 
 <tr id='MarkerGraph.maxDistance'>
 <td><code>--MarkerGraph.maxDistance</code><td class=centered><code>30</code><td>
@@ -325,6 +339,7 @@ Used during approximate transitive reduction of the marker graph.
 It controls the length of each Breadth First Search (BFS)
 used to determine reachability. 
 This length is expressed in marker graph edges.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
 
 <tr id='MarkerGraph.edgeMarkerSkipThreshold'>
 <td><code>--MarkerGraph.edgeMarkerSkipThreshold</code><td class=centered><code>100</code><td>
@@ -333,16 +348,18 @@ Edges with coverage 1 are unconditionally removed from the marker graph
 if the only supporting read has a marker skip 
 of more than  this number of markers on that edge.
 Large marker skips are indicative of artifacts or errors.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
                                         
 <tr id='MarkerGraph.pruneIterationCount'>
 <td><code>--MarkerGraph.pruneIterationCount</code><td class=centered><code>6</code><td>
 The number of marker graph prune iterations.
 This equals the maximum length of dead branches that are removed.
+<a class=qm href='ComputationalMethods.html#Pruning'/>
 
 <tr id='MarkerGraph.simplifyMaxLength'>
 <td><code>--MarkerGraph.simplifyMaxLength</code><td class=centered><code>10,100,100</code><td>
-Used for bubble removal. See
-<a href='ComputationalMethods.html#BubbleRemoval'>here</a> for more information.
+Used for bubble removal.
+<a class=qm href='ComputationalMethods.html#BubbleRemoval'/>
 
 <tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
 <td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>
