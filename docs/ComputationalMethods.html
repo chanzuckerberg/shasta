@@ -294,10 +294,11 @@ portions that don't belong to any markers.
 <p>
 The Shasta assembler uses a random choice of the k-mers to be used
 as markers. The length of the markers k is controlled by
-assembly parameter <code>Kmers.k</code> with a default value of 10.
+assembly parameter <code><a href='CommandLineOptions.html#Kmers.k'>Kmers.k</a></code> with a default value of 10.
 Each k-mer is randomly choosen to be used as a marker
 with probability determined by assembly parameter 
-<code>Kmers.probability</code> with a default value of 0.1.
+<code><a href='CommandLineOptions.html#Kmers.probability'>Kmers.probability</a></code>
+with a default value of 0.1.
 With these default values, the total number of distinct
 markers is approximately 0.1&times;4<sup>10</sup>&times;3<sup>9</sup>&#8776;7900.
 
@@ -480,7 +481,8 @@ but using some heuristics to speed up the computation:
 <ul>
 <li>The maximum number of markers that an alignment 
 can skip on either read is limited to a maximum,
-under control of assembly parameter <code>Align.maxSkip</code>
+under control of assembly parameter 
+<code><a href='CommandLineOptions.html#Align.maxSkip'>Align.maxSkip</a></code>
 (default value 30 markers, corresponding to around 400
 bases when all other Shasta parameters are at their default).
 This reflects the fact that Oxford Nanopore reads can often
@@ -489,7 +491,8 @@ In the alignment matrix shown above, there is a skip of about 20 markers
 (2 light grey squares) following the first 10 aligned markers (green dots) on the top left.
 <li>The maximum number of markers that an alignment 
 can skip at the beginning or end of a read is limited to a maximum,
-under control of assembly parameter <code>Align.maxTrim</code>
+under control of assembly parameter
+<code><a href='CommandLineOptions.html#Align.maxTrim'>Align.maxTrim</a></code>
 (default value 30 markers, corresponding to around 400
 bases when all other Shasta parameters are at their default).
 This reflects the fact that Oxford Nanopore reads often
@@ -501,7 +504,8 @@ For this purpose, the Shasta assembler uses a criterion based
 on absolute number of occurrences of marker k-mers in the two reads,
 altough a relative criterion (occurrences per Kb) may be more appropriate.
 The current absolute frequency threshold is under control of assembly parameter
-<code>Align.maxMarkerFrequency</code> (default 10 occurrences).
+<code><a href='CommandLineOptions.html#Align.maxMarkerFrequency'>Align.maxMarkerFrequency</a></code>
+(default 10 occurrences).
 
 
 </ul>
@@ -586,7 +590,8 @@ For example, consider an oriented read with the following marker representation:
 </pre>
 
 If m is selected equal to 4 (the Shasta default, controlled 
-by assembly parameter <code>MinHash.m</code>),
+by assembly parameter 
+<code><a href='CommandLineOptions.html#MinHash.m'>MinHash.m</a></code>),
 the oriented read is assigned the following features:
 
 <pre>
@@ -651,20 +656,30 @@ The LowHash algorithm is controlled by the following
 assembly parameters:
 
 <ul>
-<li><code>MinHash.m</code> (default 4):
+<li>
+<code><a href='CommandLineOptions.html#MinHash.m'>MinHash.m</a></code>
+(default 4):
 the number of consecutive markers that define a feature.
-<li><code>MinHash.hashFraction</code> (default 0.01):
-The fraction of hash values that count as "low".
-<li><code>MinHash.minHashIterationCount</code> (default 10):
+<li>
+<code><a href='CommandLineOptions.html#MinHash.hashFraction'>MinHash.hashFraction</a></code>
+(default 0.01):
+The fraction of hash values that count as "low".</li>
+<li>
+<code><a href='CommandLineOptions.html#MinHash.minHashIterationCount'>MinHash.minHashIterationCount</a></code>
+(default 10):
 The number of iterations.
-<li><code>MinHash.maxBucketSize</code> (default 10):
+<li>
+<code><a href='CommandLineOptions.html#MinHash.maxBucketSize'>MinHash.maxBucketSize</a></code>
+(default 10):
 The maximum number of items for a bucket to be considered.
 Buckets with more than this number of items are ignored.
 The goal of this parameter is to mitigate
 the effect of common repeats, which 
 can result in buckets containing large numbers of
 unrelated oriented reads.
-<li><code>MinHash.minFrequency</code> (default 2):
+<li>
+<code><a href='CommandLineOptions.html#MinHash.minFrequency'>MinHash.minFrequency</a></code>
+(default 2):
 the number of times a pair of oriented reads has to be found to be considered 
 and stored as a possible pair of overlapping reads.
 </ul>
@@ -673,8 +688,9 @@ and stored as a possible pair of overlapping reads.
 <h2>Initial assembly steps</h2>
 <p>
 Initial steps of a Shasta assembly proceed as follows.
-If the assembly is setup for best performance
-(<code>--memoryMode filesystem --memoryBacking 2M</code>
+If the assembly is setup for 
+<a href=Performance.html>best performance</a>
+(<code>--<a href='CommandLineOptions.html#memoryMode'>memoryMode</a> filesystem --<a href='CommandLineOptions.html#memoryBacking'>memoryBacking</a> 2M</code>
 if using the Shasta executable), all data structures
 are stored in memory, and no disk activity takes
 place except for initial loading of the input reads,
@@ -684,7 +700,9 @@ of small files with useful summary information.
 <ul>
 <li>Input reads are read from Fasta files and converted
 to run-length representation. Read shorter
-than <code>Reads.minReadLength</code> bases (default 10000) are discarded.
+than 
+<code><a href='CommandLineOptions.html#Reads.minReadLength'>Reads.minReadLength</a></code>
+bases (default 10000) are discarded.
 Reads that contain bases with repeat counts
 greater than 255 are also discarded. 
 This is a consequence of the fact that repeat counts
@@ -699,7 +717,7 @@ and when they occur they are of suspicious quality.
 If the marker alignment contains a minimum number of aligned markers,
 the pair is stored as an aligned pair. The minimum number
 of aligned markers is controlled by assembly parameter
-<code>Align.minAlignedMarkerCount</code>.
+<code><a href='CommandLineOptions.html#Align.minAlignedMarkerCount'>Align.minAlignedMarkerCount</a></code>.
 </ul>
 
 
@@ -746,17 +764,17 @@ between the corresponding oriented reads.
 However, the read graph as constructed in this way suffers
 from high connectivity in repeat regions.
 Therefore, the Shasta assembler only keeps a
-k-Nearest-Neighbor subset of the edges.
+<i>k</i>-Nearest-Neighbor subset of the edges.
 That is, for each vertex (oriented read)
-we only keep the k edges with the best alignments
+we only keep the <i>k</i> edges with the best alignments
 (greatest number of aligned markers). 
 The number of edges kept
 for each vertex is controlled by assembly parameter
-<code>ReadGraph.maxAlignmentCount</code>,
+<code><a href='CommandLineOptions.html#ReadGraph.maxAlignmentCount'>ReadGraph.maxAlignmentCount</a></code>,
 with a default value of 6.
-Note that, despite the k-Nearest-Neighbor subset,
+Note that, despite the <i>k</i>-Nearest-Neighbor subset,
 it remains possible for a vertex to have degree
-more than k.
+more than <i>k</i>.
 
 <p>
 Note that each read contributes two vertice to the read graph,
@@ -1155,7 +1173,8 @@ the number of side branches is substantially reduced thanks to the use of
 run-length encoding, side branches are still abundant.
 This step uses an approximate transitive reduction of the marker graph which only 
 considers reachability up to a maximum distance,
-controlled by assembly parameter <code>MarkerGraph.maxDistance</code>
+controlled by assembly parameter 
+<code><a href='CommandLineOptions.html#MarkerGraph.maxDistance'>MarkerGraph.maxDistance</a></code>
 (default 30 marker graph edges).
 Using a maximum distance makes sure that the process remains computationally affordable,
 and also has the advantage of not removing long-range edges in the marker graph,
@@ -1171,7 +1190,7 @@ but are performed by the same code for convenience.
 <p>
 <ul>
 <li>All edges with coverage less than or equal to
-<code>MarkerGraph.lowCoverageThreshold</code>
+<code><a href='CommandLineOptions.html#MarkerGraph.lowCoverageThreshold'>MarkerGraph.lowCoverageThreshold</a></code>
 are unconditionally removed.
 The default value for this assembly parameter is 0,
 so this step does nothing when using default parameters.
@@ -1185,11 +1204,14 @@ Most marker skips are small, and a large skip is indicative of an
 artifact. Keeping 
 those edges could result in assembly errors.
 The marker skip threshold is controlled
-by assembly parameter <code>MarkerGraph.edgeMarkerSkipThreshold</code>
+by assembly parameter 
+<code><a href='CommandLineOptions.html#MarkerGraph.edgeMarkerSkipThreshold'>MarkerGraph.edgeMarkerSkipThreshold</a></code>
 (default 100 markers).
 <li>Edges 
-with coverage greater than <code>MarkerGraph.lowCoverageThreshold</code>
-(default 0) and less than <code>MarkerGraph.highCoverageThreshold</code>
+with coverage greater than 
+<code><a href='CommandLineOptions.html#MarkerGraph.lowCoverageThreshold'>MarkerGraph.lowCoverageThreshold</a></code>
+(default 0) and less than 
+<code><a href='CommandLineOptions.html#MarkerGraph.highCoverageThreshold'>MarkerGraph.highCoverageThreshold</a></code>
 (default 256), and that were not previously removed,
 are processed in order of increasing coverage.
 Note that with the default values of these parameters all edges
@@ -1200,7 +1222,8 @@ a <a href='https://en.wikipedia.org/wiki/Breadth-first_search'>Breadth-First Sea
 (BFS) in the marker graph is performed
 starting at source vertex <code>v0</code>
 and with a limit of  
-<code>MarkerGraph.maxDistance</code> (default 30)
+<code><a href='CommandLineOptions.html#MarkerGraph.maxDistance'>MarkerGraph.maxDistance</a></code>
+(default 30)
 edges distance from vertex <code>v0</code>.
 The BFS is constrained to not use edge <code>v0&rarr;v1</code>.
 If the BFS reaches <code>v1</code>, indicating that an
@@ -1244,7 +1267,8 @@ The net effect is that all side branches of length
 at most equal to the number of iterations are removed.
 This leaves the leaf vertex isolated, which causes no problems.
 The number of iterations is controlled
-by assembly parameter <code>MarkerGraph.pruneIterationCount</code>
+by assembly parameter 
+<code><a href='CommandLineOptions.html#MarkerGraph.pruneIterationCount'>MarkerGraph.pruneIterationCount</a></code>
 (default 6).
 
 
@@ -1286,7 +1310,7 @@ that controls the maximum number of marker graph edges for
 features to be considered for removal.
 The value of the threshold for each iteration
 is specified using assembly parameter 
-<code>MarkerGraph.simplifyMaxLength</code>,
+<code><a href='CommandLineOptions.html#MarkerGraph.simplifyMaxLength'>MarkerGraph.simplifyMaxLength</a></code>,
 which consists of a comma-separated string of integer
 numbers, each specifying the threshold for one iteration
 in the process. The default value is
@@ -1307,8 +1331,9 @@ the length threshold for the last iteration, or remove the last iteration entire
 <p>
 The goal of the increasing threshold values is to work
 on small features at first, and on larger features in the later iterations.
-The choice of <code>MarkerGraph.simplifyMaxLength</code>
-could be application dependent. The default value
+The best choice of 
+<code><a href='CommandLineOptions.html#MarkerGraph.simplifyMaxLength'>MarkerGraph.simplifyMaxLength</a></code>
+is application dependent. The default value
 is a reasonable compromise useful if one desires 
 a mostly haploid assembly with just some large heterozygous features.
 
@@ -1385,8 +1410,9 @@ The current strategy of removing bubbles and superbubbles on small scales
 is a reasonable compromise for a haploid assembly.
 The extent to which bubbles are discarded or kept
 can be controlled using assembly parameter 
-<code>MarkerGraph.simplifyMaxLength</code>
-as described above.
+<code><a href='CommandLineOptions.html#MarkerGraph.simplifyMaxLength'>MarkerGraph.simplifyMaxLength</a></code>
+as described 
+<a href='#BubbleRemoval'>above</a>.
 
 <p>
 It is, however, possible to use bubbles in the marker graph
@@ -1453,7 +1479,8 @@ Linux 2 MB pages (<q>huge pages</q>). This makes it faster for
 the operating system to allocate and manage the memory,
 and improves TLB efficiency. Using huge pages mapped on the
 <code>hugetlbfs</code> filesystem 
-(Shasta executable options <code>--memoryMode filesystem --memoryBacking 2M</code>)
+(Shasta executable options 
+<code>--<a href='CommandLineOptions.html#memoryMode'>memoryMode</a> filesystem --<a href='CommandLineOptions.html#memoryBacking'>memoryBacking</a> 2M</code>)
 can result in a significant speed up (20-30%) for large assemblies.
 However it requires root privilege via <code>sudo</code>.
 </ul>
@@ -1501,6 +1528,10 @@ average CPU utilization and improved assembly performance.
 As of Shasta release 0.1.0, a typical human assembly at coverage 60x
 runs in about 6 hours on a <code>x1.32xlarge</code> AWS instance,
 which has 64 cores (128 virtual CPUs) and 1952 GB of memory.
+
+<p>
+See <a href=Performance.html>here</a> for information on
+maximizing assembly performance.
 
 </main>
 
