@@ -67,9 +67,9 @@ public:
 
     // Given a coverage object, return the most likely run length, and the normalized log likelihood vector for all run
     // lengths as a pair
-    uint16_t predict_runlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& log_likelihood_y) const;
+    uint16_t predictRunlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& logLikelihoodY) const;
 
-    AlignedBase predict_consensus_base(const Coverage& coverage) const;
+    AlignedBase predictConsensusBase(const Coverage& coverage) const;
 
     // This is the primary function of this class. Given a coverage object and consensus base, predict the true
     // run length of the aligned bases at a position
@@ -80,18 +80,18 @@ private:
     /// ---- Attributes ---- ///
 
     // The name specified under the field ">Name" in the configuration file
-    string configuration_name;
+    string configurationName;
 
     // Defined at initialization, this is the size of the probability matrix generated from the data
-    uint16_t max_runlength;
+    uint16_t maxRunlength;
 
     // Boolean flags for configuration
-    bool ignore_non_consensus_base_repeats;
-    bool predict_gap_runlengths;
-    bool count_gaps_as_zeros;
+    bool ignoreNonConsensusBaseRepeats;
+    bool predictGapRunlengths;
+    bool countGapsAsZeros;
 
     // p(X|Y) normalized for each Y, where X = observed and Y = True run length
-    array<vector<vector<double> >, 4> probability_matrices;
+    array<vector<vector<double> >, 4> probabilityMatrices;
 
     // priors p(Y) normalized for each Y, where X = observed and Y = True run length
     array<vector<double>, 2> priors;
@@ -99,30 +99,30 @@ private:
     /// ----- Methods ----- ///
 
     // For parsing any character separated file format
-    void split_as_double(string s, char separator_char, vector<double>& tokens);
-    void split_as_string(string s, char separator_char, vector<string>& tokens);
+    void splitAsDouble(string s, char separatorChar, vector<double>& tokens);
+    void splitAsString(string s, char separatorChar, vector<string>& tokens);
 
     // Read each probability matrix from its file and store them in a vector (assuming decibel units, aka base 10)
     // Each delimited table in text should be preceded by a fasta-like header e.g.: ">A" for the base it corresponds to.
-    // This converts each line to a vector of doubles, appending probability_matrices according to the matrix header.
-    void load_configuration(ifstream& matrix_file);
+    // This converts each line to a vector of doubles, appending probabilityMatrices according to the matrix header.
+    void loadConfiguration(ifstream& matrixFile);
 
     // Parsing functions broken out for readability
-    void parse_name(ifstream& matrix_file, string& line);
-    void parse_prior(ifstream& matrix_file, string& line, vector<string>& tokens);
-    void parse_likelihood(ifstream& matrix_file, string& line, vector<string>& tokens);
+    void parseName(ifstream& matrixFile, string& line);
+    void parsePrior(ifstream& matrixFile, string& line, vector<string>& tokens);
+    void parseLikelihood(ifstream& matrixFile, string& line, vector<string>& tokens);
 
     // For a given vector of likelihoods over each Y value, normalize by the maximum
-    void normalize_likelihoods(vector<double>& x, double x_max) const;
+    void normalizeLikelihoods(vector<double>& x, double xMax) const;
 
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods
-    void factor_repeats(array<map<uint16_t,uint16_t>,2>& factored_repeats, const Coverage& coverage) const;
-    void factor_repeats(array<map<uint16_t,uint16_t>,2>& factored_repeats, const Coverage& coverage, AlignedBase consensus_base) const;
+    void factorRepeats(array<map<uint16_t,uint16_t>,2>& factoredRepeats, const Coverage& coverage) const;
+    void factorRepeats(array<map<uint16_t,uint16_t>,2>& factoredRepeats, const Coverage& coverage, AlignedBase consensusBase) const;
 
     // For debugging or exporting
-    void print_priors(char separator);
-    void print_probability_matrices(char separator=',');
-    void print_log_likelihood_vector(vector<double>& log_likelihoods);
+    void printPriors(char separator);
+    void printProbabilityMatrices(char separator=',');
+    void printLogLikelihoodVector(vector<double>& logLikelihoods);
 };
 
 void testSimpleBayesianConsensusCaller();
