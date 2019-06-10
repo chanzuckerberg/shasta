@@ -63,13 +63,15 @@ ReadLoader::ReadLoader(
     threadReads.resize(threadCountForProcessing);
     threadReadRepeatCounts.resize(threadCountForProcessing);
     for(size_t threadId=0; threadId<threadCountForProcessing; threadId++) {
-        const string  threadDataNamePrefix = dataNamePrefix + +"tmp-ReadLoader-" + to_string(threadId) + "-";
         threadReadNames[threadId] = make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
-        threadReadNames[threadId]->createNew(threadDataNamePrefix + "ReadNames", pageSize);
+        threadReadNames[threadId]->createNew(
+            threadDataName(dataNamePrefix, threadId, "ReadNames"), pageSize);
         threadReads[threadId] = make_shared<LongBaseSequences>();
-        threadReads[threadId]->createNew(threadDataNamePrefix + "Reads", pageSize);
+        threadReads[threadId]->createNew(
+            threadDataName(dataNamePrefix, threadId, "Reads"), pageSize);
         threadReadRepeatCounts[threadId] = make_shared< MemoryMapped::VectorOfVectors<uint8_t, uint64_t> >();
-        threadReadRepeatCounts[threadId]->createNew(threadDataNamePrefix + "ReadRepeatCounts", pageSize);
+        threadReadRepeatCounts[threadId]->createNew(
+            threadDataName(dataNamePrefix, threadId, "ReadRepeatCounts"), pageSize);
     }
 
 
@@ -78,7 +80,7 @@ ReadLoader::ReadLoader(
 
         // Read this block.
         blockEnd = min(blockBegin+blockSize, fileSize);
-        cout << timestamp << "Reading block " << blockBegin << " " << blockEnd << ", " << blockEnd-blockBegin << " bytes." << endl;
+        cout << timestamp << "Reading " << fileName << " block " << blockBegin << " " << blockEnd << ", " << blockEnd-blockBegin << " bytes." << endl;
         const auto t0 = std::chrono::steady_clock::now();
         readBlock(threadCountForReading);
         const auto t1 = std::chrono::steady_clock::now();
@@ -148,6 +150,23 @@ ReadLoader::ReadLoader(
     cout << "Processed " << fileSize << " bytes in " << tTotal;
     cout << "s, " << double(fileSize)/tTotal << " bytes/s." << endl;
     cout << timestamp << "Done loading reads." << endl;
+}
+
+
+
+// Create the name to be used for a MemoryMapped
+// object to be used by a thread.
+std::string ReadLoader::threadDataName(
+    const string& dataNamePrefix,
+    size_t threadId,
+    const string& dataName)
+{
+    if(dataNamePrefix.empty()) {
+        return "";
+    } else {
+        return dataNamePrefix + "tmp-ReadLoader-" + dataName + "-" + to_string(threadId);
+    }
+
 }
 
 
@@ -271,7 +290,11 @@ void ReadLoader::processThreadFunction(size_t threadId)
     while(bufferIndex < sliceEnd) {
 
         // Skip the '>' that introduces the new read.
-        CZI_ASSERT(buffer[bufferIndex++] == '>');
+        if(buffer[bufferIndex++] != '>')
+        {
+            throw runtime_error("The sequence of each read must be on a "
+                "single line of the input fasta file.");
+        }
 
         // Extract the read name and discard the rest of the line.
         readName.clear();

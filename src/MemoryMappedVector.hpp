@@ -25,17 +25,13 @@
 // Linux.
 #include <fcntl.h>
 #include <sys/mman.h>
+#ifdef __linux__
+#include <linux/mman.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "array.hpp"
 
-// Linux/macOS
-#ifdef __linux__
-#include <linux/mman.h>
-#else
-#include <mach/vm_statistics.h>
-#define MAP_HUGE_2MB VM_FLAGS_SUPERPAGE_SIZE_2MB
-#endif
 
 // Forward declarations.
 namespace ChanZuckerberg {
@@ -544,9 +540,11 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
 
         // Map it in memory.
         int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+#ifdef __linux__
         if(pageSize == 2*1024*1024) {
             flags |= MAP_HUGETLB | MAP_HUGE_2MB;
         }
+#endif
         void* pointer = ::mmap(0, fileSize,
             PROT_READ | PROT_WRITE, flags,
             -1, 0);
@@ -863,21 +861,28 @@ template<class T> inline void
             // Remap it.
             // We can only use remap for Linux, and for 4K pages.
             bool useMremap = false;
+            void* pointer = 0;
 #ifdef __linux__
             useMremap = (pageSize == 4096);
 #endif
-            void* pointer = 0;
             if(useMremap) {
+#ifdef __linux__
                 pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
                 if(pointer == reinterpret_cast<void*>(-1LL)) {
                     throw runtime_error("Error " + boost::lexical_cast<string>(errno)
                         + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
                 }
+#endif
             } else {
 
                 // We cannot use mremap. We have to create a new mapping
                 // and copy the data.
-                int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_HUGE_2MB;
+                int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+#ifdef __linux__
+                if(pageSize == 2*1024*1024) {
+                    flags |= MAP_HUGETLB | MAP_HUGE_2MB;
+                }
+#endif
                 void* newPointer = ::mmap(0, headerOnStack.fileSize,
                     PROT_READ | PROT_WRITE, flags,
                     -1, 0);
@@ -991,16 +996,23 @@ template<class T> inline
 #endif
     void* pointer = 0;
     if(useMremap) {
+#ifdef __linux__
         pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
         if(pointer == reinterpret_cast<void*>(-1LL)) {
             throw runtime_error("Error " + boost::lexical_cast<string>(errno)
                 + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
         }
+#endif
     } else {
 
         // We cannot use mremap. We have to create a new mapping
         // and copy the data.
-        int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | MAP_HUGE_2MB;
+        int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+#ifdef __linux__
+        if(pageSize == 2*1024*1024) {
+            flags |= MAP_HUGETLB | MAP_HUGE_2MB;
+        }
+#endif
         void* newPointer = ::mmap(0, headerOnStack.fileSize,
             PROT_READ | PROT_WRITE, flags,
             -1, 0);

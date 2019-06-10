@@ -88,6 +88,11 @@ void AssemblyOptions::add(boost::program_options::options_description& options)
         default_value(30),
         "The maximum number of markers that an alignment is allowed to skip.")
 
+        ("Align.maxTrim",
+        value<int>(&Align.maxTrim)->
+        default_value(30),
+        "The maximum number of trim markers tolerated at the beginning and end of an alignment.")
+
         ("Align.maxMarkerFrequency",
         value<int>(&Align.maxMarkerFrequency)->
         default_value(10),
@@ -97,11 +102,6 @@ void AssemblyOptions::add(boost::program_options::options_description& options)
         value<int>(&Align.minAlignedMarkerCount)->
         default_value(100),
         "The minimum number of aligned markers for an alignment to be used.")
-
-        ("Align.maxTrim",
-        value<int>(&Align.maxTrim)->
-        default_value(30),
-        "The maximum number of trim markers tolerated at the beginning and end of an alignment.")
 
         ("ReadGraph.maxAlignmentCount",
         value<int>(&ReadGraph.maxAlignmentCount)->
@@ -231,9 +231,9 @@ void AssemblyOptions::AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
     s << "maxSkip = " << maxSkip << "\n";
+    s << "maxTrim = " << maxTrim << "\n";
     s << "maxMarkerFrequency = " << maxMarkerFrequency << "\n";
     s << "minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
-    s << "maxTrim = " << maxTrim << "\n";
 }
 
 

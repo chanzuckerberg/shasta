@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+<body>
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 6/4/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=CommandLineOptions.html><li>Command line options</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+    <main>
+
+
+<h1>Choosing the options controlling memory modes</h1>
+<p>
+The dialog below will help you choose
+the values to use for the two options controlling memory modes:
+<ul>
+<li><code>--memoryMode</code>
+<li><code>--memoryBacking</code>
+</ul>
+These options are described in more detail 
+<a href='Running.html#MemoryModes'>here</a>.
+
+
+
+
+<script>
+function show(n)
+{
+    document.getElementById(n).style.display = 'block';
+}
+function unshow(n)
+{
+    document.getElementById(n).style.display = 'none';
+}
+function unshowAll()
+{
+    for(i=0; i<11; i++) {
+        unshow(i);
+    }
+}
+</script>
+
+<p>
+<button onclick='unshowAll(0); show(0);'>Start over</button>
+
+
+
+<div id=0 style='display:none'>
+<p>
+What system are you using?
+<p>
+<button onclick='unshow(0); show(2)'>Linux</button>
+<p>
+<button onclick='unshow(0); show(1)'>MacOS</button>
+<p>
+<button onclick='unshow(0); show(2)'>Window, under Windows Subsystem for Linux (WSL)</button>
+</div>
+
+
+
+<div id=1 style='display:none'>
+<p>
+Memory modes are not supported on MacOS.
+Do not use options <code>--memoryMode</code>
+and <code>--memoryBacking</code>.
+</div>
+
+
+
+<div id=2 style='display:none'>
+<p>
+Is this a large run for which performance is important?
+<p>
+<button onclick='unshow(2); show(6)'>Yes</button>
+<p>
+<button onclick='unshow(2); show(3)'>No</button>
+</div>
+
+
+
+<div id=3 style='display:none'>
+Do you want to do postprocessing using the Python API or the http server?
+<p>
+<button onclick='unshow(3); show(4)'>No</button>
+<p>
+<button onclick='unshow(3); show(5)'>Yes</button>
+</div>
+
+
+
+<div id=4 style='display:none'>
+<p>
+Use options <code>--memoryMode anonymous --memoryBacking 4K</code>.
+</div>
+
+
+
+<div id=5 style='display:none'>
+<p>
+Use options <code>--memoryMode filesystem --memoryBacking disk</code>.
+</div>
+
+
+
+<div id=6 style='display:none'>
+Do you have root access via <code>sudo</code>?
+<p>
+<button onclick='unshow(6); show(8)'>No</button>
+<p>
+<button onclick='unshow(6); show(7)'>Yes</button>
+</div>
+
+
+
+<div id=7 style='display:none'>
+<p>
+Use options <code>--memoryMode filesystem --memoryBacking 2M</code>.
+When done using the data in memory, clean them up 
+using <code>shasta --command cleanup</code>.
+</div>
+
+
+
+<div id=8 style='display:none'>
+Can you tolerate a 30% slowdonw?
+<p>
+<button onclick='unshow(8); show(9)'>No</button>
+<p>
+<button onclick='unshow(8); show(10)'>Yes</button>
+</div>
+
+
+
+<div id=9 style='display:none'>
+<p>
+Get root privilege via <code>sudo</code>, then go through this dialog again.
+</div>
+
+
+
+<div id=10 style='display:none'>
+Do you want to do postprocessing using the Python API or the http server?
+<p>
+<button onclick='unshow(10); show(4)'>No</button>
+<p>
+<button onclick='unshow(10); show(9)'>Yes</button>
+</div>
+
+
+<div id=11 style='display:none'>
+<p>
+Use options <code>--memoryMode anonymous --memoryBacking 4K</code>.
+</div>
+
+
+<script>
+show(0)
+</script>
+
+
+
+</main>
+</body>
+</html>
+

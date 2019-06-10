@@ -7,17 +7,544 @@
 </head>
 
 <body>
-
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 6/4/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=CommandLineOptions.html><li>Command line options</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+<main>
 <h1>Running an assembly</h1>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<p>
+For quick start information, see <a href=QuickStart.html>here</a>.
+This section provides additional background information.
 
+<h2 id=ShastaExecutable>The Shasta executable</h2>
+<p>
+The Shasta executable provides the most convenient way of running
+an assembly. If you downloaded it as a single file from a release on GitHub, the
+executable is named <code>shasta-Linux-X.Y.Z</code> for Linux
+or <code>shasta-macOS-X.Y.Z</code> for macOS. 
+Here, <code>X.Y.Z</code> identifies the release.
+If you build the code from source yourself, the
+executable is <code>shasta-install/bin/shasta</code>.
+
+<p>
+The Shasta executable requires no installation or set up, 
+and has no dependencies. The Linux version, which is statically linked,
+runs on most current 64-bit Linux distributions, including
+at least the following:
+
+<ul>
+<li>Ubuntu 16.04 and 18.04
+<li>Linux Mint 18.3
+<li>CentOS 7.6
+<li>Debian 9
+<li>Fedora 29
+</ul>
+
+<p>
+If you downloaded the executable from GitHub,
+you will have to set execute permissions before running it
+(the browser will not do that for you, for security reasons).
+This can be done as follows:
+
+<pre>
+chmod ugo+x shasta-Linux-X.Y.Z
+</pre>
+or
+<pre>
+chmod ugo+x shasta-macOS-X.Y.Z
+</pre>
+
+<p>
+You can invoke the Shasta executable without options or with
+<code>--help</code> to get a description of the options.
+A list of options can also be found 
+<a href=CommandLineOptions.html>here</a>.
+Most options control assembly parameters whose default
+value works well for an assembly with typical coverage
+around 60x, and don't need to be changed in many cases.
+
+<p>
+Keep in mind that these default parameter values
+include a read length cutoff of 10 Kb, which means 
+all reads shorter than that are discarded on input.
+On current data from sequencing runs at UCSC, this result
+in a very small loss in coverage.
+
+<p>
+The only mandatory options is <code>--input</code> 
+which must be used to specify the input FASTA files
+containing reads to be used for the assembly.
+If there is more than one file, the names
+should be specified separated by white space,
+entering <code>--input</code> only once, like this:
+
+<pre>
+--input a.fasta b.fasta c.fasta
+</pre>
+
+
+
+<h2 id=MemoryRequirements>Memory requirements</h2>
+
+<p>
+For performance, the Shasta assembler uses a single large
+machine rather than a cluster of smaller machines, 
+and operates in memory,
+with no access to data on disk except during
+initial input of the reads, final output of the assembly,
+and for small output files containing summary assembly information.
+As a result, it has higher memory requirements than
+comparable tools that keep some or most of their data on disk.
+
+<p>
+Memory requirements are roughly proportional
+to genome size and coverage, and 
+are around 5 to 8 bytes per input base.
+For a human size genome (&#8776;3 Gb) at coverage 60x,
+this works out to around 
+1 TB of memory. 
+
+<p>
+Machine with 1 to 4 TB of memory have become available
+at reasonably prices in the last few years, and they are widely available
+on cloud computing platforms. 
+For example, for human assemblies using Shasta, we have routinely
+been using AWS <code>x1.32xlarge</code> instances with
+1952 TB of memory and 128 virtual processors 
+(64 cores with hyperthreading). 
+These machines are available at around $13/hour as on demand
+instances and they complete a typical human assembly at coverage
+60x in about 6 hours, at a compute cost around $80 per assembly,
+much lower than current sequencing costs to produce the input reads. 
+Much lower prices (2x to 3x lower) are also available for
+reserved instances and on the AWS spot market,
+which means that a production facility could achieve
+a compute cost around $30 per genome.
+
+<p>
+Shasta also supports a mode of operation
+with data structures physically on disk,
+mapped to virtual memory.
+In this mode of operation, the operating system
+dynamically moves pages to disk from memory and back as needed,
+which can result in a huge performance penalty.
+For this reason, this mode of operation is not suggested,
+except in a couple of conditions:
+
+<ul>
+<li>For very small genomes.
+<li>If the amount of memory available is not much smaller
+than the amount required.
+</ul>
+
+<p>
+Under these conditions, and if a substantial performance
+penalty is tolerable, this mode of operation can be
+selected using the following Shasta command line options:
+<br>
+<code>
+--memoryMode filesystem --memoryBacking disk
+</code>
+
+<p>
+See 
+<a href=#MemoryModes>the next section</a>
+for more information on these options.
+
+
+
+
+<h2 id=MemoryModes>Memory modes</h2>
+
+<p>
+(This section does not apply to macOS).
+
+<p>
+For performance, the Shasta executable operates in memory,
+with no access to data on disk except during
+initial input of the reads, final output of the assembly,
+and for small output files containing summary assembly information.
+All large memory areas are allocated using <code>mmap</code> 
+calls in one of several different modes of operation
+described below. 
+The choice of the optimal mode of operation is dependent
+on many factors and decribed below.
+The default mode of operation works reasonably well in most cases
+and does not require root privilege. 
+However, it does not deliver the best possible performance.
+
+<p>
+The memory modes are controlled by two command line options:
+
+<ul>
+<li><code>--memoryMode</code> controls whether <code>mmap</code>
+allocates anonymous memory or memory mapped to a filesystem.
+It can take one of the following values:
+<ul>
+<li><code>anonymous</code> (the default value)
+<li><code>filesystem</code>
+</ul> 
+
+<li><code>--memoryBacking</code> specifies the physical backing
+of pages allocated via <code>mmap</code> and can take
+one of the following values:
+<ul>
+<li><code>disk</code>: <code>mmap</code> uses standard 4 KB pages
+mapped to the existing filesystem on disk in the current directory.
+<li><code>4K</code> (the default value): <code>mmap</code> uses standard 4 KB pages
+(anonymous or on a <code>tmpfs</code> filesystem, depending
+on the setting of <code>--memoryBacking</code>).
+<li><code>2M</code>: <code>mmap</code> uses large 2 MB pages
+(anonymous or on a <code>hugetlbfs</code> filesystem, depending
+on the setting of <code>--memoryBacking</code>).
+The 2MB pages are often referred to as "huge pages".
+</ul>
+</ul>
+
+
+<p>
+There are a total six possible combinations of these two options, summarized
+in the table below.
+
+
+
+<table>
+
+<tr>
+<td colspan=2 rowspan=2>
+<td colspan=2 class=centered><code>--memoryMode</code>
+
+<tr>
+<td class=centered><code>anonymous</code><br>(default)
+<td class=centered><code>filesystem</code>
+
+<tr>
+<td rowspan=3><code>--memoryBacking</code>
+<td class=centered><code>disk</code>
+<td class="centered error">Not allowed
+<td class="success">
+Memory allocated by <code>mmap</code> uses 4 KB pages
+on a the filesystem on disk that
+the run output directory is in.
+<b>This mode of operation can incur severe performance degradation
+and is therefore not generally suggested</b>.
+After the run terminates, binary data are permanently available 
+on disk
+and you can use the http server or
+the Python API to inspect assembly results.
+
+<tr>
+<td class=centered><code>4K</code><br>(default)
+<td class="success">
+The default option.
+Memory allocated by <code>mmap</code> uses anonymous 4 KB pages.
+After the run terminates, binary data are destroyed,
+which means you cannot use the http server or
+the Python API to inspect assembly results.
+<b>Performance is less than optimal</b> (typically 30% degradation 
+on a large run).
+<td class="warning">
+Memory allocated by <code>mmap</code> uses 4 KB pages
+on a <code>tmpfs</code> filesystem which is created
+and mounted on the <code>Data</code> directory
+under the run output directory.
+After the run terminates, binary data are available 
+(until the next reboot)
+and you can use the http server or
+the Python API to inspect assembly results.
+<b>Performance is less than optimal.</b>
+When done using the binary data, you can free
+the  memory using the following command:
+<code>shasta --command cleanup</code>.
+
+<tr>
+<td class=centered><code>2M</code>
+<td class="warning">
+Memory allocated by <code>mmap</code> uses anonymous 2 MB pages.
+After the run terminates, binary data are destroyed,
+which means you cannot use the http server or
+the Python API to inspect assembly results.
+<b>Performance is less than optimal</b> (typically 30% degradation 
+on a large run).
+<td class="warning">
+Memory allocated by <code>mmap</code> uses 2 MB pages
+on a <code>hugetlbfs</code> filesystem which is created
+and mounted on the <code>Data</code> directory
+under the run output directory.
+After the run terminates, binary data are available 
+(until the next reboot)
+and you can use the http server or
+the Python API to inspect assembly results.
+<b>This mode of operation delivers optimal performance.</b>
+When done using the binary data, you can free
+the  memory using the following command:
+<code>shasta --command cleanup</code>.
+
+</table>
+
+<div class="table-legend">
+The table is color coded with the following meaning:
+
+<div>
+        <div class="color-box error"></div>
+This combination is not allowed.
+</div>
+<div>
+    <div class="color-box warning"></div>
+This combination requires root privilege to be acquired
+via <code>sudo</code>.
+Depending on <code>sudo</code> settings, this
+may fail or ask for a user password.
+</div>
+<div>
+        <div class="color-box success"></div>
+This combination is allowed and does not require
+root privilege.
+</div>
+</div>
+
+
+<p>
+In summary:
+<ul>
+<li>
+<b>For large assemblies</b> it is best to 
+make sure to have root privilege and use
+<code>--memoryMode filesystem --memoryBacking 2M</code>.
+Remember to use <code>shasta --command cleanup</code>
+to free up the memory when done using the binary data!
+
+<li>
+<b>For small assemblies for which performance is not important</b> 
+use the default mode
+<code>--memoryMode anonymous --memoryBacking 4K</code>.
+However, if access to binary data is required after the assembly completes
+to inspect assembly results using the http server or the Python API, use
+<code>--memoryMode filesystem --memoryBacking disk</code>.
+</ul>
+
+
+<p>
+See 
+<a href=ChooseMemoryOptions.html>here</a> for interactive help to
+select these options.
+
+
+<h2 id=ScriptedApproaches>Scripted approaches  to running an assembly</h2>
+<p>
+The Shasta assembler provides a
+<a href=Python.html>Python API</a> that can be used for scripting.
+This makes it possible to write Python scripts to run assemblies
+that have more flexibility or functionality than allowed by
+the Shasta executable. 
+For example, these scripts allow rerunning only a portion 
+of an assembly, which can be useful for development
+of new assembly functionality.
+
+<p>
+These scripts use a Python <code>import</code> to import the Shasta
+shared library, <code>shasta.so</code>, which provides
+Python bindings to Shasta functionality. 
+The scripts and the library are in <code>shasta-install/bin</code>,
+but they will normally not be needed during basic operation of 
+the Shasta assembler. They are more likely to be needed
+for debugging, testing, or development.
+
+<p>
+The Python API also allows you to write your own assembly scripts.
+For such a script to work, and under the assumption that the
+script is not located at <code>shasta-install/bin</code>,
+it will be necessary to set environment variable
+<code>PYTHONPATH</code> to <code>(actual path)/shasta-install/bin</code>,
+so the Python interpreter can locate the Shasta shared library 
+during <code>import</code>.
+
+<p>
+Existing assembly scripts, which are currently undocumented, include:
+<ul>
+<li><code>RunAssembly.py</code>
+<li><code>Run.py</code>
+<li><code>SmallRun.py</code>
+</ul>
+
+
+<h2 id=InputFiles>Input files</h2>
+<p>
+The Shasta
+assembler uses as input one or more 
+<a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
+files containing the input reads.
+The FASTA files must be <span style='background-color:yellow'>formatted strictly</span> 
+according to the following rules:
+
+<ul> 
+<li>The body of each read should be on a single line.
+Reads spanning multiple lines are not allowed.
+<li>The body of each read should not contain
+extraneous characters such as no-called bases (<code>N</code>),
+spaces, tabs, carriage returns (CR, ASCII 13), or any characters
+other than 
+<code>A</code>,
+<code>C</code>,
+<code>G</code>,
+<code>T</code>.
+<li>
+If the file contains Windows-style line ends (ASCII 13 carriage return CR
+followed by ASCII 10 line feed LF) it should first be
+converted to Linux-style line ends
+(that is, eliminate the CR characters), for example using Linux
+command <code>dos2unix</code>.
+</ul>
+
+<p>
+Direct input of <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a>
+to Shasta is currently not supported.
+If you have a FASTQ file, 
+you can convert it to FASTA using script 
+<code>shasta-install/bin/FastqToFasta.py</code>.
+If your FASTQ file is compressed (extension <code>.gz</code>),
+you can decompress it and convert to FASTA in one step,
+saving a round trip to disk, using 
+script 
+<code>shasta-install/bin/FastqGzToFasta.py</code>.
+
+<p>
+Other compressed formats are currently unsupported
+and should be converted to uncompressed FASTA
+before running Shasta.
+
+<p>
+Any reads shorter
+than <code>Reads.minReadLength</code> bases (default 10000) 
+present in the input files are discarded on input.
+Reads that contain bases with repeat counts
+greater than 255 are also discarded. 
+This is a consequence of the fact that repeat counts
+are stored using one byte, and therefore there would
+be no way to store such reads. Reads with such
+long repeat counts are extremely rare, however,
+and when they occur they are of suspicious quality.
+
+
+
+<h2 id=OutputFiles>Output files</h2>
+<p>
+The Shasta executable creates output in a directory with a name
+specified by the <code>--output</code> option (default <code>ShastaRun</code>).
+The directory is created automatically at the beginning of the run. 
+The run stops if the directory already exists.
+This reduces the possibility of unwanted deletion of data.
+
+<p>
+Contents of the output directory after a successful run
+include the following:
+
+<ul>
+
+<li>
+<code>Assembly.fasta</code>: 
+The assembly results in FASTA format.
+
+<li><code>Assembly.gfa</code>: 
+The assembly results in 
+<a href=https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md>GFA 1.0</a> format.
+This contains the same sequences in the FASTA file (as GFA segments),
+plus their connectivity information (as GFA links). 
+A convenient tool to inspect and study these files is
+<a href='https://rrwick.github.io/Bandage'>Bandage</a>.
+Segment ids in the GFA file correspond to FASTA ids 
+in the FASTA file.
+
+<li><code>shasta.conf</code>: 
+a configuration file containing
+the values of all assembly parameters used. 
+This file uses a format that can also be used as input for 
+a subsequent Shasta run using option <code>--config</code>.
+
+<li><code>ReadLengthHistogram.csv</code>:
+A spreadsheet file containing statistics of the read length distribution.
+This only includes reads that were used by the assembler.
+The assembler discards reads shorter than 
+<code>Reads.minReadLength</code> bases (default 10000)
+and reads that contain bases repeated more than 255 times.
+The fifth field of the last line of this file
+contains the total number of input bases
+used by the assembler in this run.
+
+<li><code>Binned-ReadLengthHistogram.csv</code>:
+Similar to <code>ReadLengthHistogram.csv</code>,
+but using 1 Kb bins of read lengths.
+
+<li><code>Data</code>:
+A directory containing binary data
+that can later be used by the Shasta http server
+or with the Shasta Python API.
+This is only created if option
+<code>--memoryMode filesystem</code> 
+was used for the run.
+Keep in mind that, unless you used
+option <code>--memoryBacking disk</code>,
+these data are in memory, not on disk,
+and will disappear at next reboot.
+If you want to save them permanently, you can use
+script <code>shasta-install/bin/SaveRun.py</code>
+to create a copy on disk of the binary data directory named
+<code>DataOnDisk</code>. 
+(You can also make the copy yourself using the <code>cp</code> command).
+To free up the memory used without rebooting, you can invoke the 
+Shasta executable again using the following options:
+
+<pre>
+--command cleanup --output outputDirectoryName
+</pre>
+Here, <code>outputDirectoryName</code>
+should specify the same value used in the assembly run
+(that is, the name of the directory containing the <code>Data</code>
+directory).
+Equivalently, you can just <code>umount</code> the <code>Data</code>
+directory, then remove it. 
+
+
+</ul>
+
+
+
+</main>
 
 </body>
 </html>

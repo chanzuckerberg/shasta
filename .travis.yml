@@ -1,0 +1,24 @@
+# This file is only needed for Continuing Integration
+# with Travis for automated build and testing.
+# If you fork the repository, this fill will do nothing
+# unless you enable Travis builds in your fork.
+# If you choose not to use Travis, you can safely remove
+# this file without affecting any Shasta functionality.
+
+language: cpp
+sudo: required
+dist: xenial
+compiler: gcc
+os: linux
+before_install:
+  - ls
+install:
+  - sudo scripts/InstallPrerequisites-Ubuntu.sh
+  - mkdir shasta-build
+  - cd shasta-build
+  - cmake ..
+  - make all
+  - make install
+script:
+  - ../scripts/travis-build.sh
+

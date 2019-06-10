@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+<body>
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 6/4/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=CommandLineOptions.html><li>Command line options</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+<main>
+
+<h1>Command line options</h1>
+
+<p>
+This page summarizes command line options for the Shasta executable.
+An effort will be made to keep this page consistent with the code,
+but it is possible that discrepancies may temporarily appear
+as new features are added. In that case, the list of command line options
+obtained by invoking the Shasta executable with 
+<code>--help</code> is, of course, more authoritative than the contents
+of this page.
+
+<p>
+Some options are only allowed on the command line,
+but most of them can also optionally be specified using a configuration file.
+If a configuration file is specified (via <code>--config</code>),
+values specified on the command line take precedence over
+values specified in the configuration file.
+Options that can be specified in both places are of the form 
+<code>--SectionName.optionName</code>. The format of the configuration file
+is as follows:
+
+<pre id=ConfigFile>
+[SectionA]
+option1 = valueA1
+option2 = valueA2
+[SectionB]
+option1 = valueB1
+option2 = valueB2
+</pre>
+The above is equivalent to using the following command line options:
+
+<code>
+--SectionA.option1 valueA1 
+--SectionA.option2 valueA2 
+--SectionB.option1 valueB1 
+--SectionB.option2 valueB2 
+</code>
+
+<p>
+For example, the value for option <code>MarkerGraph.minCoverage</code>
+can be specified in the <code>[MarkerGraph]</code>
+section of the configuration file as follows:
+
+<pre>
+[MarkerGraph]
+minCoverage = 0
+</pre>
+
+<p>
+A sample configuration file containing default values
+for all options is provided in the shasta source tree
+at <code>shasta/conf/shasta.conf</code>. I
+It is also available in a Shasta build
+as <code>shasta-install/conf/shasta.conf</code>.
+
+
+<p>
+In the configuration file, blank lines and lines begining with <code>#</code>
+are ignored and can be used to add coments and to improve readability
+of the configuration file.
+
+
+
+<h2>Options allowed only on the command line</h2> 
+
+<table style='word-break:break-word'>
+<col style='width:200px'>
+<col style='width:200px'>
+
+<tr><th>Option<th>Default<br>value<th>Description
+
+<tr id='help'><td><code>--help </code><td><td>
+Use this option to obtain a summary of allowed command line options.
+
+<tr id='config'><td><code>--config</code><td><td>
+Specifies the name of a configuration file.
+<a class=qm href='#ConfigFile'/>
+
+<tr id='input'><td><code>--input</code><td><td>
+Specifies the names of the input FASTA files for the assembly.
+This option is mandatory. At least one input FASTA file
+must be specified. To specify multiple input FASTA files,
+entered them separated by space after <code>--input</code>.
+<a class=qm href='Running.html#InputFiles'/>
+
+
+
+<tr id='output'><td><code>--output</code><td class=centered><code>ShastaRun</code><td>
+Specifies the name of the directory that will contain
+assembly output. This directory must not exists.
+It is automatically created in this directory.
+See
+<a href='Running.html#OutputFiles'>here</a>
+for more information on the output files
+created by Shasta.
+
+<tr id='command'><td><code>--command</code><td class=centered><code>assemble</code><td>
+Specifies requested processing. Can be one of the following:
+<dl>
+<dt><code>assemble</code>
+<dd>Shasta runs an assembly.
+<dt><code>cleanup</code>
+<dd>Shasta cleans up the <code>Data</code> directory of the 
+run directory. 
+The <code>Data</code> directory contains
+binary data representing assembly data structures.
+Depending on the <a href='Running.html#MemoryModes'>memory mode</a> in use,
+the <code>Data</code> directory can be
+the mount point of a filesystem in memory. 
+Not all memory modes actualy create a <code>Data</code> directory.
+After <code>Data</code> runs, you can no longer use
+the Python API or the Shasta http server to inspect assembly results.
+Make sure to use option <code>--output</code>
+to specify the run directory that you want to cleanup.
+
+<tr id='memoryMode'><td><code>--memoryMode<br></code>(not supported on MacOS)<td class=centered><code>anonymous</code><td>
+Can be <code>anonymous</code> or <code>filesystem</code>.
+For best performance use 
+<code>--memoryMode filesystem --memoryBacking 2M</code>.
+However, these options require root access via <code>sudo</code>.
+Depending on <code>sudo</code> setup, this may 
+result in prompting for a password.
+<a class=qm href='Running.html#MemoryModes'/>
+
+<tr id='memoryBacking'><td><code>--memoryBacking</code><br>(not supported on MacOS)<td class=centered><code>4K</code><td>
+Can be <code>disk</code>, <code>4K</code>,  or <code>2M</code>.
+For best performance use 
+<code>--memoryMode filesystem --memoryBacking 2M</code>.
+However, these options require root access via <code>sudo</code>.
+Depending on <code>sudo</code> setup, this may 
+result in prompting for a password.
+<a class=qm href='Running.html#MemoryModes'/>
+</dl>
+
+</table>
+
+
+
+<h2>Options allowed on the command line and in the config file</h2> 
+
+<p>
+See <a href='#ConfigFile'>here</a> for the format required to
+enter these options in a configuration file. 
+
+
+
+<table style='word-break:break-word'>
+<col style='width:400px'>
+<col style='width:150px'>
+<tr><th>Option<th>Default<br>value<th>Description
+
+<tr id='Reads.minReadLength'>
+<td><code>--Reads.minReadLength</code><td class=centered><code>10000</code><td>
+Read length cutoff. Reads shorter than this number of bases are discarded
+on input and not used in the assembly.
+<a class=qm href='Running.html#InputFiles'></a>   
+<a class=qm href='ComputationalMethods.html#InitialAssemblySteps'></a>
+
+
+<tr id='Reads.palindromicReads.maxSkip'>
+<td><code>--Reads.palindromicReads.maxSkip</code><td class=centered><code>100</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.maxMarkerFrequency'>
+<td><code>--Reads.palindromicReads.maxMarkerFrequency</code><td class=centered><code>10</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.alignedFractionThreshold'>
+<td><code>--Reads.palindromicReads.alignedFractionThreshold</code><td class=centered><code>0.1</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.nearDiagonalFractionThreshold'>
+<td><code>--Reads.palindromicReads.nearDiagonalFractionThreshold</code><td class=centered><code>0.1</code><td>
+Used for palindromic read detection.
+
+<tr id='Reads.palindromicReads.deltaThreshold'>
+<td><code>--Reads.palindromicReads.deltaThreshold</code><td class=centered><code>100</code><td>
+Used for palindromic read detection.
+
+<tr id='Kmers.k'>
+<td><code>--Kmers.k</code><td class=centered><code>10</code><td>
+Length of marker <i>k</i>-mers (in run-length representation).
+<a class=qm href='ComputationalMethods.html#Markers'/>
+
+<tr id='Kmers.probability'>
+<td><code>--Kmers.probability</code><td class=centered><code>0.1</code><td>
+Probability that a k-mer is selected to be used as a marker.
+<a class=qm href='ComputationalMethods.html#Markers'/>
+
+<tr id='MinHash.m'>
+<td><code>--MinHash.m</code><td class=centered><code>4</code><td>
+The number of consecutive markers that define a MinHash/LowHash feature.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='MinHash.hashFraction'>
+<td><code>--MinHash.hashFraction</code><td class=centered><code>0.01</code><td>
+Defines how low a hash has to be to be used with the LowHash algorithm.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='MinHash.minHashIterationCount'>
+<td><code>--MinHash.minHashIterationCount</code><td class=centered><code>10</code><td>
+The number of MinHash/LowHash iterations.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='MinHash.maxBucketSize'>
+<td><code>--MinHash.maxBucketSize</code><td class=centered><code>10</code><td>
+The maximum size for a bucket to be used by the MinHash/LowHash algoritm.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='MinHash.minFrequency'>
+<td><code>--MinHash.minFrequency</code><td class=centered><code>2</code><td>
+The minimum number of times a pair of reads must be found by the 
+MinHash/LowHash algorithm in order to be considered a candidate alignment.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='Align.maxSkip'>
+<td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
+The maximum number of markers that an alignment is allowed to skip.
+<a class=qm href='ComputationalMethods.html#MarkerAlignments'/>
+
+<tr id='Align.maxTrim'>
+<td><code>--Align.maxTrim</code><td class=centered><code>30</code><td>
+The maximum number of skipped markers tolerated in an alignment 
+at the beginning and end of a read.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='Align.maxMarkerFrequency'>
+<td><code>--Align.maxMarkerFrequency</code><td class=centered><code>10</code><td>
+Marker frequency threshold when computing alignments.
+Markers that occur more than this number of times
+in either ot the two reads to be aligned are ignored.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='Align.minAlignedMarkerCount'>
+<td><code>--Align.minAlignedMarkerCount</code><td class=centered><code>100</code><td>
+The minimum number of aligned markers for an alignment to be used.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='ReadGraph.maxAlignmentCount'>
+<td><code>--ReadGraph.maxAlignmentCount</code><td class=centered><code>6</code><td>
+The maximum alignments to be kept in the read graph for each read.
+<a class=qm href='ComputationalMethods.html#ReadGraph'/>
+
+<tr id='ReadGraph.minComponentSize'>
+<td><code>--ReadGraph.minComponentSize</code><td class=centered><code>100</code><td>
+The minimum size (number of oriented reads) of a connected component 
+of the read graph to be kept.
+<a class=qm href='ComputationalMethods.html#ReadGraph'/>
+
+<tr id='ReadGraph.maxChimericReadDistance'>
+<td><code>--ReadGraph.maxChimericReadDistance</code><td class=centered><code>2</code><td>
+Used for chimeric read detection.
+<a class=qm href='ComputationalMethods.html#ReadGraph'/>
+
+<tr id='MarkerGraph.minCoverage'>
+<td><code>--MarkerGraph.minCoverage</code><td class=centered><code>10</code><td>
+The minimum coverage for a marker graph vertex.
+Vertices with lower coverage are not generated.
+<a class=qm href='ComputationalMethods.html#MarkerGraph'/>
+
+<tr id='MarkerGraph.maxCoverage'>
+<td><code>--MarkerGraph.maxCoverage</code><td class=centered><code>100</code><td>
+The maximum coverage for a marker graph vertex.
+Vertices with higher coverage are not generated.
+<a class=qm href='ComputationalMethods.html#MarkerGraph'/>
+
+
+<tr id='MarkerGraph.lowCoverageThreshold'>
+<td><code>--MarkerGraph.lowCoverageThreshold</code><td class=centered><code>0</code><td>
+Used during approximate transitive reduction.
+Edges with coverage less than or equal to this value
+are unconditionally removed from the marker graph,
+even at the cost of breaking reachability.
+This never happens with the default value 0.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
+
+<tr id='MarkerGraph.highCoverageThreshold'>
+<td><code>--MarkerGraph.highCoverageThreshold</code><td class=centered><code>256</code><td>
+Used during approximate transitive reduction.
+Edges with coverage greater than or equal to this value
+are unconditionally kept in the marker graph,
+even if they could be removed without breaking reachability.
+This never happens with the default value 256,
+because marker graph edge coverage is stored in one byte and
+saturates at 255.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
+
+<tr id='MarkerGraph.maxDistance'>
+<td><code>--MarkerGraph.maxDistance</code><td class=centered><code>30</code><td>
+Used during approximate transitive reduction of the marker graph.
+It controls the length of each Breadth First Search (BFS)
+used to determine reachability. 
+This length is expressed in marker graph edges.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
+
+<tr id='MarkerGraph.edgeMarkerSkipThreshold'>
+<td><code>--MarkerGraph.edgeMarkerSkipThreshold</code><td class=centered><code>100</code><td>
+Used during approximate transitive reduction of the marker graph.
+Edges with coverage 1 are unconditionally removed from the marker graph
+if the only supporting read has a marker skip 
+of more than  this number of markers on that edge.
+Large marker skips are indicative of artifacts or errors.
+<a class=qm href='ComputationalMethods.html#TransitiveReduction'/>
+                                        
+<tr id='MarkerGraph.pruneIterationCount'>
+<td><code>--MarkerGraph.pruneIterationCount</code><td class=centered><code>6</code><td>
+The number of marker graph prune iterations.
+This equals the maximum length of dead branches that are removed.
+<a class=qm href='ComputationalMethods.html#Pruning'/>
+
+<tr id='MarkerGraph.simplifyMaxLength'>
+<td><code>--MarkerGraph.simplifyMaxLength</code><td class=centered><code>10,100,100</code><td>
+Used for bubble removal.
+<a class=qm href='ComputationalMethods.html#BubbleRemoval'/>
+
+<tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
+<td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>
+<td class=centered><code>1000</code><td>
+Controls assembly of long marker graph edges.
+
+<tr id='Assembly.consensusCaller'>
+<td><code>--Assembly.consensusCaller</code>
+<td class=centered><code>SimpleConsensusCaller</code><td>
+Selects the consensus caller for repeat counts. 
+<code>SimpleConsensusCaller</code> is the only choice currently 
+supported by the Shasta executable. 
+Other choices are under development and supported by the Shasta Python API.
+
+<tr id='Assembly.useMarginPhase'>
+<td><code>--Assembly.useMarginPhase</code><td class=centered><code>False</code><td>
+Used to turn on MarginPhase for assembly of marker graph edges.
+This is under development and currently not supported
+by the Shasta executable. Therefore this option should be left
+at its default value <code>False</code>.
+
+<tr id='Assembly.storeCoverageData'>
+<td><code>--Assembly.storeCoverageData</code><td class=centered><code>False</code><td>
+Used to turn on storing of coverage data.
+This is not supported
+by the Shasta executable. Therefore this option should be left
+at its default value <code>False</code>.
+
+</table>
+
+
+</main>
+</body>
+</html>

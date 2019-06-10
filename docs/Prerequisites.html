@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+
+<body>
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 6/4/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=CommandLineOptions.html><li>Command line options</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+    <main>
+<h2>Prerequisite packages</h2>
+
+<p>
+To download, build and run the <code>shasta</code> software on a
+ubuntu 16.04 or 18.04 machine, the following packages are required:
+
+<table>
+<tr>
+<th>Package
+<th>Ubuntu package name
+<th>Needed<br>to build<br>from<br>source?
+<th>Needed<br>to run<br>assembly?
+<th>Used by<br>http server?
+<th>Comments
+
+<tr>
+<td>Git
+<td>git
+<td>
+<td>
+<td>
+<td>Only needed to get the source code from GitHub.
+
+<tr>
+<td>The g++ compiler
+<td>g++
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td>Runtime libraries only needed at run time.
+
+
+<tr>
+<td>Cmake
+<td>cmake
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>
+
+<tr>
+<td>The Boost libraries
+<td>libboost-dev
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>
+
+<tr>
+<td>Graphviz
+<td>graphviz
+<td>
+<td>
+<td style='text-align:center'>&#x2714;
+<td>Used for graph layout.
+
+<tr>
+<td>Blast
+<td>ncbi-blast+
+<td>
+<td>
+<td style='text-align:center'>&#x2714;
+<td>Used by the http server for interactively computing alignments.
+
+<tr>
+<td>Python 3
+<td>python3
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td>
+
+<tr>
+<td>pip3
+<td>pip3
+<td>
+<td>
+<td>
+<td>Only needed to install <code>pybind11</code> (see below)
+
+<tr>
+<td>Pybind11
+<td>pybind11 (pip3 package)
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>Used to provide Python bindings to C++ code.
+
+<tr>
+<td>The png library
+<td>libpng-dev
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td style='text-align:center'>&#x2714;
+<td>Used to display marker alignments in the http server. But it is a dependency of <code>shasta.so</code>, so it must be installed whether it is used or not.
+
+<tr>
+<td>SeqAn 2.4.0
+<td>
+<td style='text-align:center'>&#x2714;
+<td>
+<td>
+<td>See <code>InstallPrerequisites-Ubuntu.sh</code> for installation from GitHub.
+
+</table>
+
+<p>
+Script <code>shasta/scripts/InstallPrerequisites-Ubuntu.sh</code>
+can be used to install these prerequisites. 
+It must be run with root privileges.
+After building the code, this script is also available as
+<code>shasta-install/bin/InstallPrerequisites-Ubuntu.sh</code>.
+</main>
+</body>
+</html>
+

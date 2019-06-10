@@ -44,61 +44,60 @@
     
         </ul>
     </nav>
-<main>
-<h1>Supported platforms</h1>
+    <main>
+<h1>Maximizing assembly performance</h1>
 
-<h2>Running an assembly</h2>
 <p>
-Basic Shasta functionality (running an assembly)
-is supported by the Shasta executable on the following
-platforms:
+Use the following tips to obtain the best performance
+from the Shasta assembler.
 
 <ul>
+
 <li>
-Most current 64-bit Linux distributions for the 
-<code>x86_64</code> architecture, including the following
-on which it was actually tested:
-<ul>
-<li>Ubuntu 16.04 and 18.04
-<li>Linux Mint 18.3
-<li>CentOS 7.6
-<li>Debian 9
-<li>Fedora 29
+If you are using the Shasta executable (the simplest and recommended option), 
+use the following options to allocate memory
+on 2MB huge pages mapped to the <code>hugetlbfs</code> filesystem.
+However, this requires root privilege to be obtained via <code>sudo</code>.
+Depending on your <code>sudo</code> set up, this may ask for your password,
+or fail.
+<pre>--memoryMode filesystem --memoryBacking 2M</pre>
+
+<li>
+Don't use macOS or Windows. Use a 64-bit Linux system instead. 
+The Shasta executable runs on most current 64-bit Linux distributions.
+
+<li>
+<b>Do not use a release build</b>. 
+Use Shasta code built on the same machine where it will run
+(this will limit you to Ubuntu 16.04 or Ubuntu 18.04).
+Except for release builds, Shasta code is compiled using
+gcc option <code>-march=native</code>, which instructs
+the compiler to use the entire instruction 
+set available on the machine that does the compilation.
+This generally results in better performance. However,
+the build may fail with an <code>Illegal instruction</code>
+signal if transported to a different machine with a
+less powerful instruction set. 
+To disable the <code>-march=native</code> option
+and build portable but less performing code,
+specify <code>-DBUILD_NATIVE=OFF</code> when running <code>cmake</code>
+(release builds do this).
+See <a href=BuildingFromSource.html>here</a>
+for more information on how to build from source.
+
+
+<li>
+If you are using <code>SmallRun.py</code>, switch to <code>Run.py</code> instead.
+The latter, however, requires root privilege to be acquired via <code>sudo</code>. 
+
+<li>
+If you are using <code>RunAssembly.py</code>, use <code>SetupRunDirectory.py</code>
+and not <code>SetupSmallRunDirectory.py</code>
+to prepare the run directory.
+The former, however, requires root privilege to be acquired via <code>sudo</code>. 
+
 </ul>
-
-<li>
-macOS, using the macOS specific version of the Shasta executable.
-
-<li>
-Windows, using the Linux version of the Shasta executable and
-running under
-<a href="https://docs.microsoft.com/en-us/windows/wsl/install-win10">
-Windows Subsystem for Linux (WSL)</a>.
-</ul>
-
-<p>
-See <a href=Running.html>here</a> for more information.
-
-
-<h2>Extended functionality</h2>
-<p>
-Extended Shasta functionality (http server, Python API)
-is only available on Ubuntu 16.04 and Ubuntu 18.04.
-Porting to other Linux platforms is possible.
-
-
-
-<h2>Building the code from source</h2>
-<p>
-The code can be 
-<a href=BuildingFromSource.html>built from source</a> only on
-Ubuntu 16.04 and Ubuntu 18.04,
-except for the macOS version of the Shasta 
-executable which is built under macOS.
-Porting to other Linux platforms is possible.
-
 </main>
-
 </body>
 </html>
 

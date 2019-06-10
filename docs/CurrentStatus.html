@@ -7,18 +7,127 @@
 </head>
 
 <body>
-
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 6/4/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=CommandLineOptions.html><li>Command line options</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+    <main>
 <h1>Current status</h1>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<h3>Release</h3>
+<p>
+<a href='https://github.com/chanzuckerberg/shasta/releases/tag/0.1.0'>
+An initial release 0.1.0
+</a>
+of the Shasta assembler is now available.
+This initial release is functional but the documentation is incomplete in several areas, 
+and lacks an evaluation of assembly accuracy.
+
+<h3>Performance and cost</h3>
+<p>
+As of May 2019, the Shasta assembler is functional and is
+capable of performing a human assembly at typical coverage
+in a few hours on a large machine with an appropriate configuration,
+using as input long reads from Oxford Nanopore flowcells.
+
+<p>
+For example,
+at coverage around 60x, an AWS  
+<code>x1.32xlarge</code> instance, with 128 virtual processors and 1952 GB of memory,
+completes the assembly in about 5 hours.
+The compute cost of such an assembly is around $20 at AWS spot market or reserved prices.
+
+<p>
+The Shasta assembler, although not designed or optimized for smaller genomes,
+can also assemble bacterial genomes in minutes on a typical laptop
+(e. g. 1-2 minutes for an <i>E. coli</i> assembly). 
+
+<h3>Accuracy</h3>
+<p>
+An evaluation of the quality of assembled sequence is in progress.
+Early indications are that,
+when comparing with alternative, less performant long read assemblers,
+Shasta assembly quality is comparable or better.
+This evaluation is expected to be completed soon.
 
 
+<h3>Assembly parameters</h3>
+<p>
+Default Shasta assembly parameters are optimized for coverage around 60x, 
+and require reconfiguration if using much lower or much higher coverage.
+
+
+<h3>Output</h3>
+<p>
+The Shasta assembler creates output in 
+<a href=https://en.wikipedia.org/wiki/FASTA>FASTA</a> and 
+<a href=https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md>GFA 1.0</a> formats.
+It also includes an http server and a Python API 
+that can be used to access and visualize
+the data structures created during assembly.
+This can be useful for testing or debugging,
+or for studying assembler behavior at locations of interest.
+
+<h3>Documentation</h3>
+<p>
+An overhaul of the documentation is currently in progress.
+
+<h3>Platforms</h3>
+<p>
+Basic assembly functionality is provided by the Shasta executable 
+which runs on most current 64-bit Linux plus macOS and Windows.
+The Shasta executable has no dependencies and does not require
+installation. 
+
+<p>
+Extended functionality, including a Python API that enables Python scripting
+and an http server that can be used to inspect assembly details,
+are only available on Ubuntu 16.04 and Ubuntu 18.04.
+A script to install the necessary dependencies is
+provided.
+
+<h3>Development</h3>
+<p>
+The Shasta assembler is undergoing active development
+and is expected to improve in accuracy, performance,
+and functionality.
+As an open source project, it is open to external contributions.
+
+
+</main>
 </body>
 </html>
 

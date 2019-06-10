@@ -3864,9 +3864,7 @@ void Assembler::simplifyMarkerGraph(
 
 // Part 1 of each iteration: handle bubbles.
 // For each set of parallel edges in the assembly graph in which all edges
-// have at most maxLength markers, keep only the shortest.
-// At some point we will want to do something more sophisticated,
-// and pick the one with the most coverage.
+// have at most maxLength markers, keep only the one with the highest average coverage.
 void Assembler::simplifyMarkerGraphIterationPart1(
     size_t iteration,
     size_t maxLength,
@@ -3916,13 +3914,13 @@ void Assembler::simplifyMarkerGraphIterationPart1(
             edgeTable[edge.target].push_back(make_pair(edgeId, edge.averageCoverage));
         }
 
-        // For each set of parallel edges, only keep the shortest one.
-        for(auto& p: edgeTable) {
-        	const AssemblyGraph::VertexId v1 = p.first;
-        	if(v1 == assemblyGraph.reverseComplementVertex[v0]) {
-        		// v0 and v1 are reverse complement of each other: skip for now.
-        		continue;
-        	}
+        // For each set of parallel edges, only keep the one with the highest average coverage.
+        for (auto& p : edgeTable) {
+            const AssemblyGraph::VertexId v1 = p.first;
+            if (v1 == assemblyGraph.reverseComplementVertex[v0]) {
+                // v0 and v1 are reverse complement of each other: skip for now.
+                continue;
+            }
             vector< pair<AssemblyGraph::EdgeId, uint32_t> >& v = p.second;
             if(v.size() < 2) {
                 continue;
@@ -3946,7 +3944,7 @@ void Assembler::simplifyMarkerGraphIterationPart1(
     // Mark as superbubble edges all marker graph edges that correspond
     // to assembly graph edges not marked to be kept.
     // Whenever marking an edge, always also mark the reverse complemented edge,
-    // so we keep the marker graph strand-symmatric.
+    // so we keep the marker graph strand-symmetric.
     for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edges.size(); assemblyGraphEdgeId++) {
         if(keepAssemblyGraphEdge[assemblyGraphEdgeId]) {
             continue;
@@ -3954,7 +3952,7 @@ void Assembler::simplifyMarkerGraphIterationPart1(
 
         const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
-        	markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
+            markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
             markerGraph.edges[markerGraph.reverseComplementEdge[markerGraphEdgeId]].isSuperBubbleEdge = 1;
         }
     }
@@ -4053,25 +4051,25 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     }
 
     // Sanity checks.
-    for(AssemblyGraph::VertexId componentId=0; componentId<n; componentId++) {
+    for (AssemblyGraph::VertexId componentId = 0; componentId < n; componentId++) {
         const vector<AssemblyGraph::VertexId>& component = componentTable[componentId];
-        if(component.empty()) {
-        	continue;
+        if (component.empty()) {
+            continue;
         }
         const AssemblyGraph::VertexId componentRcId = rcComponentTable[componentId];
         CZI_ASSERT(rcComponentTable[componentRcId] == componentId);
-        if(componentRcId == componentId) {
-        	cout << "Found a self-complementary component with " << component.size() << " vertices." << endl;
+        if (componentRcId == componentId) {
+            cout << "Found a self-complementary component with " << component.size() << " vertices." << endl;
         }
     }
 
     // More sanity checks.
-    for(AssemblyGraph::VertexId v0=0; v0<n; v0++) {
-    	const AssemblyGraph::VertexId v1 = assemblyGraph.reverseComplementVertex[v0];
-    	const AssemblyGraph::VertexId c0 = disjointSets.find_set(v0);
-    	const AssemblyGraph::VertexId c1 = disjointSets.find_set(v1);
-    	CZI_ASSERT(rcComponentTable[c0] == c1);
-    	CZI_ASSERT(rcComponentTable[c1] == c0);
+    for (AssemblyGraph::VertexId v0 = 0; v0 < n; v0++) {
+        const AssemblyGraph::VertexId v1 = assemblyGraph.reverseComplementVertex[v0];
+        const AssemblyGraph::VertexId c0 = disjointSets.find_set(v0);
+        const AssemblyGraph::VertexId c1 = disjointSets.find_set(v1);
+        CZI_ASSERT(rcComponentTable[c0] == c1);
+        CZI_ASSERT(rcComponentTable[c1] == c0);
     }
 
 
@@ -4165,7 +4163,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         // We want ro handle each pair of components in the same way.
         // Only process one of the two in each pair.
         if(rcComponentTable[componentId] < componentId) {
-        	continue;
+            continue;
         }
 
 

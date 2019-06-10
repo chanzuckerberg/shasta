@@ -98,6 +98,13 @@ private:
         vector<Base>& runLengthRead,
         vector<uint8_t>& readRepeatCount);
 
+    // Create the name to be used for a MemoryMapped
+    // object to be used by a thread.
+    static string threadDataName(
+        const string& dataNamePrefix,
+        size_t threadId,
+        const string& dataName);
+
 };
 
 

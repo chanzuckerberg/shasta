@@ -19,17 +19,14 @@
 // Linux.
 #include <fcntl.h>
 #include <sys/mman.h>
+#ifdef __linux__
+#include <linux/mman.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-// Linux/macOS
-#ifdef __linux__
-#include <linux/mman.h>
-#else
-#include <mach/vm_statistics.h>
-#define MAP_HUGE_2MB VM_FLAGS_SUPERPAGE_SIZE_2MB
-#endif
+
 
 namespace ChanZuckerberg {
     namespace shasta {
@@ -347,9 +344,11 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
 
         // Map it in memory.
         int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+#ifdef __linux__
         if(pageSize == 2*1024*1024) {
             flags |= MAP_HUGETLB | MAP_HUGE_2MB;
         }
+#endif
         void* pointer = ::mmap(0, fileSize,
             PROT_READ | PROT_WRITE, flags,
             -1, 0);

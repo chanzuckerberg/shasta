@@ -1,0 +1,24 @@
+digraph G {
+rankdir=LR;
+node [shape=rectangle style=rounded color="#9e242e" width=0.5];
+edge [color="#2eccc1"];
+a1 [label="a"];
+b1 [label="b"];
+c1 [label="c"];
+d1 [label="d"];
+e1 [label="e"];
+a1->b1;
+b1->c1;
+c1->d1;
+d1->e1;
+a2 [label="a"];
+b2 [label="b"];
+x2 [label="x"];
+d2 [label="d"];
+e2 [label="e"];
+a2->b2;
+b2->x2;
+x2->d2;
+d2->e2;
+}
+

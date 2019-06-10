@@ -7,18 +7,65 @@
 </head>
 
 <body>
-
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 6/4/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=CommandLineOptions.html><li>Command line options</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+    <main>
 <h1>Python API</h1>
 
-<hr>
-<span style='font-size:24px'>&#9995;</span><br>
-This documentation is undergoing a overhaul and is currently incomplete.
-The <a href=oldDocs/index.html>old documentation</a> is still accessible, 
-but is not up to date
-and does not reflect significant recent changes and usability improvements.
-<hr>
+<p>
+On Ubuntu 16.04 and Ubuntu 18.04, a Shasta build
+includes a shared library <code>shasta-build/shasta-install/shasta.so</code>
+which behaves as a Python module. Python code can <code>import shasta</code>
+to use the functionality provided by the module through the API 
+documented 
+<a href='PythonApi/_build/html/index.html'>here</a>.
+For the Python interpreter to find the module you must either:
+<ul>
+<li>Make sure the Python script that contains <code>import shasta</code> is in the same directory
+that contains <code>shasta.so</code> (<code>shasta-build/shasta-install/bin</code>).
+All Python scripts provided with Shasta are copied 
+to that location during the build process.
 
+<li>Or, set environment variable <code>PYTHONPATH</code>
+to the name of the directory where <code>shasta.so</code> is located.
+</ul>
 
+</main>
 </body>
 </html>
 

@@ -4,6 +4,9 @@ ___
 **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
 
 **For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
+
+Here is the [presentation](https://www.slideshare.net/MitenJain/generating-highquality-reference-human-genomes-using-promethion-nanopore-sequencing)
+given by Miten Jain at *London Calling 2019*.
 ___
 
 The goal of the Shasta long read assembler is to rapidly 
@@ -42,6 +45,8 @@ in assembly quality when compared to other long read assemblers.
 The Shasta software uses various external software packages.
 See [here](https://chanzuckerberg.github.io/shasta/Acknowledgments.html) for more information.
 
+#### Reporting Security Issues
+Please note: If you believe you have found a security issue, please responsibly disclose by contacting security@chanzuckerberg.com.
 ___
 
 **The complete user documentation is available [here](https://chanzuckerberg.github.io/shasta/).**
