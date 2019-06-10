@@ -58,7 +58,18 @@ add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 #    link_directories(/usr/local/Cellar/boost/1.69.0/lib)
 # endif(MACOS)
 
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
+ExternalProject_Add(spoa
+  GIT_REPOSITORY "https://github.com/rvaser/spoa.git"
+  GIT_TAG "0b9e56da3241d6a887d64adcfd1ebfae29810c04"
+  UPDATE_COMMAND ""
+  INSTALL_COMMAND "")
+ExternalProject_Get_property(spoa SOURCE_DIR)
+set(spoa_INCLUDE "${SOURCE_DIR}/include")
+ExternalProject_Get_property(spoa INSTALL_DIR)
+#set(spoa_INCLUDE "${INSTALL_DIR}/include")
+set(spoa_LIB "${INSTALL_DIR}/src/spoa-build/lib")
 
 # Specify the libraries to link with.
 if(MACOS)
@@ -69,12 +80,14 @@ else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive". 
     target_link_libraries(
-        shasta-static-executable
-        atomic boost_system boost_program_options spoa
-        -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
+      shasta-static-executable
+      "${spoa_LIB}/libspoa.a"
+      atomic boost_system boost_program_options
+      -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 endif(MACOS)
   
-  
+target_include_directories(shasta-static-executable PUBLIC
+  "${spoa_INCLUDE}")
     
 # Also request the glibc library to be linked statically. 
 # This is notsupported on macOS.   
@@ -85,4 +98,4 @@ endif(NOT MACOS)
 # The static executable goes to the bin directory.
 install(TARGETS shasta-static-executable DESTINATION shasta-install/bin)
 
-
+add_dependencies(shasta-static-executable spoa)
