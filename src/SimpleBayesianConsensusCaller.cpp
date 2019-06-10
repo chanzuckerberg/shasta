@@ -249,11 +249,11 @@ void SimpleBayesianConsensusCaller::factorRepeats(array<map<uint16_t,uint16_t>,2
 uint16_t SimpleBayesianConsensusCaller::predictRunlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& logLikelihoodY) const{
     array <map <uint16_t,uint16_t>, 2> factoredRepeats;    // Repeats grouped by strand and length
 
-    size_t priorIndex = -1;    // Used to determine which prior probability vector to access (AT=0 or GC=1)
-    uint16_t x_i;               // Element of X = {x_0, x_1, ..., x_i} observed repeats
-    uint16_t c_i;               // Number of times x_i was observed
-    uint16_t y_j;               // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength
-    double logSum;             // Product (in logspace) of P(x_i|y_j) for each i
+    size_t priorIndex = -1;   // Used to determine which prior probability vector to access (AT=0 or GC=1)
+    uint16_t x;               // Element of X = {x_0, x_1, ..., x_i} observed repeats
+    uint16_t c;               // Number of times x_i was observed
+    uint16_t y;               // Element of Y = {y_0, y_1, ..., y_j} true repeat between 0 and j=max_runlength
+    double logSum;            // Product (in logspace) of P(x_i|y_j) for each i
 
     double yMaxLikelihood = -INF;     // Probability of most probable true repeat length
     uint16_t yMax = 0;                 // Most probable repeat length
@@ -277,31 +277,31 @@ uint16_t SimpleBayesianConsensusCaller::predictRunlength(const Coverage &coverag
 
     // Iterate all possible Y from 0 to j to calculate p(Y_j|X) where X is all observations 0 to i,
     // assuming i and j are less than maxRunlength
-    for (y_j = 0; y_j <= maxRunlength; y_j++){
+    for (y = 0; y <= maxRunlength; y++){
         // Initialize logSum for this Y value using empirically determined priors
-        logSum = priors[priorIndex][y_j];
+        logSum = priors[priorIndex][y];
 
         for (uint16_t strand = 0; strand <= factoredRepeats.size() - 1; strand++){
             for (auto& item: factoredRepeats[strand]){
-                x_i = item.first;
-                c_i = item.second;
+                x = item.first;
+                c = item.second;
 
                 // In the case that observed runlength is too large for the matrix, cap it at maxRunlength
-                if (x_i > maxRunlength){
-                    x_i = maxRunlength;
+                if (x > maxRunlength){
+                    x = maxRunlength;
                 }
 
                 // Increment log likelihood for this y_j
-                logSum += double(c_i)*probabilityMatrices[consensusBase.value][y_j][x_i];
+                logSum += double(c)*probabilityMatrices[consensusBase.value][y][x];
             }
         }
 
-        logLikelihoodY[y_j] = logSum;
+        logLikelihoodY[y] = logSum;
 
         // Update max Y value if log likelihood is greater than previous maximum... Should do this outside this loop?
         if (logSum > yMaxLikelihood){
             yMaxLikelihood = logSum;
-            yMax = y_j;
+            yMax = y;
         }
     }
 
