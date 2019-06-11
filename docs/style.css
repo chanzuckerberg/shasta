@@ -186,7 +186,8 @@ a.qm {
   padding: 0px 2px;
 }
 a.qm::after {
-  content: "\2753";
+  content: "?";
+  font-weight: 900;
 }
 a.qm:hover {
   background-color: var(--error);
