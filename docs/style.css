@@ -180,17 +180,16 @@ a:hover {
 
 
 a.qm {
-  title: "Click for more information";
   color: var(--primary, Teal);
-  background-color: pink;
-  border-radius: 8px;
-  padding: 2px;
+  border-style: solid;
+  border-radius: 3px;
+  padding: 0px 2px;
 }
 a.qm::after {
   content: "\2753";
 }
 a.qm:hover {
-  background-color: var(--accent);
+  background-color: var(--error);
   text-decoration: none;
 }
 
