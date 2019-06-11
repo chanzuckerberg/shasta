@@ -217,7 +217,8 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     // Check that we have at least one input FASTA file.     
     if (inputFastaFileNames.empty()) {
         cout << executableDescription << commandLineOptions << endl;
-        throw runtime_error("Specify at least one input FASTA file.");
+        throw runtime_error("Specify at least one input FASTA file "
+            "using command line option \"--input\".");
     }
 
     // Parse MarkerGraph.simplifyMaxLength.
