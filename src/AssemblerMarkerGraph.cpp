@@ -2319,9 +2319,9 @@ void Assembler::flagMarkerGraphWeakEdges(
             largeDataPageSize);
     edgesByCoverage.beginPass1(highCoverageThreshold);
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
-    	if(markerGraph.reverseComplementEdge[edgeId] < edgeId) {
-    		continue;
-    	}
+        if (markerGraph.reverseComplementEdge[edgeId] < edgeId) {
+            continue;
+        }
         const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.incrementCount(edge.coverage);
@@ -2329,9 +2329,9 @@ void Assembler::flagMarkerGraphWeakEdges(
     }
     edgesByCoverage.beginPass2();
     for(EdgeId edgeId=0; edgeId!=edges.size(); edgeId++) {
-    	if(markerGraph.reverseComplementEdge[edgeId] < edgeId) {
-    		continue;
-    	}
+        if (markerGraph.reverseComplementEdge[edgeId] < edgeId) {
+            continue;
+        }
         const MarkerGraph::Edge& edge = edges[edgeId];
         if(edge.coverage < highCoverageThreshold) {
             edgesByCoverage.store(edge.coverage, edgeId);
@@ -2341,17 +2341,6 @@ void Assembler::flagMarkerGraphWeakEdges(
 
     // Check that there are no edges with coverage 0.
     CZI_ASSERT(edgesByCoverage[0].size() == 0);
-
-#if 0
-    // Vector to store which edges should be flagged as
-    // weak at each iteration over coverage.
-    MemoryMapped::Vector<bool> edgeFlags;
-    edgeFlags.createNew(
-        largeDataName("tmp-flagMarkerGraphWeakEdges-edgeFlags"),
-        largeDataPageSize);
-    edgeFlags.resize(edges.size());
-    fill(edgeFlags.begin(), edgeFlags.end(), false);
-#endif
 
     // Vector to contain vertex distances during each BFS.
     // Is is set to -1 fore vertices nt reached by the BFS.
@@ -2373,9 +2362,9 @@ void Assembler::flagMarkerGraphWeakEdges(
     // Flag as weak all edges with coverage <= lowCoverageThreshold
     for(size_t coverage=1; coverage<=lowCoverageThreshold; coverage++) {
         const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
-        if(coverage <= 40) {
-			cout << timestamp << "Flagging as weak " << 2*edgesWithThisCoverage.size() <<
-				" edges with coverage " << coverage << "." << endl;
+        if(edgesWithThisCoverage.size() > 0) {
+            cout << timestamp << "Flagging as weak " << 2 * edgesWithThisCoverage.size() << " edges with coverage "
+                << coverage << "." << endl;
         }
         for(const EdgeId edgeId: edgesWithThisCoverage) {
             edges[edgeId].wasRemovedByTransitiveReduction = 1;
@@ -2389,8 +2378,6 @@ void Assembler::flagMarkerGraphWeakEdges(
     // greater than edgeMarkerSkipThreshold
     const auto& edgesWithCoverage1 = edgesByCoverage[1];
     size_t coverage1HighSkipCount = 0;
-    cout << timestamp << "Flagging as weak edges with coverage 1 "
-        "and marker skip greater than " << edgeMarkerSkipThreshold << endl;
     for(const EdgeId edgeId: edgesWithCoverage1) {
         const MemoryAsContainer<MarkerInterval> markerIntervals =
             markerGraph.edgeMarkerIntervals[edgeId];
@@ -2417,8 +2404,9 @@ void Assembler::flagMarkerGraphWeakEdges(
     for(size_t coverage=lowCoverageThreshold+1;
         coverage<highCoverageThreshold; coverage++) {
         const auto& edgesWithThisCoverage = edgesByCoverage[coverage];
-        cout << timestamp << "Processing " << edgesWithThisCoverage.size() <<
-            " edges with coverage " << coverage << "." << endl;
+        if(edgesWithThisCoverage.size() == 0) {
+            continue;
+        }
         size_t count = 0;
 
         // Loop over edges with this coverage.
@@ -2488,20 +2476,11 @@ void Assembler::flagMarkerGraphWeakEdges(
             bfsVertices.clear();
         }
 
-#if 0
-        // Actually flag these weak edges in the marker graph.
-        size_t count = 0;
-        for(EdgeId edgeId=0; edgeId<edgeFlags.size(); edgeId++) {
-            if(edgeFlags[edgeId]) {
-                edges[edgeId].isWeak = 1;
-                edgeFlags[edgeId] = false;
-                ++count;
-            }
+        if(count) {
+            cout << timestamp << "Flagged as weak " << count <<
+                " edges with coverage " << coverage <<
+                " out of "<< 2*edgesWithThisCoverage.size() << " total." << endl;
         }
-#endif
-        cout << "Flagged as weak " << count <<
-            " edges with coverage " << coverage <<
-            " out of "<< edgesWithThisCoverage.size() << " total." << endl;
     }
 
 
