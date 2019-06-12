@@ -80,7 +80,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     const string executableDescription =
         "\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality, "
-        "at reduced performance when using the default options,"
+        "at reduced performance when using the default options, "
         "but has no dependencies and requires no installation.\n\n"
         "To run an assembly, use the \"--input\" option to specify the input Fasta files. "
         "See below for a description of the other options and parameters.\n\n"
@@ -240,8 +240,9 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
     // Write a startup message.
     cout << timestamp <<
         "\nThis is the static executable for the Shasta assembler. "
-        "It provides limited Shasta functionality "
-        "at but has no dependencies and requires no installation.\n\n"
+        "It provides limited Shasta functionality, "
+        "at reduced performance when using the default options, "
+        "but has no dependencies and requires no installation.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
         "at coverage 60x. If your data have significantly different coverage, "
         "some changes in assembly parameters may be necessary to get good results.\n\n"
