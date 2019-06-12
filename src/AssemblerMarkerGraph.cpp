@@ -3879,7 +3879,9 @@ void Assembler::simplifyMarkerGraphIterationPart1(
     // Create a temporary assembly graph.
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
-    assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart1-" + to_string(iteration) + ".dot");
+    if(debug) {
+        assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart1-" + to_string(iteration) + ".dot");
+    }
     cout << "Before iteration " << iteration << " part 1, the assembly graph has " <<
         assemblyGraph.vertices.size() << " vertices and " <<
         assemblyGraph.edges.size() << " edges." << endl;
@@ -3980,7 +3982,9 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     // Create a temporary assembly graph.
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
-    assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart2-" + to_string(iteration) + ".dot");
+    if(debug) {
+        assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart2-" + to_string(iteration) + ".dot");
+    }
     cout << "Before iteration " << iteration << " part 2, the assembly graph has " <<
         assemblyGraph.vertices.size() << " vertices and " <<
         assemblyGraph.edges.size() << " edges." << endl;
