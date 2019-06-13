@@ -121,7 +121,7 @@ void Assembler::histogramReadLength(const string& fileName)
         cout << " bases." << endl;
         cout << "N50 for read length is " << n50 << " bases." << endl;
         cout << "The above statistics only include reads that were kept for the assembly." << endl;
-        cout << "Read discarded because they were too short or contained repeat counts  256"
+        cout << "Read discarded because they were too short or contained repeat counts 256"
             " or more are not counted." << endl;
 
     }
