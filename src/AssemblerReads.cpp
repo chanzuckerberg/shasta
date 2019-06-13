@@ -47,7 +47,7 @@ void Assembler::addReadsFromFasta(
     checkReadsAreOpen();
     checkReadNamesAreOpen();
 
-    ReadLoader(
+    ReadLoader readLoader(
         fileName,
         minReadLength,
         blockSize,
@@ -58,6 +58,14 @@ void Assembler::addReadsFromFasta(
         reads,
         readNames,
         readRepeatCounts);
+
+    cout << "Discarded read statistics for file " << fileName << ":" << endl;;
+    cout << "    Discarded " << readLoader.discardedShortReadReadCount <<
+        " reads shorter than " << minReadLength <<
+        " bases for a total " << readLoader.discardedShortReadBaseCount << " bases." << endl;
+    cout << "    Discarded " << readLoader.discardedBadRepeatCountReadCount <<
+        " reads containing repeat counts 256 or more" <<
+        " for a total " << readLoader.discardedBadRepeatCountBaseCount << " bases." << endl;
 
 }
 
@@ -115,13 +123,14 @@ void Assembler::histogramReadLength(const string& fileName)
         }
         CZI_ASSERT(cumulativeReadCount == 0);
         CZI_ASSERT(cumulativeBaseCount == 0);
-        cout << "Total number of reads is " << totalReadCount << endl;
-        cout << "Total number of raw bases is " << totalBaseCount << endl;
-        cout << "Average read length is " << double(totalBaseCount) / double(totalReadCount);
+        cout << "Read statistics for reads that will be used in this assembly:" << endl;
+        cout << "    Total number of reads is " << totalReadCount << "." << endl;
+        cout << "    Total number of raw bases is " << totalBaseCount << "." << endl;
+        cout << "    Average read length is " << double(totalBaseCount) / double(totalReadCount);
         cout << " bases." << endl;
-        cout << "N50 for read length is " << n50 << " bases." << endl;
-        cout << "The above statistics only include reads that were kept for the assembly." << endl;
-        cout << "Read discarded because they were too short or contained repeat counts 256"
+        cout << "    N50 for read length is " << n50 << " bases." << endl;
+        cout << "    The above statistics only include reads that will be used in this assembly." << endl;
+        cout << "    Read discarded because they were too short or contained repeat counts 256"
             " or more are not counted." << endl;
 
     }

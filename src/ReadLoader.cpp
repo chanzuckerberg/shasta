@@ -74,6 +74,13 @@ ReadLoader::ReadLoader(
             threadDataName(dataNamePrefix, threadId, "ReadRepeatCounts"), pageSize);
     }
 
+    // Clear the number of reads discarded.
+    discardedShortReadReadCount = 0ULL;
+    discardedShortReadBaseCount = 0ULL;
+    discardedBadRepeatCountReadCount = 0ULL;
+    discardedBadRepeatCountBaseCount = 0ULL;
+
+
 
     // Main loop over blocks in the input file.
     for(blockBegin=0; blockBegin<fileSize; ) {
@@ -326,6 +333,8 @@ void ReadLoader::processThreadFunction(size_t threadId)
 
         // If the read is too short, skip it.
         if(read.size() < minReadLength) {
+            __sync_fetch_and_add(&discardedShortReadReadCount, 1);
+            __sync_fetch_and_add(&discardedShortReadBaseCount, read.size());
             continue;
         }
 
@@ -334,6 +343,9 @@ void ReadLoader::processThreadFunction(size_t threadId)
             thisThreadReadNames.appendVector(readName.begin(), readName.end());
             thisThreadReads.append(runLengthRead);
             thisThreadReadRepeatCounts->appendVector(readRepeatCount);
+        } else {
+            __sync_fetch_and_add(&discardedBadRepeatCountReadCount, 1);
+            __sync_fetch_and_add(&discardedBadRepeatCountBaseCount, read.size());
         }
     }
 }

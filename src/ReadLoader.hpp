@@ -35,6 +35,17 @@ public:
         LongBaseSequences& reads,
         MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
         MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts);
+
+    // The number of reads and raw bases discarded because the read length
+    // was less than minReadLength.
+    uint64_t discardedShortReadReadCount;
+    uint64_t discardedShortReadBaseCount;
+
+    // The number of reads and raw bases discarded because the read
+    // contained repeat counts greater than 255.
+    uint64_t discardedBadRepeatCountReadCount;
+    uint64_t discardedBadRepeatCountBaseCount;
+
 private:
 
     // The file descriptor for the input file.
