@@ -82,6 +82,23 @@ void Assembler::randomlySelectKmers(
         CZI_ASSERT(kmerTable[reverseComplementedKmerId].reverseComplementedKmerId == kmerId);
     }
 
+
+
+    // Figure out which k-mers are run-length-encoded sequence.
+    // They are the ones without repeated bases.
+    for(uint64_t kmerId=0; kmerId<kmerCount; kmerId++) {
+        kmerTable[kmerId].isRleKmer = true;
+        const Kmer kmer(kmerId, k);
+        for(size_t i=1; i<k; i++) {
+            if(kmer[i-1] == kmer[i]) {
+                kmerTable[kmerId].isRleKmer = false;
+                break;
+            }
+        }
+    }
+
+
+
     // Prepare to generate uniformly distributed numbers between 0 and 1.
     std::mt19937 randomSource(seed);
     std::uniform_real_distribution<> uniformDistribution;

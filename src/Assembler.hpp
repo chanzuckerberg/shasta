@@ -73,6 +73,30 @@ public:
 
     // The page size in use for this run.
     size_t largeDataPageSize;
+
+
+
+    // Statistics on the number of reads discarded on input.
+    // These are incremented during each call to addReadsFromFasta.
+
+    // The number of reads and raw bases discarded because the read length
+    // was less than minReadLength.
+    uint64_t discardedShortReadReadCount = 0;
+    uint64_t discardedShortReadBaseCount = 0;
+
+    // The number of reads and raw bases discarded because the read
+    // contained repeat counts greater than 255.
+    uint64_t discardedBadRepeatCountReadCount = 0;
+    uint64_t discardedBadRepeatCountBaseCount = 0;
+
+
+
+    // Statistics for the reads kept in the assembly
+    // and not discarded on input.
+    // These are computed and stored by histogramReadLength.
+    size_t readCount = 0;
+    size_t baseCount = 0;
+    size_t readN50 = 0;
 };
 
 

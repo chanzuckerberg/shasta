@@ -67,6 +67,11 @@ void Assembler::addReadsFromFasta(
         " reads containing repeat counts 256 or more" <<
         " for a total " << readLoader.discardedBadRepeatCountBaseCount << " bases." << endl;
 
+    // Increment the discarded reads statistics.
+    assemblerInfo->discardedShortReadReadCount += readLoader.discardedShortReadReadCount;
+    assemblerInfo->discardedShortReadBaseCount += readLoader.discardedShortReadBaseCount;
+    assemblerInfo->discardedBadRepeatCountReadCount += readLoader.discardedBadRepeatCountReadCount;
+    assemblerInfo->discardedBadRepeatCountBaseCount += readLoader.discardedBadRepeatCountBaseCount;
 }
 
 
@@ -123,6 +128,15 @@ void Assembler::histogramReadLength(const string& fileName)
         }
         CZI_ASSERT(cumulativeReadCount == 0);
         CZI_ASSERT(cumulativeBaseCount == 0);
+
+        cout << "Discarded read statistics for all input files:" << endl;;
+        cout << "    Discarded " << assemblerInfo->discardedShortReadReadCount <<
+            " short reads for a total " <<
+            assemblerInfo->discardedShortReadBaseCount << " bases." << endl;
+        cout << "    Discarded " << assemblerInfo->discardedBadRepeatCountReadCount <<
+            " reads containing repeat counts 256 or more" <<
+            " for a total " << assemblerInfo->discardedBadRepeatCountBaseCount << " bases." << endl;
+
         cout << "Read statistics for reads that will be used in this assembly:" << endl;
         cout << "    Total number of reads is " << totalReadCount << "." << endl;
         cout << "    Total number of raw bases is " << totalBaseCount << "." << endl;
@@ -132,6 +146,11 @@ void Assembler::histogramReadLength(const string& fileName)
         cout << "    The above statistics only include reads that will be used in this assembly." << endl;
         cout << "    Read discarded because they were too short or contained repeat counts 256"
             " or more are not counted." << endl;
+
+        // Store read statistics in AssemblerInfo.
+        assemblerInfo->readCount = totalReadCount;
+        assemblerInfo->baseCount = totalBaseCount;
+        assemblerInfo->readN50 = n50;
 
     }
 

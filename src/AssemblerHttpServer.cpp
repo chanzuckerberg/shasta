@@ -376,57 +376,100 @@ void Assembler::exploreSummary(
 {
     using std::setprecision;
 
-    // Compute the total number of bases.
-    // This is no longer done for two reasons:
-    // - It is expensive as it requires a loop over all reads.
-    // - It gives the number of bases in run-length representation.
-#if 0
-    uint64_t totalBaseCount = 0;
-    for(ReadId readId=0; readId<reads.size(); readId++) {
-        totalBaseCount += reads[readId].baseCount;
-    }
-#endif
 
-    // Compute the number of k-mers used as markers.
-    uint64_t markerKmerCount = 0;
+    // Compute the number of run-length k-mers used as markers.
+    uint64_t totalRleKmerCount = 0;
+    uint64_t markerRleKmerCount = 0;
     for(const auto& tableEntry: kmerTable) {
-        if(tableEntry.isMarker) {
-            ++ markerKmerCount;
+        if(tableEntry.isRleKmer) {
+            ++totalRleKmerCount;
+            if(tableEntry.isMarker) {
+                ++markerRleKmerCount;
+            }
         }
     }
 
 
     html <<
         "<h1>Run summary</h1>"
+
+
+
+        "<h3>Reads used in this assembly</h3>"
         "<table>"
+        "<tr><td>Number of reads"
+        "<td class=right>" << assemblerInfo->readCount <<
+        "<tr><td>Number of bases (raw sequence, not run-length encoded sequence)"
+        "<td class=right>" << assemblerInfo->baseCount <<
+        "<tr><td>Average read length (raw sequence, not run-length encoded sequence)"
+        "<td class=right>" << assemblerInfo->baseCount / assemblerInfo->readCount <<
+        "<tr><td>Read N50 (raw sequence, not run-length encoded sequence)"
+        "<td class=right>" << assemblerInfo->readN50 <<
+        "<tr><td>Number of bases (run-length encoded sequence, not raw sequence)"
+        "<td class=right>" << readRepeatCounts.totalSize() <<
+        "<tr><td>Average length ratio of run-length encoded sequence over raw sequence"
+        "<td class=right>" << double(readRepeatCounts.totalSize()) / double(assemblerInfo->baseCount) <<
+        "</table>"
+        "<p>Reads discarded on input are not included in the above table (see below)."
+        "See ReadLengthHistogram.csv and Binned-ReadLengthHistogram.csv "
+        "for details of the read length distribution."
 
-        "<tr><td title='Total number of input reads'>Reads"
-        "<td class=right>" << reads.size() <<
 
-        "<tr><td title='Total number of reads on both strands"
-        " (equal to twice the number of reads)'>Oriented reads"
-        "<td class=right>" << 2*reads.size() <<
+        "<h3>Reads discarded on input</h3>"
+        "<table>"
+        "<tr><th><th>Number<th>Bases"
+        "<tr><td>Reads discarded on input because they were too short"
+        "<td class=right>" << assemblerInfo->discardedShortReadReadCount <<
+        "<td class=right>" << assemblerInfo->discardedShortReadBaseCount <<
+        "<tr><td>Reads discarded on input because they contained repeat counts greater than 255"
+        "<td class=right>" << assemblerInfo->discardedBadRepeatCountReadCount <<
+        "<td class=right>" << assemblerInfo->discardedBadRepeatCountBaseCount <<
+        "<tr><td>Reads discarded on input, total"
+        "<td class=right>" <<
+        assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount <<
+        "<td class=right>" <<
+        assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount <<
+        "<tr><td>Fraction of reads discarded on input over total present in input files"
+        "<td class=right>" <<
+        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount) /
+        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount+assemblerInfo->readCount)
+        <<
+        "<td class=right>" <<
+        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount) /
+        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount+assemblerInfo->baseCount)
+        <<
+        "</table>"
+        "<p>Base counts in the above table are raw sequence bases, "
+        "not run-length-encoded bases."
 
-        // "<tr><td title='Total number of input bases'>Bases"
-        // "<td class=right>" << totalBaseCount <<
 
-        // "<tr><td title='Average number of bases in a read'>Average read length"
-        // "<td class=right>" << int(0.5 + double(totalBaseCount) / double(reads.size())) <<
-
-        "<tr><td title='The length of k-mers used as markers'>Marker length k"
+        "<h3>Marker k-mers</h3>"
+        "<table>"
+        "<tr><td>Length k of k-mers used as markers"
         "<td class=right>" << assemblerInfo->k <<
+        "<tr><td>Total number of k-mers"
+        "<td class=right>" << totalRleKmerCount <<
+        "<tr><td>Number of k-mers used as markers"
+        "<td class=right>" << markerRleKmerCount <<
 
-        "<tr><td title='The total number of k-mers of length k'>Total k-mers"
-        "<td class=right>" << kmerTable.size() <<
+        "<tr><td>Fraction of k-mers used as markers"
+        "<td class=right>" << setprecision(3) << double(markerRleKmerCount) / double(totalRleKmerCount) <<
+        "</table>"
+        "<p>In the above table, all k-mer counts only include run-length encoded k-mers, "
+        "that is, k-mers without repeated bases."
 
-        "<tr><td title='The number of k-mers of length k used as markers'>Marker k-mers"
-        "<td class=right>" << markerKmerCount <<
 
-        "<tr><td title='The fraction of k-mers of length k used as markers'>Marker fraction"
-        "<td class=right>" << setprecision(3) << double(markerKmerCount) / double(kmerTable.size()) <<
 
-        "<tr><td title='Total number of markers on both strands'>Oriented markers"
+        "<h3>Markers</h3>"
+        "<table>"
+        "<tr><td>Total number of markers on all reads, one strand"
+        "<td class=right>" << markers.totalSize()/2 <<
+        "<tr><td >Total number of markers on all reads, both strands"
         "<td class=right>" << markers.totalSize() <<
+        "</table>"
+
+
+
 
         // "<tr><td title='The average number of markers per base'>Marker density"
         // "<td class=right>" << setprecision(4) << double(markers.totalSize()) / (2.*double(totalBaseCount)) <<
@@ -438,16 +481,20 @@ void Assembler::exploreSummary(
         // "<td class=right>" << setprecision(4) <<
         // (2.*double(totalBaseCount)) / double(markers.totalSize()) - double(assemblerInfo->k) <<
 
-        "<tr><td title='Number of alignment candidates found by the MinHash algorithm'>"
-        "Alignment Candidates"
+
+
+        "<h3>Alignments</h3>"
+        "<table>"
+        "<tr><td>Number of alignment candidates found by the LowHash algorithm"
         "<td class=right>" << alignmentCandidates.size() <<
-
-        "<tr><td title='Number of alignments'>Alignments"
+        "<tr><td>Number of good alignments"
         "<td class=right>" << alignmentData.size() <<
+        "</table>"
 
-        "<tr><td title='Number of vertices in the global marker graph'>Marker graph vertices"
+        "<h3>Marker graph</h3>"
+        "<table>"
+        "<tr><td>Number of vertices in the marker graph"
         "<td class=right>" << markerGraph.vertices.size() <<
-
         "</table>";
 }
 

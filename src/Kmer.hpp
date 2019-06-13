@@ -28,6 +28,7 @@ class ChanZuckerberg::shasta::KmerInfo {
 public:
     KmerId reverseComplementedKmerId;
     bool isMarker;
+    bool isRleKmer;
 };
 
 #endif
