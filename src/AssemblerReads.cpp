@@ -63,15 +63,21 @@ void Assembler::addReadsFromFasta(
 
 
 // Create a histogram of read lengths.
+// All lengths here are raw sequence lengths
+// (length of the original read), not lengths
+// in run-length representation.
 void Assembler::histogramReadLength(const string& fileName)
 {
-
+    // Check that we have what we need.
     checkReadsAreOpen();
 
     // Create the histogram.
+    // It contains the number of reads of each length.
+    // Indexed by the length.
     vector<size_t> histogram;
+    const ReadId totalReadCount = readCount();
     size_t totalBaseCount = 0;
-    for(ReadId readId=0; readId<readCount(); readId++) {
+    for(ReadId readId=0; readId<totalReadCount; readId++) {
         const size_t length = getReadRawSequenceLength(readId);
         totalBaseCount += length;
         if(histogram.size() <= length) {
@@ -81,59 +87,90 @@ void Assembler::histogramReadLength(const string& fileName)
     }
 
     // Write it out.
+    size_t n50 = 0;
     {
         ofstream csv(fileName);
-        csv << "Length,Frequency,Bases,CumulativeReads,CumulativeBases,"
+        csv << "Length,Reads,Bases,CumulativeReads,CumulativeBases,"
             "FractionalCumulativeReads,FractionalCumulativeBases,\n";
-        size_t cumulativeFrequency = 0;
-        size_t cumulativeBaseCount = 0;
+        size_t cumulativeReadCount = totalReadCount;
+        size_t cumulativeBaseCount = totalBaseCount;
         for(size_t length=0; length<histogram.size(); length++) {
             const size_t frequency = histogram[length];
             if(frequency) {
                 const  size_t baseCount = frequency * length;
-                cumulativeFrequency += frequency;
-                cumulativeBaseCount += baseCount;
+                const double cumulativeReadFraction =
+                    double(cumulativeReadCount)/double(totalReadCount);
+                const double comulativeBaseFraction =
+                    double(cumulativeBaseCount)/double(totalBaseCount);
                 csv << length << "," << frequency << "," << baseCount << ",";
-                csv << cumulativeFrequency << "," << cumulativeBaseCount << ",";
-                csv << double(cumulativeFrequency)/double(readCount()) << ",";
-                csv << double(cumulativeBaseCount)/double(totalBaseCount) << "\n";
+                csv << cumulativeReadCount << "," << cumulativeBaseCount << ",";
+                csv << cumulativeReadFraction << ",";
+                csv << comulativeBaseFraction << "\n";
+                cumulativeReadCount -= frequency;
+                cumulativeBaseCount -= baseCount;
+                if(comulativeBaseFraction > 0.5) {
+                    n50 = length;
+                }
             }
         }
-        CZI_ASSERT(cumulativeFrequency == readCount());
-        CZI_ASSERT(cumulativeBaseCount == totalBaseCount);
-        cout << "Total number of reads is " << cumulativeFrequency << endl;
-        cout << "Total number of raw bases is " << cumulativeBaseCount << endl;
-        cout << "Average read length is " << double(cumulativeBaseCount) / double(cumulativeFrequency);
+        CZI_ASSERT(cumulativeReadCount == 0);
+        CZI_ASSERT(cumulativeBaseCount == 0);
+        cout << "Total number of reads is " << totalReadCount << endl;
+        cout << "Total number of raw bases is " << totalBaseCount << endl;
+        cout << "Average read length is " << double(totalBaseCount) / double(totalReadCount);
         cout << " bases." << endl;
+        cout << "N50 for read length is " << n50 << " bases." << endl;
+        cout << "The above statistics only include reads that were kept for the assembly." << endl;
+        cout << "Read discarded because they were too short or contained repeat counts  256"
+            " or more are not counted." << endl;
+
     }
 
 
 
     // Also write out a histogram of number of reads in 1 Kb bins.
     {
+        // Each entry of the binned histogram contains pair(read count, bases)
+        // for that bin.
         const size_t binWidth = 1000;
-        vector<size_t> binnedHistogram;
+        vector<pair <size_t, size_t> > binnedHistogram;
+
         for(size_t length=0; length<histogram.size(); length++) {
-            const size_t frequency = histogram[length];
-            if(frequency) {
+            const size_t readCount = histogram[length];
+            if(readCount) {
                 const size_t bin = length / binWidth;
                 if(binnedHistogram.size() <= bin) {
-                    binnedHistogram.resize(bin+1, 0);
+                    binnedHistogram.resize(bin+1, make_pair(0, 0));
                 }
-                binnedHistogram[bin] += frequency;
+                binnedHistogram[bin].first += readCount;
+                binnedHistogram[bin].second += readCount * length;
             }
         }
 
         ofstream csv("Binned-" + fileName);
-        csv << "LengthBegin,LengthEnd,ReadCount\n";
+        csv << "LengthBegin,LengthEnd,Reads,Bases,CumulativeReads,CumulativeBases,"
+            "FractionalCumulativeReads,FractionalCumulativeBases,\n";
+        size_t cumulativeReadCount = totalReadCount;
+        size_t cumulativeBaseCount = totalBaseCount;
         for(size_t bin=0; bin<binnedHistogram.size(); bin++) {
-            const size_t frequency = binnedHistogram[bin];
-            if(frequency) {
-                csv << bin*binWidth << ",";
-                csv << (bin+1)*binWidth << ",";
-                csv << frequency << "\n";
-            }
+            const auto& histogramBin = binnedHistogram[bin];
+            const size_t readCount = histogramBin.first;
+            const size_t baseCount = histogramBin.second;
+            const double cumulativeReadFraction =
+                double(cumulativeReadCount)/double(totalReadCount);
+            const double comulativeBaseFraction =
+                double(cumulativeBaseCount)/double(totalBaseCount);
+            csv << bin*binWidth << ",";
+            csv << (bin+1)*binWidth << ",";
+            csv << readCount << "," << baseCount << ",";
+            csv << cumulativeReadCount << "," << cumulativeBaseCount << ",";
+            csv << cumulativeReadFraction << ",";
+            csv << comulativeBaseFraction << "\n";
+            cumulativeReadCount -= readCount;
+            cumulativeBaseCount -= baseCount;
         }
+        CZI_ASSERT(cumulativeReadCount == 0);
+        CZI_ASSERT(cumulativeBaseCount == 0);
     }
 
     cout << "See " << fileName << " and Binned-" << fileName <<
