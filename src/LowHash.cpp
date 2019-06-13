@@ -52,7 +52,6 @@ LowHash::LowHash(
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
 
     // Estimate the total number of low hashes and its base 2 log.

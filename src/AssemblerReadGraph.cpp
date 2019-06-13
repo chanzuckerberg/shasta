@@ -471,7 +471,7 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
+
     // Multithreaded loop over all reads.
     cout << timestamp << "Processing " << readCount << " reads." << endl;
     setupLoadBalancing(readCount, 10000);
@@ -915,6 +915,8 @@ void Assembler::writeLocalReadGraphReads(
 
 void Assembler::flagCrossStrandReadGraphEdges()
 {
+    const bool debug = false;
+
     // Initial message.
     cout << timestamp << "Begin flagCrossStrandReadGraphEdges." << endl;
 
@@ -922,7 +924,6 @@ void Assembler::flagCrossStrandReadGraphEdges()
     checkReadGraphIsOpen();
     const size_t readCount = reads.size();
     const size_t orientedReadCount = 2*readCount;
-    cout << "Found " << readCount << " reads and " << orientedReadCount << " oriented reads." << endl;
     CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
 
@@ -1027,8 +1028,10 @@ void Assembler::flagCrossStrandReadGraphEdges()
             continue;
         }
         ++strandJumpCount;
-        cout << "Found a strand jump region with " << vertexCount <<
-            " vertices near read " << vertices.front().getReadId() << "." << endl;
+        if(debug) {
+            cout << "Found a strand jump region with " << vertexCount <<
+                " vertices near read " << vertices.front().getReadId() << "." << endl;
+        }
 
         // Verify that the vertices are a self-complementary set.
         CZI_ASSERT((vertexCount %2) == 0);
@@ -1063,7 +1066,9 @@ void Assembler::flagCrossStrandReadGraphEdges()
                 }
             }
         }
-        cout << "This strand jump region contains " << edgeIds.size() << " edges." << endl;
+        if(debug) {
+            cout << "This strand jump region contains " << edgeIds.size() << " edges." << endl;
+        }
 
         // Sort them by alignment  id, so pairs of reverse complemented edges come together.
         CZI_ASSERT((edgeIds.size() %2) == 0);

@@ -102,11 +102,13 @@ void Assembler::randomlySelectKmers(
             ++usedKmerCount;
         }
     }
-    cout << "Selected " << usedKmerCount << " " << k << "-mers out of ";
+    cout << "Selected " << usedKmerCount << " " << k << "-mers as markers out of ";
     cout << kmerCount << " total." << endl;
-    cout << "Requested probability: " << probability << "." << endl;
-    cout << "Actual fraction: ";
+    cout << "Requested inclusion probability: " << probability << "." << endl;
+    cout << "Actual fraction of marker k-mers: ";
     cout << double(usedKmerCount)/double(kmerCount) << "." << endl;
+    cout << "The above statistics include all k-mers, not just those present in "
+        "run-length encoded sequence." << endl;
 
     if(probability == 1.) {
         CZI_ASSERT(usedKmerCount == kmerCount);

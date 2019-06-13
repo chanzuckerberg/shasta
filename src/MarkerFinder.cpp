@@ -32,7 +32,6 @@ MarkerFinder::MarkerFinder(
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     const size_t batchSize = 100000;
     markers.beginPass1(2 * reads.size());

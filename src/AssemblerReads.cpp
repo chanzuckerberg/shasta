@@ -136,6 +136,9 @@ void Assembler::histogramReadLength(const string& fileName)
         }
     }
 
+    cout << "See " << fileName << " and Binned-" << fileName <<
+        " for details of the read length distribution." << endl;
+
 }
 
 

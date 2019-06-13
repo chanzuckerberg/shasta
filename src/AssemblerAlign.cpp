@@ -233,7 +233,6 @@ void Assembler::computeAlignments(
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Compute the alignments.
     data.threadAlignmentData.resize(threadCount);
@@ -246,7 +245,7 @@ void Assembler::computeAlignments(
 
 
     // Store alignmentInfos found by each thread in the global alignmentInfos.
-    cout << "Storing the alignment info objects." << endl;
+    cout << timestamp << "Storing the alignment info objects." << endl;
     alignmentData.createNew(largeDataName("AlignmentData"), largeDataPageSize);
     for(size_t threadId=0; threadId<threadCount; threadId++) {
         const vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
@@ -494,7 +493,6 @@ void Assembler::flagPalindromicReads(
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Store the parameters so all threads can see them.
     flagPalindromicReadsData.maxSkip = maxSkip;

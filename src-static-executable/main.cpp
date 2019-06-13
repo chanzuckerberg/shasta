@@ -397,6 +397,9 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
         "for benchmarking purposes." << endl;
 #endif
 
+    // Write the number of threads the run will use.
+    cout << "This assembly will use " << std::thread::hardware_concurrency() << "threads." << endl;
+
     // Create the Assembler.
     Assembler assembler(dataDirectory, true, pageSize);
 

@@ -85,7 +85,6 @@ void Assembler::createMarkerGraphVertices(
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Initialize computation of the global marker graph.
     data.orientedMarkerCount = markers.totalSize();
@@ -1232,7 +1231,7 @@ void Assembler::accessMarkerGraphReverseComplementEdge()
 // and markerGraph.reverseComplementEdge.
 void Assembler::checkMarkerGraphIsStrandSymmetric(size_t threadCount)
 {
-    cout << timestamp << "Begin checkMarkerGraphIsStrandSymmetric." << endl;
+    // cout << timestamp << "Begin checkMarkerGraphIsStrandSymmetric." << endl;
 
     // Check that we have what we need.
     checkMarkersAreOpen();
@@ -1257,7 +1256,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetric(size_t threadCount)
     setupLoadBalancing(edgeCount, 10000);
     runThreads(&Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2, threadCount);
 
-    cout << timestamp << "End checkMarkerGraphIsStrandSymmetric." << endl;
+    // cout << timestamp << "End checkMarkerGraphIsStrandSymmetric." << endl;
 }
 
 
@@ -2075,7 +2074,6 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Each thread stores the edges it finds in a separate vector.
     createMarkerGraphEdgesData.threadEdges.resize(threadCount);
@@ -2751,10 +2749,9 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
             ++count;
         }
     }
-    cout << "The marker graph has " << markerGraph.vertices.size();
+    cout << "The original marker graph had " << markerGraph.vertices.size();
     cout << " vertices and " << edgeCount << " edges." << endl;
-    cout << "The pruned strong subgraph has " << markerGraph.vertices.size();
-    cout << " vertices and " << count << " edges." << endl;
+    cout << "The number of surviving edges is " << count << "." << endl;
 }
 
 
@@ -4356,7 +4353,6 @@ void Assembler::assembleMarkerGraphVertices(size_t threadCount)
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Initialize the vector to contain assemblerInfo->k optimal repeat counts for each vertex.
     markerGraph.vertexRepeatCounts.createNew(
@@ -4425,7 +4421,6 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Resize the data structures to contain results computed by each thread.
     computeMarkerGraphVerticesCoverageDataData.threadVertexIds.resize(threadCount);
@@ -4594,7 +4589,6 @@ void Assembler::assembleMarkerGraphEdges(
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Do the computation in parallel.
     assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;

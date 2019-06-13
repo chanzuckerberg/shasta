@@ -47,7 +47,6 @@ MinHash::MinHash(
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
     }
-    cout << "Using " << threadCount << " threads." << endl;
 
     // Create vectors containing only the k-mer ids of all markers.
     // This is used to speed up the computation of hash functions.
