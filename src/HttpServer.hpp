@@ -84,8 +84,6 @@ protected:
     static void getParameterValues(const vector<string>& request, const string& name, vector<string>& values);
     static void getParameterValues(const vector<string>& request, const string& name, std::set<string>& values);
 
-    static void writeStyle(ostream& html);
-
     static ostream& writeJQuery(ostream& html);
     static ostream& writeTableSorter(ostream& html);
 

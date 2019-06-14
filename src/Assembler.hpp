@@ -1302,24 +1302,29 @@ public:
     );
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
 
     // Data and functions used for the http server.
     // This function puts the server into an endless loop
     // of processing requests.
-    void fillServerFunctionTable();
-    void processRequest(
-        const vector<string>& request,
-        ostream&,
-        const BrowserInformation&) override;
-    void writeHtmlBegin(ostream&) const;
+    void writeHtmlBegin(ostream&, bool navigation=true) const;
     void writeHtmlEnd(ostream&) const;
-    void writeMakeAllTablesSelectable(ostream&) const;
+    void writeAssemblySummary(ostream&);
+    void writeAssemblySummaryBody(ostream&);
     void writeNavigation(ostream&) const;
     void writeNavigation(
         ostream& html,
         const string& title,
         const vector<pair <string, string> >&) const;
+    static void writeStyle(ostream& html);
+
+#ifndef SHASTA_STATIC_EXECUTABLE
+
+    void fillServerFunctionTable();
+    void processRequest(
+        const vector<string>& request,
+        ostream&,
+        const BrowserInformation&) override;
+    void writeMakeAllTablesSelectable(ostream&) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
     void blastRead(const vector<string>&, ostream&);

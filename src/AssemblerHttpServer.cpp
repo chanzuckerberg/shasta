@@ -1,5 +1,6 @@
-#ifndef SHASTA_STATIC_EXECUTABLE
 
+
+#ifndef SHASTA_STATIC_EXECUTABLE
 // Boost gil library.
 // The boost gil library includes png.h,
 // then uses int_p_NULL which is not defined in
@@ -13,6 +14,7 @@
 #endif
 #include <boost/gil/gil_all.hpp>
 #include <boost/gil/extension/io/png_dynamic_io.hpp>
+#endif
 
 
 // Shasta.
@@ -31,7 +33,9 @@ using namespace shasta;
 #include <boost/uuid/uuid_io.hpp>
 
 // Seqan
+#ifndef SHASTA_STATIC_EXECUTABLE
 #include <seqan/align.h>
+#endif
 
 
 
@@ -40,6 +44,7 @@ using namespace shasta;
 #include <iomanip>
 #include "iterator.hpp"
 
+#ifndef SHASTA_STATIC_EXECUTABLE
 
 
 #define CZI_ADD_TO_FUNCTION_TABLE(name) httpServerData.functionTable[string("/") + #name ] = &Assembler::name
@@ -142,10 +147,102 @@ void Assembler::processRequest(
     }
     writeHtmlEnd(html);
 }
+#endif
 
 
 
-void Assembler::writeHtmlBegin(ostream& html) const
+void Assembler::writeStyle(ostream& html)
+{
+    html << R"%(
+<style>
+    body {
+        font-family: Arial;
+    }
+    pre {
+        font-family: courier;
+    }
+    p, input {
+        font-size: 16px;
+    }
+    h1, h2, h3 {
+        color: DarkSlateBlue;
+    }
+    table {
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 2px solid MediumSlateBlue;
+    }
+    th {
+        font-weight: bold;
+        text-align: center;
+    }
+    th.left {
+        text-align: left;
+    }
+    td.centered {
+        text-align: center;
+    }
+    td.right {
+        text-align: right;
+    }
+    a {
+        color: DarkSlateBlue;
+    }
+    ul.navigationMenu {
+        list-style-type: none;
+        margin: 0px 0px 12px 0px;
+        padding: 0;
+        overflow: hidden;
+        background-color: #404040;
+    }
+    
+    div.navigationButton {
+        display: inline-block;
+        color: white;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        // min-width: 120px;
+    }
+    
+    .navigationMenuEntry:hover .navigationButton {
+        background-color: black;
+    }
+    
+    li.navigationMenuEntry {
+        display: inline-block;
+    }
+    
+    .navigationItems {
+        display: none;
+        position: absolute;
+        background-color: DodgerBlue;
+        // min-width: 120px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+    }
+    
+    a.navigationItem {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        text-align: left;
+    }
+    
+    .navigationItems a:hover {background-color: SteelBlue}
+    
+    .navigationMenuEntry:hover .navigationItems {
+        display: block;
+}
+</style>
+    )%";
+}
+
+
+
+void Assembler::writeHtmlBegin(ostream& html, bool navigation) const
 {
     html <<
         "\r\n"
@@ -160,7 +257,10 @@ void Assembler::writeHtmlBegin(ostream& html) const
     html <<
         "</head>"
         ;// "<body onload='makeAllTablesSelectableByDoubleClick()'>";
-    writeNavigation(html);
+
+    if(navigation) {
+        writeNavigation(html);
+    }
 }
 
 
@@ -173,7 +273,7 @@ void Assembler::writeHtmlEnd(ostream& html) const
 
 
 
-
+#ifndef SHASTA_STATIC_EXECUTABLE
 void Assembler::writeMakeAllTablesSelectable(ostream& html) const
 {
     html << R"###(
@@ -210,6 +310,7 @@ function makeAllTablesSelectableByDoubleClick()
 </script>
     )###";
 }
+#endif
 
 
 
@@ -270,6 +371,8 @@ void Assembler::writeNavigation(
 }
 
 
+
+#ifndef SHASTA_STATIC_EXECUTABLE
 
 // Access all available assembly data, without throwing exceptions
 void Assembler::accessAllSoft()
@@ -373,6 +476,23 @@ void Assembler::accessAllSoft()
 void Assembler::exploreSummary(
     const vector<string>& request,
     ostream& html)
+{
+    writeAssemblySummaryBody(html);
+}
+
+#endif
+
+
+
+
+void Assembler::writeAssemblySummary(ostream& html)
+{
+    writeHtmlBegin(html, false);
+    writeAssemblySummaryBody(html);
+    writeHtmlEnd(html);
+}
+
+void Assembler::writeAssemblySummaryBody(ostream& html)
 {
     using std::setprecision;
 
@@ -526,6 +646,8 @@ void Assembler::exploreSummary(
 }
 
 
+
+#ifndef SHASTA_STATIC_EXECUTABLE
 
 void Assembler::exploreRead(
     const vector<string>& request,

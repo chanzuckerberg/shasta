@@ -564,6 +564,10 @@ void ChanZuckerberg::shasta::main::runAssembly(
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeFasta("Assembly.fasta");
 
+    // Write the assembly summary.
+    ofstream html("AssemblySummary.html");
+    assembler.writeAssemblySummary(html);
+
 }
 
 
