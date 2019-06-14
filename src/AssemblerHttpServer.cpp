@@ -217,7 +217,7 @@ void Assembler::writeNavigation(ostream& html) const
 {
     html << "<ul class=navigationMenu>";
 
-    writeNavigation(html, "Run information", {
+    writeNavigation(html, "Assembly information", {
         {"Summary", "exploreSummary"},
         });
     writeNavigation(html, "Reads", {
@@ -391,7 +391,7 @@ void Assembler::exploreSummary(
 
 
     html <<
-        "<h1>Run summary</h1>"
+        "<h1>Assembly summary</h1>"
 
 
 
@@ -399,25 +399,29 @@ void Assembler::exploreSummary(
         "<table>"
         "<tr><td>Number of reads"
         "<td class=right>" << assemblerInfo->readCount <<
-        "<tr><td>Number of bases (raw sequence, not run-length encoded sequence)"
+        "<tr><td>Number of raw sequence bases"
         "<td class=right>" << assemblerInfo->baseCount <<
-        "<tr><td>Average read length (raw sequence, not run-length encoded sequence)"
+        "<tr><td>Average read length (for raw read sequence)"
         "<td class=right>" << assemblerInfo->baseCount / assemblerInfo->readCount <<
-        "<tr><td>Read N50 (raw sequence, not run-length encoded sequence)"
+        "<tr><td>Read N50 (for raw read sequence)"
         "<td class=right>" << assemblerInfo->readN50 <<
-        "<tr><td>Number of bases (run-length encoded sequence, not raw sequence)"
+        "<tr><td>Number of run-length encoded bases"
         "<td class=right>" << readRepeatCounts.totalSize() <<
         "<tr><td>Average length ratio of run-length encoded sequence over raw sequence"
-        "<td class=right>" << double(readRepeatCounts.totalSize()) / double(assemblerInfo->baseCount) <<
+        "<td class=right>" << setprecision(4) << double(readRepeatCounts.totalSize()) / double(assemblerInfo->baseCount) <<
         "</table>"
-        "<p>Reads discarded on input are not included in the above table (see below)."
-        "See ReadLengthHistogram.csv and Binned-ReadLengthHistogram.csv "
-        "for details of the read length distribution."
+        "<ul>"
+        "<li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
+        "as opposed to run-length encoded sequence."
+        "<li>Reads discarded on input are not included in the above table (see "
+        "<a href='#discarded'>below</a>)."
+        "<li>See ReadLengthHistogram.csv and Binned-ReadLengthHistogram.csv "
+        "for details of the read length distribution of reads used in this assembly.</ul>"
 
 
-        "<h3>Reads discarded on input</h3>"
+        "<h3 id=discarded>Reads discarded on input</h3>"
         "<table>"
-        "<tr><th><th>Number<th>Bases"
+        "<tr><th><th>Reads<th>Bases"
         "<tr><td>Reads discarded on input because they were too short"
         "<td class=right>" << assemblerInfo->discardedShortReadReadCount <<
         "<td class=right>" << assemblerInfo->discardedShortReadBaseCount <<
@@ -439,24 +443,24 @@ void Assembler::exploreSummary(
         double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount+assemblerInfo->baseCount)
         <<
         "</table>"
-        "<p>Base counts in the above table are raw sequence bases, "
-        "not run-length-encoded bases."
+        "<ul><li>Base counts in the above table are raw sequence bases."
+        "<li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
+        "as opposed to run-length encoded sequence.</ul>"
 
 
-        "<h3>Marker k-mers</h3>"
+        "<h3>Marker <i>k</i>-mers</h3>"
         "<table>"
-        "<tr><td>Length k of k-mers used as markers"
+        "<tr><td>Length <i>k</i> of <i>k</i>-mers used as markers"
         "<td class=right>" << assemblerInfo->k <<
-        "<tr><td>Total number of k-mers"
+        "<tr><td>Total number of <i>k</i>-mers"
         "<td class=right>" << totalRleKmerCount <<
-        "<tr><td>Number of k-mers used as markers"
+        "<tr><td>Number of <i>k</i>-mers used as markers"
         "<td class=right>" << markerRleKmerCount <<
-
-        "<tr><td>Fraction of k-mers used as markers"
+        "<tr><td>Fraction of <i>k</i>-mers used as markers"
         "<td class=right>" << setprecision(3) << double(markerRleKmerCount) / double(totalRleKmerCount) <<
         "</table>"
-        "<p>In the above table, all k-mer counts only include run-length encoded k-mers, "
-        "that is, k-mers without repeated bases."
+        "<ul><li>In the above table, all <i>k</i>-mer counts only include run-length encoded <i>k</i>-mers, "
+        "that is, <i>k</i>-mers without repeated bases.</ul>"
 
 
 
@@ -464,22 +468,19 @@ void Assembler::exploreSummary(
         "<table>"
         "<tr><td>Total number of markers on all reads, one strand"
         "<td class=right>" << markers.totalSize()/2 <<
-        "<tr><td >Total number of markers on all reads, both strands"
+        "<tr><td>Total number of markers on all reads, both strands"
         "<td class=right>" << markers.totalSize() <<
+        "<tr><td>Average number of markers per raw base"
+        "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) <<
+        "<tr><td>Average number of markers per run-length encoded base"
+        "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(readRepeatCounts.totalSize()) <<
+        "<tr><td>Average spacing between markers in raw sequence"
+        "<td class=right>" << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) <<
+        "<tr><td>Average spacing beteen markers in run-length encoded sequence"
+        "<td class=right>" << setprecision(4) << double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) <<
         "</table>"
-
-
-
-
-        // "<tr><td title='The average number of markers per base'>Marker density"
-        // "<td class=right>" << setprecision(4) << double(markers.totalSize()) / (2.*double(totalBaseCount)) <<
-
-        // "<tr><td title='The average shift between consecutive markers in a read'>Marker average shift"
-        // "<td class=right>" << setprecision(4) << (2.*double(totalBaseCount)) / double(markers.totalSize())  <<
-
-        // "<tr><td title='The average gap between consecutive markers in a read'>Marker average gap"
-        // "<td class=right>" << setprecision(4) <<
-        // (2.*double(totalBaseCount)) / double(markers.totalSize()) - double(assemblerInfo->k) <<
+        "<ul><li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
+        "as opposed to run-length encoded sequence.</ul>"
 
 
 
@@ -491,10 +492,36 @@ void Assembler::exploreSummary(
         "<td class=right>" << alignmentData.size() <<
         "</table>"
 
+
+
+        "<h3>Read graph</h3>"
+        "<table>"
+        "<tr><td>Number of vertices"
+        "<td class=right>" << readGraph.connectivity.size() <<
+        "<tr><td>Number of edges"
+        "<td class=right>" << readGraph.edges.size() <<
+        "</table>"
+
+
+
         "<h3>Marker graph</h3>"
         "<table>"
-        "<tr><td>Number of vertices in the marker graph"
+        "<tr><td>Number of vertices"
         "<td class=right>" << markerGraph.vertices.size() <<
+        "<tr><td>Initial number of edges"
+        "<td class=right>" << markerGraph.edges.size() <<
+        "<tr><td>Final number of edges"
+        "<td class=right>" << "" <<
+        "</table>"
+
+
+
+        "<h3>Assembly graph</h3>"
+        "<table>"
+        "<tr><td>Number of vertices"
+        "<td class=right>" << assemblyGraph.vertices.size() <<
+        "<tr><td>Number of edges"
+        "<td class=right>" << assemblyGraph.edges.size() <<
         "</table>";
 }
 
