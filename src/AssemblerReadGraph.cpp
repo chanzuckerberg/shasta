@@ -485,6 +485,7 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
             ++chimericReadCount;
         }
     }
+    assemblerInfo->chimericReadCount = chimericReadCount;
     cout << timestamp << "Flagged " << chimericReadCount << " reads as chimeric out of ";
     cout << readCount << " total." << endl;
     cout << "Chimera rate is " << double(chimericReadCount) / double(readCount) << endl;

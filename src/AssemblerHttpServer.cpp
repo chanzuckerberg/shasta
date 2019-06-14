@@ -529,6 +529,10 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << readRepeatCounts.totalSize() <<
         "<tr><td>Average length ratio of run-length encoded sequence over raw sequence"
         "<td class=right>" << setprecision(4) << double(readRepeatCounts.totalSize()) / double(assemblerInfo->baseCount) <<
+        "<tr><td>Number of reads flagged as palindromic"
+        "<td class=right>" << assemblerInfo->palindromicReadCount <<
+        "<tr><td>Number of reads flagged as chimeric"
+        "<td class=right>" << assemblerInfo->chimericReadCount <<
         "</table>"
         "<ul>"
         "<li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
@@ -594,10 +598,13 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) <<
         "<tr><td>Average number of markers per run-length encoded base"
         "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(readRepeatCounts.totalSize()) <<
-        "<tr><td>Average spacing between markers in raw sequence"
+        "<tr><td>Average offset between markers in raw sequence"
         "<td class=right>" << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) <<
-        "<tr><td>Average spacing beteen markers in run-length encoded sequence"
+        "<tr><td>Average offset between markers in run-length encoded sequence"
         "<td class=right>" << setprecision(4) << double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) <<
+        "<tr><td>Average gap between markers in run-length encoded sequence"
+        "<td class=right>" << setprecision(3) <<
+        double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) <<
         "</table>"
         "<ul><li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
         "as opposed to run-length encoded sequence.</ul>"
@@ -610,6 +617,8 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << alignmentCandidates.size() <<
         "<tr><td>Number of good alignments"
         "<td class=right>" << alignmentData.size() <<
+        "<tr><td>Number of good alignments kept in the read graph"
+        "<td class=right>" << readGraph.edges.size()/2 <<
         "</table>"
 
 
@@ -621,6 +630,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Number of edges"
         "<td class=right>" << readGraph.edges.size() <<
         "</table>"
+        "<ul><li>The read graph contains both strands. Each read generates two vertices.</ul>"
 
 
 
@@ -633,6 +643,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Final number of edges"
         "<td class=right>" << "" <<
         "</table>"
+        "<ul><li>The marker graph contains both strands.</ul>"
 
 
 
@@ -642,7 +653,10 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << assemblyGraph.vertices.size() <<
         "<tr><td>Number of edges"
         "<td class=right>" << assemblyGraph.edges.size() <<
-        "</table>";
+        "</table>"
+        "<ul><li>The assembly graph contains both strands.</ul>"
+
+        ;
 }
 
 

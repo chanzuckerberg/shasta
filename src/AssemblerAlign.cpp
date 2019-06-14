@@ -518,6 +518,7 @@ void Assembler::flagPalindromicReads(
             ++palindromicReadCount;
         }
     }
+    assemblerInfo->palindromicReadCount = palindromicReadCount;
     cout << timestamp << "Flagged " << palindromicReadCount <<
         " reads as palindromic out of " << readCount << " total." << endl;
     cout << "Palindromic fraction is " <<

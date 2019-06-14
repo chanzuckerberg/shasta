@@ -97,6 +97,11 @@ public:
     size_t readCount = 0;
     size_t baseCount = 0;
     size_t readN50 = 0;
+
+    // Other read statistics.
+    size_t palindromicReadCount = 0;
+    size_t chimericReadCount = 0;
+
 };
 
 
