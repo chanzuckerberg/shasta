@@ -3834,6 +3834,46 @@ void Assembler::simplifyMarkerGraph(
         simplifyMarkerGraphIterationPart2(iteration, maxLength, debug);
     }
     checkMarkerGraphIsStrandSymmetric();
+
+
+
+    // Count the marker graph vertices that are not isolated.
+    size_t markerGraphVerticesNotIsolatedCount = 0;
+    for(MarkerGraph::VertexId v=0; v!=markerGraph.vertices.size(); v++) {
+        bool isIsolated = true;
+        for(const MarkerGraph::EdgeId edgeId: markerGraph.edgesBySource[v]) {
+            const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+            if(!edge.wasRemoved()) {
+                isIsolated = false;
+                break;
+            }
+        }
+        if(isIsolated) {
+            for(const MarkerGraph::EdgeId edgeId: markerGraph.edgesByTarget[v]) {
+                const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+                if(!edge.wasRemoved()) {
+                    isIsolated = false;
+                    break;
+                }
+            }
+
+        }
+        if(!isIsolated) {
+            ++markerGraphVerticesNotIsolatedCount;
+        }
+    }
+    assemblerInfo->markerGraphVerticesNotIsolatedCount = markerGraphVerticesNotIsolatedCount;
+
+
+
+    // Count the marker graph edges that were not removed.
+    size_t markerGraphEdgesNotRemovedCount = 0;
+    for(const MarkerGraph::Edge& edge: markerGraph.edges) {
+        if(!edge.wasRemoved()) {
+            ++markerGraphEdgesNotRemovedCount;
+        }
+    }
+    assemblerInfo->markerGraphEdgesNotRemovedCount = markerGraphEdgesNotRemovedCount;
 }
 
 

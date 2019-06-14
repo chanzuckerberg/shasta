@@ -28,6 +28,7 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/program_options.hpp>
+#include  <boost/chrono/process_cpu_clocks.hpp>
 
 //  Linux.
 #include <stdlib.h>
@@ -441,6 +442,10 @@ void ChanZuckerberg::shasta::main::runAssembly(
     const AssemblyOptions& assemblyOptions,
     vector<string> inputFastaFileNames)
 {
+    const auto steadyClock0 = std::chrono::steady_clock::now();
+    const auto userClock0 = boost::chrono::process_user_cpu_clock::now();
+    const auto systemClock0 = boost::chrono::process_system_cpu_clock::now();
+
     // The executable only supports SimpleConsensusCaller,
     // at least for now.
     assembler.setupConsensusCaller("SimpleConsensusCaller");
@@ -563,6 +568,26 @@ void ChanZuckerberg::shasta::main::runAssembly(
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeFasta("Assembly.fasta");
+
+    // Store elapsed time for assembly.
+    const auto steadyClock1 = std::chrono::steady_clock::now();
+    const auto userClock1 = boost::chrono::process_user_cpu_clock::now();
+    const auto systemClock1 = boost::chrono::process_system_cpu_clock::now();
+    const double elapsedTime = 1.e-9 * double((
+        std::chrono::duration_cast<std::chrono::nanoseconds>(steadyClock1 - steadyClock0)).count());
+    const double userTime = 1.e-9 * double((
+        boost::chrono::duration_cast<boost::chrono::nanoseconds>(userClock1 - userClock0)).count());
+    const double systemTime = 1.e-9 * double((
+        boost::chrono::duration_cast<boost::chrono::nanoseconds>(systemClock1 - systemClock0)).count());
+    const double averageCpuUtilization =
+        (userTime + systemTime) / (double(std::thread::hardware_concurrency()) * elapsedTime);
+    assembler.storeAssemblyTime(elapsedTime, averageCpuUtilization);
+
+    cout << "Assembly time statistics:\n"
+        "    Elapsed seconds: " << elapsedTime << "\n"
+        "    Elapsed minutes: " << elapsedTime/60. << "\n"
+        "    Elapsed hours:   " << elapsedTime/3600. << "\n";
+    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
 
     // Write the assembly summary.
     ofstream html("AssemblySummary.html");

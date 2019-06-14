@@ -511,7 +511,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
 
     html <<
-        "<h1>Assembly summary</h1>"
+        "<h1>Shasta assembly summary</h1>"
 
 
 
@@ -598,11 +598,11 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) <<
         "<tr><td>Average number of markers per run-length encoded base"
         "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(readRepeatCounts.totalSize()) <<
-        "<tr><td>Average offset between markers in raw sequence"
+        "<tr><td>Average base offset between markers in raw sequence"
         "<td class=right>" << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) <<
-        "<tr><td>Average offset between markers in run-length encoded sequence"
+        "<tr><td>Average base offset between markers in run-length encoded sequence"
         "<td class=right>" << setprecision(4) << double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) <<
-        "<tr><td>Average gap between markers in run-length encoded sequence"
+        "<tr><td>Average base gap between markers in run-length encoded sequence"
         "<td class=right>" << setprecision(3) <<
         double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) <<
         "</table>"
@@ -636,12 +636,14 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
         "<h3>Marker graph</h3>"
         "<table>"
-        "<tr><td>Number of vertices"
+        "<tr><td>Total number of vertices"
         "<td class=right>" << markerGraph.vertices.size() <<
-        "<tr><td>Initial number of edges"
+        "<tr><td>Total number of edges"
         "<td class=right>" << markerGraph.edges.size() <<
-        "<tr><td>Final number of edges"
-        "<td class=right>" << "" <<
+        "<tr><td>Number of vertices that are not isolated after edge removal"
+        "<td class=right>" << assemblerInfo->markerGraphVerticesNotIsolatedCount <<
+        "<tr><td>Number of edges that were not removed"
+        "<td class=right>" << assemblerInfo->markerGraphEdgesNotRemovedCount <<
         "</table>"
         "<ul><li>The marker graph contains both strands.</ul>"
 
@@ -653,9 +655,44 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << assemblyGraph.vertices.size() <<
         "<tr><td>Number of edges"
         "<td class=right>" << assemblyGraph.edges.size() <<
+        "<tr><td>Number of edges assembled"
+        "<td class=right>" << assemblerInfo->assemblyGraphAssembledEdgeCount <<
         "</table>"
         "<ul><li>The assembly graph contains both strands.</ul>"
 
+
+
+        "<h3>Assembled segments (&quot;contigs&quot;)</h3>"
+        "<table>"
+        "<tr><td>Number of segments assembled"
+        "<td class=right>" << assemblerInfo->assemblyGraphAssembledEdgeCount <<
+        "<tr><td>Total assembled segment length"
+        "<td class=right>" << assemblerInfo->totalAssembledSegmentLength <<
+        "<tr><td>Longest assembled segments length"
+        "<td class=right>" << assemblerInfo->longestAssembledSegmentLength <<
+        "<tr><td>Assembled segments N<sub>50</sub>"
+        "<td class=right>" << assemblerInfo->assembledSegmentN50 <<
+        "</table>"
+        "<ul><li>Shasta uses GFA terminology "
+        "(<i>segment</i> instead of the most common <i>contig</i>). "
+        "A contiguous section of assembled sequence can consist of multiple segments, "
+        "for example in the presence of heterozygous bubbles."
+        "<li>See AssemblySummary.csv for lengths of assembled segments."
+        "</ul>"
+
+
+
+        "<h3>Performance</h3>"
+        "<table>"
+        "<tr><td>Elapsed time (seconds)"
+        "<td class=right>" << assemblerInfo->assemblyElapsedTimeSeconds <<
+        "<tr><td>Elapsed time (minutes)"
+        "<td class=right>" << assemblerInfo->assemblyElapsedTimeSeconds/60. <<
+        "<tr><td>Elapsed time (hours)"
+        "<td class=right>" << assemblerInfo->assemblyElapsedTimeSeconds/3600. <<
+        "<tr><td>Average CPU utilization"
+        "<td class=right>" << assemblerInfo->averageCpuUtilization <<
+        "</table>"
         ;
 }
 

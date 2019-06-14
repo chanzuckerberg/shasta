@@ -70,7 +70,7 @@ else(MACOS)
     # library on Linux requires "--whole-archive". 
     target_link_libraries(
         shasta-static-executable
-        atomic boost_system boost_program_options spoa
+        atomic boost_system boost_program_options boost_chrono spoa
         -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 endif(MACOS)
   

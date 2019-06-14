@@ -135,3 +135,13 @@ void Assembler::checkMarginPhaseWasSetup()
 #endif
 }
 
+
+// Store assembly time.
+void Assembler::storeAssemblyTime(
+    double elapsedTimeSeconds,
+    double averageCpuUtilization)
+{
+    assemblerInfo->assemblyElapsedTimeSeconds = elapsedTimeSeconds;
+    assemblerInfo->averageCpuUtilization = averageCpuUtilization;
+}
+

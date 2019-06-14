@@ -102,6 +102,20 @@ public:
     size_t palindromicReadCount = 0;
     size_t chimericReadCount = 0;
 
+    // Marker graph statistics.
+    size_t markerGraphVerticesNotIsolatedCount = 0;
+    size_t markerGraphEdgesNotRemovedCount = 0;
+
+    // Assembly graph statistics.
+    size_t assemblyGraphAssembledEdgeCount = 0;
+    size_t totalAssembledSegmentLength = 0;
+    size_t longestAssembledSegmentLength = 0;
+    size_t assembledSegmentN50 = 0;
+
+    // Performance statistics.
+    double assemblyElapsedTimeSeconds = 0.;
+    double averageCpuUtilization;
+
 };
 
 
@@ -1427,7 +1441,10 @@ public:
 public:
     void accessAllSoft();
 
-
+    // Store assembly time.
+    void storeAssemblyTime(
+        double elapsedTimeSeconds,
+        double averageCpuUtilization);
 
     // Functions and data used by the http server
     // for display of the local assembly graph.

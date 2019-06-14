@@ -542,6 +542,7 @@ void Assembler::assemble(size_t threadCount)
     cout << timestamp << "Assembled a total " << totalBaseCount <<
         " bases for " << assemblyGraph.edgeLists.size() << " assembly graph edges of which " <<
         assembledEdgeCount << " where assembled." << endl;
+
 }
 
 
@@ -675,6 +676,8 @@ void Assembler::computeAssemblyStatistics()
     cout << " vertices and " << edgeCount << " edges of which " <<
             assembledEdgeCount << " were assembled." << endl;
     cout << "Total length of assembled sequence is " << totalLength << endl;
+    assemblerInfo->assemblyGraphAssembledEdgeCount = assembledEdgeCount;
+    assemblerInfo->totalAssembledSegmentLength = totalLength;
 
     // Sort by decreasing length.
     sort(edgeTable.begin(), edgeTable.end(), OrderPairsBySecondOnlyGreater<EdgeId, size_t>());
@@ -698,8 +701,12 @@ void Assembler::computeAssemblyStatistics()
         csv << double(cumulativeLength) /double(totalLength) << "\n";
         if(!n50MessageWritten && cumulativeLength >= totalLength/2) {
             cout << "N50 for assembly segments is " << length << endl;
+            assemblerInfo->assembledSegmentN50 = length;
             n50MessageWritten = true;
         }
+    }
+    if(!edgeTable.empty()) {
+        assemblerInfo->longestAssembledSegmentLength = edgeTable[0].second;
     }
 
 }
