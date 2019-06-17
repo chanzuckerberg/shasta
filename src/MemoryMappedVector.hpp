@@ -437,8 +437,15 @@ template<class T> inline void* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::
     void* pointer = ::mmap(0, fileSize, PROT_READ | (writeAccess ? PROT_WRITE : 0), MAP_SHARED, fileDescriptor, 0);
     if(pointer == reinterpret_cast<void*>(-1LL)) {
         ::close(fileDescriptor);
-        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
-            + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+        if(errno == ENOMEM) {
+            throw runtime_error("Memory allocation failure "
+                "during mmap call for MemoryMapped::Vector.\n"
+                "This assembly requires more memory than available.\n"
+                "Rerun on a larger machine.");
+        } else {
+            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+        }
     }
     return pointer;
 }
@@ -549,8 +556,15 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
             PROT_READ | PROT_WRITE, flags,
             -1, 0);
         if(pointer == reinterpret_cast<void*>(-1LL)) {
-            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
-                + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+            if(errno == ENOMEM) {
+                throw runtime_error("Memory allocation failure "
+                    "during mmap call for MemoryMapped::Vector.\n"
+                    "This assembly requires more memory than available.\n"
+                    "Rerun on a larger machine.");
+            } else {
+                throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                    + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+            }
         }
 
         // Figure out where the data and the header go.
@@ -894,8 +908,15 @@ template<class T> inline void
                     PROT_READ | PROT_WRITE, flags,
                     -1, 0);
                 if(newPointer == reinterpret_cast<void*>(-1LL)) {
-                    throw runtime_error("Error " + boost::lexical_cast<string>(errno)
-                        + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+                    if(errno == ENOMEM) {
+                        throw runtime_error("Memory allocation failure "
+                            "during mmap call for MemoryMapped::Vector.\n"
+                            "This assembly requires more memory than available.\n"
+                            "Rerun on a larger machine.");
+                    } else {
+                        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                            + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+                    }
                 }
                 std::copy(
                     reinterpret_cast<char*>(header),
@@ -1031,8 +1052,15 @@ template<class T> inline
             PROT_READ | PROT_WRITE, flags,
             -1, 0);
         if(newPointer == reinterpret_cast<void*>(-1LL)) {
-            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
-                + " during mmap call for MemoryMapped::Vector: " + string(strerror(errno)));
+            if(errno == ENOMEM) {
+                throw runtime_error("Memory allocation failure "
+                    "during mmap call for MemoryMapped::Vector.\n"
+                    "This assembly requires more memory than available.\n"
+                    "Rerun on a larger machine.");
+            } else {
+                throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                    + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+            }
         }
         std::copy(
             reinterpret_cast<char*>(header),
