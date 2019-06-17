@@ -592,6 +592,8 @@ void ChanZuckerberg::shasta::main::runAssembly(
     // Write the assembly summary.
     ofstream html("AssemblySummary.html");
     assembler.writeAssemblySummary(html);
+    ofstream json("AssemblySummary.json");
+    assembler.writeAssemblySummaryJson(json);
 
 }
 

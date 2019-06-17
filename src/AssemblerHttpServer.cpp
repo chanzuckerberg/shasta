@@ -603,7 +603,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Average base offset between markers in run-length encoded sequence"
         "<td class=right>" << setprecision(4) << double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) <<
         "<tr><td>Average base gap between markers in run-length encoded sequence"
-        "<td class=right>" << setprecision(3) <<
+        "<td class=right>" << setprecision(4) <<
         double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) <<
         "</table>"
         "<ul><li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
@@ -668,7 +668,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << assemblerInfo->assemblyGraphAssembledEdgeCount <<
         "<tr><td>Total assembled segment length"
         "<td class=right>" << assemblerInfo->totalAssembledSegmentLength <<
-        "<tr><td>Longest assembled segments length"
+        "<tr><td>Longest assembled segment length"
         "<td class=right>" << assemblerInfo->longestAssembledSegmentLength <<
         "<tr><td>Assembled segments N<sub>50</sub>"
         "<td class=right>" << assemblerInfo->assembledSegmentN50 <<
@@ -695,6 +695,174 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "</table>"
         ;
 }
+
+
+
+void Assembler::writeAssemblySummaryJson(ostream& json)
+{
+    using std::setprecision;
+
+
+
+    // Compute the number of run-length k-mers used as markers.
+    uint64_t totalRleKmerCount = 0;
+    uint64_t markerRleKmerCount = 0;
+    for(const auto& tableEntry: kmerTable) {
+        if(tableEntry.isRleKmer) {
+            ++totalRleKmerCount;
+            if(tableEntry.isMarker) {
+                ++markerRleKmerCount;
+            }
+        }
+    }
+
+
+
+    json <<
+        "{\n"
+        "  \"Comment\": \"See AssemblySummary.html for a human-readable version of this file\",\n"
+
+
+
+        "  \"Reads used in this assembly\":\n"
+        "  {\n"
+        "    \"Number of reads\": " << assemblerInfo->readCount << ",\n"
+        "    \"Number of raw sequence bases\": " << assemblerInfo->baseCount << ",\n"
+        "    \"Average read length (for raw read sequence)\": " <<
+        assemblerInfo->baseCount / assemblerInfo->readCount << ",\n"
+        "    \"Read N50 (for raw read sequence)\": " << assemblerInfo->readN50 << ",\n"
+        "    \"Number of run-length encoded bases\": " << readRepeatCounts.totalSize() << ",\n"
+        "    \"Average length ratio of run-length encoded sequence over raw sequence\": " <<
+        setprecision(4) << double(readRepeatCounts.totalSize()) / double(assemblerInfo->baseCount) << ",\n"
+        "    \"Number of reads flagged as palindromic\": " << assemblerInfo->palindromicReadCount << ",\n"
+        "    \"Number of reads flagged as chimeric\": " << assemblerInfo->chimericReadCount << "\n"
+        "  },\n"
+
+
+
+        "  \"Reads discarded on input\":\n"
+        "  {\n"
+        "    \"Reads discarded on input because they were too short\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->discardedShortReadReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->discardedShortReadBaseCount << "\n"
+        "    },\n"
+        "    \"Reads discarded on input because they contained repeat counts greater than 255\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->discardedBadRepeatCountReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->discardedBadRepeatCountBaseCount << "\n"
+        "    },\n"
+        "    \"Reads discarded on input, total\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount << "\n"
+        "    },\n"
+        "    \"Fraction of reads discarded on input over total present in input files\":\n"
+        "    {\n"
+        "      \"Reads\": " <<
+        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount) /
+        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount+assemblerInfo->readCount)
+        << ",\n"
+        "      \"Bases\": " <<
+        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount) /
+        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount+assemblerInfo->baseCount)
+        << "\n"
+        "    }\n"
+        "  },\n"
+
+
+
+        "  \"Marker k-mers\":\n"
+        "  {\n"
+        "    \"Length k of k-mers used as markers\": " << assemblerInfo->k << ",\n"
+        "    \"Total number of k-mers\": " << totalRleKmerCount << ",\n"
+        "    \"Number of k-mers used as markers\": " << markerRleKmerCount << ",\n"
+        "    \"Fraction of k<-mers used as markers\": " <<
+        setprecision(3) << double(markerRleKmerCount) / double(totalRleKmerCount) <<
+        "  },\n"
+
+
+
+        "  \"Markers\":\n"
+        "  {\n"
+        "    \"Total number of markers on all reads, one strand\": "
+        << markers.totalSize()/2 << ",\n"
+        "    \"Total number of markers on all reads, both strands\": "
+        << markers.totalSize() << ",\n"
+        "    \"Average number of markers per raw base\": "
+        << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) << ",\n"
+        "    \"Average number of markers per run-length encoded base\": "
+        << setprecision(4) << double(markers.totalSize()/2)/double(readRepeatCounts.totalSize()) << ",\n"
+        "    \"Average base offset between markers in raw sequence\": "
+        << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) << ",\n"
+        "    \"Average base offset between markers in run-length encoded sequence\": "
+        << setprecision(4) << double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) << ",\n"
+        "    \"Average base gap between markers in run-length encoded sequence\": "
+        << setprecision(4) <<
+        double(readRepeatCounts.totalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) << "\n"
+        "  },\n"
+
+
+        "  \"Alignments\":\n"
+        "  {\n"
+        "    \"Number of alignment candidates found by the LowHash algorithm\": " << alignmentCandidates.size() << ",\n"
+        "    \"Number of good alignments\": " << alignmentData.size() << ",\n"
+        "    \"Number of good alignments kept in the read graph\": " << readGraph.edges.size()/2 << "\n"
+        "  },\n"
+
+
+
+        "  \"Read graph\":\n"
+        "  {\n"
+        "    \"Number of vertices\": " << readGraph.connectivity.size() << ",\n"
+        "    \"Number of edges\": " << readGraph.edges.size() << "\n"
+        "  },\n"
+
+
+
+        "  \"Marker graph\":\n"
+        "  {\n"
+        "    \"Total number of vertices\": " << markerGraph.vertices.size() << ",\n"
+        "    \"Total number of edges\": " << markerGraph.edges.size() << ",\n"
+        "    \"Number of vertices that are not isolated after edge removal\": " <<
+        assemblerInfo->markerGraphVerticesNotIsolatedCount << ",\n"
+        "    \"Number of edges that were not removed\": " << assemblerInfo->markerGraphEdgesNotRemovedCount << "\n"
+        "  },\n"
+
+
+
+        "  \"Assembly graph\":\n"
+        "  {\n"
+        "    \"Number of vertices\": " << assemblyGraph.vertices.size() << ",\n"
+        "    \"Number of edges\": " << assemblyGraph.edges.size() << ",\n"
+        "    \"Number of edges assembled\": " << assemblerInfo->assemblyGraphAssembledEdgeCount << "\n"
+        "  },\n"
+
+
+
+        "  \"Assembled segments\":\n"
+        "  {\n"
+        "    \"Number of segments assembled\": " << assemblerInfo->assemblyGraphAssembledEdgeCount << ",\n"
+        "    \"Total assembled segment length\": " << assemblerInfo->totalAssembledSegmentLength << ",\n"
+        "    \"Longest assembled segment length\": " << assemblerInfo->longestAssembledSegmentLength << ",\n"
+        "    \"Assembled segments N50\": " << assemblerInfo->assembledSegmentN50 << "\n"
+        "  },\n"
+
+
+
+        "  \"Performance\":\n"
+        "  {\n"
+        "    \"Elapsed time (seconds)\": " << assemblerInfo->assemblyElapsedTimeSeconds << ",\n"
+        "    \"Elapsed time (minutes)\": " << assemblerInfo->assemblyElapsedTimeSeconds/60. << ",\n"
+        "    \"Elapsed time (hours)\": " << assemblerInfo->assemblyElapsedTimeSeconds/3600. << ",\n"
+        "    \"Average CPU utilization\": " << assemblerInfo->averageCpuUtilization << "\n"
+        "  }\n"
+
+
+
+        "}";
+}
+
 
 
 

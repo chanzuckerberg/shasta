@@ -1329,6 +1329,7 @@ public:
     void writeHtmlEnd(ostream&) const;
     void writeAssemblySummary(ostream&);
     void writeAssemblySummaryBody(ostream&);
+    void writeAssemblySummaryJson(ostream&);
     void writeNavigation(ostream&) const;
     void writeNavigation(
         ostream& html,
