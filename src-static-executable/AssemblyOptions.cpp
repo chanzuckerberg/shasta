@@ -312,7 +312,7 @@ void AssemblyOptions::MarkerGraphOptions::parseSimplifyMaxLength()
                     simplifyMaxLength);
             }
             simplifyMaxLengthVector.push_back(value);
-        } catch(std::invalid_argument e) {
+        } catch(const std::invalid_argument& e) {
             throw runtime_error("Error parsing MarkerGraph,simplifyMaxLength " +
                 simplifyMaxLength);
         }

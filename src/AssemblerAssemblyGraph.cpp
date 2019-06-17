@@ -572,7 +572,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
             }
             try {
                 assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
-            } catch(std::exception e) {
+            } catch(const std::exception& e) {
                 std::lock_guard<std::mutex> lock(mutex);
                 cout << timestamp << "Thread " << threadId <<
                     " threw a standard exception while processing assembly graph edge " << edgeId << ":" << endl;

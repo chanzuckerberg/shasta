@@ -13,8 +13,9 @@
 //     void compute(size_t threadId);
 // };
 
-// CZI.
+// Shasta.
 #include "CZI_ASSERT.hpp"
+#include "timestamp.hpp"
 
 // Standard libraries.
 #include "algorithm.hpp"
@@ -112,7 +113,21 @@ private:
     {
         try {
             (t.*f)(threadId);
-        } catch(exception& e) {
+        } catch(const runtime_error& e) {
+            t.exceptionsOccurred = true;
+            std::lock_guard<std::mutex> lock(t.mutex);
+            cout << timestamp << "A runtime error occurred in thread " << threadId << ": ";
+            cout << e.what() << endl;
+            ::exit(1);
+        } catch(const std::bad_alloc& e) {
+            t.exceptionsOccurred = true;
+            std::lock_guard<std::mutex> lock(t.mutex);
+            cout << timestamp << e.what() << endl;
+            cout << "A memory allocation failure occurred in thread " << threadId << ": ";
+            cout << "This assembly requires more memory than available." << endl;
+            cout << "Rerun on a larger machine." << endl;
+            ::exit(1);
+        } catch(const exception& e) {
             t.exceptionsOccurred = true;
             std::lock_guard<std::mutex> lock(t.mutex);
             cout << "A standard exception occurred in thread " << threadId << ": ";

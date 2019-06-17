@@ -780,7 +780,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
             void* pointer = 0;
             try {
                 pointer = map(fileDescriptor, headerOnStack.fileSize, true);
-            } catch(runtime_error e) {
+            } catch(const runtime_error& e) {
                 throw runtime_error("An error occurred while resizing MemoryMapped::Vector "
                     + name + ":\n" +
                     e.what());

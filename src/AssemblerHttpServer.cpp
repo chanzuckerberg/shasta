@@ -142,7 +142,7 @@ void Assembler::processRequest(
     try {
         const auto function = it->second;
         (this->*function)(request, html);
-    } catch(std::exception& e) {
+    } catch(const std::exception& e) {
         html << "<br><br><span style='color:purple'>" << e.what() << "</span>";
     }
     writeHtmlEnd(html);
@@ -382,7 +382,7 @@ void Assembler::accessAllSoft()
 
     try {
         accessReadFlags(false);
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Read flags are not accessible." << endl;
         allDataAreAvailable = false;
     }
@@ -390,77 +390,77 @@ void Assembler::accessAllSoft()
 
     try {
         accessKmers();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "K-mers are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessMarkers();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Markers are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessAlignmentCandidates();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Alignment candidates are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessAlignmentData();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Alignments are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessReadGraph();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "The read graph is not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessMarkerGraphVertices();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Marker graph vertices are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessMarkerGraphEdges(false);
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Marker graph edges are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessAssemblyGraphVertices();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Assembly graph vertices are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessAssemblyGraphEdges();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Assembly graph edges are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessAssemblyGraphEdgeLists();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Assembly graph edge lists are not accessible." << endl;
         allDataAreAvailable = false;
     }
 
     try {
         accessAssemblyGraphSequences();
-    } catch(exception e) {
+    } catch(const exception& e) {
         cout << "Assembly graph sequences are not accessible." << endl;
         allDataAreAvailable = false;
     }
@@ -2181,7 +2181,7 @@ void Assembler::displayAlignmentMatrix(
         try {
             const Base b = Base::fromCharacter(c);
             sequence0.push_back(b);
-        } catch (std::exception) {
+        } catch (const std::exception&) {
             // Just discard the character.
         }
     }
@@ -2190,7 +2190,7 @@ void Assembler::displayAlignmentMatrix(
         try {
             const Base b = Base::fromCharacter(c);
             sequence1.push_back(b);
-        } catch (std::exception) {
+        } catch (const std::exception&) {
             // Just discard the character.
         }
     }

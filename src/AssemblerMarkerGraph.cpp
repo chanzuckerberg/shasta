@@ -4721,7 +4721,7 @@ void Assembler::accessMarkerGraphCoverageData()
         markerGraph.edgeCoverageData.accessExistingReadOnly(
             largeDataName("MarkerGraphEdgesCoverageData"));
 
-    } catch (std::exception) {
+    } catch (const std::exception&) {
         throw runtime_error("Coverage data is not available. It is only stored if shasta.conf has "
             "Assembly.storeCoverageData set to True.");
     }
@@ -4818,7 +4818,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                             storeCoverageData ? &coverageData : 0
                             );
                     }
-                } catch(std::exception e) {
+                } catch(const std::exception& e) {
                     std::lock_guard<std::mutex> lock(mutex);
                     cout << "A standard exception was thrown while assembling "
                         "marker graph edge " << edgeId << ":" << endl;

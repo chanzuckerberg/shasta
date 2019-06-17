@@ -48,14 +48,20 @@ int main(int argumentCount, const char** arguments)
 
         shasta::main::main(argumentCount, arguments);
 
-    } catch(boost::program_options::error_with_option_name e) {
+    } catch(const boost::program_options::error_with_option_name& e) {
         cout << "Invalid option: " << e.what() << endl;
         return 1;
-    } catch (runtime_error e) {
+    } catch (const runtime_error& e) {
         cout << timestamp << "Terminated after catching a runtime error exception:" << endl;
         cout << e.what() << endl;
         return 2;
-    } catch (exception e) {
+    } catch (const std::bad_alloc& e) {
+        cout << timestamp << e.what() << endl;
+        cout << "Memory allocation failure." << endl;
+        cout << "This assembly requires more memory than available." << endl;
+        cout << "Rerun on a larger machine." << endl;
+        return 2;
+    } catch (const exception& e) {
         cout << timestamp << "Terminated after catching a standard exception:" << endl;
         cout << e.what() << endl;
         return 3;
