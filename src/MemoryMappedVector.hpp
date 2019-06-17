@@ -869,8 +869,15 @@ template<class T> inline void
 #ifdef __linux__
                 pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
                 if(pointer == reinterpret_cast<void*>(-1LL)) {
-                    throw runtime_error("Error " + boost::lexical_cast<string>(errno)
-                        + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+                    if(errno == ENOMEM) {
+                        throw runtime_error("Memory allocation failure "
+                            " during mremap call for MemoryMapped::Vector.\n"
+                            "This assembly requires more memory than available.\n"
+                            "Rerun on a larger machine.");
+                    } else {
+                        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                            + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+                    }
                 }
 #endif
             } else {
@@ -999,8 +1006,15 @@ template<class T> inline
 #ifdef __linux__
         pointer = ::mremap(header, header->fileSize, headerOnStack.fileSize, MREMAP_MAYMOVE);
         if(pointer == reinterpret_cast<void*>(-1LL)) {
-            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
-                + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+            if(errno == ENOMEM) {
+                throw runtime_error("Memory allocation failure "
+                    " during mremap call for MemoryMapped::Vector.\n"
+                    "This assembly requires more memory than available.\n"
+                    "Rerun on a larger machine.");
+            } else {
+                throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+                    + " during mremap call for MemoryMapped::Vector: " + string(strerror(errno)));
+            }
         }
 #endif
     } else {
