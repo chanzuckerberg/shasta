@@ -1375,7 +1375,6 @@ public:
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
         bool detailed;
-        bool useStoredConnectivity;
         bool useWeakEdges;
         bool usePrunedEdges;
         bool useSuperBubbleEdges;

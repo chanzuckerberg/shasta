@@ -57,27 +57,16 @@ void Assembler::exploreMarkerGraph(
         markerGraph.vertexTable,
         *consensusCaller);
     const auto createStartTime = steady_clock::now();
-    if(requestParameters.useStoredConnectivity) {
-        if(!extractLocalMarkerGraphUsingStoredConnectivity(
-            requestParameters.vertexId,
-            requestParameters.maxDistance,
-            requestParameters.timeout,
-            requestParameters.useWeakEdges,
-            requestParameters.usePrunedEdges,
-            requestParameters.useSuperBubbleEdges,
-            graph)) {
-            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            return;
-        }
-    } else {
-        if(!extractLocalMarkerGraph(
-            requestParameters.vertexId,
-            requestParameters.maxDistance,
-            requestParameters.timeout,
-            graph)) {
-            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            return;
-        }
+    if(!extractLocalMarkerGraphUsingStoredConnectivity(
+        requestParameters.vertexId,
+        requestParameters.maxDistance,
+        requestParameters.timeout,
+        requestParameters.useWeakEdges,
+        requestParameters.usePrunedEdges,
+        requestParameters.useSuperBubbleEdges,
+        graph)) {
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
     }
     if(num_vertices(graph) == 0) {
         html << "<p>The local marker graph is empty.";
@@ -242,10 +231,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.detailed = getParameterValue(
         request, "detailed", detailedString);
 
-    string useStoredConnectivityString;
-    parameters.useStoredConnectivity = getParameterValue(
-        request, "useStoredConnectivity", useStoredConnectivityString);
-
     string useWeakEdgesString;
     parameters.useWeakEdges = getParameterValue(
         request, "useWeakEdges", useWeakEdgesString);
@@ -304,13 +289,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td>Detailed"
         "<td class=centered><input type=checkbox name=detailed"
         << (detailed ? " checked=checked" : "") <<
-        ">"
-
-        "<tr title='Check to use stored connectivity of the global marker graph "
-        "instead of constructing it on the fly'>"
-        "<td>Use stored connectivity"
-        "<td class=centered><input type=checkbox name=useStoredConnectivity"
-        << (useStoredConnectivity ? " checked=checked" : "") <<
         ">"
 
         "<tr title='Check to include in the local marker graph "
