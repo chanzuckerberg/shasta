@@ -1736,7 +1736,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
-    bool useBubbleEdges,
     bool useSuperBubbleEdges,
     LocalMarkerGraph& graph
     )
@@ -1747,7 +1746,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         startVertexId, distance, timeout,
         useWeakEdges,
         usePrunedEdges,
-        useBubbleEdges,
         useSuperBubbleEdges,
         graph);
 
@@ -1761,7 +1759,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     double timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
-    bool useBubbleEdges,
     bool useSuperBubbleEdges,
     LocalMarkerGraph& graph
     )

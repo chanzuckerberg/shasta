@@ -1054,7 +1054,6 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
-        bool useBubbleEdges,
         bool useSuperBubbleEdges,
         LocalMarkerGraph&
         );
@@ -1064,7 +1063,6 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
-        bool useBubbleEdges,
         bool useSuperBubbleEdges,
         LocalMarkerGraph&
         );
@@ -1380,7 +1378,6 @@ public:
         bool useStoredConnectivity;
         bool useWeakEdges;
         bool usePrunedEdges;
-        bool useBubbleEdges;
         bool useSuperBubbleEdges;
         bool showVertexId;
         uint32_t minCoverage;

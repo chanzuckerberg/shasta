@@ -64,7 +64,6 @@ void Assembler::exploreMarkerGraph(
             requestParameters.timeout,
             requestParameters.useWeakEdges,
             requestParameters.usePrunedEdges,
-            requestParameters.useBubbleEdges,
             requestParameters.useSuperBubbleEdges,
             graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
@@ -255,10 +254,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.usePrunedEdges = getParameterValue(
         request, "usePrunedEdges", usePrunedEdgesString);
 
-    string useBubbleEdgesString;
-    parameters.useBubbleEdges = getParameterValue(
-        request, "useBubbleEdges", useBubbleEdgesString);
-
     string useSuperBubbleEdgesString;
     parameters.useSuperBubbleEdges = getParameterValue(
         request, "useSuperBubbleEdges", useSuperBubbleEdgesString);
@@ -320,7 +315,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "Options only used when \"Use stored connectivity\" is checked:<br>"
         "<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") << ">Weak edges"
         "<br><input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") << ">Pruned edges"
-        "<br><input type=checkbox name=useBubbleEdges" << (useBubbleEdges ? " checked=checked" : "") << ">Bubble edges"
         "<br><input type=checkbox name=useSuperBubbleEdges" << (useSuperBubbleEdges ? " checked=checked" : "") << ">Superbubble edges"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
