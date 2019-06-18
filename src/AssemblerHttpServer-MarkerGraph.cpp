@@ -311,11 +311,28 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td>Use stored connectivity"
         "<td class=centered><input type=checkbox name=useStoredConnectivity"
         << (useStoredConnectivity ? " checked=checked" : "") <<
-        "><td class=left>"
-        "Options only used when \"Use stored connectivity\" is checked:<br>"
-        "<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") << ">Weak edges"
-        "<br><input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") << ">Pruned edges"
-        "<br><input type=checkbox name=useSuperBubbleEdges" << (useSuperBubbleEdges ? " checked=checked" : "") << ">Superbubble edges"
+        ">"
+
+        "<tr title='Check to include in the local marker graph "
+        "edges that were removed during transitive reduction'>"
+        "<td>Edges removed during transitive reduction"
+        "<td class=centered>"
+        "<input type=checkbox name=useWeakEdges" <<
+        (useWeakEdges ? " checked=checked" : "") << ">"
+
+        "<tr title='Check to include in the local marker graph "
+        "edges that were removed during pruning'>"
+        "<td>Edges removed during pruning"
+        "<td class=centered>"
+        "<input type=checkbox name=usePrunedEdges" <<
+        (usePrunedEdges ? " checked=checked" : "") << ">"
+
+        "<tr title='Check to include in the local marker graph "
+        "edges that were removed during bubble/superbubble detection'>"
+        "<td>Edges removed during bubble/superbubble detection"
+        "<td class=centered>"
+        "<input type=checkbox name=useSuperBubbleEdges" <<
+        (useSuperBubbleEdges ? " checked=checked" : "") << ">"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
         "<td>Show vertex ids"
