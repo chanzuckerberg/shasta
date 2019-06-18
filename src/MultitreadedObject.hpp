@@ -17,6 +17,9 @@
 #include "CZI_ASSERT.hpp"
 #include "timestamp.hpp"
 
+// Linux.
+#include <pthread.h>
+
 // Standard libraries.
 #include "algorithm.hpp"
 #include "cstddef.hpp"
@@ -118,6 +121,7 @@ private:
             std::lock_guard<std::mutex> lock(t.mutex);
             cout << timestamp << "A runtime error occurred in thread " << threadId << ": ";
             cout << e.what() << endl;
+            t.killAllThreadsExceptMe(threadId);
             ::exit(1);
         } catch(const std::bad_alloc& e) {
             t.exceptionsOccurred = true;
@@ -126,17 +130,20 @@ private:
             cout << "A memory allocation failure occurred in thread " << threadId << ": ";
             cout << "This assembly requires more memory than available." << endl;
             cout << "Rerun on a larger machine." << endl;
+            t.killAllThreadsExceptMe(threadId);
             ::exit(1);
         } catch(const exception& e) {
             t.exceptionsOccurred = true;
             std::lock_guard<std::mutex> lock(t.mutex);
             cout << "A standard exception occurred in thread " << threadId << ": ";
             cout << e.what() << endl;
+            t.killAllThreadsExceptMe(threadId);
             ::exit(1);
         } catch(...) {
             t.exceptionsOccurred = true;
             std::lock_guard<std::mutex> lock(t.mutex);
             cout << "A non-standard exception occurred in thread " << threadId << "." << endl;
+            t.killAllThreadsExceptMe(threadId);
             ::exit(1);
         }
     }
@@ -144,6 +151,20 @@ private:
 
 
     vector< std::shared_ptr<std::thread> > threads;
+
+    void killAllThreadsExceptMe(size_t me)
+    {
+        for(size_t threadId=0; threadId<threads.size(); threadId++) {
+            if(threadId == me) {
+                continue;
+            }
+            const std::shared_ptr<std::thread> thread = threads[threadId];
+            const auto h = thread->native_handle();
+            if(h) {
+                ::pthread_cancel(h);
+            }
+        }
+    }
 
     vector<ofstream> threadLogs;
 
