@@ -144,7 +144,7 @@ void Assembler::exploreMarkerGraph(
         "MarkerGraphLegend-Compact.html";
     html <<
         "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
-        " <a href='docs/" << legendName << "'>(see legend)</a></h2>";
+        "</h2>";
 
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
