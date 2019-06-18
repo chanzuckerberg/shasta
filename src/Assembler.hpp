@@ -1048,7 +1048,7 @@ private:
         OrientedReadId,
         uint32_t ordinal,
         int distance,
-        double timeout,                 // Or 0 for no timeout.
+        int timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
@@ -1057,7 +1057,7 @@ private:
     bool extractLocalMarkerGraphUsingStoredConnectivity(
         MarkerGraph::VertexId,
         int distance,
-        double timeout,                 // Or 0 for no timeout.
+        int timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useSuperBubbleEdges,
@@ -1377,7 +1377,7 @@ public:
         bool useSuperBubbleEdges;
         uint32_t sizePixels;
         bool sizePixelsIsPresent;
-        double timeout;
+        int timeout;
         bool timeoutIsPresent;
         void writeForm(ostream&, MarkerGraph::VertexId vertexCount) const;
         bool hasMissingRequiredParameters() const;

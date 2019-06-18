@@ -1729,7 +1729,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
     int distance,
-    double timeout,                 // Or 0 for no timeout.
+    int timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,
@@ -1752,7 +1752,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     MarkerGraph::VertexId startVertexId,
     int distance,
-    double timeout,                 // Or 0 for no timeout.
+    int timeout,                 // Or 0 for no timeout.
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useSuperBubbleEdges,

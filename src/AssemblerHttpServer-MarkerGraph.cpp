@@ -75,7 +75,7 @@ void Assembler::exploreMarkerGraph(
     graph.approximateTopologicalSort();
     vector< pair<shasta::Base, int> > sequence;
     const auto createFinishTime = steady_clock::now();
-    if(seconds(createFinishTime - createStartTime) > requestParameters.timeout) {
+    if(requestParameters.timeout>0 && seconds(createFinishTime - createStartTime) > requestParameters.timeout) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
@@ -108,7 +108,7 @@ void Assembler::exploreMarkerGraph(
 
     // Compute layout in svg format.
     const string command =
-        "timeout " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
+        "timeout " + to_string(requestParameters.timeout - int(seconds(createFinishTime - createStartTime))) +
         " dot -O -T svg " + dotFileName +
         " -Gsize=" + to_string(requestParameters.sizePixels/72.);
     const int commandStatus = ::system(command.c_str());
@@ -306,7 +306,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
 
-        "<tr>"
+        "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
         "<td>Timeout (seconds) for graph creation and layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
