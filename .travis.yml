@@ -7,18 +7,34 @@
 
 language: cpp
 sudo: required
-dist: xenial
 compiler: gcc
-os: linux
-before_install:
-  - ls
-install:
-  - sudo scripts/InstallPrerequisites-Ubuntu.sh
-  - mkdir shasta-build
-  - cd shasta-build
-  - cmake ..
-  - make all
-  - make install
-script:
-  - ../scripts/travis-build.sh
+
+jobs:
+  include:
+  
+  - name: "Ubuntu build"
+  - os: linux
+  - dist: xenial
+  - install:
+    - sudo scripts/InstallPrerequisites-Ubuntu.sh
+    - mkdir shasta-build
+    - cd shasta-build
+    - cmake ..
+    - make all
+    - make install
+  - script:
+    - ../scripts/TravisCheckBuildUbuntu.sh
+    
+  - name: "MacOS build"
+  - os: osx
+  - install:
+    - sudo scripts/InstallPrerequisites-macOS.sh
+    - mkdir shasta-build
+    - cd shasta-build
+    - cmake ..
+    - make all
+    - make install
+  - script:
+    - ../scripts/TravisCheckBuildMacOS.sh
+    
 
