@@ -65,9 +65,7 @@ void Assembler::exploreMarkerGraph(
             requestParameters.useWeakEdges,
             requestParameters.usePrunedEdges,
             requestParameters.useBubbleEdges,
-            requestParameters.useBubbleReplacementEdges,
             requestParameters.useSuperBubbleEdges,
-            requestParameters.useSuperBubbleReplacementEdges,
             graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             return;
@@ -261,17 +259,9 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.useBubbleEdges = getParameterValue(
         request, "useBubbleEdges", useBubbleEdgesString);
 
-    string useBubbleReplacementEdgesString;
-    parameters.useBubbleReplacementEdges = getParameterValue(
-        request, "useBubbleReplacementEdges", useBubbleReplacementEdgesString);
-
     string useSuperBubbleEdgesString;
     parameters.useSuperBubbleEdges = getParameterValue(
         request, "useSuperBubbleEdges", useSuperBubbleEdgesString);
-
-    string useSuperBubbleReplacementEdgesString;
-    parameters.useSuperBubbleReplacementEdges = getParameterValue(
-        request, "useSuperBubbleReplacementEdges", useSuperBubbleReplacementEdgesString);
 
     string showVertexIdString;
     parameters.showVertexId = getParameterValue(
@@ -331,9 +321,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") << ">Weak edges"
         "<br><input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") << ">Pruned edges"
         "<br><input type=checkbox name=useBubbleEdges" << (useBubbleEdges ? " checked=checked" : "") << ">Bubble edges"
-        "<br><input type=checkbox name=useBubbleReplacementEdges" << (useBubbleReplacementEdges ? " checked=checked" : "") << ">Bubble replacement edges"
         "<br><input type=checkbox name=useSuperBubbleEdges" << (useSuperBubbleEdges ? " checked=checked" : "") << ">Superbubble edges"
-        "<br><input type=checkbox name=useSuperBubbleReplacementEdges" << (useSuperBubbleReplacementEdges ? " checked=checked" : "") << ">Superbubble replacement edges"
 
         "<tr title='Check to show vertex ids (only useful for debugging)'>"
         "<td>Show vertex ids"

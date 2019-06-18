@@ -1737,9 +1737,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useBubbleEdges,
-    bool useBubbleReplacementEdges,
     bool useSuperBubbleEdges,
-    bool useSuperBubbleReplacementEdges,
     LocalMarkerGraph& graph
     )
 {
@@ -1750,9 +1748,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
         useWeakEdges,
         usePrunedEdges,
         useBubbleEdges,
-        useBubbleReplacementEdges,
         useSuperBubbleEdges,
-        useSuperBubbleReplacementEdges,
         graph);
 
 }
@@ -1766,9 +1762,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     bool useWeakEdges,
     bool usePrunedEdges,
     bool useBubbleEdges,
-    bool useBubbleReplacementEdges,
     bool useSuperBubbleEdges,
-    bool useSuperBubbleReplacementEdges,
     LocalMarkerGraph& graph
     )
 {

@@ -1055,9 +1055,7 @@ private:
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useBubbleEdges,
-        bool useBubbleReplacementEdges,
         bool useSuperBubbleEdges,
-        bool useSuperBubbleReplacementEdges,
         LocalMarkerGraph&
         );
     bool extractLocalMarkerGraphUsingStoredConnectivity(
@@ -1067,9 +1065,7 @@ private:
         bool useWeakEdges,
         bool usePrunedEdges,
         bool useBubbleEdges,
-        bool useBubbleReplacementEdges,
         bool useSuperBubbleEdges,
-        bool useSuperBubbleReplacementEdges,
         LocalMarkerGraph&
         );
 #endif
@@ -1385,9 +1381,7 @@ public:
         bool useWeakEdges;
         bool usePrunedEdges;
         bool useBubbleEdges;
-        bool useBubbleReplacementEdges;
         bool useSuperBubbleEdges;
-        bool useSuperBubbleReplacementEdges;
         bool showVertexId;
         uint32_t minCoverage;
         bool minCoverageIsPresent;
