@@ -168,7 +168,10 @@ void Assembler::exploreMarkerGraph(
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
-            (requestParameters.detailed ? "&detailed=on" : "");
+            (requestParameters.detailed ? "&detailed=on" : "") +
+            (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
+            (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
+            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
         if(requestParameters.detailed) {
             html <<
                 "document.getElementById('a_vertexDistance" << vertex.vertexId <<
