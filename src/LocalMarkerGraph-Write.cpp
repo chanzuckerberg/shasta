@@ -108,11 +108,11 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Color.
         string color;
         if(vertex.distance == maxDistance) {
-            color = "cyan";
+            color = "#00ffff";
         } else if(vertex.distance == 0) {
-            color = "#90ee90";
+            color = "#88ff88";
         } else  {
-            color = "black";
+            color = "#00cccc";
         }
         s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
 
@@ -132,11 +132,11 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Color.
         string color;
         if(vertex.distance == maxDistance) {
-            color = "cyan";
+            color = "#00ffff";
         } else if(vertex.distance == 0) {
-            color = "#90ee90";
+            color = "#88ff88";
         } else {
-            color = "green";
+            color = "#00cccc";
         }
         s << " style=filled";
         s << " fillcolor=\"" << color << "\"";
@@ -301,7 +301,6 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     const LocalMarkerGraphEdge& edge = graph[e];
     const size_t coverage = edge.coverage();
     CZI_ASSERT(coverage > 0);
-    const size_t consensus = edge.consensus();
 
     if(!detailed) {
 
@@ -311,15 +310,10 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << "[";
 
         // Tooltip.
-        s << "tooltip=\"Coverage " << coverage << ", consensus " << consensus << "\"";
+        s << "tooltip=\"Edge " << edge.edgeId << ", coverage " << coverage << "\"";
 
         // Color.
-        string color;
-        if(edge.isSpanningTreeEdge) {
-            color = "violet";
-        } else {
-            color = "black";
-        }
+        const string color = "black";
         s << " fillcolor=\"" << color << "\"";
         s << " color=\"" << color << "\"";
 
@@ -329,11 +323,6 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         const auto oldPrecision = s.precision(4);
         s <<  thickness;
         s.precision(oldPrecision);
-
-        // Style.
-        if(edge.isSpanningTreeEdge && !edge.isSpanningTreeBestPathEdge) {
-            s << " style=dashed";
-        }
 
         // Weight;
         s << " weight=" << coverage;
@@ -348,7 +337,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         // Begin edge attributes.
         s << "[";
 
-        const string tooltipText = "Coverage " + to_string(coverage) + ", consensus " +to_string(consensus);
+        const string tooltipText = "Edge " + to_string(edge.edgeId) + ", coverage " + to_string(coverage);
         s << " tooltip=\"" << tooltipText << "\"";
         s << " labeltooltip=\"" << tooltipText << "\"";
         // s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
@@ -360,25 +349,15 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s <<  thickness;
         s.precision(oldPrecision);
 
-        // Style.
-        if(edge.isSpanningTreeEdge && !edge.isSpanningTreeBestPathEdge) {
-            s << " style=dashed";
-        }
-
         // Color.
-        string color;
-        if(edge.isSpanningTreeEdge) {
-            color = "violet";
-        } else  {
-            color = "black";
-        }
+        const string color = "black";
         s << " fillcolor=\"" << color << "\"";
         s << " color=\"" << color << "\"";
 
         // Label color (used below).
         string labelColor;
         if(color == "black") {
-            labelColor = "green";
+            labelColor = "pink";
         } else {
             labelColor = color;
         }
@@ -415,9 +394,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
                 " in assembly graph edge " << edge.assemblyEdgeId << "</b></td></tr>";
         }
 
-        // Consensus and coverage.
+        // Coverage.
         s << "<tr><td colspan=\"" << columnCount << "\"><b>Coverage " << coverage << "</b></td></tr>";
-        s << "<tr><td colspan=\"" << columnCount << "\"><b>Consensus " << consensus << "</b></td></tr>";
 
         // Header row.
         s <<
