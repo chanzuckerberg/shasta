@@ -64,7 +64,6 @@ void Assembler::exploreMarkerGraph(
             requestParameters.timeout,
             requestParameters.useWeakEdges,
             requestParameters.usePrunedEdges,
-            requestParameters.useShortCycleEdges,
             requestParameters.useBubbleEdges,
             requestParameters.useBubbleReplacementEdges,
             requestParameters.useSuperBubbleEdges,
@@ -258,10 +257,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.usePrunedEdges = getParameterValue(
         request, "usePrunedEdges", usePrunedEdgesString);
 
-    string useShortCycleEdgesString;
-    parameters.useShortCycleEdges = getParameterValue(
-        request, "useShortCycleEdges", useShortCycleEdgesString);
-
     string useBubbleEdgesString;
     parameters.useBubbleEdges = getParameterValue(
         request, "useBubbleEdges", useBubbleEdgesString);
@@ -335,7 +330,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "Options only used when \"Use stored connectivity\" is checked:<br>"
         "<input type=checkbox name=useWeakEdges" << (useWeakEdges ? " checked=checked" : "") << ">Weak edges"
         "<br><input type=checkbox name=usePrunedEdges" << (usePrunedEdges ? " checked=checked" : "") << ">Pruned edges"
-        "<br><input type=checkbox name=useShortCycleEdges" << (useShortCycleEdges ? " checked=checked" : "") << ">Short cycle edges"
         "<br><input type=checkbox name=useBubbleEdges" << (useBubbleEdges ? " checked=checked" : "") << ">Bubble edges"
         "<br><input type=checkbox name=useBubbleReplacementEdges" << (useBubbleReplacementEdges ? " checked=checked" : "") << ">Bubble replacement edges"
         "<br><input type=checkbox name=useSuperBubbleEdges" << (useSuperBubbleEdges ? " checked=checked" : "") << ">Superbubble edges"

@@ -1054,7 +1054,6 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
-        bool useShortCycleEdges,
         bool useBubbleEdges,
         bool useBubbleReplacementEdges,
         bool useSuperBubbleEdges,
@@ -1067,7 +1066,6 @@ private:
         double timeout,                 // Or 0 for no timeout.
         bool useWeakEdges,
         bool usePrunedEdges,
-        bool useShortCycleEdges,
         bool useBubbleEdges,
         bool useBubbleReplacementEdges,
         bool useSuperBubbleEdges,
@@ -1386,7 +1384,6 @@ public:
         bool useStoredConnectivity;
         bool useWeakEdges;
         bool usePrunedEdges;
-        bool useShortCycleEdges;
         bool useBubbleEdges;
         bool useBubbleReplacementEdges;
         bool useSuperBubbleEdges;
