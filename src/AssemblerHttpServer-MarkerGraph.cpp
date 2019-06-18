@@ -187,8 +187,7 @@ void Assembler::exploreMarkerGraph(
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
             (requestParameters.detailed ? "&detailed=on" : "") +
-            (requestParameters.showVertexId ? "&showVertexId=on" : "") +
-            (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
+            (requestParameters.showVertexId ? "&showVertexId=on" : "");
         if(requestParameters.detailed) {
             html <<
                 "document.getElementById('a_vertexDistance" << vertex.vertexId <<
@@ -209,8 +208,7 @@ void Assembler::exploreMarkerGraph(
                 "&sizePixels=" + to_string(requestParameters.sizePixels) +
                 "&timeout=" + to_string(requestParameters.timeout) +
                 "&detailed=on" +
-                (requestParameters.showVertexId ? "&showVertexId=on" : "") +
-                (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
+                (requestParameters.showVertexId ? "&showVertexId=on" : "");
             html <<
                 "document.getElementById('vertex" << vertex.vertexId <<
                 "').oncontextmenu = function() {location.href='" << detailUrl << "';"
@@ -284,10 +282,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.showVertexId = getParameterValue(
         request, "showVertexId", showVertexIdString);
 
-    string showOptimalSpanningTreeString;
-    parameters.showOptimalSpanningTree = getParameterValue(
-        request, "showOptimalSpanningTree", showOptimalSpanningTreeString);
-
     parameters.minCoverage = 0;
     parameters.minCoverageIsPresent = getParameterValue(
         request, "minCoverage", parameters.minCoverage);
@@ -352,14 +346,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<td class=centered><input type=checkbox name=showVertexId"
         << (showVertexId ? " checked=checked" : "") <<
         ">"
-
-        "<tr title='Check to show in purple the optimal spanning tree of the local marker graph"
-        " (always shown if assembled sequence is also selected)'>"
-        "<td>Show optimal spanning tree"
-        "<td class=centered><input type=checkbox name=showOptimalSpanningTree"
-        << (showOptimalSpanningTree ? " checked=checked" : "") <<
-        ">"
-
 
         "<tr title='Minimum coverage (number of markers) for a vertex or edge to be considered strong. "
         "Affects the coloring of vertices and edges.'>"

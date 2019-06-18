@@ -1392,7 +1392,6 @@ public:
         bool useSuperBubbleEdges;
         bool useSuperBubbleReplacementEdges;
         bool showVertexId;
-        bool showOptimalSpanningTree;
         uint32_t minCoverage;
         bool minCoverageIsPresent;
         uint32_t sizePixels;
