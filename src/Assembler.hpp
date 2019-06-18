@@ -1393,14 +1393,12 @@ public:
         bool useSuperBubbleReplacementEdges;
         bool showVertexId;
         bool showOptimalSpanningTree;
-        bool showAssembledSequence;
         uint32_t minCoverage;
         bool minCoverageIsPresent;
         uint32_t sizePixels;
         bool sizePixelsIsPresent;
         double timeout;
         bool timeoutIsPresent;
-        string portionToDisplay;
         void writeForm(ostream&, MarkerGraph::VertexId vertexCount) const;
         bool hasMissingRequiredParameters() const;
     };

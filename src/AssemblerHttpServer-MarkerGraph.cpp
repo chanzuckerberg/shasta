@@ -89,17 +89,6 @@ void Assembler::exploreMarkerGraph(
     }
     graph.approximateTopologicalSort();
     vector< pair<shasta::Base, int> > sequence;
-    if( requestParameters.showOptimalSpanningTree ||
-        requestParameters.portionToDisplay=="spanningTree" ||
-        requestParameters.portionToDisplay=="optimalPath" ||
-        requestParameters.portionToDisplay=="clippedOptimalPath" ||
-        requestParameters.showAssembledSequence) {
-        graph.computeOptimalSpanningTree();
-        graph.computeOptimalSpanningTreeBestPath();
-        if(requestParameters.showAssembledSequence) {
-            graph.assembleDominantSequence(requestParameters.maxDistance, sequence);
-        }
-    }
     const auto createFinishTime = steady_clock::now();
     if(seconds(createFinishTime - createStartTime) > requestParameters.timeout) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
@@ -123,50 +112,6 @@ void Assembler::exploreMarkerGraph(
         "</script>\n";
 
 
-
-    // Assembled sequence from the graph, if requested.
-    // This must be done while the graph is still intact.
-    if(requestParameters.showAssembledSequence) {
-
-        const string fastaSequenceName =
-            "AssembledSequence-" + to_string(requestParameters.vertexId) +
-            "-" + to_string(requestParameters.maxDistance);
-        const string fastaFileName = fastaSequenceName + ".fa";
-        string fastaString = ">" + fastaSequenceName + " length " + to_string(sequence.size()) + "\\n";
-        for(const auto& p: sequence) {
-            char c = p.first.character();
-            const auto coverage = p.second;
-            if(coverage < 10) {
-                c = char(std::tolower(c));
-            }
-            fastaString += c;
-        }
-        fastaString += "\\n";
-
-        html << "<h2>Sequence assembled from this local marker graph</h2>";
-        graph.assembleDominantSequenceUsingSeqan(html);
-
-#if 0
-        // Also show alignments of oriented reads to assembled sequence.
-        html << "<br><h4 style='margin:0'>Marker alignments of assembled sequence to oriented reads</h4>";
-        html << "<br>All read and assembled sequence in this table is "
-            "in run-length representation.";
-        showLocalMarkerGraphAlignments(html, graph, requestParameters);
-#endif
-    }
-
-
-
-    // Remove the portion of the graph that we don't want to display.
-    if(requestParameters.portionToDisplay=="spanningTree") {
-        graph.removeNonSpanningTreeEdges();
-    } else if(requestParameters.portionToDisplay=="optimalPath") {
-        graph.removeAllExceptOptimalPath();
-    } else if(requestParameters.portionToDisplay=="clippedOptimalPath") {
-        graph.removeAllExceptClippedOptimalPath();
-    } else if(requestParameters.portionToDisplay=="none") {
-        graph.clear();
-    }
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
@@ -206,87 +151,81 @@ void Assembler::exploreMarkerGraph(
     filesystem::remove(dotFileName);
 
 
+
     // Write the graph.
-    if(requestParameters.portionToDisplay == "none") {
-        html << "<p>As requested, the graph was not displayed.";
-    } else {
-        // Write the page title.
-        const string legendName =
-            requestParameters.detailed ?
-            "MarkerGraphLegend-Detailed.html" :
-            "MarkerGraphLegend-Compact.html";
-        html <<
-            "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
-            " <a href='docs/" << legendName << "'>(see legend)</a></h2>";
 
-        const string svgFileName = dotFileName + ".svg";
-        ifstream svgFile(svgFileName);
-        html << svgFile.rdbuf();
-        svgFile.close();
+    // Write the legend.
+    const string legendName =
+        requestParameters.detailed ?
+        "MarkerGraphLegend-Detailed.html" :
+        "MarkerGraphLegend-Compact.html";
+    html <<
+        "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
+        " <a href='docs/" << legendName << "'>(see legend)</a></h2>";
 
-        // Remove the .svg file.
-        filesystem::remove(svgFileName);
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << svgFile.rdbuf();
+    svgFile.close();
 
-        // Make the vertices clickable to recompute the graph with the
-        // same parameters, but starting at the clicked vertex.
-        // For a detailed graph, only the "Distance" label of each vertex
-        // is made clickable.
-        html << "<script>\n";
-        BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
-            const LocalMarkerGraphVertex& vertex = graph[v];
-            CZI_ASSERT(!vertex.markerInfos.empty());
-            const auto& markerInfo = vertex.markerInfos.front();
-            const string url =
+    // Remove the .svg file.
+    filesystem::remove(svgFileName);
+
+    // Make the vertices clickable to recompute the graph with the
+    // same parameters, but starting at the clicked vertex.
+    // For a detailed graph, only the "Distance" label of each vertex
+    // is made clickable.
+    html << "<script>\n";
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
+        const LocalMarkerGraphVertex& vertex = graph[v];
+        CZI_ASSERT(!vertex.markerInfos.empty());
+        const auto& markerInfo = vertex.markerInfos.front();
+        const string url =
+            "exploreMarkerGraph?vertexId=" + to_string(vertex.vertexId) +
+            "&maxDistance=" + to_string(requestParameters.maxDistance) +
+            "&minCoverage=" + to_string(requestParameters.minCoverage) +
+            "&sizePixels=" + to_string(requestParameters.sizePixels) +
+            "&timeout=" + to_string(requestParameters.timeout) +
+            (requestParameters.detailed ? "&detailed=on" : "") +
+            (requestParameters.showVertexId ? "&showVertexId=on" : "") +
+            (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
+        if(requestParameters.detailed) {
+            html <<
+                "document.getElementById('a_vertexDistance" << vertex.vertexId <<
+                "').onclick = function() {location.href='" << url << "';};\n";
+        } else {
+            html <<
+                "document.getElementById('vertex" << vertex.vertexId <<
+                "').onclick = function() {location.href='" << url << "';};\n";
+
+            // We are displaying the graph in compact mode.
+            // Add a right click to recenter and show detailed.
+            const string detailUrl =
                 "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
                 "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
                 "&ordinal="  + to_string(markerInfo.ordinal) +
-                "&maxDistance=" + to_string(requestParameters.maxDistance) +
+                "&maxDistance=1" +
                 "&minCoverage=" + to_string(requestParameters.minCoverage) +
                 "&sizePixels=" + to_string(requestParameters.sizePixels) +
                 "&timeout=" + to_string(requestParameters.timeout) +
-                "&portionToDisplay=" + requestParameters.portionToDisplay +
-                (requestParameters.detailed ? "&detailed=on" : "") +
+                "&detailed=on" +
                 (requestParameters.showVertexId ? "&showVertexId=on" : "") +
                 (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
-            if(requestParameters.detailed) {
-                html <<
-                    "document.getElementById('a_vertexDistance" << vertex.vertexId <<
-                    "').onclick = function() {location.href='" << url << "';};\n";
-            } else {
-                html <<
-                    "document.getElementById('vertex" << vertex.vertexId <<
-                    "').onclick = function() {location.href='" << url << "';};\n";
-
-                // We are displaying the graph in compact mode.
-                // Add a right click to recenter and show detailed.
-                const string detailUrl =
-                    "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
-                    "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
-                    "&ordinal="  + to_string(markerInfo.ordinal) +
-                    "&maxDistance=1" +
-                    "&minCoverage=" + to_string(requestParameters.minCoverage) +
-                    "&sizePixels=" + to_string(requestParameters.sizePixels) +
-                    "&timeout=" + to_string(requestParameters.timeout) +
-                    "&portionToDisplay=" + requestParameters.portionToDisplay +
-                    "&detailed=on" +
-                    (requestParameters.showVertexId ? "&showVertexId=on" : "") +
-                    (requestParameters.showOptimalSpanningTree ? "&showOptimalSpanningTree=on" : "");
-                html <<
-                    "document.getElementById('vertex" << vertex.vertexId <<
-                    "').oncontextmenu = function() {location.href='" << detailUrl << "';"
-                    "return false;};\n";
-            }
+            html <<
+                "document.getElementById('vertex" << vertex.vertexId <<
+                "').oncontextmenu = function() {location.href='" << detailUrl << "';"
+                "return false;};\n";
         }
-        html << "</script>\n";
-
-
-
-        // Position the start vertex at the center of the window.
-        html <<
-            "<script>\n"
-            "positionAtVertex(" << requestParameters.vertexId << ");\n"
-            "</script>\n";
     }
+    html << "</script>\n";
+
+
+
+    // Position the start vertex at the center of the window.
+    html <<
+        "<script>\n"
+        "positionAtVertex(" << requestParameters.vertexId << ");\n"
+        "</script>\n";
 }
 
 
@@ -349,10 +288,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.showOptimalSpanningTree = getParameterValue(
         request, "showOptimalSpanningTree", showOptimalSpanningTreeString);
 
-    string showAssembledSequenceString;
-    parameters.showAssembledSequence = getParameterValue(
-        request, "showAssembledSequence", showAssembledSequenceString);
-
     parameters.minCoverage = 0;
     parameters.minCoverageIsPresent = getParameterValue(
         request, "minCoverage", parameters.minCoverage);
@@ -364,10 +299,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.timeout = 30;
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
-
-    parameters.portionToDisplay = "all";
-    getParameterValue(
-        request, "portionToDisplay", parameters.portionToDisplay);
 
 }
 
@@ -383,8 +314,8 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
         "<table>"
 
-        "<tr title='Vertex id between 0 and " << vertexCount << "'>"
-        "<td>Vertex id"
+        "<tr title='Start vertex id between 0 and " << vertexCount << "'>"
+        "<td>Start vertex id"
         "<td><input type=text required name=vertexId size=8 style='text-align:center'"
         << (vertexIdIsPresent ? ("value='"+to_string(vertexId)+"'") : "") <<
         ">"
@@ -429,12 +360,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         << (showOptimalSpanningTree ? " checked=checked" : "") <<
         ">"
 
-        "<tr title='Check to show sequence assembled from this local marker graph'>"
-        "<td>Show assembled sequence"
-        "<td class=centered><input type=checkbox name=showAssembledSequence"
-        << (showAssembledSequence ? " checked=checked" : "") <<
-        ">"
-
 
         "<tr title='Minimum coverage (number of markers) for a vertex or edge to be considered strong. "
         "Affects the coloring of vertices and edges.'>"
@@ -460,45 +385,7 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
 
 
 
-        // Radio buttons to choose what portion of the graph to display.
-        "Portion of the graph to display:"
-
-        "<br><input type=radio name=portionToDisplay value=all" <<
-        (portionToDisplay=="all" ? " checked=on" : "") <<
-        ">Entire graph"
-
-        "<br><input type=radio name=portionToDisplay value=spanningTree" <<
-        (portionToDisplay=="spanningTree" ? " checked=on" : "") <<
-        ">Optimal spanning tree only"
-
-        "<br><input type=radio name=portionToDisplay value=optimalPath" <<
-        (portionToDisplay=="optimalPath" ? " checked=on" : "") <<
-        ">Optimal spanning tree best path only"
-
-        "<br><input type=radio name=portionToDisplay value=clippedOptimalPath" <<
-        (portionToDisplay=="clippedOptimalPath" ? " checked=on" : "") <<
-        "><span "
-        " title='Longest subpath of the best path in the optimal spanning tree "
-        "that does not contain any vertices at maximum distance. "
-        "This subpath is used to assemble sequence.'" <<
-        ">Path used to assemble sequence</span>"
-
-        "<br><input type=radio name=portionToDisplay value=none" <<
-        (portionToDisplay=="none" ? " checked=on" : "") <<
-        ">Nothing"
-
-
-
         "<br><input type=submit value='Display'>"
-
-        " <span style='background-color:#e0e0e0' title='"
-        "Fill this form to display a local subgraph of the global marker graph starting at the "
-        "vertex containing the specified marker and extending out to a given distance "
-        "(number of edges) from the start vertex."
-        "The marker is specified by its oriented read id (read id, strand) and marker ordinal. "
-        "The marker ordinal is the sequential index of the marker in the specified oriented read "
-        "(the first marker is marker 0, the second marker is marker 1, and so on).'>"
-        "Mouse here to explain form</span>"
         "</form>";
 }
 
@@ -554,11 +441,9 @@ void Assembler::showLocalMarkerGraphAlignments(
             }
 
             html << "<td style='background-color:" << color << ";text-align:center;font-size:8px'";
-            if(requestParameters.portionToDisplay != "none") {
-                html <<
-                    " title='Click to position graph display at this vertex.'"
-                    " onClick='positionAtVertex(" << vertexId << ")'";
-            }
+            html <<
+                " title='Click to position graph display at this vertex.'"
+                " onClick='positionAtVertex(" << vertexId << ")'";
             html << ">";
             html << vertexId;
 
@@ -592,11 +477,9 @@ void Assembler::showLocalMarkerGraphAlignments(
         }
 
         html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
-        if(requestParameters.portionToDisplay != "none") {
-            html <<
-                " title='Vertex rank. Click to position graph display at this vertex.'"
-                " onClick='positionAtVertex(" << vertex.vertexId << ")'";
-        }
+        html <<
+            " title='Vertex rank. Click to position graph display at this vertex.'"
+            " onClick='positionAtVertex(" << vertex.vertexId << ")'";
         html << ">";
         html << vertex.rank;
 
@@ -629,12 +512,10 @@ void Assembler::showLocalMarkerGraphAlignments(
         }
 
         html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
-        if(requestParameters.portionToDisplay != "none") {
-            html <<
-                " title='Vertex distance (number of edges) from start vertex. "
-                "Click to position graph display at this vertex.'"
-                " onClick='positionAtVertex(" << vertex.vertexId << ")'";
-        }
+        html <<
+            " title='Vertex distance (number of edges) from start vertex. "
+            "Click to position graph display at this vertex.'"
+            " onClick='positionAtVertex(" << vertex.vertexId << ")'";
         html << ">";
         html << vertex.distance;
 
@@ -668,11 +549,9 @@ void Assembler::showLocalMarkerGraphAlignments(
         const Kmer kmer(kmerId, k);
 
         html << "<td style='background-color:" << color << ";text-align:center;cursor:pointer'";
-        if(requestParameters.portionToDisplay != "none") {
-            html <<
-                " title='Click to position graph display at this vertex.'"
-                " onClick='positionAtVertex(" << vertex.vertexId << ")'";
-        }
+        html <<
+            " title='Click to position graph display at this vertex.'"
+            " onClick='positionAtVertex(" << vertex.vertexId << ")'";
         html << ">";
         kmer.write(html, k);
 
