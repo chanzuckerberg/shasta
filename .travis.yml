@@ -6,7 +6,6 @@
 # this file without affecting any Shasta functionality.
 
 language: cpp
-sudo: required
 compiler: gcc
 
 jobs:
@@ -15,6 +14,7 @@ jobs:
   - name: "Ubuntu build"
     os: linux
     dist: xenial
+    sudo: required
     install:
       - sudo scripts/InstallPrerequisites-Ubuntu.sh
       - mkdir shasta-build
@@ -27,6 +27,7 @@ jobs:
     
   - name: "MacOS build"
     os: osx
+    sudo: false
     install:
       - sudo scripts/InstallPrerequisites-macOS.sh
       - mkdir shasta-build
