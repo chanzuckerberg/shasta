@@ -1378,7 +1378,6 @@ public:
         bool useWeakEdges;
         bool usePrunedEdges;
         bool useSuperBubbleEdges;
-        bool showVertexId;
         uint32_t minCoverage;
         bool minCoverageIsPresent;
         uint32_t sizePixels;
@@ -1391,11 +1390,6 @@ public:
     void getLocalMarkerGraphRequestParameters(
         const vector<string>&,
         LocalMarkerGraphRequestParameters&) const;
-    void showLocalMarkerGraphAlignments(
-        ostream& html,
-        const LocalMarkerGraph&,
-        const LocalMarkerGraphRequestParameters&
-        );
     void exploreMarkerGraphVertex(const vector<string>&, ostream&);
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
 #endif

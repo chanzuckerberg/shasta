@@ -21,23 +21,21 @@ void LocalMarkerGraph::write(
     const string& fileName,
     size_t minCoverage,
     int maxDistance,
-    bool detailed,
-    bool showVertexId) const
+    bool detailed) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, minCoverage, maxDistance, detailed, showVertexId);
+    write(outputFileStream, minCoverage, maxDistance, detailed);
 }
 void LocalMarkerGraph::write(
     ostream& s,
     size_t minCoverage,
     int maxDistance,
-    bool detailed,
-    bool showVertexId) const
+    bool detailed) const
 {
-    Writer writer(*this, minCoverage, maxDistance, detailed, showVertexId);
+    Writer writer(*this, minCoverage, maxDistance, detailed);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
@@ -46,13 +44,11 @@ LocalMarkerGraph::Writer::Writer(
     const LocalMarkerGraph& graph,
     size_t minCoverage,
     int maxDistance,
-    bool detailed,
-    bool showVertexId) :
+    bool detailed) :
     graph(graph),
     minCoverage(minCoverage),
     maxDistance(maxDistance),
-    detailed(detailed),
-    showVertexId(showVertexId)
+    detailed(detailed)
 {
 }
 
@@ -102,11 +98,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
         // Tooltip.
         s << " tooltip=\"";
-        if(showVertexId) {
-            s << "Vertex " << vertex.vertexId << ", coverage ";
-        } else {
-            s << "Coverage ";
-        }
+        s << "Vertex " << vertex.vertexId << ", coverage ";
         s << coverage << ", distance " << vertex.distance << ", rank " << vertex.rank;
         s << ", click to recenter graph here, right click for detail\"";
 
@@ -162,11 +154,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
         // Tooltip.
         s << " tooltip=\"";
-        if(showVertexId) {
-            s << "Vertex " << vertex.vertexId << ", coverage ";
-        } else {
-            s << "Coverage ";
-        }
+        s << "Vertex " << vertex.vertexId << ", coverage ";
         s << coverage << ", distance " << vertex.distance << ", rank "  << vertex.rank << "\"";
 
         // Write the label using Graphviz html-like functionality.
@@ -174,11 +162,9 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         const int columnCount = 4;
 
         // Vertex id.
-        if(showVertexId) {
-            s << "<tr><td colspan=\"" << columnCount << "\"><b>";
-            s << "Vertex " << vertex.vertexId;
-            s << "</b></td></tr>";
-        }
+        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
+        s << "Vertex " << vertex.vertexId;
+        s << "</b></td></tr>";
 
         // Kmer.
         s << "<tr><td colspan=\"" << columnCount << "\"><b>";
@@ -431,12 +417,12 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
         // Edge id.
         const int columnCount = 5;
-        if(showVertexId && (edge.edgeId != MarkerGraph::invalidEdgeId)) {
+        if(edge.edgeId != MarkerGraph::invalidEdgeId) {
             s << "<tr><td colspan=\"" << columnCount << "\"><b>Edge " << edge.edgeId << "</b></td></tr>";
         }
 
         // Assembly vertex id.
-        if(showVertexId && (edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {
+        if(edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max()) {
             s << "<tr><td colspan=\"" << columnCount << "\"><b>Position " << edge.positionInAssemblyEdge <<
                 " in assembly graph edge " << edge.assemblyEdgeId << "</b></td></tr>";
         }

@@ -356,14 +356,12 @@ public:
         ostream&,
         size_t minCoverage,
         int maxDistance,
-        bool detailed,
-        bool showVertexId) const;
+        bool detailed) const;
     void write(
         const string& fileName,
         size_t minCoverage,
         int maxDistance,
-        bool detailed,
-        bool showVertexId) const;
+        bool detailed) const;
 
     // The oriented reads represented in the local marker graph, sorted.
     vector<OrientedReadId> orientedReadIds;
@@ -430,8 +428,7 @@ private:
             const LocalMarkerGraph&,
             size_t minCoverage,
             int maxDistance,
-            bool detailed,
-            bool showVertexId);
+            bool detailed);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
@@ -439,7 +436,6 @@ private:
         size_t minCoverage;
         int maxDistance;
         bool detailed;
-        bool showVertexId;
     };
     friend class Writer;
 };
