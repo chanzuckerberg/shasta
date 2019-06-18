@@ -103,7 +103,6 @@ void Assembler::exploreMarkerGraph(
     const string dotFileName = "/dev/shm/" + uuid + ".dot";
     graph.write(
         dotFileName,
-        requestParameters.minCoverage,
         requestParameters.maxDistance,
         requestParameters.detailed);
 
@@ -167,7 +166,6 @@ void Assembler::exploreMarkerGraph(
         const string url =
             "exploreMarkerGraph?vertexId=" + to_string(vertex.vertexId) +
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
-            "&minCoverage=" + to_string(requestParameters.minCoverage) +
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
             (requestParameters.detailed ? "&detailed=on" : "");
@@ -187,7 +185,6 @@ void Assembler::exploreMarkerGraph(
                 "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
                 "&ordinal="  + to_string(markerInfo.ordinal) +
                 "&maxDistance=1" +
-                "&minCoverage=" + to_string(requestParameters.minCoverage) +
                 "&sizePixels=" + to_string(requestParameters.sizePixels) +
                 "&timeout=" + to_string(requestParameters.timeout) +
                 "&detailed=on";
@@ -239,10 +236,6 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     string useSuperBubbleEdgesString;
     parameters.useSuperBubbleEdges = getParameterValue(
         request, "useSuperBubbleEdges", useSuperBubbleEdgesString);
-
-    parameters.minCoverage = 0;
-    parameters.minCoverageIsPresent = getParameterValue(
-        request, "minCoverage", parameters.minCoverage);
 
     parameters.sizePixels = 800;
     parameters.sizePixelsIsPresent = getParameterValue(
@@ -305,13 +298,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         "<input type=checkbox name=useSuperBubbleEdges" <<
         (useSuperBubbleEdges ? " checked=checked" : "") << ">"
 
-        "<tr title='Minimum coverage (number of markers) for a vertex or edge to be considered strong. "
-        "Affects the coloring of vertices and edges.'>"
-        "<td>Coverage threshold"
-        "<td><input type=text required name=minCoverage size=8 style='text-align:center'"
-        << (minCoverageIsPresent ? (" value='" + to_string(minCoverage)+"'") : " value='3'") <<
-        ">"
-
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
         " Ok to make it much larger than screen size.'>"
@@ -340,7 +326,6 @@ bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters(
     return
         !vertexIdIsPresent ||
         !maxDistanceIsPresent ||
-        !minCoverageIsPresent ||
         !timeoutIsPresent;
 }
 

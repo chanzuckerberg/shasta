@@ -19,7 +19,6 @@ using namespace shasta;
 // Write the graph in Graphviz format.
 void LocalMarkerGraph::write(
     const string& fileName,
-    size_t minCoverage,
     int maxDistance,
     bool detailed) const
 {
@@ -27,26 +26,23 @@ void LocalMarkerGraph::write(
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, minCoverage, maxDistance, detailed);
+    write(outputFileStream, maxDistance, detailed);
 }
 void LocalMarkerGraph::write(
     ostream& s,
-    size_t minCoverage,
     int maxDistance,
     bool detailed) const
 {
-    Writer writer(*this, minCoverage, maxDistance, detailed);
+    Writer writer(*this, maxDistance, detailed);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
 
 LocalMarkerGraph::Writer::Writer(
     const LocalMarkerGraph& graph,
-    size_t minCoverage,
     int maxDistance,
     bool detailed) :
     graph(graph),
-    minCoverage(minCoverage),
     maxDistance(maxDistance),
     detailed(detailed)
 {
@@ -115,10 +111,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
             color = "cyan";
         } else if(vertex.distance == 0) {
             color = "#90ee90";
-        } else  if(coverage >= minCoverage) {
+        } else  {
             color = "black";
-        } else {
-            color = "red";
         }
         s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
 
@@ -141,10 +135,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
             color = "cyan";
         } else if(vertex.distance == 0) {
             color = "#90ee90";
-        } else if(coverage >= minCoverage) {
-            color = "green";
         } else {
-            color = "red";
+            color = "green";
         }
         s << " style=filled";
         s << " fillcolor=\"" << color << "\"";
@@ -325,10 +317,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         string color;
         if(edge.isSpanningTreeEdge) {
             color = "violet";
-        } else if(coverage >= minCoverage) {
-            color = "black";
         } else {
-            color = "red";
+            color = "black";
         }
         s << " fillcolor=\"" << color << "\"";
         s << " color=\"" << color << "\"";
@@ -379,10 +369,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         string color;
         if(edge.isSpanningTreeEdge) {
             color = "violet";
-        } else if(coverage >= minCoverage) {
+        } else  {
             color = "black";
-        } else {
-            color = "red";
         }
         s << " fillcolor=\"" << color << "\"";
         s << " color=\"" << color << "\"";

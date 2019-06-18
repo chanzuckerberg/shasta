@@ -354,12 +354,10 @@ public:
     // the correct layout algorithm automatically.
     void write(
         ostream&,
-        size_t minCoverage,
         int maxDistance,
         bool detailed) const;
     void write(
         const string& fileName,
-        size_t minCoverage,
         int maxDistance,
         bool detailed) const;
 
@@ -426,14 +424,12 @@ private:
     public:
         Writer(
             const LocalMarkerGraph&,
-            size_t minCoverage,
             int maxDistance,
             bool detailed);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalMarkerGraph& graph;
-        size_t minCoverage;
         int maxDistance;
         bool detailed;
     };

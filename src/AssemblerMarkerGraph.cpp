@@ -1493,11 +1493,7 @@ void Assembler::extractLocalMarkerGraph(
     uint32_t ordinal,
 
     // Maximum distance from the start vertex (number of edges in the global marker graph).
-    int distance,
-
-    // Minimum coverage for a strong vertex or edge (affects coloring).
-    size_t minCoverage
-
+    int distance
     )
 {
     // Create the local marker graph.
@@ -1514,8 +1510,8 @@ void Assembler::extractLocalMarkerGraph(
     cout << " vertices and " << num_edges(graph) << " edges." << endl;
 
     // Write it out.
-    graph.write("MarkerGraph.dot", minCoverage, distance, false);
-    graph.write("DetailedMarkerGraph.dot", minCoverage, distance, true);
+    graph.write("MarkerGraph.dot", distance, false);
+    graph.write("DetailedMarkerGraph.dot", distance, true);
 
 }
 

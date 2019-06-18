@@ -240,10 +240,7 @@ public:
         uint32_t ordinal,
 
         // Maximum distance from the start vertex (number of edges in the global marker graph).
-        int distance,
-
-        // Minimum coverage for a strong vertex or edge (affects coloring).
-        size_t minCoverage
+        int distance
         );
 #endif
 
@@ -1378,8 +1375,6 @@ public:
         bool useWeakEdges;
         bool usePrunedEdges;
         bool useSuperBubbleEdges;
-        uint32_t minCoverage;
-        bool minCoverageIsPresent;
         uint32_t sizePixels;
         bool sizePixelsIsPresent;
         double timeout;

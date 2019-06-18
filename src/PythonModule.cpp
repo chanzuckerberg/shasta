@@ -284,17 +284,6 @@ PYBIND11_MODULE(shasta, module)
                 &Assembler::getGlobalMarkerGraphEdgeInformation,
                 arg("vertexId0"),
                 arg("vertexId1"))
-        .def("extractLocalMarkerGraph",
-        (
-            void (Assembler::*)
-            (ReadId, Strand, uint32_t, int, size_t)
-        )
-        &Assembler::extractLocalMarkerGraph,
-        arg("readId"),
-        arg("strand"),
-        arg("ordinal"),
-        arg("distance"),
-        arg("minCoverage"))
         .def("getLocalAssemblyPath",
             &Assembler::getLocalAssemblyPath,
             arg("startVertexId"),
