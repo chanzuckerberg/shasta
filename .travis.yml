@@ -13,28 +13,28 @@ jobs:
   include:
   
   - name: "Ubuntu build"
-  - os: linux
-  - dist: xenial
-  - install:
-    - sudo scripts/InstallPrerequisites-Ubuntu.sh
-    - mkdir shasta-build
-    - cd shasta-build
-    - cmake ..
-    - make all
-    - make install
-  - script:
-    - ../scripts/TravisCheckBuildUbuntu.sh
+    os: linux
+    dist: xenial
+    install:
+      - sudo scripts/InstallPrerequisites-Ubuntu.sh
+      - mkdir shasta-build
+      - cd shasta-build
+      - cmake ..
+      - make all
+      - make install
+    script:
+      - ../scripts/TravisCheckBuildUbuntu.sh
     
   - name: "MacOS build"
-  - os: osx
-  - install:
-    - sudo scripts/InstallPrerequisites-macOS.sh
-    - mkdir shasta-build
-    - cd shasta-build
-    - cmake ..
-    - make all
-    - make install
-  - script:
-    - ../scripts/TravisCheckBuildMacOS.sh
+    os: osx
+    install:
+      - sudo scripts/InstallPrerequisites-macOS.sh
+      - mkdir shasta-build
+      - cd shasta-build
+      - cmake ..
+      - make all
+      - make install
+    script:
+      - ../scripts/TravisCheckBuildMacOS.sh
     
 
