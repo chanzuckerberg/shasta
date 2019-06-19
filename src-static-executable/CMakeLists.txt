@@ -35,8 +35,10 @@ endif(NOT MACOS)
 
 # Include directories required on macOS.
 if(MACOS)
+    set(Boost_USE_STATIC_LIBS ON)
+    find_package(Boost REQUIRED COMPONENTS program_options chrono)
     include_directories(/usr/local/include/)
-    include_directories(/usr/local/Cellar/boost/1.69.0/include)
+    include_directories(${Boost_INCLUDE_DIRS})
 endif(MACOS)
 
 # Pass the build id to the compile command line.
@@ -51,19 +53,10 @@ add_definitions(-mcx16)
 # code that should not be included in the static executable.
 add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 
-# Directories that will be searched for libraries during linking.
-# This is commented out because we are specifying the libraries by full path.
-# if(MACOS)
-#    link_directories(/usr/local/lib)
-#    link_directories(/usr/local/Cellar/boost/1.69.0/lib)
-# endif(MACOS)
-
 
 
 # Specify the libraries to link with.
 if(MACOS)
-    set(Boost_USE_STATIC_LIBS ON)
-    find_package(Boost REQUIRED COMPONENTS program_options chrono)
     target_link_libraries(shasta-static-executable ${Boost_LIBRARIES} /usr/local/lib/libspoa.a pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
@@ -77,7 +70,7 @@ endif(MACOS)
   
     
 # Also request the glibc library to be linked statically. 
-# This is notsupported on macOS.   
+# This is not supported on macOS.   
 if(NOT MACOS)
     SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 endif(NOT MACOS)
