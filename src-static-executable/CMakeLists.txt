@@ -33,10 +33,14 @@ if(NOT MACOS)
     add_definitions(-Wall -Wconversion -Wno-unused-result)
 endif(NOT MACOS)
 
+# Locate the Boost libraries
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED COMPONENTS program_options chrono)
+
 # Include directories required on macOS.
 if(MACOS)
     include_directories(/usr/local/include/)
-    include_directories(/usr/local/Cellar/boost/1.69.0/include)
+    include_directories(${Boost_INCLUDE_DIRS})
 endif(MACOS)
 
 # Pass the build id to the compile command line.
@@ -51,33 +55,28 @@ add_definitions(-mcx16)
 # code that should not be included in the static executable.
 add_definitions(-DSHASTA_STATIC_EXECUTABLE)
 
-# Directories that will be searched for libraries during linking.
-# This is commented out because we are specifying the libraries by full path.
-# if(MACOS)
-#    link_directories(/usr/local/lib)
-#    link_directories(/usr/local/Cellar/boost/1.69.0/lib)
-# endif(MACOS)
-
 
 
 # Specify the libraries to link with.
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+find_library(SPOA libspoa.a)
+target_link_libraries(shasta-static-executable -Wl,-Bstatic ${Boost_LIBRARIES} ${SPOA})
 if(MACOS)
     target_link_libraries(shasta-static-executable pthread)
-    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /usr/local/Cellar/boost/1.69.0/lib/libboost_program_options.a")
-    SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /usr/local/lib/libspoa.a")
+#   SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /usr/local/Cellar/boost/1.69.0/lib/libboost_program_options.a")
+#   SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} /usr/local/lib/libspoa.a")
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive". 
     target_link_libraries(
-        shasta-static-executable
-        atomic boost_system boost_program_options boost_chrono spoa
+        shasta-static-executable -Wl,-Bstatic atomic 
         -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 endif(MACOS)
   
   
     
 # Also request the glibc library to be linked statically. 
-# This is notsupported on macOS.   
+# This is not supported on macOS.   
 if(NOT MACOS)
     SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 endif(NOT MACOS)
