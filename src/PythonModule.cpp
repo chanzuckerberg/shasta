@@ -284,10 +284,6 @@ PYBIND11_MODULE(shasta, module)
                 &Assembler::getGlobalMarkerGraphEdgeInformation,
                 arg("vertexId0"),
                 arg("vertexId1"))
-        .def("getLocalAssemblyPath",
-            &Assembler::getLocalAssemblyPath,
-            arg("startVertexId"),
-            arg("maxDistance"))
         .def("findMarkerGraphReverseComplementVertices",
             &Assembler::findMarkerGraphReverseComplementVertices,
             arg("threadCount") = 0)

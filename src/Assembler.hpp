@@ -228,24 +228,6 @@ public:
 
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
-    // Extract a local marker graph from the global marker graph.
-    void extractLocalMarkerGraph(
-
-        // The ReadId, Strand, and ordinal that identify the
-        // marker corresponding to the start vertex
-        // for the local marker graph to be created.
-        ReadId,
-        Strand,
-        uint32_t ordinal,
-
-        // Maximum distance from the start vertex (number of edges in the global marker graph).
-        int distance
-        );
-#endif
-
-
-
     // Compute an alignment for each alignment candidate.
     // Store summary information for the ones that are good enough,
     // without storing details of the alignment.
@@ -364,25 +346,12 @@ private:
         );
 public:
 
-
-#ifndef SHASTA_STATIC_EXECUTABLE
-    // Create a local marker graph and return its local assembly path.
-    // The local marker graph is specified by its start vertex
-    // and maximum distance (number of edges) form the start vertex.
-    vector<MarkerGraph::VertexId> getLocalAssemblyPath(
-        MarkerGraph::VertexId,
-        int maxDistance
-        );
-#endif
-
-    // Find weak edges in the marker graph.
+    // Use an approximate transitive reduction to find weak edges in the marker graph.
     void flagMarkerGraphWeakEdges(
         size_t lowCoverageThreshold,
         size_t highCoverageThreshold,
         size_t maxDistance,
         size_t edgeMarkerSkipThreshold);
-
-
 
     // Call this before explore to make the documentation available.
     void setDocsDirectory(const string&);
@@ -1010,40 +979,7 @@ private:
 
 
 #ifndef SHASTA_STATIC_EXECUTABLE
-    // Extract a local marker graph from the global marker graph.
-    void extractLocalMarkerGraph(
-
-        // The OrientedReadId and ordinal that identify the
-        // marker corresponding to the start vertex
-        // for the local marker graph to be created.
-        OrientedReadId,
-        uint32_t ordinal,
-
-        // Maximum distance from the start vertex (number of edges).
-        int distance,
-
-        // Minimum coverage for a strong vertex.
-        size_t minCoverage,
-
-        // Minimum consensus for a strong edge.
-        size_t minConsensus
-        );
-    bool extractLocalMarkerGraph(
-        OrientedReadId,
-        uint32_t ordinal,
-        int distance,
-        double timeout,                 // Or 0 for no timeout.
-        LocalMarkerGraph&
-        );
-    bool extractLocalMarkerGraph(
-        MarkerGraph::VertexId,
-        int distance,
-        double timeout,                 // Or 0 for no timeout.
-        LocalMarkerGraph&
-        );
-
-    // Versions of the above that use stored connectivity of the
-    // global marker graph instead of creating it on the fly.
+    // Extract a local subgraph of the global marker graph.
     bool extractLocalMarkerGraphUsingStoredConnectivity(
         OrientedReadId,
         uint32_t ordinal,
