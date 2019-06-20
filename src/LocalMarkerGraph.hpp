@@ -1,8 +1,7 @@
 #ifndef SHASTA_STATIC_EXECUTABLE
 
-#ifndef CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
-#define CZI_SHASTA_LOCAL_MARKER_GRAPH2_HPP
-
+#ifndef CZI_SHASTA_LOCAL_MARKER_GRAPH_HPP
+#define CZI_SHASTA_LOCAL_MARKER_GRAPH_HPP
 
 /*******************************************************************************
 
@@ -18,26 +17,11 @@ a group of aligned markers.
 
 // Shasta.
 #include "AssemblyGraph.hpp"
-#include "Coverage.hpp"
 #include "Kmer.hpp"
 #include "MarkerGraph.hpp"
-#include "MarkerInterval.hpp"
-#include "MemoryAsContainer.hpp"
-#include "ReadId.hpp"
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
-
-// SeqAn.
-#include <seqan/align.h>
-
-// Standard library.
-#include "iostream.hpp"
-#include <map>
-#include "string.hpp"
-#include "tuple.hpp"
-#include "utility.hpp"
-#include "vector.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {
