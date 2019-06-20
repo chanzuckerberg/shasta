@@ -373,16 +373,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::assembleAssemblyGraphEdge,
             arg("edgeId"),
             arg("storeCoverageData") = true)
-        .def("analyzeAssembledSequence",
-            (
-                void (Assembler::*)
-                (AssemblyGraph::EdgeId, uint32_t, uint32_t, const string&)
-            )
-            &Assembler::analyzeAssembledSequence,
-            arg("edgeId"),
-            arg("begin"),
-            arg("end"),
-            arg("referenceSequence"))
 
 
 
