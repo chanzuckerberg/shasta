@@ -95,7 +95,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Tooltip.
         s << " tooltip=\"";
         s << "Vertex " << vertex.vertexId << ", coverage ";
-        s << coverage << ", distance " << vertex.distance << ", rank " << vertex.rank;
+        s << coverage << ", distance " << vertex.distance;
         s << ", click to recenter graph here, right click for detail\"";
 
         // Vertex size.
@@ -147,7 +147,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Tooltip.
         s << " tooltip=\"";
         s << "Vertex " << vertex.vertexId << ", coverage ";
-        s << coverage << ", distance " << vertex.distance << ", rank "  << vertex.rank << "\"";
+        s << coverage << ", distance " << vertex.distance << "\"";
 
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
@@ -174,11 +174,6 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         s << " id=\"vertexDistance" << vertex.vertexId << "\" tooltip=\"Click to recenter graph here\">";
         s << "<font color=\"blue\"><b><u>Distance " << vertex.distance;
         s << "</u></b></font></td></tr>";
-
-        // Rank.
-        s << "<tr><td colspan=\"" << columnCount << "\">";
-        s << "<b>Rank " << vertex.rank;
-        s << "</b></td></tr>";
 
         // Column headers.
         s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td>";
@@ -362,15 +357,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
             labelColor = color;
         }
 
-
         // Weight;
         s << " weight=" << coverage;
-
-        // If the edge was not marked as a DAG edge during approximate topological sort,
-        // tell graphviz not to use it in constraint assignment.
-        if(!edge.isDagEdge) {
-            s << " constraint=false";
-        }
 
         // Label.
         s << " label=<<font color=\"black\">";
@@ -480,194 +468,6 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
             }
         }
 
-
-
-        // If the SeqAn alignment was computed, also write it to the table.
-        if(edge.seqanAlignmentWasComputed) {
-            s << "<tr><td colspan=\"" << columnCount << "\"><b>SeqAn alignment</b></td></tr>";
-
-            // Add one row to the table for each read.
-            for(size_t i=0; i<edge.alignmentInfos.size(); i++) {
-                const auto& alignmentInfo = edge.alignmentInfos[i];
-
-                // Begin a new row of the table.
-                s << "<tr>";
-
-                // Read id and ordinals.
-                s << "<td align=\"right\"";
-                s << " href=\"exploreRead?readId&amp;" << alignmentInfo.orientedReadId.getReadId();
-                s << "&amp;strand=" << alignmentInfo.orientedReadId.getStrand() << "\"";
-                s << "><font color=\"blue\"><b><u>" << alignmentInfo.orientedReadId << "</u></b></font></td>";
-
-                s << "<td align=\"right\"";
-                s << " href=\"exploreRead?readId&amp;" << alignmentInfo.orientedReadId.getReadId();
-                s << "&amp;strand=" << alignmentInfo.orientedReadId.getStrand();
-                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[0];
-                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[1];
-                s << "\"";
-                s << "><font color=\"blue\"><b><u>" << alignmentInfo.ordinals[0] << "</u></b></font></td>";
-
-                s << "<td align=\"right\"";
-                s << " href=\"exploreRead?readId&amp;" << alignmentInfo.orientedReadId.getReadId();
-                s << "&amp;strand=" << alignmentInfo.orientedReadId.getStrand();
-                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[0];
-                s << "&amp;highlightMarker=" << alignmentInfo.ordinals[1];
-                s << "\"";
-                s << "><font color=\"blue\"><b><u>" << alignmentInfo.ordinals[1] << "</u></b></font></td>";
-
-                // SeqAn alignment.
-                const seqan::Gaps< seqan::String<seqan::Dna> >& alignmentRow =
-                    seqan::row(edge.seqanAlignment, i);
-                s << "<td><b>" << alignmentRow << "</b></td>";
-
-                // Repeat counts on SeqAn alignment.
-                s << "<td><b>";
-                const auto n = seqan::length(alignmentRow);
-                size_t position = 0;
-                for(size_t j=0; j<n; j++) {
-                    if(seqan::isGap(alignmentRow, j)) {
-                        s << "-";
-                    } else {
-                        const int repeatCount = edge.alignmentInfos[i].repeatCounts[position++];
-                        if(repeatCount < 10) {
-                            s << repeatCount;
-                        } else {
-                            s << "*";
-                        }
-                    }
-                }
-                s << "</b></td>";
-
-                // End this row of the table.
-                s << "</tr>";
-            }
-
-            // Use the Consensus Caller to compute consensus
-            // for base and repeat count at each position in the alignment.
-            vector<Consensus> consensus(edge.coverages.size());
-            for(size_t position=0; position<edge.coverages.size(); position++) {
-                consensus[position] = graph.consensusCaller(edge.coverages[position]);
-            }
-
-            // Seqan consensus (run-length sequence).
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus base, repeat count</b></td>";
-            s << "<td><b>";
-            for(const Consensus& c: consensus) {
-                s << c.base;
-            }
-            s << "</b></td>";
-            s << "<td><b>";
-            for(const Consensus& c: consensus) {
-                if(c.base.isGap()) {
-                    s << "-";
-                } else {
-                    const size_t repeatCount = c.repeatCount;
-                    if(repeatCount < 10) {
-                        s << repeatCount;
-                    } else {
-                        s << "*";
-                    }
-                }
-            }
-            s << "</b></td>";
-            s << "</tr>";
-
-
-
-            // Consensus coverage for each base.
-            for(uint8_t b=0; b<=4; b++) {
-                const AlignedBase base = AlignedBase::fromInteger(b);
-                s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for " << base;
-                s << "</b></td>";
-                s << "<td><b>";
-                for(const Coverage& coverage: edge.coverages) {
-                    s << coverage.coverageCharacter(base);
-                }
-                s << "</b></td>";
-                s << "</tr>";
-            }
-
-            // Consensus coverage for the best base.
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for consensus base</b></td>";
-            s << "<td><b>";
-            for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].base;
-                s << edge.coverages[position].coverageCharacter(base);
-            }
-            s << "</b></td>";
-            s << "</tr>";
-
-
-
-            // Find the repeat counts that have non-zero coverage on the best base
-            // at any position.
-            const std::set<size_t> repeatCounts = graph.consensusCaller.findRepeatCounts(edge.coverages);
-
-            // Coverage for the consensus base at each position, broken down
-            // by repeat count.
-            for(size_t repeatCount: repeatCounts) {
-                s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for consensus base, repeat count ";
-                s << repeatCount << "</b></td>";
-                s << "<td><b>";
-                for(size_t position=0; position<consensus.size(); position++) {
-                    const AlignedBase base = consensus[position].base;
-                    const Coverage& coverage = edge.coverages[position];
-                    if(base.isGap()) {
-                        s << "-";
-                        continue;
-                    }
-                    s << coverage.coverageCharacter(base, repeatCount);
-                }
-                s << "</b></td>";
-                s << "</tr>";
-            }
-            s << "<tr><td colspan=\"4\" align=\"left\"><b>Coverage for consensus base and repeat count</b></td>";
-            s << "<td><b>";
-            for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].base;
-                const size_t repeatCount = consensus[position].repeatCount;
-                if(base.isGap()) {
-                    s << "-";
-                    continue;
-                }
-                const Coverage& coverage = edge.coverages[position];
-                s << coverage.coverageCharacter(base, repeatCount);
-            }
-            s << "</b></td>";
-            s << "</tr>";
-
-
-
-            // Seqan consensus (raw sequence) and its coverage.
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw)</b></td>";
-            s << "<td colspan=\"2\"><b>";
-            for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].base;
-                if(!base.isGap()) {
-                    const size_t repeatCount = consensus[position].repeatCount;
-                    for(size_t k=0; k<repeatCount; k++) {
-                        s << base;
-                    }
-                }
-            }
-            s << "</b></td>";
-            s << "</tr>";
-            s << "<tr><td colspan=\"3\" align=\"left\"><b>Consensus (raw) coverage</b></td>";
-            s << "<td colspan=\"2\"><b>";
-            for(size_t position=0; position<consensus.size(); position++) {
-                const AlignedBase base = consensus[position].base;
-                if(!base.isGap()) {
-                    const size_t repeatCount = consensus[position].repeatCount;
-                    const char coverageCharacter =
-                        edge.coverages[position].coverageCharacter(base, repeatCount);
-                    for(size_t k=0; k<repeatCount; k++) {
-                        s << coverageCharacter;
-                    }
-                }
-            }
-            s << "</b></td>";
-            s << "</tr>";
-        }
 
 
         // End the label.

@@ -86,10 +86,6 @@ public:
     };
     vector<MarkerInfo> markerInfos;
 
-    // Fields used by approximateTopologicalSort.
-    uint32_t color = 0;
-    size_t rank = 0;
-
     LocalMarkerGraphVertex(
         MarkerGraph::VertexId vertexId,
         int distance) :
@@ -150,19 +146,7 @@ public:
     // Sorted by decreasing number of supporting reads.
     vector< pair<Sequence, vector<MarkerIntervalWithRepeatCounts> > > infos;
 
-    // Consensus is the number of reads supporting the
-    // strongest sequence.
-    size_t consensus() const
-    {
-        if(infos.empty()) {
-            return 0;
-        } else {
-            return infos.front().second.size();
-        }
-    }
-
-    // Coverage is the total number of reads supporting this edge,
-    // with any sequence.
+    // Coverage is the total number of reads supporting this edge.
     size_t coverage() const
     {
         size_t c = 0;
@@ -171,23 +155,6 @@ public:
         }
         return c;
     }
-
-    // Flag that is true if this edge belongs to the optimal spanning tree.
-    // Set by computeOptimalSpanningTree().
-    bool isSpanningTreeEdge = false;
-
-    // Flag that is true if this edge belongs to the best path
-    // of the optimal spanning tree.
-    // Set by computeOptimalSpanningTreeBestPath().
-    bool isSpanningTreeBestPathEdge = false;
-
-    // Flag that is true if this edge belongs to the local assembly path
-    // (clipped version of the best oath on the optimal spanning tree).
-    // Set by computeLocalAssemblyPath().
-    bool isLocalAssemblyPathEdge = false;
-
-    // Field used by approximateTopologicalSort.
-    bool isDagEdge = true;
 
     // Look for the ordinals for a given oriented read id.
     // If found, returns true.
@@ -207,28 +174,6 @@ public:
     // in the chain corresponding to the containing assembly graph edge.
     // Only valid if assemblyEdgeId!=std::numeric_limits<AssemblyGraph::EdgeId>::max()
     uint32_t positionInAssemblyEdge;
-
-
-
-    // Seqan multiple sequence alignment and data structures used to compute it.
-    // This is only supported when using the run-length representation of reads.
-    seqan::Align<seqan::String<seqan::Dna> > seqanAlignment;
-    bool seqanAlignmentWasComputed = false;
-    class AlignmentInfo {
-    public:
-        OrientedReadId orientedReadId;
-        array<uint32_t, 2> ordinals;
-        vector<Base> sequence;
-        vector<uint8_t> repeatCounts;
-    };
-    vector<AlignmentInfo> alignmentInfos;
-
-
-
-    // Use the SeqAn alignment to compute coverage at each position
-    // of the alignment.
-    vector<Coverage> coverages;    // Including positions that have a '-' (gap).
-    void computeCoverage();
 
 };
 
@@ -290,20 +235,6 @@ public:
         int maxDistance,
         bool detailed) const;
 
-    // Compute the set of vertices that corresponds to a given oriented read.
-    // Vertices are returned in a pair with the corresponding ordinal,
-    // sorted by the ordinal.
-    void getOrientedReadVertices(
-        OrientedReadId,
-        vector< pair<uint32_t, vertex_descriptor> >&) const;
-
-    // Compute the set of edges that corresponds to a given oriented read.
-    // Each edge is returned in a tuple containing the two ordinals
-    // for the given oriented read.
-    // The edges are computed sorted by the ordinals.
-    void getOrientedReadEdges(
-        OrientedReadId,
-        vector< pair< array<uint32_t, 2>, edge_descriptor> >&) const;
 
 private:
 
