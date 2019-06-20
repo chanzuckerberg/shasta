@@ -72,7 +72,6 @@ void Assembler::exploreMarkerGraph(
         html << "<p>The local marker graph is empty.";
         return;
     }
-    graph.approximateTopologicalSort();
     vector< pair<shasta::Base, int> > sequence;
     const auto createFinishTime = steady_clock::now();
     if(requestParameters.timeout>0 && seconds(createFinishTime - createStartTime) > requestParameters.timeout) {

@@ -279,64 +279,8 @@ public:
     // LocalMarkerGraphEdge::Info that caused the edge to be created.
     void storeEdgeInfo(edge_descriptor, const vector<MarkerInterval>&);
 
-    // Create an optimal spanning tree and mark its edges.
-    void computeOptimalSpanningTree();
-
-    // Remove edges that are not on the spanning tree.
-    void removeNonSpanningTreeEdges();
-
-    // Remove vertices and edges that are not on the optimal path.
-    void removeAllExceptOptimalPath();
-
-    // Remove vertices and edges that are not on the clipped optimal path.
-    void removeAllExceptClippedOptimalPath();
-
-    // Predicate that can be used with boost::filtered_graph
-    // to create an implicit representation of the spanning tree.
-    class SpanningTreeFilter {
-    public:
-        bool operator()(edge_descriptor e) const
-        {
-            return (*graph)[e].isSpanningTreeEdge;
-        }
-        const LocalMarkerGraph* graph;
-        SpanningTreeFilter(const LocalMarkerGraph& graph) :
-            graph(&graph) {}
-        SpanningTreeFilter() :
-            graph(0) {}
-    };
-
-    // Compute the best path in the optimal spanning tree.
-    // The optimal spanning tree must have already been computed.
-    void computeOptimalSpanningTreeBestPath();
-    vector<edge_descriptor> optimalSpanningTreeBestPath;
-
-    // The local assembly path is a clipped version of optimalSpanningTreeBestPath,
-    // in which vertices at maximum distance are removed.
-    // This is used by assembleDominantSequence.
-    void computeLocalAssemblyPath(int maxDistance);
-    vector<edge_descriptor> localAssemblyPath;
-
-    // Approximate topological sort, adding edges
-    // in order of decreasing coverage. The topological sort rank
-    // of each vertex is stored in LocalMarkerGrapg2Vertex::rank.
-    // In addition, the vertices are stored in topological sort order
-    // in vector topologicallySortedVertices.
-    void approximateTopologicalSort();
-    vector<vertex_descriptor> topologicallySortedVertices;
 
     // Write in Graphviz format.
-    // There are two types of Graphviz output:
-    // - Detailed: includes vertex and edge labels, uses dot layout.
-    //   Dot layout becomes too slow when the graph has more than
-    //   a few thousand vertices.
-    // - Compact: no labels, vertices rendered as points, uses sfdp layout.
-    //   Sfdp layout becomes slow when the graph has more than
-    //   several tens of thousand vertices.
-    // Typical graphviz command for rendering for both types:
-    // dot -O -T svg fileName -Gsize=200
-    // The graph contains a layout attribute, so this will invoke
-    // the correct layout algorithm automatically.
     void write(
         ostream&,
         int maxDistance,
@@ -346,21 +290,11 @@ public:
         int maxDistance,
         bool detailed) const;
 
-    // The oriented reads represented in the local marker graph, sorted.
-    vector<OrientedReadId> orientedReadIds;
-    void findOrientedReadIds();
-
     // Compute the set of vertices that corresponds to a given oriented read.
     // Vertices are returned in a pair with the corresponding ordinal,
     // sorted by the ordinal.
     void getOrientedReadVertices(
         OrientedReadId,
-        vector< pair<uint32_t, vertex_descriptor> >&) const;
-
-    // Given a vector of vertices returned by getOrientedReadVertices,
-    // return a subset that does not break rank ordering.
-    void enforceRankOrder(
-        const vector< pair<uint32_t, vertex_descriptor> >&,
         vector< pair<uint32_t, vertex_descriptor> >&) const;
 
     // Compute the set of edges that corresponds to a given oriented read.
@@ -370,10 +304,6 @@ public:
     void getOrientedReadEdges(
         OrientedReadId,
         vector< pair< array<uint32_t, 2>, edge_descriptor> >&) const;
-
-    // If using the run-length representation of reads,
-    // compute SeqAn alignments for all edges.
-    void computeSeqanAlignments();
 
 private:
 
@@ -397,13 +327,6 @@ private:
     // Object used to compute consensus bases and repeat counts.
     // This is owned by the caller (the Assembler object).
     const ConsensusCaller& consensusCaller;
-
-    // Given a path, find the longest subset that contains no vertices
-    // with distance equal to the specified maxDistance.
-    void clipPath(
-        int maxDistance,
-        const vector<edge_descriptor>& fullPath,
-        vector<edge_descriptor>& clippedPath) const;
 
     class Writer {
     public:

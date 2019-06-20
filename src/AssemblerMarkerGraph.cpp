@@ -1751,9 +1751,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
 
 
-    // Fill in the oriented read ids represented in the graph.
-    graph.findOrientedReadIds();
-
     // Also fill in the ConsensusInfo's for each vertex.
     graph.computeVertexConsensusInfo();
 
