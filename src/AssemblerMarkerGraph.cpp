@@ -9,12 +9,6 @@
 using namespace ChanZuckerberg;
 using namespace shasta;
 
-#ifndef SHASTA_STATIC_EXECUTABLE
-// SeqAn.
-#include <seqan/graph_msa.h>
-#include <seqan/version.h>
-#endif
-
 // Spoa.
 #include "spoa/spoa.hpp"
 
@@ -2698,118 +2692,6 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
         repeatCounts[position] = uint32_t(consensus.repeatCount);
     }
 }
-
-
-
-#ifndef SHASTA_STATIC_EXECUTABLE
-// Compute consensus sequence for an edge of the marker graph.
-// This includes the k bases corresponding to the flanking markers,
-// but computed only using reads on this edge.
-void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSeqan(
-    MarkerGraph::EdgeId edgeId,
-    vector<Base>& sequence,
-    vector<uint32_t>& repeatCounts,
-    uint8_t& overlappingBaseCount
-    )
-{
-    // If we ever use this again, it needs to be modified
-    // to not include the flanking markers in the returned sequence,
-    // and also set overlappingBaseCount.
-    CZI_ASSERT(0);
-
-#if 0
-    // Access the markerIntervals for this edge.
-    // Each corresponds to an oriented read on this edge.
-    const MemoryAsContainer<MarkerInterval> markerIntervals =
-        markerGraph.edgeMarkerIntervals[edgeId];
-    const size_t markerCount = markerIntervals.size();
-
-    // Initialize a seqan alignment.
-    seqan::Align<seqan::String<seqan::Dna> > seqanAlignment;
-    static_assert(
-        SEQAN_VERSION_MAJOR==2 &&
-        SEQAN_VERSION_MINOR==4 &&
-        SEQAN_VERSION_PATCH==0,
-        "SeqAn version 2.4.0 is required.");
-    resize(rows(seqanAlignment), markerCount);
-
-
-
-    // Add all the sequences to the seqan alignment,
-    // including the flanking markers.
-    vector<uint32_t> positions(markerCount);
-    for(size_t i=0; i!=markerCount; i++) {
-        const MarkerInterval& markerInterval = markerIntervals[i];
-        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-
-        // Get the two markers.
-        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-
-        // Get the position range, including the flanking markers.
-        const uint32_t positionBegin = marker0.position;
-        const uint32_t positionEnd = marker1.position + uint32_t(assemblerInfo->k);
-        positions[i] = positionBegin;
-
-        // Get the sequence
-        string sequenceString;
-        for(uint32_t position=positionBegin; position!=positionEnd; position++) {
-            sequenceString.push_back(getOrientedReadBase(orientedReadId, position).character());
-        }
-
-        // Add it to the seqan alignment.
-        seqan::assignSource(seqan::row(seqanAlignment, i), sequenceString);
-    }
-
-    // Use seqan to compute the multiple sequence alignment.
-    seqan::globalMsaAlignment(seqanAlignment, seqan::Score<int, seqan::Simple>(0, -1, -1));
-    // cout << seqanAlignment << endl;
-
-    // The length of the alignment.
-    // This includes gaps.
-    const size_t alignmentLength = seqan::length(seqan::row(seqanAlignment, 0));
-
-
-
-    // Loop over all positions in the seqan alignment.
-    // At each position compute a consensus base and repeat count.
-    // If the consensus base is not "-", store the base and repeat count.
-    sequence.clear();
-    repeatCounts.clear();
-    for(size_t position=0; position<alignmentLength; position++) {
-        // cout << "Alignment position " << position << endl;
-
-        // Create and fill in a Coverage object for this position.
-        Coverage coverage;
-        for(size_t i=0; i!=markerCount; i++) {
-            const MarkerInterval& markerInterval = markerIntervals[i];
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-            if(seqan::isGap(seqan::row(seqanAlignment, i), position)) {
-                coverage.addRead(AlignedBase::gap(), orientedReadId.getStrand(), 0);
-                // cout << "Gap" << endl;
-            } else {
-                Base base;
-                uint8_t repeatCount;
-                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, positions[i]);
-                ++positions[i];
-                coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), repeatCount);
-                // cout << base << int(repeatCount) << endl;
-            }
-        }
-
-        // Compute the consensus at this position.
-        const Consensus consensus = (*consensusCaller)(coverage);
-
-        // If not a gap, store the base and repeat count.
-        if(!consensus.base.isGap()) {
-            sequence.push_back(Base(consensus.base));
-            repeatCounts.push_back(uint32_t(consensus.repeatCount));
-        }
-    }
-#endif
-}
-#endif
 
 
 
