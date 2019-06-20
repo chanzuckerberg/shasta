@@ -9,6 +9,10 @@ use a new branch for each Pull Request.
 You can choose any name you like for the branch you create for this purpose,
 as long as it does not conflict with the name of an existing branch.
 
+This project adheres to the Contributor Covenant 
+[code of conduct](https://github.com/chanzuckerberg/.github/tree/master/CODE_OF_CONDUCT.md). 
+By participating, you are expected to uphold this code. 
+Please report unacceptable behavior to opensource@chanzuckerberg.com.
 
 
 #### Contributing C++ code
