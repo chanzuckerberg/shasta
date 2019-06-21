@@ -50,6 +50,55 @@ LocalMarkerGraph::Writer::Writer(
 
 
 
+// Vertex and edge colors.
+const string LocalMarkerGraph::Writer::vertexColorZeroDistance = "#6666ff";
+const string LocalMarkerGraph::Writer::vertexColorIntermediateDistance = "#00ccff";
+const string LocalMarkerGraph::Writer::vertexColorMaxDistance = "#66ffff";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringTransitiveReduction = "#ff0000";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringPruning = "#ff00ff";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval = "#00ff00";
+const string LocalMarkerGraph::Writer::edgeArrowColorNotRemoved = "#000000";
+const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringTransitiveReduction = "#ff9999";
+const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringPruning = "#c03280";
+const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringSuperBubbleRemoval = "#99ff99";
+const string LocalMarkerGraph::Writer::edgeLabelColorNotRemoved = "#999999";
+const string& LocalMarkerGraph::Writer::vertexColor(const LocalMarkerGraphVertex& vertex) const
+{
+    if(vertex.distance == 0) {
+        return vertexColorZeroDistance;
+    } else if(vertex.distance == maxDistance) {
+        return vertexColorMaxDistance;
+    } else {
+        return vertexColorIntermediateDistance;
+    }
+}
+const string& LocalMarkerGraph::Writer::edgeArrowColor(const LocalMarkerGraphEdge& edge) const
+{
+    if(edge.wasRemovedByTransitiveReduction) {
+        return edgeArrowColorRemovedDuringTransitiveReduction;
+    } else if(edge.wasPruned) {
+        return edgeArrowColorRemovedDuringPruning;
+    } else if (edge.isSuperBubbleEdge) {
+        return edgeArrowColorRemovedDuringSuperBubbleRemoval;
+    } else {
+        return edgeArrowColorNotRemoved;
+    }
+}
+const string& LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdge& edge) const
+{
+    if(edge.wasRemovedByTransitiveReduction) {
+        return edgeLabelColorRemovedDuringTransitiveReduction;
+    } else if(edge.wasPruned) {
+        return edgeLabelColorRemovedDuringPruning;
+    } else if (edge.isSuperBubbleEdge) {
+        return edgeLabelColorRemovedDuringSuperBubbleRemoval;
+    } else {
+        return edgeLabelColorNotRemoved;
+    }
+}
+
+
+
 void LocalMarkerGraph::Writer::operator()(std::ostream& s) const
 {
     // This turns off the tooltip on the graph and the edges.
@@ -75,6 +124,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 {
     const LocalMarkerGraphVertex& vertex = graph[v];
     const auto coverage = vertex.markerInfos.size();
+    const string& color = vertexColor(vertex);
     CZI_ASSERT(coverage > 0);
 
 
@@ -106,14 +156,6 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         s << "\"";
 
         // Color.
-        string color;
-        if(vertex.distance == maxDistance) {
-            color = "#00ffff";
-        } else if(vertex.distance == 0) {
-            color = "#88ff88";
-        } else  {
-            color = "#00cccc";
-        }
         s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
 
         // End vertex attributes.
@@ -130,14 +172,6 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         s << "[";
 
         // Color.
-        string color;
-        if(vertex.distance == maxDistance) {
-            color = "#00ffff";
-        } else if(vertex.distance == 0) {
-            color = "#88ff88";
-        } else {
-            color = "#00cccc";
-        }
         s << " style=filled";
         s << " fillcolor=\"" << color << "\"";
 
@@ -295,6 +329,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
     const LocalMarkerGraphEdge& edge = graph[e];
     const size_t coverage = edge.coverage();
+    const string& arrowColor = edgeArrowColor(edge);
+    const string& labelColor = edgeLabelColor(edge);
     CZI_ASSERT(coverage > 0);
 
     if(!detailed) {
@@ -308,9 +344,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << "tooltip=\"Edge " << edge.edgeId << ", coverage " << coverage << "\"";
 
         // Color.
-        const string color = "black";
-        s << " fillcolor=\"" << color << "\"";
-        s << " color=\"" << color << "\"";
+        s << " fillcolor=\"" << arrowColor << "\"";
+        s << " color=\"" << arrowColor << "\"";
 
         // Thickness is determined by coverage.
         const double thickness = 0.2 * double(coverage==0 ? 1 : coverage);
@@ -345,17 +380,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s.precision(oldPrecision);
 
         // Color.
-        const string color = "black";
-        s << " fillcolor=\"" << color << "\"";
-        s << " color=\"" << color << "\"";
-
-        // Label color (used below).
-        string labelColor;
-        if(color == "black") {
-            labelColor = "pink";
-        } else {
-            labelColor = color;
-        }
+        s << " fillcolor=\"" << arrowColor << "\"";
+        s << " color=\"" << arrowColor << "\"";
 
         // Weight;
         s << " weight=" << coverage;

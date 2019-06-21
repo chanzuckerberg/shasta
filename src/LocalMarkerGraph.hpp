@@ -159,6 +159,15 @@ public:
     // Only valid if assemblyEdgeId!=std::numeric_limits<AssemblyGraph::EdgeId>::max()
     uint32_t positionInAssemblyEdge;
 
+    // Flag that is set if the edge was removed during
+    // approximate transitive reduction by flagWeakMarkerGraphEdges.
+    uint8_t wasRemovedByTransitiveReduction : 1;
+
+    // Set if this edge was removed during pruning.
+    uint8_t wasPruned : 1;
+
+    // Set if this edge belongs to a bubble/superbubble that was removed.
+    uint8_t isSuperBubbleEdge : 1;
 };
 
 
@@ -243,6 +252,8 @@ private:
     // This is owned by the caller (the Assembler object).
     const ConsensusCaller& consensusCaller;
 
+
+    // Class used for graphviz output.
     class Writer {
     public:
         Writer(
@@ -255,6 +266,22 @@ private:
         const LocalMarkerGraph& graph;
         int maxDistance;
         bool detailed;
+
+        // Vertex and edge colors.
+        static const string vertexColorZeroDistance;
+        static const string vertexColorIntermediateDistance;
+        static const string vertexColorMaxDistance;
+        static const string edgeArrowColorRemovedDuringTransitiveReduction;
+        static const string edgeArrowColorRemovedDuringPruning;
+        static const string edgeArrowColorRemovedDuringSuperBubbleRemoval;
+        static const string edgeArrowColorNotRemoved;
+        static const string edgeLabelColorRemovedDuringTransitiveReduction;
+        static const string edgeLabelColorRemovedDuringPruning;
+        static const string edgeLabelColorRemovedDuringSuperBubbleRemoval;
+        static const string edgeLabelColorNotRemoved;
+        const string& vertexColor(const LocalMarkerGraphVertex&) const;
+        const string& edgeArrowColor(const LocalMarkerGraphEdge&) const;
+        const string& edgeLabelColor(const LocalMarkerGraphEdge&) const;
     };
     friend class Writer;
 };

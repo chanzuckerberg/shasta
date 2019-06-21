@@ -1600,6 +1600,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
                 graph[e].edgeId = edgeId;
+                graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
+                graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
+                graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
 
                 // Link to assembly graph edge.
                 if(assemblyGraph.markerToAssemblyTable.isOpen) {
@@ -1656,6 +1659,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
                 graph.storeEdgeInfo(e, markerIntervals);
                 graph[e].edgeId = edgeId;
+                graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
+                graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
+                graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
 
                 // Link to assembly graph vertex.
                 if(assemblyGraph.markerToAssemblyTable.isOpen) {
@@ -1733,6 +1739,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             copy(storedMarkerIntervals.begin(), storedMarkerIntervals.end(), markerIntervals.begin());
             graph.storeEdgeInfo(e, markerIntervals);
             graph[e].edgeId = edgeId;
+            graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
+            graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
+            graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
 
             // Link to assembly graph vertex.
             if(assemblyGraph.markerToAssemblyTable.isOpen) {
