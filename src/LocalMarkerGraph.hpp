@@ -157,17 +157,17 @@ public:
     // The position (index) of this marker graph edge
     // in the chain corresponding to the containing assembly graph edge.
     // Only valid if assemblyEdgeId!=std::numeric_limits<AssemblyGraph::EdgeId>::max()
-    uint32_t positionInAssemblyEdge;
+    uint32_t positionInAssemblyEdge = 0;
 
     // Flag that is set if the edge was removed during
     // approximate transitive reduction by flagWeakMarkerGraphEdges.
-    uint8_t wasRemovedByTransitiveReduction : 1;
+    uint8_t wasRemovedByTransitiveReduction = 0;
 
     // Set if this edge was removed during pruning.
-    uint8_t wasPruned : 1;
+    uint8_t wasPruned = 0;
 
     // Set if this edge belongs to a bubble/superbubble that was removed.
-    uint8_t isSuperBubbleEdge : 1;
+    uint8_t isSuperBubbleEdge = 0;
 };
 
 
