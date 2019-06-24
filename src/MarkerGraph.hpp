@@ -146,7 +146,7 @@ public:
     //     edgeConsensusOverlappingBaseCount stores the number of
     //     overlapping bases (for the consensus sequence)
     //     between the two flanking markers. This can be zero
-    //     if the consensus sequence has tghe flanking markers
+    //     if the consensus sequence has the flanking markers
     //     exactly adjacent.
     MemoryMapped::VectorOfVectors<pair<Base, uint8_t>, uint64_t> edgeConsensus;
     MemoryMapped::Vector<uint8_t> edgeConsensusOverlappingBaseCount;

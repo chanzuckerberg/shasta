@@ -688,6 +688,11 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     }
 
 
+    // Access stored consensus for this edge.
+    // const int storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
+    // const auto storedConsensus = markerGraph.edgeConsensus[edgeId];
+
+
 
     // Initialize a spoa multiple sequence alignment.
     const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
@@ -787,14 +792,47 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     // Page title.
     html << "<h1>Marker graph edge "<< edgeId << "</h1>";
 
-    // Basic information about this edge.
-    html << "<p>Source vertex " << vertexIds[0];
-    html << ", target vertex " << vertexIds[1] << ".";
-    html << "<p>Edge coverage (number of markers) is " << markerCount << ".";
 
-    // Begin the table.
+
+    // Table to summarize this edge.
     html <<
         "<table>"
+        "<tr><th class=left>Source vertex<td class=centered>" <<
+        "<a href='exploreMarkerGraphVertex?vertexId=" << vertexIds[0] << "'>" << vertexIds[0] << "</a>"
+        "<tr><th class=left>Target vertex<td class=centered>" <<
+        "<a href='exploreMarkerGraphVertex?vertexId=" << vertexIds[1] << "'>" << vertexIds[1] << "</a>"
+        "<tr><th class=left>Coverage<td class=centered>" << markerCount <<
+        "<tr><th class=left>Removed during transitive reduction?<td class=centered>" <<
+        (edge.wasRemovedByTransitiveReduction ? "Yes" : "No") <<
+        "<tr><th class=left>Removed during pruning?<td class=centered>" <<
+        (edge.wasPruned ? "Yes" : "No") <<
+        "<tr><th class=left>Removed during bubble/superbubble removal?<td class=centered>" <<
+        (edge.isSuperBubbleEdge ? "Yes" : "No");
+#if 0
+    if(storedConsensusOverlappingBaseCount>0 || storedConsensus.size()==0) {
+        html <<
+            "<tr><th class=left>Consensus: number of overlapping bases<td class=centered>" <<
+            storedConsensusOverlappingBaseCount;
+    } else {
+        html <<
+            "<tr><th class=left>Consensus sequence (run-length)<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<storedConsensus.size(); i++) {
+            html << storedConsensus[i].first;
+        }
+        html <<
+            "<tr><th class=left>Repeat counts<td class=centered style='font-family:monospace'>";
+        for(size_t i=0; i<storedConsensus.size(); i++) {
+            html << storedConsensus[i].second;
+        }
+    }
+#endif
+    html << "</table>";
+
+
+
+    // Details table.
+    html <<
+        "<p><table>"
         "<tr>"
         "<th>Oriented<br>read"
         "<th>Ordinal0"
