@@ -4380,17 +4380,19 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                     assemblyGraph.markerToAssemblyTable[edgeId].first;
                 if(!assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
                     // The assembly graph edge will not be assembled.
-                    // Se we don't need to assemble this marker graph edge.
+                    // So we don't need to assemble this marker graph edge.
                     shouldAssemble = false;
                 }
             }
 
             // Compute the consensus, if necessary.
             if(!shouldAssemble) {
+                markerGraph.edges[edgeId].wasAssembled = 0;
                 sequence.clear();
                 repeatCounts.clear();
                 overlappingBaseCount = 0;
             } else {
+                markerGraph.edges[edgeId].wasAssembled = 1;
                 try {
                     if(useMarginPhase) {
 #ifndef SHASTA_STATIC_EXECUTABLE

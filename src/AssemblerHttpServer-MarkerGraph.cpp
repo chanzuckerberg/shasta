@@ -689,8 +689,8 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
     // Access stored consensus for this edge.
-    // const int storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
-    // const auto storedConsensus = markerGraph.edgeConsensus[edgeId];
+    const int storedConsensusOverlappingBaseCount = int(markerGraph.edgeConsensusOverlappingBaseCount[edgeId]);
+    const auto storedConsensus = markerGraph.edgeConsensus[edgeId];
 
 
 
@@ -808,24 +808,42 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         (edge.wasPruned ? "Yes" : "No") <<
         "<tr><th class=left>Removed during bubble/superbubble removal?<td class=centered>" <<
         (edge.isSuperBubbleEdge ? "Yes" : "No");
-#if 0
-    if(storedConsensusOverlappingBaseCount>0 || storedConsensus.size()==0) {
-        html <<
-            "<tr><th class=left>Consensus: number of overlapping bases<td class=centered>" <<
-            storedConsensusOverlappingBaseCount;
+
+    if(edge.wasAssembled) {
+        html << "<tr><th class=left>Assembled?<td class=centered>Yes" ;
+        if(storedConsensusOverlappingBaseCount>0 || storedConsensus.size()==0) {
+            html <<
+                "<tr><th class=left>Consensus: number of overlapping bases<td class=centered>" <<
+                storedConsensusOverlappingBaseCount;
+        } else {
+            html <<
+                "<tr><th class=left>Consensus sequence (run-length)<td class=centered style='font-family:monospace'>";
+            for(size_t i=0; i<storedConsensus.size(); i++) {
+                html << storedConsensus[i].first;
+            }
+            html <<
+                "<tr><th class=left>Repeat counts<td class=centered style='font-family:monospace'>";
+            for(size_t i=0; i<storedConsensus.size(); i++) {
+                if(storedConsensus[i].second >= 10) {
+                    html << "*";
+                } else {
+                    html << int(storedConsensus[i].second);
+                }
+            }
+            html <<
+                "<tr><th class=left>Consensus sequence (raw)<td class=centered style='font-family:monospace'>";
+            for(size_t i=0; i<storedConsensus.size(); i++) {
+                const Base base = storedConsensus[i].first;
+                const int n = int(storedConsensus[i].second);
+                for(int j=0; j<n; j++) {
+                    html << base;
+                }
+            }
+        }
     } else {
-        html <<
-            "<tr><th class=left>Consensus sequence (run-length)<td class=centered style='font-family:monospace'>";
-        for(size_t i=0; i<storedConsensus.size(); i++) {
-            html << storedConsensus[i].first;
-        }
-        html <<
-            "<tr><th class=left>Repeat counts<td class=centered style='font-family:monospace'>";
-        for(size_t i=0; i<storedConsensus.size(); i++) {
-            html << storedConsensus[i].second;
-        }
+        html << "<tr><th class=left>Assembled?<td class=centered>No";
     }
-#endif
+
     html << "</table>";
 
 

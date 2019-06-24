@@ -82,8 +82,12 @@ public:
         // Set if this edge belongs to a bubble/superbubble that was removed.
         uint8_t isSuperBubbleEdge : 1;
 
+        // Flag set if this edge was assembled.
+        // If set, edgeConsensusOverlappingBaseCount and edgeConsensus
+        // for this edge are set.
+        uint8_t wasAssembled : 1;
+
         // Unused.
-        uint8_t flag3 : 1;
         uint8_t flag4 : 1;
         uint8_t flag5 : 1;
         uint8_t flag6 : 1;
@@ -94,7 +98,7 @@ public:
             wasRemovedByTransitiveReduction = 0;
             wasPruned = 0;
             isSuperBubbleEdge = 0;
-            flag3 = 0;
+            wasAssembled = 0;
             flag4 = 0;
             flag5 = 0;
             flag6 = 0;
