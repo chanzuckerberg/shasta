@@ -441,12 +441,48 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
     // Page title.
     html << "<h1>Marker graph vertex "<< vertexId << "</h1>";
-    html << "<p>Vertex coverage (number of markers) is " << markerCount << ".";
 
 
 
-    // Write a table with one row for each marker.
+    // Table with summary information for this vertex.
     html <<
+        "<table>"
+        "<tr><th class=left>Coverage<td class=centered>" << markerCount <<
+        "<tr><th class=left>Marker sequence (run-length)" <<
+        "<td class=centered style='font-family:monospace'>";
+    kmer.write(html, assemblerInfo->k);
+
+    // Write a row with consensus repeat counts.
+    html <<
+        "<tr><th class=left>Consensus repeat counts"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<k; i++) {
+        const size_t repeatCount = consensusRepeatCounts[i];
+        if(repeatCount < 10) {
+            html << repeatCount;
+        } else {
+            html << "*";
+        }
+    }
+
+    // Write a row with the consensus raw sequence.
+    html <<
+        "<tr><th class=left>Consensus raw sequence"
+        "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<k; i++) {
+        const Base base = kmer[i];
+        const size_t repeatCount = consensusRepeatCounts[i];
+        for(size_t r=0; r<repeatCount; r++) {
+            html << base;
+        }
+    }
+    html << "</table>";
+
+
+
+    // Table with one row for each marker.
+    html <<
+        "<h3>Markers of this vertex</h3>"
         "<table>"
         "<tr>"
         "<th>Oriented<br>read"
