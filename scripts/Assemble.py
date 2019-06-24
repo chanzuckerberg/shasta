@@ -25,7 +25,7 @@ a.accessMarkerGraphEdges()
 a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
 a.accessMarkerGraphVertexRepeatCounts()
-a.accessMarkerGraphEdgeConsensus()
+a.accessMarkerGraphConsensus()
 a.assemble()
 
 

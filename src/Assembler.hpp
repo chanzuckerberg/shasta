@@ -852,7 +852,8 @@ private:
 public:
     void createMarkerGraphEdges(size_t threadCount);
     void accessMarkerGraphEdges(bool accessEdgesReadWrite);
-    void checkMarkerGraphEdgesIsOpen();        // The edges and their MarkerIntervals found by each thread.
+    void checkMarkerGraphEdgesIsOpen();
+    void accessMarkerGraphConsensus();
 private:
     void createMarkerGraphEdgesThreadFunction0(size_t threadId);
     void createMarkerGraphEdgesThreadFunction1(size_t threadId);
@@ -1119,7 +1120,6 @@ public:
         // Request storing detailed coverage information.
         bool storeCoverageData
         );
-    void accessMarkerGraphEdgeConsensus();
 private:
     void assembleMarkerGraphEdgesThreadFunction(size_t threadId);
     class AssembleMarkerGraphEdgesData {

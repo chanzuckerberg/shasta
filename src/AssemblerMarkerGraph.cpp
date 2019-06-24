@@ -4440,8 +4440,10 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 
 
 
-void Assembler::accessMarkerGraphEdgeConsensus()
+void Assembler::accessMarkerGraphConsensus()
 {
+    markerGraph.vertexRepeatCounts.accessExistingReadOnly(
+        largeDataName("MarkerGraphVertexRepeatCounts"));
     markerGraph.edgeConsensus.accessExistingReadOnly(
         largeDataName("MarkerGraphEdgesConsensus"));
     markerGraph.edgeConsensusOverlappingBaseCount.accessExistingReadOnly(

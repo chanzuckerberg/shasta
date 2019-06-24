@@ -26,7 +26,7 @@ a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
 a.accessAssemblyGraphEdgeLists()
 a.accessMarkerGraphVertexRepeatCounts()
-a.accessMarkerGraphEdgeConsensus()
+a.accessMarkerGraphConsensus()
 a.accessMarkerGraphCoverageData()
 assembledSegment = a.assembleAssemblyGraphEdge(edgeId)
 

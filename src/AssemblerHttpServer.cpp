@@ -438,6 +438,13 @@ void Assembler::accessAllSoft()
     }
 
     try {
+        accessMarkerGraphConsensus();
+    } catch(const exception& e) {
+        cout << "MarkerGraph graph consensus is accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
         accessAssemblyGraphVertices();
     } catch(const exception& e) {
         cout << "Assembly graph vertices are not accessible." << endl;

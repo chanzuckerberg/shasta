@@ -401,6 +401,8 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
     // Compute consensus repeat counts at each of the k positions.
     vector<size_t> consensusRepeatCounts(k);
+    const auto& storedConsensusRepeatCounts =
+        markerGraph.vertexRepeatCounts.begin() + k * vertexId;
     for(size_t i=0; i<k; i++) {
 
         Coverage coverage;
@@ -414,7 +416,12 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         const Consensus consensus = (*consensusCaller)(coverage);
         CZI_ASSERT(Base(consensus.base) == kmer[i]);
         consensusRepeatCounts[i] = consensus.repeatCount;
+
+        // Check that this repeat count agrees with what was
+        // computed during the assembly.
+        CZI_ASSERT(consensusRepeatCounts[i] == storedConsensusRepeatCounts[i]);
     }
+
 
 
 
