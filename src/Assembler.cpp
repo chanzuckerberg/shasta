@@ -3,7 +3,6 @@
 #include "BiasedGaussianConsensusCaller.hpp"
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
-#include "TrainedBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -80,11 +79,6 @@ void Assembler::setupConsensusCaller(const string& s)
 
     if(s == "SimpleBayesianConsensusCaller") {
         consensusCaller = std::make_shared<SimpleBayesianConsensusCaller>();
-        return;
-    }
-
-    if(s == "TrainedBayesianConsensusCaller") {
-        consensusCaller = std::make_shared<TrainedBayesianConsensusCaller>();
         return;
     }
 
