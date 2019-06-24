@@ -477,6 +477,28 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
             html << base;
         }
     }
+
+    // Write a row with outgoing edges.
+    html <<
+        "<tr><th class=left>Edges starting at this vertex<td class=centered>";
+    for(const MarkerGraph::EdgeId edgeId: markerGraph.edgesBySource[vertexId]) {
+        html << "<a href='exploreMarkerGraphEdge?edgeId=" << edgeId << "'";
+        if(markerGraph.edges[edgeId].wasRemoved()) {
+            html << " style='color:#a8b9ea'";
+        }
+        html << ">" << edgeId << "</a> ";
+    }
+    html <<
+        "<tr><th class=left>Edges ending at this vertex<td class=centered>";
+    for(const MarkerGraph::EdgeId edgeId: markerGraph.edgesByTarget[vertexId]) {
+        html << "<a href='exploreMarkerGraphEdge?edgeId=" << edgeId << "'";
+        if(markerGraph.edges[edgeId].wasRemoved()) {
+            html << " style='color:#a8b9ea'";
+        }
+        html << ">" << edgeId << "</a> ";
+    }
+
+
     html << "</table>";
 
 
