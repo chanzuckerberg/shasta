@@ -433,7 +433,15 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
 
     // Page title.
-    html << "<h1>Marker graph vertex "<< vertexId << "</h1>";
+    const string titleUrl =
+        "exploreMarkerGraph?vertexId=" + to_string(vertexId) +
+        "&maxDistance=3"
+        "&useWeakEdges=on"
+        "&usePrunedEdges=on"
+        "&useSuperBubbleEdges=on"
+        "&sizePixels=800"
+        "&timeout=30";
+    html << "<h1>Marker graph vertex <a href='" << titleUrl << "'> "<< vertexId << "</a></h1>";
 
 
 
@@ -790,7 +798,15 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
     // Page title.
-    html << "<h1>Marker graph edge "<< edgeId << "</h1>";
+    const string titleUrl =
+        "exploreMarkerGraph?vertexId=" + to_string(vertexIds[0]) +
+        "&maxDistance=3"
+        "&useWeakEdges=on"
+        "&usePrunedEdges=on"
+        "&useSuperBubbleEdges=on"
+        "&sizePixels=800"
+        "&timeout=30";
+    html << "<h1>Marker graph edge <a href='" << titleUrl << "'> "<< edgeId << "</a></h1>";
 
 
 
