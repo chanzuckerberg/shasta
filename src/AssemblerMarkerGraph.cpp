@@ -2717,6 +2717,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount,
+    ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail& detail,
     vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
     )
 {
@@ -2733,12 +2734,12 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
     // Find out if very long marker intervals are present.
-    bool hasLongMarkerInterval = false;
+    detail.hasLongMarkerInterval = false;
     for(size_t i=0; i!=markerCount; i++) {
         const MarkerInterval& markerInterval = markerIntervals[i];
         const auto length = markerInterval.ordinals[1] - markerInterval.ordinals[0]; // Number of markers.
         if(length > markerGraphEdgeLengthThresholdForConsensus) {
-            hasLongMarkerInterval = true;
+            detail.hasLongMarkerInterval = true;
         }
     }
 
@@ -2747,20 +2748,20 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // If very long marker intervals are present, the computation of consensus sequence
     // would be prohibitive in memory and compute cost.
     // Just return as consensus the sequence of the shortest marker interval.
-    if(hasLongMarkerInterval) {
+    if(detail.hasLongMarkerInterval) {
 
         // Find the shortest marker interval (number of markers).
         uint32_t minLength = std::numeric_limits<uint32_t>::max();
-        size_t iShortest = 0;
+        detail.iShortest = 0;
         for(size_t i=0; i!=markerCount; i++) {
             const MarkerInterval& markerInterval = markerIntervals[i];
             const uint32_t length = markerInterval.ordinals[1] - markerInterval.ordinals[0]; // Number of markers.
             if(length < minLength) {
                 minLength = length;
-                iShortest = i;
+                detail.iShortest = i;
             }
         }
-        const MarkerInterval& markerInterval = markerIntervals[iShortest];
+        const MarkerInterval& markerInterval = markerIntervals[detail.iShortest];
         const OrientedReadId orientedReadId = markerInterval.orientedReadId;
         const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
@@ -2859,6 +2860,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // To construct the sequence, we use the most frequent
     // offset between the two markers.
     if(mode1Count >= mode2Count) {
+        detail.assemblyMode = 1;
 
         // Offset histogram.
         // Count marker offsets up to k.
@@ -2917,6 +2919,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // sequences are entered, and so we enter the sequences in order
     // of decreasing frequency.
     CZI_ASSERT(mode2Count > mode1Count);
+    detail.assemblyMode = 2;
 
 
 
@@ -4403,9 +4406,11 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                         CZI_ASSERT(0);
 #endif
                     } else {
+                        ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
                         computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                             edgeId, markerGraphEdgeLengthThresholdForConsensus,
                             sequence, repeatCounts, overlappingBaseCount,
+                            detail,
                             storeCoverageData ? &coverageData : 0
                             );
                     }

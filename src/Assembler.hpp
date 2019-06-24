@@ -1009,7 +1009,30 @@ private:
         vector<uint32_t>& repeatCounts
         );
 
-    // Compute consensus sequence for an edge of the marker graph.
+
+
+    // Class used to store spoa details needed by the http server.
+    // See computeMarkerGraphEdgeConsensusSequenceUsingSpoa for details.
+    class ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail {
+    public:
+
+        // If there is a very long marker interval,
+        // the shortest sequence is used as consensus.
+        // In that case, this flag is set and nothing else is stored.
+        bool hasLongMarkerInterval;
+
+        // Assembly mode: 1=overlapping bases, 2=ingtervening bases.
+        int assemblyMode;   // 1 or 2.
+
+        // Data stored for assembly mode 1.
+        size_t iShortest;
+
+        // Data stored for assembly mode 2.
+    };
+
+
+
+    // Use spoa to compute consensus sequence for an edge of the marker graph.
     // This does not include the bases corresponding to the flanking markers.
     void computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         MarkerGraph::EdgeId,
@@ -1017,8 +1040,15 @@ private:
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount,
+        ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail&,
         vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
         );
+
+
+
+    // Use MarginPhase to compute consensus sequence for an edge of the marker graph.
+    // This does not include the bases corresponding to the flanking markers.
+    // This is not yet functional.
 #ifndef SHASTA_STATIC_EXECUTABLE
     void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         MarkerGraph::EdgeId,

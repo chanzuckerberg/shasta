@@ -819,6 +819,24 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
 
+    // The code above is obsolete and will be replaced by the following call to
+    // computeMarkerGraphEdgeConsensusSequenceUsingSpoa.
+    const uint32_t markerGraphEdgeLengthThresholdForConsensus = 1000;
+    vector<Base> spoaSequence;
+    vector<uint32_t> spoaRepeatCounts;
+    uint8_t spoaOverlappingBaseCount;
+    ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail spoaDetail;
+    computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
+        edgeId,
+        markerGraphEdgeLengthThresholdForConsensus,
+        spoaSequence,
+        spoaRepeatCounts,
+        spoaOverlappingBaseCount,
+        spoaDetail,
+        0);
+
+
+
     // Page title.
     const string titleUrl =
         "exploreMarkerGraph?vertexId=" + to_string(vertexIds[0]) +
@@ -851,16 +869,16 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         html << "<tr><th class=left>Assembled?<td class=centered>Yes" ;
         if(storedConsensusOverlappingBaseCount>0 || storedConsensus.size()==0) {
             html <<
-                "<tr><th class=left>Consensus: number of overlapping bases<td class=centered>" <<
+                "<tr><th class=left>Stored consensus: number of overlapping bases<td class=centered>" <<
                 storedConsensusOverlappingBaseCount;
         } else {
             html <<
-                "<tr><th class=left>Consensus sequence (run-length)<td class=centered style='font-family:monospace'>";
+                "<tr><th class=left>Stored consensus: sequence (run-length)<td class=centered style='font-family:monospace'>";
             for(size_t i=0; i<storedConsensus.size(); i++) {
                 html << storedConsensus[i].first;
             }
             html <<
-                "<tr><th class=left>Repeat counts<td class=centered style='font-family:monospace'>";
+                "<tr><th class=left>Stored consensus: repeat counts<td class=centered style='font-family:monospace'>";
             for(size_t i=0; i<storedConsensus.size(); i++) {
                 if(storedConsensus[i].second >= 10) {
                     html << "*";
@@ -869,7 +887,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
                 }
             }
             html <<
-                "<tr><th class=left>Consensus sequence (raw)<td class=centered style='font-family:monospace'>";
+                "<tr><th class=left>Stored consensus: sequence (raw)<td class=centered style='font-family:monospace'>";
             for(size_t i=0; i<storedConsensus.size(); i++) {
                 const Base base = storedConsensus[i].first;
                 const int n = int(storedConsensus[i].second);
@@ -886,8 +904,122 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
 
-    // Details table.
     html <<
+        "<h3>Assembly details for this marker graph edge</h3>";
+
+
+
+    // Table of assembly details: case where a long marker interval is present.
+    if(spoaDetail.hasLongMarkerInterval) {
+        html << "<p>This edge has a long marker interval. "
+            "Alignment computation was not performed. "
+            "Instead, the consensus was taken equal to the edge sequence "
+            "for the oriented read with the shortest marker interval, highlighted below. "
+
+            "<p><table>"
+            "<tr>"
+            "<th>Oriented<br>read"
+            "<th>Ordinal0"
+            "<th>Ordinal1"
+            "<th>Ordinal<br>skip"
+            "<th>Number<br>of<br>overlapping<br>bases<br>(run-length)"
+            "<th>Sequence<br>(run-length)"
+            "<th>Sequence<br>(raw)";
+
+        // Write one row for each oriented read.
+        for(size_t j=0; j<markerCount; j++) {
+            const MarkerInterval& markerInterval = markerIntervals[j];
+            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+            const ReadId readId = orientedReadId.getReadId();
+            const Strand strand = orientedReadId.getStrand();
+
+            // Oriented read id.
+            html <<
+                "<tr>"
+                "<td class=centered>"
+                "<a href='exploreRead"
+                "?readId=" << readId <<
+                "&strand=" << strand << "'>" <<
+                orientedReadId << "</a>";
+
+            // Ordinals.
+            for(size_t m=0; m<2; m++) {
+                html <<
+                    "<td class=centered>" <<
+                    "<a href='exploreRead"
+                    "?readId=" << readId <<
+                    "&strand=" << strand <<
+                    "&highlightMarker=" << markerInterval.ordinals[m] <<
+                    "'>" <<
+                    markerInterval.ordinals[m] << "</a>";
+            }
+
+            // Ordinal skip.
+            html << "<td class=centered>";
+            if(j == spoaDetail.iShortest) {
+                html << "<span style='background-color:yellow'>";
+            }
+            html << markerInterval.ordinals[1] - 1 - markerInterval.ordinals[0];
+            if(j == spoaDetail.iShortest) {
+                html << "</span>";
+            }
+
+
+            // Number of overlapping bases.
+            if(sequences[j].size() <= 2*k) {
+                html << "<td class=centered>" << 2*k - sequences[j].size();
+            } else {
+                html << "<td>";
+
+                // Sequence (run-length).
+                html << "<td class=centered style='font-family:monospace'>";
+                for(size_t index=k; index<sequences[j].size()-k; index++) {
+                    html << sequences[j][index];
+                }
+                html << "<br>";
+                for(size_t index=k; index<sequences[j].size()-k; index++) {
+                    html << int(repeatCounts[j][index]);
+                }
+
+                // Sequence (raw).
+                html << "<td class=centered style='font-family:monospace'>";
+                for(size_t index=k; index<sequences[j].size()-k; index++) {
+                    const size_t repeatCount = repeatCounts[j][index];
+                    for(size_t l=0; l<repeatCount; l++) {
+                        html << sequences[j][index];
+                    }
+                }
+            }
+        }
+
+        html << "</table>";
+    }
+
+
+
+    // Table of assembly details: assembly mode 1 (overlapping bases).
+    else if(spoaDetail.assemblyMode == 1) {
+        html << "<p>This edge is dominated by oriented reads with "
+            "overlapping bases between the flanking markers. ";
+        html << "<table><tr><td>Not implemented</table>";
+    }
+
+
+
+    // Table of assembly details: assembly mode 2 (intervening bases).
+    else {
+        CZI_ASSERT(spoaDetail.assemblyMode == 2);
+        html << "<p>This edge is dominated by oriented reads with "
+            "intervening bases between the flanking markers. ";
+        html << "<table><tr><td>Not implemented</table>";
+    }
+
+
+
+
+    // Old assembly details table.
+    html <<
+        "<h3>Old assembly details table, being phased out. Inconsistent with assembly. Do not use.</h3>"
         "<p><table>"
         "<tr>"
         "<th>Oriented<br>read"
