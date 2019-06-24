@@ -153,15 +153,14 @@ void Assembler::exploreMarkerGraph(
     // Remove the .svg file.
     filesystem::remove(svgFileName);
 
-    // Make the vertices clickable to recompute the graph with the
-    // same parameters, but starting at the clicked vertex.
-    // For a detailed graph, only the "Distance" label of each vertex
-    // is made clickable.
+
+
+    // Make the vertices clickable: left click recenters
+    // the graph at that vertex, right click shows vertex details.
     html << "<script>\n";
     BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         const LocalMarkerGraphVertex& vertex = graph[v];
         CZI_ASSERT(!vertex.markerInfos.empty());
-        const auto& markerInfo = vertex.markerInfos.front();
         const string url =
             "exploreMarkerGraph?vertexId=" + to_string(vertex.vertexId) +
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
@@ -171,30 +170,24 @@ void Assembler::exploreMarkerGraph(
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
             (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
-        if(requestParameters.detailed) {
-            html <<
-                "document.getElementById('a_vertexDistance" << vertex.vertexId <<
-                "').onclick = function() {location.href='" << url << "';};\n";
-        } else {
-            html <<
-                "document.getElementById('vertex" << vertex.vertexId <<
-                "').onclick = function() {location.href='" << url << "';};\n";
+        html <<
+            "document.getElementById('vertex" << vertex.vertexId <<
+            "').onclick = function() {location.href='" << url << "';};\n";
 
-            // We are displaying the graph in compact mode.
-            // Add a right click to recenter and show detailed.
-            const string detailUrl =
-                "exploreMarkerGraph?readId=" + to_string(markerInfo.orientedReadId.getReadId()) +
-                "&strand=" + to_string(markerInfo.orientedReadId.getStrand()) +
-                "&ordinal="  + to_string(markerInfo.ordinal) +
-                "&maxDistance=1" +
-                "&sizePixels=" + to_string(requestParameters.sizePixels) +
-                "&timeout=" + to_string(requestParameters.timeout) +
-                "&detailed=on";
-            html <<
-                "document.getElementById('vertex" << vertex.vertexId <<
-                "').oncontextmenu = function() {location.href='" << detailUrl << "';"
-                "return false;};\n";
-        }
+        // Add a right click to show details.
+        const string detailUrl =
+            "exploreMarkerGraphVertex?vertexId=" + to_string(vertex.vertexId);
+#if 0
+        // This code opens the url in the same window.
+        html <<
+            "document.getElementById('vertex" << vertex.vertexId <<
+            "').oncontextmenu = function() {location.href='" << detailUrl << "';"
+            "return false;};\n";
+#endif
+        html <<
+            "document.getElementById('vertex" << vertex.vertexId <<
+            "').oncontextmenu = function() {window.open('" << detailUrl << "');"
+            "};\n";
     }
     html << "</script>\n";
 
