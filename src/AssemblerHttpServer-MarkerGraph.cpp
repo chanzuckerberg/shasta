@@ -185,17 +185,10 @@ void Assembler::exploreMarkerGraph(
         // Add a right click to show details.
         const string detailUrl =
             "exploreMarkerGraphVertex?vertexId=" + to_string(vertex.vertexId);
-#if 0
-        // This code opens the url in the same window.
-        html <<
-            "document.getElementById('vertex" << vertex.vertexId <<
-            "').oncontextmenu = function() {location.href='" << detailUrl << "';"
-            "return false;};\n";
-#endif
         html <<
             "document.getElementById('vertex" << vertex.vertexId <<
             "').oncontextmenu = function() {window.open('" << detailUrl << "');"
-            "};\n";
+            "return false;};\n";
     }
     html << "</script>\n";
 
