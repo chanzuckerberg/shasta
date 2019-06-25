@@ -1603,6 +1603,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
                 graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
                 graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
+                graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph edge.
                 if(assemblyGraph.markerToAssemblyTable.isOpen) {
@@ -1662,6 +1663,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
                 graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
                 graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
+                graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph vertex.
                 if(assemblyGraph.markerToAssemblyTable.isOpen) {
@@ -1742,6 +1744,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             graph[e].wasRemovedByTransitiveReduction = markerGraph.edges[edgeId].wasRemovedByTransitiveReduction;
             graph[e].wasPruned = markerGraph.edges[edgeId].wasPruned;
             graph[e].isSuperBubbleEdge = markerGraph.edges[edgeId].isSuperBubbleEdge;
+            graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
             // Link to assembly graph vertex.
             if(assemblyGraph.markerToAssemblyTable.isOpen) {

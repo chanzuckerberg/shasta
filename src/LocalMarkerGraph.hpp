@@ -168,6 +168,10 @@ public:
 
     // Set if this edge belongs to a bubble/superbubble that was removed.
     uint8_t isSuperBubbleEdge = 0;
+
+    // Flag that is set if this edge corresponds to a global marker graph
+    // edge that was assembled.
+    uint8_t wasAssembled = 0;
 };
 
 
@@ -274,11 +278,13 @@ private:
         static const string edgeArrowColorRemovedDuringTransitiveReduction;
         static const string edgeArrowColorRemovedDuringPruning;
         static const string edgeArrowColorRemovedDuringSuperBubbleRemoval;
-        static const string edgeArrowColorNotRemoved;
+        static const string edgeArrowColorNotRemovedNotAssembled;
+        static const string edgeArrowColorNotRemovedAssembled;
         static const string edgeLabelColorRemovedDuringTransitiveReduction;
         static const string edgeLabelColorRemovedDuringPruning;
         static const string edgeLabelColorRemovedDuringSuperBubbleRemoval;
-        static const string edgeLabelColorNotRemoved;
+        static const string edgeLabelColorNotRemovedNotAssembled;
+        static const string edgeLabelColorNotRemovedAssembled;
         const string& vertexColor(const LocalMarkerGraphVertex&) const;
         const string& edgeArrowColor(const LocalMarkerGraphEdge&) const;
         const string& edgeLabelColor(const LocalMarkerGraphEdge&) const;

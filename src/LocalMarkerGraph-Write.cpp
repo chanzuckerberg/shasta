@@ -51,17 +51,19 @@ LocalMarkerGraph::Writer::Writer(
 
 
 // Vertex and edge colors.
-const string LocalMarkerGraph::Writer::vertexColorZeroDistance = "#6666ff";
-const string LocalMarkerGraph::Writer::vertexColorIntermediateDistance = "#00ccff";
-const string LocalMarkerGraph::Writer::vertexColorMaxDistance = "#66ffff";
-const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringTransitiveReduction = "#ff0000";
-const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringPruning = "#ff00ff";
-const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval = "#00ff00";
-const string LocalMarkerGraph::Writer::edgeArrowColorNotRemoved = "#000000";
-const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringTransitiveReduction = "#ff9999";
-const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringPruning = "#c03280";
-const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringSuperBubbleRemoval = "#99ff99";
-const string LocalMarkerGraph::Writer::edgeLabelColorNotRemoved = "#999999";
+const string LocalMarkerGraph::Writer::vertexColorZeroDistance                          = "#6666ff";
+const string LocalMarkerGraph::Writer::vertexColorIntermediateDistance                  = "#00ccff";
+const string LocalMarkerGraph::Writer::vertexColorMaxDistance                           = "#66ffff";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringTransitiveReduction   = "#ff0000";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringPruning               = "#ff00ff";
+const string LocalMarkerGraph::Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval    = "#009900";
+const string LocalMarkerGraph::Writer::edgeArrowColorNotRemovedNotAssembled             = "#663300";
+const string LocalMarkerGraph::Writer::edgeArrowColorNotRemovedAssembled                = "#000000";
+const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringTransitiveReduction   = "#ff9999";
+const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringPruning               = "#c03280";
+const string LocalMarkerGraph::Writer::edgeLabelColorRemovedDuringSuperBubbleRemoval    = "#99ff99";
+const string LocalMarkerGraph::Writer::edgeLabelColorNotRemovedNotAssembled             = "#996600";
+const string LocalMarkerGraph::Writer::edgeLabelColorNotRemovedAssembled                = "#999999";
 const string& LocalMarkerGraph::Writer::vertexColor(const LocalMarkerGraphVertex& vertex) const
 {
     if(vertex.distance == 0) {
@@ -81,7 +83,11 @@ const string& LocalMarkerGraph::Writer::edgeArrowColor(const LocalMarkerGraphEdg
     } else if (edge.isSuperBubbleEdge) {
         return edgeArrowColorRemovedDuringSuperBubbleRemoval;
     } else {
-        return edgeArrowColorNotRemoved;
+        if(edge.wasAssembled) {
+            return edgeArrowColorNotRemovedAssembled;
+        } else {
+            return edgeArrowColorNotRemovedNotAssembled;
+        }
     }
 }
 const string& LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdge& edge) const
@@ -93,7 +99,12 @@ const string& LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdg
     } else if (edge.isSuperBubbleEdge) {
         return edgeLabelColorRemovedDuringSuperBubbleRemoval;
     } else {
-        return edgeLabelColorNotRemoved;
+        const bool wasAssembled = (edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max());
+        if(edge.wasAssembled) {
+            return edgeLabelColorNotRemovedAssembled;
+        } else {
+            return edgeLabelColorNotRemovedNotAssembled;
+        }
     }
 }
 
@@ -403,7 +414,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         }
 
         // Assembly vertex id.
-        if(edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max()) {
+        if((edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {
             s << "<tr><td colspan=\"" << columnCount << "\"><b>Position " << edge.positionInAssemblyEdge <<
                 " in assembly graph edge " << edge.assemblyEdgeId << "</b></td></tr>";
         }
