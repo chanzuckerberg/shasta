@@ -275,6 +275,9 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << " fillcolor=\"" << arrowColor << "\"";
         s << " color=\"" << arrowColor << "\"";
 
+        // Id, so we can use JavaScript code to manipulate the edge.
+        s << "id=edge" << edge.edgeId;
+
         // Thickness is determined by coverage.
         const double thickness = 0.2 * double(coverage==0 ? 1 : coverage);
         s << " penwidth=";
@@ -317,6 +320,9 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << " fillcolor=\"" << arrowColor << "\"";
         s << " color=\"" << arrowColor << "\"";
 
+        // Id, so we can use JavaScript code to manipulate the edge.
+        s << "id=edge" << edge.edgeId;
+
         // Weight;
         s << " weight=" << coverage;
 
@@ -332,9 +338,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
         // Edge id.
         const int columnCount = 5;
-        if(edge.edgeId != MarkerGraph::invalidEdgeId) {
-            s << "<tr><td colspan=\"" << columnCount << "\"><b>Edge " << edge.edgeId << "</b></td></tr>";
-        }
+        CZI_ASSERT(edge.edgeId != MarkerGraph::invalidEdgeId);
+        s << "<tr><td colspan=\"" << columnCount << "\"><b>Edge " << edge.edgeId << "</b></td></tr>";
 
         // Assembly vertex id.
         if((edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {

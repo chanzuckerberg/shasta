@@ -194,6 +194,38 @@ void Assembler::exploreMarkerGraph(
 
 
 
+    // Make the edges clickable: left click recenters
+    // the graph at the source vertex of that edge, right click shows edge details.
+    html << "<script>\n";
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
+        const LocalMarkerGraphEdge& edge = graph[e];
+        const LocalMarkerGraph::vertex_descriptor v0 = source(e, graph);
+        const LocalMarkerGraphVertex& vertex0 = graph[v0];
+        const string url =
+            "exploreMarkerGraph?vertexId=" + to_string(vertex0.vertexId) +
+            "&maxDistance=" + to_string(requestParameters.maxDistance) +
+            "&sizePixels=" + to_string(requestParameters.sizePixels) +
+            "&timeout=" + to_string(requestParameters.timeout) +
+            (requestParameters.detailed ? "&detailed=on" : "") +
+            (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
+            (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
+            (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
+        html <<
+            "document.getElementById('edge" << edge.edgeId <<
+            "').onclick = function() {location.href='" << url << "';};\n";
+
+        // Add a right click to show details.
+        const string detailUrl =
+            "exploreMarkerGraphEdge?edgeId=" + to_string(edge.edgeId);
+        html <<
+            "document.getElementById('edge" << edge.edgeId <<
+            "').oncontextmenu = function() {window.open('" << detailUrl << "');"
+            "return false;};\n";
+    }
+    html << "</script>\n";
+
+
+
     // Position the start vertex at the center of the window.
     html <<
         "<script>\n"
