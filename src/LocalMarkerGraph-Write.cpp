@@ -230,7 +230,8 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Tooltip.
         s << " tooltip=\"";
         s << "Vertex " << vertex.vertexId << ", coverage ";
-        s << coverage << ", distance " << vertex.distance << "\"";
+        s << coverage << ", distance " << vertex.distance;
+        s << ", click to recenter graph here, right click for detail\"";
 
         // Write the label using Graphviz html-like functionality.
         s << " label=<<font><table border=\"0\">";
@@ -252,116 +253,9 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         s << "</b></td></tr>";
 
         // Distance.
-        s << "<tr><td colspan=\"" << columnCount << "\" ";
-        s << " href=\"\"";  // Necessary to activate tooltip.
-        s << " id=\"vertexDistance" << vertex.vertexId << "\" tooltip=\"Click to recenter graph here\">";
-        s << "<font color=\"blue\"><b><u>Distance " << vertex.distance;
-        s << "</u></b></font></td></tr>";
-
-        // Column headers.
-        s << "<tr><td><b>Read</b></td><td><b>Ord</b></td><td><b>Pos</b></td>";
-        s << "<td><b>Repeat</b></td>";
-        s << "</tr>";
-
-        // A row for each marker of this vertex.
-        for(const auto& markerInfo: vertex.markerInfos) {
-            const CompressedMarker& marker = graph.markers.begin()[markerInfo.markerId];
-
-            // OrientedReadId
-            s << "<tr><td align=\"right\"";
-            s << " href=\"exploreRead?readId&amp;" << markerInfo.orientedReadId.getReadId();
-            s << "&amp;strand=" << markerInfo.orientedReadId.getStrand() << "\"";
-            s << "><font color=\"blue\"><b><u>" << markerInfo.orientedReadId << "</u></b></font></td>";
-
-            // Ordinal.
-            s << "<td align=\"right\"";
-            s << " href=\"exploreRead?readId=" << markerInfo.orientedReadId.getReadId();
-            s << "&amp;strand=" << markerInfo.orientedReadId.getStrand();
-            s << "&amp;highlightMarker=" << markerInfo.ordinal;
-            s << "\"";
-            s << "><font color=\"blue\"><b><u>" << markerInfo.ordinal << "</u></b></font></td>";
-
-            // Position.
-            s << "<td align=\"right\"><b>" << marker.position << "</b></td>";
-
-            // Repeat counts.
-            const vector<uint8_t> counts = graph.getRepeatCounts(markerInfo);
-            s << "<td><b>";
-            for(size_t i=0; i<k; i++) {
-                if(counts[i] < 10) {
-                    s << int(counts[i]);
-                } else {
-                    s << "*";
-                }
-            }
-            s << "</b></td>";
-
-            s << "</tr>";
-        }
-
-
-
-        // Repeat count consensus.
-
-        // Use the consensus caller to compute the consensus base and repeat count
-        // at each of the k positions. The consensus base should be equal
-        // to the corresponding base of the k-mer for this vertex!
-        vector<Consensus> consensus(k);
-        for(size_t position=0; position<graph.k; position++) {
-            consensus[position] = graph.consensusCaller(vertex.coverages[position]);
-            CZI_ASSERT(consensus[position].base == AlignedBase(kmer[position]));
-        }
-
-        s << "<tr><td colspan=\"3\" align=\"left\"><b>Repeat consensus</b></td>";
-        s << "<td><b>";
-        for(size_t position=0; position<graph.k; position++) {
-            const size_t repeatCount = consensus[position].repeatCount;
-            if(repeatCount < 10) {
-                s << repeatCount;
-            } else {
-                s << "*";
-            }
-        }
+        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
+        s << "Distance " << vertex.distance;
         s << "</b></td></tr>";
-
-        // Coverage for each repeat count at each position.
-        const std::set<size_t> repeatCounts =
-            graph.consensusCaller.findRepeatCounts(vertex.coverages);
-        for(const size_t repeatCount: repeatCounts) {
-            s << "<tr>";
-            s << "<td colspan=\"3\" align=\"left\"><b>Coverage for repeat ";
-            s << repeatCount << "</b></td>";
-            s << "<td><b>";
-            for(size_t position=0; position<graph.k; position++) {
-                const AlignedBase base = AlignedBase(kmer[position]);
-                s << vertex.coverages[position].coverageCharacter(base, repeatCount);
-            }
-            s << "</b></td></tr>";
-        }
-
-        // Coverage for the consensus best repeat count at each position.
-        s << "<tr><td colspan=\"3\" align=\"left\"><b>Coverage for repeat consensus</b></td>";
-        s << "<td><b>";
-        for(size_t position=0; position<graph.k; position++) {
-            const AlignedBase base = AlignedBase(kmer[position]);
-            const size_t repeatCount = consensus[position].repeatCount;
-            s << vertex.coverages[position].coverageCharacter(base, repeatCount);
-        }
-        s << "</b></td></tr>";
-
-        // The raw sequence, based on the best repeat counts.
-        s << "<tr><td colspan=\"3\" align=\"left\"><b>Raw consensus</b></td>";
-        s << "<td align=\"left\"><b>";
-        for(size_t position=0; position<graph.k; position++) {
-            const AlignedBase base = AlignedBase(kmer[position]);
-            const size_t repeatCount = consensus[position].repeatCount;
-            for(size_t k=0; k<repeatCount; k++) {
-                s << base;
-        }
-        }
-        s << "</b></td></tr>";
-
-
 
         // End the table.
         s << "</table></font>>";
