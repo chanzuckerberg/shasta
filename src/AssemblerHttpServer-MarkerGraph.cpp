@@ -800,8 +800,8 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
     // Count the number of gaps in the consensus bases.
-    const size_t consensusGapCount =
-        count(consensusBase.begin(), consensusBase.end(), AlignedBase::gap());
+    // const size_t consensusGapCount =
+    //     count(consensusBase.begin(), consensusBase.end(), AlignedBase::gap());
 
     // Compute concordant and discordant base coverage at each position.
     vector<size_t> concordantBaseCoverage(alignmentLength, 0);
@@ -835,6 +835,23 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         spoaDetail,
         0);
 
+
+
+    // For assembly mode 2, find the alignment row corresponding
+    // to each oriented read. Oriented reads that have the same
+    // run-length sequence are grouped into the same alignment row.
+    vector<int> alignmentRow;
+    if(spoaDetail.assemblyMode == 2) {
+        alignmentRow.resize(markerCount, -1);
+        for(size_t row=0;
+            row<spoaDetail.distinctSequenceOccurrences.size();
+            row++) {
+            const vector<size_t>& v = spoaDetail.distinctSequenceOccurrences[row];
+            for(size_t j: v) {
+                alignmentRow[j] = int(row);
+            }
+        }
+    }
 
 
     // Page title.
@@ -904,75 +921,137 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
 
+    // Assembly details section.
     html <<
         "<h3>Assembly details for this marker graph edge</h3>";
-
-
-
-    // Table of assembly details: case where a long marker interval is present.
     if(spoaDetail.hasLongMarkerInterval) {
-        html << "<p>This edge has a long marker interval. "
+        html <<
+            "<p>This edge has a long marker interval. "
             "Alignment computation was not performed. "
             "Instead, the consensus was taken equal to the edge sequence "
-            "for the oriented read with the shortest marker interval, highlighted below. "
+            "for the oriented read with the shortest marker interval, highlighted below.";
+    } else if(spoaDetail.assemblyMode == 1) {
+        html << "<p>This edge is dominated by oriented reads with "
+            "overlapping bases between the flanking markers. "
+            "Reads with one or more intervening bases between "
+            "the flanking markers were not used.";
+    } else {
+        CZI_ASSERT(spoaDetail.assemblyMode == 2);
+        html << "<p>This edge is dominated by oriented reads with "
+            "intervening bases between the flanking markers. "
+            "The run-length sequences of oriented reads are shown aligned. "
+            "Reads with one or more overlapping bases between "
+            "the flanking markers were not used.";
+    }
 
-            "<p><table>"
+
+
+    // Table of assembly details.
+#if 0
+    html <<
+        "<p><table>"
+        "<tr>"
+        "<th>Oriented<br>read"
+        "<th>Ordinal0"
+        "<th>Ordinal1"
+        "<th>Ordinal<br>skip"
+        "<th>Used<br>for<br>assembly?"
+        "<th>Number<br>of<br>overlapping<br>bases<br><br>between<br>flanking(run-length)"
+        "<th>Sequence<br>between<br>flanking<br>markers<br>(run-length)"
+        "<th>Sequence<br>between<br>flanking<br>markers<br>(raw)";
+#endif
+    html <<
+        "<p><table>"
+        "<tr>"
+        "<th rowspan=2>Oriented<br>read"
+        "<th colspan=2>Flanking<br>markers"
+        "<th rowspan=2>Markers<br>skipped"
+        "<th rowspan=2>Used<br>for<br>assembly?"
+        "<th colspan=2>Sequence<br>between<br>flanking<br>markers<br>(run-length)"
+        "<th rowspan=2>Sequence<br>intervening<br>between<br>flanking<br>markers<br>(raw)"
+        "<tr>"
+        "<th>Left"
+        "<th>Right"
+        "<th>Overlapping"
+        "<th>Intervening";
+
+    // Write one row for each oriented read.
+    for(size_t j=0; j<markerCount; j++) {
+        const MarkerInterval& markerInterval = markerIntervals[j];
+        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
+        const ReadId readId = orientedReadId.getReadId();
+        const Strand strand = orientedReadId.getStrand();
+        const bool hasOverlappingBases = (sequences[j].size() < 2*k);
+        const bool hasInterveningBases = (sequences[j].size() > 2*k);
+
+        // Figure out if this read was used for assembly.
+        bool wasUsed;
+        if(spoaDetail.hasLongMarkerInterval) {
+            wasUsed = (j == spoaDetail.iShortest);
+        } else if(spoaDetail.assemblyMode == 1) {
+            wasUsed = !hasInterveningBases;
+        } else {
+            CZI_ASSERT(spoaDetail.assemblyMode == 2);
+            wasUsed = !hasOverlappingBases;
+        }
+
+        // Oriented read id.
+        html <<
             "<tr>"
-            "<th>Oriented<br>read"
-            "<th>Ordinal0"
-            "<th>Ordinal1"
-            "<th>Ordinal<br>skip"
-            "<th>Number<br>of<br>overlapping<br>bases<br>(run-length)"
-            "<th>Sequence<br>(run-length)"
-            "<th>Sequence<br>(raw)";
+            "<td class=centered>"
+            "<a href='exploreRead"
+            "?readId=" << readId <<
+            "&strand=" << strand << "'>" <<
+            orientedReadId << "</a>";
 
-        // Write one row for each oriented read.
-        for(size_t j=0; j<markerCount; j++) {
-            const MarkerInterval& markerInterval = markerIntervals[j];
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-            const ReadId readId = orientedReadId.getReadId();
-            const Strand strand = orientedReadId.getStrand();
-
-            // Oriented read id.
+        // Ordinals.
+        for(size_t m=0; m<2; m++) {
             html <<
-                "<tr>"
-                "<td class=centered>"
+                "<td class=centered>" <<
                 "<a href='exploreRead"
                 "?readId=" << readId <<
-                "&strand=" << strand << "'>" <<
-                orientedReadId << "</a>";
+                "&strand=" << strand <<
+                "&highlightMarker=" << markerInterval.ordinals[m] <<
+                "'>" <<
+                markerInterval.ordinals[m] << "</a>";
+        }
 
-            // Ordinals.
-            for(size_t m=0; m<2; m++) {
-                html <<
-                    "<td class=centered>" <<
-                    "<a href='exploreRead"
-                    "?readId=" << readId <<
-                    "&strand=" << strand <<
-                    "&highlightMarker=" << markerInterval.ordinals[m] <<
-                    "'>" <<
-                    markerInterval.ordinals[m] << "</a>";
-            }
+        // Ordinal skip.
+        html << "<td class=centered>";
+        if(j == spoaDetail.iShortest) {
+            html << "<span style='background-color:yellow'>";
+        }
+        html << markerInterval.ordinals[1] - 1 - markerInterval.ordinals[0];
+        if(j == spoaDetail.iShortest) {
+            html << "</span>";
+        }
 
-            // Ordinal skip.
+        // Check if this read was used for assembly.
+        html << "<td class=centered>";
+        if(wasUsed) {
+            html << "&check;";
+        }
+
+
+        // Number of overlapping bases.
+        if(sequences[j].size() <= 2*k) {
             html << "<td class=centered>";
-            if(j == spoaDetail.iShortest) {
-                html << "<span style='background-color:yellow'>";
+            const size_t overlappingBaseCount = 2*k - sequences[j].size();
+            if(overlappingBaseCount > 0) {
+                html << overlappingBaseCount;
             }
-            html << markerInterval.ordinals[1] - 1 - markerInterval.ordinals[0];
-            if(j == spoaDetail.iShortest) {
-                html << "</span>";
-            }
+            html << "<td><td>";
+        } else {
+            html << "<td>";
 
 
-            // Number of overlapping bases.
-            if(sequences[j].size() <= 2*k) {
-                html << "<td class=centered>" << 2*k - sequences[j].size();
-            } else {
-                html << "<td>";
 
-                // Sequence (run-length).
-                html << "<td class=centered style='font-family:monospace'>";
+            // Sequence (run-length). For assembly mode 2,
+            // it is written aligned.
+            html << "<td class=centered style='font-family:monospace'>";
+            if(spoaDetail.hasLongMarkerInterval || spoaDetail.assemblyMode == 1) {
+
+                // Write run-length sequence, without worrying about aligning it.
                 for(size_t index=k; index<sequences[j].size()-k; index++) {
                     html << sequences[j][index];
                 }
@@ -980,43 +1059,100 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
                 for(size_t index=k; index<sequences[j].size()-k; index++) {
                     html << int(repeatCounts[j][index]);
                 }
+            } else {
 
-                // Sequence (raw).
-                html << "<td class=centered style='font-family:monospace'>";
-                for(size_t index=k; index<sequences[j].size()-k; index++) {
-                    const size_t repeatCount = repeatCounts[j][index];
-                    for(size_t l=0; l<repeatCount; l++) {
-                        html << sequences[j][index];
+                // Write alignment sequence, aligned.
+                const int row = alignmentRow[j];
+                CZI_ASSERT(row>=0 && row<int(spoaDetail.msa.size()));
+                const string& msaRow = spoaDetail.msa[row];
+                size_t position = k;
+                for(const char c: msaRow) {
+                    const AlignedBase base = AlignedBase::fromCharacter(c);
+                    if(base.isGap()) {
+                        html << "-";
+                    } else {
+                        html << sequences[j][position++];
+                    }
+                }
+                html << "<br>";
+                position = k;
+                for(const char c: msaRow) {
+                    const AlignedBase base = AlignedBase::fromCharacter(c);
+                    if(base.isGap()) {
+                        html << "-";
+                    } else {
+                        html << int(repeatCounts[j][position++]);
                     }
                 }
             }
+
+
+
+            // Sequence (raw).
+            html << "<td class=centered style='font-family:monospace'>";
+            for(size_t index=k; index<sequences[j].size()-k; index++) {
+                const size_t repeatCount = repeatCounts[j][index];
+                for(size_t l=0; l<repeatCount; l++) {
+                    html << sequences[j][index];
+                }
+            }
         }
-
-        html << "</table>";
     }
 
 
 
-    // Table of assembly details: assembly mode 1 (overlapping bases).
-    else if(spoaDetail.assemblyMode == 1) {
-        html << "<p>This edge is dominated by oriented reads with "
-            "overlapping bases between the flanking markers. ";
-        html << "<table><tr><td>Not implemented</table>";
+    // Write one row with consensus sequence.
+    html << "<tr><th colspan=5>Consensus";
+
+    // Consensus sequence (run-length).
+    if(spoaDetail.hasLongMarkerInterval || spoaDetail.assemblyMode==1) {
+        html << "<td class=centered>";
+        if(spoaOverlappingBaseCount > 0) {
+            html << int(spoaOverlappingBaseCount);
+        }
+        html << "<td class=centered style='font-family:monospace'>";
+        for(const Base base: spoaSequence) {
+            html << base;
+        }
+        html << "<br>";
+        for(const uint32_t repeatCount: spoaRepeatCounts) {
+            html << repeatCount;
+        }
+    } else {
+        CZI_ASSERT(spoaDetail.assemblyMode==2);
+        html <<
+            "<td class=centered>" << spoaOverlappingBaseCount <<
+            "<td class=centered style='font-family:monospace'>";
+        for(const AlignedBase base: spoaDetail.alignedConsensus) {
+            html << base;
+        }
+        html << "<br>";
+        for(const uint8_t repeatCount: spoaDetail.alignedRepeatCounts) {
+            if(repeatCount == 0) {
+                html << "-";
+            } else {
+                html << int(repeatCount);
+            }
+        }
     }
 
-
-
-    // Table of assembly details: assembly mode 2 (intervening bases).
-    else {
-        CZI_ASSERT(spoaDetail.assemblyMode == 2);
-        html << "<p>This edge is dominated by oriented reads with "
-            "intervening bases between the flanking markers. ";
-        html << "<table><tr><td>Not implemented</table>";
+    // Write consensus sequence (raw).
+    html << "<td class=centered style='font-family:monospace'>";
+    for(size_t i=0; i<spoaSequence.size(); i++) {
+        const Base base = spoaSequence[i];
+        const int repeatCount = spoaRepeatCounts[i];
+        for(int l=0; l<repeatCount; l++) {
+            html << base;
+        }
     }
 
+    html << "</table>";
 
 
 
+
+
+#if 0
     // Old assembly details table.
     html <<
         "<h3>Old assembly details table, being phased out. Inconsistent with assembly. Do not use.</h3>"
@@ -1253,6 +1389,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
     // End the table.
     html << "</table>";
+#endif
 }
 
 #endif

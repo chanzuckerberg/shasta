@@ -1021,13 +1021,30 @@ private:
         // In that case, this flag is set and nothing else is stored.
         bool hasLongMarkerInterval;
 
-        // Assembly mode: 1=overlapping bases, 2=ingtervening bases.
+        // Assembly mode: 1=overlapping bases, 2=intervening bases.
         int assemblyMode;   // 1 or 2.
 
-        // Data stored for assembly mode 1.
+        // Data stored when hasLongMarkerInterval is set.
         size_t iShortest;
 
+        // Data stored for assembly mode 1.
+
+
+
         // Data stored for assembly mode 2.
+
+        // The alignment for each distinct sequence.
+        // Indexed by distinct sequence index.
+        vector<string> msa;
+
+        // The consensus, including gap bases.
+        vector<AlignedBase> alignedConsensus;
+        vector<uint8_t> alignedRepeatCounts;
+
+        // The indexes of oriented reads that have each of the distinct sequences.
+        // Indexed by distinct sequence index (same as the index used
+        // for the msa vector above).
+        vector< vector<size_t> > distinctSequenceOccurrences;
     };
 
 

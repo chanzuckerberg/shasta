@@ -2927,7 +2927,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // sequences. For each sequence we store a vector of i values
     // where each sequence appear.
     vector< vector<Base> > distinctSequences;
-    vector< vector<size_t> > distinctSequenceOccurrences;
+    vector< vector<size_t> >& distinctSequenceOccurrences = detail.distinctSequenceOccurrences;
+    distinctSequenceOccurrences.clear();
     vector<bool> isUsed(markerCount);
     vector<Base> interveningSequence;
     vector< vector<uint8_t> > interveningRepeatCounts(markerCount);
@@ -3019,7 +3020,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
     // Use spoa to compute the multiple sequence alignment.
-    vector<string>msa;
+    vector<string>& msa = detail.msa;
     alignmentGraph->generate_multiple_sequence_alignment(msa);
 
     // The length of the alignment.
@@ -3034,6 +3035,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // If the consensus base is not '-', we store the base and repeat count.
     sequence.clear();
     repeatCounts.clear();
+    detail.alignedConsensus.clear();
+    detail.alignedRepeatCounts.clear();
     overlappingBaseCount = 0;
     if(coverageData) {
         coverageData->clear();
@@ -3093,6 +3096,20 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                 }
             }
         }
+
+        // Also store aligned consensus.
+        detail.alignedConsensus.push_back(consensus.base);
+        uint8_t repeatCount;
+        if(consensus.base.isGap()) {
+            repeatCount = 0;
+        } else {
+            if(consensus.repeatCount < 256) {
+                repeatCount = uint8_t(consensus.repeatCount);
+            } else {
+                repeatCount = 255;
+            }
+        }
+        detail.alignedRepeatCounts.push_back(repeatCount);
     }
 }
 
