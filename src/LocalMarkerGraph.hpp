@@ -88,6 +88,8 @@ public:
     // but the repeat counts can be different.
     vector<Coverage> coverages;
 
+    vector<uint8_t> storedConsensusRepeatCounts;
+
     // Fields used by approximateTopologicalSort.
     uint32_t color = 0;
     size_t rank = 0;

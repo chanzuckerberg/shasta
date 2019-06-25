@@ -176,28 +176,25 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
     const string& color = vertexColor(vertex);
     CZI_ASSERT(coverage > 0);
 
+    // Begin vertex attributes.
+    s << "[";
 
-    // For compact output, the node shape is already defaulted to point,
-    // and we don't write a label. The tooltip contains the vertex id,
-    // which can be used to create a local subgraph to be looked at
-    // in detailed format (use scripts/CreateLocalSubgraph.py).
+    // Id, so we can use JavaScript code to manipulate the vertex.
+    s << "id=vertex" << vertex.vertexId;
+
+    // Tooltip.
+    s << " tooltip=\"";
+    s << "Vertex " << vertex.vertexId << ", coverage ";
+    s << coverage << ", distance " << vertex.distance;
+    s << ", click to recenter graph here, right click for detail\"";
+
+
+
     if(!detailed) {
 
-        // Compact output.
+        // Compact output: point, no label.
 
-        // Begin vertex attributes.
-        s << "[";
-
-        // Id, so we can use JavaScript code to manipulate the vertex.
-        s << "id=vertex" << vertex.vertexId;
-
-        // Tooltip.
-        s << " tooltip=\"";
-        s << "Vertex " << vertex.vertexId << ", coverage ";
-        s << coverage << ", distance " << vertex.distance;
-        s << ", click to recenter graph here, right click for detail\"";
-
-        // Vertex size.
+        // Vertex area is proportional to coverage.
         s << " width=\"";
         const auto oldPrecision = s.precision(4);
         s << 0.05 * sqrt(double(coverage));
@@ -207,62 +204,50 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Color.
         s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
 
-        // End vertex attributes.
-        s << "]";
 
     } else {
 
         // Detailed output.
-        const size_t k = graph.k;
-        const KmerId kmerId = graph.getKmerId(v);
-        const Kmer kmer(kmerId, k);
-
-        // Begin vertex attributes.
-        s << "[";
 
         // Color.
         s << " style=filled";
         s << " fillcolor=\"" << color << "\"";
 
-        // Id, so we can use JavaScript code to manipulate the vertex.
-        s << " id=vertex" << vertex.vertexId;
+        // Label.
+        s << " label=\"";
+        s << "Vertex " << vertex.vertexId << "\\n";
+        s << "Coverage " << coverage << "\\n";
+        s << "Distance " << vertex.distance << "\\n";
 
-        // Tooltip.
-        s << " tooltip=\"";
-        s << "Vertex " << vertex.vertexId << ", coverage ";
-        s << coverage << ", distance " << vertex.distance;
-        s << ", click to recenter graph here, right click for detail\"";
-
-        // Write the label using Graphviz html-like functionality.
-        s << " label=<<font><table border=\"0\">";
-        const int columnCount = 4;
-
-        // Vertex id.
-        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
-        s << "Vertex " << vertex.vertexId;
-        s << "</b></td></tr>";
-
-        // Kmer.
-        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
+        // Marker sequence (run-length).
+        const size_t k = graph.k;
+        const KmerId kmerId = graph.getKmerId(v);
+        const Kmer kmer(kmerId, k);
         kmer.write(s, k);
-        s << "</b></td></tr>";
+        s << "\\n";
 
-        // Coverage.
-        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
-        s << "Coverage " << coverage;
-        s << "</b></td></tr>";
+        // Consensus repeat counts.
+        for(size_t i=0; i<k; i++) {
+            s << int(vertex.storedConsensusRepeatCounts[i]);
+        }
+        s << "\\n";
 
-        // Distance.
-        s << "<tr><td colspan=\"" << columnCount << "\"><b>";
-        s << "Distance " << vertex.distance;
-        s << "</b></td></tr>";
+        // Consensus sequence (raw).
+        for(size_t i=0; i<k; i++) {
+            const Base base = kmer[i];
+            const int repeatCount = int(vertex.storedConsensusRepeatCounts[i]);
+            for(int l=0; l<repeatCount; l++) {
+                s << base;
+            }
+        }
+        s << "\\n";
 
-        // End the table.
-        s << "</table></font>>";
-
-        // End vertex attributes.
-        s << "]";
+        // End the label.
+        s << "\"";
     }
+
+    // End vertex attributes.
+    s << "]";
 }
 
 

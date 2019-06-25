@@ -127,7 +127,7 @@ void Assembler::exploreMarkerGraph(
             return;
         }
         else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-            filesystem::remove(dotFileName);
+            // filesystem::remove(dotFileName);
             throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
         }
     } else if(WIFSIGNALED(commandStatus)) {
@@ -138,7 +138,7 @@ void Assembler::exploreMarkerGraph(
 
     }
     // Remove the .dot file.
-    filesystem::remove(dotFileName);
+    // filesystem::remove(dotFileName);
 
 
 
@@ -394,7 +394,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
     // Compute consensus repeat counts at each of the k positions.
     vector<size_t> consensusRepeatCounts(k);
-    const auto& storedConsensusRepeatCounts =
+    const auto storedConsensusRepeatCounts =
         markerGraph.vertexRepeatCounts.begin() + k * vertexId;
     for(size_t i=0; i<k; i++) {
 
