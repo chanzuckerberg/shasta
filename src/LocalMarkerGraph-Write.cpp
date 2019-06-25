@@ -270,6 +270,10 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
 
         // Tooltip.
         s << "tooltip=\"Edge " << edge.edgeId << ", coverage " << coverage << "\"";
+        s << " tooltip=\"";
+        s << "Edge " << edge.edgeId << ", coverage ";
+        s << coverage;
+        s << ", click to recenter graph here, right click for detail\"";
 
         // Color.
         s << " fillcolor=\"" << arrowColor << "\"";
@@ -304,10 +308,21 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         // Begin edge attributes.
         s << "[";
 
-        const string tooltipText = "Edge " + to_string(edge.edgeId) + ", coverage " + to_string(coverage);
+        // Tooltip.
+        const string tooltipText =
+            "Edge " + to_string(edge.edgeId) +
+            ", coverage " + to_string(coverage) +
+            ", click to recenter graph here, right click for detail";
         s << " tooltip=\"" << tooltipText << "\"";
         s << " labeltooltip=\"" << tooltipText << "\"";
-        // s << " URL=\"#abcdef\"";   // Hack to convince graphviz to not ignore the labeltooltip.
+        s << " URL=\"#a\"";   // Hack to convince graphviz to not ignore the labeltooltip.
+
+
+        s << "tooltip=\"Edge " << edge.edgeId << ", coverage " << coverage << "\"";
+        s << " tooltip=\"";
+        s << "Edge " << edge.edgeId << ", coverage ";
+        s << coverage;
+        s << ", click to recenter graph here, right click for detail\"";
 
         // Thickness is determined by coverage.
         const double thickness = 0.5 * double(coverage==0 ? 1 : coverage);
@@ -331,109 +346,23 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << "<table";
         s << " color=\"black\"";
         s << " bgcolor=\"" << labelColor << "\"";
-        s << " border=\"0\"";
-        s << " cellborder=\"1\"";
-        s << " cellspacing=\"1\"";
+        s << " border=\"1\"";
+        s << " cellborder=\"0\"";
+        s << " cellspacing=\"0\"";
         s << ">";
 
         // Edge id.
-        const int columnCount = 5;
         CZI_ASSERT(edge.edgeId != MarkerGraph::invalidEdgeId);
-        s << "<tr><td colspan=\"" << columnCount << "\"><b>Edge " << edge.edgeId << "</b></td></tr>";
+        s << "<tr><td>Edge " << edge.edgeId << "</td></tr>";
 
-        // Assembly vertex id.
+        // Assembly edge id.
         if((edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {
-            s << "<tr><td colspan=\"" << columnCount << "\"><b>Position " << edge.positionInAssemblyEdge <<
-                " in assembly graph edge " << edge.assemblyEdgeId << "</b></td></tr>";
+            s << "<tr><td>Assembly " << edge.assemblyEdgeId << "-" <<
+                edge.positionInAssemblyEdge << "</td></tr>";
         }
 
         // Coverage.
-        s << "<tr><td colspan=\"" << columnCount << "\"><b>Coverage " << coverage << "</b></td></tr>";
-
-        // Header row.
-        s <<
-            "<tr>"
-            "<td align=\"center\"><b>Read</b></td>"
-            "<td align=\"center\"><b>Ord0</b></td>"
-            "<td align=\"center\"><b>Ord1</b></td>"
-            "<td align=\"center\"><b>Seq</b></td>";
-        s << "<td align=\"center\"><b>Repeat</b></td>";
-        s << "</tr>";
-
-        // Loop over the infos table for this edge.
-        for(const auto& p: edge.infos) {
-            const auto& sequence = p.first;
-            const auto& infos = p.second;
-
-            // Construct the string representing this sequence.
-            string sequenceString;
-            if(sequence.sequence.empty()) {
-                sequenceString = to_string(sequence.overlappingBaseCount);
-            } else {
-                for(const Base base: sequence.sequence) {
-                    sequenceString.push_back(base.character());
-                }
-            }
-
-
-
-            for(auto it=infos.begin(); it!=infos.end(); ++it) {
-                const auto& info = *it;
-                s << "<tr><td align=\"right\"";
-                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
-                s << "&amp;strand=" << info.orientedReadId.getStrand() << "\"";
-                s << "><font color=\"blue\"><b><u>" << info.orientedReadId << "</u></b></font></td>";
-
-                s << "<td align=\"right\"";
-                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
-                s << "&amp;strand=" << info.orientedReadId.getStrand();
-                s << "&amp;highlightMarker=" << info.ordinals[0];
-                s << "&amp;highlightMarker=" << info.ordinals[1];
-                s << "\"";
-                s << "><font color=\"blue\"><b><u>" << info.ordinals[0] << "</u></b></font></td>";
-
-                s << "<td align=\"right\"";
-                s << " href=\"exploreRead?readId&amp;" << info.orientedReadId.getReadId();
-                s << "&amp;strand=" << info.orientedReadId.getStrand();
-                s << "&amp;highlightMarker=" << info.ordinals[0];
-                s << "&amp;highlightMarker=" << info.ordinals[1];
-                s << "\"";
-                s << "><font color=\"blue\"><b><u>" << info.ordinals[1] << "</u></b></font></td>";
-
-                s << "<td align=\"center\"><b>";
-                if(it == infos.begin()) {
-                    if(sequenceString.size() > 100) {
-                        s << "Too long";
-                    } else {
-                        s << sequenceString;
-                    }
-                } else {
-                    s << "=";
-                }
-                s << "</b></td>";
-
-                // Write out the repeat counts, if necessary.
-                if(!info.repeatCounts.empty()) {
-                    s << "<td align=\"center\"><b>";
-                    if(sequenceString.size() > 100) {
-                        s << "Too long";
-                    } else {
-                        for(const uint8_t repeatCount: info.repeatCounts) {
-                            if(repeatCount < 10) {
-                                s << int(repeatCount);
-                            } else {
-                                s << "*";
-                            }
-                        }
-                    }
-                    s << "</b></td>";
-                }
-
-                s << "</tr>";
-            }
-        }
-
-
+        s << "<tr><td>Coverage " << coverage << "</td></tr>";
 
         // End the label.
         s << "</table></font>> decorate=true";
