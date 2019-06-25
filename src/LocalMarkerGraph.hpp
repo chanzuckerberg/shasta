@@ -88,6 +88,9 @@ public:
     // but the repeat counts can be different.
     vector<Coverage> coverages;
 
+    // Fields used by approximateTopologicalSort.
+    uint32_t color = 0;
+    size_t rank = 0;
 };
 
 
@@ -172,6 +175,9 @@ public:
     // Flag that is set if this edge corresponds to a global marker graph
     // edge that was assembled.
     uint8_t wasAssembled = 0;
+
+    // Field used by approximateTopologicalSort.
+    bool isDagEdge = true;
 };
 
 
@@ -232,6 +238,13 @@ public:
         int maxDistance,
         bool detailed) const;
 
+    // Approximate topological sort, adding edges
+    // in order of decreasing coverage. The topological sort rank
+    // of each vertex is stored in LocalMarkerGrapg2Vertex::rank.
+    // In addition, the vertices are stored in topological sort order
+    // in vector topologicallySortedVertices.
+    void approximateTopologicalSort();
+    vector<vertex_descriptor> topologicallySortedVertices;
 
 private:
 

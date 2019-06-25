@@ -1756,6 +1756,13 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     }
 
 
+    // For better display with dot layout, do
+    // an approximate toological sort.
+    // Back-edges are more likely to be low coverage edges.
+    graph.approximateTopologicalSort();
+
+
+
 
     // Also fill in the ConsensusInfo's for each vertex.
     graph.computeVertexConsensusInfo();

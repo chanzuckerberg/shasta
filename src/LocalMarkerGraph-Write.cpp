@@ -406,6 +406,12 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         // Weight;
         s << " weight=" << coverage;
 
+        // If the edge was not marked as a DAG edge during approximate topological sort,
+        // tell graphviz not to use it in constraint assignment.
+        if(!edge.isDagEdge) {
+            s << " constraint=false";
+        }
+
         // End edge attributes.
         s << "]";
 
@@ -548,6 +554,11 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         // End the label.
         s << "</table></font>> decorate=true";
 
+        // If the edge was not marked as a DAG edge during approximate topological sort,
+        // tell graphviz not to use it in constraint assignment.
+        if(!edge.isDagEdge) {
+            s << " constraint=false";
+        }
 
         // End edge attributes.
         s << "]";

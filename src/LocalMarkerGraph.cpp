@@ -2,6 +2,7 @@
 
 // Shasta.
 #include "LocalMarkerGraph.hpp"
+#include "approximateTopologicalSort.hpp"
 #include "findMarkerId.hpp"
 #include "orderPairs.hpp"
 using namespace ChanZuckerberg;
@@ -279,6 +280,43 @@ bool LocalMarkerGraphEdge::getOrdinals(
 
     // If getting here, we did not find it.
     return false;
+}
+
+
+
+// Approximate topological sort, adding edges
+// in order of decreasing coverage. The topological sort
+// stored in LocalMarkerGrapg2Vertex::rank.
+void LocalMarkerGraph::approximateTopologicalSort()
+{
+    LocalMarkerGraph& graph = *this;
+
+    vector<pair<uint32_t, edge_descriptor> > edgeTable;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
+        edgeTable.push_back(make_pair(graph[e].coverage(), e));
+    }
+    sort(edgeTable.begin(), edgeTable.end(),
+        std::greater< pair<uint32_t, edge_descriptor> >());
+
+    vector<edge_descriptor> sortedEdges;
+    for(const auto& p: edgeTable) {
+        sortedEdges.push_back(p.second);
+    }
+
+    shasta::approximateTopologicalSort(graph, sortedEdges);
+
+
+    // Also store the vertices in topological sort order.
+    vector< pair<size_t, vertex_descriptor> > vertexTable;
+    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
+        vertexTable.push_back(make_pair(graph[v].rank, v));
+    }
+    sort(vertexTable.begin(), vertexTable.end());
+    topologicallySortedVertices.clear();
+    for(const auto& p: vertexTable) {
+        topologicallySortedVertices.push_back(p.second);
+    }
+
 }
 
 #endif
