@@ -290,6 +290,9 @@ private:
         const string& edgeLabelColor(const LocalMarkerGraphEdge&) const;
     };
     friend class Writer;
+
+public:
+    static void writeColorLegend(ostream&);
 };
 
 #endif

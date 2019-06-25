@@ -29,8 +29,16 @@ void Assembler::exploreMarkerGraph(
     LocalMarkerGraphRequestParameters requestParameters;
     getLocalMarkerGraphRequestParameters(request, requestParameters);
 
-    // Write the form.
+    // Write the form and the color legend.
+    html << "<h3>Display a local subgraph of the global marker graph</h3>";
+    html << "<div style='clear:both; display:table;'>";
+    html << "<div style='float:left;margin:10px;'>";
     requestParameters.writeForm(html, markerGraph.vertices.size());
+    html << "</div>";
+    html << "<div style='float:left;margin:10px;'>";
+    LocalMarkerGraph::writeColorLegend(html);
+    html << "</div>";
+    html << "</div>";
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -249,7 +257,6 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
     MarkerGraph::VertexId vertexCount) const
 {
     html <<
-        "<h3>Display a local subgraph of the global marker graph</h3>"
         "<form>"
 
         "<table>"

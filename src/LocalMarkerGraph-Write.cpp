@@ -99,13 +99,51 @@ const string& LocalMarkerGraph::Writer::edgeLabelColor(const LocalMarkerGraphEdg
     } else if (edge.isSuperBubbleEdge) {
         return edgeLabelColorRemovedDuringSuperBubbleRemoval;
     } else {
-        const bool wasAssembled = (edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max());
         if(edge.wasAssembled) {
             return edgeLabelColorNotRemovedAssembled;
         } else {
             return edgeLabelColorNotRemovedNotAssembled;
         }
     }
+}
+
+
+
+void LocalMarkerGraph::writeColorLegend(ostream& html)
+{
+    html <<
+        "<table style='font-size:10px'>"
+        "<tr><th class=centered colspan=3>Marker graph color legend"
+        "<tr><td rowspan=4>Vertices"
+        "<tr><td>Zero distance<td style='width:50px;background-color:" <<
+        Writer::vertexColorZeroDistance << "'>"
+        "<tr><td>Intermediate distances<td style='width:50px;background-color:" <<
+        Writer::vertexColorIntermediateDistance << "'>"
+        "<tr><td>Maximum distance<td style='width:50px;background-color:" <<
+        Writer::vertexColorMaxDistance << "'>"
+        "<tr><td rowspan=6>Edge<br>arrows"
+        "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
+        Writer::edgeArrowColorRemovedDuringTransitiveReduction << "'>"
+        "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
+        Writer::edgeArrowColorRemovedDuringPruning << "'>"
+        "<tr><td>Removed during bubble/superbubble removal<td style='width:50px;background-color:" <<
+        Writer::edgeArrowColorRemovedDuringSuperBubbleRemoval << "'>"
+        "<tr><td>Not removed, not assembled<td style='width:50px;background-color:" <<
+        Writer::edgeArrowColorNotRemovedNotAssembled << "'>"
+        "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
+        Writer::edgeArrowColorNotRemovedAssembled << "'>"
+        "<tr><td rowspan=6>Edge<br>labels"
+        "<tr><td>Removed during transitive reduction<td style='width:50px;background-color:" <<
+        Writer::edgeLabelColorRemovedDuringTransitiveReduction << "'>"
+        "<tr><td>Removed during pruning<td style='width:50px;background-color:" <<
+        Writer::edgeLabelColorRemovedDuringPruning << "'>"
+        "<tr><td>Removed during bubble/superbubble removal<td style='width:50px;background-color:" <<
+        Writer::edgeLabelColorRemovedDuringSuperBubbleRemoval << "'>"
+        "<tr><td>Not removed, not assembled<td style='width:50px;background-color:" <<
+        Writer::edgeLabelColorNotRemovedNotAssembled << "'>"
+        "<tr><td>Not removed, assembled<td style='width:50px;background-color:" <<
+        Writer::edgeLabelColorNotRemovedAssembled << "'>"
+       "</table>";
 }
 
 
