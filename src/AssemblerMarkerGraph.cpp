@@ -2739,6 +2739,9 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
     )
 {
+    // Flag to control debug output.
+    const bool debug = false;
+
     // Get the marker length.
     const uint32_t k = uint32_t(assemblerInfo->k);
 
@@ -2982,6 +2985,22 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             interveningRepeatCounts[i].push_back(repeatCount);
         }
 
+        if(debug) {
+            cout << orientedReadId << endl;
+            for(const Base base: interveningSequence) {
+                cout << base;
+            }
+            cout << endl;
+            for(const uint8_t repeatCount: interveningRepeatCounts[i]) {
+                if(repeatCount < 10) {
+                    cout << int(repeatCount);
+                } else {
+                    cout << "*";
+                }
+            }
+            cout << endl;
+        }
+
         // Store, making sure to check if we already encountered this sequence.
         const auto it = find(distinctSequences.begin(), distinctSequences.end(), interveningSequence);
         if(it == distinctSequences.end()) {
@@ -3008,6 +3027,31 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     }
     sort(distinctSequenceTable.begin(), distinctSequenceTable.end(),
         OrderPairsBySecondOnlyGreater<size_t, uint32_t>());
+
+    if(debug) {
+        cout << "Distinct sequences:" << endl;
+        for(size_t i=0; i<distinctSequences.size(); i++) {
+            const vector<Base>& distinctSequence = distinctSequences[i];
+            cout << "Index in distinctSequences: " << i << endl;
+            for(const Base base: distinctSequence) {
+                cout << base;
+            }
+            cout << endl;
+        }
+        cout << "Distinct sequence table:" << endl;
+        for(size_t i=0; i<distinctSequenceTable.size(); i++) {
+            const size_t indexInDistinctSequences =  distinctSequenceTable[i].first;
+            const size_t frequency = distinctSequenceTable[i].second;
+            const vector<Base>& distinctSequence = distinctSequences[indexInDistinctSequences];
+            cout << "Index in distinctSequenceTable: " << i << endl;
+            cout << "Index in distinctSequences: " << indexInDistinctSequences << endl;
+            cout << "Frequency: " << frequency << endl;
+            for(const Base base: distinctSequence) {
+                cout << base;
+            }
+            cout << endl;
+        }
+    }
 
 
     // We are now ready to compute the spoa alignment for the distinct sequences.
@@ -3045,6 +3089,13 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // This includes alignment gaps.
     const size_t alignmentLength = msa.front().size();
 
+    if(debug) {
+        cout << "Spoa alignment:" << endl;
+        for(size_t i=0; i<msa.size(); i++) {
+            cout << msa[i] << endl;
+        }
+    }
+
 
 
     // Construct the edge sequence and repeat counts.
@@ -3068,6 +3119,10 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     vector<uint32_t> positions(markerCount, 0);
     for(size_t position=0; position<alignmentLength; position++) {
 
+        if(debug) {
+            cout << "Computing consensus repeat count at alignment position " << position << endl;
+        }
+
         // Create a Coverage object for this position.
         Coverage coverage;
 
@@ -3086,11 +3141,15 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                 const AlignedBase base = AlignedBase::fromCharacter(msa[j][position]);
                 if(base.isGap()) {
                     coverage.addRead(base, orientedReadId.getStrand(), 0);
+                    if(debug) {
+                        cout << base << " " << 0 << " " << orientedReadId.getStrand() << endl;
+                    }
                 } else {
                     coverage.addRead(
                         base,
                         orientedReadId.getStrand(),
                         interveningRepeatCounts[i][positions[i]]);
+                    cout << base << " " << int(interveningRepeatCounts[i][positions[i]]) << " " << orientedReadId.getStrand() << endl;
                     ++positions[i];
                 }
             }
@@ -3128,6 +3187,22 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             }
         }
         detail.alignedRepeatCounts.push_back(repeatCount);
+    }
+
+    if(debug) {
+        cout << "Consensus:" << endl;
+        for(const Base base: sequence) {
+            cout << base;
+        }
+        cout << endl;
+        for(const int repeatCount: repeatCounts) {
+            if(repeatCount < 10) {
+                cout << repeatCount;
+            } else {
+                cout << "*";
+            }
+        }
+        cout << endl;
     }
 }
 
