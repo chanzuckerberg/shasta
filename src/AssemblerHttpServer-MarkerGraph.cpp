@@ -3,6 +3,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "ConsensusCaller.hpp"
+#include "iterator.hpp"
 #include "LocalMarkerGraph.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
@@ -869,23 +870,6 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
 
-    // For assembly mode 2, find the alignment row corresponding
-    // to each oriented read. Oriented reads that have the same
-    // run-length sequence are grouped into the same alignment row.
-    vector<int> alignmentRow;
-    if(spoaDetail.assemblyMode == 2) {
-        alignmentRow.resize(markerCount, -1);
-        for(size_t row=0;
-            row<spoaDetail.distinctSequenceOccurrences.size();
-            row++) {
-            const vector<size_t>& v = spoaDetail.distinctSequenceOccurrences[row];
-            for(size_t j: v) {
-                alignmentRow[j] = int(row);
-            }
-        }
-    }
-
-
     // Page title.
     const string titleUrl =
         "exploreMarkerGraph?vertexId=" + to_string(vertexIds[0]) +
@@ -1094,7 +1078,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
             } else {
 
                 // Write alignment sequence, aligned.
-                const int row = alignmentRow[j];
+                const int row = spoaDetail.alignmentRow[j];
                 CZI_ASSERT(row>=0 && row<int(spoaDetail.msa.size()));
                 const string& msaRow = spoaDetail.msa[row];
                 size_t position = k;

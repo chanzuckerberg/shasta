@@ -3053,6 +3053,17 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         }
     }
 
+    // Find the alignment row that will correspond to each oriented read.
+    detail.alignmentRow.clear();
+    detail.alignmentRow.resize(markerCount, -1);
+    for(size_t i=0; i<distinctSequenceTable.size(); i++) {
+        const size_t indexInDistinctSequences =  distinctSequenceTable[i].first;
+        const vector<size_t>& occurrences = distinctSequenceOccurrences[indexInDistinctSequences];
+        for(const size_t j: occurrences) {
+            detail.alignmentRow[j] = i;
+        }
+    }
+
 
     // We are now ready to compute the spoa alignment for the distinct sequences.
 

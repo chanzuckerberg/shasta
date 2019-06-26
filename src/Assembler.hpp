@@ -1045,6 +1045,9 @@ private:
         // Indexed by distinct sequence index (same as the index used
         // for the msa vector above).
         vector< vector<size_t> > distinctSequenceOccurrences;
+
+        // The alignment row corresponding to each oriented read.
+        vector<int> alignmentRow;
     };
 
 
