@@ -3149,7 +3149,9 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                         base,
                         orientedReadId.getStrand(),
                         interveningRepeatCounts[i][positions[i]]);
-                    cout << base << " " << int(interveningRepeatCounts[i][positions[i]]) << " " << orientedReadId.getStrand() << endl;
+                    if(debug) {
+                        cout << base << " " << int(interveningRepeatCounts[i][positions[i]]) << " " << orientedReadId.getStrand() << endl;
+                    }
                     ++positions[i];
                 }
             }
