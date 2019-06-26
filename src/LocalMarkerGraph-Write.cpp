@@ -364,6 +364,34 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         // Coverage.
         s << "<tr><td>Coverage " << coverage << "</td></tr>";
 
+        // Consensus.
+        if(edge.consensusSequence.empty()) {
+            s << "<tr><td>Overlap " << int(edge.consensusOverlappingBaseCount) << "</td></tr>";
+        } else {
+            // Consensus sequence (run-length).
+            s << "<tr><td>";
+            for(const Base base: edge.consensusSequence) {
+                s << base;
+            }
+            s << "</td></tr>";
+            // Consensus repeat counts.
+            s << "<tr><td>";
+            for(const int repeatCount: edge.consensusRepeatCounts) {
+                s << repeatCount;
+            }
+            s << "</td></tr>";
+            // Consensus sequence (raw).
+            s << "<tr><td>";
+            for(size_t i=0; i<edge.consensusSequence.size(); i++) {
+                const Base base = edge.consensusSequence[i];
+                const int repeatCount = edge.consensusRepeatCounts[i];
+                for(int l=0; l<repeatCount; l++) {
+                    s << base;
+                }
+            }
+            s << "</td></tr>";
+        }
+
         // End the label.
         s << "</table></font>> decorate=true";
 

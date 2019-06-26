@@ -1769,11 +1769,23 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     // Back-edges are more likely to be low coverage edges.
     graph.approximateTopologicalSort();
 
-
-
-
-    // Also fill in the ConsensusInfo's for each vertex.
+    // Fill in the ConsensusInfo's for each vertex.
     graph.computeVertexConsensusInfo();
+
+    // Fill in the consensus sequence for all edges.
+    const uint32_t markerGraphEdgeLengthThresholdForConsensus = 1000;
+    BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
+        LocalMarkerGraphEdge& edge = graph[e];
+        ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
+        computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
+            edge.edgeId,
+            markerGraphEdgeLengthThresholdForConsensus,
+            edge.consensusSequence,
+            edge.consensusRepeatCounts,
+            edge.consensusOverlappingBaseCount,
+            detail,
+            0);
+    }
 
     return true;
 }
@@ -3060,7 +3072,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         const size_t indexInDistinctSequences =  distinctSequenceTable[i].first;
         const vector<size_t>& occurrences = distinctSequenceOccurrences[indexInDistinctSequences];
         for(const size_t j: occurrences) {
-            detail.alignmentRow[j] = i;
+            detail.alignmentRow[j] = int(i);
         }
     }
 
