@@ -3,7 +3,7 @@
 // Implementation of class HttpServer - see HttpServer.hpp for more information.
 
 #include "HttpServer.hpp"
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
 // #include "tokenize.hpp"
 using namespace ChanZuckerberg;
@@ -404,11 +404,11 @@ void PostData::readHeaders(istream& s)
 
         // Get a header line.
         getline(s, line);
-        CZI_ASSERT(s);
+        SHASTA_ASSERT(s);
 
         // Remove the final '\r'.
-        CZI_ASSERT(line.size() > 0);
-        CZI_ASSERT(line.back() == '\r');
+        SHASTA_ASSERT(line.size() > 0);
+        SHASTA_ASSERT(line.back() == '\r');
         line.resize(line.size() - 1);
 
         // If empty, we have reached the end of the headers.

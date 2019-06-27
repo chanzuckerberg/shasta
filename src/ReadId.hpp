@@ -2,7 +2,7 @@
 #define CZI_SHASTA_READ_ID_HPP
 
 // CZI.
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 
 // Standard libraries.
 #include <cstdlib>
@@ -40,7 +40,7 @@ public:
     OrientedReadId() : value(std::numeric_limits<ReadId>::max()) {}
     OrientedReadId(ReadId readId, Strand strand) : value((readId<<1) | strand)
     {
-        CZI_ASSERT(strand < 2);
+        SHASTA_ASSERT(strand < 2);
     }
     explicit OrientedReadId(ReadId value) : value(value) {}
 
@@ -48,7 +48,7 @@ public:
     explicit OrientedReadId(const string& s)
     {
         const auto dashPosition = s.find_first_of('-');
-        CZI_ASSERT(dashPosition != string::npos);
+        SHASTA_ASSERT(dashPosition != string::npos);
         const ReadId readId = std::atoi(s.substr(0, dashPosition).c_str());
         const Strand strand = std::atoi(s.substr(dashPosition+1, s.size()).c_str());
         value = (readId<<1) | strand;

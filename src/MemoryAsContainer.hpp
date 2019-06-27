@@ -47,17 +47,17 @@ public:
 
     T& front()
     {
-        CZI_ASSERT(dataBegin);
-        CZI_ASSERT(dataEnd);
-        CZI_ASSERT(!empty());
+        SHASTA_ASSERT(dataBegin);
+        SHASTA_ASSERT(dataEnd);
+        SHASTA_ASSERT(!empty());
         return *dataBegin;
     }
 
     T& back()
     {
-        CZI_ASSERT(dataBegin);
-        CZI_ASSERT(dataEnd);
-        CZI_ASSERT(!empty());
+        SHASTA_ASSERT(dataBegin);
+        SHASTA_ASSERT(dataEnd);
+        SHASTA_ASSERT(!empty());
         return *(dataEnd - 1);
     }
 private:

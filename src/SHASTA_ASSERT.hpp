@@ -1,9 +1,9 @@
-// Definition of macro CZI_ASSERT.
+// Definition of macro SHASTA_ASSERT.
 // It is always compiled in, regardless of compilation settings.
 // It throws a standard exception if the assertion fails.
 
-#ifndef CZI_SHASTA_CZI_ASSERT_HPP
-#define CZI_SHASTA_CZI_ASSERT_HPP
+#ifndef SHASTA_SHASTA_ASSERT_HPP
+#define SHASTA_SHASTA_ASSERT_HPP
 
 #include <stdexcept>
 #include <string>
@@ -17,7 +17,7 @@ namespace ChanZuckerberg {
     }
 }
 
-#define CZI_ASSERT(expression) ((expression) ? (static_cast<void>(0)) : \
+#define SHASTA_ASSERT(expression) ((expression) ? (static_cast<void>(0)) : \
     (/*writeBackTrace(),*/ throw std::runtime_error(std::string("Assertion failed: ") + #expression + " at " + __PRETTY_FUNCTION__ + " in " +  __FILE__ + " line " + std::to_string(__LINE__))))
 
 

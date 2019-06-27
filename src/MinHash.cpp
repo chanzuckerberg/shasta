@@ -57,7 +57,7 @@ MinHash::MinHash(
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
     const ReadId readCount = orientedReadCount / 2;
     cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
-    CZI_ASSERT(orientedReadCount == 2*readCount);
+    SHASTA_ASSERT(orientedReadCount == 2*readCount);
 
     // Compute the number of buckets and the corresponding mask
     // used to convert a hash value to a bucket index.
@@ -153,13 +153,13 @@ MinHash::MinHash(
 
     // Create the candidate alignments.
     cout << timestamp << "Storing candidate alignments." << endl;
-    CZI_ASSERT(orientedReadCount == 2*readCount);
+    SHASTA_ASSERT(orientedReadCount == 2*readCount);
     for(ReadId readId0=0; readId0<readCount; readId0++) {
         const auto& candidates0 = candidates[readId0];
         for(const Candidate& candidate: candidates0) {
             if(candidate.frequency >= minFrequency) {
                 const ReadId readId1 = candidate.readId1;
-                CZI_ASSERT(readId0 < readId1);
+                SHASTA_ASSERT(readId0 < readId1);
                 candidateAlignments.push_back(
                     OrientedReadPair(readId0, readId1, candidate.isSameStrand));
             }
@@ -218,7 +218,7 @@ void MinHash::createKmerIds(size_t threadId)
                 const OrientedReadId orientedReadId(readId, strand);
                 const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
-                CZI_ASSERT(kmerIds.size(orientedReadId.getValue()) == orientedReadMarkers.size());
+                SHASTA_ASSERT(kmerIds.size(orientedReadId.getValue()) == orientedReadMarkers.size());
 
                 auto pointer = kmerIds.begin(orientedReadId.getValue());
                 for(const CompressedMarker& marker: orientedReadMarkers) {

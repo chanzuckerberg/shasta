@@ -110,17 +110,17 @@ public:
     }
     char getBase(uint32_t position) const
     {
-        CZI_ASSERT(position < runLengthSequence.size());
+        SHASTA_ASSERT(position < runLengthSequence.size());
         return runLengthSequence[position].character();
     }
     uint32_t getRepeatCount(uint32_t position) const
     {
-        CZI_ASSERT(position < repeatCounts.size());
+        SHASTA_ASSERT(position < repeatCounts.size());
         return repeatCounts[position];
     }
     const vector<CompressedCoverageData> getCoverageData(uint32_t position) const
     {
-        CZI_ASSERT(position < assembledCoverageData.size());
+        SHASTA_ASSERT(position < assembledCoverageData.size());
         return assembledCoverageData[position];
     }
 

@@ -326,8 +326,8 @@ void AlignmentGraph::createEdges(
         const int ordinalA1 = int(vertexA.ordinals[1]);
         const int correctedOrdinalA0 = int(correctedOrdinals[0][ordinalA0]);
         const int correctedOrdinalA1 = int(correctedOrdinals[1][ordinalA1]);
-        CZI_ASSERT(correctedOrdinalA0 < int(markerCount0));
-        CZI_ASSERT(correctedOrdinalA1 < int(markerCount1));
+        SHASTA_ASSERT(correctedOrdinalA0 < int(markerCount0));
+        SHASTA_ASSERT(correctedOrdinalA1 < int(markerCount1));
 
         vertex_iterator itB = itA;
         ++itB;
@@ -338,9 +338,9 @@ void AlignmentGraph::createEdges(
             }
             const auto& vertexB = graph[vB];
             const int ordinalB0 = int(vertexB.ordinals[0]);
-            CZI_ASSERT(ordinalB0 >= ordinalA0);
+            SHASTA_ASSERT(ordinalB0 >= ordinalA0);
             const int correctedOrdinalB0 = int(correctedOrdinals[0][ordinalB0]);
-            CZI_ASSERT(correctedOrdinalB0 < int(markerCount0));
+            SHASTA_ASSERT(correctedOrdinalB0 < int(markerCount0));
 
             // If we got too far, we can end the inner loop,
             // because vertices are sorted by position in sequence 0.
@@ -349,7 +349,7 @@ void AlignmentGraph::createEdges(
             }
             const int ordinalB1 = int(vertexB.ordinals[1]);
             const int correctedOrdinalB1 = int(correctedOrdinals[1][ordinalB1]);
-            CZI_ASSERT(correctedOrdinalB1 < int(markerCount1));
+            SHASTA_ASSERT(correctedOrdinalB1 < int(markerCount1));
 
             // Forbid the alignment from going backwards.
             if(correctedOrdinalB1 < correctedOrdinalA1) {

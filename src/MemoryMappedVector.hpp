@@ -4,7 +4,7 @@
 #define CZI_SHASTA_MEMORY_MAPPED_VECTOR_HPP
 
 // CZI.
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 #include "filesystem.hpp"
 #include "MarkerInterval.hpp"
 #include "MurmurHash2.hpp"
@@ -205,7 +205,7 @@ private:
         // Actual capacity will a bit larger, rounded up to the next oage boundary.
         Header(size_t n, size_t requestedCapacity, size_t pageSizeArgument)
         {
-            CZI_ASSERT(requestedCapacity >= n);
+            SHASTA_ASSERT(requestedCapacity >= n);
             clear();
             headerSize = sizeof(Header);
             objectSize = sizeof(T);
@@ -295,62 +295,62 @@ template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Vector<T>:
 
 template<class T> inline T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::operator[](size_t i)
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data[i];
 }
 template<class T> inline const T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::operator[](size_t i) const
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data[i];
 }
 
 template<class T> inline T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::front()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return *data;
 }
 template<class T> inline const T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::front() const
 {
-    CZI_ASSERT(isOpen);
-    CZI_ASSERT(size() > 0);
+    SHASTA_ASSERT(isOpen);
+    SHASTA_ASSERT(size() > 0);
     return *data;
 }
 
 template<class T> inline T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::back()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data[size() - 1ULL];
 }
 template<class T> inline const T& ChanZuckerberg::shasta::MemoryMapped::Vector<T>::back() const
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data[size() - 1ULL];
 }
 template<class T> inline T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::begin()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data;
 }
 template<class T> inline const T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::begin() const
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data;
 }
 
 template<class T> inline T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::end()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data + size();
 }
 
 template<class T> inline const T* ChanZuckerberg::shasta::MemoryMapped::Vector<T>::end() const
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     return data + size();
 }
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::push_back(const T& t)
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     resize(size()+1ULL);
     back() = t;
 
@@ -474,7 +474,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
     size_t n,
     size_t requiredCapacity)
 {
-    CZI_ASSERT(pageSize==4096 || pageSize==2*1024*1024);
+    SHASTA_ASSERT(pageSize==4096 || pageSize==2*1024*1024);
 
     if(name.empty()) {
         createNewAnonymous(pageSize, n, requiredCapacity);
@@ -483,7 +483,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
 
     try {
         // If already open, should have called close first.
-        CZI_ASSERT(!isOpen);
+        SHASTA_ASSERT(!isOpen);
 
         // Create the header.
         requiredCapacity = std::max(requiredCapacity, n);
@@ -538,7 +538,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::c
 {
     try {
         // If already open, should have called close first.
-        CZI_ASSERT(!isOpen);
+        SHASTA_ASSERT(!isOpen);
 
         // Create the header.
         requiredCapacity = std::max(requiredCapacity, n);
@@ -595,7 +595,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::a
 {
     try {
         // If already open, should have called close first.
-        CZI_ASSERT(!isOpen);
+        SHASTA_ASSERT(!isOpen);
 
         // Create the file.
         const int fileDescriptor = openExisting(name, readWriteAccess);
@@ -617,9 +617,9 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::a
         data = reinterpret_cast<T*>(header+1);
 
         // Sanity checks.
-        CZI_ASSERT(header->magicNumber == Header::constantMagicNumber);
-        CZI_ASSERT(header->fileSize == fileSize);
-        CZI_ASSERT(header->objectSize == sizeof(T));
+        SHASTA_ASSERT(header->magicNumber == Header::constantMagicNumber);
+        SHASTA_ASSERT(header->fileSize == fileSize);
+        SHASTA_ASSERT(header->objectSize == sizeof(T));
 
         // Indicate that the mapped vector is open with write access.
         isOpen = true;
@@ -649,7 +649,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::a
 {
     try {
         accessExistingReadWrite(name);
-        CZI_ASSERT(pageSize == header->pageSize);
+        SHASTA_ASSERT(pageSize == header->pageSize);
     } catch(...) {
         createNew(name, pageSize);
     }
@@ -660,7 +660,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::a
 // Sync the mapped memory to disk.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::syncToDisk()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     const int msyncReturnCode = ::msync(header, header->fileSize, MS_SYNC);
     if(msyncReturnCode == -1) {
         throw runtime_error("Error " + to_string(errno) + " during msync for " + fileName
@@ -671,7 +671,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::s
 // Unmap the memory.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::unmap()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
 
     const int munmapReturnCode = ::munmap(header, header->fileSize);
     if(munmapReturnCode == -1) {
@@ -691,7 +691,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::u
 
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::unmapAnonymous()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
 
     const int munmapReturnCode = ::munmap(header, header->fileSize);
     if(munmapReturnCode == -1) {
@@ -711,7 +711,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::u
 // Sync the mapped memory to disk, then unmap it.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::close()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     syncToDisk();
     unmap();
 }
@@ -733,7 +733,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
 // Resize works as for std::vector.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::resize(size_t newSize)
 {
-    CZI_ASSERT(isOpenWithWriteAccess);
+    SHASTA_ASSERT(isOpenWithWriteAccess);
 
     if(fileName.empty()) {
         resizeAnonymous(newSize);
@@ -952,15 +952,15 @@ template<class T> inline void
 
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::reserve()
 {
-    CZI_ASSERT(isOpenWithWriteAccess);
+    SHASTA_ASSERT(isOpenWithWriteAccess);
     reserve(size());
 }
 
 
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::reserve(size_t capacity)
 {
-    CZI_ASSERT(isOpenWithWriteAccess);
-    CZI_ASSERT(capacity >= size());
+    SHASTA_ASSERT(isOpenWithWriteAccess);
+    SHASTA_ASSERT(capacity >= size());
     if(capacity == header->capacity) {
         return;
     }
@@ -1110,7 +1110,7 @@ template<class T> inline uint64_t ChanZuckerberg::shasta::MemoryMapped::Vector<T
     // Sooner or later we will have to deal with this.
     // For now we just check that there is no overflow.
     const uint64_t byteCount = size()*sizeof(T);
-    CZI_ASSERT(byteCount <= uint64_t(std::numeric_limits<int>::max()));
+    SHASTA_ASSERT(byteCount <= uint64_t(std::numeric_limits<int>::max()));
     return MurmurHash64A(begin(), int(byteCount), 231);
 }
 

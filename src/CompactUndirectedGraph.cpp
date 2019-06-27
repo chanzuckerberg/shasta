@@ -38,18 +38,18 @@ void ChanZuckerberg::shasta::testCompactUndirectedGraph1()
     const vertex_descriptor v1 = g.addVertex(1.);
     const vertex_descriptor v2 = g.addVertex(2.);
     const vertex_descriptor v3 = g.addVertex(3.);
-    CZI_ASSERT(g[v1] == 1.);
+    SHASTA_ASSERT(g[v1] == 1.);
     g.doneAddingVertices();
-    CZI_ASSERT(g[v2] == 2.);
+    SHASTA_ASSERT(g[v2] == 2.);
     cout << "Done adding vertices." << endl;
 
 
     const edge_descriptor e01 = g.addEdge(v0, v1, 10.);
     g.addEdge(v1, v2, 20.);
     const edge_descriptor e23 = g.addEdge(v2, v3, 30.);
-    CZI_ASSERT(g[e01] == 10.);
+    SHASTA_ASSERT(g[e01] == 10.);
     g.doneAddingEdges();
-    CZI_ASSERT(g[e23] == 30.);
+    SHASTA_ASSERT(g[e23] == 30.);
     cout << "Done adding edges." << endl;
 
     // g.dump(cout);
@@ -72,7 +72,7 @@ void ChanZuckerberg::shasta::testCompactUndirectedGraph1()
     BGL_FORALL_VERTICES(v0, g, G) {
         cout << "Out-edges of vertex " << g[v0] << ":" << endl;
         BGL_FORALL_OUTEDGES(v0, e01, g, G) {
-            CZI_ASSERT(source(e01, g) == v0);
+            SHASTA_ASSERT(source(e01, g) == v0);
             const vertex_descriptor v1 = target(e01, g);
             cout << g[v0] << " " << g[v1] << " " << g[e01] << endl;
         }

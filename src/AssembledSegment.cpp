@@ -47,8 +47,8 @@ void AssembledSegment::computeVertexOffsets()
     for(size_t i=0; i<edgeCount; i++) {
         const uint8_t overlap = edgeOverlappingBaseCounts[i];
         if(overlap > 0) {
-            CZI_ASSERT(edgeSequences[i].empty());
-            CZI_ASSERT(edgeRepeatCounts[i].empty());
+            SHASTA_ASSERT(edgeSequences[i].empty());
+            SHASTA_ASSERT(edgeRepeatCounts[i].empty());
             vertexOffsets[i+1] = uint32_t(vertexOffsets[i] + k - overlap);
         } else {
             vertexOffsets[i+1] = uint32_t(vertexOffsets[i] + k + edgeSequences[i].size());
@@ -103,7 +103,7 @@ void AssembledSegment::computeVertexAssembledPortion()
             vertexAssembledPortion[i].first = 0;
             vertexAssembledPortion[i].second = 0;
         }
-        CZI_ASSERT(vertexAssembledPortion[i].second <= k);
+        SHASTA_ASSERT(vertexAssembledPortion[i].second <= k);
     }
 }
 
@@ -129,7 +129,7 @@ void AssembledSegment::assemble()
         for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
             const Base base = vertexSequences[i][j];
             const uint32_t repeatCount = vertexRepeatCounts[i][j];
-            CZI_ASSERT(repeatCount > 0);
+            SHASTA_ASSERT(repeatCount > 0);
             runLengthSequence.push_back(base);
             repeatCounts.push_back(repeatCount);
             if(storeCoverageData) {
@@ -154,7 +154,7 @@ void AssembledSegment::assemble()
             for(uint32_t j=0; j!=uint32_t(edgeSequences[i].size()); j++) {
                 const Base base = edgeSequences[i][j];
                 const uint32_t repeatCount = edgeRepeatCounts[i][j];
-                CZI_ASSERT(repeatCount > 0);
+                SHASTA_ASSERT(repeatCount > 0);
                 runLengthSequence.push_back(base);
                 repeatCounts.push_back(repeatCount);
                 if(storeCoverageData) {
@@ -347,10 +347,10 @@ void AssembledSegment::writeHtml(ostream& html) const
         const vector<Base>& edgeSequence = edgeSequences[i];
         const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
         const size_t edgeSequenceLength = edgeSequence.size();
-        CZI_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
+        SHASTA_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
         // const uint32_t maxEdgeRepeatCount =
         //    *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
-        // CZI_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
+        // SHASTA_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
         html <<
             "<tr><td>Edge<td class=centered>" << edgeId <<
             "<td class=centered>" << edgeCoverage[i] <<

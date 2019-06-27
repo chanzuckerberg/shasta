@@ -35,7 +35,7 @@ void Assembler::createReadGraph(
 {
     // Find the number of reads and oriented reads.
     const ReadId orientedReadCount = uint32_t(markers.size());
-    CZI_ASSERT((orientedReadCount % 2) == 0);
+    SHASTA_ASSERT((orientedReadCount % 2) == 0);
     const ReadId readCount = orientedReadCount / 2;
 
     // Mark all alignments as not to be kept.
@@ -93,13 +93,13 @@ void Assembler::createReadGraph(
         edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
         edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
         edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
-        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        SHASTA_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
         readGraph.edges.push_back(edge);
 
         // Also create the reverse complemented edge.
         edge.orientedReadIds[0].flipStrand();
         edge.orientedReadIds[1].flipStrand();
-        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        SHASTA_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
         readGraph.edges.push_back(edge);
     }
 
@@ -144,7 +144,7 @@ void Assembler::createReadGraphNew(
 {
     // Find the number of reads and oriented reads.
     const ReadId orientedReadCount = uint32_t(markers.size());
-    CZI_ASSERT((orientedReadCount % 2) == 0);
+    SHASTA_ASSERT((orientedReadCount % 2) == 0);
     const ReadId readCount = orientedReadCount / 2;
 
     // Mark all alignments as not to be kept.
@@ -275,13 +275,13 @@ void Assembler::createReadGraphNew(
         edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
         edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
         edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
-        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        SHASTA_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
         readGraph.edges.push_back(edge);
 
         // Also create the reverse complemented edge.
         edge.orientedReadIds[0].flipStrand();
         edge.orientedReadIds[1].flipStrand();
-        CZI_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
+        SHASTA_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
         readGraph.edges.push_back(edge);
     }
 
@@ -375,7 +375,7 @@ bool Assembler::createLocalReadGraph(
 
         // Loop over edges of the global read graph involving this vertex.
         for(const uint64_t i: readGraph.connectivity[orientedReadId0.getValue()]) {
-            CZI_ASSERT(i < readGraph.edges.size());
+            SHASTA_ASSERT(i < readGraph.edges.size());
             const ReadGraph::Edge& globalEdge = readGraph.edges[i];
 
             if(!allowCrossStrandEdges && globalEdge.crossesStrands) {
@@ -404,7 +404,7 @@ bool Assembler::createLocalReadGraph(
                 alignmentOrientedReadId1.flipStrand();
                 alignmentInfo.reverseComplement();
             }
-            CZI_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
+            SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
             const AlignmentType alignmentType = alignmentInfo.classify(uint32_t(maxTrim));
             const uint32_t markerCount = alignmentInfo.markerCount;
 
@@ -425,7 +425,7 @@ bool Assembler::createLocalReadGraph(
                     alignmentType,
                     globalEdge.crossesStrands == 1);
             } else {
-                CZI_ASSERT(distance0 == maxDistance);
+                SHASTA_ASSERT(distance0 == maxDistance);
                 if(graph.vertexExists(orientedReadId1)) {
                     graph.addEdge(
                         orientedReadId0,
@@ -460,11 +460,11 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
     // Check that we have what we need.
     checkReadGraphIsOpen();
     const size_t orientedReadCount = readGraph.connectivity.size();
-    CZI_ASSERT((orientedReadCount % 2) == 0);
+    SHASTA_ASSERT((orientedReadCount % 2) == 0);
     const size_t readCount = orientedReadCount / 2;
 
     // Store the argument so it is accessible by all threads.
-    CZI_ASSERT(maxDistance < 255);
+    SHASTA_ASSERT(maxDistance < 255);
     flagChimericReadsData.maxDistance = maxDistance;
 
     // Adjust the numbers of threads, if necessary.
@@ -532,8 +532,8 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
         for(ReadId startReadId=ReadId(begin); startReadId!=ReadId(end); startReadId++) {
 
             // Check that there is no garbage left by the previous BFS.
-            CZI_ASSERT(localVertices.empty());
-            CZI_ASSERT(q.empty());
+            SHASTA_ASSERT(localVertices.empty());
+            SHASTA_ASSERT(q.empty());
 
             // Begin by flagging this read as not chimeric.
             readFlags[startReadId].isChimeric = 0;
@@ -608,7 +608,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                     continue;   // Skip edges involving vStart or its reverse complement.
                 }
                 const uint32_t u0 = vertexTable[v0.getValue()];
-                CZI_ASSERT(u0 != notReached);
+                SHASTA_ASSERT(u0 != notReached);
                 const auto edges = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edges) {
                     const ReadGraph::Edge& edge = readGraph.edges[edgeId];
@@ -642,7 +642,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                     continue;
                 }
                 const uint32_t u = vertexTable[v.getValue()];
-                CZI_ASSERT(u != notReached);
+                SHASTA_ASSERT(u != notReached);
                 const uint32_t uComponent = disjointSets.find_set(u);
                 if(component == std::numeric_limits<ReadId>::max()) {
                     component = uComponent;
@@ -683,11 +683,11 @@ void Assembler::computeReadGraphConnectedComponents(
     )
 {
     // Check that we have what we need.
-    CZI_ASSERT(readFlags.isOpenWithWriteAccess);
+    SHASTA_ASSERT(readFlags.isOpenWithWriteAccess);
     checkReadGraphIsOpen();
     const size_t readCount = reads.size();
     const size_t orientedReadCount = 2*readCount;
-    CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
+    SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
 
 
@@ -813,7 +813,7 @@ void Assembler::computeReadGraphConnectedComponents(
             component.size() > 1 &&
             (component[0].getReadId() == component[1].getReadId());
         if(isSelfComplementary) {
-            CZI_ASSERT((component.size() % 2) == 0);
+            SHASTA_ASSERT((component.size() % 2) == 0);
         }
 
         // If this component is not self-complementary,
@@ -836,7 +836,7 @@ void Assembler::computeReadGraphConnectedComponents(
 
         // If getting here, the component is self-complementary
         // and we need to do strand separation.
-        CZI_ASSERT(isSelfComplementary);
+        SHASTA_ASSERT(isSelfComplementary);
         cout << "Processing self-complementary component " << componentId <<
             " with " << component.size() << " oriented reads." << endl;
 
@@ -847,7 +847,7 @@ void Assembler::computeReadGraphConnectedComponents(
     // Check that any read flagged isChimeric is also flagged isInSmallComponent.
     for(const ReadFlags& flags: readFlags) {
         if(flags.isChimeric) {
-            CZI_ASSERT(flags.isInSmallComponent);
+            SHASTA_ASSERT(flags.isInSmallComponent);
         }
     }
 }
@@ -865,7 +865,7 @@ void Assembler::writeLocalReadGraphReads(
 {
     // Create the requested local read graph.
     LocalReadGraph localReadGraph;
-    CZI_ASSERT(createLocalReadGraph(
+    SHASTA_ASSERT(createLocalReadGraph(
         OrientedReadId(readId, strand),
         maxDistance,
         allowChimericReads,
@@ -897,7 +897,7 @@ void Assembler::writeLocalReadGraphReads(
         const auto& sequence = reads[readId];
         const auto& counts = readRepeatCounts[readId];
         const size_t n = sequence.baseCount;
-        CZI_ASSERT(counts.size() == n);
+        SHASTA_ASSERT(counts.size() == n);
         for(size_t i=0; i<n; i++) {
             const Base base = sequence[i];
             const uint8_t count = counts[i];
@@ -925,7 +925,7 @@ void Assembler::flagCrossStrandReadGraphEdges()
     checkReadGraphIsOpen();
     const size_t readCount = reads.size();
     const size_t orientedReadCount = 2*readCount;
-    CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
+    SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
 
     // Clear the crossesStrands flag for all read graph edges.
@@ -1035,13 +1035,13 @@ void Assembler::flagCrossStrandReadGraphEdges()
         }
 
         // Verify that the vertices are a self-complementary set.
-        CZI_ASSERT((vertexCount %2) == 0);
+        SHASTA_ASSERT((vertexCount %2) == 0);
         for(size_t i=0; i<vertexCount; i+=2) {
             const OrientedReadId orientedReadId0 = vertices[i];
             const OrientedReadId orientedReadId1 = vertices[i+1];
-            CZI_ASSERT(orientedReadId0.getReadId() == orientedReadId1.getReadId());
-            CZI_ASSERT(orientedReadId0.getStrand() == 0);
-            CZI_ASSERT(orientedReadId1.getStrand() == 1);
+            SHASTA_ASSERT(orientedReadId0.getReadId() == orientedReadId1.getReadId());
+            SHASTA_ASSERT(orientedReadId0.getStrand() == 0);
+            SHASTA_ASSERT(orientedReadId1.getStrand() == 1);
         }
 
         // Map the vertices to integers in (0, vertexCount-1).
@@ -1072,11 +1072,11 @@ void Assembler::flagCrossStrandReadGraphEdges()
         }
 
         // Sort them by alignment  id, so pairs of reverse complemented edges come together.
-        CZI_ASSERT((edgeIds.size() %2) == 0);
+        SHASTA_ASSERT((edgeIds.size() %2) == 0);
         sort(edgeIds.begin(), edgeIds.end(),
             OrderPairsBySecondOnly<uint32_t, uint64_t>());
         for(size_t i=0; i<edgeIds.size(); i+=2){
-            CZI_ASSERT(edgeIds[i].second == edgeIds[i+1].second);
+            SHASTA_ASSERT(edgeIds[i].second == edgeIds[i+1].second);
         }
 
         // Gather pairs of reverse complemented edges, each with their
@@ -1084,7 +1084,7 @@ void Assembler::flagCrossStrandReadGraphEdges()
         vector< pair< array<uint32_t, 2>, uint32_t> > edgePairs;
         for(size_t i=0; i<edgeIds.size(); i+=2){
             const uint64_t alignmentId = edgeIds[i].second;
-            CZI_ASSERT(alignmentId == edgeIds[i+1].second);
+            SHASTA_ASSERT(alignmentId == edgeIds[i+1].second);
             const uint32_t markerCount = alignmentData[alignmentId].info.markerCount;
             const array<uint32_t, 2> edgePair = {edgeIds[i].first, edgeIds[i+1].first};
             edgePairs.push_back(make_pair(edgePair, markerCount));
@@ -1128,8 +1128,8 @@ void Assembler::flagCrossStrandReadGraphEdges()
                 const uint32_t component1rc = disjointSets.find_set(i1rc);
 
                 // Check that we have not already screwed up earlier.
-                CZI_ASSERT(component0 != component0rc);
-                CZI_ASSERT(component1 != component1rc);
+                SHASTA_ASSERT(component0 != component0rc);
+                SHASTA_ASSERT(component1 != component1rc);
 
                 // If adding this edge would bring (orientedReadId0, orientedReadId1rc)
                 // or (orientedReadId1, orientedReadId0rc)
@@ -1243,8 +1243,8 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
         const ReadId componentId = p.second;
         const vector<OrientedReadId>& vertices = componentVertices[componentId];
         const size_t componentSize = vertices.size();
-        CZI_ASSERT(componentSize > 1);
-        CZI_ASSERT(componentSize == p.first);
+        SHASTA_ASSERT(componentSize > 1);
+        SHASTA_ASSERT(componentSize == p.first);
 
         // Figure out if this component is self-complementary.
         const bool isSelfComplementary =
@@ -1252,15 +1252,15 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
 
         // Sanity checks.
         if(isSelfComplementary) {
-            CZI_ASSERT((componentSize % 2) == 0);
+            SHASTA_ASSERT((componentSize % 2) == 0);
             for(size_t i=0; i<componentSize; i+=2) {
-                CZI_ASSERT(vertices[i].getReadId() == vertices[i+1].getReadId());
-                CZI_ASSERT(vertices[i].getStrand() == 0);
-                CZI_ASSERT(vertices[i+1].getStrand() == 1);
+                SHASTA_ASSERT(vertices[i].getReadId() == vertices[i+1].getReadId());
+                SHASTA_ASSERT(vertices[i].getStrand() == 0);
+                SHASTA_ASSERT(vertices[i+1].getStrand() == 1);
             }
         } else {
             for(size_t i=1; i<componentSize; i++) {
-                CZI_ASSERT(vertices[i-1].getReadId()< vertices[i].getReadId());
+                SHASTA_ASSERT(vertices[i-1].getReadId()< vertices[i].getReadId());
             }
         }
 
@@ -1286,9 +1286,9 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
             const OrientedReadId orientedReadId0 = vertices[i];
             const OrientedReadId orientedReadId1 = vertices[i+1];
             const ReadId readId = orientedReadId0.getReadId();
-            CZI_ASSERT(readId == orientedReadId1.getReadId());
-            CZI_ASSERT(orientedReadId0.getStrand() == 0);
-            CZI_ASSERT(orientedReadId1.getStrand() == 1);
+            SHASTA_ASSERT(readId == orientedReadId1.getReadId());
+            SHASTA_ASSERT(orientedReadId0.getStrand() == 0);
+            SHASTA_ASSERT(orientedReadId1.getStrand() == 1);
 
 
             // Find the shortest path between these vertices, if it is short enough.
@@ -1319,7 +1319,7 @@ void Assembler::flagCrossStrandReadGraphEdges()
     checkReadGraphIsOpen();
     const size_t readCount = reads.size();
     const size_t orientedReadCount = 2*readCount;
-    CZI_ASSERT(readGraph.connectivity.size() == orientedReadCount);
+    SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
 
     // Clear the crossesStrands flag for all edges.
@@ -1342,7 +1342,7 @@ void Assembler::flagCrossStrandReadGraphEdges()
         const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
         const ReadId readId0 = orientedReadId0.getReadId();
         const ReadId readId1 = orientedReadId1.getReadId();
-        CZI_ASSERT(readId0 != readId1);
+        SHASTA_ASSERT(readId0 != readId1);
         const Strand strand0 = orientedReadId0.getStrand();
         const Strand strand1 = orientedReadId1.getStrand();
         const bool isSameStrand = (strand0 == strand1);
@@ -1355,10 +1355,10 @@ void Assembler::flagCrossStrandReadGraphEdges()
         // Add the edge, if necessary. Otherwise, check that
         // it is consistent with isSameStrand.
         if(edgeExists) {
-            CZI_ASSERT(graph[e].isSameStrand == isSameStrand);
+            SHASTA_ASSERT(graph[e].isSameStrand == isSameStrand);
         } else {
             tie(e, edgeExists) = add_edge(readId0, readId1, RawReadGraphEdge(isSameStrand), graph);
-            CZI_ASSERT(edgeExists);
+            SHASTA_ASSERT(edgeExists);
         }
     }
     cout << "The raw read graph has " << num_vertices(graph) <<
@@ -1446,7 +1446,7 @@ void Assembler::flagCrossStrandReadGraphEdges()
         // is isolated, then skip the component.
         if(componentVertices.size() == 1) {
             const vertex_descriptor v = componentVertices.front();
-            CZI_ASSERT(out_degree(v, graph) == 0);
+            SHASTA_ASSERT(out_degree(v, graph) == 0);
             ++size1ComponentCount;
             continue;
         }
@@ -1454,8 +1454,8 @@ void Assembler::flagCrossStrandReadGraphEdges()
         // If the component has two vertices, check that
         // they each have only one edge.
         if(componentVertices.size() == 2) {
-            CZI_ASSERT(out_degree(componentVertices[0], graph) == 1);
-            CZI_ASSERT(out_degree(componentVertices[1], graph) == 1);
+            SHASTA_ASSERT(out_degree(componentVertices[0], graph) == 1);
+            SHASTA_ASSERT(out_degree(componentVertices[1], graph) == 1);
             ++size2ComponentCount;
             continue;
         }
@@ -1523,7 +1523,7 @@ void Assembler::flagCrossStrandReadGraphEdges()
                 // Gather the edges.
                 adjacentEdges.clear();
                 BGL_FORALL_OUTEDGES(v0, e, graph, Graph) {
-                    CZI_ASSERT(source(e, graph) == v0);
+                    SHASTA_ASSERT(source(e, graph) == v0);
                     const vertex_descriptor v1 = target(e, graph);
                     adjacentEdges.push_back(make_pair(e, out_degree(v1, graph)));
                 }
@@ -1533,7 +1533,7 @@ void Assembler::flagCrossStrandReadGraphEdges()
                 // Loop over the edges in this order.
                 for(const auto& p: adjacentEdges) {
                     const edge_descriptor e = p.first;
-                    CZI_ASSERT(source(e, graph) == v0);
+                    SHASTA_ASSERT(source(e, graph) == v0);
                     const vertex_descriptor v1 = target(e, graph);
                     // cout << "Found " << v1 << endl;
 
@@ -1620,8 +1620,8 @@ void Assembler::flagCrossStrandReadGraphEdges()
             const uint32_t component1rc = disjointSets.find_set(orientedReadId1rc.getValue());
 
             // Check that we have not already screwed up earlier.
-            CZI_ASSERT(component0 != component0rc);
-            CZI_ASSERT(component1 != component1rc);
+            SHASTA_ASSERT(component0 != component0rc);
+            SHASTA_ASSERT(component1 != component1rc);
 
             // If adding this edge would bring (orientedReadId0, orientedReadId1rc)
             // or (orientedReadId1, orientedReadId0rc)
@@ -1694,8 +1694,8 @@ void Assembler::flagCrossStrandReadGraphEdges()
         const uint32_t component1rc = disjointSets.find_set(orientedReadId1rc.getValue());
 
         // Check that we have not already screwed up earlier.
-        CZI_ASSERT(component0 != component0rc);
-        CZI_ASSERT(component1 != component1rc);
+        SHASTA_ASSERT(component0 != component0rc);
+        SHASTA_ASSERT(component1 != component1rc);
 
         // If adding this edge would bring (orientedReadId0, orientedReadId1rc)
         // or (orientedReadId1, orientedReadId0rc)

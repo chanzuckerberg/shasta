@@ -58,7 +58,7 @@ LocalMarkerGraph::vertex_descriptor
     MemoryAsContainer<MarkerId> vertexMarkers)
 {
     // Check that the vertex does not already exist.
-    CZI_ASSERT(vertexMap.find(vertexId) == vertexMap.end());
+    SHASTA_ASSERT(vertexMap.find(vertexId) == vertexMap.end());
 
     // Add the vertex and store it in the vertex map.
     const vertex_descriptor v = add_vertex(LocalMarkerGraphVertex(vertexId, distance), *this);
@@ -84,7 +84,7 @@ LocalMarkerGraph::vertex_descriptor
 KmerId LocalMarkerGraph::getKmerId(vertex_descriptor v) const
 {
     const LocalMarkerGraphVertex& vertex = (*this)[v];
-    CZI_ASSERT(!vertex.markerInfos.empty());
+    SHASTA_ASSERT(!vertex.markerInfos.empty());
     const MarkerId firstMarkerId = vertex.markerInfos.front().markerId;
     const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
     const KmerId kmerId = firstMarker.kmerId;
@@ -93,7 +93,7 @@ KmerId LocalMarkerGraph::getKmerId(vertex_descriptor v) const
     // At some point this can be removed.
     for(const auto& markerInfo: vertex.markerInfos){
         const CompressedMarker& marker = markers.begin()[markerInfo.markerId];
-        CZI_ASSERT(marker.kmerId == kmerId);
+        SHASTA_ASSERT(marker.kmerId == kmerId);
     }
 
     return kmerId;
@@ -153,7 +153,7 @@ void LocalMarkerGraph::computeVertexConsensusInfo( vertex_descriptor v)
 
         // Get the repeat counts for this marker.
         const vector<uint8_t> counts = graph.getRepeatCounts(markerInfo);
-        CZI_ASSERT(counts.size() == k);
+        SHASTA_ASSERT(counts.size() == k);
 
         // Increment coverage.
         for(size_t position=0; position<k; position++) {

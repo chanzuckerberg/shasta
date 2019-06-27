@@ -21,7 +21,7 @@ void LocalReadGraph::addVertex(
     uint32_t distance)
 {
     // Check that we don't already have a vertex with this OrientedReadId.
-    CZI_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
+    SHASTA_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
 
     // Create the vertex.
     const vertex_descriptor v = add_vertex(LocalReadGraphVertex(
@@ -42,10 +42,10 @@ void LocalReadGraph::addEdge(
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
-    CZI_ASSERT(it0 != vertexMap.end());
+    SHASTA_ASSERT(it0 != vertexMap.end());
     const vertex_descriptor v0 = it0->second;
     const auto it1 = vertexMap.find(orientedReadId1);
-    CZI_ASSERT(it1 != vertexMap.end());
+    SHASTA_ASSERT(it1 != vertexMap.end());
     const vertex_descriptor v1 = it1->second;
 
     // Add the edge.
@@ -59,7 +59,7 @@ void LocalReadGraph::addEdge(
 uint32_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
 {
     const auto it = vertexMap.find(orientedReadId);
-    CZI_ASSERT(it != vertexMap.end());
+    SHASTA_ASSERT(it != vertexMap.end());
     const vertex_descriptor v = it->second;
     return (*this)[v].distance;
 }

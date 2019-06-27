@@ -20,7 +20,7 @@ void Assembler::findAlignmentCandidatesMinHash(
     checkKmersAreOpen();
     checkMarkersAreOpen();
     const ReadId readCount = ReadId(markers.size() / 2);
-    CZI_ASSERT(readCount > 0);
+    SHASTA_ASSERT(readCount > 0);
 
 
 

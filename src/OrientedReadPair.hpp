@@ -36,7 +36,7 @@ public:
         readIds(array<ReadId, 2>{readId0, readId1}),
         isSameStrand(isSameStrand)
     {
-        CZI_ASSERT(readId0 != readId1);
+        SHASTA_ASSERT(readId0 != readId1);
     }
     OrientedReadPair(
         array<ReadId, 2> readIds,
@@ -45,7 +45,7 @@ public:
         readIds(readIds),
         isSameStrand(isSameStrand)
     {
-        CZI_ASSERT(readIds[0] != readIds[1]);
+        SHASTA_ASSERT(readIds[0] != readIds[1]);
     }
 
     // Given one of the read ids, return the other.
@@ -54,7 +54,7 @@ public:
         if(readIdA == readIds[0]) {
             return readIds[1];
         } else {
-            CZI_ASSERT(readIdA == readIds[1]);
+            SHASTA_ASSERT(readIdA == readIds[1]);
             return readIds[0];
         }
     }
@@ -75,7 +75,7 @@ public:
         } else if(readIdA == readIds[1]) {
             iA = 1;
         } else {
-            CZI_ASSERT(0);
+            SHASTA_ASSERT(0);
         }
 
         // Find the desired read id and strand.

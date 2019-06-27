@@ -28,7 +28,7 @@ LocalAssemblyGraph::vertex_descriptor LocalAssemblyGraph::addVertex(
     int distance)
 {
     // Check that the vertex does not already exist.
-    CZI_ASSERT(vertexMap.find(assemblyGraphVertexId) == vertexMap.end());
+    SHASTA_ASSERT(vertexMap.find(assemblyGraphVertexId) == vertexMap.end());
 
     // Add the vertex and store it in the vertex map.
     const vertex_descriptor v = add_vertex(LocalAssemblyGraphVertex(

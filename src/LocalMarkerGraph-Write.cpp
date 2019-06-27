@@ -193,7 +193,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
     const LocalMarkerGraphVertex& vertex = graph[v];
     const auto coverage = vertex.markerInfos.size();
     const string& color = vertexColor(vertex);
-    CZI_ASSERT(coverage > 0);
+    SHASTA_ASSERT(coverage > 0);
 
     // Begin vertex attributes.
     s << "[";
@@ -273,7 +273,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     const size_t coverage = edge.coverage();
     const string& arrowColor = edgeArrowColor(edge);
     const string& labelColor = edgeLabelColor(edge);
-    CZI_ASSERT(coverage > 0);
+    SHASTA_ASSERT(coverage > 0);
 
     // Begin edge attributes.
     s << "[";
@@ -326,7 +326,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         s << ">";
 
         // Edge id.
-        CZI_ASSERT(edge.edgeId != MarkerGraph::invalidEdgeId);
+        SHASTA_ASSERT(edge.edgeId != MarkerGraph::invalidEdgeId);
         s << "<tr><td>Edge " << edge.edgeId << "</td></tr>";
 
         // Assembly edge id.

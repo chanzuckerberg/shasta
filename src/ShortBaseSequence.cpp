@@ -1,6 +1,6 @@
 #include "ShortBaseSequence.hpp"
 #include "algorithm.hpp"
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -28,5 +28,5 @@ void ChanZuckerberg::shasta::testShortBaseSequence()
 
     // Check that constructor from id does the inverse of function id().
     const ShortBaseSequence8 t(s.id(4), 4);
-    CZI_ASSERT(t == s);
+    SHASTA_ASSERT(t == s);
 }

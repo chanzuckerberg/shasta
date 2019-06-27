@@ -3,7 +3,7 @@
 
 // Shasta.
 #include "Base.hpp"
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 #include "ReadId.hpp"
 
 // Standard library.
@@ -75,7 +75,7 @@ public:
         } else if(strand == 1) {
             return '-';
         } else {
-            CZI_ASSERT(0);
+            SHASTA_ASSERT(0);
         }
     }
     int getRepeatCount() const

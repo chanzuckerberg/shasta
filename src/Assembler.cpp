@@ -111,7 +111,7 @@ void Assembler::setupMarginPhase()
     }
 #else
     // The static executable does not support MarginPhase.
-    CZI_ASSERT(0);
+    SHASTA_ASSERT(0);
 #endif
 }
 
@@ -125,7 +125,7 @@ void Assembler::checkMarginPhaseWasSetup()
     }
 #else
     // The static executable does not support MarginPhase.
-    CZI_ASSERT(0);
+    SHASTA_ASSERT(0);
 #endif
 }
 

@@ -27,6 +27,6 @@ const MarkerGraph::Edge*
 MarkerGraph::EdgeId MarkerGraph::findEdgeId(Uint40 source, Uint40 target) const
 {
 	const Edge* edgePointer = findEdge(source, target);
-	CZI_ASSERT(edgePointer);
+	SHASTA_ASSERT(edgePointer);
 	return edgePointer - edges.begin();
 }

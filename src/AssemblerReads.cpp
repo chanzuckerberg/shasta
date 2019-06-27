@@ -126,8 +126,8 @@ void Assembler::histogramReadLength(const string& fileName)
                 }
             }
         }
-        CZI_ASSERT(cumulativeReadCount == 0);
-        CZI_ASSERT(cumulativeBaseCount == 0);
+        SHASTA_ASSERT(cumulativeReadCount == 0);
+        SHASTA_ASSERT(cumulativeBaseCount == 0);
 
         cout << "Discarded read statistics for all input files:" << endl;;
         cout << "    Discarded " << assemblerInfo->discardedShortReadReadCount <<
@@ -197,8 +197,8 @@ void Assembler::histogramReadLength(const string& fileName)
             cumulativeReadCount -= readCount;
             cumulativeBaseCount -= baseCount;
         }
-        CZI_ASSERT(cumulativeReadCount == 0);
-        CZI_ASSERT(cumulativeBaseCount == 0);
+        SHASTA_ASSERT(cumulativeReadCount == 0);
+        SHASTA_ASSERT(cumulativeBaseCount == 0);
     }
 
     cout << "See " << fileName << " and Binned-" << fileName <<
@@ -212,7 +212,7 @@ void Assembler::histogramReadLength(const string& fileName)
 void Assembler::writeReads(const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(0);
+    SHASTA_ASSERT(0);
 
     ofstream file(fileName);
     for(ReadId readId=0; readId<readCount(); readId++) {
@@ -226,7 +226,7 @@ void Assembler::writeReads(const string& fileName)
 void Assembler::writeRead(ReadId readId, const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(0);
+    SHASTA_ASSERT(0);
 
     ofstream file(fileName);
     writeRead(readId, file);
@@ -236,7 +236,7 @@ void Assembler::writeRead(ReadId readId, const string& fileName)
 void Assembler::writeRead(ReadId readId, ostream& file)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(0);
+    SHASTA_ASSERT(0);
 
     checkReadsAreOpen();
     checkReadNamesAreOpen();
@@ -258,7 +258,7 @@ void Assembler::writeRead(ReadId readId, ostream& file)
 void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(!0);
+    SHASTA_ASSERT(!0);
 
     writeOrientedRead(OrientedReadId(readId, strand), fileName);
 }
@@ -268,7 +268,7 @@ void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fi
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& fileName)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(0);
+    SHASTA_ASSERT(0);
 
     ofstream file(fileName);
     writeOrientedRead(orientedReadId, file);
@@ -279,7 +279,7 @@ void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& f
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
 {
     // As written, this only works when using raw read representation.
-    CZI_ASSERT(0);
+    SHASTA_ASSERT(0);
 
     checkReadsAreOpen();
     checkReadNamesAreOpen();

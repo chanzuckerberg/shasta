@@ -177,7 +177,7 @@ void Assembler::createAssemblyGraphEdges()
             	if(wasFound[edgeId]) {
             		cout << "****** " << edgeId << " " << markerGraph.edges[edgeId].source <<
             			" " << markerGraph.edges[edgeId].target <<endl;
-            		CZI_ASSERT(chain.size() == reverseComplementedChain.size());
+            		SHASTA_ASSERT(chain.size() == reverseComplementedChain.size());
             		for(size_t i=0; i<chain.size(); i++) {
             			cout << i << " " << chain[i] << " " << reverseComplementedChain[i];
             			cout << " " << int(wasFound[chain[i]]) << " " <<
@@ -185,7 +185,7 @@ void Assembler::createAssemblyGraphEdges()
             		}
             	}
 #endif
-            	CZI_ASSERT(!wasFound[edgeId]);
+            	SHASTA_ASSERT(!wasFound[edgeId]);
                 wasFound[edgeId] = true;
             }
             assemblyGraph.edgeLists.appendVector(reverseComplementedChain);
@@ -215,9 +215,9 @@ void Assembler::createAssemblyGraphEdges()
     for(EdgeId edgeId=0; edgeId<edgeCount; edgeId++) {
         const auto& edge = markerGraph.edges[edgeId];
         if(edge.wasRemoved()) {
-            CZI_ASSERT(!wasFound[edgeId]);
+            SHASTA_ASSERT(!wasFound[edgeId]);
         } else {
-            CZI_ASSERT(wasFound[edgeId]);
+            SHASTA_ASSERT(wasFound[edgeId]);
         }
     }
 
@@ -296,7 +296,7 @@ void Assembler::createAssemblyGraphVertices()
     // cout << timestamp << "Creating assembly graph vertices." << endl;
 
     // Check that we have what we need.
-    CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
+    SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
     checkMarkerGraphEdgesIsOpen();
 
     // Shorthands for vertex and edge ids.
@@ -314,7 +314,7 @@ void Assembler::createAssemblyGraphVertices()
         largeDataPageSize);
     for(EdgeId age=0; age<assemblyGraph.edgeLists.size(); age++) {
         const auto chain = assemblyGraph.edgeLists[age];
-        CZI_ASSERT(chain.size() > 0);
+        SHASTA_ASSERT(chain.size() > 0);
         const EdgeId firstChainEdgeId = *(chain.begin());
         const EdgeId lastChainEdgeId = *(chain.end() - 1);
         const MarkerGraph::Edge& firstChainEdge = markerGraph.edges[firstChainEdgeId];
@@ -368,7 +368,7 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edges.resize(assemblyGraph.edgeLists.size());
     for(EdgeId age=0; age<assemblyGraph.edgeLists.size(); age++) {
         const auto chain = assemblyGraph.edgeLists[age];
-        CZI_ASSERT(chain.size() > 0);
+        SHASTA_ASSERT(chain.size() > 0);
         const EdgeId firstChainEdgeId = *(chain.begin());
         const EdgeId lastChainEdgeId = *(chain.end() - 1);
         const MarkerGraph::Edge& firstChainEdge = markerGraph.edges[firstChainEdgeId];
@@ -377,8 +377,8 @@ void Assembler::createAssemblyGraphVertices()
         const VertexId mgv1 = lastChainEdge.target;
         const auto it0 = vertexMap.find(mgv0);
         const auto it1 = vertexMap.find(mgv1);
-        CZI_ASSERT(it0 != vertexMap.end());
-        CZI_ASSERT(it1 != vertexMap.end());
+        SHASTA_ASSERT(it0 != vertexMap.end());
+        SHASTA_ASSERT(it1 != vertexMap.end());
         const VertexId agv0 = it0->second;
         const VertexId agv1 = it1->second;
         AssemblyGraph::Edge& assemblyGraphEdge = assemblyGraph.edges[age];
@@ -463,7 +463,7 @@ void Assembler::assemble(size_t threadCount)
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
-    CZI_ASSERT(assemblyGraph.edgeLists.isOpen());
+    SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -510,7 +510,7 @@ void Assembler::assemble(size_t threadCount)
         }
         ++assembledEdgeCount;
         const auto& p = edgeTable[edgeId];
-        CZI_ASSERT(p != uninitializedPair);
+        SHASTA_ASSERT(p != uninitializedPair);
         const size_t threadId = p.first;
         const size_t i = p.second;
 
@@ -643,14 +643,14 @@ void Assembler::computeAssemblyStatistics()
     using EdgeId = AssemblyGraph::EdgeId;
 
     // Check that we have what we need.
-    CZI_ASSERT(assemblyGraph.vertices.isOpen);
+    SHASTA_ASSERT(assemblyGraph.vertices.isOpen);
     const size_t vertexCount = assemblyGraph.vertices.size();
-    CZI_ASSERT(assemblyGraph.edges.isOpen);
+    SHASTA_ASSERT(assemblyGraph.edges.isOpen);
     const size_t edgeCount = assemblyGraph.edges.size();
-    CZI_ASSERT(assemblyGraph.sequences.isOpen());
-    CZI_ASSERT(assemblyGraph.sequences.size() == edgeCount);
-    CZI_ASSERT(assemblyGraph.repeatCounts.isOpen());
-    CZI_ASSERT(assemblyGraph.repeatCounts.size() == edgeCount);
+    SHASTA_ASSERT(assemblyGraph.sequences.isOpen());
+    SHASTA_ASSERT(assemblyGraph.sequences.size() == edgeCount);
+    SHASTA_ASSERT(assemblyGraph.repeatCounts.isOpen());
+    SHASTA_ASSERT(assemblyGraph.repeatCounts.size() == edgeCount);
 
     // Compute raw sequence length of each edge.
     vector< pair<EdgeId, size_t> > edgeTable;
@@ -737,7 +737,7 @@ void Assembler::writeGfa1(const string& fileName)
 
         const auto sequence = assemblyGraph.sequences[edgeId];
         const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
-        CZI_ASSERT(sequence.baseCount == repeatCounts.size());
+        SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
         gfa << "S\t" << edgeId << "\t";
         for(size_t i=0; i<sequence.baseCount; i++) {
             const Base b = sequence[i];
@@ -840,7 +840,7 @@ void Assembler::writeFasta(const string& fileName)
 
         const auto sequence = assemblyGraph.sequences[edgeId];
         const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
-        CZI_ASSERT(sequence.baseCount == repeatCounts.size());
+        SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
 
         // Compute the length so we can write it in the header.
         size_t length = 0;
@@ -874,7 +874,7 @@ void Assembler::constructCigarString(
 {
     // Check that the repeat counts have the same length.
     const size_t k = repeatCounts0.size();
-    CZI_ASSERT(repeatCounts1.size() == k);
+    SHASTA_ASSERT(repeatCounts1.size() == k);
 
     if(std::equal(repeatCounts0.begin(), repeatCounts0.end(), repeatCounts1.begin())) {
 
@@ -1030,7 +1030,7 @@ bool Assembler::extractLocalAssemblyGraph(
                 edge_descriptor e;
                 bool edgeExists;
                 tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-                CZI_ASSERT(edgeExists);
+                SHASTA_ASSERT(edgeExists);
                 graph[e].edgeId = edgeId;
                 if(debug) {
                     cout << "Edge added " << assemblyGraphVertexId0 << "->" << assemblyGraphVertexId1 << endl;
@@ -1072,7 +1072,7 @@ bool Assembler::extractLocalAssemblyGraph(
                 edge_descriptor e;
                 bool edgeExists;
                     tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
-                    CZI_ASSERT(edgeExists);
+                    SHASTA_ASSERT(edgeExists);
                     graph[e].edgeId = edgeId;
                     if(debug) {
                         cout << "Edge added " << assemblyGraphVertexId1 << "->"
@@ -1103,8 +1103,8 @@ bool Assembler::extractLocalAssemblyGraph(
             const auto& edge = assemblyGraph.edges[edgeId];
 
             const AssemblyGraph::VertexId vertexId1 = edge.target;
-            CZI_ASSERT(edge.source == vertexId0);
-            CZI_ASSERT(vertexId1 < assemblyGraph.vertices.size());
+            SHASTA_ASSERT(edge.source == vertexId0);
+            SHASTA_ASSERT(vertexId1 < assemblyGraph.vertices.size());
 
             // See if we have a vertex for this global vertex id.
             bool vertexExists;
@@ -1126,7 +1126,7 @@ bool Assembler::extractLocalAssemblyGraph(
             edge_descriptor e;
             bool edgeExists;
             tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-            CZI_ASSERT(edgeExists);
+            SHASTA_ASSERT(edgeExists);
 
         }
     }
@@ -1271,7 +1271,7 @@ void Assembler::assembleAssemblyGraphEdge(
             output.resize(k);
             for(const pair<uint32_t, CompressedCoverageData>& p: input) {
                 const uint32_t position = p.first;
-                CZI_ASSERT(position < k);
+                SHASTA_ASSERT(position < k);
                 const CompressedCoverageData& cd = p.second;
                 output[position].push_back(cd);
             }

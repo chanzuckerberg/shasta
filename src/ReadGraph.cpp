@@ -22,7 +22,7 @@ void RawReadGraph::Visitor::examine_edge(edge_descriptor e, const RawReadGraph& 
     const bool isSameStrand = graph[e].isSameStrand;
 
     const uint8_t strand0 = graph[v0].strand;
-    CZI_ASSERT(strand0 != undiscovered);
+    SHASTA_ASSERT(strand0 != undiscovered);
 
     const uint8_t strand1 = isSameStrand ? strand0 : ((~strand0) & 1);
     if(graph[v1].strand == undiscovered) {

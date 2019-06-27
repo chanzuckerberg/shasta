@@ -11,9 +11,9 @@ CoverageData::CoverageData(AlignedBase base, Strand strand, size_t repeatCount) 
     base(base), strand(strand), repeatCount(repeatCount)
 {
     if(base.isGap()) {
-        CZI_ASSERT(repeatCount == 0);
+        SHASTA_ASSERT(repeatCount == 0);
     } else {
-        CZI_ASSERT(repeatCount > 0);
+        SHASTA_ASSERT(repeatCount > 0);
     }
 }
 
@@ -43,13 +43,13 @@ void Coverage::addRead(AlignedBase base, Strand strand, size_t repeatCount)
 {
     // Sanity check on the base.
     const size_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 5);
+    SHASTA_ASSERT(baseValue < 5);
 
     // Sanity check on the repeat count.
     if(base.isGap()) {
-        CZI_ASSERT(repeatCount == 0);
+        SHASTA_ASSERT(repeatCount == 0);
     } else {
-        CZI_ASSERT(repeatCount > 0);
+        SHASTA_ASSERT(repeatCount > 0);
     }
 
     // Store a CoverageData for this read.
@@ -132,7 +132,7 @@ char Coverage::coverageCharacter(size_t coverage)
         return '.';
     } else if(coverage < 10) {
         const string coverageString = to_string(coverage);
-        CZI_ASSERT(coverageString.size() == 1);
+        SHASTA_ASSERT(coverageString.size() == 1);
         return coverageString[0];
     } else {
         return '*';
@@ -147,7 +147,7 @@ size_t Coverage::coverage(AlignedBase base) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 5);
+    SHASTA_ASSERT(baseValue < 5);
 
     // Return total coverage for this base,
     // for both strands and all repeat counts.
@@ -171,7 +171,7 @@ size_t Coverage::coverage(AlignedBase base, size_t repeatCount) const
 {
     // Extract the base value and check it.
     const uint8_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 5);
+    SHASTA_ASSERT(baseValue < 5);
 
     // Access the coverage vector for this base.
     const auto& baseDetailedCoverage = detailedCoverage[baseValue];
@@ -220,7 +220,7 @@ char Coverage::mostFrequentBaseCoverageCharacter() const
 size_t Coverage::repeatCountEnd(AlignedBase base) const
 {
     const size_t baseValue = base.value;
-    CZI_ASSERT(baseValue < 5);
+    SHASTA_ASSERT(baseValue < 5);
 
     const auto& c = detailedCoverage[baseValue];
     return max(c[0].size(), c[1].size());

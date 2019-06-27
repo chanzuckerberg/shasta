@@ -299,7 +299,7 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
             // Assembled run-length sequence.
             const LongBaseSequenceView runLengthSequence = assemblyGraph.sequences[edgeId];
             const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[edgeId];
-            CZI_ASSERT(repeatCounts.size() == runLengthSequence.baseCount);
+            SHASTA_ASSERT(repeatCounts.size() == runLengthSequence.baseCount);
             html << "<p>Assembled run-length sequence (" << runLengthSequence.baseCount <<
                 " bases):<br><span style='font-family:courier'>";
             html << runLengthSequence;

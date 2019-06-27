@@ -100,7 +100,7 @@ LowHash::LowHash(
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
     const ReadId readCount = orientedReadCount / 2;
     cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
-    CZI_ASSERT(orientedReadCount == 2*readCount);
+    SHASTA_ASSERT(orientedReadCount == 2*readCount);
 
 
 
@@ -157,13 +157,13 @@ LowHash::LowHash(
 
     // Create the candidate alignments.
     cout << timestamp << "Storing candidate alignments." << endl;
-    CZI_ASSERT(orientedReadCount == 2*readCount);
+    SHASTA_ASSERT(orientedReadCount == 2*readCount);
     for(ReadId readId0=0; readId0<readCount; readId0++) {
         const auto& candidates0 = candidates[readId0];
         for(const Candidate& candidate: candidates0) {
             if(candidate.frequency >= minFrequency) {
                 const ReadId readId1 = candidate.readId1;
-                CZI_ASSERT(readId0 < readId1);
+                SHASTA_ASSERT(readId0 < readId1);
                 candidateAlignments.push_back(
                     OrientedReadPair(readId0, readId1, candidate.strand==0));
             }
@@ -227,7 +227,7 @@ void LowHash::createKmerIds(size_t threadId)
                 const OrientedReadId orientedReadId(readId, strand);
                 const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
-                CZI_ASSERT(kmerIds.size(orientedReadId.getValue()) == orientedReadMarkers.size());
+                SHASTA_ASSERT(kmerIds.size(orientedReadId.getValue()) == orientedReadMarkers.size());
 
                 auto pointer = kmerIds.begin(orientedReadId.getValue());
                 for(const CompressedMarker& marker: orientedReadMarkers) {
@@ -459,8 +459,8 @@ void LowHash::merge(
 
         // If we get here, neither iterator is at its end.
         // Both iterators can be safely dereferenced.
-        CZI_ASSERT(it0 != end0);
-        CZI_ASSERT(it1 != end1);
+        SHASTA_ASSERT(it0 != end0);
+        SHASTA_ASSERT(it1 != end1);
 
         // If the current x1 entry is not less than the current x0 entry,
         // process the current x0 entry.
@@ -486,7 +486,7 @@ void LowHash::merge(
 
         // The above covers all cases.
         else {
-            CZI_ASSERT(0);
+            SHASTA_ASSERT(0);
         }
 
     }

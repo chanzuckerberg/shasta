@@ -61,7 +61,7 @@ void Assembler::randomlySelectKmers(
     // Probably a good thing anyway.
     const double p = 1. - sqrt(1. - probability);
     if(probability == 1.) {
-        CZI_ASSERT(p == 1.);
+        SHASTA_ASSERT(p == 1.);
     }
 
 
@@ -79,7 +79,7 @@ void Assembler::randomlySelectKmers(
     }
     for(uint64_t kmerId=0; kmerId<kmerCount; kmerId++) {
         const uint64_t reverseComplementedKmerId = kmerTable[kmerId].reverseComplementedKmerId;
-        CZI_ASSERT(kmerTable[reverseComplementedKmerId].reverseComplementedKmerId == kmerId);
+        SHASTA_ASSERT(kmerTable[reverseComplementedKmerId].reverseComplementedKmerId == kmerId);
     }
 
 
@@ -128,7 +128,7 @@ void Assembler::randomlySelectKmers(
         "run-length encoded sequence." << endl;
 
     if(probability == 1.) {
-        CZI_ASSERT(usedKmerCount == kmerCount);
+        SHASTA_ASSERT(usedKmerCount == kmerCount);
     }
 
 }
@@ -142,7 +142,7 @@ void Assembler::writeKmers(const string& fileName) const
     // Get the k-mer length.
     const size_t k = assemblerInfo->k;
     const size_t kmerCount = 1ULL << (2ULL*k);
-    CZI_ASSERT(kmerTable.size() == kmerCount);
+    SHASTA_ASSERT(kmerTable.size() == kmerCount);
 
     // Open the output file and write the header line.
     ofstream file(fileName);

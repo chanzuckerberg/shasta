@@ -27,13 +27,13 @@ bool ChanZuckerberg::shasta::computeRunLengthRepresentation(
                 return false;
             }
         }
-        CZI_ASSERT(count > 0);
-        CZI_ASSERT(count <= 255);
+        SHASTA_ASSERT(count > 0);
+        SHASTA_ASSERT(count <= 255);
         runLengthSequence.push_back(base);
         repeatCount.push_back(uint8_t(count));
     }
 
-    CZI_ASSERT(runLengthSequence.size() == runLengthSequence.size());
+    SHASTA_ASSERT(runLengthSequence.size() == runLengthSequence.size());
     return true;
 
 }

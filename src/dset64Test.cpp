@@ -95,7 +95,7 @@ Dset64Test::Dset64Test(
         }
         getSortedComponents(componentTable, sortedComponentsSequential);
     }
-    CZI_ASSERT(sortedComponentsSequential == sortedComponentsBoost);
+    SHASTA_ASSERT(sortedComponentsSequential == sortedComponentsBoost);
 
 
 
@@ -119,7 +119,7 @@ Dset64Test::Dset64Test(
         }
         getSortedComponents(componentTable, sortedComponentsParallel);
     }
-    CZI_ASSERT(sortedComponentsParallel == sortedComponentsBoost);
+    SHASTA_ASSERT(sortedComponentsParallel == sortedComponentsBoost);
 
 
     cout << "No error found. All algorithms found " << sortedComponentsBoost.size();

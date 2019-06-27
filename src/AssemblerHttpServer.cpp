@@ -1254,7 +1254,7 @@ void Assembler::exploreRead(
             cout << endl;
         }
         */
-        CZI_ASSERT(markerRow[ordinal] != -1);
+        SHASTA_ASSERT(markerRow[ordinal] != -1);
     }
     const int markerRowCount = *std::max_element(markerRow.begin(), markerRow.end());
 
@@ -1598,7 +1598,7 @@ void Assembler::blastRead(
             tokens.insert(tokens.begin(), tokenizer.begin(), tokenizer.end());
 
             // Extract the score.
-            CZI_ASSERT(!tokens.empty());
+            SHASTA_ASSERT(!tokens.empty());
             const double score = std::stod(tokens.front());;
 
             // Store it.
@@ -1629,7 +1629,7 @@ void Assembler::blastRead(
         for(const auto& p: alignments) {
             const auto& tokens = p.second;
             // bitscore qstart qend sseqid sstart send length pident
-            CZI_ASSERT(tokens.size() == 8);
+            SHASTA_ASSERT(tokens.size() == 8);
             const string& bitscore = tokens[0];
             const size_t qstart = std::stoi(tokens[1]) + beginPosition;
             const size_t qend = std::stoi(tokens[2]) + beginPosition;
@@ -2099,7 +2099,7 @@ void Assembler::exploreAlignment(
         const auto& marker0 = markers0[ordinal0];
         const auto& marker1 = markers1[ordinal1];
         const auto kmerId = marker0.kmerId;
-        CZI_ASSERT(marker1.kmerId == kmerId);
+        SHASTA_ASSERT(marker1.kmerId == kmerId);
         const Kmer kmer(kmerId, assemblerInfo->k);
 
         html << "<tr><td style='font-family:monospace'>";
@@ -2390,7 +2390,7 @@ void Assembler::displayAlignmentMatrix(
         TSequence align;
         convertAlignment(graph, align);
         const size_t totalAlignmentLength = seqan::length(align);
-        CZI_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
+        SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
         const size_t alignmentLength = totalAlignmentLength / 2;
 
         // Extract the two rows of the alignment.
@@ -3138,7 +3138,7 @@ void Assembler::exploreReadGraph(
             tokens.insert(tokens.begin(), tokenizer.begin(), tokenizer.end());
 
             // Extract the OrientedReadId.
-            CZI_ASSERT(!tokens.empty());
+            SHASTA_ASSERT(!tokens.empty());
             const OrientedReadId orientedReadId = OrientedReadId(tokens.front());
 
             // Store it.
@@ -3155,7 +3155,7 @@ void Assembler::exploreReadGraph(
             LocalReadGraphVertex& vertex = graph[v];
             const auto& vertexAlignments = alignments[vertex.orientedReadId];
             for(const auto& alignment: vertexAlignments) {
-                CZI_ASSERT(alignment.size() == 4);
+                SHASTA_ASSERT(alignment.size() == 4);
                 vertex.additionalToolTipText += " " + alignment[1] + ":" + alignment[2] + "-" + alignment[3];
             }
         }

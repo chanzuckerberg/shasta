@@ -293,7 +293,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
         for(size_t i=begin; i!=end; i++) {
             const OrientedReadPair& candidate = alignmentCandidates[i];
-            CZI_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
+            SHASTA_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
 
             // Get the oriented read ids, with the first one on strand 0.
             orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
@@ -460,7 +460,7 @@ vector< pair<OrientedReadId, AlignmentInfo> >
             swap(orientedReadId0, orientedReadId1);
             alignmentInfo.swap();
         }
-        CZI_ASSERT(orientedReadId0.getReadId() == readId0);
+        SHASTA_ASSERT(orientedReadId0.getReadId() == readId0);
 
         // Reverse complement, if necessary.
         if(orientedReadId0.getStrand() != strand0) {
@@ -468,8 +468,8 @@ vector< pair<OrientedReadId, AlignmentInfo> >
             orientedReadId1.flipStrand();
             alignmentInfo.reverseComplement();
         }
-        CZI_ASSERT(orientedReadId0.getStrand() == strand0);
-        CZI_ASSERT(orientedReadId0 == orientedReadId0Argument);
+        SHASTA_ASSERT(orientedReadId0.getStrand() == strand0);
+        SHASTA_ASSERT(orientedReadId0 == orientedReadId0Argument);
 
         result.push_back(make_pair(orientedReadId1, alignmentInfo));
     }

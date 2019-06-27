@@ -59,7 +59,7 @@ bool Assembler::createLocalAlignmentGraph(
 
         // Loop over overlaps/alignments involving this vertex.
         for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
-            CZI_ASSERT(i < alignmentData.size());
+            SHASTA_ASSERT(i < alignmentData.size());
             const AlignmentData& ad = alignmentData[i];
 
             // If the alignment involves too few markers, skip.
@@ -94,7 +94,7 @@ bool Assembler::createLocalAlignmentGraph(
                 graph.addEdge(orientedReadId0, orientedReadId1,
                     ad.info);
             } else {
-                CZI_ASSERT(distance0 == maxDistance);
+                SHASTA_ASSERT(distance0 == maxDistance);
                 if(graph.vertexExists(orientedReadId1)) {
                     graph.addEdge(orientedReadId0, orientedReadId1,
                         ad.info);

@@ -115,10 +115,10 @@ ReadLoader::ReadLoader(
             MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames = *(threadReadNames[threadId]);
             LongBaseSequences& thisThreadReads = *(threadReads[threadId]);
             const size_t n = thisThreadReadNames.size();
-            CZI_ASSERT(thisThreadReads.size() == n);
+            SHASTA_ASSERT(thisThreadReads.size() == n);
             MemoryMapped::VectorOfVectors<uint8_t, uint64_t>* thisThreadReadRepeatCounts = 0;
             thisThreadReadRepeatCounts = threadReadRepeatCounts[threadId].get();
-            CZI_ASSERT(thisThreadReadRepeatCounts->size() == n);
+            SHASTA_ASSERT(thisThreadReadRepeatCounts->size() == n);
             for(size_t i=0; i<n; i++) {
                 readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
                 reads.append(thisThreadReads[i]);
@@ -180,7 +180,7 @@ std::string ReadLoader::threadDataName(
 
 void ReadLoader::getFileSize()
 {
-    CZI_ASSERT(fileDescriptor != -1);
+    SHASTA_ASSERT(fileDescriptor != -1);
 
     struct stat buffer;
     if(::fstat(fileDescriptor, &buffer)) {
@@ -224,7 +224,7 @@ void ReadLoader::readBlock(size_t threadCount)
                 break;
             }
         }
-        CZI_ASSERT(buffer[bufferIndex]=='>' && (bufferIndex==0 || buffer[bufferIndex-1]=='\n'));
+        SHASTA_ASSERT(buffer[bufferIndex]=='>' && (bufferIndex==0 || buffer[bufferIndex-1]=='\n'));
 
         // Throw away what follows, store it as leftover.
         leftOver.clear();
@@ -276,7 +276,7 @@ void ReadLoader::processThreadFunction(size_t threadId)
         ++bufferIndex;
     }
     if(threadId == 0) {
-        CZI_ASSERT(bufferIndex == 0);
+        SHASTA_ASSERT(bufferIndex == 0);
     }
     if(bufferIndex == sliceEnd) {
         return;
@@ -380,7 +380,7 @@ bool ReadLoader::readBeginsHere(size_t bufferIndex) const
 {
     const char c = buffer[bufferIndex];
     if(bufferIndex == 0) {
-        CZI_ASSERT(c == '>');
+        SHASTA_ASSERT(c == '>');
         return true;
     } else {
         return c=='>' && buffer[bufferIndex-1]=='\n';

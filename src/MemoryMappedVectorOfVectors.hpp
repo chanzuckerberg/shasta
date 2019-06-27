@@ -163,7 +163,7 @@ public:
     // Add a T at the end of the last vector.
     void append(const T& t)
     {
-        CZI_ASSERT(!empty());
+        SHASTA_ASSERT(!empty());
         ++toc.back();
         data.push_back(t);
     }
@@ -215,11 +215,11 @@ public:
         return MemoryAsContainer<const T>(begin(i), end(i));
     }
     MemoryAsContainer<T> front() {
-        CZI_ASSERT(size() > 0);
+        SHASTA_ASSERT(size() > 0);
         return (*this)[0];
     }
     MemoryAsContainer<T> back() {
-        CZI_ASSERT(size() > 0);
+        SHASTA_ASSERT(size() > 0);
         return (*this)[size() - 1];
     }
 
@@ -310,7 +310,7 @@ template<class T, class Int>
     if(check) {
         const Int n = Int(count.size());
         for(Int i=0; i<n; i++) {
-            CZI_ASSERT(count[i] == 0);;
+            SHASTA_ASSERT(count[i] == 0);;
         }
     }
 
@@ -363,8 +363,8 @@ template<class T, class Int>
     const auto it = std::upper_bound(toc.begin(), toc.end(), k) - 1;
     const Int i = it - toc.begin();
     const Int j = k - *it;
-    CZI_ASSERT(i < size());
-    CZI_ASSERT(j < size(i));
+    SHASTA_ASSERT(i < size());
+    SHASTA_ASSERT(j < size(i));
     return make_pair(i, j);
 }
 

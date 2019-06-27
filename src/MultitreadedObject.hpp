@@ -14,7 +14,7 @@
 // };
 
 // Shasta.
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
 
 // Linux.
@@ -83,7 +83,7 @@ protected:
 
     ostream& getLog(size_t threadId)
     {
-        CZI_ASSERT(threadId < threadLogs.size());
+        SHASTA_ASSERT(threadId < threadLogs.size());
         ofstream& s = threadLogs[threadId];
         if(!s.is_open()) {
             throw runtime_error("Attempt to write to unopened log output for thread " + to_string(threadId));
@@ -204,7 +204,7 @@ template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::st
     if(!threads.empty()) {
         throw runtime_error("Unsupported attempt to start new threads while other threads have not been joined.");
     }
-    CZI_ASSERT(threadLogs.empty());
+    SHASTA_ASSERT(threadLogs.empty());
 
     // __sync_synchronize (); A full memory barrier is probably not needed here.
     exceptionsOccurred = false;

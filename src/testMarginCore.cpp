@@ -2,7 +2,7 @@
 
 // Shasta.
 #include "testMarginCore.hpp"
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;
 
@@ -47,8 +47,8 @@ void ChanZuckerberg::shasta::testMarginCore()
     const size_t readCount = sequences.size();
 
     // Sanity checks.
-    CZI_ASSERT(repeatCounts.size() == readCount);
-    CZI_ASSERT(strands.size() == readCount);
+    SHASTA_ASSERT(repeatCounts.size() == readCount);
+    SHASTA_ASSERT(strands.size() == readCount);
 
     // Create vectors of pointers to be passed to callConsensus.
     vector<char*> sequencePointers(readCount);

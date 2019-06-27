@@ -159,7 +159,7 @@ void Assembler::exploreMarkerGraph(
     html << "<script>\n";
     BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
         const LocalMarkerGraphVertex& vertex = graph[v];
-        CZI_ASSERT(!vertex.markerInfos.empty());
+        SHASTA_ASSERT(!vertex.markerInfos.empty());
         const string url =
             "exploreMarkerGraph?vertexId=" + to_string(vertex.vertexId) +
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
@@ -441,7 +441,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
     // Access the markers of this vertex.
     MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
     const size_t markerCount = markerIds.size();
-    CZI_ASSERT(markerCount > 0);
+    SHASTA_ASSERT(markerCount > 0);
 
     // Get the marker sequence.
     const KmerId kmerId = markers.begin()[markerIds[0]].kmerId;
@@ -464,7 +464,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
             Base base;
             tie(base, repeatCounts[j][i]) =
                 getOrientedReadBaseAndRepeatCount(orientedReadIds[j], uint32_t(marker.position+i));
-            CZI_ASSERT(base == kmer[i]);
+            SHASTA_ASSERT(base == kmer[i]);
         }
     }
 
@@ -495,12 +495,12 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         }
 
         const Consensus consensus = (*consensusCaller)(coverage);
-        CZI_ASSERT(Base(consensus.base) == kmer[i]);
+        SHASTA_ASSERT(Base(consensus.base) == kmer[i]);
         consensusRepeatCounts[i] = consensus.repeatCount;
 
         // Check that this repeat count agrees with what was
         // computed during the assembly.
-        CZI_ASSERT(consensusRepeatCounts[i] == storedConsensusRepeatCounts[i]);
+        SHASTA_ASSERT(consensusRepeatCounts[i] == storedConsensusRepeatCounts[i]);
     }
 
 
@@ -771,7 +771,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
     // The marker intervals of this edge.
     const MemoryAsContainer<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
-    CZI_ASSERT(markerIntervals.size() == markerCount);
+    SHASTA_ASSERT(markerIntervals.size() == markerCount);
 
     // The length of each marker sequence.
     const size_t k = assemblerInfo->k;
@@ -1007,7 +1007,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
             "Reads with one or more intervening bases between "
             "the flanking markers were not used.";
     } else {
-        CZI_ASSERT(spoaDetail.assemblyMode == 2);
+        SHASTA_ASSERT(spoaDetail.assemblyMode == 2);
         html << "<p>This edge is dominated by oriented reads with "
             "intervening bases between the flanking markers. "
             "The run-length sequences of oriented reads are shown aligned. "
@@ -1062,7 +1062,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         } else if(spoaDetail.assemblyMode == 1) {
             wasUsed = !hasInterveningBases;
         } else {
-            CZI_ASSERT(spoaDetail.assemblyMode == 2);
+            SHASTA_ASSERT(spoaDetail.assemblyMode == 2);
             wasUsed = !hasOverlappingBases;
         }
 
@@ -1134,7 +1134,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
                 // Write alignment sequence, aligned.
                 const int row = spoaDetail.alignmentRow[j];
-                CZI_ASSERT(row>=0 && row<int(spoaDetail.msa.size()));
+                SHASTA_ASSERT(row>=0 && row<int(spoaDetail.msa.size()));
                 const string& msaRow = spoaDetail.msa[row];
                 size_t position = k;
                 for(const char c: msaRow) {
@@ -1190,7 +1190,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
             html << repeatCount;
         }
     } else {
-        CZI_ASSERT(spoaDetail.assemblyMode==2);
+        SHASTA_ASSERT(spoaDetail.assemblyMode==2);
         html <<
             "<td class=centered>" << spoaOverlappingBaseCount <<
             "<td class=centered style='font-family:monospace'>";
@@ -1279,15 +1279,15 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
                 }
                 const Base base = sequences[j][position];
                 ++position;
-                CZI_ASSERT(base == Base::fromCharacter(alignmentCharacter));
+                SHASTA_ASSERT(base == Base::fromCharacter(alignmentCharacter));
                 html << base;
                 if(sequences[j].size() > 2*k && position==sequences[j].size()-k) {
                     html << "</span>";
                 }
             }
         }
-        CZI_ASSERT(position == sequences[j].size());
-        CZI_ASSERT(position == repeatCounts[j].size());
+        SHASTA_ASSERT(position == sequences[j].size());
+        SHASTA_ASSERT(position == repeatCounts[j].size());
 
 
 
@@ -1305,7 +1305,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
                 const Base base = sequences[j][position];
                 const uint8_t repeatCount = repeatCounts[j][position];
                 ++position;
-                CZI_ASSERT(base == Base::fromCharacter(alignmentCharacter));
+                SHASTA_ASSERT(base == Base::fromCharacter(alignmentCharacter));
                 if(repeatCount < 10) {
                     html << int(repeatCount);
                 } else {
@@ -1316,8 +1316,8 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
                 }
             }
         }
-        CZI_ASSERT(position == sequences[j].size());
-        CZI_ASSERT(position == repeatCounts[j].size());
+        SHASTA_ASSERT(position == sequences[j].size());
+        SHASTA_ASSERT(position == repeatCounts[j].size());
     }
 
 
@@ -1342,7 +1342,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
             }
         }
     }
-    CZI_ASSERT(position == alignmentLength-consensusGapCount);
+    SHASTA_ASSERT(position == alignmentLength-consensusGapCount);
     html << "<td class=centered style='font-family:monospace'>";
     position = 0;
     for(size_t i=0; i<alignmentLength; i++) {
@@ -1364,7 +1364,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
             }
         }
     }
-    CZI_ASSERT(position == alignmentLength-consensusGapCount);
+    SHASTA_ASSERT(position == alignmentLength-consensusGapCount);
 
 
 

@@ -255,14 +255,14 @@ public:
     // Return a LongBaseSequenceView representing the i-th sequence stored.
     LongBaseSequenceView operator[](uint64_t i)
     {
-        CZI_ASSERT(i < data.size());
+        SHASTA_ASSERT(i < data.size());
         return LongBaseSequenceView(data[i].begin(), baseCount[i]);
     }
 
     uint64_t size() const
     {
         const uint64_t n = baseCount.size();
-        CZI_ASSERT(data.size() == n);
+        SHASTA_ASSERT(data.size() == n);
         return n;
     }
     bool empty() const {

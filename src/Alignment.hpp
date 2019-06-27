@@ -59,7 +59,7 @@ inline void ChanZuckerberg::shasta::reverse(AlignmentType& alignmentType)
     case AlignmentType::ambiguous:
         return;
     default:
-        CZI_ASSERT(0);
+        SHASTA_ASSERT(0);
     }
 }
 
@@ -106,8 +106,8 @@ public:
         // Sanity check.
         void check() const
         {
-            CZI_ASSERT(firstOrdinal < markerCount);
-            CZI_ASSERT(lastOrdinal < markerCount);
+            SHASTA_ASSERT(firstOrdinal < markerCount);
+            SHASTA_ASSERT(lastOrdinal < markerCount);
         }
 
         // Update to reflect reverse complementing of the oriented read.
@@ -160,7 +160,7 @@ public:
     {
         // Store the number of markers in the alignment.
         markerCount = uint32_t(alignment.ordinals.size());
-        CZI_ASSERT(markerCount > 0);
+        SHASTA_ASSERT(markerCount > 0);
 
         // Store alignment information for each of the two oriented reads.
         for(size_t i=0; i<2; i++) {
@@ -265,7 +265,7 @@ public:
         }
 
         // If getting here, no containment found.
-        CZI_ASSERT(!isContained0 && !isContained1);
+        SHASTA_ASSERT(!isContained0 && !isContained1);
 
         // Figure out if one of the two reads is backward at both ends.
         const bool read0IsBackward =

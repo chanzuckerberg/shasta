@@ -64,7 +64,7 @@ void Assembler::createMarkerGraphVertices(
 
     // Check that we have what we need.
     checkReadsAreOpen();
-    CZI_ASSERT(readFlags.isOpen);
+    SHASTA_ASSERT(readFlags.isOpen);
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentDataAreOpen();
@@ -285,7 +285,7 @@ void Assembler::createMarkerGraphVertices(
             ++newDisjointSetId;
         }
     }
-    CZI_ASSERT(newDisjointSetId + badDisjointSetCount == disjointSetCount);
+    SHASTA_ASSERT(newDisjointSetId + badDisjointSetCount == disjointSetCount);
 
 
 
@@ -378,8 +378,8 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
         // We process read graph edges in pairs.
         // In each pair, the second edge is the reverse complement of the first.
-        CZI_ASSERT((begin%2) == 0);
-        CZI_ASSERT((end%2) == 0);
+        SHASTA_ASSERT((begin%2) == 0);
+        SHASTA_ASSERT((end%2) == 0);
 
         for(size_t i=begin; i!=end; i+=2) {
             const ReadGraph::Edge& readGraphEdge = readGraph.edges[i];
@@ -391,7 +391,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
                 nextEdgeOrientedReadIds[0].flipStrand();
                 nextEdgeOrientedReadIds[1].flipStrand();
-                CZI_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
+                SHASTA_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
             }
 
 
@@ -399,7 +399,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 continue;
             }
             const array<OrientedReadId, 2>& orientedReadIds = readGraphEdge.orientedReadIds;
-            CZI_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
+            SHASTA_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
 
             // If either of the reads is flagged chimeric, skip it.
             if( readFlags[orientedReadIds[0].getReadId()].isChimeric ||
@@ -427,7 +427,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 const uint32_t ordinal1 = p[1];
                 const MarkerId markerId0 = getMarkerId(orientedReadIds[0], ordinal0);
                 const MarkerId markerId1 = getMarkerId(orientedReadIds[1], ordinal1);
-                CZI_ASSERT(markers.begin()[markerId0].kmerId == markers.begin()[markerId1].kmerId);
+                SHASTA_ASSERT(markers.begin()[markerId0].kmerId == markers.begin()[markerId1].kmerId);
                 disjointSetsPointer->unite(markerId0, markerId1);
 
                 // Also merge the reverse complemented markers.
@@ -517,7 +517,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
         for(MarkerGraph::VertexId disjointSetId=begin; disjointSetId!=end; ++disjointSetId) {
             auto markers = disjointSetMarkers[disjointSetId];
             const size_t markerCount = markers.size();
-            CZI_ASSERT(markerCount > 0);
+            SHASTA_ASSERT(markerCount > 0);
             isBadDisjointSet[disjointSetId] = false;
             if(markerCount == 1) {
                 continue;
@@ -542,7 +542,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
 
 void Assembler::createMarkerGraphVerticesThreadFunction45(int value)
 {
-    CZI_ASSERT(value==4 || value==5);
+    SHASTA_ASSERT(value==4 || value==5);
     const auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
     auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
 
@@ -571,7 +571,7 @@ void Assembler::checkMarkerGraphVertices(
 {
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
-    CZI_ASSERT(markers.totalSize() == markerGraph.vertexTable.size());
+    SHASTA_ASSERT(markers.totalSize() == markerGraph.vertexTable.size());
     const MarkerId markerCount = markers.totalSize();
 
 
@@ -598,15 +598,15 @@ void Assembler::checkMarkerGraphVertices(
 
     for(MarkerGraph::VertexId vertexId=0;
         vertexId!=markerGraph.vertices.size(); vertexId++) {
-        CZI_ASSERT(!isBadMarkerGraphVertex(vertexId));
+        SHASTA_ASSERT(!isBadMarkerGraphVertex(vertexId));
         const auto markers = markerGraph.vertices[vertexId];
-        CZI_ASSERT(markers.size() >= minCoverage);
-        CZI_ASSERT(markers.size() <= maxCoverage);
+        SHASTA_ASSERT(markers.size() >= minCoverage);
+        SHASTA_ASSERT(markers.size() <= maxCoverage);
         for(const MarkerId markerId: markers) {
             if(markerGraph.vertexTable[markerId] != vertexId) {
                 cout << "Failure at vertex " << vertexId << " marker " << markerId << endl;
             }
-            CZI_ASSERT(markerGraph.vertexTable[markerId] == vertexId);
+            SHASTA_ASSERT(markerGraph.vertexTable[markerId] == vertexId);
         }
     }
 }
@@ -641,7 +641,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
             const MarkerId rawVertexId = markerGraph.vertexTable[i];
-            CZI_ASSERT(rawVertexId != maxValueMinus1);
+            SHASTA_ASSERT(rawVertexId != maxValueMinus1);
             const MarkerId finalVertexId = workArea[rawVertexId];
             markerGraph.vertexTable[i] = finalVertexId;
         }
@@ -1037,7 +1037,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
             // Get the markers of this vertex.
             const MemoryAsContainer<MarkerId> vertexMarkers =
                 markerGraph.vertices[vertexId];
-            CZI_ASSERT(vertexMarkers.size() > 0);
+            SHASTA_ASSERT(vertexMarkers.size() > 0);
 
             // Get the first marker of this vertex.
             const MarkerId firstMarkerId = vertexMarkers[0];
@@ -1049,7 +1049,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
             // Find the corresponding vertex.
             const VertexId vertexIdReverseComplement =
                 markerGraph.vertexTable[firstMarkerIdReverseComplement];
-            CZI_ASSERT(vertexIdReverseComplement != MarkerGraph::invalidCompressedVertexId);
+            SHASTA_ASSERT(vertexIdReverseComplement != MarkerGraph::invalidCompressedVertexId);
 
             // Get the markers of the reverse complemented vertex.
             const MemoryAsContainer<MarkerId> vertexMarkersReverseComplement =
@@ -1058,12 +1058,12 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
             // Check that the markers are all consistent.
             // This could become expensive.
             // It can be taken out when we are confident that this code works.
-            CZI_ASSERT(vertexMarkers.size() == vertexMarkersReverseComplement.size());
+            SHASTA_ASSERT(vertexMarkers.size() == vertexMarkersReverseComplement.size());
             for (size_t i=0; i<vertexMarkers.size(); i++) {
                 const MarkerId markerId = vertexMarkers[i];
                 const MarkerId markerIdReverseComplement =
                     vertexMarkersReverseComplement[i];
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerIdReverseComplement == findReverseComplement(markerId));
             }
 
@@ -1086,7 +1086,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction2(size_t t
         for (VertexId vertexId=begin; vertexId!=end; vertexId++) {
             const VertexId vertexIdReverseComplement =
                 markerGraph.reverseComplementVertex[vertexId];
-            CZI_ASSERT(
+            SHASTA_ASSERT(
                 markerGraph.reverseComplementVertex[vertexIdReverseComplement] == vertexId);
         }
     }
@@ -1110,7 +1110,7 @@ void Assembler::findMarkerGraphReverseComplementEdges(size_t threadCount)
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
-    CZI_ASSERT(markerGraph.reverseComplementVertex.isOpen);
+    SHASTA_ASSERT(markerGraph.reverseComplementVertex.isOpen);
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -1165,22 +1165,22 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
                 markerGraph.edgeMarkerIntervals[edgeId];
             const MemoryAsContainer<MarkerInterval> markerIntervalsRc =
                 markerGraph.edgeMarkerIntervals[edgeIdRc];
-            CZI_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
+            SHASTA_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
             for (size_t i=0; i<markerIntervals.size(); i++) {
                 const MarkerInterval& markerInterval = markerIntervals[i];
                 const MarkerInterval& markerIntervalRc = markerIntervalsRc[i];
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval.orientedReadId.getReadId()
                         == markerIntervalRc.orientedReadId.getReadId());
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval.orientedReadId.getStrand()
                         == 1 - markerIntervalRc.orientedReadId.getStrand());
                 const uint32_t markerCount = uint32_t(
                     markers.size(markerInterval.orientedReadId.getValue()));
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval.ordinals[0]
                         == markerCount - 1 - markerIntervalRc.ordinals[1]);
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval.ordinals[1]
                         == markerCount - 1 - markerIntervalRc.ordinals[0]);
             }
@@ -1201,7 +1201,7 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction2(size_t thre
         for(EdgeId edgeId=begin; edgeId!=end; edgeId++) {
             const EdgeId edgeIdReverseComplement =
                 markerGraph.reverseComplementEdge[edgeId];
-            CZI_ASSERT(
+            SHASTA_ASSERT(
                 markerGraph.reverseComplementEdge[edgeIdReverseComplement]
                     == edgeId);
         }
@@ -1231,7 +1231,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetric(size_t threadCount)
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
-    CZI_ASSERT(markerGraph.reverseComplementVertex.isOpen);
+    SHASTA_ASSERT(markerGraph.reverseComplementVertex.isOpen);
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -1265,17 +1265,17 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId
         for (VertexId v0=begin; v0!=end; v0++) {
             const VertexId v1 = markerGraph.reverseComplementVertex[v0];
             const VertexId v2 = markerGraph.reverseComplementVertex[v1];
-            CZI_ASSERT(v2 == v0);
-            CZI_ASSERT(v1 != v0);
+            SHASTA_ASSERT(v2 == v0);
+            SHASTA_ASSERT(v1 != v0);
 
             const MemoryAsContainer<MarkerId> markers0 = markerGraph.vertices[v0];
             const MemoryAsContainer<MarkerId> markers1 = markerGraph.vertices[v1];
-            CZI_ASSERT(markers0.size() == markers1.size());
+            SHASTA_ASSERT(markers0.size() == markers1.size());
             for (size_t i = 0; i < markers0.size(); i++) {
                 const MarkerId markerId0 = markers0[i];
                 const MarkerId markerId1 = markers1[i];
-                CZI_ASSERT(markerId1 == findReverseComplement(markerId0));
-                CZI_ASSERT(markerId0 == findReverseComplement(markerId1));
+                SHASTA_ASSERT(markerId1 == findReverseComplement(markerId0));
+                SHASTA_ASSERT(markerId0 == findReverseComplement(markerId1));
             }
         }
     }
@@ -1294,17 +1294,17 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId
         for (EdgeId e0=begin; e0!=end; e0++) {
             const EdgeId e1 = markerGraph.reverseComplementEdge[e0];
             const EdgeId e2 = markerGraph.reverseComplementEdge[e1];
-            CZI_ASSERT(e2 == e0);
-            CZI_ASSERT(e1 != e0);
+            SHASTA_ASSERT(e2 == e0);
+            SHASTA_ASSERT(e1 != e0);
 
             const MarkerGraph::Edge& edge0 = markerGraph.edges[e0];
             const MarkerGraph::Edge& edge1 = markerGraph.edges[e1];
-            CZI_ASSERT(edge0.coverage == edge1.coverage);
-            CZI_ASSERT(
+            SHASTA_ASSERT(edge0.coverage == edge1.coverage);
+            SHASTA_ASSERT(
                 edge0.wasRemovedByTransitiveReduction
                 == edge1.wasRemovedByTransitiveReduction);
-            CZI_ASSERT(edge0.wasPruned == edge1.wasPruned);
-            CZI_ASSERT(edge0.isSuperBubbleEdge == edge1.isSuperBubbleEdge);
+            SHASTA_ASSERT(edge0.wasPruned == edge1.wasPruned);
+            SHASTA_ASSERT(edge0.isSuperBubbleEdge == edge1.isSuperBubbleEdge);
 
 
             const VertexId v0 = edge0.source;
@@ -1312,28 +1312,28 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId
             const VertexId v0rc = markerGraph.reverseComplementVertex[v0];
             const VertexId v1rc = markerGraph.reverseComplementVertex[v1];
             const EdgeId e0rc = markerGraph.findEdgeId(v1rc, v0rc);
-            CZI_ASSERT(e0rc == e1);
+            SHASTA_ASSERT(e0rc == e1);
 
             const MemoryAsContainer<MarkerInterval> markerIntervals0 =
                 markerGraph.edgeMarkerIntervals[e0];
             const MemoryAsContainer<MarkerInterval> markerIntervals1 =
                 markerGraph.edgeMarkerIntervals[e1];
-            CZI_ASSERT(markerIntervals0.size() == markerIntervals1.size());
+            SHASTA_ASSERT(markerIntervals0.size() == markerIntervals1.size());
             for (size_t i=0; i<markerIntervals0.size(); i++) {
                 const MarkerInterval& markerInterval0 = markerIntervals0[i];
                 const MarkerInterval& markerInterval1 = markerIntervals1[i];
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval0.orientedReadId.getReadId()
                     == markerInterval1.orientedReadId.getReadId());
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval0.orientedReadId.getStrand()
                     == 1 - markerInterval1.orientedReadId.getStrand());
                 const uint32_t markerCount = uint32_t(
                     markers.size(markerInterval0.orientedReadId.getValue()));
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval0.ordinals[0]
                     == markerCount - 1 - markerInterval1.ordinals[1]);
-                CZI_ASSERT(
+                SHASTA_ASSERT(
                     markerInterval0.ordinals[1]
                     == markerCount - 1 - markerInterval1.ordinals[0]);
             }
@@ -1570,9 +1570,9 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             }
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
-            CZI_ASSERT(edge.source == vertexId0);
-            CZI_ASSERT(vertexId1 < markerGraph.vertices.size());
-            CZI_ASSERT(!isBadMarkerGraphVertex(vertexId1));
+            SHASTA_ASSERT(edge.source == vertexId0);
+            SHASTA_ASSERT(vertexId1 < markerGraph.vertices.size());
+            SHASTA_ASSERT(!isBadMarkerGraphVertex(vertexId1));
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1592,7 +1592,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             tie(e, edgeExists) = boost::edge(v0, v1, graph);
             if(!edgeExists) {
                 tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-                CZI_ASSERT(edgeExists);
+                SHASTA_ASSERT(edgeExists);
 
                 // Fill in edge information.
                 const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
@@ -1631,8 +1631,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             }
 
             const MarkerGraph::VertexId vertexId1 = edge.source;
-            CZI_ASSERT(edge.target == vertexId0);
-            CZI_ASSERT(vertexId1 < markerGraph.vertices.size());
+            SHASTA_ASSERT(edge.target == vertexId0);
+            SHASTA_ASSERT(vertexId1 < markerGraph.vertices.size());
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1652,7 +1652,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             tie(e, edgeExists) = boost::edge(v1, v0, graph);
             if(!edgeExists) {
                 tie(e, edgeExists) = boost::add_edge(v1, v0, graph);
-                CZI_ASSERT(edgeExists);
+                SHASTA_ASSERT(edgeExists);
 
                 // Fill in edge information.
                 const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
@@ -1705,8 +1705,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             }
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
-            CZI_ASSERT(edge.source == vertexId0);
-            CZI_ASSERT(vertexId1 < markerGraph.vertices.size());
+            SHASTA_ASSERT(edge.source == vertexId0);
+            SHASTA_ASSERT(vertexId1 < markerGraph.vertices.size());
 
             // See if we have a vertex for this global vertex id.
             bool vertexExists;
@@ -1729,11 +1729,11 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             edge_descriptor e;
             bool edgeExists;
             tie(e, edgeExists) = boost::edge(v0, v1, graph);
-            CZI_ASSERT(!edgeExists);
+            SHASTA_ASSERT(!edgeExists);
 
             // Add the edge.
             tie(e, edgeExists) = boost::add_edge(v0, v1, graph);
-            CZI_ASSERT(edgeExists);
+            SHASTA_ASSERT(edgeExists);
 
             // Fill in edge information.
             const auto storedMarkerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
@@ -1825,7 +1825,7 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     for(size_t threadId=0; threadId<threadCount; threadId++) {
         auto& thisThreadEdges = *createMarkerGraphEdgesData.threadEdges[threadId];
         auto& thisThreadEdgeMarkerIntervals = *createMarkerGraphEdgesData.threadEdgeMarkerIntervals[threadId];
-        CZI_ASSERT(thisThreadEdges.size() == thisThreadEdgeMarkerIntervals.size());
+        SHASTA_ASSERT(thisThreadEdges.size() == thisThreadEdgeMarkerIntervals.size());
         for(size_t i=0; i<thisThreadEdges.size(); i++) {
             const auto& edge = thisThreadEdges[i];
             const auto edgeMarkerIntervals = thisThreadEdgeMarkerIntervals[i];
@@ -1838,7 +1838,7 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
         thisThreadEdges.remove();
         thisThreadEdgeMarkerIntervals.remove();
     }
-    CZI_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
+    SHASTA_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
     cout << timestamp << "Found " << markerGraph.edges.size();
     cout << " edges for " << markerGraph.vertices.size() << " vertices." << endl;
 
@@ -1954,7 +1954,7 @@ void Assembler::createMarkerGraphEdgesThreadFunction2(size_t threadId)
 }
 void Assembler::createMarkerGraphEdgesThreadFunction12(size_t threadId, size_t pass)
 {
-    CZI_ASSERT(pass==1 || pass==2);
+    SHASTA_ASSERT(pass==1 || pass==2);
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -1999,9 +1999,9 @@ void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
 
 void Assembler::checkMarkerGraphEdgesIsOpen()
 {
-    CZI_ASSERT(markerGraph.edges.isOpen);
-    CZI_ASSERT(markerGraph.edgesBySource.isOpen());
-    CZI_ASSERT(markerGraph.edgesByTarget.isOpen());
+    SHASTA_ASSERT(markerGraph.edges.isOpen);
+    SHASTA_ASSERT(markerGraph.edgesBySource.isOpen());
+    SHASTA_ASSERT(markerGraph.edgesByTarget.isOpen());
 }
 
 
@@ -2069,7 +2069,7 @@ void Assembler::flagMarkerGraphWeakEdges(
     edgesByCoverage.endPass2();
 
     // Check that there are no edges with coverage 0.
-    CZI_ASSERT(edgesByCoverage[0].size() == 0);
+    SHASTA_ASSERT(edgesByCoverage[0].size() == 0);
 
     // Vector to contain vertex distances during each BFS.
     // Is is set to -1 fore vertices nt reached by the BFS.
@@ -2261,8 +2261,8 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
 
     // Check that the work areas are sized as expected.
     for(size_t i=0; i<2; i++) {
-        CZI_ASSERT(verticesByDistance[i].size() == maxDistance+1);
-        CZI_ASSERT(vertexFlags[i].size() == markerGraph.vertices.size());
+        SHASTA_ASSERT(verticesByDistance[i].size() == maxDistance+1);
+        SHASTA_ASSERT(vertexFlags[i].size() == markerGraph.vertices.size());
     }
 
     // Find the two vertices of the starting edge.
@@ -2276,7 +2276,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
     // for each of the two start vertices.
     // verticesByDistance is indexed by [0 or 1][distance].
     for(size_t i=0; i<2; i++) {
-        CZI_ASSERT(verticesByDistance[i][0].size() == 0);
+        SHASTA_ASSERT(verticesByDistance[i][0].size() == 0);
         verticesByDistance[i][0].clear();
         const VertexId startVertexId = startVertexIds[i];
         verticesByDistance[i][0].push_back(startVertexId);
@@ -2295,7 +2295,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
         // cout << "Working on distance " << distance << endl;
         for(size_t i=0; i<2; i++) {
             // cout << "Working on i = " << i << endl;
-            CZI_ASSERT(verticesByDistance[i][distance+1].size() == 0);
+            SHASTA_ASSERT(verticesByDistance[i][distance+1].size() == 0);
             for(const VertexId vertexId0: verticesByDistance[i][distance]) {
                 // cout << "VertexId0 " << vertexId0 << endl;
 
@@ -2398,7 +2398,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
 
 
     // cout << "Returning " << int(disconnects) << endl;
-    // CZI_ASSERT(0);
+    // SHASTA_ASSERT(0);
     return disconnects;
 }
 
@@ -2531,7 +2531,7 @@ MarkerGraph::EdgeId Assembler::nextEdgeInMarkerGraphPrunedStrongSubgraphChain(
     // Check that the edge we were passed belongs to the
     // pruned spanning subgraph of the marker graph.
     const Edge& edge0 = edges[edgeId0];
-    CZI_ASSERT(!edge0.wasRemoved());
+    SHASTA_ASSERT(!edge0.wasRemoved());
 
     // If the out-degree and in-degree of the target of this edge are not both 1,
     // this edge is the last of its chain.
@@ -2587,7 +2587,7 @@ MarkerGraph::EdgeId Assembler::previousEdgeInMarkerGraphPrunedStrongSubgraphChai
     // Check that the edge we were passed belongs to the
     // pruned spanning subgraph of the marker graph.
     const Edge& edge0 = edges[edgeId0];
-    CZI_ASSERT(!edge0.wasRemoved());
+    SHASTA_ASSERT(!edge0.wasRemoved());
 
     // If the out-degree and in-degree of the source of this edge are not both 1,
     // this edge is the last of its chain.
@@ -2679,7 +2679,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
     // Access the markers of this vertex.
     const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
     const size_t markerCount = markerIds.size();
-    CZI_ASSERT(markerCount > 0);
+    SHASTA_ASSERT(markerCount > 0);
 
     // Find the corresponding oriented read ids, marker ordinals,
     // and marker positions in each oriented read id.
@@ -2719,10 +2719,10 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 
         // Sanity check that all the bases are the same.
         const vector<CoverageData>& coverageData = coverage.getReadCoverageData();
-        CZI_ASSERT(coverageData.size() == markerCount);
+        SHASTA_ASSERT(coverageData.size() == markerCount);
         const Base firstBase = Base(coverageData.front().base);
         for(const CoverageData& c: coverageData) {
-            CZI_ASSERT(Base(c.base) == firstBase);
+            SHASTA_ASSERT(Base(c.base) == firstBase);
         }
 
         // Compute the consensus.
@@ -2762,7 +2762,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     const MemoryAsContainer<MarkerInterval> markerIntervals =
         markerGraph.edgeMarkerIntervals[edgeId];
     const size_t markerCount = markerIntervals.size();
-    CZI_ASSERT(markerCount > 0);
+    SHASTA_ASSERT(markerCount > 0);
 
 
 
@@ -2862,14 +2862,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
         // Get the two markers.
-        CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+        SHASTA_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
         const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
         const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
 
         // Get the positions of the markers in the read.
         const uint32_t position0 = marker0.position;
         const uint32_t position1 = marker1.position;
-        CZI_ASSERT(position1 > position0);
+        SHASTA_ASSERT(position1 > position0);
 
         // Compute the offset between the markers.
         const uint32_t offset = position1 - position0;
@@ -2884,7 +2884,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             ++mode2Count;
         }
     }
-    CZI_ASSERT(mode1Count + mode2Count == markerCount);
+    SHASTA_ASSERT(mode1Count + mode2Count == markerCount);
 
 
 
@@ -2905,14 +2905,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
             // Get the two markers.
-            CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+            SHASTA_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
             const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
             const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
 
             // Get the positions of the markers in the read.
             const uint32_t position0 = marker0.position;
             const uint32_t position1 = marker1.position;
-            CZI_ASSERT(position1 > position0);
+            SHASTA_ASSERT(position1 > position0);
 
             // Compute the offset between the markers.
             const uint32_t offset = position1 - position0;
@@ -2951,7 +2951,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // Results from spoa are dependent on the order in which the
     // sequences are entered, and so we enter the sequences in order
     // of decreasing frequency.
-    CZI_ASSERT(mode2Count > mode1Count);
+    SHASTA_ASSERT(mode2Count > mode1Count);
     detail.assemblyMode = 2;
 
 
@@ -2975,7 +2975,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
         const uint32_t position0 = marker0.position;
         const uint32_t position1 = marker1.position;
-        CZI_ASSERT(position1 > position0);
+        SHASTA_ASSERT(position1 > position0);
         const uint32_t offset = position1 - position0;
 
         // If the offset is too small, discard this marker interval.
@@ -3186,7 +3186,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         // If not a gap, store the base and repeat count.
         if(!consensus.base.isGap()) {
             sequence.push_back(Base(consensus.base));
-            CZI_ASSERT(consensus.repeatCount > 0);
+            SHASTA_ASSERT(consensus.repeatCount > 0);
             repeatCounts.push_back(uint32_t(consensus.repeatCount));
 
             // Also store detailed coverage data, if requested.
@@ -3252,7 +3252,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     const MemoryAsContainer<MarkerInterval> markerIntervals =
         markerGraph.edgeMarkerIntervals[edgeId];
     const size_t markerCount = markerIntervals.size();
-    CZI_ASSERT(markerCount > 0);
+    SHASTA_ASSERT(markerCount > 0);
 
     // We will process the edge in one of two modes:
     // - Mode 1 supports only marker intervals in which the left and right
@@ -3277,14 +3277,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
         // Get the two markers.
-        CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+        SHASTA_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
         const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
         const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
 
         // Get the positions of the markers in the read.
         const uint32_t position0 = marker0.position;
         const uint32_t position1 = marker1.position;
-        CZI_ASSERT(position1 > position0);
+        SHASTA_ASSERT(position1 > position0);
 
         // Compute the offset between the markers.
         const uint32_t offset = position1 - position0;
@@ -3299,7 +3299,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
             ++mode2Count;
         }
     }
-    CZI_ASSERT(mode1Count + mode2Count == markerCount);
+    SHASTA_ASSERT(mode1Count + mode2Count == markerCount);
 
 
 
@@ -3319,14 +3319,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
             const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
             // Get the two markers.
-            CZI_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
+            SHASTA_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
             const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
             const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
 
             // Get the positions of the markers in the read.
             const uint32_t position0 = marker0.position;
             const uint32_t position1 = marker1.position;
-            CZI_ASSERT(position1 > position0);
+            SHASTA_ASSERT(position1 > position0);
 
             // Compute the offset between the markers.
             const uint32_t offset = position1 - position0;
@@ -3360,7 +3360,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     // Results are dependent on the order in which the
     // sequences are entered, and so we enter the sequences in order
     // of decreasing frequency.
-    CZI_ASSERT(mode2Count > mode1Count);
+    SHASTA_ASSERT(mode2Count > mode1Count);
 
 
 
@@ -3382,7 +3382,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
         const uint32_t position0 = marker0.position;
         const uint32_t position1 = marker1.position;
-        CZI_ASSERT(position1 > position0);
+        SHASTA_ASSERT(position1 > position0);
         const uint32_t offset = position1 - position0;
 
         // If the offset is too small, discard this marker interval.
@@ -3496,8 +3496,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     // Create vectors of pointers to be passed to callConsensus.
     vector<char*> marginPhaseSequencePointers;
     vector<uint8_t*> marginPhaseRepeatCountPointers;
-    CZI_ASSERT(marginPhaseSequences.size() == marginPhaseRepeatCounts.size());
-    CZI_ASSERT(marginPhaseSequences.size() == marginPhaseStrands.size());
+    SHASTA_ASSERT(marginPhaseSequences.size() == marginPhaseRepeatCounts.size());
+    SHASTA_ASSERT(marginPhaseSequences.size() == marginPhaseStrands.size());
     for(size_t i=0; i<marginPhaseSequences.size(); i++) {
     	marginPhaseSequencePointers.push_back(const_cast<char*>(marginPhaseSequences[i].data()));
     	marginPhaseRepeatCountPointers.push_back(const_cast<uint8_t*>(marginPhaseRepeatCounts[i].data()));
@@ -3520,7 +3520,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     for(size_t i=0; i<size_t(consensus.length); i++) {
         sequence[i] = Base::fromCharacter(consensus.rleString[i]);
         const uint64_t r = consensus.repeatCounts[i];
-        CZI_ASSERT(r < 256);
+        SHASTA_ASSERT(r < 256);
         repeatCounts[i] = uint8_t(r);
     }
 
@@ -3804,7 +3804,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             continue;
         }
         const AssemblyGraph::VertexId componentRcId = rcComponentTable[componentId];
-        CZI_ASSERT(rcComponentTable[componentRcId] == componentId);
+        SHASTA_ASSERT(rcComponentTable[componentRcId] == componentId);
         if (componentRcId == componentId) {
             cout << "Found a self-complementary component with " << component.size() << " vertices." << endl;
         }
@@ -3815,8 +3815,8 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         const AssemblyGraph::VertexId v1 = assemblyGraph.reverseComplementVertex[v0];
         const AssemblyGraph::VertexId c0 = disjointSets.find_set(v0);
         const AssemblyGraph::VertexId c1 = disjointSets.find_set(v1);
-        CZI_ASSERT(rcComponentTable[c0] == c1);
-        CZI_ASSERT(rcComponentTable[c1] == c0);
+        SHASTA_ASSERT(rcComponentTable[c0] == c1);
+        SHASTA_ASSERT(rcComponentTable[c1] == c0);
     }
 
 
@@ -3832,7 +3832,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         const MemoryAsContainer<AssemblyGraph::EdgeId> inEdges = assemblyGraph.edgesByTarget[v0];
         for(AssemblyGraph::EdgeId edgeId : inEdges) {
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-            CZI_ASSERT(edge.target == v0);
+            SHASTA_ASSERT(edge.target == v0);
             const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.source);
             if(componentId1 != componentId0) {
                 isEntry[v0] = true;
@@ -3842,7 +3842,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
         for(AssemblyGraph::EdgeId edgeId : outEdges) {
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-            CZI_ASSERT(edge.source == v0);
+            SHASTA_ASSERT(edge.source == v0);
             const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
             if(componentId1 != componentId0) {
                 isExit[v0] = true;
@@ -3896,7 +3896,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
                 for(AssemblyGraph::EdgeId edgeId : outEdges) {
                     const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-                    CZI_ASSERT(edge.source == v0);
+                    SHASTA_ASSERT(edge.source == v0);
                     const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
                     if(componentId1 == componentId0) {
                         keepAssemblyGraphEdge[edgeId] = true;
@@ -3946,7 +3946,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
                 for(AssemblyGraph::EdgeId edgeId : outEdges) {
                     const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-                    CZI_ASSERT(edge.source == v0);
+                    SHASTA_ASSERT(edge.source == v0);
                     const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
                     if(componentId1 == componentId0) {
                         keepAssemblyGraphEdge[edgeId] = true;
@@ -3989,7 +3989,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 debugOut << "Computing shortest paths starting at " <<
                     entryId << "/" << assemblyGraph.vertices[entryId] << "\n";
             }
-            CZI_ASSERT(q.empty());
+            SHASTA_ASSERT(q.empty());
             q.push(make_pair(0., entryId));
             for(const AssemblyGraph::VertexId v: component) {
                 color[v] = 0;
@@ -4008,7 +4008,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                     debugOut << "Dequeued " << v0 << "/" << assemblyGraph.vertices[v0] <<
                         " at distance " << distance0 << "\n";
                 }
-                CZI_ASSERT(color[v0] == 1);
+                SHASTA_ASSERT(color[v0] == 1);
 
                 // Find the out edges and sort them.
                 const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
@@ -4070,7 +4070,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                     if(debug) {
                         debugOut << e << endl;
                     }
-                    CZI_ASSERT(e != AssemblyGraph::invalidEdgeId);
+                    SHASTA_ASSERT(e != AssemblyGraph::invalidEdgeId);
                     v = assemblyGraph.edges[e].source;
                     if(v == entryId) {
                         break;
@@ -4154,7 +4154,7 @@ void Assembler::assembleMarkerGraphVerticesThreadFunction(size_t threadId)
             computeMarkerGraphVertexConsensusSequence(vertexId, sequence, repeatCounts);
 
             // Store them.
-            CZI_ASSERT(repeatCounts.size() == k);
+            SHASTA_ASSERT(repeatCounts.size() == k);
             copy(repeatCounts.begin(), repeatCounts.end(),
                 markerGraph.vertexRepeatCounts.begin() + vertexId * k);
         }
@@ -4221,8 +4221,8 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
         const auto& p = vertexTable[vertexId];
         const size_t threadId = p.first;
         const size_t i = p.second;
-        CZI_ASSERT(threadId != invalidValue);
-        CZI_ASSERT(i != invalidValue);
+        SHASTA_ASSERT(threadId != invalidValue);
+        SHASTA_ASSERT(i != invalidValue);
         const auto v = (*computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData[threadId])[i];
         markerGraph.vertexCoverageData.appendVector(v.begin(), v.end());
     }
@@ -4273,7 +4273,7 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
             // Access the markers of this vertex.
             const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
             const size_t markerCount = markerIds.size();
-            CZI_ASSERT(markerCount > 0);
+            SHASTA_ASSERT(markerCount > 0);
 
             // Find the corresponding oriented read ids, marker ordinals,
             // and marker positions in each oriented read id.
@@ -4309,10 +4309,10 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
 
                 // Sanity check that all the bases are the same.
                 const vector<CoverageData>& coverageData = coverage.getReadCoverageData();
-                CZI_ASSERT(coverageData.size() == markerCount);
+                SHASTA_ASSERT(coverageData.size() == markerCount);
                 const Base firstBase = Base(coverageData.front().base);
                 for(const CoverageData& c: coverageData) {
-                    CZI_ASSERT(Base(c.base) == firstBase);
+                    SHASTA_ASSERT(Base(c.base) == firstBase);
                 }
 
                 // Store the results.
@@ -4399,8 +4399,8 @@ void Assembler::assembleMarkerGraphEdges(
         const auto& p = edgeTable[edgeId];
         const size_t threadId = p.first;
         const size_t i = p.second;
-        CZI_ASSERT(threadId != invalidValue);
-        CZI_ASSERT(i != invalidValue);
+        SHASTA_ASSERT(threadId != invalidValue);
+        SHASTA_ASSERT(i != invalidValue);
         const auto& results = (*assembleMarkerGraphEdgesData.threadEdgeConsensus[threadId])[i];
         markerGraph.edgeConsensus.appendVector();
         for(const auto& q: results) {
@@ -4538,7 +4538,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                             edgeId, sequence, repeatCounts, overlappingBaseCount);
 #else
                         // The static executable does not support MarginPhase.
-                        CZI_ASSERT(0);
+                        SHASTA_ASSERT(0);
 #endif
                     } else {
                         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
@@ -4566,7 +4566,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
             // Store the results.
             edgeIds.push_back(edgeId);
             const size_t n = sequence.size();
-            CZI_ASSERT(repeatCounts.size() == n);
+            SHASTA_ASSERT(repeatCounts.size() == n);
             consensus.appendVector();
             for(size_t i=0; i<n; i++) {
                 consensus.append(make_pair(sequence[i], repeatCounts[i]));

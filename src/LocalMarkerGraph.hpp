@@ -184,7 +184,7 @@ public:
     // Consensus sequence for this edge.
     vector<Base> consensusSequence;
     vector<uint32_t> consensusRepeatCounts;
-    uint8_t consensusOverlappingBaseCount;
+    uint8_t consensusOverlappingBaseCount = 0;
 
 };
 

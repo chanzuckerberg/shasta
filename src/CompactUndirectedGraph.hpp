@@ -18,7 +18,7 @@
 // with minimal memory allocation activity.
 
 // CZI.
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 
 // Boost Graph library.
 #include <boost/graph/graph_selectors.hpp>
@@ -139,18 +139,18 @@ public:
     // Vertices of an edge.
     vertex_descriptor source(edge_descriptor e) const
     {
-        CZI_ASSERT(e.e < edgeTable.size());
+        SHASTA_ASSERT(e.e < edgeTable.size());
         const EdgeInfo& edgeInfo = edgeTable[e.e];
         if(e.v == null_vertex()) {
             return edgeInfo.vertices[0];    // Return as stored.
         } else {
-            CZI_ASSERT(e.v==edgeInfo.vertices[0] || e.v==edgeInfo.vertices[1]);
+            SHASTA_ASSERT(e.v==edgeInfo.vertices[0] || e.v==edgeInfo.vertices[1]);
             return e.v;
         }
     }
     vertex_descriptor target(edge_descriptor e) const
     {
-        CZI_ASSERT(e.e < edgeTable.size());
+        SHASTA_ASSERT(e.e < edgeTable.size());
         const EdgeInfo& edgeInfo = edgeTable[e.e];
         if(e.v == null_vertex()) {
             return edgeInfo.vertices[1];    // Return as stored.
@@ -158,7 +158,7 @@ public:
             if(e.v==edgeInfo.vertices[0]) {
                 return edgeInfo.vertices[1];
             } else {
-                CZI_ASSERT(e.v == edgeInfo.vertices[1]);
+                SHASTA_ASSERT(e.v == edgeInfo.vertices[1]);
                 return edgeInfo.vertices[0];
             }
             return e.v;
@@ -462,7 +462,7 @@ template<class Vertex, class Edge>
     ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](vertex_descriptor v)
 {
-    CZI_ASSERT(v.v < vertexTable.size());
+    SHASTA_ASSERT(v.v < vertexTable.size());
     return vertexTable[v.v].first;
 }
 
@@ -471,7 +471,7 @@ template<class Vertex, class Edge>
     ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](vertex_descriptor v) const
 {
-    CZI_ASSERT(v.v < vertexTable.size());
+    SHASTA_ASSERT(v.v < vertexTable.size());
     return vertexTable[v.v].first;
 }
 
@@ -480,7 +480,7 @@ template<class Vertex, class Edge>
     ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](edge_descriptor e)
 {
-    CZI_ASSERT(e.e < edgeTable.size());
+    SHASTA_ASSERT(e.e < edgeTable.size());
     return edgeTable[e.e].edge;
 }
 
@@ -489,7 +489,7 @@ template<class Vertex, class Edge>
     ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     operator[](edge_descriptor e) const
 {
-    CZI_ASSERT(e.e < edgeTable.size());
+    SHASTA_ASSERT(e.e < edgeTable.size());
     return edgeTable[e.e].edge;
 }
 
@@ -498,7 +498,7 @@ template<class Vertex, class Edge>
     ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     addVertex(const Vertex& vertex)
 {
-    CZI_ASSERT(state == State::AddingVertices);
+    SHASTA_ASSERT(state == State::AddingVertices);
     const vertex_descriptor v = vertex_descriptor(Int(vertexTable.size()));
     vertexTable.push_back(make_pair(vertex, Int(0)));
     return v;
@@ -509,7 +509,7 @@ template<class Vertex, class Edge>
     ChanZuckerberg::shasta::CompactUndirectedGraph<Vertex, Edge>::
     sortVertices()
 {
-    CZI_ASSERT(state == State::AddingVertices);
+    SHASTA_ASSERT(state == State::AddingVertices);
     sort(vertexTable.begin(), vertexTable.end());
 }
 
@@ -529,7 +529,7 @@ template<class Vertex, class Edge>
     vertex_descriptor v1,
     const Edge& edge)
 {
-    CZI_ASSERT(state == State::AddingEdges);
+    SHASTA_ASSERT(state == State::AddingEdges);
     const edge_descriptor e = edge_descriptor(Int(edgeTable.size()));
     edgeTable.push_back(EdgeInfo(v0, v1, edge));
     return e;
@@ -569,7 +569,7 @@ template<class Vertex, class Edge>
         edgeLists[--vertexTable[v0.v].second] = e;
         edgeLists[--vertexTable[v1.v].second] = e;
     }
-    CZI_ASSERT(vertexTable.front().second == Int(0));
+    SHASTA_ASSERT(vertexTable.front().second == Int(0));
 
     // Reverse the order, for each vertex,
     // so it is sorted.
@@ -579,8 +579,8 @@ template<class Vertex, class Edge>
             edgeLists.begin() + vertexTable[v + Int(1)].second);
     }
 
-    CZI_ASSERT(edgeLists.size() == 2*edgeTable.size());
-    CZI_ASSERT(vertexTable.back().second == Int(edgeLists.size()));
+    SHASTA_ASSERT(edgeLists.size() == 2*edgeTable.size());
+    SHASTA_ASSERT(vertexTable.back().second == Int(edgeLists.size()));
 
 
     state = State::Processing;

@@ -4,7 +4,7 @@
 #define CZI_SHASTA_MEMORY_MAPPED_OBJECT_HPP
 
 // CZI.
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 #include "filesystem.hpp"
 #include "touchMemory.hpp"
 
@@ -275,7 +275,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
     const string& name,
     size_t pageSize)
 {
-    CZI_ASSERT(pageSize==4096 || pageSize==2*1024*1024);
+    SHASTA_ASSERT(pageSize==4096 || pageSize==2*1024*1024);
 
     if(name.empty()) {
         createNewAnonymous(pageSize);
@@ -284,7 +284,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
 
     try {
         // If already open, should have called close first.
-        CZI_ASSERT(!isOpen);
+        SHASTA_ASSERT(!isOpen);
 
         // Create the header.
         const Header headerOnStack(pageSize);
@@ -336,7 +336,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
 {
     try {
         // If already open, should have called close first.
-        CZI_ASSERT(!isOpen);
+        SHASTA_ASSERT(!isOpen);
 
         // Create the header.
         const Header headerOnStack(pageSize);
@@ -387,7 +387,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::a
 {
     try {
         // If already open, should have called close first.
-        CZI_ASSERT(!isOpen);
+        SHASTA_ASSERT(!isOpen);
 
         // Create the file.
         const int fileDescriptor = openExisting(name, readWriteAccess);
@@ -409,9 +409,9 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::a
         data = reinterpret_cast<T*>(header+1);
 
         // Sanity checks.
-        CZI_ASSERT(header->magicNumber == Header::constantMagicNumber);
-        CZI_ASSERT(header->fileSize == fileSize);
-        CZI_ASSERT(header->objectSize == sizeof(T));
+        SHASTA_ASSERT(header->magicNumber == Header::constantMagicNumber);
+        SHASTA_ASSERT(header->fileSize == fileSize);
+        SHASTA_ASSERT(header->objectSize == sizeof(T));
 
         // Indicate that the mapped vector is open with write access.
         isOpen = true;
@@ -437,7 +437,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::a
 // Sync the mapped memory to disk.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::syncToDisk()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
     const int msyncReturnCode = ::msync(header, header->fileSize, MS_SYNC);
     if(msyncReturnCode == -1) {
         throw runtime_error("Error during msync for " + fileName);
@@ -447,7 +447,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::s
 // Unmap the memory.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::unmap()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
 
     const int munmapReturnCode = ::munmap(header, header->fileSize);
     if(munmapReturnCode == -1) {
@@ -468,7 +468,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::u
 // Sync the mapped memory to disk, then unmap it.
 template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::close()
 {
-    CZI_ASSERT(isOpen);
+    SHASTA_ASSERT(isOpen);
 
     if(!fileName.empty()) {
         syncToDisk();
@@ -488,14 +488,14 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::r
 // Return a pointer to the stored object.
 template<class T> inline T* ChanZuckerberg::shasta::MemoryMapped::Object<T>::operator->()
 {
-    CZI_ASSERT(isOpen);
-    CZI_ASSERT(data);
+    SHASTA_ASSERT(isOpen);
+    SHASTA_ASSERT(data);
     return data;
 }
 template<class T> inline const T* ChanZuckerberg::shasta::MemoryMapped::Object<T>::operator->() const
 {
-    CZI_ASSERT(isOpen);
-    CZI_ASSERT(data);
+    SHASTA_ASSERT(isOpen);
+    SHASTA_ASSERT(data);
     return data;
 }
 

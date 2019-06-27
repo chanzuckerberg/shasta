@@ -79,7 +79,7 @@ public:
             } else {
                 // The OrientedReadId that was passed in as an argument
                 // is neithher of the two OrientedReadId's of this edge.
-                CZI_ASSERT(0);
+                SHASTA_ASSERT(0);
             }
         }
     };

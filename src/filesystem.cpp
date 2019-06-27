@@ -14,7 +14,7 @@ which is the version used in CentOs 7).
 
 // shasta
 #include "filesystem.hpp"
-#include "CZI_ASSERT.hpp"
+#include "SHASTA_ASSERT.hpp"
 #include "stdexcept.hpp"
 using namespace ChanZuckerberg;
 using namespace shasta;

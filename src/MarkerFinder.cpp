@@ -113,9 +113,9 @@ void MarkerFinder::threadFunction(size_t threadId)
                 markers.incrementCount(OrientedReadId(readId, 0).getValue(), markerCount);
                 markers.incrementCount(OrientedReadId(readId, 1).getValue(), markerCount);
             } else {
-                CZI_ASSERT(markerPointerStrand0 ==
+                SHASTA_ASSERT(markerPointerStrand0 ==
                     markers.end(OrientedReadId(readId, 0).getValue()));
-                CZI_ASSERT(markerPointerStrand1 ==
+                SHASTA_ASSERT(markerPointerStrand1 ==
                     markers.begin(OrientedReadId(readId, 1).getValue()) - 1ULL);
             }
         }
