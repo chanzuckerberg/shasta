@@ -240,11 +240,13 @@ public:
     void write(
         ostream&,
         int maxDistance,
-        bool detailed) const;
+        bool addLabels,
+        bool useDotLayout) const;
     void write(
         const string& fileName,
         int maxDistance,
-        bool detailed) const;
+        bool addLabels,
+        bool useDotLayout) const;
 
     // Approximate topological sort, adding edges
     // in order of decreasing coverage. The topological sort rank
@@ -284,13 +286,15 @@ private:
         Writer(
             const LocalMarkerGraph&,
             int maxDistance,
-            bool detailed);
+            bool addLabels,
+            bool useDotLayout);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalMarkerGraph& graph;
         int maxDistance;
-        bool detailed;
+        bool addLabels;
+        bool useDotLayout;
 
         // Vertex and edge colors.
         static const string vertexColorZeroDistance;

@@ -1321,7 +1321,8 @@ public:
         bool vertexIdIsPresent;
         uint32_t maxDistance;
         bool maxDistanceIsPresent;
-        bool detailed;
+        bool addLabels;
+        bool useDotLayout;  // If true, use dot. If false, use sfdp.
         bool useWeakEdges;
         bool usePrunedEdges;
         bool useSuperBubbleEdges;

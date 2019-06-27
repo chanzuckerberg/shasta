@@ -90,15 +90,8 @@ void Assembler::exploreMarkerGraph(
 
     html <<
         "<script>\n"
-        "function positionAtVertex(vertexId) {\n";
-    if(requestParameters.detailed) {
-        html <<
-            "var element = document.getElementById('a_vertexDistance' + vertexId);\n";
-    } else {
-        html <<
-            "var element = document.getElementById('vertex' + vertexId);\n";
-    }
-    html <<
+        "function positionAtVertex(vertexId) {\n"
+        "var element = document.getElementById('vertex' + vertexId);\n"
         "var r = element.getBoundingClientRect();\n"
         "window.scrollBy((r.left + r.right - window.innerWidth) / 2, (r.top + r.bottom - window.innerHeight) / 2);\n"
         "}\n"
@@ -112,7 +105,8 @@ void Assembler::exploreMarkerGraph(
     graph.write(
         dotFileName,
         requestParameters.maxDistance,
-        requestParameters.detailed);
+        requestParameters.addLabels,
+        requestParameters.useDotLayout);
 
     // Compute layout in svg format.
     const string command =
@@ -144,12 +138,6 @@ void Assembler::exploreMarkerGraph(
 
 
     // Write the graph.
-
-    // Write the legend.
-    const string legendName =
-        requestParameters.detailed ?
-        "MarkerGraphLegend-Detailed.html" :
-        "MarkerGraphLegend-Compact.html";
     html <<
         "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
         "</h2>";
@@ -175,20 +163,21 @@ void Assembler::exploreMarkerGraph(
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
-            (requestParameters.detailed ? "&detailed=on" : "") +
+            (requestParameters.addLabels ? "&addLabels=on" : "") +
+            "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
             (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
         html <<
-            "document.getElementById('vertex" << vertex.vertexId <<
-            "').onclick = function() {location.href='" << url << "';};\n";
+            "element = document.getElementById('vertex" << vertex.vertexId << "');\n"
+            "element.onclick = function() {location.href='" << url << "';};\n"
+            "element.style.cursor = \"pointer\";\n";
 
         // Add a right click to show details.
         const string detailUrl =
             "exploreMarkerGraphVertex?vertexId=" + to_string(vertex.vertexId);
         html <<
-            "document.getElementById('vertex" << vertex.vertexId <<
-            "').oncontextmenu = function() {window.open('" << detailUrl << "');"
+            "element.oncontextmenu = function() {window.open('" << detailUrl << "');"
             "return false;};\n";
     }
     html << "</script>\n";
@@ -207,20 +196,21 @@ void Assembler::exploreMarkerGraph(
             "&maxDistance=" + to_string(requestParameters.maxDistance) +
             "&sizePixels=" + to_string(requestParameters.sizePixels) +
             "&timeout=" + to_string(requestParameters.timeout) +
-            (requestParameters.detailed ? "&detailed=on" : "") +
+            (requestParameters.addLabels ? "&addLabels=on" : "") +
+            "&layout=" + (requestParameters.useDotLayout ? "dot" : "sfdp") +
             (requestParameters.useWeakEdges ? "&useWeakEdges=on" : "") +
             (requestParameters.usePrunedEdges ? "&usePrunedEdges=on" : "") +
             (requestParameters.useSuperBubbleEdges ? "&useSuperBubbleEdges=on" : "");
         html <<
-            "document.getElementById('edge" << edge.edgeId <<
-            "').onclick = function() {location.href='" << url << "';};\n";
+            "element = document.getElementById('edge" << edge.edgeId << "');\n"
+            "element.onclick = function() {location.href='" << url << "';};\n"
+            "element.style.cursor = \"pointer\";\n";
 
         // Add a right click to show details.
         const string detailUrl =
             "exploreMarkerGraphEdge?edgeId=" + to_string(edge.edgeId);
         html <<
-            "document.getElementById('edge" << edge.edgeId <<
-            "').oncontextmenu = function() {window.open('" << detailUrl << "');"
+            "element.oncontextmenu = function() {window.open('" << detailUrl << "');"
             "return false;};\n";
     }
     html << "</script>\n";
@@ -250,9 +240,17 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.maxDistanceIsPresent = getParameterValue(
         request, "maxDistance", parameters.maxDistance);
 
-    string detailedString;
-    parameters.detailed = getParameterValue(
-        request, "detailed", detailedString);
+    string addLabelsString;
+    parameters.addLabels = getParameterValue(
+        request, "addLabels", addLabelsString);
+
+    string layoutString;
+    getParameterValue(
+        request, "layout", layoutString);
+    parameters.useDotLayout = true;
+    if(layoutString == "sfdp") {
+        parameters.useDotLayout = false;
+    }
 
     string useWeakEdgesString;
     parameters.useWeakEdges = getParameterValue(
@@ -299,11 +297,21 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         << (maxDistanceIsPresent ? ("value='" + to_string(maxDistance)+"'") : " value='6'") <<
         ">"
 
-        "<tr title='Check for detailed graph with labels'>"
-        "<td>Detailed"
-        "<td class=centered><input type=checkbox name=detailed"
-        << (detailed ? " checked=checked" : "") <<
+        "<tr title='Check for to add labels to vertices and edges'>"
+        "<td>Labels"
+        "<td class=centered><input type=checkbox name=addLabels"
+        << (addLabels ? " checked=checked" : "") <<
         ">"
+
+        "<tr title='Check for to add labels to vertices and edges'>"
+        "<td>Graph layout"
+        "<td>"
+        "<span title='Best for small subgraphs'><input type=radio name=layout value=dot"
+        << (useDotLayout ? " checked=checked" : "") <<
+        ">Dot</span><br>"
+        "<span title='Best for large subgraphs, without labels'><input type=radio name=layout value=sfdp"
+        << (!useDotLayout ? " checked=checked" : "") <<
+        ">Sfdp</span>"
 
         "<tr title='Check to include in the local marker graph "
         "edges that were removed during transitive reduction'>"

@@ -180,13 +180,8 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
     // URL.
     s << " URL=\"exploreMarkerGraph?"
         "?vertexId=" << vertex.markerGraphVertexId <<
-        "&useStoredConnectivity=on"
         "&maxDistance=10"
-        "&minCoverage=0"
         "&timeout=30"
-        "&useBubbleReplacementEdges=on"
-        "&useSuperbubbleReplacementEdges=on"
-        "&showVertexId=on"
         "\"";
 
     // Label.

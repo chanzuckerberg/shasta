@@ -20,20 +20,22 @@ using namespace shasta;
 void LocalMarkerGraph::write(
     const string& fileName,
     int maxDistance,
-    bool detailed) const
+    bool addLabels,
+    bool useDotLayout) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance, detailed);
+    write(outputFileStream, maxDistance, addLabels, useDotLayout);
 }
 void LocalMarkerGraph::write(
     ostream& s,
     int maxDistance,
-    bool detailed) const
+    bool addLabels,
+    bool useDotLayout) const
 {
-    Writer writer(*this, maxDistance, detailed);
+    Writer writer(*this, maxDistance, addLabels, useDotLayout);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
@@ -41,10 +43,12 @@ void LocalMarkerGraph::write(
 LocalMarkerGraph::Writer::Writer(
     const LocalMarkerGraph& graph,
     int maxDistance,
-    bool detailed) :
+    bool addLabels,
+    bool useDotLayout) :
     graph(graph),
     maxDistance(maxDistance),
-    detailed(detailed)
+    addLabels(addLabels),
+    useDotLayout(useDotLayout)
 {
 }
 
@@ -153,17 +157,22 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s) const
     // This turns off the tooltip on the graph and the edges.
     s << "tooltip = \" \";\n";
 
-    if(detailed) {
-        s << "layout=dot;\n";
-        s << "rankdir=LR;\n";
-        s << "ratio=expand;\n";
+    s << "ratio=expand;\n";
+
+    if(addLabels) {
+        s << "overlap = false;\n";
         s << "node [fontname = \"Courier New\" shape=rectangle];\n";
         s << "edge [fontname = \"Courier New\"];\n";
     } else {
+        s << "node [shape=point];\n";
+    }
+
+    if(useDotLayout) {
+        s << "layout=dot;\n";
+        s << "rankdir=LR;\n";
+    } else {
         s << "layout=sfdp;\n";
         s << "smoothing=triangle;\n";
-        s << "ratio=expand;\n";
-        s << "node [shape=point];\n";
     }
 }
 
@@ -190,9 +199,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
 
 
 
-    if(!detailed) {
-
-        // Compact output: point, no label.
+    if(!addLabels) {
 
         // Vertex area is proportional to coverage.
         s << " width=\"";
@@ -204,10 +211,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Color.
         s << " fillcolor=\"" << color << "\" color=\"" << color << "\"";
 
-
     } else {
-
-        // Detailed output.
 
         // Color.
         s << " style=filled";
@@ -261,87 +265,44 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     const string& labelColor = edgeLabelColor(edge);
     CZI_ASSERT(coverage > 0);
 
-    if(!detailed) {
+    // Begin edge attributes.
+    s << "[";
 
-        // Compact output.
+    // Id, so we can use JavaScript code to manipulate the edge.
+    s << "id=edge" << edge.edgeId;
 
-        // Begin edge attributes.
-        s << "[";
+    // Tooltip.
+    const string tooltipText =
+        "Edge " + to_string(edge.edgeId) +
+        ", coverage " + to_string(coverage) +
+        ", click to recenter graph here, right click for detail";
+    s << " tooltip=\"" << tooltipText << "\"";
+    s << " labeltooltip=\"" << tooltipText << "\"";
+    s << " URL=\"#a\"";   // Hack to convince graphviz to not ignore the labeltooltip.
 
-        // Tooltip.
-        s << "tooltip=\"Edge " << edge.edgeId << ", coverage " << coverage << "\"";
-        s << " tooltip=\"";
-        s << "Edge " << edge.edgeId << ", coverage ";
-        s << coverage;
-        s << ", click to recenter graph here, right click for detail\"";
+    // Thickness and weight are determined by coverage.
+    const double thickness = 0.2 * double(coverage==0 ? 1 : coverage);
+    s << " penwidth=";
+    const auto oldPrecision = s.precision(4);
+    s <<  thickness;
+    s.precision(oldPrecision);
+    s << " weight=" << coverage;
 
-        // Color.
-        s << " fillcolor=\"" << arrowColor << "\"";
-        s << " color=\"" << arrowColor << "\"";
+    // Color.
+    s << " fillcolor=\"" << arrowColor << "\"";
+    s << " color=\"" << arrowColor << "\"";
 
-        // Id, so we can use JavaScript code to manipulate the edge.
-        s << "id=edge" << edge.edgeId;
+    // If the edge was not marked as a DAG edge during approximate topological sort,
+    // tell graphviz not to use it in constraint assignment.
+    // This results in better graph layouts when using dot,
+    // because back-edges tend to be low coverage edges.
+    if(useDotLayout && !edge.isDagEdge) {
+        s << " constraint=false";
+    }
 
-        // Thickness is determined by coverage.
-        const double thickness = 0.2 * double(coverage==0 ? 1 : coverage);
-        s << " penwidth=";
-        const auto oldPrecision = s.precision(4);
-        s <<  thickness;
-        s.precision(oldPrecision);
+    // Label.
+    if(addLabels) {
 
-        // Weight;
-        s << " weight=" << coverage;
-
-        // If the edge was not marked as a DAG edge during approximate topological sort,
-        // tell graphviz not to use it in constraint assignment.
-        if(!edge.isDagEdge) {
-            s << " constraint=false";
-        }
-
-        // End edge attributes.
-        s << "]";
-
-    } else {
-
-        // Detailed output.
-
-        // Begin edge attributes.
-        s << "[";
-
-        // Tooltip.
-        const string tooltipText =
-            "Edge " + to_string(edge.edgeId) +
-            ", coverage " + to_string(coverage) +
-            ", click to recenter graph here, right click for detail";
-        s << " tooltip=\"" << tooltipText << "\"";
-        s << " labeltooltip=\"" << tooltipText << "\"";
-        s << " URL=\"#a\"";   // Hack to convince graphviz to not ignore the labeltooltip.
-
-
-        s << "tooltip=\"Edge " << edge.edgeId << ", coverage " << coverage << "\"";
-        s << " tooltip=\"";
-        s << "Edge " << edge.edgeId << ", coverage ";
-        s << coverage;
-        s << ", click to recenter graph here, right click for detail\"";
-
-        // Thickness is determined by coverage.
-        const double thickness = 0.5 * double(coverage==0 ? 1 : coverage);
-        s << " penwidth=";
-        const auto oldPrecision = s.precision(4);
-        s <<  thickness;
-        s.precision(oldPrecision);
-
-        // Color.
-        s << " fillcolor=\"" << arrowColor << "\"";
-        s << " color=\"" << arrowColor << "\"";
-
-        // Id, so we can use JavaScript code to manipulate the edge.
-        s << "id=edge" << edge.edgeId;
-
-        // Weight;
-        s << " weight=" << coverage;
-
-        // Label.
         s << " label=<<font color=\"black\">";
         s << "<table";
         s << " color=\"black\"";
@@ -395,15 +356,10 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         // End the label.
         s << "</table></font>> decorate=true";
 
-        // If the edge was not marked as a DAG edge during approximate topological sort,
-        // tell graphviz not to use it in constraint assignment.
-        if(!edge.isDagEdge) {
-            s << " constraint=false";
-        }
-
-        // End edge attributes.
-        s << "]";
     }
+
+    // End edge attributes.
+    s << "]";
 
 }
 #endif
