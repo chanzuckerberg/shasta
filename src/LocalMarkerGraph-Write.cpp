@@ -21,21 +21,27 @@ void LocalMarkerGraph::write(
     const string& fileName,
     int maxDistance,
     bool addLabels,
-    bool useDotLayout) const
+    bool useDotLayout,
+    double vertexScalingFactor,
+    double arrowScalingFactor) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance, addLabels, useDotLayout);
+    write(outputFileStream, maxDistance, addLabels, useDotLayout,
+        vertexScalingFactor, arrowScalingFactor);
 }
 void LocalMarkerGraph::write(
     ostream& s,
     int maxDistance,
     bool addLabels,
-    bool useDotLayout) const
+    bool useDotLayout,
+    double vertexScalingFactor,
+    double arrowScalingFactor) const
 {
-    Writer writer(*this, maxDistance, addLabels, useDotLayout);
+    Writer writer(*this, maxDistance, addLabels, useDotLayout,
+        vertexScalingFactor, arrowScalingFactor);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
@@ -44,11 +50,15 @@ LocalMarkerGraph::Writer::Writer(
     const LocalMarkerGraph& graph,
     int maxDistance,
     bool addLabels,
-    bool useDotLayout) :
+    bool useDotLayout,
+    double vertexScalingFactor,
+    double arrowScalingFactor) :
     graph(graph),
     maxDistance(maxDistance),
     addLabels(addLabels),
-    useDotLayout(useDotLayout)
+    useDotLayout(useDotLayout),
+    vertexScalingFactor(vertexScalingFactor),
+    arrowScalingFactor(arrowScalingFactor)
 {
 }
 
@@ -204,7 +214,7 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         // Vertex area is proportional to coverage.
         s << " width=\"";
         const auto oldPrecision = s.precision(4);
-        s << 0.05 * sqrt(double(coverage));
+        s << vertexScalingFactor * 0.05 * sqrt(double(coverage));
         s.precision(oldPrecision);
         s << "\"";
 
@@ -287,6 +297,9 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     s <<  thickness;
     s.precision(oldPrecision);
     s << " weight=" << coverage;
+
+    // Arrow size.
+    s << " arrowsize=\"" << arrowScalingFactor << "\"";
 
     // Color.
     s << " fillcolor=\"" << arrowColor << "\"";

@@ -1328,6 +1328,12 @@ public:
         bool useSuperBubbleEdges;
         uint32_t sizePixels;
         bool sizePixelsIsPresent;
+        double vertexScalingFactor;
+        bool vertexScalingFactorIsPresent;
+        string vertexScalingFactorString() const;
+        double arrowScalingFactor;
+        bool arrowScalingFactorIsPresent;
+        string arrowScalingFactorString() const;
         int timeout;
         bool timeoutIsPresent;
         void writeForm(ostream&, MarkerGraph::VertexId vertexCount) const;

@@ -106,7 +106,9 @@ void Assembler::exploreMarkerGraph(
         dotFileName,
         requestParameters.maxDistance,
         requestParameters.addLabels,
-        requestParameters.useDotLayout);
+        requestParameters.useDotLayout,
+        requestParameters.vertexScalingFactor,
+        requestParameters.arrowScalingFactor);
 
     // Compute layout in svg format.
     const string command =
@@ -268,6 +270,14 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.sizePixelsIsPresent = getParameterValue(
         request, "sizePixels", parameters.sizePixels);
 
+    parameters.vertexScalingFactor = 1;
+    parameters.vertexScalingFactorIsPresent = getParameterValue(
+        request, "vertexScalingFactor", parameters.vertexScalingFactor);
+
+    parameters.arrowScalingFactor = 1;
+    parameters.arrowScalingFactorIsPresent = getParameterValue(
+        request, "arrowScalingFactor", parameters.arrowScalingFactor);
+
     parameters.timeout = 30;
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
@@ -342,6 +352,17 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         << (sizePixelsIsPresent ? (" value='" + to_string(sizePixels)+"'") : " value='800'") <<
         ">"
 
+        "<tr>"
+        "<td>Vertex scaling factor (sfdp only)"
+        "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+        " value='" + vertexScalingFactorString() + "'>" <<
+
+        "<tr>"
+        "<td>Edge arrow scaling factor"
+        "<td><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
+        " value='" + arrowScalingFactorString() + "'>" <<
+
+
         "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
         "<td>Timeout (seconds) for graph creation and layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
@@ -363,6 +384,32 @@ bool Assembler::LocalMarkerGraphRequestParameters::hasMissingRequiredParameters(
         !vertexIdIsPresent ||
         !maxDistanceIsPresent ||
         !timeoutIsPresent;
+}
+
+
+
+string Assembler::LocalMarkerGraphRequestParameters::vertexScalingFactorString() const
+{
+    if(vertexScalingFactorIsPresent) {
+        std::ostringstream s;
+        s << vertexScalingFactor;
+        return s.str();
+    } else {
+        return "1";
+    }
+}
+
+
+
+string Assembler::LocalMarkerGraphRequestParameters::arrowScalingFactorString() const
+{
+    if(arrowScalingFactorIsPresent) {
+        std::ostringstream s;
+        s << arrowScalingFactor;
+        return s.str();
+    } else {
+        return "1";
+    }
 }
 
 
