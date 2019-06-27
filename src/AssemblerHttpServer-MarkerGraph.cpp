@@ -893,7 +893,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
     // Table to summarize this edge.
     html <<
-        "<table>"
+        "<table style='display:block;white-space:nowrap;'>"
         "<tr><th class=left>Source vertex<td class=centered>" <<
         "<a href='exploreMarkerGraphVertex?vertexId=" << vertexIds[0] << "'>" << vertexIds[0] << "</a>"
         "<tr><th class=left>Target vertex<td class=centered>" <<
@@ -1072,7 +1072,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
             // Sequence (run-length). For assembly mode 2,
             // it is written aligned.
-            html << "<td class=centered style='font-family:monospace'>";
+            html << "<td class=centered style='font-family:monospace;white-space:nowrap'>";
             if(spoaDetail.hasLongMarkerInterval || spoaDetail.assemblyMode == 1) {
 
                 // Write run-length sequence, without worrying about aligning it.
@@ -1113,7 +1113,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
 
             // Sequence (raw).
-            html << "<td class=centered style='font-family:monospace'>";
+            html << "<td class=centered style='font-family:monospace;white-space:nowrap'>";
             for(size_t index=k; index<sequences[j].size()-k; index++) {
                 const size_t repeatCount = repeatCounts[j][index];
                 for(size_t l=0; l<repeatCount; l++) {
