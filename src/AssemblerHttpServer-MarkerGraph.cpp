@@ -1042,11 +1042,11 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
 
         // Ordinal skip.
         html << "<td class=centered>";
-        if(j == spoaDetail.iShortest) {
+        if(spoaDetail.hasLongMarkerInterval && j == spoaDetail.iShortest) {
             html << "<span style='background-color:yellow'>";
         }
         html << markerInterval.ordinals[1] - 1 - markerInterval.ordinals[0];
-        if(j == spoaDetail.iShortest) {
+        if(spoaDetail.hasLongMarkerInterval && j == spoaDetail.iShortest) {
             html << "</span>";
         }
 
