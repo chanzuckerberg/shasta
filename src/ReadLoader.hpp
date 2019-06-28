@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_READ_LOADER_HPP
-#define CZI_SHASTA_READ_LOADER_HPP
+#ifndef SHASTA_READ_LOADER_HPP
+#define SHASTA_READ_LOADER_HPP
 
 // shasta
 #include "LongBaseSequence.hpp"

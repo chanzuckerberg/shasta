@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_READ_ID_HPP
-#define CZI_SHASTA_READ_ID_HPP
+#ifndef SHASTA_READ_ID_HPP
+#define SHASTA_READ_ID_HPP
 
 // CZI.
 #include "SHASTA_ASSERT.hpp"

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_MAPPED_COPY_HPP
-#define CZI_SHASTA_MAPPED_COPY_HPP
+#ifndef SHASTA_MAPPED_COPY_HPP
+#define SHASTA_MAPPED_COPY_HPP
 
 #include "string.hpp"
 

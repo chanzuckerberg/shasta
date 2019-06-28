@@ -1,7 +1,7 @@
 // Class to describe a single class object stored in a file mapped to memory.
 
-#ifndef CZI_SHASTA_MEMORY_MAPPED_OBJECT_HPP
-#define CZI_SHASTA_MEMORY_MAPPED_OBJECT_HPP
+#ifndef SHASTA_MEMORY_MAPPED_OBJECT_HPP
+#define SHASTA_MEMORY_MAPPED_OBJECT_HPP
 
 // CZI.
 #include "SHASTA_ASSERT.hpp"

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_STDEXCEPT_HPP
-#define CZI_SHASTA_STDEXCEPT_HPP
+#ifndef SHASTA_STDEXCEPT_HPP
+#define SHASTA_STDEXCEPT_HPP
 
 #include <stdexcept>
 

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_BUILD_ID_HPP
-#define CZI_SHASTA_BUILD_ID_HPP
+#ifndef SHASTA_BUILD_ID_HPP
+#define SHASTA_BUILD_ID_HPP
 
 
 // The build id is used to identify the build

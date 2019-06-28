@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_UINT_HPP
-#define CZI_SHASTA_UINT_HPP
+#ifndef SHASTA_UINT_HPP
+#define SHASTA_UINT_HPP
 
 // Template class used to implement bare bones integer types
 // that represent integers with any number of bytes

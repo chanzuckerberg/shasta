@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ALIGNMENT_HPP
-#define CZI_SHASTA_ALIGNMENT_HPP
+#ifndef SHASTA_ALIGNMENT_HPP
+#define SHASTA_ALIGNMENT_HPP
 
 #include "OrientedReadPair.hpp"
 #include "ReadId.hpp"

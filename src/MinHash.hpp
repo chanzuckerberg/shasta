@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_MIN_HASH_HPP
-#define CZI_SHASTA_MIN_HASH_HPP
+#ifndef SHASTA_MIN_HASH_HPP
+#define SHASTA_MIN_HASH_HPP
 
 // shasta
 #include "Marker.hpp"

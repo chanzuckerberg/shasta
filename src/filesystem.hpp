@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_FILESYSTEM_HPP
-#define CZI_SHASTA_FILESYSTEM_HPP
+#ifndef SHASTA_FILESYSTEM_HPP
+#define SHASTA_FILESYSTEM_HPP
 
 /*******************************************************************************
 

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_SPLIT_RANGE_HPP
-#define CZI_SHASTA_SPLIT_RANGE_HPP
+#ifndef SHASTA_SPLIT_RANGE_HPP
+#define SHASTA_SPLIT_RANGE_HPP
 
 // Given an half-open range [begin, end), of length n=end-begin,
 // divide it in m slices that are as uniform in length as

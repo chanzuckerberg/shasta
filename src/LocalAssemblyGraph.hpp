@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_LOCAL_ASSEMBLY_GRAPH_HPP
-#define CZI_SHASTA_LOCAL_ASSEMBLY_GRAPH_HPP
+#ifndef SHASTA_LOCAL_ASSEMBLY_GRAPH_HPP
+#define SHASTA_LOCAL_ASSEMBLY_GRAPH_HPP
 
 
 /*******************************************************************************

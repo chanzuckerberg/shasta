@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ALIGNMENT_GRAPH_HPP
-#define CZI_SHASTA_ALIGNMENT_GRAPH_HPP
+#ifndef SHASTA_ALIGNMENT_GRAPH_HPP
+#define SHASTA_ALIGNMENT_GRAPH_HPP
 
 /*******************************************************************************
 

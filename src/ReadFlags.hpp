@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_READ_FLAGS_HPP
-#define CZI_SHASTA_READ_FLAGS_HPP
+#ifndef SHASTA_READ_FLAGS_HPP
+#define SHASTA_READ_FLAGS_HPP
 
 #include <cstdlib>
 #include "cstdint.hpp"

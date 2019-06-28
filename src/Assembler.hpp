@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ASSEMBLER_HPP
-#define CZI_SHASTA_ASSEMBLER_HPP
+#ifndef SHASTA_ASSEMBLER_HPP
+#define SHASTA_ASSEMBLER_HPP
 
 // Shasta.
 #include "Alignment.hpp"

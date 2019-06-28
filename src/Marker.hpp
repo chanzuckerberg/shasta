@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_MARKER_HPP
-#define CZI_SHASTA_MARKER_HPP
+#ifndef SHASTA_MARKER_HPP
+#define SHASTA_MARKER_HPP
 
 
 /*******************************************************************************

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_BASE_HPP
-#define CZI_SHASTA_BASE_HPP
+#ifndef SHASTA_BASE_HPP
+#define SHASTA_BASE_HPP
 
 
 // Class Base is used to represent a base, A, C, G, or T,

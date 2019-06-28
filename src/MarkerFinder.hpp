@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_MARKER_FINDER_HPP
-#define CZI_SHASTA_MARKER_FINDER_HPP
+#ifndef SHASTA_MARKER_FINDER_HPP
+#define SHASTA_MARKER_FINDER_HPP
 
 // shasta
 #include "Marker.hpp"

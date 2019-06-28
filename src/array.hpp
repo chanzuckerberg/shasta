@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ARRAY_HPP
-#define CZI_SHASTA_ARRAY_HPP
+#ifndef SHASTA_ARRAY_HPP
+#define SHASTA_ARRAY_HPP
 
 #include <array>
 

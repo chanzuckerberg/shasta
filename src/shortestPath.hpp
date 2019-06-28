@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_SHORTEST_PATH_HPP
-#define CZI_SHASTA_SHORTEST_PATH_HPP
+#ifndef SHASTA_SHORTEST_PATH_HPP
+#define SHASTA_SHORTEST_PATH_HPP
 
 // Function to find the shortest weighted path
 // between two vertices of an undirected graph.

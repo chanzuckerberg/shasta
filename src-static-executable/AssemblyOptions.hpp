@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ASSEMBLY_OPTIONS_HPP
-#define CZI_SHASTA_ASSEMBLY_OPTIONS_HPP
+#ifndef SHASTA_ASSEMBLY_OPTIONS_HPP
+#define SHASTA_ASSEMBLY_OPTIONS_HPP
 
 // Boost libraries.
 #include <boost/program_options.hpp>

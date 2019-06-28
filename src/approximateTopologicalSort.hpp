@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_APPROXIMATE_TOPOLOGICAL_SORT_HPP
-#define CZI_SHASTA_APPROXIMATE_TOPOLOGICAL_SORT_HPP
+#ifndef SHASTA_APPROXIMATE_TOPOLOGICAL_SORT_HPP
+#define SHASTA_APPROXIMATE_TOPOLOGICAL_SORT_HPP
 
 /*******************************************************************************
 

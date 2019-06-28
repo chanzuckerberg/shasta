@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ALGORITHM_HPP
-#define CZI_SHASTA_ALGORITHM_HPP
+#ifndef SHASTA_ALGORITHM_HPP
+#define SHASTA_ALGORITHM_HPP
 
 #include <algorithm>
 

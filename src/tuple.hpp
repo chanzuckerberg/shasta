@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_TUPLE_HPP
-#define CZI_SHASTA_TUPLE_HPP
+#ifndef SHASTA_TUPLE_HPP
+#define SHASTA_TUPLE_HPP
 
 #include <tuple>
 

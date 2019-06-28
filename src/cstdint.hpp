@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_CSTDINT_HPP
-#define CZI_SHASTA_CSTDINT_HPP
+#ifndef SHASTA_CSTDINT_HPP
+#define SHASTA_CSTDINT_HPP
 
 #include <cstdint>
 

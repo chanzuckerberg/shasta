@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_FIND_MARKER_ID_HPP
-#define CZI_SHASTA_FIND_MARKER_ID_HPP
+#ifndef SHASTA_FIND_MARKER_ID_HPP
+#define SHASTA_FIND_MARKER_ID_HPP
 
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"

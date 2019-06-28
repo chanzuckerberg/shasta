@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_FSTREAM_HPP
-#define CZI_SHASTA_FSTREAM_HPP
+#ifndef SHASTA_FSTREAM_HPP
+#define SHASTA_FSTREAM_HPP
 
 #include <fstream>
 

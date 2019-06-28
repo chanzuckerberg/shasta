@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_CSTDDEF_HPP
-#define CZI_SHASTA_CSTDDEF_HPP
+#ifndef SHASTA_CSTDDEF_HPP
+#define SHASTA_CSTDDEF_HPP
 
 #include <cstddef>
 

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_HISTOGRAM_HPP
-#define CZI_SHASTA_HISTOGRAM_HPP
+#ifndef SHASTA_HISTOGRAM_HPP
+#define SHASTA_HISTOGRAM_HPP
 
 #include "algorithm.hpp"
 #include <numeric>

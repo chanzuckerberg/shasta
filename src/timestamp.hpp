@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_TIME_STAMP_HPP
-#define CZI_SHASTA_TIME_STAMP_HPP
+#ifndef SHASTA_TIME_STAMP_HPP
+#define SHASTA_TIME_STAMP_HPP
 
 #include "boost/date_time/posix_time/posix_time.hpp"
 

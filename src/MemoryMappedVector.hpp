@@ -1,7 +1,7 @@
 // Class to describe a vector stored in a file mapped to memory.
 
-#ifndef CZI_SHASTA_MEMORY_MAPPED_VECTOR_HPP
-#define CZI_SHASTA_MEMORY_MAPPED_VECTOR_HPP
+#ifndef SHASTA_MEMORY_MAPPED_VECTOR_HPP
+#define SHASTA_MEMORY_MAPPED_VECTOR_HPP
 
 // CZI.
 #include "SHASTA_ASSERT.hpp"

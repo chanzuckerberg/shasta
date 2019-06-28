@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_CONSENSUS_CALLER_HPP
-#define CZI_SHASTA_CONSENSUS_CALLER_HPP
+#ifndef SHASTA_CONSENSUS_CALLER_HPP
+#define SHASTA_CONSENSUS_CALLER_HPP
 
 
 /*******************************************************************************

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_STRING_HPP
-#define CZI_SHASTA_STRING_HPP
+#ifndef SHASTA_STRING_HPP
+#define SHASTA_STRING_HPP
 
 #include <string>
 

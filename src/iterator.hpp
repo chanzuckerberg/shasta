@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ITERATOR_HPP
-#define CZI_SHASTA_ITERATOR_HPP
+#ifndef SHASTA_ITERATOR_HPP
+#define SHASTA_ITERATOR_HPP
 
 #include <iterator>
 

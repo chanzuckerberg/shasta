@@ -5,8 +5,8 @@
 // The derived class only has to override
 // function processRequest.
 
-#ifndef CZI_SHASTA_HTTP_SERVER_HPP
-#define CZI_SHASTA_HTTP_SERVER_HPP
+#ifndef SHASTA_HTTP_SERVER_HPP
+#define SHASTA_HTTP_SERVER_HPP
 
 #include "MemoryAsContainer.hpp"
 

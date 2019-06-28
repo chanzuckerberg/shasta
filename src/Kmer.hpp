@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_KMER_HPP
-#define CZI_SHASTA_KMER_HPP
+#ifndef SHASTA_KMER_HPP
+#define SHASTA_KMER_HPP
 
 #include "ShortBaseSequence.hpp"
 #include <limits>

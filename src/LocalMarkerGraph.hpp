@@ -1,7 +1,7 @@
 #ifndef SHASTA_STATIC_EXECUTABLE
 
-#ifndef CZI_SHASTA_LOCAL_MARKER_GRAPH_HPP
-#define CZI_SHASTA_LOCAL_MARKER_GRAPH_HPP
+#ifndef SHASTA_LOCAL_MARKER_GRAPH_HPP
+#define SHASTA_LOCAL_MARKER_GRAPH_HPP
 
 /*******************************************************************************
 

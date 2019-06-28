@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_UTILITY_HPP
-#define CZI_SHASTA_UTILITY_HPP
+#ifndef SHASTA_UTILITY_HPP
+#define SHASTA_UTILITY_HPP
 
 #include <utility>
 

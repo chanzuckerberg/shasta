@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_MARKER_GRAPH_HPP
-#define CZI_SHASTA_MARKER_GRAPH_HPP
+#ifndef SHASTA_MARKER_GRAPH_HPP
+#define SHASTA_MARKER_GRAPH_HPP
 
 #include "Base.hpp"
 #include "Coverage.hpp"

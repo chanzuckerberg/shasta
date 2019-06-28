@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_VECTOR_HPP
-#define CZI_SHASTA_VECTOR_HPP
+#ifndef SHASTA_VECTOR_HPP
+#define SHASTA_VECTOR_HPP
 
 #include <vector>
 

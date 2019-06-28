@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_TOUCH_MEMORY_HPP
-#define CZI_SHASTA_TOUCH_MEMORY_HPP
+#ifndef SHASTA_TOUCH_MEMORY_HPP
+#define SHASTA_TOUCH_MEMORY_HPP
 
 #include "cstddef.hpp"
 

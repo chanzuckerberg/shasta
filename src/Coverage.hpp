@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_COVERAGE_HPP
-#define CZI_SHASTA_COVERAGE_HPP
+#ifndef SHASTA_COVERAGE_HPP
+#define SHASTA_COVERAGE_HPP
 
 // Shasta.
 #include "Base.hpp"

@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_ORDER_PAIRS_HPP
-#define CZI_SHASTA_ORDER_PAIRS_HPP
+#ifndef SHASTA_ORDER_PAIRS_HPP
+#define SHASTA_ORDER_PAIRS_HPP
 
 
 // Classes to sort pairs using various criteria.

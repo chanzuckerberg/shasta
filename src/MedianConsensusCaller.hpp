@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_MEDIAN_CONSENSUS_CALLER_HPP
-#define CZI_SHASTA_MEDIAN_CONSENSUS_CALLER_HPP
+#ifndef SHASTA_MEDIAN_CONSENSUS_CALLER_HPP
+#define SHASTA_MEDIAN_CONSENSUS_CALLER_HPP
 
 /*******************************************************************************
 

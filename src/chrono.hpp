@@ -1,5 +1,5 @@
-#ifndef CZI_SHASTA_CHRONO_HPP
-#define CZI_SHASTA_CHRONO_HPP
+#ifndef SHASTA_CHRONO_HPP
+#define SHASTA_CHRONO_HPP
 
 #include <chrono>
 
