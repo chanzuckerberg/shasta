@@ -38,7 +38,6 @@ namespace ChanZuckerberg {
         class AssembledSegment;
         class ConsensusCaller;
         class LocalAlignmentGraph;
-        class LocalAssemblyGraph;
 #ifndef SHASTA_STATIC_EXECUTABLE
         class LocalMarkerGraph;
 #endif
@@ -65,6 +64,7 @@ namespace shasta {
     class Assembler;
     class AssemblerInfo;
     class AlignmentGraph;
+    class LocalAssemblyGraph;
 
 }
 

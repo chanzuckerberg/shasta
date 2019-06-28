@@ -17,27 +17,26 @@ Distance is number of edges on the global assembly graph.
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
 
-        // Forward declaration of types declared in this file.
-        class LocalAssemblyGraphVertex;
-        class LocalAssemblyGraphEdge;
-        class LocalAssemblyGraph;
-        using LocalAssemblyGraphBaseClass = boost::adjacency_list<
-            boost::listS,   // Allow parallel edges!
-            boost::listS,
-            boost::bidirectionalS,
-            LocalAssemblyGraphVertex,
-            LocalAssemblyGraphEdge
-            >;
+    // Forward declaration of types declared in this file.
+    class LocalAssemblyGraphVertex;
+    class LocalAssemblyGraphEdge;
+    class LocalAssemblyGraph;
+    using LocalAssemblyGraphBaseClass = boost::adjacency_list<
+        boost::listS,   // Allow parallel edges!
+        boost::listS,
+        boost::bidirectionalS,
+        LocalAssemblyGraphVertex,
+        LocalAssemblyGraphEdge
+        >;
 
-    }
 }
 
 
 
-class ChanZuckerberg::shasta::LocalAssemblyGraphVertex {
+class shasta::LocalAssemblyGraphVertex {
 public:
 
     // The vertex id of the vertex of the global assembly
@@ -64,7 +63,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalAssemblyGraphEdge {
+class shasta::LocalAssemblyGraphEdge {
 public:
     // The global edge id of the edge of the global assembly
     // graph that corresponds to this edge.
@@ -73,7 +72,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalAssemblyGraph :
+class shasta::LocalAssemblyGraph :
     public LocalAssemblyGraphBaseClass {
 public:
 
