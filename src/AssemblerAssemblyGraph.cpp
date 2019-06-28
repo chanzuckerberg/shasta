@@ -4,7 +4,7 @@
 #include "LocalAssemblyGraph.hpp"
 #include "orderPairs.hpp"
 #include "timestamp.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.

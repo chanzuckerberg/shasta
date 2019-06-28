@@ -1,5 +1,5 @@
 #include "Assembler.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 #include <random>

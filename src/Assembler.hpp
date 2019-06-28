@@ -32,10 +32,6 @@
 namespace ChanZuckerberg {
     namespace shasta {
 
-        // Forward declarations of classes defined here.
-        class Assembler;
-        class AssemblerInfo;
-
         // Forward declarations of classes defined elsewhere.
         class Alignment;
         class AlignmentGraph;
@@ -64,8 +60,18 @@ namespace ChanZuckerberg {
 
 
 
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+
+    // Forward declarations of classes defined here.
+    class Assembler;
+    class AssemblerInfo;
+}
+
+
+
 // Class used to store various pieces of assembler information in shared memory.
-class ChanZuckerberg::shasta::AssemblerInfo {
+class shasta::AssemblerInfo {
 public:
 
     // The length of k-mers used to define markers.
@@ -120,7 +126,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::Assembler :
+class shasta::Assembler :
     public MultithreadedObject<Assembler>
 #ifndef SHASTA_STATIC_EXECUTABLE
     , public HttpServer

@@ -12,6 +12,7 @@
 #include "timestamp.hpp"
 namespace ChanZuckerberg {
     namespace shasta {
+        using namespace ::shasta;
         namespace main {
             void main(int argumentCount, const char** arguments);
             void runAssembly(
@@ -23,7 +24,7 @@ namespace ChanZuckerberg {
         class AssemblyOptions;
     }
 }
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.

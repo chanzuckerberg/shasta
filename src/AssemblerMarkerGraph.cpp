@@ -6,7 +6,7 @@
 #include "LocalMarkerGraph.hpp"
 #endif
 #include "timestamp.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Spoa.

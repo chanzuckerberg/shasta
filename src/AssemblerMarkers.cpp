@@ -2,7 +2,7 @@
 #include "Assembler.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerFinder.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 
