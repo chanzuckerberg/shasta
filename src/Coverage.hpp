@@ -25,19 +25,18 @@ position of a multiple sequence alignment.
 
 
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class Coverage;
-        class CoverageData;
-        class CompressedCoverageData;
-    }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class Coverage;
+    class CoverageData;
+    class CompressedCoverageData;
 }
 
 
 
 // Class CoverageData stores coverage information for a single
 // read at a single position of a multiple sequence alignment.
-class ChanZuckerberg::shasta::CoverageData {
+class shasta::CoverageData {
 public:
     AlignedBase base;   // ACGT or "-" for a gap
     Strand strand;      // 0 for + strand or 1 for - strand.
@@ -51,7 +50,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::CompressedCoverageData {
+class shasta::CompressedCoverageData {
 public:
     uint8_t base: 4;     // Used to code the AlignedBase.
     uint8_t strand: 4;
@@ -87,14 +86,14 @@ public:
         return frequency;
     }
 };
-static_assert(sizeof(ChanZuckerberg::shasta::CompressedCoverageData) == 3*sizeof(uint8_t),
+static_assert(sizeof(shasta::CompressedCoverageData) == 3*sizeof(uint8_t),
     "Unexpected size of CompressedCoverageData");
 
 
 
 // Class Coverage stores coverage information for all reads at a single
 // position of a multiple sequence alignment.
-class ChanZuckerberg::shasta::Coverage {
+class shasta::Coverage {
 public:
 
     // Default constructor.

@@ -10,17 +10,16 @@
 // Standard library.
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class AssembledSegment;
-    }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class AssembledSegment;
 }
 
 
 
 // Class to describe a sequence segment assembled
 // from an edge of the assemblygraph.
-class ChanZuckerberg::shasta::AssembledSegment {
+class shasta::AssembledSegment {
 public:
 
     // The edge id of the assembly graph edge corresponding to this segment.

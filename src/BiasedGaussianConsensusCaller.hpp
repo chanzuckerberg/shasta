@@ -19,15 +19,13 @@ the result by a bias factor.
 
 #include "ConsensusCaller.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class BiasedGaussianConsensusCaller;
-    }
+namespace shasta {
+    class BiasedGaussianConsensusCaller;
 }
 
 
-class ChanZuckerberg::shasta::BiasedGaussianConsensusCaller :
-    public ChanZuckerberg::shasta::ConsensusCaller {
+class shasta::BiasedGaussianConsensusCaller :
+    public shasta::ConsensusCaller {
 public:
 
     virtual Consensus operator()(const Coverage&) const;

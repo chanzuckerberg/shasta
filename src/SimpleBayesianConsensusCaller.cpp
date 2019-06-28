@@ -13,25 +13,15 @@
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "Coverage.hpp"
 #include "ConsensusCaller.hpp"
+using namespace ::shasta;
+using namespace ChanZuckerberg::shasta;
 
-using ChanZuckerberg::shasta::Consensus;
 using Separator = boost::char_separator<char>;
 using Tokenizer = boost::tokenizer<Separator>;
-using std::runtime_error;
-using std::ifstream;
-using std::vector;
-using std::string;
-using std::printf;
-using std::array;
-using std::pair;
-using std::make_pair;
-using std::cout;
-using std::pow;
-using std::map;
-using std::max;
 
-using namespace ChanZuckerberg;
-using namespace ChanZuckerberg::shasta;
+using std::map;
+
+
 
 
 // Helper function

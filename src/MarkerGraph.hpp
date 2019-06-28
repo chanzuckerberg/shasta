@@ -163,7 +163,7 @@ public:
     // Indeed by VertexId. For each vertex, contains pairs (position, CompressedCoverageData),
     // ordered by position.
     // Note that the bases at a given position are all identical by construction.
-    MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t>
+    MemoryMapped::VectorOfVectors<pair<uint32_t, ::shasta::CompressedCoverageData>, uint64_t>
         vertexCoverageData;
 
     // Details of edge coverage.
@@ -172,7 +172,7 @@ public:
     // and for some types of analyses.
     // Indeed by EdgeId. For each edge, contains pairs (position, CompressedCoverageData),
     // ordered by position.
-    MemoryMapped::VectorOfVectors<pair<uint32_t, CompressedCoverageData>, uint64_t>
+    MemoryMapped::VectorOfVectors<pair<uint32_t, ::shasta::CompressedCoverageData>, uint64_t>
         edgeCoverageData;
 };
 

@@ -26,28 +26,15 @@ must take into account which strand each read is on.
 
 *******************************************************************************/
 
+// Shasta.
 #include "ConsensusCaller.hpp"
-#include <iostream>
-#include <fstream>
-#include <utility>
-#include <vector>
-#include <array>
-#include <string>
-#include <limits>
+
+// Standard library.
+#include "fstream.hpp"
 #include <map>
 
-using ChanZuckerberg::shasta::Consensus;
-using std::ifstream;
-using std::vector;
-using std::array;
-using std::string;
-using std::pair;
-using std::map;
-
-namespace ChanZuckerberg {
-    namespace shasta {
-        class SimpleBayesianConsensusCaller;
-    }
+namespace shasta {
+    class SimpleBayesianConsensusCaller;
 }
 
 
@@ -55,10 +42,9 @@ const double INF = std::numeric_limits<double>::infinity();;
 
 
 // Given a set of observations (repeat, strand, base), predict the true repeat count
-class ChanZuckerberg::shasta::SimpleBayesianConsensusCaller:
-    public ChanZuckerberg::shasta::ConsensusCaller {
+class shasta::SimpleBayesianConsensusCaller:
+    public shasta::ConsensusCaller {
 public:
-    /// ----- Methods ----- ///
 
     // The constructor does not have any parameters.
     // All data is read from file SimpleBayesianConsensusCaller.csv
@@ -116,8 +102,8 @@ private:
     void normalizeLikelihoods(vector<double>& x, double xMax) const;
 
     // Count the number of times each unique repeat was observed, to reduce redundancy in calculating log likelihoods
-    void factorRepeats(array<map<uint16_t,uint16_t>,2>& factoredRepeats, const Coverage& coverage) const;
-    void factorRepeats(array<map<uint16_t,uint16_t>,2>& factoredRepeats, const Coverage& coverage, AlignedBase consensusBase) const;
+    void factorRepeats(array<std::map<uint16_t, uint16_t>, 2>& factoredRepeats, const Coverage& coverage) const;
+    void factorRepeats(array<std::map<uint16_t, uint16_t>, 2>& factoredRepeats, const Coverage& coverage, AlignedBase consensusBase) const;
 
     // For debugging or exporting
     void printPriors(char separator);

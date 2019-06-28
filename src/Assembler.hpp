@@ -33,8 +33,6 @@ namespace ChanZuckerberg {
     namespace shasta {
 
         // Forward declarations of classes defined elsewhere.
-        class AssembledSegment;
-        class ConsensusCaller;
         class MarkerInterval;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
@@ -59,6 +57,8 @@ namespace shasta {
     class Alignment;
     class AlignmentGraph;
     class AlignmentInfo;
+    class AssembledSegment;
+    class ConsensusCaller;
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;

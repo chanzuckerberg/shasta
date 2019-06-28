@@ -26,19 +26,18 @@ the "best" base and repeat count.
 #include "utility.hpp"
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class Coverage;
-        class ConsensusCaller;
-        class Consensus;
-    }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class Coverage;
+    class ConsensusCaller;
+    class Consensus;
 }
 
 
 
 // Class used to represent the consensus base and repeat count
 // at a position of an alignment.
-class ChanZuckerberg::shasta::Consensus {
+class shasta::Consensus {
 public:
     AlignedBase base;
     size_t repeatCount;
@@ -49,7 +48,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::ConsensusCaller {
+class shasta::ConsensusCaller {
 public:
 
     // Function that, given a Coverage object, returns

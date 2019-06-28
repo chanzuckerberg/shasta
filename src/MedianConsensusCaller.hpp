@@ -22,15 +22,13 @@ is still biased in favor of deletions.
 
 #include "ConsensusCaller.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class MedianConsensusCaller;
-    }
+namespace shasta {
+    class MedianConsensusCaller;
 }
 
 
-class ChanZuckerberg::shasta::MedianConsensusCaller :
-    public ChanZuckerberg::shasta::ConsensusCaller {
+class shasta::MedianConsensusCaller :
+    public shasta::ConsensusCaller {
 public:
 
     size_t predict_runlength(const Coverage &coverage, AlignedBase consensus_base) const;

@@ -22,15 +22,13 @@ is still biased in favor of deletions.
 
 #include "ConsensusCaller.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class SimpleConsensusCaller;
-    }
-}
+        namespace shasta {
+            class SimpleConsensusCaller;
+        }
 
 
-class ChanZuckerberg::shasta::SimpleConsensusCaller :
-    public ChanZuckerberg::shasta::ConsensusCaller {
+class shasta::SimpleConsensusCaller :
+    public shasta::ConsensusCaller {
 public:
 
     virtual Consensus operator()(const Coverage&) const;
