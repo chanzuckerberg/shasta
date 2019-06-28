@@ -1,7 +1,7 @@
 // shasta.
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 
@@ -27,7 +27,7 @@ using namespace ChanZuckerberg::shasta;
 
 
 // Ccompute an alignment of the markers of two oriented reads.
-void ChanZuckerberg::shasta::align(
+void shasta::align(
 
     // Markers of the two oriented reads to be aligned, sorted by KmerId.
     const array<vector<MarkerWithOrdinal>, 2>& markers,

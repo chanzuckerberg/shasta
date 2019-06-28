@@ -19,7 +19,7 @@ To find a good alignment, we find a shortest path in the graph.
 
 *******************************************************************************/
 
-// shasta
+// Shasta
 #include "CompactUndirectedGraph.hpp"
 #include "Marker.hpp"
 #include "shortestPath.hpp"
@@ -40,43 +40,46 @@ namespace ChanZuckerberg {
         using AlignmentGraphBaseClass = CompactUndirectedGraph<
             AlignmentGraphVertex,
             AlignmentGraphEdge>;
-
-
-        // Top level function to compute the marker alignment.
-        void align(
-
-            // Markers of the two oriented reads to be aligned, sorted by KmerId.
-            const array<vector<MarkerWithOrdinal>, 2>& markers,
-
-            // The maximum ordinal skip to be tolerated between successive markers
-            // in the alignment.
-            size_t maxSkip,
-
-            // Marker frequency threshold.
-            // When computing an alignment between two oriented reads,
-            // marker kmers that appear more than this number of times
-            // in either of the two oriented reads are discarded
-            // (in both oriented reads).
-            // Change to size_t when conversion completed.
-            uint32_t maxMarkerFrequency,
-
-            // Flag to control various types of debug output.
-            bool debug,
-
-            // The AlignmentGraph can be reused.
-            // For performance, it should be reused when doing many alignments.
-            AlignmentGraph&,
-
-            // The computed alignment.
-            // This should also be reused when performance is important.
-            Alignment&,
-
-            // Also create alignment summary information.
-            AlignmentInfo&
-            );
-
-
     }
+}
+
+
+
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+
+    // Top level function to compute the marker alignment.
+    void align(
+
+        // Markers of the two oriented reads to be aligned, sorted by KmerId.
+        const array<vector<MarkerWithOrdinal>, 2>& markers,
+
+        // The maximum ordinal skip to be tolerated between successive markers
+        // in the alignment.
+        size_t maxSkip,
+
+        // Marker frequency threshold.
+        // When computing an alignment between two oriented reads,
+        // marker kmers that appear more than this number of times
+        // in either of the two oriented reads are discarded
+        // (in both oriented reads).
+        // Change to size_t when conversion completed.
+        uint32_t maxMarkerFrequency,
+
+        // Flag to control various types of debug output.
+        bool debug,
+
+        // The AlignmentGraph can be reused.
+        // For performance, it should be reused when doing many alignments.
+        AlignmentGraph&,
+
+        // The computed alignment.
+        // This should also be reused when performance is important.
+        Alignment&,
+
+        // Also create alignment summary information.
+        AlignmentInfo&
+        );
 }
 
 
