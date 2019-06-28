@@ -9,6 +9,10 @@ namespace ChanZuckerberg {
         using std::string;
     }
 }
+namespace shasta {
+    using std::to_string;
+    using std::string;
+}
 
 #endif
 

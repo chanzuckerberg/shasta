@@ -23,5 +23,13 @@ namespace ChanZuckerberg {
         }
     }
 }
+namespace shasta {
+    using std::chrono::steady_clock;
+
+    template<class Duration> double seconds(Duration duration)
+    {
+        return std::chrono::duration<double>(duration).count();
+    }
+}
 
 #endif

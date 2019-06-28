@@ -8,5 +8,8 @@ namespace ChanZuckerberg {
         using std::vector;
     }
 }
+namespace shasta {
+    using std::vector;
+}
 
 #endif

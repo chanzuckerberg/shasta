@@ -8,6 +8,9 @@ namespace ChanZuckerberg {
         using std::size_t;
     }
 }
+namespace shasta {
+    using std::size_t;
+}
 
 #endif
 

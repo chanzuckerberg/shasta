@@ -9,6 +9,10 @@ namespace ChanZuckerberg {
         using std::pair;
     }
 }
+namespace shasta {
+    using std::make_pair;
+    using std::pair;
+}
 
 #endif
 

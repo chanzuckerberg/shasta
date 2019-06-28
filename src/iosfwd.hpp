@@ -9,5 +9,9 @@ namespace ChanZuckerberg {
         using std::ostream;
     }
 }
+namespace shasta {
+    using std::istream;
+    using std::ostream;
+}
 
 #endif

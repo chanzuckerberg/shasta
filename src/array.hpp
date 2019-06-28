@@ -8,5 +8,8 @@ namespace ChanZuckerberg {
         using std::array;
     }
 }
+namespace shasta {
+    using std::array;
+}
 
 #endif
