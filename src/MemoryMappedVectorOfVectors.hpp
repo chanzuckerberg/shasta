@@ -4,7 +4,7 @@
 #ifndef SHASTA_MEMORY_MAPPED_VECTOR_OF_VECTORS_HPP
 #define SHASTA_MEMORY_MAPPED_VECTOR_OF_VECTORS_HPP
 
-// CZI.
+// Shasta.
 #include "MemoryMappedVector.hpp"
 #include "MemoryAsContainer.hpp"
 

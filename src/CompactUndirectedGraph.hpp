@@ -17,7 +17,7 @@
 // that allows reusing the same object multiple times
 // with minimal memory allocation activity.
 
-// CZI.
+// Shasta.
 #include "SHASTA_ASSERT.hpp"
 
 // Boost Graph library.

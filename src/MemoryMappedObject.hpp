@@ -3,7 +3,7 @@
 #ifndef SHASTA_MEMORY_MAPPED_OBJECT_HPP
 #define SHASTA_MEMORY_MAPPED_OBJECT_HPP
 
-// CZI.
+// Shasta.
 #include "SHASTA_ASSERT.hpp"
 #include "filesystem.hpp"
 #include "touchMemory.hpp"

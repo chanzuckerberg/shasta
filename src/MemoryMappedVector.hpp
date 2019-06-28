@@ -3,7 +3,7 @@
 #ifndef SHASTA_MEMORY_MAPPED_VECTOR_HPP
 #define SHASTA_MEMORY_MAPPED_VECTOR_HPP
 
-// CZI.
+// Shasta.
 #include "SHASTA_ASSERT.hpp"
 #include "filesystem.hpp"
 #include "MarkerInterval.hpp"

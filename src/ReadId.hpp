@@ -1,7 +1,7 @@
 #ifndef SHASTA_READ_ID_HPP
 #define SHASTA_READ_ID_HPP
 
-// CZI.
+// Shasta.
 #include "SHASTA_ASSERT.hpp"
 
 // Standard libraries.
