@@ -26,26 +26,24 @@ The alignment graph is being phased out in favor of the read graph
 // Standard libraries.
 #include <map>
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
 
-        // Forward declaration of types declared in this file.
-        class LocalAlignmentGraphVertex;
-        class LocalAlignmentGraphEdge;
-        class LocalAlignmentGraph;
-        using LocalAlignmentGraphBaseClass = boost::adjacency_list<
-            boost::setS,
-            boost::listS,
-            boost::undirectedS,
-            LocalAlignmentGraphVertex,
-            LocalAlignmentGraphEdge
-            >;
+    class LocalAlignmentGraphVertex;
+    class LocalAlignmentGraphEdge;
+    class LocalAlignmentGraph;
+    using LocalAlignmentGraphBaseClass = boost::adjacency_list<
+        boost::setS,
+        boost::listS,
+        boost::undirectedS,
+        LocalAlignmentGraphVertex,
+        LocalAlignmentGraphEdge
+        >;
 
-    }
 }
 
 
-class ChanZuckerberg::shasta::LocalAlignmentGraphVertex {
+class shasta::LocalAlignmentGraphVertex {
 public:
 
     // The OrientedReadId that this vertex corresponds to.
@@ -72,7 +70,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalAlignmentGraphEdge {
+class shasta::LocalAlignmentGraphEdge {
 public:
 
     // Copies of the AlignmentInfo that caused this edge to be created.
@@ -86,7 +84,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalAlignmentGraph :
+class shasta::LocalAlignmentGraph :
     public LocalAlignmentGraphBaseClass {
 public:
 

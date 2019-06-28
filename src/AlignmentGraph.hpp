@@ -28,12 +28,6 @@ To find a good alignment, we find a shortest path in the graph.
 #include "utility.hpp"
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class Alignment;
-        class AlignmentInfo;
-    }
-}
 namespace shasta {
     using namespace ChanZuckerberg::shasta;
 
@@ -43,6 +37,8 @@ namespace shasta {
     using AlignmentGraphBaseClass = CompactUndirectedGraph<
         AlignmentGraphVertex,
         AlignmentGraphEdge>;
+    class Alignment;
+    class AlignmentInfo;
 
     // Top level function to compute the marker alignment.
     void align(

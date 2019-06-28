@@ -436,7 +436,7 @@ void Assembler::checkAlignmentDataAreOpen()
 // a given oriented read, and return them with the correct
 // orientation (this may involve a swap and/or reverse complement
 // of the AlignmentInfo stored in the alignmentTable).
-vector< pair<OrientedReadId, AlignmentInfo> >
+vector< pair<OrientedReadId, shasta::AlignmentInfo> >
     Assembler::findOrientedAlignments(OrientedReadId orientedReadId0Argument) const
 {
     const ReadId readId0 = orientedReadId0Argument.getReadId();

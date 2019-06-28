@@ -7,7 +7,7 @@
 
 The local read graph is a local subgraph of the global read graph,
 starting at a given read and going out up to a specified distance.
-It is a bidirected graph in which each vertex corresponds to a read.
+It is an undirected graph in which each vertex corresponds to a read.
 
 See comments at the beginning of AssemblerReadGraph.cpp for
 more information on the global read graph.
@@ -23,13 +23,6 @@ more information on the global read graph.
 // Standard libraries.
 #include <map>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-
-        enum class AlignmentType;
-
-    }
-}
 namespace shasta {
     using namespace ChanZuckerberg::shasta;
 
@@ -45,6 +38,7 @@ namespace shasta {
         LocalReadGraphEdge
         >;
 
+    enum class AlignmentType;
 }
 
 

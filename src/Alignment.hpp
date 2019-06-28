@@ -10,20 +10,19 @@
 #include "utility.hpp"
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
 
-        class Alignment;
-        class AlignmentData;
-        class AlignmentInfo;
-        enum class AlignmentType;
-        void reverse(AlignmentType&);
-    }
+    class Alignment;
+    class AlignmentData;
+    class AlignmentInfo;
+    enum class AlignmentType;
+    void reverse(AlignmentType&);
 }
 
 
 
-class ChanZuckerberg::shasta::Alignment {
+class shasta::Alignment {
 public:
 
     // The ordinals in each of the two oriented reads of the
@@ -34,14 +33,14 @@ public:
 
 
 // Enum used to classify an alignment.
-enum class ChanZuckerberg::shasta::AlignmentType {
+enum class shasta::AlignmentType {
     read0IsContained,   // 0 is contained in 1. Draw as 0tee--1.
     read1IsContained,   // 1 is contained in 0. Draw as 1tee--0.
     read0IsBackward,    // No containement, 0 is backward of 1 at both ends. Draw as 0->1.
     read1IsBackward,    // No containement, 1 is backward of 0 at both ends. Draw as 1->0.
     ambiguous           // Draw as 0diamond--diamond1
 };
-inline void ChanZuckerberg::shasta::reverse(AlignmentType& alignmentType)
+inline void shasta::reverse(AlignmentType& alignmentType)
 {
     switch(alignmentType) {
     case AlignmentType::read0IsContained:
@@ -65,7 +64,7 @@ inline void ChanZuckerberg::shasta::reverse(AlignmentType& alignmentType)
 
 
 
-class ChanZuckerberg::shasta::AlignmentInfo {
+class shasta::AlignmentInfo {
 public:
 
     // Alignment information for each of the oriented reads in the alignment.
@@ -286,7 +285,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::AlignmentData :
+class shasta::AlignmentData :
     public ChanZuckerberg::shasta::OrientedReadPair {
 public:
 
