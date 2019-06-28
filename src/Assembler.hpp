@@ -38,10 +38,6 @@ namespace ChanZuckerberg {
         class AssembledSegment;
         class ConsensusCaller;
         class LocalAlignmentGraph;
-#ifndef SHASTA_STATIC_EXECUTABLE
-        class LocalMarkerGraph;
-#endif
-        class LocalReadGraph;
         class MarkerInterval;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
@@ -65,6 +61,11 @@ namespace shasta {
     class AssemblerInfo;
     class AlignmentGraph;
     class LocalAssemblyGraph;
+    class LocalReadGraph;
+
+#ifndef SHASTA_STATIC_EXECUTABLE
+    class LocalMarkerGraph;
+#endif
 
 }
 

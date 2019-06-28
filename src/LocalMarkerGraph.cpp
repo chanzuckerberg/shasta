@@ -5,7 +5,7 @@
 #include "approximateTopologicalSort.hpp"
 #include "findMarkerId.hpp"
 #include "orderPairs.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.

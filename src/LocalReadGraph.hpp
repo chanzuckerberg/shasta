@@ -26,26 +26,29 @@ more information on the global read graph.
 namespace ChanZuckerberg {
     namespace shasta {
 
-        // Forward declaration of types declared in this file.
-        class LocalReadGraphVertex;
-        class LocalReadGraphEdge;
-        class LocalReadGraph;
-        using LocalReadGraphBaseClass = boost::adjacency_list<
-            boost::setS,
-            boost::listS,
-            boost::undirectedS,
-            LocalReadGraphVertex,
-            LocalReadGraphEdge
-            >;
-
-        // Forward declarations of identifiers defined elsewhere.
         enum class AlignmentType;
 
     }
 }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+
+    // Forward declaration of types declared in this file.
+    class LocalReadGraphVertex;
+    class LocalReadGraphEdge;
+    class LocalReadGraph;
+    using LocalReadGraphBaseClass = boost::adjacency_list<
+        boost::setS,
+        boost::listS,
+        boost::undirectedS,
+        LocalReadGraphVertex,
+        LocalReadGraphEdge
+        >;
+
+}
 
 
-class ChanZuckerberg::shasta::LocalReadGraphVertex {
+class shasta::LocalReadGraphVertex {
 public:
 
     OrientedReadId orientedReadId;
@@ -79,7 +82,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalReadGraphEdge {
+class shasta::LocalReadGraphEdge {
 public:
 
     // The number of alignment markers in the alignment
@@ -103,7 +106,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalReadGraph :
+class shasta::LocalReadGraph :
     public LocalReadGraphBaseClass {
 public:
 

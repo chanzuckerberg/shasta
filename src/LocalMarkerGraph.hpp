@@ -25,20 +25,6 @@ a group of aligned markers.
 
 namespace ChanZuckerberg {
     namespace shasta {
-
-        // Forward declaration of types declared in this file.
-        class LocalMarkerGraphVertex;
-        class LocalMarkerGraphEdge;
-        class LocalMarkerGraph;
-        using LocalMarkerGraphBaseClass = boost::adjacency_list<
-            boost::setS,
-            boost::listS,
-            boost::bidirectionalS,
-            LocalMarkerGraphVertex,
-            LocalMarkerGraphEdge
-            >;
-
-        // Forward declarations of classes defined elsewhere.
         class CompressedMarker;
         class ConsensusCaller;
         class LongBaseSequences;
@@ -48,10 +34,25 @@ namespace ChanZuckerberg {
         }
     }
 }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+
+    class LocalMarkerGraphVertex;
+    class LocalMarkerGraphEdge;
+    class LocalMarkerGraph;
+    using LocalMarkerGraphBaseClass = boost::adjacency_list<
+        boost::setS,
+        boost::listS,
+        boost::bidirectionalS,
+        LocalMarkerGraphVertex,
+        LocalMarkerGraphEdge
+        >;
+
+}
 
 
 
-class ChanZuckerberg::shasta::LocalMarkerGraphVertex {
+class shasta::LocalMarkerGraphVertex {
 public:
 
     // The global vertex id of the vertex of the global marker
@@ -97,7 +98,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalMarkerGraphEdge {
+class shasta::LocalMarkerGraphEdge {
 public:
 
     // Class to describe the intervening sequence between
@@ -190,7 +191,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::LocalMarkerGraph :
+class shasta::LocalMarkerGraph :
     public LocalMarkerGraphBaseClass {
 public:
 

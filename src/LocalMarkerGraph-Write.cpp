@@ -5,7 +5,7 @@
 #include "ConsensusCaller.hpp"
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
