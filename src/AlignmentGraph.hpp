@@ -30,23 +30,19 @@ To find a good alignment, we find a shortest path in the graph.
 
 namespace ChanZuckerberg {
     namespace shasta {
-
         class Alignment;
         class AlignmentInfo;
-
-        class AlignmentGraphVertex;
-        class AlignmentGraphEdge;
-        class AlignmentGraph;
-        using AlignmentGraphBaseClass = CompactUndirectedGraph<
-            AlignmentGraphVertex,
-            AlignmentGraphEdge>;
     }
 }
-
-
-
 namespace shasta {
     using namespace ChanZuckerberg::shasta;
+
+    class AlignmentGraphVertex;
+    class AlignmentGraphEdge;
+    class AlignmentGraph;
+    using AlignmentGraphBaseClass = CompactUndirectedGraph<
+        AlignmentGraphVertex,
+        AlignmentGraphEdge>;
 
     // Top level function to compute the marker alignment.
     void align(
@@ -86,7 +82,7 @@ namespace shasta {
 
 // Each vertex corresponds a pair of markers in the
 // two oriented reads that have the same kmer.
-class ChanZuckerberg::shasta::AlignmentGraphVertex {
+class shasta::AlignmentGraphVertex {
 public:
 
     // The KmerId of this marker.
@@ -117,7 +113,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::AlignmentGraphEdge {
+class shasta::AlignmentGraphEdge {
 public:
     uint64_t weight;
 
@@ -128,7 +124,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::AlignmentGraph : public AlignmentGraphBaseClass {
+class shasta::AlignmentGraph : public AlignmentGraphBaseClass {
 public:
 
     void create(

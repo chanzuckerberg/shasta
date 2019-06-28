@@ -34,7 +34,6 @@ namespace ChanZuckerberg {
 
         // Forward declarations of classes defined elsewhere.
         class Alignment;
-        class AlignmentGraph;
         class AlignmentInfo;
         class AssembledSegment;
         class ConsensusCaller;
@@ -65,6 +64,7 @@ namespace shasta {
 
     class Assembler;
     class AssemblerInfo;
+    class AlignmentGraph;
 
 }
 
