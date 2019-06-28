@@ -10,9 +10,12 @@
 
 namespace ChanZuckerberg {
     namespace shasta {
-        class LowHash;
         class ReadFlags;
     }
+}
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class LowHash;
 }
 
 
@@ -20,7 +23,7 @@ namespace ChanZuckerberg {
 // This class uses the LowHash algorithm to find candidate pairs
 // of aligned reads. It uses as features
 // sequences of m consecutive markers.
-class ChanZuckerberg::shasta::LowHash :
+class shasta::LowHash :
     public MultithreadedObject<LowHash>{
 public:
 

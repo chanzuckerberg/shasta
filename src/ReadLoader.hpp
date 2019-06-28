@@ -10,16 +10,15 @@
 #include "memory.hpp"
 #include "string.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class ReadLoader;
-    }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class ReadLoader;
 }
 
 
 
 // Class used to load reads from a fasta file.
-class ChanZuckerberg::shasta::ReadLoader :
+class shasta::ReadLoader :
     public MultithreadedObject<ReadLoader>{
 public:
 

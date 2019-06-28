@@ -1,17 +1,15 @@
 #ifndef SHASTA_MIN_HASH_HPP
 #define SHASTA_MIN_HASH_HPP
 
-// shasta
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultitreadedObject.hpp"
 #include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class MinHash;
-    }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class MinHash;
 }
 
 
@@ -19,7 +17,7 @@ namespace ChanZuckerberg {
 // This class uses the MinHash algorithm to find candidate pairs
 // of aligned reads. It uses as features
 // sequences of m consecutive markers.
-class ChanZuckerberg::shasta::MinHash :
+class shasta::MinHash :
     public MultithreadedObject<MinHash>{
 public:
 

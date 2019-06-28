@@ -2,7 +2,7 @@
 #include "LowHash.hpp"
 #include "ReadFlags.hpp"
 #include "timestamp.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Standard library.

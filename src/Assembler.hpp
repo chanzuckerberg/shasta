@@ -63,9 +63,9 @@ namespace ChanZuckerberg {
 namespace shasta {
     using namespace ChanZuckerberg::shasta;
 
-    // Forward declarations of classes defined here.
     class Assembler;
     class AssemblerInfo;
+
 }
 
 

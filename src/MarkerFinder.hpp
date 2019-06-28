@@ -1,13 +1,11 @@
 #ifndef SHASTA_MARKER_FINDER_HPP
 #define SHASTA_MARKER_FINDER_HPP
 
-// shasta
 #include "Marker.hpp"
 #include "MultitreadedObject.hpp"
 
 namespace ChanZuckerberg {
     namespace shasta {
-        class MarkerFinder;
         class LongBaseSequences;
         namespace MemoryMapped {
             template<class T> class Vector;
@@ -15,10 +13,14 @@ namespace ChanZuckerberg {
         }
     }
 }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class MarkerFinder;
+}
 
 
 
-class ChanZuckerberg::shasta::MarkerFinder :
+class shasta::MarkerFinder :
     public MultithreadedObject<MarkerFinder>{
 public:
 
