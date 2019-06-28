@@ -47,7 +47,7 @@ using namespace shasta;
 #ifndef SHASTA_STATIC_EXECUTABLE
 
 
-#define CZI_ADD_TO_FUNCTION_TABLE(name) httpServerData.functionTable[string("/") + #name ] = &Assembler::name
+#define SHASTA_ADD_TO_FUNCTION_TABLE(name) httpServerData.functionTable[string("/") + #name ] = &Assembler::name
 
 
 
@@ -58,23 +58,23 @@ void Assembler::fillServerFunctionTable()
     httpServerData.functionTable["/"]       = &Assembler::exploreSummary;
     httpServerData.functionTable["/index"]  = &Assembler::exploreSummary;
 
-    CZI_ADD_TO_FUNCTION_TABLE(exploreSummary);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreRead);
-    CZI_ADD_TO_FUNCTION_TABLE(blastRead);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreAlignments);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreAlignment);
-    CZI_ADD_TO_FUNCTION_TABLE(computeAllAlignments);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
-    CZI_ADD_TO_FUNCTION_TABLE(displayAlignmentMatrix);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
-    CZI_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreSummary);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreRead);
+    SHASTA_ADD_TO_FUNCTION_TABLE(blastRead);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignments);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignment);
+    SHASTA_ADD_TO_FUNCTION_TABLE(computeAllAlignments);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
+    SHASTA_ADD_TO_FUNCTION_TABLE(displayAlignmentMatrix);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
 
 }
-#undef CZI_ADD_TO_FUNCTION_TABLE
+#undef SHASTA_ADD_TO_FUNCTION_TABLE
 
 void Assembler::setDocsDirectory(const string& docsDirectoryArgument)
 {
