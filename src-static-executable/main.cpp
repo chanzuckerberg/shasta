@@ -24,7 +24,7 @@ namespace ChanZuckerberg {
     }
 }
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/program_options.hpp>

@@ -2,7 +2,7 @@
 #include "Coverage.hpp"
 #include <cmath>
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 using std::floor;
 using std::ceil;
 

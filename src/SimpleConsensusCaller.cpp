@@ -1,7 +1,7 @@
 #include "SimpleConsensusCaller.hpp"
 #include "Coverage.hpp"
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 
 Consensus SimpleConsensusCaller::operator()(

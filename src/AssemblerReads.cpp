@@ -2,7 +2,7 @@
 #include "Assembler.hpp"
 #include "ReadLoader.hpp"
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 // Standard libraries.
 #include "iterator.hpp"

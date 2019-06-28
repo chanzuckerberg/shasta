@@ -3,7 +3,7 @@
 #include "AlignmentGraph.hpp"
 #include "timestamp.hpp"
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 // Standard libraries.
 #include "chrono.hpp"

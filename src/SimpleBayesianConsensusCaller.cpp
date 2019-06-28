@@ -31,7 +31,7 @@ using std::map;
 using std::max;
 
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 
 // Helper function

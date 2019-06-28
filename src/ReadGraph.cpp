@@ -1,7 +1,7 @@
 // Shasta.
 #include "ReadGraph.hpp"
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>

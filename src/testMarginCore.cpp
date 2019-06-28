@@ -4,7 +4,7 @@
 #include "testMarginCore.hpp"
 #include "SHASTA_ASSERT.hpp"
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 // MarginCore.
 #include "marginPhase/callConsensus.h"

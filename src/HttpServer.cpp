@@ -7,7 +7,7 @@
 #include "timestamp.hpp"
 // #include "tokenize.hpp"
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 #include <boost/algorithm/string.hpp>
 

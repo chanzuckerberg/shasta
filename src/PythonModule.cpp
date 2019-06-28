@@ -15,7 +15,7 @@
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
 using namespace ChanZuckerberg;
-using namespace shasta;
+using namespace ChanZuckerberg::shasta;
 
 // Pybind11
 #include <pybind11/pybind11.h>
