@@ -23,15 +23,13 @@ vertex in the assembly graph.
 // Standard library.
 #include <limits>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class AssemblyGraph;
-    }
+namespace shasta {
+    class AssemblyGraph;
 }
 
 
 
-class ChanZuckerberg::shasta::AssemblyGraph {
+class shasta::AssemblyGraph {
 public:
 
     // Use the same vertex and edge ids of the marker graph.
