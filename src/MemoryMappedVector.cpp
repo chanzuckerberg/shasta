@@ -1,19 +1,17 @@
 #include "MemoryMappedObject.hpp"
 #include "MemoryMappedVector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class MemoryMappedObjectTest {
-        public:
-            int a;
-            int b;
-        };
-    }
+namespace shasta {
+    class MemoryMappedObjectTest {
+    public:
+        int a;
+        int b;
+    };
 }
 
 
 
-void ChanZuckerberg::shasta::testMemoryMappedVector()
+void shasta::testMemoryMappedVector()
 {
 #if 0
     MemoryMapped::Vector<int> x;

@@ -14,17 +14,15 @@
 #include "vector.hpp"
 
 // Forward declarations.
-namespace ChanZuckerberg {
-    namespace shasta {
-        namespace MemoryMapped {
-            template<class Int, class T> class VectorOfVectors;
-        }
+namespace shasta {
+    namespace MemoryMapped {
+        template<class Int, class T> class VectorOfVectors;
     }
 }
 
 
 
-template<class T, class Int> class ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors {
+template<class T, class Int> class shasta::MemoryMapped::VectorOfVectors {
 public:
 
     void createNew(const string& nameArgument, size_t pageSizeArgument)
@@ -271,7 +269,7 @@ private:
 
 
 template<class T, class Int>
-    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::beginPass1(Int n)
+    void shasta::MemoryMapped::VectorOfVectors<T, Int>::beginPass1(Int n)
 {
 
     if(!count.isOpen) {
@@ -288,7 +286,7 @@ template<class T, class Int>
 
 
 template<class T, class Int>
-    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::beginPass2()
+    void shasta::MemoryMapped::VectorOfVectors<T, Int>::beginPass2()
 {
     const Int n = Int(count.size());
     toc.reserveAndResize(n+1);
@@ -303,7 +301,7 @@ template<class T, class Int>
 
 
 template<class T, class Int>
-    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::endPass2(
+    void shasta::MemoryMapped::VectorOfVectors<T, Int>::endPass2(
         bool check, bool free)
 {
     // Verify that all counts are now zero.
@@ -327,12 +325,12 @@ template<class T, class Int>
 
 
 template<class T, class Int>
-    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::incrementCount(Int index, Int m)
+    void shasta::MemoryMapped::VectorOfVectors<T, Int>::incrementCount(Int index, Int m)
 {
     count[index] += m;
 }
 template<class T, class Int>
-    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::
+    void shasta::MemoryMapped::VectorOfVectors<T, Int>::
     incrementCountMultithreaded(Int index, Int m)
 {
     __sync_fetch_and_add(&count[index], m);
@@ -340,12 +338,12 @@ template<class T, class Int>
 
 
 template<class T, class Int>
-    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::store(Int index, const T& t)
+    void shasta::MemoryMapped::VectorOfVectors<T, Int>::store(Int index, const T& t)
 {
     (*this)[index][--count[index]] = t;
 }
 template<class T, class Int>
-    void ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::storeMultithreaded(Int index, const T& t)
+    void shasta::MemoryMapped::VectorOfVectors<T, Int>::storeMultithreaded(Int index, const T& t)
 {
     const Int i = __sync_sub_and_fetch(&count[index], 1);
     (*this)[index][i] = t;
@@ -358,7 +356,7 @@ template<class T, class Int>
 // (stored at the same position) as v.begin()[k].
 // This requires a binary search in the toc.
 template<class T, class Int>
-    std::pair<Int, Int> ChanZuckerberg::shasta::MemoryMapped::VectorOfVectors<T, Int>::find(Int k) const
+    std::pair<Int, Int> shasta::MemoryMapped::VectorOfVectors<T, Int>::find(Int k) const
 {
     const auto it = std::upper_bound(toc.begin(), toc.end(), k) - 1;
     const Int i = it - toc.begin();

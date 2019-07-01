@@ -1,13 +1,13 @@
 
 
 #include "touchMemory.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Touch a range of memory in order to cause the
 // supporting pages of virtual memory to be loaded in real memory.
 // The return value can be ignored.
-size_t ChanZuckerberg::shasta::touchMemory(
+size_t shasta::touchMemory(
     const void* begin,
     const void* end,
     size_t pageSize)

@@ -28,17 +28,15 @@
 
 
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        namespace MemoryMapped {
-            template<class T> class Object;
-        }
+namespace shasta {
+    namespace MemoryMapped {
+        template<class T> class Object;
     }
 }
 
 
 
-template<class T> class ChanZuckerberg::shasta::MemoryMapped::Object {
+template<class T> class shasta::MemoryMapped::Object {
 public:
 
     // Constructor and destructor.
@@ -187,7 +185,7 @@ private:
 
 
 // Default constructor.
-template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Object<T>::Object() :
+template<class T> inline shasta::MemoryMapped::Object<T>::Object() :
     header(0),
     data(0),
     isOpen(false),
@@ -198,7 +196,7 @@ template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Object<T>::Object
 
 
 // Destructor.
-template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Object<T>::~Object()
+template<class T> inline shasta::MemoryMapped::Object<T>::~Object()
 {
     if(isOpen) {
         close();
@@ -208,7 +206,7 @@ template<class T> inline ChanZuckerberg::shasta::MemoryMapped::Object<T>::~Objec
 // Open the given file name as new (create if not existing, truncate if existing)
 // and with write access.
 // Return the file descriptor.
-template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Object<T>::openNew(const string& name)
+template<class T> inline int shasta::MemoryMapped::Object<T>::openNew(const string& name)
 {
     const int fileDescriptor = ::open(
             name.c_str(),
@@ -223,7 +221,7 @@ template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Object<T>::op
 
 // Open the given existing file.
 // Return the file descriptor.
-template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Object<T>::openExisting(const string& name, bool readWriteAccess)
+template<class T> inline int shasta::MemoryMapped::Object<T>::openExisting(const string& name, bool readWriteAccess)
 {
     const int fileDescriptor = ::open(
         name.c_str(),
@@ -236,7 +234,7 @@ template<class T> inline int ChanZuckerberg::shasta::MemoryMapped::Object<T>::op
 }
 
 // Truncate the given file descriptor to the specified size.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::truncate(int fileDescriptor, size_t fileSize)
+template<class T> inline void shasta::MemoryMapped::Object<T>::truncate(int fileDescriptor, size_t fileSize)
 {
     const int ftruncateReturnCode = ::ftruncate(fileDescriptor, fileSize);
     if(ftruncateReturnCode == -1) {
@@ -246,7 +244,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::t
 }
 
 // Map to memory the given file descriptor for the specified size.
-template<class T> inline void* ChanZuckerberg::shasta::MemoryMapped::Object<T>::map(int fileDescriptor, size_t fileSize, bool writeAccess)
+template<class T> inline void* shasta::MemoryMapped::Object<T>::map(int fileDescriptor, size_t fileSize, bool writeAccess)
 {
     void* pointer = ::mmap(0, fileSize, PROT_READ | (writeAccess ? PROT_WRITE : 0), MAP_SHARED, fileDescriptor, 0);
     if(pointer == reinterpret_cast<void*>(-1LL)) {
@@ -257,7 +255,7 @@ template<class T> inline void* ChanZuckerberg::shasta::MemoryMapped::Object<T>::
 }
 
 // Find the size of the file corresponding to an open file descriptor.
-template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Object<T>::getFileSize(int fileDescriptor)
+template<class T> inline size_t shasta::MemoryMapped::Object<T>::getFileSize(int fileDescriptor)
 {
     struct stat fileInformation;
     const int fstatReturnCode = ::fstat(fileDescriptor, &fileInformation);
@@ -271,7 +269,7 @@ template<class T> inline size_t ChanZuckerberg::shasta::MemoryMapped::Object<T>:
 
 
 // Create a new mapped object.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::createNew(
+template<class T> inline void shasta::MemoryMapped::Object<T>::createNew(
     const string& name,
     size_t pageSize)
 {
@@ -331,7 +329,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
 
 
 // Create a new mapped object.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::createNewAnonymous(
+template<class T> inline void shasta::MemoryMapped::Object<T>::createNewAnonymous(
     size_t pageSize)
 {
     try {
@@ -383,7 +381,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
 
 
 // Open a previously created object with read-only or read-write access.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::accessExisting(const string& name, bool readWriteAccess)
+template<class T> inline void shasta::MemoryMapped::Object<T>::accessExisting(const string& name, bool readWriteAccess)
 {
     try {
         // If already open, should have called close first.
@@ -423,11 +421,11 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::a
     }
 
 }
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::accessExistingReadOnly(const string& name)
+template<class T> inline void shasta::MemoryMapped::Object<T>::accessExistingReadOnly(const string& name)
 {
     accessExisting(name, false);
 }
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::accessExistingReadWrite(const string& name)
+template<class T> inline void shasta::MemoryMapped::Object<T>::accessExistingReadWrite(const string& name)
 {
     accessExisting(name, true);
 }
@@ -435,7 +433,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::a
 
 
 // Sync the mapped memory to disk.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::syncToDisk()
+template<class T> inline void shasta::MemoryMapped::Object<T>::syncToDisk()
 {
     SHASTA_ASSERT(isOpen);
     const int msyncReturnCode = ::msync(header, header->fileSize, MS_SYNC);
@@ -445,7 +443,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::s
 }
 
 // Unmap the memory.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::unmap()
+template<class T> inline void shasta::MemoryMapped::Object<T>::unmap()
 {
     SHASTA_ASSERT(isOpen);
 
@@ -466,7 +464,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::u
 
 
 // Sync the mapped memory to disk, then unmap it.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::close()
+template<class T> inline void shasta::MemoryMapped::Object<T>::close()
 {
     SHASTA_ASSERT(isOpen);
 
@@ -477,7 +475,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::c
 }
 
 // Close it and remove the supporting file.
-template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::remove()
+template<class T> inline void shasta::MemoryMapped::Object<T>::remove()
 {
     const string savedFileName = fileName;
     close();    // This forgets the fileName.
@@ -486,13 +484,13 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Object<T>::r
 
 
 // Return a pointer to the stored object.
-template<class T> inline T* ChanZuckerberg::shasta::MemoryMapped::Object<T>::operator->()
+template<class T> inline T* shasta::MemoryMapped::Object<T>::operator->()
 {
     SHASTA_ASSERT(isOpen);
     SHASTA_ASSERT(data);
     return data;
 }
-template<class T> inline const T* ChanZuckerberg::shasta::MemoryMapped::Object<T>::operator->() const
+template<class T> inline const T* shasta::MemoryMapped::Object<T>::operator->() const
 {
     SHASTA_ASSERT(isOpen);
     SHASTA_ASSERT(data);

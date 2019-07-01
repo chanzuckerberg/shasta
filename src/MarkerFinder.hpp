@@ -4,18 +4,15 @@
 #include "Marker.hpp"
 #include "MultitreadedObject.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        namespace MemoryMapped {
-            template<class T> class Vector;
-            template<class Int, class T> class VectorOfVectors;
-        }
-    }
-}
 namespace shasta {
     using namespace ChanZuckerberg::shasta;
     class MarkerFinder;
     class LongBaseSequences;
+
+    namespace MemoryMapped {
+        template<class T> class Vector;
+        template<class Int, class T> class VectorOfVectors;
+    }
 }
 
 
