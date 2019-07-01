@@ -1,14 +1,14 @@
 #include "ShortBaseSequence.hpp"
 #include "algorithm.hpp"
 #include "SHASTA_ASSERT.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 #include <iomanip>
 
 
 
-void ChanZuckerberg::shasta::testShortBaseSequence()
+void shasta::testShortBaseSequence()
 {
     ShortBaseSequence8 s;
     s.set(0, Base::fromCharacter('T'));

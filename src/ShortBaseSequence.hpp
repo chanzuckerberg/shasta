@@ -13,23 +13,22 @@
 
 
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
 
-        // A short sequence of bases.
-        // Uses only two integers, so its capacity is limited
-        // by the length of the integers used.
-        // This class does not keep track of the number of bases
-        // actually stored. All unused positions are left set at "A".
-        template<class Int> class ShortBaseSequence;
-        using ShortBaseSequence8 = ShortBaseSequence<uint8_t>;
-        using ShortBaseSequence16 = ShortBaseSequence<uint16_t>;
-        using ShortBaseSequence32 = ShortBaseSequence<uint32_t>;
-        using ShortBaseSequence64 = ShortBaseSequence<uint64_t>;
-        template<class Int> inline ostream& operator<<(ostream&, const ShortBaseSequence<Int>&);
+    // A short sequence of bases.
+    // Uses only two integers, so its capacity is limited
+    // by the length of the integers used.
+    // This class does not keep track of the number of bases
+    // actually stored. All unused positions are left set at "A".
+    template<class Int> class ShortBaseSequence;
+    using ShortBaseSequence8 = ShortBaseSequence<uint8_t>;
+    using ShortBaseSequence16 = ShortBaseSequence<uint16_t>;
+    using ShortBaseSequence32 = ShortBaseSequence<uint32_t>;
+    using ShortBaseSequence64 = ShortBaseSequence<uint64_t>;
+    template<class Int> inline ostream& operator<<(ostream&, const ShortBaseSequence<Int>&);
 
-        void testShortBaseSequence();
-    }
+    void testShortBaseSequence();
 }
 
 
@@ -41,7 +40,7 @@ namespace ChanZuckerberg {
 // Position 1: the MSB bit of the bases (with base 0 corresponding to the MSB bit).
 // This class does not keep track of the number of bases
 // actually stored. All unused positions are left set at "A".
-template<class Int> class ChanZuckerberg::shasta::ShortBaseSequence {
+template<class Int> class shasta::ShortBaseSequence {
 public:
 
     // Sanity check on the Int type.
@@ -148,9 +147,9 @@ public:
 
 
 
-template<class Int> inline std::ostream& ChanZuckerberg::shasta::operator<<(
+template<class Int> inline std::ostream& shasta::operator<<(
     std::ostream& s,
-    const ChanZuckerberg::shasta::ShortBaseSequence<Int>& sequence)
+    const shasta::ShortBaseSequence<Int>& sequence)
 {
     for(size_t i=0; i<sequence.capacity; i++) {
         s << sequence[i];
