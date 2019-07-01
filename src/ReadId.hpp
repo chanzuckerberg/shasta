@@ -13,20 +13,18 @@
 
 
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
 
-        // Type used to identify a read.
-        // This is used as an index into Assembler::reads.
-        using ReadId = uint32_t;
+    // Type used to identify a read.
+    // This is used as an index into Assembler::reads.
+    using ReadId = uint32_t;
 
-        // Class used to identify an oriented read,
-        // that is a read, possibly reverse complemented.
-        class OrientedReadId;
-        inline ostream& operator<<(ostream&, OrientedReadId);
-        using Strand = ReadId;
+    // Class used to identify an oriented read,
+    // that is a read, possibly reverse complemented.
+    class OrientedReadId;
+    inline ostream& operator<<(ostream&, OrientedReadId);
+    using Strand = ReadId;
 
-    }
 }
 
 
@@ -35,7 +33,7 @@ namespace ChanZuckerberg {
 // The strand stored in the least significant
 // bit is 0 if the oriented read is identical
 // to the original read and 1 if it is reverse complemented
-class ChanZuckerberg::shasta::OrientedReadId {
+class shasta::OrientedReadId {
 public:
     OrientedReadId() : value(std::numeric_limits<ReadId>::max()) {}
     OrientedReadId(ReadId readId, Strand strand) : value((readId<<1) | strand)
@@ -105,7 +103,7 @@ private:
 
 
 
-inline std::ostream& ChanZuckerberg::shasta::operator<<(
+inline std::ostream& shasta::operator<<(
     std::ostream& s,
     OrientedReadId orientedReadId)
 {

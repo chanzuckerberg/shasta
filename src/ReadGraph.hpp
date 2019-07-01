@@ -28,24 +28,23 @@ but read-only form using MemoryMapped data structures.
 #include <limits>
 #include <unordered_map>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class ReadGraph;
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    class ReadGraph;
 
 
-        // Class RawReadGraph is only used inside flagCrossStrandReadGraphEdges.
-        // Here, each vertex corresponds to a Read, not an OrientedRead.
-        // It has one vertex per read instead of two.
-        class RawReadGraph;
-        class RawReadGraphEdge;
-        class RawReadGraphVertex;
-        using RawReadGraphBaseClass = boost::adjacency_list<
-            boost::vecS,
-            boost::vecS,
-            boost::undirectedS,
-            RawReadGraphVertex,
-            RawReadGraphEdge>;
-    }
+    // Class RawReadGraph is only used inside flagCrossStrandReadGraphEdges.
+    // Here, each vertex corresponds to a Read, not an OrientedRead.
+    // It has one vertex per read instead of two.
+    class RawReadGraph;
+    class RawReadGraphEdge;
+    class RawReadGraphVertex;
+    using RawReadGraphBaseClass = boost::adjacency_list<
+        boost::vecS,
+        boost::vecS,
+        boost::undirectedS,
+        RawReadGraphVertex,
+        RawReadGraphEdge>;
 }
 
 
@@ -53,7 +52,7 @@ namespace ChanZuckerberg {
 
 // Class ReadGraph is used to store the ReadGraph in permanent
 // but read-only form using MemoryMapped data structures.
-class ChanZuckerberg::shasta::ReadGraph {
+class shasta::ReadGraph {
 public:
 
     // An edge of the read graph.
@@ -111,7 +110,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::RawReadGraphVertex {
+class shasta::RawReadGraphVertex {
 public:
     RawReadGraphVertex() : strand(0) {}
     uint8_t strand;     // Or RawReadGraph::undiscovered
@@ -119,7 +118,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::RawReadGraphEdge {
+class shasta::RawReadGraphEdge {
 public:
     bool isSameStrand;
     RawReadGraphEdge(bool isSameStrand) :
@@ -131,7 +130,7 @@ public:
 // Class RawReadGraph is only used inside flagCrossStrandReadGraphEdges.
 // Here, each vertex corresponds to a Read, not an OrientedRead.
 // It has one vertex per read instead of two.
-class ChanZuckerberg::shasta::RawReadGraph : public RawReadGraphBaseClass {
+class shasta::RawReadGraph : public RawReadGraphBaseClass {
 public:
     using RawReadGraphBaseClass::RawReadGraphBaseClass;
     static const uint8_t undiscovered = 2;

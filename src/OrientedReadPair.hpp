@@ -7,17 +7,15 @@
 // Standard library.
 #include "array.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class OrientedReadPair;
-    }
+namespace shasta {
+    class OrientedReadPair;
 }
 
 
 
 // Class describing a pair of reads with a relative orientation
 // (same strand or different strands).
-class ChanZuckerberg::shasta::OrientedReadPair {
+class shasta::OrientedReadPair {
 public:
 
     // The read ids are guaranteed to be distinct.

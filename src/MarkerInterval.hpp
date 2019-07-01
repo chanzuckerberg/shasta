@@ -8,11 +8,9 @@
 // Standard library.
 #include "array.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class MarkerInterval;
-        class MarkerIntervalWithRepeatCounts;
-    }
+namespace shasta {
+    class MarkerInterval;
+    class MarkerIntervalWithRepeatCounts;
 }
 
 
@@ -21,7 +19,7 @@ namespace ChanZuckerberg {
 // The two markers are not necessarily consecutive.
 // HOoever, the second marker has a higher ordinal
 // than the first.
-class ChanZuckerberg::shasta::MarkerInterval {
+class shasta::MarkerInterval {
 public:
     OrientedReadId orientedReadId;
 
@@ -50,7 +48,7 @@ public:
 
 
 
-class ChanZuckerberg::shasta::MarkerIntervalWithRepeatCounts :
+class shasta::MarkerIntervalWithRepeatCounts :
     public MarkerInterval {
 public:
     vector<uint8_t> repeatCounts;

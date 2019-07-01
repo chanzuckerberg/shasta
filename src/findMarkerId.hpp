@@ -9,22 +9,20 @@
 #include "tuple.hpp"
 #include "utility.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
 
-        // Given a global marker id in the global marker table,
-        // return the corresponding OrientedReadId and ordinal.
-        // This requires a binary search in the markers toc.
-        inline pair<OrientedReadId, uint32_t> findMarkerId(
-            MarkerId,
-            const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers);
+    // Given a global marker id in the global marker table,
+    // return the corresponding OrientedReadId and ordinal.
+    // This requires a binary search in the markers toc.
+    inline pair<OrientedReadId, uint32_t> findMarkerId(
+        MarkerId,
+        const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers);
 
-    }
 }
 
 
-inline std::pair<ChanZuckerberg::shasta::OrientedReadId, uint32_t>
-    ChanZuckerberg::shasta::findMarkerId(
+inline std::pair<shasta::OrientedReadId, uint32_t>
+    shasta::findMarkerId(
     MarkerId markerId,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers)
 {
