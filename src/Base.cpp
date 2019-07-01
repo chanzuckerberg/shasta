@@ -1,5 +1,5 @@
 #include "Base.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 #include "algorithm.hpp"
@@ -41,7 +41,7 @@ AlignedBaseInitializer::AlignedBaseInitializer()
 
 
 
-void ChanZuckerberg::shasta::testBase()
+void shasta::testBase()
 {
     const Base A = Base::fromCharacter('A');
     if(A.value != 0) throw runtime_error("A is not 0.");
