@@ -19,16 +19,15 @@
 #include "string.hpp"
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class HttpServer;
-        class PostData;
-    }
+namespace shasta {
+using namespace ChanZuckerberg::shasta;
+    class HttpServer;
+    class PostData;
 }
 
 
 
-class ChanZuckerberg::shasta::HttpServer {
+class shasta::HttpServer {
 public:
 
     // This function puts the server into an endless loop
@@ -125,7 +124,7 @@ private:
 
 
 // Class describing a POST request.
-class ChanZuckerberg::shasta::PostData {
+class shasta::PostData {
 public:
 
     // The request already parsed in tokens.

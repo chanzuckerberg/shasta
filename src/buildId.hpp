@@ -11,10 +11,8 @@
 
 #include "string.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        string buildId();
-    }
+namespace shasta {
+    string buildId();
 }
 
 #endif

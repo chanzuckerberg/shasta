@@ -3306,7 +3306,7 @@ void Assembler::exploreReadGraph(
 
 
 
-void ChanZuckerberg::shasta::writeStrandSelection(
+void shasta::writeStrandSelection(
     ostream& html,          // The html stream to write the form to.
     const string& name,     // The selection name.
     bool select0,           // Whether strand 0 is selected.

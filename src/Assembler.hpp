@@ -33,17 +33,10 @@ namespace ChanZuckerberg {
     namespace shasta {
 
         // Forward declarations of classes defined elsewhere.
-        class MarkerInterval;
         namespace MemoryMapped {
             template<class Int, class T> class VectorOfVectors;
         }
 
-        // Write an html form to select strand.
-        void writeStrandSelection(
-            ostream&,               // The html stream to write the form to.
-            const string& name,     // The selection name.
-            bool select0,           // Whether strand 0 is selected.
-            bool select1);          // Whether strand 1 is selected.
     }
 }
 
@@ -67,6 +60,12 @@ namespace shasta {
     class LocalMarkerGraph;
 #endif
 
+    // Write an html form to select strand.
+    void writeStrandSelection(
+        ostream&,               // The html stream to write the form to.
+        const string& name,     // The selection name.
+        bool select0,           // Whether strand 0 is selected.
+        bool select1);          // Whether strand 1 is selected.
 }
 
 

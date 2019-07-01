@@ -724,7 +724,7 @@ template<class T> inline void ChanZuckerberg::shasta::MemoryMapped::Vector<T>::r
     } else {
         const string savedFileName = fileName;
         close();    // This forgets the fileName.
-        filesystem::remove(savedFileName);
+        ::shasta::filesystem::remove(savedFileName);
     }
 }
 
