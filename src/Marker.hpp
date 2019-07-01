@@ -24,11 +24,6 @@ kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarke
 namespace ChanZuckerberg {
     namespace shasta {
 
-        // The classes with a 0 suffix will be phased out.
-        class CompressedMarker0;
-        class Marker0;
-        class OrderMarkers0ByKmerId;
-
         // Classes that will be used to represent markers
         // when the restructuring of marker storage is complete.
         class CompressedMarker;
@@ -36,48 +31,6 @@ namespace ChanZuckerberg {
         class MarkerWithOrdinal;
     }
 }
-
-
-
-class ChanZuckerberg::shasta::CompressedMarker0 {
-public:
-    KmerId kmerId;
-
-    // Position difference between the previous marker
-    // on the read and this marker.
-    // For the first marker in a read, this equals
-    // the position of the first base of the marker in the read.
-    using Shift = uint16_t;
-    Shift shift;
-};
-
-
-
-class ChanZuckerberg::shasta::Marker0 {
-public:
-    KmerId kmerId;
-
-    // Position in the read of the first base of the marker.
-    uint32_t position;
-
-    // Ordinal of this marker in its read.
-    // That is, the leftmost marker has ordinal=0,
-    // the next 1, and so on.
-    uint32_t ordinal;
-};
-
-
-
-// Class used to order markers by kmer id.
-class ChanZuckerberg::shasta::OrderMarkers0ByKmerId {
-public:
-    bool operator()(
-        const Marker0& x,
-        const Marker0& y) const
-    {
-        return x.kmerId < y.kmerId;
-    }
-};
 
 
 
