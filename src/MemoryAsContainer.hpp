@@ -5,15 +5,13 @@
 
 #include "cstddef.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
     template<class T> class MemoryAsContainer;
-    }
 }
 
 
 
-template<class T> class ChanZuckerberg::shasta::MemoryAsContainer {
+template<class T> class shasta::MemoryAsContainer {
 public:
 
     MemoryAsContainer(T* begin, T* end) :

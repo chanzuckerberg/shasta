@@ -20,24 +20,22 @@
 #include "iostream.hpp"
 #include "utility.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
 
-        inline pair<size_t, size_t> splitRange(
-            size_t begin,
-            size_t end,
-            size_t m,
-            size_t i
-            );
+    inline pair<size_t, size_t> splitRange(
+        size_t begin,
+        size_t end,
+        size_t m,
+        size_t i
+        );
 
-        inline void testSplitRange();
+    inline void testSplitRange();
 
-    }
 }
 
 
 
-inline std::pair<size_t, size_t> ChanZuckerberg::shasta::splitRange(
+inline std::pair<size_t, size_t> shasta::splitRange(
     size_t begin,
     size_t end,
     size_t m,
@@ -62,7 +60,7 @@ inline std::pair<size_t, size_t> ChanZuckerberg::shasta::splitRange(
 
 
 
-inline void ChanZuckerberg::shasta::testSplitRange()
+inline void shasta::testSplitRange()
 {
     while(true) {
         cerr << "Enter begin, end, m:" << endl;

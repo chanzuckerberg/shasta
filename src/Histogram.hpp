@@ -5,16 +5,14 @@
 #include <numeric>
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class Histogram;
-    }
+namespace shasta {
+    class Histogram;
 }
 
 
 
 // A simple histogram class that stores the histogram in a vector.
-class ChanZuckerberg::shasta::Histogram : public vector<size_t> {
+class shasta::Histogram : public vector<size_t> {
 public:
 
     void increment(size_t i)

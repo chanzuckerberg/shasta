@@ -1,6 +1,6 @@
 #include "MultitreadedObject.hpp"
 #include "timestamp.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 #include <chrono>
@@ -8,7 +8,7 @@ using namespace ChanZuckerberg::shasta;
 
 
 // Class used only by function testMultithreadedObject.
-class ChanZuckerberg::shasta::MultithreadedObjectTestClass :
+class shasta::MultithreadedObjectTestClass :
     public MultithreadedObject<MultithreadedObjectTestClass> {
 public:
 
@@ -58,7 +58,7 @@ public:
 
 
 
-void ChanZuckerberg::shasta::testMultithreadedObject()
+void shasta::testMultithreadedObject()
 {
 
     const uint64_t n = 32 * 1024;

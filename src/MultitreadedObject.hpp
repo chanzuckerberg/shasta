@@ -33,17 +33,16 @@
 #include "utility.hpp"
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        template<class T> class MultithreadedObject;
-        void testMultithreadedObject();
-        class MultithreadedObjectTestClass;
-    }
+namespace shasta {\
+    using namespace ChanZuckerberg::shasta;
+    template<class T> class MultithreadedObject;
+    void testMultithreadedObject();
+    class MultithreadedObjectTestClass;
 }
 
 
 
-template<class T> class ChanZuckerberg::shasta::MultithreadedObject {
+template<class T> class shasta::MultithreadedObject {
 public:
 
     // A function passed as argument to runThreads or startThreads
@@ -178,14 +177,14 @@ private:
 
 
 
-template<class T> inline ChanZuckerberg::shasta::MultithreadedObject<T>::MultithreadedObject(T& t) :
+template<class T> inline shasta::MultithreadedObject<T>::MultithreadedObject(T& t) :
     t(t)
 {
 }
 
 
 
-template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::runThreads(
+template<class T> inline void shasta::MultithreadedObject<T>::runThreads(
     ThreadFunction f,
     size_t threadCount,
     const string& logFileNamePrefix)
@@ -196,7 +195,7 @@ template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::ru
 
 
 
-template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::startThreads(
+template<class T> inline void shasta::MultithreadedObject<T>::startThreads(
     ThreadFunction f,
     size_t threadCount,
     const string& logFileNamePrefix)
@@ -230,7 +229,7 @@ template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::st
 
 
 
-template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::waitForThreads()
+template<class T> inline void shasta::MultithreadedObject<T>::waitForThreads()
 {
     for(std::shared_ptr<std::thread> thread: threads) {
         thread->join();
@@ -246,7 +245,7 @@ template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::wa
 
 
 
-template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::setupLoadBalancing(
+template<class T> inline void shasta::MultithreadedObject<T>::setupLoadBalancing(
     uint64_t nArgument,
     uint64_t batchSizeArgument)
 {
@@ -254,7 +253,7 @@ template<class T> inline void ChanZuckerberg::shasta::MultithreadedObject<T>::se
     batchSize = batchSizeArgument;
     nextBatch = 0;
 }
-template<class T> inline bool ChanZuckerberg::shasta::MultithreadedObject<T>:: getNextBatch(
+template<class T> inline bool shasta::MultithreadedObject<T>:: getNextBatch(
     uint64_t& begin,
     uint64_t& end)
 {

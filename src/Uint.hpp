@@ -13,23 +13,21 @@
 #include <cstring>
 #include <type_traits>
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
 
-        template<int N, class UintHelper> class Uint;
+    template<int N, class UintHelper> class Uint;
 
-        using Uint24  = Uint< 3,   uint32_t>;
-        using Uint40  = Uint< 5,   uint64_t>;
-        using Uint48  = Uint< 6,   uint64_t>;
-        using Uint56  = Uint< 7,   uint64_t>;
-        using Uint72  = Uint< 9, __uint128_t>;
-        using Uint80  = Uint<10, __uint128_t>;
-        using Uint88  = Uint<11, __uint128_t>;
-        using Uint96  = Uint<12, __uint128_t>;
-        using Uint104 = Uint<13, __uint128_t>;
-        using Uint112 = Uint<14, __uint128_t>;
-        using Uint120 = Uint<15, __uint128_t>;
-    }
+    using Uint24  = Uint< 3,   uint32_t>;
+    using Uint40  = Uint< 5,   uint64_t>;
+    using Uint48  = Uint< 6,   uint64_t>;
+    using Uint56  = Uint< 7,   uint64_t>;
+    using Uint72  = Uint< 9, __uint128_t>;
+    using Uint80  = Uint<10, __uint128_t>;
+    using Uint88  = Uint<11, __uint128_t>;
+    using Uint96  = Uint<12, __uint128_t>;
+    using Uint104 = Uint<13, __uint128_t>;
+    using Uint112 = Uint<14, __uint128_t>;
+    using Uint120 = Uint<15, __uint128_t>;
 }
 
 
@@ -38,7 +36,7 @@ namespace ChanZuckerberg {
 // UintHelper = built-in integer type that Uint converts to-from.
 // UintHelper must be an unsigned integer type at least N bytes long.
 
-template<int N, class UintHelper> class ChanZuckerberg::shasta::Uint {
+template<int N, class UintHelper> class shasta::Uint {
 public:
 
     Uint(const UintHelper& i)

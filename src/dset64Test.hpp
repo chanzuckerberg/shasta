@@ -6,22 +6,21 @@
 #include "MultitreadedObject.hpp"
 #include <map>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        void dset64Test(
-            uint64_t n,             // The number of items (vertices).
-            uint64_t m,             // The number of union operations (edges).
-            uint64_t threadCount,   // The number of threads to use.
-            uint64_t batchSize,     // The number of union operations per batch.
-            int seed                // The random seed.
-            );
-        class Dset64Test;
-    }
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
+    void dset64Test(
+        uint64_t n,             // The number of items (vertices).
+        uint64_t m,             // The number of union operations (edges).
+        uint64_t threadCount,   // The number of threads to use.
+        uint64_t batchSize,     // The number of union operations per batch.
+        int seed                // The random seed.
+        );
+    class Dset64Test;
 }
 
 
 // Class describing the overlap between a pair of oriented reads.
-class ChanZuckerberg::shasta::Dset64Test : public MultithreadedObject<Dset64Test> {
+class shasta::Dset64Test : public MultithreadedObject<Dset64Test> {
 public:
 
     Dset64Test(

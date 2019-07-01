@@ -206,19 +206,19 @@ public:
 
 
     // Operator[] return a MemoryAsContainer object.
-    MemoryAsContainer<T> operator[](Int i)
+    ::shasta::MemoryAsContainer<T> operator[](Int i)
     {
-        return MemoryAsContainer<T>(begin(i), end(i));
+        return ::shasta::MemoryAsContainer<T>(begin(i), end(i));
     }
-    MemoryAsContainer<const T> operator[](Int i) const
+    ::shasta::MemoryAsContainer<const T> operator[](Int i) const
     {
-        return MemoryAsContainer<const T>(begin(i), end(i));
+        return ::shasta::MemoryAsContainer<const T>(begin(i), end(i));
     }
-    MemoryAsContainer<T> front() {
+    ::shasta::MemoryAsContainer<T> front() {
         SHASTA_ASSERT(size() > 0);
         return (*this)[0];
     }
-    MemoryAsContainer<T> back() {
+    ::shasta::MemoryAsContainer<T> back() {
         SHASTA_ASSERT(size() > 0);
         return (*this)[size() - 1];
     }

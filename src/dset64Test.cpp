@@ -1,7 +1,7 @@
 // shasta.
 #include "dset64Test.hpp"
 #include "vector.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
@@ -14,7 +14,7 @@ using namespace ChanZuckerberg::shasta;
 
 
 
-void ChanZuckerberg::shasta::dset64Test(
+void shasta::dset64Test(
     uint64_t n,             // The number of items (vertices).
     uint64_t m,             // The number of union operations (edges).
     uint64_t threadCount,   // The number of threads to use.
