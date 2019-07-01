@@ -25,9 +25,7 @@ a group of aligned markers.
 
 namespace ChanZuckerberg {
     namespace shasta {
-        class CompressedMarker;
         class ConsensusCaller;
-        class LongBaseSequences;
         namespace MemoryMapped {
             template<class T> class Vector;
             template<class Int, class T> class VectorOfVectors;
@@ -48,6 +46,8 @@ namespace shasta {
         LocalMarkerGraphEdge
         >;
 
+    class CompressedMarker;
+    class LongBaseSequences;
 }
 
 

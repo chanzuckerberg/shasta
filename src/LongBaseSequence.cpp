@@ -1,5 +1,5 @@
 #include "LongBaseSequence.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 #include "vector.hpp"
@@ -87,7 +87,7 @@ void LongBaseSequences::append(size_t baseCountArgument)
 
 
 
-void ChanZuckerberg::shasta::testLongBaseSequence()
+void shasta::testLongBaseSequence()
 {
 
 

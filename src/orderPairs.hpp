@@ -4,26 +4,24 @@
 
 // Classes to sort pairs using various criteria.
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
 
-        template<class First, class Second> class OrderPairsByFirstOnly;
-        template<class First, class Second> class OrderPairsByFirstOnlyGreater;
+    template<class First, class Second> class OrderPairsByFirstOnly;
+    template<class First, class Second> class OrderPairsByFirstOnlyGreater;
 
-        template<class First, class Second> class OrderPairsBySecondOnly;
-        template<class First, class Second> class OrderPairsBySecondOnlyGreater;
+    template<class First, class Second> class OrderPairsBySecondOnly;
+    template<class First, class Second> class OrderPairsBySecondOnlyGreater;
 
-        template<class First, class Second> class OrderPairsBySecondThenByFirst;
-        template<class First, class Second> class OrderPairsBySecondGreaterThenByFirstLess;
+    template<class First, class Second> class OrderPairsBySecondThenByFirst;
+    template<class First, class Second> class OrderPairsBySecondGreaterThenByFirstLess;
 
-        template<class First, class Second> class OrderPairsBySizeOfSecondGreater;
+    template<class First, class Second> class OrderPairsBySizeOfSecondGreater;
 
-    }
 }
 
 
 
-template<class First, class Second> class ChanZuckerberg::shasta::OrderPairsByFirstOnly {
+template<class First, class Second> class shasta::OrderPairsByFirstOnly {
 public:
     using Pair = pair<First, Second>;
     bool operator()(const Pair& x, const Pair& y) const
@@ -34,7 +32,7 @@ public:
 
 
 
-template<class First, class Second> class ChanZuckerberg::shasta::OrderPairsByFirstOnlyGreater {
+template<class First, class Second> class shasta::OrderPairsByFirstOnlyGreater {
 public:
     using Pair = pair<First, Second>;
     bool operator()(const Pair& x, const Pair& y) const
@@ -45,7 +43,7 @@ public:
 
 
 
-template<class First, class Second> class ChanZuckerberg::shasta::OrderPairsBySecondOnly {
+template<class First, class Second> class shasta::OrderPairsBySecondOnly {
 public:
     using Pair = pair<First, Second>;
     bool operator()(const Pair& x, const Pair& y) const
@@ -56,7 +54,7 @@ public:
 
 
 
-template<class First, class Second> class ChanZuckerberg::shasta::OrderPairsBySecondOnlyGreater {
+template<class First, class Second> class shasta::OrderPairsBySecondOnlyGreater {
 public:
     using Pair = pair<First, Second>;
     bool operator()(const Pair& x, const Pair& y) const
@@ -67,7 +65,7 @@ public:
 
 
 
-template<class First, class Second> class ChanZuckerberg::shasta::OrderPairsBySecondThenByFirst {
+template<class First, class Second> class shasta::OrderPairsBySecondThenByFirst {
 public:
     bool operator()(const pair<First, Second>& x, const pair<First, Second>& y) const
     {
@@ -79,7 +77,7 @@ public:
 
 
 
-template<class First, class Second> class ChanZuckerberg::shasta::OrderPairsBySecondGreaterThenByFirstLess {
+template<class First, class Second> class shasta::OrderPairsBySecondGreaterThenByFirstLess {
 public:
     using Pair = pair<First, Second>;
     bool operator()(const Pair& x, const Pair& y) const
@@ -92,7 +90,7 @@ public:
 
 
 
-template<class First, class Second> class ChanZuckerberg::shasta::OrderPairsBySizeOfSecondGreater {
+template<class First, class Second> class shasta::OrderPairsBySizeOfSecondGreater {
 public:
     using Pair = pair<First, Second>;
     bool operator()(const Pair& x, const Pair& y) const

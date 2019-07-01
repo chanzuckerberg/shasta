@@ -21,15 +21,14 @@ kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarke
 #include "Kmer.hpp"
 #include "Uint.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
 
-        // Classes that will be used to represent markers
-        // when the restructuring of marker storage is complete.
-        class CompressedMarker;
-        class Marker;
-        class MarkerWithOrdinal;
-    }
+    // Classes that will be used to represent markers
+    // when the restructuring of marker storage is complete.
+    class CompressedMarker;
+    class Marker;
+    class MarkerWithOrdinal;
 }
 
 
@@ -49,7 +48,7 @@ namespace ChanZuckerberg {
 // than older processors did:
 // http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.455.4198&rep=rep1&type=pdf
 
-class ChanZuckerberg::shasta::CompressedMarker {
+class shasta::CompressedMarker {
 public:
 
     // The id of the k-mer for this marker.
@@ -60,15 +59,15 @@ public:
     Uint24 position;
 
 };
-static_assert(sizeof(ChanZuckerberg::shasta::CompressedMarker) ==
-    sizeof(ChanZuckerberg::shasta::KmerId) + sizeof(ChanZuckerberg::shasta::Uint24),
+static_assert(sizeof(shasta::CompressedMarker) ==
+    sizeof(shasta::KmerId) + sizeof(shasta::Uint24),
     "Unexpected size of class CompressedMarker.");
 
 
 
 // This stores the same information as CompressedMarker,
 // but using built-in, aligned integers.
-class ChanZuckerberg::shasta::Marker {
+class shasta::Marker {
 public:
 
     // The id of the k-mer for this marker.
@@ -92,7 +91,7 @@ public:
 // This also stores the ordinal, that is the index
 // of the marker in the oriented read, when the markers
 // are sorted by position in the read.
-class ChanZuckerberg::shasta::MarkerWithOrdinal : public Marker {
+class shasta::MarkerWithOrdinal : public Marker {
 public:
     uint32_t ordinal;
 

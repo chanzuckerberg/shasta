@@ -8,14 +8,10 @@
 #include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class ReadFlags;
-    }
-}
 namespace shasta {
     using namespace ChanZuckerberg::shasta;
     class LowHash;
+    class ReadFlags;
 }
 
 

@@ -30,35 +30,33 @@
 #include <queue>
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
 
-        // The last argument to findShortestPath is a work area with this type.
-        template<class Graph> using FindShortestPathQueue  =
-            std::priority_queue<
-                pair< uint64_t, typename Graph::vertex_descriptor>,
-                vector< pair< uint64_t, typename Graph::vertex_descriptor> >,
-                OrderPairsByFirstOnlyGreater< uint64_t, typename Graph::vertex_descriptor>
-            >;
+    // The last argument to findShortestPath is a work area with this type.
+    template<class Graph> using FindShortestPathQueue  =
+        std::priority_queue<
+            pair< uint64_t, typename Graph::vertex_descriptor>,
+            vector< pair< uint64_t, typename Graph::vertex_descriptor> >,
+            OrderPairsByFirstOnlyGreater< uint64_t, typename Graph::vertex_descriptor>
+        >;
 
-        template<class Graph> void findShortestPath(
-            Graph&,
-            typename Graph::vertex_descriptor vSource,
-            typename Graph::vertex_descriptor vTarget,
-            vector<typename Graph::vertex_descriptor>& path,
+    template<class Graph> void findShortestPath(
+        Graph&,
+        typename Graph::vertex_descriptor vSource,
+        typename Graph::vertex_descriptor vTarget,
+        vector<typename Graph::vertex_descriptor>& path,
 
-            // Work area. Does not need to be initialized.
-            // When calling findShortestPath repeatedly,
-            // use the same FindShortestPathQueue to reduce memory
-            // allocation activity.
-            FindShortestPathQueue<Graph>&
-            );
-    }
+        // Work area. Does not need to be initialized.
+        // When calling findShortestPath repeatedly,
+        // use the same FindShortestPathQueue to reduce memory
+        // allocation activity.
+        FindShortestPathQueue<Graph>&
+        );
 }
 
 
 
-template<class Graph> inline void ChanZuckerberg::shasta::findShortestPath(
+template<class Graph> inline void shasta::findShortestPath(
     Graph& graph,
     typename Graph::vertex_descriptor vSource,
     typename Graph::vertex_descriptor vTarget,

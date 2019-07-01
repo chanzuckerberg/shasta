@@ -4,13 +4,11 @@
 #include <cstdlib>
 #include "cstdint.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class ReadFlags;
-    }
+namespace shasta {
+    class ReadFlags;
 }
 
-class ChanZuckerberg::shasta::ReadFlags {
+class shasta::ReadFlags {
 public:
 
     // This is set for reads that are approximate palindromic,

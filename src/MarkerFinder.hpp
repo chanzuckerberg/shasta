@@ -6,7 +6,6 @@
 
 namespace ChanZuckerberg {
     namespace shasta {
-        class LongBaseSequences;
         namespace MemoryMapped {
             template<class T> class Vector;
             template<class Int, class T> class VectorOfVectors;
@@ -16,6 +15,7 @@ namespace ChanZuckerberg {
 namespace shasta {
     using namespace ChanZuckerberg::shasta;
     class MarkerFinder;
+    class LongBaseSequences;
 }
 
 
