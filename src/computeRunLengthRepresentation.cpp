@@ -1,5 +1,5 @@
 #include "computeRunLengthRepresentation.hpp"
-using namespace ChanZuckerberg;
+using namespace ::shasta;
 using namespace ChanZuckerberg::shasta;
 
 
@@ -9,7 +9,7 @@ using namespace ChanZuckerberg::shasta;
 // This returns false if the sequence contains a homopolymer run
 // of more than 255 bases, which cannot be represented
 // with a one-byte repeat count.
-bool ChanZuckerberg::shasta::computeRunLengthRepresentation(
+bool shasta::computeRunLengthRepresentation(
     const vector<Base>& sequence,
     vector<Base>& runLengthSequence,
     vector<uint8_t>& repeatCount)

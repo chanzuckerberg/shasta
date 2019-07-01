@@ -4,8 +4,8 @@
 #include "Base.hpp"
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
+namespace shasta {
+    using namespace ChanZuckerberg::shasta;
 
     // Given the raw representation of a sequence, compute its
     // run-length representation.
@@ -17,7 +17,6 @@ namespace ChanZuckerberg {
         vector<Base>& runLengthSequence,
         vector<uint8_t>& repeatCount);
 
-    }
 }
 
 #endif

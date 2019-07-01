@@ -4,29 +4,27 @@
 #include "shortestPath.hpp"
 
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class TestCompactUndirectedGraphEdge;
-        class TestCompactUndirectedGraphVertex {
-        public:
-            int id;
-            uint64_t distance;
-            uint8_t color;
-            TestCompactUndirectedGraphVertex(int id = 0) : id(id) {}
-            CompactUndirectedGraph<TestCompactUndirectedGraphVertex, TestCompactUndirectedGraphEdge>::vertex_descriptor predecessor;
-        };
-        class TestCompactUndirectedGraphEdge {
-        public:
-            uint64_t weight;
-            TestCompactUndirectedGraphEdge(uint64_t weight) :
-                weight(weight) {}
-        };
-    }
+namespace shasta {
+    class TestCompactUndirectedGraphEdge;
+    class TestCompactUndirectedGraphVertex {
+    public:
+        int id;
+        uint64_t distance;
+        uint8_t color;
+        TestCompactUndirectedGraphVertex(int id = 0) : id(id) {}
+        CompactUndirectedGraph<TestCompactUndirectedGraphVertex, TestCompactUndirectedGraphEdge>::vertex_descriptor predecessor;
+    };
+    class TestCompactUndirectedGraphEdge {
+    public:
+        uint64_t weight;
+        TestCompactUndirectedGraphEdge(uint64_t weight) :
+            weight(weight) {}
+    };
 }
+using namespace ChanZuckerberg::shasta;
 
 
-
-void ChanZuckerberg::shasta::testCompactUndirectedGraph1()
+void shasta::testCompactUndirectedGraph1()
 {
     using G = CompactUndirectedGraph<double, double>;
     using vertex_descriptor = G::vertex_descriptor;
@@ -82,7 +80,7 @@ void ChanZuckerberg::shasta::testCompactUndirectedGraph1()
 
 
 
-void ChanZuckerberg::shasta::testCompactUndirectedGraph2()
+void shasta::testCompactUndirectedGraph2()
 {
     using G = CompactUndirectedGraph<TestCompactUndirectedGraphVertex, TestCompactUndirectedGraphEdge>;
     using vertex_descriptor = G::vertex_descriptor;
