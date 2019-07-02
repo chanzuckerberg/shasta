@@ -8,7 +8,6 @@
 #include "cstdint.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     class MarkerGraph;
 

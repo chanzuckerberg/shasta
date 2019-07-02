@@ -2,9 +2,6 @@
 #include "Coverage.hpp"
 #include <cmath>
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
-using std::floor;
-using std::ceil;
 
 
 size_t MedianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensus_base) const{

@@ -11,7 +11,6 @@
 #include "string.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     // A long sequence of bases. Memory is not owned.
     class LongBaseSequenceView;

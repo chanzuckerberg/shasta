@@ -24,7 +24,6 @@ more information on the global read graph.
 #include <map>
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     // Forward declaration of types declared in this file.
     class LocalReadGraphVertex;

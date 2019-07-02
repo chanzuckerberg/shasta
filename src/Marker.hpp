@@ -22,7 +22,6 @@ kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarke
 #include "Uint.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     // Classes that will be used to represent markers
     // when the restructuring of marker storage is complete.

@@ -5,7 +5,6 @@
 #include "MultitreadedObject.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     class MarkerFinder;
     class LongBaseSequences;
 

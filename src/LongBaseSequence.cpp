@@ -1,6 +1,5 @@
 #include "LongBaseSequence.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 #include "vector.hpp"
 

@@ -1,6 +1,5 @@
 #include "MarkerGraph.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 const MarkerGraph::VertexId MarkerGraph::invalidVertexId = std::numeric_limits<VertexId>::max();
 const MarkerGraph::EdgeId MarkerGraph::invalidEdgeId = std::numeric_limits<EdgeId>::max();

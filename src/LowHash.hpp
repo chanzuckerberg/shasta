@@ -9,7 +9,6 @@
 #include "ReadId.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     class LowHash;
     class ReadFlags;
 }
