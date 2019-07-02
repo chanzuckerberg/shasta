@@ -3,8 +3,7 @@
 // Shasta.
 #include "testMarginCore.hpp"
 #include "SHASTA_ASSERT.hpp"
-using namespace ChanZuckerberg;
-using namespace ChanZuckerberg::shasta;
+using namespace ::shasta;
 
 // MarginCore.
 #include "marginPhase/callConsensus.h"
@@ -17,7 +16,7 @@ using namespace ChanZuckerberg::shasta;
 
 
 
-void ChanZuckerberg::shasta::testMarginCore()
+void shasta::testMarginCore()
 {
     // Get the parameters.
     const string fileName = "MarginPhase.json";

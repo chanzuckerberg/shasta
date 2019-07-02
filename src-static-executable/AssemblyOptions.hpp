@@ -9,10 +9,8 @@
 #include "string.hpp"
 #include "vector.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class AssemblyOptions;
-    }
+namespace shasta {
+    class AssemblyOptions;
 }
 
 
@@ -21,7 +19,7 @@ namespace ChanZuckerberg {
 // consistent with options names in shasta.conf,
 // even though we are violating naming conventions used
 // in the rest of the Shasta code.
-class ChanZuckerberg::shasta::AssemblyOptions {
+class shasta::AssemblyOptions {
 public:
 
     class ReadsOptions {

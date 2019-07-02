@@ -6,7 +6,6 @@
 #include "findMarkerId.hpp"
 #include "orderPairs.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>

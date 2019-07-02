@@ -18,7 +18,6 @@ Distance is number of edges on the global assembly graph.
 #include <boost/graph/adjacency_list.hpp>
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     // Forward declaration of types declared in this file.
     class LocalAssemblyGraphVertex;

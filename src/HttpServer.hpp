@@ -20,7 +20,6 @@
 #include "vector.hpp"
 
 namespace shasta {
-using namespace ChanZuckerberg::shasta;
     class HttpServer;
     class PostData;
 }

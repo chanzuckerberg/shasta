@@ -3,12 +3,6 @@
 
 #include <iosfwd>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::istream;
-        using std::ostream;
-    }
-}
 namespace shasta {
     using std::istream;
     using std::ostream;

@@ -23,17 +23,7 @@ a group of aligned markers.
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        class ConsensusCaller;
-        namespace MemoryMapped {
-            template<class T> class Vector;
-            template<class Int, class T> class VectorOfVectors;
-        }
-    }
-}
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     class LocalMarkerGraphVertex;
     class LocalMarkerGraphEdge;
@@ -47,6 +37,7 @@ namespace shasta {
         >;
 
     class CompressedMarker;
+    class ConsensusCaller;
     class LongBaseSequences;
 }
 

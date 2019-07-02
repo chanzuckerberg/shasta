@@ -2,14 +2,14 @@
 
 // Implementation of class HttpServer - see HttpServer.hpp for more information.
 
+// Shasta.
 #include "HttpServer.hpp"
 #include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
+// Boost libraries.
 #include <boost/algorithm/string.hpp>
-
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/v6_only.hpp>
@@ -18,7 +18,8 @@ using namespace boost;
 using namespace asio;
 using namespace ip;
 
-#include <chrono>
+// Standard library.
+#include "chrono.hpp"
 #include "fstream.hpp"
 #include "iostream.hpp"
 #include <sstream>
@@ -85,11 +86,10 @@ void HttpServer::explore(uint16_t port, bool localOnly)
 
           // Process the request.
           cout << timestamp << remoteEndpoint.address().to_string() << " " << flush;
-          const auto t0 = std::chrono::steady_clock::now();
+          const auto t0 = steady_clock::now();
           processRequest(s);
-          const auto t1 = std::chrono::steady_clock::now();
-          const std::chrono::duration<double> t01 = t1 - t0;
-          cout << timestamp << "Request satisfied in " << t01.count() << "s." << endl;
+          const auto t1 = steady_clock::now();
+          cout << timestamp << "Request satisfied in " << seconds(t1 - t0) << "s." << endl;
     }
 }
 

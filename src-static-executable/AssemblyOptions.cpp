@@ -1,6 +1,5 @@
 #include "AssemblyOptions.hpp"
-using namespace ChanZuckerberg;
-using namespace ChanZuckerberg::shasta;
+using namespace ::shasta;
 
 // Boost libraries.
 #include <boost/tokenizer.hpp>

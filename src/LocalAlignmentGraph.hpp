@@ -27,7 +27,6 @@ The alignment graph is being phased out in favor of the read graph
 #include <map>
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     class LocalAlignmentGraphVertex;
     class LocalAlignmentGraphEdge;

@@ -6,7 +6,6 @@
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>

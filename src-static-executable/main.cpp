@@ -10,22 +10,18 @@
 #include "buildId.hpp"
 #include "filesystem.hpp"
 #include "timestamp.hpp"
-namespace ChanZuckerberg {
-    namespace shasta {
-        using namespace ::shasta;
-        namespace main {
-            void main(int argumentCount, const char** arguments);
-            void runAssembly(
-                Assembler&,
-                const AssemblyOptions&,
-                vector<string> inputFastaFileNames);
-            void setupHugePages();
-        }
-        class AssemblyOptions;
+namespace shasta {
+    namespace main {
+        void main(int argumentCount, const char** arguments);
+        void runAssembly(
+            Assembler&,
+            const AssemblyOptions&,
+            vector<string> inputFastaFileNames);
+        void setupHugePages();
     }
+    class AssemblyOptions;
 }
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/program_options.hpp>
@@ -75,7 +71,7 @@ int main(int argumentCount, const char** arguments)
 
 
 
-void ChanZuckerberg::shasta::main::main(int argumentCount, const char** arguments)
+void shasta::main::main(int argumentCount, const char** arguments)
 {
     cout << buildId() << endl;
 
@@ -444,7 +440,7 @@ void ChanZuckerberg::shasta::main::main(int argumentCount, const char** argument
 // - The Data directory has already been created and set up, if necessary.
 // - The input Fasta file names are either absolute,
 //   or relative to the run directory, which is the current directory.
-void ChanZuckerberg::shasta::main::runAssembly(
+void shasta::main::runAssembly(
     Assembler& assembler,
     const AssemblyOptions& assemblyOptions,
     vector<string> inputFastaFileNames)
@@ -610,7 +606,7 @@ void ChanZuckerberg::shasta::main::runAssembly(
 // If the setting needs to be modified, it acquires
 // root privilege via sudo. This may result in the
 // user having to enter a password.
-void ChanZuckerberg::shasta::main::setupHugePages()
+void shasta::main::setupHugePages()
 {
 
     // Get the total memory size.

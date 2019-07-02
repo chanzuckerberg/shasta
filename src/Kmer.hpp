@@ -5,8 +5,6 @@
 #include <limits>
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
-
 
     // Types used to represent a k-mer and a k-mer id.
     // These limit the maximum k-mer length that can be used.
