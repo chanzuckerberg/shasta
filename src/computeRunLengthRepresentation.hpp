@@ -5,7 +5,6 @@
 #include "vector.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     // Given the raw representation of a sequence, compute its
     // run-length representation.

@@ -3,11 +3,6 @@
 
 #include <cstddef>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::size_t;
-    }
-}
 namespace shasta {
     using std::size_t;
 }

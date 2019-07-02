@@ -13,16 +13,6 @@ const double t01 = seconds(t1-t0);   // Can use auto instead of double.
 
 *******************************************************************************/
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::chrono::steady_clock;
-
-        template<class Duration> double seconds(Duration duration)
-        {
-            return std::chrono::duration<double>(duration).count();
-        }
-    }
-}
 namespace shasta {
     using std::chrono::steady_clock;
 

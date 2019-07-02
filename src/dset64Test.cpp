@@ -2,7 +2,6 @@
 #include "dset64Test.hpp"
 #include "vector.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>

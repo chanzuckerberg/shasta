@@ -1,6 +1,5 @@
 #include "Base.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 #include "algorithm.hpp"
 

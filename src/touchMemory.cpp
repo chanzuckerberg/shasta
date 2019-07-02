@@ -2,7 +2,6 @@
 
 #include "touchMemory.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Touch a range of memory in order to cause the
 // supporting pages of virtual memory to be loaded in real memory.

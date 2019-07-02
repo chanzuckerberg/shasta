@@ -21,7 +21,6 @@ namespace shasta {
             weight(weight) {}
     };
 }
-using namespace ChanZuckerberg::shasta;
 
 
 void shasta::testCompactUndirectedGraph1()

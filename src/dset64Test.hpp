@@ -7,7 +7,6 @@
 #include <map>
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     void dset64Test(
         uint64_t n,             // The number of items (vertices).
         uint64_t m,             // The number of union operations (edges).

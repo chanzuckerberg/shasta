@@ -27,7 +27,6 @@ the "best" base and repeat count.
 #include "vector.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     class Coverage;
     class ConsensusCaller;
     class Consensus;

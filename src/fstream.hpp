@@ -3,12 +3,6 @@
 
 #include <fstream>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::ifstream;
-        using std::ofstream;
-    }
-}
 namespace shasta {
     using std::ifstream;
     using std::ofstream;

@@ -1,6 +1,5 @@
 #include "Coverage.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 
 

@@ -26,7 +26,6 @@ position of a multiple sequence alignment.
 
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     class Coverage;
     class CoverageData;
     class CompressedCoverageData;
