@@ -1,5 +1,5 @@
 #include "computeRunLengthRepresentation.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 
 

@@ -4,7 +4,7 @@
 #include "Assembler.hpp"
 #include "AssembledSegment.hpp"
 #include "LocalAssemblyGraph.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/uuid/uuid.hpp>

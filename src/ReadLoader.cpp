@@ -3,7 +3,7 @@
 #include "computeRunLengthRepresentation.hpp"
 #include "splitRange.hpp"
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Standard library.
 #include "tuple.hpp"

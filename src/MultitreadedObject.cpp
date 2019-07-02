@@ -1,6 +1,6 @@
 #include "MultitreadedObject.hpp"
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 #include <chrono>
 

@@ -3,7 +3,7 @@
 // Shasta.
 #include "testMarginCore.hpp"
 #include "SHASTA_ASSERT.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // MarginCore.
 #include "marginPhase/callConsensus.h"

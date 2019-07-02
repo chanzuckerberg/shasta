@@ -1,6 +1,6 @@
 #include "SimpleConsensusCaller.hpp"
 #include "Coverage.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 
 Consensus SimpleConsensusCaller::operator()(

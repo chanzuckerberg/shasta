@@ -23,7 +23,7 @@
 #include "LocalAlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/tokenizer.hpp>

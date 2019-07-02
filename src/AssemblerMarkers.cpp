@@ -2,7 +2,7 @@
 #include "Assembler.hpp"
 #include "findMarkerId.hpp"
 #include "MarkerFinder.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 
 

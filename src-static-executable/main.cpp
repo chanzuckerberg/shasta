@@ -21,7 +21,7 @@ namespace shasta {
     }
     class AssemblyOptions;
 }
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/program_options.hpp>

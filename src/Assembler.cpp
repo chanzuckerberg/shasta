@@ -4,7 +4,7 @@
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 
 

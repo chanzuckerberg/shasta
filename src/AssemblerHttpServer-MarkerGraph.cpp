@@ -5,7 +5,7 @@
 #include "ConsensusCaller.hpp"
 #include "iterator.hpp"
 #include "LocalMarkerGraph.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>

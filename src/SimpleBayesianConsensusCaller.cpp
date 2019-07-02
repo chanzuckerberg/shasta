@@ -13,7 +13,7 @@
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "Coverage.hpp"
 #include "ConsensusCaller.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 using Separator = boost::char_separator<char>;
 using Tokenizer = boost::tokenizer<Separator>;

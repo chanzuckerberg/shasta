@@ -6,7 +6,7 @@
 #include "HttpServer.hpp"
 #include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/algorithm/string.hpp>

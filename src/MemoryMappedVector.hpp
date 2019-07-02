@@ -722,7 +722,7 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::remove()
     } else {
         const string savedFileName = fileName;
         close();    // This forgets the fileName.
-        ::shasta::filesystem::remove(savedFileName);
+        filesystem::remove(savedFileName);
     }
 }
 

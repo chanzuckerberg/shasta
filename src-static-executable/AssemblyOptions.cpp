@@ -1,5 +1,5 @@
 #include "AssemblyOptions.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/tokenizer.hpp>

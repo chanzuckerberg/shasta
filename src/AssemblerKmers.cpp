@@ -1,5 +1,5 @@
 #include "Assembler.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 #include <random>
 

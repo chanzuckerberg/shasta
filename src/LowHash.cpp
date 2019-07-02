@@ -2,7 +2,7 @@
 #include "LowHash.hpp"
 #include "ReadFlags.hpp"
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"

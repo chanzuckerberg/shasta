@@ -1,6 +1,6 @@
 #include "Assembler.hpp"
 #include "LowHash.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 
 

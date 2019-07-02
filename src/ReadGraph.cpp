@@ -1,6 +1,6 @@
 // Shasta.
 #include "ReadGraph.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>

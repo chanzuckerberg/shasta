@@ -1,7 +1,7 @@
 // Shasta.
 #include "LocalReadGraph.hpp"
 #include "Alignment.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>

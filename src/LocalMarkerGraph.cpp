@@ -5,7 +5,7 @@
 #include "approximateTopologicalSort.hpp"
 #include "findMarkerId.hpp"
 #include "orderPairs.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>

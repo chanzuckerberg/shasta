@@ -1,7 +1,7 @@
 // shasta.
 #include "Assembler.hpp"
 #include "ReadLoader.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Standard libraries.
 #include "iterator.hpp"

@@ -1,7 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "LocalAlignmentGraph.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Standard libraries.
 #include "chrono.hpp"

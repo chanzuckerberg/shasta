@@ -479,7 +479,7 @@ template<class T> inline void shasta::MemoryMapped::Object<T>::remove()
 {
     const string savedFileName = fileName;
     close();    // This forgets the fileName.
-    ::shasta::filesystem::remove(savedFileName);
+    filesystem::remove(savedFileName);
 }
 
 

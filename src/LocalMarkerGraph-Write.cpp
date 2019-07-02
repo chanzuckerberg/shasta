@@ -5,7 +5,7 @@
 #include "ConsensusCaller.hpp"
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>

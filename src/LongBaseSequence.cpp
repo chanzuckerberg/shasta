@@ -1,5 +1,5 @@
 #include "LongBaseSequence.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 #include "vector.hpp"
 

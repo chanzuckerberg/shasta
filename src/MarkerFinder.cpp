@@ -3,7 +3,7 @@
 #include "LongBaseSequence.hpp"
 #include "ReadId.hpp"
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Standard library.
 #include <chrono>

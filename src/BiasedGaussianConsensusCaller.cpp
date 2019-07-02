@@ -1,6 +1,6 @@
 #include "BiasedGaussianConsensusCaller.hpp"
 #include "Coverage.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 #include <cmath>
 

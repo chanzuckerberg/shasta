@@ -14,7 +14,7 @@
 #include "testSpoa.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Pybind11
 #include <pybind11/pybind11.h>

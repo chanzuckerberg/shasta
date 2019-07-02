@@ -2,7 +2,7 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Standard libraries.
 #include "chrono.hpp"

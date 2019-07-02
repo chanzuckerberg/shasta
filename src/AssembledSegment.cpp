@@ -1,5 +1,5 @@
 #include "AssembledSegment.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 #include "iterator.hpp"
 

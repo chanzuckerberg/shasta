@@ -1,7 +1,7 @@
 #include "MedianConsensusCaller.hpp"
 #include "Coverage.hpp"
 #include <cmath>
-using namespace ::shasta;
+using namespace shasta;
 
 
 size_t MedianConsensusCaller::predict_runlength(const Coverage &coverage, AlignedBase consensus_base) const{

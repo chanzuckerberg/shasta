@@ -1,5 +1,5 @@
 #include "Base.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 #include "algorithm.hpp"
 

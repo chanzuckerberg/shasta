@@ -16,7 +16,7 @@ which is the version used in CentOs 7).
 #include "filesystem.hpp"
 #include "SHASTA_ASSERT.hpp"
 #include "stdexcept.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Linux.
 #include <dirent.h>

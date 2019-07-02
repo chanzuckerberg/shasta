@@ -1,7 +1,7 @@
 // shasta.
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 
 #ifndef SHASTA_STATIC_EXECUTABLE

@@ -6,7 +6,7 @@
 #include "LocalMarkerGraph.hpp"
 #endif
 #include "timestamp.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 // Spoa.
 #include "spoa/spoa.hpp"

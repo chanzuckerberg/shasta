@@ -1,5 +1,5 @@
 #include "AssemblyGraph.hpp"
-using namespace ::shasta;
+using namespace shasta;
 
 #include "fstream.hpp"
 
