@@ -11,10 +11,8 @@
 // Gcc (for backtraces).
 #include "execinfo.h"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        inline void writeBackTrace();
-    }
+namespace shasta {
+    inline void writeBackTrace();
 }
 
 #define SHASTA_ASSERT(expression) ((expression) ? (static_cast<void>(0)) : \
@@ -22,7 +20,7 @@ namespace ChanZuckerberg {
 
 
 #if 0
-inline void ChanZuckerberg::shasta::writeBackTrace()
+inline void shasta::writeBackTrace()
 {
     const int bufferSize = 64;  // To avoid extremely long, useless backtraces.
     void* buffer[bufferSize];

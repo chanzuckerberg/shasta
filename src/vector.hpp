@@ -3,11 +3,6 @@
 
 #include <vector>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::vector;
-    }
-}
 namespace shasta {
     using std::vector;
 }

@@ -2,7 +2,6 @@
 #include "MinHash.hpp"
 #include "timestamp.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Standard library.
 #include "chrono.hpp"

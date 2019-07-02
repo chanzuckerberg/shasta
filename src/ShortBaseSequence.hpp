@@ -14,7 +14,6 @@
 
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     // A short sequence of bases.
     // Uses only two integers, so its capacity is limited

@@ -8,7 +8,7 @@
 #include "MemoryMappedVector.hpp"
 #include "MemoryAsContainer.hpp"
 
-// Standard libraries, partially injected into the ChanZuckerberg::Rna1 namespace.
+// Standard libraries.
 #include "algorithm.hpp"
 #include "utility.hpp"
 #include "vector.hpp"

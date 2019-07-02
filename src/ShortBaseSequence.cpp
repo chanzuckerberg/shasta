@@ -2,7 +2,6 @@
 #include "algorithm.hpp"
 #include "SHASTA_ASSERT.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 #include <iomanip>
 

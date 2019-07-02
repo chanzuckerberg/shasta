@@ -14,7 +14,6 @@
 #include "Coverage.hpp"
 #include "ConsensusCaller.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 using Separator = boost::char_separator<char>;
 using Tokenizer = boost::tokenizer<Separator>;

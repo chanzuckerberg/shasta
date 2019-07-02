@@ -3,12 +3,6 @@
 
 #include <string>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::to_string;
-        using std::string;
-    }
-}
 namespace shasta {
     using std::to_string;
     using std::string;

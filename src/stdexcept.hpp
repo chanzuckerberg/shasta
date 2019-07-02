@@ -3,12 +3,6 @@
 
 #include <stdexcept>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::exception;
-        using std::runtime_error;
-    }
-}
 namespace shasta {
     using std::exception;
     using std::runtime_error;

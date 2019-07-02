@@ -3,12 +3,6 @@
 
 #include <memory>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::make_shared;
-        using std::shared_ptr;
-    }
-}
 namespace shasta {
     using std::make_shared;
     using std::shared_ptr;

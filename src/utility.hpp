@@ -3,12 +3,6 @@
 
 #include <utility>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::make_pair;
-        using std::pair;
-    }
-}
 namespace shasta {
     using std::make_pair;
     using std::pair;

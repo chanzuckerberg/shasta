@@ -29,7 +29,6 @@ but read-only form using MemoryMapped data structures.
 #include <unordered_map>
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     class ReadGraph;
 
 

@@ -1,10 +1,9 @@
 #include "testSpoa.hpp"
-using namespace ChanZuckerberg;
-using namespace ChanZuckerberg::shasta;
+using namespace shasta;
 
 #include "spoa/spoa.hpp"
 
-void ChanZuckerberg::shasta::testSpoa()
+void shasta::testSpoa()
 {
 
 

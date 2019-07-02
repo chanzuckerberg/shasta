@@ -33,8 +33,7 @@
 #include "utility.hpp"
 #include "vector.hpp"
 
-namespace shasta {\
-    using namespace ChanZuckerberg::shasta;
+namespace shasta {
     template<class T> class MultithreadedObject;
     void testMultithreadedObject();
     class MultithreadedObjectTestClass;

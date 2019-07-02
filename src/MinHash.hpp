@@ -8,7 +8,6 @@
 #include "ReadId.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     class MinHash;
 }
 

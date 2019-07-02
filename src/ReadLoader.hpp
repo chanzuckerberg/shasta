@@ -11,7 +11,6 @@
 #include "string.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
     class ReadLoader;
 }
 
