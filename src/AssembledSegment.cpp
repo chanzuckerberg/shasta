@@ -1,6 +1,5 @@
 #include "AssembledSegment.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 #include "iterator.hpp"
 

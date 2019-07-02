@@ -29,7 +29,6 @@ To find a good alignment, we find a shortest path in the graph.
 #include "vector.hpp"
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     class AlignmentGraphVertex;
     class AlignmentGraphEdge;

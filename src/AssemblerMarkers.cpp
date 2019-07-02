@@ -3,7 +3,6 @@
 #include "findMarkerId.hpp"
 #include "MarkerFinder.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 
 

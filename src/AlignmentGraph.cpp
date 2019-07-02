@@ -2,7 +2,6 @@
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 
 #ifndef SHASTA_STATIC_EXECUTABLE

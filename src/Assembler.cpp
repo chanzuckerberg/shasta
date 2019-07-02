@@ -5,7 +5,6 @@
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 
 

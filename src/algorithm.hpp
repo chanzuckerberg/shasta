@@ -3,18 +3,6 @@
 
 #include <algorithm>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::copy;
-        using std::fill;
-        using std::find;
-        using std::max;
-        using std::min;
-        using std::sort;
-        using std::swap;
-        using std::unique;
-    }
-}
 namespace shasta {
     using std::copy;
     using std::fill;

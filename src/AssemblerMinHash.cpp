@@ -1,7 +1,6 @@
 #include "Assembler.hpp"
 #include "MinHash.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 
 

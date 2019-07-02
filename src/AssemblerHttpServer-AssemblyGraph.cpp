@@ -5,7 +5,6 @@
 #include "AssembledSegment.hpp"
 #include "LocalAssemblyGraph.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/uuid/uuid.hpp>

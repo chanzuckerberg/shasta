@@ -6,7 +6,6 @@
 #include "iterator.hpp"
 #include "LocalMarkerGraph.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>

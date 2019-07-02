@@ -7,7 +7,6 @@
 #endif
 #include "timestamp.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Spoa.
 #include "spoa/spoa.hpp"

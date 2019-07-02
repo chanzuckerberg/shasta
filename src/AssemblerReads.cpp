@@ -2,7 +2,6 @@
 #include "Assembler.hpp"
 #include "ReadLoader.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Standard libraries.
 #include "iterator.hpp"

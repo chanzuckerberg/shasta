@@ -1,6 +1,5 @@
 #include "AssemblyGraph.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 #include "fstream.hpp"
 

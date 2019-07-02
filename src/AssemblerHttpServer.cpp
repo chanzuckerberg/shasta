@@ -24,7 +24,6 @@
 #include "LocalReadGraph.hpp"
 #include "timestamp.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Boost libraries.
 #include <boost/tokenizer.hpp>

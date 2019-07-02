@@ -3,11 +3,6 @@
 
 #include <array>
 
-namespace ChanZuckerberg {
-    namespace shasta {
-        using std::array;
-    }
-}
 namespace shasta {
     using std::array;
 }

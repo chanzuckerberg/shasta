@@ -2,7 +2,6 @@
 #include "Assembler.hpp"
 #include "LocalAlignmentGraph.hpp"
 using namespace ::shasta;
-using namespace ChanZuckerberg::shasta;
 
 // Standard libraries.
 #include "chrono.hpp"

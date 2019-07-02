@@ -29,21 +29,9 @@
 #include "string.hpp"
 #include "tuple.hpp"
 
-namespace ChanZuckerberg {
-    namespace shasta {
-
-        // Forward declarations of classes defined elsewhere.
-        namespace MemoryMapped {
-            template<class Int, class T> class VectorOfVectors;
-        }
-
-    }
-}
-
 
 
 namespace shasta {
-    using namespace ChanZuckerberg::shasta;
 
     class Assembler;
     class AssemblerInfo;
