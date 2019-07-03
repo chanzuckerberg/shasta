@@ -74,9 +74,18 @@ int LocalAssemblyGraph::baseCount(edge_descriptor e) const
         return -1;
     }
 
-    // Get the repeat counts for this vertex.
+
+    // Get the global edge id for this edge or its reverse complemented
+    // (the one that was assembled).
     const LocalAssemblyGraph& graph = *this;
-    const EdgeId edgeId = graph[e].edgeId;
+    const LocalAssemblyGraphEdge& edge = graph[e];
+    EdgeId edgeId = edge.edgeId;
+    if(!globalAssemblyGraph.isAssembledEdge(edgeId)) {
+        edgeId = globalAssemblyGraph.reverseComplementEdge[edgeId];
+    }
+    SHASTA_ASSERT(globalAssemblyGraph.isAssembledEdge(edgeId));
+
+    // Get the repeat counts for this edge.
     const MemoryAsContainer<uint8_t> repeatCounts = globalAssemblyGraph.repeatCounts[edgeId];
 
 
@@ -309,7 +318,10 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
 
 void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
+    // Get the information we need.
     const LocalAssemblyGraphEdge& edge = graph[e];
+    const EdgeId edgeId = edge.edgeId;
+    const EdgeId edgeIdRc = graph.globalAssemblyGraph.reverseComplementEdge[edgeId];
     const size_t length = graph.edgeLength(e);
     const int baseCount = graph.baseCount(e);
 
@@ -317,19 +329,33 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     s << "[";
 
     // Tooltip.
-    s << "tooltip=\"Assembly graph edge " << edge.edgeId << ", " << baseCount << " bases, " << length << " marker graph edges\"";
-    s << "labeltooltip=\"Edge " << edge.edgeId << ", " << baseCount << " bases, " << length << " marker graph edges\"";
+    const string tooltipText =
+        "Assembly graph edge " + to_string(edgeId) + ", " +
+        " reverse complement of assembly graph edge " + to_string(edgeIdRc) + ", " +
+        to_string(length) + " marker graph edges, " +
+        to_string(baseCount) + " bases";
+    s << " tooltip=\"" << tooltipText << "\"";
+    s << " labeltooltip=\"" << tooltipText << "\"";
 
     // URL
     s << " URL=\"exploreAssemblyGraphEdge?edgeId=" << edge.edgeId << "\"";
 
     // Label.
+
     if(showEdgeLabels) {
-        s << "label=\"" << edge.edgeId;
-        if(baseCount > 0) {
-            s << "\\n" << baseCount;
-        }
-        s << "\"";
+        const string labelColor = "pink";
+        s <<
+            " label=<<table"
+            " color=\"black\""
+            " bgcolor=\"" << labelColor << "\""
+            " border=\"1\""
+            " cellborder=\"0\""
+            " cellspacing=\"0\""
+            ">"
+            "<tr><td>" << edgeId << "_" << edgeIdRc << "</td></tr>"
+            "<tr><td>" << length << "</td></tr>"
+            "<tr><td>" << baseCount << "</td></tr>"
+            "</table>> decorate=true";
     }
 
     // If the edge was not marked as a DAG edge during approximate topological sort,
