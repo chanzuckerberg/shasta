@@ -1235,10 +1235,13 @@ private:
     AssembleData assembleData;
     void assembleThreadFunction(size_t threadId);
 
+
+
     // Write the assembly graph in GFA 1.0 format defined here:
     // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
 public:
     void writeGfa1(const string& fileName);
+    void writeGfa1BothStrands(const string& fileName);
 private:
     // Construct the CIGAR string given two vectors of repeat counts.
     // Used by writeGfa1.

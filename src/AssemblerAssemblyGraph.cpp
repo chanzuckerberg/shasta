@@ -820,6 +820,147 @@ void Assembler::writeGfa1(const string& fileName)
 
 
 
+// Write the assembly graph in GFA 1.0 format defined here:
+// https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
+// This version writes a GFA file containing both strands.
+void Assembler::writeGfa1BothStrands(const string& fileName)
+{
+    using VertexId = AssemblyGraph::VertexId;
+    using EdgeId = AssemblyGraph::EdgeId;
+
+    cout << timestamp << "writeGfa1BothStrands begins" << endl;
+
+    ofstream gfa(fileName);
+
+    // Write the header line.
+    gfa << "H\tVN:Z:1.0\n";
+
+    // Write a segment record for each edge.
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
+
+        // Get the id of the reverse complemented edge.
+        const EdgeId edgeIdRc = assemblyGraph.reverseComplementEdge[edgeId];
+
+        // Write the name to make it easy to keep track of reverse
+        // complemented edges.
+        gfa << "S\t" << edgeId << "_" << edgeIdRc << "\t";
+
+        // Write the sequence.
+        if(assemblyGraph.isAssembledEdge(edgeId)) {
+
+            // This edge was assembled. We can just write the stored sequence.
+            const auto sequence = assemblyGraph.sequences[edgeId];
+            const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
+            SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            for(size_t i=0; i<sequence.baseCount; i++) {
+                const Base b = sequence[i];
+                const uint8_t repeatCount = repeatCounts[i];
+                for(size_t k=0; k<repeatCount; k++) {
+                    gfa << b;
+                }
+            }
+        } else {
+
+            // This edge was not assembled. We write out the reverse
+            // complemented sequence of the reverse complemented edge.
+            SHASTA_ASSERT(assemblyGraph.isAssembledEdge(edgeIdRc));
+            const auto sequence = assemblyGraph.sequences[edgeIdRc];
+            const auto repeatCounts = assemblyGraph.repeatCounts[edgeIdRc];
+            SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            for(size_t i=0; i<sequence.baseCount; i++) {
+                const size_t j = sequence.baseCount - 1 - i;
+                const Base b = sequence[j].complement();
+                const uint8_t repeatCount = repeatCounts[j];
+                for(size_t k=0; k<repeatCount; k++) {
+                    gfa << b;
+                }
+            }
+
+        }
+        gfa << "\n";
+    }
+
+
+
+    // Write GFA links.
+    // For each vertex in the assembly graph there is a link for
+    // each combination of in-edges and out-edges.
+    // Therefore each assembly graph vertex generates a number of
+    // links equal to the product of its in-degree and out-degree.
+    const size_t k = assemblerInfo->k;
+    string cigarString;
+    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
+
+        // In-edges.
+        const MemoryAsContainer<EdgeId> edges0 = assemblyGraph.edgesByTarget[vertexId];
+
+        // Out-edges.
+        const MemoryAsContainer<EdgeId> edges1 = assemblyGraph.edgesBySource[vertexId];
+
+        // Loop over in-edges.
+        for(const EdgeId edge0: edges0) {
+            const EdgeId edge0Rc = assemblyGraph.reverseComplementEdge[edge0];
+
+            // Get the last k repeat counts of edge0.
+            vector<uint8_t> lastRepeatCounts0(k);
+            if(assemblyGraph.isAssembledEdge(edge0)) {
+                const MemoryAsContainer<uint8_t> storedRepeatCounts0 = assemblyGraph.repeatCounts[edge0];
+                const auto end0 = storedRepeatCounts0.end();
+                copy(end0-k, end0, lastRepeatCounts0.begin());
+            } else {
+                SHASTA_ASSERT(assemblyGraph.isAssembledEdge(edge0Rc));
+                const MemoryAsContainer<uint8_t> storedRepeatCounts0Rc = assemblyGraph.repeatCounts[edge0Rc];
+                const auto begin0Rc = storedRepeatCounts0Rc.begin();
+                copy(begin0Rc, begin0Rc+k, lastRepeatCounts0.begin());
+                std::reverse(lastRepeatCounts0.begin(), lastRepeatCounts0.end());
+            }
+
+            // Loop over in-edges.
+            for(const EdgeId edge1: edges1) {
+                const EdgeId edge1Rc = assemblyGraph.reverseComplementEdge[edge1];
+
+                // Get the first k repeat counts of edge1.
+                vector<uint8_t> firstRepeatCounts1(k);
+                if(assemblyGraph.isAssembledEdge(edge1)) {
+                    const MemoryAsContainer<uint8_t> storedRepeatCounts1 = assemblyGraph.repeatCounts[edge1];
+                    const auto begin1 = storedRepeatCounts1.begin();
+                    copy(begin1, begin1+k, firstRepeatCounts1.begin());
+                } else {
+                    SHASTA_ASSERT(assemblyGraph.isAssembledEdge(edge1Rc));
+                    const MemoryAsContainer<uint8_t> storedRepeatCounts1Rc = assemblyGraph.repeatCounts[edge1Rc];
+                    const auto end1Rc = storedRepeatCounts1Rc.end();
+                    copy(end1Rc-k, end1Rc, firstRepeatCounts1.begin());
+                    std::reverse(firstRepeatCounts1.begin(), firstRepeatCounts1.end());
+                }
+
+
+                // Construct the cigar string.
+                constructCigarString(
+                    MemoryAsContainer<uint8_t>(
+                        lastRepeatCounts0.data(),
+                        lastRepeatCounts0.data() + lastRepeatCounts0.size()),
+                    MemoryAsContainer<uint8_t>(
+                        firstRepeatCounts1.data(),
+                        firstRepeatCounts1.data() + firstRepeatCounts1.size()),
+                    cigarString);
+
+
+                // Write out the link record for this edge.
+                // Note that in the double stranded version of GFA
+                // output all links are written with orientation ++.
+                gfa << "L\t" <<
+                    edge0 << "_" << edge0Rc << "\t+\t" <<
+                    edge1 << "_" << edge1Rc << "\t+\t" <<
+                    cigarString << "\n";
+            }
+        }
+    }
+
+    cout << timestamp << "writeGfa1BothStrands ends" << endl;
+
+}
+
+
 // Write assembled sequences in FASTA format.
 void Assembler::writeFasta(const string& fileName)
 {
