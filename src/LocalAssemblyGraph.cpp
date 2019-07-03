@@ -366,6 +366,13 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
         s << " constraint=false";
     }
 
+    // Thickness.
+    const double thickness = 0.05 * std::pow(double(baseCount), 0.3);
+    s << " penwidth=";
+    const auto oldPrecision = s.precision(4);
+    s <<  thickness;
+    s.precision(oldPrecision);
+
 
     // End edge attributes.
     s << "]";
