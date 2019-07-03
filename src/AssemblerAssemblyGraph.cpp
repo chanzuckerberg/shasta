@@ -1287,6 +1287,8 @@ bool Assembler::extractLocalAssemblyGraph(
 
     }
 
+    // Approximate topological sort.
+    graph.approximateTopologicalSort();
 
     return true;
 }

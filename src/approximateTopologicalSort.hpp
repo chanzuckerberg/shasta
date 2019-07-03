@@ -32,7 +32,7 @@ Vertices:
   beginning at 0.
 Edge:
 - isDagEdge (bool), set to true by this function for edges that contributed
-  to the topolical sort computations. The remaining
+  to the topological sort computations. The remaining
   edges have isDagEdge set to false. They were excluded because they caused cycles.
 
 Note that the order in which the edges are processed determines which

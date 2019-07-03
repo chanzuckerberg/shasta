@@ -1,5 +1,6 @@
 // Shasta.
 #include "LocalAssemblyGraph.hpp"
+#include "approximateTopologicalSort.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -87,6 +88,36 @@ int LocalAssemblyGraph::baseCount(edge_descriptor e) const
     return count;
 }
 
+
+
+// Approximate topological sort.
+void LocalAssemblyGraph::approximateTopologicalSort()
+{
+    LocalAssemblyGraph& graph = *this;
+
+    // Create a table containing, for each edge, the number
+    // of corresponding marker graph edges.
+    vector<pair<uint64_t, edge_descriptor> > edgeTable;
+    BGL_FORALL_EDGES(e, graph, LocalAssemblyGraph) {
+        const EdgeId edgeId = graph[e].edgeId;
+        const size_t markerGraphEdgeCount = globalAssemblyGraph.edgeLists.size(edgeId);
+        edgeTable.push_back(make_pair(markerGraphEdgeCount, e));
+    }
+
+    // Sort by decreasing corresponding marker graph edges.
+    sort(edgeTable.begin(), edgeTable.end(),
+        std::greater< pair<uint32_t, edge_descriptor> >());
+
+    // Gather the edge descriptors in this order.
+    vector<edge_descriptor> sortedEdges;
+    for(const auto& p: edgeTable) {
+        sortedEdges.push_back(p.second);
+    }
+
+    // Do the approximate topological sort using this order.
+    shasta::approximateTopologicalSort(graph, sortedEdges);
+
+}
 
 
 
@@ -299,6 +330,14 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
             s << "\\n" << baseCount;
         }
         s << "\"";
+    }
+
+    // If the edge was not marked as a DAG edge during approximate topological sort,
+    // tell graphviz not to use it in constraint assignment.
+    // This results in better graph layouts when using dot,
+    // because back-edges tend to be low coverage edges.
+    if(useDotLayout && !edge.isDagEdge) {
+        s << " constraint=false";
     }
 
 

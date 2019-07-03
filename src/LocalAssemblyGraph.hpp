@@ -49,6 +49,10 @@ public:
     // The distance from the start vertex.
     int distance;
 
+    // Fields used by approximateTopologicalSort.
+    uint32_t color = 0;
+    size_t rank = 0;
+
     LocalAssemblyGraphVertex(
         AssemblyGraph::VertexId assemblyGraphVertexId,
         MarkerGraph::VertexId markerGraphVertexId,
@@ -67,6 +71,9 @@ public:
     // The global edge id of the edge of the global assembly
     // graph that corresponds to this edge.
     AssemblyGraph::EdgeId edgeId;
+
+    // Field used by approximateTopologicalSort.
+    bool isDagEdge = true;
 };
 
 
@@ -116,6 +123,8 @@ public:
         bool showVertexLabels,
         bool showEdgeLabels);
 
+    // Approximate topological sort.
+    void approximateTopologicalSort();
 
 private:
 
