@@ -285,13 +285,21 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         //     *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
         html <<
             "<tr><td>Vertex" <<
-            "<td class=centered>" << i << "<td>"
+            "<td class=centered title='Vertex index in chain'>" << i << "<td>"
             "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
-            "<td class=centered>" << vertexCoverage[i] <<
-            "<td class=centered>" << vertexOffsets[i] <<
-            "<td class=centered>" << vertexRunLengthRange[i].first <<
-            "<td class=centered>" << vertexRunLengthRange[i].second <<
-            "<td style='font-family:courier'>";
+            "<td class=centered title='Vertex coverage'>" << vertexCoverage[i] <<
+            "<td class=centered title='Vertex offset in assembled RLE sequence'>" <<
+            vertexOffsets[i] <<
+            "<td class=centered "
+            "title='Begin offset of RLE sequence contributed by this vertex'>" <<
+            vertexRunLengthRange[i].first <<
+            "<td class=centered "
+            "title='End offset (one past) of RLE sequence contributed by this vertex'>" <<
+            vertexRunLengthRange[i].second <<
+            "<td style='font-family:courier' title="
+            "'Vertex consensus RLE sequence. Portion contributed to assembly is highlighted.'>";
+
+        // Vertex RLE sequence.
         for(size_t j=0; j<vertexSequence.size(); j++) {
             if(j==vertexAssembledPortion[i].first &&
                 vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
@@ -321,9 +329,16 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
             }
         }
         html <<
-            "<td class=centered>" << vertexRawRange[i].first <<
-            "<td class=centered>" << vertexRawRange[i].second <<
-            "<td style='font-family:courier'>";
+            "<td class=centered "
+            "title='Begin offset of raw sequence contributed by this vertex'>" <<
+            vertexRawRange[i].first <<
+            "<td class=centered "
+            "title='End offset (one past) of raw sequence contributed by this vertex'>" <<
+            vertexRawRange[i].second <<
+            "<td style='font-family:courier' "
+            "title='Vertex consensus raw sequence. Portion contributed to assembly is highlighted.'>";
+
+        // Vertex raw sequence.
         for(size_t j=0; j<vertexSequence.size(); j++) {
             if(j==vertexAssembledPortion[i].first &&
                 vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
