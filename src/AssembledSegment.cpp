@@ -301,7 +301,8 @@ void AssembledSegment::writeDetailHtml(ostream& html, bool showDetails) const
         html <<
             "<tr><td>Vertex" <<
             "<td class=centered title='Vertex index in chain'>" << i << "<td>"
-            "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
+            "<td class=centered><a href='exploreMarkerGraphVertex?vertexId=" <<
+            vertexId << "'>" << vertexId << "</a>"
             "<td class=centered title='Vertex coverage'>" << vertexCoverage[i] <<
             "<td class=centered title='Vertex offset in assembled RLE sequence'>" <<
             vertexOffsets[i] <<
@@ -394,7 +395,7 @@ void AssembledSegment::writeDetailHtml(ostream& html, bool showDetails) const
         html <<
             "<tr><td>Edge"
             "<td><td class=centered title='Edge index in chain'>" << i <<
-            "<td class=centered>" << edgeId <<
+            "<td class=centered><a href='exploreMarkerGraphEdge?edgeId=" << edgeId << "'>" << edgeId << "</a>"
             "<td class=centered title='Edge coverage'>" << edgeCoverage[i] <<
             "<td class=centered>" <<
             "<td class=centered "
