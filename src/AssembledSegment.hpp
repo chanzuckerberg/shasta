@@ -28,7 +28,7 @@ public:
     size_t k;
 
     // The number of marker graph vertices and edges corresponding to this segment.
-    // Since this is a linear chian, the number of vertices equals the number of edges
+    // Since this is a linear chain, the number of vertices equals the number of edges
     // plus one.
     size_t edgeCount;
     size_t vertexCount;
@@ -66,10 +66,10 @@ public:
     vector< pair<uint32_t, uint32_t> > vertexAssembledPortion;
     void computeVertexAssembledPortion();
 
-    // The assembled run-length sequence  and repeat counts.
+    // Assembled sequence.
     vector<Base> runLengthSequence;
     vector<uint32_t> repeatCounts;
-    vector<Base> assembledRawSequence;
+    vector<Base> rawSequence;
 
     // Keep track of the range each vertex and edge contributes.
     vector< pair<uint32_t, uint32_t> > vertexRunLengthRange;

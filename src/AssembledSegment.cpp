@@ -28,8 +28,8 @@ void AssembledSegment::clear()
 
     runLengthSequence.clear();
     repeatCounts.clear();
+    rawSequence.clear();
 
-    assembledRawSequence.clear();
     vertexRunLengthRange.clear();
     vertexRawRange.clear();
     edgeRunLengthRange.clear();
@@ -124,7 +124,7 @@ void AssembledSegment::assemble()
 
         // Vertex.
         vertexRunLengthRange[i].first = uint32_t(runLengthSequence.size());
-        vertexRawRange[i].first = uint32_t(assembledRawSequence.size());
+        vertexRawRange[i].first = uint32_t(rawSequence.size());
         for(uint32_t j=vertexAssembledPortion[i].first; j!=vertexAssembledPortion[i].second; j++) {
             const Base base = vertexSequences[i][j];
             const uint32_t repeatCount = vertexRepeatCounts[i][j];
@@ -135,11 +135,11 @@ void AssembledSegment::assemble()
                 assembledCoverageData.push_back(vertexCoverageData[i][j]);
             }
             for(uint32_t k=0; k!=repeatCount; k++) {
-                assembledRawSequence.push_back(base);
+                rawSequence.push_back(base);
             }
         }
         vertexRunLengthRange[i].second = uint32_t(runLengthSequence.size());
-        vertexRawRange[i].second = uint32_t(assembledRawSequence.size());
+        vertexRawRange[i].second = uint32_t(rawSequence.size());
 
         // This was the last vertex.
         if(i == edgeCount) {
@@ -148,7 +148,7 @@ void AssembledSegment::assemble()
 
         // Edge.
         edgeRunLengthRange[i].first = uint32_t(runLengthSequence.size());
-        edgeRawRange[i].first = uint32_t(assembledRawSequence.size());
+        edgeRawRange[i].first = uint32_t(rawSequence.size());
         if(edgeSequences[i].size() > 0) {
             for(uint32_t j=0; j!=uint32_t(edgeSequences[i].size()); j++) {
                 const Base base = edgeSequences[i][j];
@@ -160,12 +160,12 @@ void AssembledSegment::assemble()
                     assembledCoverageData.push_back(edgeCoverageData[i][j]);
                 }
                 for(uint32_t k=0; k!=repeatCount; k++) {
-                    assembledRawSequence.push_back(base);
+                    rawSequence.push_back(base);
                 }
             }
         }
         edgeRunLengthRange[i].second = uint32_t(runLengthSequence.size());
-        edgeRawRange[i].second = uint32_t(assembledRawSequence.size());
+        edgeRawRange[i].second = uint32_t(rawSequence.size());
     }
 }
 
@@ -225,9 +225,9 @@ void AssembledSegment::writeHtml(ostream& html) const
     html << "</span>";
 
     // Assembled raw sequence.
-    html << "<p>Assembled raw sequence (" << assembledRawSequence.size() <<
+    html << "<p>Assembled raw sequence (" << rawSequence.size() <<
         " bases):<br><span style='font-family:courier'>";
-    copy(assembledRawSequence.begin(), assembledRawSequence.end(),
+    copy(rawSequence.begin(), rawSequence.end(),
         ostream_iterator<Base>(html));
     html << "</span>";
 

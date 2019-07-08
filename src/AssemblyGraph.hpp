@@ -73,7 +73,7 @@ public:
     // one edge in each reverse complemented pair.
     bool isAssembledEdge(EdgeId edgeId) const
     {
-        return edgeId < reverseComplementEdge[edgeId];
+        return edgeId <= reverseComplementEdge[edgeId];
     }
 
 
