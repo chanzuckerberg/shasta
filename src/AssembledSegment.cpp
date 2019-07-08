@@ -378,19 +378,22 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         // SHASTA_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
         html <<
             "<tr><td>Edge"
-            "<td><td class=centered>" << i <<
+            "<td><td class=centered title='Edge index in chain'>" << i <<
             "<td class=centered>" << edgeId <<
-            "<td class=centered>" << edgeCoverage[i] <<
+            "<td class=centered title='Edge coverage'>" << edgeCoverage[i] <<
             "<td class=centered>" <<
-            "<td class=centered>";
+            "<td class=centered "
+            "title='Begin offset of RLE sequence contributed by this edge'>";
         if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
             html << edgeRunLengthRange[i].first;
         }
-        html << "<td class=centered>";
+        html << "<td class=centered "
+            "title='End offset (one past) of RLE sequence contributed by this edge'>";
         if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
             html << edgeRunLengthRange[i].second;
         }
-        html << "<td style='font-family:courier'>";
+        html << "<td style='font-family:courier' "
+            "title='Edge consensus RLE sequence. Portion contributed to assembly is highlighted.'>";
 
         // Edge RLE sequence.
         if(edgeSequenceLength > 0) {
@@ -415,15 +418,18 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
             }
             html << "</span>";
         }
-        html << "<td class=centered>";
+        html << "<td class=centered "
+            "title='Begin offset of raw sequence contributed by this edge'>";
         if(edgeRawRange[i].first != edgeRawRange[i].second) {
             html << edgeRawRange[i].first;
         }
-        html << "<td class=centered>";
+        html << "<td class=centered "
+            "title='End offset (one past) of raw sequence contributed by this edge'>";
         if(edgeRawRange[i].first != edgeRawRange[i].second) {
             html << edgeRawRange[i].second;
         }
-        html << "<td style='font-family:courier'>";
+        html << "<td style='font-family:courier' "
+            "title='Edge consensus raw sequence. Portion contributed to assembly is highlighted.'>";
 
         // Edge raw sequence.
         if(edgeSequenceLength > 0) {
