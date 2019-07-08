@@ -1318,6 +1318,7 @@ void Assembler::assembleAssemblyGraphEdge(
     assembledSegment.clear();
     const auto k = assemblerInfo->k;
     assembledSegment.k = k;
+    assembledSegment.assemblyGraphEdgeId = edgeId;
 
     // The edges of this chain in the marker graph.
     const MemoryAsContainer<MarkerGraph::EdgeId> assemblerEdgeIds = assemblyGraph.edgeLists[edgeId];

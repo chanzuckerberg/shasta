@@ -264,7 +264,6 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     }
 
 
-
     // Assemble the sequence and output detailed information to html.
     // Note that this always uses spoa, not marginPhase, regardless of
     // what was done during assembly.
