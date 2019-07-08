@@ -250,7 +250,9 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         "All vertex and edge ids in the table refer to the marker graph."
         "<p><table><tr>"
         "<th rowspan=2>Vertex<br>or<br>edge"
-        "<th rowspan=2>Id"
+        "<th rowspan=2>Vertex<br>index<br>in<br>chain"
+        "<th rowspan=2>Edge<br>index<br>in<br>chain"
+        "<th rowspan=2>Global<br>id"
         "<th rowspan=2>Coverage"
         "<th colspan=4>Run-length"
         "<th colspan=3>Raw"
@@ -282,7 +284,8 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         // const uint32_t maxVertexRepeatCount =
         //     *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
         html <<
-             "<tr><td>Vertex" <<
+            "<tr><td>Vertex" <<
+            "<td class=centered>" << i << "<td>"
             "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
             "<td class=centered>" << vertexCoverage[i] <<
             "<td class=centered>" << vertexOffsets[i] <<
@@ -357,7 +360,9 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         //    *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
         // SHASTA_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
         html <<
-            "<tr><td>Edge<td class=centered>" << edgeId <<
+            "<tr><td>Edge"
+            "<td><td class=centered>" << i <<
+            "<td class=centered>" << edgeId <<
             "<td class=centered>" << edgeCoverage[i] <<
             "<td class=centered>" <<
             "<td class=centered>" << edgeRunLengthRange[i].first <<
