@@ -84,6 +84,9 @@ public:
 
     // Write out in html.
     void writeHtml(ostream&, bool showDetails) const;
+    void writeRawSequenceHtml(ostream&, bool showDetails) const;
+    void writeRleSequenceHtml(ostream&, bool showDetails) const;
+    void writeDetailHtml(ostream&, bool showDetails) const;
 
 
     // Coverage data is computed optionally under control of the storeCoverageData

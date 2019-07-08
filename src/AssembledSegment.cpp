@@ -174,7 +174,6 @@ void AssembledSegment::assemble()
 // Write out details in html.
 void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
 {
-
     // Write a title.
     html <<
         "<h1>Assembly graph edge <a href="
@@ -182,7 +181,18 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
         assemblyGraphEdgeId << "</a></h1>";
 
-    // Assembled run-length sequence.
+    writeRawSequenceHtml(html, showDetails);
+    writeRleSequenceHtml(html, showDetails);
+    if(showDetails) {
+        writeDetailHtml(html, showDetails);
+    }
+}
+
+
+
+void AssembledSegment::writeRleSequenceHtml(ostream& html, bool showDetails) const
+{
+
     html << "<p>Assembled run-length sequence (" << runLengthSequence.size() <<
         " bases):<br><span style='font-family:courier'>";
     copy(runLengthSequence.begin(), runLengthSequence.end(),
@@ -223,6 +233,13 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         }
     }
     html << "</span>";
+}
+
+
+
+void AssembledSegment::writeRawSequenceHtml(ostream& html, bool showDetails) const
+{
+
 
     // Assembled raw sequence.
     html << "<p>Assembled raw sequence (" << rawSequence.size() <<
@@ -231,17 +248,15 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
         ostream_iterator<Base>(html));
     html << "</span>";
 
-
-
-    // If assembly details were not requested, stop here.
-    if(!showDetails) {
-        return;
-    }
+}
 
 
 
-    // Write a table with a row for each marker graph vertex or edge
-    // in the marker graph chain.
+// Write a table with a row for each marker graph vertex or edge
+// in the marker graph chain.
+void AssembledSegment::writeDetailHtml(ostream& html, bool showDetails) const
+{
+
     html <<
         "<p>This vertex of the assembly graph corresponds to a chain of " <<
         edgeIds.size() << " edges in the marker graph. "
