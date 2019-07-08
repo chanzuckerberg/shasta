@@ -380,9 +380,15 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
             "<td class=centered>" << edgeId <<
             "<td class=centered>" << edgeCoverage[i] <<
             "<td class=centered>" <<
-            "<td class=centered>" << edgeRunLengthRange[i].first <<
-            "<td class=centered>" << edgeRunLengthRange[i].second <<
-            "<td style='font-family:courier'>";
+            "<td class=centered>";
+        if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
+            html << edgeRunLengthRange[i].first;
+        }
+        html << "<td class=centered>";
+        if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
+            html << edgeRunLengthRange[i].second;
+        }
+        html << "<td style='font-family:courier'>";
         for(size_t j=0; j<edgeSequenceLength; j++) {
             if(edgeSequenceLength>2*k && j==k) {
                 html << "<span style='background-color:LightGreen'>";
@@ -407,10 +413,15 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
                 html << "</span>";
             }
         }
-        html <<
-            "<td class=centered>" << edgeRawRange[i].first <<
-            "<td class=centered>" << edgeRawRange[i].second <<
-            "<td style='font-family:courier'>";
+        html << "<td class=centered>";
+        if(edgeRawRange[i].first != edgeRawRange[i].second) {
+            html << edgeRawRange[i].first;
+        }
+        html << "<td class=centered>";
+        if(edgeRawRange[i].first != edgeRawRange[i].second) {
+            html << edgeRawRange[i].second;
+        }
+        html << "<td style='font-family:courier'>";
         for(size_t j=0; j<edgeSequenceLength; j++) {
             const Base b = edgeSequence[j];
             const uint32_t repeatCount = edgeRepeatCount[j];
