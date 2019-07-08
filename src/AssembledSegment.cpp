@@ -312,6 +312,8 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
             }
         }
         html << "<br>";
+
+        // Vertex RLE sequence.
         for(size_t j=0; j<vertexSequence.size(); j++) {
             const uint32_t repeatCount = vertexRepeatCount[j];
             if(j==vertexAssembledPortion[i].first &&
@@ -389,29 +391,29 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
             html << edgeRunLengthRange[i].second;
         }
         html << "<td style='font-family:courier'>";
-        for(size_t j=0; j<edgeSequenceLength; j++) {
-            if(edgeSequenceLength>2*k && j==k) {
-                html << "<span style='background-color:LightGreen'>";
+
+        // Edge RLE sequence.
+        if(edgeSequenceLength > 0) {
+            html << "<span style='background-color:pink'>";
+            for(size_t j=0; j<edgeSequenceLength; j++) {
+                html << edgeSequence[j];
             }
-            html << edgeSequence[j];
-            if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
-                html << "</span>";
-            }
+            html << "</span>";
         }
         html << "<br>";
-        for(size_t j=0; j<edgeSequenceLength; j++) {
-            const uint32_t repeatCount = edgeRepeatCount[j];
-            if(edgeSequenceLength>2*k && j==k) {
-                html << "<span style='background-color:LightGreen'>";
+
+        // Edge repeat counts.
+        if(edgeSequenceLength > 0) {
+            html << "<span style='background-color:pink'>";
+            for(size_t j=0; j<edgeSequenceLength; j++) {
+                const uint32_t repeatCount = edgeRepeatCount[j];
+                if(repeatCount < 10) {
+                    html << repeatCount % 10;
+                } else {
+                    html << "*";
+                }
             }
-            if(repeatCount < 10) {
-                html << repeatCount % 10;
-            } else {
-                html << "*";
-            }
-            if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
-                html << "</span>";
-            }
+            html << "</span>";
         }
         html << "<td class=centered>";
         if(edgeRawRange[i].first != edgeRawRange[i].second) {
@@ -422,18 +424,18 @@ void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
             html << edgeRawRange[i].second;
         }
         html << "<td style='font-family:courier'>";
-        for(size_t j=0; j<edgeSequenceLength; j++) {
-            const Base b = edgeSequence[j];
-            const uint32_t repeatCount = edgeRepeatCount[j];
-            if(edgeSequenceLength>2*k && j==k) {
-                html << "<span style='background-color:LightGreen'>";
+
+        // Edge raw sequence.
+        if(edgeSequenceLength > 0) {
+            html << "<span style='background-color:pink'>";
+            for(size_t j=0; j<edgeSequenceLength; j++) {
+                const Base b = edgeSequence[j];
+                const uint32_t repeatCount = edgeRepeatCount[j];
+                for(uint32_t k=0; k<repeatCount; k++) {
+                    html << b;
+                }
             }
-            for(uint32_t k=0; k<repeatCount; k++) {
-                html << b;
-            }
-            if(edgeSequenceLength>2*k && j==edgeSequenceLength-k-1) {
-                html << "</span>";
-            }
+            html << "</span>";
         }
      }
 }
