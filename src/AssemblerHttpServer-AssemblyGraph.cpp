@@ -285,89 +285,11 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
 
 
     // Assemble the sequence and output detailed information to html.
-    // Note that this always uses spoa, not marginPhase, regardless of
-    // what was done during assembly.
-    if(showDetails) {
-        AssembledSegment assembledSegment;
-        assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
-        assembledSegment.writeHtml(html);
-    } else {
-
-        // Assembly details were not requested and a global assembly
-        // is available. Get the sequence from the global assembly.
-
-        // Write a title.
-        html <<
-            "<h1>Assembly graph edge <a href="
-            "'exploreAssemblyGraph?edgeId=" << edgeId <<
-            "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
-            edgeId << "</a></h1>";
-
-
-
-        // Assembled run-length sequence.
-        const LongBaseSequenceView runLengthSequence = assemblyGraph.sequences[edgeId];
-        const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[edgeId];
-        SHASTA_ASSERT(repeatCounts.size() == runLengthSequence.baseCount);
-        html << "<p>Assembled run-length sequence (" << runLengthSequence.baseCount <<
-            " bases):<br><span style='font-family:courier'>";
-        html << runLengthSequence;
-
-
-
-        // Write repeat counts in 3 lines each containing
-        // a decimal digit of the repeat count.
-        uint32_t maxRepeatCount = 0;
-        for(size_t j=0; j<repeatCounts.size(); j++) {
-            maxRepeatCount = max(maxRepeatCount, uint32_t(repeatCounts[j]));
-        }
-        html << "<br>";
-        for(size_t j=0; j<repeatCounts.size(); j++) {
-            html << (repeatCounts[j] % 10);
-        }
-        if(maxRepeatCount >= 10) {
-            html << "<br>";
-            for(size_t j=0; j<repeatCounts.size(); j++) {
-                const uint32_t digit = uint32_t(repeatCounts[j] / 10) % 10;
-                if(digit == 0) {
-                    html << "&nbsp;";
-                } else {
-                    html << digit;
-                }
-            }
-        }
-        if(maxRepeatCount >= 100) {
-            html << "<br>";
-            for(size_t j=0; j<repeatCounts.size(); j++) {
-                const uint32_t digit = uint32_t(repeatCounts[j] / 100) % 10;
-                if(digit == 0) {
-                    html << "&nbsp;";
-                } else {
-                    html << digit;
-                }
-            }
-        }
-        html << "</span>";
-
-
-
-        // Assembled raw sequence.
-        size_t rawSequenceSize = 0;
-        for(size_t j=0; j<repeatCounts.size(); j++) {
-            const uint32_t repeatCount = repeatCounts[j];
-            rawSequenceSize += repeatCount;
-        }
-        html << "<p>Assembled raw sequence (" << rawSequenceSize <<
-            " bases):<br><span style='font-family:courier'>";
-        for(size_t i=0; i<runLengthSequence.baseCount; i++) {
-            const Base base = runLengthSequence[i];
-            const uint8_t repeatCount = repeatCounts[i];
-            for(uint8_t k=0; k<repeatCount; k++) {
-                html << base;
-            }
-        }
-        html << "</span>";
-    }
+    AssembledSegment assembledSegment;
+    assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
+    assembledSegment.writeHtml(html, showDetails);
 }
+
+
 
 #endif

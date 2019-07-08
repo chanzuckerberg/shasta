@@ -172,7 +172,7 @@ void AssembledSegment::assemble()
 
 
 // Write out details in html.
-void AssembledSegment::writeHtml(ostream& html) const
+void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
 {
 
     // Write a title.
@@ -231,6 +231,12 @@ void AssembledSegment::writeHtml(ostream& html) const
         ostream_iterator<Base>(html));
     html << "</span>";
 
+
+
+    // If assembly details were not requested, stop here.
+    if(!showDetails) {
+        return;
+    }
 
 
 

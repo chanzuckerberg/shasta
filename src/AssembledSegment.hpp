@@ -82,8 +82,8 @@ public:
     // (except for vector capacities).
     void clear();
 
-    // Write out details in html.
-    void writeHtml(ostream&) const;
+    // Write out in html.
+    void writeHtml(ostream&, bool showDetails) const;
 
 
     // Coverage data is computed optionally under control of the storeCoverageData
