@@ -228,90 +228,11 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, vertex_descriptor v
         s << " label=\"" <<
             vertex.assemblyGraphVertexId <<
             "\\n" << vertex.markerGraphVertexId <<
-            "\"";
+            "\" style=filled fillcolor=\"#999999\"";
     }
 
     // End vertex attributes.
     s << "]";
-
-
-    #if 0
-    const LocalAssemblyGraphVertex& vertex = graph[v];
-    const size_t length = graph.vertexLength(v);
-    const int baseCount = graph.baseCount(v);
-
-    // Begin vertex attributes.
-    s << "[";
-
-
-
-    // Color.
-    string color;
-    if(vertex.distance == maxDistance) {
-        // Vertices at maximum distance.
-        color = "cyan";
-    } else if(vertex.distance == 0) {
-        // Start vertex.
-        color = "#90ee90";
-    } else {
-        // All other vertices.
-        if(detailed) {
-            color = "pink";
-        } else {
-            color = "black";
-        }
-    }
-    s << " fillcolor=\"" << color << "\"";
-    if(!detailed) {
-        s << " color=\"" << color << "\"";
-    }
-
-
-
-    // Size.
-    // This could be problematic for the compressed assembly graph.
-    /*
-    if(detailed) {
-        s << " width=" << 1. * double(length);
-    } else {
-        s << " width=" << 1.e-1 * double(length);
-    }
-    */
-
-
-
-    // Toolip.
-    if(!detailed) {
-        s << " tooltip=\"Id " << vertex.vertexId;
-        s << ", length " << length;
-        if(baseCount >= 0) {
-            s << ", " << baseCount << " bases";
-        }
-        s << "\"";
-    } else {
-        s << " tooltip=\" \"";
-    }
-
-
-
-    // Label.
-    if(detailed) {
-        s << " label=\"Vertex " << vertex.vertexId << "\\n";
-        s << length << " edges";
-        if(baseCount >= 0) {
-            s << "\\n" << baseCount << " bases";
-        }
-        s << "\"";
-    }
-
-
-    // Link to detailed information for this vertex.
-    s << " URL=\"exploreAssemblyGraphVertex?vertexId=" << vertex.vertexId << "\"";
-
-
-    // End vertex attributes.
-    s << "]";
-#endif
 }
 
 
@@ -324,6 +245,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     const EdgeId edgeIdRc = graph.globalAssemblyGraph.reverseComplementEdge[edgeId];
     const size_t length = graph.edgeLength(e);
     const int baseCount = graph.baseCount(e);
+    const bool wasAssembled = graph.globalAssemblyGraph.isAssembledEdge(edgeId);
 
     // Begin edge attributes.
     s << "[";
@@ -340,10 +262,13 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     // URL
     s << " URL=\"exploreAssemblyGraphEdge?edgeId=" << edge.edgeId << "\"";
 
-    // Label.
+    // Color.
+    const string color = wasAssembled ? "green" : "red";
+    s << " color=\"" << color << "\"";
 
+    // Label.
     if(showEdgeLabels) {
-        const string labelColor = "pink";
+        const string labelColor = wasAssembled ? "#60ff60" : "#ff6060";
         s <<
             " label=<<table"
             " color=\"black\""
@@ -367,7 +292,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     }
 
     // Thickness.
-    const double thickness = 0.05 * std::pow(double(baseCount), 0.3);
+    const double thickness = 0.05 * std::pow(double(baseCount), 0.333333);
     s << " penwidth=";
     const auto oldPrecision = s.precision(4);
     s <<  thickness;
