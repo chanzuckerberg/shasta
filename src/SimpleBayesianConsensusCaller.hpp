@@ -32,9 +32,11 @@ must take into account which strand each read is on.
 // Standard library.
 #include "fstream.hpp"
 #include <map>
+#include "string.hpp"
 
 namespace shasta {
     class SimpleBayesianConsensusCaller;
+    void testSimpleBayesianConsensusCaller();
 }
 
 
@@ -111,6 +113,6 @@ private:
     void printLogLikelihoodVector(vector<double>& logLikelihoods);
 };
 
-void testSimpleBayesianConsensusCaller();
+
 
 #endif

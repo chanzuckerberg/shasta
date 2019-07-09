@@ -1,3 +1,5 @@
+#include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 #include <stdexcept>
 #include <cstdlib>
@@ -18,7 +20,6 @@ using namespace shasta;
 using Separator = boost::char_separator<char>;
 using Tokenizer = boost::tokenizer<Separator>;
 
-using std::map;
 
 
 
@@ -204,7 +205,10 @@ void SimpleBayesianConsensusCaller::normalizeLikelihoods(vector<double>& x, doub
 }
 
 
-void SimpleBayesianConsensusCaller::factorRepeats(array<map<uint16_t,uint16_t>,2>& factoredRepeats, const Coverage& coverage) const{
+void SimpleBayesianConsensusCaller::factorRepeats(
+    array<std::map<uint16_t,uint16_t>,2>& factoredRepeats,
+    const Coverage& coverage) const{
+
     // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
         // If NOT a gap, always increment
@@ -218,7 +222,11 @@ void SimpleBayesianConsensusCaller::factorRepeats(array<map<uint16_t,uint16_t>,2
 }
 
 
-void SimpleBayesianConsensusCaller::factorRepeats(array<map<uint16_t,uint16_t>,2>& factoredRepeats, const Coverage& coverage, AlignedBase consensusBase) const{
+void SimpleBayesianConsensusCaller::factorRepeats(
+    array<std::map<uint16_t,uint16_t>,2>& factoredRepeats,
+    const Coverage& coverage,
+    AlignedBase consensusBase) const{
+
     // Store counts for each unique observation
     for (auto& observation: coverage.getReadCoverageData() ){
         // Ignore non consensus repeat values
@@ -236,7 +244,7 @@ void SimpleBayesianConsensusCaller::factorRepeats(array<map<uint16_t,uint16_t>,2
 
 
 uint16_t SimpleBayesianConsensusCaller::predictRunlength(const Coverage &coverage, AlignedBase consensusBase, vector<double>& logLikelihoodY) const{
-    array <map <uint16_t,uint16_t>, 2> factoredRepeats;    // Repeats grouped by strand and length
+    array <std::map <uint16_t,uint16_t>, 2> factoredRepeats;    // Repeats grouped by strand and length
 
     size_t priorIndex = -1;   // Used to determine which prior probability vector to access (AT=0 or GC=1)
     uint16_t x;               // Element of X = {x_0, x_1, ..., x_i} observed repeats
@@ -358,25 +366,50 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
 }
 
 
-void testSimpleBayesianConsensusCaller(){
-    SimpleBayesianConsensusCaller classifier;
+// The test program expects as input two csv files:
+// - SimpleBayesianConsensusCaller.csv:
+//       The configuration file to create the caller.
+// - Observations.csv:
+//       The observed bases, strands, repeat counts, in this format:
+//       A,0,3
+//       A,1,4
+void shasta::testSimpleBayesianConsensusCaller()
+{
+    // Read the observations.
     Coverage coverage;
+    ifstream input("Observations.csv");
+    while(true) {
 
-    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 1);    // Arguments are base, strand, repeat count.
-    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
-    coverage.addRead(AlignedBase::fromInteger((uint8_t)2), 1, 3);
-    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 0, 2);
-    coverage.addRead(AlignedBase::fromInteger((uint8_t)1), 1, 2);
-    coverage.addRead(AlignedBase::fromInteger((uint8_t)2), 0, 2);
-    coverage.addRead(AlignedBase::fromInteger((uint8_t)4), 0, 0);
+        // Get a line.
+        string line;
+        getline(input, line);
+        if(!input) {
+            break;
+        }
+        cout << line << endl;
 
-    AlignedBase consensusBase;
+        // Parse it.
+        vector<string> tokens;
+        boost::algorithm::split(tokens, line, boost::algorithm::is_any_of(","));
+        SHASTA_ASSERT(tokens.size() == 3);
 
-    consensusBase = coverage.mostFrequentBase();
+        // Add it to our Coverage object.
+        const char baseCharacter = tokens[0][0];
+        coverage.addRead(AlignedBase::fromCharacter(baseCharacter),
+            boost::lexical_cast<int>(tokens[1]),
+            boost::lexical_cast<int>(tokens[2]));
+    }
 
-    cout << "CONSENSUS BASE = " << consensusBase << "\n";
 
-    const Consensus consensus = classifier(coverage);
 
-    cout << consensus.base << " " << consensus.repeatCount << '\n';
+    // Construct the caller.
+    // This expects the configuration file to be named
+    // SimpleBayesianConsensusCaller.csv.
+    SimpleBayesianConsensusCaller caller;
+
+    // Compute consensus.
+    const Consensus consensus = caller(coverage);
+
+    // Write it out.
+    cout << "Consensus: " << consensus.base << " " << consensus.repeatCount << '\n';
 }
