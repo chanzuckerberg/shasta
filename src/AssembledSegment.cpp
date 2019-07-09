@@ -258,6 +258,26 @@ void AssembledSegment::writeRawSequenceHtml(
     }
     html << "</pre>";
 
+
+
+    // Button to Blat this portion of this assembled segment.
+    // We cannot use a simple <a> because we need to do a POST
+    // (the GET request fails when the read is too long).
+    html <<
+        "<p><form action='https://genome.ucsc.edu/cgi-bin/hgBlat' method=post target='_blank'>"
+        "<input type=submit value='Blat "
+        "this sequence in the UCSC browser'>"
+        "<input type=text hidden name=type value=DNA>"
+        // Don't specify the genome.
+        // UCSC browser will Blat against last used genome (stored in cookies).
+        // "<input type=text hidden name=type value=DNA>"
+        // "<input type=text hidden name=name value=Human>"
+        // "<input type=text hidden name=db value=hg38>"
+        "<input type=text hidden name=userSeq value=";
+        for(size_t i=begin; i!=end; i++) {
+            html << rawSequence[i];
+        }
+    html << "></form>";
 }
 
 
