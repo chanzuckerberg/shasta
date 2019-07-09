@@ -1042,7 +1042,12 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
                     if(base.isGap()) {
                         html << "-";
                     } else {
-                        html << int(repeatCounts[j][position++]);
+                        const uint32_t repeatCount = repeatCounts[j][position++];
+                        if(repeatCount < 10) {
+                            html << int(repeatCount);
+                        } else {
+                            html << "*";
+                        }
                     }
                 }
             }
