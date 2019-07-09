@@ -1,6 +1,12 @@
+// Shasta.
 #include "AssembledSegment.hpp"
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/icl/interval.hpp>
+#include <boost/icl/right_open_interval.hpp>
+
+// Standard library.
 #include "iterator.hpp"
 
 
@@ -172,81 +178,85 @@ void AssembledSegment::assemble()
 
 
 // Write out details in html.
-void AssembledSegment::writeHtml(ostream& html, bool showDetails) const
+void AssembledSegment::writeHtml(
+    ostream& html,
+    bool showSequence,
+    bool showDetails,
+    uint32_t begin,
+    uint32_t end) const
 {
     // Write a title.
     html <<
         "<h1>Assembly graph edge <a href="
         "'exploreAssemblyGraph?edgeId=" << assemblyGraphEdgeId <<
         "&maxDistance=6&detailed=on&sizePixels=1600&timeout=30'>" <<
-        assemblyGraphEdgeId << "</a></h1>";
+        assemblyGraphEdgeId << "</a></h1>"
+        "<p>This edge was used to assemble segment " << assemblyGraphEdgeId <<
+        " in FASTA and GFA output (" << rawSequence.size() <<
+        " bases of assembled raw sequence).";
 
-    writeRawSequenceHtml(html, showDetails);
-    writeRleSequenceHtml(html, showDetails);
+    // Validate begin, end.
+    if(showSequence || showDetails) {
+        if(begin>rawSequence.size() || end>rawSequence.size()+1 || end<=begin) {
+            html <<  "<p>Invalid begin/end positions in raw sequence. "
+                "Raw sequence length is " << rawSequence.size() << " bases.";
+            return;
+        }
+    }
+
+    if(showSequence) {
+        writeRawSequenceHtml(html, begin, end);
+    }
     if(showDetails) {
-        writeDetailHtml(html, showDetails);
+        writeDetailHtml(html, begin, end);
     }
 }
 
 
 
-void AssembledSegment::writeRleSequenceHtml(ostream& html, bool showDetails) const
+void AssembledSegment::writeRawSequenceHtml(
+    ostream& html,
+    uint32_t begin,
+    uint32_t end) const
 {
 
-    html << "<p>Assembled run-length sequence (" << runLengthSequence.size() <<
-        " bases):<br><span style='font-family:courier'>";
-    copy(runLengthSequence.begin(), runLengthSequence.end(),
-        ostream_iterator<Base>(html));
-    html << "<br>";
-    const uint32_t maxRepeatCount =
-        *max_element(repeatCounts.begin(), repeatCounts.end());
-    for(size_t j=0; j<repeatCounts.size(); j++) {
-        const uint32_t repeatCount = repeatCounts[j];
-        html << repeatCount%10;
-    }
-    if(maxRepeatCount >= 10) {
-        html << "<br>";
-        for(size_t j=0; j<repeatCounts.size(); j++) {
-            const uint32_t repeatCount = repeatCounts[j];
-            const uint32_t digit = (repeatCount/10) % 10;
-            if(digit == 0) {
-                html << "&nbsp;";
-            } else {
-                html << digit;
+    html << "<p>Bases " << begin << " to " << end << " (" << end-begin <<
+        " bases) of " << rawSequence.size() <<
+        " bases of assembled raw sequence :<br><pre style='font-family:courier'>\n";
+
+    // Write the position labels.
+    for(size_t i=begin; i<end; ) {
+        if((i % 10) == 0) {
+            const string label = to_string(i);
+            html << label;
+            for(size_t j=0; j<10-label.size(); j++) {
+                html << " ";
             }
+            i += 10;
+        } else {
+            html << " ";
+            i++;
         }
     }
-    if(maxRepeatCount >= 100) {
-        html << "<br>";
-        for(size_t j=0; j<repeatCounts.size(); j++) {
-            const uint32_t repeatCount = repeatCounts[j];
-            if(repeatCount >= 1000) {
-                html << "*";
-            } else {
-                const uint32_t digit = (repeatCount/100) % 10;
-                if(digit == 0) {
-                    html << "&nbsp;";
-                } else {
-                    html << digit;
-                }
-            }
+    html <<"\n";
+
+    // Write the position scale.
+    for(size_t i=begin; i!=end; i++) {
+        if((i % 10) == 0) {
+            html << "|";
+        } else if((i % 5) == 0) {
+            html << "+";
+        } else {
+            html << ".";
         }
     }
-    html << "</span>";
-}
+    html <<"\n";
 
-
-
-void AssembledSegment::writeRawSequenceHtml(ostream& html, bool showDetails) const
-{
-
-
-    // Assembled raw sequence.
-    html << "<p>Assembled raw sequence (" << rawSequence.size() <<
-        " bases):<br><span style='font-family:courier'>";
-    copy(rawSequence.begin(), rawSequence.end(),
-        ostream_iterator<Base>(html));
-    html << "</span>";
+    // Write the sequence.
+    for(size_t i=begin; i!=end; i++) {
+        html << rawSequence[i];
+    }
+    html << "</pre>";
 
 }
 
@@ -254,7 +264,10 @@ void AssembledSegment::writeRawSequenceHtml(ostream& html, bool showDetails) con
 
 // Write a table with a row for each marker graph vertex or edge
 // in the marker graph chain.
-void AssembledSegment::writeDetailHtml(ostream& html, bool showDetails) const
+void AssembledSegment::writeDetailHtml(
+    ostream& html,
+    uint32_t begin,
+    uint32_t end) const
 {
 
     html <<
@@ -279,97 +292,91 @@ void AssembledSegment::writeDetailHtml(ostream& html, bool showDetails) const
         "<th>Begin"
         "<th>End"
         "<th>Sequence";
-    const string urlPrefix = "exploreMarkerGraph?vertexId=";
-    const string urlSuffix =
-        "&maxDistance=5"
-        "&detailed=on"
-        "&minCoverage=3"
-        "&minConsensus=3"
-        "&sizePixels=600&timeout=10"
-        "&useStoredConnectivity=on"
-        "&showVertexId=on"
-        "&showAssembledSequence=on";
     for(size_t i=0; ; i++) {
 
         // Vertex.
-        const MarkerGraph::VertexId vertexId = vertexIds[i];
-        const string url = urlPrefix + to_string(vertexId) + urlSuffix;
-        const vector<Base>& vertexSequence = vertexSequences[i];
-        const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
-        // const uint32_t maxVertexRepeatCount =
-        //     *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
-        html <<
-            "<tr><td>Vertex" <<
-            "<td class=centered title='Vertex index in chain'>" << i << "<td>"
-            "<td class=centered><a href='exploreMarkerGraphVertex?vertexId=" <<
-            vertexId << "'>" << vertexId << "</a>"
-            "<td class=centered title='Vertex coverage'>" << vertexCoverage[i] <<
-            "<td class=centered title='Vertex offset in assembled RLE sequence'>" <<
-            vertexOffsets[i] <<
-            "<td class=centered "
-            "title='Begin offset of RLE sequence contributed by this vertex'>" <<
-            vertexRunLengthRange[i].first <<
-            "<td class=centered "
-            "title='End offset (one past) of RLE sequence contributed by this vertex'>" <<
-            vertexRunLengthRange[i].second <<
-            "<td style='font-family:courier' title="
-            "'Vertex consensus RLE sequence. Portion contributed to assembly is highlighted.'>";
+        using Roi = boost::icl::right_open_interval<uint32_t>;
+        if(boost::icl::intersects(
+            Roi(begin, end),
+            Roi(vertexRawRange[i].first, vertexRawRange[i].second))) {
+            const MarkerGraph::VertexId vertexId = vertexIds[i];
+            const vector<Base>& vertexSequence = vertexSequences[i];
+            const vector<uint32_t>& vertexRepeatCount = vertexRepeatCounts[i];
+            // const uint32_t maxVertexRepeatCount =
+            //     *std::max_element(vertexRepeatCount.begin(), vertexRepeatCount.end());
+            html <<
+                "<tr><td>Vertex" <<
+                "<td class=centered title='Vertex index in chain'>" << i << "<td>"
+                "<td class=centered><a href='exploreMarkerGraphVertex?vertexId=" <<
+                vertexId << "'>" << vertexId << "</a>"
+                "<td class=centered title='Vertex coverage'>" << vertexCoverage[i] <<
+                "<td class=centered title='Vertex offset in assembled RLE sequence'>" <<
+                vertexOffsets[i] <<
+                "<td class=centered "
+                "title='Begin offset of RLE sequence contributed by this vertex'>" <<
+                vertexRunLengthRange[i].first <<
+                "<td class=centered "
+                "title='End offset (one past) of RLE sequence contributed by this vertex'>" <<
+                vertexRunLengthRange[i].second <<
+                "<td style='font-family:courier' title="
+                "'Vertex consensus RLE sequence. Portion contributed to assembly is highlighted.'>";
 
-        // Vertex RLE sequence.
-        for(size_t j=0; j<vertexSequence.size(); j++) {
-            if(j==vertexAssembledPortion[i].first &&
-                vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
-                html << "<span style='background-color:LightGreen'>";
+            // Vertex RLE sequence.
+            for(size_t j=0; j<vertexSequence.size(); j++) {
+                if(j==vertexAssembledPortion[i].first &&
+                    vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
+                html << vertexSequence[j];
+                if(j==vertexAssembledPortion[i].second-1  &&
+                    vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                    html << "</span>";
+                }
             }
-            html << vertexSequence[j];
-            if(j==vertexAssembledPortion[i].second-1  &&
-                vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
-                html << "</span>";
-            }
-        }
-        html << "<br>";
+            html << "<br>";
 
-        // Vertex RLE sequence.
-        for(size_t j=0; j<vertexSequence.size(); j++) {
-            const uint32_t repeatCount = vertexRepeatCount[j];
-            if(j==vertexAssembledPortion[i].first &&
-                vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
-                html << "<span style='background-color:LightGreen'>";
+            // Vertex repeat counts.
+            for(size_t j=0; j<vertexSequence.size(); j++) {
+                const uint32_t repeatCount = vertexRepeatCount[j];
+                if(j==vertexAssembledPortion[i].first &&
+                    vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
+                if(repeatCount < 10) {
+                    html << repeatCount % 10;
+                } else {
+                    html << "*";
+                }
+                if(j==vertexAssembledPortion[i].second-1 &&
+                    vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                    html << "</span>";
+                }
             }
-            if(repeatCount < 10) {
-                html << repeatCount % 10;
-            } else {
-                html << "*";
-            }
-            if(j==vertexAssembledPortion[i].second-1 &&
-                vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
-                html << "</span>";
-            }
-        }
-        html <<
-            "<td class=centered "
-            "title='Begin offset of raw sequence contributed by this vertex'>" <<
-            vertexRawRange[i].first <<
-            "<td class=centered "
-            "title='End offset (one past) of raw sequence contributed by this vertex'>" <<
-            vertexRawRange[i].second <<
-            "<td style='font-family:courier' "
-            "title='Vertex consensus raw sequence. Portion contributed to assembly is highlighted.'>";
+            html <<
+                "<td class=centered "
+                "title='Begin offset of raw sequence contributed by this vertex'>" <<
+                vertexRawRange[i].first <<
+                "<td class=centered "
+                "title='End offset (one past) of raw sequence contributed by this vertex'>" <<
+                vertexRawRange[i].second <<
+                "<td style='font-family:courier' "
+                "title='Vertex consensus raw sequence. Portion contributed to assembly is highlighted.'>";
 
-        // Vertex raw sequence.
-        for(size_t j=0; j<vertexSequence.size(); j++) {
-            if(j==vertexAssembledPortion[i].first &&
-                vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
-                html << "<span style='background-color:LightGreen'>";
-            }
-            const Base b = vertexSequence[j];
-            const uint32_t repeatCount = vertexRepeatCount[j];
-            for(uint32_t k=0; k<repeatCount; k++) {
-                html << b;
-            }
-            if(j==vertexAssembledPortion[i].second-1 &&
-                vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
-                html << "</span>";
+            // Vertex raw sequence.
+            for(size_t j=0; j<vertexSequence.size(); j++) {
+                if(j==vertexAssembledPortion[i].first &&
+                    vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                    html << "<span style='background-color:LightGreen'>";
+                }
+                const Base b = vertexSequence[j];
+                const uint32_t repeatCount = vertexRepeatCount[j];
+                for(uint32_t k=0; k<repeatCount; k++) {
+                    html << b;
+                }
+                if(j==vertexAssembledPortion[i].second-1 &&
+                    vertexAssembledPortion[i].first!=vertexAssembledPortion[i].second) {
+                    html << "</span>";
+                }
             }
         }
 
@@ -381,83 +388,85 @@ void AssembledSegment::writeDetailHtml(ostream& html, bool showDetails) const
 
 
         // Edge.
-        const MarkerGraph::EdgeId edgeId = edgeIds[i];
-        // const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
-        const string sourceUrl = urlPrefix + to_string(vertexIds[i]) + urlSuffix;
-        const string targetUrl = urlPrefix + to_string(vertexIds[i+1]) + urlSuffix;
-        const vector<Base>& edgeSequence = edgeSequences[i];
-        const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
-        const size_t edgeSequenceLength = edgeSequence.size();
-        SHASTA_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
-        // const uint32_t maxEdgeRepeatCount =
-        //    *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
-        // SHASTA_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
-        html <<
-            "<tr><td>Edge"
-            "<td><td class=centered title='Edge index in chain'>" << i <<
-            "<td class=centered><a href='exploreMarkerGraphEdge?edgeId=" << edgeId << "'>" << edgeId << "</a>"
-            "<td class=centered title='Edge coverage'>" << edgeCoverage[i] <<
-            "<td class=centered>" <<
-            "<td class=centered "
-            "title='Begin offset of RLE sequence contributed by this edge'>";
-        if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
-            html << edgeRunLengthRange[i].first;
-        }
-        html << "<td class=centered "
-            "title='End offset (one past) of RLE sequence contributed by this edge'>";
-        if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
-            html << edgeRunLengthRange[i].second;
-        }
-        html << "<td style='font-family:courier' "
-            "title='Edge consensus RLE sequence. Portion contributed to assembly is highlighted.'>";
-
-        // Edge RLE sequence.
-        if(edgeSequenceLength > 0) {
-            html << "<span style='background-color:pink'>";
-            for(size_t j=0; j<edgeSequenceLength; j++) {
-                html << edgeSequence[j];
+        if(boost::icl::intersects(
+            Roi(begin, end),
+            Roi(edgeRawRange[i].first, edgeRawRange[i].second))) {
+            const MarkerGraph::EdgeId edgeId = edgeIds[i];
+            // const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
+            const vector<Base>& edgeSequence = edgeSequences[i];
+            const vector<uint32_t>& edgeRepeatCount = edgeRepeatCounts[i];
+            const size_t edgeSequenceLength = edgeSequence.size();
+            SHASTA_ASSERT(edgeRepeatCount.size() == edgeSequenceLength);
+            // const uint32_t maxEdgeRepeatCount =
+            //    *std::max_element(edgeRepeatCount.begin(), edgeRepeatCount.end());
+            // SHASTA_ASSERT(maxEdgeRepeatCount < 10);  // For now. Add additional code when this fails.
+            html <<
+                "<tr><td>Edge"
+                "<td><td class=centered title='Edge index in chain'>" << i <<
+                "<td class=centered><a href='exploreMarkerGraphEdge?edgeId=" << edgeId << "'>" << edgeId << "</a>"
+                "<td class=centered title='Edge coverage'>" << edgeCoverage[i] <<
+                "<td class=centered>" <<
+                "<td class=centered "
+                "title='Begin offset of RLE sequence contributed by this edge'>";
+            if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
+                html << edgeRunLengthRange[i].first;
             }
-            html << "</span>";
-        }
-        html << "<br>";
+            html << "<td class=centered "
+                "title='End offset (one past) of RLE sequence contributed by this edge'>";
+            if(edgeRunLengthRange[i].first != edgeRunLengthRange[i].second) {
+                html << edgeRunLengthRange[i].second;
+            }
+            html << "<td style='font-family:courier' "
+                "title='Edge consensus RLE sequence. Portion contributed to assembly is highlighted.'>";
 
-        // Edge repeat counts.
-        if(edgeSequenceLength > 0) {
-            html << "<span style='background-color:pink'>";
-            for(size_t j=0; j<edgeSequenceLength; j++) {
-                const uint32_t repeatCount = edgeRepeatCount[j];
-                if(repeatCount < 10) {
-                    html << repeatCount % 10;
-                } else {
-                    html << "*";
+            // Edge RLE sequence.
+            if(edgeSequenceLength > 0) {
+                html << "<span style='background-color:pink'>";
+                for(size_t j=0; j<edgeSequenceLength; j++) {
+                    html << edgeSequence[j];
                 }
+                html << "</span>";
             }
-            html << "</span>";
-        }
-        html << "<td class=centered "
-            "title='Begin offset of raw sequence contributed by this edge'>";
-        if(edgeRawRange[i].first != edgeRawRange[i].second) {
-            html << edgeRawRange[i].first;
-        }
-        html << "<td class=centered "
-            "title='End offset (one past) of raw sequence contributed by this edge'>";
-        if(edgeRawRange[i].first != edgeRawRange[i].second) {
-            html << edgeRawRange[i].second;
-        }
-        html << "<td style='font-family:courier' "
-            "title='Edge consensus raw sequence. Portion contributed to assembly is highlighted.'>";
+            html << "<br>";
 
-        // Edge raw sequence.
-        if(edgeSequenceLength > 0) {
-            html << "<span style='background-color:pink'>";
-            for(size_t j=0; j<edgeSequenceLength; j++) {
-                const Base b = edgeSequence[j];
-                const uint32_t repeatCount = edgeRepeatCount[j];
-                for(uint32_t k=0; k<repeatCount; k++) {
-                    html << b;
+            // Edge repeat counts.
+            if(edgeSequenceLength > 0) {
+                html << "<span style='background-color:pink'>";
+                for(size_t j=0; j<edgeSequenceLength; j++) {
+                    const uint32_t repeatCount = edgeRepeatCount[j];
+                    if(repeatCount < 10) {
+                        html << repeatCount % 10;
+                    } else {
+                        html << "*";
+                    }
                 }
+                html << "</span>";
             }
-            html << "</span>";
-        }
-     }
+            html << "<td class=centered "
+                "title='Begin offset of raw sequence contributed by this edge'>";
+            if(edgeRawRange[i].first != edgeRawRange[i].second) {
+                html << edgeRawRange[i].first;
+            }
+            html << "<td class=centered "
+                "title='End offset (one past) of raw sequence contributed by this edge'>";
+            if(edgeRawRange[i].first != edgeRawRange[i].second) {
+                html << edgeRawRange[i].second;
+            }
+            html << "<td style='font-family:courier' "
+                "title='Edge consensus raw sequence. Portion contributed to assembly is highlighted.'>";
+
+            // Edge raw sequence.
+            if(edgeSequenceLength > 0) {
+                html << "<span style='background-color:pink'>";
+                for(size_t j=0; j<edgeSequenceLength; j++) {
+                    const Base b = edgeSequence[j];
+                    const uint32_t repeatCount = edgeRepeatCount[j];
+                    for(uint32_t k=0; k<repeatCount; k++) {
+                        html << b;
+                    }
+                }
+                html << "</span>";
+            }
+         }
+    }
 }

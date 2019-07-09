@@ -83,10 +83,14 @@ public:
     void clear();
 
     // Write out in html.
-    void writeHtml(ostream&, bool showDetails) const;
-    void writeRawSequenceHtml(ostream&, bool showDetails) const;
-    void writeRleSequenceHtml(ostream&, bool showDetails) const;
-    void writeDetailHtml(ostream&, bool showDetails) const;
+    void writeHtml(
+        ostream&,
+        bool showSequence,
+        bool showDetails,
+        uint32_t begin,
+        uint32_t end) const;
+    void writeRawSequenceHtml(ostream&, uint32_t begin, uint32_t end) const;
+    void writeDetailHtml(ostream&, uint32_t begin, uint32_t end) const;
 
 
     // Coverage data is computed optionally under control of the storeCoverageData

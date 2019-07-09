@@ -229,27 +229,59 @@ bool Assembler::LocalAssemblyGraphRequestParameters::hasMissingRequiredParameter
 
 void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream& html)
 {
-    html << "<h2>Show details about an edge of the assembly graph</h2>";
+    html << "<h2>Show information about an edge of the assembly graph</h2>";
+
+
 
     // Get the request parameters.
+
     AssemblyGraph::EdgeId edgeId = 0;
-    const bool edgeIdIsPresent = getParameterValue(
-        request, "edgeId", edgeId);
+    const bool edgeIdIsPresent = getParameterValue(request, "edgeId", edgeId);
+
+    string showSequenceString;
+    getParameterValue(request, "showSequence", showSequenceString);
+    const bool showSequence = (showSequenceString == "on");
+
     string showDetailsString;
     getParameterValue(request, "showDetails", showDetailsString);
     const bool showDetails = (showDetailsString == "on");
-    cout << "showDetailsString " << showDetailsString << " " << int(showDetails) << endl;
 
-    // Write the form to get the edge id.
+    uint32_t begin;
+    const uint32_t beginIsPresent = getParameterValue(request, "begin", begin);
+
+    uint32_t end;
+    const uint32_t endIsPresent = getParameterValue(request, "end", end);
+
+
+
+    // Write the form.
     html <<
-        "<form>"
-        "<br>Assembly graph edge id: <input type=text name=edgeId" <<
+        "<form><table>"
+
+        "<tr><td>Assembly graph edge id<td class=centered><input type=text name=edgeId required "
+        "style='text-align:center'" <<
         (edgeIdIsPresent ? (" value='" + to_string(edgeId)) + "'" : "") <<
         " title='Enter an assembly graph edge id between 0 and " << assemblyGraph.edges.size()-1 << " inclusive'"
-        "><br>Show assembly details <input type=checkbox name=showDetails" <<
-        (showDetails ? " checked=checked" : "") <<
-        "><br><input type=submit value='Go'>"
+        ">"
+
+        "<tr><td>Show sequence<td class=centered><input type=checkbox name=showSequence" <<
+        (showSequence ? " checked=checked" : "") << ">"
+
+        "<tr><td>Show assembly details<td class=centered><input type=checkbox name=showDetails" <<
+        (showDetails ? " checked=checked" : "") << ">"
+
+        "<tr><td>Begin position in raw sequence<td class=centered><input type=text name=begin "
+        "style='text-align:center'" <<
+        (beginIsPresent ? (" value='" + to_string(begin)) + "'" : "") << ">"
+
+        "<tr><td>End position in raw sequence<td class=centered><input type=text name=end "
+        "style='text-align:center'" <<
+        (endIsPresent ? (" value='" + to_string(end)) + "'" : "") << ">"
+
+        "</table><br><input type=submit value='Go'>"
         "</form>";
+
+
 
     // If the edge id is missing or invalid, don't do anything.
     if(!edgeIdIsPresent) {
@@ -284,10 +316,21 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     }
 
 
-    // Assemble the sequence and output detailed information to html.
+
+    // If showSequence or showDetails are selected,
+    // begin and end are required.
+    if(showSequence || showDetails) {
+        if(!(beginIsPresent && endIsPresent)) {
+            html << "<p>Specify begin and end position in raw sequence in the form above.";
+            return;
+    }
+
+
+
+    // Assemble the sequence and output the requested information to html.
     AssembledSegment assembledSegment;
     assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
-    assembledSegment.writeHtml(html, showDetails);
+    assembledSegment.writeHtml(html, showSequence, showDetails, begin, end);
 }
 
 
