@@ -323,6 +323,7 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
         if(!(beginIsPresent && endIsPresent)) {
             html << "<p>Specify begin and end position in raw sequence in the form above.";
             return;
+        }
     }
 
 
