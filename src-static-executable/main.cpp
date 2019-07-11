@@ -233,9 +233,6 @@ void shasta::main::main(int argumentCount, const char** arguments)
     if(assemblyOptions.Assembly.useMarginPhase != "False") {
         throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
     }
-    if(assemblyOptions.Assembly.storeCoverageData != "False") {
-        throw runtime_error("Assembly.storeCoverageData is not supported by the Shasta static executable.");
-    }
 
     // Write a startup message.
     cout << timestamp <<
@@ -598,12 +595,17 @@ void shasta::main::runAssembly(
     // Compute optimal repeat counts for each vertex of the marker graph.
     assembler.assembleMarkerGraphVertices(0);
 
+    // If coverage data was requested, compute and store coverage data for the vertices.
+    if(assemblyOptions.Assembly.storeCoverageData != "False") {
+        assembler.computeMarkerGraphVerticesCoverageData(0);
+    }
+
     // Compute consensus sequence for marker graph edges to be used for assembly.
     assembler.assembleMarkerGraphEdges(
         0,
         assemblyOptions.Assembly.markerGraphEdgeLengthThresholdForConsensus,
         false,
-        false);
+        assemblyOptions.Assembly.storeCoverageData != "False");
 
     // Use the assembly graph for global assembly.
     assembler.assemble(0);
