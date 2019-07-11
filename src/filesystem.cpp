@@ -104,6 +104,16 @@ void shasta::filesystem::remove(const string& path)
 }
 
 
+// Copy a file.
+void shasta::filesystem::copy(const string& input, const string& output)
+{
+    const string command = "cp " + input + " " + output;
+    if(::system(command.c_str()) != 0) {
+        throw runtime_error("Error executing command " + command);
+    }
+}
+
+
 
 // Return the contents of a directory. In case of failure, throw an exception.
 vector<string> shasta::filesystem::directoryContents(const string& path)

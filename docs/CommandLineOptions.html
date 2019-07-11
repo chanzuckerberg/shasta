@@ -369,10 +369,16 @@ Controls assembly of long marker graph edges.
 <tr id='Assembly.consensusCaller'>
 <td><code>--Assembly.consensusCaller</code>
 <td class=centered><code>SimpleConsensusCaller</code><td>
-Selects the consensus caller for repeat counts. 
-<code>SimpleConsensusCaller</code> is the only choice currently 
-supported by the Shasta executable. 
-Other choices are under development and supported by the Shasta Python API.
+Used to select the consensus caller for repeat counts. Can be one of:
+<ul>
+<li><code>SimpleConsensusCaller</code> to select the default consensus caller.
+<li>The path to a configuration file for a <code>SimpleBayesianConsensusCaller</code>. 
+The file name must begin with <code>SimpleBayesianConsensusCaller-</code>
+(the dash is required).
+Some such configuration files 
+are available in a build tree under <code>shasta-install/conf</code>
+and in a source tree under <code>shasta/conf</code>.
+</ul>
 
 <tr id='Assembly.useMarginPhase'>
 <td><code>--Assembly.useMarginPhase</code><td class=centered><code>False</code><td>

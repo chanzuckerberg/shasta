@@ -16,7 +16,8 @@ namespace shasta {
         void runAssembly(
             Assembler&,
             const AssemblyOptions&,
-            vector<string> inputFastaFileNames);
+            vector<string> inputFastaFileNames,
+            const string& consensusCallerType);
         void setupHugePages();
     }
     class AssemblyOptions;
@@ -229,11 +230,6 @@ void shasta::main::main(int argumentCount, const char** arguments)
     assemblyOptions.MarkerGraph.parseSimplifyMaxLength();
 
     // Check for options unsupported by the static executable.
-    if(assemblyOptions.Assembly.consensusCaller != "SimpleConsensusCaller") {
-        throw runtime_error("Assembly.consensusCaller value " + assemblyOptions.Assembly.consensusCaller +
-            " is not supported.\n"
-            "Only value supported by the Shasta static executable is SimpleConsensusCaller.");
-    }
     if(assemblyOptions.Assembly.useMarginPhase != "False") {
         throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
     }
@@ -262,13 +258,54 @@ void shasta::main::main(int argumentCount, const char** arguments)
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
     }
 
-    // If the output directory exists, stop.
-    // Otherwise, create it and make it current.
+
+
+    // If necessary, find the absolute path of the configuration file
+    // for the consensus caller.
+    string consensusCallerType;
+    string consensusCallerConfigurationFileName;
+    if(assemblyOptions.Assembly.consensusCaller == "SimpleConsensusCaller") {
+        consensusCallerType = "SimpleConsensusCaller";
+    } else {
+
+        // In this case, the option specifies the name
+        // of the configuration file to use for the consensus caller.
+        // The type is deduced from the file name.
+        consensusCallerConfigurationFileName = assemblyOptions.Assembly.consensusCaller;
+
+        // Deduce the type from the file name.
+        const size_t lastSlashPosition = consensusCallerConfigurationFileName.find_last_of('/');
+        const size_t fileNameBegin = (lastSlashPosition == string::npos ? 0 : lastSlashPosition+1);
+        const string fileName = consensusCallerConfigurationFileName.substr(fileNameBegin);
+        const size_t dashPosition = fileName.find_first_of('-');
+        consensusCallerType = fileName.substr(0, dashPosition);
+
+        // Check that it is one of the supported types.
+        if(consensusCallerType != "SimpleBayesianConsensusCaller") {
+            throw runtime_error("Invalid consensus caller " +
+                assemblyOptions.Assembly.consensusCaller);
+        }
+
+    }
+
+
+
+    // Create the run the output directory. If it exists, stop.
     if(filesystem::exists(outputDirectory)) {
         throw runtime_error("Output directory " + outputDirectory + " already exists.\n"
             "Remove it or use --output to specify a different output directory.");
     }
     filesystem::createDirectory(outputDirectory);
+
+    // If necessary, copy the configuration file for the consensus caller
+    // to the output directory.
+    if(consensusCallerConfigurationFileName.size() > 0) {
+        filesystem::copy(
+            consensusCallerConfigurationFileName,
+            outputDirectory + "/" + consensusCallerType + ".csv");
+    }
+
+    // Make the output directory current.
     filesystem::changeDirectory(outputDirectory);
 
 
@@ -408,7 +445,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
     Assembler assembler(dataDirectory, true, pageSize);
 
     // Run the assembly.
-    runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths);
+    runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths, consensusCallerType);
 
     // Final disclaimer message.
 #ifdef __linux
@@ -443,7 +480,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
 void shasta::main::runAssembly(
     Assembler& assembler,
     const AssemblyOptions& assemblyOptions,
-    vector<string> inputFastaFileNames)
+    vector<string> inputFastaFileNames,
+    const string& consensusCallerType)
 {
     const auto steadyClock0 = std::chrono::steady_clock::now();
     const auto userClock0 = boost::chrono::process_user_cpu_clock::now();
@@ -451,7 +489,8 @@ void shasta::main::runAssembly(
 
     // The executable only supports SimpleConsensusCaller,
     // at least for now.
-    assembler.setupConsensusCaller("SimpleConsensusCaller");
+    cout << "Setting up " << consensusCallerType << endl;
+    assembler.setupConsensusCaller(consensusCallerType);
 
     // Add reads from the specified FASTA files.
     for(const string& inputFastaFileName: inputFastaFileNames) {

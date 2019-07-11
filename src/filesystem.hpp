@@ -42,6 +42,9 @@ namespace shasta {
         // Remove the specified path. In case of failure, throw an exception.
         void remove(const string&);
 
+        // Copy a file.
+        void copy(const string&, const string&);
+
         // Return the contents of a directory. In case of failure, throw an exception.
         vector<string> directoryContents(const string&);
 
