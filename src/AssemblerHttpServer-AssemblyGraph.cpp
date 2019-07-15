@@ -7,6 +7,7 @@
 using namespace shasta;
 
 // Boost libraries.
+#include <boost/algorithm/string.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -246,10 +247,10 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     getParameterValue(request, "showDetails", showDetailsString);
     const bool showDetails = (showDetailsString == "on");
 
-    uint32_t begin;
+    uint32_t begin = 0;
     const uint32_t beginIsPresent = getParameterValue(request, "begin", begin);
 
-    uint32_t end;
+    uint32_t end = 0;
     const uint32_t endIsPresent = getParameterValue(request, "end", end);
 
 
@@ -332,6 +333,277 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
     AssembledSegment assembledSegment;
     assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
     assembledSegment.writeHtml(html, showSequence, showDetails, begin, end);
+}
+
+
+
+void Assembler::exploreAssemblyGraphEdgesSupport(
+    const vector<string>& request,
+    ostream& html)
+{
+
+    html << "<h2>Display read support for assembly graph edges</h2>";
+
+    // Get the request parameters.
+    string edgesString;
+    getParameterValue(request, "edges", edgesString);
+    uint32_t beginEndMarkerCount = 100;
+    getParameterValue(request, "beginEndMarkerCount", beginEndMarkerCount);
+
+
+
+    // Parse the edge ids into tokens.
+    vector<string> edgesTokens;
+    boost::algorithm::split(edgesTokens, edgesString,
+        boost::algorithm::is_any_of(" "),
+        boost::algorithm::token_compress_on);
+
+
+
+
+    // Write the form.
+    html <<
+        "<form><table style='width:600px'>"
+
+        "<tr>"
+        "<td>Assembly graph edges, "
+        "space separated and optionally followed by B or E for begin/end only display, "
+        "for example \"45 27E 101B\""
+        "<td class=centered>"
+        "<input type=text name=edges "
+        "style='text-align:center' value='" << edgesString << "'>"
+
+        "<tr><td>Marker count for begin/end "
+        "(number of markers for begin/end only display)"
+        "<td class=centered><input type=text name=beginEndMarkerCount " <<
+        "style='text-align:center' value=" << beginEndMarkerCount << ">"
+
+
+        "</table><br><input type=submit value='Go'>"
+        "</form>";
+
+
+
+    // Parse the requested edges to create a list of
+    // (edge id, markerBegin, marker end).
+    vector< tuple<AssemblyGraph::EdgeId, uint32_t, uint32_t> > edges;
+    vector<string> edgesStrings;
+    for(const string& token: edgesTokens) {
+        if(token.size() ==0) {
+            continue;
+        }
+
+        // See if begin/end only was requested.
+        bool beginOnly = false;
+        bool endOnly = false;
+        const char lastCharacter = token[token.size()-1];
+        string edgeString = token;
+        if(lastCharacter == 'B') {
+            beginOnly = true;
+            edgeString = edgeString.substr(0, token.size()-1);
+        }
+        if(lastCharacter == 'E') {
+            endOnly = true;
+            edgeString = edgeString.substr(0, token.size()-1);
+        }
+
+        // Extract the edge id.
+        AssemblyGraph::EdgeId edgeId;
+        try {
+            edgeId = boost::lexical_cast<AssemblyGraph::EdgeId>(edgeString);
+        } catch(boost::bad_lexical_cast) {
+            html << "<br>Invalid assembly graph edge id " << token;
+            return;
+        }
+
+        // Check that it is a valid assembly graph edge id.
+        if(edgeId >= assemblyGraph.edges.size()) {
+            html << "<br>Invalid assembly graph edge id " << edgeId <<
+                ". Valid assembly graph edge ids are between 0 and " <<
+                assemblyGraph.edges.size()-1 << " included.";
+            return;
+        }
+        edgesStrings.push_back(token);
+
+
+        // Access the marker graph edges corresponding to the assembly graph edge.
+        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges =
+            assemblyGraph.edgeLists[edgeId];
+
+        // Construct the requested marker interval.
+        uint32_t begin = 0;
+        uint32_t end = uint32_t(markerGraphEdges.size());
+        if(beginOnly) {
+            end = min(end, beginEndMarkerCount);
+        } else if(endOnly) {
+            if(end > beginEndMarkerCount) {
+                begin = end - beginEndMarkerCount;
+            }
+        }
+        edges.push_back(make_tuple(edgeId, begin, end));
+    }
+    SHASTA_ASSERT(edges.size() == edgesStrings.size());
+
+
+
+    // Gather marker graph vertex ids.
+    vector< vector<MarkerGraph::VertexId> > markerGraphVertexIds(edges.size());
+    for(size_t i=0; i<edges.size(); i++)  {
+        const auto& t = edges[i];
+        const AssemblyGraph::EdgeId assemblyGraphEdgeId = std::get<0>(t);
+        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdgeIds =
+            assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        const uint32_t begin = std::get<1>(t);
+        const uint32_t end = std::get<2>(t);
+        for(size_t j=begin; j!=end; j++) {
+            const MarkerGraph::EdgeId& markerGraphEdgeId = markerGraphEdgeIds[j];
+            const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
+            if(j == begin) {
+                markerGraphVertexIds[i].push_back(markerGraphEdge.source);
+            }
+            markerGraphVertexIds[i].push_back(markerGraphEdge.target);
+        }
+    }
+
+
+
+    // Gather the oriented read ids represented
+    // in these vertices.
+    std::set<OrientedReadId> orientedReadIdsSet;
+
+    // Loop over the requested assembly graph edges.
+    for(const vector<MarkerGraph::VertexId>& v: markerGraphVertexIds) {
+
+        // Loop over marker graph vertices in the requested interval
+        // for this assembly graph edge.
+        for(MarkerGraph::VertexId vertexId: v) {
+
+            // Access the marker ids on this vertex.
+            const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
+
+            // Loop over these markers.
+            for(const MarkerId markerId: markerIds) {
+                OrientedReadId orientedReadId;
+                tie(orientedReadId, ignore) = findMarkerId(markerId);
+                orientedReadIdsSet.insert(orientedReadId);
+            }
+
+        }
+    }
+    vector<OrientedReadId> orientedReadIds(
+        orientedReadIdsSet.begin(),
+        orientedReadIdsSet.end());
+
+
+
+    // Find out at what positions (in markerGraphVertexIds) each
+    // oriented read id appears in each of the requested assembly graph edges.
+    // The table is indexed by [oriented read id index][assembly graph edge index],
+    // where:
+    // - Oriented read id index = index into orientedReadids vector.
+    // - Assembly graph edge index = index into markerGraphVertexIds vector
+    vector< vector< vector<uint32_t> > > table(
+        orientedReadIds.size(),
+        vector< vector<uint32_t> >(edges.size()));
+
+    // Loop over requested assembly graph edges.
+    for(size_t assemblyGraphEdgeIndex=0;
+        assemblyGraphEdgeIndex<markerGraphVertexIds.size();
+        assemblyGraphEdgeIndex++) {
+
+        // Loop over the marker grah vertices.
+        const vector<MarkerGraph::VertexId>& v = markerGraphVertexIds[assemblyGraphEdgeIndex];
+        for(size_t iv=0; iv<v.size(); iv++) {
+            const MarkerGraph::VertexId vertexId = v[iv];
+
+            // Access the marker ids on this vertex.
+            const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
+
+            // Loop over these markers.
+            for(const MarkerId markerId: markerIds) {
+                OrientedReadId orientedReadId;
+                tie(orientedReadId, ignore) = findMarkerId(markerId);
+                const auto it = std::lower_bound(
+                    orientedReadIds.begin(), orientedReadIds.end(), orientedReadId);
+                SHASTA_ASSERT(it != orientedReadIds.end());
+                SHASTA_ASSERT(*it == orientedReadId);
+                const size_t orientedReadIdIndex = it - orientedReadIds.begin();
+
+                table[orientedReadIdIndex][assemblyGraphEdgeIndex].push_back(uint32_t(iv));
+            }
+        }
+
+    }
+
+
+
+    // Write a table with the results.
+    html << "<p><table>";
+
+    // Assembly graph edge ids.
+    html << "<tr><th class=left>Assembly graph edge id";
+    for(const string& edgeString : edgesStrings) {
+        html << "<th class=centered>" << edgeString;
+    }
+
+    // Total number of marker graph edges.
+    html << "<tr><th class=left>Total marker graph edge count";
+    for(const auto& t: edges) {
+        html << "<td class=centered>" << assemblyGraph.edgeLists.size(std::get<0>(t));
+    }
+
+    // Marker graph edge requested begin/end.
+    html << "<tr><th class=left>Requested marker graph edge begin";
+    for(const auto& t: edges) {
+        html << "<td class=centered>" << std::get<1>(t);
+    }
+    html << "<tr><th class=left>Requested marker graph edge end";
+    for(const auto& t: edges) {
+        html << "<td class=centered>" << std::get<2>(t);
+    }
+    html << "<tr><th class=left>Requested marker graph edge count";
+    for(const auto& t: edges) {
+        html << "<td class=centered>" <<
+            std::get<2>(t) - std::get<1>(t);
+    }
+
+
+
+    // One row for each oriented read id.
+    for(size_t orientedReadIdIndex=0;
+        orientedReadIdIndex< orientedReadIds.size();
+        orientedReadIdIndex++) {
+        const OrientedReadId orientedReadId = orientedReadIds[orientedReadIdIndex];
+        html << "<tr><td>" << orientedReadId;
+
+        // Loop over assembly graph edges.
+        for(size_t i=0; i<edges.size(); i++) {
+            const auto& t = edges[i];
+             const uint32_t markerGraphVertexCount = uint32_t(markerGraphVertexIds[i].size());
+            const string canvasId = to_string(orientedReadId.getValue()) + "-" + to_string(i);
+            html <<
+                "<td class=centered>"
+                "<canvas id='" << canvasId << "'"
+                " width=" << markerGraphVertexCount << " height=10>"
+                "</canvas>"
+                "<script>"
+                "var c = document.getElementById('" << canvasId << "');"
+                "var ctx = c.getContext('2d');"
+                "ctx.fillStyle = '#e0e0e0';"
+                "ctx.fillRect(0, 0, " << markerGraphVertexCount << ", 10);"
+                "ctx.fillStyle = '#ff0000';";
+
+            for(const uint32_t iv: table[orientedReadIdIndex][i]) {
+                html << "ctx.fillRect(" << iv << ", 0, 1, 10);";
+            }
+
+            html << "</script>";
+        }
+    }
+
+
+    html << "</table>";
+
 }
 
 

@@ -71,6 +71,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdgesSupport);
 
 }
 #undef SHASTA_ADD_TO_FUNCTION_TABLE
@@ -341,6 +342,7 @@ void Assembler::writeNavigation(ostream& html) const
     writeNavigation(html, "Assembly graph", {
         {"Local assembly graph", "exploreAssemblyGraph"},
         {"Assembly graph edges", "exploreAssemblyGraphEdge"},
+        {"Assembly graph edges support", "exploreAssemblyGraphEdgesSupport"},
         });
     writeNavigation(html, "Help", {
         {"Documentation", "docs/index.html"},

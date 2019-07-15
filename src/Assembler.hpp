@@ -1398,6 +1398,7 @@ private:
         const vector<string>&,
         LocalAssemblyGraphRequestParameters&) const;
     void exploreAssemblyGraphEdge(const vector<string>&, ostream&);
+    void exploreAssemblyGraphEdgesSupport(const vector<string>&, ostream&);
 
 
 
