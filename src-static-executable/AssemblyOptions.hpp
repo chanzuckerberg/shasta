@@ -15,10 +15,8 @@ namespace shasta {
 
 
 
-// In class AssemblyOptions, we choose names that are
-// consistent with options names in shasta.conf,
-// even though we are violating naming conventions used
-// in the rest of the Shasta code.
+// Class AssemblyOptions contains one nested class
+// corresponding to each group of options.
 class shasta::AssemblyOptions {
 public:
 
@@ -38,7 +36,7 @@ public:
 
         void write(ostream&) const;
     };
-    ReadsOptions Reads;
+    ReadsOptions readsOptions;
 
 
 
@@ -48,7 +46,7 @@ public:
         double probability;
         void write(ostream&) const;
     };
-    KmersOptions Kmers;
+    KmersOptions kmersOptions;
 
 
 
@@ -61,7 +59,7 @@ public:
         int minFrequency;
         void write(ostream&) const;
     };
-    MinHashOptions MinHash;
+    MinHashOptions minHashOptions;
 
 
 
@@ -73,7 +71,7 @@ public:
         int minAlignedMarkerCount;
         void write(ostream&) const;
     };
-    AlignOptions Align;
+    AlignOptions alignOptions;
 
 
 
@@ -84,7 +82,7 @@ public:
         int maxChimericReadDistance;
         void write(ostream& ) const;
     };
-    ReadGraphOptions ReadGraph;
+    ReadGraphOptions readGraphOptions;
 
 
 
@@ -102,7 +100,7 @@ public:
         void parseSimplifyMaxLength();
         void write(ostream&) const;
     };
-    MarkerGraphOptions MarkerGraph;
+    MarkerGraphOptions markerGraphOptions;
 
 
 

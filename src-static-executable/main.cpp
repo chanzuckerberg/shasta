@@ -228,7 +228,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
     }
 
     // Parse MarkerGraph.simplifyMaxLength.
-    assemblyOptions.MarkerGraph.parseSimplifyMaxLength();
+    assemblyOptions.markerGraphOptions.parseSimplifyMaxLength();
 
     // Check for options unsupported by the static executable.
     if(assemblyOptions.Assembly.useMarginPhase != "False") {
@@ -494,7 +494,7 @@ void shasta::main::runAssembly(
     for(const string& inputFastaFileName: inputFastaFileNames) {
         assembler.addReadsFromFasta(
             inputFastaFileName,
-            assemblyOptions.Reads.minReadLength,
+            assemblyOptions.readsOptions.minReadLength,
             2ULL * 1024ULL * 1024ULL * 1024ULL,
             1,
             0);
@@ -512,8 +512,8 @@ void shasta::main::runAssembly(
 
     // Randomly select the k-mers that will be used as markers.
     assembler.randomlySelectKmers(
-        assemblyOptions.Kmers.k,
-        assemblyOptions.Kmers.probability, 231);
+        assemblyOptions.kmersOptions.k,
+        assemblyOptions.kmersOptions.probability, 231);
 
     // Find the markers in the reads.
     assembler.findMarkers(0);
@@ -521,50 +521,50 @@ void shasta::main::runAssembly(
     // Flag palindromic reads.
     // These wil be excluded from further processing.
     assembler.flagPalindromicReads(
-        assemblyOptions.Reads.palindromicReads.maxSkip,
-        assemblyOptions.Reads.palindromicReads.maxMarkerFrequency,
-        assemblyOptions.Reads.palindromicReads.alignedFractionThreshold,
-        assemblyOptions.Reads.palindromicReads.nearDiagonalFractionThreshold,
-        assemblyOptions.Reads.palindromicReads.deltaThreshold,
+        assemblyOptions.readsOptions.palindromicReads.maxSkip,
+        assemblyOptions.readsOptions.palindromicReads.maxMarkerFrequency,
+        assemblyOptions.readsOptions.palindromicReads.alignedFractionThreshold,
+        assemblyOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
+        assemblyOptions.readsOptions.palindromicReads.deltaThreshold,
         0);
 
     // Find alignment candidates.
     assembler.findAlignmentCandidatesLowHash(
-        assemblyOptions.MinHash.m,
-        assemblyOptions.MinHash.hashFraction,
-        assemblyOptions.MinHash.minHashIterationCount,
+        assemblyOptions.minHashOptions.m,
+        assemblyOptions.minHashOptions.hashFraction,
+        assemblyOptions.minHashOptions.minHashIterationCount,
         0,
-        assemblyOptions.MinHash.maxBucketSize,
-        assemblyOptions.MinHash.minFrequency,
+        assemblyOptions.minHashOptions.maxBucketSize,
+        assemblyOptions.minHashOptions.minFrequency,
         0);
 
 
     // Compute alignments.
     assembler.computeAlignments(
-        assemblyOptions.Align.maxMarkerFrequency,
-        assemblyOptions.Align.maxSkip,
-        assemblyOptions.Align.minAlignedMarkerCount,
-        assemblyOptions.Align.maxTrim,
+        assemblyOptions.alignOptions.maxMarkerFrequency,
+        assemblyOptions.alignOptions.maxSkip,
+        assemblyOptions.alignOptions.minAlignedMarkerCount,
+        assemblyOptions.alignOptions.maxTrim,
         0);
 
     // Create the read graph.
     assembler.createReadGraph(
-        assemblyOptions.ReadGraph.maxAlignmentCount,
-        assemblyOptions.Align.maxTrim);
+        assemblyOptions.readGraphOptions.maxAlignmentCount,
+        assemblyOptions.alignOptions.maxTrim);
 
     // Flag read graph edges that cross strands.
     assembler.flagCrossStrandReadGraphEdges();
 
     // Flag chimeric reads.
-    assembler.flagChimericReads(assemblyOptions.ReadGraph.maxChimericReadDistance, 0);
-    assembler.computeReadGraphConnectedComponents(assemblyOptions.ReadGraph.minComponentSize);
+    assembler.flagChimericReads(assemblyOptions.readGraphOptions.maxChimericReadDistance, 0);
+    assembler.computeReadGraphConnectedComponents(assemblyOptions.readGraphOptions.minComponentSize);
 
     // Create vertices of the marker graph.
     assembler.createMarkerGraphVertices(
-        assemblyOptions.Align.maxMarkerFrequency,
-        assemblyOptions.Align.maxSkip,
-        assemblyOptions.MarkerGraph.minCoverage,
-        assemblyOptions.MarkerGraph.maxCoverage,
+        assemblyOptions.alignOptions.maxMarkerFrequency,
+        assemblyOptions.alignOptions.maxSkip,
+        assemblyOptions.markerGraphOptions.minCoverage,
+        assemblyOptions.markerGraphOptions.maxCoverage,
         0);
     assembler.findMarkerGraphReverseComplementVertices(0);
 
@@ -574,19 +574,19 @@ void shasta::main::runAssembly(
 
     // Approximate transitive reduction.
     assembler.flagMarkerGraphWeakEdges(
-        assemblyOptions.MarkerGraph.lowCoverageThreshold,
-        assemblyOptions.MarkerGraph.highCoverageThreshold,
-        assemblyOptions.MarkerGraph.maxDistance,
-        assemblyOptions.MarkerGraph.edgeMarkerSkipThreshold);
+        assemblyOptions.markerGraphOptions.lowCoverageThreshold,
+        assemblyOptions.markerGraphOptions.highCoverageThreshold,
+        assemblyOptions.markerGraphOptions.maxDistance,
+        assemblyOptions.markerGraphOptions.edgeMarkerSkipThreshold);
 
     // Prune the strong subgraph of the marker graph.
     assembler.pruneMarkerGraphStrongSubgraph(
-        assemblyOptions.MarkerGraph.pruneIterationCount);
+        assemblyOptions.markerGraphOptions.pruneIterationCount);
 
     // Simplify the marker graph to remove bubbles and superbubbles.
     // The maxLength parameter controls the maximum number of markers
     // for a branch to be collapsed during each iteration.
-    assembler.simplifyMarkerGraph(assemblyOptions.MarkerGraph.simplifyMaxLengthVector, false);
+    assembler.simplifyMarkerGraph(assemblyOptions.markerGraphOptions.simplifyMaxLengthVector, false);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
