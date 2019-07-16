@@ -46,16 +46,16 @@ void SimpleBayesianConsensusCaller::splitAsString(string s, char separatorChar, 
 }
 
 
-SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(){
+SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
+    const string& configurationFileName){
     maxRunlength = 50;
     ignoreNonConsensusBaseRepeats = true;
     predictGapRunlengths = false;
     countGapsAsZeros = false;
 
-    const string fileName = "SimpleBayesianConsensusCaller.csv";
-    ifstream matrixFile(fileName);
+    ifstream matrixFile(configurationFileName);
     if (not matrixFile.good()) {
-        const string errorMessage = "Error opening file: " + fileName;
+        const string errorMessage = "Error opening file: " + configurationFileName;
         throw runtime_error(errorMessage);
     }
 
@@ -373,7 +373,8 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
 //       The observed bases, strands, repeat counts, in this format:
 //       A,0,3
 //       A,1,4
-void shasta::testSimpleBayesianConsensusCaller()
+void shasta::testSimpleBayesianConsensusCaller(
+    const string& configurationFileName)
 {
     // Read the observations.
     Coverage coverage;
@@ -405,7 +406,7 @@ void shasta::testSimpleBayesianConsensusCaller()
     // Construct the caller.
     // This expects the configuration file to be named
     // SimpleBayesianConsensusCaller.csv.
-    SimpleBayesianConsensusCaller caller;
+    SimpleBayesianConsensusCaller caller(configurationFileName);
 
     // Compute consensus.
     const Consensus consensus = caller(coverage);

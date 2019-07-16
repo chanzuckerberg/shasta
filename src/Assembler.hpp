@@ -1405,10 +1405,20 @@ private:
     // The ConsensusCaller used to compute the "best"
     // base and repeat count at each assembly position.
     // The argument to setupConsensusCaller specifies
-    // the consensus caller to be used.
-    // Supported values are:
-    // - SimpleConsensusCaller
-    // - SimpleBayesianConsensusCaller
+    // the consensus caller to be used. It can be one of the following:
+    // - The type of a consensus caller that
+    //   does not require any configuration information. Possibilities are:
+    //   * "SimpleConsensusCaller".
+    //   * "BiasedGaussianConsensusCaller".
+    //   * "MedianConsensusCaller".
+    // - The absolute path to a configuration file for the
+    //   consensus caller to be used. A relative path is not accepted.
+    //   The file name portion of this path
+    //   must begin with the type of the consensus caller followed by a dash.
+    //   Currently, the only such type of consensus caller is
+    //   SimpleBayesianConsensusCaller, so this requires
+    //   an absolute path of the form "/*/SimpleBayesianConsensusCaller-*",
+    //   where the two "*" can be replaced by anything.
 public:
     void setupConsensusCaller(const string&);
 private:

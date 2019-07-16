@@ -36,7 +36,8 @@ must take into account which strand each read is on.
 
 namespace shasta {
     class SimpleBayesianConsensusCaller;
-    void testSimpleBayesianConsensusCaller();
+    void testSimpleBayesianConsensusCaller(
+        const string& configurationFileName);
 }
 
 
@@ -51,7 +52,7 @@ public:
     // The constructor does not have any parameters.
     // All data is read from file SimpleBayesianConsensusCaller.csv
     // in the run directory. We will update the documentation accordingly.
-    SimpleBayesianConsensusCaller();
+    SimpleBayesianConsensusCaller(const string& configurationFileName);
 
     // Given a coverage object, return the most likely run length, and the normalized log likelihood vector for all run
     // lengths as a pair
