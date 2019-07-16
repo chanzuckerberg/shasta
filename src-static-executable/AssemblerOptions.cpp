@@ -1,4 +1,4 @@
-#include "AssemblyOptions.hpp"
+#include "AssemblerOptions.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -9,8 +9,8 @@ using namespace shasta;
 
 
 
-// Add the AssemblyOptions to a Boost option description object.
-void AssemblyOptions::add(boost::program_options::options_description& options)
+// Add the AssemblerOptions to a Boost option description object.
+void AssemblerOptions::add(boost::program_options::options_description& options)
 {
     using boost::program_options::value;
 
@@ -185,7 +185,7 @@ void AssemblyOptions::add(boost::program_options::options_description& options)
 
 
 
-void AssemblyOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) const
+void AssemblerOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) const
 {
     s << "palindromicReads.maxSkip = " << maxSkip << "\n";
     s << "palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
@@ -196,7 +196,7 @@ void AssemblyOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) co
 
 
 
-void AssemblyOptions::ReadsOptions::write(ostream& s) const
+void AssemblerOptions::ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
     s << "minReadLength = " << minReadLength << "\n";
@@ -205,7 +205,7 @@ void AssemblyOptions::ReadsOptions::write(ostream& s) const
 
 
 
-void AssemblyOptions::KmersOptions::write(ostream& s) const
+void AssemblerOptions::KmersOptions::write(ostream& s) const
 {
     s << "[Kmers]\n";
     s << "k = " << k << "\n";
@@ -214,7 +214,7 @@ void AssemblyOptions::KmersOptions::write(ostream& s) const
 
 
 
-void AssemblyOptions::MinHashOptions::write(ostream& s) const
+void AssemblerOptions::MinHashOptions::write(ostream& s) const
 {
     s << "[MinHash]\n";
     s << "m = " << m << "\n";
@@ -226,7 +226,7 @@ void AssemblyOptions::MinHashOptions::write(ostream& s) const
 
 
 
-void AssemblyOptions::AlignOptions::write(ostream& s) const
+void AssemblerOptions::AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
     s << "maxSkip = " << maxSkip << "\n";
@@ -237,7 +237,7 @@ void AssemblyOptions::AlignOptions::write(ostream& s) const
 
 
 
-void AssemblyOptions::ReadGraphOptions::write(ostream& s) const
+void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
 {
     s << "[ReadGraph]\n";
     s << "maxAlignmentCount = " << maxAlignmentCount << "\n";
@@ -246,7 +246,7 @@ void AssemblyOptions::ReadGraphOptions::write(ostream& s) const
 }
 
 
-void AssemblyOptions::MarkerGraphOptions::write(ostream& s) const
+void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
 {
     s << "[MarkerGraph]\n";
     s << "minCoverage = " << minCoverage << "\n";
@@ -261,7 +261,7 @@ void AssemblyOptions::MarkerGraphOptions::write(ostream& s) const
 
 
 
-void AssemblyOptions::AssemblyOptionsInner::write(ostream& s) const
+void AssemblerOptions::AssemblyOptionsInner::write(ostream& s) const
 {
     s << "[Assembly]\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
@@ -276,7 +276,7 @@ void AssemblyOptions::AssemblyOptionsInner::write(ostream& s) const
 
 
 
-void AssemblyOptions::write(ostream& s) const
+void AssemblerOptions::write(ostream& s) const
 {
     readsOptions.write(s);
     s << "\n";
@@ -296,7 +296,7 @@ void AssemblyOptions::write(ostream& s) const
 
 
 
-void AssemblyOptions::MarkerGraphOptions::parseSimplifyMaxLength()
+void AssemblerOptions::MarkerGraphOptions::parseSimplifyMaxLength()
 {
     simplifyMaxLengthVector.clear();
 

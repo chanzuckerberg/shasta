@@ -1,5 +1,5 @@
-#ifndef SHASTA_ASSEMBLY_OPTIONS_HPP
-#define SHASTA_ASSEMBLY_OPTIONS_HPP
+#ifndef SHASTA_ASSEMBLER_OPTIONS_HPP
+#define SHASTA_ASSEMBLER_OPTIONS_HPP
 
 // Boost libraries.
 #include <boost/program_options.hpp>
@@ -10,14 +10,14 @@
 #include "vector.hpp"
 
 namespace shasta {
-    class AssemblyOptions;
+    class AssemblerOptions;
 }
 
 
 
 // Class AssemblyOptions contains one nested class
 // corresponding to each group of options.
-class shasta::AssemblyOptions {
+class shasta::AssemblerOptions {
 public:
 
     class ReadsOptions {

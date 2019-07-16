@@ -6,7 +6,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
-#include "AssemblyOptions.hpp"
+#include "AssemblerOptions.hpp"
 #include "buildId.hpp"
 #include "filesystem.hpp"
 #include "timestamp.hpp"
@@ -15,12 +15,11 @@ namespace shasta {
         void main(int argumentCount, const char** arguments);
         void runAssembly(
             Assembler&,
-            const AssemblyOptions&,
+            const AssemblerOptions&,
             vector<string> inputFastaFileNames,
             const string& consensusCallerType);
         void setupHugePages();
     }
-    class AssemblyOptions;
 }
 using namespace shasta;
 
@@ -170,8 +169,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
     // Values specified in the command line take precedence.
     options_description options(
         "Options allowed on the command line and in the config file");
-    AssemblyOptions assemblyOptions;
-    assemblyOptions.add(options);
+    AssemblerOptions assemblerOptions;
+    assemblerOptions.add(options);
     
 
         
@@ -228,10 +227,10 @@ void shasta::main::main(int argumentCount, const char** arguments)
     }
 
     // Parse MarkerGraph.simplifyMaxLength.
-    assemblyOptions.markerGraphOptions.parseSimplifyMaxLength();
+    assemblerOptions.markerGraphOptions.parseSimplifyMaxLength();
 
     // Check for options unsupported by the static executable.
-    if(assemblyOptions.Assembly.useMarginPhase != "False") {
+    if(assemblerOptions.Assembly.useMarginPhase != "False") {
         throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
     }
 
@@ -262,14 +261,14 @@ void shasta::main::main(int argumentCount, const char** arguments)
     // for the consensus caller.
     string consensusCallerType;
     string consensusCallerConfigurationFileName;
-    if(assemblyOptions.Assembly.consensusCaller == "SimpleConsensusCaller") {
+    if(assemblerOptions.Assembly.consensusCaller == "SimpleConsensusCaller") {
         consensusCallerType = "SimpleConsensusCaller";
     } else {
 
         // In this case, the option specifies the name
         // of the configuration file to use for the consensus caller.
         // The type is deduced from the file name.
-        consensusCallerConfigurationFileName = assemblyOptions.Assembly.consensusCaller;
+        consensusCallerConfigurationFileName = assemblerOptions.Assembly.consensusCaller;
 
         // Deduce the type from the file name.
         const size_t lastSlashPosition = consensusCallerConfigurationFileName.find_last_of('/');
@@ -281,7 +280,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
         // Check that it is one of the supported types.
         if(consensusCallerType != "SimpleBayesianConsensusCaller") {
             throw runtime_error("Invalid consensus caller " +
-                assemblyOptions.Assembly.consensusCaller);
+                assemblerOptions.Assembly.consensusCaller);
         }
 
     }
@@ -412,10 +411,10 @@ void shasta::main::main(int argumentCount, const char** arguments)
     cout << "memoryMode = " << memoryMode << endl;
     cout << "memoryBacking = " << memoryBacking << "\n" << endl;
 #endif
-    assemblyOptions.write(cout);
+    assemblerOptions.write(cout);
     {
         ofstream configurationFile("shasta.conf");
-        assemblyOptions.write(configurationFile);
+        assemblerOptions.write(configurationFile);
     }
 
     // Initial disclaimer message.
@@ -443,7 +442,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
     Assembler assembler(dataDirectory, true, pageSize);
 
     // Run the assembly.
-    runAssembly(assembler, assemblyOptions, inputFastaFileAbsolutePaths, consensusCallerType);
+    runAssembly(assembler, assemblerOptions, inputFastaFileAbsolutePaths, consensusCallerType);
 
     // Final disclaimer message.
 #ifdef __linux
@@ -477,7 +476,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
 //   or relative to the run directory, which is the current directory.
 void shasta::main::runAssembly(
     Assembler& assembler,
-    const AssemblyOptions& assemblyOptions,
+    const AssemblerOptions& assemblerOptions,
     vector<string> inputFastaFileNames,
     const string& consensusCallerType)
 {
@@ -494,7 +493,7 @@ void shasta::main::runAssembly(
     for(const string& inputFastaFileName: inputFastaFileNames) {
         assembler.addReadsFromFasta(
             inputFastaFileName,
-            assemblyOptions.readsOptions.minReadLength,
+            assemblerOptions.readsOptions.minReadLength,
             2ULL * 1024ULL * 1024ULL * 1024ULL,
             1,
             0);
@@ -512,8 +511,8 @@ void shasta::main::runAssembly(
 
     // Randomly select the k-mers that will be used as markers.
     assembler.randomlySelectKmers(
-        assemblyOptions.kmersOptions.k,
-        assemblyOptions.kmersOptions.probability, 231);
+        assemblerOptions.kmersOptions.k,
+        assemblerOptions.kmersOptions.probability, 231);
 
     // Find the markers in the reads.
     assembler.findMarkers(0);
@@ -521,50 +520,50 @@ void shasta::main::runAssembly(
     // Flag palindromic reads.
     // These wil be excluded from further processing.
     assembler.flagPalindromicReads(
-        assemblyOptions.readsOptions.palindromicReads.maxSkip,
-        assemblyOptions.readsOptions.palindromicReads.maxMarkerFrequency,
-        assemblyOptions.readsOptions.palindromicReads.alignedFractionThreshold,
-        assemblyOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
-        assemblyOptions.readsOptions.palindromicReads.deltaThreshold,
+        assemblerOptions.readsOptions.palindromicReads.maxSkip,
+        assemblerOptions.readsOptions.palindromicReads.maxMarkerFrequency,
+        assemblerOptions.readsOptions.palindromicReads.alignedFractionThreshold,
+        assemblerOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
+        assemblerOptions.readsOptions.palindromicReads.deltaThreshold,
         0);
 
     // Find alignment candidates.
     assembler.findAlignmentCandidatesLowHash(
-        assemblyOptions.minHashOptions.m,
-        assemblyOptions.minHashOptions.hashFraction,
-        assemblyOptions.minHashOptions.minHashIterationCount,
+        assemblerOptions.minHashOptions.m,
+        assemblerOptions.minHashOptions.hashFraction,
+        assemblerOptions.minHashOptions.minHashIterationCount,
         0,
-        assemblyOptions.minHashOptions.maxBucketSize,
-        assemblyOptions.minHashOptions.minFrequency,
+        assemblerOptions.minHashOptions.maxBucketSize,
+        assemblerOptions.minHashOptions.minFrequency,
         0);
 
 
     // Compute alignments.
     assembler.computeAlignments(
-        assemblyOptions.alignOptions.maxMarkerFrequency,
-        assemblyOptions.alignOptions.maxSkip,
-        assemblyOptions.alignOptions.minAlignedMarkerCount,
-        assemblyOptions.alignOptions.maxTrim,
+        assemblerOptions.alignOptions.maxMarkerFrequency,
+        assemblerOptions.alignOptions.maxSkip,
+        assemblerOptions.alignOptions.minAlignedMarkerCount,
+        assemblerOptions.alignOptions.maxTrim,
         0);
 
     // Create the read graph.
     assembler.createReadGraph(
-        assemblyOptions.readGraphOptions.maxAlignmentCount,
-        assemblyOptions.alignOptions.maxTrim);
+        assemblerOptions.readGraphOptions.maxAlignmentCount,
+        assemblerOptions.alignOptions.maxTrim);
 
     // Flag read graph edges that cross strands.
     assembler.flagCrossStrandReadGraphEdges();
 
     // Flag chimeric reads.
-    assembler.flagChimericReads(assemblyOptions.readGraphOptions.maxChimericReadDistance, 0);
-    assembler.computeReadGraphConnectedComponents(assemblyOptions.readGraphOptions.minComponentSize);
+    assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, 0);
+    assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
 
     // Create vertices of the marker graph.
     assembler.createMarkerGraphVertices(
-        assemblyOptions.alignOptions.maxMarkerFrequency,
-        assemblyOptions.alignOptions.maxSkip,
-        assemblyOptions.markerGraphOptions.minCoverage,
-        assemblyOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.alignOptions.maxMarkerFrequency,
+        assemblerOptions.alignOptions.maxSkip,
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
         0);
     assembler.findMarkerGraphReverseComplementVertices(0);
 
@@ -574,19 +573,19 @@ void shasta::main::runAssembly(
 
     // Approximate transitive reduction.
     assembler.flagMarkerGraphWeakEdges(
-        assemblyOptions.markerGraphOptions.lowCoverageThreshold,
-        assemblyOptions.markerGraphOptions.highCoverageThreshold,
-        assemblyOptions.markerGraphOptions.maxDistance,
-        assemblyOptions.markerGraphOptions.edgeMarkerSkipThreshold);
+        assemblerOptions.markerGraphOptions.lowCoverageThreshold,
+        assemblerOptions.markerGraphOptions.highCoverageThreshold,
+        assemblerOptions.markerGraphOptions.maxDistance,
+        assemblerOptions.markerGraphOptions.edgeMarkerSkipThreshold);
 
     // Prune the strong subgraph of the marker graph.
     assembler.pruneMarkerGraphStrongSubgraph(
-        assemblyOptions.markerGraphOptions.pruneIterationCount);
+        assemblerOptions.markerGraphOptions.pruneIterationCount);
 
     // Simplify the marker graph to remove bubbles and superbubbles.
     // The maxLength parameter controls the maximum number of markers
     // for a branch to be collapsed during each iteration.
-    assembler.simplifyMarkerGraph(assemblyOptions.markerGraphOptions.simplifyMaxLengthVector, false);
+    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
@@ -597,16 +596,16 @@ void shasta::main::runAssembly(
     assembler.assembleMarkerGraphVertices(0);
 
     // If coverage data was requested, compute and store coverage data for the vertices.
-    if(assemblyOptions.Assembly.storeCoverageData != "False") {
+    if(assemblerOptions.Assembly.storeCoverageData != "False") {
         assembler.computeMarkerGraphVerticesCoverageData(0);
     }
 
     // Compute consensus sequence for marker graph edges to be used for assembly.
     assembler.assembleMarkerGraphEdges(
         0,
-        assemblyOptions.Assembly.markerGraphEdgeLengthThresholdForConsensus,
+        assemblerOptions.Assembly.markerGraphEdgeLengthThresholdForConsensus,
         false,
-        assemblyOptions.Assembly.storeCoverageData != "False");
+        assemblerOptions.Assembly.storeCoverageData != "False");
 
     // Use the assembly graph for global assembly.
     assembler.assemble(0);
