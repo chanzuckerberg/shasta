@@ -155,28 +155,38 @@ binary data representing assembly data structures.
 Depending on the <a href='Running.html#MemoryModes'>memory mode</a> in use,
 the <code>Data</code> directory can be
 the mount point of a filesystem in memory. 
-Not all memory modes actualy create a <code>Data</code> directory.
-After <code>Data</code> runs, you can no longer use
+Not all memory modes actually create a <code>Data</code> directory.
+After <code>cleanup</code> runs, you can no longer use
 the Python API or the Shasta http server to inspect assembly results.
 Make sure to use option <code>--output</code>
 to specify the run directory that you want to cleanup.
 
 <tr id='memoryMode'><td><code>--memoryMode<br></code>(not supported on MacOS)<td class=centered><code>anonymous</code><td>
-Can be <code>anonymous</code> or <code>filesystem</code>.
-For best performance use 
+<ul>
+<li>Can be <code>anonymous</code> or <code>filesystem</code>.
+<li>For best performance use 
 <code>--memoryMode filesystem --memoryBacking 2M</code>.
-However, these options require root access via <code>sudo</code>.
+However, using these options requires root access via <code>sudo</code>.
 Depending on <code>sudo</code> setup, this may 
 result in prompting for a password.
+<li>Not supported on MacOS. On MacOS, Shasta operates as if 
+<code>--memoryMode filesystem --memoryBacking disk</code>
+was specified.
+</ul>
 <a class=qm href='Running.html#MemoryModes'/>
 
 <tr id='memoryBacking'><td><code>--memoryBacking</code><br>(not supported on MacOS)<td class=centered><code>4K</code><td>
-Can be <code>disk</code>, <code>4K</code>,  or <code>2M</code>.
-For best performance use 
+<ul>
+<li>Can be <code>disk</code>, <code>4K</code>,  or <code>2M</code>.
+<li>For best performance use 
 <code>--memoryMode filesystem --memoryBacking 2M</code>.
-However, these options require root access via <code>sudo</code>.
+However, using these options requires root access via <code>sudo</code>.
 Depending on <code>sudo</code> setup, this may 
 result in prompting for a password.
+<li>Not supported on MacOS. On MacOS, Shasta operates as if 
+<code>--memoryMode filesystem --memoryBacking disk</code>
+was specified.
+</ul>
 <a class=qm href='Running.html#MemoryModes'/>
 </dl>
 

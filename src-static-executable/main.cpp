@@ -155,7 +155,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
     // For reasons not completely understood and that there was no time to investigate,
-    // the only combination that works is "--memoryMode filesystem --memoryBacking disk".
+    // the only combination that works on MacOS is
+    // "--memoryMode filesystem --memoryBacking disk".
     // This incurs a performance price but this is not too much of a big deal
     // as macOS  is only to be used for small test runs.
 #ifndef __linux__
