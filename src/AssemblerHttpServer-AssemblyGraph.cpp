@@ -578,8 +578,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
 
         // Loop over assembly graph edges.
         for(size_t i=0; i<edges.size(); i++) {
-            const auto& t = edges[i];
-             const uint32_t markerGraphVertexCount = uint32_t(markerGraphVertexIds[i].size());
+            const uint32_t markerGraphVertexCount = uint32_t(markerGraphVertexIds[i].size());
             const string canvasId = to_string(orientedReadId.getValue()) + "-" + to_string(i);
             html <<
                 "<td class=centered>"
