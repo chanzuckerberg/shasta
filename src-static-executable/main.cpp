@@ -230,7 +230,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
     assemblerOptions.markerGraphOptions.parseSimplifyMaxLength();
 
     // Check for options unsupported by the static executable.
-    if(assemblerOptions.Assembly.useMarginPhase != "False") {
+    if(assemblerOptions.assemblyOptions.useMarginPhase != "False") {
         throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
     }
 
@@ -261,14 +261,14 @@ void shasta::main::main(int argumentCount, const char** arguments)
     // for the consensus caller.
     string consensusCallerType;
     string consensusCallerConfigurationFileName;
-    if(assemblerOptions.Assembly.consensusCaller == "SimpleConsensusCaller") {
+    if(assemblerOptions.assemblyOptions.consensusCaller == "SimpleConsensusCaller") {
         consensusCallerType = "SimpleConsensusCaller";
     } else {
 
         // In this case, the option specifies the name
         // of the configuration file to use for the consensus caller.
         // The type is deduced from the file name.
-        consensusCallerConfigurationFileName = assemblerOptions.Assembly.consensusCaller;
+        consensusCallerConfigurationFileName = assemblerOptions.assemblyOptions.consensusCaller;
 
         // Deduce the type from the file name.
         const size_t lastSlashPosition = consensusCallerConfigurationFileName.find_last_of('/');
@@ -280,7 +280,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
         // Check that it is one of the supported types.
         if(consensusCallerType != "SimpleBayesianConsensusCaller") {
             throw runtime_error("Invalid consensus caller " +
-                assemblerOptions.Assembly.consensusCaller);
+                assemblerOptions.assemblyOptions.consensusCaller);
         }
 
     }
@@ -596,16 +596,16 @@ void shasta::main::runAssembly(
     assembler.assembleMarkerGraphVertices(0);
 
     // If coverage data was requested, compute and store coverage data for the vertices.
-    if(assemblerOptions.Assembly.storeCoverageData != "False") {
+    if(assemblerOptions.assemblyOptions.storeCoverageData != "False") {
         assembler.computeMarkerGraphVerticesCoverageData(0);
     }
 
     // Compute consensus sequence for marker graph edges to be used for assembly.
     assembler.assembleMarkerGraphEdges(
         0,
-        assemblerOptions.Assembly.markerGraphEdgeLengthThresholdForConsensus,
+        assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
         false,
-        assemblerOptions.Assembly.storeCoverageData != "False");
+        assemblerOptions.assemblyOptions.storeCoverageData != "False");
 
     // Use the assembly graph for global assembly.
     assembler.assemble(0);

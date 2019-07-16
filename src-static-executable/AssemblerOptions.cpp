@@ -159,12 +159,12 @@ void AssemblerOptions::add(boost::program_options::options_description& options)
         "Maximum lengths (in markers) used at each iteration of simplifyMarkerGraph.")
 
         ("Assembly.markerGraphEdgeLengthThresholdForConsensus",
-        value<int>(&Assembly.markerGraphEdgeLengthThresholdForConsensus)->
+        value<int>(&assemblyOptions.markerGraphEdgeLengthThresholdForConsensus)->
         default_value(1000),
         "Controls assembly of long marker graph edges.")
 
         ("Assembly.consensusCaller",
-        value<string>(&Assembly.consensusCaller)->
+        value<string>(&assemblyOptions.consensusCaller)->
         default_value("SimpleConsensusCaller"),
         "Selects the consensus caller for repeat counts.\n"
         "SimpleConsensusCaller is the only choice currently\n"
@@ -172,12 +172,12 @@ void AssemblerOptions::add(boost::program_options::options_description& options)
         "Other choices are available with the Shasta library.")
 
         ("Assembly.useMarginPhase",
-        value<string>(&Assembly.useMarginPhase)->
+        value<string>(&assemblyOptions.useMarginPhase)->
         default_value("False"),
         "Used to turn on margin phase.")
 
         ("Assembly.storeCoverageData",
-        value<string>(&Assembly.storeCoverageData)->
+        value<string>(&assemblyOptions.storeCoverageData)->
         default_value("False"),
         "Used to request storing coverage data.")
         ;
@@ -261,7 +261,7 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::AssemblyOptionsInner::write(ostream& s) const
+void AssemblerOptions::AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
@@ -290,7 +290,7 @@ void AssemblerOptions::write(ostream& s) const
     s << "\n";
     markerGraphOptions.write(s);
     s << "\n";
-    Assembly.write(s);
+    assemblyOptions.write(s);
     s << endl;
 }
 

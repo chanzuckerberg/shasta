@@ -104,7 +104,7 @@ public:
 
 
 
-    class AssemblyOptionsInner {
+    class AssemblyOptions {
     public:
         int markerGraphEdgeLengthThresholdForConsensus;
         string consensusCaller;
@@ -112,9 +112,9 @@ public:
         string storeCoverageData;   // False or True
         void write(ostream&) const;
     };
-    AssemblyOptionsInner Assembly;
+    AssemblyOptions assemblyOptions;
 
-    // Add these options to a Bost option description object.
+    // Add these options to a Boost option description object.
     // Note that this cannot be const as the Boost option descriptions
     // stores pointers to members that will be filled in with option values.
     void add(boost::program_options::options_description&);
