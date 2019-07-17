@@ -12,11 +12,21 @@
 #include "timestamp.hpp"
 namespace shasta {
     namespace main {
+
         void main(int argumentCount, const char** arguments);
+
         void runAssembly(
             Assembler&,
             const AssemblerOptions&,
             vector<string> inputFastaFileNames);
+
+        void setupRunDirectory(
+            const string& memoryMode,
+            const string& memoryBacking,
+            size_t& pageSize,
+            string& dataDirectory
+            );
+
         void setupHugePages();
     }
 }
@@ -268,9 +278,90 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
 
-    // Set up the run directory as required by the memoryMode and memoryBacking option.
+    // Set up the run directory as required by the memoryMode and memoryBacking options.
     size_t pageSize = 0;
     string dataDirectory;
+    setupRunDirectory(memoryMode, memoryBacking, pageSize, dataDirectory);
+
+
+
+    // Write out the option values we are using.
+    cout << "Options in use:" << endl;
+    cout << "Input FASTA files: ";
+    copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
+    cout << endl;
+    cout << "outputDirectory = " << outputDirectory << endl;
+#ifdef __linux__
+    cout << "memoryMode = " << memoryMode << endl;
+    cout << "memoryBacking = " << memoryBacking << "\n" << endl;
+#endif
+    assemblerOptions.write(cout);
+    {
+        ofstream configurationFile("shasta.conf");
+        assemblerOptions.write(configurationFile);
+    }
+
+    // Initial disclaimer message.
+#ifdef __linux
+    if(memoryBacking != "2M" && memoryMode != "filesystem") {
+        cout << "This run uses options \"--memoryBacking " << memoryBacking <<
+            " --memoryMode " << memoryMode << "\".\n"
+            "This could result in performance degradation.\n"
+            "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
+            "(root privilege via sudo required).\n"
+            "Therefore the results of this run should not be used\n"
+            "for benchmarking purposes." << endl;
+    }
+#else
+    cout << "The macOS version of the Shasta assembler runs at degraded performance.\n";
+    cout << "Use Linux for full performance.\n";
+    cout << "Therefore the results of this run should not be used\n"
+        "for benchmarking purposes." << endl;
+#endif
+
+    // Write the number of threads the run will use.
+    cout << "This assembly will use " << std::thread::hardware_concurrency() << " threads." << endl;
+
+    // Create the Assembler.
+    Assembler assembler(dataDirectory, true, pageSize);
+
+    // Run the assembly.
+    runAssembly(assembler, assemblerOptions, inputFastaFileAbsolutePaths);
+
+    // Final disclaimer message.
+#ifdef __linux
+    if(memoryBacking != "2M" && memoryMode != "filesystem") {
+        cout << "This run used options \"--memoryBacking " << memoryBacking <<
+            " --memoryMode " << memoryMode << "\".\n"
+            "This could have resulted in performance degradation.\n"
+            "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
+            "(root privilege via sudo required).\n"
+            "Therefore the results of this run should not be used\n"
+            "for benchmarking purposes." << endl;
+    }
+#else
+    cout << "The macOS version of the Shasta assembler runs at degraded performance.\n";
+    cout << "Use Linux for full performance.\n";
+    cout << "Therefore the results of this run should not be used\n"
+        "for benchmarking purposes." << endl;
+#endif
+
+    // Write out the build id again.
+    cout << buildId() << endl;
+
+}
+
+
+
+// Set up the run directory as required by the memoryMode and memoryBacking options.
+void shasta::main::setupRunDirectory(
+    const string& memoryMode,
+    const string& memoryBacking,
+    size_t& pageSize,
+    string& dataDirectory
+    )
+{
+
     if(memoryMode == "anonymous") {
 
         if(memoryBacking == "disk") {
@@ -359,73 +450,6 @@ void shasta::main::main(int argumentCount, const char** arguments)
         throw runtime_error("Invalid value specified for --memoryMode: " + memoryMode +
             "\nValid values are: anonymous, filesystem.");
     }
-
-
-
-    // Write out the option values we are using.
-    cout << "Options in use:" << endl;
-    cout << "Input FASTA files: ";
-    copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
-    cout << endl;
-    cout << "outputDirectory = " << outputDirectory << endl;
-#ifdef __linux__
-    cout << "memoryMode = " << memoryMode << endl;
-    cout << "memoryBacking = " << memoryBacking << "\n" << endl;
-#endif
-    assemblerOptions.write(cout);
-    {
-        ofstream configurationFile("shasta.conf");
-        assemblerOptions.write(configurationFile);
-    }
-
-    // Initial disclaimer message.
-#ifdef __linux
-    if(memoryBacking != "2M" && memoryMode != "filesystem") {
-        cout << "This run uses options \"--memoryBacking " << memoryBacking <<
-            " --memoryMode " << memoryMode << "\".\n"
-            "This could result in performance degradation.\n"
-            "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
-            "(root privilege via sudo required).\n"
-            "Therefore the results of this run should not be used\n"
-            "for benchmarking purposes." << endl;
-    }
-#else
-    cout << "The macOS version of the Shasta assembler runs at degraded performance.\n";
-    cout << "Use Linux for full performance.\n";
-    cout << "Therefore the results of this run should not be used\n"
-        "for benchmarking purposes." << endl;
-#endif
-
-    // Write the number of threads the run will use.
-    cout << "This assembly will use " << std::thread::hardware_concurrency() << " threads." << endl;
-
-    // Create the Assembler.
-    Assembler assembler(dataDirectory, true, pageSize);
-
-    // Run the assembly.
-    runAssembly(assembler, assemblerOptions, inputFastaFileAbsolutePaths);
-
-    // Final disclaimer message.
-#ifdef __linux
-    if(memoryBacking != "2M" && memoryMode != "filesystem") {
-        cout << "This run used options \"--memoryBacking " << memoryBacking <<
-            " --memoryMode " << memoryMode << "\".\n"
-            "This could have resulted in performance degradation.\n"
-            "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
-            "(root privilege via sudo required).\n"
-            "Therefore the results of this run should not be used\n"
-            "for benchmarking purposes." << endl;
-    }
-#else
-    cout << "The macOS version of the Shasta assembler runs at degraded performance.\n";
-    cout << "Use Linux for full performance.\n";
-    cout << "Therefore the results of this run should not be used\n"
-        "for benchmarking purposes." << endl;
-#endif
-
-    // Write out the build id again.
-    cout << buildId() << endl;
-
 }
 
 
