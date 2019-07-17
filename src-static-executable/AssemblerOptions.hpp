@@ -20,6 +20,23 @@ namespace shasta {
 class shasta::AssemblerOptions {
 public:
 
+    // Options only allowed on the command line and not in the configuration file.
+    class CommandLineOnlyOptions {
+    public:
+        string configFileName;
+        vector <string> inputFastaFileNames;
+        string outputDirectory;
+        string command;
+        string memoryMode;
+        string memoryBacking;
+    };
+    CommandLineOnlyOptions commandLineOnlyOptions;
+
+
+
+    // Options in the [Reads] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "Reads.".
     class ReadsOptions {
     public:
         int minReadLength;
@@ -40,6 +57,9 @@ public:
 
 
 
+    // Options in the [Kmers] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "Kmers.".
     class KmersOptions {
     public:
         int k;
@@ -50,6 +70,9 @@ public:
 
 
 
+    // Options in the [MinHash] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "MinHash.".
     class MinHashOptions {
     public:
         int m;
@@ -63,6 +86,9 @@ public:
 
 
 
+    // Options in the [Align] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "Align.".
     class AlignOptions {
     public:
         int maxSkip;
@@ -75,6 +101,9 @@ public:
 
 
 
+    // Options in the [ReadGraph] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "ReadGraph.".
     class ReadGraphOptions {
     public:
         int maxAlignmentCount;
@@ -86,6 +115,9 @@ public:
 
 
 
+    // Options in the [MarkerGraph] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "MarkerGraph.".
     class MarkerGraphOptions {
     public:
         int minCoverage;
@@ -104,6 +136,9 @@ public:
 
 
 
+    // Options in the [Assembly] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "Assembly.".
     class AssemblyOptions {
     public:
         int markerGraphEdgeLengthThresholdForConsensus;
@@ -114,13 +149,20 @@ public:
     };
     AssemblyOptions assemblyOptions;
 
-    // Add these options to a Boost option description object.
-    // Note that this cannot be const as the Boost option descriptions
-    // stores pointers to members that will be filled in with option values.
-    void add(boost::program_options::options_description&);
+    // Constructor.
+    AssemblerOptions(int argumentCount, const char** arguments);
+
+    // Add configurable options to the Boost option description object.
+    void addCommandLineOnlyOptions();
+    void addConfigurableOptions();
 
     // Write the options as a config file.
     void write(ostream&) const;
+
+    // Boost program_options library objects.
+    boost::program_options::options_description commandLineOnlyOptionsDescription;
+    boost::program_options::options_description configurableOptionsDescription;
+    boost::program_options::options_description allOptionsDescription;
 };
 
 #endif

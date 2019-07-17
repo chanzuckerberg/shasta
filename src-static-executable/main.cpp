@@ -41,7 +41,6 @@ using namespace shasta;
 #include <unistd.h>
 
 // Standard library.
-#include "fstream.hpp"
 #include "iostream.hpp"
 #include "iterator.hpp"
 #include "stdexcept.hpp"
@@ -84,12 +83,6 @@ void shasta::main::main(int argumentCount, const char** arguments)
 {
     cout << buildId() << endl;
 
-    // Some names in the boost program_options library.
-    using boost::program_options::command_line_parser;
-    using boost::program_options::options_description;
-    using boost::program_options::value;
-    using boost::program_options::variables_map;
-
     const string executableDescription =
         "\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality, "
@@ -107,112 +100,14 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
 
-    // Options that are only allowed on the command line.
-    options_description commandLineOnlyOptions(
-        "Options allowed only on the command line");
-    string configFileName;
-    vector < string > inputFastaFileNames;
-    string outputDirectory;
-    string command;
-    string memoryMode;
-    string memoryBacking;
-    commandLineOnlyOptions.add_options()
-
-        ("help", 
-        "Write a help message.")
-
-        ("config", 
-        boost::program_options::value<string>(&configFileName),
-        "Configuration file name.")
-
-        ("input",
-        value< vector<string> >(&inputFastaFileNames)->multitoken(),
-        "Names of input FASTA files. Specify at least one.")
-
-        ("output",
-        value<string>(&outputDirectory)->
-        default_value("ShastaRun"),
-        "Name of the output directory. Must not exist.")
-
-        ("command",
-        value<string>(&command)->
-        default_value("assemble"),
-        "Command to run. Must be one of:\n"
-        "assemble (default): run an assembly\n"
-        "cleanup: cleanup the Data directory that was created during assembly\n"
-        "    if --memoryMode filesystem.\n")
-
-#ifdef __linux__
-        ("memoryMode",
-        value<string>(&memoryMode)->
-        default_value("anonymous"),
-        "Specify whether allocated memory is anonymous or backed by a filesystem. "
-        "Allowed values: anonymous (default), filesystem.")
-
-        ("memoryBacking",
-        value<string>(&memoryBacking)->
-        default_value("4K"),
-        "Specify the type of pages used to back memory.\n"
-        "Allowed values: disk, 4K (default), 2M (for best performance, Linux only). "
-        "All combinations (memoryMode, memoryBacking) are allowed "
-        "except for (anonymous, disk).\n"
-        "Some combinations require root privilege, which is obtained using sudo "
-        "and may result in a password prompting depending on your sudo set up.")
-#endif
-        ;
-
-
-    // For reasons not completely understood and that there was no time to investigate,
-    // the only combination that works on MacOS is
-    // "--memoryMode filesystem --memoryBacking disk".
-    // This incurs a performance price but this is not too much of a big deal
-    // as macOS  is only to be used for small test runs.
-#ifndef __linux__
-    memoryMode = "filesystem";
-    memoryBacking = "disk";
-#endif
-
-
-
-    // Options allowed on the command line and in the config file.
-    // Values specified in the command line take precedence.
-    options_description options(
-        "Options allowed on the command line and in the config file");
-    AssemblerOptions assemblerOptions;
-    assemblerOptions.add(options);
-    
-
-        
-    // Get options from the command line.
-    // These take precedence over values entered in the config file.
-    options_description commandLineOptions;
-    commandLineOptions.add(commandLineOnlyOptions);
-    commandLineOptions.add(options);
-    variables_map variablesMap;
-    store(command_line_parser(argumentCount, arguments).
-          options(commandLineOptions).run(), variablesMap);
-    notify(variablesMap);
-
-    if (variablesMap.count("help")) {
-        cout << executableDescription << commandLineOptions << endl;
-        return;
-    }
-
-    // Get options from the config file, if one was specified.
-    if(!configFileName.empty()) {
-        ifstream configFile(configFileName);
-        if (!configFile) {
-            throw runtime_error("Unable to open open config file " + configFileName);
-        }
-        store(parse_config_file(configFile, options), variablesMap);
-        notify(variablesMap);
-    }
+    // Parse command line options and the configuration file, if one was specified.
+    AssemblerOptions assemblerOptions(argumentCount, arguments);
 
 
 
     // If command is "cleanup", just do it and exit.
-    if(command == "cleanup") {
-        const string dataDirectory = outputDirectory + "/Data";
+    if(assemblerOptions.commandLineOnlyOptions.command == "cleanup") {
+        const string dataDirectory = assemblerOptions.commandLineOnlyOptions.outputDirectory + "/Data";
         if(!filesystem::exists(dataDirectory)) {
             cout << dataDirectory << " does not exist, nothing done." << endl;
         }
@@ -229,8 +124,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
     // Check that we have at least one input FASTA file.     
-    if (inputFastaFileNames.empty()) {
-        cout << executableDescription << commandLineOptions << endl;
+    if(assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.empty()) {
+        cout << executableDescription << assemblerOptions.allOptionsDescription << endl;
         throw runtime_error("Specify at least one input FASTA file "
             "using command line option \"--input\".");
     }
@@ -260,40 +155,47 @@ void shasta::main::main(int argumentCount, const char** arguments)
     // Find absolute paths of the input fasta files.
     // We will use them below after changing directory to the output directory.
     vector<string> inputFastaFileAbsolutePaths;
-    for(const string& inputFastaFileName: inputFastaFileNames) {
+    for(const string& inputFastaFileName: assemblerOptions.commandLineOnlyOptions.inputFastaFileNames) {
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
     }
 
 
 
     // Create the run the output directory. If it exists, stop.
-    if(filesystem::exists(outputDirectory)) {
-        throw runtime_error("Output directory " + outputDirectory + " already exists.\n"
+    if(filesystem::exists(assemblerOptions.commandLineOnlyOptions.outputDirectory)) {
+        throw runtime_error("Output directory " + assemblerOptions.commandLineOnlyOptions.outputDirectory + " already exists.\n"
             "Remove it or use --output to specify a different output directory.");
     }
-    filesystem::createDirectory(outputDirectory);
+    filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.outputDirectory);
 
     // Make the output directory current.
-    filesystem::changeDirectory(outputDirectory);
+    filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.outputDirectory);
 
 
 
     // Set up the run directory as required by the memoryMode and memoryBacking options.
     size_t pageSize = 0;
     string dataDirectory;
-    setupRunDirectory(memoryMode, memoryBacking, pageSize, dataDirectory);
+    setupRunDirectory(
+        assemblerOptions.commandLineOnlyOptions.memoryMode,
+        assemblerOptions.commandLineOnlyOptions.memoryBacking,
+        pageSize,
+        dataDirectory);
 
 
 
     // Write out the option values we are using.
     cout << "Options in use:" << endl;
     cout << "Input FASTA files: ";
-    copy(inputFastaFileNames.begin(), inputFastaFileNames.end(), ostream_iterator<string>(cout, " "));
+    copy(
+        assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.begin(),
+        assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.end(),
+        ostream_iterator<string>(cout, " "));
     cout << endl;
-    cout << "outputDirectory = " << outputDirectory << endl;
+    cout << "outputDirectory = " << assemblerOptions.commandLineOnlyOptions.outputDirectory << endl;
 #ifdef __linux__
-    cout << "memoryMode = " << memoryMode << endl;
-    cout << "memoryBacking = " << memoryBacking << "\n" << endl;
+    cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
+    cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << "\n" << endl;
 #endif
     assemblerOptions.write(cout);
     {
@@ -303,9 +205,10 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
     // Initial disclaimer message.
 #ifdef __linux
-    if(memoryBacking != "2M" && memoryMode != "filesystem") {
-        cout << "This run uses options \"--memoryBacking " << memoryBacking <<
-            " --memoryMode " << memoryMode << "\".\n"
+    if(assemblerOptions.commandLineOnlyOptions.memoryBacking != "2M" &&
+        assemblerOptions.commandLineOnlyOptions.memoryMode != "filesystem") {
+        cout << "This run uses options \"--memoryBacking " << assemblerOptions.commandLineOnlyOptions.memoryBacking <<
+            " --memoryMode " << assemblerOptions.commandLineOnlyOptions.memoryMode << "\".\n"
             "This could result in performance degradation.\n"
             "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
             "(root privilege via sudo required).\n"
@@ -330,9 +233,10 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
     // Final disclaimer message.
 #ifdef __linux
-    if(memoryBacking != "2M" && memoryMode != "filesystem") {
-        cout << "This run used options \"--memoryBacking " << memoryBacking <<
-            " --memoryMode " << memoryMode << "\".\n"
+    if(assemblerOptions.commandLineOnlyOptions.memoryBacking != "2M" &&
+        assemblerOptions.commandLineOnlyOptions.memoryMode != "filesystem") {
+        cout << "This run used options \"--memoryBacking " << assemblerOptions.commandLineOnlyOptions.memoryBacking <<
+            " --memoryMode " << assemblerOptions.commandLineOnlyOptions.memoryMode << "\".\n"
             "This could have resulted in performance degradation.\n"
             "For full performance, use \"--memoryBacking 2M --memoryMode filesystem\"\n"
             "(root privilege via sudo required).\n"

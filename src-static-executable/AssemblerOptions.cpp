@@ -5,16 +5,127 @@ using namespace shasta;
 #include <boost/tokenizer.hpp>
 
 // Standard library.
+#include "fstream.hpp"
 #include"stdexcept.hpp"
 
 
 
-// Add the AssemblerOptions to a Boost option description object.
-void AssemblerOptions::add(boost::program_options::options_description& options)
+// Constructor.
+AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
+    commandLineOnlyOptionsDescription("Options allowed only on the command line"),
+    configurableOptionsDescription("Options allowed on the command line and in the config file")
+{
+    addCommandLineOnlyOptions();
+    addConfigurableOptions();
+
+    using boost::program_options::command_line_parser;
+
+
+    // Get options from the command line.
+    // These take precedence over values entered in the config file.
+    allOptionsDescription.add(commandLineOnlyOptionsDescription);
+    allOptionsDescription.add(configurableOptionsDescription);
+    boost::program_options::variables_map variablesMap;
+    store(command_line_parser(argumentCount, arguments).
+          options(allOptionsDescription).run(), variablesMap);
+    notify(variablesMap);
+
+    if (variablesMap.count("help")) {
+        cout << allOptionsDescription << endl;
+        ::exit(0);
+    }
+
+    // Get options from the config file, if one was specified.
+    if(!commandLineOnlyOptions.configFileName.empty()) {
+        ifstream configFile(commandLineOnlyOptions.configFileName);
+        if (!configFile) {
+            throw runtime_error("Unable to open open config file " +
+                commandLineOnlyOptions.configFileName);
+        }
+        store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
+        notify(variablesMap);
+    }
+}
+
+
+
+// Add non-configurable options to the Boost option description object.
+// These are options that can only be used on the command line
+// (not in the configuration file).
+void AssemblerOptions::addCommandLineOnlyOptions()
 {
     using boost::program_options::value;
 
-    options.add_options()
+    commandLineOnlyOptionsDescription.add_options()
+
+        ("help",
+        "Write a help message.")
+
+        ("config",
+        value<string>(&commandLineOnlyOptions.configFileName),
+        "Configuration file name.")
+
+        ("input",
+        value< vector<string> >(&commandLineOnlyOptions.inputFastaFileNames)->multitoken(),
+        "Names of input FASTA files. Specify at least one.")
+
+        ("output",
+        value<string>(&commandLineOnlyOptions.outputDirectory)->
+        default_value("ShastaRun"),
+        "Name of the output directory. Must not exist.")
+
+        ("command",
+        value<string>(&commandLineOnlyOptions.command)->
+        default_value("assemble"),
+        "Command to run. Must be one of:\n"
+        "assemble (default): run an assembly\n"
+        "cleanup: cleanup the Data directory that was created during assembly\n"
+        "    if --memoryMode filesystem.\n")
+
+#ifdef __linux__
+        ("memoryMode",
+        value<string>(&commandLineOnlyOptions.memoryMode)->
+        default_value("anonymous"),
+        "Specify whether allocated memory is anonymous or backed by a filesystem. "
+        "Allowed values: anonymous (default), filesystem.")
+
+        ("memoryBacking",
+        value<string>(&commandLineOnlyOptions.memoryBacking)->
+        default_value("4K"),
+        "Specify the type of pages used to back memory.\n"
+        "Allowed values: disk, 4K (default), 2M (for best performance, Linux only). "
+        "All combinations (memoryMode, memoryBacking) are allowed "
+        "except for (anonymous, disk).\n"
+        "Some combinations require root privilege, which is obtained using sudo "
+        "and may result in a password prompting depending on your sudo set up.")
+#endif
+        ;
+
+
+    // For reasons not completely understood and that there was no time to investigate,
+    // the only combination that works on MacOS is
+    // "--memoryMode filesystem --memoryBacking disk".
+    // This incurs a performance price but this is not too much of a big deal
+    // as macOS  is only to be used for small test runs.
+#ifndef __linux__
+    commandLineOnlyOptions.memoryMode = "filesystem";
+    commandLineOnlyOptions.memoryBacking = "disk";
+#endif
+
+}
+
+
+
+// Add configurable options to the Boost option description object.
+// These are options that can be used on the command line
+// and in the configuration file.
+// If used in both places, the value given on the command line
+// takes precedence.
+void AssemblerOptions::addConfigurableOptions()
+{
+    using boost::program_options::value;
+
+    configurableOptionsDescription.add_options()
 
         ("Reads.minReadLength",
         value<int>(&readsOptions.minReadLength)->
