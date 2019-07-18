@@ -156,6 +156,9 @@ void shasta::main::main(int argumentCount, const char** arguments)
     // We will use them below after changing directory to the output directory.
     vector<string> inputFastaFileAbsolutePaths;
     for(const string& inputFastaFileName: assemblerOptions.commandLineOnlyOptions.inputFastaFileNames) {
+        if(!filesystem::exists(inputFastaFileName)) {
+            throw runtime_error("Input file not found: " + inputFastaFileName);
+        }
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
     }
 
