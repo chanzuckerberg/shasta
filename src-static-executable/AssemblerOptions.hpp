@@ -143,8 +143,8 @@ public:
     public:
         int markerGraphEdgeLengthThresholdForConsensus;
         string consensusCaller;
-        string useMarginPhase;      // False or True
-        string storeCoverageData;   // False or True
+        bool useMarginPhase;
+        bool storeCoverageData;
         void write(ostream&) const;
     };
     AssemblyOptions assemblyOptions;
@@ -169,6 +169,10 @@ public:
     // "--invalidOption" added to capture invalid positional options.
     vector<string> invalidPositionalOptions;
     boost::program_options::options_description allOptionsIncludingInvalidDescription;
+
+    // Function to convert a bool to True or False for better
+    // compatibility with Python scripts.
+    static string convertBoolToPythonString(bool);
 
 };
 

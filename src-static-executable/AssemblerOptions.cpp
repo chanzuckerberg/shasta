@@ -154,6 +154,7 @@ void AssemblerOptions::addCommandLineOnlyOptions()
 void AssemblerOptions::addConfigurableOptions()
 {
     using boost::program_options::value;
+    using boost::program_options::bool_switch;
 
     configurableOptionsDescription.add_options()
 
@@ -313,13 +314,13 @@ void AssemblerOptions::addConfigurableOptions()
         "Other choices are available with the Shasta library.")
 
         ("Assembly.useMarginPhase",
-        value<string>(&assemblyOptions.useMarginPhase)->
-        default_value("False"),
+        bool_switch(&assemblyOptions.useMarginPhase)->
+        default_value(false),
         "Used to turn on margin phase.")
 
         ("Assembly.storeCoverageData",
-        value<string>(&assemblyOptions.storeCoverageData)->
-        default_value("False"),
+        bool_switch(&assemblyOptions.storeCoverageData)->
+        default_value(false),
         "Used to request storing coverage data.")
         ;
 }
@@ -410,9 +411,9 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
     s << "consensusCaller = " <<
         consensusCaller << "\n";
     s << "useMarginPhase = " <<
-        useMarginPhase << "\n";
+        convertBoolToPythonString(useMarginPhase) << "\n";
     s << "storeCoverageData = " <<
-        storeCoverageData << "\n";
+        convertBoolToPythonString(storeCoverageData) << "\n";
 }
 
 
@@ -461,4 +462,11 @@ void AssemblerOptions::MarkerGraphOptions::parseSimplifyMaxLength()
 }
 
 
+
+// Function to convert a bool to True or False for better
+// compatibility with Python scripts.
+string AssemblerOptions::convertBoolToPythonString(bool flag)
+{
+    return flag ? "True" : "False";
+}
 

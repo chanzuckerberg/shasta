@@ -134,8 +134,17 @@ void shasta::main::main(int argumentCount, const char** arguments)
     assemblerOptions.markerGraphOptions.parseSimplifyMaxLength();
 
     // Check for options unsupported by the static executable.
-    if(assemblerOptions.assemblyOptions.useMarginPhase != "False") {
+    if(assemblerOptions.assemblyOptions.useMarginPhase) {
         throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
+    }
+
+    // If coverage data was requested, memoryMOde should be filesystem,
+    // otherwise the coverage data cannot be accessed.
+    if(assemblerOptions.assemblyOptions.storeCoverageData) {
+        if(assemblerOptions.commandLineOnlyOptions.memoryMode != "filesystem") {
+            throw runtime_error("To obtain usable coverage data, "
+                "you must use --memoryMode filesystem.");
+        }
     }
 
     // Write a startup message.
@@ -487,7 +496,7 @@ void shasta::main::runAssembly(
     assembler.assembleMarkerGraphVertices(0);
 
     // If coverage data was requested, compute and store coverage data for the vertices.
-    if(assemblerOptions.assemblyOptions.storeCoverageData != "False") {
+    if(assemblerOptions.assemblyOptions.storeCoverageData) {
         assembler.computeMarkerGraphVerticesCoverageData(0);
     }
 
@@ -496,7 +505,7 @@ void shasta::main::runAssembly(
         0,
         assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
         false,
-        assemblerOptions.assemblyOptions.storeCoverageData != "False");
+        assemblerOptions.assemblyOptions.storeCoverageData);
 
     // Use the assembly graph for global assembly.
     assembler.assemble(0);

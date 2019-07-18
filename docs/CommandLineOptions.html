@@ -57,6 +57,9 @@ obtained by invoking the Shasta executable with
 <code>--help</code> is, of course, more authoritative than the contents
 of this page.
 
+
+
+<h2>Configuration file</h2>
 <p>
 Some options are only allowed on the command line,
 but most of them can also optionally be specified using a configuration file.
@@ -77,12 +80,12 @@ option2 = valueB2
 </pre>
 The above is equivalent to using the following command line options:
 
-<code>
+<pre>
 --SectionA.option1 valueA1 
 --SectionA.option2 valueA2 
 --SectionB.option1 valueB1 
 --SectionB.option2 valueB2 
-</code>
+</pre>
 
 <p>
 For example, the value for option <code>MarkerGraph.minCoverage</code>
@@ -106,6 +109,36 @@ as <code>shasta-install/conf/shasta.conf</code>.
 In the configuration file, blank lines and lines begining with <code>#</code>
 are ignored and can be used to add coments and to improve readability
 of the configuration file.
+
+
+
+<h2 id=BooleanSwitches>Boolean switches</h2>
+<p>
+Some command line options are boolean switches,
+that is, control options that can be turned on or off
+rather then be given a value. 
+<p>
+To turn on one of these switches on the command line,
+just add it to the command line without any value, for
+example <code>--Assembly.storeCoverageData</code>.
+To turn it off, just omit it from the command line
+(the default value is turned off).
+<p>
+To turn on one of these switches in a
+configuration file, you can either enter it without value 
+<pre>
+storeCoverageData =
+</pre>
+or assign to it one of the following values:
+<code>1, true, True, yes, Yes</code>.
+To turn off one of these switches in a
+configuration file, assign to it one of the following values:
+<code>0, false, False,no, No</code>. 
+
+<p>
+Boolean switches are indicated as such in the Description column in he tables below.
+
+
 
 
 
@@ -403,14 +436,18 @@ to predict repeat counts.
 
 <tr id='Assembly.useMarginPhase'>
 <td><code>--Assembly.useMarginPhase</code><td class=centered><code>False</code><td>
-Used to turn on MarginPhase for assembly of marker graph edges.
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>
+used to turn on MarginPhase for assembly of marker graph edges.
 This is under development and currently not supported
-by the Shasta executable. Therefore this option should be left
-at its default value <code>False</code>.
+by the Shasta executable. Therefore this option should 
+not be used.
 
 <tr id='Assembly.storeCoverageData'>
 <td><code>--Assembly.storeCoverageData</code><td class=centered><code>False</code><td>
-Set to <code>True</code> to turn on storing of coverage data (only useful in conjunction with <code>--memoryMode filesystem</code>).
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>
+used to request storing of coverage data (only useful in conjunction with <code>--memoryMode filesystem</code>).
 
 </table>
 
