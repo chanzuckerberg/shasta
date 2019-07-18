@@ -159,10 +159,17 @@ public:
     // Write the options as a config file.
     void write(ostream&) const;
 
+
     // Boost program_options library objects.
     boost::program_options::options_description commandLineOnlyOptionsDescription;
     boost::program_options::options_description configurableOptionsDescription;
     boost::program_options::options_description allOptionsDescription;
+
+    // This one is the same as allOptionsDescription, with
+    // "--invalidOption" added to capture invalid positional options.
+    vector<string> invalidPositionalOptions;
+    boost::program_options::options_description allOptionsIncludingInvalidDescription;
+
 };
 
 #endif

@@ -15,21 +15,51 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
     commandLineOnlyOptionsDescription("Options allowed only on the command line"),
     configurableOptionsDescription("Options allowed on the command line and in the config file")
 {
+    using boost::program_options::positional_options_description;
+    using boost::program_options::value;
+    using boost::program_options::variables_map;
+    using boost::program_options::command_line_parser;
+
     addCommandLineOnlyOptions();
     addConfigurableOptions();
 
-    using boost::program_options::command_line_parser;
+    // Define allOptionsDescription as the union of
+    // commandLineOnlyOptionsDescription and configurableOptionsDescription.
+    allOptionsDescription.add(commandLineOnlyOptionsDescription);
+    allOptionsDescription.add(configurableOptionsDescription);
+
+    // Machinery to capture invalid positional options.
+    allOptionsIncludingInvalidDescription.add(allOptionsDescription);
+    allOptionsIncludingInvalidDescription.add_options()
+        ("invalidOption",
+            value< vector<string> >(&invalidPositionalOptions));
+    positional_options_description positionalOptionsDescription;
+    positionalOptionsDescription.add("invalidOption", -1);
 
 
     // Get options from the command line.
     // These take precedence over values entered in the config file.
-    allOptionsDescription.add(commandLineOnlyOptionsDescription);
-    allOptionsDescription.add(configurableOptionsDescription);
-    boost::program_options::variables_map variablesMap;
+    variables_map variablesMap;
     store(command_line_parser(argumentCount, arguments).
-          options(allOptionsDescription).run(), variablesMap);
+          options(allOptionsIncludingInvalidDescription).
+          positional(positionalOptionsDescription).
+          run(),
+          variablesMap);
     notify(variablesMap);
 
+    // If any invalid positional options were specified,
+    // stop here.
+    if(!invalidPositionalOptions.empty()) {
+        string message = "Positional options are not allowed. "
+            "The following positional options were used:";
+        for(const string& s: invalidPositionalOptions) {
+            message += " ";
+            message += s;
+        }
+        throw runtime_error(message);
+    }
+
+    // If help was requested, write the help message and exit.
     if (variablesMap.count("help")) {
         cout << allOptionsDescription << endl;
         ::exit(0);
