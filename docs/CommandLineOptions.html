@@ -166,12 +166,11 @@ entered them separated by space after <code>--input</code>.
 
 
 
-<tr id='output'><td><code>--output</code><td class=centered><code>ShastaRun</code><td>
-Specifies the name of the directory that will contain
-assembly output. This directory must not exists.
-It is automatically created in this directory.
-See
-<a href='Running.html#OutputFiles'>here</a>
+<tr id='assemblyDirectory'><td><code>--assemblyDirectory</code><td class=centered><code>ShastaRun</code><td>
+Specifies the name of the directory where assembly
+output is stored. If <code>--command</code> is <code>assemble</code> (the default), this directory must not exist and is automatically created.
+For other commands, this directory must exist.
+See <a href='Running.html#OutputFiles'>here</a>
 for more information on the output files
 created by Shasta.
 

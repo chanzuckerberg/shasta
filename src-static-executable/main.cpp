@@ -107,9 +107,11 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
     // If command is "cleanup", just do it and exit.
     if(assemblerOptions.commandLineOnlyOptions.command == "cleanup") {
-        const string dataDirectory = assemblerOptions.commandLineOnlyOptions.outputDirectory + "/Data";
+        const string dataDirectory =
+            assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
         if(!filesystem::exists(dataDirectory)) {
             cout << dataDirectory << " does not exist, nothing done." << endl;
+            return;
         }
         ::system(("sudo umount " + dataDirectory).c_str());
         const int errorCode = ::system(string("rm -rf " + dataDirectory).c_str());
@@ -174,14 +176,17 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
     // Create the run the output directory. If it exists, stop.
-    if(filesystem::exists(assemblerOptions.commandLineOnlyOptions.outputDirectory)) {
-        throw runtime_error("Output directory " + assemblerOptions.commandLineOnlyOptions.outputDirectory + " already exists.\n"
+    if(filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory)) {
+        throw runtime_error(
+            "Output directory " +
+            assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
+            " already exists.\n"
             "Remove it or use --output to specify a different output directory.");
     }
-    filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.outputDirectory);
+    filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
 
     // Make the output directory current.
-    filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.outputDirectory);
+    filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
 
 
 
@@ -204,7 +209,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
         assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.end(),
         ostream_iterator<string>(cout, " "));
     cout << endl;
-    cout << "outputDirectory = " << assemblerOptions.commandLineOnlyOptions.outputDirectory << endl;
+    cout << "assemblyDirectory = " <<
+        assemblerOptions.commandLineOnlyOptions.assemblyDirectory << endl;
 #ifdef __linux__
     cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
     cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << "\n" << endl;

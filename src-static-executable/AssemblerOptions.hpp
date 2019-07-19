@@ -25,7 +25,7 @@ public:
     public:
         string configFileName;
         vector <string> inputFastaFileNames;
-        string outputDirectory;
+        string assemblyDirectory;
         string command;
         string memoryMode;
         string memoryBacking;

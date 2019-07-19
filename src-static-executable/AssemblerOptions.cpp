@@ -99,8 +99,8 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         value< vector<string> >(&commandLineOnlyOptions.inputFastaFileNames)->multitoken(),
         "Names of input FASTA files. Specify at least one.")
 
-        ("output",
-        value<string>(&commandLineOnlyOptions.outputDirectory)->
+        ("assemblyDirectory",
+        value<string>(&commandLineOnlyOptions.assemblyDirectory)->
         default_value("ShastaRun"),
         "Name of the output directory. Must not exist.")
 
