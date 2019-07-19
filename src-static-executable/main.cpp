@@ -15,7 +15,7 @@ namespace shasta {
 
         void main(int argumentCount, const char** arguments);
 
-        void runAssembly(
+        void assemble(
             Assembler&,
             const AssemblerOptions&,
             vector<string> inputFastaFileNames);
@@ -28,6 +28,11 @@ namespace shasta {
             );
 
         void setupHugePages();
+
+        // Functions that implement --command keywords
+        void cleanupBinaryData(const AssemblerOptions&);
+        void assemble(const AssemblerOptions&);
+
     }
 }
 using namespace shasta;
@@ -83,6 +88,36 @@ void shasta::main::main(int argumentCount, const char** arguments)
 {
     cout << buildId() << endl;
 
+
+
+
+    // Parse command line options and the configuration file, if one was specified.
+    AssemblerOptions assemblerOptions(argumentCount, arguments);
+
+
+
+    // Execute the requested command.
+    if(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData") {
+        cleanupBinaryData(assemblerOptions);
+        return;
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "assemble") {
+        assemble(assemblerOptions);
+        return;
+    }
+
+    // If getting here, the requested command is invalid.
+    throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command);
+
+}
+
+
+
+// Implementation of --command assemble.
+void shasta::main::assemble(
+    const AssemblerOptions& assemblerOptions)
+{
+    SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble");
+
     const string executableDescription =
         "\nThis is the static executable for the Shasta assembler. "
         "It provides limited Shasta functionality, "
@@ -98,42 +133,12 @@ void shasta::main::main(int argumentCount, const char** arguments)
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n";
 
-
-
-    // Parse command line options and the configuration file, if one was specified.
-    AssemblerOptions assemblerOptions(argumentCount, arguments);
-
-
-
-    // If command is "cleanup", just do it and exit.
-    if(assemblerOptions.commandLineOnlyOptions.command == "cleanup") {
-        const string dataDirectory =
-            assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
-        if(!filesystem::exists(dataDirectory)) {
-            cout << dataDirectory << " does not exist, nothing done." << endl;
-            return;
-        }
-        ::system(("sudo umount " + dataDirectory).c_str());
-        const int errorCode = ::system(string("rm -rf " + dataDirectory).c_str());
-        if(errorCode != 0) {
-            throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
-                " removing " + dataDirectory);
-        }
-        cout << "Cleanup of " << dataDirectory << " successful." << endl;
-        return;
-    }
-
-
-
     // Check that we have at least one input FASTA file.     
     if(assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.empty()) {
         cout << executableDescription << assemblerOptions.allOptionsDescription << endl;
         throw runtime_error("Specify at least one input FASTA file "
             "using command line option \"--input\".");
     }
-
-    // Parse MarkerGraph.simplifyMaxLength.
-    assemblerOptions.markerGraphOptions.parseSimplifyMaxLength();
 
     // Check for options unsupported by the static executable.
     if(assemblerOptions.assemblyOptions.useMarginPhase) {
@@ -247,7 +252,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
     Assembler assembler(dataDirectory, true, pageSize);
 
     // Run the assembly.
-    runAssembly(assembler, assemblerOptions, inputFastaFileAbsolutePaths);
+    assemble(assembler, assemblerOptions, inputFastaFileAbsolutePaths);
 
     // Final disclaimer message.
 #ifdef __linux
@@ -381,7 +386,7 @@ void shasta::main::setupRunDirectory(
 // - The Data directory has already been created and set up, if necessary.
 // - The input Fasta file names are either absolute,
 //   or relative to the run directory, which is the current directory.
-void shasta::main::runAssembly(
+void shasta::main::assemble(
     Assembler& assembler,
     const AssemblerOptions& assemblerOptions,
     vector<string> inputFastaFileNames)
@@ -593,3 +598,31 @@ void shasta::main::setupHugePages()
     }
 
 }
+
+
+
+// Implementation of --command cleanupBinaryData.
+void shasta::main::cleanupBinaryData(
+    const AssemblerOptions& assemblerOptions)
+{
+    SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData");
+
+    // Locate the Data directory.
+    const string dataDirectory =
+        assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
+    if(!filesystem::exists(dataDirectory)) {
+        cout << dataDirectory << " does not exist, nothing done." << endl;
+        return;
+    }
+
+    // Unmount it and remove it.
+    ::system(("sudo umount " + dataDirectory).c_str());
+    const int errorCode = ::system(string("rm -rf " + dataDirectory).c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+            " removing " + dataDirectory);
+    }
+    cout << "Cleanup of " << dataDirectory << " successful." << endl;
+
+}
+

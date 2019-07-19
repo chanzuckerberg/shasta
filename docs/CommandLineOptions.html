@@ -179,18 +179,19 @@ Specifies requested processing. Can be one of the following:
 <dl>
 <dt><code>assemble</code>
 <dd>Shasta runs an assembly.
-<dt><code>cleanup</code>
-<dd>Shasta cleans up the <code>Data</code> directory of the 
-run directory. 
+<dt><code>cleanupBinaryData</code>
+<dd>Shasta cleans up binary data stored in the <code>Data</code> directory of the 
+assembly directory. 
 The <code>Data</code> directory contains
 binary data representing assembly data structures.
 Depending on the <a href='Running.html#MemoryModes'>memory mode</a> in use,
 the <code>Data</code> directory can be
-the mount point of a filesystem in memory. 
+the mount point of a filesystem in memory, and in that case
+running this command requires root access via sudo.
 Not all memory modes actually create a <code>Data</code> directory.
 After <code>cleanup</code> runs, you can no longer use
 the Python API or the Shasta http server to inspect assembly results.
-Make sure to use option <code>--output</code>
+Make sure to use option <code>--assemblyDirectory</code>
 to specify the run directory that you want to cleanup.
 
 <tr id='memoryMode'><td><code>--memoryMode<br></code>(not supported on MacOS)<td class=centered><code>anonymous</code><td>

@@ -75,6 +75,10 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
         store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
         notify(variablesMap);
     }
+
+    // Parse MarkerGraph.simplifyMaxLength.
+    markerGraphOptions.parseSimplifyMaxLength();
+
 }
 
 
