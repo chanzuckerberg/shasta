@@ -30,8 +30,9 @@ namespace shasta {
         void setupHugePages();
 
         // Functions that implement --command keywords
-        void cleanupBinaryData(const AssemblerOptions&);
         void assemble(const AssemblerOptions&);
+        void saveBinaryData(const AssemblerOptions&);
+        void cleanupBinaryData(const AssemblerOptions&);
 
     }
 }
@@ -97,11 +98,14 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
     // Execute the requested command.
-    if(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData") {
+    if(assemblerOptions.commandLineOnlyOptions.command == "assemble") {
+        assemble(assemblerOptions);
+        return;
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData") {
         cleanupBinaryData(assemblerOptions);
         return;
-    } else if(assemblerOptions.commandLineOnlyOptions.command == "assemble") {
-        assemble(assemblerOptions);
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "saveBinaryData") {
+        saveBinaryData(assemblerOptions);
         return;
     }
 
@@ -601,6 +605,41 @@ void shasta::main::setupHugePages()
 
 
 
+// Implementation of --command saveBinaryData.
+// This copies Data to DataOnDisk.
+void shasta::main::saveBinaryData(
+    const AssemblerOptions& assemblerOptions)
+{
+    SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "saveBinaryData");
+
+    // Locate the Data directory.
+    const string dataDirectory =
+        assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/Data";
+    if(!filesystem::exists(dataDirectory)) {
+        cout << dataDirectory << " does not exist, nothing done." << endl;
+        return;
+    }
+
+    // Check that the DataOnDisk directory does not exist.
+    const string dataOnDiskDirectory =
+        assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
+    if(filesystem::exists(dataOnDiskDirectory)) {
+        cout << dataOnDiskDirectory << " alreadsy exists, nothing done." << endl;
+        return;
+    }
+
+    // Copy Data to DataOnDisk.
+    const string command = "cp -rp " + dataDirectory + " " + dataOnDiskDirectory;
+    const int errorCode = ::system(command.c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " + to_string(errorCode) + ": " + strerror(errorCode) +
+            " running command:\n" + command);
+    }
+    cout << "Binary data successfully saved." << endl;
+}
+
+
+
 // Implementation of --command cleanupBinaryData.
 void shasta::main::cleanupBinaryData(
     const AssemblerOptions& assemblerOptions)
@@ -623,6 +662,16 @@ void shasta::main::cleanupBinaryData(
             " removing " + dataDirectory);
     }
     cout << "Cleanup of " << dataDirectory << " successful." << endl;
+
+    // If the DataOnDisk directory exists, create a symbolic link
+    // Data->DataOnDisk.
+    const string dataOnDiskDirectory =
+        assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
+    if(filesystem::exists(dataOnDiskDirectory)) {
+        filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+        const string command = "ln -s DataOnDisk Data";
+        ::system(command.c_str());
+    }
 
 }
 
