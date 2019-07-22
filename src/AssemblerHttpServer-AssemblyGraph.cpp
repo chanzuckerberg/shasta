@@ -386,6 +386,8 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
 
     // Parse the requested edges to create a list of
     // (edge id, markerBegin, marker end).
+    // Here, (markerBegin, marker end) are indexes into
+    // marker graph edges for each assembly graph edge.
     vector< tuple<AssemblyGraph::EdgeId, uint32_t, uint32_t> > edges;
     vector<string> edgesStrings;
     for(const string& token: edgesTokens) {
@@ -458,10 +460,12 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
         for(size_t j=begin; j!=end; j++) {
             const MarkerGraph::EdgeId& markerGraphEdgeId = markerGraphEdgeIds[j];
             const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
-            if(j == begin) {
+            if(j==begin && j!=0) {  // Never include the very first vertex!
                 markerGraphVertexIds[i].push_back(markerGraphEdge.source);
             }
-            markerGraphVertexIds[i].push_back(markerGraphEdge.target);
+            if(j != markerGraphEdgeIds.size()-1) {    // Never include the very last vertex!
+                markerGraphVertexIds[i].push_back(markerGraphEdge.target);
+            }
         }
     }
 
