@@ -843,7 +843,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 
         // Write the name to make it easy to keep track of reverse
         // complemented edges.
-        gfa << "S\t" << edgeId << "_" << edgeIdRc << "\t";
+        gfa << "S\t" << edgeId << "\t";
 
         // Write the sequence.
         if(assemblyGraph.isAssembledEdge(edgeId)) {
@@ -949,8 +949,8 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
                 // Note that in the double stranded version of GFA
                 // output all links are written with orientation ++.
                 gfa << "L\t" <<
-                    edge0 << "_" << edge0Rc << "\t+\t" <<
-                    edge1 << "_" << edge1Rc << "\t+\t" <<
+                    edge0 << "\t+\t" <<
+                    edge1 << "\t+\t" <<
                     cigarString << "\n";
             }
         }
