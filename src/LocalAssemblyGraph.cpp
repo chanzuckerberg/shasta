@@ -277,7 +277,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
             " cellborder=\"0\""
             " cellspacing=\"0\""
             ">"
-            "<tr><td>" << edgeId << "_" << edgeIdRc << "</td></tr>"
+            "<tr><td>" << edgeId << "</td></tr>"
             "<tr><td>" << length << "</td></tr>"
             "<tr><td>" << baseCount << "</td></tr>"
             "</table>> decorate=true";
