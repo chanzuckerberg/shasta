@@ -340,8 +340,30 @@ private:
         );
 public:
 
-    // Use an approximate transitive reduction to find weak edges in the marker graph.
-    void flagMarkerGraphWeakEdges(
+    // Approximate transitive reduction of the marker graph.
+    // This does the following, in this order:
+    // - All edges with coverage less than or equal to lowCoverageThreshold
+    //   are marked wasRemovedByTransitiveReduction.
+    // - All edges with coverage 1 and a marker skip
+    //   greater than edgeMarkerSkipThreshold
+    //   are marked wasRemovedByTransitiveReduction.
+    // - Edges with coverage greater than lowCoverageThreshold
+    //   and less then highCoverageThreshold are processed in
+    //   ordered of increasing coverage:
+    //   * For each such edge A->B, we look for a path of length
+    //     at most maxDistance between A and B that does not use
+    //     edge A->B and also does not use any
+    //     edges already marked wasRemovedByTransitiveReduction.
+    //   * If such a path is found, the edge is marked
+    //     wasRemovedByTransitiveReduction.
+    // - Edges with coverage highCoverageThreshold or greater
+    //   are left untouched.
+    // The marker graph is guaranteed to be strand symmetric
+    // when this begins, and we have to guarantee that it remains
+    // strand symmetric when this ends.
+    // To achieve this, we always process the two edges
+    // in a reverse complemented pair together.
+    void transitiveReduction(
         size_t lowCoverageThreshold,
         size_t highCoverageThreshold,
         size_t maxDistance,

@@ -487,7 +487,7 @@ void shasta::main::assemble(
     assembler.findMarkerGraphReverseComplementEdges(0);
 
     // Approximate transitive reduction.
-    assembler.flagMarkerGraphWeakEdges(
+    assembler.transitiveReduction(
         assemblerOptions.markerGraphOptions.lowCoverageThreshold,
         assemblerOptions.markerGraphOptions.highCoverageThreshold,
         assemblerOptions.markerGraphOptions.maxDistance,

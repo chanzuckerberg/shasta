@@ -430,21 +430,21 @@ if __name__ == "__main__":
         type=int,
         # default=1,
         required=False,
-        help="Parameters for flagMarkerGraphWeakEdges."
+        help="Parameters for transitiveReduction."
     )
     parser.add_argument(
         "--highCoverageThreshold",
         type=int,
         # default=1000,
         required=False,
-        help="Parameters for flagMarkerGraphWeakEdges."
+        help="Parameters for transitiveReduction."
     )
     parser.add_argument(
         "--maxDistance",
         type=int,
         # default=30,
         required=False,
-        help="Parameters for flagMarkerGraphWeakEdges."
+        help="Parameters for transitiveReduction."
     )
     parser.add_argument(
         "--pruneIterationCount",

@@ -12,7 +12,7 @@ a = shasta.Assembler()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges(accessEdgesReadWrite=True)
 a.accessMarkerGraphReverseComplementEdge()
-a.flagMarkerGraphWeakEdges(
+a.transitiveReduction(
     lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
     highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
     maxDistance = int(config['MarkerGraph']['maxDistance']),

@@ -26,7 +26,7 @@ a.createMarkerGraphVertices(
 a.createMarkerGraphEdges()
 
 # Approximate transitive reduction.
-a.flagMarkerGraphWeakEdges(
+a.transitiveReduction(
     lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
     highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
     maxDistance = int(config['MarkerGraph']['maxDistance']),
