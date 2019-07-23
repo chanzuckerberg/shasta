@@ -501,6 +501,14 @@ void shasta::main::assemble(
         assemblerOptions.markerGraphOptions.maxDistance,
         assemblerOptions.markerGraphOptions.edgeMarkerSkipThreshold);
 
+    // For Assembly strategy 1, stop here.
+    if(assemblerOptions.assemblyOptions.strategy == 1) {
+        cout << "Option --Assembly.strategy 1 is under development and "
+            " does not produce assembly results." << endl;
+        return;
+    }
+    SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
+
     // Prune the strong subgraph of the marker graph.
     assembler.pruneMarkerGraphStrongSubgraph(
         assemblerOptions.markerGraphOptions.pruneIterationCount);
