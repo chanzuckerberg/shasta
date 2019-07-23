@@ -150,8 +150,11 @@ Boolean switches are indicated as such in the Description column in he tables be
 
 <tr><th>Option<th>Default<br>value<th>Description
 
-<tr id='help'><td><code>--help </code><td><td>
+<tr id='help'><td><code>--help</code> or <code>-h</code><td><td>
 Use this option to obtain a summary of allowed command line options.
+
+<tr id='version'><td><code>--version</code> or <code>-v</code><td><td>
+Write the Shasta build id.
 
 <tr id='config'><td><code>--config</code><td><td>
 Specifies the name of a configuration file.
@@ -411,9 +414,18 @@ This equals the maximum length of dead branches that are removed.
 Used for bubble removal.
 <a class=qm href='ComputationalMethods.html#BubbleRemoval'/>
 
+<tr id='Assembly.strategy'>
+<td><code>--Assembly.strategy</code>
+<td class=centered><code>1000</code><td>
+Controls assembly strategy. Can be one of the following:
+<dl>
+<dt><code>0</code><dd>Default assembly strategy with partial bubble/superbubble removal.
+<dt><code>1</code><dd>Under development. Does not yet produce assembly results.
+</dl>
+
 <tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
 <td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>
-<td class=centered><code>1000</code><td>
+<td class=centered><code>0</code><td>
 Controls assembly of long marker graph edges.
 
 <tr id='Assembly.consensusCaller'>

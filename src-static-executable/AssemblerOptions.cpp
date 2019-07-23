@@ -1,4 +1,5 @@
 #include "AssemblerOptions.hpp"
+#include "buildId.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -65,6 +66,17 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
         ::exit(0);
     }
 
+    // If version was requested, write the build id and exit.
+    if (variablesMap.count("version")) {
+        cout << buildId() << endl;
+#ifdef __linux__
+        cout << "Linux version" << endl;
+#else
+        cout << "MacOS version" << endl;
+#endif
+        ::exit(0);
+    }
+
     // Get options from the config file, if one was specified.
     if(!commandLineOnlyOptions.configFileName.empty()) {
         ifstream configFile(commandLineOnlyOptions.configFileName);
@@ -92,8 +104,11 @@ void AssemblerOptions::addCommandLineOnlyOptions()
 
     commandLineOnlyOptionsDescription.add_options()
 
-        ("help",
+        ("help,h",
         "Write a help message.")
+
+        ("version,v",
+        "Write the build id.")
 
         ("config",
         value<string>(&commandLineOnlyOptions.configFileName),
@@ -304,6 +319,12 @@ void AssemblerOptions::addConfigurableOptions()
         default_value("10,100,1000"),
         "Maximum lengths (in markers) used at each iteration of simplifyMarkerGraph.")
 
+        ("Assembly.strategy",
+        value<int>(&assemblyOptions.strategy)->
+        default_value(0),
+        "Keep at default value 0. Other options are under development "
+        "and will not produce a complete assembly.")
+
         ("Assembly.markerGraphEdgeLengthThresholdForConsensus",
         value<int>(&assemblyOptions.markerGraphEdgeLengthThresholdForConsensus)->
         default_value(1000),
@@ -410,6 +431,7 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
 void AssemblerOptions::AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
+    s << "strategy = " << strategy << "\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
         markerGraphEdgeLengthThresholdForConsensus << "\n";
     s << "consensusCaller = " <<

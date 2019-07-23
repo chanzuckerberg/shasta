@@ -87,13 +87,11 @@ int main(int argumentCount, const char** arguments)
 
 void shasta::main::main(int argumentCount, const char** arguments)
 {
-    cout << buildId() << endl;
-
-
 
 
     // Parse command line options and the configuration file, if one was specified.
     AssemblerOptions assemblerOptions(argumentCount, arguments);
+    cout << buildId() << endl;
 
 
 
@@ -121,6 +119,16 @@ void shasta::main::assemble(
     const AssemblerOptions& assemblerOptions)
 {
     SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble");
+
+    // Check that a valid assembly strategy was specified.
+    switch(assemblerOptions.assemblyOptions.strategy) {
+    case 0:
+    case 1:
+        break;
+    default:
+        throw runtime_error("Invalid Assembly.strategy " +
+            to_string(assemblerOptions.assemblyOptions.strategy));
+    }
 
     const string executableDescription =
         "\nThis is the static executable for the Shasta assembler. "
