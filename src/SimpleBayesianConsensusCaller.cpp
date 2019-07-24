@@ -25,8 +25,8 @@ using Tokenizer = boost::tokenizer<Separator>;
 
 
 // Helper function
-void SimpleBayesianConsensusCaller::splitAsDouble(string s, char separatorChar, vector<double>& tokens){
-    Separator separator(&separatorChar);
+void SimpleBayesianConsensusCaller::splitAsDouble(string s, string& separators, vector<double>& tokens){
+    Separator separator(separators.c_str());
     Tokenizer tok{s, separator};
 
     for (string token: tok) {
@@ -36,8 +36,8 @@ void SimpleBayesianConsensusCaller::splitAsDouble(string s, char separatorChar, 
 
 
 // Helper function
-void SimpleBayesianConsensusCaller::splitAsString(string s, char separatorChar, vector<string>& tokens){
-    Separator separator(&separatorChar);
+void SimpleBayesianConsensusCaller::splitAsString(string s, string& separators, vector<string>& tokens){
+    Separator separator(separators.c_str());
     Tokenizer tok{s, separator};
 
     for (string token: tok) {
@@ -124,7 +124,8 @@ void SimpleBayesianConsensusCaller::parsePrior(ifstream& matrixFile, string& lin
     vector<double> row;
 
     // Assume csv format
-    splitAsDouble(line, ',', row);
+    string separators = ",";
+    splitAsDouble(line, separators, row);
 
     // Two prior distributions exist. One for AT and one for GC, since observed reads are bidirectional
     if (tokens[0] == "AT"){
@@ -139,6 +140,7 @@ void SimpleBayesianConsensusCaller::parsePrior(ifstream& matrixFile, string& lin
 void SimpleBayesianConsensusCaller::parseLikelihood(ifstream& matrixFile, string& line, vector<string>& tokens){
     char base;
     uint32_t baseIndex = 0;
+    string separators = ",";
 
     // Expect many lines (usually 51)
     while (getline(matrixFile, line)){
@@ -152,7 +154,7 @@ void SimpleBayesianConsensusCaller::parseLikelihood(ifstream& matrixFile, string
         vector<double> row;
 
         // Assume csv format
-        splitAsDouble(line, ',', row);
+        splitAsDouble(line, separators, row);
 
         base = tokens[0][0];
         baseIndex = uint32_t(Base::fromCharacter(base).value);
@@ -164,6 +166,7 @@ void SimpleBayesianConsensusCaller::parseLikelihood(ifstream& matrixFile, string
 
 void SimpleBayesianConsensusCaller::loadConfiguration(ifstream& matrixFile){
     string line;
+    string separators = " ";
 
     while (getline(matrixFile, line)){
 
@@ -173,7 +176,7 @@ void SimpleBayesianConsensusCaller::loadConfiguration(ifstream& matrixFile){
 
             // Store the header
             line = line.substr(1, line.size()-1);
-            splitAsString(line, ' ', tokens);
+            splitAsString(line, separators, tokens);
 
             if (tokens[0] == "Name"){
                 parseName(matrixFile, line);
