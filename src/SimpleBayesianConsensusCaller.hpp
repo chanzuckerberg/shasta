@@ -88,8 +88,8 @@ private:
     /// ----- Methods ----- ///
 
     // For parsing any character separated file format
-    void splitAsDouble(string s, char separatorChar, vector<double>& tokens);
-    void splitAsString(string s, char separatorChar, vector<string>& tokens);
+    void splitAsDouble(string s, string& separators, vector<double>& tokens);
+    void splitAsString(string s, string& separators, vector<string>& tokens);
 
     // Read each probability matrix from its file and store them in a vector (assuming decibel units, aka base 10)
     // Each delimited table in text should be preceded by a fasta-like header e.g.: ">A" for the base it corresponds to.
