@@ -340,6 +340,8 @@ private:
         );
 public:
 
+
+
     // Approximate transitive reduction of the marker graph.
     // This does the following, in this order:
     // - All edges with coverage less than or equal to lowCoverageThreshold
@@ -351,7 +353,7 @@ public:
     //   and less then highCoverageThreshold are processed in
     //   ordered of increasing coverage:
     //   * For each such edge A->B, we look for a path of length
-    //     at most maxDistance between A and B that does not use
+    //     at most maxDistance starting at A and ending at B  that does not use
     //     edge A->B and also does not use any
     //     edges already marked wasRemovedByTransitiveReduction.
     //   * If such a path is found, the edge is marked
@@ -368,6 +370,27 @@ public:
         size_t highCoverageThreshold,
         size_t maxDistance,
         size_t edgeMarkerSkipThreshold);
+
+
+
+    // Approximate reverse transitive reduction of the marker graph.
+    // The goal is to remove local back-edges.
+    // This works similarly to transitive reduction,
+    // but in the opposite direction.
+    // This does the following:
+    // - Edges with coverage greater than lowCoverageThreshold
+    //   and less then highCoverageThreshold are processed in
+    //   ordered of increasing coverage:
+    //   * For each such edge A->B, we look for a path of length
+    //     at most maxDistance starting at B and ending at A
+    //     that does not use edge A->B and also does not use any
+    //     edges already marked wasRemovedByTransitiveReduction.
+    //   * If such a path is found, the edge is marked
+    //     wasRemovedByTransitiveReduction.
+    void reverseTransitiveReduction(
+        size_t lowCoverageThreshold,
+        size_t highCoverageThreshold,
+        size_t maxDistance);
 
     // Call this before explore to make the documentation available.
     void setDocsDirectory(const string&);
