@@ -187,6 +187,9 @@ void shasta::main::assemble(
         if(!filesystem::exists(inputFastaFileName)) {
             throw runtime_error("Input file not found: " + inputFastaFileName);
         }
+        if(!filesystem::isRegularFile(inputFastaFileName)) {
+            throw runtime_error("Input file is not a regular file: " + inputFastaFileName);
+        }
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
     }
 
