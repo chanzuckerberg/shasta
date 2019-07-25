@@ -1755,12 +1755,14 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     }
 
     // Store consensus repeat counts for all vertices.
-    const size_t k = assemblerInfo->k;
-    BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
-        LocalMarkerGraphVertex& vertex = graph[v];
-        vertex.storedConsensusRepeatCounts.resize(k);
-        const uint8_t* begin = markerGraph.vertexRepeatCounts.begin() + k * vertex.vertexId;
-        copy(begin, begin+k, vertex.storedConsensusRepeatCounts.begin());
+    if(markerGraph.vertexRepeatCounts.isOpen) {
+        const size_t k = assemblerInfo->k;
+        BGL_FORALL_VERTICES(v, graph, LocalMarkerGraph) {
+            LocalMarkerGraphVertex& vertex = graph[v];
+            vertex.storedConsensusRepeatCounts.resize(k);
+            const uint8_t* begin = markerGraph.vertexRepeatCounts.begin() + k * vertex.vertexId;
+            copy(begin, begin+k, vertex.storedConsensusRepeatCounts.begin());
+        }
     }
 
     // For better display with dot layout, do
