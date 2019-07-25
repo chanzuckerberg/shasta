@@ -290,7 +290,7 @@ the Python API to inspect assembly results.
 <b>Performance is less than optimal.</b>
 When done using the binary data, you can free
 the  memory using the following command:
-<code>shasta --command cleanup</code>.
+<code>shasta --command cleanupBinaryData</code>.
 
 <tr>
 <td class=centered><code>2M</code>
@@ -313,7 +313,7 @@ the Python API to inspect assembly results.
 <b>This mode of operation delivers optimal performance.</b>
 When done using the binary data, you can free
 the  memory using the following command:
-<code>shasta --command cleanup</code>.
+<code>shasta --command cleanupBinaryData</code>.
 
 </table>
 
@@ -346,7 +346,7 @@ In summary:
 <b>For large assemblies</b> it is best to 
 make sure to have root privilege and use
 <code>--memoryMode filesystem --memoryBacking 2M</code>.
-Remember to use <code>shasta --command cleanup</code>
+Remember to use <code>shasta --command cleanupBinaryData</code>
 to free up the memory when done using the binary data!
 
 <li>
@@ -458,7 +458,7 @@ and when they occur they are of suspicious quality.
 <h2 id=OutputFiles>Output files</h2>
 <p>
 The Shasta executable creates output in a directory with a name
-specified by the <code>--output</code> option (default <code>ShastaRun</code>).
+specified by the <code>--assemblyDirectory</code> option (default <code>ShastaRun</code>).
 The directory is created automatically at the beginning of the run. 
 The run stops if the directory already exists.
 This reduces the possibility of unwanted deletion of data.
@@ -523,7 +523,7 @@ To free up the memory used without rebooting, you can invoke the
 Shasta executable again using the following options:
 
 <pre>
---command cleanup --output outputDirectoryName
+--command cleanupBinaryData --assemblyDirectory outputDirectoryName
 </pre>
 Here, <code>outputDirectoryName</code>
 should specify the same value used in the assembly run
