@@ -505,22 +505,38 @@ void shasta::main::assemble(
         assemblerOptions.markerGraphOptions.maxDistance,
         assemblerOptions.markerGraphOptions.edgeMarkerSkipThreshold);
 
-    // For Assembly strategy 1, stop here.
+
+
+    // Marker graph processing that varies according to
+    // --Assembly.strategy.
     if(assemblerOptions.assemblyOptions.strategy == 1) {
-        cout << "Option --Assembly.strategy 1 is under development and "
-            " does not produce assembly results." << endl;
-        return;
+
+        // Do a reverse transitive reduction to remove
+        // the short reverse bubbles, but don't do
+        // bubble/superbubble removal!
+        assembler.reverseTransitiveReduction(
+            assemblerOptions.markerGraphOptions.lowCoverageThreshold,
+            assemblerOptions.markerGraphOptions.highCoverageThreshold,
+            assemblerOptions.markerGraphOptions.maxDistance);
+
+        // Prune the marker graph.
+        assembler.pruneMarkerGraphStrongSubgraph(
+            assemblerOptions.markerGraphOptions.pruneIterationCount);
+
+    } else {
+        SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
+
+        // Prune the marker graph.
+        assembler.pruneMarkerGraphStrongSubgraph(
+            assemblerOptions.markerGraphOptions.pruneIterationCount);
+
+        // Simplify the marker graph to remove bubbles and superbubbles.
+        // The maxLength parameter controls the maximum number of markers
+        // for a branch to be collapsed during each iteration.
+        assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
     }
-    SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
 
-    // Prune the strong subgraph of the marker graph.
-    assembler.pruneMarkerGraphStrongSubgraph(
-        assemblerOptions.markerGraphOptions.pruneIterationCount);
 
-    // Simplify the marker graph to remove bubbles and superbubbles.
-    // The maxLength parameter controls the maximum number of markers
-    // for a branch to be collapsed during each iteration.
-    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
@@ -574,6 +590,13 @@ void shasta::main::assemble(
     ofstream json("AssemblySummary.json");
     assembler.writeAssemblySummaryJson(json);
 
+    // For Assembly strategy 1,write a warning message
+    if(assemblerOptions.assemblyOptions.strategy == 1) {
+        cout << "This assembly was created using --Assembly.strategy 1. "
+            "This option is under development and "
+            " does not produce usable assembly results." << endl;
+        return;
+    }
 }
 
 
@@ -644,7 +667,7 @@ void shasta::main::saveBinaryData(
     const string dataOnDiskDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
     if(filesystem::exists(dataOnDiskDirectory)) {
-        cout << dataOnDiskDirectory << " alreadsy exists, nothing done." << endl;
+        cout << dataOnDiskDirectory << " already exists, nothing done." << endl;
         return;
     }
 
