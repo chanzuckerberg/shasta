@@ -108,7 +108,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
     }
 
     // If getting here, the requested command is invalid.
-    throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command);
+    throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command +
+        ". Valid commands are: assemble, saveBinaryData, cleanupBinaryData.");
 
 }
 

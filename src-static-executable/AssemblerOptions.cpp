@@ -126,10 +126,8 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         ("command",
         value<string>(&commandLineOnlyOptions.command)->
         default_value("assemble"),
-        "Command to run. Must be one of:\n"
-        "assemble (default): run an assembly\n"
-        "cleanup: cleanup the Data directory that was created during assembly\n"
-        "    if --memoryMode filesystem.\n")
+        "Command to run. Must be one of: "
+        "assemble, saveBinaryData, cleanupBinaryData")
 
 #ifdef __linux__
         ("memoryMode",
