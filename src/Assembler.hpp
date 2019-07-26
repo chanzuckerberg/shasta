@@ -1151,7 +1151,6 @@ private:
     // Output is to csv files.
 public:
     void computeMarkerGraphCoverageHistogram();
-private:
 
 
     // In the assembly graph, each vertex corresponds to a linear chain
@@ -1160,7 +1159,6 @@ private:
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
     AssemblyGraph assemblyGraph;
-public:
     void createAssemblyGraphVertices();
     void accessAssemblyGraphVertices();
     void createAssemblyGraphEdges();
