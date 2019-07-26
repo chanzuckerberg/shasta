@@ -58,9 +58,19 @@ public:
         VertexId source;
         VertexId target;
 
-        // The average coverage of the marker graph edges
+        // Minimum, average, and maximum coverage of marker graph vertices and edges
         // corresponding to this assembly graph edge.
-        uint32_t averageCoverage;
+        // Only internal vertices contribute to this -
+        // the first and last vertex don't contribute.
+        // If there is only one marker graph edge, there are
+        // no internal vertices, and in that case vertex coverage
+        // metrics are set to zero.
+        uint32_t minVertexCoverage;
+        uint32_t averageVertexCoverage;
+        uint32_t maxVertexCoverage;
+        uint32_t minEdgeCoverage;
+        uint32_t averageEdgeCoverage;
+        uint32_t maxEdgeCoverage;
     };
     MemoryMapped::Vector<Edge> edges;
 

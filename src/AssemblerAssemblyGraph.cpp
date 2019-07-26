@@ -384,13 +384,47 @@ void Assembler::createAssemblyGraphVertices()
         assemblyGraphEdge.source = agv0;
         assemblyGraphEdge.target = agv1;
 
-        // Compute and store average coverage along the edges of this chain.
-        size_t sum = 0;
-        for(MarkerGraph::EdgeId markerGraphEdgeId: chain) {
+
+
+        // Compute and store minimum, average, and maximum
+        // coverage for the vertices and edges of this chain.
+        // Only internal vertices are counted.
+        SHASTA_ASSERT(chain.size() > 0);
+        uint64_t vertexCoverageSum = 0;
+        uint64_t edgeCoverageSum = 0;
+        assemblyGraphEdge.minVertexCoverage = std::numeric_limits<uint32_t>::max();
+        assemblyGraphEdge.maxVertexCoverage = 0;
+        assemblyGraphEdge.minEdgeCoverage = std::numeric_limits<uint32_t>::max();
+        assemblyGraphEdge.maxEdgeCoverage = 0;
+        for(uint64_t i=0; i<chain.size(); i++) {
+            const MarkerGraph::EdgeId markerGraphEdgeId = chain[i];
             const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
-            sum += markerGraphEdge.coverage;
+            const uint32_t edgeCoverage = markerGraphEdge.coverage;
+            edgeCoverageSum += edgeCoverage;
+            assemblyGraphEdge.minEdgeCoverage =
+                min(assemblyGraphEdge.minEdgeCoverage, edgeCoverage);
+            assemblyGraphEdge.maxEdgeCoverage =
+                max(assemblyGraphEdge.maxEdgeCoverage, edgeCoverage);
+
+            if(i != 0) {
+                const MarkerGraph::EdgeId markerGraphVertexId = markerGraphEdge.source;
+                const uint32_t vertexCoverage = uint32_t(markerGraph.vertices.size(markerGraphVertexId));
+                vertexCoverageSum += vertexCoverage;
+                assemblyGraphEdge.minVertexCoverage =
+                    min(assemblyGraphEdge.minVertexCoverage, vertexCoverage);
+                assemblyGraphEdge.maxVertexCoverage =
+                    max(assemblyGraphEdge.maxVertexCoverage, vertexCoverage);
+            }
         }
-        assemblyGraphEdge.averageCoverage = uint32_t(sum / chain.size());
+        assemblyGraphEdge.averageEdgeCoverage = uint32_t(edgeCoverageSum / chain.size());
+        if(chain.size() == 1) {
+            // There are no internal vertices.
+            assemblyGraphEdge.minVertexCoverage = 0;
+            assemblyGraphEdge.averageVertexCoverage = 0;
+            assemblyGraphEdge.maxVertexCoverage = 0;
+        } else {
+            assemblyGraphEdge.averageVertexCoverage = uint32_t(vertexCoverageSum / (chain.size()-1));
+        }
     }
 
 

@@ -3845,7 +3845,7 @@ void Assembler::simplifyMarkerGraphIterationPart1(
         std::map<AssemblyGraph::VertexId, vector< pair<AssemblyGraph::EdgeId, uint32_t> > > edgeTable;
         for(AssemblyGraph::EdgeId edgeId: outEdges) {
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-            edgeTable[edge.target].push_back(make_pair(edgeId, edge.averageCoverage));
+            edgeTable[edge.target].push_back(make_pair(edgeId, edge.averageEdgeCoverage));
         }
 
         // For each set of parallel edges, only keep the one with the highest average coverage.
@@ -4203,7 +4203,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
                 sortedOutEdges.clear();
                 for(const AssemblyGraph::EdgeId e01: outEdges) {
-                    sortedOutEdges.push_back(make_pair(1./assemblyGraph.edges[e01].averageCoverage, e01));
+                    sortedOutEdges.push_back(make_pair(1./assemblyGraph.edges[e01].averageEdgeCoverage, e01));
                 }
                 sort(sortedOutEdges.begin(), sortedOutEdges.end(),
                     OrderPairsByFirstOnly<double, AssemblyGraph::EdgeId>());

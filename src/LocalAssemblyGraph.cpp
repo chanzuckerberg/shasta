@@ -246,6 +246,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     const size_t length = graph.edgeLength(e);
     const int baseCount = graph.baseCount(e);
     const bool wasAssembled = graph.globalAssemblyGraph.isAssembledEdge(edgeId);
+    const AssemblyGraph::Edge& globalEdge = graph.globalAssemblyGraph.edges[edgeId];
 
     // Begin edge attributes.
     s << "[";
@@ -280,6 +281,16 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
             "<tr><td>" << edgeId << "</td></tr>"
             "<tr><td>" << length << "</td></tr>"
             "<tr><td>" << baseCount << "</td></tr>"
+            "<tr><td>" <<
+            globalEdge.minVertexCoverage << "/" <<
+            globalEdge.averageVertexCoverage << "/" <<
+            globalEdge.maxVertexCoverage <<
+            "</td></tr>"
+            "<tr><td>" <<
+            globalEdge.minEdgeCoverage << "/" <<
+            globalEdge.averageEdgeCoverage << "/" <<
+            globalEdge.maxEdgeCoverage <<
+            "</td></tr>"
             "</table>> decorate=true";
     }
 
