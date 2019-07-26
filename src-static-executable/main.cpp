@@ -568,6 +568,7 @@ void shasta::main::assemble(
     assembler.assemble(0);
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
+    assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
     assembler.writeFasta("Assembly.fasta");
 
     // Store elapsed time for assembly.
