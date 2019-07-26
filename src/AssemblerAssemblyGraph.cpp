@@ -772,6 +772,8 @@ void Assembler::writeGfa1(const string& fileName)
         const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
         SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
         gfa << "S\t" << edgeId << "\t";
+
+        // Write the sequence.
         for(size_t i=0; i<sequence.baseCount; i++) {
             const Base b = sequence[i];
             const uint8_t repeatCount = repeatCounts[i];
@@ -779,6 +781,13 @@ void Assembler::writeGfa1(const string& fileName)
                 gfa << b;
             }
         }
+
+        // Write "number of reads" as average edge coverage
+        // times number of bases.
+        const uint32_t averageEdgeCoverage =
+            assemblyGraph.edges[edgeId].averageEdgeCoverage;
+        gfa << "\tRC:i:" << averageEdgeCoverage * sequence.baseCount;
+
         gfa << "\n";
     }
 
@@ -880,12 +889,14 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
         gfa << "S\t" << edgeId << "\t";
 
         // Write the sequence.
+        size_t sequenceLength;
         if(assemblyGraph.isAssembledEdge(edgeId)) {
 
             // This edge was assembled. We can just write the stored sequence.
             const auto sequence = assemblyGraph.sequences[edgeId];
             const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
             SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            sequenceLength = sequence.baseCount;
             for(size_t i=0; i<sequence.baseCount; i++) {
                 const Base b = sequence[i];
                 const uint8_t repeatCount = repeatCounts[i];
@@ -901,6 +912,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
             const auto sequence = assemblyGraph.sequences[edgeIdRc];
             const auto repeatCounts = assemblyGraph.repeatCounts[edgeIdRc];
             SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            sequenceLength = sequence.baseCount;
             for(size_t i=0; i<sequence.baseCount; i++) {
                 const size_t j = sequence.baseCount - 1 - i;
                 const Base b = sequence[j].complement();
@@ -910,7 +922,15 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
                 }
             }
 
+
         }
+
+        // Write "number of reads" as average edge coverage
+        // times number of bases.
+        const uint32_t averageEdgeCoverage =
+            assemblyGraph.edges[edgeId].averageEdgeCoverage;
+        gfa << "\tRC:i:" << averageEdgeCoverage * sequenceLength;
+;
         gfa << "\n";
     }
 
