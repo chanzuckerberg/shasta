@@ -71,6 +71,20 @@ public:
         uint32_t minEdgeCoverage;
         uint32_t averageEdgeCoverage;
         uint32_t maxEdgeCoverage;
+
+        // Flag set if this is a low coverage cross edge.
+        uint8_t isLowCoverageCrossEdge: 1;
+
+        // The edge is considered removed if flagged.
+        bool wasRemoved() const
+        {
+            return isLowCoverageCrossEdge == 1;
+        }
+
+        Edge()
+        {
+            isLowCoverageCrossEdge = 0;
+        }
     };
     MemoryMapped::Vector<Edge> edges;
 

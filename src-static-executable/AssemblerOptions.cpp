@@ -323,6 +323,13 @@ void AssemblerOptions::addConfigurableOptions()
         "Keep at default value 0. Other options are under development "
         "and will not produce a complete assembly.")
 
+        ("Assembly.crossEdgeCoverageThreshold",
+        value<int>(&assemblyOptions.crossEdgeCoverageThreshold)->
+        default_value(3),
+        "Maximum average edge coverage for a cross edge "
+        "of the assembly graph to be removed.")
+
+
         ("Assembly.markerGraphEdgeLengthThresholdForConsensus",
         value<int>(&assemblyOptions.markerGraphEdgeLengthThresholdForConsensus)->
         default_value(1000),
@@ -430,6 +437,7 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
     s << "strategy = " << strategy << "\n";
+    s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
         markerGraphEdgeLengthThresholdForConsensus << "\n";
     s << "consensusCaller = " <<

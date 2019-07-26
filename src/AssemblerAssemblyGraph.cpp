@@ -457,6 +457,21 @@ void Assembler::createAssemblyGraphVertices()
 
 
 
+// Mark as isLowCoverageCrossEdge all low coverage cross edges
+// of the assembly graph and the corresponding marker graph edges.
+// These edges are then considered removed.
+// An edge v0->v1 of the assembly graph is a cross edge if:
+// - in-degree(v0)=1, out-degree(v0)>1
+// - in-degree(v1)>1, out-degree(v1)=1
+// A cross edge is marked as isCrossEdge if its average edge coverage
+// is <= crossEdgeCoverageThreshold.
+void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
+{
+    SHASTA_ASSERT(0);
+}
+
+
+
 void Assembler::accessAssemblyGraphEdgeLists()
 {
     assemblyGraph.edgeLists.accessExistingReadOnly(

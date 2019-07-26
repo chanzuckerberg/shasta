@@ -4860,3 +4860,4 @@ void Assembler::computeMarkerGraphCoverageHistogram()
         edgesCsv << coverage << "," << frequency << "\n";
     }
 }
+

@@ -526,6 +526,14 @@ void shasta::main::assemble(
         // Compute marker graph coverage histogram.
         assembler.computeMarkerGraphCoverageHistogram();
 
+        // Create the assembly graph.
+        assembler.createAssemblyGraphEdges();
+        assembler.createAssemblyGraphVertices();
+
+        // Remove low coverage cross edges of the assembly graph
+        // and the corresponding marker graph edges.
+        assembler.removeLowCoverageCrossEdges(
+            assemblerOptions.assemblyOptions.crossEdgeCoverageThreshold);
     } else {
         SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
 
