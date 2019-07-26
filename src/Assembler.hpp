@@ -1144,6 +1144,16 @@ private:
 
 
 
+    // Create a coverage histogram for vertices and edges of the
+    // marker graph. This counts all vertices that are not isolated
+    // (are connected to no edges that are not marked removed)
+    // and all edges that are not marked as removed.
+    // Output is to csv files.
+public:
+    void computeMarkerGraphCoverageHistogram();
+private:
+
+
     // In the assembly graph, each vertex corresponds to a linear chain
     // of edges in the pruned strong subgraph of the marker graph.
     // A directed vertex A->B is created if the last marker graph vertex

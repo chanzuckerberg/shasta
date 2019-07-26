@@ -296,6 +296,8 @@ PYBIND11_MODULE(shasta, module)
         .def("checkMarkerGraphIsStrandSymmetric",
             &Assembler::checkMarkerGraphIsStrandSymmetric,
             arg("threadCount") = 0)
+        .def("computeMarkerGraphCoverageHistogram",
+            &Assembler::computeMarkerGraphCoverageHistogram)
 
 
 

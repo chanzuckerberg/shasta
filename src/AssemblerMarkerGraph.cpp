@@ -4781,3 +4781,82 @@ void Assembler::accessMarkerGraphConsensus()
         largeDataName("MarkerGraphEdgesConsensusOverlappingBaseCount"));
 
 }
+
+
+
+// Create a coverage histogram for vertices and edges of the
+// marker graph. This counts all vertices that are not isolated
+// (are connected to no edges that are not marked removed)
+// and all edges that are not marked as removed.
+// Output is to csv files.
+void Assembler::computeMarkerGraphCoverageHistogram()
+{
+
+    // Vertices.
+    vector<uint64_t> vertexCoverageHistogram;
+    for(MarkerGraph::VertexId vertexId=0;
+        vertexId<markerGraph.vertices.size(); vertexId++) {
+
+        // Check if this vertex is isolated.
+        bool isIsolated = true;
+        // Look at the out-edges.
+        for(const MarkerGraph::EdgeId edgeId: markerGraph.edgesBySource[vertexId]) {
+            if(!markerGraph.edges[edgeId].wasRemoved()) {
+                isIsolated = false;
+                break;
+            }
+        }
+        if(isIsolated) {
+            // We did not find any out-edges. Look at the in-edges.
+            for(const MarkerGraph::EdgeId edgeId: markerGraph.edgesByTarget[vertexId]) {
+                if(!markerGraph.edges[edgeId].wasRemoved()) {
+                    isIsolated = false;
+                    break;
+                }
+            }
+        }
+
+        // If isolated, skip it.
+        if(isIsolated) {
+            continue;
+        }
+
+        // Increment the histogram.
+        const size_t coverage = markerGraph.vertices.size(vertexId);
+        if(coverage >= vertexCoverageHistogram.size()) {
+            vertexCoverageHistogram.resize(coverage+1, 0);
+        }
+        ++vertexCoverageHistogram[coverage];
+    }
+    ofstream verticesCsv("MarkerGraphVertexCoverageHistogram.csv");
+    verticesCsv << "Coverage,Frequency\n";
+    for(uint64_t coverage = 0; coverage<vertexCoverageHistogram.size(); coverage++) {
+        const uint64_t frequency = vertexCoverageHistogram[coverage];
+        verticesCsv << coverage << "," << frequency << "\n";
+    }
+
+
+
+    // Edges.
+    vector<uint64_t> edgeCoverageHistogram;
+    for(const MarkerGraph::Edge& edge: markerGraph.edges) {
+
+        // If this edge was removed, skip it.
+        if(edge.wasRemoved()) {
+            continue;
+        }
+
+        // Increment the histogram.
+        const size_t coverage = edge.coverage;
+        if(coverage >= edgeCoverageHistogram.size()) {
+            edgeCoverageHistogram.resize(coverage+1, 0);
+        }
+        ++edgeCoverageHistogram[coverage];
+    }
+    ofstream edgesCsv("MarkerGraphEdgeCoverageHistogram.csv");
+    edgesCsv << "Coverage,Frequency\n";
+    for(uint64_t coverage = 0; coverage<edgeCoverageHistogram.size(); coverage++) {
+        const uint64_t frequency = edgeCoverageHistogram[coverage];
+        edgesCsv << coverage << "," << frequency << "\n";
+    }
+}

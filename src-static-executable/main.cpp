@@ -523,12 +523,18 @@ void shasta::main::assemble(
         assembler.pruneMarkerGraphStrongSubgraph(
             assemblerOptions.markerGraphOptions.pruneIterationCount);
 
+        // Compute marker graph coverage histogram.
+        assembler.computeMarkerGraphCoverageHistogram();
+
     } else {
         SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
 
         // Prune the marker graph.
         assembler.pruneMarkerGraphStrongSubgraph(
             assemblerOptions.markerGraphOptions.pruneIterationCount);
+
+        // Compute marker graph coverage histogram.
+        assembler.computeMarkerGraphCoverageHistogram();
 
         // Simplify the marker graph to remove bubbles and superbubbles.
         // The maxLength parameter controls the maximum number of markers
