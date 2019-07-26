@@ -233,10 +233,19 @@ void Assembler::computeAlignments(
         threadCount = std::thread::hardware_concurrency();
     }
 
+    // Pick the batch size for computing alignments.
+    size_t batchSize = 10000;
+    if(batchSize > alignmentCandidates.size()/threadCount) {
+        batchSize = alignmentCandidates.size()/threadCount;
+    }
+    if(batchSize == 0) {
+        batchSize = 1;
+    }
+
+
     // Compute the alignments.
     data.threadAlignmentData.resize(threadCount);
     cout << timestamp << "Alignment computation begins." << endl;
-    size_t batchSize = 10000;
     setupLoadBalancing(alignmentCandidates.size(), batchSize);
     runThreads(&Assembler::computeAlignmentsThreadFunction, threadCount);
     cout << timestamp << "Alignment computation completed." << endl;
