@@ -5,6 +5,9 @@ ___
 
 **For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
 
+[This paper](https://www.biorxiv.org/content/10.1101/715722v1) 
+includes an error analysis of the Shasta assembler and more.
+
 Here is the [presentation](https://www.slideshare.net/MitenJain/generating-highquality-reference-human-genomes-using-promethion-nanopore-sequencing)
 given by Miten Jain at *London Calling 2019*.
 ___
