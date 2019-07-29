@@ -48,9 +48,55 @@
 
 
 
-<h1>Running Shasta using Docker</h1>
-<p>This functionality is not yet available but will be soon.
+    <h1>Running Shasta using Docker</h1>
 
+    <a href="https://www.docker.com/">Docker</a> is a tool that use operating-system-level virtualization to run software in packages called containers.
+    It allows users to avoid installation of dependencies and software compilation, and instead invoke the tool using pre-compiled images.
+
+    <h3>Quick Start</h3>
+
+    To run Shasta via the Docker image, the Docker software must be installed.  Then, the following command can be used to run Shasta.
+    This invocation assumes that the fasta data for assembly is in the file <code>input.fasta</code> in the current working directory.
+
+    <pre>docker run -v `pwd`:/data tpesout/shasta:latest --input input.fasta</pre>
+
+
+    This command specifies the image (<code>tpesout/shasta</code>) and version (<code>latest</code>),
+    mounts the current directory to the required location in the container (<code>-v `pwd`:/data</code>), and specifies
+    the command to be given to the Shasta executable (<code>--input input.fasta</code>).
+
+    The Shasta image will be automatically downloaded the first time it is used;
+    subsequent runs will use a cached version.
+
+    When Shasta is run via this method, the Docker image is set up to save the command, all output logged to the console,
+    and the time and maximum memory usage to a file called <code>shasta.log</code>.  All data output by Shasta will be
+    saved in the current working directory.
+
+
+    <h3>Memory Mode</h3>
+
+    To run Shasta in the <code>filesystem</code> memory mode, the Docker container needs to set up underlying infrastructure in the OS.
+    By default, a Docker container is not allowed to take the actions necessary for this so it must be given elevated privileges.
+    To do this, the <code>--privileged</code> flag must be set.
+
+    <pre>docker run --privileged -v `pwd`:/data tpesout/shasta:latest --input input.fasta --memoryMode filesystem --memoryBacking 2M</pre>
+
+    When running Shasta in this mode, the <code>cleanupBinaryData</code> command is not required,
+    and the binary data is not available for use with the http server or the Python API.
+
+
+    <h3>Compiling Docker Image</h3>
+
+    The Shasta image is currently published to the <code>tpesout/shasta</code> repository on <a href="https://hub.docker.com/r/tpesout/shasta">Docker Hub</a>.
+    The image can be compiled locally using the Makefile in the <code>docker/</code> folder in the Shasta repository.
+
+    <pre>cd docker/
+make</pre>
+
+    The build script will find the current git commit in the repository where it is being run (the commit must be pushed to github),
+    create an image with the code from that commit, then tag the image with the current Shasta version and the commit hash
+    (ie <code>0.1.0--b4727470b4d59bca10dba49ba37a0b6a6d6a265e</code>).  To create an image from a specific git commit,
+    the <code>make</code> command can be run with this option <code>-e git_commit=your_git_commit</code>.
 
 
 </main>
