@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 MAINTAINER Trevor Pesout, tpesout@ucsc.edu
 
-ENV GIT_COMMIT=02df243b2a88be966c5311570232cb6aa828e490
+ARG git_commit
 
 # update and install dependencies
 RUN apt-get update && \
@@ -22,7 +22,7 @@ WORKDIR /opt
 RUN git clone https://github.com/chanzuckerberg/shasta.git && \
     cd /opt/shasta && \
     git fetch && \
-    git checkout $GIT_COMMIT && \
+    git checkout $git_commit && \
     git submodule update --init && \
     rm -rf /opt/shasta/.git
 
