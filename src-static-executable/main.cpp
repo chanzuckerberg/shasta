@@ -108,7 +108,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
     }
 
     // If getting here, the requested command is invalid.
-    throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command);
+    throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command +
+        ". Valid commands are: assemble, saveBinaryData, cleanupBinaryData.");
 
 }
 
@@ -186,6 +187,9 @@ void shasta::main::assemble(
     for(const string& inputFastaFileName: assemblerOptions.commandLineOnlyOptions.inputFastaFileNames) {
         if(!filesystem::exists(inputFastaFileName)) {
             throw runtime_error("Input file not found: " + inputFastaFileName);
+        }
+        if(!filesystem::isRegularFile(inputFastaFileName)) {
+            throw runtime_error("Input file is not a regular file: " + inputFastaFileName);
         }
         inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
     }
@@ -501,22 +505,56 @@ void shasta::main::assemble(
         assemblerOptions.markerGraphOptions.maxDistance,
         assemblerOptions.markerGraphOptions.edgeMarkerSkipThreshold);
 
-    // For Assembly strategy 1, stop here.
+
+
+    // Marker graph processing that varies according to
+    // --Assembly.strategy.
     if(assemblerOptions.assemblyOptions.strategy == 1) {
-        cout << "Option --Assembly.strategy 1 is under development and "
-            " does not produce assembly results." << endl;
-        return;
+
+        // Do a reverse transitive reduction to remove
+        // the short reverse bubbles, but don't do
+        // bubble/superbubble removal!
+        assembler.reverseTransitiveReduction(
+            assemblerOptions.markerGraphOptions.lowCoverageThreshold,
+            assemblerOptions.markerGraphOptions.highCoverageThreshold,
+            assemblerOptions.markerGraphOptions.maxDistance);
+
+        // Prune the marker graph.
+        assembler.pruneMarkerGraphStrongSubgraph(
+            assemblerOptions.markerGraphOptions.pruneIterationCount);
+
+        // Create the assembly graph.
+        assembler.createAssemblyGraphEdges();
+        assembler.createAssemblyGraphVertices();
+
+        // Remove low coverage cross edges of the assembly graph
+        // and the corresponding marker graph edges.
+        assembler.removeLowCoverageCrossEdges(
+            assemblerOptions.assemblyOptions.crossEdgeCoverageThreshold);
+
+        // Remove this assembly graph so we can create a new one later.
+        assembler.assemblyGraph.remove();
+
+        // Compute marker graph coverage histogram.
+        assembler.computeMarkerGraphCoverageHistogram();
+
+    } else {
+        SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
+
+        // Prune the marker graph.
+        assembler.pruneMarkerGraphStrongSubgraph(
+            assemblerOptions.markerGraphOptions.pruneIterationCount);
+
+        // Compute marker graph coverage histogram.
+        assembler.computeMarkerGraphCoverageHistogram();
+
+        // Simplify the marker graph to remove bubbles and superbubbles.
+        // The maxLength parameter controls the maximum number of markers
+        // for a branch to be collapsed during each iteration.
+        assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
     }
-    SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
 
-    // Prune the strong subgraph of the marker graph.
-    assembler.pruneMarkerGraphStrongSubgraph(
-        assemblerOptions.markerGraphOptions.pruneIterationCount);
 
-    // Simplify the marker graph to remove bubbles and superbubbles.
-    // The maxLength parameter controls the maximum number of markers
-    // for a branch to be collapsed during each iteration.
-    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
 
     // Create the assembly graph.
     assembler.createAssemblyGraphEdges();
@@ -542,6 +580,7 @@ void shasta::main::assemble(
     assembler.assemble(0);
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
+    assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
     assembler.writeFasta("Assembly.fasta");
 
     // Store elapsed time for assembly.
@@ -570,6 +609,13 @@ void shasta::main::assemble(
     ofstream json("AssemblySummary.json");
     assembler.writeAssemblySummaryJson(json);
 
+    // For Assembly strategy 1,write a warning message
+    if(assemblerOptions.assemblyOptions.strategy == 1) {
+        cout << "This assembly was created using --Assembly.strategy 1. "
+            "This option is under development and "
+            " does not produce usable assembly results." << endl;
+        return;
+    }
 }
 
 
@@ -640,7 +686,7 @@ void shasta::main::saveBinaryData(
     const string dataOnDiskDirectory =
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory + "/DataOnDisk";
     if(filesystem::exists(dataOnDiskDirectory)) {
-        cout << dataOnDiskDirectory << " alreadsy exists, nothing done." << endl;
+        cout << dataOnDiskDirectory << " already exists, nothing done." << endl;
         return;
     }
 

@@ -142,6 +142,7 @@ public:
     class AssemblyOptions {
     public:
         int strategy;   // 0: bubble removal, 1: phasing
+        int crossEdgeCoverageThreshold;
         int markerGraphEdgeLengthThresholdForConsensus;
         string consensusCaller;
         bool useMarginPhase;

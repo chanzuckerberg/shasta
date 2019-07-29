@@ -58,6 +58,11 @@
  *
  */
 
+// Sanity check that we are compiling on x86_64.
+#if !__x86_64__
+#error "Shasta can only be built on an x86_64 machine (64-bit Intel/AMD)"
+#endif
+
 
 class DisjointSets {
 public:

@@ -57,6 +57,12 @@ namespace shasta {
 }
 
 
+// Sanity check that we are compiling on x86_64.
+#if !__x86_64__
+#error "Shasta can only be built on an x86_64 machine (64-bit Intel/AMD)"
+#endif
+
+
 
 // Class used to store various pieces of assembler information in shared memory.
 class shasta::AssemblerInfo {
@@ -340,6 +346,8 @@ private:
         );
 public:
 
+
+
     // Approximate transitive reduction of the marker graph.
     // This does the following, in this order:
     // - All edges with coverage less than or equal to lowCoverageThreshold
@@ -351,7 +359,7 @@ public:
     //   and less then highCoverageThreshold are processed in
     //   ordered of increasing coverage:
     //   * For each such edge A->B, we look for a path of length
-    //     at most maxDistance between A and B that does not use
+    //     at most maxDistance starting at A and ending at B  that does not use
     //     edge A->B and also does not use any
     //     edges already marked wasRemovedByTransitiveReduction.
     //   * If such a path is found, the edge is marked
@@ -368,6 +376,27 @@ public:
         size_t highCoverageThreshold,
         size_t maxDistance,
         size_t edgeMarkerSkipThreshold);
+
+
+
+    // Approximate reverse transitive reduction of the marker graph.
+    // The goal is to remove local back-edges.
+    // This works similarly to transitive reduction,
+    // but in the opposite direction.
+    // This does the following:
+    // - Edges with coverage greater than lowCoverageThreshold
+    //   and less then highCoverageThreshold are processed in
+    //   ordered of increasing coverage:
+    //   * For each such edge A->B, we look for a path of length
+    //     at most maxDistance starting at B and ending at A
+    //     that does not use edge A->B and also does not use any
+    //     edges already marked wasRemovedByTransitiveReduction.
+    //   * If such a path is found, the edge is marked
+    //     wasRemovedByTransitiveReduction.
+    void reverseTransitiveReduction(
+        size_t lowCoverageThreshold,
+        size_t highCoverageThreshold,
+        size_t maxDistance);
 
     // Call this before explore to make the documentation available.
     void setDocsDirectory(const string&);
@@ -1115,13 +1144,21 @@ private:
 
 
 
+    // Create a coverage histogram for vertices and edges of the
+    // marker graph. This counts all vertices that are not isolated
+    // (are connected to no edges that are not marked removed)
+    // and all edges that are not marked as removed.
+    // Output is to csv files.
+public:
+    void computeMarkerGraphCoverageHistogram();
+
+
     // In the assembly graph, each vertex corresponds to a linear chain
     // of edges in the pruned strong subgraph of the marker graph.
     // A directed vertex A->B is created if the last marker graph vertex
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
     AssemblyGraph assemblyGraph;
-public:
     void createAssemblyGraphVertices();
     void accessAssemblyGraphVertices();
     void createAssemblyGraphEdges();
@@ -1172,6 +1209,18 @@ private:
 
 
 public:
+    // Mark as isLowCoverageCrossEdge all low coverage cross edges
+    // of the assembly graph and the corresponding marker graph edges.
+    // These edges are then considered removed.
+    // An edge v0->v1 of the assembly graph is a cross edge if:
+    // - in-degree(v0)=1, out-degree(v0)>1
+    // - in-degree(v1)>1, out-degree(v1)=1
+    // A cross edge is marked as isCrossEdge if its average edge coverage
+    // is <= crossEdgeCoverageThreshold.
+    void removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold);
+
+
+
     // Assemble consensus sequence and repeat counts for each marker graph edge.
     void assembleMarkerGraphEdges(
         size_t threadCount,

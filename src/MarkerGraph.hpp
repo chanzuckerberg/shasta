@@ -67,6 +67,7 @@ public:
             return
                 wasRemovedByTransitiveReduction ||
                 wasPruned ||
+                isLowCoverageCrossEdge ||
                 isSuperBubbleEdge;
         }
 
@@ -80,6 +81,10 @@ public:
         // Set if this edge belongs to a bubble/superbubble that was removed.
         uint8_t isSuperBubbleEdge : 1;
 
+        // Flag set if this edge corresponds to a low coverage cross edge
+        // of the assembly graph.
+        uint8_t isLowCoverageCrossEdge: 1;
+
         // Flag set if this edge was assembled.
         // If set, edgeConsensusOverlappingBaseCount and edgeConsensus
         // for this edge are set.
@@ -89,18 +94,17 @@ public:
         uint8_t flag4 : 1;
         uint8_t flag5 : 1;
         uint8_t flag6 : 1;
-        uint8_t flag7 : 1;
 
         void clearFlags()
         {
             wasRemovedByTransitiveReduction = 0;
             wasPruned = 0;
             isSuperBubbleEdge = 0;
+            isLowCoverageCrossEdge = 0;
             wasAssembled = 0;
             flag4 = 0;
             flag5 = 0;
             flag6 = 0;
-            flag7 = 0;
         }
         Edge() :
             source(MarkerGraph::invalidCompressedVertexId),

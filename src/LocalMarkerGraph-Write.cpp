@@ -240,10 +240,12 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) 
         s << "\\n";
 
         // Consensus repeat counts.
-        for(size_t i=0; i<k; i++) {
-            s << int(vertex.storedConsensusRepeatCounts[i]);
+        if(vertex.storedConsensusRepeatCounts.size() == k) {
+            for(size_t i=0; i<k; i++) {
+                s << int(vertex.storedConsensusRepeatCounts[i]);
+            }
+            s << "\\n";
         }
-        s << "\\n";
 
         // Consensus sequence (raw).
         for(size_t i=0; i<k; i++) {

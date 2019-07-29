@@ -384,13 +384,47 @@ void Assembler::createAssemblyGraphVertices()
         assemblyGraphEdge.source = agv0;
         assemblyGraphEdge.target = agv1;
 
-        // Compute and store average coverage along the edges of this chain.
-        size_t sum = 0;
-        for(MarkerGraph::EdgeId markerGraphEdgeId: chain) {
+
+
+        // Compute and store minimum, average, and maximum
+        // coverage for the vertices and edges of this chain.
+        // Only internal vertices are counted.
+        SHASTA_ASSERT(chain.size() > 0);
+        uint64_t vertexCoverageSum = 0;
+        uint64_t edgeCoverageSum = 0;
+        assemblyGraphEdge.minVertexCoverage = std::numeric_limits<uint32_t>::max();
+        assemblyGraphEdge.maxVertexCoverage = 0;
+        assemblyGraphEdge.minEdgeCoverage = std::numeric_limits<uint32_t>::max();
+        assemblyGraphEdge.maxEdgeCoverage = 0;
+        for(uint64_t i=0; i<chain.size(); i++) {
+            const MarkerGraph::EdgeId markerGraphEdgeId = chain[i];
             const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
-            sum += markerGraphEdge.coverage;
+            const uint32_t edgeCoverage = markerGraphEdge.coverage;
+            edgeCoverageSum += edgeCoverage;
+            assemblyGraphEdge.minEdgeCoverage =
+                min(assemblyGraphEdge.minEdgeCoverage, edgeCoverage);
+            assemblyGraphEdge.maxEdgeCoverage =
+                max(assemblyGraphEdge.maxEdgeCoverage, edgeCoverage);
+
+            if(i != 0) {
+                const MarkerGraph::EdgeId markerGraphVertexId = markerGraphEdge.source;
+                const uint32_t vertexCoverage = uint32_t(markerGraph.vertices.size(markerGraphVertexId));
+                vertexCoverageSum += vertexCoverage;
+                assemblyGraphEdge.minVertexCoverage =
+                    min(assemblyGraphEdge.minVertexCoverage, vertexCoverage);
+                assemblyGraphEdge.maxVertexCoverage =
+                    max(assemblyGraphEdge.maxVertexCoverage, vertexCoverage);
+            }
         }
-        assemblyGraphEdge.averageCoverage = uint32_t(sum / chain.size());
+        assemblyGraphEdge.averageEdgeCoverage = uint32_t(edgeCoverageSum / chain.size());
+        if(chain.size() == 1) {
+            // There are no internal vertices.
+            assemblyGraphEdge.minVertexCoverage = 0;
+            assemblyGraphEdge.averageVertexCoverage = 0;
+            assemblyGraphEdge.maxVertexCoverage = 0;
+        } else {
+            assemblyGraphEdge.averageVertexCoverage = uint32_t(vertexCoverageSum / (chain.size()-1));
+        }
     }
 
 
@@ -419,6 +453,74 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesBySource.endPass2();
     assemblyGraph.edgesByTarget.endPass2();
 
+}
+
+
+
+// Mark as isLowCoverageCrossEdge all low coverage cross edges
+// of the assembly graph and the corresponding marker graph edges.
+// These edges are then considered removed.
+// An edge v0->v1 of the assembly graph is a cross edge if:
+// - in-degree(v0)=1, out-degree(v0)>1
+// - in-degree(v1)>1, out-degree(v1)=1
+// A cross edge is marked as isCrossEdge if its average edge coverage
+// is <= crossEdgeCoverageThreshold.
+void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
+{
+    // We want to process edges in order of increasing coverage.
+    // Gather edges by coverage.
+    vector< vector<AssemblyGraph::EdgeId> > edgesByCoverage(crossEdgeCoverageThreshold+1);
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId!=assemblyGraph.edges.size(); edgeId++) {
+        const uint64_t coverage = assemblyGraph.edges[edgeId].averageEdgeCoverage;
+        if(coverage <= crossEdgeCoverageThreshold) {
+            edgesByCoverage[coverage].push_back(edgeId);
+        }
+    }
+
+    // Process assembly graph edges in order of increasing coverage.
+    uint64_t removedAssemblyGraphEdgeCount = 0;
+    uint64_t removedMarkerGraphEdgeCount = 0;
+    for(const vector<AssemblyGraph::EdgeId>& edges: edgesByCoverage) {
+        for(const AssemblyGraph::EdgeId edgeId: edges) {
+            AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+            const AssemblyGraph::VertexId v0 = edge.source;
+            const AssemblyGraph::VertexId v1 = edge.target;
+
+            // If it is not a cross-edge, skip.
+            const size_t inDegree0 = assemblyGraph.edgesByTarget.size(v0);
+            if(!(inDegree0 == 1)) {
+                continue;
+            }
+            const size_t outDegree0 = assemblyGraph.edgesBySource.size(v0);
+            if(!(outDegree0 > 1)) {
+                continue;
+            }
+            const size_t inDegree1 = assemblyGraph.edgesByTarget.size(v1);
+            if(!(inDegree1 > 1)) {
+                continue;
+            }
+            const size_t outDegree1 = assemblyGraph.edgesBySource.size(v1);
+            if(!(outDegree1 == 1)) {
+                continue;
+            }
+
+            // Mark this edge.
+            edge.isLowCoverageCrossEdge = 0;
+            ++removedAssemblyGraphEdgeCount;
+
+            // Mark the corresponding marker graph edges.
+            for(const MarkerGraph::EdgeId markerGraphEdgeId: assemblyGraph.edgeLists[edgeId]) {
+                markerGraph.edges[markerGraphEdgeId].isLowCoverageCrossEdge = 1;
+                ++removedMarkerGraphEdgeCount;
+            }
+
+        }
+    }
+
+    cout << "Removed " << removedAssemblyGraphEdgeCount
+        << " low coverage cross edges of the assembly graph and " <<
+        removedMarkerGraphEdgeCount <<
+        " corresponding marker graph edges." << endl;
 }
 
 
@@ -738,6 +840,8 @@ void Assembler::writeGfa1(const string& fileName)
         const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
         SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
         gfa << "S\t" << edgeId << "\t";
+
+        // Write the sequence.
         for(size_t i=0; i<sequence.baseCount; i++) {
             const Base b = sequence[i];
             const uint8_t repeatCount = repeatCounts[i];
@@ -745,6 +849,13 @@ void Assembler::writeGfa1(const string& fileName)
                 gfa << b;
             }
         }
+
+        // Write "number of reads" as average edge coverage
+        // times number of bases.
+        const uint32_t averageEdgeCoverage =
+            assemblyGraph.edges[edgeId].averageEdgeCoverage;
+        gfa << "\tRC:i:" << averageEdgeCoverage * sequence.baseCount;
+
         gfa << "\n";
     }
 
@@ -846,12 +957,14 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
         gfa << "S\t" << edgeId << "\t";
 
         // Write the sequence.
+        size_t sequenceLength;
         if(assemblyGraph.isAssembledEdge(edgeId)) {
 
             // This edge was assembled. We can just write the stored sequence.
             const auto sequence = assemblyGraph.sequences[edgeId];
             const auto repeatCounts = assemblyGraph.repeatCounts[edgeId];
             SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            sequenceLength = sequence.baseCount;
             for(size_t i=0; i<sequence.baseCount; i++) {
                 const Base b = sequence[i];
                 const uint8_t repeatCount = repeatCounts[i];
@@ -867,6 +980,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
             const auto sequence = assemblyGraph.sequences[edgeIdRc];
             const auto repeatCounts = assemblyGraph.repeatCounts[edgeIdRc];
             SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            sequenceLength = sequence.baseCount;
             for(size_t i=0; i<sequence.baseCount; i++) {
                 const size_t j = sequence.baseCount - 1 - i;
                 const Base b = sequence[j].complement();
@@ -876,7 +990,15 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
                 }
             }
 
+
         }
+
+        // Write "number of reads" as average edge coverage
+        // times number of bases.
+        const uint32_t averageEdgeCoverage =
+            assemblyGraph.edges[edgeId].averageEdgeCoverage;
+        gfa << "\tRC:i:" << averageEdgeCoverage * sequenceLength;
+;
         gfa << "\n";
     }
 

@@ -296,6 +296,8 @@ PYBIND11_MODULE(shasta, module)
         .def("checkMarkerGraphIsStrandSymmetric",
             &Assembler::checkMarkerGraphIsStrandSymmetric,
             arg("threadCount") = 0)
+        .def("computeMarkerGraphCoverageHistogram",
+            &Assembler::computeMarkerGraphCoverageHistogram)
 
 
 
@@ -306,12 +308,17 @@ PYBIND11_MODULE(shasta, module)
         .def("accessMarkerGraphEdges",
             &Assembler::accessMarkerGraphEdges,
             arg("accessEdgesReadWrite") = false)
-        .def("transitiveReduction",
+            .def("transitiveReduction",
             &Assembler::transitiveReduction,
             arg("lowCoverageThreshold"),
             arg("highCoverageThreshold"),
             arg("maxDistance"),
             arg("edgeMarkerSkipThreshold"))
+        .def("reverseTransitiveReduction",
+            &Assembler::reverseTransitiveReduction,
+            arg("lowCoverageThreshold"),
+            arg("highCoverageThreshold"),
+            arg("maxDistance"))
         .def("pruneMarkerGraphStrongSubgraph",
             &Assembler::pruneMarkerGraphStrongSubgraph,
             arg("iterationCount"))
