@@ -1,16 +1,16 @@
 # Definitions
 git_commit = $(shell git log --pretty=oneline -n 1 | cut -f1 -d " ")
-name = tpesout/shasta
-version = 0.1.0
-tag = ${version}--${git_commit}
+image_name = tpesout/shasta
+shasta_version = 0.1.0
+tag = ${shasta_version}--${git_commit}
 
 # Steps
 build:
 	# do the docker build
-	docker build -t ${name}:${tag} --build-arg git_commit=${git_commit} .
-	docker tag ${name}:${tag} ${name}:latest
+	docker build -t ${image_name}:${tag} --build-arg git_commit=${git_commit} .
+	docker tag ${image_name}:${tag} ${image_name}:latest
 
 push: build
 	# Requires ~/.dockercfg
-	docker push ${name}:${tag}
-	docker push ${name}:latest
+	docker push ${image_name}:${tag}
+	docker push ${image_name}:latest
