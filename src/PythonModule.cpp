@@ -55,6 +55,9 @@ PYBIND11_MODULE(shasta, module)
 
 
         // Reads
+        .def("readCount",
+            &Assembler::readCount,
+            "Get the number of reads.")
         .def("addReadsFromFasta",
             &Assembler::addReadsFromFasta,
             "Add reads from a fasta file.",
@@ -129,6 +132,8 @@ PYBIND11_MODULE(shasta, module)
             arg("readId"),
             arg("strand"),
             arg("fileName"))
+        .def("getMarkers",
+            &Assembler::getMarkers)
 
 
 

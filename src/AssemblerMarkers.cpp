@@ -64,6 +64,21 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 
 
 
+vector<KmerId> Assembler::getMarkers(ReadId readId, Strand strand)
+{
+    const OrientedReadId orientedReadId(readId, strand);
+    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+    vector<KmerId> v;
+    for(const CompressedMarker& marker: orientedReadMarkers) {
+        v.push_back(marker.kmerId);
+    }
+    return v;
+}
+
+
+
+
 // Get markers sorted by KmerId for a given OrientedReadId.
 void Assembler::getMarkersSortedByKmerId(
     OrientedReadId orientedReadId,
