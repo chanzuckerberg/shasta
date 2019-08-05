@@ -146,6 +146,12 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "Some combinations require root privilege, which is obtained using sudo "
         "and may result in a password prompting depending on your sudo set up.")
 #endif
+
+        ("threads",
+        value<uint32_t>(&commandLineOnlyOptions.threadCount)->
+        default_value(0),
+        "Number of threads, or 0 to use one thread per virtual processor.")
+
         ;
 
 

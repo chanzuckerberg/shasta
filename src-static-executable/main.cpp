@@ -234,7 +234,8 @@ void shasta::main::assemble(
         assemblerOptions.commandLineOnlyOptions.assemblyDirectory << endl;
 #ifdef __linux__
     cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
-    cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << "\n" << endl;
+    cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << endl;
+    cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << "\n" << endl;
 #endif
     assemblerOptions.write(cout);
     {
@@ -260,9 +261,6 @@ void shasta::main::assemble(
     cout << "Therefore the results of this run should not be used\n"
         "for benchmarking purposes." << endl;
 #endif
-
-    // Write the number of threads the run will use.
-    cout << "This assembly will use " << std::thread::hardware_concurrency() << " threads." << endl;
 
     // Create the Assembler.
     Assembler assembler(dataDirectory, true, pageSize);
@@ -411,6 +409,13 @@ void shasta::main::assemble(
     const auto userClock0 = boost::chrono::process_user_cpu_clock::now();
     const auto systemClock0 = boost::chrono::process_system_cpu_clock::now();
 
+    // Adjust the number of threads, if necessary.
+    uint32_t threadCount = assemblerOptions.commandLineOnlyOptions.threadCount;
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+    cout << "This assembly will use " << threadCount << " threads." << endl;
+
     // Set up the consensus caller.
     cout << "Setting up consensus caller " <<
         assemblerOptions.assemblyOptions.consensusCaller << endl;
@@ -423,7 +428,7 @@ void shasta::main::assemble(
             assemblerOptions.readsOptions.minReadLength,
             2ULL * 1024ULL * 1024ULL * 1024ULL,
             1,
-            0);
+            threadCount);
     }
     if(assembler.readCount() == 0) {
         throw runtime_error("There are no input reads.");
@@ -452,7 +457,7 @@ void shasta::main::assemble(
         assemblerOptions.readsOptions.palindromicReads.alignedFractionThreshold,
         assemblerOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
         assemblerOptions.readsOptions.palindromicReads.deltaThreshold,
-        0);
+        threadCount);
 
     // Find alignment candidates.
     assembler.findAlignmentCandidatesLowHash(
@@ -462,7 +467,7 @@ void shasta::main::assemble(
         0,
         assemblerOptions.minHashOptions.maxBucketSize,
         assemblerOptions.minHashOptions.minFrequency,
-        0);
+        threadCount);
 
 
     // Compute alignments.
@@ -471,7 +476,7 @@ void shasta::main::assemble(
         assemblerOptions.alignOptions.maxSkip,
         assemblerOptions.alignOptions.minAlignedMarkerCount,
         assemblerOptions.alignOptions.maxTrim,
-        0);
+        threadCount);
 
     // Create the read graph.
     assembler.createReadGraph(
@@ -482,7 +487,7 @@ void shasta::main::assemble(
     assembler.flagCrossStrandReadGraphEdges();
 
     // Flag chimeric reads.
-    assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, 0);
+    assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
     assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
 
     // Create vertices of the marker graph.
@@ -491,12 +496,12 @@ void shasta::main::assemble(
         assemblerOptions.alignOptions.maxSkip,
         assemblerOptions.markerGraphOptions.minCoverage,
         assemblerOptions.markerGraphOptions.maxCoverage,
-        0);
-    assembler.findMarkerGraphReverseComplementVertices(0);
+        threadCount);
+    assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create edges of the marker graph.
-    assembler.createMarkerGraphEdges(0);
-    assembler.findMarkerGraphReverseComplementEdges(0);
+    assembler.createMarkerGraphEdges(threadCount);
+    assembler.findMarkerGraphReverseComplementEdges(threadCount);
 
     // Approximate transitive reduction.
     assembler.transitiveReduction(
@@ -562,22 +567,22 @@ void shasta::main::assemble(
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 
     // Compute optimal repeat counts for each vertex of the marker graph.
-    assembler.assembleMarkerGraphVertices(0);
+    assembler.assembleMarkerGraphVertices(threadCount);
 
     // If coverage data was requested, compute and store coverage data for the vertices.
     if(assemblerOptions.assemblyOptions.storeCoverageData) {
-        assembler.computeMarkerGraphVerticesCoverageData(0);
+        assembler.computeMarkerGraphVerticesCoverageData(threadCount);
     }
 
     // Compute consensus sequence for marker graph edges to be used for assembly.
     assembler.assembleMarkerGraphEdges(
-        0,
+        threadCount,
         assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
         false,
         assemblerOptions.assemblyOptions.storeCoverageData);
 
     // Use the assembly graph for global assembly.
-    assembler.assemble(0);
+    assembler.assemble(threadCount);
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");

@@ -29,6 +29,7 @@ public:
         string command;
         string memoryMode;
         string memoryBacking;
+        uint32_t threadCount;
     };
     CommandLineOnlyOptions commandLineOnlyOptions;
 
