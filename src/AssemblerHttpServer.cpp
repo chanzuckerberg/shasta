@@ -1403,7 +1403,9 @@ void Assembler::exploreRead(
 
         // Write the k-mer of this marker.
         const Kmer kmer(marker.kmerId, k);
-        html << "<a xlink:title='Marker " << ordinal << ", position " << marker.position;
+        html << "<a xlink:title='Marker " << ordinal <<
+            ", position " << marker.position <<
+            ", k-mer id " << marker.kmerId;
         if(hasMarkerGraphVertex) {
             html << ", coverage " << markerGraph.vertices.size(vertexId);
         }
