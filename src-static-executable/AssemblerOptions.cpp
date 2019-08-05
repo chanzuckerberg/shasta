@@ -343,7 +343,7 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Assembly.consensusCaller",
         value<string>(&assemblyOptions.consensusCaller)->
-        default_value("SimpleConsensusCaller"),
+        default_value("Modal"),
         "Selects the consensus caller for repeat counts. "
         "See the documentation for available choices.")
 

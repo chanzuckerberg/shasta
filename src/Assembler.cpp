@@ -66,62 +66,84 @@ Assembler::~Assembler()
 
 
 
-// The ConsensusCaller used to compute the "best"
+// Set up the ConsensusCaller used to compute the "best"
 // base and repeat count at each assembly position.
 // The argument to setupConsensusCaller specifies
-// the consensus caller to be used. It can be one of the following:
-// - The type of a consensus caller that
-//   does not require any configuration information. Possibilities are:
-//   * "SimpleConsensusCaller".
-//   * "MedianConsensusCaller".
-// - The absolute path to a configuration file for the
-//   consensus caller to be used. A relative path is not accepted.
-//   The file name portion of this path
-//   must begin with the type of the consensus caller followed by a dash.
-//   Currently, the only such type of consensus caller is
-//   SimpleBayesianConsensusCaller, so this requires
-//   an absolute path of the form "/*/SimpleBayesianConsensusCaller-*",
-//   where the two "*" can be replaced by anything.
+// the consensus caller to be used.
+// It can be one of the following:
+// - Modal
+//   Selects the SimpleConsensusCaller.
+// - Median
+//   Selects the MedianConsensusCaller.
+// - Bayesian:fileName
+//   Selects the SimpleBayesianConsensusCaller,
+//   using fileName as the configuration file.
+//   Filename must be an absolute path (it must begin with "/").
 void Assembler::setupConsensusCaller(const string& s)
 {
-    // Types that don't require a configuration file.
-    if(s == "SimpleConsensusCaller") {
+
+    // Parse the argument.
+    // The portion up to the first colon is the type string (Modal, Median, or Bayesian).
+    // The portion following the first colon is the constructor string.
+    const size_t colonPosition = s.find_first_of(':');
+    string typeString, constructorString;
+    if(colonPosition==string::npos) {
+        // There is no colon.
+        typeString = s;
+        constructorString = "";
+    } else {
+        // The colon is present.
+        typeString =  s.substr(0, colonPosition);
+        constructorString =  s.substr(colonPosition+1);
+    }
+
+
+
+    // The Modal consensus caller (class SimpleConsensusCaller)
+    // takes no constructor string (nothing after the colon).
+    if(typeString == "Modal") {
+
+        //  The constructor string must be empty.
+        if(constructorString.size() > 0) {
+            throw runtime_error("Invalid consensus caller " + s);
+        }
+
         consensusCaller = std::make_shared<SimpleConsensusCaller>();
         return;
     }
 
-    if(s == "MedianConsensusCaller") {
+
+
+    // The Median consensus caller (class MedianConsensusCaller)
+    // takes no  constructor string (nothing after the colon).
+    if(typeString == "Median") {
+
+        //  The constructor string must be empty.
+        if(constructorString.size() > 0) {
+            throw runtime_error("Invalid consensus caller " + s);
+        }
+
         consensusCaller = std::make_shared<MedianConsensusCaller>();
         return;
     }
 
 
 
-    // If getting here, the argument  must be an absolute path.
-    if(s.size() == 0 || s[0] != '/') {
-        throw runtime_error("Invalid absolute path for consensus caller "
-            "configuration file " + s);
-    }
+    // The Bayesian consensus caller (class SimpleBayesianConsensusCaller)
+    // requires a constructor string (portion following the first colon).
+    // The constructor string is the absolute path to the configuration file.
+    if(typeString == "Bayesian") {
+        if(constructorString.size() == 0) {
+            throw runtime_error("Invalid consensus caller " + s);
+        }
 
-    // Extract the file name portion of the path.
-    const size_t lastSlashPosition = s.find_last_of('/');
-    const size_t fileNameBegin = lastSlashPosition + 1;
-    const string fileName = s.substr(fileNameBegin);
+        // The constructor string must be an absolute path.
+        if(constructorString[0] != '/') {
+            throw runtime_error("Invalid absolute path for consensus caller "
+                "configuration file " + constructorString);
+        }
 
-    // The consensus caller type is the portion up to the dash.
-    const size_t dashPosition = fileName.find_first_of('-');
-    if(dashPosition == string::npos) {
-        throw runtime_error("Invalid configuration file name for consensus caller. "
-            "The file name portion must begin with the consensus caller type "
-            "followed by a dash. " +  s);
-    }
-    const string consensusCallerType = fileName.substr(0, dashPosition);
-
-
-
-    // Now that we know the type we can create it.
-    if(consensusCallerType == "SimpleBayesianConsensusCaller") {
-        consensusCaller = std::make_shared<SimpleBayesianConsensusCaller>(s);
+        consensusCaller = std::make_shared<SimpleBayesianConsensusCaller>(constructorString);
         return;
     }
 
@@ -129,7 +151,7 @@ void Assembler::setupConsensusCaller(const string& s)
 
     // If getting here, the argument does not specify a supported
     // consensus caller.
-    throw runtime_error("Unsupported consensus caller type " + consensusCallerType);
+    throw runtime_error("Invalid consensus caller " + s);
 }
 
 

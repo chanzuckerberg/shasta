@@ -437,25 +437,29 @@ Controls assembly of long marker graph edges.
 
 <tr id='Assembly.consensusCaller'>
 <td><code>--Assembly.consensusCaller</code>
-<td class=centered><code>SimpleConsensusCaller</code><td>
+<td class=centered><code>Modal</code><td>
 Used to select the consensus caller for repeat counts. Can be one of:
 <ul>
-<li><code>SimpleConsensusCaller</code> to select the default consensus caller,
-which selects the most frequent repeat count.
-<li><code>MedianConsensusCaller</code>,
-which selects the median repeat count.
-<li>The absolute path to a configuration file for a <code>SimpleBayesianConsensusCaller</code>. 
+<li><code>Modal</code> to use a consensus caller
+that chooses the most frequent repeat count 
+as the consensus repeat count at each base
+position 
+(C++ class <code>SimpleConsensusCaller</code>).
+<li><code>Median</code> to use a consensus caller
+that chooses the median repeat count 
+as the consensus repeat count at each base
+position 
+(C++ class <code>MedianConsensusCaller</code>).
+<li><code>Bayesian:absolutePath</code>
+to use a consensus caller that uses a Bayesian model
+to select the consensus repeat count at each base position
+(C++ class <code>SimpleBayesianConsensusCaller</code>).
+The absolute path following the colon specifies the configuration
+file defining the Bayesian model to be used.
 A relative path is not accepted.
-The file name portion of the absolute path must begin with <code>SimpleBayesianConsensusCaller-</code>
-(the dash is required).
-This requires
-an absolute path of the form "/*/SimpleBayesianConsensusCaller-*",
-where the two "*" can be replaced by anything.
-Some such configuration files 
+Sample configuration files 
 are available in a build tree under <code>shasta-install/conf</code>
 and in a source tree under <code>shasta/conf</code>.
-The <code>SimpleBayesianConsensusCaller</code> uses a Bayesian model
-to predict repeat counts.
 </ul>
 
 <tr id='Assembly.useMarginPhase'>
