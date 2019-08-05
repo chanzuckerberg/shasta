@@ -7,9 +7,10 @@ ___
 
 [This paper](https://www.biorxiv.org/content/10.1101/715722v1) 
 includes an error analysis of the Shasta assembler and more.
+Data and test results from this paper are available 
+[here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html).
 
-Here is the [presentation](https://www.slideshare.net/MitenJain/generating-highquality-reference-human-genomes-using-promethion-nanopore-sequencing)
-given by Miten Jain at *London Calling 2019*.
+
 ___
 
 The goal of the Shasta long read assembler is to rapidly 
