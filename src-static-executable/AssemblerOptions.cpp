@@ -344,10 +344,8 @@ void AssemblerOptions::addConfigurableOptions()
         ("Assembly.consensusCaller",
         value<string>(&assemblyOptions.consensusCaller)->
         default_value("SimpleConsensusCaller"),
-        "Selects the consensus caller for repeat counts.\n"
-        "SimpleConsensusCaller is the only choice currently\n"
-        "supported by the Shasta executable.\n"
-        "Other choices are available with the Shasta library.")
+        "Selects the consensus caller for repeat counts. "
+        "See the documentation for available choices.")
 
         ("Assembly.useMarginPhase",
         bool_switch(&assemblyOptions.useMarginPhase)->
