@@ -1485,7 +1485,6 @@ private:
     // - The type of a consensus caller that
     //   does not require any configuration information. Possibilities are:
     //   * "SimpleConsensusCaller".
-    //   * "BiasedGaussianConsensusCaller".
     //   * "MedianConsensusCaller".
     // - The absolute path to a configuration file for the
     //   consensus caller to be used. A relative path is not accepted.

@@ -1,6 +1,5 @@
 #include "Assembler.hpp"
 #include "buildId.hpp"
-#include "BiasedGaussianConsensusCaller.hpp"
 #include "SimpleConsensusCaller.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
@@ -74,7 +73,6 @@ Assembler::~Assembler()
 // - The type of a consensus caller that
 //   does not require any configuration information. Possibilities are:
 //   * "SimpleConsensusCaller".
-//   * "BiasedGaussianConsensusCaller".
 //   * "MedianConsensusCaller".
 // - The absolute path to a configuration file for the
 //   consensus caller to be used. A relative path is not accepted.
@@ -89,11 +87,6 @@ void Assembler::setupConsensusCaller(const string& s)
     // Types that don't require a configuration file.
     if(s == "SimpleConsensusCaller") {
         consensusCaller = std::make_shared<SimpleConsensusCaller>();
-        return;
-    }
-
-    if(s == "BiasedGaussianConsensusCaller") {
-        consensusCaller = std::make_shared<BiasedGaussianConsensusCaller>();
         return;
     }
 
