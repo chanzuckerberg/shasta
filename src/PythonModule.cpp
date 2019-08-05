@@ -43,6 +43,16 @@ PYBIND11_MODULE(shasta, module)
     }
 
 
+
+    // Expose class OrientedReadPair to Python.
+    class_<OrientedReadPair>(module, "OrientedReadPair")
+        .def_readonly("readIds", &OrientedReadPair::readIds)
+        .def_readonly("isSameStrand", &OrientedReadPair::isSameStrand)
+        ;
+
+
+
+    // Expose class Assembler to Python.
     class_<Assembler>(module, "Assembler")
 
         // Constructor.
@@ -157,6 +167,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("accessAlignmentCandidates",
             &Assembler::accessAlignmentCandidates)
+        .def("getAlignmentCandidates",
+            &Assembler::getAlignmentCandidates)
         .def("writeOverlappingReads",
             &Assembler::writeOverlappingReads,
             "Write in fasta format the reads that overlap a given read.",

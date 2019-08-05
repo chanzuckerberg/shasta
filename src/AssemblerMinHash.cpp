@@ -82,6 +82,19 @@ void Assembler::checkAlignmentCandidatesAreOpen() const
 
 
 
+vector<OrientedReadPair> Assembler::getAlignmentCandidates() const
+{
+    checkAlignmentCandidatesAreOpen();
+    vector<OrientedReadPair> v;
+    copy(
+        alignmentCandidates.begin(),
+        alignmentCandidates.end(),
+        back_inserter(v));
+    return v;
+}
+
+
+
 // Write the reads that overlap a given read.
 void Assembler::writeOverlappingReads(
     ReadId readId0,

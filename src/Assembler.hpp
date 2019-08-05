@@ -658,6 +658,10 @@ private:
     // They all have readId0<readId1.
     MemoryMapped::Vector<OrientedReadPair> alignmentCandidates;
     void checkAlignmentCandidatesAreOpen() const;
+    // Access function for Python.
+public:
+    vector<OrientedReadPair> getAlignmentCandidates() const;
+private:
 
 
 
