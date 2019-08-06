@@ -136,6 +136,24 @@ Windows Subsystem for Linux (WSL)</a>.
 </ul>
 
 
+<h2 id=demo>Quick test and demonstration</h2>
+<p>
+You can use the following commands to run a quick test and demonstration
+of the Shasta assembler:
+<pre>
+wget https://s3-us-west-2.amazonaws.com/lc2019/shasta/ecoli_test/r94_ec_rad2.181119.60x-10kb.fasta.gz
+gunzip r94_ec_rad2.181119.60x-10kb.fasta.gz
+./shasta-Linux-0.1.0 --input r94_ec_rad2.181119.60x-10kb.fasta
+</pre>
+This assumes that <code>shasta-Linux-0.1.0</code> was downloaded
+to the current directory and made executable as described at the top of this page.
+The first two commands download and decompress an input fasta file 
+containing Oxford Nanopore reads for <i>E. coli</i>.
+The last command runs a Shasta assembly, which should complete in a few minutes
+on a laptop with at least 8 GB of memory. Assembly output will appear in a
+new directory <code>ShastaRun</code>. See in particular
+<code>ShastaRun/Assembly.fasta</code> and
+<code>ShastaRun/Assembly.gfa</code>.
 
 <h2>For more information</h2>
 <p>
