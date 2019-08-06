@@ -131,16 +131,12 @@ void Assembler::setupConsensusCaller(const string& s)
 
     // The Bayesian consensus caller (class SimpleBayesianConsensusCaller)
     // requires a constructor string (portion following the first colon).
-    // The constructor string is the absolute path to the configuration file.
+    // The constructor string is either the name of a built-in Bayesian model
+    // or the absolute path to the configuration file.
     if(typeString == "Bayesian") {
         if(constructorString.size() == 0) {
-            throw runtime_error("Invalid consensus caller " + s);
-        }
-
-        // The constructor string must be an absolute path.
-        if(constructorString[0] != '/') {
-            throw runtime_error("Invalid absolute path for consensus caller "
-                "configuration file " + constructorString);
+            throw runtime_error("Invalid consensus caller " + s +
+                ". Bayesian:builtinName required or Bayesian::absolutePath");
         }
 
         consensusCaller = std::make_shared<SimpleBayesianConsensusCaller>(constructorString);
@@ -151,7 +147,8 @@ void Assembler::setupConsensusCaller(const string& s)
 
     // If getting here, the argument does not specify a supported
     // consensus caller.
-    throw runtime_error("Invalid consensus caller " + s);
+    throw runtime_error("Invalid consensus caller " + s +
+        ". Valid choices are: Modal, Median, Bayesian:absolutePathToConfigFile.");
 }
 
 

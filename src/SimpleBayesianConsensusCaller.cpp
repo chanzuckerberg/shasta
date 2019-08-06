@@ -46,23 +46,52 @@ void SimpleBayesianConsensusCaller::splitAsString(string s, string& separators, 
 }
 
 
+
+// The constructor string can be either:
+// - A name identifying one of the built-in configurations.
+// - A path to a configuration file.
+
 SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
-    const string& configurationFileName){
+    const string& constructorString){
     maxRunlength = 50;
     ignoreNonConsensusBaseRepeats = true;
     predictGapRunlengths = false;
     countGapsAsZeros = false;
 
-    ifstream matrixFile(configurationFileName);
-    if (not matrixFile.good()) {
-        const string errorMessage = "Error opening file: " + configurationFileName;
-        throw runtime_error(errorMessage);
+    // Try to interpret the constructor string
+    // as a name of a built-in configuration.
+    const bool isBuiltin = constructBuiltin(constructorString);
+
+    // If it was not a built-in name,
+    // interpret the constructor string as a path to
+    // a configuration file.
+    if(isBuiltin) {
+        cout << "Using predefined Bayesian consensus caller " << constructorString << endl;
+    } else {
+
+        if(constructorString.size()==0 || constructorString[0]!='/') {
+            const string errorMessage = constructorString + " is not the name of a built-in Bayesian model "
+                "and therefore it must be an absolute path to a configuration file. "
+                "A relative path is not accepted. "
+                "Valid built-in choices are: guppy-2.3.5-a";
+            throw runtime_error(errorMessage);
+        }
+        ifstream matrixFile(constructorString);
+        if (not matrixFile.good()) {
+            const string errorMessage = constructorString + " is not a built-in Bayesian model "
+                "and could not be open as a configuration file. "
+                "Valid built-in choices are: guppy-2.3.5-a";
+            throw runtime_error(errorMessage);
+        }
+        loadConfiguration(matrixFile);
+        cout << "Loaded Bayesian consensus caller from configuration file " <<
+            constructorString << endl;
     }
 
-    loadConfiguration(matrixFile);
-
-    cout << "Using SimpleBayesianConsensusCaller with '"<< configurationName <<"' configuration\n";
+    cout << "Bayesian consensus caller configuration name is " <<
+        configurationName << endl;
 }
+
 
 
 void SimpleBayesianConsensusCaller::printProbabilityMatrices(char separator){

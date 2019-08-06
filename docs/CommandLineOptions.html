@@ -450,12 +450,15 @@ that chooses the median repeat count
 as the consensus repeat count at each base
 position 
 (C++ class <code>MedianConsensusCaller</code>).
-<li><code>Bayesian:absolutePath</code>
+<li><code>Bayesian:name</code>
 to use a consensus caller that uses a Bayesian model
 to select the consensus repeat count at each base position
 (C++ class <code>SimpleBayesianConsensusCaller</code>).
-The absolute path following the colon specifies the configuration
-file defining the Bayesian model to be used.
+The name specified after the colon must be
+either a name for a built-in Bayesian model
+(only value currently supported is <code>guppy-2.3.5-a</code>),
+or
+the absolute path of the configuration file defining the Bayesian model to be used.
 A relative path is not accepted.
 Sample configuration files 
 are available in a build tree under <code>shasta-install/conf</code>

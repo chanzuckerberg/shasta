@@ -32,6 +32,7 @@ must take into account which strand each read is on.
 // Standard library.
 #include "fstream.hpp"
 #include <map>
+#include <limits>
 #include "string.hpp"
 
 namespace shasta {
@@ -49,10 +50,10 @@ class shasta::SimpleBayesianConsensusCaller:
     public shasta::ConsensusCaller {
 public:
 
-    // The constructor does not have any parameters.
-    // All data is read from file SimpleBayesianConsensusCaller.csv
-    // in the run directory. We will update the documentation accordingly.
-    SimpleBayesianConsensusCaller(const string& configurationFileName);
+    // The constructor string can be either:
+    // - A name identifying one of the built-in configurations.
+    // - A path to a configuration file.
+    SimpleBayesianConsensusCaller(const string& constructorString);
 
     // Given a coverage object, return the most likely run length, and the normalized log likelihood vector for all run
     // lengths as a pair
@@ -86,6 +87,10 @@ private:
     array<vector<double>, 2> priors;
 
     /// ----- Methods ----- ///
+
+    // Attempt to construct interpreting the constructor string as
+    // a built-in configuration name.
+    bool constructBuiltin(const string& constructorString);
 
     // For parsing any character separated file format
     void splitAsDouble(string s, string& separators, vector<double>& tokens);
