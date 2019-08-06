@@ -37,7 +37,7 @@ in about 5 hours using a single, large machine (AWS instance type
 The compute cost of such an assembly is around $20 at AWS spot market or reserved prices.
 
 Shasta assembly quality is comparable or better 
-to assembly quality achieved by other long read assemblers -
+than assembly quality achieved by other long read assemblers -
 see [this paper](https://www.biorxiv.org/content/10.1101/715722v1)
 for an extensive analysis.
 
