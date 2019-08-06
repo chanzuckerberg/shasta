@@ -48,18 +48,23 @@
     <main>
 <h1>Current status</h1>
 
+<h3>Functionality</h3>
+<p>
+In its current implementation, Shasta uses long reads
+to perform a mostly haploid assembly. 
+Small heterozygous bubbles in the assembly graph are collapsed,
+and only the largest heterozygous bubbles are kept.
+
 <h3>Release</h3>
 <p>
 <a href='https://github.com/chanzuckerberg/shasta/releases/tag/0.1.0'>
 An initial release 0.1.0
 </a>
-of the Shasta assembler is now available.
-This initial release is functional but the documentation is incomplete in several areas, 
-and lacks an evaluation of assembly accuracy.
+of the Shasta assembler is available.
 
 <h3>Performance and cost</h3>
 <p>
-As of May 2019, the Shasta assembler is functional and is
+The Shasta assembler is functional and is
 capable of performing a human assembly at typical coverage
 in a few hours on a large machine with an appropriate configuration,
 using as input long reads from Oxford Nanopore flowcells.
@@ -78,11 +83,12 @@ can also assemble bacterial genomes in minutes on a typical laptop
 
 <h3>Accuracy</h3>
 <p>
-An evaluation of the quality of assembled sequence is in progress.
-Early indications are that,
-when comparing with alternative, less performant long read assemblers,
-Shasta assembly quality is comparable or better.
-This evaluation is expected to be completed soon.
+An extensive error analysis and comparison with other long read assemblers
+is available 
+<a href='https://www.biorxiv.org/content/10.1101/715722v1'>here</a>.
+Overall, Shasta assembly quality
+is comparable or better than assembly quality achieved by other,
+less performant long read assemblers.
 
 
 <h3>Assembly parameters</h3>
@@ -102,16 +108,15 @@ the data structures created during assembly.
 This can be useful for testing or debugging,
 or for studying assembler behavior at locations of interest.
 
-<h3>Documentation</h3>
-<p>
-An overhaul of the documentation is currently in progress.
-
 <h3>Platforms</h3>
 <p>
 Basic assembly functionality is provided by the Shasta executable 
 which runs on most current 64-bit Linux plus macOS and Windows.
-The Shasta executable has no dependencies and does not require
-installation. 
+The Shasta executable is statically linked, so it has 
+no dependencies and does not require
+installation.
+It can be used immediately upon download, subject to
+setting its execute permission bit. 
 
 <p>
 Extended functionality, including a Python API that enables Python scripting
@@ -119,6 +124,24 @@ and an http server that can be used to inspect assembly details,
 are only available on Ubuntu 16.04 and Ubuntu 18.04.
 A script to install the necessary dependencies is
 provided.
+
+<p>
+Functionality to run Shasta under Docker is also provided.
+
+
+<h3>Documentation</h3>
+<p>
+Usable documentation for the Shasta executable is provided in the source tree
+at <code>shasta/docs</code>,
+and in the install tree at <code>shasta-install/docs</code>.
+Documentation for the latest code on GitHub is also 
+made available online on 
+<a href='https://chanzuckerberg.github.io/shasta'>GitHub Pages</a>.
+
+<p>
+The documentation also covers less extensively the functionality
+provided by the Shasta http server and by the Shasta Python API.
+
 
 <h3>Development</h3>
 <p>
