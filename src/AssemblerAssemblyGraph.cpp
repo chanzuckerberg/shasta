@@ -431,6 +431,7 @@ void Assembler::createAssemblyGraphVertices()
 
     // cout << timestamp << "Creating assembly graph edges by source and by target." << endl;
 
+    // Create edges by source and by target.
     assemblyGraph.edgesBySource.createNew(
         largeDataName("AssemblyGraphEdgesBySource"),
         largeDataPageSize);
@@ -452,6 +453,14 @@ void Assembler::createAssemblyGraphVertices()
     }
     assemblyGraph.edgesBySource.endPass2();
     assemblyGraph.edgesByTarget.endPass2();
+
+    // Make sure edges by source and by target are sorted.
+    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
+        const auto edgesBySource = assemblyGraph.edgesBySource[vertexId];
+        const auto edgesByTarget = assemblyGraph.edgesByTarget[vertexId];
+        sort(edgesBySource.begin(), edgesBySource.end());
+        sort(edgesByTarget.begin(), edgesByTarget.end());
+    }
 
 }
 
