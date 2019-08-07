@@ -1170,6 +1170,7 @@ public:
     void accessAssemblyGraphEdgeLists();
     void accessAssemblyGraphEdges();
     void writeAssemblyGraph(const string& fileName) const;
+    void findAssemblyGraphBubbles();
 private:
 
     // Extract a local assembly graph from the global assembly graph.

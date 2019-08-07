@@ -514,7 +514,7 @@ void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
             }
 
             // Mark this edge.
-            edge.isLowCoverageCrossEdge = 0;
+            edge.removalReason = AssemblyGraph::Edge::RemovalReason::LowCoverageCrossEdge;
             ++removedAssemblyGraphEdgeCount;
 
             // Mark the corresponding marker graph edges.
@@ -613,7 +613,8 @@ void Assembler::assemble(size_t threadCount)
     assemblyGraph.repeatCounts.createNew(largeDataName("AssembledRepeatCounts"), largeDataPageSize);
     size_t assembledEdgeCount = 0;
     for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edgeLists.size(); edgeId++) {
-        if(!assemblyGraph.isAssembledEdge(edgeId)) {
+        if(assemblyGraph.edges[edgeId].wasRemoved() ||
+            !assemblyGraph.isAssembledEdge(edgeId)) {
             assemblyGraph.sequences.append(0);
             assemblyGraph.repeatCounts.appendVector();
             continue;
@@ -677,7 +678,7 @@ void Assembler::assembleThreadFunction(size_t threadId)
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(AssemblyGraph::EdgeId edgeId=begin; edgeId!=end; edgeId++) {
-            if(assemblyGraph.edges[edgeId].isLowCoverageCrossEdge) {
+            if(assemblyGraph.edges[edgeId].wasRemoved()) {
                 continue;
             }
             if(!assemblyGraph.isAssembledEdge(edgeId)) {
@@ -746,6 +747,18 @@ void Assembler::accessAssemblyGraphSequences()
         largeDataName("AssembledSequences"));
     assemblyGraph.repeatCounts.accessExistingReadOnly(
         largeDataName("AssembledRepeatCounts"));
+}
+
+
+
+void Assembler::findAssemblyGraphBubbles()
+{
+    SHASTA_ASSERT(assemblyGraph.vertices.isOpen);
+    SHASTA_ASSERT(assemblyGraph.edges.isOpen);
+    SHASTA_ASSERT(assemblyGraph.edgesBySource.isOpen());
+    SHASTA_ASSERT(assemblyGraph.edgesByTarget.isOpen());
+    assemblyGraph.bubbles.createNew(largeDataName("AssemblyGraphBubbles"), largeDataPageSize);
+    assemblyGraph.findBubbles();
 }
 
 
@@ -842,7 +855,7 @@ void Assembler::writeGfa1(const string& fileName)
 
     // Write a segment record for each edge.
     for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
-        if(assemblyGraph.edges[edgeId].isLowCoverageCrossEdge) {
+        if(assemblyGraph.edges[edgeId].wasRemoved()) {
             continue;
         }
 
@@ -893,12 +906,12 @@ void Assembler::writeGfa1(const string& fileName)
 
         // Loop over combinations of in-edges and out-edges.
         for(const EdgeId edge0: edges0) {
-            if(assemblyGraph.edges[edge0].isLowCoverageCrossEdge) {
+            if(assemblyGraph.edges[edge0].wasRemoved()) {
                 continue;
             }
             const MemoryAsContainer<uint8_t> repeatCounts0 = assemblyGraph.repeatCounts[edge0];
             for(const EdgeId edge1: edges1) {
-                if(assemblyGraph.edges[edge1].isLowCoverageCrossEdge) {
+                if(assemblyGraph.edges[edge1].wasRemoved()) {
                     continue;
                 }
                 const MemoryAsContainer<uint8_t> repeatCounts1 = assemblyGraph.repeatCounts[edge1];
@@ -969,7 +982,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 
     // Write a segment record for each edge.
     for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
-        if(assemblyGraph.edges[edgeId].isLowCoverageCrossEdge) {
+        if(assemblyGraph.edges[edgeId].wasRemoved()) {
             continue;
         }
 
@@ -1045,7 +1058,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 
         // Loop over in-edges.
         for(const EdgeId edge0: edges0) {
-            if(assemblyGraph.edges[edge0].isLowCoverageCrossEdge) {
+            if(assemblyGraph.edges[edge0].wasRemoved()) {
                 continue;
             }
             const EdgeId edge0Rc = assemblyGraph.reverseComplementEdge[edge0];
@@ -1066,7 +1079,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 
             // Loop over in-edges.
             for(const EdgeId edge1: edges1) {
-                if(assemblyGraph.edges[edge1].isLowCoverageCrossEdge) {
+                if(assemblyGraph.edges[edge1].wasRemoved()) {
                     continue;
                 }
                 const EdgeId edge1Rc = assemblyGraph.reverseComplementEdge[edge1];
@@ -1124,7 +1137,7 @@ void Assembler::writeFasta(const string& fileName)
 
     // Write a sequence for each edge of the assembly graph.
     for(EdgeId edgeId=0; edgeId<assemblyGraph.sequences.size(); edgeId++) {
-        if(assemblyGraph.edges[edgeId].isLowCoverageCrossEdge) {
+        if(assemblyGraph.edges[edgeId].wasRemoved()) {
             continue;
         }
 
@@ -1297,7 +1310,7 @@ bool Assembler::extractLocalAssemblyGraph(
         const auto childEdges = assemblyGraph.edgesBySource[assemblyGraphVertexId0];
         for(const EdgeId edgeId: childEdges) {
             const AssemblyGraph::Edge& globalEdge = assemblyGraph.edges[edgeId];
-            if(globalEdge.isLowCoverageCrossEdge) {
+            if(globalEdge.wasRemoved()) {
                 continue;
             }
             const VertexId assemblyGraphVertexId1 = globalEdge.target;
@@ -1342,7 +1355,7 @@ bool Assembler::extractLocalAssemblyGraph(
         const auto parentEdges = assemblyGraph.edgesByTarget[assemblyGraphVertexId0];
         for(const EdgeId edgeId: parentEdges) {
             const AssemblyGraph::Edge& globalEdge = assemblyGraph.edges[edgeId];
-            if(globalEdge.isLowCoverageCrossEdge) {
+            if(globalEdge.wasRemoved()) {
                 continue;
             }
             const VertexId assemblyGraphVertexId1 = globalEdge.source;

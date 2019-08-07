@@ -72,21 +72,23 @@ public:
         uint32_t averageEdgeCoverage;
         uint32_t maxEdgeCoverage;
 
-        // Flag set if this is a low coverage cross edge.
-        uint8_t isLowCoverageCrossEdge: 1;
-
-        // The edge is considered removed if flagged.
+        // Reason for removal.
+        enum class RemovalReason : uint8_t {
+            NotRemoved = 0,
+            LowCoverageCrossEdge = 1
+        };
+        RemovalReason removalReason;
         bool wasRemoved() const
         {
-            return isLowCoverageCrossEdge == 1;
+            return removalReason != RemovalReason::NotRemoved;
         }
 
-        Edge()
-        {
-            isLowCoverageCrossEdge = 0;
-        }
+        Edge() : removalReason(RemovalReason::NotRemoved) {}
     };
     MemoryMapped::Vector<Edge> edges;
+
+    // Return the number of edges that were not removed.
+    EdgeId edgeCount() const;
 
     // The reverse complement of each edge.
     // Indexed by EdgeId.
@@ -116,6 +118,40 @@ public:
     // to each edge of the assembly graph.
     // Indexed by the edge id of the assembly graph edge.
     MemoryMapped::VectorOfVectors<EdgeId, EdgeId> edgeLists;
+
+    // Find the out-degree or in-degree of a vertex.
+    // This is not simply the same as counting edgesBySource
+    // and edgesByTarget, because we have to skip edges
+    // that were removed.
+    VertexId inDegree(VertexId) const;
+    VertexId outDegree(VertexId) const;
+
+    // Find in-edges/out-edges of a vertex
+    // that were not removed.
+    // They are returned sorted by edge id.
+    void findInEdges(VertexId, vector<EdgeId>&) const;
+    void findOutEdges(VertexId, vector<EdgeId>&) const;
+
+
+    // Bubbles in the assembly graph.
+    // A bubble is a set of two vertices v0, v1
+    // such that the outgoing edges of v0 are the same
+    // as the outgoing edges of v1, and
+    // out-degree(v0) = in-degree(v1) > 1.
+    // v0 is called the bubble source.
+    // v1 is called the bubble target.
+    // In defining and detecting bubbles, edges
+    // that were removed are considered to not exist.
+    class Bubble {
+    public:
+        VertexId v0;
+        VertexId v1;
+        Bubble() {}
+        Bubble(VertexId v0, VertexId v1) : v0(v0), v1(v1) {}
+    };
+    MemoryMapped::Vector<Bubble> bubbles;
+    void findBubbles(); // Assumes bubble Vector was already initialized.
+
 
     // A table that can be used to find the location of a marker graph
     // edge in the assembly graph, if any.

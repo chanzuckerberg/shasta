@@ -2,6 +2,7 @@
 using namespace shasta;
 
 #include "fstream.hpp"
+#include "iterator.hpp"
 
 // Close and remove all open data.
 void AssemblyGraph::remove()
@@ -32,6 +33,10 @@ void AssemblyGraph::remove()
 
     if(edgeLists.isOpen()) {
         edgeLists.remove();
+    }
+
+    if(bubbles.isOpen) {
+        bubbles.remove();
     }
 
     if(markerToAssemblyTable.isOpen) {
@@ -78,3 +83,160 @@ void AssemblyGraph::writeGraphviz(const string& fileName) const
 
     graphOut << "}\n";
 }
+
+
+
+// Find the out-degree or in-degree of a vertex.
+// This is not simply the same as counting edgesBySource
+// and edgesByTarget, because we have to skip edges
+// that were removed.
+AssemblyGraph::VertexId AssemblyGraph::inDegree(VertexId vertexId) const
+{
+    const auto e = edgesByTarget[vertexId];
+    VertexId inDegree = 0;
+    for(const EdgeId edgeId: e) {
+        if(!edges[edgeId].wasRemoved()) {
+            ++inDegree;
+        }
+    }
+    return inDegree;
+}
+AssemblyGraph::VertexId AssemblyGraph::outDegree(VertexId vertexId) const
+{
+    const auto e = edgesBySource[vertexId];
+    VertexId outDegree = 0;
+    for(const EdgeId edgeId: e) {
+        if(!edges[edgeId].wasRemoved()) {
+            ++outDegree;
+        }
+    }
+    return outDegree;
+}
+
+
+
+// Find incoming/outgoing edges of a vertex
+// that were not removed.
+// They are returned sorted by edge id.
+void AssemblyGraph::findInEdges(VertexId vertexId, vector<EdgeId>& edgeIds) const
+{
+    const auto e = edgesByTarget[vertexId];
+    edgeIds.clear();
+    for(const EdgeId edgeId: e) {
+        if(!edges[edgeId].wasRemoved()) {
+            edgeIds.push_back(edgeId);
+        }
+    }
+}
+void AssemblyGraph::findOutEdges(VertexId vertexId, vector<EdgeId>& edgeIds) const
+{
+    const auto e = edgesBySource[vertexId];
+    edgeIds.clear();
+    for(const EdgeId edgeId: e) {
+        if(!edges[edgeId].wasRemoved()) {
+            edgeIds.push_back(edgeId);
+        }
+    }
+}
+
+
+// Find bubbles in the assembly graph.
+// A bubble is a set of two vertices v0, v1,
+// such that the outgoing edges of v0 are the same
+// as the outgoing edges of v1, and
+// out-degree(v0) = in-degree(v1) > 1.
+// v0 is called the bubble source.
+// v1 is called the bubble target.
+// In defining and detecting bubbles, edges
+// that were removed are considered to not exist.
+// This assumes that the bubble Vector was already initialized.
+void AssemblyGraph::findBubbles()
+{
+    // Define vectors here to reduce memory allocation overhead.
+    vector<EdgeId> v0OutEdges;
+    vector<EdgeId> v1InEdges;
+
+    // Histogram of number of bubbles by ploidy.
+    vector<EdgeId> histogram;
+
+    // Loop over possible source vertices for a bubble.
+    bubbles.clear();
+    for(VertexId v0=0; v0<vertices.size(); v0++) {
+
+        // Find the out-edges of v0.
+        findOutEdges(v0, v0OutEdges);
+
+        // If less than 2 out-edges, v0 is not a bubble source.
+        if(v0OutEdges.size() < 2) {
+            continue;
+        }
+
+        // Find the ossible bubble target.
+        const VertexId v1 = edges[v0OutEdges.front()].target;
+
+        // Check if all out-edges of v0 have the same target.
+        bool isBubble = true;
+        for(const EdgeId e: v0OutEdges) {
+            if(edges[e].target != v1) {
+                isBubble = false;
+                break;
+            }
+        }
+        if(!isBubble) {
+            continue;
+        }
+
+        // Find the in-edges of v1.
+        findInEdges(v1, v1InEdges);
+
+        // For this to be a bubble, the in-edges of v1
+        // must be the same as the out-edges of v0.
+        if(v1InEdges != v0OutEdges) {
+            continue;
+        }
+
+        // Store this bubble.
+        bubbles.push_back(Bubble(v0, v1));
+
+        // Update the histogram by ploidy.
+        const uint64_t ploidy = v0OutEdges.size();
+        if(histogram.size() <= ploidy) {
+            histogram.resize(ploidy+1, 0);
+        }
+        ++histogram[ploidy];
+
+    }
+    VertexId bubbleCount = 0;
+    VertexId bubbleEdgeCount = 0;
+    for(uint64_t ploidy=0; ploidy<histogram.size(); ploidy++) {
+        const uint64_t frequency = histogram[ploidy];
+        if(frequency) {
+            bubbleCount += frequency;
+            bubbleEdgeCount += frequency * ploidy;
+            cout << "Found " << frequency << " bubbles with ploidy " << ploidy << endl;
+        }
+    }
+    cout << "Total number of bubbles is " << bubbleCount << "." << endl;
+
+    // Edge statistics.
+    const AssemblyGraph::EdgeId totalEdgeCount = edgeCount();
+    cout << "Assembly graph edge statistics:" << endl;
+    cout << "Total number of edges is " << totalEdgeCount << "." << endl;
+    cout << "Total number of bubble edges is " << bubbleEdgeCount << "." << endl;
+    cout << "Total number of non-bubble edges is " << totalEdgeCount-bubbleEdgeCount << "." << endl;
+}
+
+
+// Return the number of edges that were not removed.
+AssemblyGraph::EdgeId AssemblyGraph::edgeCount() const
+{
+    EdgeId count = 0;
+    for(const Edge& edge: edges) {
+        if(!edge.wasRemoved()) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+
