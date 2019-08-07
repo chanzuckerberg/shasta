@@ -537,9 +537,6 @@ void shasta::main::assemble(
         assembler.removeLowCoverageCrossEdges(
             assemblerOptions.assemblyOptions.crossEdgeCoverageThreshold);
 
-        // Remove this assembly graph so we can create a new one later.
-        assembler.assemblyGraph.remove();
-
         // Compute marker graph coverage histogram.
         assembler.computeMarkerGraphCoverageHistogram();
 
@@ -557,13 +554,14 @@ void shasta::main::assemble(
         // The maxLength parameter controls the maximum number of markers
         // for a branch to be collapsed during each iteration.
         assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
+
+        // Create the assembly graph.
+        assembler.createAssemblyGraphEdges();
+        assembler.createAssemblyGraphVertices();
     }
 
 
 
-    // Create the assembly graph.
-    assembler.createAssemblyGraphEdges();
-    assembler.createAssemblyGraphVertices();
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 
     // Compute optimal repeat counts for each vertex of the marker graph.
