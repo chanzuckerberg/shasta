@@ -42,6 +42,13 @@ set_target_properties(shasta PROPERTIES  DEFINE_SYMBOL "")
 execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PYTHON_INCLUDES)
 add_definitions(${SHASTA_PYTHON_INCLUDES})
 
+# Definitions that control what components get built.
+add_definitions(-DSHASTA_HTTP_SERVER)
+add_definitions(-DSHASTA_PYTHON_API)
+add_definitions(-DSHASTA_MARGINPHASE)
+
+
+
 # Libraries to link with.
 target_link_libraries(shasta atomic png pthread z spoa MarginCore)
 # target_link_libraries(shasta MarginCore)

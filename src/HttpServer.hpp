@@ -1,4 +1,4 @@
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 
 // Class http server can be used as a base class to provide simple
 // http server functionality to facilitate data exploration and debugging.

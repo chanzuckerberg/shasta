@@ -1,4 +1,4 @@
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
 
 // Shasta.
 #include "testMarginCore.hpp"

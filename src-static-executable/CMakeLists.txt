@@ -49,10 +49,6 @@ add_definitions(-DBUILD_ID=${BUILD_ID})
 # to return true. However this does not happen in all gcc versions.
 add_definitions(-mcx16)
 
-# This is used in the C++ code to ifdef out
-# code that should not be included in the static executable.
-add_definitions(-DSHASTA_STATIC_EXECUTABLE)
-
 
 
 # Specify the libraries to link with.

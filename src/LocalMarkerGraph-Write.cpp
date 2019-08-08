@@ -1,4 +1,4 @@
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 
 // Shasta.
 #include "LocalMarkerGraph.hpp"

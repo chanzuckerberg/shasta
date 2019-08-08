@@ -1,6 +1,6 @@
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 // Boost gil library.
 // The boost gil library includes png.h,
 // then uses int_p_NULL which is not defined in
@@ -32,7 +32,7 @@ using namespace shasta;
 #include <boost/uuid/uuid_io.hpp>
 
 // Seqan
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 #include <seqan/align.h>
 #endif
 
@@ -43,7 +43,7 @@ using namespace shasta;
 #include <iomanip>
 #include "iterator.hpp"
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 
 
 #define SHASTA_ADD_TO_FUNCTION_TABLE(name) httpServerData.functionTable[string("/") + #name ] = &Assembler::name
@@ -273,7 +273,7 @@ void Assembler::writeHtmlEnd(ostream& html) const
 
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 void Assembler::writeMakeAllTablesSelectable(ostream& html) const
 {
     html << R"###(
@@ -373,7 +373,7 @@ void Assembler::writeNavigation(
 
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 
 // Access all available assembly data, without throwing exceptions
 void Assembler::accessAllSoft()
@@ -874,7 +874,7 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 
 void Assembler::exploreRead(
     const vector<string>& request,

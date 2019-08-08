@@ -16,7 +16,7 @@ Assembler::Assembler(
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize)
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
     , marginPhaseParameters(0)
 #endif
 {
@@ -46,7 +46,7 @@ Assembler::Assembler(
 
     // In both cases, assemblerInfo, reads, readNames, readRepeatCounts are all open for write.
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
     fillServerFunctionTable();
 #endif
 }
@@ -56,7 +56,7 @@ Assembler::Assembler(
 // Destructor.
 Assembler::~Assembler()
 {
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
     if(marginPhaseParameters) {
         destroyConsensusParameters(marginPhaseParameters);
         marginPhaseParameters = 0;
@@ -156,7 +156,7 @@ void Assembler::setupConsensusCaller(const string& s)
 // Read marginPhase parameters from file MarginPhase.json in the run directory.
 void Assembler::setupMarginPhase()
 {
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
     const string fileName = "MarginPhase.json";
     marginPhaseParameters = getConsensusParameters(const_cast<char*>(fileName.c_str()));
     if(!marginPhaseParameters) {
@@ -172,7 +172,7 @@ void Assembler::setupMarginPhase()
 
 void Assembler::checkMarginPhaseWasSetup()
 {
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
     if(!marginPhaseParameters) {
         throw runtime_error("MarginPhase was not set up.");
     }

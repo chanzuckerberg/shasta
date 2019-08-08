@@ -4,7 +4,7 @@
 using namespace shasta;
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 // Boost libraries.
 // The boost gil library includes png.h,
 // then uses int_p_NULL which is not defined in
@@ -139,7 +139,7 @@ void AlignmentGraph::create(
     // Store the alignment info.
     alignmentInfo.create(alignment, uint32_t(markers[0].size()), uint32_t(markers[1].size()));
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
     if(debug) {
         writeImage(markers[0], markers[1], alignment, "Alignment.png");
     }
@@ -503,7 +503,7 @@ void AlignmentGraph::writeShortestPath(const string& fileName) const
 
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 
 // Write an image representing the markers and the computed alignment
 // in 2-D ordinal space.

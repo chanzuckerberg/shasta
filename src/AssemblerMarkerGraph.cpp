@@ -2,7 +2,7 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
 #endif
 #include "timestamp.hpp"
@@ -1475,7 +1475,7 @@ bool Assembler::isBadMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     OrientedReadId orientedReadId,
     uint32_t ordinal,
@@ -3422,7 +3422,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
 void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
     MarkerGraph::EdgeId edgeId,
     vector<Base>& sequence,
@@ -4722,11 +4722,11 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                 markerGraph.edges[edgeId].wasAssembled = 1;
                 try {
                     if(useMarginPhase) {
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
                         computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
                             edgeId, sequence, repeatCounts, overlappingBaseCount);
 #else
-                        // The static executable does not support MarginPhase.
+                        // The build does not include MarginPhase.
                         SHASTA_ASSERT(0);
 #endif
                     } else {

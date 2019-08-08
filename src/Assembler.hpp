@@ -19,7 +19,7 @@
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
 // MarginPhase.
 #include "marginPhase/callConsensus.h"
 #endif
@@ -44,7 +44,7 @@ namespace shasta {
     class LocalAlignmentGraph;
     class LocalReadGraph;
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
     class LocalMarkerGraph;
 #endif
 
@@ -122,7 +122,7 @@ public:
 
 class shasta::Assembler :
     public MultithreadedObject<Assembler>
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
     , public HttpServer
 #endif
     {
@@ -1029,7 +1029,7 @@ private:
         ) const;
 
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
     // Extract a local subgraph of the global marker graph.
     bool extractLocalMarkerGraphUsingStoredConnectivity(
         OrientedReadId,
@@ -1119,7 +1119,7 @@ private:
     // Use MarginPhase to compute consensus sequence for an edge of the marker graph.
     // This does not include the bases corresponding to the flanking markers.
     // This is not yet functional.
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
     void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
         MarkerGraph::EdgeId,
         vector<Base>& sequence,
@@ -1350,7 +1350,7 @@ public:
         const vector<pair <string, string> >&) const;
     static void writeStyle(ostream& html);
 
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_HTTP_SERVER
 
     void fillServerFunctionTable();
     void processRequest(
@@ -1505,7 +1505,7 @@ public:
     void setupMarginPhase();
 private:
     void checkMarginPhaseWasSetup();
-#ifndef SHASTA_STATIC_EXECUTABLE
+#ifdef SHASTA_MARGINPHASE
     PolishParams* marginPhaseParameters;
 #endif
 };
