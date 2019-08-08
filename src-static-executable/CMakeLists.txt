@@ -51,15 +51,20 @@ add_definitions(-mcx16)
 
 
 
+# Definitions that control what components get built.
+add_definitions(-DSHASTA_HTTP_SERVER)
+
+
+
 # Specify the libraries to link with.
 if(MACOS)
-    target_link_libraries(shasta-static-executable ${Boost_LIBRARIES} /usr/local/lib/libspoa.a pthread)
+    target_link_libraries(shasta-static-executable ${Boost_LIBRARIES} png z /usr/local/lib/libspoa.a pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive". 
     target_link_libraries(
         shasta-static-executable
-        atomic boost_system boost_program_options boost_chrono spoa
+        atomic boost_system boost_program_options boost_chrono spoa png z
         -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 endif(MACOS)
   
