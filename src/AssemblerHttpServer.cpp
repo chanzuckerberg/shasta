@@ -1311,9 +1311,9 @@ void Assembler::exploreRead(
     // This way you can select sequence text without getting a
     // new line after each character, while still achieving good
     // alignment.
-    const size_t blockSize = 100;
-    for(size_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
-        const size_t blockEnd = min(blockBegin+blockSize, readStoredSequence.baseCount);
+    const uint64_t blockSize = 100;
+    for(uint64_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
+        const uint64_t blockEnd = min(blockBegin+blockSize, uint64_t(readStoredSequence.baseCount));
         html <<
             "<text class='mono'" <<
             " x='" << blockBegin*horizontalSpacing << "'" <<
@@ -1361,8 +1361,8 @@ void Assembler::exploreRead(
     // new line after each character, while still achieving good
     // alignment.
     const uint32_t readSequenceLine = 4;
-    for(size_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
-        const size_t blockEnd = min(blockBegin+blockSize, readStoredSequence.baseCount);
+    for(uint64_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
+        const uint64_t blockEnd = min(blockBegin+blockSize, uint64_t(readStoredSequence.baseCount));
         html <<
             "<text class='mono'" <<
             " x='" << blockBegin*horizontalSpacing << "'" <<
