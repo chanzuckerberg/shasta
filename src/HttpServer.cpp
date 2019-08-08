@@ -4,6 +4,7 @@
 
 // Shasta.
 #include "HttpServer.hpp"
+#include "filesystem.hpp"
 #include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
@@ -14,6 +15,8 @@ using namespace shasta;
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/v6_only.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 using namespace boost;
 using namespace asio;
 using namespace ip;
@@ -22,16 +25,26 @@ using namespace ip;
 #include "chrono.hpp"
 #include "fstream.hpp"
 #include "iostream.hpp"
+#include <regex>
 #include <sstream>
 #include "stdexcept.hpp"
 
+// Operating system.
+#include <sys/types.h>
+#include <unistd.h>
 
 
 // This function puts the server into an endless loop
 // of processing requests.
-// This is trhe function that the base class should call to start the server.
-void HttpServer::explore(uint16_t port, bool localOnly)
+// This is the function that the base class should call to start the server.
+void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
 {
+    // Sanity check on the arguments.
+    if(!localOnly && sameUserOnly) {
+        throw runtime_error("Http::explore called with localOnly=false and sameUserOnly=true. "
+            "This combination is not allowed.");
+    }
+
     // Create the acceptor, making sure to accept both ipv4 and ipv6 ip addresses.
     io_service service;
     tcp::acceptor acceptor(service);
@@ -65,10 +78,30 @@ void HttpServer::explore(uint16_t port, bool localOnly)
     acceptor.listen();
     cout << "Listening for http requests on port " << port << endl;
     if(localOnly) {
-        cout << "Only accepting local connections." << endl;
+        if(sameUserOnly) {
+            cout << "Only accepting local connections originating from a process "
+                "owned by the same user running the server." << endl;
+        } else {
+            cout << "Accepting local connections from any user."
+                "Connections from the local computer are accepted from any user. "
+                "This means that other users with access to the local computer can "
+                "access the server. "
+                "THIS CHOICE ALLOWS OTHER USERS TO LOOK AT YOUR DATA AND SHOULD "
+                "NOT BE USED IF ACCESS TO THE DATA SHOULD BE RESTRICTED."
+                << endl;
+        }
     } else {
-        cout << "Accepting connections from all hosts." << endl;
+        cout << "Accepting connections from all hosts. "
+            "All connections are accepted: local and remote, from any user. "
+            "This means that all users, not only on the computer running the server, "
+            "but also on all computers on the same local area network, can use the server. "
+            "In addition, if the computer running the server is not protected by a firewall, "
+            "everybody on the Internet can also access the server. "
+            "THIS CHOICE ALLOWS OTHER USERS TO LOOK AT YOUR DATA AND SHOULD "
+            "NOT BE USED IF ACCESS TO THE DATA SHOULD BE RESTRICTED." << endl;
     }
+
+
 
     // Endless loop over incoming connections.
     while(true) {
@@ -82,6 +115,19 @@ void HttpServer::explore(uint16_t port, bool localOnly)
               s.close();        // Should not be necessary.
               acceptor.close(); // Should not be necessary
               return;
+          }
+
+          // If sameUserOnly was specified, check that this is a local
+          // connection originating from a process owned by the same
+          // user running the server.
+          if(sameUserOnly) {
+              SHASTA_ASSERT(localOnly);
+              if(!isLocalConnectionSameUser(s, port)) {
+                  // Unceremoniously close the connection.
+                  cout << timestamp << "Reset a local connection originating from a process "
+                      "not owned by the same user running the server." << endl;
+                  continue;
+              }
           }
 
           // Process the request.
@@ -175,6 +221,8 @@ void HttpServer::processRequest(tcp::iostream& s)
     string line;
     const string userAgentPrefix = "User-Agent: ";
     BrowserInformation browserInformation;
+    string originatingProcessUserName;
+    string thisProcessUserName;
     while(true) {
         if(!s) {
             break;
@@ -579,5 +627,145 @@ void HttpServer::processPostRequest(
     html << "POST request ignored.";
     cout << "\nPOST request ignored." << endl;
 }
+
+
+
+// Return true if the connection is a local connection
+// originating from a process owned by the same
+// user running the server.
+// We use the lsof command to find open sockets on 127.0.0.1
+// and the current port as source or destination.
+bool HttpServer::isLocalConnectionSameUser(
+    boost::asio::ip::tcp::iostream& s,
+    uint16_t port) const
+{
+    // Get out process id.
+    const string serverProcessId = to_string(::getpid());
+
+    // Use lsof command to get a list of open sockets.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string fileName = "/dev/shm/" + uuid + ".fa";
+    if(::system(("lsof -i -n > " + fileName).c_str())) {
+        filesystem::remove(fileName);
+        return false;
+    }
+
+
+
+    // Read the output of the lsof command.
+    ifstream file(fileName);
+    string line;
+    vector<string> tokens;
+    const std::regex sourceAndDestinationRegex("(.+)\\-\\>(.+)");
+    const std::regex colonRegex("(.+)\\:(.+)");
+    string serverProcessUserName;
+    string clientProcessUserName;
+    const string portString = to_string(port);
+    while(true) {
+
+        // Get a line.
+        getline(file, line);
+        if(!file) {
+            break;
+        }
+
+        // Parse it.
+        boost::algorithm::split(tokens, line,
+            boost::algorithm::is_any_of(" "),
+            boost::token_compress_on);
+
+        // Filter out the lines we are not interested in.
+        if(tokens.size() != 10) {
+            continue;
+        }
+        if(tokens[7] != "TCP") {
+            continue;
+        }
+        if(tokens[9] != "(ESTABLISHED)") {
+            continue;
+        }
+
+        // Extract the source and destination.
+        const string& sourceAndDestination = tokens[8];
+        std::smatch matches;
+        const bool isMatch = std::regex_match(
+            sourceAndDestination,
+            matches,
+            sourceAndDestinationRegex);
+        if(!isMatch) {
+            continue;
+        }
+        if(matches.size() != 3) {
+            continue;
+        }
+        const string& source = matches[1];
+        const string& destination = matches[2];
+
+        // If the source or destination begin with "[",
+        // they are IPv6 addresses and we skip them.
+        // We are only interested in 127.0.0.1.
+        if(source.size()==0 || source[0]=='[') {
+            continue;
+        }
+        if(destination.size()==0 || destination[0]=='[') {
+            continue;
+        }
+
+        // Parse the source and destination into IP address and port.
+        if(!std::regex_match(source, matches, colonRegex)) {
+            continue;
+        }
+        if(matches.size() != 3) {
+            continue;
+        }
+        const string sourceIpAddress = matches[1];
+        const string sourcePort = matches[2];
+        if(!std::regex_match(destination, matches, colonRegex)) {
+            continue;
+        }
+        if(matches.size() != 3) {
+            continue;
+        }
+        const string destinationIpAddress = matches[1];
+        const string destinationPort = matches[2];
+
+        const string& processId = tokens[1];
+        const string& userName = tokens[2];
+
+        /*
+        cout << line << endl;
+        cout <<
+            serverProcessId << " " <<
+            processId << " " <<
+            userName << " " <<
+            sourceIpAddress << " " <<
+            sourcePort << " " <<
+            destinationIpAddress << " " <<
+            destinationPort << " " <<
+            endl;
+        */
+
+        if( sourceIpAddress == "127.0.0.1" &&
+            destinationIpAddress == "127.0.0.1" &&
+            sourcePort==portString &&
+            processId==serverProcessId) {
+            serverProcessUserName = userName;
+        }
+        if( sourceIpAddress == "127.0.0.1" &&
+            destinationIpAddress == "127.0.0.1" &&
+            destinationPort==portString) {
+            clientProcessUserName = userName;
+        }
+    }
+    filesystem::remove(fileName);
+
+    return
+        serverProcessUserName.size()>0 &&
+        clientProcessUserName.size()>0 &&
+        serverProcessUserName==clientProcessUserName;
+
+    return false;    // For now.
+}
+
 
 #endif

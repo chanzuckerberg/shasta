@@ -410,7 +410,8 @@ PYBIND11_MODULE(shasta, module)
         .def("explore",
             &Assembler::explore,
             arg("port") = 17100,
-            arg("localOnly") = false)
+            arg("localOnly") = true,
+            arg("sameUserOnly") = true)
         .def("setDocsDirectory",
             &Assembler::setDocsDirectory)
         .def("setReferenceFastaFileName",

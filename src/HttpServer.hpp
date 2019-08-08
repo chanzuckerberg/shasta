@@ -26,12 +26,59 @@ namespace shasta {
 
 
 
+/*******************************************************************************
+
+The second and third argument to HttpServer::explore control
+how strict the server will be in accepting and processing connections.
+
+If localOnly is true, only local connections are accepted
+(connections from localhost, 127.0.0.1).
+Remote connections (connections originating from other hosts) are not accepted.
+
+If in addition sameUserOnly is also true, only local connections
+from processes belonging to the same user are processed.
+Local connections from processes belonging to different users
+are initially accepted but then closed before returning any data.
+
+If localOnly is false, sameUserOnly must also be false.
+
+In summary, here is what the 4 combinations of localOnly and sameUserOnly do:
+
+localOnly=false, sameUserOnly=false
+All connections are accepted: local and remote, from any user.
+This means that all users, not only on the computer running the server,
+but also on all computers on the same local area network, can use the server.
+In addition, if the computer running the server is not protected by a firewall,
+everybody on the Internet can also access the server.
+THIS CHOICE ALLOWS OTHER USERS TO LOOK AT YOUR DATA AND YOU SHOULD
+NOT BE USED IF ACCESS TO THE DATA SHOULD BE RESTRICTED.
+
+localOnly=false, sameUserOnly=true
+This combination is invalid and results in an error.
+
+localOnly=true, sameUserOnly=false
+Only connections from the local computer are accepted, from any user.
+This means that other users with access to the local computer can
+access the server.
+THIS CHOICE ALLOWS OTHER USERS TO LOOK AT YOUR DATA AND YOU SHOULD
+NOT BE USED IF ACCESS TO THE DATA SHOULD BE RESTRICTED.
+
+localOnly=true, sameUserOnly=true
+Only connections from the local computer and originating
+on a process owned by the same user running the server
+are accepted. This is the only choice that limits
+access to the data to the same user running the server.
+
+*******************************************************************************/
+
+
+
 class shasta::HttpServer {
 public:
 
-    // This function puts the server into an endless loop
-    // of processing requests.
-    void explore(uint16_t port, bool localOnly=false);
+    // This function puts the server into an endless loop of processing requests.
+    // See comments above for the meaning of localOnly and sameUserOnly
+    void explore(uint16_t port, bool localOnly, bool sameUserOnly);
 
     // The destructor needs to be virtual for clean destruction of
     // the derived class.
@@ -118,6 +165,11 @@ private:
     void processPost(
         const vector<string>& request,
         std::iostream&);
+
+    // Return true if the connection is a local connection
+    // originating from a process owned by the same
+    // user running the server.
+    bool isLocalConnectionSameUser(boost::asio::ip::tcp::iostream&, uint16_t port) const;
 };
 
 

@@ -19,6 +19,6 @@ a.accessAllSoft()
 a.setupConsensusCaller(config['Assembly']['consensusCaller'])
 
 a.setDocsDirectory(docsDirectory)
-a.explore()
+a.explore(port=17100, localOnly=False, sameUserOnly=False)
 
 
