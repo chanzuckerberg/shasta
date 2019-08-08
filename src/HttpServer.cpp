@@ -98,7 +98,10 @@ void HttpServer::explore(uint16_t port, bool localOnly)
 void HttpServer::processRequest(tcp::iostream& s)
 {
     // If the client is too slow sending the request, drop it.
+#if BOOST_VERSION < 106600
+    // Newer versions of Boost do it differently.
     s.expires_from_now(boost::posix_time::seconds(1));
+#endif
 
     // Get the first line, which must contain the GET request.
     string requestLine;
@@ -119,7 +122,10 @@ void HttpServer::processRequest(tcp::iostream& s)
         return;
     }
     if(tokens.front() == "POST") {
+#if BOOST_VERSION < 106600
+        // Newer versions of Boost do it differently.
         s.expires_from_now(boost::posix_time::seconds(10000000));
+#endif
         processPost(tokens, s);
         return;
     }
@@ -138,7 +144,10 @@ void HttpServer::processRequest(tcp::iostream& s)
     }
 
     // Give ourselves time to satisfy the request
+#if BOOST_VERSION < 106600
+    // Newer versions of Boost do it differently.
     s.expires_from_now(boost::posix_time::seconds(86400));
+#endif
 
     // Parse the request.
     cout << requestLine << endl;
