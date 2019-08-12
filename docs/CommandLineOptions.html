@@ -438,34 +438,7 @@ Controls assembly of long marker graph edges.
 <tr id='Assembly.consensusCaller'>
 <td><code>--Assembly.consensusCaller</code>
 <td class=centered><code>Bayesian:guppy-2.3.5-a</code><td>
-Used to select the consensus caller for repeat counts. Can be one of:
-<ul>
-<li><code>Modal</code> to use a consensus caller
-that chooses the most frequent repeat count 
-as the consensus repeat count at each base
-position 
-(C++ class <code>SimpleConsensusCaller</code>).
-This is was the only and default choice available
-in Shasta 0.1.0.
-<li><code>Median</code> to use a consensus caller
-that chooses the median repeat count 
-as the consensus repeat count at each base
-position 
-(C++ class <code>MedianConsensusCaller</code>).
-<li><code>Bayesian:name</code>
-to use a consensus caller that uses a Bayesian model
-to select the consensus repeat count at each base position
-(C++ class <code>SimpleBayesianConsensusCaller</code>).
-The name specified after the colon must be
-either a name for a built-in Bayesian model
-(currently supported values <code>guppy-2.3.1-a, guppy-2.3.5-a</code>),
-or
-the absolute path of the configuration file defining the Bayesian model to be used.
-A relative path is not accepted.
-Sample configuration files 
-are available in a build tree under <code>shasta-install/conf</code>
-and in a source tree under <code>shasta/conf</code>.
-</ul>
+Used to select the consensus caller for repeat counts. <a class=qm href='ComputationalMethods.html#RepeatCounts'/>
 
 <tr id='Assembly.useMarginPhase'>
 <td><code>--Assembly.useMarginPhase</code><td class=centered><code>False</code><td>

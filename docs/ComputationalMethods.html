@@ -1084,6 +1084,9 @@ as good as it could be if all available coverage was used.
 Means to eliminate this shortcoming and use information from the side branches of
 the marker graph could be a subject of future work on the Shasta assembler.
 
+
+
+<h2 id=RepeatCounts>Assembling repeat counts</h2>
 <p>
 The process described above works
 with run-length encoded sequence and therefore
@@ -1091,26 +1094,65 @@ assembles run-length encoded sequence.
 The final step to create raw assembled sequence
 is to compute the most likely repeat count for
 each sequence position in run-length encoding.
-This is currently done by choosing as the
+In Shasta 0.1.0 this was done done by choosing as the
 most likely repeat count the one that appears
 the most frequently in the
 reads that contributed to each assembled position.
 
 <p>
-Replacing the most frequent repeat count
-with the median of the repeat counts
-resulted in results of slightly inferior quality.
-Similarly, using the average instead of the mean
-also worsened assembled sequence quality,
-even when allowing for a fixed but tunable
-bias factor used in computing the mean.
+The latest version of the Shasta assembler supports three different options
+for that, under control of command line option
+<code>--Assembly.consensusCaller</code>:
+
+<ul>
+<li><code>--Assembly.consensusCaller Modal</code>
+requests the same algorithm used in Shasta 0.1.0, that is,
+the most frequent repeat count seen at each base position
+is used in the assembly.
+
+<li><code>--Assembly.consensusCaller Median</code>
+requests an algorithm that stores in the assembly 
+the median repeat count seen at each base position.
+
+
+<li><code>--Assembly.consensusCaller Bayesian:name</code>
+requests a Bayesian algorithm to determine the most likely repeat count. 
+<code>name</code> can be one of the following:
+<ul>
+  <li>One of the following built-in Bayesian models:
+  <ul>
+    <li><code>guppy-2.3.1-a</code> to use a Bayesian model optimized for
+        the Guppy 2.3.1 base caller.
+    <li><code>guppy-2.3.5-a</code> to use a Bayesian model optimized for
+        the Guppy 2.3.5 base caller.
+  </ul>
+  <li>The absolute path of a configuration file
+describing the Bayesian model to be used.
+A relative path is not accepted.
+Sample configuration files are available in <code>shasta/conf</code> or 
+<code>shasta-install/conf</code>.
+They are named <code>SimpleBayesianConsensusCaller-*.csv</code>.
+</ul>
+</ul>
+
+The default is <code>--Assembly.consensusCaller Bayesian:guppy-2.3.5-a</code>.
+Some testing showed a significant decrease of false positive indels
+in assembled sequence compared to Shasta 0.1.0 behavior, corresponding to
+<code>--Assembly.consensusCaller Modal</code>. This testing was done
+for reads called using Guppy 2.3.5. However even using
+<code>--Assembly.consensusCaller Bayesian:guppy-2.3.1-a</code>
+resulted in significant improvement over 
+<code>--Assembly.consensusCaller Modal</code>, indicating
+that the Bayesian model is somewhat resilient to
+discrepancies between the reads used to construct the Bayesian model
+and the reads being assembled.
 
 <p>
-A simple Bayesian model for repeat counts resulted
-in a modest improvement in the quality of assembled
-sequence. However the model appears to sensitive
-to calibration errors, and therefore
-it is not used by default in Shasta assemblies.
+Testing also showed that 
+<code>--Assembly.consensusCaller Median</code> is generally inferior to
+<code>--Assembly.consensusCaller Modal</code>.
+
+
 
 <p>
 It is also possible that the quality of assembled sequence
@@ -1127,6 +1169,7 @@ information available to the base caller.
 Some work in this direction is in progress,
 including a new experimental run-length base caller under development
 at Oxford Nanopore, <i>Runnie</i>.
+
 
 
 <h2 id=SelectingAssemblyPaths>Selecting assembly paths</h2>
