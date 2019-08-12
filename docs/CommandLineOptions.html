@@ -437,7 +437,7 @@ Controls assembly of long marker graph edges.
 
 <tr id='Assembly.consensusCaller'>
 <td><code>--Assembly.consensusCaller</code>
-<td class=centered><code>Modal</code><td>
+<td class=centered><code>Bayesian:guppy-2.3.5-a</code><td>
 Used to select the consensus caller for repeat counts. Can be one of:
 <ul>
 <li><code>Modal</code> to use a consensus caller
@@ -445,6 +445,8 @@ that chooses the most frequent repeat count
 as the consensus repeat count at each base
 position 
 (C++ class <code>SimpleConsensusCaller</code>).
+This is was the only and default choice available
+in Shasta 0.1.0.
 <li><code>Median</code> to use a consensus caller
 that chooses the median repeat count 
 as the consensus repeat count at each base
