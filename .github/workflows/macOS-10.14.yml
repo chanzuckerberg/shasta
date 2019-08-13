@@ -9,6 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta
+        path: shasta-build/shasta-install/bin/shasta
     - name: Install-prerequisites
       run: scripts/InstallPrerequisites-macOS.sh
     - name: Build-macOS-10.14
