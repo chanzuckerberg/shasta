@@ -16,7 +16,7 @@ jobs:
         mkdir shasta-build
         cd shasta-build 
         cmake ..
-        make all
+        make VERBOSE=1 all
         make install
 
 

@@ -1,3 +1,6 @@
+// Test
+#include <boost/version.hpp>
+
 // shasta.
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
