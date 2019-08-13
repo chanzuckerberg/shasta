@@ -9,10 +9,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-    - uses: actions/upload-artifact@master
-      with:
-        name: shasta
-        path: shasta-build/shasta-install/bin/shasta
     - name: Install-prerequisites
       run: scripts/InstallPrerequisites-macOS.sh
     - name: Build-macOS-10.14
@@ -22,5 +18,9 @@ jobs:
         cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0."
         make VERBOSE=1 all
         make install/strip
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta
+        path: shasta-build/shasta-install/bin/shasta
 
 
