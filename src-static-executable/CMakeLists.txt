@@ -58,7 +58,7 @@ add_definitions(-DSHASTA_HTTP_SERVER)
 
 # Specify the libraries to link with.
 if(MACOS)
-    target_link_libraries(shasta-static-executable ${Boost_LIBRARIES} png z /usr/local/lib/libspoa.a pthread)
+    target_link_libraries(shasta-static-executable ${Boost_LIBRARIES} /usr/local/lib/libspoa.a pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive". 
