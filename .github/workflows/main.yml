@@ -1,4 +1,4 @@
-name: CI
+name: UbuntuBuild
 
 on: [push]
 
@@ -9,9 +9,14 @@ jobs:
     
     steps:
     - uses: actions/checkout@master
-    - name: Run a one-line script
-      run: echo Hello, world!
-    - name: Run a multi-line script
-      run: |
-        echo Add other actions to build,
-        echo test, and deploy your project.
+    - name: Install prerequisites
+      run: ./scripts/InstallPrerequisites.sh
+    - name: Build
+      run: 
+        mkdir shasta-build
+        cd shasta-build 
+        cmake ..
+        make -j all
+        make install
+
+
