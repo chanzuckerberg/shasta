@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Install-prerequisites
-      run: sudo ./scripts/InstallPrerequisites-macOS.sh
+      run: scripts/InstallPrerequisites-macOS.sh
     - name: Build-macOS-10.14
       run: |
         mkdir shasta-build
