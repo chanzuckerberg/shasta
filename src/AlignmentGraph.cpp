@@ -1,13 +1,10 @@
-// Test
-#include <boost/version.hpp>
-
-// shasta.
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
 using namespace shasta;
 
 
 #ifdef SHASTA_HTTP_SERVER
+#ifdef __linux__
 // Boost libraries.
 // The boost gil library includes png.h,
 // then uses int_p_NULL which is not defined in
@@ -21,6 +18,7 @@ using namespace shasta;
 #endif
 #include <boost/gil/gil_all.hpp>
 #include <boost/gil/extension/io/png_dynamic_io.hpp>
+#endif
 #endif
 
 // Standard library.
@@ -516,7 +514,8 @@ void AlignmentGraph::writeImage(
     const Alignment& alignment,
     const string& fileName) const
 {
-    using namespace boost::gil;
+#ifdef __linux__
+	using namespace boost::gil;
 
     // Create the image and the view.
     const size_t n0 = markers0.size();
@@ -579,6 +578,7 @@ void AlignmentGraph::writeImage(
 
     // Write it out.
     png_write_view(fileName, imageView);
+#endif
 }
 #endif
 

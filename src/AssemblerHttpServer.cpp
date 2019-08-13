@@ -1,6 +1,6 @@
 
-
 #ifdef SHASTA_HTTP_SERVER
+#ifdef __linux__
 // Boost gil library.
 // The boost gil library includes png.h,
 // then uses int_p_NULL which is not defined in
@@ -14,6 +14,7 @@
 #endif
 #include <boost/gil/gil_all.hpp>
 #include <boost/gil/extension/io/png_dynamic_io.hpp>
+#endif
 #endif
 
 
