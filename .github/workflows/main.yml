@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Install prerequisites
-      run: ./scripts/InstallPrerequisites.sh
+      run: ./scripts/InstallPrerequisites-Ubuntu.sh
     - name: Build
       run: 
         mkdir shasta-build
