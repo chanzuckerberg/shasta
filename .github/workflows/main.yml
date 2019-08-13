@@ -12,7 +12,7 @@ jobs:
     - name: Install prerequisites
       run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
     - name: Build
-      run: 
+      run: |
         mkdir shasta-build
         cd shasta-build 
         cmake ..
