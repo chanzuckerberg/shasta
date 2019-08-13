@@ -9,11 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-    - name: Install prerequisites
+    - name: Install-prerequisites
       run: sudo ./scripts/InstallPrerequisites-macOS.sh
-    - name: Build macOS-10.14
+    - name: Build-macOS-10.14
       run: |
-        lsb_release -a
         mkdir shasta-build
         cd shasta-build 
         cmake ..

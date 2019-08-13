@@ -9,9 +9,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-    - name: Install prerequisites
+    - name: Install-prerequisites
       run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
-    - name: Build ubuntu-16.04
+    - name: Build-ubuntu-16.04
       run: |
         lsb_release -a
         mkdir shasta-build

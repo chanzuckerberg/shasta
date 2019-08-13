@@ -1,4 +1,4 @@
-name: Ubuntu-18.04
+name: ubuntu-18.04
 
 on: [push]
 
@@ -9,9 +9,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-    - name: Install prerequisites
+    - name: Install-prerequisites
       run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
-    - name: Build 18.04
+    - name: Build-ubuntu-18.04
       run: |
         lsb_release -a
         mkdir shasta-build
