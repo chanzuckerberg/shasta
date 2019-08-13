@@ -1,0 +1,21 @@
+name: ubuntu-16.04
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Install prerequisites
+      run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
+    - name: Build ubuntu-16.04
+      run: |
+        lsb_release -a
+        mkdir shasta-build
+        cd shasta-build 
+        cmake ..
+        make all
+        make install

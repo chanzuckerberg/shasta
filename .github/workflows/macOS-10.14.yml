@@ -1,0 +1,23 @@
+name: macOS-10.14
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: macOS-10.14
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Install prerequisites
+      run: sudo ./scripts/InstallPrerequisites-macOS.sh
+    - name: Build macOS-10.14
+      run: |
+        lsb_release -a
+        mkdir shasta-build
+        cd shasta-build 
+        cmake ..
+        make all
+        make install
+
+

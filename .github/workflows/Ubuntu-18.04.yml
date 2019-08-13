@@ -1,21 +1,17 @@
-name: UbuntuBuild
+name: Ubuntu-18.04
 
 on: [push]
 
 jobs:
   build:
 
-#    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
-    strategy:
-      matrix:
-        os: [ubuntu-16.04, ubuntu-18.04]
-    
     steps:
     - uses: actions/checkout@master
     - name: Install prerequisites
       run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
-    - name: Build
+    - name: Build 18.04
       run: |
         lsb_release -a
         mkdir shasta-build
