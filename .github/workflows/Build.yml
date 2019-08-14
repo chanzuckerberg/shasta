@@ -1,0 +1,66 @@
+name: build
+
+on: [push]
+
+
+
+jobs:
+  ubuntu-18.04:
+
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Install-prerequisites
+      run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
+    - name: Build-ubuntu-18.04
+      run: |
+        lsb_release -a
+        mkdir shasta-build
+        cd shasta-build 
+        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0 built on Ubuntu 18.04."
+        make all
+        make install/strip
+
+
+
+  ubuntu-16.04:
+
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Install-prerequisites
+      run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
+    - name: Build-ubuntu-16.04
+      run: |
+        lsb_release -a
+        mkdir shasta-build
+        cd shasta-build 
+        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0 built on Ubuntu 16.04."
+        make all
+        make install/strip
+
+
+       
+  macOS-10.14:
+
+    runs-on: macOS-10.14
+
+    steps:
+    - uses: actions/checkout@master
+    - name: Install-prerequisites
+      run: scripts/InstallPrerequisites-macOS.sh
+    - name: Build-macOS-10.14
+      run: |
+        mkdir shasta-build
+        cd shasta-build 
+        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0."
+        make VERBOSE=1 all
+        make install/strip
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta
+        path: shasta-build/shasta-install/bin/shasta
+
+
