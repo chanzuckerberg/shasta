@@ -5,7 +5,7 @@ on: [push]
 
 
 jobs:
-  ubuntu-18.04:
+  ubuntu-18-04:
 
     runs-on: ubuntu-18.04
 
@@ -24,7 +24,7 @@ jobs:
 
 
 
-  ubuntu-16.04:
+  ubuntu-16-04:
 
     runs-on: ubuntu-16.04
 
@@ -43,7 +43,7 @@ jobs:
 
 
        
-  macOS-10.14:
+  macOS-10-14:
 
     runs-on: macOS-10.14
 
