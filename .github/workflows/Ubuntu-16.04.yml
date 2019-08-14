@@ -16,6 +16,6 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0, built on Ubuntu 16.04."
+        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0 built on Ubuntu 16.04."
         make all
         make install/strip

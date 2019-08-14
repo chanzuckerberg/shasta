@@ -40,6 +40,7 @@ message(STATUS "BUILD_NATIVE is " ${BUILD_NATIVE})
 # This is normally used only when building a new GitHub release,
 # in which case we use the following option when running Cmake:
 # -DBUILD_ID="Shasta Release X.Y.Z"
+# BUILD_ID should not contain a comma, otherwise the C preprocessor does not handle it correctly.
 if(NOT DEFINED BUILD_ID)
     set(BUILD_ID "Shasta development build. This is not a released version.")
 endif(NOT DEFINED BUILD_ID)
