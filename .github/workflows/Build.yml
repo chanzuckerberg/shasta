@@ -19,7 +19,7 @@ jobs:
         mkdir shasta-build
         cd shasta-build 
         cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0 built on Ubuntu 18.04."
-        make all
+        make -j 2 all
         make install/strip
 
 
@@ -38,7 +38,7 @@ jobs:
         mkdir shasta-build
         cd shasta-build 
         cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0 built on Ubuntu 16.04."
-        make all
+        make -j 2 all
         make install/strip
 
 
@@ -56,7 +56,7 @@ jobs:
         mkdir shasta-build
         cd shasta-build 
         cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0."
-        make VERBOSE=1 all
+        make VERBOSE=1 -j 2 all
         make install/strip
     - uses: actions/upload-artifact@master
       with:
