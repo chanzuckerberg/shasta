@@ -18,9 +18,19 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0 built on Ubuntu 18.04."
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.1.0."
         make -j 2 all
         make install/strip
+        mv shasta-install shasta-Ubuntu-18.04
+        tar -cvf shasta-Ubuntu-18.04.tar shasta-Ubuntu-18.04        
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta-Linux
+        path: shasta-build/shasta-Ubuntu-18.04/bin/shasta
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta-Ubuntu-18.04.tar
+        path: shasta-build/shasta-Ubuntu-18.04.tar
 
 
 
@@ -37,9 +47,15 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0 built on Ubuntu 16.04."
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.1.0."
         make -j 2 all
         make install/strip
+        mv shasta-install shasta-Ubuntu-16.04
+        tar -cvf shasta-Ubuntu-16.04.tar shasta-Ubuntu-16.04        
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta-Ubuntu-16.04.tar
+        path: shasta-build/shasta-Ubuntu-16.04.tar
 
 
        
@@ -55,12 +71,12 @@ jobs:
       run: |
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta test build newer than release 0.1.0."
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.1.0."
         make VERBOSE=1 -j 2 all
         make install/strip
     - uses: actions/upload-artifact@master
       with:
-        name: shasta
+        name: shasta-macOS
         path: shasta-build/shasta-install/bin/shasta
 
 
