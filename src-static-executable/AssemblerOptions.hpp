@@ -32,6 +32,7 @@ public:
         uint32_t threadCount;
 #ifdef SHASTA_HTTP_SERVER
         string exploreAccess;
+        uint16_t port;
 #endif
     };
     CommandLineOnlyOptions commandLineOnlyOptions;

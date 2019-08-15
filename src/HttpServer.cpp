@@ -78,9 +78,17 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
     acceptor.listen();
     cout << "Listening for http requests on port " << port << endl;
     if(localOnly) {
+        cout << "To connect, "
+            "point your browser to http://localhost:" << port << endl;
         if(sameUserOnly) {
             cout << "Only accepting local connections originating from a process "
                 "owned by the same user running the server." << endl;
+            // Also start the default browser and point it to the server.
+#ifdef __linux__
+            ::system(("xdg-open http://localhost:" + to_string(port)).c_str());
+#else
+            ::system(("open http://localhost:" + to_string(port)).c_str());
+#endif
         } else {
             cout << "Accepting local connections from any user."
                 "Connections from the local computer are accepted from any user. "
@@ -91,7 +99,13 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
                 << endl;
         }
     } else {
-        cout << "Accepting connections from all hosts. "
+        cout << "Accepting connections from any computer, any user. " << endl;
+        cout << "To connect from this computer, "
+            "point your browser to http://localhost:" << port << endl;
+        cout << "To connect from a different computer, "
+            "point your browser to http://XYZ:" << port << 
+            ", where XYZ is either the name or IP address of this computer." << endl;
+        cout << 
             "All connections are accepted: local and remote, from any user. "
             "This means that all users, not only on the computer running the server, "
             "but also on all computers on the same local area network, can use the server. "

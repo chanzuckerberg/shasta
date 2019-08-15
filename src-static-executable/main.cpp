@@ -774,6 +774,14 @@ void shasta::main:: explore(
     // Create the Assembler.
     Assembler assembler("Data/", false, 0);
     
+    // Access all available binary data.
+    assembler.accessAllSoft();
+    
+    // Set up the consensus caller.
+    cout << "Setting up consensus caller " <<
+        assemblerOptions.assemblyOptions.consensusCaller << endl;
+    assembler.setupConsensusCaller(assemblerOptions.assemblyOptions.consensusCaller);
+ 
     // Start the http server.
     bool localOnly;
     bool sameUserOnly;
@@ -791,6 +799,8 @@ void shasta::main:: explore(
             "Only use this option if you understand its security implications."
         );
     }
-    const uint16_t port = 17100;
-    assembler.explore(port, localOnly, sameUserOnly);
+    assembler.explore(
+        assemblerOptions.commandLineOnlyOptions.port, 
+        localOnly, 
+        sameUserOnly);
 }

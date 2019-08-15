@@ -162,6 +162,11 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "DO NOT CHANGE FROM DEFAULT VALUE WITHOUT UNDERSTANDING THE "
         "SECURITY IMPLICATIONS."
         )
+
+        ("port",
+        value<uint16_t>(&commandLineOnlyOptions.port)->
+        default_value(17100),
+        "Port to be used by the http server (command --explore).")
 #endif
         ;
 
