@@ -33,6 +33,7 @@ namespace shasta {
         void assemble(const AssemblerOptions&);
         void saveBinaryData(const AssemblerOptions&);
         void cleanupBinaryData(const AssemblerOptions&);
+        void explore(const AssemblerOptions&);
 
     }
 }
@@ -104,6 +105,9 @@ void shasta::main::main(int argumentCount, const char** arguments)
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "saveBinaryData") {
         saveBinaryData(assemblerOptions);
+        return;
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "explore") {
+        explore(assemblerOptions);
         return;
     }
 
@@ -746,3 +750,20 @@ void shasta::main::cleanupBinaryData(
 
 }
 
+
+// Implementation of --command explore.
+void shasta::main:: explore(
+    const AssemblerOptions& assemblerOptions)
+{
+    // Go to the assembly directory.
+    filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    
+    // Check that we have the binary data. 
+    if(!filesystem::exists("Data")) {
+        throw runtime_error("Binary directory \"Data\" not available.");
+        return;
+    }
+    
+    // Create the Assembler.
+    Assembler assembler("Data", true, 0);
+}

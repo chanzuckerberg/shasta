@@ -11,11 +11,10 @@ using namespace shasta;
 Assembler::Assembler(
     const string& largeDataFileNamePrefix,
     bool createNew,
-    size_t largeDataPageSize) :
+    size_t largeDataPageSizeArgument) :
 
     MultithreadedObject(*this),
-    largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize)
+    largeDataFileNamePrefix(largeDataFileNamePrefix)
 #ifdef SHASTA_MARGINPHASE
     , marginPhaseParameters(0)
 #endif
@@ -26,11 +25,13 @@ Assembler::Assembler(
 
         // Create a new assembly.
         assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
-        assemblerInfo->largeDataPageSize = largeDataPageSize;
+        assemblerInfo->largeDataPageSize = largeDataPageSizeArgument;
+        largeDataPageSize = largeDataPageSizeArgument;
 
         reads.createNew(largeDataName("Reads"), largeDataPageSize);
         readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
         readRepeatCounts.createNew(largeDataName("ReadRepeatCounts"), largeDataPageSize);
+        cout << "Created a new assembly with page size " << largeDataPageSize << endl;
 
     } else {
 
@@ -41,8 +42,10 @@ Assembler::Assembler(
         reads.accessExistingReadWrite(largeDataName("Reads"));
         readNames.accessExistingReadWrite(largeDataName("ReadNames"));
         readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
+        cout << "Accessed an existing assembly with page size " << largeDataPageSize << endl;
 
     }
+    SHASTA_ASSERT(largeDataPageSize == assemblerInfo->largeDataPageSize);
 
     // In both cases, assemblerInfo, reads, readNames, readRepeatCounts are all open for write.
 

@@ -127,7 +127,7 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         value<string>(&commandLineOnlyOptions.command)->
         default_value("assemble"),
         "Command to run. Must be one of: "
-        "assemble, saveBinaryData, cleanupBinaryData")
+        "assemble, saveBinaryData, cleanupBinaryData, explore")
 
 #ifdef __linux__
         ("memoryMode",
@@ -151,7 +151,18 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         value<uint32_t>(&commandLineOnlyOptions.threadCount)->
         default_value(0),
         "Number of threads, or 0 to use one thread per virtual processor.")
-
+        
+        
+#ifdef SHASTA_HTTP_SERVER
+        ("exploreAccess",
+        value<string>(&commandLineOnlyOptions.exploreAccess)->
+        default_value("user"),
+        "Specify allowed access for --command explore. "
+        "Allowed values: user, local, unrestricted. "
+        "DO NOT CHANGE FROM DEFAULT VALUE WITHOUT UNDERSTANDING THE "
+        "SECURITY IMPLICATIONS."
+        )
+#endif
         ;
 
 

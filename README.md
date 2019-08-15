@@ -7,8 +7,10 @@ ___
 
 [This paper](https://www.biorxiv.org/content/10.1101/715722v1) 
 includes an error analysis of the Shasta assembler and more.
-Data and test results from this paper are available 
+Reads from this paper are available 
 [here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html).
+The assembly results are
+[here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=assemblies).
 
 
 ___

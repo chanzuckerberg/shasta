@@ -30,6 +30,9 @@ public:
         string memoryMode;
         string memoryBacking;
         uint32_t threadCount;
+#ifdef SHASTA_HTTP_SERVER
+        string exploreAccess;
+#endif
     };
     CommandLineOnlyOptions commandLineOnlyOptions;
 
