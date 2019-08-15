@@ -9,7 +9,7 @@
 <body>
     <nav role="navigation">
         <!-- 
-        Navigation as updated 6/4/2019.
+        Navigation as updated 8/15/2019.
         To make any changes, here, update Navigation.html,
         then rerun UpdateNavigation.py from the docs directory.
         This will copy to all the html files.
@@ -25,7 +25,7 @@
                 <a href=Docker.html><li>Run an assembly in Docker</li></a>
                 <a href=Performance.html><li>Maximize assembly performance</li></a>
                 <a href=BuildingFromSource.html><li>Build the code from source</li></a>
-                <a href=InspectingResults.html><li>Inspect or debug assembly results</li></a>
+                <a href=InspectingResults.html><li>Explore assembly results</li></a>
                 <a href=Contributing.html><li>Contribute to Shasta</li></a>
                 <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
                 </ul>
@@ -48,100 +48,166 @@
 <main>
 
 
-<h1>Inspecting or debugging assembly results</h1>
-
-<h2>The <code>Data</code> directory</h2>
+<h1>Exploring assembly results</h1>
 
 <p>
-A Shasta run creates in the run directory various files with standard 
-formats that can be inspected using many available tools -
-see <a href="Running.html#OutputFiles">here</a> for more information. 
-In addition, it can also create memory mapped data structures
-stored in the <code>Data</code> directory.
-If using the Shasta executable, these data structures are only created
-if option <code>--memoryMode filesystem</code> was used.
+The Shasta assembler provides functionality that allows exploring
+details of many data structures used during assembly.
+This can be useful to gain insight into assembler behavior
+for purposes of testing, debugging, parameter optimization,
+development of new algorithms, or for gaining insight
+not available by simply studying assembled sequence
+stored in the <code>fasta</code> and <code>gfa</code>
+files created by the assembly.
+When this functionality is activated, the Shasta assembler
+behaves as an http server, and the user communicates with it
+via a standard Internet browser.
 
 <p>
-These data structures reside in "files" stored in memory, 
-and so they disappear if the machine is rebooted
-(unless option <code>--memoryBacking disk</code> was used).
-You can use script <code>shasta-install/bin/SaveRun.py</code>
-to make a permanent copy on disk of these data structures.
-The permanent copy is stored in directory 
-<code>DataOnDisk</code>.
+Follow the direction below to activate this functionality. 
+
+
+
+<h2>Starting the Shasta http server on Linux</h2>
+<p>
+The Shasta http server uses 
+<a href="https://www.graphviz.org/">Graphviz</a> software to display graphs.
+To install it, use one of the following commands depending on the Linux system you are using:
+<ul>
+<li>On <code>Debian</code>, <code>Ubuntu</code>, and derived distributions, use <code>sudo apt install graphviz</code>.
+<li>On <code>CentOS</code>, <code>Red Hat</code>, <code>Fedora</code>, and 
+related distributions, use <code>sudo yum install graphviz</code>.
+<li>On a Linux distribution where neither of the above commands works, 
+please file an 
+<a href="https://github.com/chanzuckerberg/shasta/issues">issue</a> on the Shasta GitHub repository mentioning 
+the distribution you are using. 
+An effort will be made to update the documentation to cover that distribution.
+</ul>
 
 <p>
-To free the memory used by these data structures, invoke the Shasta executable with
-<code>--command cleanupBinaryData</code>
-(and <code>--assemblyDirectory</code> if needed).
+To start the Shasta http server on Linux, follow these steps:
+<ol>
+<li>Run an assembly with option <code>--memoryMode filesystem</code>.
+When this option is used, binary data used by the assembly
+are stored in memory mapped files that remain accessible after assembly is complete.
+<ul>
+<li>If you don't have root access via <code>sudo</code> on the machine
+you are using, also use option <code>--memoryBacking disk</code>.
+This is slower
+but guarantees that the results remain permanently available
+after an assembly completes, unless
+you use <code>--command cleanupBinaryData</code>.
+<li>If you do have root access via <code>sudo</code> on the machine
+you are using and you want to maximize assembly performance, 
+also use option <code>--memoryBacking 2M</code>,
+which results in binary data being stored in memory on
+the Linux <code>hugetlbfs</code> filesystem (2 MB "huge" pages).
+These data only remain available until the next reboot
+or until you clean them up via <code>--command cleanupBinaryData</code>,
+but you can save them persistently on disk using <code>--command saveBinaryData</code>.
+</ul>
+
+<li>Run the assembler again, this time specifying option 
+<code>--command explore</code>,
+plus the same <code>--assemblyDirectory</code> option used for the assembly run
+(default is <code>ShastaRun</code>).
+</ol>
+<p>
+See 
+<a href="Running.html#MemoryModes">here</a>
+for more information on the <code>--memoryMode</code> and <code>--memoryBacking</code>
+commad line options.
+
+
+
+
+<h2>Starting the Shasta http server on macOS</h2>
+<p>
+The Shasta http server uses 
+<a href="https://www.graphviz.org/">Graphviz</a> software to display graphs.
+To install it, use this command: <code>brew install graphviz</code>.
+<p>
+To start the Shasta http server on macOS, follow these steps:
+<ol>
+<li>Run an assembly as usual. The macOS version of Shasta
+always stores binary data on disk. This is slower
+but guarantees that the binary data remain permanently available
+after an assembly completes, unless
+you use <code>--command cleanupBinaryData</code>.
+<li>Run the assembler again, this time specifying option 
+<code>--command explore</code>,
+plus the same <code>--assemblyDirectory</code> option used for the assembly run
+(default is <code>ShastaRun</code>).
+</ol>
+
+
+
+<h2>Using a browser to explore assembly results</h2>
+<p>Following the above directions will start a Shasta process 
+in a mode in which it behaves as an http server.
+It will also start your default browser and point it to
+the Shasta http server process. 
+If you want to start additional browser sessions, just
+point your browser to the URL shown when the Shasta http server starts,
+usually <code>http://localhost:17100</code>.
 
 <p>
-The contents of the <code>Data</code> directory
-can be used using the following Shasta extended functionality
-available only on Ubuntu 16.04 and Ubuntu 18.04:
+The browser session will initially show an assembly summary page.
+At the top you will see a navigation menu that allows you to explore
+details of many assembler data structures.
+For example, this allows you to look at local subgraphs
+of the read graph, marker graph, and assembly graph 
+(see <a href="ComputationalMethods.html">here</a> for more information).
+It also provides details of sequence assembly, 
+and of the input reads used in the assembly.
+Finally, there are several useful links between 
+the various data structures. For example,
+you can easily navigate from the assembly graph to the marker
+graph and vice versa, and from the read graph to the reads.
+
+
+<p>
+When you are done using the browser, remember to stop the server
+using <code>Ctrl^C</code> in the command window in which you started the
+server. You can restart the server later as many times as you like,
+as long as the binary data remain available.
+
+
+<h2>Access control</h2>
+<p>
+By default, the server runs in a mode in which it only responds
+to requests originating from the same computer in which 
+the server is running, and from the same user.
+However, you can use command line option 
+<code>--exploreAccess</code> to relax this restriction:
 
 <ul>
-<li>A <a href=Python.html>Python API</a> that
-allows using Python scripts to explore assembler data structures.
-The Python API can also be used to rerun selected portions of
-an assembly for testing or debugging.
-<li>An http server that makes it possible to interactively explore 
-assembler data structures.
+<li><code>--exploreAccess user</code> (default)
+to restrict access to the local machine and to the user that started
+the server. THIS IS THE ONLY OPTION THAT GUARANTEES
+THAT NOBODY ELSE WILL BE ABLE TO ACCESS YOUR ASSEMBLY.
+YOU SHOULD USE THIS OPTION IF YOUR ASSEMBLY DATA
+IS SUBJECT TO CONFIDENTIALITY RESTRICTIONS
+OR IS NOT CLEARED OR CONSENTED FOR PUBLIC RELEASE.
+<li><code>--exploreAccess local</code> 
+to restrict access to ALL USERS on the local machine.
+YOU SHOULD <b>NOT</b> USE THIS OPTION IF YOUR ASSEMBLY DATA
+IS SUBJECT TO CONFIDENTIALITY RESTRICTIONS
+OR IS NOT CLEARED OR CONSENTED FOR PUBLIC RELEASE.
+<li><code>--exploreAccess unrestricted</code> 
+for completely unrestricted access from any user, even from
+different computers on your local area network,
+and potentially even from the entire Internet,
+if you are nt proytected by a firewall.
+YOU SHOULD <b>NOT</b> USE THIS OPTION IF YOUR ASSEMBLY DATA
+IS SUBJECT TO CONFIDENTIALITY RESTRICTIONS
+OR IS NOT CLEARED OR CONSENTED FOR PUBLIC RELEASE.
+
 </ul>
 
 
 
-
-
-<h2>Exploring the assembly interactively using the http server</h2>
-<p>
-
-The Shasta
-assembler implements <code>http</code> functionality 
-(available only on Ubuntu 16.04 and Ubuntu 18.04)
-that allows you to inspect the binary data structures using a Web browser.
-To do this, use one of the following commands:
-
-<ul>
-<li>
-If you have a copy of the data structures in memory stored in the <code>Data</code>
-directory:
-<pre>
-shasta-install/bin/RunServer.py
-</pre>
-
-<li>
-If you have a copy of the data structures on disk stored in the <code>DataOnDisk</code>
-directory:
-<pre>
-shasta-install/bin/RunServerFromDisk.py
-</pre>
 </ul>
-
-
-This starts the Shasta assembler in a mode that behaves like an 
-<code>http</code> server. You can connect to it by pointing your Web browser to it.
-If the browser is running on the same machine where the server is,
-enter this URL in your browser:
-
-<pre>
-http://localhost:17100
-</pre>
-
-(the port number following the colon could change - see the output of the 
-<code>RunServer.py</code> or 
-<code>RunServerFromDisk.py</code> command to find out what port the server is using).
-If the browser is running on a different machine, you will have to replace
-<code>localhost</code> in the above URL with the name or IP address
-of the machine where the server is running.
-
-<p>
-Once in the browser, the server functionality should
-be reasonably self-explanatory. You can look at individual reads
-and their markers, and inspect the various graphs
-used by the assembler (read graph, marker graph, assembly graph).
-
-
 
 </main>
 
