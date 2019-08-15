@@ -24,7 +24,7 @@ Assembler::Assembler(
     if(createNew) {
 
         // Create a new assembly.
-        assemblerInfo.createNew(largeDataName("Info"), largeDataPageSize);
+        assemblerInfo.createNew(largeDataName("Info"), largeDataPageSizeArgument);
         assemblerInfo->largeDataPageSize = largeDataPageSizeArgument;
         largeDataPageSize = largeDataPageSizeArgument;
 
