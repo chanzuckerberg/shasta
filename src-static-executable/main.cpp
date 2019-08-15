@@ -760,10 +760,37 @@ void shasta::main:: explore(
     
     // Check that we have the binary data. 
     if(!filesystem::exists("Data")) {
-        throw runtime_error("Binary directory \"Data\" not available.");
+        throw runtime_error("Binary directory \"Data\" not available "
+        " in assembly directory " + 
+        assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
+        ". Use \"--memoryMode filesystem\", possibly followed by "
+        "\"--command saveBinaryData\" and \"--command cleanupBinaryData\" "
+        "if you want to make sure the binary data are persistently available on disk. "
+        "See the documentations are some of these options require root access."
+        );
         return;
     }
     
     // Create the Assembler.
-    Assembler assembler("Data", true, 0);
+    Assembler assembler("Data/", false, 0);
+    
+    // Start the http server.
+    bool localOnly;
+    bool sameUserOnly;
+    if(assemblerOptions.commandLineOnlyOptions.exploreAccess == "user") {
+        localOnly = true;
+        sameUserOnly = true;
+    } else if(assemblerOptions.commandLineOnlyOptions.exploreAccess == "local") {
+        localOnly = true;
+        sameUserOnly = false;
+    } else if (assemblerOptions.commandLineOnlyOptions.exploreAccess == "unrestricted"){
+        localOnly = false;
+        sameUserOnly = false;
+    } else {
+        throw runtime_error("Invalid value specified for --exploreAccess. "
+            "Only use this option if you understand its security implications."
+        );
+    }
+    const uint16_t port = 17100;
+    assembler.explore(port, localOnly, sameUserOnly);
 }

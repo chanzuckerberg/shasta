@@ -97,7 +97,7 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
             "but also on all computers on the same local area network, can use the server. "
             "In addition, if the computer running the server is not protected by a firewall, "
             "everybody on the Internet can also access the server. "
-            "THIS CHOICE ALLOWS OTHER USERS TO LOOK AT YOUR DATA AND SHOULD "
+            "THIS CHOICE ALLOWS OTHER USERS, LOCAL AND REMOTE, TO LOOK AT YOUR DATA AND SHOULD "
             "NOT BE USED IF ACCESS TO THE DATA SHOULD BE RESTRICTED." << endl;
     }
 
