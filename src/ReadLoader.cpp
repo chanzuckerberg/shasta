@@ -299,7 +299,10 @@ void ReadLoader::processThreadFunction(size_t threadId)
         if(buffer[bufferIndex++] != '>')
         {
             throw runtime_error("The sequence of each read must be on a "
-                "single line of the input fasta file.");
+                "single line of the input fasta file. Read " +
+                readName + 
+                " spans more than one line near file offset " +
+                to_string(blockBegin + bufferIndex));
         }
 
         // Extract the read name and discard the rest of the line.
@@ -322,12 +325,39 @@ void ReadLoader::processThreadFunction(size_t threadId)
 
         // Read the base characters.
         read.clear();
-        while(bufferIndex < buffer.size()) {
-            const char c = buffer[bufferIndex++];
-            if(c == '\n') {
-                break;
+        try {
+            while(bufferIndex < buffer.size()) {
+                const char c = buffer[bufferIndex++];
+                if(c == '\n') {
+                    break;
+                }
+                read.push_back(Base::fromCharacter(c));
             }
-            read.push_back(Base::fromCharacter(c));
+        } catch(std::exception e) {
+            std::lock_guard<std::mutex> lock(mutex);
+            cout << "An error occurred processing read " << readName << endl;            
+            cout << "The error occurred at buffer index " << bufferIndex << 
+                "while processing file block at offset " << blockBegin << " to " << blockEnd << endl;
+            cout << "File offset at error location is " << blockBegin + bufferIndex << endl;
+            cout << "File dump around this offset:" << endl;
+            size_t dumpBegin = 0;
+            if(bufferIndex > 50) {
+                dumpBegin = bufferIndex - 50;
+            }
+            const size_t dumpEnd = min(bufferIndex+50, buffer.size());
+            for(size_t i=dumpBegin; i!=dumpEnd; i++) {
+                cout << i;
+                const char c = buffer[i];
+                cout << " " << int(c);
+                if(std::isgraph(c)) {
+                    cout << " " << c; 
+                }
+                if(i == bufferIndex) {
+                    cout << " Error occurred at this position.";
+                }
+                cout << endl;
+            }
+            throw;
         }
 
         // If the read is too short, skip it.
