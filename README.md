@@ -12,7 +12,7 @@ Reads from this paper are available
 The assembly results are
 [here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html?prefix=assemblies).
 
-
+**Requests for help:** please file GitHub issues to report problems, request help or ask questions. **Please keep each issue on a single topic when possible.** 
 ___
 
 The goal of the Shasta long read assembler is to rapidly 
