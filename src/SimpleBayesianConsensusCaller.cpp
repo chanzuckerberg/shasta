@@ -375,7 +375,7 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
     AlignedBase consensusBase;
     uint16_t consensusRepeat;
 
-    vector<double> logLikelihoods(u_long(maxRunlength), -INF);    // initialize as zeros in log space
+    vector<double> logLikelihoods(u_long(maxRunlength+1), -INF);    // initialize as zeros in log space
 
     consensusBase = predictConsensusBase(coverage);
 
