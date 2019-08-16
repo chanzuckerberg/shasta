@@ -74,9 +74,9 @@ The Shasta http server uses
 <a href="https://www.graphviz.org/">Graphviz</a> software to display graphs.
 To install it, use one of the following commands depending on the Linux system you are using:
 <ul>
-<li>On <code>Debian</code>, <code>Ubuntu</code>, and derived distributions, use <code>sudo apt install graphviz</code>.
+<li>On <code>Debian</code>, <code>Ubuntu</code>, and derived distributions, use: <pre>sudo apt install graphviz</pre>
 <li>On <code>CentOS</code>, <code>Red Hat</code>, <code>Fedora</code>, and 
-related distributions, use <code>sudo yum install graphviz</code>.
+related distributions, use: <pre>sudo yum install graphviz</pre>
 <li>On a Linux distribution where neither of the above commands works, 
 please file an 
 <a href="https://github.com/chanzuckerberg/shasta/issues">issue</a> on the Shasta GitHub repository mentioning 
@@ -116,7 +116,7 @@ plus the same <code>--assemblyDirectory</code> option used for the assembly run
 See 
 <a href="Running.html#MemoryModes">here</a>
 for more information on the <code>--memoryMode</code> and <code>--memoryBacking</code>
-commad line options.
+command line options.
 
 
 
@@ -125,7 +125,7 @@ commad line options.
 <p>
 The Shasta http server uses 
 <a href="https://www.graphviz.org/">Graphviz</a> software to display graphs.
-To install it, use this command: <code>brew install graphviz</code>.
+To install it, use this command: <pre>brew install graphviz</pre>
 <p>
 To start the Shasta http server on macOS, follow these steps:
 <ol>
@@ -173,7 +173,7 @@ server. You can restart the server later as many times as you like,
 as long as the binary data remain available.
 
 
-<h2>Access control</h2>
+<h2 id=AccessControl>Access control</h2>
 <p>
 By default, the server runs in a mode in which it only responds
 to requests originating from the same computer in which 
@@ -183,14 +183,14 @@ However, you can use command line option
 
 <ul>
 <li><code>--exploreAccess user</code> (default)
-to restrict access to the local machine and to the user that started
-the server. THIS IS THE ONLY OPTION THAT GUARANTEES
+to only allow access on the local machine and to the user that started
+the server. THIS DEFAULT OPTION IS THE ONLY ONE THAT GUARANTEES
 THAT NOBODY ELSE WILL BE ABLE TO ACCESS YOUR ASSEMBLY.
 YOU SHOULD USE THIS OPTION IF YOUR ASSEMBLY DATA
 IS SUBJECT TO CONFIDENTIALITY RESTRICTIONS
 OR IS NOT CLEARED OR CONSENTED FOR PUBLIC RELEASE.
 <li><code>--exploreAccess local</code> 
-to restrict access to ALL USERS on the local machine.
+to allow access to ALL USERS on the local machine.
 YOU SHOULD <b>NOT</b> USE THIS OPTION IF YOUR ASSEMBLY DATA
 IS SUBJECT TO CONFIDENTIALITY RESTRICTIONS
 OR IS NOT CLEARED OR CONSENTED FOR PUBLIC RELEASE.
@@ -198,7 +198,8 @@ OR IS NOT CLEARED OR CONSENTED FOR PUBLIC RELEASE.
 for completely unrestricted access from any user, even from
 different computers on your local area network,
 and potentially even from the entire Internet,
-if you are nt proytected by a firewall.
+if you are not protected by a firewall.
+Some firewall may, however, be necessary for this to work.
 YOU SHOULD <b>NOT</b> USE THIS OPTION IF YOUR ASSEMBLY DATA
 IS SUBJECT TO CONFIDENTIALITY RESTRICTIONS
 OR IS NOT CLEARED OR CONSENTED FOR PUBLIC RELEASE.

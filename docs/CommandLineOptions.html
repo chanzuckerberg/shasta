@@ -181,7 +181,7 @@ created by Shasta.
 
 
 <tr id='command'><td><code>--command</code><td class=centered><code>assemble</code><td>
-Specifies requested processing. Can be one of the following:
+Specifies te assembly command to be run. Can be one of the following:
 <dl>
 
 <dt><code>assemble</code>
@@ -204,6 +204,16 @@ After <code>cleanupBinaryData</code> runs, you can no longer use
 the Python API or the Shasta http server to inspect assembly results.
 Make sure to use option <code>--assemblyDirectory</code>
 to specify the run directory that you want to cleanup.
+
+<dt><code>explore</code>
+<dd>
+The Shasta assembler starts in a mode that permits exploring assembly data structures using an Internet browser. 
+<a class=qm href="InspectingResults.html"></a>
+</dd>
+
+</dl>
+
+
 
 <tr id='memoryMode'><td><code>--memoryMode<br></code>(not supported on MacOS)<td class=centered><code>anonymous</code><td>
 <ul>
@@ -239,6 +249,15 @@ was specified.
 <tr id='threads'><td><code>--threads</code><td class=centered><code>0</code><td>
 Specifies the number of threads to be used, or 0
 to request one thread per virtual processor.
+
+<tr><td><code>--exploreAccess</code><td class=centered><code>user</code><td>
+Specifies access control for command <code>explore</code>.
+<a class=qm href='InspectingResults.html#AccessControl'/>
+
+<tr><td><code>--port</code><td class=centered><code>17100</code><td>
+The TCP port to be used by command <code>explore</code>.
+If the specified port is not available,
+Shasta will try again after incrementing the port number a few times.
 
 </table>
 
