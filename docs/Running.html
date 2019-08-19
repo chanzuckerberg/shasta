@@ -473,6 +473,8 @@ include the following:
 <li>
 <code>Assembly.fasta</code>: 
 The assembly results in FASTA format.
+The id of each assembled segment is the same as the
+edge id of the corresponding edge in the assembly graph.
 
 <li><code>Assembly.gfa</code>: 
 The assembly results in 
@@ -482,7 +484,22 @@ plus their connectivity information (as GFA links).
 A convenient tool to inspect and study these files is
 <a href='https://rrwick.github.io/Bandage'>Bandage</a>.
 Segment ids in the GFA file correspond to FASTA ids 
-in the FASTA file.
+in the FASTA file and also to assembly graph edge ids.
+
+<li><code>Assembly-BothStrands.gfa</code>:
+An alternative GFA output file for the assembly.
+This contains both strands of the assembly.
+This can be useful in some cases to clarify connectivity
+of assembled segments. 
+See <code>AssemblySummary.csv</code> to find the 
+id of the reverse complement of each assembled segment.
+
+<li>
+<code>AssemblySummary.html</code>: 
+An html file summarizing many assembly metrics.
+It can be viewed using an Internet browser.
+It has the same content shown by the summary page
+of the Shasta http server (<code>--command explore</code>).
 
 <li><code>shasta.conf</code>: 
 a configuration file containing
