@@ -73,6 +73,9 @@ install(DIRECTORY conf DESTINATION shasta-install USE_SOURCE_PERMISSIONS)
 # Install the docs directory.
 install(DIRECTORY docs DESTINATION shasta-install)
 
+# Install the docker directory.
+install(DIRECTORY docker DESTINATION shasta-install)
+
 # The shared library is installed by the cmake file in the src directory.
 # The static executable is installed by the cmake file in the src-static-executable directory.
 
