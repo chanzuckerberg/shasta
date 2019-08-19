@@ -48,6 +48,51 @@
     <main>
 <h1>Creating a new release</h1>
 
+
+<h2>Current procedure</h2>
+<ul>
+<li>Make sure there are no outstanding commits or
+pull requests that should be in the new release.
+<li>Do some testing.
+<li>Pick a release number <code>X.Y.Z</code>. 
+To stay consistent with
+<a href='https://semver.org'>Semantic Versioning</a>,
+for now stay with <code>X=0</code>.
+Increment <code>Z</code> by one if only bug fixes were made, and otherwise 
+increment <code>Y</code> by one and reset <code>Z</code> to zero.
+In the directions below, replace <code>X.Y.Z</code>
+with the release number you picked.
+
+<li>In 
+<code>shasta/.github/workflows/Build.yml</code>,
+change the build id to <code>Shasta Release X.Y.Z</code>
+in three places.
+<li>Commit and push this change to trigger a new build on GitHub Actions.
+Wait for that build to complete.
+<li>Download the 4 artifacts. Unzip them and rename  them to the following:
+<ul>
+<li><code>shasta-Linux-X.Y.Z</code>
+<li><code>shasta-macOS-X.Y.Z</code>
+<li><code>shasta-Ubuntu-16.04-X.Y.Z.tar</code>
+<li><code>shasta-Ubuntu-18.04-X.Y.Z.tar</code>
+</ul>
+
+<li>Create the release on GitHub and write some release notes.
+The release name should be just/simply <code>X.Y.Z</code>.
+<li>Upload the unzipped and renamed artifacts 
+to the new release as assets.
+
+<li>Publish the release on GitHub.
+<li>After the release has been published it should not be modified or deleted.
+<li>In 
+<code>shasta/.github/workflows/Build.yml</code>,
+change the build id to 
+<code>Shasta unreleased test build newer than release X.Y.Z</code>
+in 3 places for future GitHub Actions builds.
+</ul>
+
+
+<h2>Procedure used for release 0.1.0</h2>
 <ul>
 <li>Make sure there are no outstanding commits or
 pull requests that should be in the new release.
