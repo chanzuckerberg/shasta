@@ -212,7 +212,11 @@ void ReadLoader::readBlock(size_t threadCount)
     }
 
     if(buffer.front() != '>') {
-        throw runtime_error("Expected '>' at beginning of a block.");
+        if(blockBegin == 0) {
+            throw runtime_error("The first character in the Fasta file is not \">\".");
+        } else {
+            throw runtime_error("Expected '>' at beginning of a block.");
+        }
     }
 
     if(blockEnd != fileSize) {
