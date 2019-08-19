@@ -26,7 +26,7 @@ using namespace shasta;
 #include "fstream.hpp"
 
 
-// Ccompute an alignment of the markers of two oriented reads.
+// Compute an alignment of the markers of two oriented reads.
 void shasta::align(
 
     // Markers of the two oriented reads to be aligned, sorted by KmerId.
