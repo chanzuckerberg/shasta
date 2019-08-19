@@ -1,6 +1,6 @@
 To create html documentation for the Python API:
 
-- Make sure sphinx is installed.
+- Make sure sphinx is installed. Package namne on Ubuntu is sphinxsearch.
 - Set PYTHONPATH to point to a directory containing shasta.so.
   Sphinx uses the documentation strings stored there.
 - In this directory, do "make clean; make html".
