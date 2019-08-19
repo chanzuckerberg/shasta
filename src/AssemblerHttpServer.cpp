@@ -2849,7 +2849,7 @@ void Assembler::exploreAlignmentGraph(
 
     // Compute layout in svg format.
     const string command =
-        "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+        timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
         " sfdp -O -T svg " + dotFileName +
         " -Gsize=" + to_string(sizePixels/72.);
     const auto layoutStartTime = steady_clock::now();
@@ -3185,7 +3185,7 @@ void Assembler::exploreReadGraph(
     // Display the graph in svg format.
     if(format == "svg") {
         const string command =
-            "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+            timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
             " sfdp -O -T svg " + dotFileName +
             " -Gsize=" + to_string(sizePixels/72.);
         const int commandStatus = ::system(command.c_str());
@@ -3255,7 +3255,7 @@ void Assembler::exploreReadGraph(
         // See here for more information:
         // https://www.graphviz.org/doc/info/output.html#d:imap
         const string command =
-            "timeout " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+            timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
             " sfdp -O -T png -T cmapx " + dotFileName +
             " -Gsize=" + to_string(sizePixels/72.);
         const int commandStatus = ::system(command.c_str());

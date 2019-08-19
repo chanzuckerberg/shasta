@@ -81,7 +81,7 @@ void Assembler::exploreAssemblyGraph(
 
     // Compute graph layout in svg format.
     const string command =
-        "timeout " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
+        timeoutCommand() + " " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
         " dot -O -T svg " + dotFileName +
         " -Gsize=" + to_string(requestParameters.sizePixels/72.);
     const int commandStatus = ::system(command.c_str());
