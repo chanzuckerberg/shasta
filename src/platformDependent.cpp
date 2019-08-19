@@ -1,4 +1,4 @@
-#include "tmpDirectory.hpp"
+#include "platformDependent.hpp"
 #ifdef __linux__
 #include <stdlib.h>
 #endif
@@ -17,4 +17,21 @@ std::string shasta::tmpDirectory()
     return string(::getenv("TMPDIR")) + "/";
     
 #endif
+}
+
+
+
+// Return the name of a timeout command or equivalent.
+std::string shasta::timeoutCommand()
+{
+#ifdef __linux__
+    return "timeout";
+#else
+
+    // For macOS, return gtimeout.
+    // Requires brew install coreutils.
+    return "gtimeout";
+    
+#endif
+    
 }

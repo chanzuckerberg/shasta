@@ -4,7 +4,7 @@
 #include "Assembler.hpp"
 #include "AssembledSegment.hpp"
 #include "LocalAssemblyGraph.hpp"
-#include "tmpDirectory.hpp"
+#include "platformDependent.hpp"
 using namespace shasta;
 
 // Boost libraries.

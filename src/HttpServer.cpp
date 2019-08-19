@@ -5,9 +5,9 @@
 // Shasta.
 #include "HttpServer.hpp"
 #include "filesystem.hpp"
+#include "platformDependent.hpp"
 #include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
-#include "tmpDirectory.hpp"
 using namespace shasta;
 
 // Boost libraries.

@@ -23,8 +23,8 @@
 #include "AlignmentGraph.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
+#include "platformDependent.hpp"
 #include "timestamp.hpp"
-#include "tmpDirectory.hpp"
 using namespace shasta;
 
 // Boost libraries.

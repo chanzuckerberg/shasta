@@ -5,7 +5,7 @@
 #include "ConsensusCaller.hpp"
 #include "iterator.hpp"
 #include "LocalMarkerGraph.hpp"
-#include "tmpDirectory.hpp"
+#include "platformDependent.hpp"
 using namespace shasta;
 
 // Boost libraries.
