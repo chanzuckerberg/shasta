@@ -24,6 +24,7 @@
 #include "LocalAlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
 #include "timestamp.hpp"
+#include "tmpDirectory.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -1543,7 +1544,7 @@ void Assembler::blastRead(
 
     // Create a fasta file with this sequence.
     const string uuid = to_string(boost::uuids::random_generator()());
-    const string fastaFileName = "/dev/shm/" + uuid + ".fa";
+    const string fastaFileName = tmpDirectory() + uuid + ".fa";
     ofstream fastaFile(fastaFileName);
     fastaFile << ">" << OrientedReadId(readId, strand);
     fastaFile << "-" << beginPosition << "-" << endPosition<< "\n";
@@ -1556,8 +1557,8 @@ void Assembler::blastRead(
 
 
     // Create the blast command and run it.
-    const string blastOutputFileName = "/dev/shm/" + uuid + ".txt";
-    const string blastErrFileName = "/dev/shm/" + uuid + ".errtxt";
+    const string blastOutputFileName = tmpDirectory() + uuid + ".txt";
+    const string blastErrFileName = tmpDirectory() + uuid + ".errtxt";
     const string command = "blastn -task megablast -subject " + httpServerData.referenceFastaFileName +
         " -query " + fastaFileName + " 1>" + blastOutputFileName + " 2>" + blastErrFileName +
         " " + blastOptions;
@@ -2843,7 +2844,7 @@ void Assembler::exploreAlignmentGraph(
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
-    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    const string dotFileName = tmpDirectory() + uuid + ".dot";
     graph.write(dotFileName, maxDistance);
 
     // Compute layout in svg format.
@@ -3089,7 +3090,7 @@ void Assembler::exploreReadGraph(
         // Create a fasta file containing the sequences of all the oriented reads
         // in the local read graph.
         const string uuid = to_string(boost::uuids::random_generator()());
-        const string fastaFileName = "/dev/shm/" + uuid + ".fa";
+        const string fastaFileName = tmpDirectory() + uuid + ".fa";
         ofstream fastaFile(fastaFileName);
         BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
             const LocalReadGraphVertex& vertex = graph[v];
@@ -3107,8 +3108,8 @@ void Assembler::exploreReadGraph(
             "-outfmt '10 qseqid sseqid sstart send' "
             "-evalue 1e-200 -max_hsps 1 -max_target_seqs 1 "
             "-num_threads " + to_string(std::thread::hardware_concurrency());
-        const string blastOutputFileName = "/dev/shm/" + uuid + ".txt";
-        const string blastErrFileName = "/dev/shm/" + uuid + ".errtxt";
+        const string blastOutputFileName = tmpDirectory() + uuid + ".txt";
+        const string blastErrFileName = tmpDirectory() + uuid + ".errtxt";
         const string command = "blastn -task megablast -subject " + httpServerData.referenceFastaFileName +
             " -query " + fastaFileName + " 1>" + blastOutputFileName + " 2>" + blastErrFileName +
             " " + blastOptions;
@@ -3176,7 +3177,7 @@ void Assembler::exploreReadGraph(
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
-    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    const string dotFileName = tmpDirectory() + uuid + ".dot";
     graph.write(dotFileName, maxDistance);
 
 

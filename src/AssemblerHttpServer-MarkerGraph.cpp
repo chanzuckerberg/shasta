@@ -5,6 +5,7 @@
 #include "ConsensusCaller.hpp"
 #include "iterator.hpp"
 #include "LocalMarkerGraph.hpp"
+#include "tmpDirectory.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -100,7 +101,7 @@ void Assembler::exploreMarkerGraph(
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
-    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    const string dotFileName = tmpDirectory() + uuid + ".dot";
     graph.write(
         dotFileName,
         requestParameters.maxDistance,

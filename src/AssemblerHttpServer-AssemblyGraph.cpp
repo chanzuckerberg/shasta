@@ -4,6 +4,7 @@
 #include "Assembler.hpp"
 #include "AssembledSegment.hpp"
 #include "LocalAssemblyGraph.hpp"
+#include "tmpDirectory.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -68,7 +69,7 @@ void Assembler::exploreAssemblyGraph(
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
-    const string dotFileName = "/dev/shm/" + uuid + ".dot";
+    const string dotFileName = tmpDirectory() + uuid + ".dot";
     graph.write(
         dotFileName,
         requestParameters.maxDistance,

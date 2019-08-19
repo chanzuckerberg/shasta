@@ -7,6 +7,7 @@
 #include "filesystem.hpp"
 #include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
+#include "tmpDirectory.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -658,7 +659,7 @@ bool HttpServer::isLocalConnectionSameUser(
 
     // Use lsof command to get a list of open sockets.
     const string uuid = to_string(boost::uuids::random_generator()());
-    const string fileName = "/dev/shm/" + uuid + ".fa";
+    const string fileName = tmpDirectory() + uuid + ".fa";
     if(::system(("lsof -i -n > " + fileName).c_str())) {
         filesystem::remove(fileName);
         return false;
