@@ -247,7 +247,8 @@ void ReadLoader::readBlockSequential()
     while(bytesToRead) {
         const ssize_t byteCount = ::read(fileDescriptor, bufferPointer, bytesToRead);
         if(byteCount <= 0) {
-            throw runtime_error("Error during read.");
+            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+            + " while reading: " + string(::strerror(errno)));        
         }
         bytesToRead -= byteCount;
         bufferPointer += byteCount;
@@ -398,7 +399,8 @@ void ReadLoader::readThreadFunction(size_t threadId)
     while(bytesToRead) {
         const ssize_t byteCount = ::pread(fileDescriptor, bufferPointer, bytesToRead, offset);
         if(byteCount <= 0) {
-            throw runtime_error("Error during read.");
+            throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+            + " while reading: " + string(::strerror(errno)));        
         }
         bytesToRead -= byteCount;
         bufferPointer += byteCount;
