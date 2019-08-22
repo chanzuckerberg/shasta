@@ -417,9 +417,13 @@ PYBIND11_MODULE(shasta, module)
         .def("setReferenceFastaFileName",
             &Assembler::setReferenceFastaFileName)
 
-        // Consensus caller.
-        .def("setupConsensusCaller",
-            &Assembler::setupConsensusCaller)
+		// Consensus caller.
+		.def("setupConsensusCaller",
+			&Assembler::setupConsensusCaller)
+
+		// Phasing.
+		.def("createPhasingGraph",
+			&Assembler::createPhasingGraph)
 
         // MarginPhase parameters.
         .def("setupMarginPhase",

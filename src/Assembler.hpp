@@ -15,6 +15,7 @@
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 #include "OrientedReadPair.hpp"
+#include "PhasingGraph.hpp"
 #include "ReadGraph.hpp"
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
@@ -1496,6 +1497,15 @@ public:
     void setupConsensusCaller(const string&);
 private:
     shared_ptr<ConsensusCaller> consensusCaller;
+
+
+
+    // Functions and data structures used for phasing.
+public:
+    void createPhasingGraph();
+private:
+    PhasingGraph phasingGraph;
+
 
 
 
