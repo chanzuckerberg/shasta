@@ -30,7 +30,7 @@ Assembler::Assembler(
         reads.createNew(largeDataName("Reads"), largeDataPageSize);
         readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
         readRepeatCounts.createNew(largeDataName("ReadRepeatCounts"), largeDataPageSize);
-        cout << "Created a new assembly with page size " << largeDataPageSize << endl;
+        // cout << "Created a new assembly with page size " << largeDataPageSize << endl;
 
     } else {
 
@@ -41,7 +41,7 @@ Assembler::Assembler(
         reads.accessExistingReadWrite(largeDataName("Reads"));
         readNames.accessExistingReadWrite(largeDataName("ReadNames"));
         readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
-        cout << "Accessed an existing assembly with page size " << largeDataPageSize << endl;
+        // cout << "Accessed an existing assembly with page size " << largeDataPageSize << endl;
 
     }
     SHASTA_ASSERT(largeDataPageSize == assemblerInfo->largeDataPageSize);
