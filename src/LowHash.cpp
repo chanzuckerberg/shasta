@@ -105,7 +105,7 @@ LowHash::LowHash(
 
     // Set up work areas.
     buckets.createNew(
-            largeDataFileNamePrefix + "tmp-LowHash-Buckets",
+    		largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash-Buckets"),
             largeDataPageSize);
     lowHashes.resize(orientedReadCount);
     candidates.resize(readCount);
@@ -191,7 +191,7 @@ LowHash::LowHash(
 void LowHash::createKmerIds()
 {
     kmerIds.createNew(
-        largeDataFileNamePrefix + "tmp-LowHash-Markers",
+    	largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash-Markers"),
         largeDataPageSize);
     const ReadId orientedReadCount = ReadId(markers.size());
     const ReadId readCount = orientedReadCount / 2;
