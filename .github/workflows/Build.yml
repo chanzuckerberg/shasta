@@ -54,6 +54,10 @@ jobs:
         tar -cvf shasta-Ubuntu-16.04.tar shasta-Ubuntu-16.04        
     - uses: actions/upload-artifact@master
       with:
+        name: shasta-OldLinux
+        path: shasta-build/shasta-Ubuntu-16.04/bin/shasta
+    - uses: actions/upload-artifact@master
+      with:
         name: shasta-Ubuntu-16.04.tar
         path: shasta-build/shasta-Ubuntu-16.04.tar
 
