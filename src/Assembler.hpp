@@ -1502,9 +1502,12 @@ private:
 
     // Functions and data structures used for phasing.
 public:
-    void createPhasingGraph();
+    void createPhasingGraph(size_t threadCount);
 private:
     PhasingGraph phasingGraph;
+    void createPhasingGraphGatherOrientedReadsPass1(size_t threadId);
+    void createPhasingGraphGatherOrientedReadsPass2(size_t threadId);
+    void createPhasingGraphGatherOrientedReads(int pass);
 
 
 

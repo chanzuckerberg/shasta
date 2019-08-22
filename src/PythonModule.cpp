@@ -423,7 +423,8 @@ PYBIND11_MODULE(shasta, module)
 
 		// Phasing.
 		.def("createPhasingGraph",
-			&Assembler::createPhasingGraph)
+			&Assembler::createPhasingGraph,
+			arg("threadCount") = 0)
 
         // MarginPhase parameters.
         .def("setupMarginPhase",

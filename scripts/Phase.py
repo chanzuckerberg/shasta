@@ -11,6 +11,7 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 
 # Access what we need.
+a.accessMarkers();
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
 a.accessAssemblyGraphEdges()
