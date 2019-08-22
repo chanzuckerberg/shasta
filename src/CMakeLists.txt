@@ -5,7 +5,7 @@ project(shasta-library)
 
 # Compiler options.
 add_definitions(-std=c++14)
-add_definitions(-ggdb3)
+add_definitions(-g0)
 add_definitions(-O3)
 add_definitions(-Wall -Wconversion -Wno-unused-result)
 if(BUILD_NATIVE)

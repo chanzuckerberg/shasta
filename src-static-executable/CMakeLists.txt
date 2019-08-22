@@ -22,7 +22,7 @@ endif(NOT MACOS)
 
 # Compiler options.
 add_definitions(-std=c++14)
-add_definitions(-ggdb3)
+add_definitions(-g0)
 add_definitions(-O3)
 if(BUILD_NATIVE)
     add_definitions(-march=native)
