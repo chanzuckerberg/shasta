@@ -6,7 +6,7 @@ using namespace shasta;
 PngImage::PngImage(int width, int height) :
     width(width),
     height(height),
-    data(3*width*height)
+    data(3*width*height, 0)
 {
 }
 

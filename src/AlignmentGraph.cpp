@@ -1,25 +1,8 @@
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
+#include "PngImage.hpp"
 using namespace shasta;
 
-
-#ifdef SHASTA_HTTP_SERVER
-#ifdef __linux__
-// Boost libraries.
-// The boost gil library includes png.h,
-// then uses int_p_NULL which is not defined in
-// all versions of boost (see Boost bug 3908,
-// flagged as fixed but it is not obvious that that
-// is the case). To deal with this, we defensively
-// include png.h, then define int_p_NULL if necessary.
-#include <png.h>
-#ifndef int_p_NULL
-#define int_p_NULL (int *)NULL
-#endif
-#include <boost/gil/gil_all.hpp>
-#include <boost/gil/extension/io/png_dynamic_io.hpp>
-#endif
-#endif
 
 // Standard library.
 #include "algorithm.hpp"
@@ -515,69 +498,54 @@ void AlignmentGraph::writeImage(
     const string& fileName) const
 {
 #ifdef __linux__
-	using namespace boost::gil;
 
-    // Create the image and the view.
-    const size_t n0 = markers0.size();
-    const size_t n1 = markers1.size();
-    rgb8_image_t image(n0, n1);
-    rgb8_image_t::view_t imageView = view(image);
-
-    // Initialize it to black.
-    const rgb8_pixel_t black(0, 0, 0);
-    for(size_t i0=0; i0<n0; i0++) {
-        for(size_t i1=0; i1<n1; i1++) {
-            imageView(i0, i1) = black;
-        }
-    }
-
+    // Create the image, which gets initialized to black.
+    const int n0 = int(markers0.size());
+    const int n1 = int(markers1.size());
+    PngImage image(n0, n1);
 
     // Write a grid.
-    const size_t smallGridSpacing = 10;
-    const rgb8_pixel_t lightGrey(12, 12, 12);
-    for(size_t i0=0; i0<n0; i0+=smallGridSpacing) {
-        for(size_t i1=0; i1<n1; i1++) {
-            imageView(i0, i1) = lightGrey;
+    const int smallGridSpacing = 10;
+    for(int i0=0; i0<n0; i0+=smallGridSpacing) {
+        for(int i1=0; i1<n1; i1++) {
+            image.setPixel(i0, i1, 12, 12, 12);
         }
     }
-    for(size_t i1=0; i1<n1; i1+=smallGridSpacing) {
-        for(size_t i0=0; i0<n0; i0++) {
-            imageView(i0, i1) = lightGrey;
+    for(int i1=0; i1<n1; i1+=smallGridSpacing) {
+        for(int i0=0; i0<n0; i0++) {
+        	image.setPixel(i0, i1, 12, 12, 12);
         }
     }
-    const size_t largeGridSpacing = 50;
-    const rgb8_pixel_t grey(32, 32, 32);
-    for(size_t i0=0; i0<n0; i0+=largeGridSpacing) {
-        for(size_t i1=0; i1<n1; i1++) {
-            imageView(i0, i1) = grey;
+    const int largeGridSpacing = 50;
+    for(int i0=0; i0<n0; i0+=largeGridSpacing) {
+        for(int i1=0; i1<n1; i1++) {
+        	image.setPixel(i0, i1, 32, 32, 32);
         }
     }
-    for(size_t i1=0; i1<n1; i1+=largeGridSpacing) {
-        for(size_t i0=0; i0<n0; i0++) {
-            imageView(i0, i1) = grey;
+    for(int i1=0; i1<n1; i1+=largeGridSpacing) {
+        for(int i0=0; i0<n0; i0++) {
+        	image.setPixel(i0, i1, 32, 32, 32);
         }
     }
 
     // Write the markers.
-    const rgb8_pixel_t red(255, 0, 0);
-    for(size_t i0=0; i0<n0; i0++) {
+    for(int i0=0; i0<n0; i0++) {
         const MarkerWithOrdinal& marker0 = markers0[i0];
-        for(size_t i1=0; i1<n1; i1++) {
+        for(int i1=0; i1<n1; i1++) {
             const MarkerWithOrdinal& marker1 = markers1[i1];
             if(marker0.kmerId == marker1.kmerId) {
-                imageView(marker0.ordinal, marker1.ordinal) = red;
+                image.setPixel(marker0.ordinal, marker1.ordinal, 255, 0, 0);
             }
         }
     }
 
     // Write the alignment.
-    const rgb8_pixel_t green(0, 255, 0);
     for(const auto& p: alignment.ordinals) {
-        imageView(p[0], p[1]) = green;
+        image.setPixel(p[0], p[1], 0, 255, 0);
     }
 
     // Write it out.
-    png_write_view(fileName, imageView);
+    image.write(fileName);
 #endif
 }
 #endif

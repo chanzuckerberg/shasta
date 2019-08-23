@@ -1,29 +1,11 @@
 
-#ifdef SHASTA_HTTP_SERVER
-#ifdef __linux__
-// Boost gil library.
-// The boost gil library includes png.h,
-// then uses int_p_NULL which is not defined in
-// all versions of boost (see Boost bug 3908,
-// flaged as fixed but it is not obvious that that
-// is the case). To deal with this, we defensively
-// include png.h, then define int_p_NULL if necessary.
-#include <png.h>
-#ifndef int_p_NULL
-#define int_p_NULL (int *)NULL
-#endif
-#include <boost/gil/gil_all.hpp>
-#include <boost/gil/extension/io/png_dynamic_io.hpp>
-#endif
-#endif
-
-
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
 #include "platformDependent.hpp"
+#include "PngImage.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
@@ -2227,21 +2209,12 @@ void Assembler::displayAlignmentMatrix(
     // If getting here, we have two non-empty sequences and
     // we can display they alignment matrix.
 
-    using namespace boost::gil;
 
-    // Create the image and the view.
-    const size_t n0 = sequence0.size();
-    const size_t n1 = sequence1.size();
-    rgb8_image_t image(n0*zoom, n1*zoom);
-    rgb8_image_t::view_t imageView = view(image);
+    // Create the image, which gets initialized to black.
+    const int n0 = int(sequence0.size());
+    const int n1 = int(sequence1.size());
+    PngImage image(n0*zoom, n1*zoom);
 
-    // Initialize it to black.
-    const rgb8_pixel_t black(0, 0, 0);
-    for(size_t i0=0; i0<n0*zoom; i0++) {
-        for(size_t i1=0; i1<n1*zoom; i1++) {
-            imageView(i0, i1) = black;
-        }
-    }
 
 
 
@@ -2249,58 +2222,56 @@ void Assembler::displayAlignmentMatrix(
     if(showGrid) {
 
         // Every 10.
-        const rgb8_pixel_t grey10(128, 128, 128);
-        for(size_t i0=0; i0<n0; i0+=10) {
-            for(size_t i1=0; i1<n1; i1++) {
-                const size_t begin0 = i0 *zoom;
-                const size_t end0 = begin0 + zoom;
-                const size_t begin1 = i1 *zoom;
-                const size_t end1 = begin1 + zoom;
-                for(size_t j0=begin0; j0!=end0; j0++) {
-                    for(size_t j1=begin1; j1!=end1; j1++) {
-                        imageView(j0, j1) = grey10;
+        for(int i0=0; i0<n0; i0+=10) {
+            for(int i1=0; i1<n1; i1++) {
+                const int begin0 = i0 *zoom;
+                const int end0 = begin0 + zoom;
+                const int begin1 = i1 *zoom;
+                const int end1 = begin1 + zoom;
+                for(int j0=begin0; j0!=end0; j0++) {
+                    for(int j1=begin1; j1!=end1; j1++) {
+                        image.setPixel(j0, j1, 128, 128, 128);
                     }
                 }
             }
         }
-        for(size_t i1=0; i1<n1; i1+=10) {
-            for(size_t i0=0; i0<n0; i0++) {
-                const size_t begin0 = i0 *zoom;
-                const size_t end0 = begin0 + zoom;
-                const size_t begin1 = i1 *zoom;
-                const size_t end1 = begin1 + zoom;
-                for(size_t j0=begin0; j0!=end0; j0++) {
-                    for(size_t j1=begin1; j1!=end1; j1++) {
-                        imageView(j0, j1) = grey10;
+        for(int i1=0; i1<n1; i1+=10) {
+            for(int i0=0; i0<n0; i0++) {
+                const int begin0 = i0 *zoom;
+                const int end0 = begin0 + zoom;
+                const int begin1 = i1 *zoom;
+                const int end1 = begin1 + zoom;
+                for(int j0=begin0; j0!=end0; j0++) {
+                    for(int j1=begin1; j1!=end1; j1++) {
+                    	image.setPixel(j0, j1, 128, 128, 128);
                     }
                 }
             }
         }
 
         // Every 100.
-        const rgb8_pixel_t grey100(192,192,192);
-        for(size_t i0=0; i0<n0; i0+=100) {
-            for(size_t i1=0; i1<n1; i1++) {
-                const size_t begin0 = i0 *zoom;
-                const size_t end0 = begin0 + zoom;
-                const size_t begin1 = i1 *zoom;
-                const size_t end1 = begin1 + zoom;
-                for(size_t j0=begin0; j0!=end0; j0++) {
-                    for(size_t j1=begin1; j1!=end1; j1++) {
-                        imageView(j0, j1) = grey100;
+        for(int i0=0; i0<n0; i0+=100) {
+            for(int i1=0; i1<n1; i1++) {
+                const int begin0 = i0 *zoom;
+                const int end0 = begin0 + zoom;
+                const int begin1 = i1 *zoom;
+                const int end1 = begin1 + zoom;
+                for(int j0=begin0; j0!=end0; j0++) {
+                    for(int j1=begin1; j1!=end1; j1++) {
+                    	image.setPixel(j0, j1, 192, 192, 192);
                     }
                 }
             }
         }
-        for(size_t i1=0; i1<n1; i1+=100) {
-            for(size_t i0=0; i0<n0; i0++) {
-                const size_t begin0 = i0 *zoom;
-                const size_t end0 = begin0 + zoom;
-                const size_t begin1 = i1 *zoom;
-                const size_t end1 = begin1 + zoom;
-                for(size_t j0=begin0; j0!=end0; j0++) {
-                    for(size_t j1=begin1; j1!=end1; j1++) {
-                        imageView(j0, j1) = grey100;
+        for(int i1=0; i1<n1; i1+=100) {
+            for(int i0=0; i0<n0; i0++) {
+                const int begin0 = i0 *zoom;
+                const int end0 = begin0 + zoom;
+                const int begin1 = i1 *zoom;
+                const int end1 = begin1 + zoom;
+                for(int j0=begin0; j0!=end0; j0++) {
+                    for(int j1=begin1; j1!=end1; j1++) {
+                    	image.setPixel(j0, j1, 192, 192, 192);
                     }
                 }
             }
@@ -2310,21 +2281,20 @@ void Assembler::displayAlignmentMatrix(
 
 
     // Fill in pixel values.
-    const rgb8_pixel_t green(0, 255, 0);
-    for(size_t i0=0; i0<n0; i0++) {
+    for(int i0=0; i0<n0; i0++) {
         const Base base0 = sequence0[i0];
-        const size_t begin0 = i0 *zoom;
-        const size_t end0 = begin0 + zoom;
-        for(size_t i1=0; i1<n1; i1++) {
+        const int begin0 = i0 *zoom;
+        const int end0 = begin0 + zoom;
+        for(int i1=0; i1<n1; i1++) {
             const Base base1 = sequence1[i1];
             if(!(base1 == base0)) {
                 continue;
             }
-            const size_t begin1 = i1 *zoom;
-            const size_t end1 = begin1 + zoom;
-            for(size_t j0=begin0; j0!=end0; j0++) {
-                for(size_t j1=begin1; j1!=end1; j1++) {
-                    imageView(j0, j1) = green;
+            const int begin1 = i1 *zoom;
+            const int end1 = begin1 + zoom;
+            for(int j0=begin0; j0!=end0; j0++) {
+                for(int j1=begin1; j1!=end1; j1++) {
+                    image.setPixel(j0, j1,0, 255, 0);
                 }
             }
         }
@@ -2401,15 +2371,15 @@ void Assembler::displayAlignmentMatrix(
         // of the alignment, concatenated.
         TSequence align;
         convertAlignment(graph, align);
-        const size_t totalAlignmentLength = seqan::length(align);
+        const int totalAlignmentLength = int(seqan::length(align));
         SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
-        const size_t alignmentLength = totalAlignmentLength / 2;
+        const int alignmentLength = totalAlignmentLength / 2;
 
         // Extract the two rows of the alignment.
         array<vector<AlignedBase>, 2> alignment;
         alignment[0].resize(alignmentLength);
         alignment[1].resize(alignmentLength);
-        for(size_t i=0; i<alignmentLength; i++) {
+        for(int i=0; i<alignmentLength; i++) {
             alignment[0][i] = AlignedBase::fromCharacter(align[i]);
             alignment[1][i] = AlignedBase::fromCharacter(align[i + alignmentLength]);
         }
@@ -2419,31 +2389,33 @@ void Assembler::displayAlignmentMatrix(
             ":<div style='font-family:monospace'>";
         for(size_t i=0; i<2; i++) {
             html << "<br>";
-            for(size_t j=0; j<alignmentLength; j++) {
+            for(int j=0; j<alignmentLength; j++) {
                 html << alignment[i][j];
             }
         }
         html << "</div>";
 
 
-        size_t i0 = 0;
-        size_t i1 = 0;
-        const rgb8_pixel_t red(255, 0, 0);
-        const rgb8_pixel_t yellow(255, 255, 0);
-        for(size_t position=0; position<alignmentLength; position++) {
+        int i0 = 0;
+        int i1 = 0;
+        for(int position=0; position<alignmentLength; position++) {
             const AlignedBase b0 = alignment[0][position];
             const AlignedBase b1 = alignment[1][position];
 
             if(!(b0.isGap() || b1.isGap())) {
 
                 // This pixel is part of the optimal alignment
-                const size_t begin0 = i0 *zoom;
-                const size_t end0 = begin0 + zoom;
-                const size_t begin1 = i1 *zoom;
-                const size_t end1 = begin1 + zoom;
-                for(size_t j0=begin0; j0!=end0; j0++) {
-                    for(size_t j1=begin1; j1!=end1; j1++) {
-                        imageView(j0, j1) = (b0==b1 ? red : yellow);
+                const int begin0 = i0 *zoom;
+                const int end0 = begin0 + zoom;
+                const int begin1 = i1 *zoom;
+                const int end1 = begin1 + zoom;
+                for(int j0=begin0; j0!=end0; j0++) {
+                    for(int j1=begin1; j1!=end1; j1++) {
+                        if(b0 == b1) {
+                        	image.setPixel(j0, j1, 255, 0, 0);
+                        } else {
+                        	image.setPixel(j0, j1, 255, 255, 0);
+                        }
                     }
                 }
             }
@@ -2459,8 +2431,9 @@ void Assembler::displayAlignmentMatrix(
     }
 
 
+
     // Write it out.
-    png_write_view("AlignmentMatrix.png", imageView);
+    image.write("AlignmentMatrix.png");
 
     // Create a base64 version of the png file.
     const string command = "base64 AlignmentMatrix.png > AlignmentMatrix.png.base64";
