@@ -1,3 +1,5 @@
+#ifdef __linux__
+
 #ifndef SHASTA_PNG_IMAGE_HPP
 #define SHASTA_PNG_IMAGE_HPP
 
@@ -21,5 +23,6 @@ private:
     vector<::png_byte> data;
 };
 
+#endif
 #endif
 

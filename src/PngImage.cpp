@@ -1,3 +1,4 @@
+#ifdef __linux__
 #include "PngImage.hpp"
 using namespace shasta;
 
@@ -71,5 +72,5 @@ void PngImage::write(const std::string& fileName) const
     ::png_destroy_write_struct(&pngPointer, &infoPointer);
     std::fclose (fp);
 }
-
+#endif
 
