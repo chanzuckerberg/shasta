@@ -10,28 +10,41 @@ void Assembler::createPhasingGraph(size_t threadCount)
     }
 
     // Find the oriented reads internal to each assembly graph edge.
+    phasingGatherOrientedReads(threadCount);
+
+    // Find the assembly graph edges that each oriented read is internal to.
+    phasingGatherAssemblyGraphEdges(threadCount);
+    phasingSortAssemblyGraphEdges(threadCount);
+
+}
+
+
+
+// Find the oriented reads internal to each assembly graph edge.
+void Assembler::phasingGatherOrientedReads(size_t threadCount)
+{
     phasingGraph.orientedReads.createNew(
 		largeDataName("PagingGraphOrientedReads"), largeDataPageSize);
 	phasingGraph.orientedReads.beginPass1(assemblyGraph.edges.size());
     setupLoadBalancing(assemblyGraph.edges.size(), 1000);
-    runThreads(&Assembler::createPhasingGraphGatherOrientedReadsPass1, threadCount);
+    runThreads(&Assembler::phasingGatherOrientedReadsPass1, threadCount);
 	phasingGraph.orientedReads.beginPass2();
     setupLoadBalancing(assemblyGraph.edges.size(), 1000);
-    runThreads(&Assembler::createPhasingGraphGatherOrientedReadsPass2, threadCount);
+    runThreads(&Assembler::phasingGatherOrientedReadsPass2, threadCount);
 	phasingGraph.orientedReads.endPass2();
 }
 
 
 
-void Assembler::createPhasingGraphGatherOrientedReadsPass1(size_t threadId)
+void Assembler::phasingGatherOrientedReadsPass1(size_t threadId)
 {
-	createPhasingGraphGatherOrientedReads(1);
+	phasingGatherOrientedReadsPass(1);
 }
-void Assembler::createPhasingGraphGatherOrientedReadsPass2(size_t threadId)
+void Assembler::phasingGatherOrientedReadsPass2(size_t threadId)
 {
-	createPhasingGraphGatherOrientedReads(2);
+	phasingGatherOrientedReadsPass(2);
 }
-void Assembler::createPhasingGraphGatherOrientedReads(int pass)
+void Assembler::phasingGatherOrientedReadsPass(int pass)
 {
 
 	// Define this here to reduce memory allocation activity.
@@ -106,3 +119,92 @@ void Assembler::createPhasingGraphGatherOrientedReads(int pass)
 	}
 
 }
+
+
+
+// Find the assembly graph edges that each oriented read is internal to..
+void Assembler::phasingGatherAssemblyGraphEdges(size_t threadCount)
+{
+	const uint64_t orientedReadCount = 2*reads.size();
+
+    phasingGraph.assemblyGraphEdges.createNew(
+		largeDataName("PagingGraphAssemblyGraphEdges"), largeDataPageSize);
+	phasingGraph.assemblyGraphEdges.beginPass1(orientedReadCount);
+    setupLoadBalancing(assemblyGraph.edges.size(), 1000);
+    runThreads(&Assembler::phasingGatherAssemblyGraphEdgesPass1, threadCount);
+	phasingGraph.assemblyGraphEdges.beginPass2();
+    setupLoadBalancing(assemblyGraph.edges.size(), 1000);
+    runThreads(&Assembler::phasingGatherAssemblyGraphEdgesPass2, threadCount);
+	phasingGraph.assemblyGraphEdges.endPass2();
+}
+
+void Assembler::phasingGatherAssemblyGraphEdgesPass1(size_t threadId)
+{
+	phasingGatherAssemblyGraphEdgesPass(1);
+}
+void Assembler::phasingGatherAssemblyGraphEdgesPass2(size_t threadId)
+{
+	phasingGatherAssemblyGraphEdgesPass(2);
+}
+
+
+
+void Assembler::phasingGatherAssemblyGraphEdgesPass(int pass)
+{
+
+	// Loop over all batches assigned to this thread.
+	uint64_t begin, end;
+	while(getNextBatch(begin, end)) {
+
+		// Loop over assembly graph edges assigned to this batch.
+		for(AssemblyGraph::EdgeId assemblyGraphEdgeId=begin;
+				assemblyGraphEdgeId!=end; ++assemblyGraphEdgeId) {
+
+			// Access the oriented reads internal to this assembly graph edge.
+			const MemoryAsContainer<OrientedReadId> orientedReadIds =
+					phasingGraph.orientedReads[assemblyGraphEdgeId];
+
+			// Loop over these oriented reads.
+			for(const OrientedReadId orientedReadId: orientedReadIds) {
+				if(pass == 1) {
+					phasingGraph.assemblyGraphEdges.incrementCountMultithreaded(
+						orientedReadId.getValue());
+				} else {
+					phasingGraph.assemblyGraphEdges.storeMultithreaded(
+						orientedReadId.getValue(), assemblyGraphEdgeId);
+				}
+			}
+
+		}
+
+	}
+
+}
+
+
+void Assembler::phasingSortAssemblyGraphEdges(size_t threadCount)
+{
+	const uint64_t orientedReadCount = 2*reads.size();
+    setupLoadBalancing(orientedReadCount, 1000);
+    runThreads(&Assembler::phasingSortAssemblyGraphEdgesThreadFunction, threadCount);
+
+}
+void Assembler::phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId)
+{
+	// Loop over all batches assigned to this thread.
+	uint64_t begin, end;
+	while(getNextBatch(begin, end)) {
+
+		// Loop over oriented reads assigned to this batch.
+		for(uint64_t orientedReadId=begin;
+				orientedReadId!=end; ++orientedReadId) {
+
+			//  Sort the assembly graph edges that this oriented read is internal to.
+			MemoryAsContainer<AssemblyGraph::EdgeId> edges =
+				phasingGraph.assemblyGraphEdges[orientedReadId];
+			sort(edges.begin(), edges.end());
+		}
+	}
+
+}
+

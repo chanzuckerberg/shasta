@@ -16,6 +16,7 @@ with high phasing similarity.
  
 *******************************************************************************/
 
+#include "AssemblyGraph.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "ReadId.hpp"
 
@@ -31,6 +32,10 @@ public:
     // The oriented reads internal to each assembly graph edge.
     // Indexed by assembly graph EdgeId.
     MemoryMapped::VectorOfVectors<OrientedReadId, uint64_t> orientedReads;
+
+    // The assembly graph edges that each oriented read is internal to.
+    // Indexed by OrientedReadId::getValue().
+    MemoryMapped::VectorOfVectors<AssemblyGraph::EdgeId, uint64_t> assemblyGraphEdges;
 };
 
 #endif

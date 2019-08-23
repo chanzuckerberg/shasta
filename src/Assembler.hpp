@@ -1505,9 +1505,16 @@ public:
     void createPhasingGraph(size_t threadCount);
 private:
     PhasingGraph phasingGraph;
-    void createPhasingGraphGatherOrientedReadsPass1(size_t threadId);
-    void createPhasingGraphGatherOrientedReadsPass2(size_t threadId);
-    void createPhasingGraphGatherOrientedReads(int pass);
+    void phasingGatherOrientedReads(size_t threadCount);
+    void phasingGatherOrientedReadsPass1(size_t threadId);
+    void phasingGatherOrientedReadsPass2(size_t threadId);
+    void phasingGatherOrientedReadsPass(int pass);
+    void phasingGatherAssemblyGraphEdges(size_t threadCount);
+    void phasingGatherAssemblyGraphEdgesPass1(size_t threadId);
+    void phasingGatherAssemblyGraphEdgesPass2(size_t threadId);
+    void phasingGatherAssemblyGraphEdgesPass(int pass);
+    void phasingSortAssemblyGraphEdges(size_t threadCount);
+    void phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId);
 
 
 
