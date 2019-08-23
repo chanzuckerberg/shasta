@@ -1,6 +1,7 @@
+// PngImage.hpp must be included first because of png issues on Ubuntu 16.04.
+#include "PngImage.hpp"
 #include "AlignmentGraph.hpp"
 #include "Alignment.hpp"
-#include "PngImage.hpp"
 using namespace shasta;
 
 
