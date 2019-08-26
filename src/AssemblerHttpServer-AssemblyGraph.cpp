@@ -299,6 +299,20 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
 
 
 
+    // Phasing information.
+    if (phasingGraph.orientedReads.isOpen()) {
+        const MemoryAsContainer<OrientedReadId> orientedReadIds =
+            phasingGraph.orientedReads[edgeId];
+        html << "<p>The following oriented reads are internal to the this "
+            "assembly graph edge:<br>";
+        for(const OrientedReadId orientedReadId: orientedReadIds) {
+            html << orientedReadId << " ";
+        }
+    }
+
+
+
+
     // If this edge was not assembled, point to the reverse
     // complemented edge, which was assembled.
     if(!assemblyGraph.isAssembledEdge(edgeId)) {

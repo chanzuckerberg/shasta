@@ -417,14 +417,27 @@ PYBIND11_MODULE(shasta, module)
         .def("setReferenceFastaFileName",
             &Assembler::setReferenceFastaFileName)
 
-		// Consensus caller.
-		.def("setupConsensusCaller",
-			&Assembler::setupConsensusCaller)
+        // Consensus caller.
+        .def("setupConsensusCaller",
+            &Assembler::setupConsensusCaller)
 
-		// Phasing.
-		.def("createPhasingGraph",
-			&Assembler::createPhasingGraph,
-			arg("threadCount") = 0)
+        // Phasing.
+        .def("createPhasingGraph",
+            &Assembler::createPhasingGraph,
+            arg("threadCount") = 0)
+        .def("accessPhasingGraph",
+            &Assembler::accessPhasingGraph)
+        .def("computePhasingSimilarity",
+            (
+                double (Assembler::*)
+                (ReadId, Strand, ReadId, Strand)
+            )
+            &Assembler::computePhasingSimilarity,
+            arg("readId0"),
+            arg("strand0"),
+            arg("readId1"),
+            arg("strand1")
+            )
 
         // MarginPhase parameters.
         .def("setupMarginPhase",

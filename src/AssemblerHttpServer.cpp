@@ -460,6 +460,14 @@ void Assembler::accessAllSoft()
         allDataAreAvailable = false;
     }
 
+    try {
+        accessPhasingGraph();
+    } catch(const exception& e) {
+    	// Don't threat it as missing because this does not get created in all cases.
+        // cout << "Assembly graph sequences are not accessible." << endl;
+        // allDataAreAvailable = false;
+    }
+
     if(!allDataAreAvailable) {
         cout << "Not all assembly data are accessible." << endl;
         cout << "Some functionality is not available." << endl;
@@ -1449,6 +1457,17 @@ void Assembler::exploreRead(
         "to see the global marker graph around that marker. "
         "Black markers correspond to a vertex of the marker graph "
         "that was removed because of low coverage.";
+
+    // Phasing information.
+    if (phasingGraph.assemblyGraphEdges.isOpen()) {
+        const MemoryAsContainer<AssemblyGraph::EdgeId> edges =
+        phasingGraph.assemblyGraphEdges[orientedReadId.getValue()];
+        html << "<p>This oriented read is internal to the following "
+            "assembly graph edges:<br>";
+        for(const AssemblyGraph::EdgeId edge: edges) {
+            html << edge << " ";
+        }
+    }
 }
 
 
