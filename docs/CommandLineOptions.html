@@ -446,7 +446,8 @@ Used for bubble removal.
 Controls assembly strategy. Can be one of the following:
 <dl>
 <dt><code>0</code><dd>Default assembly strategy with partial bubble/superbubble removal.
-<dt><code>1</code><dd>Under development. Does not yet produce assembly results.
+<dt><code>1</code><dd>Under development. Does not yet produce usable assembly results.
+Do not use.
 </dl>
 
 <tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
@@ -473,6 +474,16 @@ not be used.
 This is a 
 <a href="#BooleanSwitches">Boolean switch</a>
 used to request storing of coverage data (only useful in conjunction with <code>--memoryMode filesystem</code>).
+
+<tr id='Phasing.phasingSimilarityThreshold'>
+<td><code>--Phasing.phasingSimilarityThreshold</code><td class=centered><code>0.5</code><td>
+Only used with <code>--Assembly.strategy 1</code>, which is new functionality
+under development. Do not use.
+
+<tr id='Phasing.maxNeighborCount'>
+<td><code>--Phasing.maxNeighborCount</code><td class=centered><code>6</code><td>
+Only used with <code>--Assembly.strategy 1</code>, which is new functionality
+under development. Do not use.
 
 </table>
 

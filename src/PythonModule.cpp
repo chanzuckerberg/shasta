@@ -424,7 +424,9 @@ PYBIND11_MODULE(shasta, module)
         // Phasing.
         .def("createPhasingGraph",
             &Assembler::createPhasingGraph,
-            arg("threadCount") = 0)
+            arg("threadCount") = 0,
+            arg("phasingSimilarityThreshold"),
+            arg("maxNeighborCount"))
         .def("accessPhasingGraph",
             &Assembler::accessPhasingGraph)
         .def("computePhasingSimilarity",

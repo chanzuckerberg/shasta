@@ -2,7 +2,10 @@
 using namespace shasta;
 
 
-void Assembler::createPhasingGraph(size_t threadCount)
+void Assembler::createPhasingGraph(
+    size_t threadCount,
+    double phasingSimilarityThreshold,
+    int maxNeighborCount)
 {
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {

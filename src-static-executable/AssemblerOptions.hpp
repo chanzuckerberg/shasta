@@ -156,6 +156,17 @@ public:
     };
     AssemblyOptions assemblyOptions;
 
+    // Options in the [Phasing] section of the configuration file.
+    // Can also be entered on the command line with option names
+    // beginning with "Phasing.".
+    class PhasingOptions {
+    public:
+        double phasingSimilarityThreshold;
+        int maxNeighborCount;
+        void write(ostream& ) const;
+    };
+    PhasingOptions phasingOptions;
+
     // Constructor.
     AssemblerOptions(int argumentCount, const char** arguments);
 

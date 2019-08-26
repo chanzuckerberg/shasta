@@ -2,7 +2,6 @@
 
 import shasta
 import GetConfig
-import ast
 
 # Read the config file.
 config = GetConfig.getConfig()
@@ -18,7 +17,9 @@ a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
 
 # Do the work.
-a.createPhasingGraph()
+a.createPhasingGraph(
+    phasingSimilarityThreshold = float(config['Phasing']['phasingSimilarityThreshold']),
+    maxNeighborCount = int(config['Phasing']['maxNeighborCount']))
 
 
 

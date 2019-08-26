@@ -1502,7 +1502,10 @@ private:
 
     // Functions and data structures used for phasing.
 public:
-    void createPhasingGraph(size_t threadCount);
+    void createPhasingGraph(
+        size_t threadCount,
+        double phasingSimilarityThreshold,
+        int maxNeighborCount);
     void accessPhasingGraph();
     double computePhasingSimilarity(OrientedReadId, OrientedReadId);
     double computePhasingSimilarity(ReadId, Strand, ReadId, Strand);

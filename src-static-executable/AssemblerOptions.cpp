@@ -372,6 +372,19 @@ void AssemblerOptions::addConfigurableOptions()
         bool_switch(&assemblyOptions.storeCoverageData)->
         default_value(false),
         "Used to request storing coverage data.")
+
+        ("Phasing.phasingSimilarityThreshold",
+        value<double>(&phasingOptions.phasingSimilarityThreshold)->
+        default_value(0.5),
+        "The minimum phasing similarity for an edge "
+        "to be added to the phasing graph.")
+
+        ("Phasing.maxNeighborCount",
+        value<int>(&phasingOptions.maxNeighborCount)->
+        default_value(6),
+        "The maximum number of phasing graph edges to be kept "
+        "for each oriented read.")
+
         ;
 }
 
@@ -438,6 +451,7 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
 }
 
 
+
 void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
 {
     s << "[MarkerGraph]\n";
@@ -466,6 +480,15 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
         convertBoolToPythonString(useMarginPhase) << "\n";
     s << "storeCoverageData = " <<
         convertBoolToPythonString(storeCoverageData) << "\n";
+}
+
+
+
+void AssemblerOptions::PhasingOptions::write(ostream& s) const
+{
+    s << "[Phasing]\n";
+    s << "phasingSimilarityThreshold = " << phasingSimilarityThreshold << "\n";
+    s << "maxNeighborCount = " << maxNeighborCount << "\n";
 }
 
 
