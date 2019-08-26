@@ -18,6 +18,8 @@ with high phasing similarity.
 
 #include "AssemblyGraph.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
+#include "MultitreadedObject.hpp"
+#include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 
 namespace shasta {
@@ -26,8 +28,11 @@ namespace shasta {
 
 
 
-class shasta::PhasingGraph {
+class shasta::PhasingGraph :
+    public MultithreadedObject<PhasingGraph> {
 public:    
+
+    PhasingGraph();
 
     // The oriented reads internal to each assembly graph edge.
     // Indexed by assembly graph EdgeId.
@@ -36,6 +41,36 @@ public:
     // The assembly graph edges that each oriented read is internal to.
     // Indexed by OrientedReadId::getValue().
     MemoryMapped::VectorOfVectors<AssemblyGraph::EdgeId, uint64_t> assemblyGraphEdges;
+
+    // Oriented read pairs with phasing similarity greater than the threshold used.
+    // We only store the ones with readId0 < readId1.
+    // Each pair is stored with its phasinbg similarity.
+    MemoryMapped::Vector< pair<OrientedReadPair, float> > similarPairs;
+    void findSimilarPairs(size_t threadCount, double phasingSimilarityThreshold);
+
+    // Same as above, for the similar pairs found by each read.
+    // This is only used inside findSimilarPairs.
+    vector<std::shared_ptr<MemoryMapped::Vector< pair<OrientedReadPair, float> > > > threadSimilarPairs;
+
+    // File name prefix and page size for binary data.
+    string dataFileNamePrefix;
+    size_t dataPageSize;
+
+    double computePhasingSimilarity(OrientedReadId, OrientedReadId);
+private:
+
+    string dataName(const string& name) const;
+    void findSimilarPairs(size_t threadId);
+    double similarityThreshold;
+
+    // Find similar pairs in which the first ReadId is readId0
+    // and the second ReadId is readId1>readId0.
+    // The last argument is a work area, passed in
+    // to reduce memory allocation activity.
+    void findSimilarPairs(
+        ReadId readId0,
+        MemoryMapped::Vector< pair<OrientedReadPair, float> >& pairVector,
+        vector<OrientedReadId> orientedReadIds);
 };
 
 #endif

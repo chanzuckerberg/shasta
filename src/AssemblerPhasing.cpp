@@ -12,6 +12,11 @@ void Assembler::createPhasingGraph(
         threadCount = std::thread::hardware_concurrency();
     }
 
+    // Store information used by the Phasing graph to create
+    // binary data.
+    phasingGraph.dataFileNamePrefix = largeDataFileNamePrefix;
+    phasingGraph.dataPageSize = largeDataPageSize;
+
     // Find the oriented reads internal to each assembly graph edge.
     phasingGatherOrientedReads(threadCount);
 
@@ -19,6 +24,8 @@ void Assembler::createPhasingGraph(
     phasingGatherAssemblyGraphEdges(threadCount);
     phasingSortAssemblyGraphEdges(threadCount);
 
+    // Find oriented read pairs with phasing similarity greater than the threshold.
+    phasingGraph.findSimilarPairs(threadCount, phasingSimilarityThreshold);
 }
 
 
@@ -244,40 +251,5 @@ double Assembler::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
 {
-    using EdgeId = AssemblyGraph::EdgeId;
-
-    // Access the assembly graph edges that these two oriented reads
-    // are internal to.
-    const MemoryAsContainer<EdgeId> edges0 =
-        phasingGraph.assemblyGraphEdges[orientedReadId0.getValue()];
-    const MemoryAsContainer<EdgeId> edges1 =
-        phasingGraph.assemblyGraphEdges[orientedReadId1.getValue()];
-
-    // Count the number of common assembly graph edges.
-    uint64_t intersectionSize = 0;
-    auto begin0 = edges0.begin();
-    auto begin1 = edges1.begin();
-    auto end0   = edges0.end();
-    auto end1   = edges1.end();
-    auto it0 = begin0;
-    auto it1 = begin1;
-    while(it0!=end0 && it1!=end1) {
-        const EdgeId edgeId0 = *it0;
-        const EdgeId edgeId1 = *it1;
-        if(edgeId0 < edgeId1) {
-            ++it0;
-        } else if(edgeId1 < edgeId0) {
-            ++it1;
-        } else {
-            ++intersectionSize;
-            ++it0;
-            ++it1;
-        }
-    }
-
-    const uint64_t n0 = edges0.size();
-    const uint64_t n1 = edges1.size();
-    SHASTA_ASSERT(n0 > 0);
-    SHASTA_ASSERT(n1 > 0);
-    return double(intersectionSize) / double(min(n0, n1));
+    return phasingGraph.computePhasingSimilarity(orientedReadId0, orientedReadId1);
 }
