@@ -245,7 +245,7 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     const EdgeId edgeIdRc = graph.globalAssemblyGraph.reverseComplementEdge[edgeId];
     const size_t length = graph.edgeLength(e);
     const int baseCount = graph.baseCount(e);
-    const bool wasAssembled = graph.globalAssemblyGraph.isAssembledEdge(edgeId);
+    // const bool wasAssembled = graph.globalAssemblyGraph.isAssembledEdge(edgeId);
     const AssemblyGraph::Edge& globalEdge = graph.globalAssemblyGraph.edges[edgeId];
 
     // Begin edge attributes.
@@ -256,20 +256,29 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
         "Assembly graph edge " + to_string(edgeId) + ", " +
         " reverse complement of assembly graph edge " + to_string(edgeIdRc) + ", " +
         to_string(length) + " marker graph edges, " +
-        to_string(baseCount) + " bases";
+        to_string(baseCount) + " bases" +
+        ", vertex coverage min/ave/max " +
+        to_string(globalEdge.minVertexCoverage) + "/" +
+        to_string(globalEdge.averageVertexCoverage) + "/" +
+        to_string(globalEdge.maxVertexCoverage) +
+        ", edge coverage min/ave/max " +
+        to_string(globalEdge.minEdgeCoverage) + "/" +
+        to_string(globalEdge.averageEdgeCoverage) + "/" +
+        to_string(globalEdge.maxEdgeCoverage);
+
     s << " tooltip=\"" << tooltipText << "\"";
     s << " labeltooltip=\"" << tooltipText << "\"";
 
     // URL
     s << " URL=\"exploreAssemblyGraphEdge?edgeId=" << edge.edgeId << "\"";
 
-    // Color.
-    const string color = wasAssembled ? "green" : "red";
-    s << " color=\"" << color << "\"";
+    // Color. This controls the color of the edge arrow.
+    // const string color = wasAssembled ? "green" : "red";
+    // s << " color=\"" << color << "\"";
 
     // Label.
     if(showEdgeLabels) {
-        const string labelColor = wasAssembled ? "#60ff60" : "#ff6060";
+        const string labelColor = "pink";
         s <<
             " label=<<table"
             " color=\"black\""

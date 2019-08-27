@@ -58,8 +58,7 @@ void Assembler::exploreAssemblyGraph(
         return;
     }
     html << "<p>The local assembly graph has " << num_vertices(graph);
-    html << " vertices (grey/black) and " << num_edges(graph) << " edges "
-        " (green if assembled, red otherwise).";
+    html << " vertices and " << num_edges(graph) << " edges.";
 
     const auto createFinishTime = steady_clock::now();
     if(seconds(createFinishTime - createStartTime) > requestParameters.timeout) {
