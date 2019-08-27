@@ -216,7 +216,7 @@ void PhasingGraph::keepBestSimilarPairs(int maxNeighborCount)
         if(v.size() > uint64_t(maxNeighborCount)) {
             sort(v.begin(), v.end(), OrderPairsBySecondOnlyGreater<uint64_t, float>());
         }
-        for(uint64_t i=0; i<min(uint64_t(maxNeighborCount), v.size()); i++) {
+        for(uint64_t i=0; i<min(uint64_t(maxNeighborCount), uint64_t(v.size())); i++) {
             keep[v[i].first] = true;
         }
     }
