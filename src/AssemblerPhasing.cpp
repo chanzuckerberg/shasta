@@ -26,6 +26,8 @@ void Assembler::createPhasingGraph(
 
     // Find oriented read pairs with phasing similarity greater than the threshold.
     phasingGraph.findSimilarPairs(threadCount, phasingSimilarityThreshold);
+    phasingGraph.keepBestSimilarPairs(maxNeighborCount);
+    phasingGraph.writeGraphviz();
 }
 
 

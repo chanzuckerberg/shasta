@@ -1,4 +1,5 @@
 #include "PhasingGraph.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
 
 
@@ -26,7 +27,7 @@ void PhasingGraph::findSimilarPairs(
     size_t threadCount,
     double phasingSimilarityThreshold)
 {
-    // Store the tghreshold.
+    // Store the threshold.
     similarityThreshold = phasingSimilarityThreshold;
 
     // Allocate space for the similar pairs found by each thread.
@@ -54,28 +55,6 @@ void PhasingGraph::findSimilarPairs(
     cout << timestamp << "Found " << similarPairs.size() <<
         " oriented read pairs with phasing similarity " <<
         phasingSimilarityThreshold << " or more." << endl;
-
-
-
-    // Write all the pairs in graphviz format.
-    ofstream graphout("PhasingGraph.dot");
-    graphout << "graph G {" << endl;
-    for(const auto& p: similarPairs) {
-        const auto& q = p.first;
-        OrientedReadId orientedReadId0(q.readIds[0], 0);
-        OrientedReadId orientedReadId1(q.readIds[1], q.isSameStrand ? 0 : 1);
-        graphout << orientedReadId0.getValue();
-        graphout << "--";
-        graphout << orientedReadId1.getValue();
-        orientedReadId0.flipStrand();
-        orientedReadId1.flipStrand();
-        graphout << ";\n";
-        graphout << orientedReadId0.getValue();
-        graphout << "--";
-        graphout << orientedReadId1.getValue();
-        graphout << ";\n";
-    }
-    graphout << "}" << endl;
 
 }
 
@@ -205,4 +184,103 @@ void PhasingGraph::findSimilarPairs(
     }
 
 }
+
+
+
+// This is written single-threaded and without attention to performance, for now.
+void PhasingGraph::keepBestSimilarPairs(int maxNeighborCount)
+{
+    // The indexes of the pairs that each oriented read is involved in.
+    const uint64_t orientedReadCount = assemblyGraphEdges.size();
+    vector< vector< pair<uint64_t, float> > > table(orientedReadCount);
+    for(uint64_t i=0; i<similarPairs.size(); i++) {
+        const auto& p = similarPairs[i];
+        const auto& q = p.first;
+        const float similarity = float(p.second);
+        OrientedReadId orientedReadId0(q.readIds[0], 0);
+        OrientedReadId orientedReadId1(q.readIds[1], q.isSameStrand ? 0 : 1);
+        table[orientedReadId0.getValue()].push_back(make_pair(i, similarity));
+        table[orientedReadId1.getValue()].push_back(make_pair(i, similarity));
+        orientedReadId0.flipStrand();
+        orientedReadId1.flipStrand();
+        table[orientedReadId0.getValue()].push_back(make_pair(i, similarity));
+        table[orientedReadId1.getValue()].push_back(make_pair(i, similarity));
+    }
+
+
+    // For each oriented read, sort by decreasing similarity.
+    // Then keep only the best maxNeighborCount.
+    vector<bool> keep(similarPairs.size(), false);
+    for(uint64_t orientedReadId=0; orientedReadId!=orientedReadCount; orientedReadId++) {
+        auto& v = table[orientedReadId];
+        if(v.size() > uint64_t(maxNeighborCount)) {
+            sort(v.begin(), v.end(), OrderPairsBySecondOnlyGreater<uint64_t, float>());
+        }
+        for(uint64_t i=0; i<min(uint64_t(maxNeighborCount), v.size()); i++) {
+            keep[v[i].first] = true;
+        }
+    }
+
+
+    // Keep only the pairs we flagged.
+    uint64_t i = 0;
+    uint64_t j = 0;
+    for(; i<similarPairs.size(); i++) {
+        if(keep[i]) {
+            similarPairs[j++] = similarPairs[i];
+        }
+    }
+    similarPairs.resize(j);
+    cout << "Kept " << similarPairs.size() << " best similar pairs." << endl;
+}
+
+
+
+// Write all the pairs in graphviz format.
+void PhasingGraph::writeGraphviz()
+{
+    ofstream graphout("PhasingGraph.dot");
+    graphout << "graph G {" << endl;
+    graphout  << "tooltip = \" \";\n";
+
+    // Vertices.
+    const ReadId orientedReadCount = ReadId(assemblyGraphEdges.size());
+    const ReadId readCount = orientedReadCount / 2;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            graphout << orientedReadId.getValue();
+            graphout << "[";
+            graphout << "tooltip=\"" << orientedReadId << "\"";
+            graphout << "];\n";
+        }
+    }
+
+
+    // Edges.
+    for(const auto& p: similarPairs) {
+        const auto& q = p.first;
+        OrientedReadId orientedReadId0(q.readIds[0], 0);
+        OrientedReadId orientedReadId1(q.readIds[1], q.isSameStrand ? 0 : 1);
+        graphout << orientedReadId0.getValue();
+        graphout << "--";
+        graphout << orientedReadId1.getValue();
+        orientedReadId0.flipStrand();
+        orientedReadId1.flipStrand();
+        graphout << "[";
+        graphout << "tooltip=\"" << orientedReadId0 << " " << orientedReadId1 << " " <<
+            p.second << "\"";
+        graphout << "];\n";
+        graphout << orientedReadId0.getValue();
+        graphout << "--";
+        graphout << orientedReadId1.getValue();
+        graphout << "[";
+        graphout << "tooltip=\"" << orientedReadId0 << " " << orientedReadId1 << " " <<
+            p.second << "\"";
+        graphout << "];\n";
+    }
+    graphout << "}" << endl;
+
+}
+
 

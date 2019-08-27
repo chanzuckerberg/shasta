@@ -47,6 +47,7 @@ public:
     // Each pair is stored with its phasinbg similarity.
     MemoryMapped::Vector< pair<OrientedReadPair, float> > similarPairs;
     void findSimilarPairs(size_t threadCount, double phasingSimilarityThreshold);
+    void keepBestSimilarPairs(int maxNeighborCount);
 
     // Same as above, for the similar pairs found by each read.
     // This is only used inside findSimilarPairs.
@@ -56,7 +57,10 @@ public:
     string dataFileNamePrefix;
     size_t dataPageSize;
 
+    void writeGraphviz();
+
     double computePhasingSimilarity(OrientedReadId, OrientedReadId);
+
 private:
 
     string dataName(const string& name) const;
