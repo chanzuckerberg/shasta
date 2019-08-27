@@ -273,12 +273,12 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s, edge_descriptor e) 
     s << " URL=\"exploreAssemblyGraphEdge?edgeId=" << edge.edgeId << "\"";
 
     // Color. This controls the color of the edge arrow.
-    // const string color = wasAssembled ? "green" : "red";
-    // s << " color=\"" << color << "\"";
+    const string color = edge.isHighlighted ? "red" : "black";
+    s << " color=\"" << color << "\"";
 
     // Label.
     if(showEdgeLabels) {
-        const string labelColor = "pink";
+        const string labelColor = edge.isHighlighted ? "red" : "pink";
         s <<
             " label=<<table"
             " color=\"black\""

@@ -9,6 +9,7 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/algorithm/string.hpp>
+#include <boost/graph/iteration_macros.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -29,7 +30,8 @@ void Assembler::exploreAssemblyGraph(
     getLocalAssemblyGraphRequestParameters(request, requestParameters);
 
     // Write the form.
-    requestParameters.writeForm(html, assemblyGraph.edges.size());
+    const bool allowHighlighting = phasingGraph.assemblyGraphEdges.isOpen();
+    requestParameters.writeForm(html, assemblyGraph.edges.size(), allowHighlighting);
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -65,6 +67,38 @@ void Assembler::exploreAssemblyGraph(
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
+
+
+
+    // Highlight edges containing the specified oriented read.
+    if(allowHighlighting && requestParameters.highlightedReadIdIsPresent) {
+
+        // Create a map of local edges, keyed by global edge id.
+        std::map<AssemblyGraph::EdgeId, LocalAssemblyGraph::edge_descriptor> edgeMap;
+        BGL_FORALL_EDGES(e, graph, LocalAssemblyGraph) {
+            edgeMap.insert(make_pair(graph[e].edgeId, e));
+        }
+
+        // Get the edges we need to highlight.
+        const OrientedReadId orientedReadId(
+            requestParameters.highlightedReadId,
+            requestParameters.highlightedStrand);
+        const MemoryAsContainer<AssemblyGraph::EdgeId> highlightedEdges =
+            phasingGraph.assemblyGraphEdges[orientedReadId.getValue()];
+
+        // Highlight those edges, if present in the local assembly graph.
+        for(const AssemblyGraph::EdgeId edgeId: highlightedEdges) {
+            const auto it = edgeMap.find(edgeId);
+            if(it == edgeMap.end()) {
+                continue;
+            }
+            const LocalAssemblyGraph::edge_descriptor e = it->second;
+            graph[e].isHighlighted = true;
+        }
+
+    }
+
+
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
@@ -153,13 +187,20 @@ void Assembler::getLocalAssemblyGraphRequestParameters(
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
 
+    parameters.highlightedReadIdIsPresent = getParameterValue(
+        request, "highlightedReadId", parameters.highlightedReadId);
+
+    parameters.highlightedStrand = 0;
+    getParameterValue(request, "highlightedStrand", parameters.highlightedStrand);
+
 }
 
 
 
 void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
     ostream& html,
-    AssemblyGraph::EdgeId edgeCount) const
+    AssemblyGraph::EdgeId edgeCount,
+    bool allowHighlighting) const
 {
     html <<
         "<h3>Display a local subgraph of the global assembly graph</h3>"
@@ -209,7 +250,26 @@ void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
         "<td>Timeout (seconds) for graph creation and layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
-        ">"
+        ">";
+
+    if(allowHighlighting) {
+        html <<
+            "<tr>"
+            "<td>Oriented read to be highlighted"
+            "<td><input type=text name=highlightedReadId size=8 style='text-align:center'";
+
+        if(highlightedReadIdIsPresent) {
+            html << " value='" << highlightedReadId << "'";
+        }
+        html << ">";
+
+        html << "<tr><td>Strand of oriented read to be highlighted><td class=centered>";
+        writeStrandSelection(html, "highlightedStrand", highlightedStrand==0, highlightedStrand==1);
+
+
+    }
+
+    html <<
         "</table>"
 
         "<br><input type=submit value='Display'>"

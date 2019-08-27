@@ -1452,6 +1452,8 @@ public:
         double elapsedTimeSeconds,
         double averageCpuUtilization);
 
+
+
     // Functions and data used by the http server
     // for display of the local assembly graph.
 private:
@@ -1469,7 +1471,10 @@ private:
         bool sizePixelsIsPresent;
         double timeout;
         bool timeoutIsPresent;
-        void writeForm(ostream&, AssemblyGraph::EdgeId edgeCount) const;
+        bool highlightedReadIdIsPresent;
+        ReadId highlightedReadId;
+        Strand highlightedStrand;
+        void writeForm(ostream&, AssemblyGraph::EdgeId edgeCount, bool allowHighlighting) const;
         bool hasMissingRequiredParameters() const;
     };
     void getLocalAssemblyGraphRequestParameters(

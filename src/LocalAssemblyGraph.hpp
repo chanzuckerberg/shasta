@@ -74,6 +74,10 @@ public:
 
     // Field used by approximateTopologicalSort.
     bool isDagEdge = true;
+
+    // Flag that indicates whether this edge should
+    // be highlighted inthe display.
+    bool isHighlighted = false;
 };
 
 
