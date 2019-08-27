@@ -1514,6 +1514,8 @@ public:
     void accessPhasingGraph();
     double computePhasingSimilarity(OrientedReadId, OrientedReadId);
     double computePhasingSimilarity(ReadId, Strand, ReadId, Strand);
+    pair<uint64_t, uint64_t> countCommonTurns(ReadId, Strand, ReadId, Strand);
+    pair<uint64_t, uint64_t> countCommonTurns(OrientedReadId, OrientedReadId);
 private:
     PhasingGraph phasingGraph;
     void phasingGatherOrientedReads(size_t threadCount);

@@ -64,6 +64,20 @@ public:
 
         // The hinge. v = target(e0) = source(e1).
         AssemblyGraph::VertexId v;
+
+        Turn(
+            AssemblyGraph::EdgeId e0 = AssemblyGraph::invalidEdgeId,
+            AssemblyGraph::EdgeId e1 = AssemblyGraph::invalidEdgeId,
+            AssemblyGraph::VertexId v = AssemblyGraph::invalidVertexId) :
+            e0(e0), e1(e1), v(v) {}
+
+        bool operator==(const Turn& that) const
+        {
+            // Can't compare turns on different vertices.
+            SHASTA_ASSERT(v == that.v);
+
+            return e0==that.e0 && e1==that.e1;
+        }
     };
 
     // Store the turns for each oriented read.
@@ -73,6 +87,10 @@ public:
     // one for each v.
     MemoryMapped::VectorOfVectors<Turn, uint64_t> turns;
     void findTurns();
+
+    // Count concordant and discordant turns for two oriented reads.
+    // Returns pair(concordantCount, discordantCount).
+    pair<uint64_t, uint64_t> countCommonTurns(OrientedReadId, OrientedReadId);
 
     // Oriented read pairs with phasing similarity greater than the threshold used.
     // We only store the ones with readId0 < readId1.

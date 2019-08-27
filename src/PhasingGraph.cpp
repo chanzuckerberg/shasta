@@ -86,7 +86,9 @@ void PhasingGraph::findSimilarPairs(size_t threadId)
 }
 
 
-
+#if 0
+// This is the old version that just looks at
+// common edges.
 double PhasingGraph::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
@@ -129,7 +131,22 @@ double PhasingGraph::computePhasingSimilarity(
     return double(intersectionSize) / double(min(n0, n1));
 
 }
+#endif
 
+// The new version uses turns.
+double PhasingGraph::computePhasingSimilarity(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1)
+{
+    uint64_t concordantCount;
+    uint64_t discordantCount;
+    tie(concordantCount, discordantCount) =
+        countCommonTurns(orientedReadId0, orientedReadId1);
+
+    return
+        (double(concordantCount) - double(discordantCount)) /
+        (double(concordantCount) + double(discordantCount));
+}
 
 
 // Find similar pairs in which the first ReadId is readId0
@@ -172,7 +189,14 @@ void PhasingGraph::findSimilarPairs(
 
     // Now compute phasing similarity for each.
     for(const OrientedReadId orientedReadId1: orientedReadIds) {
-        const double similarity = computePhasingSimilarity(orientedReadId0, orientedReadId1);
+        uint64_t concordantCount, discordantCount;
+        tie(concordantCount, discordantCount) = countCommonTurns(orientedReadId0, orientedReadId1);
+        if(concordantCount + discordantCount < 6) { // ************* EXPOSE THIS
+            continue;
+        }
+        const double similarity =
+            (double(concordantCount) - double(discordantCount)) /
+            (double(concordantCount) + double(discordantCount));
         if(similarity >= similarityThreshold) {
             const bool isSameStrand = orientedReadId1.getStrand() == 0;
             pairVector.push_back(make_pair(
@@ -236,6 +260,52 @@ void PhasingGraph::keepBestSimilarPairs(int maxNeighborCount)
 
 
 
+// Count concordant and discordant turns for two oriented reads.
+// Returns pair(concordantCount, discordantCount).
+pair<uint64_t, uint64_t> PhasingGraph::countCommonTurns(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1)
+{
+    uint64_t concordantCount = 0;
+    uint64_t discordantCount = 0;
+
+    // Access the turns of these two oriented reads.
+    const MemoryAsContainer<Turn> turns0 =
+        turns[orientedReadId0.getValue()];
+    const MemoryAsContainer<Turn> turns1 =
+        turns[orientedReadId1.getValue()];
+
+    // Iterate over common turns.
+    // The turns are sorted by vertex id v.
+    auto begin0 = turns0.begin();
+    auto begin1 = turns1.begin();
+    auto end0   = turns0.end();
+    auto end1   = turns1.end();
+    auto it0 = begin0;
+    auto it1 = begin1;
+    while(it0!=end0 && it1!=end1) {
+        const Turn& turn0 = *it0;
+        const Turn& turn1 = *it1;
+        if(turn0.v < turn1.v) {
+            ++it0;
+        } else if(turn1.v < turn0.v) {
+            ++it1;
+        } else {
+            if(turn0 == turn1) {
+                ++concordantCount;
+            } else {
+                ++discordantCount;
+            }
+            ++it0;
+            ++it1;
+        }
+    }
+
+     return make_pair(concordantCount, discordantCount);
+}
+
+
+
 // Write all the pairs in graphviz format.
 void PhasingGraph::writeGraphviz()
 {
@@ -265,12 +335,12 @@ void PhasingGraph::writeGraphviz()
         graphout << orientedReadId0.getValue();
         graphout << "--";
         graphout << orientedReadId1.getValue();
-        orientedReadId0.flipStrand();
-        orientedReadId1.flipStrand();
         graphout << "[";
         graphout << "tooltip=\"" << orientedReadId0 << " " << orientedReadId1 << " " <<
             p.second << "\"";
         graphout << "];\n";
+        orientedReadId0.flipStrand();
+        orientedReadId1.flipStrand();
         graphout << orientedReadId0.getValue();
         graphout << "--";
         graphout << orientedReadId1.getValue();

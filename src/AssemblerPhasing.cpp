@@ -42,6 +42,8 @@ void Assembler::accessPhasingGraph()
         largeDataName("PhasingGraphOrientedReads"));
     phasingGraph.assemblyGraphEdges.accessExistingReadOnly(
         largeDataName("PhasingGraphAssemblyGraphEdges"));
+    phasingGraph.turns.accessExistingReadOnly(
+        largeDataName("PhasingGraphTurns"));
 }
 
 
@@ -262,6 +264,24 @@ double Assembler::computePhasingSimilarity(
 
 
 
+pair<uint64_t, uint64_t> Assembler::countCommonTurns(
+    ReadId readId0, Strand strand0,
+    ReadId readId1, Strand strand1)
+{
+    return countCommonTurns(
+        OrientedReadId(readId0, strand0),
+        OrientedReadId(readId1, strand1)
+        );
+}
+pair<uint64_t, uint64_t> Assembler::countCommonTurns(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1)
+{
+    return phasingGraph.countCommonTurns(orientedReadId0, orientedReadId1);
+}
+
+
+
 // Find turns in the phasing graph.
 // See the definition of class PhasingGraph::Turn for more information.
 void Assembler::phasingFindTurns()
@@ -316,6 +336,8 @@ void Assembler::phasingFindTurns()
                 back_inserter(candidateHinges));
 
             // Loop over all candidate hinges.
+            // The candidate hinges are sorted, so the turns are generated
+            // in order of increasing v.
             for(VertexId v: candidateHinges) {
 
                 // Find the one and only incoming edge
@@ -365,10 +387,13 @@ void Assembler::phasingFindTurns()
                     continue;
                 }
 
+                phasingGraph.turns.append(PhasingGraph::Turn(e0, e1, v));
+                /*
                 cout << orientedReadId << " ";
                 cout << e0 << " ";
                 cout << e1 << " ";
                 cout << v << "\n";
+                */
             }
         }
     }
