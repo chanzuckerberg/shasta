@@ -1526,6 +1526,7 @@ private:
     void phasingGatherAssemblyGraphEdgesPass(int pass);
     void phasingSortAssemblyGraphEdges(size_t threadCount);
     void phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId);
+    void phasingFindTurns();
 
 
 

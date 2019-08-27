@@ -42,6 +42,38 @@ public:
     // Indexed by OrientedReadId::getValue().
     MemoryMapped::VectorOfVectors<AssemblyGraph::EdgeId, uint64_t> assemblyGraphEdges;
 
+
+
+    // For an oriented read r, a turn in the assembly graph
+    // is a path of length two (two consecutive edges e0, e1)
+    // such that:
+    // 1. v = target(e0) = source(e1), called the hinge of the turn.
+    // 2. r is internal to both e0 and e1.
+    // 3. r is not internal to any other incoming edges  of v.
+    // 4. r is not internal to any other outgoing edges of v.
+    // Note that, because of 3. and 4., r can have at most one
+    // turn for each vertex v.
+    class Turn {
+    public:
+
+        // The incoming edge.
+        AssemblyGraph::EdgeId e0;
+
+        // The outgoing edge.
+        AssemblyGraph::EdgeId e1;
+
+        // The hinge. v = target(e0) = source(e1).
+        AssemblyGraph::VertexId v;
+    };
+
+    // Store the turns for each oriented read.
+    // This is indexed by OrientedReadId::getValue().
+    // For a given oriented read, the turns are sorted in
+    // order of increasing v, and there can be at most
+    // one for each v.
+    MemoryMapped::VectorOfVectors<Turn, uint64_t> turns;
+    void findTurns();
+
     // Oriented read pairs with phasing similarity greater than the threshold used.
     // We only store the ones with readId0 < readId1.
     // Each pair is stored with its phasinbg similarity.
@@ -75,6 +107,9 @@ private:
         ReadId readId0,
         MemoryMapped::Vector< pair<OrientedReadPair, float> >& pairVector,
         vector<OrientedReadId> orientedReadIds);
+
+
+
 };
 
 #endif
