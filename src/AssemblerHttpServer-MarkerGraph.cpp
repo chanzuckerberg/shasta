@@ -500,7 +500,10 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
 
         // Check that this repeat count agrees with what was
         // computed during the assembly.
-        SHASTA_ASSERT(consensusRepeatCounts[i] == storedConsensusRepeatCounts[i]);
+        if(consensusRepeatCounts[i] != storedConsensusRepeatCounts[i]) {
+            html << "<p><b>Stored consensus repeat counts do not agree with "
+                "the values computed on the fly.</b>" << endl;
+        }
     }
 
 
