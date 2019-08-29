@@ -1,5 +1,6 @@
 #include "PhasingGraph.hpp"
 #include "orderPairs.hpp"
+#include "setOperations.hpp"
 using namespace shasta;
 
 
@@ -102,26 +103,10 @@ double PhasingGraph::computePhasingSimilarity(
         assemblyGraphEdges[orientedReadId1.getValue()];
 
     // Count the number of common assembly graph edges.
-    uint64_t intersectionSize = 0;
-    auto begin0 = edges0.begin();
-    auto begin1 = edges1.begin();
-    auto end0   = edges0.end();
-    auto end1   = edges1.end();
-    auto it0 = begin0;
-    auto it1 = begin1;
-    while(it0!=end0 && it1!=end1) {
-        const EdgeId edgeId0 = *it0;
-        const EdgeId edgeId1 = *it1;
-        if(edgeId0 < edgeId1) {
-            ++it0;
-        } else if(edgeId1 < edgeId0) {
-            ++it1;
-        } else {
-            ++intersectionSize;
-            ++it0;
-            ++it1;
-        }
-    }
+    const uint64_t intersectionSize = shasta::intersectionSize(
+        edges0.begin(), edges0.end(),
+        edges1.begin(), edges1.end()
+        );
 
     const uint64_t n0 = edges0.size();
     const uint64_t n1 = edges1.size();
@@ -133,11 +118,61 @@ double PhasingGraph::computePhasingSimilarity(
 
 
 
+double PhasingGraph::computePhasingSimilarity(
+    AssemblyGraph::EdgeId edgeId0,
+    AssemblyGraph::EdgeId edgeId1)
+{
+    // Access the oriented reads internals to these
+    // assembly graph edges
+    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
+        orientedReads[edgeId0];
+    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
+        orientedReads[edgeId1];
+
+    // Count the number of common oriented reads.
+    const uint64_t intersectionSize = shasta::intersectionSize(
+        orientedReadIds0.begin(),
+        orientedReadIds0.end(),
+        orientedReadIds1.begin(),
+        orientedReadIds1.end()
+    );
+
+    const uint64_t n0 = orientedReadIds0.size();
+    const uint64_t n1 = orientedReadIds1.size();
+    SHASTA_ASSERT(n0 > 0);
+    SHASTA_ASSERT(n1 > 0);
+    return double(intersectionSize) / double(min(n0, n1));
+}
+
+
+
+uint64_t PhasingGraph::countCommonInternalOrientedReads(
+    AssemblyGraph::EdgeId edgeId0,
+    AssemblyGraph::EdgeId edgeId1)
+{
+    // Access the oriented reads internals to these
+    // assembly graph edges
+    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
+        orientedReads[edgeId0];
+    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
+        orientedReads[edgeId1];
+
+    // Count the number of common oriented reads.
+    return intersectionSize(
+        orientedReadIds0.begin(),
+        orientedReadIds0.end(),
+        orientedReadIds1.begin(),
+        orientedReadIds1.end()
+    );
+}
+
+
 #if 0
 // Experimental version that uses turns.
 double PhasingGraph::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
-    OrientedReadId orientedReadId1)
+    OrientedReadId orientedparser.add_argument("edgeId0", type=int, help="The id of the firstassembly graph edge.")
+ReadId1)
 {
     uint64_t concordantCount;
     uint64_t discordantCount;
@@ -348,5 +383,4 @@ void PhasingGraph::writeGraphviz()
     graphout << "}" << endl;
 
 }
-
 

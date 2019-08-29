@@ -440,6 +440,20 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1")
             )
+        .def("computePhasingSimilarity",
+            (
+                double (Assembler::*)
+                (AssemblyGraph::EdgeId, AssemblyGraph::EdgeId)
+            )
+            &Assembler::computePhasingSimilarity,
+            arg("edgeId0"),
+            arg("edgeId1")
+            )
+        .def("countCommonInternalOrientedReads",
+            &Assembler::countCommonInternalOrientedReads,
+            arg("edgeId0"),
+            arg("edgeId1")
+            )
 #if 0
         .def("countCommonTurns",
             (

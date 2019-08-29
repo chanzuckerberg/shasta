@@ -113,6 +113,8 @@ public:
     void writeGraphviz();
 
     double computePhasingSimilarity(OrientedReadId, OrientedReadId);
+    double computePhasingSimilarity(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
+    uint64_t countCommonInternalOrientedReads(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
 
 private:
 

@@ -263,6 +263,18 @@ double Assembler::computePhasingSimilarity(
 {
     return phasingGraph.computePhasingSimilarity(orientedReadId0, orientedReadId1);
 }
+double Assembler::computePhasingSimilarity(
+    AssemblyGraph::EdgeId edgeId0,
+    AssemblyGraph::EdgeId edgeId1)
+{
+    return phasingGraph.computePhasingSimilarity(edgeId0, edgeId1);
+}
+uint64_t Assembler::countCommonInternalOrientedReads(
+    AssemblyGraph::EdgeId edgeId0,
+    AssemblyGraph::EdgeId edgeId1)
+{
+    return phasingGraph.countCommonInternalOrientedReads(edgeId0, edgeId1);
+}
 
 
 #if 0
