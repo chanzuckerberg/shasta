@@ -44,6 +44,7 @@ public:
 
 
 
+#if 0
     // For an oriented read r, a turn in the assembly graph
     // is a path of length two (two consecutive edges e0, e1)
     // such that:
@@ -91,6 +92,8 @@ public:
     // Count concordant and discordant turns for two oriented reads.
     // Returns pair(concordantCount, discordantCount).
     pair<uint64_t, uint64_t> countCommonTurns(OrientedReadId, OrientedReadId);
+#endif
+
 
     // Oriented read pairs with phasing similarity greater than the threshold used.
     // We only store the ones with readId0 < readId1.

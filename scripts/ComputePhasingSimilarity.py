@@ -24,12 +24,7 @@ print(a.computePhasingSimilarity(
     arguments.readId0, arguments.strand0,
     arguments.readId1, arguments.strand1))
 
-counts = a.countCommonTurns(
-    arguments.readId0, arguments.strand0,
-    arguments.readId1, arguments.strand1)
-# concordantCount = counts[0]
-# discordantCount = counts[1]
-print ('%i concordant, %i discordant turns' % counts)
+
 
 
 

@@ -86,9 +86,8 @@ void PhasingGraph::findSimilarPairs(size_t threadId)
 }
 
 
-#if 0
-// This is the old version that just looks at
-// common edges.
+
+
 double PhasingGraph::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
@@ -131,9 +130,11 @@ double PhasingGraph::computePhasingSimilarity(
     return double(intersectionSize) / double(min(n0, n1));
 
 }
-#endif
 
-// The new version uses turns.
+
+
+#if 0
+// Experimental version that uses turns.
 double PhasingGraph::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
@@ -147,6 +148,7 @@ double PhasingGraph::computePhasingSimilarity(
         (double(concordantCount) - double(discordantCount)) /
         (double(concordantCount) + double(discordantCount));
 }
+#endif
 
 
 // Find similar pairs in which the first ReadId is readId0
@@ -189,21 +191,13 @@ void PhasingGraph::findSimilarPairs(
 
     // Now compute phasing similarity for each.
     for(const OrientedReadId orientedReadId1: orientedReadIds) {
-        uint64_t concordantCount, discordantCount;
-        tie(concordantCount, discordantCount) = countCommonTurns(orientedReadId0, orientedReadId1);
-        if(concordantCount + discordantCount < 6) { // ************* EXPOSE THIS
-            continue;
-        }
-        const double similarity =
-            (double(concordantCount) - double(discordantCount)) /
-            (double(concordantCount) + double(discordantCount));
+        const double similarity = computePhasingSimilarity(orientedReadId0, orientedReadId1);
         if(similarity >= similarityThreshold) {
             const bool isSameStrand = orientedReadId1.getStrand() == 0;
             pairVector.push_back(make_pair(
                 OrientedReadPair(readId0, orientedReadId1.getReadId(), isSameStrand),
                 float(similarity)
                 ));
-            // cout << readId0 << " " << orientedReadId1.getReadId() << " " << int(isSameStrand) << "\n";
         }
     }
 
@@ -260,6 +254,7 @@ void PhasingGraph::keepBestSimilarPairs(int maxNeighborCount)
 
 
 
+#if 0
 // Count concordant and discordant turns for two oriented reads.
 // Returns pair(concordantCount, discordantCount).
 pair<uint64_t, uint64_t> PhasingGraph::countCommonTurns(
@@ -303,6 +298,7 @@ pair<uint64_t, uint64_t> PhasingGraph::countCommonTurns(
 
      return make_pair(concordantCount, discordantCount);
 }
+#endif
 
 
 

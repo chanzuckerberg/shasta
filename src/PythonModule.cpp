@@ -440,6 +440,7 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1")
             )
+#if 0
         .def("countCommonTurns",
             (
                 pair<uint64_t, uint64_t> (Assembler::*)
@@ -451,6 +452,7 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1")
             )
+#endif
 
         // MarginPhase parameters.
         .def("setupMarginPhase",

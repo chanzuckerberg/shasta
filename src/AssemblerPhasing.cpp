@@ -12,7 +12,7 @@ void Assembler::createPhasingGraph(
         threadCount = std::thread::hardware_concurrency();
     }
 
-    // Store information used by the Phasing graph to create
+    // Store information used by the phasing graph to create
     // binary data.
     phasingGraph.dataFileNamePrefix = largeDataFileNamePrefix;
     phasingGraph.dataPageSize = largeDataPageSize;
@@ -24,13 +24,13 @@ void Assembler::createPhasingGraph(
     phasingGatherAssemblyGraphEdges(threadCount);
     phasingSortAssemblyGraphEdges(threadCount);
 
-    // Find turns in the phasing graph.
-    // See the definition of class PhasingGraph::Turn for more information.
-    phasingFindTurns();
-
     // Find oriented read pairs with phasing similarity greater than the threshold.
     phasingGraph.findSimilarPairs(threadCount, phasingSimilarityThreshold);
+
+    // Only keep up to maxNeighborCount neighbors.
     phasingGraph.keepBestSimilarPairs(maxNeighborCount);
+
+    // Write out the global phasing graph in graphviz format.
     phasingGraph.writeGraphviz();
 }
 
@@ -42,8 +42,10 @@ void Assembler::accessPhasingGraph()
         largeDataName("PhasingGraphOrientedReads"));
     phasingGraph.assemblyGraphEdges.accessExistingReadOnly(
         largeDataName("PhasingGraphAssemblyGraphEdges"));
+#if 0
     phasingGraph.turns.accessExistingReadOnly(
         largeDataName("PhasingGraphTurns"));
+#endif
 }
 
 
@@ -263,7 +265,7 @@ double Assembler::computePhasingSimilarity(
 }
 
 
-
+#if 0
 pair<uint64_t, uint64_t> Assembler::countCommonTurns(
     ReadId readId0, Strand strand0,
     ReadId readId1, Strand strand1)
@@ -398,5 +400,5 @@ void Assembler::phasingFindTurns()
         }
     }
 }
-
+#endif
 
