@@ -69,6 +69,8 @@ public:
     public:
         int k;
         double probability;
+        bool suppressHighFrequencyMarkers;
+        double enrichmentThreshold;
         void write(ostream&) const;
     };
     KmersOptions kmersOptions;

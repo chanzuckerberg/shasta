@@ -170,14 +170,7 @@ public:
     void writeRead(ReadId, const string& fileName);
     void writeOrientedRead(ReadId, Strand, const string& fileName);
 
-    // Functions related to the k-mer table.
-    void accessKmers();
-    void writeKmers(const string& fileName) const;
-    void randomlySelectKmers(
-        size_t k,           // k-mer length.
-        double probability, // The probability that a k-mer is selected as a marker.
-        int seed            // For random number generator.
-    );
+
 
     // Functions related to markers.
     // See the beginning of Marker.hpp for more information.
@@ -606,6 +599,43 @@ private:
     // kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarker
     MemoryMapped::Vector<KmerInfo> kmerTable;
     void checkKmersAreOpen() const;
+
+public:
+    void accessKmers();
+    void writeKmers(const string& fileName) const;
+
+    // Select marker k-mers randomly.
+    void randomlySelectKmers(
+        size_t k,           // k-mer length.
+        double probability, // The probability that a k-mer is selected as a marker.
+        int seed            // For random number generator.
+    );
+
+
+
+    // Select marker k-mers randomly, but excluding
+    // the ones that have high frequency in the reads.
+    void selectKmersBasedOnFrequency(
+
+        // k-mer length.
+        size_t k,
+
+        // The desired marker density
+        double markerDensity,
+
+        // Seed for random number generator.
+        int seed,
+
+        // Exclude k-mers enriched by more than this amount.
+        // Enrichment is the ratio of k-mer frequency in reads
+        // over what a random distribution would give.
+        double enrichmentThreshold,
+
+        size_t threadCount
+    );
+private:
+    void computeKmerFrequency(size_t threadId);
+    void initializeKmerTable();
 
 
 

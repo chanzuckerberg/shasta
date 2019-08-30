@@ -122,6 +122,13 @@ PYBIND11_MODULE(shasta, module)
             arg("k"),
             arg("probability"),
             arg("seed") = 231)
+        .def("selectKmersBasedOnFrequency",
+            &Assembler::selectKmersBasedOnFrequency,
+            arg("k"),
+            arg("markerDensity"),
+            arg("seed") = 231,
+            arg("enrichmentThreshold"),
+            arg("threadCount") = 0)
 
 
 

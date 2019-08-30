@@ -314,6 +314,22 @@ Length of marker <i>k</i>-mers (in run-length representation).
 Probability that a k-mer is selected to be used as a marker.
 <a class=qm href='ComputationalMethods.html#Markers'/>
 
+<tr id='Kmers.suppressHighFrequencyMarkers'>
+<td><code>--Kmers.suppressHighFrequencyMarkers</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+If set, high frequency k-mers 
+are not used as markers. High frequency k-mers are those 
+with enrichment greater than the value specified by 
+<code>--Kmers.enrichmentThreshold</code>.
+
+<tr id='Kmers.enrichmentThreshold'>
+<td><code>--Kmers.enrichmentThreshold</code><td class=centered><code>10.</code><td>
+If <code>--Kmers.suppressHighFrequencyMarkers</code> is set, 
+this controls the enrichment threshold above which k-mers
+are not considered as possible markers.
+Enrichment is ratio of k-mer frequency in reads to random.
+
 <tr id='MinHash.m'>
 <td><code>--MinHash.m</code><td class=centered><code>4</code><td>
 The number of consecutive markers that define a MinHash/LowHash feature.

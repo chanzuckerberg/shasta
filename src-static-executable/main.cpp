@@ -445,10 +445,17 @@ void shasta::main::assemble(
     // Create a histogram of read lengths.
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
-    // Randomly select the k-mers that will be used as markers.
-    assembler.randomlySelectKmers(
-        assemblerOptions.kmersOptions.k,
-        assemblerOptions.kmersOptions.probability, 231);
+    // Select the k-mers that will be used as markers.
+    if(assemblerOptions.kmersOptions.suppressHighFrequencyMarkers) {
+        assembler.selectKmersBasedOnFrequency(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231,
+            assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
+    } else {
+        assembler.randomlySelectKmers(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231);
+    }
 
     // Find the markers in the reads.
     assembler.findMarkers(0);

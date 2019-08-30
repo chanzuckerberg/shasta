@@ -237,6 +237,20 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(0.1, "0.1"),
         "Probability that a k-mer is used as a marker.")
 
+        ("Kmers.suppressHighFrequencyMarkers",
+        bool_switch(&kmersOptions.suppressHighFrequencyMarkers)->
+        default_value(false),
+        "If set, high frequency k-mers are not used as markers. "
+        "High frequency k-mers are those with enrichment greater "
+        "than the value specified by Kmers.enrichmentThreshold.")
+
+        ("Kmers.enrichmentThreshold",
+        value<double>(&kmersOptions.enrichmentThreshold)->
+        default_value(10., "10."),
+        "If Kmers.suppressHighFrequencyMarkers is set, this controls the "
+        "enrichment threshold above which a k-mer is not considered as a possible marker. "
+        "Enrichment is ratio of k-mer frequency in reads to random.")
+
         ("MinHash.m",
         value<int>(&minHashOptions.m)->
         default_value(4),
@@ -415,6 +429,9 @@ void AssemblerOptions::KmersOptions::write(ostream& s) const
     s << "[Kmers]\n";
     s << "k = " << k << "\n";
     s << "probability = " << probability << "\n";
+    s << "suppressHighFrequencyMarkers = " <<
+        convertBoolToPythonString(suppressHighFrequencyMarkers) << "\n";
+    s << "enrichmentThreshold = " << enrichmentThreshold << "\n";
 }
 
 
