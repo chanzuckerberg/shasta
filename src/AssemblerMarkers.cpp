@@ -140,3 +140,31 @@ MarkerId Assembler::findReverseComplement(MarkerId markerId) const
 	// Return the corresponding Markerid.
 	return getMarkerId(orientedReadId, ordinal);
 }
+
+
+
+// Write the frequency of markers in oriented reads.
+void Assembler::writeMarkerFrequency()
+{
+    const uint64_t k = assemblerInfo->k;
+    const uint64_t kmerCount = 1ULL << (2ULL*k);
+    SHASTA_ASSERT(markers.isOpen());
+    vector<uint64_t> frequency(kmerCount, 0);
+
+    const CompressedMarker* compressedMarker = markers.begin();
+    const CompressedMarker* end = markers.end();
+    for(; compressedMarker!=end; ++compressedMarker) {
+        ++frequency[compressedMarker->kmerId];
+    }
+
+    ofstream csv("MarkerFrequency.csv");
+    for(uint64_t kmerId=0; kmerId<kmerCount; kmerId++) {
+        const uint64_t n = frequency[kmerId];
+        if(n== 0) {
+            continue;
+        }
+        const Kmer kmer(kmerId, k);
+        kmer.write(csv, k);
+        csv << "," << n << "\n";
+    }
+}

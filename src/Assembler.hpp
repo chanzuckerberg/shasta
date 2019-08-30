@@ -185,6 +185,7 @@ public:
     void accessMarkers();
     void writeMarkers(ReadId, Strand, const string& fileName);
     vector<KmerId> getMarkers(ReadId, Strand);
+    void writeMarkerFrequency();
 
     // Use the minHash algorithm to find candidate alignments.
     // Use as features sequences of m consecutive special k-mers.

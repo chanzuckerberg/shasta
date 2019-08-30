@@ -144,6 +144,8 @@ PYBIND11_MODULE(shasta, module)
             arg("fileName"))
         .def("getMarkers",
             &Assembler::getMarkers)
+        .def("writeMarkerFrequency",
+            &Assembler::writeMarkerFrequency)
 
 
 
