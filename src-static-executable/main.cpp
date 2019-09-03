@@ -629,6 +629,9 @@ void shasta::main::assemble(
     ofstream json("AssemblySummary.json");
     assembler.writeAssemblySummaryJson(json);
 
+    // Also write a summary of read information.
+    assembler.writeReadsSummary();
+
     // For Assembly strategy 1,write a warning message
     if(assemblerOptions.assemblyOptions.strategy == 1) {
         cout << "This assembly was created using --Assembly.strategy 1. "

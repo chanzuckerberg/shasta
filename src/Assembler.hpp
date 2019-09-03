@@ -575,9 +575,14 @@ private:
     void writeOrientedRead(OrientedReadId, ostream&);
     void writeOrientedRead(OrientedReadId, const string& fileName);
 
+    // Write a csv file with summary information for each read.
+public:
+    void writeReadsSummary();
+
 
 
     // Read flags.
+private:
     MemoryMapped::Vector<ReadFlags> readFlags;
 public:
     void initializeReadFlags();
