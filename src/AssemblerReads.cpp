@@ -396,10 +396,20 @@ void Assembler::writeReadsSummary()
     SHASTA_ASSERT(readNames.isOpen());
     SHASTA_ASSERT(markers.isOpen());
 
+    // Count the number of alignment candidates for each read.
+    vector<uint64_t> alignmentCandidatesCount(reads.size(), 0);
+    for(const OrientedReadPair& p: alignmentCandidates) {
+        ++alignmentCandidatesCount[p.readIds[0]];
+        ++alignmentCandidatesCount[p.readIds[1]];
+    }
+
+
     ofstream csv("ReadSummary.csv");
     csv << "Id,Name,RawLength,RleLength,RawOverRleLengthRatio,"
         "MarkerCount,MarkerDensity,MaximumMarkerOffset,"
-        "Palindromic,Chimeric,VertexCount,VertexDensity,\n";
+        "Palindromic,Chimeric,"
+        "AlignmentCandidates,ReadGraphNeighbors,"
+        "VertexCount,VertexDensity,\n";
     for(ReadId readId=0; readId!=reads.size(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
 
@@ -451,6 +461,12 @@ void Assembler::writeReadsSummary()
 
         // Chimeric flag.
         csv << (readFlags[readId].isChimeric ? "Yes" : "No") << ",";
+
+        // Alignment candidates
+        csv << alignmentCandidatesCount[readId] << ",";
+
+        // Number of read graph neighbors.
+        csv << readGraph.connectivity.size(orientedReadId.getValue()) << ",";
 
         // Number and fraction of markers associated with a marker graph vertex.
         uint64_t vertexCount = 0;
