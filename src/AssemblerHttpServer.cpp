@@ -2964,6 +2964,9 @@ void Assembler::exploreReadGraph(
     string addBlastAnnotationsString;
     const bool addBlastAnnotations = getParameterValue(request, "addBlastAnnotations", addBlastAnnotationsString);
 
+    string saveDotFileString;
+    const bool saveDotFile = getParameterValue(request, "saveDotFile", saveDotFileString);
+
 
 
     // Write the form.
@@ -3040,6 +3043,12 @@ void Assembler::exploreReadGraph(
         (addBlastAnnotations ? " checked" : "") <<
         ">"
 
+
+        "<tr title='Save the Graphviz dot file representing this local read graph'>"
+        "<td>Save the Graphviz dot file"
+        "<td class=centered><input type=checkbox name=saveDotFile" <<
+        (saveDotFile ? " checked" : "") <<
+        ">"
         "</table>"
 
         "<input type=submit value='Display'>"
@@ -3201,7 +3210,9 @@ void Assembler::exploreReadGraph(
 
         }
         // Remove the .dot file.
-        filesystem::remove(dotFileName);
+        if(!saveDotFile) {
+            filesystem::remove(dotFileName);
+        }
 
 
 
@@ -3213,6 +3224,9 @@ void Assembler::exploreReadGraph(
             "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
             ") from the start vertex</span> "
             "<span style='background-color:red'>chimeric vertices</span>.<br>";
+        if(saveDotFile) {
+            html << "<p>Graphviz dot file saved as " << dotFileName << "<br>";
+        }
 
 
         // Display the graph.
@@ -3273,7 +3287,11 @@ void Assembler::exploreReadGraph(
 
         }
         // Remove the .dot file.
-        filesystem::remove(dotFileName);
+        if(!saveDotFile) {
+            filesystem::remove(dotFileName);
+        } else {
+            html << "<p>Graphviz dot file saved as " << dotFileName;
+        }
 
         // Get the names of the files we created.
         const string pngFileName = dotFileName + ".png";
