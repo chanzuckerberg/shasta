@@ -60,6 +60,42 @@ of this page.
 
 
 
+<h2 id=bashCompletion>Saving some typing</h2>
+<p>Many option names are long and descriptive, and to make it easier to type them
+Shasta provides the ability to create a <code>bash</code> completion script.
+If you are using the <code>bash</code> shell 
+(the default shell in most modern  Linux distributions),
+you can use the commands below to save yourself some typing.
+This assumes that the <code>shasta</code> executable is
+accessible via your
+<code>PATH</code> environment variable
+(if it is not you have to invoke <code>shasta</code> using
+an absolute or relative path):
+
+<pre>
+shasta --command createBashCompletionScript
+source shastaCompletion.sh
+</pre>
+
+The first command creates a script named
+<code>shastaCompletion.sh</code>.
+The second command runs that script in the current shell
+(this is important - running the script without the <code>source</code>
+command will not work).
+Now, while typing a <code>shasta</code> option or keyword, you can press <code>TAB</code>, and the
+option name will be completed as much as can be done
+without ambiguity. You can also press <code>TAB</code>
+a second time to get suggestions for what could be allowed next.
+
+<p>The command that generates the script can be run only once, but
+you will need to rerun the <code>source</code> command above
+every time you start a new shell. Alternatively, you can put the 
+<code>source</code> command in your <code>.bashrc</code> file 
+or in one of the standard locations used to store <code>bash</code>
+completion scripts.
+
+
+
 <h2>Configuration file</h2>
 <p>
 Some options are only allowed on the command line,
@@ -209,6 +245,14 @@ to specify the run directory that you want to cleanup.
 <dd>
 The Shasta assembler starts in a mode that permits exploring assembly data structures using an Internet browser. 
 <a class=qm href="InspectingResults.html"></a>
+</dd>
+
+
+<dt><code>createBashCompletionScript</code>
+<dd>
+Shasta creates a bash completion script that can be used to save typing
+when invoking <code>shasta</code>.
+<a class=qm href="#bashCompletion"></a>
 </dd>
 
 </dl>

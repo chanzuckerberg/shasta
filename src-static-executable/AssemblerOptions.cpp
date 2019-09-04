@@ -127,7 +127,7 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         value<string>(&commandLineOnlyOptions.command)->
         default_value("assemble"),
         "Command to run. Must be one of: "
-        "assemble, saveBinaryData, cleanupBinaryData, explore")
+        "assemble, saveBinaryData, cleanupBinaryData, explore, createBashCompletionScript")
 
 #ifdef __linux__
         ("memoryMode",

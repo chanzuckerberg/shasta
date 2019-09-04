@@ -34,6 +34,7 @@ namespace shasta {
         void saveBinaryData(const AssemblerOptions&);
         void cleanupBinaryData(const AssemblerOptions&);
         void explore(const AssemblerOptions&);
+        void createBashCompletionScript(const AssemblerOptions&);
 
     }
 }
@@ -108,6 +109,9 @@ void shasta::main::main(int argumentCount, const char** arguments)
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "explore") {
         explore(assemblerOptions);
+        return;
+    } else if(assemblerOptions.commandLineOnlyOptions.command == "createBashCompletionScript") {
+        createBashCompletionScript(assemblerOptions);
         return;
     }
 
@@ -813,4 +817,43 @@ void shasta::main:: explore(
         assemblerOptions.commandLineOnlyOptions.port, 
         localOnly, 
         sameUserOnly);
+}
+
+
+
+// This creates a bash completion script for the Shasta executable,
+// which makes it esaier to type long option names.
+// To use it:
+// shasta --command createBashCompletionScript; source shastaCompletion.sh
+// Then, press TAB once or twice while editing a Shasta command line
+// to get the Bash shell to suggest or fill in possibilities.
+// You can put the "source" command in your .bashrc or other
+// appropriate location.
+// THIS IS AN INITIAL CUT AND LACKS MANY DESIRABLE FEATURES,
+// LIKE FOR EXAMPLE COMPLETION OF FILE NAMES (AFTER --input),
+// AND THE ABILITY TO COMPLETE KEYWORDS ONLY AFTER THE OPTION THEY
+// SHOULD BE PRECEDED BY.
+// IF SOMEBODY WITH A GOOD UNDERSTANDING OF BASH COMPLETION SEES THIS,
+// PLESE MAKE IT BETTER AND SUBMIT A PULL REQUEST!
+void shasta::main::createBashCompletionScript(const AssemblerOptions& assemblerOptions)
+{
+    const string fileName = "shastaCompletion.sh";
+    ofstream file(fileName);
+
+    file << "#!/bin/bash\n";
+    file << "complete -o default -W \"\\\n";
+
+    // Options.
+    for(const auto& option: assemblerOptions.allOptionsDescription.options()) {
+        file << "--" << option->long_name() << " \\\n";
+    }
+
+    // Other keywords. This should be modified to only accept them after the appropriate option.
+    file << "assemble saveBinaryData cleanupBinaryData explore createBashCompletionScript \\\n";
+    file << "filesystem anonymous \\\n";
+    file << "disk 4K 2M \\\n";
+    file << "user local unrestricted \\\n";
+
+    // Finish the "complete" command.
+    file << "\" shasta\n";
 }
