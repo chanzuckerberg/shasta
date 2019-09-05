@@ -30,8 +30,8 @@ void Assembler::exploreAssemblyGraph(
     getLocalAssemblyGraphRequestParameters(request, requestParameters);
 
     // Write the form.
-    const bool allowHighlighting = phasingGraph.assemblyGraphEdges.isOpen();
-    requestParameters.writeForm(html, assemblyGraph.edges.size(), allowHighlighting);
+    // const bool allowHighlighting = phasingGraph.assemblyGraphEdges.isOpen();
+    // requestParameters.writeForm(html, assemblyGraph.edges.size(), allowHighlighting);
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -69,7 +69,7 @@ void Assembler::exploreAssemblyGraph(
     }
 
 
-
+#if 0
     // Highlight edges containing the specified oriented read.
     if(allowHighlighting && requestParameters.highlightedReadIdIsPresent) {
 
@@ -97,7 +97,7 @@ void Assembler::exploreAssemblyGraph(
         }
 
     }
-
+#endif
 
 
     // Write it out in graphviz format.

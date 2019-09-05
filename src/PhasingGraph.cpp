@@ -11,7 +11,42 @@ PhasingGraph::PhasingGraph() :
 }
 
 
+// Compute the phasing similarity of two assembly graph edges.
+// It is computed as the Jaccard similarity of the sets
+// of oriented reads internal to each of the two assembly graph edges.
+double PhasingGraph::computePhasingSimilarity(
+    AssemblyGraph::EdgeId edgeId0,
+    AssemblyGraph::EdgeId edgeId1)
+{
+    // Access the oriented reads internals to these
+    // assembly graph edges.
+    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
+        orientedReads[edgeId0];
+    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
+        orientedReads[edgeId1];
 
+    // Compute the size of the intersection
+    // (number of common oriented reads).
+    const uint64_t intersectionSize = shasta::intersectionSize(
+        orientedReadIds0.begin(),
+        orientedReadIds0.end(),
+        orientedReadIds1.begin(),
+        orientedReadIds1.end()
+    );
+
+    // Compute the size of the union.
+    const uint64_t n0 = orientedReadIds0.size();
+    const uint64_t n1 = orientedReadIds1.size();
+    SHASTA_ASSERT(n0 > 0);
+    SHASTA_ASSERT(n1 > 0);
+    const uint64_t unionSize = n0 + n1 - intersectionSize;
+
+    // Return the Jaccard similarity.
+    return double(intersectionSize) / double(unionSize);
+}
+
+
+#if 0
 // Function to construct names for binary objects.
 string PhasingGraph::dataName(const string& name) const
 {
@@ -88,7 +123,6 @@ void PhasingGraph::findSimilarPairs(size_t threadId)
 
 
 
-
 double PhasingGraph::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
@@ -118,34 +152,6 @@ double PhasingGraph::computePhasingSimilarity(
 
 
 
-double PhasingGraph::computePhasingSimilarity(
-    AssemblyGraph::EdgeId edgeId0,
-    AssemblyGraph::EdgeId edgeId1)
-{
-    // Access the oriented reads internals to these
-    // assembly graph edges
-    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
-        orientedReads[edgeId0];
-    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
-        orientedReads[edgeId1];
-
-    // Count the number of common oriented reads.
-    const uint64_t intersectionSize = shasta::intersectionSize(
-        orientedReadIds0.begin(),
-        orientedReadIds0.end(),
-        orientedReadIds1.begin(),
-        orientedReadIds1.end()
-    );
-
-    const uint64_t n0 = orientedReadIds0.size();
-    const uint64_t n1 = orientedReadIds1.size();
-    SHASTA_ASSERT(n0 > 0);
-    SHASTA_ASSERT(n1 > 0);
-    return double(intersectionSize) / double(min(n0, n1));
-}
-
-
-
 uint64_t PhasingGraph::countCommonInternalOrientedReads(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
@@ -167,7 +173,6 @@ uint64_t PhasingGraph::countCommonInternalOrientedReads(
 }
 
 
-#if 0
 // Experimental version that uses turns.
 double PhasingGraph::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
@@ -183,7 +188,6 @@ ReadId1)
         (double(concordantCount) - double(discordantCount)) /
         (double(concordantCount) + double(discordantCount));
 }
-#endif
 
 
 // Find similar pairs in which the first ReadId is readId0
@@ -289,7 +293,6 @@ void PhasingGraph::keepBestSimilarPairs(int maxNeighborCount)
 
 
 
-#if 0
 // Count concordant and discordant turns for two oriented reads.
 // Returns pair(concordantCount, discordantCount).
 pair<uint64_t, uint64_t> PhasingGraph::countCommonTurns(
@@ -333,7 +336,6 @@ pair<uint64_t, uint64_t> PhasingGraph::countCommonTurns(
 
      return make_pair(concordantCount, discordantCount);
 }
-#endif
 
 
 
@@ -383,4 +385,5 @@ void PhasingGraph::writeGraphviz()
     graphout << "}" << endl;
 
 }
+#endif
 

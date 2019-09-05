@@ -18,8 +18,8 @@ a = shasta.Assembler()
 a.accessPhasingGraph();
 
 # Do the work.
-print('Similarity %f' % a.computePhasingSimilarity(arguments.edgeId0, arguments.edgeId1))
-print('Number of common oriented reads %i' % a.countCommonInternalOrientedReads(arguments.edgeId0, arguments.edgeId1))
+print('Jaccard similarity %f' % a.computePhasingSimilarity(arguments.edgeId0, arguments.edgeId1))
+
 
 
 

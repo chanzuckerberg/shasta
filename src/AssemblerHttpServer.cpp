@@ -1458,6 +1458,7 @@ void Assembler::exploreRead(
         "Black markers correspond to a vertex of the marker graph "
         "that was removed because of low coverage.";
 
+#if 0
     // Phasing information.
     if (phasingGraph.assemblyGraphEdges.isOpen()) {
         const MemoryAsContainer<AssemblyGraph::EdgeId> edges =
@@ -1468,6 +1469,7 @@ void Assembler::exploreRead(
             html << edge << " ";
         }
     }
+#endif
 }
 
 

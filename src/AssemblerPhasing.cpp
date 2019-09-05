@@ -14,12 +14,13 @@ void Assembler::createPhasingGraph(
 
     // Store information used by the phasing graph to create
     // binary data.
-    phasingGraph.dataFileNamePrefix = largeDataFileNamePrefix;
-    phasingGraph.dataPageSize = largeDataPageSize;
+    // phasingGraph.dataFileNamePrefix = largeDataFileNamePrefix;
+    // phasingGraph.dataPageSize = largeDataPageSize;
 
     // Find the oriented reads internal to each assembly graph edge.
     phasingGatherOrientedReads(threadCount);
 
+#if 0
     // Find the assembly graph edges that each oriented read is internal to.
     phasingGatherAssemblyGraphEdges(threadCount);
     phasingSortAssemblyGraphEdges(threadCount);
@@ -32,6 +33,7 @@ void Assembler::createPhasingGraph(
 
     // Write out the global phasing graph in graphviz format.
     phasingGraph.writeGraphviz();
+#endif
 }
 
 
@@ -40,11 +42,9 @@ void Assembler::accessPhasingGraph()
 {
     phasingGraph.orientedReads.accessExistingReadOnly(
         largeDataName("PhasingGraphOrientedReads"));
+#if 0
     phasingGraph.assemblyGraphEdges.accessExistingReadOnly(
         largeDataName("PhasingGraphAssemblyGraphEdges"));
-#if 0
-    phasingGraph.turns.accessExistingReadOnly(
-        largeDataName("PhasingGraphTurns"));
 #endif
 }
 
@@ -159,7 +159,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
 }
 
 
-
+#if 0
 // Find the assembly graph edges that each oriented read is internal to..
 void Assembler::phasingGatherAssemblyGraphEdges(size_t threadCount)
 {
@@ -263,154 +263,25 @@ double Assembler::computePhasingSimilarity(
 {
     return phasingGraph.computePhasingSimilarity(orientedReadId0, orientedReadId1);
 }
+#endif
+
+
+
 double Assembler::computePhasingSimilarity(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
 {
     return phasingGraph.computePhasingSimilarity(edgeId0, edgeId1);
 }
+
+
+
+#if 0
 uint64_t Assembler::countCommonInternalOrientedReads(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
 {
     return phasingGraph.countCommonInternalOrientedReads(edgeId0, edgeId1);
-}
-
-
-#if 0
-pair<uint64_t, uint64_t> Assembler::countCommonTurns(
-    ReadId readId0, Strand strand0,
-    ReadId readId1, Strand strand1)
-{
-    return countCommonTurns(
-        OrientedReadId(readId0, strand0),
-        OrientedReadId(readId1, strand1)
-        );
-}
-pair<uint64_t, uint64_t> Assembler::countCommonTurns(
-    OrientedReadId orientedReadId0,
-    OrientedReadId orientedReadId1)
-{
-    return phasingGraph.countCommonTurns(orientedReadId0, orientedReadId1);
-}
-
-
-
-// Find turns in the phasing graph.
-// See the definition of class PhasingGraph::Turn for more information.
-void Assembler::phasingFindTurns()
-{
-    // Initialize the data structure to contain turns for each oriented read.
-    phasingGraph.turns.createNew(
-        largeDataName("PhasingGraphTurns"), largeDataPageSize);
-
-    // Work areas defined here to reduce memnory allocation activity.
-    using VertexId = AssemblyGraph::VertexId;
-    using EdgeId = AssemblyGraph::EdgeId;
-    vector<EdgeId> sources;
-    vector<EdgeId> targets;
-    vector<VertexId> candidateHinges;
-
-    // Loop over all oriented reads.
-    const ReadId readCount = ReadId(reads.size());
-    for(ReadId readId=0; readId!=readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-
-            // Add a new vector of turns for this oriented reads.
-            phasingGraph.turns.appendVector();
-
-            // Access the assembly graph edges that this oriented read
-            // is internal to.
-            MemoryAsContainer<EdgeId> edgeIds =
-                phasingGraph.assemblyGraphEdges[orientedReadId.getValue()];
-
-            // Each turn vertex must be the target of one of these
-            // edges and also the source of one of these edges.
-            // Therefore, to find possible turn vertices
-            // we compute the intersection of the
-            // sources and targets of these edges.
-            sources.clear();
-            targets.clear();
-            for(const EdgeId edgeId: edgeIds) {
-                const AssemblyGraph::Edge edge = assemblyGraph.edges[edgeId];
-                sources.push_back(edge.source);
-                targets.push_back(edge.target);
-            }
-            // Sort and deduplicate.
-            sort(sources.begin(), sources.end());
-            sort(targets.begin(), targets.end());
-            sources.resize(unique(sources.begin(), sources.end()) - sources.begin());
-            targets.resize(unique(targets.begin(), targets.end()) - targets.begin());
-            // Compute the intersection.
-            candidateHinges.clear();
-            std::set_intersection(
-                sources.begin(), sources.end(),
-                targets.begin(), targets.end(),
-                back_inserter(candidateHinges));
-
-            // Loop over all candidate hinges.
-            // The candidate hinges are sorted, so the turns are generated
-            // in order of increasing v.
-            for(VertexId v: candidateHinges) {
-
-                // Find the one and only incoming edge
-                // that contains our oriented read. If more than one found,
-                // this is not a valid hinge because of condition 3.
-                // in the definition of a Turn.
-                EdgeId e0 = AssemblyGraph::invalidEdgeId;
-                bool isHinge = true;
-                const MemoryAsContainer<EdgeId> incomingEdges =
-                    assemblyGraph.edgesByTarget[v];
-                for(const EdgeId edgeId: incomingEdges) {
-                    if(std::binary_search(edgeIds.begin(), edgeIds.end(), edgeId)) {
-                        // This edge contains our oriented read.
-                        if(e0 == AssemblyGraph::invalidEdgeId) {
-                            e0 = edgeId;
-                        } else {
-                            // This is the second one we found.
-                            isHinge = false;
-                            break;
-                        }
-                    }
-                }
-                if(!isHinge) {
-                    continue;
-                }
-
-                // Find the one and only outgoing edge
-                // that contains our oriented read. If more than one found,
-                // this is not a valid hinge because of condition 4.
-                // in the definition of a Turn.
-                EdgeId e1 = AssemblyGraph::invalidEdgeId;
-                const MemoryAsContainer<EdgeId> outgoingEdges =
-                    assemblyGraph.edgesBySource[v];
-                for(const EdgeId edgeId: outgoingEdges) {
-                    if(std::binary_search(edgeIds.begin(), edgeIds.end(), edgeId)) {
-                        // This edge contains our oriented read.
-                        if(e1 == AssemblyGraph::invalidEdgeId) {
-                            e1 = edgeId;
-                        } else {
-                            // This is the second one we found.
-                            isHinge = false;
-                            break;
-                        }
-                    }
-                }
-                if(!isHinge) {
-                    continue;
-                }
-
-                phasingGraph.turns.append(PhasingGraph::Turn(e0, e1, v));
-                /*
-                cout << orientedReadId << " ";
-                cout << e0 << " ";
-                cout << e1 << " ";
-                cout << v << "\n";
-                */
-            }
-        }
-    }
 }
 #endif
 

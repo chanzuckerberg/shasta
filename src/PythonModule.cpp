@@ -438,6 +438,7 @@ PYBIND11_MODULE(shasta, module)
             arg("maxNeighborCount"))
         .def("accessPhasingGraph",
             &Assembler::accessPhasingGraph)
+#if 0
         .def("computePhasingSimilarity",
             (
                 double (Assembler::*)
@@ -449,6 +450,7 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1")
             )
+#endif
         .def("computePhasingSimilarity",
             (
                 double (Assembler::*)
@@ -458,12 +460,12 @@ PYBIND11_MODULE(shasta, module)
             arg("edgeId0"),
             arg("edgeId1")
             )
+#if 0
         .def("countCommonInternalOrientedReads",
             &Assembler::countCommonInternalOrientedReads,
             arg("edgeId0"),
             arg("edgeId1")
             )
-#if 0
         .def("countCommonTurns",
             (
                 pair<uint64_t, uint64_t> (Assembler::*)
