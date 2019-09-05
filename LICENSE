@@ -61,7 +61,8 @@ domain. The author hereby disclaims copyright to this source code.
 
 LICENSING NOTICE FOR GITHUB REPOSITORY wjakob/dset
 
-File src/dset64.hpp is a modified version of file dset.h from GitHub repository
+Files src/dset64.hpp and src/dset64-gccAtomic.hpp are modified 
+versions of file dset.h from GitHub repository
 wjakob/dset by Wenzel Jakob. That GitHub repository comes with the
 following license notice:
 

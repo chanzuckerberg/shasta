@@ -9,6 +9,7 @@ using namespace shasta;
 // Standard libraries.
 #include "chrono.hpp"
 #include "iostream.hpp"
+#include "iterator.hpp"
 #include <random>
 
 
@@ -40,9 +41,11 @@ Dset64Test::Dset64Test(
     std::mt19937 randomSource(seed);
     std::uniform_int_distribution<uint64_t> uniformDistribution(0, n-1);
     edges.resize(m);
+    // cout << "Edges:" << endl;
     for(auto& p: edges) {
         p.first = uniformDistribution(randomSource);
         p.second = uniformDistribution(randomSource);
+        // cout << p.first << " " << p.second << endl;
     }
 
 
@@ -70,15 +73,25 @@ Dset64Test::Dset64Test(
             componentTable[disjointSets.find_set(i)].push_back(i);
         }
         getSortedComponents(componentTable, sortedComponentsBoost);
+
+        /*
+        cout << "sortedComponentsBoost" << endl;
+        for(uint64_t i=0; i<sortedComponentsBoost.size(); i++) {
+            cout << i << ": ";
+            const auto& v = sortedComponentsBoost[i];
+            copy(v.begin(), v.end(), ostream_iterator<uint64_t>(cout, " "));
+            cout << endl;
+        }
+        */
     }
 
 
 
-    // Now, do it using dset64.hpp, sequentially.
+    // Now, do it using dset64.hpp/dset64-gccAtomic.hpp, sequentially.
     vector< vector<uint64_t> > sortedComponentsSequential;
     {
         using Aint = DisjointSets::Aint;
-        vector< std::atomic<Aint> > data(n);
+        vector<Aint> data(n);
         DisjointSets disjointSets(&data.front(), n);
         const auto t0 = std::chrono::steady_clock::now();
         for(const auto& p: edges) {
@@ -94,19 +107,28 @@ Dset64Test::Dset64Test(
         }
         getSortedComponents(componentTable, sortedComponentsSequential);
     }
+    /*
+    cout << "sortedComponentsSequential" << endl;
+    for(uint64_t i=0; i<sortedComponentsSequential.size(); i++) {
+        cout << i << ": ";
+        const auto& v = sortedComponentsSequential[i];
+        copy(v.begin(), v.end(), ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+    }
+    */
     SHASTA_ASSERT(sortedComponentsSequential == sortedComponentsBoost);
 
 
 
-    // Now, do it using dset64.hpp, using the specified number of threads.
+    // Now, do it using dset64.hpp/dset64-gccAtomic.hpp, using the specified number of threads.
     vector< vector<uint64_t> > sortedComponentsParallel;
     {
         using Aint = DisjointSets::Aint;
-        vector< std::atomic<Aint> > data(n);
+        vector<Aint> data(n);
         DisjointSets disjointSets(&data.front(), n);
         disjointSetsPointer = &disjointSets;
         const auto t0 = std::chrono::steady_clock::now();
-        setupLoadBalancing(n, batchSize);
+        setupLoadBalancing(edges.size(), batchSize);
         runThreads(&Dset64Test::threadFunction, threadCount);
         const auto t1 = std::chrono::steady_clock::now();
         cout << "Parallel dset64 ran in " << seconds(t1-t0) << "s." << endl;
@@ -118,6 +140,15 @@ Dset64Test::Dset64Test(
         }
         getSortedComponents(componentTable, sortedComponentsParallel);
     }
+    /*
+    cout << "sortedComponentsParallel" << endl;
+    for(uint64_t i=0; i<sortedComponentsParallel.size(); i++) {
+        cout << i << ": ";
+        const auto& v = sortedComponentsParallel[i];
+        copy(v.begin(), v.end(), ostream_iterator<uint64_t>(cout, " "));
+        cout << endl;
+    }
+    */
     SHASTA_ASSERT(sortedComponentsParallel == sortedComponentsBoost);
 
 
@@ -132,8 +163,10 @@ void Dset64Test::threadFunction(size_t threadId)
     uint64_t begin;
     uint64_t end;
     while(getNextBatch(begin, end)) {
+        // cout << "Thread function processing batch " << begin << " " << end << endl;
         for(uint64_t i=begin; i!=end; ++i) {
             const auto& p = edges[i];
+            // cout << "Thread function processing edge " << p.first << " " << p.second << endl;
             disjointSetsPointer->unite(p.first, p.second);
         }
     }

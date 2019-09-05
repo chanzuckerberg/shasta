@@ -1,8 +1,8 @@
 #ifndef SHASTA_DSET_64_TEST_HPP
 #define SHASTA_DSET_64_TEST_HPP
 
-// Unit test for dset64.hpp.
-#include "dset64.hpp"
+// Unit test for dset64.hpp/dset64-gccAtomic.hpp.
+#include "dset64-gccAtomic.hpp"
 #include "MultitreadedObject.hpp"
 #include <map>
 

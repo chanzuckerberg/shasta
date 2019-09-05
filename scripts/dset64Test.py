@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 helpMessage = """
-This runs a unit test for dset64.hpp.
+This runs a unit test for dset64/dset64-gccAtomic.hpp.
 
 Invoke with 5 arguments:
 - The number of items (vertices).

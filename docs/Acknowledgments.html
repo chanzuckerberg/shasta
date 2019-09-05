@@ -74,15 +74,17 @@ It is used as a hash function in the Shasta software.
 
 <h3 id=Dset>Dset</h3>
 <p>
-File 
+Files 
 <a href='https://github.com/chanzuckerberg/shasta/blob/master/src/dset64.hpp'>src/dset64.hpp</a>
-is a modified version of file 
+and
+<a href='https://github.com/chanzuckerberg/shasta/blob/master/src/dset64-gccAtomic.hpp'>src/dset64-gccAtomic.hpp</a>
+are modified versions of file 
 <a href='https://github.com/wjakob/dset/blob/master/dset.h'>dset.h</a>
 from GitHub repository
 <a href='https://github.com/wjakob/dset'>wjakob/dset</a> 
 by Wenzel Jakob. 
 
-It is a lock-free implementation in C++ of the algorithm described in <i>Wait-free Parallel Algorithms for the Union-Find Problem</i>
+They are lock-free implementation in C++ of the algorithm described in <i>Wait-free Parallel Algorithms for the Union-Find Problem</i>
 by Richard J. Anderson and Heather Woll, 
 <i>STOC '91 Proceedings of the twenty-third annual ACM symposium on Theory of computing</i>.
 

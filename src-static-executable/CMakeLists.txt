@@ -44,9 +44,7 @@ endif(MACOS)
 # Pass the build id to the compile command line.
 add_definitions(-DBUILD_ID=${BUILD_ID})
 
-# This is required by dset64.hpp.
-# It allows std::atomic<__uint128_t>::is_lock_free()
-# to return true. However this does not happen in all gcc versions.
+# This is required by dset64.hpp/dset64-gccAtomic.hpp.
 add_definitions(-mcx16)
 
 

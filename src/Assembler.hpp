@@ -6,7 +6,7 @@
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
-#include "dset64.hpp"
+#include "dset64-gccAtomic.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
@@ -891,7 +891,8 @@ private:
         uint64_t orientedMarkerCount;
 
         // Disjoint sets data structures.
-        MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
+        // MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
+        MemoryMapped::Vector<DisjointSets::Aint> disjointSetsData;
         shared_ptr<DisjointSets> disjointSetsPointer;
 
         // The disjoint set that each oriented marker was assigned to.
