@@ -526,6 +526,8 @@ void AssemblerOptions::write(ostream& s) const
     s << "\n";
     assemblyOptions.write(s);
     s << endl;
+    phasingOptions.write(s);
+    s << endl;
 }
 
 
