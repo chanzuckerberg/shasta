@@ -17,7 +17,7 @@ a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
 
 # Do the work.
-a.createPhasingGraph(
+a.createPhasingData(
     phasingSimilarityThreshold = float(config['Phasing']['phasingSimilarityThreshold']),
     maxNeighborCount = int(config['Phasing']['maxNeighborCount']))
 

@@ -1,20 +1,21 @@
-#include "PhasingGraph.hpp"
+#include "PhasingData.hpp"
 #include "orderPairs.hpp"
 #include "setOperations.hpp"
 using namespace shasta;
 
 
 
-PhasingGraph::PhasingGraph() :
-    MultithreadedObject<PhasingGraph>(*this)
+PhasingData::PhasingData() :
+    MultithreadedObject<PhasingData>(*this)
 {
 }
+
 
 
 // Compute the phasing similarity of two assembly graph edges.
 // It is computed as the Jaccard similarity of the sets
 // of oriented reads internal to each of the two assembly graph edges.
-double PhasingGraph::computePhasingSimilarity(
+double PhasingData::computePhasingSimilarity(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
 {
@@ -47,7 +48,7 @@ double PhasingGraph::computePhasingSimilarity(
 
 
 
-uint64_t PhasingGraph::countCommonInternalOrientedReads(
+uint64_t PhasingData::countCommonInternalOrientedReads(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
 {
@@ -71,7 +72,7 @@ uint64_t PhasingGraph::countCommonInternalOrientedReads(
 
 #if 0
 // Function to construct names for binary objects.
-string PhasingGraph::dataName(const string& name) const
+string PhasingData::dataName(const string& name) const
 {
     if(dataFileNamePrefix.empty()) {
         return "";  // Anonymous;
@@ -82,7 +83,7 @@ string PhasingGraph::dataName(const string& name) const
 
 
 
-void PhasingGraph::findSimilarPairs(
+void PhasingData::findSimilarPairs(
     size_t threadCount,
     double phasingSimilarityThreshold)
 {
@@ -98,7 +99,7 @@ void PhasingGraph::findSimilarPairs(
 
     // Find the similar pairs with readId0<readId1 in multithreaded code.
     setupLoadBalancing(readCount, 1000);
-    runThreads(&PhasingGraph::findSimilarPairs, threadCount);
+    runThreads(&PhasingData::findSimilarPairs, threadCount);
 
     // Gather the pairs found by each thread.
     similarPairs.createNew(
@@ -119,7 +120,7 @@ void PhasingGraph::findSimilarPairs(
 
 
 
-void PhasingGraph::findSimilarPairs(size_t threadId)
+void PhasingData::findSimilarPairs(size_t threadId)
 {
     // Allocate space for the similar pairs found by this thread.
     threadSimilarPairs[threadId] =
@@ -146,7 +147,7 @@ void PhasingGraph::findSimilarPairs(size_t threadId)
 
 
 
-double PhasingGraph::computePhasingSimilarity(
+double PhasingData::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
 {
@@ -176,7 +177,7 @@ double PhasingGraph::computePhasingSimilarity(
 
 
 // Experimental version that uses turns.
-double PhasingGraph::computePhasingSimilarity(
+double PhasingData::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedparser.add_argument("edgeId0", type=int, help="The id of the firstassembly graph edge.")
 ReadId1)
@@ -196,7 +197,7 @@ ReadId1)
 // and the second ReadId is readId1>readId0.
 // The last argument is a work area, passed in
 // to reduce memory allocation activity.
-void PhasingGraph::findSimilarPairs(
+void PhasingData::findSimilarPairs(
     ReadId readId0,
     MemoryMapped::Vector< pair<OrientedReadPair, float> >& pairVector,
     vector<OrientedReadId> orientedReadIds
@@ -247,7 +248,7 @@ void PhasingGraph::findSimilarPairs(
 
 
 // This is written single-threaded and without attention to performance, for now.
-void PhasingGraph::keepBestSimilarPairs(int maxNeighborCount)
+void PhasingData::keepBestSimilarPairs(int maxNeighborCount)
 {
     // The indexes of the pairs that each oriented read is involved in.
     const uint64_t orientedReadCount = assemblyGraphEdges.size();
@@ -297,7 +298,7 @@ void PhasingGraph::keepBestSimilarPairs(int maxNeighborCount)
 
 // Count concordant and discordant turns for two oriented reads.
 // Returns pair(concordantCount, discordantCount).
-pair<uint64_t, uint64_t> PhasingGraph::countCommonTurns(
+pair<uint64_t, uint64_t> PhasingData::countCommonTurns(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
 {
@@ -342,9 +343,9 @@ pair<uint64_t, uint64_t> PhasingGraph::countCommonTurns(
 
 
 // Write all the pairs in graphviz format.
-void PhasingGraph::writeGraphviz()
+void PhasingData::writeGraphviz()
 {
-    ofstream graphout("PhasingGraph.dot");
+    ofstream graphout("PhasingData.dot");
     graphout << "graph G {" << endl;
     graphout  << "tooltip = \" \";\n";
 

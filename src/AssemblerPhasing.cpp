@@ -2,7 +2,7 @@
 using namespace shasta;
 
 
-void Assembler::createPhasingGraph(
+void Assembler::createPhasingData(
     size_t threadCount,
     double phasingSimilarityThreshold,
     int maxNeighborCount)
@@ -14,8 +14,8 @@ void Assembler::createPhasingGraph(
 
     // Store information used by the phasing graph to create
     // binary data.
-    // phasingGraph.dataFileNamePrefix = largeDataFileNamePrefix;
-    // phasingGraph.dataPageSize = largeDataPageSize;
+    // phasingData.dataFileNamePrefix = largeDataFileNamePrefix;
+    // phasingData.dataPageSize = largeDataPageSize;
 
     // Find the oriented reads internal to each assembly graph edge.
     phasingGatherOrientedReads(threadCount);
@@ -26,23 +26,23 @@ void Assembler::createPhasingGraph(
 
 #if 0
     // Find oriented read pairs with phasing similarity greater than the threshold.
-    phasingGraph.findSimilarPairs(threadCount, phasingSimilarityThreshold);
+    phasingData.findSimilarPairs(threadCount, phasingSimilarityThreshold);
 
     // Only keep up to maxNeighborCount neighbors.
-    phasingGraph.keepBestSimilarPairs(maxNeighborCount);
+    phasingData.keepBestSimilarPairs(maxNeighborCount);
 
     // Write out the global phasing graph in graphviz format.
-    phasingGraph.writeGraphviz();
+    phasingData.writeGraphviz();
 #endif
 }
 
 
 
-void Assembler::accessPhasingGraph()
+void Assembler::accessPhasingData()
 {
-    phasingGraph.orientedReads.accessExistingReadOnly(
+    phasingData.orientedReads.accessExistingReadOnly(
         largeDataName("PhasingGraphOrientedReads"));
-    phasingGraph.assemblyGraphEdges.accessExistingReadOnly(
+    phasingData.assemblyGraphEdges.accessExistingReadOnly(
         largeDataName("PhasingGraphAssemblyGraphEdges"));
 }
 
@@ -51,15 +51,15 @@ void Assembler::accessPhasingGraph()
 // Find the oriented reads internal to each assembly graph edge.
 void Assembler::phasingGatherOrientedReads(size_t threadCount)
 {
-    phasingGraph.orientedReads.createNew(
+    phasingData.orientedReads.createNew(
         largeDataName("PhasingGraphOrientedReads"), largeDataPageSize);
-    phasingGraph.orientedReads.beginPass1(assemblyGraph.edges.size());
+    phasingData.orientedReads.beginPass1(assemblyGraph.edges.size());
     setupLoadBalancing(assemblyGraph.edges.size(), 1000);
     runThreads(&Assembler::phasingGatherOrientedReadsPass1, threadCount);
-    phasingGraph.orientedReads.beginPass2();
+    phasingData.orientedReads.beginPass2();
     setupLoadBalancing(assemblyGraph.edges.size(), 1000);
     runThreads(&Assembler::phasingGatherOrientedReadsPass2, threadCount);
-    phasingGraph.orientedReads.endPass2();
+    phasingData.orientedReads.endPass2();
 }
 
 
@@ -141,11 +141,11 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
 
             // Store.
             if (pass == 1) {
-                phasingGraph.orientedReads.incrementCount(assemblyGraphEdgeId,
+                phasingData.orientedReads.incrementCount(assemblyGraphEdgeId,
                     orientedReadIds.size());
             } else {
                 for (const OrientedReadId orientedReadId : orientedReadIds) {
-                    phasingGraph.orientedReads.store(assemblyGraphEdgeId,
+                    phasingData.orientedReads.store(assemblyGraphEdgeId,
                         orientedReadId);
                 }
             }
@@ -163,15 +163,15 @@ void Assembler::phasingGatherAssemblyGraphEdges(size_t threadCount)
 {
     const uint64_t orientedReadCount = 2 * reads.size();
 
-    phasingGraph.assemblyGraphEdges.createNew(
+    phasingData.assemblyGraphEdges.createNew(
         largeDataName("PhasingGraphAssemblyGraphEdges"), largeDataPageSize);
-    phasingGraph.assemblyGraphEdges.beginPass1(orientedReadCount);
+    phasingData.assemblyGraphEdges.beginPass1(orientedReadCount);
     setupLoadBalancing(assemblyGraph.edges.size(), 1000);
     runThreads(&Assembler::phasingGatherAssemblyGraphEdgesPass1, threadCount);
-    phasingGraph.assemblyGraphEdges.beginPass2();
+    phasingData.assemblyGraphEdges.beginPass2();
     setupLoadBalancing(assemblyGraph.edges.size(), 1000);
     runThreads(&Assembler::phasingGatherAssemblyGraphEdgesPass2, threadCount);
-    phasingGraph.assemblyGraphEdges.endPass2();
+    phasingData.assemblyGraphEdges.endPass2();
 }
 
 void Assembler::phasingGatherAssemblyGraphEdgesPass1(size_t threadId)
@@ -198,15 +198,15 @@ void Assembler::phasingGatherAssemblyGraphEdgesPass(int pass)
 
             // Access the oriented reads internal to this assembly graph edge.
             const MemoryAsContainer<OrientedReadId> orientedReadIds =
-                phasingGraph.orientedReads[assemblyGraphEdgeId];
+                phasingData.orientedReads[assemblyGraphEdgeId];
 
             // Loop over these oriented reads.
             for (const OrientedReadId orientedReadId : orientedReadIds) {
                 if (pass == 1) {
-                    phasingGraph.assemblyGraphEdges.incrementCountMultithreaded(
+                    phasingData.assemblyGraphEdges.incrementCountMultithreaded(
                         orientedReadId.getValue());
                 } else {
-                    phasingGraph.assemblyGraphEdges.storeMultithreaded(
+                    phasingData.assemblyGraphEdges.storeMultithreaded(
                         orientedReadId.getValue(), assemblyGraphEdgeId);
                 }
             }
@@ -238,7 +238,7 @@ void Assembler::phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId)
 
             //  Sort the assembly graph edges that this oriented read is internal to.
             MemoryAsContainer<AssemblyGraph::EdgeId> edges =
-                phasingGraph.assemblyGraphEdges[orientedReadId];
+                phasingData.assemblyGraphEdges[orientedReadId];
             sort(edges.begin(), edges.end());
         }
     }
@@ -261,7 +261,7 @@ double Assembler::computePhasingSimilarity(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1)
 {
-    return phasingGraph.computePhasingSimilarity(orientedReadId0, orientedReadId1);
+    return phasingData.computePhasingSimilarity(orientedReadId0, orientedReadId1);
 }
 #endif
 
@@ -271,7 +271,7 @@ double Assembler::computePhasingSimilarity(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
 {
-    return phasingGraph.computePhasingSimilarity(edgeId0, edgeId1);
+    return phasingData.computePhasingSimilarity(edgeId0, edgeId1);
 }
 
 
@@ -280,6 +280,6 @@ uint64_t Assembler::countCommonInternalOrientedReads(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
 {
-    return phasingGraph.countCommonInternalOrientedReads(edgeId0, edgeId1);
+    return phasingData.countCommonInternalOrientedReads(edgeId0, edgeId1);
 }
 

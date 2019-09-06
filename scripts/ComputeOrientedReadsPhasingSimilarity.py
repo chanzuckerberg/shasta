@@ -17,7 +17,7 @@ arguments = parser.parse_args()
 a = shasta.Assembler()
 
 # Access what we need.
-a.accessPhasingGraph();
+a.accessPhasingData();
 
 # Do the work.
 print(a.computePhasingSimilarity(

@@ -431,13 +431,13 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::setupConsensusCaller)
 
         // Phasing.
-        .def("createPhasingGraph",
-            &Assembler::createPhasingGraph,
+        .def("createPhasingData",
+            &Assembler::createPhasingData,
             arg("threadCount") = 0,
             arg("phasingSimilarityThreshold"),
             arg("maxNeighborCount"))
-        .def("accessPhasingGraph",
-            &Assembler::accessPhasingGraph)
+        .def("accessPhasingData",
+            &Assembler::accessPhasingData)
 #if 0
         .def("computePhasingSimilarity",
             (

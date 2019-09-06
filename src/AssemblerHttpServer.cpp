@@ -461,7 +461,7 @@ void Assembler::accessAllSoft()
     }
 
     try {
-        accessPhasingGraph();
+        accessPhasingData();
     } catch(const exception& e) {
     	// Don't threat it as missing because this does not get created in all cases.
         // cout << "Assembly graph sequences are not accessible." << endl;

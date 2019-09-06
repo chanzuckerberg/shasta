@@ -15,7 +15,7 @@
 #include "MemoryMappedObject.hpp"
 #include "MultitreadedObject.hpp"
 #include "OrientedReadPair.hpp"
-#include "PhasingGraph.hpp"
+#include "PhasingData.hpp"
 #include "ReadGraph.hpp"
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
@@ -1544,17 +1544,17 @@ private:
 
     // Functions and data structures used for phasing.
 public:
-    void createPhasingGraph(
+    void createPhasingData(
         size_t threadCount,
         double phasingSimilarityThreshold,
         int maxNeighborCount);
-    void accessPhasingGraph();
+    void accessPhasingData();
     // double computePhasingSimilarity(OrientedReadId, OrientedReadId);
     // double computePhasingSimilarity(ReadId, Strand, ReadId, Strand);
     double computePhasingSimilarity(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
     uint64_t countCommonInternalOrientedReads(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
 private:
-    PhasingGraph phasingGraph;
+    PhasingData phasingData;
     void phasingGatherOrientedReads(size_t threadCount);
     void phasingGatherOrientedReadsPass1(size_t threadId);
     void phasingGatherOrientedReadsPass2(size_t threadId);
