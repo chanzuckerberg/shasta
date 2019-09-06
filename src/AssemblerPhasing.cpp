@@ -20,11 +20,11 @@ void Assembler::createPhasingGraph(
     // Find the oriented reads internal to each assembly graph edge.
     phasingGatherOrientedReads(threadCount);
 
-#if 0
     // Find the assembly graph edges that each oriented read is internal to.
     phasingGatherAssemblyGraphEdges(threadCount);
     phasingSortAssemblyGraphEdges(threadCount);
 
+#if 0
     // Find oriented read pairs with phasing similarity greater than the threshold.
     phasingGraph.findSimilarPairs(threadCount, phasingSimilarityThreshold);
 
@@ -42,10 +42,8 @@ void Assembler::accessPhasingGraph()
 {
     phasingGraph.orientedReads.accessExistingReadOnly(
         largeDataName("PhasingGraphOrientedReads"));
-#if 0
     phasingGraph.assemblyGraphEdges.accessExistingReadOnly(
         largeDataName("PhasingGraphAssemblyGraphEdges"));
-#endif
 }
 
 
@@ -159,7 +157,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
 }
 
 
-#if 0
+
 // Find the assembly graph edges that each oriented read is internal to..
 void Assembler::phasingGatherAssemblyGraphEdges(size_t threadCount)
 {
@@ -248,6 +246,8 @@ void Assembler::phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId)
 }
 
 
+
+#if 0
 double Assembler::computePhasingSimilarity(
     ReadId readId0, Strand strand0,
     ReadId readId1, Strand strand1)
@@ -276,12 +276,10 @@ double Assembler::computePhasingSimilarity(
 
 
 
-#if 0
 uint64_t Assembler::countCommonInternalOrientedReads(
     AssemblyGraph::EdgeId edgeId0,
     AssemblyGraph::EdgeId edgeId1)
 {
     return phasingGraph.countCommonInternalOrientedReads(edgeId0, edgeId1);
 }
-#endif
 

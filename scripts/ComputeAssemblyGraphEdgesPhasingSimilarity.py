@@ -19,6 +19,7 @@ a.accessPhasingGraph();
 
 # Do the work.
 print('Jaccard similarity %f' % a.computePhasingSimilarity(arguments.edgeId0, arguments.edgeId1))
+print('Number of common reads %i' % a.countCommonInternalOrientedReads(arguments.edgeId0, arguments.edgeId1))
 
 
 

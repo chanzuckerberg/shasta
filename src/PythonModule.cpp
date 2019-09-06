@@ -460,24 +460,11 @@ PYBIND11_MODULE(shasta, module)
             arg("edgeId0"),
             arg("edgeId1")
             )
-#if 0
         .def("countCommonInternalOrientedReads",
             &Assembler::countCommonInternalOrientedReads,
             arg("edgeId0"),
             arg("edgeId1")
             )
-        .def("countCommonTurns",
-            (
-                pair<uint64_t, uint64_t> (Assembler::*)
-                (ReadId, Strand, ReadId, Strand)
-            )
-            &Assembler::countCommonTurns,
-            arg("readId0"),
-            arg("strand0"),
-            arg("readId1"),
-            arg("strand1")
-            )
-#endif
 
         // MarginPhase parameters.
         .def("setupMarginPhase",

@@ -1552,22 +1552,19 @@ public:
     // double computePhasingSimilarity(OrientedReadId, OrientedReadId);
     // double computePhasingSimilarity(ReadId, Strand, ReadId, Strand);
     double computePhasingSimilarity(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
-    // uint64_t countCommonInternalOrientedReads(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
-    // pair<uint64_t, uint64_t> countCommonTurns(ReadId, Strand, ReadId, Strand);
-    // pair<uint64_t, uint64_t> countCommonTurns(OrientedReadId, OrientedReadId);
+    uint64_t countCommonInternalOrientedReads(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
 private:
     PhasingGraph phasingGraph;
     void phasingGatherOrientedReads(size_t threadCount);
     void phasingGatherOrientedReadsPass1(size_t threadId);
     void phasingGatherOrientedReadsPass2(size_t threadId);
     void phasingGatherOrientedReadsPass(int pass);
-    // void phasingGatherAssemblyGraphEdges(size_t threadCount);
-    // void phasingGatherAssemblyGraphEdgesPass1(size_t threadId);
-    // void phasingGatherAssemblyGraphEdgesPass2(size_t threadId);
-    // void phasingGatherAssemblyGraphEdgesPass(int pass);
-    // void phasingSortAssemblyGraphEdges(size_t threadCount);
-    // void phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId);
-    // void phasingFindTurns();
+    void phasingGatherAssemblyGraphEdges(size_t threadCount);
+    void phasingGatherAssemblyGraphEdgesPass1(size_t threadId);
+    void phasingGatherAssemblyGraphEdgesPass2(size_t threadId);
+    void phasingGatherAssemblyGraphEdgesPass(int pass);
+    void phasingSortAssemblyGraphEdges(size_t threadCount);
+    void phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId);
 
 
 

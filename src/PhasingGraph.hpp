@@ -42,15 +42,17 @@ public:
     // It is computed as the Jaccard similarity of the sets
     // of oriented reads internal to each of the two assembly graph edges.
     double computePhasingSimilarity(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
+    uint64_t countCommonInternalOrientedReads(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
 
 
 
-#if 0
     // The assembly graph edges that each oriented read is internal to.
     // Indexed by OrientedReadId::getValue().
+    // For each oriented read, they are stored sorted.
     MemoryMapped::VectorOfVectors<AssemblyGraph::EdgeId, uint64_t> assemblyGraphEdges;
 
 
+#if 0
     // Oriented read pairs with phasing similarity greater than the threshold used.
     // We only store the ones with readId0 < readId1.
     // Each pair is stored with its phasinbg similarity.
@@ -70,7 +72,6 @@ public:
 
     double computePhasingSimilarity(OrientedReadId, OrientedReadId);
 
-    uint64_t countCommonInternalOrientedReads(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
 
 private:
 

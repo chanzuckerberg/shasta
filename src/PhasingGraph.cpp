@@ -46,6 +46,29 @@ double PhasingGraph::computePhasingSimilarity(
 }
 
 
+
+uint64_t PhasingGraph::countCommonInternalOrientedReads(
+    AssemblyGraph::EdgeId edgeId0,
+    AssemblyGraph::EdgeId edgeId1)
+{
+    // Access the oriented reads internals to these
+    // assembly graph edges
+    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
+        orientedReads[edgeId0];
+    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
+        orientedReads[edgeId1];
+
+    // Count the number of common oriented reads.
+    return intersectionSize(
+        orientedReadIds0.begin(),
+        orientedReadIds0.end(),
+        orientedReadIds1.begin(),
+        orientedReadIds1.end()
+    );
+}
+
+
+
 #if 0
 // Function to construct names for binary objects.
 string PhasingGraph::dataName(const string& name) const
@@ -150,27 +173,6 @@ double PhasingGraph::computePhasingSimilarity(
 
 }
 
-
-
-uint64_t PhasingGraph::countCommonInternalOrientedReads(
-    AssemblyGraph::EdgeId edgeId0,
-    AssemblyGraph::EdgeId edgeId1)
-{
-    // Access the oriented reads internals to these
-    // assembly graph edges
-    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
-        orientedReads[edgeId0];
-    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
-        orientedReads[edgeId1];
-
-    // Count the number of common oriented reads.
-    return intersectionSize(
-        orientedReadIds0.begin(),
-        orientedReadIds0.end(),
-        orientedReadIds1.begin(),
-        orientedReadIds1.end()
-    );
-}
 
 
 // Experimental version that uses turns.
