@@ -4,6 +4,7 @@
 #include "PngImage.hpp"
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "deduplicate.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
 #include "platformDependent.hpp"
@@ -1457,6 +1458,37 @@ void Assembler::exploreRead(
         "to see the global marker graph around that marker. "
         "Black markers correspond to a vertex of the marker graph "
         "that was removed because of low coverage.";
+
+
+
+
+    // Frequency of markers on this oriented read.
+    vector<KmerId> kmers;
+    for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
+        const CompressedMarker& marker = orientedReadMarkers[ordinal];
+        kmers.push_back(marker.kmerId);
+    }
+    vector<uint32_t> kmerFrequency;
+    deduplicateAndCount(kmers, kmerFrequency);
+    vector< pair<KmerId, uint32_t> > markerFrequencyTable;
+    for(uint32_t i=0; i<kmers.size(); i++) {
+        markerFrequencyTable.push_back(make_pair(kmers[i], kmerFrequency[i]));
+    }
+    sort(markerFrequencyTable.begin(), markerFrequencyTable.end(),
+        OrderPairsBySecondOnlyGreater<KmerId, uint32_t>());
+    html << "<h2>Frequency of markers in this oriented read</h2>"
+        "<table><tr><th>KmerId<th>Marker<th>Frequency";
+    for(const auto& p: markerFrequencyTable) {
+        const KmerId kmerId = p.first;
+        const uint32_t frequency = p.second;
+        const Kmer kmer(kmerId, k);
+        html << "<tr><td>" << kmerId << "<td>";
+        kmer.write(html, k);
+        html << "<td>" << frequency;
+    }
+    html << "<table>";
+
+
 
 
     // Phasing information.
