@@ -1,4 +1,5 @@
 #include "PhasingData.hpp"
+#include "deduplicate.hpp"
 #include "orderPairs.hpp"
 #include "setOperations.hpp"
 using namespace shasta;
@@ -70,7 +71,59 @@ uint64_t PhasingData::countCommonInternalOrientedReads(
 
 
 
-#if 0
+// Find the assembly graph edges related to each assembly graph edge.
+// Two assembly graph edges are related if they share at
+// least one internal oriented read.
+// For now this is single-threaded.
+void PhasingData::gatherRelatedAssemblyGraphEdges()
+{
+    using EdgeId = AssemblyGraph::EdgeId;
+
+    relatedAssemblyGraphEdges.createNew(
+        dataName("PhasingRelatedAssemblyGraphEdges"), dataPageSize);
+
+    // Work areas defined here to reduce memory allocation activity.
+    vector<EdgeId> edges;
+    vector<EdgeId> count;
+
+    // Loop over all assembly graph edges.
+    const EdgeId edgeCount = orientedReads.size();
+    for(EdgeId e0=0; e0<edgeCount; e0++) {
+        edges.clear();
+
+        // Loop over the oriented reads internal to this edge.
+        const MemoryAsContainer<OrientedReadId> orientedReadIds0 = orientedReads[e0];
+        for(const OrientedReadId orientedReadId: orientedReadIds0) {
+
+            // Loop over the assembly graph edges that this oriented
+            // read is internal to.
+            const MemoryAsContainer<EdgeId> edges1 = assemblyGraphEdges[orientedReadId.getValue()];
+            for(const EdgeId e1: edges1) {
+                if(e1 != e0) {
+                    edges.push_back(e1);
+                }
+            }
+
+
+        }
+
+        // Count how many time we found each of the edges.
+        deduplicateAndCount(edges, count);
+
+        // Store.
+        relatedAssemblyGraphEdges.appendVector();
+        for(uint64_t i=0; i<edges.size(); i++) {
+            if(count[i] >= 3) { //   ************** EXPOSE WHEN CODE IS STABLE  *****
+                relatedAssemblyGraphEdges.append(make_pair(edges[i], count[i]));
+                SHASTA_ASSERT(count[i] == countCommonInternalOrientedReads(e0, edges[i]));
+            }
+        }
+        // cout << e0 << " " << edges.size() << endl;
+    }
+}
+
+
+
 // Function to construct names for binary objects.
 string PhasingData::dataName(const string& name) const
 {
@@ -83,6 +136,7 @@ string PhasingData::dataName(const string& name) const
 
 
 
+#if 0
 void PhasingData::findSimilarPairs(
     size_t threadCount,
     double phasingSimilarityThreshold)

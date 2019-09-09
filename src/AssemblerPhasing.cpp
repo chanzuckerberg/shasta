@@ -14,8 +14,8 @@ void Assembler::createPhasingData(
 
     // Store information used by the phasing graph to create
     // binary data.
-    // phasingData.dataFileNamePrefix = largeDataFileNamePrefix;
-    // phasingData.dataPageSize = largeDataPageSize;
+    phasingData.dataFileNamePrefix = largeDataFileNamePrefix;
+    phasingData.dataPageSize = largeDataPageSize;
 
     // Find the oriented reads internal to each assembly graph edge.
     phasingGatherOrientedReads(threadCount);
@@ -23,6 +23,11 @@ void Assembler::createPhasingData(
     // Find the assembly graph edges that each oriented read is internal to.
     phasingGatherAssemblyGraphEdges(threadCount);
     phasingSortAssemblyGraphEdges(threadCount);
+
+    // Find the assembly graph edges related to each assembly graph edge.
+    // Two assembly graph edges are related if they share at
+    // least one internal oriented read.
+    phasingData.gatherRelatedAssemblyGraphEdges();
 
 #if 0
     // Find oriented read pairs with phasing similarity greater than the threshold.
@@ -44,6 +49,8 @@ void Assembler::accessPhasingData()
         largeDataName("PhasingGraphOrientedReads"));
     phasingData.assemblyGraphEdges.accessExistingReadOnly(
         largeDataName("PhasingGraphAssemblyGraphEdges"));
+    phasingData.relatedAssemblyGraphEdges.accessExistingReadOnly(
+        largeDataName("PhasingRelatedAssemblyGraphEdges"));
 }
 
 

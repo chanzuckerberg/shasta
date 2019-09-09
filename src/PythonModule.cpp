@@ -4,6 +4,7 @@
 #include "Assembler.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
+#include "deduplicate.hpp"
 #include "dset64Test.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
@@ -538,6 +539,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testMedianConsensusCaller",
         testMedianConsensusCaller
+        );
+    module.def("testDeduplicateAndCount",
+        testDeduplicateAndCount
         );
     module.def("dset64Test",
         dset64Test,

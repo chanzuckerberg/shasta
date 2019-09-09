@@ -1458,18 +1458,18 @@ void Assembler::exploreRead(
         "Black markers correspond to a vertex of the marker graph "
         "that was removed because of low coverage.";
 
-#if 0
+
     // Phasing information.
-    if (phasingGraph.assemblyGraphEdges.isOpen()) {
+    if (phasingData.assemblyGraphEdges.isOpen()) {
         const MemoryAsContainer<AssemblyGraph::EdgeId> edges =
-        phasingGraph.assemblyGraphEdges[orientedReadId.getValue()];
+            phasingData.assemblyGraphEdges[orientedReadId.getValue()];
         html << "<p>This oriented read is internal to the following "
             "assembly graph edges:<br>";
         for(const AssemblyGraph::EdgeId edge: edges) {
             html << edge << " ";
         }
     }
-#endif
+
 }
 
 

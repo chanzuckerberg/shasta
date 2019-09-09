@@ -50,6 +50,25 @@ public:
     MemoryMapped::VectorOfVectors<AssemblyGraph::EdgeId, uint64_t> assemblyGraphEdges;
 
 
+    // The assembly graph edges that are "related" to each assembly graph edge.
+    // Two assembly graph edges are "related" if they have at least one common read.
+    // Indexed by assembly graph edge.
+    // For each assembly graph edge, the related assembly graph edges are
+    // stored sorted.
+    // For each related assembly graph edge, we also store the number of common reads.
+    MemoryMapped::VectorOfVectors< pair<AssemblyGraph::EdgeId, uint64_t>, uint64_t>
+        relatedAssemblyGraphEdges;
+    void gatherRelatedAssemblyGraphEdges();
+
+
+    // File name prefix and page size for binary data.
+    string dataFileNamePrefix;
+    size_t dataPageSize;
+private:
+    string dataName(const string& name) const;
+
+
+
 #if 0
     // Oriented read pairs with phasing similarity greater than the threshold used.
     // We only store the ones with readId0 < readId1.
@@ -62,10 +81,6 @@ public:
     // This is only used inside findSimilarPairs.
     vector<std::shared_ptr<MemoryMapped::Vector< pair<OrientedReadPair, float> > > > threadSimilarPairs;
 
-    // File name prefix and page size for binary data.
-    string dataFileNamePrefix;
-    size_t dataPageSize;
-
     void writeGraphviz();
 
     double computePhasingSimilarity(OrientedReadId, OrientedReadId);
@@ -73,8 +88,7 @@ public:
 
 private:
 
-    string dataName(const string& name) const;
-    void findSimilarPairs(size_t threadId);
+     void findSimilarPairs(size_t threadId);
     double similarityThreshold;
 
     // Find similar pairs in which the first ReadId is readId0
