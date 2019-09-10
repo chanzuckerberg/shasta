@@ -50,6 +50,18 @@ public:
     MemoryMapped::VectorOfVectors<AssemblyGraph::EdgeId, uint64_t> assemblyGraphEdges;
 
 
+    // The number of time pairs of oriented reads were seen internal
+    // to the same/different branch in a fork.
+    class ForkStatistics {
+    public:
+        array<OrientedReadId, 2> orientedReadIds;
+        uint32_t sameBranchFrequency = 0;
+        uint32_t differentBranchFrequency = 0;
+    };
+    MemoryMapped::Vector<ForkStatistics> forkStatistics;
+
+
+
     // The assembly graph edges that are "related" to each assembly graph edge.
     // Two assembly graph edges are "related" if they have at least one common read.
     // Indexed by assembly graph edge.

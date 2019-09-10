@@ -1,4 +1,5 @@
 #include "AssemblyGraph.hpp"
+#include "deduplicate.hpp"
 using namespace shasta;
 
 #include "fstream.hpp"
@@ -227,6 +228,7 @@ void AssemblyGraph::findBubbles()
 }
 
 
+
 // Return the number of edges that were not removed.
 AssemblyGraph::EdgeId AssemblyGraph::edgeCount() const
 {
@@ -240,3 +242,77 @@ AssemblyGraph::EdgeId AssemblyGraph::edgeCount() const
 }
 
 
+
+// Find and store the assembly graph forks.
+// The fork corresponding to a bubble is stored only once.
+// This function assumes that the assembly graph has no removed edges.
+void AssemblyGraph::createForks()
+{
+    // Simple-minded code to find forks.
+    vector<ForkInfo> forkInfos;
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+        const MemoryAsContainer<EdgeId> outgoingEdges = edgesBySource[vertexId];
+        if(outgoingEdges.size() > 1) {
+            ForkInfo forkInfo;
+            forkInfo.vertexId = vertexId;
+            forkInfo.isForward = true;
+            copy(outgoingEdges.begin(), outgoingEdges.end(), back_inserter(forkInfo.edgeIds));
+            forkInfos.push_back(forkInfo);
+        }
+        const MemoryAsContainer<EdgeId> incomingEdges = edgesByTarget[vertexId];
+        if(incomingEdges.size() > 1) {
+            ForkInfo forkInfo;
+            forkInfo.vertexId = vertexId;
+            forkInfo.isForward = false;
+            copy(incomingEdges.begin(), incomingEdges.end(), back_inserter(forkInfo.edgeIds));
+            forkInfos.push_back(forkInfo);
+        }
+    }
+
+    // Remove duplicates (the fork in a bubble is stored only once).
+    const uint64_t forkCountBeforeDeduplication = forkInfos.size();
+    deduplicate(forkInfos);
+
+    // Store.
+    forks.clear();
+    for(const Fork& fork: forkInfos) {
+        forks.push_back(fork);
+    }
+    const uint64_t forkCount = forks.size();
+    const uint64_t bubbleCount = forkCountBeforeDeduplication - forkCount;
+    cout << "Found " << forks.size() << " forks in the assembly graph, including " <<
+        bubbleCount <<
+        " bubbles." << endl;
+
+    // Compute the size distribution of forks.
+    vector<uint64_t> histogram;
+    for(const Fork& fork: forks) {
+        const uint64_t branchCount =
+            fork.isForward ?
+            edgesBySource.size(fork.vertexId) :
+            edgesByTarget.size(fork.vertexId);
+        if(branchCount >= histogram.size()) {
+            histogram.resize(branchCount+1, 0);
+        }
+        ++histogram[branchCount];
+    }
+    cout << "Size distribution of forks:" << endl;
+    for(uint64_t branchCount=0; branchCount<histogram.size(); branchCount++) {
+        const uint64_t frequency = histogram[branchCount];
+        if(frequency) {
+            cout << branchCount << " " << frequency << endl;
+        }
+    }
+}
+
+
+
+MemoryAsContainer<AssemblyGraph::EdgeId> AssemblyGraph::getForkEdges(uint64_t forkId)
+{
+    const Fork& fork = forks[forkId];
+    if(fork.isForward) {
+        return edgesBySource[fork.vertexId];
+    } else {
+        return edgesByTarget[fork.vertexId];
+    }
+}

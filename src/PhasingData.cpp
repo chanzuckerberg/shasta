@@ -118,7 +118,7 @@ void PhasingData::gatherRelatedAssemblyGraphEdges()
                 SHASTA_ASSERT(count[i] == countCommonInternalOrientedReads(e0, edges[i]));
             }
         }
-        // cout << e0 << " " << edges.size() << endl;
+        cout << e0 << " " << edges.size() << endl;
     }
 }
 

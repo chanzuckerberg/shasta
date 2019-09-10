@@ -176,6 +176,52 @@ public:
     // Basic Graphviz output of the global assembly graph.
     void writeGraphviz(const string& fileName) const;
 
+
+
+    // Assembly graph forks.
+
+    // A fork is the set of outgoing edges of a vertex with out-degree>1,
+    // or the set of incoming edges of a vertex with in-degree>1.
+    // The edges of the set are called the fork branches.
+    // A fork can have any number of branches>1.
+
+    // A bubble generates only one fork (the set of outgoing edges
+    // of the bubble source vertex which is also the set of
+    // incoming edges of the bubble target vertex).
+    class Fork {
+    public:
+        // The source or target vertex of the fork.
+        VertexId vertexId;
+
+        // Flag which is true if the fork consists of the vertex's
+        // outgoing edges, false if the fork consists of
+        // thevertex's incoming edges.
+        // The fork corresponding to a bubble is stored only once.
+        bool isForward;
+    };
+    MemoryMapped::Vector<Fork> forks;
+    void createForks();
+    MemoryAsContainer<EdgeId> getForkEdges(uint64_t forkId);
+
+private:
+    // Class used by createForks.
+    class ForkInfo : public Fork {
+    public:
+        vector<EdgeId> edgeIds;
+
+        // Compare using only the edgeIds.
+        bool operator==(const ForkInfo& that) const
+        {
+            return edgeIds == that.edgeIds;
+        }
+        bool operator<(const ForkInfo& that) const
+        {
+            return edgeIds < that.edgeIds;
+        }
+    };
+
+
+
 };
 
 

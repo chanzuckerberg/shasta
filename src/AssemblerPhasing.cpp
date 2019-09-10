@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "deduplicate.hpp"
 using namespace shasta;
 
 
@@ -20,6 +21,185 @@ void Assembler::createPhasingData(
     // Find the oriented reads internal to each assembly graph edge.
     phasingGatherOrientedReads(threadCount);
 
+    // Find forks in the assembly graph.
+    assemblyGraph.forks.createNew(
+        largeDataName("PhasingForks"), largeDataPageSize);
+    assemblyGraph.createForks();
+
+
+
+    // Count the number of times each pair of oriented
+    // reads appears on the same branch or different branches of a fork.
+    // The bool is true if the two reads are on the same branch.
+    vector< pair< array<OrientedReadId, 2>, bool> > readPairs;
+    for(uint64_t forkId=0; forkId<assemblyGraph.forks.size(); forkId++) {
+
+        // Get the branches (edges) of this fork.
+        MemoryAsContainer<AssemblyGraph::EdgeId> edgeIds = assemblyGraph.getForkEdges(forkId);
+        const uint64_t branchCount = edgeIds.size();
+        SHASTA_ASSERT(branchCount);
+        // cout << "Working on a fork with " << branchCount << " branches." << endl;
+
+        // Find oriented reads that are internal to exactly one branch.
+        // For each oriented read we also store the branch index.
+        vector< pair<OrientedReadId, uint64_t> > orientedReadTable;
+        for(uint64_t branchId=0; branchId<branchCount; branchId++) {
+            const AssemblyGraph::EdgeId edgeId = edgeIds[branchId];
+
+            // Access the oriented reads internal to this branch.
+            const MemoryAsContainer<OrientedReadId> orientedReadIds =
+                phasingData.orientedReads[edgeId];
+            /*
+            cout << "Branch " << branchId << " (edge " << edgeId << ")"
+                << " has " << orientedReadIds.size() <<
+                " oriented reads." << endl;
+            */
+
+            // Store them in the oriented read table.
+            for(const OrientedReadId orientedReadId: orientedReadIds) {
+                orientedReadTable.push_back(make_pair(orientedReadId, branchId));
+            }
+        }
+
+
+        // Sort, then remove the ones that appear in more than one branch.
+        sort(orientedReadTable.begin(), orientedReadTable.end());
+        /*
+        cout << "Initial size of oriented read table " << orientedReadTable.size() << endl;
+        for(const auto& p: orientedReadTable) {
+            cout << p.first << " " << p.second << endl;
+        }
+        */
+
+        const auto begin = orientedReadTable.begin();
+        const auto end = orientedReadTable.end();
+        auto input = begin;
+        auto output = begin;
+        while(input != end) {
+
+            if((input+1==end) || ((input+1)->first != input->first)) {
+                // cout << "Storing " << input->first << " " << input->second << endl;
+                *output++ = *input++;
+            } else {
+                auto it = input;
+                while(it!=end && it->first==input->first) {
+                    ++it;
+                }
+                input = it;
+                // cout << "Skipped to " << input->first << " " << input->second << endl;
+            }
+        }
+        orientedReadTable.resize(output - begin);
+        /*
+        cout << "Final size of oriented read table " << orientedReadTable.size() << endl;
+        for(const auto& p: orientedReadTable) {
+            cout << p.first << " " << p.second << endl;
+        }
+        */
+
+
+        // Sanity check.
+        for(uint64_t i=1; i<orientedReadTable.size(); i++) {
+            SHASTA_ASSERT(orientedReadTable[i-1].first != orientedReadTable[i].first);
+        }
+
+
+        // Now we can loop over pairs of reads.
+        array<OrientedReadId, 2> orientedReadIdPair;
+        for(uint64_t i0=0; i0<orientedReadTable.size()-1; i0++) {
+            const auto& p0 = orientedReadTable[i0];
+            orientedReadIdPair[0] = p0.first;
+            const uint64_t branchId0 = p0.second;
+            for(uint64_t i1=i0+1; i1<orientedReadTable.size(); i1++) {
+                const auto& p1 = orientedReadTable[i1];
+                orientedReadIdPair[1] = p1.first;
+                const uint64_t branchId1 = p1.second;
+                SHASTA_ASSERT(orientedReadIdPair[0] != orientedReadIdPair[1]);
+
+                readPairs.push_back(make_pair(orientedReadIdPair, branchId0==branchId1));
+            }
+        }
+    }
+
+
+    // Deduplicate and count the oriented read id pairs.
+    vector<uint64_t> frequency;
+    deduplicateAndCount(readPairs, frequency);
+    /*
+    {
+        ofstream csv("ReadPairs.csv");
+        for(size_t i=0; i<readPairs.size(); i++) {
+            const auto& p = readPairs[i];
+            csv << p.first[0] << ",";
+            csv << p.first[1] << ",";
+            csv << int(p.second) << ",";
+            csv << frequency[i] << "\n";
+        }
+    }
+    */
+
+
+
+    // Gather same branch/different branch frequencies for each pair.
+    phasingData.forkStatistics.createNew(
+        largeDataName("PhasingForkStatistics"), largeDataPageSize);
+    for(size_t i=0; i<readPairs.size(); i++) {
+        const auto& p = readPairs[i];
+        const uint32_t f = uint32_t(frequency[i]);
+
+        // See if we can add it to the last one.
+        if(phasingData.forkStatistics.size()>0) {
+            auto& last = phasingData.forkStatistics[phasingData.forkStatistics.size()-1];
+            if(p.first == last.orientedReadIds) {
+                // cout << "Added to " << last.orientedReadIds[0] << " " << last.orientedReadIds[1] << endl;
+                if(p.second) {
+                    last.sameBranchFrequency += f;
+                } else {
+                    last.differentBranchFrequency += f;
+                }
+                continue;
+            }
+        }
+
+        // Create a new one.
+        PhasingData::ForkStatistics statistics;
+        statistics.orientedReadIds = p.first;
+        if(p.second) {
+            statistics.sameBranchFrequency += f;
+        } else {
+            statistics.differentBranchFrequency += f;
+        }
+        phasingData.forkStatistics.push_back(statistics);
+        // cout << "Stored " << statistics.orientedReadIds[0] << " " << statistics.orientedReadIds[1] << endl;
+    }
+    {
+        ofstream csv("ForkStatistics.csv");
+        for(const PhasingData::ForkStatistics& s: phasingData.forkStatistics) {
+            csv << s.orientedReadIds[0] << ",";
+            csv << s.orientedReadIds[1] << ",";
+            csv << s.sameBranchFrequency << ",";
+            csv << s.differentBranchFrequency << "\n";
+        }
+    }
+
+
+
+    // Write a graph.
+    {
+        ofstream dot("Graph.dot");
+        dot << "graph G {\n";
+        for(const PhasingData::ForkStatistics& s: phasingData.forkStatistics) {
+            if(s.sameBranchFrequency>=4 && s.differentBranchFrequency<3) {
+                dot << s.orientedReadIds[0].getValue() << "--";
+                dot << s.orientedReadIds[1].getValue() << ";\n";
+            }
+        }
+        dot << "}\n";
+    }
+
+
+
+#if 0
     // Find the assembly graph edges that each oriented read is internal to.
     phasingGatherAssemblyGraphEdges(threadCount);
     phasingSortAssemblyGraphEdges(threadCount);
@@ -29,7 +209,6 @@ void Assembler::createPhasingData(
     // least one internal oriented read.
     phasingData.gatherRelatedAssemblyGraphEdges();
 
-#if 0
     // Find oriented read pairs with phasing similarity greater than the threshold.
     phasingData.findSimilarPairs(threadCount, phasingSimilarityThreshold);
 
