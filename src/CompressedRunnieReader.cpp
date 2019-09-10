@@ -3,16 +3,16 @@
 
 
 ostream& operator<<(ostream& s, CompressedRunnieIndex& index) {
-    s << "sequence_length:\t" << index.sequence_length << '\n';
-    s << "sequence_byte_index:\t" << index.sequence_byte_index << '\n';
-    s << "name_length:\t" << index.name_length << '\n';
+    s << "sequenceLength:\t" << index.sequenceLength << '\n';
+    s << "sequenceByteIndex:\t" << index.sequenceByteIndex << '\n';
+    s << "nameLength:\t" << index.nameLength << '\n';
     s << "name:\t" << index.name;
 
     return s;
 }
 
 
-void CompressedRunnieSequence::print_encoding(){
+void CompressedRunnieSequence::printEncoding(){
     for (auto& element: this->encoding) {
         cout << int(element) << ',';
     }
@@ -20,80 +20,80 @@ void CompressedRunnieSequence::print_encoding(){
 }
 
 
-CompressedRunnieReader::CompressedRunnieReader(string file_path) {
-    this->sequence_file_path = file_path;
+CompressedRunnieReader::CompressedRunnieReader(string filePath) {
+    this->sequenceFilePath = filePath;
 
     // Open the input file.
-    this->sequence_file_descriptor = ::open(file_path.c_str(), O_RDONLY);
+    this->sequenceFileDescriptor = ::open(filePath.c_str(), O_RDONLY);
 
     // Verify it is working
-    if(this->sequence_file_descriptor == -1) {
-        throw runtime_error("ERROR: could not read " + file_path);
+    if(this->sequenceFileDescriptor == -1) {
+        throw runtime_error("ERROR: could not read " + filePath);
     }
 
     // Find file size in bytes
-    this->file_length = lseek(this->sequence_file_descriptor, 0, SEEK_END);
+    this->fileLength = lseek(this->sequenceFileDescriptor, 0, SEEK_END);
 
     // Initialize remaining parameters using the file footer data
-    this->read_footer();
+    this->readFooter();
 
     // Read table of contents, needed for indexed reading
-    this->read_indexes();
+    this->readIndexes();
 }
 
 
-void CompressedRunnieReader::read_sequence(CompressedRunnieSequence& sequence, uint64_t read_index){
-    off_t byte_index = off_t(this->indexes[read_index].sequence_byte_index);
-    pread_string_from_binary(this->sequence_file_descriptor, sequence.sequence, this->indexes[read_index].sequence_length, byte_index);
-    pread_vector_from_binary(this->sequence_file_descriptor, sequence.encoding, this->indexes[read_index].sequence_length, byte_index);
+void CompressedRunnieReader::readSequence(CompressedRunnieSequence& sequence, uint64_t readIndex){
+    off_t byteIndex = off_t(this->indexes[readIndex].sequenceByteIndex);
+    preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes[readIndex].sequenceLength, byteIndex);
+    preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes[readIndex].sequenceLength, byteIndex);
 }
 
 
-void CompressedRunnieReader::read_index_entry(CompressedRunnieIndex& index_element, off_t& byte_index){
-    pread_value_from_binary(this->sequence_file_descriptor, index_element.sequence_byte_index, byte_index);
-    pread_value_from_binary(this->sequence_file_descriptor, index_element.sequence_length, byte_index);
-    pread_value_from_binary(this->sequence_file_descriptor, index_element.name_length, byte_index);
-    pread_string_from_binary(this->sequence_file_descriptor, index_element.name, index_element.name_length, byte_index);
+void CompressedRunnieReader::readIndexEntry(CompressedRunnieIndex& indexElement, off_t& byteIndex){
+    preadValueFromBinary(this->sequenceFileDescriptor, indexElement.sequenceByteIndex, byteIndex);
+    preadValueFromBinary(this->sequenceFileDescriptor, indexElement.sequenceLength, byteIndex);
+    preadValueFromBinary(this->sequenceFileDescriptor, indexElement.nameLength, byteIndex);
+    preadStringFromBinary(this->sequenceFileDescriptor, indexElement.name, indexElement.nameLength, byteIndex);
 }
 
 
-void CompressedRunnieReader::read_indexes(){
-    off_t byte_index = off_t(this->indexes_start_position);
+void CompressedRunnieReader::readIndexes(){
+    off_t byteIndex = off_t(this->indexesStartPosition);
 
-    while (byte_index > 0 and uint64_t(byte_index) < this->channel_metadata_start_position){
-        CompressedRunnieIndex index_element;
-        this->read_index_entry(index_element, byte_index);
-        this->indexes.emplace_back(index_element);
+    while (byteIndex > 0 and uint64_t(byteIndex) < this->channelMetadataStartPosition){
+        CompressedRunnieIndex indexElement;
+        this->readIndexEntry(indexElement, byteIndex);
+        this->indexes.emplace_back(indexElement);
 
         // Update the mapping of read names to their places in the vector of indexes
-        auto element = make_pair(index_element.name, this->indexes.size() - 1);
-        auto success = this->index_map.insert(move(element)).second;
+        auto element = make_pair(indexElement.name, this->indexes.size() - 1);
+        auto success = this->indexMap.insert(move(element)).second;
         if (not success){
-            throw runtime_error("ERROR: possible duplicate read name (" + index_element.name + ") found in runnie file: " + this->sequence_file_path);
+            throw runtime_error("ERROR: possible duplicate read name (" + indexElement.name + ") found in runnie file: " + this->sequenceFilePath);
         }
     }
 }
 
 
-void CompressedRunnieReader::read_channel_metadata(){
+void CompressedRunnieReader::readChannelMetadata(){
     ///
     /// Read the description of the channels that accompany the nucleotide sequence. Not currently used for initializing
     /// data vectors, since CompressedRunnieSequence.encodings specifies the data type.
     ///
-    off_t byte_index = off_t(this->channel_metadata_start_position);
-    pread_value_from_binary(this->sequence_file_descriptor, this->n_channels, byte_index);
-    this->channel_sizes.resize(n_channels);
+    off_t byteIndex = off_t(this->channelMetadataStartPosition);
+    preadValueFromBinary(this->sequenceFileDescriptor, this->nChannels, byteIndex);
+    this->channelSizes.resize(nChannels);
 
-    for (uint64_t i=0; i<this->n_channels; i++) {
-        pread_value_from_binary(this->sequence_file_descriptor, this->channel_sizes[i], byte_index);
+    for (uint64_t i=0; i<this->nChannels; i++) {
+        preadValueFromBinary(this->sequenceFileDescriptor, this->channelSizes[i], byteIndex);
     }
 }
 
 
-void CompressedRunnieReader::read_footer(){
-    off_t byte_index = off_t(this->file_length - 2*sizeof(uint64_t));
-    pread_value_from_binary(this->sequence_file_descriptor, this->indexes_start_position, byte_index);
-    pread_value_from_binary(this->sequence_file_descriptor, this->channel_metadata_start_position, byte_index);
+void CompressedRunnieReader::readFooter(){
+    off_t byteIndex = off_t(this->fileLength - 2*sizeof(uint64_t));
+    preadValueFromBinary(this->sequenceFileDescriptor, this->indexesStartPosition, byteIndex);
+    preadValueFromBinary(this->sequenceFileDescriptor, this->channelMetadataStartPosition, byteIndex);
 
-    this-> read_channel_metadata();
+    this-> readChannelMetadata();
 }

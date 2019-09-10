@@ -25,9 +25,9 @@ class CompressedRunnieIndex {
 public:
     /// Attributes ///
     string name;
-    uint64_t name_length;
-    uint64_t sequence_byte_index;
-    uint64_t sequence_length;
+    uint64_t nameLength;
+    uint64_t sequenceByteIndex;
+    uint64_t sequenceLength;
 
     /// Methods ///
 };
@@ -43,36 +43,36 @@ public:
     vector <uint8_t> encoding;
 
     /// Methods ///
-    void print_encoding();
+    void printEncoding();
 };
 
 
 class CompressedRunnieReader{
 public:
     /// Attributes ///
-    string sequence_file_path;
-    int sequence_file_descriptor;
+    string sequenceFilePath;
+    int sequenceFileDescriptor;
 
-    uint64_t indexes_start_position;
-    uint64_t channel_metadata_start_position;
-    off_t file_length;
+    uint64_t indexesStartPosition;
+    uint64_t channelMetadataStartPosition;
+    off_t fileLength;
 
     // How many accessory channels will be paired 1:1 with each nucleotide sequence
-    uint64_t n_channels;
+    uint64_t nChannels;
 
     // What is the unit size of each channel
-    vector<uint64_t> channel_sizes;
+    vector<uint64_t> channelSizes;
 
     vector<CompressedRunnieIndex> indexes;
-    unordered_map<string,size_t> index_map;
+    unordered_map<string,size_t> indexMap;
 
     /// Methods ///
-    CompressedRunnieReader(string file_path);
-    void read_footer();
-    void read_channel_metadata();
-    void read_indexes();
-    void read_index_entry(CompressedRunnieIndex& index_element, off_t& byte_index);
-    void read_sequence(CompressedRunnieSequence& sequence, uint64_t read_index);
+    CompressedRunnieReader(string filePath);
+    void readFooter();
+    void readChannelMetadata();
+    void readIndexes();
+    void readIndexEntry(CompressedRunnieIndex& indexElement, off_t& byteIndex);
+    void readSequence(CompressedRunnieSequence& sequence, uint64_t readIndex);
 };
 
 #endif //RUNLENGTH_ANALYSIS_COMPRESSEDRUNNIEREADER_HPP
