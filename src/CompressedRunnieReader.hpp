@@ -73,6 +73,7 @@ public:
     void readIndexes();
     void readIndexEntry(CompressedRunnieIndex& indexElement, off_t& byteIndex);
     void readSequence(CompressedRunnieSequence& sequence, uint64_t readIndex);
+    size_t countReads();
 };
 
 #endif //RUNLENGTH_ANALYSIS_COMPRESSEDRUNNIEREADER_HPP
