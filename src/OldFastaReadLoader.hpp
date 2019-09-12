@@ -1,5 +1,5 @@
-#ifndef SHASTA_READ_LOADER_HPP
-#define SHASTA_READ_LOADER_HPP
+#ifndef SHASTA_OLD_FASTA_READ_LOADER_HPP
+#define SHASTA_OLD_FASTA_READ_LOADER_HPP
 
 // shasta
 #include "LongBaseSequence.hpp"
@@ -11,18 +11,18 @@
 #include "string.hpp"
 
 namespace shasta {
-    class ReadLoader;
+    class OldFastaReadLoader;
 }
 
 
 
 // Class used to load reads from a fasta file.
-class shasta::ReadLoader :
-    public MultithreadedObject<ReadLoader>{
+class shasta::OldFastaReadLoader :
+    public MultithreadedObject<OldFastaReadLoader>{
 public:
 
     // The constructor does all the work.
-    ReadLoader(
+    OldFastaReadLoader(
         const string& fileName,
         size_t minReadLength,
         size_t blockSize,

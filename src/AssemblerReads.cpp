@@ -1,6 +1,6 @@
-// shasta.
+// Shasta.
 #include "Assembler.hpp"
-#include "ReadLoader.hpp"
+#include "OldFastaReadLoader.hpp"
 using namespace shasta;
 
 // Standard libraries.
@@ -46,7 +46,7 @@ void Assembler::addReadsFromFasta(
     checkReadsAreOpen();
     checkReadNamesAreOpen();
 
-    ReadLoader readLoader(
+    OldFastaReadLoader readLoader(
         fileName,
         minReadLength,
         blockSize,

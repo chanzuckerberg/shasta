@@ -1,5 +1,5 @@
-// shasta.
-#include "ReadLoader.hpp"
+// Shasta.
+#include "OldFastaReadLoader.hpp"
 #include "computeRunLengthRepresentation.hpp"
 #include "splitRange.hpp"
 #include "timestamp.hpp"
@@ -11,7 +11,7 @@ using namespace shasta;
 
 
 // Load reads from a fastq or fasta file.
-ReadLoader::ReadLoader(
+OldFastaReadLoader::OldFastaReadLoader(
     const string& fileName,
     size_t minReadLength,
     size_t blockSize,
@@ -100,7 +100,7 @@ ReadLoader::ReadLoader(
         // order as they appear in the input file.
         cout << "Processing " << buffer.size() << " input characters." << endl;
         const auto t2 = std::chrono::steady_clock::now();
-        runThreads(&ReadLoader::processThreadFunction, threadCountForProcessing);
+        runThreads(&OldFastaReadLoader::processThreadFunction, threadCountForProcessing);
         const auto t3 = std::chrono::steady_clock::now();
         const double t23 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2)).count());
         cout << "Block processed in " << t23 << " s." << endl;
@@ -162,7 +162,7 @@ ReadLoader::ReadLoader(
 
 // Create the name to be used for a MemoryMapped
 // object to be used by a thread.
-std::string ReadLoader::threadDataName(
+std::string OldFastaReadLoader::threadDataName(
     const string& dataNamePrefix,
     size_t threadId,
     const string& dataName)
@@ -170,14 +170,14 @@ std::string ReadLoader::threadDataName(
     if(dataNamePrefix.empty()) {
         return "";
     } else {
-        return dataNamePrefix + "tmp-ReadLoader-" + dataName + "-" + to_string(threadId);
+        return dataNamePrefix + "tmp-OldFastaReadLoader-" + dataName + "-" + to_string(threadId);
     }
 
 }
 
 
 
-void ReadLoader::getFileSize()
+void OldFastaReadLoader::getFileSize()
 {
     SHASTA_ASSERT(fileDescriptor != -1);
 
@@ -197,7 +197,7 @@ void ReadLoader::getFileSize()
 // It finally moves to the leftOver data the
 // final, possibly partial, read in the buffer
 // (this is not done for the final block).
-void ReadLoader::readBlock(size_t threadCount)
+void OldFastaReadLoader::readBlock(size_t threadCount)
 {
     // Prepare the buffer for this block and
     // copy the leftOver data to the buffer.
@@ -239,7 +239,7 @@ void ReadLoader::readBlock(size_t threadCount)
 
 
 
-void ReadLoader::readBlockSequential()
+void OldFastaReadLoader::readBlockSequential()
 {
 
     size_t bytesToRead = blockEnd - blockBegin;
@@ -258,14 +258,14 @@ void ReadLoader::readBlockSequential()
 
 
 
-void ReadLoader::readBlockParallel(size_t threadCount)
+void OldFastaReadLoader::readBlockParallel(size_t threadCount)
 {
-    runThreads(&ReadLoader::readThreadFunction, threadCountForReading);
+    runThreads(&OldFastaReadLoader::readThreadFunction, threadCountForReading);
 }
 
 
 
-void ReadLoader::processThreadFunction(size_t threadId)
+void OldFastaReadLoader::processThreadFunction(size_t threadId)
 {
 
     // Get the slice of the buffer assigned to this thread.
@@ -386,7 +386,7 @@ void ReadLoader::processThreadFunction(size_t threadId)
 
 
 
-void ReadLoader::readThreadFunction(size_t threadId)
+void OldFastaReadLoader::readThreadFunction(size_t threadId)
 {
     // Get the slice of the block assigned to this thread.
     size_t sliceBegin, sliceEnd;
@@ -411,7 +411,7 @@ void ReadLoader::readThreadFunction(size_t threadId)
 
 
 // Return true if a read begins at this position in the buffer.
-bool ReadLoader::readBeginsHere(size_t bufferIndex) const
+bool OldFastaReadLoader::readBeginsHere(size_t bufferIndex) const
 {
     const char c = buffer[bufferIndex];
     if(bufferIndex == 0) {
@@ -429,7 +429,7 @@ bool ReadLoader::readBeginsHere(size_t bufferIndex) const
 // This returns false if the read contains a homopolymer run
 // of more than 255 bases, which cannot be represented
 // with a one-byte repeat count.
-bool ReadLoader::computeRunLengthRead(
+bool OldFastaReadLoader::computeRunLengthRead(
     const vector<Base>& read,
     vector<Base>& runLengthRead,
     vector<uint8_t>& readRepeatCount)
