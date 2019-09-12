@@ -75,7 +75,7 @@ uint64_t PhasingData::countCommonInternalOrientedReads(
 // Two assembly graph edges are related if they share at
 // least one internal oriented read.
 // For now this is single-threaded.
-void PhasingData::gatherRelatedAssemblyGraphEdges()
+void PhasingData::gatherRelatedAssemblyGraphEdges(uint64_t minCommonReadCount)
 {
     using EdgeId = AssemblyGraph::EdgeId;
 
@@ -113,12 +113,12 @@ void PhasingData::gatherRelatedAssemblyGraphEdges()
         // Store.
         relatedAssemblyGraphEdges.appendVector();
         for(uint64_t i=0; i<edges.size(); i++) {
-            if(count[i] >= 3) { //   ************** EXPOSE WHEN CODE IS STABLE  *****
+            if(count[i] >= minCommonReadCount) {
                 relatedAssemblyGraphEdges.append(make_pair(edges[i], count[i]));
                 SHASTA_ASSERT(count[i] == countCommonInternalOrientedReads(e0, edges[i]));
             }
         }
-        cout << e0 << " " << edges.size() << endl;
+        // cout << e0 << " " << edges.size() << endl;
     }
 }
 
@@ -443,4 +443,6 @@ void PhasingData::writeGraphviz()
 
 }
 #endif
+
+
 

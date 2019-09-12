@@ -63,14 +63,14 @@ public:
 
 
     // The assembly graph edges that are "related" to each assembly graph edge.
-    // Two assembly graph edges are "related" if they have at least one common read.
+    // Two assembly graph edges are "related" if they have at least minCommonReadCount common read.
     // Indexed by assembly graph edge.
     // For each assembly graph edge, the related assembly graph edges are
     // stored sorted.
     // For each related assembly graph edge, we also store the number of common reads.
     MemoryMapped::VectorOfVectors< pair<AssemblyGraph::EdgeId, uint64_t>, uint64_t>
         relatedAssemblyGraphEdges;
-    void gatherRelatedAssemblyGraphEdges();
+    void gatherRelatedAssemblyGraphEdges(uint64_t minCommonReadCount);
 
 
     // File name prefix and page size for binary data.

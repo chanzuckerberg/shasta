@@ -20,18 +20,55 @@ void Assembler::createPhasingData(
 
     // Find the oriented reads internal to each assembly graph edge.
     phasingGatherOrientedReads(threadCount);
+    // phasingWriteBipartiteGraph();
+
+    // Find the assembly graph edges that each oriented read is internal to.
+    phasingGatherAssemblyGraphEdges(threadCount);
+    phasingSortAssemblyGraphEdges(threadCount);
 
     // Find forks in the assembly graph.
     assemblyGraph.forks.createNew(
         largeDataName("PhasingForks"), largeDataPageSize);
     assemblyGraph.createForks();
 
+    // Find the assembly graph edges related to each assembly graph edge.
+    // Two assembly graph edges are related if they share at
+    // least this minimum number of internal oriented reads.
+    const uint64_t minCommonReadCountDiagonal = 4;          // *************** EXPOSE WHEN CODE STABILIZES.
+    const uint64_t maxCommonReadCountOffDiagonal = 2;
+    phasingData.gatherRelatedAssemblyGraphEdges(minCommonReadCountDiagonal);
+
+    // Find forks with similar read distributions.
+    phasingFindSimilarForks(
+        minCommonReadCountDiagonal,
+        maxCommonReadCountOffDiagonal);
+
+
+
+#if 0
+    // Write a graph showing related assembly graph edges.
+    ofstream dot("SegmentPhasingGraph.dot");
+    dot << "graph G {\n";
+    for(AssemblyGraph::EdgeId e0=0; e0<phasingData.relatedAssemblyGraphEdges.size(); e0++) {
+        const auto v = phasingData.relatedAssemblyGraphEdges[e0];
+        for(const auto& p: v) {
+            const AssemblyGraph::EdgeId e1 = p.first;
+            if(e1 <= e0) {
+                continue;
+            }
+            dot << e0 << "--" << e1 <<
+                "[penwidth=" << 0.02*double(p.second) << "];\n";
+        }
+    }
+    dot << "}\n";
 
 
     // Count the number of times each pair of oriented
     // reads appears on the same branch or different branches of a fork.
     // The bool is true if the two reads are on the same branch.
     vector< pair< array<OrientedReadId, 2>, bool> > readPairs;
+    ofstream csv("Forks.csv");
+    csv << "Fork,OrientedRead,Branch,Edge\n";
     for(uint64_t forkId=0; forkId<assemblyGraph.forks.size(); forkId++) {
 
         // Get the branches (edges) of this fork.
@@ -96,6 +133,9 @@ void Assembler::createPhasingData(
             cout << p.first << " " << p.second << endl;
         }
         */
+        for(const auto& p: orientedReadTable) {
+            csv << forkId << "," << p.first << "," << p.second << "," << edgeIds[p.second] << "\n";
+        }
 
 
         // Sanity check.
@@ -189,7 +229,10 @@ void Assembler::createPhasingData(
         ofstream dot("Graph.dot");
         dot << "graph G {\n";
         for(const PhasingData::ForkStatistics& s: phasingData.forkStatistics) {
-            if(s.sameBranchFrequency>=4 && s.differentBranchFrequency<3) {
+            const double ratio =
+                double(s.sameBranchFrequency) /
+                double(s.sameBranchFrequency + s.differentBranchFrequency);
+            if(ratio > 0.7) {
                 dot << s.orientedReadIds[0].getValue() << "--";
                 dot << s.orientedReadIds[1].getValue() << ";\n";
             }
@@ -197,17 +240,9 @@ void Assembler::createPhasingData(
         dot << "}\n";
     }
 
-
+#endif
 
 #if 0
-    // Find the assembly graph edges that each oriented read is internal to.
-    phasingGatherAssemblyGraphEdges(threadCount);
-    phasingSortAssemblyGraphEdges(threadCount);
-
-    // Find the assembly graph edges related to each assembly graph edge.
-    // Two assembly graph edges are related if they share at
-    // least one internal oriented read.
-    phasingData.gatherRelatedAssemblyGraphEdges();
 
     // Find oriented read pairs with phasing similarity greater than the threshold.
     phasingData.findSimilarPairs(threadCount, phasingSimilarityThreshold);
@@ -469,3 +504,132 @@ uint64_t Assembler::countCommonInternalOrientedReads(
     return phasingData.countCommonInternalOrientedReads(edgeId0, edgeId1);
 }
 
+
+
+// This writes a Graphviz file representing a bipartite undirected
+// graph where black vertices are oriented reads and red vertices
+// area assembly graph edges.
+// An undirected edge bwtween two vertices is created
+// if the read is internal to the assembly graph edge.
+// AAssembly graph edges v0->v1 are not included
+// if out-deg(v0)=in_deg(v1)=1.
+void Assembler::phasingWriteBipartiteGraph()
+{
+    using VertexId = AssemblyGraph::VertexId;
+    using EdgeId = AssemblyGraph::EdgeId;
+    using Edge = AssemblyGraph::Edge;
+
+    ofstream out("PhasingBipartite.dot");
+    out << "graph G{\n";
+
+    // Red vertices.
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        const Edge& edge = assemblyGraph.edges[edgeId];
+        const VertexId v0 = edge.source;
+        const VertexId v1 = edge.target;
+        const auto outDegree0 = assemblyGraph.edgesBySource[v0].size();
+        const auto inDegree1  = assemblyGraph.edgesByTarget[v1].size();
+        if(outDegree0==1 && inDegree1==1) {
+            continue;
+        }
+        out << edgeId << " [color=red];\n";
+    }
+
+    // Edges.
+    for(EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        const Edge& edge = assemblyGraph.edges[edgeId];
+        const VertexId v0 = edge.source;
+        const VertexId v1 = edge.target;
+        const auto outDegree0 = assemblyGraph.edgesBySource[v0].size();
+        const auto inDegree1  = assemblyGraph.edgesByTarget[v1].size();
+        if(outDegree0==1 && inDegree1==1) {
+            continue;
+        }
+
+        const MemoryAsContainer<OrientedReadId> orientedReadIds = phasingData.orientedReads[edgeId];
+        for(const OrientedReadId orientedReadId: orientedReadIds) {
+            out << edgeId << "--\"" << orientedReadId << "\";\n";
+        }
+    }
+
+    out << "}\n";
+}
+
+
+
+// Find similar forks.
+// Two forks are similar if:
+// - They have the same number of branches.
+// - After a permutation of the branches, the square n*n matrix
+//   containing the number of commeont reads between the branches is approximately diagonal,
+//   in the sense that all of its diagonal elements are >=minCommonReadCountDiagonal
+//   and all its off-diagonal elements are <=maxCommonReadCountOffDiagonal
+// For this to be true, the two forks must consist of n pairs of related
+// assembly graph edges (two assembly graph edges are related if their
+// number of common reads is >=minCommonReadCountDiagonal).
+void Assembler::phasingFindSimilarForks(
+    uint64_t minCommonReadCountDiagonal,
+    uint64_t maxCommonReadCountOffDiagonal)
+{
+    using EdgeId = AssemblyGraph::EdgeId;
+
+    // For now just loop over all forks.
+    ofstream dot("ForkGraph.dot");
+    dot << "graph G {\n";
+    for(uint64_t forkId0=0; forkId0<assemblyGraph.forks.size()-1; forkId0++) {
+        const AssemblyGraph::Fork fork0 = assemblyGraph.forks[forkId0];
+        const MemoryAsContainer<EdgeId> edges0 =
+            fork0.isForward ?
+            assemblyGraph.edgesBySource[fork0.vertexId] :
+            assemblyGraph.edgesByTarget[fork0.vertexId];
+        if(edges0.size() != 2) {
+            continue;   // FOR NOW
+        }
+        for(uint64_t forkId1=forkId0+1; forkId1<assemblyGraph.forks.size(); forkId1++) {
+            const AssemblyGraph::Fork fork1 = assemblyGraph.forks[forkId1];
+            const MemoryAsContainer<EdgeId> edges1 =
+                fork1.isForward ?
+                assemblyGraph.edgesBySource[fork1.vertexId] :
+                assemblyGraph.edgesByTarget[fork1.vertexId];
+            if(edges1.size() != 2) {
+                continue;   // FOR NOW
+            }
+
+            array<array<uint64_t, 2>, 2> matrix;
+            matrix[0][0] = phasingData.countCommonInternalOrientedReads(edges0[0], edges1[0]);
+            matrix[0][1] = phasingData.countCommonInternalOrientedReads(edges0[0], edges1[1]);
+            matrix[1][0] = phasingData.countCommonInternalOrientedReads(edges0[1], edges1[0]);
+            matrix[1][1] = phasingData.countCommonInternalOrientedReads(edges0[1], edges1[1]);
+
+            if(
+                (
+                matrix[0][0]>=minCommonReadCountDiagonal &&
+                matrix[1][1]>=minCommonReadCountDiagonal &&
+                matrix[0][1]<=maxCommonReadCountOffDiagonal &&
+                matrix[1][0]<=maxCommonReadCountOffDiagonal
+                )
+                ||
+                (
+                matrix[0][1]>=minCommonReadCountDiagonal &&
+                matrix[1][0]>=minCommonReadCountDiagonal &&
+                matrix[0][0]<=maxCommonReadCountOffDiagonal &&
+                matrix[1][1]<=maxCommonReadCountOffDiagonal
+                )
+                ) {
+
+                /*
+                cout <<
+                    forkId0 << " " <<
+                    forkId1 << " " <<
+                    matrix[0][0] << " " <<
+                    matrix[0][1] << " " <<
+                    matrix[1][0] << " " <<
+                    matrix[1][1] << endl;
+                */
+                dot << forkId0 << "--" << forkId1 << ";\n";
+            }
+        }
+
+    }
+    dot << "}\n";
+}

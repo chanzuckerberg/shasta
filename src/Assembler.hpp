@@ -1565,6 +1565,10 @@ private:
     void phasingGatherAssemblyGraphEdgesPass(int pass);
     void phasingSortAssemblyGraphEdges(size_t threadCount);
     void phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId);
+    void phasingWriteBipartiteGraph();
+    void phasingFindSimilarForks(
+        uint64_t minCommonReadCountDiagonal,
+        uint64_t maxCommonReadCountOffDiagonal);
 
 
 
