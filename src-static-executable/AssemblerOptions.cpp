@@ -115,8 +115,8 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "Configuration file name.")
 
         ("input",
-        value< vector<string> >(&commandLineOnlyOptions.inputFastaFileNames)->multitoken(),
-        "Names of input FASTA files. Specify at least one.")
+        value< vector<string> >(&commandLineOnlyOptions.inputFileNames)->multitoken(),
+        "Names of input files. Specify at least one.")
 
         ("assemblyDirectory",
         value<string>(&commandLineOnlyOptions.assemblyDirectory)->

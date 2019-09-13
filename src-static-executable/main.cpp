@@ -18,7 +18,7 @@ namespace shasta {
         void assemble(
             Assembler&,
             const AssemblerOptions&,
-            vector<string> inputFastaFileNames);
+            vector<string> inputNames);
 
         void setupRunDirectory(
             const string& memoryMode,
@@ -144,7 +144,7 @@ void shasta::main::assemble(
         "It provides limited Shasta functionality, "
         "at reduced performance when using the default options, "
         "but has no dependencies and requires no installation.\n\n"
-        "To run an assembly, use the \"--input\" option to specify the input Fasta files. "
+        "To run an assembly, use the \"--input\" option to specify the input files. "
         "See below for a description of the other options and parameters.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
         "at coverage 60x. If your data have significantly different coverage, "
@@ -154,10 +154,10 @@ void shasta::main::assemble(
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n";
 
-    // Check that we have at least one input FASTA file.     
-    if(assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.empty()) {
+    // Check that we have at least one input file.
+    if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
         cout << executableDescription << assemblerOptions.allOptionsDescription << endl;
-        throw runtime_error("Specify at least one input FASTA file "
+        throw runtime_error("Specify at least one input file "
             "using command line option \"--input\".");
     }
 
@@ -189,17 +189,17 @@ void shasta::main::assemble(
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n\n";
 
-    // Find absolute paths of the input fasta files.
+    // Find absolute paths of the input files.
     // We will use them below after changing directory to the output directory.
-    vector<string> inputFastaFileAbsolutePaths;
-    for(const string& inputFastaFileName: assemblerOptions.commandLineOnlyOptions.inputFastaFileNames) {
-        if(!filesystem::exists(inputFastaFileName)) {
-            throw runtime_error("Input file not found: " + inputFastaFileName);
+    vector<string> inputFileAbsolutePaths;
+    for(const string& inputFileName: assemblerOptions.commandLineOnlyOptions.inputFileNames) {
+        if(!filesystem::exists(inputFileName)) {
+            throw runtime_error("Input file not found: " + inputFileName);
         }
-        if(!filesystem::isRegularFile(inputFastaFileName)) {
-            throw runtime_error("Input file is not a regular file: " + inputFastaFileName);
+        if(!filesystem::isRegularFile(inputFileName)) {
+            throw runtime_error("Input file is not a regular file: " + inputFileName);
         }
-        inputFastaFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFastaFileName));
+        inputFileAbsolutePaths.push_back(filesystem::getAbsolutePath(inputFileName));
     }
 
 
@@ -232,10 +232,10 @@ void shasta::main::assemble(
 
     // Write out the option values we are using.
     cout << "Options in use:" << endl;
-    cout << "Input FASTA files: ";
+    cout << "Input files: ";
     copy(
-        assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.begin(),
-        assemblerOptions.commandLineOnlyOptions.inputFastaFileNames.end(),
+        assemblerOptions.commandLineOnlyOptions.inputFileNames.begin(),
+        assemblerOptions.commandLineOnlyOptions.inputFileNames.end(),
         ostream_iterator<string>(cout, " "));
     cout << endl;
     cout << "assemblyDirectory = " <<
@@ -274,7 +274,7 @@ void shasta::main::assemble(
     Assembler assembler(dataDirectory, true, pageSize);
 
     // Run the assembly.
-    assemble(assembler, assemblerOptions, inputFastaFileAbsolutePaths);
+    assemble(assembler, assemblerOptions, inputFileAbsolutePaths);
 
     // Final disclaimer message.
 #ifdef __linux
@@ -406,12 +406,12 @@ void shasta::main::setupRunDirectory(
 // This runs the entire assembly, under the following assumptions:
 // - The current directory is the run directory.
 // - The Data directory has already been created and set up, if necessary.
-// - The input Fasta file names are either absolute,
+// - The input file names are either absolute,
 //   or relative to the run directory, which is the current directory.
 void shasta::main::assemble(
     Assembler& assembler,
     const AssemblerOptions& assemblerOptions,
-    vector<string> inputFastaFileNames)
+    vector<string> inputFileNames)
 {
     const auto steadyClock0 = std::chrono::steady_clock::now();
     const auto userClock0 = boost::chrono::process_user_cpu_clock::now();
@@ -429,18 +429,35 @@ void shasta::main::assemble(
         assemblerOptions.assemblyOptions.consensusCaller << endl;
     assembler.setupConsensusCaller(assemblerOptions.assemblyOptions.consensusCaller);
 
-    // Add reads from the specified FASTA files.
-    for(const string& inputFastaFileName: inputFastaFileNames) {
-        assembler.addReadsFromFasta(
-            inputFastaFileName,
-            assemblerOptions.readsOptions.minReadLength,
-            2ULL * 1024ULL * 1024ULL * 1024ULL,
-            1,
-            threadCount);
+
+
+    // Add reads from the specified input files.
+    for(const string& inputFileName: inputFileNames) {
+        string extension;
+        try {
+            extension = filesystem::extension(inputFileName);
+        } catch (...) {
+            // There is no extension. No problem.
+        }
+        if(extension=="fasta" || extension=="fa" || extension=="FASTA" || extension=="FA") {
+            assembler.addReadsFromFasta(
+                inputFileName,
+                assemblerOptions.readsOptions.minReadLength,
+                2ULL * 1024ULL * 1024ULL * 1024ULL,
+                1,
+                threadCount);
+        } else {
+            assembler.addReads(
+                inputFileName,
+                assemblerOptions.readsOptions.minReadLength,
+                1,
+                threadCount);
+        }
     }
     if(assembler.readCount() == 0) {
         throw runtime_error("There are no input reads.");
     }
+
 
 
     // Initialize read flags.

@@ -24,7 +24,7 @@ public:
     class CommandLineOnlyOptions {
     public:
         string configFileName;
-        vector <string> inputFastaFileNames;
+        vector <string> inputFileNames;
         string assemblyDirectory;
         string command;
         string memoryMode;

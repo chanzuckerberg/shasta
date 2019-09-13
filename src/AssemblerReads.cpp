@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "OldFastaReadLoader.hpp"
+#include "ReadLoader.hpp"
 using namespace shasta;
 
 // Standard libraries.
@@ -36,6 +37,8 @@ void Assembler::checkReadId(ReadId readId) const
 
 // Add reads from a fasta file.
 // The reads are added to those already previously present.
+// This is the old version that uses the old fasta read loader
+// and will eventually be phased out.
 void Assembler::addReadsFromFasta(
     const string& fileName,
     size_t minReadLength,
@@ -59,6 +62,45 @@ void Assembler::addReadsFromFasta(
         readRepeatCounts);
 
     cout << "Discarded read statistics for file " << fileName << ":" << endl;;
+    cout << "    Discarded " << readLoader.discardedShortReadReadCount <<
+        " reads shorter than " << minReadLength <<
+        " bases for a total " << readLoader.discardedShortReadBaseCount << " bases." << endl;
+    cout << "    Discarded " << readLoader.discardedBadRepeatCountReadCount <<
+        " reads containing repeat counts 256 or more" <<
+        " for a total " << readLoader.discardedBadRepeatCountBaseCount << " bases." << endl;
+
+    // Increment the discarded reads statistics.
+    assemblerInfo->discardedShortReadReadCount += readLoader.discardedShortReadReadCount;
+    assemblerInfo->discardedShortReadBaseCount += readLoader.discardedShortReadBaseCount;
+    assemblerInfo->discardedBadRepeatCountReadCount += readLoader.discardedBadRepeatCountReadCount;
+    assemblerInfo->discardedBadRepeatCountBaseCount += readLoader.discardedBadRepeatCountBaseCount;
+}
+
+
+
+// Add reads.
+// The reads are added to those already previously present.
+void Assembler::addReads(
+    const string& fileName,
+    size_t minReadLength,
+    const size_t threadCountForReading,
+    const size_t threadCountForProcessing)
+{
+    checkReadsAreOpen();
+    checkReadNamesAreOpen();
+
+    ReadLoader readLoader(
+        fileName,
+        minReadLength,
+        threadCountForReading,
+        threadCountForProcessing,
+        largeDataFileNamePrefix,
+        largeDataPageSize,
+        reads,
+        readNames,
+        readRepeatCounts);
+
+    cout << "Discarded read statistics for file " << fileName << ":" << endl;
     cout << "    Discarded " << readLoader.discardedShortReadReadCount <<
         " reads shorter than " << minReadLength <<
         " bases for a total " << readLoader.discardedShortReadBaseCount << " bases." << endl;
