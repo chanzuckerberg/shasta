@@ -63,14 +63,14 @@ const string& CompressedRunnieReader::getFileName(){
 
 
 void CompressedRunnieReader::getSequenceData(CompressedRunnieSequence& sequence, uint64_t readNumber){
-    off_t byteIndex = off_t(this->indexes[readNumber].sequenceByteIndex);
+    off_t byteIndex = off_t(this->indexes.at(readNumber).sequenceByteIndex);
     preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes.at(readNumber).sequenceLength, byteIndex);
     preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes.at(readNumber).sequenceLength, byteIndex);
 }
 
 void CompressedRunnieReader::getSequenceData(NamedCompressedRunnieSequence& sequence, uint64_t readNumber){
     sequence.name = this->indexes.at(readNumber).name;
-    off_t byteIndex = off_t(this->indexes[readNumber].sequenceByteIndex);
+    off_t byteIndex = off_t(this->indexes.at(readNumber).sequenceByteIndex);
     preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes.at(readNumber).sequenceLength, byteIndex);
     preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes.at(readNumber).sequenceLength, byteIndex);
 }
@@ -112,7 +112,7 @@ void CompressedRunnieReader::readChannelMetadata(){
     this->channelSizes.resize(nChannels);
 
     for (uint64_t i=0; i<this->nChannels; i++) {
-        preadValueFromBinary(this->sequenceFileDescriptor, this->channelSizes[i], byteIndex);
+        preadValueFromBinary(this->sequenceFileDescriptor, this->channelSizes.at(i), byteIndex);
     }
 }
 
