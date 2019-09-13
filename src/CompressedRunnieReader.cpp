@@ -42,15 +42,37 @@ CompressedRunnieReader::CompressedRunnieReader(string filePath) {
 }
 
 
-size_t CompressedRunnieReader::countReads(){
+size_t CompressedRunnieReader::getReadCount(){
     return this->indexes.size();
 }
 
 
-void CompressedRunnieReader::readSequence(CompressedRunnieSequence& sequence, uint64_t readIndex){
-    off_t byteIndex = off_t(this->indexes[readIndex].sequenceByteIndex);
-    preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes[readIndex].sequenceLength, byteIndex);
-    preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes[readIndex].sequenceLength, byteIndex);
+const string& CompressedRunnieReader::getReadName(uint64_t readNumber){
+    return this->indexes.at(readNumber).name;
+}
+
+
+uint64_t CompressedRunnieReader::getLength(uint64_t readNumber){
+    return this->indexes.at(readNumber).sequenceLength;
+}
+
+
+const string& CompressedRunnieReader::getFileName(){
+    return this->sequenceFilePath;
+}
+
+
+void CompressedRunnieReader::getSequenceData(CompressedRunnieSequence& sequence, uint64_t readNumber){
+    off_t byteIndex = off_t(this->indexes.at(readNumber).sequenceByteIndex);
+    preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes.at(readNumber).sequenceLength, byteIndex);
+    preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes.at(readNumber).sequenceLength, byteIndex);
+}
+
+void CompressedRunnieReader::getSequenceData(NamedCompressedRunnieSequence& sequence, uint64_t readNumber){
+    sequence.name = this->indexes.at(readNumber).name;
+    off_t byteIndex = off_t(this->indexes.at(readNumber).sequenceByteIndex);
+    preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes.at(readNumber).sequenceLength, byteIndex);
+    preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes.at(readNumber).sequenceLength, byteIndex);
 }
 
 
@@ -90,7 +112,7 @@ void CompressedRunnieReader::readChannelMetadata(){
     this->channelSizes.resize(nChannels);
 
     for (uint64_t i=0; i<this->nChannels; i++) {
-        preadValueFromBinary(this->sequenceFileDescriptor, this->channelSizes[i], byteIndex);
+        preadValueFromBinary(this->sequenceFileDescriptor, this->channelSizes.at(i), byteIndex);
     }
 }
 
