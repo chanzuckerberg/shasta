@@ -49,6 +49,29 @@ public:
 
 class CompressedRunnieReader{
 public:
+
+    /// Methods ///
+
+    // Initialize the class with a file path
+    CompressedRunnieReader(string filePath);
+
+    // Fetch the name of a read based on its number (ordering in file, 0-based)
+    const string& getReadName(uint64_t readNumber);
+
+    // Fetch the length of a read based on its number (ordering in file, 0-based)
+    uint64_t getLength(uint64_t readNumber);
+
+    // Fetch the sequence of a read based on its number (ordering in file, 0-based)
+    void getSequenceData(CompressedRunnieSequence& sequence, uint64_t readNumber);
+
+    // Fetch the number of reads in the file
+    size_t getReadCount();
+
+    // Return the file path that this reader is reading from
+    const string& getFileName();
+
+private:
+
     /// Attributes ///
     string sequenceFilePath;
     int sequenceFileDescriptor;
@@ -63,17 +86,15 @@ public:
     // What is the unit size of each channel
     vector<uint64_t> channelSizes;
 
-    vector<CompressedRunnieIndex> indexes;
-    unordered_map<string,size_t> indexMap;
-
     /// Methods ///
-    CompressedRunnieReader(string filePath);
     void readFooter();
     void readChannelMetadata();
     void readIndexes();
     void readIndexEntry(CompressedRunnieIndex& indexElement, off_t& byteIndex);
-    void readSequence(CompressedRunnieSequence& sequence, uint64_t readIndex);
-    size_t countReads();
+
+    vector<CompressedRunnieIndex> indexes;
+    unordered_map<string,size_t> indexMap;
+
 };
 
 #endif //RUNLENGTH_ANALYSIS_COMPRESSEDRUNNIEREADER_HPP

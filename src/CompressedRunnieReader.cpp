@@ -42,15 +42,30 @@ CompressedRunnieReader::CompressedRunnieReader(string filePath) {
 }
 
 
-size_t CompressedRunnieReader::countReads(){
+size_t CompressedRunnieReader::getReadCount(){
     return this->indexes.size();
 }
 
 
-void CompressedRunnieReader::readSequence(CompressedRunnieSequence& sequence, uint64_t readIndex){
-    off_t byteIndex = off_t(this->indexes[readIndex].sequenceByteIndex);
-    preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes[readIndex].sequenceLength, byteIndex);
-    preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes[readIndex].sequenceLength, byteIndex);
+const string& CompressedRunnieReader::getReadName(uint64_t readNumber){
+    return this->indexes[readNumber].name;
+}
+
+
+uint64_t CompressedRunnieReader::getLength(uint64_t readNumber){
+    return this->indexes[readNumber].sequenceLength;
+}
+
+
+const string& CompressedRunnieReader::getFileName(){
+    return this->sequenceFilePath;
+}
+
+
+void CompressedRunnieReader::getSequenceData(CompressedRunnieSequence& sequence, uint64_t readNumber){
+    off_t byteIndex = off_t(this->indexes[readNumber].sequenceByteIndex);
+    preadStringFromBinary(this->sequenceFileDescriptor, sequence.sequence, this->indexes[readNumber].sequenceLength, byteIndex);
+    preadVectorFromBinary(this->sequenceFileDescriptor, sequence.encoding, this->indexes[readNumber].sequenceLength, byteIndex);
 }
 
 
