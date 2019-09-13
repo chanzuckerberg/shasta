@@ -450,7 +450,6 @@ void shasta::main::assemble(
             assembler.addReads(
                 inputFileName,
                 assemblerOptions.readsOptions.minReadLength,
-                1,
                 threadCount);
         }
     }

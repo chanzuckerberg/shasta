@@ -164,8 +164,7 @@ public:
     void addReads(
         const string& fileName,
         size_t minReadLength,
-        size_t threadCountForReading,
-        size_t threadCountForProcessing);
+        size_t threadCount);
 
     // Create a histogram of read lengths.
     void histogramReadLength(const string& fileName);

@@ -83,8 +83,7 @@ void Assembler::addReadsFromFasta(
 void Assembler::addReads(
     const string& fileName,
     size_t minReadLength,
-    const size_t threadCountForReading,
-    const size_t threadCountForProcessing)
+    const size_t threadCount)
 {
     checkReadsAreOpen();
     checkReadNamesAreOpen();
@@ -92,8 +91,7 @@ void Assembler::addReads(
     ReadLoader readLoader(
         fileName,
         minReadLength,
-        threadCountForReading,
-        threadCountForProcessing,
+        threadCount,
         largeDataFileNamePrefix,
         largeDataPageSize,
         reads,
