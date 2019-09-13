@@ -1,6 +1,6 @@
 
-#ifndef RUNLENGTH_ANALYSIS_COMPRESSEDRUNNIEREADER_HPP
-#define RUNLENGTH_ANALYSIS_COMPRESSEDRUNNIEREADER_HPP
+#ifndef SHASTA_COMPRESSEDRUNNIEREADER_HPP
+#define SHASTA_COMPRESSEDRUNNIEREADER_HPP
 
 #include "BinaryIO.hpp"
 #include <utility>
@@ -38,12 +38,18 @@ ostream& operator<<(ostream& s, CompressedRunnieIndex& index);
 class CompressedRunnieSequence {
 public:
     /// Attributes ///
-    string name;
     string sequence;
     vector <uint8_t> encoding;
 
     /// Methods ///
     void printEncoding();
+};
+
+
+class NamedCompressedRunnieSequence: public CompressedRunnieSequence{
+public:
+    /// Attributes ///
+    string name;
 };
 
 
@@ -63,6 +69,9 @@ public:
 
     // Fetch the sequence of a read based on its number (ordering in file, 0-based)
     void getSequenceData(CompressedRunnieSequence& sequence, uint64_t readNumber);
+
+    // Fetch sequence data, and the 'name' field is also filled in.
+    void getSequenceData(NamedCompressedRunnieSequence& sequence, uint64_t readNumber);
 
     // Fetch the number of reads in the file
     size_t getReadCount();
@@ -97,4 +106,4 @@ private:
 
 };
 
-#endif //RUNLENGTH_ANALYSIS_COMPRESSEDRUNNIEREADER_HPP
+#endif //SHASTA_COMPRESSEDRUNNIEREADER_HPP
