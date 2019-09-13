@@ -35,33 +35,39 @@ public:
 
     // The number of reads and raw bases discarded because the read length
     // was less than minReadLength.
-    uint64_t discardedShortReadReadCount;
-    uint64_t discardedShortReadBaseCount;
+    uint64_t discardedShortReadReadCount = 0;
+    uint64_t discardedShortReadBaseCount = 0;
 
     // The number of reads and raw bases discarded because the read
     // contained repeat counts greater than 255.
-    uint64_t discardedBadRepeatCountReadCount;
-    uint64_t discardedBadRepeatCountBaseCount;
+    uint64_t discardedBadRepeatCountReadCount = 0;
+    uint64_t discardedBadRepeatCountBaseCount = 0;
 
 private:
 
-    // The file descriptor for the input file.
-    int fileDescriptor = -1;
-
-    // The size, in bytes, of the input file.
-    size_t fileSize;
-    void getFileSize();
+    // The name of the file we are processing.
+    const string& fileName;
 
     // The minimum read length. Shorter reads are not stored.
-    size_t minReadLength;
-
-    // Buffer to keep the the input file being processed.
-    vector<char> buffer;
+    const size_t minReadLength;
 
     // The number of threads to be used for read and for processing.
     size_t threadCountForReading;
     size_t threadCountForProcessing;
+    void adjustThreadCounts();
 
+    // Information that we can use to create temporary
+    // memory mapped binary data structures.
+    const string& dataNamePrefix;
+    const size_t pageSize;
+
+    // The data structure that the reads will be added to.
+    LongBaseSequences& reads;
+    MemoryMapped::VectorOfVectors<char, uint64_t>& readNames;
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
+
+    // Functions specific to each file format.
+    void processCompressedRunnieFile();
 };
 
 
