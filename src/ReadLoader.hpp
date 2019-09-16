@@ -13,6 +13,7 @@
 namespace shasta {
     class ReadLoader;
 }
+class CompressedRunnieReader;
 
 
 
@@ -65,8 +66,6 @@ private:
     LongBaseSequences& reads;
     MemoryMapped::VectorOfVectors<char, uint64_t>& readNames;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
-    void allocatePerThreadDataStructures();
-    void allocatePerThreadDataStructures(size_t threadId);
 
     // Create the name to be used for a MemoryMapped
     // object to be used by a thread.
@@ -84,15 +83,26 @@ private:
     vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadNames;
     vector< shared_ptr<LongBaseSequences> > threadReads;
     vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
+    void allocatePerThreadDataStructures();
+    void allocatePerThreadDataStructures(size_t threadId);
 
-    // Functions specific to each file format.
+    // Store the reads computed by each thread and free
+    // the per-thread data structures.
+    void storeReads();
+
+
+    // Functions used for fasta files.
     void processFastaFile();
     void processFastaFileThreadFunction(size_t threadId);
-    void processCompressedRunnieFile();
-
     // Function that returns true if a read begins
     // at this position in Fasta format.
     bool fastaReadBeginsHere(uint64_t offset) const;
+
+
+
+    // Functions used for compressed runnie files.
+    void processCompressedRunnieFile();
+
 
 };
 

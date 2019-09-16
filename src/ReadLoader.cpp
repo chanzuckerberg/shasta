@@ -6,6 +6,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include "iterator.hpp"
 
 
 
@@ -273,20 +274,38 @@ void ReadLoader::allocatePerThreadDataStructures(size_t threadId)
 }
 
 
+
 // Compressed runnie file, via class CompressedRunnieReader.
+// For now this is sequential but it could be made faster
+// using CompressedRunnieReader functionality.
 void ReadLoader::processCompressedRunnieFile()
 {
-    SHASTA_ASSERT(0);
-    /*
+    // Create the CompressedRunnieReader.
     CompressedRunnieReader reader(fileName);
-    const uint64_t readCountInFile = reader.countReads();
+    const uint64_t readCountInFile = reader.getReadCount();
     cout << "File " << fileName << " contains " << readCountInFile << " reads." << endl;
 
-    CompressedRunnieSequence sequence;
-    for(uint64_t i=0; i<readCountInFile; i++) {
-        const CompressedRunnieIndex& sequenceInformation = reader.indexes[i];
-        reader.readSequence(sequence, i);
+    // Store the reads one by one.
+    NamedCompressedRunnieSequence read;
+    for(uint64_t i=0; i!=readCountInFile; i++) {
+        reader.getSequenceData(read, i);
+
+        readNames.appendVector(read.name.begin(), read.name.begin());
+        reads.append(read.sequence.size());
+        LongBaseSequenceView storedSequence = reads[reads.size()-1];
+        for(uint64_t i=0; i<read.sequence.size(); i++) {
+            storedSequence.set(i, Base::fromCharacter(read.sequence[i]));
+        }
+        readRepeatCounts.appendVector(read.encoding);
     }
-    */
+}
+
+
+
+// Store the reads computed by each thread and free
+// the per-thread data structures.
+void ReadLoader::storeReads()
+{
+    SHASTA_ASSERT(0);
 }
 
