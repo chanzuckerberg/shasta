@@ -4,6 +4,7 @@
 #include "PngImage.hpp"
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "buildId.hpp"
 #include "deduplicate.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "LocalReadGraph.hpp"
@@ -516,6 +517,8 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
     html <<
         "<h1>Shasta assembly summary</h1>"
+        "<h3>Shasta version</h3>" <<
+        buildId() <<
 
 
 
@@ -725,6 +728,10 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
     json <<
         "{\n"
         "  \"Comment\": \"See AssemblySummary.html for a human-readable version of this file\",\n"
+
+
+
+        "  \"Shasta version\": \"" << buildId() << "\",\n"
 
 
 
