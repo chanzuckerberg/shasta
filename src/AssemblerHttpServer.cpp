@@ -514,6 +514,15 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         }
     }
 
+    const uint64_t totalDiscardedReadCount =
+        assemblerInfo->discardedInvalidBaseReadCount +
+        assemblerInfo->discardedShortReadReadCount +
+        assemblerInfo->discardedBadRepeatCountReadCount;
+    const uint64_t totalDiscardedBaseCount =
+        assemblerInfo->discardedInvalidBaseBaseCount +
+        assemblerInfo->discardedShortReadBaseCount +
+        assemblerInfo->discardedBadRepeatCountBaseCount;
+
 
     html <<
         "<h1>Shasta assembly summary</h1>"
@@ -553,6 +562,9 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<h3 id=discarded>Reads discarded on input</h3>"
         "<table>"
         "<tr><th><th>Reads<th>Bases"
+        "<tr><td>Reads discarded on input because they contained invalid bases"
+        "<td class=right>" << assemblerInfo->discardedInvalidBaseReadCount <<
+        "<td class=right>" << assemblerInfo->discardedInvalidBaseBaseCount <<
         "<tr><td>Reads discarded on input because they were too short"
         "<td class=right>" << assemblerInfo->discardedShortReadReadCount <<
         "<td class=right>" << assemblerInfo->discardedShortReadBaseCount <<
@@ -560,18 +572,16 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << assemblerInfo->discardedBadRepeatCountReadCount <<
         "<td class=right>" << assemblerInfo->discardedBadRepeatCountBaseCount <<
         "<tr><td>Reads discarded on input, total"
-        "<td class=right>" <<
-        assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount <<
-        "<td class=right>" <<
-        assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount <<
+        "<td class=right>" <<totalDiscardedReadCount <<
+        "<td class=right>" <<totalDiscardedBaseCount <<
         "<tr><td>Fraction of reads discarded on input over total present in input files"
         "<td class=right>" <<
-        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount) /
-        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount+assemblerInfo->readCount)
+        double(totalDiscardedReadCount) /
+        double(totalDiscardedReadCount+assemblerInfo->readCount)
         <<
         "<td class=right>" <<
-        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount) /
-        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount+assemblerInfo->baseCount)
+        double(totalDiscardedBaseCount) /
+        double(totalDiscardedBaseCount+assemblerInfo->baseCount)
         <<
         "</table>"
         "<ul><li>Base counts in the above table are raw sequence bases."
@@ -723,6 +733,14 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         }
     }
 
+    const uint64_t totalDiscardedReadCount =
+        assemblerInfo->discardedInvalidBaseReadCount +
+        assemblerInfo->discardedShortReadReadCount +
+        assemblerInfo->discardedBadRepeatCountReadCount;
+    const uint64_t totalDiscardedBaseCount =
+        assemblerInfo->discardedInvalidBaseBaseCount +
+        assemblerInfo->discardedShortReadBaseCount +
+        assemblerInfo->discardedBadRepeatCountBaseCount;
 
 
     json <<
@@ -753,6 +771,11 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
         "  \"Reads discarded on input\":\n"
         "  {\n"
+        "    \"Reads discarded on input because they contained invalid bases\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->discardedInvalidBaseReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->discardedInvalidBaseBaseCount << "\n"
+        "    },\n"
         "    \"Reads discarded on input because they were too short\":\n"
         "    {\n"
         "      \"Reads\": " << assemblerInfo->discardedShortReadReadCount << ",\n"
@@ -765,18 +788,18 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    },\n"
         "    \"Reads discarded on input, total\":\n"
         "    {\n"
-        "      \"Reads\": " << assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount << ",\n"
-        "      \"Bases\": " << assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount << "\n"
+        "      \"Reads\": " << totalDiscardedReadCount << ",\n"
+        "      \"Bases\": " << totalDiscardedBaseCount << "\n"
         "    },\n"
         "    \"Fraction of reads discarded on input over total present in input files\":\n"
         "    {\n"
         "      \"Reads\": " <<
-        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount) /
-        double(assemblerInfo->discardedShortReadReadCount+assemblerInfo->discardedBadRepeatCountReadCount+assemblerInfo->readCount)
+        double(totalDiscardedReadCount) /
+        double(totalDiscardedReadCount + assemblerInfo->readCount)
         << ",\n"
         "      \"Bases\": " <<
-        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount) /
-        double(assemblerInfo->discardedShortReadBaseCount+assemblerInfo->discardedBadRepeatCountBaseCount+assemblerInfo->baseCount)
+        double(totalDiscardedBaseCount) /
+        double(totalDiscardedBaseCount + assemblerInfo->baseCount)
         << "\n"
         "    }\n"
         "  },\n"

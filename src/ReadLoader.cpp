@@ -1,6 +1,7 @@
 // Shasta.
 #include "ReadLoader.hpp"
 #include "CompressedRunnieReader.hpp"
+#include "computeRunLengthRepresentation.hpp"
 #include "splitRange.hpp"
 using namespace shasta;
 
@@ -74,6 +75,8 @@ void ReadLoader::adjustThreadCount()
 
 void ReadLoader::processFastaFile()
 {
+    const auto t0 = std::chrono::steady_clock::now();
+
     // Read the entire fasta file.
     readFile();
 
@@ -81,8 +84,13 @@ void ReadLoader::processFastaFile()
     allocatePerThreadDataStructures();
     runThreads(&ReadLoader::processFastaFileThreadFunction, threadCount);
 
-    // Combine the reads found by all the threads.
-    SHASTA_ASSERT(0);
+    // Store the reads computed by each thread and free
+    // the per-thread data structures.
+    storeReads();
+    const auto t1 = std::chrono::steady_clock::now();
+
+    cout << timestamp << "Input file read and processed in " <<
+        seconds(t1-t0) << " s." << endl;
 
 }
 
@@ -95,9 +103,9 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
     // Allocate and access the data structures where this thread will store the
     // reads it finds.
     allocatePerThreadDataStructures(threadId);
-    // MemoryMapped::VectorOfVectors<char, uint64_t>& names = *threadReadNames[threadId];
-    // LongBaseSequences& sequences = *threadReads[threadId];
-    // MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& repeatCounts =
+    MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames = *threadReadNames[threadId];
+    LongBaseSequences& thisThreadReads = *threadReads[threadId];
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
         *threadReadRepeatCounts[threadId];
 
 
@@ -109,7 +117,7 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
     uint64_t offset = begin;
     if(offset == 0) {
         if(!fastaReadBeginsHere(offset)) {
-            throw runtime_error("Fasta file " + fileName + "does not begin with a \">\".");
+            throw runtime_error("Fasta file " + fileName + " does not begin with a \">\".");
         }
     } else {
         while(!fastaReadBeginsHere(offset)) {
@@ -141,7 +149,7 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
             if(offset == buffer.size()) {
                 throw runtime_error("Reached end of file while processing a read name.");
             }
-            const char c = buffer[offset];
+            const char c = buffer[offset++];
             if(isspace(c)) {
                 break;
             } else {
@@ -150,32 +158,74 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
         }
 
         // Read the rest of the line.
-        while(buffer[offset] != '\n') {
-            ++offset;
+        while(true) {
             if(offset == buffer.size()) {
-                throw runtime_error("Reached end of file while processing a read header line.");
+                throw runtime_error("Reached end of file while processing header line for read "
+                    + readName);
             }
+            if(buffer[offset] == '\n') {
+                break;
+            }
+            ++offset;
         }
 
-        // Consume the line end.
+        // Consume the line end at the end of the header line.
         ++offset;
 
+
+
         // Read the bases.
+        // Note that here we can go past the file block assigned to this thread.
         read.clear();
-        // bool foundInvalidBase = false;
+        uint64_t invalidBaseCount = 0;
         while(offset != buffer.size()) {
             const char c = buffer[offset];
-            if(c==' ' || c=='\t' || c=='\r') {
+
+            // Skip white space.
+            if(c==' ' || c=='\t' || c=='\n' || c=='\r') {
+                ++offset;
                 continue;
             }
+
+            // If we reached the beginning of another read, stop here.
             if(c=='>' && fastaReadBeginsHere(offset))  {
                 break;
             }
-            const Base base = Base::fromCharacter(c);
-            read.push_back(base);
 
+            // Get a base from this character.
+            const Base base = Base::fromCharacterNoException(c);
+            if(base.isValid()) {
+                read.push_back(base);
+            } else {
+                ++invalidBaseCount;
+            }
+            ++offset;
         }
 
+
+        // If we found invalid bases, skip this read.
+        if(invalidBaseCount) {
+            __sync_fetch_and_add(&discardedInvalidBaseReadCount, 1);
+            __sync_fetch_and_add(&discardedInvalidBaseReadCount, read.size());
+            continue;
+        }
+
+        // If the read is too short, skip it.
+        if(read.size() < minReadLength) {
+            __sync_fetch_and_add(&discardedShortReadReadCount, 1);
+            __sync_fetch_and_add(&discardedShortReadBaseCount, read.size());
+            continue;
+        }
+
+        // Store the read bases.
+        if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
+            thisThreadReadNames.appendVector(readName.begin(), readName.end());
+            thisThreadReads.append(runLengthRead);
+            thisThreadReadRepeatCounts.appendVector(readRepeatCount);
+        } else {
+            __sync_fetch_and_add(&discardedBadRepeatCountReadCount, 1);
+            __sync_fetch_and_add(&discardedBadRepeatCountBaseCount, read.size());
+        }
     }
 
 }
@@ -228,8 +278,8 @@ void ReadLoader::readFile()
     }
     const auto t1 = std::chrono::steady_clock::now();
     const double t01 = seconds(t1 - t0);
-    cout << timestamp << "File size: " << buffer.size() <<
-        ". Read in " << t01 <<
+    cout <<  "File size is " << buffer.size() << " bytes." << endl;
+    cout << "Read in " << t01 <<
         " s at " << double(buffer.size()) / t01 << " bytes/s." << endl;
 
 
@@ -306,6 +356,45 @@ void ReadLoader::processCompressedRunnieFile()
 // the per-thread data structures.
 void ReadLoader::storeReads()
 {
-    SHASTA_ASSERT(0);
+    // Loop over all threads.
+    for(size_t threadId=0; threadId<threadCount; threadId++) {
+
+        // Access the names.
+        MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames =
+            *(threadReadNames[threadId]);
+
+        // Access the reads.
+        LongBaseSequences& thisThreadReads = *(threadReads[threadId]);
+        const size_t n = thisThreadReadNames.size();
+        SHASTA_ASSERT(thisThreadReads.size() == n);
+
+        // Access the repeat counts.
+        MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
+            *threadReadRepeatCounts[threadId];
+        SHASTA_ASSERT(thisThreadReadRepeatCounts.size() == n);
+
+        // Store the reads.
+        for(size_t i=0; i<n; i++) {
+            readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
+            reads.append(thisThreadReads[i]);
+            const size_t j = readRepeatCounts.size();
+            readRepeatCounts.appendVector(thisThreadReadRepeatCounts.size(i));
+            copy(
+                thisThreadReadRepeatCounts.begin(i),
+                thisThreadReadRepeatCounts.end(i),
+                readRepeatCounts.begin(j));
+        }
+
+        // Remove the data structures used by this thread.
+        thisThreadReadNames.remove();
+        thisThreadReads.remove();
+        thisThreadReadRepeatCounts.remove();
+    }
+
+    // Clear the per-thread data structures.
+    threadReadNames.clear();
+    threadReads.clear();
+    threadReadRepeatCounts.clear();
+
 }
 

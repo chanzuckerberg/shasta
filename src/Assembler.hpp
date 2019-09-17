@@ -80,6 +80,11 @@ public:
     // Statistics on the number of reads discarded on input.
     // These are incremented during each call to addReadsFromFasta.
 
+    // The number of reads and raw bases discarded because the read
+    // contained invalid bases.
+    uint64_t discardedInvalidBaseReadCount = 0;
+    uint64_t discardedInvalidBaseBaseCount = 0; // Only counts the valid bases in those reads.
+
     // The number of reads and raw bases discarded because the read length
     // was less than minReadLength.
     uint64_t discardedShortReadReadCount = 0;

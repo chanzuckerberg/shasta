@@ -99,6 +99,9 @@ void Assembler::addReads(
         readRepeatCounts);
 
     cout << "Discarded read statistics for file " << fileName << ":" << endl;
+    cout << "    Discarded " << readLoader.discardedInvalidBaseReadCount <<
+        " reads containing invalid bases for a total " <<
+        readLoader.discardedInvalidBaseBaseCount << " valid bases." << endl;
     cout << "    Discarded " << readLoader.discardedShortReadReadCount <<
         " reads shorter than " << minReadLength <<
         " bases for a total " << readLoader.discardedShortReadBaseCount << " bases." << endl;
@@ -107,6 +110,8 @@ void Assembler::addReads(
         " for a total " << readLoader.discardedBadRepeatCountBaseCount << " bases." << endl;
 
     // Increment the discarded reads statistics.
+    assemblerInfo->discardedInvalidBaseReadCount += readLoader.discardedInvalidBaseReadCount;
+    assemblerInfo->discardedInvalidBaseBaseCount += readLoader.discardedInvalidBaseBaseCount;
     assemblerInfo->discardedShortReadReadCount += readLoader.discardedShortReadReadCount;
     assemblerInfo->discardedShortReadBaseCount += readLoader.discardedShortReadBaseCount;
     assemblerInfo->discardedBadRepeatCountReadCount += readLoader.discardedBadRepeatCountReadCount;
@@ -169,6 +174,9 @@ void Assembler::histogramReadLength(const string& fileName)
         SHASTA_ASSERT(cumulativeBaseCount == 0);
 
         cout << "Discarded read statistics for all input files:" << endl;;
+        cout << "    Discarded " << assemblerInfo->discardedInvalidBaseReadCount <<
+            " reads containing invalid bases for a total " <<
+            assemblerInfo->discardedInvalidBaseBaseCount << " valid bases." << endl;
         cout << "    Discarded " << assemblerInfo->discardedShortReadReadCount <<
             " short reads for a total " <<
             assemblerInfo->discardedShortReadBaseCount << " bases." << endl;
@@ -183,7 +191,7 @@ void Assembler::histogramReadLength(const string& fileName)
         cout << " bases." << endl;
         cout << "    N50 for read length is " << n50 << " bases." << endl;
         cout << "    The above statistics only include reads that will be used in this assembly." << endl;
-        cout << "    Read discarded because they were too short or contained repeat counts 256"
+        cout << "    Read discarded because they contained invalid bases, were too short or contained repeat counts 256"
             " or more are not counted." << endl;
 
         // Store read statistics in AssemblerInfo.

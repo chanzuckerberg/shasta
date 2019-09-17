@@ -33,6 +33,11 @@ public:
         MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
         MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts);
 
+    // The number of reads and raw bases discarded because the read
+    // contained invalid bases.
+    uint64_t discardedInvalidBaseReadCount = 0;
+    uint64_t discardedInvalidBaseBaseCount = 0; // Only counts the valid bases in those reads.
+
     // The number of reads and raw bases discarded because the read length
     // was less than minReadLength.
     uint64_t discardedShortReadReadCount = 0;
@@ -89,7 +94,6 @@ private:
     // Store the reads computed by each thread and free
     // the per-thread data structures.
     void storeReads();
-
 
     // Functions used for fasta files.
     void processFastaFile();
