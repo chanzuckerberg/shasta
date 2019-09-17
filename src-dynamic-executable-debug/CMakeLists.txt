@@ -17,7 +17,8 @@ set_target_properties(shasta-dynamic-executable-debug PROPERTIES OUTPUT_NAME "sh
 # Compiler options.
 add_definitions(-std=c++14)
 add_definitions(-ggdb3)
-add_definitions(-O3)
+add_definitions(-O0)
+add_definitions(-mcx16)
 
 # This traces lots of memory errors.
 add_definitions(-fsanitize=address)
