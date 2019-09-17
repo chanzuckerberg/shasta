@@ -207,10 +207,10 @@ void shasta::main::assemble(
     // Create the run the output directory. If it exists, stop.
     if(filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory)) {
         throw runtime_error(
-            "Output directory " +
+            "Assembly directory " +
             assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
             " already exists.\n"
-            "Remove it or use --output to specify a different output directory.");
+            "Remove it or use --assemblyDirectory to specify a different assembly directory.");
     }
     filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
 

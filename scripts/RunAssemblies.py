@@ -83,7 +83,7 @@ for sample in samples:
         shastaExecutable,
         '--memoryMode', 'filesystem',
         '--memoryBacking', '2M', 
-        '--output', sample,
+        '--assemblyDirectory', sample,
         '--input'] + inputFileNames) + ' 1>' + sample + '.stdout 2>&1'
     os.system(command)
     
@@ -97,8 +97,8 @@ for sample in samples:
     # Cleanup the memory.
     command = ' '.join([
         shastaExecutable,
-        '--command', 'cleanup',
-        '--output', sample])
+        '--command', 'cleanupBinaryData',
+        '--assemblyDirectory', sample])
     os.system(command)
     
             
