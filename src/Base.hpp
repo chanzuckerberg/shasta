@@ -50,6 +50,11 @@ public:
     // The default constructor constructs A.
     Base() : value(0) {}
 
+    bool isValid() const
+    {
+        return value < 4;
+    }
+
     // We use static member functions instead of constructors.
     // This is safer due to the possibility of unwanted
     // conversions between characters and integers,
@@ -57,6 +62,7 @@ public:
     // the representing character (A, C, G, T).
 
     // Construct from a character.
+    // Throw an exception if the character does not represent a valid base.
     static Base fromCharacter(char c)
     {
         Base base;
@@ -69,6 +75,16 @@ public:
             }
             throw runtime_error(message);
         }
+        return base;
+    }
+
+    // Same, but without throwing an exception
+    // if the character does not represent a valid base.
+    // Use isValid() to check for that.
+    static Base fromCharacterNoException(char c)
+    {
+        Base base;
+        base.value = BaseInitializer::table[uint8_t(c)];
         return base;
     }
 
