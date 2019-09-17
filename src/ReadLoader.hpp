@@ -109,6 +109,9 @@ private:
     void processCompressedRunnieFileThreadFunction(size_t threadId);
     shared_ptr<CompressedRunnieReader> compressedRunnieReader;
 
+    // The ReadId corresponding to each index in the Runnie file.
+    vector<ReadId> readIdTable;
+
 
 };
 

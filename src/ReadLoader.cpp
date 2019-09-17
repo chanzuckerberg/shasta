@@ -339,15 +339,22 @@ void ReadLoader::processCompressedRunnieFile()
     cout << "Input file contains " << readCountInFile << " reads." << endl;
 
     // Use single-threaded code to create the space.
+    ReadId readId = ReadId(reads.size());
     for(uint64_t i=0; i!=readCountInFile; i++) {
-        readNames.appendVector(reader.getReadName(i).size());
         const uint64_t baseCount = reader.getLength(i);
-        reads.append(baseCount);
-        readRepeatCounts.appendVector(baseCount);
+        if(baseCount >= minReadLength) {
+            readNames.appendVector(reader.getReadName(i).size());
+            reads.append(baseCount);
+            readRepeatCounts.appendVector(baseCount);
+            readIdTable.push_back(readId++);
+        } else {
+            discardedShortReadReadCount++;
+            discardedShortReadBaseCount += baseCount;
+        }
     }
 
     // Use multithreaded code to store the reads.
-    setupLoadBalancing(readCountInFile, 1000);
+    setupLoadBalancing(readIdTable.size(), 1000);
     runThreads(&ReadLoader::processCompressedRunnieFileThreadFunction, threadCount);
     compressedRunnieReader = 0;
 
@@ -369,13 +376,14 @@ void ReadLoader::processCompressedRunnieFileThreadFunction(size_t threadId)
 
         // Loop over all reads in this batch.
         for(uint64_t i=begin; i!=end; i++) {
+            const ReadId readId = readIdTable[i];
             reader.getSequenceData(read, i);
-            copy(read.name.begin(), read.name.end(), readNames.begin(i));
-            LongBaseSequenceView storedSequence = reads[i];
-            for(uint64_t i=0; i<read.sequence.size(); i++) {
-                storedSequence.set(i, Base::fromCharacter(read.sequence[i]));
+            copy(read.name.begin(), read.name.end(), readNames.begin(readId));
+            LongBaseSequenceView storedSequence = reads[readId];
+            for(uint64_t j=0; j<read.sequence.size(); j++) {
+                storedSequence.set(j, Base::fromCharacter(read.sequence[j]));
             }
-            copy(read.encoding.begin(), read.encoding.end(), readRepeatCounts.begin(i));
+            copy(read.encoding.begin(), read.encoding.end(), readRepeatCounts.begin(readId));
         }
     }
 
