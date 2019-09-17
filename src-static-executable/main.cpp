@@ -439,7 +439,15 @@ void shasta::main::assemble(
         } catch (...) {
             // There is no extension. No problem.
         }
-        if(extension=="fasta" || extension=="fa" || extension=="FASTA" || extension=="FA") {
+
+        // For now, use the OldFastaReadLoader for Fasta files.
+        // Later this will be phased out.
+        const bool isFastaFile = (
+            extension=="fasta" ||
+            extension=="fa" ||
+            extension=="FASTA" ||
+            extension=="FA");
+        if(isFastaFile) {
             assembler.addReadsFromFasta(
                 inputFileName,
                 assemblerOptions.readsOptions.minReadLength,
