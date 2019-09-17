@@ -46,6 +46,45 @@ void SimpleBayesianConsensusCaller::splitAsString(string s, string& separators, 
 }
 
 
+void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
+    size_t ySize = 0;
+    size_t xSize = 0;
+
+    for (size_t baseIndex=0; baseIndex < probabilityMatrices.size(); baseIndex++){
+        if (baseIndex > 0){
+            if (ySize != probabilityMatrices[baseIndex].size()){
+                string base = string(1,AlignedBase::fromInteger(baseIndex).character());
+                throw runtime_error("ERROR: matrix size conflict detected. Matrix " + base +
+                " does not match previous base.");
+            }
+        }
+
+        ySize = probabilityMatrices[baseIndex].size();
+
+        for (size_t yIndex=0; yIndex < ySize; yIndex++) {
+            if (yIndex > 0) {
+                if (xSize != probabilityMatrices[baseIndex][yIndex].size()) {
+                    string base = string(1, AlignedBase::fromInteger(baseIndex).character());
+                    throw runtime_error("ERROR: matrix row size conflict in matrix " + base +
+                    " at row " + to_string(yIndex));
+                }
+            }
+
+            xSize = probabilityMatrices[baseIndex][yIndex].size();
+        }
+    }
+
+    if (priors[0].size() != priors[1].size()){
+        throw runtime_error("ERROR: prior probability vector sizes do not match.");
+    }
+
+    if (probabilityMatrices[0].size() != priors[0].size()){
+        throw runtime_error("ERROR: prior probability vector size (" + to_string(priors[0].size()) +
+        ") does not match y (true) dimension size (" + to_string(probabilityMatrices[0].size()) +
+        ") of likelihood matrix.");
+    }
+}
+
 
 // The constructor string can be either:
 // - A name identifying one of the built-in configurations.
@@ -53,7 +92,6 @@ void SimpleBayesianConsensusCaller::splitAsString(string s, string& separators, 
 
 SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
     const string& constructorString){
-    maxRunlength = 50;
     ignoreNonConsensusBaseRepeats = true;
     predictGapRunlengths = false;
     countGapsAsZeros = false;
@@ -87,6 +125,11 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
         cout << "Loaded Bayesian consensus caller from configuration file " <<
             constructorString << endl;
     }
+
+    validateMatrixDimensions();
+
+    maxInputRunlength = uint16_t(probabilityMatrices[0][0].size() - 1);
+    maxOutputRunlength = uint16_t(probabilityMatrices[0].size() - 1);
 
     cout << "Bayesian consensus caller configuration name is " <<
         configurationName << endl;
@@ -306,7 +349,7 @@ uint16_t SimpleBayesianConsensusCaller::predictRunlength(const Coverage &coverag
 
     // Iterate all possible Y from 0 to j to calculate p(Y_j|X) where X is all observations 0 to i,
     // assuming i and j are less than maxRunlength
-    for (y = 0; y <= maxRunlength; y++){
+    for (y = 0; y <= maxOutputRunlength; y++){
         // Initialize logSum for this Y value using empirically determined priors
         logSum = priors[priorIndex][y];
 
@@ -316,8 +359,8 @@ uint16_t SimpleBayesianConsensusCaller::predictRunlength(const Coverage &coverag
                 c = item.second;
 
                 // In the case that observed runlength is too large for the matrix, cap it at maxRunlength
-                if (x > maxRunlength){
-                    x = maxRunlength;
+                if (x > maxInputRunlength){
+                    x = maxInputRunlength;
                 }
 
                 // Increment log likelihood for this y_j
@@ -375,7 +418,7 @@ Consensus SimpleBayesianConsensusCaller::operator()(const Coverage& coverage) co
     AlignedBase consensusBase;
     uint16_t consensusRepeat;
 
-    vector<double> logLikelihoods(u_long(maxRunlength+1), -INF);    // initialize as zeros in log space
+    vector<double> logLikelihoods(u_long(maxOutputRunlength+1), -INF);    // initialize as zeros in log space
 
     consensusBase = predictConsensusBase(coverage);
 

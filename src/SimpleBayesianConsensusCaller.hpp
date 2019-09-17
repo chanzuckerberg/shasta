@@ -73,7 +73,8 @@ private:
     string configurationName;
 
     // Defined at initialization, this is the size of the probability matrix generated from the data
-    uint16_t maxRunlength;
+    uint16_t maxOutputRunlength;
+    uint16_t maxInputRunlength;
 
     // Boolean flags for configuration
     bool ignoreNonConsensusBaseRepeats;
@@ -91,6 +92,9 @@ private:
     // Attempt to construct interpreting the constructor string as
     // a built-in configuration name.
     bool constructBuiltin(const string& constructorString);
+
+    // Ensure that the config file specified matrices with rectangular, matching dimensions.
+    void validateMatrixDimensions();
 
     // For parsing any character separated file format
     void splitAsDouble(string s, string& separators, vector<double>& tokens);
