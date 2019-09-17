@@ -217,12 +217,19 @@ template<class T> inline void shasta::MultithreadedObject<T>::startThreads(
             }
             log.exceptions(ofstream::failbit | ofstream::badbit );
         }
-        threads.push_back(std::make_shared<std::thread>(
-            std::thread(
-            &MultithreadedObject::runThreadFunction,
-            std::ref(t),
-            f,
-            threadId)));
+
+        try {
+            threads.push_back(std::make_shared<std::thread>(
+                std::thread(
+                &MultithreadedObject::runThreadFunction,
+                std::ref(t),
+                f,
+                threadId)));
+        } catch(std::exception e) {
+            throw runtime_error(
+                "The following error occurred while attempting to start thread " +
+                to_string(threadId) + ":\n" + e.what());
+        }
     }
 }
 
