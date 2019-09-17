@@ -32,7 +32,7 @@ ReadLoader::ReadLoader(
     readNames(readNames),
     readRepeatCounts(readRepeatCounts)
 {
-    cout << timestamp << "Getting reads from " << fileName << endl;
+    cout << timestamp << "Adding reads from " << fileName << endl;
 
     adjustThreadCount();
 
@@ -330,24 +330,55 @@ void ReadLoader::allocatePerThreadDataStructures(size_t threadId)
 // using CompressedRunnieReader functionality.
 void ReadLoader::processCompressedRunnieFile()
 {
+    const auto t0 = std::chrono::steady_clock::now();
+
     // Create the CompressedRunnieReader.
-    CompressedRunnieReader reader(fileName);
+    compressedRunnieReader = make_shared<CompressedRunnieReader>(fileName);
+    CompressedRunnieReader& reader = *compressedRunnieReader;
     const uint64_t readCountInFile = reader.getReadCount();
-    cout << "File " << fileName << " contains " << readCountInFile << " reads." << endl;
+    cout << "Input file contains " << readCountInFile << " reads." << endl;
 
-    // Store the reads one by one.
-    NamedCompressedRunnieSequence read;
+    // Use single-threaded code to create the space.
     for(uint64_t i=0; i!=readCountInFile; i++) {
-        reader.getSequenceData(read, i);
-
-        readNames.appendVector(read.name.begin(), read.name.begin());
-        reads.append(read.sequence.size());
-        LongBaseSequenceView storedSequence = reads[reads.size()-1];
-        for(uint64_t i=0; i<read.sequence.size(); i++) {
-            storedSequence.set(i, Base::fromCharacter(read.sequence[i]));
-        }
-        readRepeatCounts.appendVector(read.encoding);
+        readNames.appendVector(reader.getReadName(i).size());
+        const uint64_t baseCount = reader.getLength(i);
+        reads.append(baseCount);
+        readRepeatCounts.appendVector(baseCount);
     }
+
+    // Use multithreaded code to store the reads.
+    setupLoadBalancing(readCountInFile, 1000);
+    runThreads(&ReadLoader::processCompressedRunnieFileThreadFunction, threadCount);
+    compressedRunnieReader = 0;
+
+    const auto t1 = std::chrono::steady_clock::now();
+    cout << "Input file read and processed in " <<
+        seconds(t1-t0) << " s." << endl;
+}
+
+
+
+void ReadLoader::processCompressedRunnieFileThreadFunction(size_t threadId)
+{
+    CompressedRunnieReader& reader = *compressedRunnieReader;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    NamedCompressedRunnieSequence read;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all reads in this batch.
+        for(uint64_t i=begin; i!=end; i++) {
+            reader.getSequenceData(read, i);
+            copy(read.name.begin(), read.name.end(), readNames.begin(i));
+            LongBaseSequenceView storedSequence = reads[i];
+            for(uint64_t i=0; i<read.sequence.size(); i++) {
+                storedSequence.set(i, Base::fromCharacter(read.sequence[i]));
+            }
+            copy(read.encoding.begin(), read.encoding.end(), readRepeatCounts.begin(i));
+        }
+    }
+
 }
 
 

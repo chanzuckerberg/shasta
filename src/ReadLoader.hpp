@@ -104,8 +104,10 @@ private:
 
 
 
-    // Functions used for compressed runnie files.
+    // Functions and data used for compressed runnie files.
     void processCompressedRunnieFile();
+    void processCompressedRunnieFileThreadFunction(size_t threadId);
+    shared_ptr<CompressedRunnieReader> compressedRunnieReader;
 
 
 };
