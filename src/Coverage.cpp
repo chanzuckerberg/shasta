@@ -12,7 +12,9 @@ CoverageData::CoverageData(AlignedBase base, Strand strand, size_t repeatCount) 
     if(base.isGap()) {
         SHASTA_ASSERT(repeatCount == 0);
     } else {
-        SHASTA_ASSERT(repeatCount > 0);
+        // This one does not hold for runnie reads as the zero repeat
+        // code is as good as any.
+        // SHASTA_ASSERT(repeatCount > 0);
     }
 }
 
@@ -48,7 +50,9 @@ void Coverage::addRead(AlignedBase base, Strand strand, size_t repeatCount)
     if(base.isGap()) {
         SHASTA_ASSERT(repeatCount == 0);
     } else {
-        SHASTA_ASSERT(repeatCount > 0);
+        // This one does not hold for runnie reads as the zero repeat
+        // code is as good as any.
+        // SHASTA_ASSERT(repeatCount > 0);
     }
 
     // Store a CoverageData for this read.
