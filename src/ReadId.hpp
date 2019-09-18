@@ -18,6 +18,7 @@ namespace shasta {
     // Type used to identify a read.
     // This is used as an index into Assembler::reads.
     using ReadId = uint32_t;
+    const ReadId invalidReadId = std::numeric_limits<ReadId>::max();
 
     // Class used to identify an oriented read,
     // that is a read, possibly reverse complemented.

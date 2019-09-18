@@ -343,6 +343,7 @@ void ReadLoader::processCompressedRunnieFile()
     cout << "Input file contains " << readCountInFile << " reads." << endl;
 
     // Use single-threaded code to create the space.
+    readIdTable.resize(readCountInFile);
     ReadId readId = ReadId(reads.size());
     for(uint64_t i=0; i!=readCountInFile; i++) {
         const uint64_t baseCount = reader.getLength(i);
@@ -350,10 +351,11 @@ void ReadLoader::processCompressedRunnieFile()
             readNames.appendVector(reader.getReadName(i).size());
             reads.append(baseCount);
             readRepeatCounts.appendVector(baseCount);
-            readIdTable.push_back(readId++);
+            readIdTable[i] = readId++;
         } else {
             discardedShortReadReadCount++;
             discardedShortReadBaseCount += baseCount;
+            readIdTable[i] = invalidReadId;
         }
     }
 
@@ -381,6 +383,9 @@ void ReadLoader::processCompressedRunnieFileThreadFunction(size_t threadId)
         // Loop over all reads in this batch.
         for(uint64_t i=begin; i!=end; i++) {
             const ReadId readId = readIdTable[i];
+            if(readId == invalidReadId) {
+                continue;
+            }
             reader.getSequenceData(read, i);
             copy(read.name.begin(), read.name.end(), readNames.begin(readId));
             LongBaseSequenceView storedSequence = reads[readId];
