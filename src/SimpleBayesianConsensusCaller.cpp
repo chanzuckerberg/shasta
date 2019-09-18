@@ -53,7 +53,7 @@ void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
     for (size_t baseIndex=0; baseIndex < probabilityMatrices.size(); baseIndex++){
         if (baseIndex > 0){
             if (ySize != probabilityMatrices[baseIndex].size()){
-                string base = string(1,AlignedBase::fromInteger(baseIndex).character());
+                string base = string(1, AlignedBase::fromInteger(uint8_t(baseIndex)).character());
                 throw runtime_error("ERROR: matrix size conflict detected. Matrix " + base +
                 " does not match previous base.");
             }
