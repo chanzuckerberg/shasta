@@ -112,6 +112,9 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
     // Compute the file block assigned to this thread.
     uint64_t begin, end;
     tie(begin, end) = splitRange(0, buffer.size(), threadCount, threadId);
+    if(begin == end) {
+        return;
+    }
 
     // Locate the first read that begins in this block.
     uint64_t offset = begin;
@@ -149,12 +152,13 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
             if(offset == buffer.size()) {
                 throw runtime_error("Reached end of file while processing a read name.");
             }
-            const char c = buffer[offset++];
+            const char c = buffer[offset];
             if(isspace(c)) {
                 break;
             } else {
                 readName.push_back(c);
             }
+            offset++;
         }
 
         // Read the rest of the line.
