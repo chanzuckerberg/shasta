@@ -117,7 +117,7 @@ private:
         } catch(const runtime_error& e) {
             t.exceptionsOccurred = true;
             std::lock_guard<std::mutex> lock(t.mutex);
-            cout << timestamp << "A runtime error occurred in thread " << threadId << ": ";
+            cout << timestamp << "A runtime error occurred in thread " << threadId << ":\n";
             cout << e.what() << endl;
             t.killAllThreadsExceptMe(threadId);
             ::exit(1);
@@ -125,7 +125,7 @@ private:
             t.exceptionsOccurred = true;
             std::lock_guard<std::mutex> lock(t.mutex);
             cout << timestamp << e.what() << endl;
-            cout << "A memory allocation failure occurred in thread " << threadId << ": ";
+            cout << "A memory allocation failure occurred in thread " << threadId << ":\n";
             cout << "This assembly requires more memory than available." << endl;
             cout << "Rerun on a larger machine." << endl;
             t.killAllThreadsExceptMe(threadId);
@@ -133,7 +133,7 @@ private:
         } catch(const exception& e) {
             t.exceptionsOccurred = true;
             std::lock_guard<std::mutex> lock(t.mutex);
-            cout << "A standard exception occurred in thread " << threadId << ": ";
+            cout << "A standard exception occurred in thread " << threadId << ":\n";
             cout << e.what() << endl;
             t.killAllThreadsExceptMe(threadId);
             ::exit(1);
@@ -228,7 +228,10 @@ template<class T> inline void shasta::MultithreadedObject<T>::startThreads(
         } catch(std::exception e) {
             throw runtime_error(
                 "The following error occurred while attempting to start thread " +
-                to_string(threadId) + ":\n" + e.what());
+                to_string(threadId) + ":\n" + e.what() + "\n" +
+                "You may have hit a limit imposed by your system on the maximum number of threads "
+                "allowed. Rerunning with \"--threads " + to_string(threadId) + "\" may fix this problem "
+                "at a cost in performance.");
         }
     }
 }
