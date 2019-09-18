@@ -64,7 +64,7 @@ void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
         for (size_t yIndex=0; yIndex < ySize; yIndex++) {
             if (yIndex > 0) {
                 if (xSize != probabilityMatrices[baseIndex][yIndex].size()) {
-                    string base = string(1, AlignedBase::fromInteger(baseIndex).character());
+                    string base = string(1, AlignedBase::fromInteger(uint8_t(baseIndex)).character());
                     throw runtime_error("ERROR: matrix row size conflict in matrix " + base +
                     " at row " + to_string(yIndex));
                 }
