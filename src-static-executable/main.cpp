@@ -49,6 +49,7 @@ using namespace shasta;
 #include <unistd.h>
 
 // Standard library.
+#include "chrono.hpp"
 #include "iostream.hpp"
 #include "iterator.hpp"
 #include "stdexcept.hpp"
@@ -432,38 +433,20 @@ void shasta::main::assemble(
 
 
     // Add reads from the specified input files.
+    cout << timestamp << "Begin loading reads from " << inputFileNames.size() << " files." << endl;
+    const auto t0 = steady_clock::now();
     for(const string& inputFileName: inputFileNames) {
-        string extension;
-        try {
-            extension = filesystem::extension(inputFileName);
-        } catch (...) {
-            // There is no extension. No problem.
-        }
-
-        // For now, use the OldFastaReadLoader for Fasta files.
-        // Later this will be phased out.
-        const bool isFastaFile = (
-            extension=="fasta" ||
-            extension=="fa" ||
-            extension=="FASTA" ||
-            extension=="FA");
-        if(isFastaFile) {
-            assembler.addReadsFromFasta(
-                inputFileName,
-                assemblerOptions.readsOptions.minReadLength,
-                2ULL * 1024ULL * 1024ULL * 1024ULL,
-                1,
-                threadCount);
-        } else {
-            assembler.addReads(
-                inputFileName,
-                assemblerOptions.readsOptions.minReadLength,
-                threadCount);
-        }
+        assembler.addReads(
+            inputFileName,
+            assemblerOptions.readsOptions.minReadLength,
+            threadCount);
     }
     if(assembler.readCount() == 0) {
         throw runtime_error("There are no input reads.");
     }
+    const auto t1 = steady_clock::now();
+    cout << timestamp << "Done loading reads from " << inputFileNames.size() << " files." << endl;
+    cout << "Read loading took " << seconds(t1-t0) << "s." << endl;
 
 
 
