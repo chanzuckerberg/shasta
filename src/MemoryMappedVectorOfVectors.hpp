@@ -161,7 +161,7 @@ public:
     // Add a T at the end of the last vector.
     void append(const T& t)
     {
-        SHASTA_ASSERT(!empty());
+        // SHASTA_ASSERT(!empty());
         ++toc.back();
         data.push_back(t);
     }
@@ -169,7 +169,7 @@ public:
 
 
     // Add a non-empty vector at the end.
-    template<class Iterator> void appendVector(Iterator begin, Iterator end)
+    template<class Iterator> void appendList(Iterator begin, Iterator end)
     {
         // First, append an empty vector.
         appendVector();
@@ -179,9 +179,16 @@ public:
             append(*it);
         }
     }
+    template<class Iterator> void appendVector(Iterator beginIt, Iterator endIt)
+    {
+        appendVector(endIt - beginIt);
+        copy(beginIt, endIt, begin(size()-1));
+    }
     void appendVector(const vector<T>& v)
     {
-        appendVector(v.begin(), v.end());
+        // appendVector(v.begin(), v.end());
+        appendVector(v.size());
+        copy(v.begin(), v.end(), begin(size()-1));
     }
 
 
