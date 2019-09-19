@@ -72,15 +72,16 @@ private:
     MemoryMapped::VectorOfVectors<char, uint64_t>& readNames;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
 
-    // Create the name to be used for a MemoryMapped
-    // object to be used by a thread.
+    // Create the name to be used for a MemoryMapped object.
+    string dataName(
+        const string& dataName) const;
     string threadDataName(
         size_t threadId,
         const string& dataName) const;
 
     // Read an entire file into a buffer,
     // using threadCountForReading threads.
-    vector<char> buffer;
+    MemoryMapped::Vector<char> buffer;
     void readFile();
 
     // Vectors where each thread stores the reads it found.

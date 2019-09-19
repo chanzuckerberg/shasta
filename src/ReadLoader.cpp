@@ -32,7 +32,7 @@ ReadLoader::ReadLoader(
     readNames(readNames),
     readRepeatCounts(readRepeatCounts)
 {
-    cout << timestamp << "Adding reads from " << fileName << endl;
+    cout << timestamp << "Loading reads from " << fileName << endl;
 
     adjustThreadCount();
 
@@ -79,18 +79,25 @@ void ReadLoader::processFastaFile()
 
     // Read the entire fasta file.
     readFile();
+    const auto t1 = std::chrono::steady_clock::now();
 
     // Each thread stores reads in its own data structures.
     allocatePerThreadDataStructures();
     runThreads(&ReadLoader::processFastaFileThreadFunction, threadCount);
+    const auto t2 = std::chrono::steady_clock::now();
 
     // Store the reads computed by each thread and free
     // the per-thread data structures.
     storeReads();
-    const auto t1 = std::chrono::steady_clock::now();
+    buffer.remove();
+    const auto t3 = std::chrono::steady_clock::now();
 
     cout << timestamp << "Input file read and processed in " <<
         seconds(t1-t0) << " s." << endl;
+    cout << "Timing detail: " <<
+        "read " << seconds(t1-t0) << ", "
+        "parse " << seconds(t2-t1) << ", "
+        "store " << seconds(t3-t2) << endl;
 
 }
 
@@ -100,6 +107,9 @@ void ReadLoader::processFastaFile()
 // is in the file block assigned to the read.
 void ReadLoader::processFastaFileThreadFunction(size_t threadId)
 {
+    const char* bufferPointer = &buffer[0];
+    const uint64_t bufferSize = buffer.size();
+
     // Allocate and access the data structures where this thread will store the
     // reads it finds.
     allocatePerThreadDataStructures(threadId);
@@ -111,7 +121,7 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
 
     // Compute the file block assigned to this thread.
     uint64_t begin, end;
-    tie(begin, end) = splitRange(0, buffer.size(), threadCount, threadId);
+    tie(begin, end) = splitRange(0, bufferSize, threadCount, threadId);
     if(begin == end) {
         return;
     }
@@ -149,10 +159,10 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
         // Read the name.
         readName.clear();
         while(true) {
-            if(offset == buffer.size()) {
+            if(offset == bufferSize) {
                 throw runtime_error("Reached end of file while processing a read name.");
             }
-            const char c = buffer[offset];
+            const char c = bufferPointer[offset];
             if(isspace(c)) {
                 break;
             } else {
@@ -163,11 +173,11 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
 
         // Read the rest of the line.
         while(true) {
-            if(offset == buffer.size()) {
+            if(offset == bufferSize) {
                 throw runtime_error("Reached end of file while processing header line for read "
                     + readName);
             }
-            if(buffer[offset] == '\n') {
+            if(bufferPointer[offset] == '\n') {
                 break;
             }
             ++offset;
@@ -182,8 +192,8 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
         // Note that here we can go past the file block assigned to this thread.
         read.clear();
         uint64_t invalidBaseCount = 0;
-        while(offset != buffer.size()) {
-            const char c = buffer[offset];
+        while(offset != bufferSize) {
+            const char c = bufferPointer[offset];
 
             // Skip white space.
             if(c==' ' || c=='\t' || c=='\n' || c=='\r') {
@@ -259,6 +269,7 @@ void ReadLoader::readFile()
 {
     // Resize our buffer to contain the entire file.
     int64_t bytesToRead = filesystem::fileSize(fileName);
+    buffer.createNew(dataName("tmp-FastaBuffer"), pageSize);
     buffer.resize(bytesToRead);
 
     // Open the input file.
@@ -269,7 +280,7 @@ void ReadLoader::readFile()
 
     // Read it in.
     const auto t0 = std::chrono::steady_clock::now();
-    char* bufferPointer = buffer.data();
+    char* bufferPointer = &buffer[0];
     while(bytesToRead) {
         const int64_t bytesRead = ::read(fileDescriptor, bufferPointer, bytesToRead);
         if(bytesRead == -1) {
@@ -292,8 +303,17 @@ void ReadLoader::readFile()
 
 
 
-// Create the name to be used for a MemoryMapped
-// object to be used by a thread.
+// Create the name to be used for a MemoryMapped object.
+string ReadLoader::dataName(
+    const string& dataName) const
+{
+    if(dataNamePrefix.empty()) {
+        return "";
+    } else {
+        return dataNamePrefix + dataName;
+    }
+
+}
 string ReadLoader::threadDataName(
     size_t threadId,
     const string& dataName) const
@@ -305,6 +325,8 @@ string ReadLoader::threadDataName(
     }
 
 }
+
+
 
 // Allocate space for the data structures where
 // each thread stores the reads it found and their names.
