@@ -16,18 +16,25 @@ bool shasta::computeRunLengthRepresentation(
     runLengthSequence.clear();
     repeatCount.clear();
 
-    for(auto it=sequence.begin(); it!=sequence.end(); ) {
+    const auto begin = sequence.begin();
+    const auto end = sequence.end();
+
+
+
+    for(auto it=begin; it!=end; ) {
         const Base base = *it;
         uint32_t count = 0;
-        while(it!=sequence.end() && *it==base) {
+        while(it!=end && *it==base) {
             ++it;
             ++count;
-            if(count == 256) {
-                return false;
-            }
         }
-        SHASTA_ASSERT(count > 0);
-        SHASTA_ASSERT(count <= 255);
+        // Do this check outside the above loop
+        // as it will trip very rarely.
+        if(count >= 256) {
+            return false;
+        }
+        // SHASTA_ASSERT(count > 0);
+        // SHASTA_ASSERT(count <= 255);
         runLengthSequence.push_back(base);
         repeatCount.push_back(uint8_t(count));
     }
