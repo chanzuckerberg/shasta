@@ -293,12 +293,12 @@ template<class T> inline size_t shasta::MemoryMapped::Vector<T>::capacity() cons
 
 template<class T> inline T& shasta::MemoryMapped::Vector<T>::operator[](size_t i)
 {
-    SHASTA_ASSERT(isOpen);
+    // SHASTA_ASSERT(isOpen);
     return data[i];
 }
 template<class T> inline const T& shasta::MemoryMapped::Vector<T>::operator[](size_t i) const
 {
-    SHASTA_ASSERT(isOpen);
+    // SHASTA_ASSERT(isOpen);
     return data[i];
 }
 
