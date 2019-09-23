@@ -401,39 +401,35 @@ during <code>import</code>.
 <p>
 The Shasta
 assembler uses as input one or more 
-<a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>
-files containing the input reads.
-The files must be named with a file extension
+files containing reads in one of the supported formats listed below.
+Shasta uses the file extension to deduce the file format, as described below.
+
+<ul>
+<li>
+<a href="https://en.wikipedia.org/wiki/FASTA">FASTA</a>:
+input files in this format must be named with a file extension
 <code>.fasta</code>,
 <code>.fa</code>,
 <code>.FASTA</code>, or
-<code>.FA</code>.
+<code>.FA</code>. 
+Older versions of Shasta had strict restrictions on Fasta files,
+but these restrictions were eliminated. 
+In particular, multiline reads are now supported.
+Reads containing no-called or invalid bases are also allowed
+but are discarded on input. The file can have either Unix-style (LF) or
+Windows-style (CR+LF) line ends.
 
-The FASTA files must be <span style='background-color:yellow'>formatted strictly</span> 
-according to the following rules:
-
-<ul> 
-<li>The body of each read should be on a single line.
-Reads spanning multiple lines are not allowed.
-<li>The body of each read should not contain
-extraneous characters such as no-called bases (<code>N</code>),
-spaces, tabs, carriage returns (CR, ASCII 13), or any characters
-other than 
-<code>A</code>,
-<code>C</code>,
-<code>G</code>,
-<code>T</code>.
 <li>
-If the file contains Windows-style line ends (ASCII 13 carriage return CR
-followed by ASCII 10 line feed LF) it should first be
-converted to Linux-style line ends
-(that is, eliminate the CR characters), for example using Linux
-command <code>dos2unix</code>.
+Input files in an experimental and currently undocumented format 
+under development to store
+reads in RLE format created by the 
+<a href='https://github.com/nanoporetech/flappie/blob/master/RUNNIE.md'>Oxford Nanopore Runnie base caller</a>.
+File extension must be <code>.rq</code>.
 </ul>
 
 <p>
 Direct input of <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a>
-to Shasta is currently not supported.
+to Shasta is currently not supported but is planned.
 If you have a FASTQ file, 
 you can convert it to FASTA using script 
 <code>shasta-install/bin/FastqToFasta.py</code>.
