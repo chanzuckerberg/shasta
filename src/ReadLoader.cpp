@@ -75,13 +75,13 @@ void ReadLoader::adjustThreadCount()
 
 void ReadLoader::processFastaFile()
 {
-    const auto t0 = std::chrono::steady_clock::now();
 
     // Read the entire fasta file.
+    const auto t0 = std::chrono::steady_clock::now();
     readFile();
-    const auto t1 = std::chrono::steady_clock::now();
 
     // Each thread stores reads in its own data structures.
+    const auto t1 = std::chrono::steady_clock::now();
     allocatePerThreadDataStructures();
     runThreads(&ReadLoader::processFastaFileThreadFunction, threadCount);
     const auto t2 = std::chrono::steady_clock::now();
@@ -92,12 +92,13 @@ void ReadLoader::processFastaFile()
     buffer.remove();
     const auto t3 = std::chrono::steady_clock::now();
 
-    cout << timestamp << "Input file read and processed in " <<
-        seconds(t1-t0) << " s." << endl;
-    cout << "Timing detail: " <<
-        "read " << seconds(t1-t0) << ", "
-        "parse " << seconds(t2-t1) << ", "
-        "store " << seconds(t3-t2) << endl;
+
+    cout << "Time to process this file:\n" <<
+        "Allocate buffer + read: " << seconds(t1-t0) << " s.\n" <<
+        "Parse: " << seconds(t2-t1) << " s.\n"
+        "Store: " << seconds(t3-t2) << " s.\n"
+        "Total: " << seconds(t3-t0) << " s." << endl;
+
 
 }
 
@@ -268,6 +269,7 @@ bool ReadLoader::fastaReadBeginsHere(uint64_t offset) const
 void ReadLoader::readFile()
 {
     // Resize our buffer to contain the entire file.
+    const auto t0 = std::chrono::steady_clock::now();
     int64_t bytesToRead = filesystem::fileSize(fileName);
     buffer.createNew(dataName("tmp-FastaBuffer"), pageSize);
     buffer.resize(bytesToRead);
@@ -279,7 +281,7 @@ void ReadLoader::readFile()
     }
 
     // Read it in.
-    const auto t0 = std::chrono::steady_clock::now();
+    const auto t1 = std::chrono::steady_clock::now();
     char* bufferPointer = &buffer[0];
     while(bytesToRead) {
         const int64_t bytesRead = ::read(fileDescriptor, bufferPointer, bytesToRead);
@@ -291,14 +293,17 @@ void ReadLoader::readFile()
         bufferPointer += bytesRead;
         bytesToRead -= bytesRead;
     }
-    const auto t1 = std::chrono::steady_clock::now();
-    const double t01 = seconds(t1 - t0);
-    cout <<  "File size is " << buffer.size() << " bytes." << endl;
-    cout << "Read in " << t01 <<
-        " s at " << double(buffer.size()) / t01 << " bytes/s." << endl;
-
-
     ::close(fileDescriptor);
+    const auto t2 = std::chrono::steady_clock::now();
+    const double t01 = seconds(t1 - t0);
+    const double t12 = seconds(t2 - t1);
+
+    cout <<  "File size: " << buffer.size() << " bytes." << endl;
+    cout << "Allocate buffer time: " << t01 << " s." << endl;
+    cout << "Read time: " << t12 << " s." << endl;
+    cout << "Read rate: " << double(buffer.size()) / t12 << " bytes/s." << endl;
+
+
 }
 
 
