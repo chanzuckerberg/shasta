@@ -2243,7 +2243,7 @@ void Assembler::transitiveReduction(
             ++weakEdgeCount;
         }
     }
-    cout << "Transitive reductioin removed " << weakEdgeCount << " marker graph edges out of ";
+    cout << "Transitive reduction removed " << weakEdgeCount << " marker graph edges out of ";
     cout << markerGraph.edges.size() << " total." << endl;
 
     cout << "The marker graph has " << markerGraph.vertices.size() << " vertices and ";
