@@ -16,7 +16,7 @@ of the two sets of internal reads.
 
 #include "AssemblyGraph.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 // #include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 

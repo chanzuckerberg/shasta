@@ -4,7 +4,7 @@
 // shasta
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 
 // Standard library.
 #include "memory.hpp"

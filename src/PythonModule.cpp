@@ -8,7 +8,7 @@
 #include "dset64Test.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
 #include "testMarginCore.hpp"

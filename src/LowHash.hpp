@@ -4,7 +4,7 @@
 // Shasta
 #include "Marker.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
 #include "ReadId.hpp"
 

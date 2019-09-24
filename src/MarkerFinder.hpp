@@ -2,7 +2,7 @@
 #define SHASTA_MARKER_FINDER_HPP
 
 #include "Marker.hpp"
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 
 namespace shasta {
     class MarkerFinder;

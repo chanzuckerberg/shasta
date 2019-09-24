@@ -1,4 +1,4 @@
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 

@@ -1,10 +1,10 @@
 #ifndef SHASTA_OLD_FASTA_READ_LOADER_HPP
 #define SHASTA_OLD_FASTA_READ_LOADER_HPP
 
-// shasta
+// Shasta
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 
 // Standard library.
 #include "memory.hpp"

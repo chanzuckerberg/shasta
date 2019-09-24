@@ -13,7 +13,7 @@
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
 #include "MemoryMappedObject.hpp"
-#include "MultitreadedObject.hpp"
+#include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
 #include "PhasingData.hpp"
 #include "ReadGraph.hpp"
