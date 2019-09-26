@@ -103,6 +103,15 @@ private:
     // at this position in Fasta format.
     bool fastaReadBeginsHere(uint64_t offset) const;
 
+    // Functions used for fastq files.
+    void processFastqFile();
+    void processFastqFileThreadFunction(size_t threadId);
+
+    // Find all line ends in the file.
+    void findLineEnds();
+    void findLineEndsThreadFunction(size_t threadId);
+    vector< vector<uint64_t> > threadLineEnds;
+    vector<uint64_t> lineEnds;
 
 
     // Functions and data used for compressed runnie files.
