@@ -25,8 +25,6 @@ endif(MACOS)
 
 
 # Option to build with -march=native.
-# The static executable is never built with -march=native,
-# regardless of how this is set.
 if(MACOS)
     option(BUILD_NATIVE "Build with -march=native." OFF)
 else(MACOS)
