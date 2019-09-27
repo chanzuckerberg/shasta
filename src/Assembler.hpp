@@ -263,6 +263,34 @@ public:
     void accessAlignmentData();
 
 
+    // Experimental GPU version.
+#ifdef SHASTA_BUILD_FOR_GPU
+    void computeAlignmentsGpu(
+
+        // Marker frequency threshold.
+        // When computing an alignment between two oriented reads,
+        // marker kmers that appear more than this number of times
+        // in either of the two oriented reads are discarded
+        // (in both oriented reads).
+        // Change to size_t when conversion completed.
+        uint32_t maxMarkerFrequency,
+
+        // The maximum ordinal skip to be tolerated between successive markers
+        // in the alignment.
+        size_t maxSkip,
+
+        // Minimum number of alignment markers for an alignment to be used.
+        size_t minAlignedMarkerCount,
+
+        // Maximum left/right trim (in bases) for an alignment to be used.
+        size_t maxTrim,
+
+        // Number of threads. If zero, a number of threads equal to
+        // the number of virtual processors is used.
+        size_t threadCount
+    );
+#endif
+
 
     // Loop over all alignments in the read graph
     // to create vertices of the global marker graph.

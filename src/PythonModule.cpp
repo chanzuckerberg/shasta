@@ -229,6 +229,15 @@ PYBIND11_MODULE(shasta, module)
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
             arg("threadCount") = 0)
+#ifdef SHASTA_BUILD_FOR_GPU
+        .def("computeAlignmentsGpu",
+            &Assembler::computeAlignmentsGpu,
+            arg("maxMarkerFrequency"),
+            arg("maxSkip"),
+            arg("minAlignedMarkerCount"),
+            arg("maxTrim"),
+            arg("threadCount") = 0)
+#endif
         .def("accessAlignmentData",
             &Assembler::accessAlignmentData)
 

@@ -7,7 +7,11 @@ cmake_minimum_required(VERSION 3.0)
 project(shasta-static-executable)
 
 # Define the source files that go into our executable.
+if(BUILD_FOR_GPU)
+file(GLOB SOURCES *.cpp ../src/*.cpp ../src/gpu/*.cpp)
+else(BUILD_FOR_GPU)
 file(GLOB SOURCES *.cpp ../src/*.cpp)
+endif(BUILD_FOR_GPU)
 include_directories(../src)
 
 # Define our executable.
@@ -43,6 +47,13 @@ endif(MACOS)
 
 # Pass the build id to the compile command line.
 add_definitions(-DBUILD_ID=${BUILD_ID})
+
+# Macro that controls experimental GPU code.
+# All code that is GPU specific and that is not
+# in src/gpu should be under #ifdef for this.
+if(BUILD_FOR_GPU)
+add_definitions(-DSHASTA_BUILD_FOR_GPU)
+endif(BUILD_FOR_GPU)
 
 # This is required by dset64.hpp/dset64-gccAtomic.hpp.
 add_definitions(-mcx16)

@@ -23,8 +23,21 @@ add_definitions(-mcx16)
 add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
 add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 
-# Define our shared library.
+# Macro that controls experimental GPU code.
+# All code that is GPU specific and that is not
+# in src/gpu should be under #ifdef for this.
+if(BUILD_FOR_GPU)
+add_definitions(-DSHASTA_BUILD_FOR_GPU)
+endif(BUILD_FOR_GPU)
+
+# Define our sources files.
+if(BUILD_FOR_GPU)
+file(GLOB SOURCES *.cpp gpu/*.cpp)
+else(BUILD_FOR_GPU)
 file(GLOB SOURCES *.cpp)
+endif(BUILD_FOR_GPU)
+
+# Define our shared library.
 add_library(shasta SHARED ${SOURCES})
 
 # To make sure the library is named shasta.so,

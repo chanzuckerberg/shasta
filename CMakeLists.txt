@@ -46,6 +46,14 @@ message(STATUS "BUILD_ID is: " ${BUILD_ID})
 
 
 
+# Option to build experimental code for GPU in src/gpu.
+# To turn this on, use -DBUILD_FOR_GPU=ON
+# when running cmake.
+option(BUILD_FOR_GPU "Build experimental code for GPU." OFF)
+message(STATUS "BUILD_FOR_GPU is " ${BUILD_FOR_GPU})
+
+
+
 # Add the subdirectories.
 if(BUILD_LIBRARY)
     add_subdirectory(src)
