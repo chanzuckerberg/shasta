@@ -506,7 +506,7 @@ void shasta::main::assemble(
         assemblerOptions.alignOptions.maxTrim);
 
     // Flag read graph edges that cross strands.
-    assembler.flagCrossStrandReadGraphEdges();
+    assembler.flagCrossStrandReadGraphEdges(threadCount);
 
     // Flag chimeric reads.
     assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);

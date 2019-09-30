@@ -848,7 +848,7 @@ public:
     void checkReadGraphIsOpen();
 
 
-    void flagCrossStrandReadGraphEdges();
+    void flagCrossStrandReadGraphEdges(size_t threadCount);
 private:
     void flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId);
     class FlagCrossStrandReadGraphEdgesData {

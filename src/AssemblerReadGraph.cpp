@@ -913,7 +913,7 @@ void Assembler::writeLocalReadGraphReads(
 
 
 
-void Assembler::flagCrossStrandReadGraphEdges()
+void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
 {
     const bool debug = false;
 
@@ -926,6 +926,11 @@ void Assembler::flagCrossStrandReadGraphEdges()
     const size_t orientedReadCount = 2*readCount;
     SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
 
     // Clear the crossesStrands flag for all read graph edges.
     const size_t edgeCount = readGraph.edges.size();
@@ -942,7 +947,6 @@ void Assembler::flagCrossStrandReadGraphEdges()
     flagCrossStrandReadGraphEdgesData.isNearStrandJump.clear();
     flagCrossStrandReadGraphEdgesData.isNearStrandJump.resize(orientedReadCount, false);
     const size_t batchSize = 10000;
-    const size_t threadCount = std::thread::hardware_concurrency();
     setupLoadBalancing(readCount, batchSize);
     runThreads(&Assembler::flagCrossStrandReadGraphEdgesThreadFunction, threadCount);
     const auto& isNearStrandJump = flagCrossStrandReadGraphEdgesData.isNearStrandJump;
