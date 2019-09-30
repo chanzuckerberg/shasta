@@ -64,11 +64,17 @@ See <a href=Performance.html>here</a> for more information.
 To build a version of Shasta for which no release exists.
 For example, if you want to get a recently added feature
 that is not available in the most recent release build.
+For this specific use case, you can also download a
+Shasta test build form GitHub, as described 
+<a href="#DownloadTestBuild">below</a>.
 <li>
 To test, develop, or debug Shasta code.
 <li>
 To port the Shasta build to a different platform.
 </ul>
+
+
+
 
 
 
@@ -196,6 +202,37 @@ the <code>cmake</code> command, replacing <code>0.1.0</code> with the desired re
 git checkout 0.1.0
 </pre>
 
+
+
+<h2 id="DownloadTestBuild">An alternative to building from source: downloading a test build</h2>
+<p>
+Shasta uses 
+<a href='https://help.github.com/en/articles/about-github-actions'>GitHub Actions</a>
+to perform a test build every time a push to the repository occurs. 
+The main goal of these builds is to test that new code continues to build
+on all supported platforms,
+but the builds are accessible to all users for download.
+The test builds, however, are generally not as reliable as 
+release builds, and can sometimes be non-functional.
+With this in mind, you can use the folowing steps to download one of these test builds:
+<ul>
+<li>Go to the 
+<a href='https://github.com/chanzuckerberg/shasta/commits/master'>Commits</a>
+page of the Shasta repository.
+<li>Choose a commit that has green checkmark like this
+<span style='color:green'>&#10003;</span>.
+The checkmark indicates that a push occurred at that commit,
+followed by a successful test build.
+<li>Click on the green checkmark, then click on one of the 
+<i>Details</i> links that appear in the pop up Window.
+<li>You are now on the GitHub Actions page for that test build.
+Click on <i>Artifacts</i> near the top right of the window
+and select what you want to download.
+Your browser will then download the file you selected,
+which will be downloaded zipped.
+You can use the <code>gunzip</code>
+command, or equivalent, to unzip it. 
+</ul>
 
 
 </body>
