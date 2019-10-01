@@ -51,13 +51,11 @@ ReadLoader::ReadLoader(
         return;
     }
 
-#if 0
     // Fastq file.
     if(extension=="fastq" || extension=="fq" || extension=="FASTQ" || extension=="FQ") {
         processFastqFile();
         return;
     }
-#endif
 
     // Runnie compressed file.
     if(extension=="rq" || extension=="RQ") {
@@ -326,10 +324,6 @@ void ReadLoader::processFastqFile()
 
 void ReadLoader::processFastqFileThreadFunction(size_t threadId)
 {
-    SHASTA_ASSERT(0);
-#if 0
-    const char* bufferPointer = &buffer[0];
-    const uint64_t bufferSize = buffer.size();
 
     // Allocate and access the data structures where this thread will store the
     // reads it finds.
@@ -353,115 +347,96 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
 
 
     // Loop over this range of reads.
-    for(uint64_t i=begin; i!=end; i++) {
-
-        // Locate the line ends corresponding to this read.
-        /*
-        const auto thisReadLineEnds = lineEnds.begin() + i * 4;
-        const auto headerOffset = thisReadLineEnds[0];
-        const auto basesOffset = thisReadLineEnds[1];
-        const auto plusOffset = thisReadLineEnds[2];
-        const auto scoresOffset = thisReadLineEnds[3];
-        */
-
-    }
-#if 0
-    // Locate the first read that begins in this block.
-    uint64_t offset = begin;
-    if(offset == 0) {
-        if(!fastaReadBeginsHere(offset)) {
-            throw runtime_error("Fasta file " + fileName + " does not begin with a \">\".");
-        }
-    } else {
-        while(!fastaReadBeginsHere(offset)) {
-            ++offset;
-            if(offset == end) {
-                // We reached the end of the block assigned to this thread
-                // without finding any reads.
-                return;
-            }
-        }
-    }
-
-    // Ok, we are at the ">" for the first read assigned to this thread.
-
-    // Main loop over the reads in the file block allocated to this thread.
     string readName;
     vector<Base> read;
     vector<Base> runLengthRead;
     vector<uint8_t> readRepeatCount;
-    while(offset < end) {
-        SHASTA_ASSERT(fastaReadBeginsHere(offset));
+    const auto fileBegin = buffer.begin();
+    for(uint64_t i=begin; i!=end; i++) {
 
-        // Consume the ">".
-        ++offset;
+        // Locate the 4 line ends corresponding to this read.
+        const auto thisReadLineEnds = lineEnds.begin() + i * 4;
 
-        // Read the name.
+        // Locate the header line for this read.
+        const auto headerBegin = fileBegin + ((i==0) ? 0 : (1 + *(thisReadLineEnds-1)));
+        const auto headerEnd = fileBegin + thisReadLineEnds[0];
+        SHASTA_ASSERT(headerEnd > headerBegin);
+
+        // Locate the sequence line for this read.
+        const auto sequenceBegin = headerEnd + 1;
+        const auto sequenceEnd = fileBegin + thisReadLineEnds[1];
+        SHASTA_ASSERT(sequenceEnd > sequenceBegin);
+
+        // Locate the line containing the '+' for this read.
+        const auto plusBegin = sequenceEnd + 1;
+        const auto plusEnd = fileBegin + thisReadLineEnds[2];
+        SHASTA_ASSERT(plusEnd > plusBegin);
+
+        // Locate the header line for this read.
+        const auto scoresBegin = plusEnd + 1;
+        const auto scoresEnd = fileBegin + thisReadLineEnds[3];
+        SHASTA_ASSERT(scoresEnd > scoresBegin);
+
+        // Check the header line.
+        if(headerEnd == headerBegin) {
+            throw runtime_error("Empty header line for read at offset " +
+                to_string(headerBegin-fileBegin) + ".");
+        }
+        if(*headerBegin != '@') {
+            throw runtime_error("Read at offset " +
+                to_string(headerBegin-fileBegin) +
+                " does not begin with \"@\".");
+        }
+
+        // Extract the read name.
+        // It starts immediately following the '@' and ends at
+        // first white space.
         readName.clear();
-        while(true) {
-            if(offset == bufferSize) {
-                throw runtime_error("Reached end of file while processing a read name.");
-            }
-            const char c = bufferPointer[offset];
-            if(isspace(c)) {
-                break;
-            } else {
-                readName.push_back(c);
-            }
-            offset++;
-        }
-
-        // Read the rest of the line.
-        while(true) {
-            if(offset == bufferSize) {
-                throw runtime_error("Reached end of file while processing header line for read "
-                    + readName);
-            }
-            if(bufferPointer[offset] == '\n') {
+        const auto nameBegin = headerBegin + 1;
+        for(auto it=nameBegin; it!=headerEnd; ++it) {
+            const char c = *it;
+            if(std::isspace(c)) {
                 break;
             }
-            ++offset;
+            readName.push_back(c);
+        }
+        if(readName.empty()) {
+            throw runtime_error("Empty name for read at offset " +
+                to_string(headerBegin-fileBegin) + ".");
         }
 
-        // Consume the line end at the end of the header line.
-        ++offset;
+        // Check the line containing the plus.
+        if(plusEnd - plusBegin != 1) {
+            throw runtime_error("Extraneous characters on third line for read " +
+                readName + " at offset " + to_string(headerBegin-fileBegin) + ".");
+        }
+        if(*plusBegin != '+') {
+            throw runtime_error("Third line does not contain \"+\" for read " +
+                readName + " at offset " + to_string(headerBegin-fileBegin) + ".");
+        }
 
+        // Get the number of bases.
+        const auto baseCount = sequenceEnd - sequenceBegin;
+        if(scoresEnd - scoresBegin != baseCount) {
+            throw runtime_error(
+                "Inconsistent numbers of bases and quality scores for read " +
+                readName + " at offset " +
+                to_string(headerBegin-fileBegin) + ": " +
+                to_string(baseCount) + " bases, " +
+                to_string(scoresEnd - scoresBegin) + " quality scores."
+                );
+        }
 
-
-        // Read the bases.
-        // Note that here we can go past the file block assigned to this thread.
+        // Get the bases.
         read.clear();
-        uint64_t invalidBaseCount = 0;
-        while(offset != bufferSize) {
-            const char c = bufferPointer[offset];
-
-            // Skip white space.
-            if(c==' ' || c=='\t' || c=='\n' || c=='\r') {
-                ++offset;
-                continue;
-            }
-
-            // If we reached the beginning of another read, stop here.
-            if(c=='>' && fastaReadBeginsHere(offset))  {
-                break;
-            }
-
-            // Get a base from this character.
+        for(auto it=sequenceBegin; it!=sequenceEnd; ++it) {
+            const char c = *it;
             const Base base = Base::fromCharacterNoException(c);
-            if(base.isValid()) {
-                read.push_back(base);
-            } else {
-                ++invalidBaseCount;
+            if(!base.isValid()) {
+                throw runtime_error("Invalid base " + string(1, c) + " for read " +
+                    readName + " at offset " + to_string(it-fileBegin) + ".");
             }
-            ++offset;
-        }
-
-
-        // If we found invalid bases, skip this read.
-        if(invalidBaseCount) {
-            __sync_fetch_and_add(&discardedInvalidBaseReadCount, 1);
-            __sync_fetch_and_add(&discardedInvalidBaseReadCount, read.size());
-            continue;
+            read.push_back(base);
         }
 
         // If the read is too short, skip it.
@@ -471,7 +446,7 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
             continue;
         }
 
-        // Store the read bases.
+        // Store the read.
         if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
             thisThreadReadNames.appendVector(readName.begin(), readName.end());
             thisThreadReads.append(runLengthRead);
@@ -481,8 +456,6 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
             __sync_fetch_and_add(&discardedBadRepeatCountBaseCount, read.size());
         }
     }
-#endif
-#endif
 }
 
 
