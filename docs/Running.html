@@ -420,6 +420,18 @@ but are discarded on input. The file can have either Unix-style (LF) or
 Windows-style (CR+LF) line ends.
 
 <li>
+<a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a>:
+input files in this format must be named with a file extension
+<code>.fastq</code>,
+<code>.fq</code>,
+<code>.FASTQ</code>, or
+<code>.FQ</code>. 
+Shasta requires the stricter FASTQ format with exactly four lines per read.
+The third line must consist of just the "+" sign.
+The file must have Unix-style (LF) line ends.
+Windows-style (CR+LF) line ends are not supported.
+
+<li>
 Input files in an experimental and currently undocumented format 
 under development to store
 reads in RLE format created by the 
@@ -428,21 +440,9 @@ File extension must be <code>.rq</code>.
 </ul>
 
 <p>
-Direct input of <a href="https://en.wikipedia.org/wiki/FASTQ">FASTQ</a>
-to Shasta is currently not supported but is planned.
-If you have a FASTQ file, 
-you can convert it to FASTA using script 
-<code>shasta-install/bin/FastqToFasta.py</code>.
-If your FASTQ file is compressed (extension <code>.gz</code>),
-you can decompress it and convert to FASTA in one step,
-saving a round trip to disk, using 
-script 
-<code>shasta-install/bin/FastqGzToFasta.py</code>.
-
-<p>
-Other compressed formats are currently unsupported
-and should be converted to uncompressed FASTA
-before running Shasta.
+Input from compressed files is not supported.
+if your input files are compressed, you have to decompress them
+first using the appropriate decompression utilities.
 
 <p>
 Any reads shorter
