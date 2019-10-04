@@ -25,13 +25,10 @@ jobs:
         tar -cvf shasta-Ubuntu-18.04.tar shasta-Ubuntu-18.04        
     - name: Test-ubuntu-18.04
       run: |
-        pwd
-        ls
-        ls tests/TinyTest.fasta.gz
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        ls tests/TinyTest.fasta
-        shasta-build/shasta-install/bin/shasta --input tests/TinyTest.fasta
+        ls shasta-build
+        shasta-build/shasta-Ubuntu-18.04/bin/shasta --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
