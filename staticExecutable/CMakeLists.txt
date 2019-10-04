@@ -59,7 +59,10 @@ add_executable(shastaStaticExecutable ${SOURCES})
 set_target_properties(shastaStaticExecutable PROPERTIES OUTPUT_NAME "shasta")
 
 # Request a static executable.
-set_target_properties(shastaStaticExecutable PROPERTIES LINK_FLAGS "-static" )
+# For macOS, this is not supported, and we only link some of the libraries statically.
+if(NOT MACOS)
+    set_target_properties(shastaStaticExecutable PROPERTIES LINK_FLAGS "-static" )
+endif(NOT MACOS)
 
 # Libraries to link with.
 if(MACOS)
