@@ -1,5 +1,13 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 project(shasta)
+
+# This is the top level cmake file for a Shasta build. 
+# Use "cmake -d" to modify these option defined below 
+# in each "option" line. For example, to turn off
+# building the dynamic executable use
+# cmake -DBUILD_DYNAMIC_EXECUTABLE=OFF
+
+
 
 # Figure out if we are on macOS.
 set(MACOS OFF)
@@ -11,16 +19,45 @@ message(STATUS "MACOS is " ${MACOS})
 
 
 
-# Figure out what we want to build.
-# By default, we build only the executable on macOS,
-# and both the executable and the library on Linux.
+# Decide what we want to build.
 if(MACOS)
-    option(BUILD_LIBRARY "Build the shared library." OFF)
-    option(BUILD_EXECUTABLE "Build the static executable." ON)
+    # For MacOS, only do the dynamic builds.
+    option(BUILD_STATIC_LIBRARY "Build the static library." ON)
+    option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
+    option(BUILD_DYNAMIC_LIBRARY "Build the shared library." OFF)
+    option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." OFF)
 else(MACOS)
-    option(BUILD_LIBRARY "Build the shared library." ON)
-    option(BUILD_EXECUTABLE "Build the static executable." ON)
+    # For Linux, build everything.
+    option(BUILD_STATIC_LIBRARY "Build the static library." ON)
+    option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
+    option(BUILD_DYNAMIC_LIBRARY "Build the shared library." ON)
+    option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." ON)
 endif(MACOS)
+
+
+
+# To build the static executable, we also need the static library.
+if(BUILD_STATIC_EXECUTABLE AND NOT BUILD_STATIC_LIBRARY)
+    set(BUILD_STATIC_LIBRARY ON)
+    message(STATUS "Turned on BUILD_STATIC_LIBRARY because it is needed for BUILD_STATIC_EXECUTABLE.")
+endif(BUILD_STATIC_EXECUTABLE AND NOT BUILD_STATIC_LIBRARY)
+
+
+
+
+# To build the dynamic executable, we also need the dynamic library.
+if(BUILD_DYNAMIC_EXECUTABLE AND NOT BUILD_DYNAMIC_LIBRARY)
+    set(BUILD_DYNAMIC_LIBRARY ON)
+    message(STATUS "Turned on BUILD_DYNAMIC_LIBRARY because it is needed for BUILD_DYNAMIC_EXECUTABLE.")
+endif(BUILD_DYNAMIC_EXECUTABLE AND NOT BUILD_DYNAMIC_LIBRARY)
+
+
+
+# Write out what we will actually build.
+message(STATUS "BUILD_STATIC_LIBRARY is " ${BUILD_STATIC_LIBRARY})
+message(STATUS "BUILD_STATIC_EXECUTABLE is " ${BUILD_STATIC_EXECUTABLE})
+message(STATUS "BUILD_DYNAMIC_LIBRARY is " ${BUILD_DYNAMIC_LIBRARY})
+message(STATUS "BUILD_DYNAMIC_EXECUTABLE is " ${BUILD_DYNAMIC_EXECUTABLE})
 
 
 
@@ -31,6 +68,12 @@ else(MACOS)
     option(BUILD_NATIVE "Build with -march=native." ON)
 endif(MACOS)
 message(STATUS "BUILD_NATIVE is " ${BUILD_NATIVE})
+
+
+
+# Option to request a debug build.
+option(BUILD_DEBUG "Make a debuggable build." OFF)
+message(STATUS "BUILD_DEBUG is " ${BUILD_DEBUG})
 
 
 
@@ -54,15 +97,19 @@ message(STATUS "BUILD_FOR_GPU is " ${BUILD_FOR_GPU})
 
 
 
-# Add the subdirectories.
-if(BUILD_LIBRARY)
-    add_subdirectory(src)
-endif(BUILD_LIBRARY)
-if(BUILD_EXECUTABLE)
-    add_subdirectory(src-static-executable)
-endif(BUILD_EXECUTABLE)
-message(STATUS "BUILD_LIBRARY is " ${BUILD_LIBRARY})
-message(STATUS "BUILD_EXECUTABLE is " ${BUILD_EXECUTABLE})
+# Add the subdirectories we need.
+if(BUILD_STATIC_LIBRARY)
+    add_subdirectory(staticLibrary)
+endif(BUILD_STATIC_LIBRARY)
+if(BUILD_STATIC_EXECUTABLE)
+    add_subdirectory(staticExecutable)
+endif(BUILD_STATIC_EXECUTABLE)
+if(BUILD_DYNAMIC_LIBRARY)
+    add_subdirectory(dynamicLibrary)
+endif(BUILD_DYNAMIC_LIBRARY)
+if(BUILD_DYNAMIC_EXECUTABLE)
+    add_subdirectory(dynamicExecutable)
+endif(BUILD_DYNAMIC_EXECUTABLE)
 
 
 
@@ -82,9 +129,8 @@ install(DIRECTORY docs DESTINATION shasta-install)
 # Install the docker directory.
 install(DIRECTORY docker DESTINATION shasta-install)
 
-# The shared library is installed by the cmake file in the src directory.
-# The static executable is installed by the cmake file in the src-static-executable directory.
-
+# The targets built in each subdirectory are
+# installed by the cmake file of each subdirectory.
 
 
 
