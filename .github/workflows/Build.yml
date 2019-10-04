@@ -24,7 +24,7 @@ jobs:
         mv shasta-install shasta-Ubuntu-18.04
         tar -cvf shasta-Ubuntu-18.04.tar shasta-Ubuntu-18.04        
     - name: Test-ubuntu-18.04
-      run: 
+      run: |
         cd ..
         sudo apt install gzip
         gunzip shasta/test/TinyTest.fasta.gz
