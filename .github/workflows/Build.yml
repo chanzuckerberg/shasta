@@ -18,7 +18,7 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0"
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-18.04
@@ -27,7 +27,6 @@ jobs:
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        ls shasta-build
         shasta-build/shasta-Ubuntu-18.04/bin/shasta --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
@@ -54,7 +53,7 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0"
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-16.04
@@ -63,7 +62,6 @@ jobs:
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        ls shasta-build
         shasta-build/shasta-Ubuntu-16.04/bin/shasta --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
@@ -89,7 +87,7 @@ jobs:
       run: |
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0"
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
         make VERBOSE=1 -j 2 all
         make install/strip
     - name: Test-macOS-10.14
