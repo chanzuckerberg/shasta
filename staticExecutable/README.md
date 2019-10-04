@@ -1,4 +1,4 @@
 # Directory shasta/staticExecutable
 
-This directory builds the Shasta static executable shasta.
+This directory builds the Shasta static executable `shasta`.
 
