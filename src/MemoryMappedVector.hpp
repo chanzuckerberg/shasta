@@ -425,7 +425,11 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::truncate(int file
     const int ftruncateReturnCode = ::ftruncate(fileDescriptor, fileSize);
     if(ftruncateReturnCode == -1) {
         ::close(fileDescriptor);
-        throw runtime_error("Error " + to_string(errno) + " during ftruncate to size " + to_string(fileSize));
+        throw runtime_error(
+            "The following error occurred during ftruncate to size " + to_string(fileSize) +
+            ":\nError " + to_string(errno) + ": " +  string(strerror(errno)) +
+            "\nThe most likely cause for this error is insufficient memory. "
+            "Run on a larger machine.");
     }
 }
 
