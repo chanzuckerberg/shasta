@@ -23,6 +23,13 @@ jobs:
         make install/strip
         mv shasta-install shasta-Ubuntu-18.04
         tar -cvf shasta-Ubuntu-18.04.tar shasta-Ubuntu-18.04        
+    - name: Test-ubuntu-18.04
+      run: 
+        cd ..
+        sudo apt install gzip
+        gunzip shasta/test/TinyTest.fasta.gz
+        shasta-build/shasta-install/bin/shasta --input shasta/test/TinyTest.fasta
+        ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
         name: shasta-Linux
