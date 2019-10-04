@@ -50,6 +50,14 @@ endif(BUILD_FOR_GPU)
 # Include directory.
 include_directories(../src)
 
+# Include directories required on macOS.
+if(MACOS)
+    set(Boost_USE_STATIC_LIBS ON)
+    find_package(Boost REQUIRED COMPONENTS program_options chrono)
+    include_directories(/usr/local/include/)
+    include_directories(${Boost_INCLUDE_DIRS})
+endif(MACOS)
+
 # Define our library.
 add_library(shastaStaticLibrary STATIC ${SOURCES})
 
