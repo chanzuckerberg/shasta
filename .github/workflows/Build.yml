@@ -27,9 +27,11 @@ jobs:
       run: |
         pwd
         ls
+        ls tests/TinyTest.fasta.gz
         sudo apt install gzip
-        gunzip shasta/test/TinyTest.fasta.gz
-        shasta-build/shasta-install/bin/shasta --input shasta/test/TinyTest.fasta
+        gunzip tests/TinyTest.fasta.gz
+        ls tests/TinyTest.fasta
+        shasta-build/shasta-install/bin/shasta --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
