@@ -65,4 +65,8 @@ target_link_libraries(
 # Install the dynamic executable into the bin directory.
 install(TARGETS shastaDynamicExecutable DESTINATION shasta-install/bin)
 
+# When install is complete, create the AppImage.
+if(BUILD_APPIMAGE)
+install(CODE "execute_process(COMMAND ${CMAKE_SOURCE_DIR}/AppImage/CreateAppImage.py shasta-install)")
+endif(BUILD_APPIMAGE)
 

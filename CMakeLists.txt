@@ -21,17 +21,19 @@ message(STATUS "MACOS is " ${MACOS})
 
 # Decide what we want to build.
 if(MACOS)
-    # For MacOS, only do the dynamic builds.
+    # For MacOS, only do the static builds.
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
     option(BUILD_DYNAMIC_LIBRARY "Build the shared library." OFF)
     option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." OFF)
+    option(BUILD_APPIMAGE "Build the AppImage." OFF)
 else(MACOS)
     # For Linux, build everything.
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
     option(BUILD_DYNAMIC_LIBRARY "Build the shared library." ON)
     option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." ON)
+    option(BUILD_APPIMAGE "Build the AppImage." OFF)
 endif(MACOS)
 
 
@@ -42,6 +44,13 @@ if(BUILD_STATIC_EXECUTABLE AND NOT BUILD_STATIC_LIBRARY)
     message(STATUS "Turned on BUILD_STATIC_LIBRARY because it is needed for BUILD_STATIC_EXECUTABLE.")
 endif(BUILD_STATIC_EXECUTABLE AND NOT BUILD_STATIC_LIBRARY)
 
+
+
+# To build the AppImage, we also need the dynamic executable.
+if(BUILD_APPIMAGE AND NOT BUILD_DYNAMIC_EXECUTABLE)
+    set(BUILD_DYNAMIC_EXECUTABLE ON)
+    message(STATUS "Turned on BUILD_DYNAMIC_EXECUTABLE because it is needed for BUILD_APPIMAGE.")
+endif(BUILD_APPIMAGE AND NOT BUILD_DYNAMIC_EXECUTABLE)
 
 
 
@@ -58,6 +67,7 @@ message(STATUS "BUILD_STATIC_LIBRARY is " ${BUILD_STATIC_LIBRARY})
 message(STATUS "BUILD_STATIC_EXECUTABLE is " ${BUILD_STATIC_EXECUTABLE})
 message(STATUS "BUILD_DYNAMIC_LIBRARY is " ${BUILD_DYNAMIC_LIBRARY})
 message(STATUS "BUILD_DYNAMIC_EXECUTABLE is " ${BUILD_DYNAMIC_EXECUTABLE})
+message(STATUS "BUILD_APPIMAGE is " ${BUILD_APPIMAGE})
 
 
 
@@ -131,6 +141,7 @@ install(DIRECTORY docker DESTINATION shasta-install)
 
 # The targets built in each subdirectory are
 # installed by the cmake file of each subdirectory.
+
 
 
 
