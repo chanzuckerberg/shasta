@@ -619,11 +619,28 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::accessExisting(co
         data = reinterpret_cast<T*>(header+1);
 
         // Sanity checks.
-        SHASTA_ASSERT(header->magicNumber == Header::constantMagicNumber);
-        SHASTA_ASSERT(header->fileSize == fileSize);
-        SHASTA_ASSERT(header->objectSize == sizeof(T));
+        if(header->magicNumber != Header::constantMagicNumber) {
+            throw runtime_error("Error accessing " + name +
+                ": unexpected magic number in header. " +
+                "The binary format of this file is not recognized. " +
+                "Perhaps a file mixup?"
+                );
+        }
+        if(header->fileSize != fileSize) {
+            throw runtime_error("Error accessing " + name +
+                ": file size not consistent with file header. " +
+                "Perhaps a file mixup?"
+                );
+        }
+        if(header->objectSize != sizeof(T)) {
+            throw runtime_error("Error accessing " + name +
+                ": unexpected object size. Expected " + to_string(sizeof(T)) +
+                ", found " + to_string(header->objectSize) +
+                ". You may be attempting to access an assembly created by a different version of Shasta."
+                );
+        }
 
-        // Indicate that the mapped vector is open with write access.
+        // Indicate that the mapped vector is open.
         isOpen = true;
         isOpenWithWriteAccess = readWriteAccess;
         fileName = name;
