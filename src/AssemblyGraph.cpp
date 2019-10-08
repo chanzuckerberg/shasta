@@ -303,6 +303,20 @@ void AssemblyGraph::createForks()
             cout << branchCount << " " << frequency << endl;
         }
     }
+
+    // Write details of each fork.
+    for(size_t iFork=0; iFork<forks.size(); iFork++) {
+        const Fork& fork = forks[iFork];
+        const auto edges =
+            fork.isForward ?
+            edgesBySource[fork.vertexId] :
+            edgesByTarget[fork.vertexId];
+        cout << "Fork " << iFork << ":";
+        for(const auto edge: edges) {
+            cout << " " << edge;
+        }
+        cout << endl;
+    }
 }
 
 

@@ -34,14 +34,12 @@ void Assembler::createPhasingData(
     // Find the assembly graph edges related to each assembly graph edge.
     // Two assembly graph edges are related if they share at
     // least this minimum number of internal oriented reads.
-    const uint64_t minCommonReadCountDiagonal = 4;          // *************** EXPOSE WHEN CODE STABILIZES.
-    const uint64_t maxCommonReadCountOffDiagonal = 2;
-    phasingData.gatherRelatedAssemblyGraphEdges(minCommonReadCountDiagonal);
+    // const uint64_t minCommonReadCountDiagonal = 1;          // *************** EXPOSE WHEN CODE STABILIZES.
+    // const uint64_t maxCommonReadCountOffDiagonal = 0;
+    // phasingData.gatherRelatedAssemblyGraphEdges(minCommonReadCountDiagonal);
 
     // Find forks with similar read distributions.
-    phasingFindSimilarForks(
-        minCommonReadCountDiagonal,
-        maxCommonReadCountOffDiagonal);
+    phasingFindSimilarForks();
 
 
 
@@ -558,18 +556,7 @@ void Assembler::phasingWriteBipartiteGraph()
 
 
 // Find similar forks.
-// Two forks are similar if:
-// - They have the same number of branches.
-// - After a permutation of the branches, the square n*n matrix
-//   containing the number of commeont reads between the branches is approximately diagonal,
-//   in the sense that all of its diagonal elements are >=minCommonReadCountDiagonal
-//   and all its off-diagonal elements are <=maxCommonReadCountOffDiagonal
-// For this to be true, the two forks must consist of n pairs of related
-// assembly graph edges (two assembly graph edges are related if their
-// number of common reads is >=minCommonReadCountDiagonal).
-void Assembler::phasingFindSimilarForks(
-    uint64_t minCommonReadCountDiagonal,
-    uint64_t maxCommonReadCountOffDiagonal)
+void Assembler::phasingFindSimilarForks()
 {
     using EdgeId = AssemblyGraph::EdgeId;
 
@@ -601,32 +588,36 @@ void Assembler::phasingFindSimilarForks(
             matrix[1][0] = phasingData.countCommonInternalOrientedReads(edges0[1], edges1[0]);
             matrix[1][1] = phasingData.countCommonInternalOrientedReads(edges0[1], edges1[1]);
 
-            if(
-                (
-                matrix[0][0]>=minCommonReadCountDiagonal &&
-                matrix[1][1]>=minCommonReadCountDiagonal &&
-                matrix[0][1]<=maxCommonReadCountOffDiagonal &&
-                matrix[1][0]<=maxCommonReadCountOffDiagonal
-                )
-                ||
-                (
-                matrix[0][1]>=minCommonReadCountDiagonal &&
-                matrix[1][0]>=minCommonReadCountDiagonal &&
-                matrix[0][0]<=maxCommonReadCountOffDiagonal &&
-                matrix[1][1]<=maxCommonReadCountOffDiagonal
-                )
-                ) {
+            uint64_t diagonalCount = matrix[0][0] + matrix[1][1];
+            uint64_t offDiagonalCount = matrix[0][1] + matrix[1][0];
+            if(diagonalCount==0 and offDiagonalCount==0) {
+                continue;
+            }
+            const float similarity =
+                float(int64_t(diagonalCount)-int64_t(offDiagonalCount)) /
+                float(int64_t(diagonalCount)+int64_t(offDiagonalCount));
+            // cout << diagonalCount << " " << offDiagonalCount << " " << similarity << endl;
 
-                /*
-                cout <<
-                    forkId0 << " " <<
-                    forkId1 << " " <<
-                    matrix[0][0] << " " <<
-                    matrix[0][1] << " " <<
-                    matrix[1][0] << " " <<
-                    matrix[1][1] << endl;
-                */
-                dot << forkId0 << "--" << forkId1 << ";\n";
+            string color;
+            if(similarity > 0.3) {
+                color = "black";
+            } else if(similarity < -0.3) {
+                color = "red";
+            } else {
+                color = "grey";
+            }
+
+            /*
+            cout <<
+                forkId0 << " " <<
+                forkId1 << " " <<
+                matrix[0][0] << " " <<
+                matrix[0][1] << " " <<
+                matrix[1][0] << " " <<
+                matrix[1][1] << endl;
+            */
+            if(similarity > 0.3) {
+                dot << forkId0 << "--" << forkId1 << "[color=" << color << "];\n";
             }
         }
 
