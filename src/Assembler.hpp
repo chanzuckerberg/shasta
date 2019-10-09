@@ -189,19 +189,6 @@ public:
     vector<KmerId> getMarkers(ReadId, Strand);
     void writeMarkerFrequency();
 
-    // Use the LowHash (modified MinHash) algorithm to find candidate alignments.
-    // Use as features sequences of m consecutive special k-mers.
-    void findAlignmentCandidatesLowHash(
-        size_t m,                       // Number of consecutive k-mers that define a feature.
-        double hashFraction,            // Low hash threshold.
-        size_t minHashIterationCount,   // Number of lowHash iterations.
-        size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
-        size_t maxBucketSize,           // The maximum size for a bucket to be used.
-        size_t minFrequency,            // Minimum number of lowHash hits for a pair to become a candidate.
-        size_t threadCount
-    );
-    void accessAlignmentCandidates();
-
     // Write the reads that overlap a given read.
     void writeOverlappingReads(ReadId, Strand, const string& fileName);
 
@@ -738,14 +725,32 @@ private:
         MemoryMapped::VectorOfVectors< array<uint32_t, 2>, uint64_t> featureOrdinals;
     };
     AlignmentCandidates alignmentCandidates;
-    void checkAlignmentCandidatesAreOpen() const;
 
-
-
-    // Access function for Python.
+    // Use the LowHash (modified MinHash) algorithm to find candidate alignments.
+    // Use as features sequences of m consecutive special k-mers.
 public:
+    void findAlignmentCandidatesLowHash(
+        size_t m,                       // Number of consecutive k-mers that define a feature.
+        double hashFraction,            // Low hash threshold.
+        size_t minHashIterationCount,   // Number of lowHash iterations.
+        size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
+        size_t maxBucketSize,           // The maximum size for a bucket to be used.
+        size_t minFrequency,            // Minimum number of lowHash hits for a pair to become a candidate.
+        size_t threadCount
+    );
+    void findAlignmentCandidatesLowHashNew(
+        size_t m,                       // Number of consecutive k-mers that define a feature.
+        double hashFraction,            // Low hash threshold.
+        size_t minHashIterationCount,   // Number of lowHash iterations.
+        size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
+        size_t maxBucketSize,           // The maximum size for a bucket to be used.
+        size_t minFrequency,            // Minimum number of lowHash hits for a pair to become a candidate.
+        size_t threadCount
+    );
+    void accessAlignmentCandidates();
     vector<OrientedReadPair> getAlignmentCandidates() const;
 private:
+    void checkAlignmentCandidatesAreOpen() const;
 
 
 

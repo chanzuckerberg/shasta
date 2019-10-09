@@ -167,6 +167,15 @@ PYBIND11_MODULE(shasta, module)
             arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)
+        .def("findAlignmentCandidatesLowHashNew",
+            &Assembler::findAlignmentCandidatesLowHashNew,
+            arg("m"),
+            arg("hashFraction"),
+            arg("minHashIterationCount"),
+            arg("log2MinHashBucketCount") = 0,
+            arg("maxBucketSize"),
+            arg("minFrequency"),
+            arg("threadCount") = 0)
         .def("accessAlignmentCandidates",
             &Assembler::accessAlignmentCandidates)
         .def("getAlignmentCandidates",
