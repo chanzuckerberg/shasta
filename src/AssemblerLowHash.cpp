@@ -41,3 +41,70 @@ void Assembler::findAlignmentCandidatesLowHash(
         largeDataFileNamePrefix,
         largeDataPageSize);
 }
+
+
+
+void Assembler::accessAlignmentCandidates()
+{
+    alignmentCandidates.accessExistingReadOnly(largeDataName("AlignmentCandidates"));
+}
+
+
+void Assembler::checkAlignmentCandidatesAreOpen() const
+{
+    if(!alignmentCandidates.isOpen) {
+        throw runtime_error("Alignment candidates are not accessible.");
+    }
+}
+
+
+
+vector<OrientedReadPair> Assembler::getAlignmentCandidates() const
+{
+    checkAlignmentCandidatesAreOpen();
+    vector<OrientedReadPair> v;
+    copy(
+        alignmentCandidates.begin(),
+        alignmentCandidates.end(),
+        back_inserter(v));
+    return v;
+}
+
+
+
+// Write the reads that overlap a given read.
+void Assembler::writeOverlappingReads(
+    ReadId readId0,
+    Strand strand0,
+    const string& fileName)
+{
+    // Check that we have what we need.
+    checkReadsAreOpen();
+    checkAlignmentCandidatesAreOpen();
+
+
+
+    // Open the output file and write the oriented read we were given.
+    ofstream file(fileName);
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    writeOrientedRead(orientedReadId0, file);
+
+    const uint64_t length0 = reads[orientedReadId0.getReadId()].baseCount;
+    cout << "Reads overlapping " << orientedReadId0 << " length " << length0 << endl;
+
+    // Loop over all overlaps involving this oriented read.
+    for(const uint64_t i: alignmentTable[orientedReadId0.getValue()]) {
+        const AlignmentData& ad = alignmentData[i];
+
+        // Get the other oriented read involved in this overlap.
+        const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
+
+        // Write it out.
+        const uint64_t length1 = reads[orientedReadId1.getReadId()].baseCount;
+        cout << orientedReadId1 << " length " << length1 << endl;
+        writeOrientedRead(orientedReadId1, file);
+    }
+    cout << "Found " << alignmentTable[orientedReadId0.getValue()].size();
+    cout << " overlapping oriented reads." << endl;
+
+}
