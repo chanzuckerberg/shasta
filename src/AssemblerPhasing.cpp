@@ -616,9 +616,7 @@ void Assembler::phasingFindSimilarForks()
                 matrix[1][0] << " " <<
                 matrix[1][1] << endl;
             */
-            if(similarity > 0.3) {
-                dot << forkId0 << "--" << forkId1 << "[color=" << color << "];\n";
-            }
+            dot << forkId0 << "--" << forkId1 << "[color=" << color << "];\n";
         }
 
     }
