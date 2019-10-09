@@ -631,7 +631,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<h3>Alignments</h3>"
         "<table>"
         "<tr><td>Number of alignment candidates found by the LowHash algorithm"
-        "<td class=right>" << alignmentCandidates.size() <<
+        "<td class=right>" << alignmentCandidates.candidates.size() <<
         "<tr><td>Number of good alignments"
         "<td class=right>" << alignmentData.size() <<
         "<tr><td>Number of good alignments kept in the read graph"
@@ -839,7 +839,8 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
         "  \"Alignments\":\n"
         "  {\n"
-        "    \"Number of alignment candidates found by the LowHash algorithm\": " << alignmentCandidates.size() << ",\n"
+        "    \"Number of alignment candidates found by the LowHash algorithm\": " <<
+        alignmentCandidates.candidates.size() << ",\n"
         "    \"Number of good alignments\": " << alignmentData.size() << ",\n"
         "    \"Number of good alignments kept in the read graph\": " << readGraph.edges.size()/2 << "\n"
         "  },\n"

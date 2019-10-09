@@ -23,7 +23,7 @@ void Assembler::findAlignmentCandidatesLowHash(
     SHASTA_ASSERT(readCount > 0);
 
     // Create the alignment candidates.
-    alignmentCandidates.createNew(largeDataName("AlignmentCandidates"), largeDataPageSize);
+    alignmentCandidates.candidates.createNew(largeDataName("AlignmentCandidates"), largeDataPageSize);
 
     // Run the LowHash computation to find candidate alignments.
     LowHash lowHash(
@@ -37,7 +37,7 @@ void Assembler::findAlignmentCandidatesLowHash(
         kmerTable,
         readFlags,
         markers,
-        alignmentCandidates,
+        alignmentCandidates.candidates,
         largeDataFileNamePrefix,
         largeDataPageSize);
 }
@@ -46,13 +46,13 @@ void Assembler::findAlignmentCandidatesLowHash(
 
 void Assembler::accessAlignmentCandidates()
 {
-    alignmentCandidates.accessExistingReadOnly(largeDataName("AlignmentCandidates"));
+    alignmentCandidates.candidates.accessExistingReadOnly(largeDataName("AlignmentCandidates"));
 }
 
 
 void Assembler::checkAlignmentCandidatesAreOpen() const
 {
-    if(!alignmentCandidates.isOpen) {
+    if(!alignmentCandidates.candidates.isOpen) {
         throw runtime_error("Alignment candidates are not accessible.");
     }
 }
@@ -64,8 +64,8 @@ vector<OrientedReadPair> Assembler::getAlignmentCandidates() const
     checkAlignmentCandidatesAreOpen();
     vector<OrientedReadPair> v;
     copy(
-        alignmentCandidates.begin(),
-        alignmentCandidates.end(),
+        alignmentCandidates.candidates.begin(),
+        alignmentCandidates.candidates.end(),
         back_inserter(v));
     return v;
 }

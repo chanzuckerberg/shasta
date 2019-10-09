@@ -213,7 +213,7 @@ void Assembler::computeAlignments(
 {
     const auto tBegin = steady_clock::now();
     cout << timestamp << "Begin computing alignments for ";
-    cout << alignmentCandidates.size() << " alignment candidates." << endl;
+    cout << alignmentCandidates.candidates.size() << " alignment candidates." << endl;
 
     // Check that we have what we need.
     checkReadsAreOpen();
@@ -235,8 +235,8 @@ void Assembler::computeAlignments(
 
     // Pick the batch size for computing alignments.
     size_t batchSize = 10000;
-    if(batchSize > alignmentCandidates.size()/threadCount) {
-        batchSize = alignmentCandidates.size()/threadCount;
+    if(batchSize > alignmentCandidates.candidates.size()/threadCount) {
+        batchSize = alignmentCandidates.candidates.size()/threadCount;
     }
     if(batchSize == 0) {
         batchSize = 1;
@@ -246,7 +246,7 @@ void Assembler::computeAlignments(
     // Compute the alignments.
     data.threadAlignmentData.resize(threadCount);
     cout << timestamp << "Alignment computation begins." << endl;
-    setupLoadBalancing(alignmentCandidates.size(), batchSize);
+    setupLoadBalancing(alignmentCandidates.candidates.size(), batchSize);
     runThreads(&Assembler::computeAlignmentsThreadFunction, threadCount);
     cout << timestamp << "Alignment computation completed." << endl;
 
@@ -296,11 +296,11 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
         if((begin % 1000000) == 0){
             std::lock_guard<std::mutex> lock(mutex);
             cout << timestamp << "Working on alignment " << begin;
-            cout << " of " << alignmentCandidates.size() << endl;
+            cout << " of " << alignmentCandidates.candidates.size() << endl;
         }
 
         for(size_t i=begin; i!=end; i++) {
-            const OrientedReadPair& candidate = alignmentCandidates[i];
+            const OrientedReadPair& candidate = alignmentCandidates.candidates[i];
             SHASTA_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
 
             // Get the oriented read ids, with the first one on strand 0.

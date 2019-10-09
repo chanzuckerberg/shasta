@@ -446,7 +446,7 @@ void Assembler::writeReadsSummary()
 
     // Count the number of alignment candidates for each read.
     vector<uint64_t> alignmentCandidatesCount(reads.size(), 0);
-    for(const OrientedReadPair& p: alignmentCandidates) {
+    for(const OrientedReadPair& p: alignmentCandidates.candidates) {
         ++alignmentCandidatesCount[p.readIds[0]];
         ++alignmentCandidatesCount[p.readIds[1]];
     }

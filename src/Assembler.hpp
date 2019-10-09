@@ -720,10 +720,28 @@ private:
     FlagPalindromicReadsData flagPalindromicReadsData;
 
 
-    // Alignment candidate found by the MinHash algorithm.
+
+    // Alignment candidates found by the LowHash algorithm.
     // They all have readId0<readId1.
-    MemoryMapped::Vector<OrientedReadPair> alignmentCandidates;
+    class AlignmentCandidates {
+    public:
+        MemoryMapped::Vector<OrientedReadPair> candidates;
+
+        // For each alignment candidate, we also store a vector of
+        // pairs (ordinal0, ordinal1), each containing
+        // ordinals in the two oriented reads where identical
+        // features (sequences of m markers) were found by the LowHash algorithm.
+        // This is only created when using findAlignmentCandidatesLowHashNew
+        // (class LowHashNew).
+        // This has a vector for each entry in the candidates vector above
+        // and is indexed in the same way.
+        MemoryMapped::VectorOfVectors< array<uint32_t, 2>, uint64_t> featureOrdinals;
+    };
+    AlignmentCandidates alignmentCandidates;
     void checkAlignmentCandidatesAreOpen() const;
+
+
+
     // Access function for Python.
 public:
     vector<OrientedReadPair> getAlignmentCandidates() const;
