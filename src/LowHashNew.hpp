@@ -7,6 +7,9 @@
 #include "MultithreadedObject.hpp"
 #include "ReadFlags.hpp"
 
+// Standard library.
+#include "memory.hpp"
+
 namespace shasta {
     class LowHashNew;
     class CompressedMarker;
@@ -52,6 +55,96 @@ private:
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
+
+    // Vectors containing only the k-mer ids of all markers
+    // for all oriented reads.
+    // Indexed by OrientedReadId.getValue().
+    // This is used to speed up the computation of hash functions.
+    MemoryMapped::VectorOfVectors<KmerId, uint64_t> kmerIds;
+    void createKmerIds();
+    void createKmerIds(size_t threadId);
+
+    // The mask used to compute to compute the bucket
+    // corresponding to a hash value.
+    uint64_t mask;
+
+    // The threshold for a hash value to be considered low.
+    uint64_t hashThreshold;
+
+    // The current MinHash iteration.
+    // This is used to compute a different MurmurHash function
+    // at each iteration.
+    size_t iteration;
+
+    // The low hashes of each oriented read and the ordinals at
+    // which the corresponding feature occurs.
+    // This is recomputed at each iteration.
+    // Indexed by OrientedReadId::getValue().
+    vector< vector< pair<uint64_t, uint32_t> > > lowHashes;
+    void computeLowHashes(size_t threadId);
+
+    // Each bucket entry describes a low hash feature.
+    // It consists of an oriented read id and
+    // the ordinal where the low hash feature appears.
+    class BucketEntry {
+    public:
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+        BucketEntry(
+            OrientedReadId orientedReadId,
+            uint32_t ordinal) :
+            orientedReadId(orientedReadId),
+            ordinal(ordinal) {}
+        BucketEntry() {}
+    };
+    MemoryMapped::VectorOfVectors<BucketEntry, uint64_t> buckets;
+
+
+    // Compute a histogram of the number of entries in each histogram.
+    void computeBucketHistogram();
+    void computeBucketHistogramThreadFunction(size_t threadId);
+    vector< vector<uint64_t> > threadBucketHistogram;
+    ofstream histogramCsv;
+
+
+    // When two oriented reads appear in the same bucket, we
+    // check if that happens by chance or because we found a
+    // common feature between the two oriented reads.
+    // In the latter case, we store a new CommonFeature
+    // containing the two OrientedReadId's and
+    // the ordinals where the feature appears.
+    // Each thread stores into its own vector of common features.
+    class CommonFeature {
+    public:
+        array<OrientedReadId, 2> orientedReadIds;
+        array<uint32_t, 2> ordinals;
+        CommonFeature() {}
+        CommonFeature(
+            OrientedReadId orientedReadId0,
+            OrientedReadId orientedReadId1,
+            uint32_t ordinal0,
+            uint32_t ordinal1
+            ) :
+            orientedReadIds({orientedReadId0, orientedReadId1}),
+            ordinals({ordinal0, ordinal1})
+        {}
+    };
+    vector< shared_ptr<MemoryMapped::Vector<CommonFeature> > > threadCommonFeatures;
+    uint64_t countTotalThreadCommonFeatures() const;
+
+
+
+    // Thread functions.
+
+    // Pass1: compute the low hashes for each oriented read
+    // and count the number of entries in each bucket.
+    void pass1ThreadFunction(size_t threadId);
+
+    // Pass 2: fill the buckets.
+    void pass2ThreadFunction(size_t threadId);
+
+    // Pass 3: scan the buckets to find common features.
+    void pass3ThreadFunction(size_t threadId);
 };
 
 #endif
