@@ -62,7 +62,7 @@ void Assembler::computeAlignmentsGpu(
 
     // Initialize GPUs
     cout << timestamp << "Initializing GPU device(s)" << endl;
-    int nDevices = initializeProcessors();
+    int nDevices = shasta_initializeProcessors();
     cout << timestamp << "Initialized " << nDevices << " GPU devices" << endl;
 
     // Store parameters so they are accessible to the threads.
@@ -104,7 +104,7 @@ void Assembler::computeAlignmentsGpu(
     computeAlignmentTable();
 
     cout << timestamp << "Shutting down processors." << endl;
-    shutdownProcessors(nDevices);
+    shasta_shutdownProcessors(nDevices);
 
     //    cout << timestamp << "Computed " << numGoodAlignments << " alignments." << endl;
     //    cout << timestamp << "Rejected " << numBadTrim << " alignments (bad trim)." << endl;
@@ -141,7 +141,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
     size_t printEvery = 100000;
     if (getNextBatch(begin, end)) {
         // If batch size too small, use CPU
-        if (end-begin < MIN_GPU_BATCH_SIZE) {
+        if (end-begin < SHASTA_MIN_GPU_BATCH_SIZE) {
             for(size_t i=begin; i!=end; i++) {
                 size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, 1);
                 if (currNumComputedAlignments % printEvery == 0) {
@@ -209,15 +209,15 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             uint32_t currAddr = 0;
             
             // host data structures for GPU
-            uint32_t* h_reads = (uint32_t*) malloc(2*GPU_BATCH_SIZE*MAX_MARKERS_PER_READ*sizeof(uint32_t));
-            uint64_t* h_read_pairs = (uint64_t*) malloc(2*GPU_BATCH_SIZE*sizeof(uint64_t));
-            uint32_t* h_alignments = (uint32_t*) malloc(GPU_BATCH_SIZE*MAX_MARKERS_PER_READ*sizeof(uint32_t));
+            uint32_t* h_reads = (uint32_t*) malloc(2*SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t));
+            uint64_t* h_read_pairs = (uint64_t*) malloc(2*SHASTA_GPU_BATCH_SIZE*sizeof(uint64_t));
+            uint32_t* h_alignments = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t));
 
             // Alignment candidates that fail on GPU
             vector<OrientedReadPair> remainingAlignmentCandidates;
             
-            for (size_t first=begin; first<end; first+=GPU_BATCH_SIZE) {
-                size_t last = std::min(first+GPU_BATCH_SIZE, end);
+            for (size_t first=begin; first<end; first+=SHASTA_GPU_BATCH_SIZE) {
+                size_t last = std::min(first+SHASTA_GPU_BATCH_SIZE, end);
                 currAddr = 0;
                 readAddrLenDict.clear();
                 
@@ -236,7 +236,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                         vec_m1 = getMarkers(rid1, s1);
                         n1 = vec_m1.size();
                         a1 = currAddr;
-                        if (n1 >= MAX_MARKERS_PER_READ) {
+                        if (n1 >= SHASTA_MAX_MARKERS_PER_READ) {
                             n1 = 0;
                         }
                         readAddrLenDict[2*rid1] = (a1 << 32) + n1;
@@ -252,7 +252,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                         vec_m2 = getMarkers(rid2, s2);
                         n2 = vec_m2.size();
                         a2 = currAddr;
-                        if (n2 >= MAX_MARKERS_PER_READ) {
+                        if (n2 >= SHASTA_MAX_MARKERS_PER_READ) {
                             n2 = 0;
                         }
                         readAddrLenDict[2*rid2+s2] = (a2 << 32) + n2;
@@ -272,7 +272,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 }
 
                 // find alignments on GPU
-                alignBatchGPU ((last-first), deviceId, maxSkip, currAddr, h_reads, h_read_pairs, h_alignments);
+                shasta_alignBatchGPU ((last-first), deviceId, maxSkip, currAddr, h_reads, h_read_pairs, h_alignments);
 
                 // Print progress
                 size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, last-first);
@@ -287,13 +287,13 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 for (size_t i=first; i<last; i++) {
                     auto candidate = alignmentCandidates.candidates[i];
                     alignment.ordinals.clear();
-                    for (size_t j=0; j<MAX_MARKERS_PER_READ; j++) {
-                        if (h_alignments[(i-first)*MAX_MARKERS_PER_READ+j] == 0) {
+                    for (size_t j=0; j<SHASTA_MAX_MARKERS_PER_READ; j++) {
+                        if (h_alignments[(i-first)*SHASTA_MAX_MARKERS_PER_READ+j] == 0) {
                             break;
                         }
                         else {
                             // TODO
-                            uint32_t v = h_alignments[(i-first)*MAX_MARKERS_PER_READ+j];
+                            uint32_t v = h_alignments[(i-first)*SHASTA_MAX_MARKERS_PER_READ+j];
                             uint32_t l, u;
                             l = ((v << 16) >> 16);
                             u = (v >> 16);

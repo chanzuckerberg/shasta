@@ -12,7 +12,7 @@
 #define LOG_BLOCK_SIZE 8
 #define LOG_NUM_BLOCKS 8
 #define MAX_MARKER_OCC 8
-#define HASH_PER_BLOCK MAX_MARKERS_PER_READ
+#define HASH_PER_BLOCK SHASTA_MAX_MARKERS_PER_READ
 #define MAX_MARKER_OCC_ELEM (1+MAX_MARKER_OCC)/2
 #define BYTES_PER_HASH 4*(1+MAX_MARKER_OCC_ELEM)
 
@@ -326,7 +326,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
 
     for (int i = bx; i < n; i += gs) {
         uint32_t max_score = 0, max_score_pos = 0;
-        uint32_t addr1 = i*MAX_MARKERS_PER_READ;
+        uint32_t addr1 = i*SHASTA_MAX_MARKERS_PER_READ;
         uint32_t addr2 = bx*HASH_PER_BLOCK;
 
 //        uint32_t start_addr = 0;
@@ -434,7 +434,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
     }
 }
 
-extern "C" int initializeProcessors () {
+extern "C" int shasta_initializeProcessors () {
     int nDevices;
 
     cudaGetDeviceCount(&nDevices);
@@ -480,14 +480,14 @@ extern "C" int initializeProcessors () {
             exit(1);
         }
         
-        num_bytes = 2*GPU_BATCH_SIZE*MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = 2*SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         err = cudaMallocHost(&h_reads_pinned[k], num_bytes); 
         if (err != cudaSuccess) {
             fprintf(stderr, "ERROR: cudaMallocHost failed!\n");
             exit(1);
         }
 
-        num_bytes = 2*GPU_BATCH_SIZE*MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = 2*SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_reads[k], num_bytes); 
@@ -496,7 +496,7 @@ extern "C" int initializeProcessors () {
             exit(1);
         }
         
-        num_bytes = 2*GPU_BATCH_SIZE*sizeof(uint64_t);
+        num_bytes = 2*SHASTA_GPU_BATCH_SIZE*sizeof(uint64_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_read_pairs[k], num_bytes); 
@@ -505,7 +505,7 @@ extern "C" int initializeProcessors () {
             exit(1);
         }
         
-        num_bytes = GPU_BATCH_SIZE*MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_alignments[k], num_bytes); 
@@ -514,7 +514,7 @@ extern "C" int initializeProcessors () {
             exit(1);
         }
 
-        num_bytes = NUM_BLOCKS*MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_index_table[k], num_bytes); 
@@ -550,7 +550,7 @@ extern "C" int initializeProcessors () {
             exit(1);
         }
         
-        num_bytes = GPU_BATCH_SIZE*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_num_traceback[k], num_bytes); 
@@ -559,7 +559,7 @@ extern "C" int initializeProcessors () {
             exit(1);
         }
         
-//        num_bytes = GPU_BATCH_SIZE*sizeof(uint32_t);
+//        num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
 //        if (k==0)
 //            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
 //        err = cudaMalloc(&d_prefix_num_traceback[k], num_bytes); 
@@ -568,7 +568,7 @@ extern "C" int initializeProcessors () {
 //            exit(1);
 //        }
         
-        num_bytes = GPU_BATCH_SIZE*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_num_common_markers[k], num_bytes); 
@@ -577,7 +577,7 @@ extern "C" int initializeProcessors () {
             exit(1);
         }
         
-        num_bytes = GPU_BATCH_SIZE*HASH_PER_BLOCK*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*HASH_PER_BLOCK*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_common_markers[k], num_bytes); 
@@ -606,7 +606,7 @@ extern "C" int initializeProcessors () {
     return nDevices;
 }
 
-void alignBatchGPU (size_t n, size_t deviceId, size_t maxSkip, size_t num_pos, uint32_t* h_reads, uint64_t* h_read_pairs, uint32_t* h_alignments) {
+void shasta_alignBatchGPU (size_t n, size_t deviceId, size_t maxSkip, size_t num_pos, uint32_t* h_reads, uint64_t* h_read_pairs, uint32_t* h_alignments) {
     cudaError_t err;
 
     bool report_time = false;
@@ -706,9 +706,9 @@ void alignBatchGPU (size_t n, size_t deviceId, size_t maxSkip, size_t num_pos, u
         //end = h_prefix_num_tb[i];
         //TODO: remove after fixind find_traceback
         num_tb = 0; //end - start;
-        std::memcpy(&h_alignments[i*MAX_MARKERS_PER_READ], &h_tb[start], num_tb*sizeof(uint32_t));
-        if (num_tb < MAX_MARKERS_PER_READ) {
-            h_alignments[i*MAX_MARKERS_PER_READ+num_tb] = 0; 
+        std::memcpy(&h_alignments[i*SHASTA_MAX_MARKERS_PER_READ], &h_tb[start], num_tb*sizeof(uint32_t));
+        if (num_tb < SHASTA_MAX_MARKERS_PER_READ) {
+            h_alignments[i*SHASTA_MAX_MARKERS_PER_READ+num_tb] = 0; 
         }
     }
 
@@ -735,7 +735,7 @@ void alignBatchGPU (size_t n, size_t deviceId, size_t maxSkip, size_t num_pos, u
     return;
 }
 
-extern "C" void shutdownProcessors(int nDevices) {
+extern "C" void shasta_shutdownProcessors(int nDevices) {
     for (int k=0; k<nDevices; k++) {
         cudaFree(h_reads_pinned[k]);
 
