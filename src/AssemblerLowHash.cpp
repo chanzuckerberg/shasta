@@ -147,8 +147,7 @@ void Assembler::findAlignmentCandidatesLowHashNew(
         kmerTable,
         readFlags,
         markers,
-        alignmentCandidates.candidates,
-        alignmentCandidates.featureOrdinals,
+        alignmentCandidates,
         largeDataFileNamePrefix,
         largeDataPageSize);
 }

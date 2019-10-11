@@ -1,5 +1,6 @@
 // Shasta.
 #include "LowHashNew.hpp"
+#include "AlignmentCandidates.hpp"
 #include "Marker.hpp"
 using namespace shasta;
 
@@ -20,8 +21,7 @@ LowHashNew::LowHashNew(
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
     const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
-    MemoryMapped::Vector<OrientedReadPair>& candidateAlignments,
-    MemoryMapped::VectorOfVectors< array<uint32_t, 2>, uint64_t>& featureOrdinals,
+    AlignmentCandidates& candidates,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize
     ) :
@@ -34,6 +34,7 @@ LowHashNew::LowHashNew(
     kmerTable(kmerTable),
     readFlags(readFlags),
     markers(markers),
+    candidates(candidates),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize),
     histogramCsv("LowHashBucketHistogram.csv")
@@ -385,31 +386,50 @@ void LowHashNew::scanBucketsThreadFunction(size_t threadId)
             // Loop over pairs of bucket entries.
             for(const BucketEntry& feature0: bucket) {
                 const OrientedReadId orientedReadId0 = feature0.orientedReadId;
+                const ReadId readId0 = orientedReadId0.getReadId();
+                const Strand strand0 = orientedReadId0.getStrand();
                 const uint32_t ordinal0 = feature0.ordinal;
-                const auto kmerIds0 = kmerIds[orientedReadId0.getValue()].begin() + ordinal0;
+                const auto allKmerIds0 = kmerIds[orientedReadId0.getValue()];
+                const auto featureKmerIds0 = allKmerIds0.begin() + ordinal0;
+                const uint32_t markerCount0 = uint32_t(allKmerIds0.size());
 
                 for(const BucketEntry& feature1: bucket) {
                     const OrientedReadId orientedReadId1 = feature1.orientedReadId;
+                    const ReadId readId1 = orientedReadId1.getReadId();
 
                     // Only consider the ones where readId0 < readId1.
-                    if(orientedReadId0.getReadId() >= orientedReadId1.getReadId()) {
+                    if(readId0 >= readId1) {
                         continue;
                     }
 
+                    const Strand strand1 = orientedReadId1.getStrand();
                     const uint32_t ordinal1 = feature1.ordinal;
-                    const auto kmerIds1 = kmerIds[orientedReadId1.getValue()].begin() + ordinal1;
+                    const auto allKmerIds1 = kmerIds[orientedReadId1.getValue()];
+                    const auto featureKmerIds1 = allKmerIds1.begin() + ordinal1;
+                    const uint32_t markerCount1 = uint32_t(allKmerIds1.size());
 
                     // If the k-mers are not the same, this is a collision. Discard.
-                    if(not std::equal(kmerIds0, kmerIds0+mLocal, kmerIds1)) {
+                    if(not std::equal(featureKmerIds0, featureKmerIds0+mLocal, featureKmerIds1)) {
                         continue;
                     }
 
                     // We found a common feature. Store it.
-                    commonFeatures.push_back(CommonFeature(
-                        orientedReadId0,
-                        orientedReadId1,
-                        ordinal0,
-                        ordinal1));
+                    // If read0 is on strand 1, we have to reverse the ordinals.
+                    if(strand0 == 0) {
+                        commonFeatures.push_back(CommonFeature(
+                            readId0,
+                            readId1,
+                            strand0==strand1,
+                            ordinal0,
+                            ordinal1));
+                    } else {
+                        commonFeatures.push_back(CommonFeature(
+                            readId0,
+                            readId1,
+                            strand0==strand1,
+                            markerCount0-1-ordinal0,
+                            markerCount1-1-ordinal1));
+                    }
                 }
             }
         }
@@ -434,7 +454,7 @@ void LowHashNew::gatherCommonFeatures()
     commonFeatures.createNew(
             largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-CommonFeatures"),
             largeDataPageSize);
-    commonFeatures.beginPass1(kmerIds.size());
+    commonFeatures.beginPass1(kmerIds.size()/2);
     runThreads(&LowHashNew::gatherCommonFeaturesPass1, threadCount);
     commonFeatures.beginPass2();
     runThreads(&LowHashNew::gatherCommonFeaturesPass2, threadCount);
@@ -444,7 +464,7 @@ void LowHashNew::gatherCommonFeaturesPass1(size_t threadId)
 {
     const MemoryMapped::Vector<CommonFeature>& v = *threadCommonFeatures[threadId];
     for(const CommonFeature& commonFeature: v) {
-        commonFeatures.incrementCountMultithreaded(commonFeature.orientedReadIds[0].getValue());
+        commonFeatures.incrementCountMultithreaded(commonFeature.orientedReadPair.readIds[0]);
     }
 }
 void LowHashNew::gatherCommonFeaturesPass2(size_t threadId)
@@ -452,7 +472,7 @@ void LowHashNew::gatherCommonFeaturesPass2(size_t threadId)
     const MemoryMapped::Vector<CommonFeature>& v = *threadCommonFeatures[threadId];
     for(const CommonFeature& commonFeature: v) {
         commonFeatures.storeMultithreaded(
-            commonFeature.orientedReadIds[0].getValue(),
+            commonFeature.orientedReadPair.readIds[0],
             CommonFeatureInfo(commonFeature));
     }
 }
@@ -460,80 +480,169 @@ void LowHashNew::gatherCommonFeaturesPass2(size_t threadId)
 
 
 // Process the common features.
-// For each orientedReadId0, we look at all the CommonFeatureInfo we have
-// and sort them by orientedReadId1, then by ordinals, and remove duplicates.
+// For each readId0, we look at all the CommonFeatureInfo we have
+// and sort them by readId1, then by ordinals, and remove duplicates.
 // We then find groups of at least minFrequency common features involving the
 // same pair(orientedReadId0, orientedReadId1)
+// Each group generates an alignment candidate and the
+// corresponding common features.
+// Each thread stores the alignment candidates it finds in its own vector.
 void LowHashNew::processCommonFeatures()
 {
     const uint64_t readCount = kmerIds.size() / 2;
     const uint64_t batchSize = 1000;
+
+    // Prepare areas where each thread will store what it finds.
+    threadCandidateTable.resize(readCount);
+    threadAlignmentCandidates.resize(threadCount);
+
+    // Extract the candidates and features.
     setupLoadBalancing(readCount, batchSize);
     runThreads(&LowHashNew::processCommonFeaturesThreadFunction, threadCount);
+
+
+
+    // Gather the candidates and the features.
+    for(ReadId readId0=0; readId0<readCount; readId0++) {
+
+        // Figure out where the candidates are stored.
+        const auto& info = threadCandidateTable[readId0];
+        const uint64_t threadId = info[0];
+        const uint64_t begin = info[1];
+        const uint64_t end = info[2];
+
+        // Loop over all these candidates.
+        for(uint64_t i=begin; i!=end; ++i) {
+            const OrientedReadPair& orientedReadPair =
+                threadAlignmentCandidates[threadId]->candidates[i];
+            SHASTA_ASSERT(orientedReadPair.readIds[0] == readId0);
+            candidates.candidates.push_back(orientedReadPair);
+            const auto features = threadAlignmentCandidates[threadId]->featureOrdinals[i];
+            candidates.featureOrdinals.appendVector(features.begin(), features.end());
+        }
+    }
+    SHASTA_ASSERT(candidates.candidates.size() == candidates.featureOrdinals.size());
+    cout << timestamp << "Found " << candidates.candidates.size() <<
+        " alignment candidates with a total " <<
+        candidates.featureOrdinals.totalSize() <<
+        " features." << endl;
+
+
+    // Clean up.
+    threadCandidateTable.clear();
+    for(size_t threadId=0; threadId<threadCount; threadId++) {
+        threadAlignmentCandidates[threadId]->candidates.remove();
+        threadAlignmentCandidates[threadId]->featureOrdinals.remove();
+    }
+    threadAlignmentCandidates.clear();
 }
+
+
+
 void LowHashNew::processCommonFeaturesThreadFunction(size_t threadId)
 {
+    // Access the vector where this thread will store
+    // the alignment candidates it finds.
+    threadAlignmentCandidates[threadId] = make_shared<AlignmentCandidates>();
+    AlignmentCandidates& alignmentCandidates = *threadAlignmentCandidates[threadId];
+    alignmentCandidates.candidates.createNew(
+        largeDataFileNamePrefix.empty() ? "" :
+        (largeDataFileNamePrefix + "tmp-ThreadAlignmentCandidates-" + to_string(threadId)),
+        largeDataPageSize);
+    alignmentCandidates.featureOrdinals.createNew(
+        largeDataFileNamePrefix.empty() ? "" :
+        (largeDataFileNamePrefix + "tmp-ThreadAlignmentCandidatesOrdinals-" + to_string(threadId)),
+        largeDataPageSize);
+
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
 
         // Loop over ReadId's in this batch.
         for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {
-            for(Strand strand0=0; strand0<2; strand0++) {
-                const OrientedReadId orientedReadId0(readId0, strand0);
-                std::lock_guard<std::mutex> lock(mutex); // ************************** TAKE OUT!
-                cout << " Working on orientedReadId0 " << orientedReadId0 << endl;
-                const MemoryAsContainer<CommonFeatureInfo> features = commonFeatures[orientedReadId0.getValue()];
+            // std::lock_guard<std::mutex> lock(mutex); // ************************** TAKE OUT!
+            // cout << "Working on readId0 " << readId0 << endl;
+            const MemoryAsContainer<CommonFeatureInfo> features = commonFeatures[readId0];
+            threadCandidateTable[readId0][0] = uint64_t(threadId);
+            threadCandidateTable[readId0][1] = alignmentCandidates.candidates.size();;
 
-                // Deduplicate.
-                const auto uniqueBegin = features.begin();
-                auto uniqueEnd = features.end();
-                sort(uniqueBegin, uniqueEnd);
-                uniqueEnd = unique(uniqueBegin, uniqueEnd);
+            /*
+            cout << features.size() << " features before deduplication:" << endl;
+            for(auto it=features.begin(); it!=features.end(); ++it) {
+                const CommonFeatureInfo& feature = *it;
+                cout <<
+                    feature.readId1 << " " <<
+                    (feature.isSameStrand ? "same strand " : " opposite strands ") <<
+                    feature.ordinals[0] << " " <<
+                    feature.ordinals[1] << " " <<
+                    int32_t(feature.ordinals[1]) - int32_t(feature.ordinals[0]) << "\n";
+            }
+            */
+
+            // Deduplicate.
+            const auto uniqueBegin = features.begin();
+            auto uniqueEnd = features.end();
+            sort(uniqueBegin, uniqueEnd);
+            uniqueEnd = unique(uniqueBegin, uniqueEnd);
+
+            /*
+            cout << uniqueEnd-uniqueBegin << " features after deduplication:" << endl;
+            for(auto it=uniqueBegin; it!=uniqueEnd; ++it) {
+                const CommonFeatureInfo& feature = *it;
+                cout <<
+                    feature.readId1 << " " <<
+                    (feature.isSameStrand ? "same strand " : " opposite strands ") <<
+                    feature.ordinals[0] << " " <<
+                    feature.ordinals[1] << " " <<
+                    int32_t(feature.ordinals[1]) - int32_t(feature.ordinals[0]) << "\n";
+            }
+            */
+
+            // Loop over streaks of features with the same readId1 and isSameStrand.
+            for(auto it=uniqueBegin; it!=uniqueEnd;) {
+                auto streakBegin = it;
+                auto streakEnd = streakBegin;
+                const ReadId readId1 = streakBegin->readId1;
+                const bool isSameStrand = streakBegin->isSameStrand;
+                while(streakEnd!=uniqueEnd and streakEnd->readId1==readId1 and streakEnd->isSameStrand==isSameStrand) {
+                    ++streakEnd;
+                }
+
+                // If too few, skip.
+                if(streakEnd - streakBegin < int64_t(minFrequency)) {
+                    it = streakEnd;
+                    continue;
+                }
 
                 /*
-                for(auto it=uniqueBegin; it!=uniqueEnd; ++it) {
+                cout << "Common features of reads " <<
+                    readId0 << " " <<
+                    readId1 << (isSameStrand ? " same strand" : " opposite strands") << ":\n";
+                for(auto it=streakBegin; it!=streakEnd; ++it) {
                     const CommonFeatureInfo& feature = *it;
                     cout <<
-                        feature.orientedReadId1 << " " <<
                         feature.ordinals[0] << " " <<
                         feature.ordinals[1] << " " <<
                         int32_t(feature.ordinals[1]) - int32_t(feature.ordinals[0]) << "\n";
                 }
+                cout << "Marker count " <<
+                    kmerIds[OrientedReadId(readId0, 0).getValue()].size() << " " <<
+                    kmerIds[OrientedReadId(readId1, 0).getValue()].size() << ":\n";
                 */
 
-                // Loop over streaks of features with the same orientedReadId1.
-                for(auto it=uniqueBegin; it!=uniqueEnd;) {
-                    auto streakBegin = it;
-                    auto streakEnd = streakBegin;
-                    const OrientedReadId orientedReadId1 = streakBegin->orientedReadId1;
-                    while(streakEnd!=uniqueEnd and streakEnd->orientedReadId1==orientedReadId1) {
-                        ++streakEnd;
-                    }
-
-                    // If too few, skip.
-                    if(streakEnd - streakBegin < int64_t(minFrequency)) {
-                        it = streakEnd;
-                        continue;
-                    }
-
-                    cout << "Common features of oriented reads " <<
-                        orientedReadId0 << " " <<
-                        orientedReadId1 << ":\n";
-                    for(auto it=streakBegin; it!=streakEnd; ++it) {
-                        const CommonFeatureInfo& feature = *it;
-                        cout <<
-                            feature.ordinals[0] << " " <<
-                            feature.ordinals[1] << " " <<
-                            int32_t(feature.ordinals[1]) - int32_t(feature.ordinals[0]) << "\n";
-                    }
-                    cout << "Marker count " <<
-                        kmerIds[orientedReadId0.getValue()].size() << " " <<
-                        kmerIds[orientedReadId1.getValue()].size() << ":\n";
-                    it = streakEnd;
+                // This streak generates an alignment candidate
+                // and the corresponding common features.
+                alignmentCandidates.candidates.push_back(OrientedReadPair(readId0, readId1, isSameStrand));
+                alignmentCandidates.featureOrdinals.appendVector();
+                for(auto it=streakBegin; it!=streakEnd; ++it) {
+                    const CommonFeatureInfo& feature = *it;
+                    alignmentCandidates.featureOrdinals.append(feature.ordinals);
                 }
+
+                // Prepare for the next streak.
+                it = streakEnd;
             }
+            threadCandidateTable[readId0][2] = alignmentCandidates.candidates.size();;
         }
     }
-
 }

@@ -5,12 +5,14 @@
 #include "Kmer.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
+#include "OrientedReadPair.hpp"
 #include "ReadFlags.hpp"
 
 // Standard library.
 #include "memory.hpp"
 
 namespace shasta {
+    class AlignmentCandidates;
     class LowHashNew;
     class CompressedMarker;
     class OrientedReadPair;
@@ -36,8 +38,7 @@ public:
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
         const MemoryMapped::Vector<ReadFlags>& readFlags,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>&,
-        MemoryMapped::Vector<OrientedReadPair>& candidates,
-        MemoryMapped::VectorOfVectors< array<uint32_t, 2>, uint64_t>& featureOrdinals,
+        AlignmentCandidates& candidates,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize
     );
@@ -53,6 +54,7 @@ private:
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     const MemoryMapped::Vector<ReadFlags>& readFlags;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
+    AlignmentCandidates& candidates;
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
 
@@ -107,26 +109,34 @@ private:
     ofstream histogramCsv;
 
 
+
     // When two oriented reads appear in the same bucket, we
     // check if that happens by chance or because we found a
     // common feature between the two oriented reads.
     // In the latter case, we store a new CommonFeature
-    // containing the two OrientedReadId's and
+    // containing the OrientedReadIdPair and
     // the ordinals where the feature appears.
+    // Note that the OrientedReadIdPair is interpreted
+    // with readId0 on strand 0 and readId1 on the strand
+    // implied by isSameStrand.
+    // This means that if we encounter the common feature
+    // with readId0 on strand 1 we have to reverse the
+    // strands and adjust the ordinals.
     // Each thread stores into its own vector of common features.
     // We only store common features with readId0<readId1.
     class CommonFeature {
     public:
-        array<OrientedReadId, 2> orientedReadIds;
+        OrientedReadPair orientedReadPair;
         array<uint32_t, 2> ordinals;
         CommonFeature() {}
         CommonFeature(
-            OrientedReadId orientedReadId0,
-            OrientedReadId orientedReadId1,
+            ReadId readId0,
+            ReadId readId1,
+            bool isSameStrand,
             uint32_t ordinal0,
             uint32_t ordinal1
             ) :
-            orientedReadIds({orientedReadId0, orientedReadId1}),
+            orientedReadPair(readId0, readId1, isSameStrand),
             ordinals({ordinal0, ordinal1})
         {}
     };
@@ -136,24 +146,26 @@ private:
 
 
     // The common features found by each thread are stored together,
-    // segregated by the first OrientedReadId, orientedReadId0.
-    // This vector of vectors is indexed by orientedReadId0.getValue().
-    // That is, commonFeatures[orientedReadId0.getValue()]
-    // is a vector containing all the common features where
-    // the first OrientedReadId is orientedReadId0.
+    // segregated by the first ReadId, readId0.
+    // This vector of vectors is indexed by readId0.
+    // That is, commonFeatures[readId0]
+    // is a vector contaiOrientedReadId is readId0.
     class CommonFeatureInfo {
     public:
-        OrientedReadId orientedReadId1;
+        ReadId readId1;
         array<uint32_t, 2> ordinals;
+        bool isSameStrand;
         CommonFeatureInfo() {}
         CommonFeatureInfo(const CommonFeature& commonFeature) :
-            orientedReadId1(commonFeature.orientedReadIds[1]),
-            ordinals(commonFeature.ordinals) {}
+            readId1(commonFeature.orientedReadPair.readIds[1]),
+            ordinals(commonFeature.ordinals),
+            isSameStrand(commonFeature.orientedReadPair.isSameStrand)
+            {}
         bool operator<(const CommonFeatureInfo& that) const {
-            return tie(orientedReadId1, ordinals) < tie(that.orientedReadId1, that.ordinals);
+            return tie(readId1, isSameStrand, ordinals) < tie(that.readId1, that.isSameStrand, that.ordinals);
         }
         bool operator==(const CommonFeatureInfo& that) const {
-            return tie(orientedReadId1, ordinals) == tie(that.orientedReadId1, that.ordinals);
+            return tie(readId1, isSameStrand, ordinals) == tie(that.readId1, that.isSameStrand, that.ordinals);
         }
     };
     MemoryMapped::VectorOfVectors<CommonFeatureInfo, uint64_t> commonFeatures;
@@ -164,12 +176,23 @@ private:
 
 
     // Process the common features.
-    // For each orientedReadId0, we look at all the CommonFeatureInfo we have
-    // and sort them by orientedReadId1, then by ordinals, and remove duplicates.
+    // For each readId0, we look at all the CommonFeatureInfo we have
+    // and sort them by readId1, then by ordinals, and remove duplicates.
     // We then find groups of at least minFrequency common features involving the
-    // same pair(orientedReadId0, orientedReadId1)
+    // same pair(orientedReadId0, orientedReadId1).
+    // Each group generates an alignment candidate and the
+    // corresponding common features.
+    // Each thread stores the alignment candidates it finds in its own vector.
     void processCommonFeatures();
     void processCommonFeaturesThreadFunction(size_t threadId);
+
+    // Alignment candidates found by each thread.
+    vector< shared_ptr<AlignmentCandidates> > threadAlignmentCandidates;
+
+    // A table used to gather threadAlignmentCandidates in order
+    // of increasing readId0. Indexed by readId0, gives
+    // (thread, begin, end) for the candidates for which the first read is readId0.
+    vector< array<uint64_t, 3> > threadCandidateTable;
 
 
 
