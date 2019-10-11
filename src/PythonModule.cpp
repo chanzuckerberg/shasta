@@ -196,6 +196,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
 
         // Alignments.
+        .def("writeAlignmentCandidates",
+            &Assembler::writeAlignmentCandidates)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)

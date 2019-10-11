@@ -29,4 +29,6 @@ a.findAlignmentCandidatesLowHashNew(
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
     maxBucketSize = int(config['MinHash']['maxBucketSize']),
     minFrequency = int(config['MinHash']['minFrequency']))
+# a.writeAlignmentCandidates()
+
 

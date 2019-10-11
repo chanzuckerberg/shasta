@@ -151,3 +151,79 @@ void Assembler::findAlignmentCandidatesLowHashNew(
         largeDataFileNamePrefix,
         largeDataPageSize);
 }
+
+
+
+void Assembler::writeAlignmentCandidates() const
+{
+
+    // Sanity checks.
+    checkMarkersAreOpen();
+    SHASTA_ASSERT(alignmentCandidates.candidates.isOpen);
+
+    if(alignmentCandidates.featureOrdinals.isOpen()) {
+        SHASTA_ASSERT(
+            alignmentCandidates.candidates.size() ==
+            alignmentCandidates.featureOrdinals.size());
+    }
+
+
+    // Write out the candidates.
+    ofstream csv("AlignmentCandidates.csv");
+    csv << "ReadId0,ReadId1,SameStrand,";
+    if(alignmentCandidates.featureOrdinals.isOpen()) {
+        csv << "FeatureCount,";
+    }
+    csv << "\n";
+
+    for(uint64_t i=0; i<alignmentCandidates.candidates.size(); i++) {
+        const OrientedReadPair& candidate = alignmentCandidates.candidates[i];
+        csv << candidate.readIds[0] << ",";
+        csv << candidate.readIds[1] << ",";
+        csv << (candidate.isSameStrand ? "Yes" : "No") << ",";
+        if(alignmentCandidates.featureOrdinals.isOpen()) {
+            csv << alignmentCandidates.featureOrdinals.size(i) << ",";
+        }
+        csv << "\n";
+    }
+
+
+
+    // Write out the features.
+    if(alignmentCandidates.featureOrdinals.isOpen()) {
+
+        ofstream csv("AlignmentCandidatesFeatures.csv");
+        csv << "ReadId0,ReadId1,SameStrand,FeatureCount,Offset,"
+            "Ordinal0,Ordinal1,Ordinal0Reversed,Ordinal1Reversed,MarkerCount0,MarkerCount1,"
+            "\n";
+
+        for(uint64_t i=0; i<alignmentCandidates.candidates.size(); i++) {
+            const OrientedReadPair& candidate = alignmentCandidates.candidates[i];
+
+            // The features for this candidate.
+            const auto features = alignmentCandidates.featureOrdinals[i];
+
+            for(const auto& feature: features) {
+                const ReadId readId0 = candidate.readIds[0];
+                const ReadId readId1 = candidate.readIds[1];
+                const uint32_t markerCount0 = uint32_t(markers.size(OrientedReadId(readId0, 0).getValue()));
+                const uint32_t markerCount1 = uint32_t(markers.size(OrientedReadId(readId1, 0).getValue()));
+                const uint32_t ordinal0 = feature[0];
+                const uint32_t ordinal1 = feature[1];
+
+                csv << readId0 << ",";
+                csv << readId1 << ",";
+                csv << (candidate.isSameStrand ? "Yes" : "No") << ",";
+                csv << features.size() << ",";
+                csv << int32_t(ordinal1)-int32_t(ordinal0) << ",";
+                csv << ordinal0 << ",";
+                csv << ordinal1 << ",";
+                csv << markerCount0 - 1 - ordinal0 << ",";
+                csv << markerCount1 - 1 - ordinal1 << ",";
+                csv << markerCount0 << ",";
+                csv << markerCount1 << ",";
+                csv << "\n";
+            }
+        }
+    }
+}

@@ -713,6 +713,10 @@ private:
     // They all have readId0<readId1.
     // They are interpreted with readId0 on strand 0.
     AlignmentCandidates alignmentCandidates;
+public:
+    void writeAlignmentCandidates() const;
+private:
+
 
     // Use the LowHash (modified MinHash) algorithm to find candidate alignments.
     // Use as features sequences of m consecutive special k-mers.

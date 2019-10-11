@@ -169,8 +169,6 @@ LowHashNew::LowHashNew(
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
     cout << timestamp << "LowHashNew completed in " << tTotal << " s." << endl;
-
-    SHASTA_ASSERT(0);
 }
 
 
