@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.0)
+
 project(shastaDynamicLibrary)
+if(BUILD_FOR_GPU)
+    find_package(CUDA 10.0 REQUIRED)
+    set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
+    project(shastaDynamicLibrary LANGUAGES C CXX CUDA)
+endif(BUILD_FOR_GPU)
+
+
+if(BUILD_FOR_GPU)
+    add_subdirectory(../src/gpu GPULibrary)
+endif(BUILD_FOR_GPU)
 
 # C++ dialect.
 add_definitions(-std=c++14)
@@ -69,9 +80,16 @@ string(STRIP ${SHASTA_PYTHON_LIBRARIES} SHASTA_PYTHON_LIBRARIES)
 SET(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS} ${SHASTA_PYTHON_LIBRARIES}")
 
 # Libraries to link with.
-target_link_libraries(
-    shastaDynamicLibrary 
-    atomic png pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
+if(BUILD_FOR_GPU)
+    target_link_libraries(
+        shastaDynamicLibrary 
+        GPULibrary
+        atomic png pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
+else(BUILD_FOR_GPU)
+    target_link_libraries(
+        shastaDynamicLibrary 
+        atomic png pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
+endif(BUILD_FOR_GPU)
 
 # Install the shared library into the bin directory.
 install(TARGETS shastaDynamicLibrary DESTINATION shasta-install/bin)

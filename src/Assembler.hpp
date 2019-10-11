@@ -821,6 +821,9 @@ private:
 
     // Private functions and data used by computeAlignments.
     void computeAlignmentsThreadFunction(size_t threadId);
+#ifdef SHASTA_BUILD_FOR_GPU
+    void computeAlignmentsThreadFunctionGPU(size_t threadId);
+#endif
     class ComputeAlignmentsData {
     public:
 
@@ -829,6 +832,9 @@ private:
         size_t maxSkip;
         size_t minAlignedMarkerCount;
         size_t maxTrim;
+#ifdef SHASTA_BUILD_FOR_GPU
+        int nDevices;
+#endif
 
         // The AlignmentInfo found by each thread.
         vector< vector<AlignmentData> > threadAlignmentData;
