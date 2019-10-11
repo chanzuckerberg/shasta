@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<link rel=stylesheet href=style.css />
+<link rel=icon href=CZI-new-logo.png />
+</head>
+
+<body>
+    <nav role="navigation">
+        <!-- 
+        Navigation as updated 8/15/2019.
+        To make any changes, here, update Navigation.html,
+        then rerun UpdateNavigation.py from the docs directory.
+        This will copy to all the html files.
+        Do not manually edit the navigation section of any other file.
+        -->
+        <ul>
+            <a class="main-nav" href=index.html><li >Shasta</li></a>
+                <a href=QuickStart.html><li>Quick Start</li></a>
+                
+                <li aria-haspopup="true"> How to
+                <ul class="dropdown" aria-label="submenu">
+                <a href=Running.html><li>Run an assembly</li></a>
+                <a href=Docker.html><li>Run an assembly in Docker</li></a>
+                <a href=Performance.html><li>Maximize assembly performance</li></a>
+                <a href=BuildingFromSource.html><li>Build the code from source</li></a>
+                <a href=InspectingResults.html><li>Explore assembly results</li></a>
+                <a href=Contributing.html><li>Contribute to Shasta</li></a>
+                <a href=ReportingBugs.html><li>Report problems or ask questions</li></a>
+                </ul>
+            </li>
+            <li aria-haspopup="true"> About
+                    <ul class="dropdown" aria-label="submenu">
+                            <a href=Motivation.html><li>Motivation</li></a>
+                            <a href=CurrentStatus.html><li>Current status</li></a>
+                            <a href=SupportedPlatforms.html><li>Supported platforms</li></a>
+                            <a href=Acknowledgments.html><li>Acknowledgments</li></a>
+                            <a href=ComputationalMethods.html><li>Computational methods</li></a>
+                            <a href=CommandLineOptions.html><li>Command line options</li></a>
+                            <a href=Compatibility.html><li>Compatibility across releases</li></a>
+    
+                    </ul>
+                </li>
+    
+        </ul>
+    </nav>
+    <main>
+
+<h1>GPU acceleration</h1>
+
+<h2>Current status</h2>
+<p>
+Shasta GPU acceleration is under development and is not ready
+for production use. This documentation page is provided only as an aid in
+development.
+
+<h2>Supported platform</h2>
+<p>
+GPU acceleration uses the 
+<a href="https://developer.nvidia.com/cuda-toolkit">Nvidia CUDA toolkit</a>
+and is supported for Nvidia GPUs only.
+It is currently only supported for Ubuntu 16.04.
+
+<h2>Installing the CUDA toolkit</h2>
+<p>
+To use GPU acceleration you need to install the Nvidia CUDA toolkit.
+This is required both for building and running Shasta.
+At runtime, the Nvidia CUDA toolkit is always required, 
+even if you are using the Shasta
+static executable or the Shasta AppImage.
+
+<p>
+Directions for downloading and installing the appropriate version of
+the toolkit are available 
+
+<a href="https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu&target_version=1604&target_type=runfilelocal">
+here</a>.
+
+
+</main>
+</body>
+</html>
