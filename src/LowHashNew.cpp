@@ -108,45 +108,60 @@ LowHashNew::LowHashNew(
     for(iteration=0; iteration<minHashIterationCount; iteration++) {
         cout << timestamp << "LowHash iteration " << iteration << " begins." << endl;
 
-        // Pass1: compute the low hashes for each oriented read
+        // Compute the low hashes for each oriented read
         // and count the number of low hash features in each bucket.
         buckets.clear();
         buckets.beginPass1(bucketCount);
         size_t batchSize = 10000;
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHashNew::pass1ThreadFunction, threadCount);
+        runThreads(&LowHashNew::computeHashesThreadFunction, threadCount);
 
-        // Pass 2: fill the buckets.
+        // Fill the buckets.
         buckets.beginPass2();
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHashNew::pass2ThreadFunction, threadCount);
+        runThreads(&LowHashNew::fillBucketsThreadFunction, threadCount);
         buckets.endPass2(false, false);
         cout << "Load factor at this iteration " <<
             double(buckets.totalSize()) / double(buckets.size()) << endl;
         computeBucketHistogram();
 
-        // Pass 3: scan the buckets to find common features.
+        // Scan the buckets to find common features.
         // Each thread stores the common features it finds in its own vector.
         const uint64_t oldCommonFeatureCount = countTotalThreadCommonFeatures();
         batchSize = 10000;
         setupLoadBalancing(bucketCount, batchSize);
-        runThreads(&LowHashNew::pass3ThreadFunction, threadCount);
+        runThreads(&LowHashNew::scanBucketsThreadFunction, threadCount);
         const uint64_t newCommonFeatureCount = countTotalThreadCommonFeatures();
         cout << "Stored " << newCommonFeatureCount-oldCommonFeatureCount <<
             " common features at this iteration." << endl;
     }
 
+    // Gather together all the common features found by all threads.
+    cout << timestamp << "Gathering common features found by all threads." << endl;
+    gatherCommonFeatures();
+    cout << timestamp << "Total number of common features including duplicates is " <<
+        commonFeatures.totalSize() << endl;
 
-
-    // Clean up.
-    buckets.remove();
-    kmerIds.remove();
-    lowHashes.clear();
+    // We no longer need the common features by thread.
     for(size_t threadId=0; threadId!=threadCount; threadId++) {
         threadCommonFeatures[threadId]->remove();
         threadCommonFeatures[threadId] = 0;
     }
     threadCommonFeatures.clear();
+
+    // Process the common features.
+    // For each orientedReadId0, we look at all the CommonFeatureInfo we have
+    // and sort them by orientedReadId1, then by ordinals, and remove duplicates.
+    // We then find groups of at least minFrequency common features involving the
+    // same pair(orientedReadId0, orientedReadId1)
+    cout << timestamp << "Processing the common features we found." << endl;
+    processCommonFeatures();
+
+    // Clean up.
+    buckets.remove();
+    kmerIds.remove();
+    lowHashes.clear();
+    commonFeatures.remove();
 
     // Done.
     const auto tEnd = steady_clock::now();
@@ -209,9 +224,9 @@ void LowHashNew::createKmerIds(size_t threadId)
 
 
 
-// Pass1: compute the low hashes for each oriented read
-// and compute the number of entries in each bucket.
-void LowHashNew::pass1ThreadFunction(size_t threadId)
+// Thread function to compute the low hashes for each oriented read
+// and count the number of entries in each bucket.
+void LowHashNew::computeHashesThreadFunction(size_t threadId)
 {
     const int featureByteCount = int(m * sizeof(KmerId));
     const uint64_t seed = iteration * 37;
@@ -260,8 +275,8 @@ void LowHashNew::pass1ThreadFunction(size_t threadId)
 
 
 
-// Pass 2: fill the buckets.
-void LowHashNew::pass2ThreadFunction(size_t threadId)
+// Thread function to fill the buckets.
+void LowHashNew::fillBucketsThreadFunction(size_t threadId)
 {
 
     // Loop over batches assigned to this thread.
@@ -341,8 +356,8 @@ void LowHashNew::computeBucketHistogramThreadFunction(size_t threadId)
 
 
 
-// Pass 3: scan the buckets to find common features.
-void LowHashNew::pass3ThreadFunction(size_t threadId)
+// Thread function to scan the buckets to find common features.
+void LowHashNew::scanBucketsThreadFunction(size_t threadId)
 {
     // Access the vector where this thread will store
     // the common features it finds.
@@ -409,4 +424,115 @@ uint64_t LowHashNew::countTotalThreadCommonFeatures() const
         n += v->size();
     }
     return n;
+}
+
+
+
+void LowHashNew::gatherCommonFeatures()
+{
+    commonFeatures.createNew(
+            largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-CommonFeatures"),
+            largeDataPageSize);
+    commonFeatures.beginPass1(kmerIds.size());
+    runThreads(&LowHashNew::gatherCommonFeaturesPass1, threadCount);
+    commonFeatures.beginPass2();
+    runThreads(&LowHashNew::gatherCommonFeaturesPass2, threadCount);
+    commonFeatures.endPass2();
+}
+void LowHashNew::gatherCommonFeaturesPass1(size_t threadId)
+{
+    const MemoryMapped::Vector<CommonFeature>& v = *threadCommonFeatures[threadId];
+    for(const CommonFeature& commonFeature: v) {
+        commonFeatures.incrementCountMultithreaded(commonFeature.orientedReadIds[0].getValue());
+    }
+}
+void LowHashNew::gatherCommonFeaturesPass2(size_t threadId)
+{
+    const MemoryMapped::Vector<CommonFeature>& v = *threadCommonFeatures[threadId];
+    for(const CommonFeature& commonFeature: v) {
+        commonFeatures.storeMultithreaded(
+            commonFeature.orientedReadIds[0].getValue(),
+            CommonFeatureInfo(commonFeature));
+    }
+}
+
+
+
+// Process the common features.
+// For each orientedReadId0, we look at all the CommonFeatureInfo we have
+// and sort them by orientedReadId1, then by ordinals, and remove duplicates.
+// We then find groups of at least minFrequency common features involving the
+// same pair(orientedReadId0, orientedReadId1)
+void LowHashNew::processCommonFeatures()
+{
+    const uint64_t readCount = kmerIds.size() / 2;
+    const uint64_t batchSize = 1000;
+    setupLoadBalancing(readCount, batchSize);
+    runThreads(&LowHashNew::processCommonFeaturesThreadFunction, threadCount);
+}
+void LowHashNew::processCommonFeaturesThreadFunction(size_t threadId)
+{
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over ReadId's in this batch.
+        for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {
+            for(Strand strand0=0; strand0<2; strand0++) {
+                const OrientedReadId orientedReadId0(readId0, strand0);
+                std::lock_guard<std::mutex> lock(mutex); // ************************** TAKE OUT!
+                cout << " Working on orientedReadId0 " << orientedReadId0 << endl;
+                const MemoryAsContainer<CommonFeatureInfo> features = commonFeatures[orientedReadId0.getValue()];
+
+                // Deduplicate.
+                const auto uniqueBegin = features.begin();
+                auto uniqueEnd = features.end();
+                sort(uniqueBegin, uniqueEnd);
+                uniqueEnd = unique(uniqueBegin, uniqueEnd);
+
+                /*
+                for(auto it=uniqueBegin; it!=uniqueEnd; ++it) {
+                    const CommonFeatureInfo& feature = *it;
+                    cout <<
+                        feature.orientedReadId1 << " " <<
+                        feature.ordinals[0] << " " <<
+                        feature.ordinals[1] << " " <<
+                        int32_t(feature.ordinals[1]) - int32_t(feature.ordinals[0]) << "\n";
+                }
+                */
+
+                // Loop over streaks of features with the same orientedReadId1.
+                for(auto it=uniqueBegin; it!=uniqueEnd;) {
+                    auto streakBegin = it;
+                    auto streakEnd = streakBegin;
+                    const OrientedReadId orientedReadId1 = streakBegin->orientedReadId1;
+                    while(streakEnd!=uniqueEnd and streakEnd->orientedReadId1==orientedReadId1) {
+                        ++streakEnd;
+                    }
+
+                    // If too few, skip.
+                    if(streakEnd - streakBegin < int64_t(minFrequency)) {
+                        it = streakEnd;
+                        continue;
+                    }
+
+                    cout << "Common features of oriented reads " <<
+                        orientedReadId0 << " " <<
+                        orientedReadId1 << ":\n";
+                    for(auto it=streakBegin; it!=streakEnd; ++it) {
+                        const CommonFeatureInfo& feature = *it;
+                        cout <<
+                            feature.ordinals[0] << " " <<
+                            feature.ordinals[1] << " " <<
+                            int32_t(feature.ordinals[1]) - int32_t(feature.ordinals[0]) << "\n";
+                    }
+                    cout << "Marker count " <<
+                        kmerIds[orientedReadId0.getValue()].size() << " " <<
+                        kmerIds[orientedReadId1.getValue()].size() << ":\n";
+                    it = streakEnd;
+                }
+            }
+        }
+    }
+
 }

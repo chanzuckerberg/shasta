@@ -114,6 +114,7 @@ private:
     // containing the two OrientedReadId's and
     // the ordinals where the feature appears.
     // Each thread stores into its own vector of common features.
+    // We only store common features with readId0<readId1.
     class CommonFeature {
     public:
         array<OrientedReadId, 2> orientedReadIds;
@@ -134,17 +135,55 @@ private:
 
 
 
+    // The common features found by each thread are stored together,
+    // segregated by the first OrientedReadId, orientedReadId0.
+    // This vector of vectors is indexed by orientedReadId0.getValue().
+    // That is, commonFeatures[orientedReadId0.getValue()]
+    // is a vector containing all the common features where
+    // the first OrientedReadId is orientedReadId0.
+    class CommonFeatureInfo {
+    public:
+        OrientedReadId orientedReadId1;
+        array<uint32_t, 2> ordinals;
+        CommonFeatureInfo() {}
+        CommonFeatureInfo(const CommonFeature& commonFeature) :
+            orientedReadId1(commonFeature.orientedReadIds[1]),
+            ordinals(commonFeature.ordinals) {}
+        bool operator<(const CommonFeatureInfo& that) const {
+            return tie(orientedReadId1, ordinals) < tie(that.orientedReadId1, that.ordinals);
+        }
+        bool operator==(const CommonFeatureInfo& that) const {
+            return tie(orientedReadId1, ordinals) == tie(that.orientedReadId1, that.ordinals);
+        }
+    };
+    MemoryMapped::VectorOfVectors<CommonFeatureInfo, uint64_t> commonFeatures;
+    void gatherCommonFeatures();
+    void gatherCommonFeaturesPass1(size_t threadId);
+    void gatherCommonFeaturesPass2(size_t threadId);
+
+
+
+    // Process the common features.
+    // For each orientedReadId0, we look at all the CommonFeatureInfo we have
+    // and sort them by orientedReadId1, then by ordinals, and remove duplicates.
+    // We then find groups of at least minFrequency common features involving the
+    // same pair(orientedReadId0, orientedReadId1)
+    void processCommonFeatures();
+    void processCommonFeaturesThreadFunction(size_t threadId);
+
+
+
     // Thread functions.
 
-    // Pass1: compute the low hashes for each oriented read
+    // Thread function to compute the low hashes for each oriented read
     // and count the number of entries in each bucket.
-    void pass1ThreadFunction(size_t threadId);
+    void computeHashesThreadFunction(size_t threadId);
 
-    // Pass 2: fill the buckets.
-    void pass2ThreadFunction(size_t threadId);
+    // Thread function to fill the buckets.
+    void fillBucketsThreadFunction(size_t threadId);
 
-    // Pass 3: scan the buckets to find common features.
-    void pass3ThreadFunction(size_t threadId);
+    // Thread function to scan the buckets to find common features.
+    void scanBucketsThreadFunction(size_t threadId);
 };
 
 #endif
