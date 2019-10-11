@@ -4,6 +4,7 @@
 using namespace shasta;
 
 // Standad library.
+#include "algorithm.hpp"
 #include "chrono.hpp"
 
 
@@ -316,7 +317,7 @@ void LowHashNew::computeBucketHistogram()
     // Combine the histograms found by each thread.
     uint64_t largestBucketSize = 0;
     for(const vector<uint64_t>& histogram: threadBucketHistogram) {
-        largestBucketSize = max(largestBucketSize, histogram.size());
+        largestBucketSize = max(largestBucketSize, uint64_t(histogram.size()));
     }
     vector<uint64_t> bucketHistogram(largestBucketSize, 0);
     for(const vector<uint64_t>& histogram: threadBucketHistogram) {
