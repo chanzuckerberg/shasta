@@ -83,6 +83,7 @@ public:
     // beginning with "MinHash.".
     class MinHashOptions {
     public:
+        int version;
         int m;
         double hashFraction;
         int minHashIterationCount;

@@ -256,6 +256,11 @@ void AssemblerOptions::addConfigurableOptions()
         "enrichment threshold above which a k-mer is not considered as a possible marker. "
         "Enrichment is ratio of k-mer frequency in reads to random.")
 
+        ("MinHash.version",
+        value<int>(&minHashOptions.version)->
+        default_value(0),
+        "Controls the version of the LowHash algorithm to use. Can be 0 or 1.")
+
         ("MinHash.m",
         value<int>(&minHashOptions.m)->
         default_value(4),
@@ -444,6 +449,7 @@ void AssemblerOptions::KmersOptions::write(ostream& s) const
 void AssemblerOptions::MinHashOptions::write(ostream& s) const
 {
     s << "[MinHash]\n";
+    s << "version = " << version << "\n";
     s << "m = " << m << "\n";
     s << "hashFraction = " << hashFraction << "\n";
     s << "minHashIterationCount = " << minHashIterationCount << "\n";

@@ -130,21 +130,9 @@ void shasta::main::assemble(
 {
     SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble");
 
-    // Check that a valid assembly strategy was specified.
-    switch(assemblerOptions.assemblyOptions.strategy) {
-    case 0:
-    case 1:
-        break;
-    default:
-        throw runtime_error("Invalid Assembly.strategy " +
-            to_string(assemblerOptions.assemblyOptions.strategy));
-    }
-
     const string executableDescription =
         "\nThis is the static executable for the Shasta assembler. "
-        "It provides limited Shasta functionality, "
-        "at reduced performance when using the default options, "
-        "but has no dependencies and requires no installation.\n\n"
+        "It has no dependencies and requires no installation.\n\n"
         "To run an assembly, use the \"--input\" option to specify the input files. "
         "See below for a description of the other options and parameters.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
@@ -155,6 +143,20 @@ void shasta::main::assemble(
         "Complete documentation for the latest version of Shasta is available here:\n"
         "https://chanzuckerberg.github.io/shasta\n";
 
+
+
+    // Various checks for option validity.
+
+    // Check that a valid assembly strategy was specified.
+    switch(assemblerOptions.assemblyOptions.strategy) {
+    case 0:
+    case 1:
+        break;
+    default:
+        throw runtime_error("Invalid Assembly.strategy " +
+            to_string(assemblerOptions.assemblyOptions.strategy));
+    }
+
     // Check that we have at least one input file.
     if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
         cout << executableDescription << assemblerOptions.allOptionsDescription << endl;
@@ -162,12 +164,27 @@ void shasta::main::assemble(
             "using command line option \"--input\".");
     }
 
-    // Check for options unsupported by the static executable.
+    // Assembly.useMarginPhase is not supported.
     if(assemblerOptions.assemblyOptions.useMarginPhase) {
-        throw runtime_error("Assembly.useMarginPhase is not supported by the Shasta static executable.");
+        throw runtime_error("Assembly.useMarginPhase is not supported.");
     }
 
-    // If coverage data was requested, memoryMOde should be filesystem,
+    // If the build does not support GPU acceleration, reject the --gpu option.
+#ifndef SHASTA_BUILD_FOR_GPU
+    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+        throw runtime_error("This Shasta build does not provide GPU acceleration.");
+    }
+#endif
+
+    // Check assemblerOptions.minHashOptions.version.
+    if( assemblerOptions.minHashOptions.version!=0 and
+        assemblerOptions.minHashOptions.version!=1) {
+        throw runtime_error("Invalid value " +
+            to_string(assemblerOptions.minHashOptions.version) +
+            " specified for --MinHash.version. Must be 0 or 1.");
+    }
+
+    // If coverage data was requested, memoryMode should be filesystem,
     // otherwise the coverage data cannot be accessed.
     if(assemblerOptions.assemblyOptions.storeCoverageData) {
         if(assemblerOptions.commandLineOnlyOptions.memoryMode != "filesystem") {
@@ -176,12 +193,12 @@ void shasta::main::assemble(
         }
     }
 
+
+
     // Write a startup message.
     cout << timestamp <<
         "\nThis is the static executable for the Shasta assembler. "
-        "It provides limited Shasta functionality, "
-        "at reduced performance when using the default options, "
-        "but has no dependencies and requires no installation.\n\n"
+        "It has no dependencies and requires no installation.\n\n"
         "Default values of assembly parameters are optimized for an assembly "
         "at coverage 60x. If your data have significantly different coverage, "
         "some changes in assembly parameters may be necessary to get good results.\n\n"
@@ -252,12 +269,7 @@ void shasta::main::assemble(
         assemblerOptions.write(configurationFile);
     }
 
-    // If the build does not support GPU acceleration, reject the --gpu option.
-#ifndef SHASTA_BUILD_FOR_GPU
-    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
-        throw runtime_error("This Shasta build does not provide GPU acceleration.");
-    }
-#endif
+
 
     // Initial disclaimer message.
 #ifdef __linux
@@ -489,14 +501,26 @@ void shasta::main::assemble(
         threadCount);
 
     // Find alignment candidates.
-    assembler.findAlignmentCandidatesLowHash0(
-        assemblerOptions.minHashOptions.m,
-        assemblerOptions.minHashOptions.hashFraction,
-        assemblerOptions.minHashOptions.minHashIterationCount,
-        0,
-        assemblerOptions.minHashOptions.maxBucketSize,
-        assemblerOptions.minHashOptions.minFrequency,
-        threadCount);
+    if(assemblerOptions.minHashOptions.version == 0) {
+        assembler.findAlignmentCandidatesLowHash0(
+            assemblerOptions.minHashOptions.m,
+            assemblerOptions.minHashOptions.hashFraction,
+            assemblerOptions.minHashOptions.minHashIterationCount,
+            0,
+            assemblerOptions.minHashOptions.maxBucketSize,
+            assemblerOptions.minHashOptions.minFrequency,
+            threadCount);
+    } else {
+        SHASTA_ASSERT(assemblerOptions.minHashOptions.version == 1);    // Already checked for that.
+        assembler.findAlignmentCandidatesLowHash1(
+            assemblerOptions.minHashOptions.m,
+            assemblerOptions.minHashOptions.hashFraction,
+            assemblerOptions.minHashOptions.minHashIterationCount,
+            0,
+            assemblerOptions.minHashOptions.maxBucketSize,
+            assemblerOptions.minHashOptions.minFrequency,
+            threadCount);
+    }
 
 
 
