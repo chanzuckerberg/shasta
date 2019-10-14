@@ -41,7 +41,8 @@ LowHash0::LowHash0(
     readFlags(readFlags),
     markers(markers),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
-    largeDataPageSize(largeDataPageSize)
+    largeDataPageSize(largeDataPageSize),
+    histogramCsv("LowHashBucketHistogram.csv")
 
 {
     cout << timestamp << "LowHash0 begins." << endl;
@@ -105,11 +106,14 @@ LowHash0::LowHash0(
 
     // Set up work areas.
     buckets.createNew(
-    		largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash0-Buckets"),
-            largeDataPageSize);
+        largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash0-Buckets"),
+        largeDataPageSize);
     lowHashes.resize(orientedReadCount);
     candidates.resize(readCount);
     threadStatistics.resize(threadCount);
+
+    // Write the header of the histogram file.
+    histogramCsv << "Iteration,BucketSize,BucketCount,FeatureCount\n";
 
 
 
@@ -131,6 +135,7 @@ LowHash0::LowHash0(
         setupLoadBalancing(readCount, batchSize);
         runThreads(&LowHash0::pass2ThreadFunction, threadCount);
         buckets.endPass2(false, false);
+        computeBucketHistogram();
 
         // Pass 3: inspect the buckets to find candidates.
         batchSize = 10000;
@@ -492,3 +497,52 @@ void LowHash0::merge(
 }
 
 
+
+void LowHash0::computeBucketHistogram()
+{
+    threadBucketHistogram.clear();
+    threadBucketHistogram.resize(threadCount);
+    const uint64_t batchSize = 10000;
+    setupLoadBalancing(buckets.size(), batchSize);
+    runThreads(&LowHash0::computeBucketHistogramThreadFunction, threadCount);
+
+    // Combine the histograms found by each thread.
+    uint64_t largestBucketSize = 0;
+    for(const vector<uint64_t>& histogram: threadBucketHistogram) {
+        largestBucketSize = max(largestBucketSize, uint64_t(histogram.size()));
+    }
+    vector<uint64_t> bucketHistogram(largestBucketSize, 0);
+    for(const vector<uint64_t>& histogram: threadBucketHistogram) {
+        for(uint64_t bucketSize=0; bucketSize<histogram.size(); bucketSize++) {
+            bucketHistogram[bucketSize] += histogram[bucketSize];
+        }
+    }
+
+    for(uint64_t bucketSize=0; bucketSize<bucketHistogram.size(); bucketSize++) {
+        const uint64_t frequency = bucketHistogram[bucketSize];
+        if(frequency) {
+            histogramCsv <<
+                iteration << "," <<
+                bucketSize << "," <<
+                frequency << "," <<
+                bucketSize*frequency << "\n";
+        }
+    }
+
+
+}
+void LowHash0::computeBucketHistogramThreadFunction(size_t threadId)
+{
+    vector<uint64_t>& histogram = threadBucketHistogram[threadId];
+    histogram.clear();
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(uint64_t bucketId=begin; bucketId!=end; bucketId++) {
+            const uint64_t bucketSize = buckets.size(bucketId);
+            if(bucketSize >= histogram.size()) {
+                histogram.resize(bucketSize + 1, 0);
+            }
+            ++histogram[bucketSize];
+        }
+    }
+}
