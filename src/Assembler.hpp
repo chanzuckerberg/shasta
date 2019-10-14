@@ -728,7 +728,7 @@ private:
     // Use the LowHash (modified MinHash) algorithm to find candidate alignments.
     // Use as features sequences of m consecutive special k-mers.
 public:
-    void findAlignmentCandidatesLowHash(
+    void findAlignmentCandidatesLowHash0(
         size_t m,                       // Number of consecutive k-mers that define a feature.
         double hashFraction,            // Low hash threshold.
         size_t minHashIterationCount,   // Number of lowHash iterations.
@@ -737,7 +737,7 @@ public:
         size_t minFrequency,            // Minimum number of lowHash hits for a pair to become a candidate.
         size_t threadCount
     );
-    void findAlignmentCandidatesLowHashNew(
+    void findAlignmentCandidatesLowHash1(
         size_t m,                       // Number of consecutive k-mers that define a feature.
         double hashFraction,            // Low hash threshold.
         size_t minHashIterationCount,   // Number of lowHash iterations.

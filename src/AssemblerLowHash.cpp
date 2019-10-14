@@ -1,13 +1,13 @@
 #include "Assembler.hpp"
-#include "LowHash.hpp"
-#include "LowHashNew.hpp"
+#include "LowHash0.hpp"
+#include "LowHash1.hpp"
 using namespace shasta;
 
 
 
 // Use the LowHash algorithm to find alignment candidates.
 // Use as features sequences of m consecutive special k-mers.
-void Assembler::findAlignmentCandidatesLowHash(
+void Assembler::findAlignmentCandidatesLowHash0(
     size_t m,                       // Number of consecutive k-mers that define a feature.
     double hashFraction,            // Low hash threshold.
     size_t minHashIterationCount,   // Number of lowHash iterations.
@@ -27,7 +27,7 @@ void Assembler::findAlignmentCandidatesLowHash(
     alignmentCandidates.candidates.createNew(largeDataName("AlignmentCandidates"), largeDataPageSize);
 
     // Run the LowHash computation to find candidate alignments.
-    LowHash lowHash(
+    LowHash0 lowHash(
         m,
         hashFraction,
         minHashIterationCount,
@@ -114,7 +114,7 @@ void Assembler::writeOverlappingReads(
 
 // New version that also stores alignmentCandidates.featureOrdinals.
 // This can be used to filter the alignment candidates.
-void Assembler::findAlignmentCandidatesLowHashNew(
+void Assembler::findAlignmentCandidatesLowHash1(
     size_t m,                       // Number of consecutive k-mers that define a feature.
     double hashFraction,            // Low hash threshold.
     size_t minHashIterationCount,   // Number of lowHash iterations.
@@ -136,7 +136,7 @@ void Assembler::findAlignmentCandidatesLowHashNew(
         largeDataName("AlignmentCandidatesFeatureOrdinale"), largeDataPageSize);
 
     // Do the computation.
-    LowHashNew lowHashNew(
+    LowHash1 lowHash1(
         m,
         hashFraction,
         minHashIterationCount,

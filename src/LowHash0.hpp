@@ -1,5 +1,5 @@
-#ifndef SHASTA_LOW_HASH_HPP
-#define SHASTA_LOW_HASH_HPP
+#ifndef SHASTA_LOW_HASH0_HPP
+#define SHASTA_LOW_HASH0_HPP
 
 // Shasta
 #include "Marker.hpp"
@@ -9,21 +9,21 @@
 #include "ReadId.hpp"
 
 namespace shasta {
-    class LowHash;
+    class LowHash0;
     class ReadFlags;
 }
 
 
 
-// This class uses the LowHash algorithm to find candidate pairs
+// This class uses the LowHash0 algorithm to find candidate pairs
 // of aligned reads. It uses as features
 // sequences of m consecutive markers.
-class shasta::LowHash :
-    public MultithreadedObject<LowHash>{
+class shasta::LowHash0 :
+    public MultithreadedObject<LowHash0>{
 public:
 
     // The constructor does all the work.
-    LowHash(
+    LowHash0(
         size_t m,                       // Number of consecutive markers that define a feature.
         double hashFraction,
         size_t minHashIterationCount,   // Number of minHash iterations.
@@ -66,7 +66,7 @@ private:
     // at each iteration.
     size_t iteration;
 
-    // The low hashes of each oriented read, at the current LowHash iteration.
+    // The low hashes of each oriented read, at the current LowHash0 iteration.
     // Indexed by OrientedReadId::getValue().
     uint64_t hashThreshold;
     vector< vector<uint64_t> > lowHashes;
@@ -99,7 +99,7 @@ private:
     public:
         ReadId readId1;             // The higher numbered read in the pair, readId1 > readId0.
         uint8_t strand;             // 0=same strand, 1=opposite strands.
-        uint16_t frequency;         // Number of times this pair was found during LowHash.
+        uint16_t frequency;         // Number of times this pair was found during LowHash0.
 
         // Create a new candidate with frequency 1.
         Candidate(
@@ -119,7 +119,7 @@ private:
             return tie(readId1, strand) < tie(that.readId1, that.strand);
         }
     };
-    static_assert(sizeof(Candidate) == 8, "Unexpected size of LowHash::Candidate.");
+    static_assert(sizeof(Candidate) == 8, "Unexpected size of LowHash0::Candidate.");
 
 
 

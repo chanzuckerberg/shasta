@@ -23,7 +23,7 @@ a.accessReadFlags()
 a.accessMarkers()
 
 # Do the computation.
-a.findAlignmentCandidatesLowHashNew(
+a.findAlignmentCandidatesLowHash1(
     m = int(config['MinHash']['m']), 
     hashFraction = float(config['MinHash']['hashFraction']),
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 

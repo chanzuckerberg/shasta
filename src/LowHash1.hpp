@@ -1,5 +1,5 @@
-#ifndef SHASTA_LOW_HASH_NEW_HPP
-#define SHASTA_LOW_HASH_NEW_HPP
+#ifndef SHASTA_LOW_HASH1_HPP
+#define SHASTA_LOW_HASH1_HPP
 
 // Shasta
 #include "Kmer.hpp"
@@ -13,7 +13,7 @@
 
 namespace shasta {
     class AlignmentCandidates;
-    class LowHashNew;
+    class LowHash1;
     class CompressedMarker;
     class OrientedReadPair;
 }
@@ -22,12 +22,12 @@ namespace shasta {
 // This class uses the LowHash algorithm to find candidate pairs of aligned reads.
 // It uses as features sequences of m consecutive markers.
 // This is the new version that also stores alignmentCandidates.featureOrdinals
-class shasta::LowHashNew :
-    public MultithreadedObject<LowHashNew> {
+class shasta::LowHash1 :
+    public MultithreadedObject<LowHash1> {
 public:
 
     // The constructor does all the work.
-    LowHashNew(
+    LowHash1(
         size_t m,                       // Number of consecutive markers that define a feature.
         double hashFraction,
         size_t minHashIterationCount,   // Number of minHash iterations.

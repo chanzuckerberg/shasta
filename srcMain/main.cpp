@@ -479,7 +479,7 @@ void shasta::main::assemble(
     assembler.findMarkers(0);
 
     // Flag palindromic reads.
-    // These wil be excluded from further processing.
+    // These will be excluded from further processing.
     assembler.flagPalindromicReads(
         assemblerOptions.readsOptions.palindromicReads.maxSkip,
         assemblerOptions.readsOptions.palindromicReads.maxMarkerFrequency,
@@ -489,7 +489,7 @@ void shasta::main::assemble(
         threadCount);
 
     // Find alignment candidates.
-    assembler.findAlignmentCandidatesLowHash(
+    assembler.findAlignmentCandidatesLowHash0(
         assemblerOptions.minHashOptions.m,
         assemblerOptions.minHashOptions.hashFraction,
         assemblerOptions.minHashOptions.minHashIterationCount,

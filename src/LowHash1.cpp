@@ -1,5 +1,5 @@
 // Shasta.
-#include "LowHashNew.hpp"
+#include "LowHash1.hpp"
 #include "AlignmentCandidates.hpp"
 #include "Marker.hpp"
 using namespace shasta;
@@ -10,7 +10,7 @@ using namespace shasta;
 
 
 
-LowHashNew::LowHashNew(
+LowHash1::LowHash1(
     size_t m,                       // Number of consecutive markers that define a feature.
     double hashFraction,
     size_t minHashIterationCount,   // Number of minHash iterations.
@@ -40,7 +40,7 @@ LowHashNew::LowHashNew(
     histogramCsv("LowHashBucketHistogram.csv")
 
 {
-    cout << timestamp << "LowHashNew begins." << endl;
+    cout << timestamp << "LowHash1 begins." << endl;
     const auto tBegin = steady_clock::now();
 
     // Adjust the numbers of threads, if necessary.
@@ -64,14 +64,14 @@ LowHashNew::LowHashNew(
         log2MinHashBucketCount = 5 + log2TotalLowHashCountEstimate;
     } else {
         if(log2MinHashBucketCount < log2TotalLowHashCountEstimate) {
-            throw runtime_error("LowHashNew: log2MinHashBucketCount is unreasonably small.");
+            throw runtime_error("LowHash1: log2MinHashBucketCount is unreasonably small.");
         }
     }
 
     // Set the number of buckets and the corresponding mask.
     const uint64_t bucketCount = 1 << log2MinHashBucketCount;
     mask = bucketCount - 1;
-    cout << "LowHashNew algorithm will use 2^" << log2MinHashBucketCount;
+    cout << "LowHash1 algorithm will use 2^" << log2MinHashBucketCount;
     cout << " = " << bucketCount << " buckets. "<< endl;
     cout << "Estimated number of low hashes per iteration " << totalLowHashCountEstimate << endl;
     cout << "Estimated load factor " << double(totalLowHashCountEstimate)/double(bucketCount) << endl;
@@ -116,12 +116,12 @@ LowHashNew::LowHashNew(
         buckets.beginPass1(bucketCount);
         size_t batchSize = 10000;
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHashNew::computeHashesThreadFunction, threadCount);
+        runThreads(&LowHash1::computeHashesThreadFunction, threadCount);
 
         // Fill the buckets.
         buckets.beginPass2();
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHashNew::fillBucketsThreadFunction, threadCount);
+        runThreads(&LowHash1::fillBucketsThreadFunction, threadCount);
         buckets.endPass2(false, false);
         cout << "Load factor at this iteration " <<
             double(buckets.totalSize()) / double(buckets.size()) << endl;
@@ -132,7 +132,7 @@ LowHashNew::LowHashNew(
         const uint64_t oldCommonFeatureCount = countTotalThreadCommonFeatures();
         batchSize = 10000;
         setupLoadBalancing(bucketCount, batchSize);
-        runThreads(&LowHashNew::scanBucketsThreadFunction, threadCount);
+        runThreads(&LowHash1::scanBucketsThreadFunction, threadCount);
         const uint64_t newCommonFeatureCount = countTotalThreadCommonFeatures();
         cout << "Stored " << newCommonFeatureCount-oldCommonFeatureCount <<
             " common features at this iteration." << endl;
@@ -168,12 +168,12 @@ LowHashNew::LowHashNew(
     // Done.
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
-    cout << timestamp << "LowHashNew completed in " << tTotal << " s." << endl;
+    cout << timestamp << "LowHash1 completed in " << tTotal << " s." << endl;
 }
 
 
 
-void LowHashNew::createKmerIds()
+void LowHash1::createKmerIds()
 {
     kmerIds.createNew(
         largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash-Markers"),
@@ -192,13 +192,13 @@ void LowHashNew::createKmerIds()
     kmerIds.endPass2(false);
     const size_t batchSize = 10000;
     setupLoadBalancing(readCount, batchSize);
-    runThreads(&LowHashNew::createKmerIds, threadCount);
+    runThreads(&LowHash1::createKmerIds, threadCount);
 }
 
 
 
 // Thread function for createKmerIds.
-void LowHashNew::createKmerIds(size_t threadId)
+void LowHash1::createKmerIds(size_t threadId)
 {
 
     // Loop over batches assigned to this thread.
@@ -226,7 +226,7 @@ void LowHashNew::createKmerIds(size_t threadId)
 
 // Thread function to compute the low hashes for each oriented read
 // and count the number of entries in each bucket.
-void LowHashNew::computeHashesThreadFunction(size_t threadId)
+void LowHash1::computeHashesThreadFunction(size_t threadId)
 {
     const int featureByteCount = int(m * sizeof(KmerId));
     const uint64_t seed = iteration * 37;
@@ -276,7 +276,7 @@ void LowHashNew::computeHashesThreadFunction(size_t threadId)
 
 
 // Thread function to fill the buckets.
-void LowHashNew::fillBucketsThreadFunction(size_t threadId)
+void LowHash1::fillBucketsThreadFunction(size_t threadId)
 {
 
     // Loop over batches assigned to this thread.
@@ -305,13 +305,13 @@ void LowHashNew::fillBucketsThreadFunction(size_t threadId)
 
 
 
-void LowHashNew::computeBucketHistogram()
+void LowHash1::computeBucketHistogram()
 {
     threadBucketHistogram.clear();
     threadBucketHistogram.resize(threadCount);
     const uint64_t batchSize = 10000;
     setupLoadBalancing(buckets.size(), batchSize);
-    runThreads(&LowHashNew::computeBucketHistogramThreadFunction, threadCount);
+    runThreads(&LowHash1::computeBucketHistogramThreadFunction, threadCount);
 
     // Combine the histograms found by each thread.
     uint64_t largestBucketSize = 0;
@@ -338,7 +338,7 @@ void LowHashNew::computeBucketHistogram()
 
 
 }
-void LowHashNew::computeBucketHistogramThreadFunction(size_t threadId)
+void LowHash1::computeBucketHistogramThreadFunction(size_t threadId)
 {
     vector<uint64_t>& histogram = threadBucketHistogram[threadId];
     histogram.clear();
@@ -357,7 +357,7 @@ void LowHashNew::computeBucketHistogramThreadFunction(size_t threadId)
 
 
 // Thread function to scan the buckets to find common features.
-void LowHashNew::scanBucketsThreadFunction(size_t threadId)
+void LowHash1::scanBucketsThreadFunction(size_t threadId)
 {
     // Access the vector where this thread will store
     // the common features it finds.
@@ -436,7 +436,7 @@ void LowHashNew::scanBucketsThreadFunction(size_t threadId)
 
 
 // Add up the number of common feature found by all threads.
-uint64_t LowHashNew::countTotalThreadCommonFeatures() const
+uint64_t LowHash1::countTotalThreadCommonFeatures() const
 {
     uint64_t n = 0;
     for(const auto& v: threadCommonFeatures) {
@@ -447,25 +447,25 @@ uint64_t LowHashNew::countTotalThreadCommonFeatures() const
 
 
 
-void LowHashNew::gatherCommonFeatures()
+void LowHash1::gatherCommonFeatures()
 {
     commonFeatures.createNew(
             largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-CommonFeatures"),
             largeDataPageSize);
     commonFeatures.beginPass1(kmerIds.size()/2);
-    runThreads(&LowHashNew::gatherCommonFeaturesPass1, threadCount);
+    runThreads(&LowHash1::gatherCommonFeaturesPass1, threadCount);
     commonFeatures.beginPass2();
-    runThreads(&LowHashNew::gatherCommonFeaturesPass2, threadCount);
+    runThreads(&LowHash1::gatherCommonFeaturesPass2, threadCount);
     commonFeatures.endPass2();
 }
-void LowHashNew::gatherCommonFeaturesPass1(size_t threadId)
+void LowHash1::gatherCommonFeaturesPass1(size_t threadId)
 {
     const MemoryMapped::Vector<CommonFeature>& v = *threadCommonFeatures[threadId];
     for(const CommonFeature& commonFeature: v) {
         commonFeatures.incrementCountMultithreaded(commonFeature.orientedReadPair.readIds[0]);
     }
 }
-void LowHashNew::gatherCommonFeaturesPass2(size_t threadId)
+void LowHash1::gatherCommonFeaturesPass2(size_t threadId)
 {
     const MemoryMapped::Vector<CommonFeature>& v = *threadCommonFeatures[threadId];
     for(const CommonFeature& commonFeature: v) {
@@ -485,7 +485,7 @@ void LowHashNew::gatherCommonFeaturesPass2(size_t threadId)
 // Each group generates an alignment candidate and the
 // corresponding common features.
 // Each thread stores the alignment candidates it finds in its own vector.
-void LowHashNew::processCommonFeatures()
+void LowHash1::processCommonFeatures()
 {
     const uint64_t readCount = kmerIds.size() / 2;
     const uint64_t batchSize = 1000;
@@ -496,7 +496,7 @@ void LowHashNew::processCommonFeatures()
 
     // Extract the candidates and features.
     setupLoadBalancing(readCount, batchSize);
-    runThreads(&LowHashNew::processCommonFeaturesThreadFunction, threadCount);
+    runThreads(&LowHash1::processCommonFeaturesThreadFunction, threadCount);
 
 
 
@@ -537,7 +537,7 @@ void LowHashNew::processCommonFeatures()
 
 
 
-void LowHashNew::processCommonFeaturesThreadFunction(size_t threadId)
+void LowHash1::processCommonFeaturesThreadFunction(size_t threadId)
 {
     // Access the vector where this thread will store
     // the alignment candidates it finds.

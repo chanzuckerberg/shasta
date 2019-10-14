@@ -1,5 +1,5 @@
 // Shasta.
-#include "LowHash.hpp"
+#include "LowHash0.hpp"
 #include "ReadFlags.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
@@ -10,13 +10,13 @@ using namespace shasta;
 
 
 
-// Class LowHash uses the LowHash algorithm to find candidate pairs
+// Class LowHash0 uses the LowHash0 algorithm to find candidate pairs
 // of aligned reads. It uses as features
 // sequences of m consecutive markers.
 
 
 
-LowHash::LowHash(
+LowHash0::LowHash0(
     size_t m,                       // Number of consecutive markers that define a feature.
     double hashFraction,
     size_t minHashIterationCount,   // Number of minHash iterations.
@@ -44,7 +44,7 @@ LowHash::LowHash(
     largeDataPageSize(largeDataPageSize)
 
 {
-    cout << timestamp << "LowHash begins." << endl;
+    cout << timestamp << "LowHash0 begins." << endl;
     const auto tBegin = steady_clock::now();
 
     // Adjust the numbers of threads, if necessary.
@@ -81,7 +81,7 @@ LowHash::LowHash(
     }
     const uint32_t bucketCount = 1 << log2MinHashBucketCount;
     mask = bucketCount - 1;
-    cout << "LowHash algorithm will use 2^" << log2MinHashBucketCount;
+    cout << "LowHash0 algorithm will use 2^" << log2MinHashBucketCount;
     cout << " = " << bucketCount << " buckets. "<< endl;
 
 
@@ -105,7 +105,7 @@ LowHash::LowHash(
 
     // Set up work areas.
     buckets.createNew(
-    		largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash-Buckets"),
+    		largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash0-Buckets"),
             largeDataPageSize);
     lowHashes.resize(orientedReadCount);
     candidates.resize(readCount);
@@ -113,9 +113,9 @@ LowHash::LowHash(
 
 
 
-    // LowHash iteration loop.
+    // LowHash0 iteration loop.
     for(iteration=0; iteration<minHashIterationCount; iteration++) {
-        cout << timestamp << "LowHash iteration " << iteration << " begins." << endl;
+        cout << timestamp << "LowHash0 iteration " << iteration << " begins." << endl;
 
         // Pass1: compute the low hashes for each oriented read
         // and prepare the buckets for filling.
@@ -123,19 +123,19 @@ LowHash::LowHash(
         buckets.beginPass1(bucketCount);
         size_t batchSize = 10000;
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHash::pass1ThreadFunction, threadCount);
+        runThreads(&LowHash0::pass1ThreadFunction, threadCount);
 
         // Pass 2: fill the buckets.
         buckets.beginPass2();
         batchSize = 10000;
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHash::pass2ThreadFunction, threadCount);
+        runThreads(&LowHash0::pass2ThreadFunction, threadCount);
         buckets.endPass2(false, false);
 
         // Pass 3: inspect the buckets to find candidates.
         batchSize = 10000;
         setupLoadBalancing(readCount, batchSize);
-        runThreads(&LowHash::pass3ThreadFunction, threadCount);
+        runThreads(&LowHash0::pass3ThreadFunction, threadCount);
 
         // Write a summary for this iteration.
         uint64_t highFrequency = 0;
@@ -183,15 +183,15 @@ LowHash::LowHash(
     // Done.
     const auto tEnd = steady_clock::now();
     const double tTotal = seconds(tEnd - tBegin);
-    cout << timestamp << "LowHash completed in " << tTotal << " s." << endl;
+    cout << timestamp << "LowHash0 completed in " << tTotal << " s." << endl;
 }
 
 
 
-void LowHash::createKmerIds()
+void LowHash0::createKmerIds()
 {
     kmerIds.createNew(
-    	largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash-Markers"),
+    	largeDataFileNamePrefix.empty() ? "" : (largeDataFileNamePrefix + "tmp-LowHash0-Markers"),
         largeDataPageSize);
     const ReadId orientedReadCount = ReadId(markers.size());
     const ReadId readCount = orientedReadCount / 2;
@@ -207,13 +207,13 @@ void LowHash::createKmerIds()
     kmerIds.endPass2(false);
     const size_t batchSize = 10000;
     setupLoadBalancing(readCount, batchSize);
-    runThreads(&LowHash::createKmerIds, threadCount);
+    runThreads(&LowHash0::createKmerIds, threadCount);
 }
 
 
 
 // Thread function for createKmerIds.
-void LowHash::createKmerIds(size_t threadId)
+void LowHash0::createKmerIds(size_t threadId)
 {
 
     // Loop over batches assigned to this thread.
@@ -241,7 +241,7 @@ void LowHash::createKmerIds(size_t threadId)
 
 // Pass1: compute the low hashes for each oriented read
 // and prepare the buckets for filling.
-void LowHash::pass1ThreadFunction(size_t threadId)
+void LowHash0::pass1ThreadFunction(size_t threadId)
 {
     const int featureByteCount = int(m * sizeof(KmerId));
     const uint64_t seed = iteration * 37;
@@ -292,7 +292,7 @@ void LowHash::pass1ThreadFunction(size_t threadId)
 
 
 // Pass 2: fill the buckets.
-void LowHash::pass2ThreadFunction(size_t threadId)
+void LowHash0::pass2ThreadFunction(size_t threadId)
 {
 
     // Loop over batches assigned to this thread.
@@ -320,7 +320,7 @@ void LowHash::pass2ThreadFunction(size_t threadId)
 
 
 // Pass 3: inspect the buckets to find candidates.
-void LowHash::pass3ThreadFunction(size_t threadId)
+void LowHash0::pass3ThreadFunction(size_t threadId)
 {
 
     // The alignment candidates found at this iteration for a single read.
@@ -407,13 +407,13 @@ void LowHash::pass3ThreadFunction(size_t threadId)
 // During merging, when two candidates with the same readId1
 // and strand are found, they are combined, adding up their frequency.
 // This is used by pass4ThreadFunction.
-void LowHash::merge(
-    const vector<LowHash::Candidate>& x0,
-    const vector<LowHash::Candidate>& x1,
-    vector<LowHash::Candidate>& y
+void LowHash0::merge(
+    const vector<LowHash0::Candidate>& x0,
+    const vector<LowHash0::Candidate>& x1,
+    vector<LowHash0::Candidate>& y
     )
 {
-    using Iterator = vector<LowHash::Candidate>::const_iterator;
+    using Iterator = vector<LowHash0::Candidate>::const_iterator;
     Iterator begin0 = x0.begin();
     Iterator begin1 = x1.begin();
     Iterator end0 = x0.end();
