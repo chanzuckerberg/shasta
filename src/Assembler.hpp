@@ -32,6 +32,9 @@
 #include "tuple.hpp"
 
 
+#ifdef SHASTA_BUILD_FOR_GPU
+#include <map>
+#endif
 
 namespace shasta {
 
@@ -674,6 +677,10 @@ private:
     // return the corresponding global marker id.
     MarkerId getMarkerId(OrientedReadId, uint32_t ordinal) const;
 
+#ifdef SHASTA_BUILD_FOR_GPU
+    size_t getNumMarkers(ReadId, Strand);
+#endif
+
     // Inverse of the above: given a global marker id,
     // return its OrientedReadId and ordinal.
     // This requires a binary search in the markers toc.
@@ -826,6 +833,7 @@ private:
         size_t maxTrim;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
+        std::map <KmerId, uint32_t> uniqueMarkersDict;
 #endif
 
         // The AlignmentInfo found by each thread.
