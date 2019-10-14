@@ -252,6 +252,13 @@ void shasta::main::assemble(
         assemblerOptions.write(configurationFile);
     }
 
+    // If the build does not support GPU acceleration, reject the --gpu option.
+#ifndef SHASTA_BUILD_FOR_GPU
+    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+        throw runtime_error("This Shasta build does not provide GPU acceleration.");
+    }
+#endif
+
     // Initial disclaimer message.
 #ifdef __linux
     if(assemblerOptions.commandLineOnlyOptions.memoryBacking != "2M" &&
@@ -492,13 +499,31 @@ void shasta::main::assemble(
         threadCount);
 
 
+
     // Compute alignments.
-    assembler.computeAlignments(
-        assemblerOptions.alignOptions.maxMarkerFrequency,
-        assemblerOptions.alignOptions.maxSkip,
-        assemblerOptions.alignOptions.minAlignedMarkerCount,
-        assemblerOptions.alignOptions.maxTrim,
-        threadCount);
+    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+#ifdef SHASTA_BUILD_FOR_GPU
+        cout << "Using GPU acceleration for alignment computation." << endl;
+        cout << "This is under development and is not ready to be used." << endl;
+        assembler.computeAlignmentsGpu(
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.minAlignedMarkerCount,
+            assemblerOptions.alignOptions.maxTrim,
+            threadCount);
+#else
+        throw runtime_error("This Shasta build does not provide GPU acceleration.");
+#endif
+    } else {
+        assembler.computeAlignments(
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.minAlignedMarkerCount,
+            assemblerOptions.alignOptions.maxTrim,
+            threadCount);
+    }
+
+
 
     // Create the read graph.
     assembler.createReadGraph(

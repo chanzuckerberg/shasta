@@ -101,6 +101,7 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
 void AssemblerOptions::addCommandLineOnlyOptions()
 {
     using boost::program_options::value;
+    using boost::program_options::bool_switch;
 
     commandLineOnlyOptionsDescription.add_options()
 
@@ -152,6 +153,10 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         default_value(0),
         "Number of threads, or 0 to use one thread per virtual processor.")
         
+        ("gpu",
+        bool_switch(&commandLineOnlyOptions.useGpu)->
+        default_value(false),
+        "Use GPU acceleration. This is under development and is not ready to be used.")
         
 #ifdef SHASTA_HTTP_SERVER
         ("exploreAccess",
