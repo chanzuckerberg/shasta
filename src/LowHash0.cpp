@@ -21,6 +21,7 @@ LowHash0::LowHash0(
     double hashFraction,
     size_t minHashIterationCount,   // Number of minHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
+    size_t minBucketSize,           // The minimum size for a bucket to be used.
     size_t maxBucketSize,           // The maximum size for a bucket to be used.
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCountArgument,
@@ -34,6 +35,7 @@ LowHash0::LowHash0(
     MultithreadedObject(*this),
     m(m),
     hashFraction(hashFraction),
+    minBucketSize(minBucketSize),
     maxBucketSize(maxBucketSize),
     minFrequency(minFrequency),
     threadCount(threadCountArgument),
@@ -358,6 +360,9 @@ void LowHash0::pass3ThreadFunction(size_t threadId)
                     // Loop over oriented read ids in the bucket corresponding to this hash.
                     const uint64_t bucketId = hash & mask;
                     const MemoryAsContainer<BucketEntry> bucket = buckets[bucketId];
+                    if(bucket.size() < max(size_t(2), minBucketSize)) {
+                        continue;
+                    }
                     if(bucket.size() > maxBucketSize) {
                         continue;   // The bucket is too big. Skip it.
                     }

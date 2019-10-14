@@ -87,6 +87,7 @@ public:
         int m;
         double hashFraction;
         int minHashIterationCount;
+        int minBucketSize;
         int maxBucketSize;
         int minFrequency;
         void write(ostream&) const;

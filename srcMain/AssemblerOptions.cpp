@@ -276,10 +276,15 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(10),
         "The number of MinHash/LowHash iterations.")
 
+        ("MinHash.minBucketSize",
+        value<int>(&minHashOptions.minBucketSize)->
+        default_value(0),
+        "The minimum bucket size to be used by the LowHash algoritm.")
+
         ("MinHash.maxBucketSize",
         value<int>(&minHashOptions.maxBucketSize)->
         default_value(10),
-        "The maximum bucket size to be used by the MinHash/LowHash algoritm.")
+        "The maximum bucket size to be used by the LowHash algoritm.")
 
         ("MinHash.minFrequency",
         value<int>(&minHashOptions.minFrequency)->
@@ -453,6 +458,7 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
     s << "m = " << m << "\n";
     s << "hashFraction = " << hashFraction << "\n";
     s << "minHashIterationCount = " << minHashIterationCount << "\n";
+    s << "minBucketSize = " << minBucketSize << "\n";
     s << "maxBucketSize = " << maxBucketSize << "\n";
     s << "minFrequency = " << minFrequency << "\n";
 }

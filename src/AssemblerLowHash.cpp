@@ -12,6 +12,7 @@ void Assembler::findAlignmentCandidatesLowHash0(
     double hashFraction,            // Low hash threshold.
     size_t minHashIterationCount,   // Number of lowHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
+    size_t minBucketSize,           // The minimum size for a bucket to be used.
     size_t maxBucketSize,           // The maximum size for a bucket to be used.
     size_t minFrequency,            // Minimum number of minHash hits for a pair to become a candidate.
     size_t threadCount)
@@ -32,6 +33,7 @@ void Assembler::findAlignmentCandidatesLowHash0(
         hashFraction,
         minHashIterationCount,
         log2MinHashBucketCount,
+        minBucketSize,
         maxBucketSize,
         minFrequency,
         threadCount,
@@ -119,6 +121,7 @@ void Assembler::findAlignmentCandidatesLowHash1(
     double hashFraction,            // Low hash threshold.
     size_t minHashIterationCount,   // Number of lowHash iterations.
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
+    size_t minBucketSize,           // The minimum size for a bucket to be used.
     size_t maxBucketSize,           // The maximum size for a bucket to be used.
     size_t minFrequency,            // Minimum number of minHash hits for a pair to become a candidate.
     size_t threadCount)
@@ -141,6 +144,7 @@ void Assembler::findAlignmentCandidatesLowHash1(
         hashFraction,
         minHashIterationCount,
         log2MinHashBucketCount,
+        minBucketSize,
         maxBucketSize,
         minFrequency,
         threadCount,

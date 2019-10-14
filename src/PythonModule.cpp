@@ -164,6 +164,7 @@ PYBIND11_MODULE(shasta, module)
             arg("hashFraction"),
             arg("minHashIterationCount"),
             arg("log2MinHashBucketCount") = 0,
+            arg("minBucketSize"),
             arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)
@@ -173,6 +174,7 @@ PYBIND11_MODULE(shasta, module)
             arg("hashFraction"),
             arg("minHashIterationCount"),
             arg("log2MinHashBucketCount") = 0,
+            arg("minBucketSize"),
             arg("maxBucketSize"),
             arg("minFrequency"),
             arg("threadCount") = 0)

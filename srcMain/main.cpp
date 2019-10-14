@@ -507,6 +507,7 @@ void shasta::main::assemble(
             assemblerOptions.minHashOptions.hashFraction,
             assemblerOptions.minHashOptions.minHashIterationCount,
             0,
+            assemblerOptions.minHashOptions.minBucketSize,
             assemblerOptions.minHashOptions.maxBucketSize,
             assemblerOptions.minHashOptions.minFrequency,
             threadCount);
@@ -517,6 +518,7 @@ void shasta::main::assemble(
             assemblerOptions.minHashOptions.hashFraction,
             assemblerOptions.minHashOptions.minHashIterationCount,
             0,
+            assemblerOptions.minHashOptions.minBucketSize,
             assemblerOptions.minHashOptions.maxBucketSize,
             assemblerOptions.minHashOptions.minFrequency,
             threadCount);

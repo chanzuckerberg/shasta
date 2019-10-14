@@ -28,6 +28,7 @@ public:
         double hashFraction,
         size_t minHashIterationCount,   // Number of minHash iterations.
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
+        size_t minBucketSize,           // The minimum size for a bucket to be used.
         size_t maxBucketSize,           // The maximum size for a bucket to be used.
         size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
         size_t threadCount,
@@ -44,6 +45,7 @@ private:
     // Store some of the arguments passed to the constructor.
     size_t m;                       // Number of consecutive markers that define a feature.
     double hashFraction;
+    size_t minBucketSize;           // The minimum size for a bucket to be used.
     size_t maxBucketSize;           // The maximum size for a bucket to be used.
     size_t minFrequency;            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCount;
