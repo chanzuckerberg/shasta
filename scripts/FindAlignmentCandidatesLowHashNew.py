@@ -19,6 +19,7 @@ config = GetConfig.getConfig()
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
 a.accessKmers()
+a.accessReadFlags()
 a.accessMarkers()
 
 # Do the computation.
@@ -28,4 +29,6 @@ a.findAlignmentCandidatesLowHashNew(
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
     maxBucketSize = int(config['MinHash']['maxBucketSize']),
     minFrequency = int(config['MinHash']['minFrequency']))
+# a.writeAlignmentCandidates()
+
 

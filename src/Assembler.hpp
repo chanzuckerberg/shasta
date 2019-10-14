@@ -3,6 +3,7 @@
 
 // Shasta.
 #include "Alignment.hpp"
+#include "AlignmentCandidates.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
@@ -710,21 +711,12 @@ private:
 
     // Alignment candidates found by the LowHash algorithm.
     // They all have readId0<readId1.
-    class AlignmentCandidates {
-    public:
-        MemoryMapped::Vector<OrientedReadPair> candidates;
-
-        // For each alignment candidate, we also store a vector of
-        // pairs (ordinal0, ordinal1), each containing
-        // ordinals in the two oriented reads where identical
-        // features (sequences of m markers) were found by the LowHash algorithm.
-        // This is only created when using findAlignmentCandidatesLowHashNew
-        // (class LowHashNew).
-        // This has a vector for each entry in the candidates vector above
-        // and is indexed in the same way.
-        MemoryMapped::VectorOfVectors< array<uint32_t, 2>, uint64_t> featureOrdinals;
-    };
+    // They are interpreted with readId0 on strand 0.
     AlignmentCandidates alignmentCandidates;
+public:
+    void writeAlignmentCandidates() const;
+private:
+
 
     // Use the LowHash (modified MinHash) algorithm to find candidate alignments.
     // Use as features sequences of m consecutive special k-mers.
