@@ -2,310 +2,124 @@
 #include <stdint.h>
 #include <thrust/sort.h>
 #include <thrust/scan.h>
+#include <thrust/binary_search.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 #include <mutex>
 #include <vector>
 #include <sys/time.h>
 #include "GPU.h"
 
 
-#define BAND_SIZE 256 
-#define LOG_BLOCK_SIZE 8
-#define LOG_NUM_BLOCKS 8
-#define MAX_MARKER_OCC 8
-#define HASH_PER_BLOCK SHASTA_MAX_MARKERS_PER_READ
-#define MAX_MARKER_OCC_ELEM (1+MAX_MARKER_OCC)/2
-#define BYTES_PER_HASH 4*(1+MAX_MARKER_OCC_ELEM)
+#define BAND_SIZE 32 
+#define LOG_BLOCK_SIZE 7
+#define LOG_NUM_BLOCKS 10
 
 #define BLOCK_SIZE (1 << LOG_BLOCK_SIZE)
 #define NUM_BLOCKS (1 << LOG_NUM_BLOCKS)
-#define INVALID_ID 0xffffffff
 
 std::mutex* gpu_lock;
 
-uint32_t** h_reads_pinned;
+uint32_t num_unique_markers;
 
-uint32_t** d_reads;
-uint64_t** d_read_pairs;
 uint32_t** d_alignments;
-
-uint32_t** d_index_table;
-uint32_t** d_hash;
 uint32_t** d_marker_h;
 uint32_t** d_tb_mem;
 uint32_t** d_num_traceback;
 uint32_t** d_common_markers;
 uint32_t** d_num_common_markers;
-uint32_t** d_num_hash_values;
 
 __global__
-void find_common_markers (int n, uint32_t* d_num_hash_values, uint32_t* d_reads, uint64_t* d_read_pairs, uint32_t* d_index_table, uint32_t* d_hash, uint32_t* d_marker_h, uint32_t* d_common_markers, uint32_t* d_num_common_markers) {
+void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_unique_markers, uint64_t* read_pairs, uint64_t* index_table, uint64_t* rid_marker_pos, uint64_t* sorted_rid_marker_pos, uint32_t* num_common_markers, uint32_t* common_markers)
+{
     int tx = threadIdx.x;
     int bs = blockDim.x;
     int bx = blockIdx.x;
     int gs = gridDim.x;
 
-    //start address of hash table
-    uint32_t hs = bx*HASH_PER_BLOCK*(BYTES_PER_HASH/4);
-    uint32_t prev_rid1 = INVALID_ID;
-
-    __shared__ uint32_t rid1;
-    __shared__ uint32_t s1, e1, s2, e2;
-    __shared__ uint32_t h1_arr[BLOCK_SIZE][MAX_MARKER_OCC];
-    __shared__ uint32_t prefix[1+BLOCK_SIZE];
-    __shared__ uint32_t curr_offset[BLOCK_SIZE];
-    __shared__ int has_failed;
-
-    int chunk_size = (n/gs);
-    chunk_size += 1;
-
-    int si = bx*chunk_size;
-    int ei = si + chunk_size;
-    if (ei > n) {
-        ei = n;
-    }
+    uint64_t m_mask = ((uint64_t) 1 << 32) - 1;
+    uint64_t p_mask = ((uint64_t) 1 << SHASTA_LOG_MAX_MARKERS_PER_READ) - 1;
     
-    for (int i = tx; i < HASH_PER_BLOCK; i+=bs) {
-        d_hash[hs+i*(1+MAX_MARKER_OCC_ELEM)] = INVALID_ID;
-    }
+    __shared__ uint32_t prefix[1+BLOCK_SIZE];
 
     __syncthreads();
 
-    for (int i = si; i < ei; i++) {
-        __syncthreads();
+    for (int i = bx; i < n; i+=gs) {
         if (tx == 0) {
-            uint64_t v1 = d_read_pairs[2*i];
-            uint64_t v2 = d_read_pairs[2*i+1];
-            
-            s1 = (v1 >> 32);
-            e1 = s1 + ((v1 << 32) >> 32);
-
-            s2 = (v2 >> 32);
-            e2 = s2 + ((v2 << 32) >> 32);
-            
-            rid1 = s1;
-
-            prefix[0] = bx*HASH_PER_BLOCK;
-
-            has_failed = 0;
-            if ((s1 == e1) || (s2 == e2)) {
-                has_failed = 1;
-            }
+            prefix[tx] = i*SHASTA_MAX_MARKERS_PER_READ;
+            num_common_markers[i] = 0;
         }
-
-        curr_offset[tx] = 0;
-        prefix[tx+1] = 0;
-
         __syncthreads();
 
-        if (has_failed > 0) {
-            if (tx == 0) {
-                d_num_common_markers[i] = 0;
-            }
-            continue;
-        }
+        uint64_t v1 = read_pairs[2*i];
+        uint64_t v2 = read_pairs[2*i+1];
+        uint64_t rid1 = (v1 >> 32);
+        uint64_t rid2 = (v2 >> 32);
+        uint64_t l1 = ((v1 << 32) >> 32);
+        uint64_t l2 = ((v1 << 32) >> 32);
 
-        if (rid1 != prev_rid1) {
-            prev_rid1 = rid1;
-            for (uint32_t p = 0; p < e1-s1; p += bs) {
-                if (s1+p+tx < e1) {
-                    uint32_t idx;
-                    uint32_t k, h1;
+        if ((l1 > 0) && (l2 > 0)) {
+            uint64_t s2 = index_table[rid2*num_unique_markers];
+            uint64_t e2 = index_table[(rid2+1)*num_unique_markers];
 
-                    k = d_reads[s1+p+tx];
-                    
-                    h1 = (~k) + (k << 11);
-                    h1 = h1 + (k >> 12);
-                    h1 = (h1 + (h1 << 3)) + (h1 << 8);
+            for (uint64_t j = s2; j < e2; j += bs) {
+                uint64_t idx = tx+j;
+                uint64_t marker;
+                uint64_t sm1=0, sm2=0, em1=0, em2=0;
 
-                    idx = h1 % bs;
+                prefix[1+tx] = 0; 
 
-                    atomicAdd(&prefix[idx+1], 1);
-                }
-            }
+                if (idx < e2) {
+                    uint64_t v = rid_marker_pos[idx];
+                    marker = ((v >> SHASTA_LOG_MAX_MARKERS_PER_READ) & m_mask);
 
-            __syncthreads();
+                    sm1 = index_table[rid1*num_unique_markers+marker];
+                    em1 = index_table[rid1*num_unique_markers+marker+1];
+                    sm2 = index_table[rid2*num_unique_markers+marker];
+                    em2 = index_table[rid2*num_unique_markers+marker+1];
 
-            if (tx == 0) {
-                for (int r = 0; r < BLOCK_SIZE; r++) {
-                    prefix[1+r] += prefix[r];
-                }
-            }
-
-            curr_offset[tx] = 0; 
-            __syncthreads();
-
-            for (int p = 0; p < e1-s1; p += bs) {
-                if (s1+p+tx < e1) {
-                    uint32_t idx;
-                    uint32_t k, h1;
-
-                    k = d_reads[s1+p+tx];
-                    
-                    h1 = (~k) + (k << 11);
-                    h1 = h1 + (k >> 12);
-                    h1 = (h1 + (h1 << 3)) + (h1 << 8);
-                    
-                    idx = h1 % bs;
-
-                    uint32_t hst = prefix[idx];
-                    uint16_t off = atomicAdd(&curr_offset[idx], 1);
-
-                    uint32_t val = h1 % HASH_PER_BLOCK;
-                    val = (val << 16) + (p+tx);
-
-                    d_marker_h[hst+off] = val;
-                }
-            }
-
-            __syncthreads();
-
-            uint32_t mhs = prefix[tx];
-            uint32_t mhe = prefix[tx+1];
-
-            for (uint32_t m = mhs; m < mhe; m++) {
-                uint32_t v = d_marker_h[m];
-                uint32_t h = (v >> 16);
-                uint32_t p = ((v << 16) >> 16);
-
-                uint32_t hidx = hs + h*(1+MAX_MARKER_OCC_ELEM);
-                uint32_t rid = d_hash[hidx];
-
-                if (rid != rid1) {
-                    d_hash[hidx] = rid1;
-                    d_hash[hidx+1] = p+1;
-                }
-                else {
-                    for (int q = 1; q <= MAX_MARKER_OCC_ELEM; q++) {
-                        uint32_t val = d_hash[hidx+q];
-                        uint32_t l, u;
-                        l = ((val << 16) >> 16);
-                        u = (val >> 16);
-                        if (l == 0) {
-                            d_hash[hidx+q] = (p+1);
-                            break;
-                        }
-                        else if (u == 0) {
-                            d_hash[hidx+q] = val + ((p+1) << 16);
-                            if (q < MAX_MARKER_OCC_ELEM) {
-                                d_hash[hidx+q+1] = 0; 
-                            }
-                            break;
-                        }
+                    if ((em1 - sm1 <= maxMarkerFrequency) && (em2 - sm2 <= maxMarkerFrequency)) {
+                        prefix[1+tx] = (em1-sm1);
                     }
                 }
-            }
-        }
-        
-        __syncthreads();
-        
-        if (has_failed > 0) {
-            if (tx == 0) {
-                d_num_common_markers[i] = 0;
-            }
-            continue;
-        }
 
-        if (tx == 0) {
-            for (int r = 0; r < bs-1; r++) {
-                curr_offset[1+r] += curr_offset[r];
-            }
-            prefix[0] = i*HASH_PER_BLOCK;
-        }
+                __syncthreads();
 
-        prefix[1+tx] = 0;
-        __syncthreads();
-
-        int n1 = 0;
-
-        for (uint32_t p = 0; p < e2-s2; p += bs) {
-            uint32_t h1, rid;
-            uint32_t hidx;
-            uint32_t l, u;
-            uint32_t k;
-
-            rid = INVALID_ID;
-
-            if (s2+p+tx < e2) {
-                k = d_reads[s2+p+tx];
-                
-                h1 = (~k) + (k << 11);
-                h1 = h1 + (k >> 12);
-                h1 = (h1 + (h1 << 3)) + (h1 << 8);
-
-
-                h1 = h1 % HASH_PER_BLOCK;
-
-                hidx = hs + (1+MAX_MARKER_OCC_ELEM)*h1;
-
-                rid = d_hash[hidx];
-            }
-
-            n1 = 0;
-            if (rid == rid1) {
-                for (int q = 0; q < MAX_MARKER_OCC_ELEM; q++) {
-                    uint32_t val = d_hash[hidx+q+1];
-                    l = ((val << 16) >> 16);
-                    u = (val >> 16);
-
-                    if (l != 0) {
-                        if (k == d_reads[s1+l-1]) {
-                            h1_arr[tx][n1] = (p+tx+1) + (l << 16);
-                            n1++;
-                        }
-                        if (u != 0) {
-                            if (k == d_reads[s1+u-1]) {
-                                h1_arr[tx][n1] = (p+tx+1) + (u << 16);
-                                n1++;
-                            }
-                        }
-                        else {
-                            break;
-                        }
-                    }
-                    else {
-                        break;
+                if (tx == 0) {
+                    for (int r = 0; r < BLOCK_SIZE; r++) {
+                        prefix[1+r] += prefix[r];
                     }
                 }
-            }
 
-            prefix[1+tx] = n1;
-            __syncthreads();
+                __syncthreads();
+
+                uint32_t mhs = prefix[tx];
+                uint32_t mhe = prefix[1+tx];
+
+                for (uint64_t k1 = 0; k1 < (mhe-mhs); k1++) {
+                    if (mhs+k1 < (i+1)*SHASTA_MAX_MARKERS_PER_READ) {
+                        uint64_t sv1 = sorted_rid_marker_pos[sm1+k1];
+                        uint32_t cm = (sv1 & p_mask) + 1;
+                        cm = (cm << 16) + (1+idx-s2);
+                        common_markers[mhs+k1] = cm;
+                    }
+                }
+
+                __syncthreads();
+
+                if (tx == 0) {
+                    prefix[tx] = prefix[BLOCK_SIZE];
+                }
+
+                __syncthreads();
+            }
 
             if (tx == 0) {
-                for (int d = 0; d < BLOCK_SIZE; d++) {
-                    prefix[1+d] += prefix[d];
+                uint32_t num_common = prefix[tx] - i*SHASTA_MAX_MARKERS_PER_READ;
+                if (num_common < SHASTA_MAX_MARKERS_PER_READ) {
+                    num_common_markers[i] = num_common;
                 }
             }
-            __syncthreads();
-
-            uint32_t addr_s = prefix[tx];
-            uint32_t addr_e = prefix[1+tx];
-
-            for (uint32_t addr = addr_s; addr < addr_e; addr++) {
-                if (addr-i*HASH_PER_BLOCK < HASH_PER_BLOCK) {
-                    d_common_markers[addr] = h1_arr[tx][addr-addr_s];
-                }
-            }
-
-            __syncthreads();
-            
-            if (tx == 0) {
-                uint32_t addr = prefix[BLOCK_SIZE];
-                prefix[0] = addr;
-                if (addr-i*HASH_PER_BLOCK < HASH_PER_BLOCK) {
-                    d_common_markers[addr] = 0;
-                }
-            }
-            __syncthreads();
-        }
-        
-        __syncthreads();
-
-        int num_common_markers =  prefix[BLOCK_SIZE] - i*HASH_PER_BLOCK;
-
-        if (tx == 0) {
-            // TODO: fail if >= HASH_PER_BLOCK?
-            d_num_common_markers[i] = (num_common_markers < HASH_PER_BLOCK) ? num_common_markers : HASH_PER_BLOCK;
         }
 
         __syncthreads();
@@ -327,18 +141,12 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
     for (int i = bx; i < n; i += gs) {
         uint32_t max_score = 0, max_score_pos = 0;
         uint32_t addr1 = i*SHASTA_MAX_MARKERS_PER_READ;
-        uint32_t addr2 = bx*HASH_PER_BLOCK;
+        uint32_t addr2 = bx*SHASTA_MAX_MARKERS_PER_READ;
+        uint32_t addr3 = i*SHASTA_MAX_TB;
 
-//        uint32_t start_addr = 0;
-//        if (i > 0) {
-//            start_addr = d_num_traceback[i-1];
-//        }
-//        uint32_t num_tb = d_num_traceback[i] - start_addr;
-//        
         if (tx == 0) {
             num_common_markers = d_num_common_markers[i];
-//            d_alignments[start_addr] = 0;
-            d_alignments[addr1] = 0;
+            d_alignments[addr3] = 0;
         }
         score[tx] = 0;
 
@@ -363,7 +171,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
                     uint32_t v1 = d_common_markers[addr1+ptr];
                     l1 = ((v1 << 16) >> 16);
                     u1 = (v1 >> 16);
-                    if ((l1 < l) && (u1 < u) && (u-u1 < 8) && (l-l1 < 8)) {
+                    if ((l1 < l) && (u1 < u) && (u-u1 < maxSkip) && (l-l1 < maxSkip)) {
                         uint32_t pscore = d_marker_h[addr2+ptr];
                         if (score[tx] < pscore+1) { 
                             score[tx] = pscore+1;
@@ -372,8 +180,8 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
                     }
                 }
                 ptr -= bs;
-                if (tx == 0) {
-                    if ((ptr < 0) || (l-l1 < 8))  {
+                if (tx == bs-1) {
+                    if ((ptr < 0) || (l-l1 >= maxSkip))  {
                         stop_shared = true;
                     }
                     else {
@@ -419,23 +227,30 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
 
                 while ((curr_pos >= 0) && (prev_pos > curr_pos)) {
                     prev_pos = curr_pos;
-                    d_alignments[addr1+num_ptr] = d_common_markers[addr1+curr_pos];
+                    if (num_ptr < SHASTA_MAX_TB) {
+                        d_alignments[addr3+num_ptr] = d_common_markers[addr1+curr_pos];
+                    }
                     num_ptr++;
                     curr_pos = d_tb_mem[addr2+curr_pos];
                 }
             }
 
-            if (num_ptr < HASH_PER_BLOCK) {
-                d_alignments[addr1+num_ptr] = 0;
+            if (num_ptr < SHASTA_MAX_TB) {
+                d_alignments[addr3+num_ptr] = 0;
             }
-//            d_num_traceback[i] = num_ptr;
+            else {
+                d_alignments[addr3] = 0;
+            }
+            d_num_traceback[i] = num_ptr;
         }
         __syncthreads();
     }
 }
 
-extern "C" int shasta_initializeProcessors () {
+extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
     int nDevices;
+
+    num_unique_markers = (uint32_t) numUniqueMarkers;
 
     cudaGetDeviceCount(&nDevices);
     //    for (int i = 0; i < nDevices; i++) {
@@ -453,20 +268,13 @@ extern "C" int shasta_initializeProcessors () {
 
     gpu_lock = new std::mutex[nDevices];
     
-    h_reads_pinned = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
-
-    d_reads = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
-    d_read_pairs = (uint64_t**) malloc(nDevices*sizeof(uint64_t*));
     d_alignments = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
 
-    d_index_table = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
-    d_hash = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_marker_h = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_tb_mem = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_num_traceback = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_num_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
-    d_num_hash_values = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
 
     cudaError_t err;
     size_t num_bytes;
@@ -480,32 +288,7 @@ extern "C" int shasta_initializeProcessors () {
             exit(1);
         }
         
-        num_bytes = 2*SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
-        err = cudaMallocHost(&h_reads_pinned[k], num_bytes); 
-        if (err != cudaSuccess) {
-            fprintf(stderr, "ERROR: cudaMallocHost failed!\n");
-            exit(1);
-        }
-
-        num_bytes = 2*SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
-        if (k==0)
-            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-        err = cudaMalloc(&d_reads[k], num_bytes); 
-        if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
-        }
-        
-        num_bytes = 2*SHASTA_GPU_BATCH_SIZE*sizeof(uint64_t);
-        if (k==0)
-            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-        err = cudaMalloc(&d_read_pairs[k], num_bytes); 
-        if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
-        }
-        
-        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_alignments[k], num_bytes); 
@@ -517,31 +300,13 @@ extern "C" int shasta_initializeProcessors () {
         num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-        err = cudaMalloc(&d_index_table[k], num_bytes); 
-        if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
-        }
-        
-        num_bytes = NUM_BLOCKS*HASH_PER_BLOCK*BYTES_PER_HASH;
-        if (k==0)
-            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-        err = cudaMalloc(&d_hash[k], num_bytes); 
-        if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
-        }
-        
-        num_bytes = NUM_BLOCKS*HASH_PER_BLOCK*sizeof(uint32_t);
-        if (k==0)
-            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_marker_h[k], num_bytes); 
         if (err != cudaSuccess) {
             fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
             exit(1);
         }
         
-        num_bytes = NUM_BLOCKS*HASH_PER_BLOCK*sizeof(uint32_t);
+        num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_tb_mem[k], num_bytes); 
@@ -559,15 +324,6 @@ extern "C" int shasta_initializeProcessors () {
             exit(1);
         }
         
-//        num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
-//        if (k==0)
-//            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-//        err = cudaMalloc(&d_prefix_num_traceback[k], num_bytes); 
-//        if (err != cudaSuccess) {
-//            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-//            exit(1);
-//        }
-        
         num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
@@ -577,26 +333,12 @@ extern "C" int shasta_initializeProcessors () {
             exit(1);
         }
         
-        num_bytes = SHASTA_GPU_BATCH_SIZE*HASH_PER_BLOCK*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_common_markers[k], num_bytes); 
         if (err != cudaSuccess) {
             fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
-        }
-        
-        num_bytes = sizeof(uint32_t);
-        if (k==0)
-            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-        err = cudaMalloc(&d_num_hash_values[k], num_bytes); 
-        if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
-        }
-        err = cudaMemset(d_num_hash_values[k], 0x0, num_bytes); 
-        if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMemset failed!\n");
             exit(1);
         }
         
@@ -606,9 +348,7 @@ extern "C" int shasta_initializeProcessors () {
     return nDevices;
 }
 
-void shasta_alignBatchGPU (size_t n, size_t deviceId, size_t maxSkip, size_t num_pos, uint32_t* h_reads, uint64_t* h_read_pairs, uint32_t* h_alignments) {
-    cudaError_t err;
-
+extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint32_t num_pos, uint32_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_rid_markers, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
     bool report_time = false;
 
     size_t k = deviceId;
@@ -616,157 +356,91 @@ void shasta_alignBatchGPU (size_t n, size_t deviceId, size_t maxSkip, size_t num
     struct timeval t1, t2, t3;
     long useconds, seconds, mseconds;
 
-    std::memcpy(h_reads_pinned[k], h_reads, num_pos*sizeof(uint32_t));
-
-    uint32_t* h_prefix_num_tb = (uint32_t*) malloc(n*sizeof(uint32_t));
-
     gpu_lock[k].lock();
     
-    gettimeofday(&t1, NULL);
+    cudaError_t err; 
 
     err = cudaSetDevice(k);
     if (err != cudaSuccess) {
         fprintf(stderr, "GPU_ERROR: could not set device %zu!\n", k);
         exit(1);
     }
-
-    err = cudaMemcpy(d_reads[k], h_reads_pinned[k], num_pos*sizeof(uint32_t), cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "GPU_ERROR: cudaMemcpy failed!\n");
-        exit(1);
-    }
     
-    err = cudaMemcpy(d_read_pairs[k], h_read_pairs, 2*n*sizeof(uint64_t), cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "GPU_ERROR: cudaMemcpy failed!\n");
-        exit(1);
-    }
+    gettimeofday(&t1, NULL);
 
-    find_common_markers <<<NUM_BLOCKS, BLOCK_SIZE>>> (n, d_num_hash_values[k], d_reads[k], d_read_pairs[k], d_index_table[k], d_hash[k], d_marker_h[k], d_common_markers[k], d_num_common_markers[k]);
+    thrust::device_vector<uint64_t> t_d_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos + num_pos);
+    thrust::device_vector<uint64_t> t_d_sorted_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos+num_pos);
+    thrust::device_vector<uint64_t> t_d_rid_markers (batch_rid_markers, batch_rid_markers + num_reads*num_unique_markers+1);
+    thrust::device_vector<uint64_t> t_d_read_pairs (batch_read_pairs, batch_read_pairs+2*n);
+    thrust::device_vector<uint64_t> t_d_index_table (num_reads*num_unique_markers+1);
 
-    err = cudaMemcpy(h_prefix_num_tb, d_num_common_markers[k], n*sizeof(uint32_t), cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "GPU_ERROR: cudaMemcpy failed!\n");
-        exit(1);
-    }
-
-    thrust::inclusive_scan(h_prefix_num_tb, h_prefix_num_tb+n, h_prefix_num_tb);
-    
-    err = cudaMemcpy(d_num_traceback[k], h_prefix_num_tb, n*sizeof(uint32_t), cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "GPU_ERROR: cudaMemcpy failed!\n");
-        exit(1);
-    }
-
-    err = cudaMemcpy(h_prefix_num_tb, d_common_markers[k], 320*sizeof(uint32_t), cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "GPU_ERROR: cudaMemcpy failed!\n");
-        exit(1);
-    }
-    
-//    for (uint32_t i=0; i<320; i++) {
-//        uint32_t v, l, u;
-//        v = h_prefix_num_tb[i];
-//        u = (v >> 16);
-//        l = ((v << 16) >> 16);
-//        fprintf(stderr, "%u: %u %u\n", i, u, l);
-////        fprintf(stderr, "%u: %u\n", i, v);
-//    }
-
-    find_traceback <<<NUM_BLOCKS, BAND_SIZE>>> (n, maxSkip, d_marker_h[k], d_common_markers[k], d_num_common_markers[k], d_tb_mem[k], d_alignments[k], d_num_traceback[k]);
+    thrust::sort(t_d_sorted_rid_marker_pos.begin(), t_d_sorted_rid_marker_pos.end());
 
     gettimeofday(&t2, NULL);
 
-    uint32_t total_num_tb = 0;
-    if (n > 0) {
-        total_num_tb = h_prefix_num_tb[n-1];
+    thrust::lower_bound(t_d_sorted_rid_marker_pos.begin(),
+            t_d_sorted_rid_marker_pos.end(),
+            t_d_rid_markers.begin(),
+            t_d_rid_markers.end(),
+            t_d_index_table.begin());
+
+    uint64_t* d_sorted_rid_marker_pos = thrust::raw_pointer_cast (t_d_sorted_rid_marker_pos.data());
+    uint64_t* d_rid_marker_pos = thrust::raw_pointer_cast (t_d_rid_marker_pos.data());
+    uint64_t* d_index_table = thrust::raw_pointer_cast (t_d_index_table.data());
+    uint64_t* d_read_pairs = thrust::raw_pointer_cast (t_d_read_pairs.data());
+    
+    find_common_markers <<<NUM_BLOCKS, BLOCK_SIZE>>> (maxMarkerFrequency, n, num_unique_markers, d_read_pairs, d_index_table, d_rid_marker_pos, d_sorted_rid_marker_pos, d_num_common_markers[k], d_common_markers[k]);
+
+    find_traceback <<<NUM_BLOCKS, BAND_SIZE>>>(n, maxSkip, d_marker_h[k], d_common_markers[k], d_num_common_markers[k], d_tb_mem[k], d_alignments[k], d_num_traceback[k]);
+
+
+    err = cudaMemcpy(h_num_traceback, d_num_traceback[k], n*sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        fprintf(stderr, "1. Error: cudaMemcpy failed!\n");
+        exit(1);
     }
 
-    uint32_t* h_tb;
-    err =  cudaMallocHost ((uint32_t**) &h_tb, total_num_tb*sizeof(uint32_t));
-
-    //    err = cudaMemcpy(h_tb, d_alignments[k], total_num_tb*sizeof(uint32_t), cudaMemcpyDeviceToHost);
-    //    if (err != cudaSuccess) {
-    //        fprintf(stderr, "GPU_ERROR: cudaMemcpy failed!\n");
-    //        exit(1);
-    //    }
-
-    gpu_lock[k].unlock();
-
+    err = cudaMemcpy(h_alignments, d_alignments[k], n*SHASTA_MAX_TB*sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        fprintf(stderr, "2. Error: cudaMemcpy failed!\n");
+        exit(1);
+    }
     gettimeofday(&t3, NULL);
-
-    for (int i=0; i<n; i++) {
-        uint32_t start;
-        //uint32_t end;
-        uint32_t num_tb;
-        start = 0;
-        if (i > 0) {
-            start = h_prefix_num_tb[i-1];
-        }
-        //end = h_prefix_num_tb[i];
-        //TODO: remove after fixind find_traceback
-        num_tb = 0; //end - start;
-        std::memcpy(&h_alignments[i*SHASTA_MAX_MARKERS_PER_READ], &h_tb[start], num_tb*sizeof(uint32_t));
-        if (num_tb < SHASTA_MAX_MARKERS_PER_READ) {
-            h_alignments[i*SHASTA_MAX_MARKERS_PER_READ+num_tb] = 0; 
-        }
-    }
-
+    
     if (report_time) {
         useconds = t2.tv_usec - t1.tv_usec;
         seconds = t2.tv_sec - t1.tv_sec;
         mseconds = ((seconds) * 1000 + useconds/1000.0) + 0.5;
-
         fprintf(stderr, "Time elapsed (t2-t1): %ld msec \n", mseconds);
 
         useconds = t3.tv_usec - t1.tv_usec;
         seconds = t3.tv_sec - t1.tv_sec;
         mseconds = ((seconds) * 1000 + useconds/1000.0) + 0.5;
-
         fprintf(stderr, "Time elapsed (t3-t1): %ld msec \n", mseconds);
-        
-        fprintf(stderr, "Num bytes transferred (reads): %zu \n", num_pos*4);
-        fprintf(stderr, "Num bytes transferred (traceback): %u \n", total_num_tb*4);
     }
 
-    cudaFree(h_tb);
-    free(h_prefix_num_tb);
+    gpu_lock[k].unlock();
 
     return;
 }
 
 extern "C" void shasta_shutdownProcessors(int nDevices) {
     for (int k=0; k<nDevices; k++) {
-        cudaFree(h_reads_pinned[k]);
-
-        cudaFree(d_reads[k]);
-        cudaFree(d_read_pairs[k]);
         cudaFree(d_alignments[k]);
 
-        cudaFree(d_index_table[k]);
-        cudaFree(d_hash[k]);
         cudaFree(d_marker_h[k]);
         cudaFree(d_tb_mem[k]);
         cudaFree(d_num_traceback[k]);
         cudaFree(d_common_markers[k]);
         cudaFree(d_num_common_markers[k]);
-        cudaFree(d_num_hash_values[k]);
     }
-        
-    free(h_reads_pinned);
-    
-    free(d_reads);
-    free(d_read_pairs);
     free(d_alignments);
 
-    free(d_index_table);
-    free(d_hash);
     free(d_marker_h);
     free(d_tb_mem);
     free(d_num_traceback);
     free(d_common_markers);
     free(d_num_common_markers);
-    free(d_num_hash_values);
 
     delete(gpu_lock);
 

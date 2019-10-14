@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.10)
 
 find_package(CUDA 10.0 REQUIRED)
 
@@ -7,10 +7,17 @@ set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 set(CMAKE_CUDA_COMPILER_ENV_VAR "CUDACXX")
 set(CMAKE_CUDA_HOST_COMPILER_ENV_VAR "CUDAHOSTCXX")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-project(GPULibrary LANGUAGES C CXX CUDA)
+add_definitions(-Xcompiler -static-libgcc)
+add_definitions(-Xcompiler -static-libstdc++)
+add_definitions(-dlink)
+
+project(shastaGPULibrary LANGUAGES C CXX CUDA)
 
 # Source files
-add_library(GPULibrary OBJECT GPU.cu)
+add_library(shastaGPULibrary STATIC GPU.cu)
 
-set_property(TARGET GPULibrary PROPERTY CUDA_STANDARD 11)
+set_property(TARGET shastaGPULibrary PROPERTY CUDA_STANDARD 11)
+set_property(TARGET shastaGPULibrary PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+set_property(TARGET shastaGPULibrary PROPERTY CUDA_SEPARABLE_COMPILATION ON)

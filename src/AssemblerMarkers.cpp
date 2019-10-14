@@ -77,6 +77,18 @@ vector<KmerId> Assembler::getMarkers(ReadId readId, Strand strand)
 }
 
 
+#ifdef SHASTA_BUILD_FOR_GPU
+size_t Assembler::getNumMarkers(ReadId readId, Strand strand)
+{
+    const OrientedReadId orientedReadId(readId, strand);
+    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+    size_t numMarkers = orientedReadMarkers.size();
+
+    return numMarkers;
+}
+#endif
+
 
 
 // Get markers sorted by KmerId for a given OrientedReadId.

@@ -41,11 +41,7 @@ if(BUILD_FOR_GPU)
 endif(BUILD_FOR_GPU)
 
 # Sources files.
-if(BUILD_FOR_GPU)
-    file(GLOB SOURCES ../src/*.cpp ../src/gpu/*.cpp)
-else(BUILD_FOR_GPU)
-    file(GLOB SOURCES ../src/*.cpp)
-endif(BUILD_FOR_GPU)
+file(GLOB SOURCES ../src/*.cpp)
 
 # Include directory.
 include_directories(../src)
