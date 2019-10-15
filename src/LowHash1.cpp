@@ -71,7 +71,7 @@ LowHash1::LowHash1(
     }
 
     // Set the number of buckets and the corresponding mask.
-    const uint64_t bucketCount = 1 << log2MinHashBucketCount;
+    const uint64_t bucketCount = 1ULL << log2MinHashBucketCount;
     mask = bucketCount - 1;
     cout << "LowHash1 algorithm will use 2^" << log2MinHashBucketCount;
     cout << " = " << bucketCount << " buckets. "<< endl;
