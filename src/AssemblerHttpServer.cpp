@@ -647,7 +647,27 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Number of edges"
         "<td class=right>" << readGraph.edges.size() <<
         "</table>"
-        "<ul><li>The read graph contains both strands. Each read generates two vertices.</ul>"
+        "<ul>"
+        "<li>The read graph contains both strands. Each read generates two vertices."
+        "<li>Isolated reads in the read graph don't contribute to the assembly. "
+        "See the table below for a summary of isolated reads in the read graph. "
+        "Each isolated read corresponds to two isolated vertices in the read graph, one for each strand."
+        "</ul>"
+        "<table>"
+        "<tr><th><th>Reads<th>Bases"
+        "<tr><td>Isolated reads"
+        "<td class=centered>" << assemblerInfo->isolatedReadCount <<
+        "<td class=centered>" << assemblerInfo->isolatedReadBaseCount <<
+        "<tr><td>Non-isolated reads"
+        "<td class=centered>" << assemblerInfo->readCount - assemblerInfo->isolatedReadCount <<
+        "<td class=centered>" << assemblerInfo->baseCount - assemblerInfo->isolatedReadBaseCount <<
+        "<tr><td>Isolated reads fraction"
+        "<td class=centered>" << double(assemblerInfo->isolatedReadCount)/double(assemblerInfo->readCount) <<
+        "<td class=centered>" << double(assemblerInfo->isolatedReadBaseCount)/double(assemblerInfo->baseCount) <<
+        "<tr><td>Non-isolated reads fraction"
+        "<td class=centered>" << double(assemblerInfo->readCount-assemblerInfo->isolatedReadCount)/double(assemblerInfo->readCount) <<
+        "<td class=centered>" << double(assemblerInfo->baseCount-assemblerInfo->isolatedReadBaseCount)/double(assemblerInfo->baseCount) <<
+        "</table>"
 
 
 
@@ -850,7 +870,27 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "  \"Read graph\":\n"
         "  {\n"
         "    \"Number of vertices\": " << readGraph.connectivity.size() << ",\n"
-        "    \"Number of edges\": " << readGraph.edges.size() << "\n"
+        "    \"Number of edges\": " << readGraph.edges.size() << ",\n"
+        "    \"Isolated reads\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->isolatedReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->isolatedReadBaseCount << "\n"
+        "    },\n"
+        "    \"Non-isolated reads\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->readCount - assemblerInfo->isolatedReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->baseCount - assemblerInfo->isolatedReadBaseCount << "\n"
+        "    },\n"
+        "    \"Isolated reads fraction\":\n"
+        "    {\n"
+        "      \"Reads\": " << double(assemblerInfo->isolatedReadCount)/double(assemblerInfo->readCount) << ",\n"
+        "      \"Bases\": " << double(assemblerInfo->isolatedReadBaseCount)/double(assemblerInfo->baseCount) << "\n"
+        "    },\n"
+        "    \"Non-isolated reads fraction\":\n"
+        "    {\n"
+        "      \"Reads\": " << double(assemblerInfo->readCount-assemblerInfo->isolatedReadCount)/double(assemblerInfo->readCount) << ",\n"
+        "      \"Bases\": " << double(assemblerInfo->baseCount-assemblerInfo->isolatedReadBaseCount)/double(assemblerInfo->baseCount) << "\n"
+        "    }\n"
         "  },\n"
 
 

@@ -118,6 +118,23 @@ void Assembler::createReadGraph(
         readGraph.connectivity.store(edge.orientedReadIds[1].getValue(), uint32_t(i));
     }
     readGraph.connectivity.endPass2();
+
+
+
+    // Count the number of isolated reads and their bases.
+    uint64_t isolatedReadCount = 0;
+    uint64_t isolatedReadBaseCount = 0;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        const OrientedReadId orientedReadId(readId, 0);
+        const uint64_t neighborCount = readGraph.connectivity.size(orientedReadId.getValue());
+        if(neighborCount > 0) {
+            continue;
+        }
+        ++isolatedReadCount;
+        isolatedReadBaseCount += getReadRawSequenceLength(readId);
+    }
+    assemblerInfo->isolatedReadCount = isolatedReadCount;
+    assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;
 }
 
 

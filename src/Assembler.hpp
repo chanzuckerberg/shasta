@@ -111,6 +111,8 @@ public:
     // Other read statistics.
     size_t palindromicReadCount = 0;
     size_t chimericReadCount = 0;
+    uint64_t isolatedReadCount = 0;
+    uint64_t isolatedReadBaseCount = 0;
 
     // Marker graph statistics.
     size_t markerGraphVerticesNotIsolatedCount = 0;
