@@ -458,7 +458,7 @@ void LowHash1::gatherCommonFeatures()
     runThreads(&LowHash1::gatherCommonFeaturesPass1, threadCount);
     commonFeatures.beginPass2();
     runThreads(&LowHash1::gatherCommonFeaturesPass2, threadCount);
-    commonFeatures.endPass2();
+    commonFeatures.endPass2(false);
 }
 void LowHash1::gatherCommonFeaturesPass1(size_t threadId)
 {
