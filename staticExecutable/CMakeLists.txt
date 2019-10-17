@@ -66,7 +66,7 @@ endif(NOT MACOS)
 
 # Libraries to link with.
 if(MACOS)
-    FindPng()
+    find_package(PNG REQUIRED)
     target_link_libraries(
     shastaStaticExecutable 
     shastaStaticLibrary
