@@ -197,6 +197,13 @@ private:
     vector< array<uint64_t, 3> > threadCandidateTable;
 
 
+    // During processCommonFeatures, we also create a histogram that tells us
+    // how many (readId0, readId1) pairs with exactly n common features were found.
+    // Only the pairs with n>=minFrquency generate an alignment candidate.
+    vector<uint64_t> candidateHistogram;
+    vector< vector<uint64_t> > threadCandidateHistogram;
+
+
 
     // Thread functions.
 

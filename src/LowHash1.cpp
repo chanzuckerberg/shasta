@@ -495,6 +495,7 @@ void LowHash1::processCommonFeatures()
     // Prepare areas where each thread will store what it finds.
     threadCandidateTable.resize(readCount);
     threadAlignmentCandidates.resize(threadCount);
+    threadCandidateHistogram.resize(threadCount);
 
     // Extract the candidates and features.
     setupLoadBalancing(readCount, batchSize);
@@ -528,6 +529,31 @@ void LowHash1::processCommonFeatures()
         " features." << endl;
 
 
+
+    // Combine the histograms found by each thread.
+    for(size_t threadId=0; threadId!=threadCount; threadId++) {
+        const vector<uint64_t>& v = threadCandidateHistogram[threadId];
+        for(uint64_t i=0; i<v.size(); i++){
+            const uint64_t n = v[i];
+            if(n > 0) {
+                if(candidateHistogram.size() <= n){
+                    candidateHistogram.resize(n+1, 0);
+                }
+                candidateHistogram[i] += n;
+            }
+        }
+    }
+    ofstream csv("LowHashCandidateHistogram.csv");
+    csv << "CommonFeatureCount,Frequency\n";
+    for(uint64_t i=0; i<candidateHistogram.size(); i++) {
+        const uint64_t n = candidateHistogram[i];
+        if(n > 0) {
+            csv << i << "," << n << "\n";
+        }
+    }
+
+
+
     // Clean up.
     threadCandidateTable.clear();
     for(size_t threadId=0; threadId<threadCount; threadId++) {
@@ -553,6 +579,7 @@ void LowHash1::processCommonFeaturesThreadFunction(size_t threadId)
         largeDataFileNamePrefix.empty() ? "" :
         (largeDataFileNamePrefix + "tmp-ThreadAlignmentCandidatesOrdinals-" + to_string(threadId)),
         largeDataPageSize);
+    vector<uint64_t>& histogram = threadCandidateHistogram[threadId];
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -608,8 +635,15 @@ void LowHash1::processCommonFeaturesThreadFunction(size_t threadId)
                     ++streakEnd;
                 }
 
+                // Increment the histogram.
+                const int64_t streakLength = streakEnd - streakBegin;
+                if(histogram.size() <= uint64_t(streakLength)) {
+                    histogram.resize(streakLength + 1, 0);
+                }
+                ++histogram[streakLength];
+
                 // If too few, skip.
-                if(streakEnd - streakBegin < int64_t(minFrequency)) {
+                if(streakLength < int64_t(minFrequency)) {
                     it = streakEnd;
                     continue;
                 }
