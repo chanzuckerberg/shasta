@@ -498,7 +498,6 @@ void AlignmentGraph::writeImage(
     const Alignment& alignment,
     const string& fileName) const
 {
-#ifdef __linux__
 
     // Create the image, which gets initialized to black.
     const int n0 = int(markers0.size());
@@ -514,18 +513,18 @@ void AlignmentGraph::writeImage(
     }
     for(int i1=0; i1<n1; i1+=smallGridSpacing) {
         for(int i0=0; i0<n0; i0++) {
-        	image.setPixel(i0, i1, 12, 12, 12);
+            image.setPixel(i0, i1, 12, 12, 12);
         }
     }
     const int largeGridSpacing = 50;
     for(int i0=0; i0<n0; i0+=largeGridSpacing) {
         for(int i1=0; i1<n1; i1++) {
-        	image.setPixel(i0, i1, 32, 32, 32);
+            image.setPixel(i0, i1, 32, 32, 32);
         }
     }
     for(int i1=0; i1<n1; i1+=largeGridSpacing) {
         for(int i0=0; i0<n0; i0++) {
-        	image.setPixel(i0, i1, 32, 32, 32);
+            image.setPixel(i0, i1, 32, 32, 32);
         }
     }
 
@@ -547,7 +546,6 @@ void AlignmentGraph::writeImage(
 
     // Write it out.
     image.write(fileName);
-#endif
 }
 #endif
 
