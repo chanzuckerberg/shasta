@@ -15,7 +15,7 @@ brew install boost
 # The libpng and zlib libraries are needed for some
 # functionality in the http server.
 brew install libpng
-brew install zlib
+brew install zlib --enable-static
 
 # Build the spoa library (static library only).
 
