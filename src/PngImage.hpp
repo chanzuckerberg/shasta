@@ -1,4 +1,5 @@
-#ifdef __linux__
+#if 1
+//#ifdef __linux__
 
 #ifndef SHASTA_PNG_IMAGE_HPP
 #define SHASTA_PNG_IMAGE_HPP

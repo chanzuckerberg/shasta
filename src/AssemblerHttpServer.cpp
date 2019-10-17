@@ -2247,7 +2247,8 @@ void Assembler::displayAlignmentMatrix(
     const vector<string>& request,
     ostream& html)
 {
-#ifndef __linux__
+#if 0
+//#ifndef __linux__
     html << "<p>This functionality is only available on Linux.";
     return;
 #else

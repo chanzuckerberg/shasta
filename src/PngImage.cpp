@@ -1,4 +1,5 @@
-#ifdef __linux__
+#if 1
+//#ifdef __linux__
 #include "PngImage.hpp"
 using namespace shasta;
 
