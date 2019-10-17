@@ -90,6 +90,8 @@ jobs:
         cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
         make VERBOSE=1 -j 2 all
         make install/strip
+        # See what libraries the executable depends on.
+        otool -L shasta-install/bin/shasta
     - name: Test-macOS-10.14
       run: |
         brew install gzip
