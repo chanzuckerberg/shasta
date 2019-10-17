@@ -69,7 +69,7 @@ if(MACOS)
     target_link_libraries(
     shastaStaticExecutable 
     shastaStaticLibrary
-    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a png z pthread)
+    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a libpng.a libz.a pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive". 
