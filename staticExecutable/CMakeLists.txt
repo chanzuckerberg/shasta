@@ -66,11 +66,12 @@ endif(NOT MACOS)
 
 # Libraries to link with.
 if(MACOS)
-    find_package(PNG REQUIRED)
+    find_library(PNG_LIBRARY libpng.a REQUIRED)
+    find_library(Z_LIBRARY libz.a REQUIRED)
     target_link_libraries(
     shastaStaticExecutable 
     shastaStaticLibrary
-    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARIES} pthread)
+    ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} ${Z_LIBRARY} pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive". 
