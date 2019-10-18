@@ -176,6 +176,19 @@ private:
 
 
 
+    // For each read, maintain the number of times one of its low
+    // hashes ends up in a sparse bucket, a good bucket, or a crowded bucket.
+    // If n is the size of a bucket:
+    // For a sparse bucket, n < minBucketSize.
+    // For a good bucket, minBucketSize <= n <= minBucketSize
+    // For a sparse bucket, n > maxBucketSize.
+    // This is indexed by ReadId and summed over all MinHash iterations.
+    // For each read, the entries (0, 1, 2) correspond to (sparse, good, crowded).
+    vector< array<uint64_t, 3> > readBucketStatistics;
+
+
+
+
     // Thread functions.
 
     // Pass1: compute the low hashes for each oriented read

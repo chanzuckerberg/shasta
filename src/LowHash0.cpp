@@ -113,6 +113,7 @@ LowHash0::LowHash0(
     lowHashes.resize(orientedReadCount);
     candidates.resize(readCount);
     threadStatistics.resize(threadCount);
+    readBucketStatistics.resize(readCount, {0, 0, 0});
 
     // Write the header of the histogram file.
     histogramCsv << "Iteration,BucketSize,BucketCount,FeatureCount\n";
@@ -178,6 +179,17 @@ LowHash0::LowHash0(
     cout << "Found " << candidateAlignments.size() << " alignment candidates."<< endl;
     cout << "Average number of alignment candidates per oriented read is ";
     cout << (2.* double(candidateAlignments.size())) / double(orientedReadCount)  << "." << endl;
+
+    // Write read bucket statistics.
+    ofstream csv("ReadBucketStatistics.csv");
+    csv << "ReadId,Sparse,Good,Crowded\n";
+    for(ReadId readId=0; readId<readCount; readId++) {
+        const array<uint64_t, 3> counters = readBucketStatistics[readId];
+        csv << readId << ",";
+        csv << counters[0] << ",";
+        csv << counters[1] << ",";
+        csv << counters[2] << "\n";
+    }
 
 
 
@@ -318,6 +330,16 @@ void LowHash0::pass2ThreadFunction(size_t threadId)
                 for(const uint64_t hash: orientedReadLowHashes) {
                     const uint64_t bucketId = hash & mask;
                     buckets.storeMultithreaded(bucketId, BucketEntry(orientedReadId, hash));
+
+                    // Update statistics for this read.
+                    const uint64_t bucketSize = buckets.size(bucketId);
+                    if(bucketSize < minBucketSize) {
+                        ++readBucketStatistics[readId][0];
+                    } else if(bucketSize > maxBucketSize) {
+                        ++readBucketStatistics[readId][2];
+                    } else {
+                        ++readBucketStatistics[readId][1];
+                    }
                 }
             }
         }
