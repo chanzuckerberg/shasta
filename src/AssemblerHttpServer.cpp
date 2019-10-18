@@ -2183,11 +2183,24 @@ void Assembler::exploreAlignment(
         orientedReadId0 << " (marker 0 is on left) "
         "and vertical positions correspond to marker ordinals on " <<
         orientedReadId1 << " (marker 0 is on top). "
-        "Each faint line corresponds to 10 markers.";
-    html << "<p><img src=\"data:image/png;base64,";
+        "Each faint line corresponds to 10 markers."
+        "<p><img id=\"alignmentMatrix\" onmousemove=\"updateTitle(event)\" "
+        "src=\"data:image/png;base64,";
     ifstream png("Alignment.png.base64");
     html << png.rdbuf();
-    html << "\"/>";
+    html << "\"/>"
+        "<script>"
+        "function updateTitle(e)"
+        "{"
+        "    var element = document.getElementById(\"alignmentMatrix\");"
+        "    var rectangle = element.getBoundingClientRect();"
+        "    var x = e.clientX - Math.round(rectangle.left);"
+        "    var y = e.clientY - Math.round(rectangle.top);"
+        "    element.title = " <<
+        "\"" << orientedReadId0 << " marker \" + x + \", \" + "
+        "\"" << orientedReadId1 << " marker \" + y;"
+        "}"
+        "</script>";
 
 
 
