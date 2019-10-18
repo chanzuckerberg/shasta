@@ -504,29 +504,35 @@ void AlignmentGraph::writeImage(
     const int n1 = int(markers1.size());
     PngImage image(n0, n1);
 
+
+
     // Write a grid.
-    const int smallGridSpacing = 10;
-    for(int i0=0; i0<n0; i0+=smallGridSpacing) {
-        for(int i1=0; i1<n1; i1++) {
-            image.setPixel(i0, i1, 12, 12, 12);
+    vector<int> gridSpacing;
+    vector< array<int, 3> > gridRgb;
+    gridSpacing.push_back(   10); gridRgb.push_back({ 15,  15,  15});  // Grey
+    gridSpacing.push_back(   50); gridRgb.push_back({ 30,  30,  30});  // Grey
+    gridSpacing.push_back(  100); gridRgb.push_back({ 90,  90,  90});  // Grey
+    gridSpacing.push_back(  500); gridRgb.push_back({160, 160, 160});  // Grey
+    gridSpacing.push_back( 1000); gridRgb.push_back({255, 255, 255});  // White
+    gridSpacing.push_back( 5000); gridRgb.push_back({255, 120, 255});  // Purple
+    gridSpacing.push_back(10000); gridRgb.push_back({255, 255,  60});  // Yellow
+    gridSpacing.push_back(50000); gridRgb.push_back({255, 255, 120});  // Yellow
+    for(size_t i=0; i<gridSpacing.size(); i++) {
+        const int spacing = gridSpacing[i];
+        const array<int, 3>& rgb = gridRgb[i];
+        for(int i0=0; i0<n0; i0+=spacing) {
+            for(int i1=0; i1<n1; i1++) {
+                image.setPixel(i0, i1, rgb[0], rgb[1], rgb[2]);
+            }
+        }
+        for(int i1=0; i1<n1; i1+=spacing) {
+            for(int i0=0; i0<n0; i0++) {
+                image.setPixel(i0, i1, rgb[0], rgb[1], rgb[2]);
+            }
         }
     }
-    for(int i1=0; i1<n1; i1+=smallGridSpacing) {
-        for(int i0=0; i0<n0; i0++) {
-            image.setPixel(i0, i1, 12, 12, 12);
-        }
-    }
-    const int largeGridSpacing = 50;
-    for(int i0=0; i0<n0; i0+=largeGridSpacing) {
-        for(int i1=0; i1<n1; i1++) {
-            image.setPixel(i0, i1, 32, 32, 32);
-        }
-    }
-    for(int i1=0; i1<n1; i1+=largeGridSpacing) {
-        for(int i0=0; i0<n0; i0++) {
-            image.setPixel(i0, i1, 32, 32, 32);
-        }
-    }
+
+
 
     // Write the markers.
     for(int i0=0; i0<n0; i0++) {
