@@ -60,7 +60,7 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
 
         if ((l1 > 0) && (l2 > 0)) {
             uint64_t s2 = index_table[rid2*num_unique_markers];
-            uint64_t e2 = index_table[(rid2+1)*num_unique_markers];
+            uint64_t e2 = s2+l2;
 
             for (uint64_t j = s2; j < e2; j += bs) {
                 uint64_t idx = tx+j;
@@ -119,6 +119,9 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
                 if (num_common < SHASTA_MAX_MARKERS_PER_READ) {
                     num_common_markers[i] = num_common;
                 }
+                else {
+                    num_common_markers[i] = 0;
+                }
             }
         }
 
@@ -141,7 +144,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
     for (int i = bx; i < n; i += gs) {
         uint32_t max_score = 0, max_score_pos = 0;
         uint32_t addr1 = i*SHASTA_MAX_MARKERS_PER_READ;
-        uint32_t addr2 = bx*SHASTA_MAX_MARKERS_PER_READ;
+        uint32_t addr2 = i*SHASTA_MAX_MARKERS_PER_READ;
         uint32_t addr3 = i*SHASTA_MAX_TB;
 
         if (tx == 0) {
@@ -297,7 +300,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             exit(1);
         }
 
-        num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_marker_h[k], num_bytes); 
@@ -306,7 +309,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             exit(1);
         }
         
-        num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_tb_mem[k], num_bytes); 
