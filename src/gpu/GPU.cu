@@ -56,7 +56,7 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
         uint64_t rid1 = (v1 >> 32);
         uint64_t rid2 = (v2 >> 32);
         uint64_t l1 = ((v1 << 32) >> 32);
-        uint64_t l2 = ((v1 << 32) >> 32);
+        uint64_t l2 = ((v2 << 32) >> 32);
 
         if ((l1 > 0) && (l2 > 0)) {
             uint64_t s2 = index_table[rid2*num_unique_markers];
