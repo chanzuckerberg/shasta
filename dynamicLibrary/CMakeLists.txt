@@ -9,7 +9,7 @@ endif(BUILD_FOR_GPU)
 
 
 if(BUILD_FOR_GPU)
-    add_subdirectory(../src/gpu shastaGPULibrary)
+    add_subdirectory(../src/gpuLibrary shastaGpuLibrary)
 endif(BUILD_FOR_GPU)
 
 # C++ dialect.
@@ -82,7 +82,7 @@ SET(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS} ${SHASTA_PYTHON_LIBRARIES}")
 if(BUILD_FOR_GPU)
     target_link_libraries(
         shastaDynamicLibrary 
-        shastaGPULibrary
+        shastaGpuLibrary
         atomic png pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
 else(BUILD_FOR_GPU)
     target_link_libraries(

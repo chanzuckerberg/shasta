@@ -13,11 +13,11 @@ add_definitions(-Xcompiler -static-libgcc)
 add_definitions(-Xcompiler -static-libstdc++)
 add_definitions(-dlink)
 
-project(shastaGPULibrary LANGUAGES C CXX CUDA)
+project(shastaGpuLibrary LANGUAGES C CXX CUDA)
 
 # Source files
-add_library(shastaGPULibrary STATIC GPU.cu)
+add_library(shastaGpuLibrary STATIC ../gpu/GPU.cu)
 
-set_property(TARGET shastaGPULibrary PROPERTY CUDA_STANDARD 11)
-set_property(TARGET shastaGPULibrary PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-set_property(TARGET shastaGPULibrary PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+set_property(TARGET shastaGpuLibrary PROPERTY CUDA_STANDARD 11)
+set_property(TARGET shastaGpuLibrary PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+set_property(TARGET shastaGpuLibrary PROPERTY CUDA_SEPARABLE_COMPILATION ON)

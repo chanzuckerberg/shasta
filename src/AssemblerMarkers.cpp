@@ -87,6 +87,19 @@ size_t Assembler::getNumMarkers(ReadId readId, Strand strand)
 
     return numMarkers;
 }
+
+size_t Assembler::getMarkersInArray (uint32_t* arr, ReadId readId, Strand strand) {
+    const OrientedReadId orientedReadId(readId, strand);
+    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
+
+    size_t i = 0;
+
+    for(const CompressedMarker& marker: orientedReadMarkers) {
+        arr[i++] = marker.kmerId;
+    }
+
+    return i;
+}
 #endif
 
 
