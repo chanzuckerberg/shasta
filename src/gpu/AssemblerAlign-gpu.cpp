@@ -221,7 +221,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             size_t numUniqueMarkers = uniqueMarkersDict.size();
 
             std::map<size_t, uint64_t> readIdLenDict;
-            uint32_t currId = 0, numPos = 0, numReads = 0;
+            uint64_t numPos = 0, numReads = 0;
             
             // host data structures for GPU
             uint32_t* h_alignments = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t));
@@ -248,7 +248,6 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 }
 
                 // Clear vectors
-                currId = 0;
                 numPos = 0;
                 numReads = 0;
 
@@ -278,7 +277,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                     
                     if ((l1 > 0) && (l2 > 0)) {
                         if (readIdLenDict.find(2*rid1+s1) == readIdLenDict.end()) {
-                            batch_rid1 = currId++;
+                            batch_rid1 = numReads;
                             uint64_t v, val, m;
                             v = (batch_rid1 << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
                             for (size_t j = 0; j < numUniqueMarkers; j++) {
@@ -296,7 +295,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                         }
 
                         if (readIdLenDict.find(2*rid2+s2) == readIdLenDict.end()) {
-                            batch_rid2 = currId++;
+                            batch_rid2 = numReads;
                             uint64_t v, val, m;
                             v = (batch_rid2 << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
                             for (size_t j = 0; j < numUniqueMarkers; j++) {
@@ -329,8 +328,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
 
                 //Insert last element
                 {
-                    uint64_t last_batch_rid = currId;
-                    uint64_t v = (last_batch_rid << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+                    uint64_t v = (numReads << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
                     batch_rid_markers[numReads*numUniqueMarkers] = v;
                 }
                 
@@ -342,7 +340,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
 
                 if (debug) {
                     std::lock_guard<std::mutex> lock(mutex);
-                    fprintf(stdout, "Batchsize: %zu, Number of markers: %u\n", (last-first), numPos); 
+                    fprintf(stdout, "Batchsize: %zu, Number of markers: %zu\n", (last-first), numPos); 
                 }
 
                 // find alignments on GPU

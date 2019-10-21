@@ -12,8 +12,8 @@
 
 
 #define BAND_SIZE 32 
-#define LOG_BLOCK_SIZE 7
-#define LOG_NUM_BLOCKS 10
+#define LOG_BLOCK_SIZE 8
+#define LOG_NUM_BLOCKS 8
 
 #define BLOCK_SIZE (1 << LOG_BLOCK_SIZE)
 #define NUM_BLOCKS (1 << LOG_NUM_BLOCKS)
@@ -174,7 +174,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
                     uint32_t v1 = d_common_markers[addr1+ptr];
                     l1 = ((v1 << 16) >> 16);
                     u1 = (v1 >> 16);
-                    if ((l1 < l) && (u1 < u) && (u-u1 < maxSkip) && (l-l1 < maxSkip)) {
+                    if ((l1 < l) && (u1 < u) && (u-u1 <= maxSkip) && (l-l1 <= maxSkip)) {
                         uint32_t pscore = d_marker_h[addr2+ptr];
                         if (score[tx] < pscore+1) { 
                             score[tx] = pscore+1;
@@ -184,7 +184,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
                 }
                 ptr -= bs;
                 if (tx == bs-1) {
-                    if ((ptr < 0) || (l-l1 >= maxSkip))  {
+                    if ((ptr < 0) || (l-l1 > maxSkip))  {
                         stop_shared = true;
                     }
                     else {
@@ -351,7 +351,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
     return nDevices;
 }
 
-extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint32_t num_pos, uint32_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_rid_markers, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
+extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_rid_markers, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
     bool report_time = false;
 
     size_t k = deviceId;
