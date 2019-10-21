@@ -12,8 +12,8 @@
 
 
 #define BAND_SIZE 32 
-#define LOG_BLOCK_SIZE 8
-#define LOG_NUM_BLOCKS 8
+#define LOG_BLOCK_SIZE 7
+#define LOG_NUM_BLOCKS 10
 
 #define BLOCK_SIZE (1 << LOG_BLOCK_SIZE)
 #define NUM_BLOCKS (1 << LOG_NUM_BLOCKS)
@@ -23,8 +23,8 @@ std::mutex* gpu_lock;
 uint32_t num_unique_markers;
 
 uint32_t** d_alignments;
-uint32_t** d_marker_h;
-uint32_t** d_tb_mem;
+uint32_t** d_score;
+uint32_t** d_score_pos;
 uint32_t** d_num_traceback;
 uint32_t** d_common_markers;
 uint32_t** d_num_common_markers;
@@ -130,7 +130,7 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
 }
 
 __global__
-void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_common_markers, uint32_t* d_num_common_markers, uint32_t* d_tb_mem, uint32_t* d_alignments, uint32_t* d_num_traceback) {
+void find_traceback (int n, size_t maxSkip, uint32_t* d_score, uint32_t* d_common_markers, uint32_t* d_num_common_markers, uint32_t* d_score_pos, uint32_t* d_alignments, uint32_t* d_num_traceback) {
     int tx = threadIdx.x;
     int bs = blockDim.x;
     int bx = blockIdx.x;
@@ -144,7 +144,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
     for (int i = bx; i < n; i += gs) {
         uint32_t max_score = 0, max_score_pos = 0;
         uint32_t addr1 = i*SHASTA_MAX_MARKERS_PER_READ;
-        uint32_t addr2 = i*SHASTA_MAX_MARKERS_PER_READ;
+        uint32_t addr2 = bx*SHASTA_MAX_MARKERS_PER_READ;
         uint32_t addr3 = i*SHASTA_MAX_TB;
 
         if (tx == 0) {
@@ -175,7 +175,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
                     l1 = ((v1 << 16) >> 16);
                     u1 = (v1 >> 16);
                     if ((l1 < l) && (u1 < u) && (u-u1 <= maxSkip) && (l-l1 <= maxSkip)) {
-                        uint32_t pscore = d_marker_h[addr2+ptr];
+                        uint32_t pscore = d_score[addr2+ptr];
                         if (score[tx] < pscore+1) { 
                             score[tx] = pscore+1;
                             score_pos[tx] = ptr;
@@ -209,8 +209,8 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
             }
             
             if (tx == 0) {
-                d_marker_h[addr2+p] = score[0];
-                d_tb_mem[addr2+p] = score_pos[0];
+                d_score[addr2+p] = score[0];
+                d_score_pos[addr2+p] = score_pos[0];
                 if (score[0] > max_score) {
                     max_score = score[0];
                     max_score_pos = score_pos[0];
@@ -234,7 +234,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_marker_h, uint32_t* d_co
                         d_alignments[addr3+num_ptr] = d_common_markers[addr1+curr_pos];
                     }
                     num_ptr++;
-                    curr_pos = d_tb_mem[addr2+curr_pos];
+                    curr_pos = d_score_pos[addr2+curr_pos];
                 }
             }
 
@@ -273,8 +273,8 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
     
     d_alignments = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
 
-    d_marker_h = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
-    d_tb_mem = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
+    d_score = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
+    d_score_pos = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_num_traceback = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_num_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
@@ -300,19 +300,19 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             exit(1);
         }
 
-        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-        err = cudaMalloc(&d_marker_h[k], num_bytes); 
+        err = cudaMalloc(&d_score[k], num_bytes); 
         if (err != cudaSuccess) {
             fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
             exit(1);
         }
         
-        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
-        err = cudaMalloc(&d_tb_mem[k], num_bytes); 
+        err = cudaMalloc(&d_score_pos[k], num_bytes); 
         if (err != cudaSuccess) {
             fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
             exit(1);
@@ -394,7 +394,7 @@ extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency
     
     find_common_markers <<<NUM_BLOCKS, BLOCK_SIZE>>> (maxMarkerFrequency, n, num_unique_markers, d_read_pairs, d_index_table, d_rid_marker_pos, d_sorted_rid_marker_pos, d_num_common_markers[k], d_common_markers[k]);
 
-    find_traceback <<<NUM_BLOCKS, BAND_SIZE>>>(n, maxSkip, d_marker_h[k], d_common_markers[k], d_num_common_markers[k], d_tb_mem[k], d_alignments[k], d_num_traceback[k]);
+    find_traceback <<<NUM_BLOCKS, BAND_SIZE>>>(n, maxSkip, d_score[k], d_common_markers[k], d_num_common_markers[k], d_score_pos[k], d_alignments[k], d_num_traceback[k]);
 
 
     err = cudaMemcpy(h_num_traceback, d_num_traceback[k], n*sizeof(uint32_t), cudaMemcpyDeviceToHost);
@@ -431,16 +431,16 @@ extern "C" void shasta_shutdownProcessors(int nDevices) {
     for (int k=0; k<nDevices; k++) {
         cudaFree(d_alignments[k]);
 
-        cudaFree(d_marker_h[k]);
-        cudaFree(d_tb_mem[k]);
+        cudaFree(d_score[k]);
+        cudaFree(d_score_pos[k]);
         cudaFree(d_num_traceback[k]);
         cudaFree(d_common_markers[k]);
         cudaFree(d_num_common_markers[k]);
     }
     free(d_alignments);
 
-    free(d_marker_h);
-    free(d_tb_mem);
+    free(d_score);
+    free(d_score_pos);
     free(d_num_traceback);
     free(d_common_markers);
     free(d_num_common_markers);
