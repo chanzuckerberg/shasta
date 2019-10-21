@@ -231,8 +231,8 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             uint64_t* batch_rid_markers;
             uint64_t* batch_read_pairs;
 
-            batch_rid_marker_pos = (uint64_t*) malloc(SHASTA_GPU_BATCH_SIZE * SHASTA_MAX_MARKERS_PER_READ*sizeof(uint64_t));
-            batch_rid_markers = (uint64_t*) malloc((1+SHASTA_GPU_BATCH_SIZE * numUniqueMarkers)*sizeof(uint64_t));
+            batch_rid_marker_pos = (uint64_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint64_t));
+            batch_rid_markers = (uint64_t*) malloc((1 + 2*SHASTA_GPU_BATCH_SIZE*numUniqueMarkers)*sizeof(uint64_t));
             batch_read_pairs = (uint64_t*) malloc(2*SHASTA_GPU_BATCH_SIZE*sizeof(uint64_t));
 
             // Alignment candidates that fail on GPU
