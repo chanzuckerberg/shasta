@@ -29,6 +29,7 @@ LowHash0::LowHash0(
     const MemoryMapped::Vector<ReadFlags>& readFlags,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     MemoryMapped::Vector<OrientedReadPair>& candidateAlignments,
+    MemoryMapped::Vector< array<uint64_t, 3> >& readLowHashStatistics,
     const string& largeDataFileNamePrefix,
     size_t largeDataPageSize
     ) :
@@ -42,6 +43,7 @@ LowHash0::LowHash0(
     kmerTable(kmerTable),
     readFlags(readFlags),
     markers(markers),
+    readLowHashStatistics(readLowHashStatistics),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
     largeDataPageSize(largeDataPageSize),
     histogramCsv("LowHashBucketHistogram.csv")
@@ -113,7 +115,9 @@ LowHash0::LowHash0(
     lowHashes.resize(orientedReadCount);
     candidates.resize(readCount);
     threadStatistics.resize(threadCount);
-    readBucketStatistics.resize(readCount, {0, 0, 0});
+    readLowHashStatistics.resize(readCount);
+    fill(readLowHashStatistics.begin(), readLowHashStatistics.end(),
+        array<uint64_t, 3>({0, 0, 0}));
 
     // Write the header of the histogram file.
     histogramCsv << "Iteration,BucketSize,BucketCount,FeatureCount\n";
@@ -181,14 +185,29 @@ LowHash0::LowHash0(
     cout << (2.* double(candidateAlignments.size())) / double(orientedReadCount)  << "." << endl;
 
     // Write read bucket statistics.
-    ofstream csv("ReadBucketStatistics.csv");
-    csv << "ReadId,Sparse,Good,Crowded\n";
+    ofstream csv("ReadLowHashStatistics.csv");
+    csv << "ReadId,Palindromic,Features,Sparse,Good,Crowded,Total,FeatureSampling,"
+        "SparseFraction,GoodFraction,CrowdedFraction\n";
     for(ReadId readId=0; readId<readCount; readId++) {
-        const array<uint64_t, 3> counters = readBucketStatistics[readId];
+        const array<uint64_t, 3>& counters = readLowHashStatistics[readId];
+        const uint64_t total = std::accumulate(counters.begin(), counters.end(), 0);
+        const uint64_t featureCount = markers.size(OrientedReadId(readId, 0).getValue()) - (m-1);
+        const double featureSampling = double(total) / double(featureCount);
         csv << readId << ",";
+        csv << (readFlags[readId].isPalindromic ? "Yes," : "No,");
+        csv << featureCount << ",";
         csv << counters[0] << ",";
         csv << counters[1] << ",";
-        csv << counters[2] << "\n";
+        csv << counters[2] << ",";
+        csv << total << ",";
+        csv << featureSampling << ",";
+        if(total == 0) {
+            csv << ",,\n";
+        } else {
+            csv << double(counters[0]) / double(total) << ",";
+            csv << double(counters[1]) / double(total) << ",";
+            csv << double(counters[2]) / double(total) << "\n";
+        }
     }
 
 
@@ -334,11 +353,11 @@ void LowHash0::pass2ThreadFunction(size_t threadId)
                     // Update statistics for this read.
                     const uint64_t bucketSize = buckets.size(bucketId);
                     if(bucketSize < minBucketSize) {
-                        ++readBucketStatistics[readId][0];
+                        ++readLowHashStatistics[readId][0];
                     } else if(bucketSize > maxBucketSize) {
-                        ++readBucketStatistics[readId][2];
+                        ++readLowHashStatistics[readId][2];
                     } else {
-                        ++readBucketStatistics[readId][1];
+                        ++readLowHashStatistics[readId][1];
                     }
                 }
             }

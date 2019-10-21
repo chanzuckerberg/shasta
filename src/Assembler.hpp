@@ -756,6 +756,16 @@ private:
     void checkAlignmentCandidatesAreOpen() const;
 
 
+    // LowHash statistics for read.
+    // For each read we count the number of times a low hash
+    // puts the read in:
+    // - A sparse bucket (bucketSize < minFrequency), index 0.
+    // - A good bucket (minFrequency <= bucketSize <= maxFrequency), index 1.
+    // - A crowded bucket (bucketSize > maxFrequency), index 2.
+    MemoryMapped::Vector< array<uint64_t, 3> > readLowHashStatistics;
+    void accessReadLowHashStatistics();
+
+
 
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(

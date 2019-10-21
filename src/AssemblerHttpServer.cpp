@@ -400,6 +400,13 @@ void Assembler::accessAllSoft()
     }
 
     try {
+        accessReadLowHashStatistics();
+    } catch(const exception& e) {
+        cout << "Read alignment statistics are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
         accessAlignmentData();
     } catch(const exception& e) {
         cout << "Alignments are not accessible." << endl;

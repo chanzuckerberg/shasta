@@ -26,6 +26,7 @@ void Assembler::findAlignmentCandidatesLowHash0(
 
     // Create the alignment candidates.
     alignmentCandidates.candidates.createNew(largeDataName("AlignmentCandidates"), largeDataPageSize);
+    readLowHashStatistics.createNew(largeDataName("ReadLowHashStatistics"), largeDataPageSize);
 
     // Run the LowHash computation to find candidate alignments.
     LowHash0 lowHash(
@@ -41,6 +42,7 @@ void Assembler::findAlignmentCandidatesLowHash0(
         readFlags,
         markers,
         alignmentCandidates.candidates,
+        readLowHashStatistics,
         largeDataFileNamePrefix,
         largeDataPageSize);
 }
@@ -52,6 +54,10 @@ void Assembler::accessAlignmentCandidates()
     alignmentCandidates.candidates.accessExistingReadOnly(largeDataName("AlignmentCandidates"));
 }
 
+void Assembler::accessReadLowHashStatistics()
+{
+    readLowHashStatistics.accessExistingReadOnly(largeDataName("ReadLowHashStatistics"));
+}
 
 void Assembler::checkAlignmentCandidatesAreOpen() const
 {

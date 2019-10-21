@@ -36,6 +36,7 @@ public:
         const MemoryMapped::Vector<ReadFlags>& readFlags,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>&,
         MemoryMapped::Vector<OrientedReadPair>&,
+        MemoryMapped::Vector< array<uint64_t, 3> >& readLowHashStatistics,
         const string& largeDataFileNamePrefix,
         size_t largeDataPageSize
 );
@@ -52,6 +53,7 @@ private:
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
     const MemoryMapped::Vector<ReadFlags>& readFlags;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
+    MemoryMapped::Vector< array<uint64_t, 3> > &readLowHashStatistics;
     const string& largeDataFileNamePrefix;
     size_t largeDataPageSize;
 
@@ -173,19 +175,6 @@ private:
     void computeBucketHistogramThreadFunction(size_t threadId);
     vector< vector<uint64_t> > threadBucketHistogram;
     ofstream histogramCsv;
-
-
-
-    // For each read, maintain the number of times one of its low
-    // hashes ends up in a sparse bucket, a good bucket, or a crowded bucket.
-    // If n is the size of a bucket:
-    // For a sparse bucket, n < minBucketSize.
-    // For a good bucket, minBucketSize <= n <= minBucketSize
-    // For a sparse bucket, n > maxBucketSize.
-    // This is indexed by ReadId and summed over all MinHash iterations.
-    // For each read, the entries (0, 1, 2) correspond to (sparse, good, crowded).
-    vector< array<uint64_t, 3> > readBucketStatistics;
-
 
 
 
