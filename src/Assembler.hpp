@@ -681,7 +681,6 @@ private:
 
 #ifdef SHASTA_BUILD_FOR_GPU
     size_t getNumMarkers (ReadId, Strand);
-    size_t getMarkersInArray (uint32_t* arr, ReadId readId, Strand strand); 
 #endif
 
     // Inverse of the above: given a global marker id,
@@ -849,7 +848,7 @@ private:
         size_t maxTrim;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
-        std::map <KmerId, uint32_t> uniqueMarkersDict;
+        std::unordered_map <KmerId, uint32_t> uniqueMarkersDict;
 #endif
 
         // The AlignmentInfo found by each thread.

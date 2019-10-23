@@ -18,7 +18,8 @@
 #define BLOCK_SIZE (1 << LOG_BLOCK_SIZE)
 #define NUM_BLOCKS (1 << LOG_NUM_BLOCKS)
 
-std::mutex* gpu_lock;
+std::mutex vec_lock;
+std::vector<int> available_gpus;
 
 uint32_t num_unique_markers;
 
@@ -269,8 +270,6 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
     //                2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
     //    }
 
-    gpu_lock = new std::mutex[nDevices];
-    
     d_alignments = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
 
     d_score = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
@@ -283,7 +282,8 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
     size_t num_bytes;
 
     for (int k=0; k<nDevices; k++) {
-        gpu_lock[k].lock();
+        
+        available_gpus.push_back(k);
 
         err = cudaSetDevice(k);
         if (err != cudaSuccess) {
@@ -344,28 +344,35 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
             exit(1);
         }
-        
-        gpu_lock[k].unlock();
     }
 
     return nDevices;
 }
 
-extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_rid_markers, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
+extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_rid_markers, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
     bool report_time = false;
 
-    size_t k = deviceId;
+    int k = -1;
+
+    while (k < 0) {
+        if (available_gpus.size() > 0) {
+            vec_lock.lock();
+            if (available_gpus.size() > 0) {
+                k = available_gpus.back(); 
+                available_gpus.pop_back();
+            }
+            vec_lock.unlock();
+        }
+    }
 
     struct timeval t1, t2, t3;
     long useconds, seconds, mseconds;
-
-    gpu_lock[k].lock();
     
     cudaError_t err; 
 
     err = cudaSetDevice(k);
     if (err != cudaSuccess) {
-        fprintf(stderr, "GPU_ERROR: could not set device %zu!\n", k);
+        fprintf(stderr, "GPU_ERROR: could not set device %u!\n", k);
         exit(1);
     }
     
@@ -379,13 +386,13 @@ extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency
 
     thrust::sort(t_d_sorted_rid_marker_pos.begin(), t_d_sorted_rid_marker_pos.end());
 
-    gettimeofday(&t2, NULL);
-
     thrust::lower_bound(t_d_sorted_rid_marker_pos.begin(),
             t_d_sorted_rid_marker_pos.end(),
             t_d_rid_markers.begin(),
             t_d_rid_markers.end(),
             t_d_index_table.begin());
+
+    gettimeofday(&t2, NULL);
 
     uint64_t* d_sorted_rid_marker_pos = thrust::raw_pointer_cast (t_d_sorted_rid_marker_pos.data());
     uint64_t* d_rid_marker_pos = thrust::raw_pointer_cast (t_d_rid_marker_pos.data());
@@ -399,15 +406,20 @@ extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency
 
     err = cudaMemcpy(h_num_traceback, d_num_traceback[k], n*sizeof(uint32_t), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
-        fprintf(stderr, "1. Error: cudaMemcpy failed!\n");
+        fprintf(stderr, "Error: cudaMemcpy failed!\n");
         exit(1);
     }
 
     err = cudaMemcpy(h_alignments, d_alignments[k], n*SHASTA_MAX_TB*sizeof(uint32_t), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
-        fprintf(stderr, "2. Error: cudaMemcpy failed!\n");
+        fprintf(stderr, "Error: cudaMemcpy failed!\n");
         exit(1);
     }
+    
+    vec_lock.lock();
+    available_gpus.push_back(k);
+    vec_lock.unlock();
+    
     gettimeofday(&t3, NULL);
     
     if (report_time) {
@@ -421,8 +433,6 @@ extern "C" void shasta_alignBatchGPU (size_t deviceId, size_t maxMarkerFrequency
         mseconds = ((seconds) * 1000 + useconds/1000.0) + 0.5;
         fprintf(stderr, "Time elapsed (t3-t1): %ld msec \n", mseconds);
     }
-
-    gpu_lock[k].unlock();
 
     return;
 }
@@ -444,7 +454,4 @@ extern "C" void shasta_shutdownProcessors(int nDevices) {
     free(d_num_traceback);
     free(d_common_markers);
     free(d_num_common_markers);
-
-    delete(gpu_lock);
-
 }

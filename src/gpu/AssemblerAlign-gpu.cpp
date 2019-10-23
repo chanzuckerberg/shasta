@@ -61,7 +61,7 @@ void Assembler::computeAlignmentsGpu(
     checkAlignmentCandidatesAreOpen();
     
     //Compute unique markers
-    std::map <KmerId, uint32_t> uniqueMarkersDict;
+    std::unordered_map <KmerId, uint32_t> uniqueMarkersDict;
 
     uint32_t numUniqueMarkers = 0;
     uint32_t kmerTableSize = static_cast<uint32_t> (kmerTable.size());
@@ -148,23 +148,222 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
     const size_t maxSkip = data.maxSkip;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
     const size_t maxTrim = data.maxTrim;
-    std::map<KmerId, uint32_t> uniqueMarkersDict = data.uniqueMarkersDict;
+    std::unordered_map<KmerId, uint32_t> uniqueMarkersDict = data.uniqueMarkersDict;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
 
     uint64_t begin, end;
     size_t printEvery = 100000;
     if (getNextBatch(begin, end)) {
-        // If batch size too small, use CPU
-        if (end-begin < SHASTA_MIN_GPU_BATCH_SIZE) {
-            for(size_t i=begin; i!=end; i++) {
-                size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, 1);
-                if (currNumComputedAlignments % printEvery == 0) {
-                    std::lock_guard<std::mutex> lock(mutex);
-                    cout << timestamp << "Working on alignment " << currNumComputedAlignments;
-                    cout << " of " << alignmentCandidates.candidates.size() << endl;
+        size_t numUniqueMarkers = uniqueMarkersDict.size();
+
+        std::map<size_t, uint64_t> readIdLenDict;
+        uint64_t numPos = 0, numReads = 0;
+
+        // host data structures for GPU
+        uint32_t* h_alignments = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t));
+        uint32_t* h_num_traceback = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t));
+
+        uint64_t* batch_rid_marker_pos;
+        uint64_t* batch_rid_markers;
+        uint64_t* batch_read_pairs;
+
+        batch_rid_marker_pos = (uint64_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint64_t));
+        batch_rid_markers = (uint64_t*) malloc((1 + 2*SHASTA_GPU_BATCH_SIZE*numUniqueMarkers)*sizeof(uint64_t));
+        batch_read_pairs = (uint64_t*) malloc(2*SHASTA_GPU_BATCH_SIZE*sizeof(uint64_t));
+
+        for (uint64_t i=0; i < 2*SHASTA_GPU_BATCH_SIZE; i++) { 
+            uint64_t v, val;
+            v = (i << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+            for (uint64_t j = 0; j < numUniqueMarkers; j++) {
+                val = v + (j << SHASTA_LOG_MAX_MARKERS_PER_READ);
+                batch_rid_markers[i*numUniqueMarkers + j] = val;
+            }
+        }
+        batch_rid_markers[2*SHASTA_GPU_BATCH_SIZE*numUniqueMarkers] = (((uint64_t)2*SHASTA_GPU_BATCH_SIZE) << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+
+        // Alignment candidates that fail on GPU
+        vector<OrientedReadPair> remainingAlignmentCandidates;
+
+        for (size_t first=begin; first<end; first+=SHASTA_GPU_BATCH_SIZE) {
+            size_t last = std::min(first+SHASTA_GPU_BATCH_SIZE, end);
+
+            if (debug)
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << "\tThreadid " << threadId << " start time: " << timestamp << endl;
+            }
+
+            // Clear vectors
+            numPos = 0;
+            numReads = 0;
+
+            readIdLenDict.clear();
+
+
+            remainingAlignmentCandidates.clear();
+
+            // Compute alignments on GPU
+            for (size_t i=first; i<last; i++) {
+                auto candidate = alignmentCandidates.candidates[i];
+                ReadId rid1, rid2;
+                uint64_t l1, l2;
+                uint64_t batch_rid1, batch_rid2;
+                Strand s1 = 0;
+                Strand s2 = candidate.isSameStrand ? 0 : 1;
+                rid1 = candidate.readIds[0];
+                rid2 = candidate.readIds[1];
+
+                l1 = getNumMarkers(rid1, s1); 
+                l2 = getNumMarkers(rid2, s2);
+
+                if (l1 >= SHASTA_MAX_MARKERS_PER_READ) {
+                    l1 = 0;
                 }
-                const OrientedReadPair& candidate = alignmentCandidates.candidates[i];
+                if (l2 >= SHASTA_MAX_MARKERS_PER_READ) {
+                    l2 = 0;
+                }
+
+                if ((l1 > 0) && (l2 > 0)) {
+                    if (readIdLenDict.find(2*rid1+s1) == readIdLenDict.end()) {
+                        vector<KmerId> vec_m1 = getMarkers(rid1, s1);
+                        batch_rid1 = numReads;
+                        uint64_t v, val, m;
+                        v = (batch_rid1 << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+                        for (size_t l = 0; l < l1; l++) {
+                            m = uniqueMarkersDict[vec_m1[l]];
+                            val = v + (m << SHASTA_LOG_MAX_MARKERS_PER_READ);
+                            val = val + l;
+                            batch_rid_marker_pos[numPos++] = val;
+                        }
+                        readIdLenDict[2*rid1+s1] = (batch_rid1 << 32) + l1;
+                        numReads++;
+                    }
+
+                    if (readIdLenDict.find(2*rid2+s2) == readIdLenDict.end()) {
+                        vector<KmerId> vec_m2 = getMarkers(rid2, s2);
+                        batch_rid2 = numReads;
+                        uint64_t v, val, m;
+                        v = (batch_rid2 << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+                        for (size_t l = 0; l < l2; l++) {
+                            m = uniqueMarkersDict[vec_m2[l]];
+                            val = v + (m << SHASTA_LOG_MAX_MARKERS_PER_READ);
+                            val = val + l;
+                            batch_rid_marker_pos[numPos++] = val;
+                        }
+                        readIdLenDict[2*rid2+s2] = (batch_rid2 << 32) + l2;
+                        numReads++;
+                    }
+
+                    // Send read pair
+                    uint64_t v1, v2;
+                    v1 = readIdLenDict[2*rid1+s1];
+                    v2 = readIdLenDict[2*rid2+s2];
+                    batch_read_pairs[2*(i-first)] = v1;
+                    batch_read_pairs[2*(i-first)+1] = v2;
+                }
+                else {
+                    batch_read_pairs[2*(i-first)] = 0;
+                    batch_read_pairs[2*(i-first)+1] = 0;
+                    remainingAlignmentCandidates.push_back(candidate);
+                }
+            }
+
+            if (debug)
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << "\tThreadid " << threadId << " end time: " << timestamp << endl;
+            }
+
+            if (debug) {
+                std::lock_guard<std::mutex> lock(mutex);
+                fprintf(stdout, "Batchsize: %zu, Number of markers: %zu\n", (last-first), numPos); 
+            }
+
+            // find alignments on GPU
+            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, (last-first), numPos, numReads, batch_rid_marker_pos, batch_rid_markers, batch_read_pairs, h_alignments, h_num_traceback);
+
+            // Print progress
+            size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, last-first);
+            if ((currNumComputedAlignments == 0) || \
+                    ((currNumComputedAlignments / printEvery) != ((currNumComputedAlignments+last-first) / printEvery))) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << timestamp << "Working on alignment " << printEvery*((currNumComputedAlignments+last-first)/printEvery);
+                cout << " of " << alignmentCandidates.candidates.size() << endl;
+            }
+
+            // Evaluate alignments and push good alignments
+            for (size_t i=first; i<last; i++) {
+                auto candidate = alignmentCandidates.candidates[i];
+                alignment.ordinals.clear();
+                size_t last_addr = (i-first)*SHASTA_MAX_TB+h_num_traceback[i-first];
+                for (size_t j=1; j<=h_num_traceback[i-first]; j++) {
+                    uint32_t v = h_alignments[last_addr-j];
+                    uint32_t l, u;
+                    l = ((v << 16) >> 16);
+                    u = (v >> 16);
+                    alignment.ordinals.push_back(
+                            array<uint32_t, 2>({(u-1), (l-1)}));
+                }
+                if (alignment.ordinals.size() == 0) {
+                    remainingAlignmentCandidates.push_back(candidate);
+                }
+                else {
+                    // Compute alignment info.
+                    Strand s1 = 0;
+                    Strand s2 = candidate.isSameStrand ? 0 : 1;
+                    uint32_t rid1 = candidate.readIds[0];
+                    uint32_t rid2 = candidate.readIds[1];
+                    size_t l1, l2;
+                    l1 = getNumMarkers(rid1, s1);
+                    l2 = getNumMarkers(rid2, s2);
+
+                    //std::reverse(alignment.ordinals.begin(), alignment.ordinals.end());
+                    alignmentInfo.create(alignment, uint32_t(l1), uint32_t(l2));
+
+                    // If the alignment has too few markers skip it.
+                    if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                        __sync_fetch_and_add(&numFewMarkers, 1);
+                        continue;
+                    }
+
+                    // If the alignment has too much trim, skip it.
+                    uint32_t leftTrim;
+                    uint32_t rightTrim;
+                    tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
+                    if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                        __sync_fetch_and_add(&numBadTrim, 1);
+                        continue;
+                    }
+
+                    if (debug)
+                    {
+                        std::lock_guard<std::mutex> lock(mutex);
+
+                        vector<KmerId> vec_m1 = getMarkers(rid1, s1);
+                        vector<KmerId> vec_m2 = getMarkers(rid2, s2);
+
+                        fprintf(stdout, "[%u,%u] ", rid1, rid2); 
+
+                        size_t numPrint = alignment.ordinals.size();
+                        if (numPrint > 3) {
+                            numPrint = 3;
+                        }
+                        for (size_t i = 0; i < numPrint; i++) {
+                            fprintf(stdout, " at (%u, %u) markers (%u, %u), ", alignment.ordinals[i][0], alignment.ordinals[i][1],
+                                    vec_m1[alignment.ordinals[i][0]], vec_m2[alignment.ordinals[i][1]]);
+                        }
+                        fprintf(stdout, "\n");
+                    }
+
+                    __sync_fetch_and_add(&numGoodAlignments, 1);
+                    // If getting here, this is a good alignment.
+                    threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
+                }
+            }
+
+            // Evaluate alignments that failed on GPU
+            for (auto& candidate: remainingAlignmentCandidates) {
                 SHASTA_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
 
                 // Get the oriented read ids, with the first one on strand 0.
@@ -175,9 +374,6 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 orientedReadIdsOppositeStrand = orientedReadIds;
                 orientedReadIdsOppositeStrand[0].flipStrand();
                 orientedReadIdsOppositeStrand[1].flipStrand();
-
-
-                // out << timestamp << "Working on " << i << " " << orientedReadIds[0] << " " << orientedReadIds[1] << endl;
 
                 // Get the markers for the two oriented reads in this candidate.
                 for(size_t j=0; j<2; j++) {
@@ -201,6 +397,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
 
                 // If the alignment has too few markers skip it.
                 if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                    __sync_fetch_and_add(&numFewMarkers, 1);
                     continue;
                 }
 
@@ -209,317 +406,47 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 uint32_t rightTrim;
                 tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
                 if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                    __sync_fetch_and_add(&numBadTrim, 1);
                     continue;
                 }
 
+                if (debug)
+                {
+                    std::lock_guard<std::mutex> lock(mutex);
+                    // Compute alignment info.
+                    Strand s1 = 0;
+                    Strand s2 = candidate.isSameStrand ? 0 : 1;
+                    uint32_t rid1 = candidate.readIds[0];
+                    uint32_t rid2 = candidate.readIds[1];
+                    vector<KmerId> vec_m1, vec_m2;
+                    vec_m1 = getMarkers(rid1, s1);
+                    vec_m2 = getMarkers(rid2, s2);
+
+                    fprintf(stdout, "[%u,%u] ", rid1, rid2); 
+
+                    size_t numPrint = alignment.ordinals.size();
+                    if (numPrint > 3) {
+                        numPrint = 3;
+                    }
+                    for (size_t i = 0; i < numPrint; i++) {
+                        fprintf(stdout, " at (%u, %u) markers (%u, %u), ", alignment.ordinals[i][0], alignment.ordinals[i][1],
+                                vec_m1[alignment.ordinals[i][0]], vec_m2[alignment.ordinals[i][1]]);
+                    }
+                    fprintf(stdout, "\n");
+                }
+
+                __sync_fetch_and_add(&numGoodAlignments, 1);
                 // If getting here, this is a good alignment.
                 threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
             }
         }
-        // else use GPU
-        else {
-            size_t deviceId = threadId % data.nDevices;
 
-            size_t numUniqueMarkers = uniqueMarkersDict.size();
-
-            std::map<size_t, uint64_t> readIdLenDict;
-            uint64_t numPos = 0, numReads = 0;
-            
-            // host data structures for GPU
-            uint32_t* h_alignments = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t));
-            uint32_t* h_num_traceback = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t));
-            
-            uint64_t* batch_rid_marker_pos;
-            uint64_t* batch_rid_markers;
-            uint64_t* batch_read_pairs;
-
-            batch_rid_marker_pos = (uint64_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint64_t));
-            batch_rid_markers = (uint64_t*) malloc((1 + 2*SHASTA_GPU_BATCH_SIZE*numUniqueMarkers)*sizeof(uint64_t));
-            batch_read_pairs = (uint64_t*) malloc(2*SHASTA_GPU_BATCH_SIZE*sizeof(uint64_t));
-
-            uint32_t arr_m1[SHASTA_MAX_MARKERS_PER_READ];
-            uint32_t arr_m2[SHASTA_MAX_MARKERS_PER_READ];
-
-            // Alignment candidates that fail on GPU
-            vector<OrientedReadPair> remainingAlignmentCandidates;
-            
-            for (size_t first=begin; first<end; first+=SHASTA_GPU_BATCH_SIZE) {
-                size_t last = std::min(first+SHASTA_GPU_BATCH_SIZE, end);
-                
-                if (debug)
-                {
-                    std::lock_guard<std::mutex> lock(mutex);
-                    cout << "\tThreadid " << threadId << " start time: " << timestamp << endl;
-                }
-
-                // Clear vectors
-                numPos = 0;
-                numReads = 0;
-
-                readIdLenDict.clear();
-
-
-                remainingAlignmentCandidates.clear();
-                
-                // Compute alignments on GPU
-                for (size_t i=first; i<last; i++) {
-                    auto candidate = alignmentCandidates.candidates[i];
-                    ReadId rid1, rid2;
-                    uint64_t l1, l2;
-                    uint64_t batch_rid1, batch_rid2;
-                    Strand s1 = 0;
-                    Strand s2 = candidate.isSameStrand ? 0 : 1;
-                    rid1 = candidate.readIds[0];
-                    rid2 = candidate.readIds[1];
-
-                    l1 = getNumMarkers(rid1, s1); 
-                    l2 = getNumMarkers(rid2, s2);
-
-                    if (l1 >= SHASTA_MAX_MARKERS_PER_READ) {
-                        l1 = 0;
-                    }
-                    if (l2 >= SHASTA_MAX_MARKERS_PER_READ) {
-                        l2 = 0;
-                    }
-                    
-                    if ((l1 > 0) && (l2 > 0)) {
-                        if (readIdLenDict.find(2*rid1+s1) == readIdLenDict.end()) {
-                            getMarkersInArray (arr_m1, rid1, s1);
-                            batch_rid1 = numReads;
-                            uint64_t v, val, m;
-                            v = (batch_rid1 << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
-                            for (size_t j = 0; j < numUniqueMarkers; j++) {
-                                val = v + (j << SHASTA_LOG_MAX_MARKERS_PER_READ);
-                                batch_rid_markers[numReads*numUniqueMarkers + j] = val;
-                            }
-                            for (size_t l = 0; l < l1; l++) {
-                                m = uniqueMarkersDict[arr_m1[l]];
-                                val = v + (m << SHASTA_LOG_MAX_MARKERS_PER_READ);
-                                val = val + l;
-                                batch_rid_marker_pos[numPos++] = val;
-                            }
-                            readIdLenDict[2*rid1+s1] = (batch_rid1 << 32) + l1;
-                            numReads++;
-                        }
-
-                        if (readIdLenDict.find(2*rid2+s2) == readIdLenDict.end()) {
-                            getMarkersInArray (arr_m2, rid2, s2);
-                            batch_rid2 = numReads;
-                            uint64_t v, val, m;
-                            v = (batch_rid2 << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
-                            for (size_t j = 0; j < numUniqueMarkers; j++) {
-                                val = v + (j << SHASTA_LOG_MAX_MARKERS_PER_READ);
-                                batch_rid_markers[numReads*numUniqueMarkers + j] = val;
-                            }
-                            for (size_t l = 0; l < l2; l++) {
-                                m = uniqueMarkersDict[arr_m2[l]];
-                                val = v + (m << SHASTA_LOG_MAX_MARKERS_PER_READ);
-                                val = val + l;
-                                batch_rid_marker_pos[numPos++] = val;
-                            }
-                            readIdLenDict[2*rid2+s2] = (batch_rid2 << 32) + l2;
-                            numReads++;
-                        }
-                        
-                        // Send read pair
-                        uint64_t v1, v2;
-                        v1 = readIdLenDict[2*rid1+s1];
-                        v2 = readIdLenDict[2*rid2+s2];
-                        batch_read_pairs[2*(i-first)] = v1;
-                        batch_read_pairs[2*(i-first)+1] = v2;
-                    }
-                    else {
-                        batch_read_pairs[2*(i-first)] = 0;
-                        batch_read_pairs[2*(i-first)+1] = 0;
-                        remainingAlignmentCandidates.push_back(candidate);
-                    }
-                }
-
-                //Insert last element
-                {
-                    uint64_t v = (numReads << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
-                    batch_rid_markers[numReads*numUniqueMarkers] = v;
-                }
-                
-                if (debug)
-                {
-                    std::lock_guard<std::mutex> lock(mutex);
-                    cout << "\tThreadid " << threadId << " end time: " << timestamp << endl;
-                }
-
-                if (debug) {
-                    std::lock_guard<std::mutex> lock(mutex);
-                    fprintf(stdout, "Batchsize: %zu, Number of markers: %zu\n", (last-first), numPos); 
-                }
-
-                // find alignments on GPU
-                shasta_alignBatchGPU (deviceId, maxMarkerFrequency, maxSkip, (last-first), numPos, numReads, batch_rid_marker_pos, batch_rid_markers, batch_read_pairs, h_alignments, h_num_traceback);
-
-                // Print progress
-                size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, last-first);
-                if ((currNumComputedAlignments == 0) || \
-                        ((currNumComputedAlignments / printEvery) != ((currNumComputedAlignments+last-first) / printEvery))) {
-                    std::lock_guard<std::mutex> lock(mutex);
-                    cout << timestamp << "Working on alignment " << printEvery*((currNumComputedAlignments+last-first)/printEvery);
-                    cout << " of " << alignmentCandidates.candidates.size() << endl;
-                }
-
-                // Evaluate alignments and push good alignments
-                for (size_t i=first; i<last; i++) {
-                    auto candidate = alignmentCandidates.candidates[i];
-                    alignment.ordinals.clear();
-                    size_t last_addr = (i-first)*SHASTA_MAX_TB+h_num_traceback[i-first];
-                    for (size_t j=1; j<=h_num_traceback[i-first]; j++) {
-                        uint32_t v = h_alignments[last_addr-j];
-                        uint32_t l, u;
-                        l = ((v << 16) >> 16);
-                        u = (v >> 16);
-                        alignment.ordinals.push_back(
-                                array<uint32_t, 2>({(u-1), (l-1)}));
-                    }
-                    if (alignment.ordinals.size() == 0) {
-                        remainingAlignmentCandidates.push_back(candidate);
-                    }
-                    else {
-                        // Compute alignment info.
-                        Strand s1 = 0;
-                        Strand s2 = candidate.isSameStrand ? 0 : 1;
-                        uint32_t rid1 = candidate.readIds[0];
-                        uint32_t rid2 = candidate.readIds[1];
-                        size_t l1, l2;
-                        l1 = getNumMarkers(rid1, s1);
-                        l2 = getNumMarkers(rid2, s2);
-
-                        //std::reverse(alignment.ordinals.begin(), alignment.ordinals.end());
-                        alignmentInfo.create(alignment, uint32_t(l1), uint32_t(l2));
-                        
-                        // If the alignment has too few markers skip it.
-                        if(alignment.ordinals.size() < minAlignedMarkerCount) {
-                            __sync_fetch_and_add(&numFewMarkers, 1);
-                            continue;
-                        }
-
-                        // If the alignment has too much trim, skip it.
-                        uint32_t leftTrim;
-                        uint32_t rightTrim;
-                        tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
-                        if(leftTrim>maxTrim || rightTrim>maxTrim) {
-                            __sync_fetch_and_add(&numBadTrim, 1);
-                            continue;
-                        }
-                        
-                        if (debug)
-                        {
-                            std::lock_guard<std::mutex> lock(mutex);
-                            
-                            vector<KmerId> vec_m1 = getMarkers(rid1, s1);
-                            vector<KmerId> vec_m2 = getMarkers(rid2, s2);
-
-                            fprintf(stdout, "[%u,%u] ", rid1, rid2); 
-
-                            size_t numPrint = alignment.ordinals.size();
-                            if (numPrint > 3) {
-                                numPrint = 3;
-                            }
-                            for (size_t i = 0; i < numPrint; i++) {
-                                fprintf(stdout, " at (%u, %u) markers (%u, %u), ", alignment.ordinals[i][0], alignment.ordinals[i][1],
-                                        vec_m1[alignment.ordinals[i][0]], vec_m2[alignment.ordinals[i][1]]);
-                            }
-                            fprintf(stdout, "\n");
-                        }
-
-                        __sync_fetch_and_add(&numGoodAlignments, 1);
-                        // If getting here, this is a good alignment.
-                        threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
-                    }
-                }
-                
-                // Evaluate alignments that failed on GPU
-                for (auto& candidate: remainingAlignmentCandidates) {
-                    SHASTA_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
-
-                    // Get the oriented read ids, with the first one on strand 0.
-                    orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
-                    orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
-
-                    // Get the oriented read ids for the opposite strand.
-                    orientedReadIdsOppositeStrand = orientedReadIds;
-                    orientedReadIdsOppositeStrand[0].flipStrand();
-                    orientedReadIdsOppositeStrand[1].flipStrand();
-
-                    // Get the markers for the two oriented reads in this candidate.
-                    for(size_t j=0; j<2; j++) {
-                        getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
-                    }
-
-                    // Compute the Alignment.
-                    const auto t0 = std::chrono::steady_clock::now();
-                    alignOrientedReads(
-                            markersSortedByKmerId,
-                            maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
-                    const auto t1 = std::chrono::steady_clock::now();
-                    const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
-                    if(t01 > 1.) {
-                        std::lock_guard<std::mutex> lock(mutex);
-                        cout << timestamp << "Slow alignment computation for oriented reads ";
-                        cout << orientedReadIds[0] << " ";
-                        cout << orientedReadIds[1] << ": ";
-                        cout << t01 << " s.\n";
-                    }
-
-                    // If the alignment has too few markers skip it.
-                    if(alignment.ordinals.size() < minAlignedMarkerCount) {
-                        __sync_fetch_and_add(&numFewMarkers, 1);
-                        continue;
-                    }
-
-                    // If the alignment has too much trim, skip it.
-                    uint32_t leftTrim;
-                    uint32_t rightTrim;
-                    tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
-                    if(leftTrim>maxTrim || rightTrim>maxTrim) {
-                        __sync_fetch_and_add(&numBadTrim, 1);
-                        continue;
-                    }
-
-                    if (debug)
-                    {
-                        std::lock_guard<std::mutex> lock(mutex);
-                        // Compute alignment info.
-                        Strand s1 = 0;
-                        Strand s2 = candidate.isSameStrand ? 0 : 1;
-                        uint32_t rid1 = candidate.readIds[0];
-                        uint32_t rid2 = candidate.readIds[1];
-                        vector<KmerId> vec_m1, vec_m2;
-                        vec_m1 = getMarkers(rid1, s1);
-                        vec_m2 = getMarkers(rid2, s2);
-
-                        fprintf(stdout, "[%u,%u] ", rid1, rid2); 
-
-                        size_t numPrint = alignment.ordinals.size();
-                        if (numPrint > 3) {
-                            numPrint = 3;
-                        }
-                        for (size_t i = 0; i < numPrint; i++) {
-                            fprintf(stdout, " at (%u, %u) markers (%u, %u), ", alignment.ordinals[i][0], alignment.ordinals[i][1],
-                                    vec_m1[alignment.ordinals[i][0]], vec_m2[alignment.ordinals[i][1]]);
-                        }
-                        fprintf(stdout, "\n");
-                    }
-
-                    __sync_fetch_and_add(&numGoodAlignments, 1);
-                    // If getting here, this is a good alignment.
-                    threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
-                }
-            }
-
-            // free host data structures
-            free(h_alignments);
-            free(h_num_traceback);
-            free(batch_rid_marker_pos);
-            free(batch_rid_markers);
-            free(batch_read_pairs);
-        }
+        // free host data structures
+        free(h_alignments);
+        free(h_num_traceback);
+        free(batch_rid_marker_pos);
+        free(batch_rid_markers);
+        free(batch_read_pairs);
     }
 }
 
