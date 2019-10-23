@@ -681,7 +681,6 @@ private:
 
 #ifdef SHASTA_BUILD_FOR_GPU
     size_t getNumMarkers (ReadId, Strand);
-    size_t getMarkersInArray (uint32_t* arr, ReadId readId, Strand strand); 
 #endif
 
     // Inverse of the above: given a global marker id,
