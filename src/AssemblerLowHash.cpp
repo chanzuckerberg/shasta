@@ -237,3 +237,22 @@ void Assembler::writeAlignmentCandidates() const
         }
     }
 }
+
+
+
+// This marks all pairs as alignment candidates.
+void Assembler::markAlignmentCandidatesAllPairs()
+{
+    // Create the alignment candidates.
+    alignmentCandidates.candidates.createNew(largeDataName("AlignmentCandidates"), largeDataPageSize);
+
+    // Add all pairs on both orientations.
+    const ReadId n = readCount();
+    for(ReadId r0=0; r0<n-1; r0++) {
+        for(ReadId r1=r0+1; r1<n; r1++) {
+            alignmentCandidates.candidates.push_back(OrientedReadPair(r0, r1, true));
+            alignmentCandidates.candidates.push_back(OrientedReadPair(r0, r1, false));
+        }
+    }
+    cout << "Marked all pairs of reads as alignment candidates on both orientations." << endl;
+}

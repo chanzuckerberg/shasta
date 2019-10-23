@@ -90,6 +90,7 @@ public:
         int minBucketSize;
         int maxBucketSize;
         int minFrequency;
+        bool allPairs;
         void write(ostream&) const;
     };
     MinHashOptions minHashOptions;

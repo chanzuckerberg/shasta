@@ -249,6 +249,7 @@ void shasta::main::assemble(
 
 
     // Write out the option values we are using.
+    // This code should should be moved to AssemblerOptions::write.
     cout << "Options in use:" << endl;
     cout << "Input files: ";
     copy(
@@ -262,6 +263,9 @@ void shasta::main::assemble(
     cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
     cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << endl;
     cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << "\n" << endl;
+    cout << "useGpu = " <<
+        AssemblerOptions::convertBoolToPythonString(assemblerOptions.commandLineOnlyOptions.useGpu) <<
+        "\n" << endl;
 #endif
     assemblerOptions.write(cout);
     {
@@ -500,8 +504,12 @@ void shasta::main::assemble(
         assemblerOptions.readsOptions.palindromicReads.deltaThreshold,
         threadCount);
 
+
+
     // Find alignment candidates.
-    if(assemblerOptions.minHashOptions.version == 0) {
+    if(assemblerOptions.minHashOptions.allPairs) {
+        assembler.markAlignmentCandidatesAllPairs();
+    } else if(assemblerOptions.minHashOptions.version == 0) {
         assembler.findAlignmentCandidatesLowHash0(
             assemblerOptions.minHashOptions.m,
             assemblerOptions.minHashOptions.hashFraction,

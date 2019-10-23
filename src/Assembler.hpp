@@ -751,6 +751,7 @@ public:
         size_t minFrequency,            // Minimum number of lowHash hits for a pair to become a candidate.
         size_t threadCount
     );
+    void markAlignmentCandidatesAllPairs();
     void accessAlignmentCandidates();
     vector<OrientedReadPair> getAlignmentCandidates() const;
 private:

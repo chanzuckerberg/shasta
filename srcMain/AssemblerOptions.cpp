@@ -292,6 +292,13 @@ void AssemblerOptions::addConfigurableOptions()
         "The minimum number of times a pair of reads must be found by the MinHash/LowHash algorithm "
         "in order to be considered a candidate alignment.")
 
+        ("MinHash.allPairs",
+        bool_switch(&minHashOptions.allPairs)->
+        default_value(false),
+        "Skip the MinHash algorithm and mark all pairs of reads as alignment"
+        "candidates with both orientation. This should only be used for experimentation "
+        "on very small runs because it is very time consuming.")
+
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->
         default_value(30),
@@ -461,6 +468,8 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
     s << "minBucketSize = " << minBucketSize << "\n";
     s << "maxBucketSize = " << maxBucketSize << "\n";
     s << "minFrequency = " << minFrequency << "\n";
+    s << "allPairs = " <<
+        convertBoolToPythonString(allPairs) << "\n";
 }
 
 

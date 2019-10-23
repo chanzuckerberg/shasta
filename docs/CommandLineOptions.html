@@ -401,6 +401,15 @@ The minimum number of times a pair of reads must be found by the
 MinHash/LowHash algorithm in order to be considered a candidate alignment.
 <a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
+<tr id='MinHash.allPairs'>
+<td><code>--MinHash.allPairs</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>
+that causes the MinHash process to be skipped. 
+Instead, all possible read pairs are marked as alignment candidates, on both 
+relative orientations. This should only be used for very small test
+assemblies as it can become prohibitively slow for large assemblies.
+
 <tr id='Align.maxSkip'>
 <td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
 The maximum number of markers that an alignment is allowed to skip.
