@@ -61,7 +61,7 @@ void Assembler::computeAlignmentsGpu(
     checkAlignmentCandidatesAreOpen();
     
     //Compute unique markers
-    std::map <KmerId, uint32_t> uniqueMarkersDict;
+    std::unordered_map <KmerId, uint32_t> uniqueMarkersDict;
 
     uint32_t numUniqueMarkers = 0;
     uint32_t kmerTableSize = static_cast<uint32_t> (kmerTable.size());
@@ -148,7 +148,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
     const size_t maxSkip = data.maxSkip;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
     const size_t maxTrim = data.maxTrim;
-    std::map<KmerId, uint32_t> uniqueMarkersDict = data.uniqueMarkersDict;
+    std::unordered_map<KmerId, uint32_t> uniqueMarkersDict = data.uniqueMarkersDict;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
 

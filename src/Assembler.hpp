@@ -837,7 +837,7 @@ private:
         size_t maxTrim;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
-        std::map <KmerId, uint32_t> uniqueMarkersDict;
+        std::unordered_map <KmerId, uint32_t> uniqueMarkersDict;
 #endif
 
         // The AlignmentInfo found by each thread.
