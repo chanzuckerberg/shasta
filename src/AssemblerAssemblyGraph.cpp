@@ -564,7 +564,9 @@ void Assembler::writeAssemblyGraph(const string& fileName) const
 
 
 // Assemble sequence for all edges of the assembly graph.
-void Assembler::assemble(size_t threadCount)
+void Assembler::assemble(
+    size_t threadCount,
+    uint32_t storeCoverageDataCsvLengthThreshold)
 {
 
     // Check that we have what we need.
@@ -574,6 +576,10 @@ void Assembler::assemble(size_t threadCount)
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
+    if(storeCoverageDataCsvLengthThreshold > 0) {
+         SHASTA_ASSERT(markerGraph.vertexCoverageData.isOpen());
+         SHASTA_ASSERT(markerGraph.edgeCoverageData.isOpen());
+    }
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -583,6 +589,7 @@ void Assembler::assemble(size_t threadCount)
 
     // Allocate data structures to store assembly results for each thread.
     assembleData.allocate(threadCount);
+    assembleData.storeCoverageDataCsvLengthThreshold = storeCoverageDataCsvLengthThreshold;
 
     // Attempt to reduce memory fragmentation.
 #ifdef __linux__

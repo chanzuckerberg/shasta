@@ -1355,12 +1355,7 @@ public:
         bool useMarginPhase,
 
         // Request storing detailed coverage information in binary format.
-        bool storeCoverageData,
-
-        // The minimum length of an assembled segment
-        // for which coverage data in csv format should be stored.
-        // If 0, no coverage data in csv format is stored.
-        uint32_t storeCoverageDataCsvLengthThreshold
+        bool storeCoverageData
         );
 private:
     void assembleMarkerGraphEdgesThreadFunction(size_t threadId);
@@ -1415,12 +1410,15 @@ public:
 
 
     // Assemble sequence for all edges of the assembly graph.
-    void assemble(size_t threadCount);
+    void assemble(
+        size_t threadCount,
+        uint32_t storeCoverageDataCsvLengthThreshold);
     void accessAssemblyGraphSequences();
     void computeAssemblyStatistics();
 private:
     class AssembleData {
     public:
+        uint32_t storeCoverageDataCsvLengthThreshold;
 
         // The results created by each thread.
         // All indexed by threadId.

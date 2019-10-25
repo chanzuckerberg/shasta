@@ -387,8 +387,7 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0,
             arg("markerGraphEdgeLengthThresholdForConsensus"),
             arg("useMarginPhase"),
-            arg("storeCoverageData") = false,
-            arg("storeCoverageDataCsvLengthThreshold") = 0)
+            arg("storeCoverageData"))
         .def("accessMarkerGraphConsensus",
             &Assembler::accessMarkerGraphConsensus)
         .def("accessMarkerGraphCoverageData",
@@ -411,7 +410,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::writeAssemblyGraph)
         .def("assemble",
             &Assembler::assemble,
-            arg("threadCount") = 0)
+            arg("threadCount") = 0,
+            arg("storeCoverageDataCsvLengthThreshold") = 0)
         .def("accessAssemblyGraphSequences",
             &Assembler::accessAssemblyGraphSequences)
         .def("computeAssemblyStatistics",
