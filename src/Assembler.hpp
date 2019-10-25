@@ -1354,8 +1354,13 @@ public:
         // to compute consensus sequence.
         bool useMarginPhase,
 
-        // Request storing detailed coverage information.
-        bool storeCoverageData
+        // Request storing detailed coverage information in binary format.
+        bool storeCoverageData,
+
+        // The minimum length of an assembled segment
+        // for which coverage data in csv format should be stored.
+        // If 0, no coverage data in csv format is stored.
+        uint32_t storeCoverageDataCsvLengthThreshold
         );
 private:
     void assembleMarkerGraphEdgesThreadFunction(size_t threadId);

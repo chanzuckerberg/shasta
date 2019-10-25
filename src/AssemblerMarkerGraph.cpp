@@ -4529,7 +4529,12 @@ void Assembler::assembleMarkerGraphEdges(
     bool useMarginPhase,
 
     // Request storing detailed coverage information.
-    bool storeCoverageData
+    bool storeCoverageData,
+
+    // The minimum length of an assembled segment
+    // for which coverage data in csv format should be stored.
+    // If 0, no coverage data in csv format is stored.
+    uint32_t storeCoverageDataCsvLengthThreshold
     )
 {
     cout << timestamp << "assembleMarkerGraphEdges begins." << endl;

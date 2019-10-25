@@ -407,7 +407,14 @@ void AssemblerOptions::addConfigurableOptions()
         ("Assembly.storeCoverageData",
         bool_switch(&assemblyOptions.storeCoverageData)->
         default_value(false),
-        "Used to request storing coverage data.")
+        "Used to request storing coverage data in binary format.")
+
+        ("Assembly.storeCoverageDataCsvLengthThreshold",
+        value<int>(&assemblyOptions.storeCoverageDataCsvLengthThreshold)->
+        default_value(0),
+        "Used to specify the minimum length of an assembled segment "
+        "for which coverage data in csv format should be stored. "
+        "If 0, no coverage data in csv format is stored.")
 
         ("Phasing.phasingSimilarityThreshold",
         value<double>(&phasingOptions.phasingSimilarityThreshold)->
@@ -523,6 +530,8 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
         convertBoolToPythonString(useMarginPhase) << "\n";
     s << "storeCoverageData = " <<
         convertBoolToPythonString(storeCoverageData) << "\n";
+    s << "storeCoverageDataCsvLengthThreshold = " <<
+        storeCoverageDataCsvLengthThreshold << "\n";
 }
 
 

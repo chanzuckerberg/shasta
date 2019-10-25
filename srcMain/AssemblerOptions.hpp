@@ -158,6 +158,7 @@ public:
         string consensusCaller;
         bool useMarginPhase;
         bool storeCoverageData;
+        int storeCoverageDataCsvLengthThreshold;
         void write(ostream&) const;
     };
     AssemblyOptions assemblyOptions;

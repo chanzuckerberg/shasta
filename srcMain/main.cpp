@@ -655,7 +655,8 @@ void shasta::main::assemble(
     assembler.assembleMarkerGraphVertices(threadCount);
 
     // If coverage data was requested, compute and store coverage data for the vertices.
-    if(assemblerOptions.assemblyOptions.storeCoverageData) {
+    if(assemblerOptions.assemblyOptions.storeCoverageData or
+        assemblerOptions.assemblyOptions.storeCoverageData>0) {
         assembler.computeMarkerGraphVerticesCoverageData(threadCount);
     }
 
@@ -664,7 +665,9 @@ void shasta::main::assemble(
         threadCount,
         assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
         false,
-        assemblerOptions.assemblyOptions.storeCoverageData);
+        assemblerOptions.assemblyOptions.storeCoverageData,
+        assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold
+        );
 
     // Use the assembly graph for global assembly.
     assembler.assemble(threadCount);
