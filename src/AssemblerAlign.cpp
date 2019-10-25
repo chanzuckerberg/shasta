@@ -1,7 +1,9 @@
-// shasta.
+// PngImage.hpp must be included first because of png issues on Ubuntu 16.04.
+#include "PngImage.hpp"
+
+// Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
-#include "PngImage.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
