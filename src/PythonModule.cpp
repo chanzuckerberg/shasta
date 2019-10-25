@@ -245,6 +245,12 @@ PYBIND11_MODULE(shasta, module)
 #endif
         .def("accessAlignmentData",
             &Assembler::accessAlignmentData)
+        .def("analyzeAlignmentMatrix",
+            &Assembler::analyzeAlignmentMatrix,
+            arg("readId0"),
+            arg("strand0"),
+            arg("readId1"),
+            arg("strand1"))
 
 
 

@@ -1,6 +1,7 @@
 // shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "PngImage.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
@@ -616,3 +617,133 @@ void Assembler::flagPalindromicReadsThreadFunction(size_t threadId)
 }
 
 
+
+void Assembler::analyzeAlignmentMatrix(
+    ReadId readId0, Strand strand0,
+    ReadId readId1, Strand strand1)
+{
+    // Get the oriented reads.
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    const OrientedReadId orientedReadId1(readId1, strand1);
+
+    // Get the markers sorted by kmerId.
+    vector<MarkerWithOrdinal> markers0;
+    vector<MarkerWithOrdinal> markers1;
+    getMarkersSortedByKmerId(orientedReadId0, markers0);
+    getMarkersSortedByKmerId(orientedReadId1, markers1);
+
+    // Some iterators we will need.
+    using MarkerIterator = vector<MarkerWithOrdinal>::const_iterator;
+    const MarkerIterator begin0 = markers0.begin();
+    const MarkerIterator end0   = markers0.end();
+    const MarkerIterator begin1 = markers1.begin();
+    const MarkerIterator end1   = markers1.end();
+
+    // The number of markers in each oriented read.
+    const int64_t n0 = end0 - begin0;
+    const int64_t n1 = end1 - begin1;
+
+    // We will use coordinates
+    // x = ordinal0 + ordinal1
+    // y = ordinal0 - ordinal1 (offset)
+    // In these coordinates, diagonals in the alignment matrix
+    // are lines of constant y and so they become horizontal.
+    const int64_t xMin = 0;
+    const int64_t xMax = n0 + n1 - 2;
+    const int64_t yMin = -n1;
+    const int64_t yMax = n0 - 1;
+    const int64_t nx= xMax -xMin + 1;
+    const int64_t ny= yMax -yMin + 1;
+
+    // Create a histogram in cells of size (dx, dy).
+    const int64_t dx = 100;
+    const int64_t dy = 20;
+    const int64_t nxCells = (nx-1)/dx + 1;
+    const int64_t nyCells = (ny-1)/dy + 1;
+    vector< vector<uint64_t> > histogram(nxCells, vector<uint64_t>(nyCells, 0));
+    cout << "nxCells " << nxCells << endl;
+    cout << "nyCells " << nyCells << endl;
+
+
+
+    // Joint loop over the markers, looking for common k-mer ids.
+    auto it0 = begin0;
+    auto it1 = begin1;
+    while(it0!=end0 && it1!=end1) {
+        if(it0->kmerId < it1->kmerId) {
+            ++it0;
+        } else if(it1->kmerId < it0->kmerId) {
+            ++it1;
+        } else {
+
+            // We found a common k-mer id.
+            const KmerId kmerId = it0->kmerId;
+
+
+            // This k-mer could appear more than once in each of the oriented reads,
+            // so we need to find the streak of this k-mer in kmers0 and kmers1.
+            MarkerIterator it0Begin = it0;
+            MarkerIterator it1Begin = it1;
+            MarkerIterator it0End = it0Begin;
+            MarkerIterator it1End = it1Begin;
+            while(it0End!=end0 && it0End->kmerId==kmerId) {
+                ++it0End;
+            }
+            while(it1End!=end1 && it1End->kmerId==kmerId) {
+                ++it1End;
+            }
+
+
+            // Loop over pairs in the streaks.
+            for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
+                const int64_t ordinal0 = jt0->ordinal;
+                for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
+                    const int64_t ordinal1 = int64_t(jt1->ordinal);
+
+                    const int64_t x = ordinal0 + ordinal1;
+                    const int64_t y = ordinal0 - ordinal1;
+                    const int64_t ix = (x-xMin) / dx;
+                    const int64_t iy = (y-yMin) / dy;
+                    SHASTA_ASSERT(ix >= 0);
+                    SHASTA_ASSERT(iy >= 0);
+                    SHASTA_ASSERT(ix < nxCells);
+                    SHASTA_ASSERT(iy < nyCells);
+
+                    ++histogram[ix][iy];
+                }
+            }
+
+
+            // Continue joint loop over k-mers.
+            it0 = it0End;
+            it1 = it1End;
+        }
+    }
+
+    ofstream csv("Histogram.csv");
+    PngImage image = PngImage(int(nxCells), int(nyCells));
+    uint64_t activeCellCount = 0;
+    for(int64_t iy=0; iy<nyCells; iy++) {
+        for(int64_t ix=0; ix<nxCells; ix++) {
+            const int64_t frequency = histogram[ix][iy];
+            if(frequency > 0) {
+                csv << frequency;
+            }
+            if(frequency >= 10) {
+                ++activeCellCount;
+            }
+            // const int r = (frequency <= 10) ? 0 : min(int(255), int(10*frequency));
+            const int r = (frequency>=10) ? 255 : 0;
+            // const int r = min(int(255), int(10*frequency));
+            const int g = r;
+            const int b = r;
+            image.setPixel(int(ix), int(iy), r, g, b);
+            csv << ",";
+        }
+        csv << "\n";
+    }
+    image.write("Histogram.png");
+    cout << activeCellCount << " active cells out of " << nxCells*nyCells << endl;
+
+
+}

@@ -792,6 +792,11 @@ private:
         Alignment&,
         AlignmentInfo&
     );
+public:
+    void analyzeAlignmentMatrix(ReadId, Strand, ReadId, Strand);
+private:
+
+
 
     // Create a local alignment graph starting from a given oriented read
     // and walking out a given distance on the global alignment graph.
