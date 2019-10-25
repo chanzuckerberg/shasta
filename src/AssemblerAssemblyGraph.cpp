@@ -591,6 +591,11 @@ void Assembler::assemble(
     assembleData.allocate(threadCount);
     assembleData.storeCoverageDataCsvLengthThreshold = storeCoverageDataCsvLengthThreshold;
 
+    // Create the Coverage directory, if necessary.
+    if(assembleData.storeCoverageDataCsvLengthThreshold > 0) {
+        filesystem::createDirectory("Coverage");
+    }
+
     // Attempt to reduce memory fragmentation.
 #ifdef __linux__
     mallopt(M_MMAP_THRESHOLD, 16*1024);
@@ -692,7 +697,9 @@ void Assembler::assembleThreadFunction(size_t threadId)
                 continue;
             }
             try {
-                assembleAssemblyGraphEdge(edgeId, false, assembledSegment);
+                assembleAssemblyGraphEdge(edgeId,
+                    assembleData.storeCoverageDataCsvLengthThreshold > 0,
+                    assembledSegment);
             } catch(const std::exception& e) {
                 std::lock_guard<std::mutex> lock(mutex);
                 cout << timestamp << "Thread " << threadId <<
@@ -716,6 +723,15 @@ void Assembler::assembleThreadFunction(size_t threadId)
             repeatCounts.appendVector();
             for(const uint32_t r: assembledSegment.repeatCounts) {
                 repeatCounts.append(uint8_t(min(uint32_t(255), r)));
+            }
+
+            // If requested and the assembled segment is sufficiently long,
+            // write coverage information in csv format.
+            if(
+                (assembleData.storeCoverageDataCsvLengthThreshold > 0)
+                and
+                (assembledSegment.rawSequence.size() > assembleData.storeCoverageDataCsvLengthThreshold)) {
+                assembledSegment.writeCoverageDataCsv();
             }
         }
     }

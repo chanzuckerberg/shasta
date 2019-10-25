@@ -104,6 +104,7 @@ public:
     // Coverage data for assembled sequence.
     // Indexed by the assembled position in run-length coordinates.
     vector< vector<CompressedCoverageData> > assembledCoverageData;
+    void writeCoverageDataCsv() const;
 
 
 

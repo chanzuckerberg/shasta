@@ -8,6 +8,7 @@ using namespace shasta;
 
 // Standard library.
 #include "iterator.hpp"
+#include "fstream.hpp"
 
 
 
@@ -488,5 +489,26 @@ void AssembledSegment::writeDetailHtml(
                 html << "</span>";
             }
          }
+    }
+}
+
+
+
+void AssembledSegment::writeCoverageDataCsv() const
+{
+    ofstream csv("Coverage/" + to_string(assemblyGraphEdgeId) + ".csv");
+
+    for(uint32_t position=0; position<size(); position++) {
+        csv << position << ",";
+        csv << getBase(position) << ",";
+        csv << getRepeatCount(position) << ",";
+        for(const auto& coverageData: getCoverageData(position)) {
+            csv <<
+                coverageData.getBase() <<
+                coverageData.getRepeatCount() <<
+                coverageData.getStrand() << " " <<
+                coverageData.getFrequency() << ",";
+        }
+        csv << "\n";
     }
 }
