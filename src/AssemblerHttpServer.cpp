@@ -2035,6 +2035,8 @@ void Assembler::exploreAlignment(
     // Get alignment parameters.
     size_t maxSkip = 30;
     getParameterValue(request, "maxSkip", maxSkip);
+    size_t maxDrift = 30;
+    getParameterValue(request, "maxDrift", maxDrift);
     uint32_t maxMarkerFrequency = 10;
     getParameterValue(request, "maxMarkerFrequency", maxMarkerFrequency);
 
@@ -2056,6 +2058,9 @@ void Assembler::exploreAlignment(
     html <<
         "<br>Maximum ordinal skip allowed: " <<
         "<input type=text name=maxSkip required size=8 value=" << maxSkip << ">";
+    html <<
+        "<br>Maximum ordinal drift allowed: " <<
+        "<input type=text name=maxDrift required size=8 value=" << maxDrift << ">";
     html <<
         "<br>Maximum k-mer frequency: " <<
         "<input type=text name=maxMarkerFrequency required size=8 value=" << maxMarkerFrequency << ">";
@@ -2094,7 +2099,7 @@ void Assembler::exploreAlignment(
     const bool debug = true;
     alignOrientedReads(
         markersSortedByKmerId,
-        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
     if(alignment.ordinals.empty()) {
         html << "<p>The alignment is empty (it has no markers).";
         return;
@@ -2613,6 +2618,8 @@ void Assembler::computeAllAlignments(
     getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
     computeAllAlignmentsData.maxSkip = 30;
     getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
+    computeAllAlignmentsData.maxDrift = 30;
+    getParameterValue(request, "maxDrift", computeAllAlignmentsData.maxDrift);
     computeAllAlignmentsData.maxMarkerFrequency = 10;
     getParameterValue(request, "maxMarkerFrequency", computeAllAlignmentsData.maxMarkerFrequency);
     computeAllAlignmentsData.minAlignedMarkerCount = 100;
@@ -2771,6 +2778,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     // Get parameters for alignment computation.
     const size_t minMarkerCount = computeAllAlignmentsData.minMarkerCount;
     const size_t maxSkip = computeAllAlignmentsData.maxSkip;
+    const size_t maxDrift = computeAllAlignmentsData.maxDrift;
     const uint32_t maxMarkerFrequency = computeAllAlignmentsData.maxMarkerFrequency;
     const size_t minAlignedMarkerCount =computeAllAlignmentsData.minAlignedMarkerCount;
     const size_t maxTrim =computeAllAlignmentsData.maxTrim;
@@ -2817,7 +2825,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 const bool debug = false;
                 alignOrientedReads(
                     markersSortedByKmerId,
-                    maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
                 // If the alignment has too few markers skip it.
                 if(alignment.ordinals.size() < minAlignedMarkerCount) {

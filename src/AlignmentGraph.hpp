@@ -49,6 +49,11 @@ namespace shasta {
         // in the alignment.
         size_t maxSkip,
 
+        // The maximum ordinal drift to be tolerated between successive markers
+        // in the alignment. This is the drift of the two oriented reads
+        // relative to each other.
+        size_t maxDrift,
+
         // Marker frequency threshold.
         // When computing an alignment between two oriented reads,
         // marker kmers that appear more than this number of times
@@ -126,6 +131,7 @@ public:
         const array<vector<MarkerWithOrdinal>, 2>&,
         uint32_t maxMarkerFrequency,
         size_t maxSkip,
+        size_t maxDrift,
         bool debug,
         Alignment&,
         AlignmentInfo&);
@@ -148,7 +154,8 @@ private:
     void createEdges(
         uint32_t markerCount0,
         uint32_t MarkerCount1,
-        size_t maxSkip);
+        size_t maxSkip,
+        size_t maxDrift);
     void writeEdges(const string& fileName) const;
 
     // Write in graphviz format, without the start and finish vertices.

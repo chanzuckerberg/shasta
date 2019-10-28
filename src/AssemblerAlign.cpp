@@ -18,20 +18,22 @@ using namespace shasta;
 void Assembler::alignOrientedReads(
     ReadId readId0, Strand strand0,
     ReadId readId1, Strand strand1,
-    size_t maxSkip, // Maximum ordinal skip allowed.
+    size_t maxSkip,     // Maximum ordinal skip allowed.
+    size_t maxDrift,    // Maximum ordinal drift allowed.
     uint32_t maxMarkerFrequency
 )
 {
     alignOrientedReads(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
-        maxSkip, maxMarkerFrequency
+        maxSkip, maxDrift, maxMarkerFrequency
         );
 }
 void Assembler::alignOrientedReads(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     size_t maxSkip, // Maximum ordinal skip allowed.
+    size_t maxDrift,    // Maximum ordinal drift allowed.
     uint32_t maxMarkerFrequency
 )
 {
@@ -53,7 +55,7 @@ void Assembler::alignOrientedReads(
     const bool debug = true;
     alignOrientedReads(
         markersSortedByKmerId,
-        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
     // Compute the AlignmentInfo.
     uint32_t leftTrim;
@@ -82,6 +84,7 @@ void Assembler::alignOrientedReads(
 void Assembler::alignOrientedReads(
     const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
     size_t maxSkip,             // Maximum ordinal skip allowed.
+    size_t maxDrift,            // Maximum ordinal drift allowed.
     uint32_t maxMarkerFrequency
 )
 {
@@ -92,7 +95,7 @@ void Assembler::alignOrientedReads(
     const bool debug = true;
     alignOrientedReads(
         markersSortedByKmerId,
-        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 }
 
 
@@ -100,6 +103,7 @@ void Assembler::alignOrientedReads(
 void Assembler::alignOrientedReads(
     const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
     size_t maxSkip,             // Maximum ordinal skip allowed.
+    size_t maxDrift,            // Maximum ordinal drift allowed.
     uint32_t maxMarkerFrequency,
     bool debug,
     AlignmentGraph& graph,
@@ -108,7 +112,7 @@ void Assembler::alignOrientedReads(
 )
 {
     align(markersSortedByKmerId,
-        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 }
 
 
@@ -118,6 +122,7 @@ void Assembler::alignOrientedReads(
 void Assembler::alignOverlappingOrientedReads(
     ReadId readId, Strand strand,
     size_t maxSkip,                 // Maximum ordinal skip allowed.
+    size_t maxDrift,                // Maximum ordinal drift allowed.
     uint32_t maxMarkerFrequency,
     size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
     size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
@@ -125,7 +130,7 @@ void Assembler::alignOverlappingOrientedReads(
 {
     alignOverlappingOrientedReads(
         OrientedReadId(readId, strand),
-        maxSkip, maxMarkerFrequency, minAlignedMarkerCount, maxTrim);
+        maxSkip, maxDrift, maxMarkerFrequency, minAlignedMarkerCount, maxTrim);
 }
 
 
@@ -133,6 +138,7 @@ void Assembler::alignOverlappingOrientedReads(
 void Assembler::alignOverlappingOrientedReads(
     OrientedReadId orientedReadId0,
     size_t maxSkip,                 // Maximum ordinal skip allowed.
+    size_t maxDrift,                // Maximum ordinal drift allowed.
     uint32_t maxMarkerFrequency,
     size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
     size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
@@ -165,7 +171,7 @@ void Assembler::alignOverlappingOrientedReads(
         const bool debug = false;
         alignOrientedReads(
             markersSortedByKmerId,
-            maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+            maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
         uint32_t leftTrim;
         uint32_t rightTrim;
@@ -205,6 +211,10 @@ void Assembler::computeAlignments(
     // in the alignment.
     size_t maxSkip,
 
+    // The maximum relative ordinal drift to be tolerated between successive markers
+    // in the alignment.
+    size_t maxDrift,
+
     // Minimum number of alignment markers for an alignment to be used.
     size_t minAlignedMarkerCount,
 
@@ -230,6 +240,7 @@ void Assembler::computeAlignments(
     auto& data = computeAlignmentsData;
     data.maxMarkerFrequency = maxMarkerFrequency;
     data.maxSkip = maxSkip;
+    data.maxDrift = maxDrift;
     data.minAlignedMarkerCount = minAlignedMarkerCount;
     data.maxTrim = maxTrim;
 
@@ -291,6 +302,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     auto& data = computeAlignmentsData;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
     const size_t maxSkip = data.maxSkip;
+    const size_t maxDrift = data.maxDrift;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
     const size_t maxTrim = data.maxTrim;
 
@@ -329,7 +341,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             const auto t0 = std::chrono::steady_clock::now();
             alignOrientedReads(
                 markersSortedByKmerId,
-                maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
             const auto t1 = std::chrono::steady_clock::now();
             const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
             if(t01 > 1.) {
@@ -494,6 +506,7 @@ vector< pair<OrientedReadId, shasta::AlignmentInfo> >
 // Flag palindromic reads.
 void Assembler::flagPalindromicReads(
     uint32_t maxSkip,
+    uint32_t maxDrift,
     uint32_t maxMarkerFrequency,
     double alignedFractionThreshold,
     double nearDiagonalFractionThreshold,
@@ -509,6 +522,7 @@ void Assembler::flagPalindromicReads(
 
     // Store the parameters so all threads can see them.
     flagPalindromicReadsData.maxSkip = maxSkip;
+    flagPalindromicReadsData.maxDrift = maxDrift;
     flagPalindromicReadsData.maxMarkerFrequency = maxMarkerFrequency;
     flagPalindromicReadsData.alignedFractionThreshold = alignedFractionThreshold;
     flagPalindromicReadsData.nearDiagonalFractionThreshold = nearDiagonalFractionThreshold;
@@ -563,6 +577,7 @@ void Assembler::flagPalindromicReadsThreadFunction(size_t threadId)
 
     // Make local copies of the parameters.
     const uint32_t maxSkip = flagPalindromicReadsData.maxSkip;
+    const uint32_t maxDrift = flagPalindromicReadsData.maxDrift;
     const uint32_t maxMarkerFrequency = flagPalindromicReadsData.maxMarkerFrequency;
     const double alignedFractionThreshold = flagPalindromicReadsData.alignedFractionThreshold;
     const double nearDiagonalFractionThreshold = flagPalindromicReadsData.nearDiagonalFractionThreshold;
@@ -586,7 +601,7 @@ void Assembler::flagPalindromicReadsThreadFunction(size_t threadId)
             }
 
             // Compute a marker alignment of this read versus its reverse complement.
-            alignOrientedReads(markersSortedByKmerId, maxSkip, maxMarkerFrequency, false,
+            alignOrientedReads(markersSortedByKmerId, maxSkip, maxDrift, maxMarkerFrequency, false,
                 graph, alignment, alignmentInfo);
 
             // If the alignment has too few markers, skip it.

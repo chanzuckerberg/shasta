@@ -191,6 +191,7 @@ PYBIND11_MODULE(shasta, module)
         .def("flagPalindromicReads",
             &Assembler::flagPalindromicReads,
             arg("maxSkip"),
+            arg("maxDrift"),
             arg("maxMarkerFrequency"),
             arg("alignedFractionThreshold"),
             arg("nearDiagonalFractionThreshold"),
@@ -203,7 +204,7 @@ PYBIND11_MODULE(shasta, module)
         .def("alignOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand, size_t, uint32_t)
+                (ReadId, Strand, ReadId, Strand, size_t, size_t, uint32_t)
             )
             &Assembler::alignOrientedReads,
             arg("readId0"),
@@ -211,16 +212,18 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1"),
             arg("maxSkip"),
+            arg("maxDrift"),
             arg("maxMarkerFrequency"))
         .def("alignOverlappingOrientedReads",
             (
                 void (Assembler::*)
-                (ReadId, Strand, size_t, uint32_t, size_t, size_t)
+                (ReadId, Strand, size_t, size_t, uint32_t, size_t, size_t)
             )
             &Assembler::alignOverlappingOrientedReads,
             arg("readId"),
             arg("strand"),
             arg("maxSkip"),
+            arg("maxDrift"),
             arg("maxMarkerFrequency"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim")
@@ -231,6 +234,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::computeAlignments,
             arg("maxMarkerFrequency"),
             arg("maxSkip"),
+            arg("maxDrift"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
             arg("threadCount") = 0)
@@ -292,6 +296,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::createMarkerGraphVertices,
             arg("maxMarkerFrequency"),
             arg("maxSkip"),
+            arg("maxDrift"),
             arg("minCoverage"),
             arg("maxCoverage"),
             arg("threadCount") = 0)

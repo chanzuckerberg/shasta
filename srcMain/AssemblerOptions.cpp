@@ -212,6 +212,11 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(100),
         "Used for palindromic read detection.")
 
+        ("Reads.palindromicReads.maxDrift",
+        value<int>(&readsOptions.palindromicReads.maxDrift)->
+        default_value(100),
+        "Used for palindromic read detection.")
+
         ("Reads.palindromicReads.maxMarkerFrequency",
         value<int>(&readsOptions.palindromicReads.maxMarkerFrequency)->
         default_value(10),
@@ -303,6 +308,12 @@ void AssemblerOptions::addConfigurableOptions()
         value<int>(&alignOptions.maxSkip)->
         default_value(30),
         "The maximum number of markers that an alignment is allowed to skip.")
+
+        ("Align.maxDrift",
+        value<int>(&alignOptions.maxDrift)->
+        default_value(30),
+        "The maximum number of marker drift that an alignment is allowed to tolerate "
+        "between successive markers.")
 
         ("Align.maxTrim",
         value<int>(&alignOptions.maxTrim)->
@@ -436,6 +447,7 @@ void AssemblerOptions::addConfigurableOptions()
 void AssemblerOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) const
 {
     s << "palindromicReads.maxSkip = " << maxSkip << "\n";
+    s << "palindromicReads.maxDrift = " << maxDrift << "\n";
     s << "palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
     s << "palindromicReads.alignedFractionThreshold = " << alignedFractionThreshold << "\n";
     s << "palindromicReads.nearDiagonalFractionThreshold = " << nearDiagonalFractionThreshold << "\n";
@@ -485,6 +497,7 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
     s << "maxSkip = " << maxSkip << "\n";
+    s << "maxDrift = " << maxDrift << "\n";
     s << "maxTrim = " << maxTrim << "\n";
     s << "maxMarkerFrequency = " << maxMarkerFrequency << "\n";
     s << "minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";

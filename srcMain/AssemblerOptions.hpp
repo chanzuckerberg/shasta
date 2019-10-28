@@ -49,6 +49,7 @@ public:
         class PalindromicReadOptions {
         public:
             int maxSkip;
+            int maxDrift;
             int maxMarkerFrequency;
             double alignedFractionThreshold;
             double nearDiagonalFractionThreshold;
@@ -103,6 +104,7 @@ public:
     class AlignOptions {
     public:
         int maxSkip;
+        int maxDrift;
         int maxTrim;
         int maxMarkerFrequency;
         int minAlignedMarkerCount;

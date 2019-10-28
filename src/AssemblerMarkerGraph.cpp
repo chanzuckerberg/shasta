@@ -37,6 +37,10 @@ void Assembler::createMarkerGraphVertices(
     // in the alignment.
     size_t maxSkip,
 
+    // The maximum ordinal drift to be tolerated between successive markers
+    // in the alignment.
+    size_t maxDrift,
+
     // Minimum coverage (number of markers) for a vertex
     // of the marker graph to be kept.
     size_t minCoverage,
@@ -72,6 +76,7 @@ void Assembler::createMarkerGraphVertices(
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
     data.maxSkip = maxSkip;
+    data.maxDrift = maxDrift;
     data.maxMarkerFrequency = maxMarkerFrequency;
 
     // Adjust the numbers of threads, if necessary.
@@ -368,6 +373,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
     const size_t maxSkip = data.maxSkip;
+    const size_t maxDrift = data.maxDrift;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
 
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
@@ -416,7 +422,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
             // would not have stored it.
             alignOrientedReads(
                 markersSortedByKmerId,
-                maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
 
             // In the global marker graph, merge pairs

@@ -202,7 +202,8 @@ public:
     void alignOrientedReads(
         ReadId, Strand,
         ReadId, Strand,
-        size_t maxSkip, // Maximum ordinal skip allowed.
+        size_t maxSkip,  // Maximum ordinal skip allowed.
+        size_t maxDrift, // Maximum ordinal drift allowed.
         uint32_t maxMarkerFrequency
     );
 
@@ -210,7 +211,8 @@ public:
     // for which we have an Overlap.
     void alignOverlappingOrientedReads(
         ReadId, Strand,
-        size_t maxSkip,                 // Maximum ordinal skip allowed.
+        size_t maxSkip,   // Maximum ordinal skip allowed.
+        size_t maxDrift,  // Maximum ordinal drift allowed.
         uint32_t maxMarkerFrequency,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
         size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
@@ -234,6 +236,10 @@ public:
         // The maximum ordinal skip to be tolerated between successive markers
         // in the alignment.
         size_t maxSkip,
+
+        // The maximum relative ordinal drift to be tolerated between successive markers
+        // in the alignment.
+        size_t maxDrift,
 
         // Minimum number of alignment markers for an alignment to be used.
         size_t minAlignedMarkerCount,
@@ -292,6 +298,10 @@ public:
         // The maximum ordinal skip to be tolerated between successive markers
         // in the alignment.
         size_t maxSkip,
+
+        // The maximum ordinal drift to be tolerated between successive markers
+        // in the alignment.
+        size_t maxDrift,
 
         // Minimum coverage (number of markers) for a vertex
         // of the marker graph to be kept.
@@ -699,6 +709,7 @@ private:
 public:
     void flagPalindromicReads(
         uint32_t maxSkip,
+        uint32_t maxDrift,
         uint32_t maxMarkerFrequency,
         double alignedFractionThreshold,
         double nearDiagonalFractionThreshold,
@@ -709,6 +720,7 @@ private:
     class FlagPalindromicReadsData {
     public:
         uint32_t maxSkip;
+        uint32_t maxDrift;
         uint32_t maxMarkerFrequency;
         double alignedFractionThreshold;
         double nearDiagonalFractionThreshold;
@@ -772,7 +784,8 @@ private:
     void alignOrientedReads(
         OrientedReadId,
         OrientedReadId,
-        size_t maxSkip, // Maximum ordinal skip allowed.
+        size_t maxSkip,     // Maximum ordinal skip allowed.
+        size_t maxDrift,    // Maximum ordinal drift allowed.
         uint32_t maxMarkerFrequency
     );
     // This lower level version takes as input vectors of
@@ -780,12 +793,14 @@ private:
     void alignOrientedReads(
         const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
         size_t maxSkip,  // Maximum ordinal skip allowed.
+        size_t maxDrift, // Maximum ordinal drift allowed.
         uint32_t maxMarkerFrequency
     );
     // This version allows reusing the AlignmentGraph and Alignment
     void alignOrientedReads(
         const array<vector<MarkerWithOrdinal>, 2>& markersSortedByKmerId,
         size_t maxSkip,             // Maximum ordinal skip allowed.
+        size_t maxDrift,            // Maximum ordinal drift allowed.
         uint32_t maxMarkerFrequency,
         bool debug,
         AlignmentGraph&,
@@ -818,6 +833,7 @@ private:
     void alignOverlappingOrientedReads(
         OrientedReadId,
         size_t maxSkip,                 // Maximum ordinal skip allowed.
+        size_t maxDrift,                // Maximum ordinal drift allowed.
         uint32_t maxMarkerFrequency,
         size_t minAlignedMarkerCount,   // Minimum number of markers in an alignment.
         size_t maxTrim                  // Maximum trim (number of markers) allowed in an alignment.
@@ -851,6 +867,7 @@ private:
         size_t maxSkip;
         size_t minAlignedMarkerCount;
         size_t maxTrim;
+        size_t maxDrift;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
         std::unordered_map <KmerId, uint32_t> uniqueMarkersDict;
@@ -963,6 +980,7 @@ private:
 
         // Parameters.
         size_t maxSkip;
+        size_t maxDrift;
         uint32_t maxMarkerFrequency;
 
         // The total number of oriented markers.
@@ -1551,6 +1569,7 @@ public:
         OrientedReadId orientedReadId0;
         size_t minMarkerCount;
         size_t maxSkip;
+        size_t maxDrift;
         uint32_t maxMarkerFrequency;
         size_t minAlignedMarkerCount;
         size_t maxTrim;

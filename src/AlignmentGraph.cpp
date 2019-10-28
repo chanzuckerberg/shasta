@@ -20,6 +20,11 @@ void shasta::align(
     // in the alignment.
     size_t maxSkip,
 
+    // The maximum ordinal drift to be tolerated between successive markers
+    // in the alignment. This is the drift of the two oriented reads
+    // relative to each other.
+    size_t maxDrift,
+
     // Marker frequency threshold.
     // When computing an alignment between two oriented reads,
     // marker kmers that appear more than this number of times
@@ -43,7 +48,7 @@ void shasta::align(
     AlignmentInfo& alignmentInfo
     )
 {
-    graph.create(markers, maxMarkerFrequency, maxSkip, debug,
+    graph.create(markers, maxMarkerFrequency, maxSkip, maxDrift, debug,
         alignment, alignmentInfo);
 }
 
@@ -54,6 +59,7 @@ void AlignmentGraph::create(
     const array<vector<MarkerWithOrdinal>, 2>& markers,
     uint32_t maxMarkerFrequency,
     size_t maxSkip,
+    size_t maxDrift,
     bool debug,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo)
@@ -83,7 +89,7 @@ void AlignmentGraph::create(
     }
 
     // Create the edges.
-    createEdges(uint32_t(markers[0].size()), uint32_t(markers[1].size()), maxSkip);
+    createEdges(uint32_t(markers[0].size()), uint32_t(markers[1].size()), maxSkip, maxDrift);
     if(debug) {
         writeEdges("AlignmentGraphEdges.csv");
     }
@@ -290,7 +296,8 @@ void AlignmentGraph::writeVertices(const string& fileName) const
 void AlignmentGraph::createEdges(
     uint32_t markerCount0,
     uint32_t markerCount1,
-    size_t maxSkip)
+    size_t maxSkip,
+    size_t maxDrift)
 {
     AlignmentGraph& graph = *this;
 
@@ -345,14 +352,22 @@ void AlignmentGraph::createEdges(
                 continue;
             }
 
+            // Check for drift of the two reads relative to each other.
+            if(maxDrift < maxSkip) {
+                const int offsetA = correctedOrdinalA0 - correctedOrdinalA1;
+                const int offsetB = correctedOrdinalB0 - correctedOrdinalB1;
+                if(abs(offsetA - offsetB) > maxDrift) {
+                    continue;
+                }
+            }
+
             // If getting here, we will add an edge.
             // We need to compute the weight.
             const int delta0 = correctedOrdinalB0 - correctedOrdinalA0;
             const int delta1 = correctedOrdinalB1 - correctedOrdinalA1;
-            // const size_t weight = delta0*delta0 + delta1*delta1;
-            const size_t weight = abs(delta0-1) + abs(delta1-1);
 
             // Add the edge.
+            const size_t weight = abs(delta0-1) + abs(delta1-1);
             addEdge(vA, vB, AlignmentGraphEdge(weight));
         }
     }
@@ -372,14 +387,6 @@ void AlignmentGraph::createEdges(
         const int deltaFinish0 = int(markerCount0) - correctedOrdinal0;
         const int deltaFinish1 = int(markerCount1) - correctedOrdinal1;
 
-        /*
-        addEdge(v, vStart,  AlignmentGraphEdge(
-            ordinal0 * ordinal0 +
-            ordinal1 * ordinal1));
-        addEdge(v, vFinish, AlignmentGraphEdge(
-            deltaFinish0 * deltaFinish0 +
-            deltaFinish1 * deltaFinish1));
-        */
         addEdge(v, vStart,  AlignmentGraphEdge(
             abs(correctedOrdinal0) +
             abs(correctedOrdinal1)));

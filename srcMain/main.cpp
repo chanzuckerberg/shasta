@@ -498,6 +498,7 @@ void shasta::main::assemble(
     // These will be excluded from further processing.
     assembler.flagPalindromicReads(
         assemblerOptions.readsOptions.palindromicReads.maxSkip,
+        assemblerOptions.readsOptions.palindromicReads.maxDrift,
         assemblerOptions.readsOptions.palindromicReads.maxMarkerFrequency,
         assemblerOptions.readsOptions.palindromicReads.alignedFractionThreshold,
         assemblerOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
@@ -552,6 +553,7 @@ void shasta::main::assemble(
         assembler.computeAlignments(
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
             assemblerOptions.alignOptions.minAlignedMarkerCount,
             assemblerOptions.alignOptions.maxTrim,
             threadCount);
@@ -575,6 +577,7 @@ void shasta::main::assemble(
     assembler.createMarkerGraphVertices(
         assemblerOptions.alignOptions.maxMarkerFrequency,
         assemblerOptions.alignOptions.maxSkip,
+        assemblerOptions.alignOptions.maxDrift,
         assemblerOptions.markerGraphOptions.minCoverage,
         assemblerOptions.markerGraphOptions.maxCoverage,
         threadCount);
