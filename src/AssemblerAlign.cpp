@@ -67,10 +67,12 @@ void Assembler::alignOrientedReads(
     cout << " markers. Left trim " << leftTrim;
     cout << " markers, right trim " << rightTrim << " markers." << endl;
 
+#if 0
     // For convenience, also write the two oriented reads.
     ofstream fasta("AlignedOrientedReads.fasta");
     writeOrientedRead(orientedReadId0, fasta);
     writeOrientedRead(orientedReadId1, fasta);
+#endif
 }
 
 
