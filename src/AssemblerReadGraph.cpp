@@ -479,6 +479,14 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
     SHASTA_ASSERT((orientedReadCount % 2) == 0);
     const size_t readCount = orientedReadCount / 2;
 
+    // If maxDistance is zero, just flag all reads as not chimeric.
+    if(maxDistance == 0) {
+        for(ReadId readId=0; readId<readCount; readId++) {
+            readFlags[readId].isChimeric = 0;
+        }
+        return;
+    }
+
     // Store the argument so it is accessible by all threads.
     SHASTA_ASSERT(maxDistance < 255);
     flagChimericReadsData.maxDistance = maxDistance;
