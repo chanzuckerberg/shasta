@@ -270,6 +270,10 @@ public:
         // in the alignment.
         size_t maxSkip,
 
+        // The maximum relative ordinal drift to be tolerated between successive markers
+        // in the alignment.
+        size_t maxDrift,
+
         // Minimum number of alignment markers for an alignment to be used.
         size_t minAlignedMarkerCount,
 

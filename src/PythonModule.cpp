@@ -243,6 +243,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::computeAlignmentsGpu,
             arg("maxMarkerFrequency"),
             arg("maxSkip"),
+            arg("maxDrift"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
             arg("threadCount") = 0)

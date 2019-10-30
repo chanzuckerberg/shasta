@@ -10,10 +10,12 @@
 #include <sys/time.h>
 #include "GPU.h"
 
+#include "../stdexcept.hpp"
+
 
 #define BAND_SIZE 32 
 #define LOG_BLOCK_SIZE 7
-#define LOG_NUM_BLOCKS 10
+#define LOG_NUM_BLOCKS 8
 
 #define BLOCK_SIZE (1 << LOG_BLOCK_SIZE)
 #define NUM_BLOCKS (1 << LOG_NUM_BLOCKS)
@@ -29,6 +31,8 @@ uint32_t** d_score_pos;
 uint32_t** d_num_traceback;
 uint32_t** d_common_markers;
 uint32_t** d_num_common_markers;
+
+using namespace shasta;
 
 __global__
 void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_unique_markers, uint64_t* read_pairs, uint64_t* index_table, uint64_t* rid_marker_pos, uint64_t* sorted_rid_marker_pos, uint32_t* num_common_markers, uint32_t* common_markers)
@@ -287,8 +291,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
 
         err = cudaSetDevice(k);
         if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: could not set device %d!\n", k);
-            exit(1);
+            throw runtime_error("GPU_ERROR: could not set device");
         }
         
         num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t);
@@ -296,8 +299,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_alignments[k], num_bytes); 
         if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
 
         num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
@@ -305,8 +307,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_score[k], num_bytes); 
         if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
         
         num_bytes = NUM_BLOCKS*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
@@ -314,8 +315,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_score_pos[k], num_bytes); 
         if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
         
         num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
@@ -323,8 +323,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_num_traceback[k], num_bytes); 
         if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
         
         num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
@@ -332,8 +331,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_num_common_markers[k], num_bytes); 
         if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
         
         num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
@@ -341,8 +339,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_common_markers[k], num_bytes); 
         if (err != cudaSuccess) {
-            fprintf(stderr, "GPU_ERROR: cudaMalloc failed!\n");
-            exit(1);
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
     }
 
@@ -372,48 +369,50 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
 
     err = cudaSetDevice(k);
     if (err != cudaSuccess) {
-        fprintf(stderr, "GPU_ERROR: could not set device %u!\n", k);
-        exit(1);
+        throw runtime_error("GPU_ERROR: could not set device.\n");
     }
     
     gettimeofday(&t1, NULL);
 
-    thrust::device_vector<uint64_t> t_d_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos + num_pos);
-    thrust::device_vector<uint64_t> t_d_sorted_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos+num_pos);
-    thrust::device_vector<uint64_t> t_d_rid_markers (batch_rid_markers, batch_rid_markers + num_reads*num_unique_markers+1);
-    thrust::device_vector<uint64_t> t_d_read_pairs (batch_read_pairs, batch_read_pairs+2*n);
-    thrust::device_vector<uint64_t> t_d_index_table (num_reads*num_unique_markers+1);
+    try {
+        thrust::device_vector<uint64_t> t_d_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos + num_pos);
+        thrust::device_vector<uint64_t> t_d_sorted_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos+num_pos);
+        thrust::device_vector<uint64_t> t_d_rid_markers (batch_rid_markers, batch_rid_markers + num_reads*num_unique_markers+1);
+        thrust::device_vector<uint64_t> t_d_read_pairs (batch_read_pairs, batch_read_pairs+2*n);
+        thrust::device_vector<uint64_t> t_d_index_table (num_reads*num_unique_markers+1);
 
-    thrust::sort(t_d_sorted_rid_marker_pos.begin(), t_d_sorted_rid_marker_pos.end());
+        thrust::sort(t_d_sorted_rid_marker_pos.begin(), t_d_sorted_rid_marker_pos.end());
 
-    thrust::lower_bound(t_d_sorted_rid_marker_pos.begin(),
-            t_d_sorted_rid_marker_pos.end(),
-            t_d_rid_markers.begin(),
-            t_d_rid_markers.end(),
-            t_d_index_table.begin());
+        thrust::lower_bound(t_d_sorted_rid_marker_pos.begin(),
+                t_d_sorted_rid_marker_pos.end(),
+                t_d_rid_markers.begin(),
+                t_d_rid_markers.end(),
+                t_d_index_table.begin());
 
-    gettimeofday(&t2, NULL);
+        gettimeofday(&t2, NULL);
 
-    uint64_t* d_sorted_rid_marker_pos = thrust::raw_pointer_cast (t_d_sorted_rid_marker_pos.data());
-    uint64_t* d_rid_marker_pos = thrust::raw_pointer_cast (t_d_rid_marker_pos.data());
-    uint64_t* d_index_table = thrust::raw_pointer_cast (t_d_index_table.data());
-    uint64_t* d_read_pairs = thrust::raw_pointer_cast (t_d_read_pairs.data());
-    
-    find_common_markers <<<NUM_BLOCKS, BLOCK_SIZE>>> (maxMarkerFrequency, n, num_unique_markers, d_read_pairs, d_index_table, d_rid_marker_pos, d_sorted_rid_marker_pos, d_num_common_markers[k], d_common_markers[k]);
+        uint64_t* d_sorted_rid_marker_pos = thrust::raw_pointer_cast (t_d_sorted_rid_marker_pos.data());
+        uint64_t* d_rid_marker_pos = thrust::raw_pointer_cast (t_d_rid_marker_pos.data());
+        uint64_t* d_index_table = thrust::raw_pointer_cast (t_d_index_table.data());
+        uint64_t* d_read_pairs = thrust::raw_pointer_cast (t_d_read_pairs.data());
 
-    find_traceback <<<NUM_BLOCKS, BAND_SIZE>>>(n, maxSkip, d_score[k], d_common_markers[k], d_num_common_markers[k], d_score_pos[k], d_alignments[k], d_num_traceback[k]);
+        find_common_markers <<<NUM_BLOCKS, BLOCK_SIZE>>> (maxMarkerFrequency, n, num_unique_markers, d_read_pairs, d_index_table, d_rid_marker_pos, d_sorted_rid_marker_pos, d_num_common_markers[k], d_common_markers[k]);
 
+        find_traceback <<<NUM_BLOCKS, BAND_SIZE>>>(n, maxSkip, d_score[k], d_common_markers[k], d_num_common_markers[k], d_score_pos[k], d_alignments[k], d_num_traceback[k]);
+
+    }
+    catch (std::bad_alloc) {
+        throw runtime_error("Insufficient GPU memory. Try on GPU with larger memory or without --gpu option.\n");
+    }
 
     err = cudaMemcpy(h_num_traceback, d_num_traceback[k], n*sizeof(uint32_t), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
-        fprintf(stderr, "Error: cudaMemcpy failed!\n");
-        exit(1);
+        throw runtime_error("Error: cudaMemcpy failed!\n");
     }
 
     err = cudaMemcpy(h_alignments, d_alignments[k], n*SHASTA_MAX_TB*sizeof(uint32_t), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
-        fprintf(stderr, "Error: cudaMemcpy failed!\n");
-        exit(1);
+        throw runtime_error("Error: cudaMemcpy failed!\n");
     }
     
     vec_lock.lock();

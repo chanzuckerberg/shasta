@@ -543,6 +543,7 @@ void shasta::main::assemble(
         assembler.computeAlignmentsGpu(
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
             assemblerOptions.alignOptions.minAlignedMarkerCount,
             assemblerOptions.alignOptions.maxTrim,
             threadCount);

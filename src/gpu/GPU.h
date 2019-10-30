@@ -1,8 +1,11 @@
 #include "../timestamp.hpp"
+#include "../stdexcept.hpp"
+
+using namespace shasta;
 
 #define SHASTA_LOG_MAX_MARKERS_PER_READ 16
 #define SHASTA_LOG_MAX_TB 13
-#define SHASTA_LOG_GPU_BATCH_SIZE 11
+#define SHASTA_LOG_GPU_BATCH_SIZE 10
 
 #define SHASTA_MAX_MARKERS_PER_READ (1 << SHASTA_LOG_MAX_MARKERS_PER_READ)
 #define SHASTA_MAX_TB (1 << SHASTA_LOG_MAX_TB)

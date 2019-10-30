@@ -39,6 +39,10 @@ void Assembler::computeAlignmentsGpu(
     // in the alignment.
     size_t maxSkip,
 
+    // The maximum relative ordinal drift to be tolerated between successive markers
+    // in the alignment.
+    size_t maxDrift,
+
     // Minimum number of alignment markers for an alignment to be used.
     size_t minAlignedMarkerCount,
 
@@ -80,6 +84,7 @@ void Assembler::computeAlignmentsGpu(
     auto& data = computeAlignmentsData;
     data.maxMarkerFrequency = maxMarkerFrequency;
     data.maxSkip = maxSkip;
+    data.maxDrift = maxDrift;
     data.minAlignedMarkerCount = minAlignedMarkerCount;
     data.maxTrim = maxTrim;
     data.nDevices = nDevices;
@@ -146,6 +151,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
     auto& data = computeAlignmentsData;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
     const size_t maxSkip = data.maxSkip;
+    const size_t maxDrift = data.maxDrift;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
     const size_t maxTrim = data.maxTrim;
     std::unordered_map<KmerId, uint32_t> uniqueMarkersDict = data.uniqueMarkersDict;
@@ -384,7 +390,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 const auto t0 = std::chrono::steady_clock::now();
                 alignOrientedReads(
                         markersSortedByKmerId,
-                        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
                 const auto t1 = std::chrono::steady_clock::now();
                 const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
                 if(t01 > 1.) {
