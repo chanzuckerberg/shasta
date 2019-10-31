@@ -39,6 +39,10 @@ void Assembler::computeAlignmentsGpu(
     // in the alignment.
     size_t maxSkip,
 
+    // The maximum relative ordinal drift to be tolerated between successive markers
+    // in the alignment.
+    size_t maxDrift,
+
     // Minimum number of alignment markers for an alignment to be used.
     size_t minAlignedMarkerCount,
 
@@ -73,16 +77,20 @@ void Assembler::computeAlignmentsGpu(
 
     // Initialize GPUs
     cout << timestamp << "Initializing GPU device(s)" << endl;
-    int nDevices = shasta_initializeProcessors(numUniqueMarkers);
+    int nDevices;
+    size_t gpuBatchSize;
+    std::tie(nDevices, gpuBatchSize) = shasta_initializeProcessors(numUniqueMarkers);
     cout << timestamp << "Initialized " << nDevices << " GPU devices" << endl;
 
     // Store parameters so they are accessible to the threads.
     auto& data = computeAlignmentsData;
     data.maxMarkerFrequency = maxMarkerFrequency;
     data.maxSkip = maxSkip;
+    data.maxDrift = maxDrift;
     data.minAlignedMarkerCount = minAlignedMarkerCount;
     data.maxTrim = maxTrim;
     data.nDevices = nDevices;
+    data.gpuBatchSize = gpuBatchSize;
     data.uniqueMarkersDict = uniqueMarkersDict;
 
     // Adjust the numbers of threads, if necessary.
@@ -146,8 +154,10 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
     auto& data = computeAlignmentsData;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
     const size_t maxSkip = data.maxSkip;
+    const size_t maxDrift = data.maxDrift;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
     const size_t maxTrim = data.maxTrim;
+    const size_t gpuBatchSize = data.gpuBatchSize;
     std::unordered_map<KmerId, uint32_t> uniqueMarkersDict = data.uniqueMarkersDict;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
@@ -161,18 +171,18 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
         uint64_t numPos = 0, numReads = 0;
 
         // host data structures for GPU
-        uint32_t* h_alignments = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t));
-        uint32_t* h_num_traceback = (uint32_t*) malloc(SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t));
+        uint32_t* h_alignments = (uint32_t*) malloc(gpuBatchSize*SHASTA_MAX_TB*sizeof(uint32_t));
+        uint32_t* h_num_traceback = (uint32_t*) malloc(gpuBatchSize*sizeof(uint32_t));
 
         uint64_t* batch_rid_marker_pos;
         uint64_t* batch_rid_markers;
         uint64_t* batch_read_pairs;
 
-        batch_rid_marker_pos = (uint64_t*) malloc(SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint64_t));
-        batch_rid_markers = (uint64_t*) malloc((1 + 2*SHASTA_GPU_BATCH_SIZE*numUniqueMarkers)*sizeof(uint64_t));
-        batch_read_pairs = (uint64_t*) malloc(2*SHASTA_GPU_BATCH_SIZE*sizeof(uint64_t));
+        batch_rid_marker_pos = (uint64_t*) malloc(gpuBatchSize*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint64_t));
+        batch_rid_markers = (uint64_t*) malloc((1 + 2*gpuBatchSize*numUniqueMarkers)*sizeof(uint64_t));
+        batch_read_pairs = (uint64_t*) malloc(2*gpuBatchSize*sizeof(uint64_t));
 
-        for (uint64_t i=0; i < 2*SHASTA_GPU_BATCH_SIZE; i++) { 
+        for (uint64_t i=0; i < 2*gpuBatchSize; i++) { 
             uint64_t v, val;
             v = (i << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
             for (uint64_t j = 0; j < numUniqueMarkers; j++) {
@@ -180,13 +190,13 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 batch_rid_markers[i*numUniqueMarkers + j] = val;
             }
         }
-        batch_rid_markers[2*SHASTA_GPU_BATCH_SIZE*numUniqueMarkers] = (((uint64_t)2*SHASTA_GPU_BATCH_SIZE) << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+        batch_rid_markers[2*gpuBatchSize*numUniqueMarkers] = (((uint64_t)2*gpuBatchSize) << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
 
         // Alignment candidates that fail on GPU
         vector<OrientedReadPair> remainingAlignmentCandidates;
 
-        for (size_t first=begin; first<end; first+=SHASTA_GPU_BATCH_SIZE) {
-            size_t last = std::min(first+SHASTA_GPU_BATCH_SIZE, end);
+        for (size_t first=begin; first<end; first+=gpuBatchSize) {
+            size_t last = std::min(first+gpuBatchSize, end);
 
             if (debug)
             {
@@ -384,7 +394,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 const auto t0 = std::chrono::steady_clock::now();
                 alignOrientedReads(
                         markersSortedByKmerId,
-                        maxSkip, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
                 const auto t1 = std::chrono::steady_clock::now();
                 const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
                 if(t01 > 1.) {
