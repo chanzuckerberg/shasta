@@ -214,6 +214,16 @@ PYBIND11_MODULE(shasta, module)
             arg("maxSkip"),
             arg("maxDrift"),
             arg("maxMarkerFrequency"))
+        .def("alignOrientedReads1",
+            (
+                void (Assembler::*)
+                (ReadId, Strand, ReadId, Strand)
+            )
+            &Assembler::alignOrientedReads1,
+            arg("readId0"),
+            arg("strand0"),
+            arg("readId1"),
+            arg("strand1"))
         .def("alignOverlappingOrientedReads",
             (
                 void (Assembler::*)

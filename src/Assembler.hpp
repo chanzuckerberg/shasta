@@ -810,6 +810,17 @@ public:
 private:
 
 
+    // Alternative alignment functions with 1 suffix.
+    void alignOrientedReads1(
+        OrientedReadId,
+        OrientedReadId);
+public:
+    void alignOrientedReads1(
+        ReadId, Strand,
+        ReadId, Strand);
+private:
+
+
 
     // Create a local alignment graph starting from a given oriented read
     // and walking out a given distance on the global alignment graph.
