@@ -43,6 +43,7 @@ namespace shasta {
     class Alignment;
     class AlignmentGraph;
     class AlignmentInfo;
+    class AssemblerOptions;
     class AssembledSegment;
     class ConsensusCaller;
     class LocalAssemblyGraph;
@@ -1517,6 +1518,8 @@ public:
         std::map<string, ServerFunction> functionTable;
         string docsDirectory;
         string referenceFastaFileName = "reference.fa";
+
+        const AssemblerOptions* assemblerOptions = 0;
 
     };
     HttpServerData httpServerData;
