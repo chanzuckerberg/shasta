@@ -17,6 +17,7 @@ add_definitions(-Wall -Wconversion -Wno-unused-result)
 if(BUILD_DEBUG)
     add_definitions(-ggdb3)
     add_definitions(-O0)
+    add_definitions(-fsanitize=address)
 else(BUILD_DEBUG)
     add_definitions(-g0)
     add_definitions(-O3)
@@ -65,6 +66,9 @@ target_link_libraries(
     shastaDynamicExecutable
     shastaDynamicLibrary
     atomic boost_system boost_program_options boost_chrono spoa png z pthread)
+if(BUILD_DEBUG) 
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+endif(BUILD_DEBUG)
 
 # Install the dynamic executable into the bin directory.
 install(TARGETS shastaDynamicExecutable DESTINATION shasta-install/bin)
