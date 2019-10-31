@@ -15,10 +15,11 @@
 
 #define BAND_SIZE 32 
 #define LOG_BLOCK_SIZE 7
-#define LOG_NUM_BLOCKS 8
 
 #define BLOCK_SIZE (1 << LOG_BLOCK_SIZE)
-#define NUM_BLOCKS (1 << LOG_NUM_BLOCKS)
+
+int NUM_BLOCKS;
+size_t BATCH_SIZE;
 
 std::mutex vec_lock;
 std::vector<int> available_gpus;
@@ -255,24 +256,36 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_score, uint32_t* d_commo
     }
 }
 
-extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
+extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUniqueMarkers) {
     int nDevices;
 
     num_unique_markers = (uint32_t) numUniqueMarkers;
 
     cudaGetDeviceCount(&nDevices);
-    //    for (int i = 0; i < nDevices; i++) {
-    //        cudaDeviceProp prop;
-    //        cudaGetDeviceProperties(&prop, i);
-    //        printf("Device Number: %d\n", i);
-    //        printf("  Device name: %s\n", prop.name);
-    //        printf("  Memory Clock Rate (KHz): %d\n",
-    //                prop.memoryClockRate);
-    //        printf("  Memory Bus Width (bits): %d\n",
-    //                prop.memoryBusWidth);
-    //        printf("  Peak Memory Bandwidth (GB/s): %f\n\n",
-    //                2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
-    //    }
+    
+    size_t device_memory;
+    for (int i = 0; i < nDevices; i++) {
+        cudaDeviceProp prop;
+        cudaGetDeviceProperties(&prop, i);
+        device_memory = prop.totalGlobalMem;
+        if (device_memory > 0xffffffff) {
+            NUM_BLOCKS = (1 << 10);
+            BATCH_SIZE = (1 << 11);
+        }
+        else {
+            NUM_BLOCKS = (1 << 8);
+            BATCH_SIZE = (1 << 9);
+            break;
+        }
+        //printf("Device Number: %d\n", i);
+        //printf("  Device name: %s\n", prop.name);
+        //printf("  Memory Clock Rate (KHz): %d\n",
+        //prop.memoryClockRate);
+        //printf("  Memory Bus Width (bits): %d\n",
+        //prop.memoryBusWidth);
+        //printf("  Peak Memory Bandwidth (GB/s): %f\n\n",
+        //2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
+    }
 
     d_alignments = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
 
@@ -294,7 +307,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             throw runtime_error("GPU_ERROR: could not set device");
         }
         
-        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t);
+        num_bytes = BATCH_SIZE*SHASTA_MAX_TB*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_alignments[k], num_bytes); 
@@ -318,7 +331,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
         
-        num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
+        num_bytes = BATCH_SIZE*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_num_traceback[k], num_bytes); 
@@ -326,7 +339,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
         
-        num_bytes = SHASTA_GPU_BATCH_SIZE*sizeof(uint32_t);
+        num_bytes = BATCH_SIZE*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_num_common_markers[k], num_bytes); 
@@ -334,7 +347,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
             throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
         
-        num_bytes = SHASTA_GPU_BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_common_markers[k], num_bytes); 
@@ -343,7 +356,7 @@ extern "C" int shasta_initializeProcessors (size_t numUniqueMarkers) {
         }
     }
 
-    return nDevices;
+    return std::make_tuple(nDevices, BATCH_SIZE);
 }
 
 extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_rid_markers, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {

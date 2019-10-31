@@ -874,6 +874,7 @@ private:
         size_t maxDrift;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
+        size_t gpuBatchSize;
         std::unordered_map <KmerId, uint32_t> uniqueMarkersDict;
 #endif
 
