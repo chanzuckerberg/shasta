@@ -7,6 +7,7 @@ using namespace shasta;
 #define SHASTA_LOG_MAX_TB 13
 
 #define SHASTA_MAX_MARKERS_PER_READ (1 << SHASTA_LOG_MAX_MARKERS_PER_READ)
+#define SHASTA_MAX_COMMON_MARKERS_PER_READ (1 << SHASTA_LOG_MAX_MARKERS_PER_READ)
 #define SHASTA_MAX_TB (1 << SHASTA_LOG_MAX_TB)
 
 extern "C" std::tuple<int, size_t> shasta_initializeProcessors(size_t numUniqueMarkers);
