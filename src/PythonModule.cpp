@@ -440,17 +440,6 @@ PYBIND11_MODULE(shasta, module)
             arg("edgeId"),
             arg("storeCoverageData") = true)
 
-
-
-        // Http server.
-        .def("accessAllSoft",
-           &Assembler::accessAllSoft)
-        .def("explore",
-            &Assembler::explore,
-            arg("port") = 17100,
-            arg("localOnly") = true,
-            arg("sameUserOnly") = true)
-
         // Consensus caller.
         .def("setupConsensusCaller",
             &Assembler::setupConsensusCaller)
