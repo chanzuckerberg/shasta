@@ -3,6 +3,7 @@
 // PngImage.hpp must be included first because of png issues on Ubuntu 16.04.
 #include "PngImage.hpp"
 #include "Assembler.hpp"
+#include "AssemblerOptions.hpp"
 #include "AlignmentGraph.hpp"
 #include "buildId.hpp"
 #include "deduplicate.hpp"
@@ -2022,11 +2023,11 @@ void Assembler::exploreAlignment(
     const bool strand1IsPresent = getParameterValue(request, "strand1", strand1);
 
     // Get alignment parameters.
-    size_t maxSkip = 30;
+    size_t maxSkip = httpServerData.assemblerOptions->alignOptions.maxSkip;
     getParameterValue(request, "maxSkip", maxSkip);
-    size_t maxDrift = 30;
+    size_t maxDrift = httpServerData.assemblerOptions->alignOptions.maxDrift;
     getParameterValue(request, "maxDrift", maxDrift);
-    uint32_t maxMarkerFrequency = 10;
+    uint32_t maxMarkerFrequency = httpServerData.assemblerOptions->alignOptions.maxMarkerFrequency;
     getParameterValue(request, "maxMarkerFrequency", maxMarkerFrequency);
 
     // Write the form.
@@ -2605,15 +2606,15 @@ void Assembler::computeAllAlignments(
     // Get alignment parameters.
     computeAllAlignmentsData.minMarkerCount = 0;
     getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
-    computeAllAlignmentsData.maxSkip = 30;
+    computeAllAlignmentsData.maxSkip = httpServerData.assemblerOptions->alignOptions.maxSkip;
     getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
-    computeAllAlignmentsData.maxDrift = 30;
+    computeAllAlignmentsData.maxDrift = httpServerData.assemblerOptions->alignOptions.maxDrift;
     getParameterValue(request, "maxDrift", computeAllAlignmentsData.maxDrift);
-    computeAllAlignmentsData.maxMarkerFrequency = 10;
+    computeAllAlignmentsData.maxMarkerFrequency = httpServerData.assemblerOptions->alignOptions.maxMarkerFrequency;
     getParameterValue(request, "maxMarkerFrequency", computeAllAlignmentsData.maxMarkerFrequency);
-    computeAllAlignmentsData.minAlignedMarkerCount = 100;
+    computeAllAlignmentsData.minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
     getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
-    computeAllAlignmentsData.maxTrim = 30;
+    computeAllAlignmentsData.maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
     getParameterValue(request, "maxTrim", computeAllAlignmentsData.maxTrim);
 
 
@@ -2847,10 +2848,10 @@ void Assembler::exploreAlignmentGraph(
     Strand strand = 0;
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
 
-    size_t minAlignedMarkerCount = 100;
+    size_t minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
     getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
 
-    size_t maxTrim = 30;
+    size_t maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
     getParameterValue(request, "maxTrim", maxTrim);
 
     uint32_t maxDistance = 2;
@@ -3065,7 +3066,7 @@ void Assembler::exploreReadGraph(
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
-    uint32_t maxTrim = 30;
+    uint32_t maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
     getParameterValue(request, "maxTrim", maxTrim);
 
     string allowChimericReadsString;
