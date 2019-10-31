@@ -65,17 +65,6 @@ void Assembler::fillServerFunctionTable()
 }
 #undef SHASTA_ADD_TO_FUNCTION_TABLE
 
-void Assembler::setDocsDirectory(const string& docsDirectoryArgument)
-{
-    httpServerData.docsDirectory = docsDirectoryArgument;
-}
-
-// Call this before explore to specify the name of the fasta
-// file containing the reference to be used with Blast commands.
-void Assembler::setReferenceFastaFileName(const string& referenceFastaFileName)
-{
-    httpServerData.referenceFastaFileName = referenceFastaFileName;
-}
 
 
 void Assembler::processRequest(

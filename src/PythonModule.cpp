@@ -450,10 +450,6 @@ PYBIND11_MODULE(shasta, module)
             arg("port") = 17100,
             arg("localOnly") = true,
             arg("sameUserOnly") = true)
-        .def("setDocsDirectory",
-            &Assembler::setDocsDirectory)
-        .def("setReferenceFastaFileName",
-            &Assembler::setReferenceFastaFileName)
 
         // Consensus caller.
         .def("setupConsensusCaller",

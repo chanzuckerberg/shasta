@@ -431,13 +431,6 @@ public:
         size_t highCoverageThreshold,
         size_t maxDistance);
 
-    // Call this before explore to make the documentation available.
-    void setDocsDirectory(const string&);
-
-    // Call this before explore to specify the name of the fasta
-    // file containing the reference to be used with Blast commands.
-    void setReferenceFastaFileName(const string&);
-
 
 
 private:
