@@ -91,7 +91,7 @@ if(BUILD_FOR_GPU)
 else(BUILD_FOR_GPU)
     target_link_libraries(
         shastaDynamicLibrary 
-        atomic png pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
+        atomic png boost_program_options pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
 endif(BUILD_FOR_GPU)
 
 # Install the shared library into the bin directory.
