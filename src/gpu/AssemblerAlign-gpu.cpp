@@ -22,6 +22,7 @@ size_t numComputedAlignments=0;
 size_t numGoodAlignments=0;
 size_t numBadTrim=0;
 size_t numFewMarkers=0;
+size_t numCpuAlignments=0;
 
 // Compute an alignment for each alignment candidate.
 // Store summary information for the ones that are good enough,
@@ -126,6 +127,7 @@ void Assembler::computeAlignmentsGpu(
     cout << timestamp << "Shutting down processors." << endl;
     shasta_shutdownProcessors(nDevices);
 
+    cout << timestamp << "Offloaded " << numCpuAlignments << " alignments to CPU." << endl;
     cout << timestamp << "Computed " << numGoodAlignments << " alignments." << endl;
     cout << timestamp << "Rejected " << numBadTrim << " alignments (bad trim)." << endl;
     cout << timestamp << "Rejected " << numFewMarkers << " alignments (few markers)." << endl;
@@ -375,7 +377,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             // Evaluate alignments that failed on GPU
             for (auto& candidate: remainingAlignmentCandidates) {
                 SHASTA_ASSERT(candidate.readIds[0] < candidate.readIds[1]);
-
+                
                 // Get the oriented read ids, with the first one on strand 0.
                 orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
                 orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
@@ -395,6 +397,9 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
                 alignOrientedReads(
                         markersSortedByKmerId,
                         maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                
+                __sync_fetch_and_add(&numCpuAlignments, 1);
+
                 const auto t1 = std::chrono::steady_clock::now();
                 const double t01 = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
                 if(t01 > 1.) {
