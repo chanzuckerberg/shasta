@@ -8,6 +8,7 @@
 #include <mutex>
 #include <vector>
 #include <sys/time.h>
+#include <condition_variable>
 #include "GPU.h"
 
 #include "../stdexcept.hpp"
@@ -21,7 +22,8 @@
 int NUM_BLOCKS;
 size_t BATCH_SIZE;
 
-std::mutex vec_lock;
+std::mutex mu;
+std::condition_variable cv;
 std::vector<int> available_gpus;
 
 uint32_t num_unique_markers;
@@ -364,14 +366,13 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
     int k = -1;
 
     while (k < 0) {
-        if (available_gpus.size() > 0) {
-            vec_lock.lock();
-            if (available_gpus.size() > 0) {
-                k = available_gpus.back(); 
-                available_gpus.pop_back();
-            }
-            vec_lock.unlock();
+        std::unique_lock<std::mutex> locker(mu);
+        if (available_gpus.empty()) {
+            cv.wait(locker, [](){return !available_gpus.empty();});
         }
+        k = available_gpus.back();
+        available_gpus.pop_back();
+        locker.unlock();
     }
 
     struct timeval t1, t2, t3;
@@ -427,9 +428,12 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
         throw runtime_error("Error: cudaMemcpy failed!\n");
     }
     
-    vec_lock.lock();
-    available_gpus.push_back(k);
-    vec_lock.unlock();
+    {
+        std::unique_lock<std::mutex> locker(mu);
+        available_gpus.push_back(k);
+        locker.unlock();
+        cv.notify_one();
+    }
     
     gettimeofday(&t3, NULL);
     
