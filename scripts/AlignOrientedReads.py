@@ -38,5 +38,6 @@ a.alignOrientedReads(
     readId0 = readId0, strand0 = strand0,
     readId1 = readId1, strand1 = strand1,
     maxSkip = int(config['Align']['maxSkip']),
+    maxDrift = int(config['Align']['maxDrift']),
     maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']))
 
