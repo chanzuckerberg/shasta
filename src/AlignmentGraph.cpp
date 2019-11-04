@@ -503,7 +503,7 @@ void AlignmentGraph::writeImage(
     const vector<MarkerWithOrdinal>& markers0,
     const vector<MarkerWithOrdinal>& markers1,
     const Alignment& alignment,
-    const string& fileName) const
+    const string& fileName)
 {
 
     // Create the image, which gets initialized to black.

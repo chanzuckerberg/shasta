@@ -163,11 +163,13 @@ private:
 
     // Write an image representing the markers and the computed alignment
     // in 2-D ordinal space.
-    void writeImage(
+public:
+    static void writeImage(
         const vector<MarkerWithOrdinal>&,
         const vector<MarkerWithOrdinal>&,
         const Alignment&,
-        const string& fileName) const;
+        const string& fileName);
+private:
 
     // Data members used to find the shortest path.
     vector<vertex_descriptor> shortestPath;

@@ -2112,8 +2112,6 @@ void Assembler::exploreAlignment(
         getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
         getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
         AlignmentGraph graph;
-        Alignment alignment;
-        AlignmentInfo alignmentInfo;
         const bool debug = true;
         alignOrientedReads(
             markersSortedByKmerId,
@@ -2127,6 +2125,15 @@ void Assembler::exploreAlignment(
         alignOrientedReads1(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+        vector<MarkerWithOrdinal> sortedMarkers0;
+        vector<MarkerWithOrdinal> sortedMarkers1;
+        getMarkersSortedByKmerId(orientedReadId0, sortedMarkers0);
+        getMarkersSortedByKmerId(orientedReadId1, sortedMarkers1);
+        AlignmentGraph::writeImage(
+            sortedMarkers0,
+            sortedMarkers1,
+            alignment,
+            "Alignment.png");
 #else
         html << "<p>Alignment method 1 is not available on macOS.";
         return;
