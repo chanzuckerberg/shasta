@@ -167,20 +167,16 @@ void Assembler::alignOrientedReads1(
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
     for(int i=0; i<alignmentLength; i++) {
-        cout << i << " " << ordinal0 << " " << ordinal1 << endl;
         if( markers0[ordinal0].kmerId != seqanGapValue and
             markers0[ordinal0].kmerId == markers1[ordinal1].kmerId) {
             alignment.ordinals.push_back(array<uint32_t, 2>{ordinal0, ordinal1});
         }
-        cout << "***A" << endl;
         if(align[i] != seqanGapValue) {
             ++ordinal0;
         }
-        cout << "***B" << endl;
         if(align[i + alignmentLength] != seqanGapValue) {
             ++ordinal1;
         }
-        cout << "***C" << endl;
     }
     SHASTA_ASSERT(ordinal0 == markers0.size());
     SHASTA_ASSERT(ordinal1 == markers1.size());
