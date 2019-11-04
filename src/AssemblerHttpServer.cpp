@@ -2123,9 +2123,14 @@ void Assembler::exploreAlignment(
             return;
         }
     } else if(method == 1) {
+#ifdef __linux__
         alignOrientedReads1(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+#else
+        html << "<p>Alignment method 1 is not available on macOS.";
+        return;
+#endif
 
     } else {
         SHASTA_ASSERT(0);
