@@ -217,13 +217,16 @@ PYBIND11_MODULE(shasta, module)
         .def("alignOrientedReads1",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand)
+                (ReadId, Strand, ReadId, Strand, int, int, int)
             )
             &Assembler::alignOrientedReads1,
             arg("readId0"),
             arg("strand0"),
             arg("readId1"),
-            arg("strand1"))
+            arg("strand1"),
+            arg("matchCount"),
+            arg("mismatchCount"),
+            arg("gapCount"))
         .def("alignOverlappingOrientedReads",
             (
                 void (Assembler::*)

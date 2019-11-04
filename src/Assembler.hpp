@@ -813,11 +813,25 @@ private:
     // Alternative alignment functions with 1 suffix.
     void alignOrientedReads1(
         OrientedReadId,
-        OrientedReadId);
+        OrientedReadId,
+        int matchScore,
+        int mismatchScore,
+        int gapScore);
+    void alignOrientedReads1(
+        OrientedReadId,
+        OrientedReadId,
+        int matchScore,
+        int mismatchScore,
+        int gapScore,
+        Alignment&,
+        AlignmentInfo&);
 public:
     void alignOrientedReads1(
         ReadId, Strand,
-        ReadId, Strand);
+        ReadId, Strand,
+        int matchScore,
+        int mismatchScore,
+        int gapScore);
 private:
 
 

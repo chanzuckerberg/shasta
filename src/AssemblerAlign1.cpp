@@ -25,19 +25,50 @@ void Assembler::alignOrientedReads1(
 
 void Assembler::alignOrientedReads1(
     ReadId readId0, Strand strand0,
-    ReadId readId1, Strand strand1)
+    ReadId readId1, Strand strand1,
+    int matchScore,
+    int mismatchScore,
+    int gapScore)
 {
     alignOrientedReads1(
         OrientedReadId(readId0, strand0),
-        OrientedReadId(readId1, strand1));
+        OrientedReadId(readId1, strand1),
+        matchScore, mismatchScore, gapScore);
 }
 
 
 
 void Assembler::alignOrientedReads1(
     OrientedReadId orientedReadId0,
-    OrientedReadId orientedReadId1)
+    OrientedReadId orientedReadId1,
+    int matchScore,
+    int mismatchScore,
+    int gapScore)
 {
+    Alignment alignment;
+    AlignmentInfo alignmentInfo;
+    alignOrientedReads1(
+        orientedReadId0,
+        orientedReadId1,
+        matchScore,
+        mismatchScore,
+        gapScore,
+        alignment,
+        alignmentInfo);
+}
+
+
+
+void Assembler::alignOrientedReads1(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    int matchScore,
+    int mismatchScore,
+    int gapScore,
+    Alignment& alignment,
+    AlignmentInfo& alignmentInfo)
+{
+
     // Use SeqAn to compute an alignment free at both ends.
     // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
     using namespace seqan;
@@ -110,9 +141,6 @@ void Assembler::alignOrientedReads1(
 
     // Compute the alignment.
     TAlignGraph graph(sequences);
-    const int matchScore = 3;
-    const int mismatchScore = -1;
-    const int gapScore = -1;
     const int score = globalAlignment(
         graph,
         Score<int, Simple>(matchScore, mismatchScore, gapScore),
@@ -132,6 +160,35 @@ void Assembler::alignOrientedReads1(
     const int alignmentLength = totalAlignmentLength / 2;
     cout << "Alignment length " << alignmentLength << endl;
 
+
+
+    // Fill in the alignment.
+    alignment.ordinals.clear();
+    uint32_t ordinal0 = 0;
+    uint32_t ordinal1 = 0;
+    for(int i=0; i<alignmentLength; i++) {
+        cout << i << " " << ordinal0 << " " << ordinal1 << endl;
+        if( markers0[ordinal0].kmerId != seqanGapValue and
+            markers0[ordinal0].kmerId == markers1[ordinal1].kmerId) {
+            alignment.ordinals.push_back(array<uint32_t, 2>{ordinal0, ordinal1});
+        }
+        cout << "***A" << endl;
+        if(align[i] != seqanGapValue) {
+            ++ordinal0;
+        }
+        cout << "***B" << endl;
+        if(align[i + alignmentLength] != seqanGapValue) {
+            ++ordinal1;
+        }
+        cout << "***C" << endl;
+    }
+    SHASTA_ASSERT(ordinal0 == markers0.size());
+    SHASTA_ASSERT(ordinal1 == markers1.size());
+
+    // Store the alignment info.
+    alignmentInfo.create(alignment, uint32_t(markers0.size()), uint32_t(markers1.size()));
+
+#if 0
     // Extract the two rows of the alignment.
     array<vector<uint32_t>, 2> alignment;
     alignment[0].resize(alignmentLength);
@@ -166,6 +223,7 @@ void Assembler::alignOrientedReads1(
         cout << "\n";
     }
     cout << flush;
+#endif
 
 }
 

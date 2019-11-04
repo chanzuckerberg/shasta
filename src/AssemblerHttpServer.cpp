@@ -2023,18 +2023,28 @@ void Assembler::exploreAlignment(
     const bool strand1IsPresent = getParameterValue(request, "strand1", strand1);
 
     // Get alignment parameters.
+    int method = 0;
+    getParameterValue(request, "method", method);
     size_t maxSkip = httpServerData.assemblerOptions->alignOptions.maxSkip;
     getParameterValue(request, "maxSkip", maxSkip);
     size_t maxDrift = httpServerData.assemblerOptions->alignOptions.maxDrift;
     getParameterValue(request, "maxDrift", maxDrift);
     uint32_t maxMarkerFrequency = httpServerData.assemblerOptions->alignOptions.maxMarkerFrequency;
     getParameterValue(request, "maxMarkerFrequency", maxMarkerFrequency);
+    int matchScore = 3;
+    getParameterValue(request, "matchScore", matchScore);
+    int mismatchScore = -1;
+    getParameterValue(request, "mismatchScore", mismatchScore);
+    int gapScore = -1;
+    getParameterValue(request, "gapScore", gapScore);
+
+
 
     // Write the form.
     html <<
+        "<p>Compute a marker alignment of these two reads:"
         "<form>"
-        "<input type=submit value='Compute a marker alignment'> of these two reads:"
-        "<br><input type=text name=readId0 required size=8 " <<
+        "<input type=text name=readId0 required size=8 " <<
         (readId0IsPresent ? "value="+to_string(readId0) : "") <<
         " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
@@ -2045,16 +2055,31 @@ void Assembler::exploreAlignment(
          " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
+
     html <<
-        "<br>Maximum ordinal skip allowed: " <<
-        "<input type=text name=maxSkip required size=8 value=" << maxSkip << ">";
-    html <<
-        "<br>Maximum ordinal drift allowed: " <<
-        "<input type=text name=maxDrift required size=8 value=" << maxDrift << ">";
-    html <<
-        "<br>Maximum k-mer frequency: " <<
-        "<input type=text name=maxMarkerFrequency required size=8 value=" << maxMarkerFrequency << ">";
-    html << "</form>";
+
+        // Method 0
+        "<br><br><input type=radio name=method value=0" <<
+        (method==0 ? " checked=checked" : "") << "> Use method 0"
+        "<br><table><tr><th class=left>Maximum ordinal skip<td>" <<
+        "<input type=text name=maxSkip size=8 value=" << maxSkip << ">"
+        "<tr><th class=left>Maximum ordinal drift" <<
+        "<td><input type=text name=maxDrift size=8 value=" << maxDrift << ">"
+        "<tr><th class=left>Maximum k-mer frequency " <<
+        "<td><input type=text name=maxMarkerFrequency size=8 value=" << maxMarkerFrequency << ">"
+        "</table>"
+
+        // Method 1
+        "<br><input type=radio name=method value=1" <<
+        (method==1 ? " checked=checked" : "") << "> Use method 1"
+        "<br><table><tr><th class=left>Match score" <<
+        "<td><input type=text name=matchScore size=8 value=" << matchScore << ">"
+        "<tr><th class=left>Mismatch score " <<
+        "<td><input type=text name=mismatchScore size=8 value=" << mismatchScore << ">"
+        "<tr><th class=left>Gap score" <<
+        "<td><input type=text name=gapScore size=8 value=" << gapScore << ">"
+        "</table><br><input type=submit value='Compute marker alignment'>"
+        "</form>";
 
     // If the readId's or strand's are missing, stop here.
     if(!readId0IsPresent || !strand0IsPresent || !readId1IsPresent || !strand1IsPresent) {
@@ -2080,19 +2105,30 @@ void Assembler::exploreAlignment(
 
     // Compute the alignment.
     // This creates file Alignment.png.
-    array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
-    getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
-    getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
-    AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
-    const bool debug = true;
-    alignOrientedReads(
-        markersSortedByKmerId,
-        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
-    if(alignment.ordinals.empty()) {
-        html << "<p>The alignment is empty (it has no markers).";
-        return;
+    if(method == 0) {
+        array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
+        getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
+        getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
+        AlignmentGraph graph;
+        Alignment alignment;
+        AlignmentInfo alignmentInfo;
+        const bool debug = true;
+        alignOrientedReads(
+            markersSortedByKmerId,
+            maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+        if(alignment.ordinals.empty()) {
+            html << "<p>The alignment is empty (it has no markers).";
+            return;
+        }
+    } else if(method == 1) {
+        alignOrientedReads1(
+            orientedReadId0, orientedReadId1,
+            matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+
+    } else {
+        SHASTA_ASSERT(0);
     }
 
 
