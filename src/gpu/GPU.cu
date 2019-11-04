@@ -8,6 +8,7 @@
 #include <mutex>
 #include <vector>
 #include <sys/time.h>
+#include <condition_variable>
 #include "GPU.h"
 
 #include "../stdexcept.hpp"
@@ -21,13 +22,14 @@
 int NUM_BLOCKS;
 size_t BATCH_SIZE;
 
-std::mutex vec_lock;
+std::mutex mu;
+std::condition_variable cv;
 std::vector<int> available_gpus;
 
 uint32_t num_unique_markers;
 
 uint32_t** d_alignments;
-uint32_t** d_score;
+float** d_score;
 uint32_t** d_score_pos;
 uint32_t** d_num_traceback;
 uint32_t** d_common_markers;
@@ -131,19 +133,20 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
 }
 
 __global__
-void find_traceback (int n, size_t maxSkip, uint32_t* d_score, uint32_t* d_common_markers, uint32_t* d_num_common_markers, uint32_t* d_score_pos, uint32_t* d_alignments, uint32_t* d_num_traceback) {
+void find_traceback (int n, size_t maxSkip, float* d_score, uint32_t* d_common_markers, uint32_t* d_num_common_markers, uint32_t* d_score_pos, uint32_t* d_alignments, uint32_t* d_num_traceback) {
     int tx = threadIdx.x;
     int bs = blockDim.x;
     int bx = blockIdx.x;
     int gs = gridDim.x;
 
-    __shared__ uint32_t score[BAND_SIZE];
+    __shared__ float score[BAND_SIZE];
     __shared__ uint32_t score_pos[BAND_SIZE];
     __shared__ int num_common_markers;
     __shared__ bool stop_shared;
 
     for (int i = bx; i < n; i += gs) {
-        uint32_t max_score = 0, max_score_pos = 0;
+        float max_score = 0;
+        uint32_t max_score_pos = 0;
         uint32_t addr1 = i*SHASTA_MAX_COMMON_MARKERS_PER_READ;
         uint32_t addr2 = bx*SHASTA_MAX_COMMON_MARKERS_PER_READ;
         uint32_t addr3 = i*SHASTA_MAX_TB;
@@ -166,7 +169,7 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_score, uint32_t* d_commo
 
             int ptr = p - tx - 1;
 
-            score[tx] = 1;
+            score[tx] = 0.1;
             score_pos[tx] = p;
 
             bool stop = false;
@@ -179,9 +182,13 @@ void find_traceback (int n, size_t maxSkip, uint32_t* d_score, uint32_t* d_commo
                     l1 = ((v1 << 16) >> 16);
                     u1 = (v1 >> 16);
                     if ((l1 < l) && (u1 < u) && (u-u1 <= maxSkip) && (l-l1 <= maxSkip)) {
-                        uint32_t pscore = d_score[addr2+ptr];
-                        if (score[tx] < pscore+1) { 
-                            score[tx] = pscore+1;
+                        float pscore = d_score[addr2+ptr];
+                        float f1 = (u-u1); 
+                        float f2 = (l-l1); 
+                        float alpha = 1;
+                        float beta = 0.1*fabsf(f1-f2);
+                        if (score[tx] < pscore+alpha-beta) { 
+                            score[tx] = pscore+alpha-beta;
                             score_pos[tx] = ptr;
                         }
                     }
@@ -288,7 +295,7 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
 
     d_alignments = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
 
-    d_score = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
+    d_score = (float**) malloc(nDevices*sizeof(float*));
     d_score_pos = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_num_traceback = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
@@ -314,7 +321,7 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
             throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
 
-        num_bytes = NUM_BLOCKS*SHASTA_MAX_COMMON_MARKERS_PER_READ*sizeof(uint32_t);
+        num_bytes = NUM_BLOCKS*SHASTA_MAX_COMMON_MARKERS_PER_READ*sizeof(float);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_score[k], num_bytes); 
@@ -364,14 +371,13 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
     int k = -1;
 
     while (k < 0) {
-        if (available_gpus.size() > 0) {
-            vec_lock.lock();
-            if (available_gpus.size() > 0) {
-                k = available_gpus.back(); 
-                available_gpus.pop_back();
-            }
-            vec_lock.unlock();
+        std::unique_lock<std::mutex> locker(mu);
+        if (available_gpus.empty()) {
+            cv.wait(locker, [](){return !available_gpus.empty();});
         }
+        k = available_gpus.back();
+        available_gpus.pop_back();
+        locker.unlock();
     }
 
     struct timeval t1, t2, t3;
@@ -422,14 +428,20 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
         throw runtime_error("Error: cudaMemcpy failed!\n");
     }
 
-    err = cudaMemcpy(h_alignments, d_alignments[k], n*SHASTA_MAX_TB*sizeof(uint32_t), cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess) {
-        throw runtime_error("Error: cudaMemcpy failed!\n");
+    for (int i=0; i < n; i++) {
+        int num_tb = h_num_traceback[i];
+        err = cudaMemcpy(&h_alignments[i*SHASTA_MAX_TB], &d_alignments[k][i*SHASTA_MAX_TB], num_tb*sizeof(uint32_t), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            throw runtime_error("Error: cudaMemcpy failed!\n");
+        }
     }
     
-    vec_lock.lock();
-    available_gpus.push_back(k);
-    vec_lock.unlock();
+    {
+        std::unique_lock<std::mutex> locker(mu);
+        available_gpus.push_back(k);
+        locker.unlock();
+        cv.notify_one();
+    }
     
     gettimeofday(&t3, NULL);
     
