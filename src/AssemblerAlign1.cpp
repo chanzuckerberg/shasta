@@ -2,6 +2,9 @@
 #include "Assembler.hpp"
 using namespace shasta;
 
+// Standard library.
+#include "chrono.hpp"
+
 // Seqan.
 #ifdef __linux__
 #include <seqan/align.h>
@@ -144,14 +147,17 @@ void Assembler::alignOrientedReads1(
 
     // Compute the alignment.
     TAlignGraph graph(sequences);
+    const auto t0 = std::chrono::steady_clock::now();
     const int score = globalAlignment(
         graph,
         Score<int, Simple>(matchScore, mismatchScore, gapScore),
         AlignConfig<true, true, true, true>(),
         LinearGaps());
+    const auto t1 = std::chrono::steady_clock::now();
     cout << "Number of markers in these oriented reads: " <<
         markers0.size() << " " << markers1.size() << endl;
     cout << "Alignment score is " << score << endl;
+    cout << "Alignment computation took " << seconds(t1-t0) << " s." << endl;
 
     // Extract the alignment from the graph.
     // This creates a single sequence consisting of the two rows
@@ -169,8 +175,10 @@ void Assembler::alignOrientedReads1(
     alignment.ordinals.clear();
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
-    for(int i=0; i<alignmentLength; i++) {
-        if( markers0[ordinal0].kmerId != seqanGapValue and
+    for(int i=0;
+        i<alignmentLength and ordinal0<markers0.size() and ordinal1<markers1.size(); i++) {
+        if( align[i] != seqanGapValue and
+            align[i + alignmentLength] != seqanGapValue and
             markers0[ordinal0].kmerId == markers1[ordinal1].kmerId) {
             alignment.ordinals.push_back(array<uint32_t, 2>{ordinal0, ordinal1});
         }
@@ -181,47 +189,51 @@ void Assembler::alignOrientedReads1(
             ++ordinal1;
         }
     }
-    SHASTA_ASSERT(ordinal0 == markers0.size());
-    SHASTA_ASSERT(ordinal1 == markers1.size());
 
     // Store the alignment info.
     alignmentInfo.create(alignment, uint32_t(markers0.size()), uint32_t(markers1.size()));
 
-#if 0
-    // Extract the two rows of the alignment.
-    array<vector<uint32_t>, 2> alignment;
-    alignment[0].resize(alignmentLength);
-    alignment[1].resize(alignmentLength);
-    for(int i=0; i<alignmentLength; i++) {
-        alignment[0][i] = align[i];
-        alignment[1][i] = align[i + alignmentLength];
+
+    // Debugging.
+#if 1
+    {
+        ofstream debugOut("AlignDebug.txt");
+
+        // Extract the two rows of the alignment.
+        array<vector<uint32_t>, 2> alignment;
+        alignment[0].resize(alignmentLength);
+        alignment[1].resize(alignmentLength);
+        for(int i=0; i<alignmentLength; i++) {
+            alignment[0][i] = align[i];
+            alignment[1][i] = align[i + alignmentLength];
+        }
+
+
+
+        // Write out the alignment.
+        for(int i=0; i<alignmentLength; i++) {
+            debugOut << i << " ";
+            if(alignment[0][i] == seqanGapValue) {
+                debugOut << "-";
+            } else {
+                debugOut << alignment[0][i];
+            }
+            debugOut << " ";
+            if(alignment[1][i] == seqanGapValue) {
+                debugOut << "-";
+            } else {
+                debugOut << alignment[1][i];
+            }
+            if(
+                alignment[0][i]!=seqanGapValue and
+                alignment[1][i]!=seqanGapValue and
+                alignment[0][i]==alignment[1][i]) {
+                debugOut << "***";
+            }
+            debugOut << "\n";
+        }
+        debugOut << flush;
     }
-
-
-
-    // Write out the alignment.
-    for(int i=0; i<alignmentLength; i++) {
-        cout << i << " ";
-        if(alignment[0][i] == seqanGapValue) {
-            cout << "-";
-        } else {
-            cout << alignment[0][i];
-        }
-        cout << " ";
-        if(alignment[1][i] == seqanGapValue) {
-            cout << "-";
-        } else {
-            cout << alignment[1][i];
-        }
-        if(
-            alignment[0][i]!=seqanGapValue and
-            alignment[1][i]!=seqanGapValue and
-            alignment[0][i]==alignment[1][i]) {
-            cout << "***";
-        }
-        cout << "\n";
-    }
-    cout << flush;
 #endif
 
 }
