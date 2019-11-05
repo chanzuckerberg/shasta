@@ -4562,7 +4562,9 @@ void Assembler::assembleMarkerGraphEdges(
     if(storeCoverageData) {
         assembleMarkerGraphEdgesData.threadEdgeCoverageData.resize(threadCount);
     }
-    const size_t batchSize = 10000;
+    // The batch size should not be too big, to avoid loss of parallelism
+    // in small assemblies with high coverage (see discussion in issue #70).
+    const size_t batchSize = 10;
     setupLoadBalancing(markerGraph.edges.size(), batchSize);
     runThreads(&Assembler::assembleMarkerGraphEdgesThreadFunction, threadCount);
 
