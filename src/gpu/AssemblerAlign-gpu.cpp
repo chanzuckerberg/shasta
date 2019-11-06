@@ -167,8 +167,6 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
     uint64_t begin, end;
     size_t printEvery = 100000;
     if (getNextBatch(begin, end)) {
-        size_t numUniqueMarkers = uniqueMarkersDict.size();
-
         std::map<size_t, uint64_t> readIdLenDict;
         uint64_t numPos = 0, numReads = 0;
 
@@ -177,22 +175,10 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
         uint32_t* h_num_traceback = (uint32_t*) malloc(gpuBatchSize*sizeof(uint32_t));
 
         uint64_t* batch_rid_marker_pos;
-        uint64_t* batch_rid_markers;
         uint64_t* batch_read_pairs;
 
         batch_rid_marker_pos = (uint64_t*) malloc(gpuBatchSize*SHASTA_MAX_MARKERS_PER_READ*sizeof(uint64_t));
-        batch_rid_markers = (uint64_t*) malloc((1 + 2*gpuBatchSize*numUniqueMarkers)*sizeof(uint64_t));
         batch_read_pairs = (uint64_t*) malloc(2*gpuBatchSize*sizeof(uint64_t));
-
-        for (uint64_t i=0; i < 2*gpuBatchSize; i++) { 
-            uint64_t v, val;
-            v = (i << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
-            for (uint64_t j = 0; j < numUniqueMarkers; j++) {
-                val = v + (j << SHASTA_LOG_MAX_MARKERS_PER_READ);
-                batch_rid_markers[i*numUniqueMarkers + j] = val;
-            }
-        }
-        batch_rid_markers[2*gpuBatchSize*numUniqueMarkers] = (((uint64_t)2*gpuBatchSize) << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
 
         // Alignment candidates that fail on GPU
         vector<OrientedReadPair> remainingAlignmentCandidates;
@@ -293,7 +279,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             }
 
             // find alignments on GPU
-            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, (last-first), numPos, numReads, batch_rid_marker_pos, batch_rid_markers, batch_read_pairs, h_alignments, h_num_traceback);
+            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, (last-first), numPos, numReads, batch_rid_marker_pos, batch_read_pairs, h_alignments, h_num_traceback);
 
             // Print progress
             size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, last-first);
@@ -460,7 +446,6 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
         free(h_alignments);
         free(h_num_traceback);
         free(batch_rid_marker_pos);
-        free(batch_rid_markers);
         free(batch_read_pairs);
     }
 }
