@@ -103,11 +103,16 @@ public:
     // beginning with "Align.".
     class AlignOptions {
     public:
+        int alignMethodForReadGraph;
+        int alignMethodForMarkerGraph;
         int maxSkip;
         int maxDrift;
         int maxTrim;
         int maxMarkerFrequency;
         int minAlignedMarkerCount;
+        int matchScore;
+        int mismatchScore;
+        int gapScore;
         void write(ostream&) const;
     };
     AlignOptions alignOptions;

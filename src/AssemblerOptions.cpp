@@ -304,6 +304,16 @@ void AssemblerOptions::addConfigurableOptions()
         "candidates with both orientation. This should only be used for experimentation "
         "on very small runs because it is very time consuming.")
 
+        ("Align.alignMethodForReadGraph",
+        value<int>(&alignOptions.alignMethodForReadGraph)->
+        default_value(0),
+        "The alignment method to be used to create the read graph (0 or 1).")
+
+        ("Align.alignMethodForMarkerGraph",
+        value<int>(&alignOptions.alignMethodForMarkerGraph)->
+        default_value(0),
+        "The alignment method to be used to create the marker graph (0 or 1).")
+
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->
         default_value(30),
@@ -329,6 +339,21 @@ void AssemblerOptions::addConfigurableOptions()
         value<int>(&alignOptions.minAlignedMarkerCount)->
         default_value(100),
         "The minimum number of aligned markers for an alignment to be used.")
+
+        ("Align.matchScore",
+        value<int>(&alignOptions.matchScore)->
+        default_value(3),
+        "Match score for marker alignments.")
+
+        ("Align.mismatchScore",
+        value<int>(&alignOptions.mismatchScore)->
+        default_value(-1),
+        "Mismatch score for marker alignments.")
+
+        ("Align.gapScore",
+        value<int>(&alignOptions.gapScore)->
+        default_value(-3),
+        "Gap score for marker alignments.")
 
         ("ReadGraph.maxAlignmentCount",
         value<int>(&readGraphOptions.maxAlignmentCount)->
@@ -496,11 +521,16 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
 void AssemblerOptions::AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
+    s << "alignMethodForReadGraph = " << alignMethodForReadGraph << "\n";
+    s << "alignMethodForMarkerGraph = " << alignMethodForMarkerGraph << "\n";
     s << "maxSkip = " << maxSkip << "\n";
     s << "maxDrift = " << maxDrift << "\n";
     s << "maxTrim = " << maxTrim << "\n";
     s << "maxMarkerFrequency = " << maxMarkerFrequency << "\n";
     s << "minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
+    s << "matchScore = " << matchScore << "\n";
+    s << "mismatchScore = " << mismatchScore << "\n";
+    s << "gapScore = " << gapScore << "\n";
 }
 
 
