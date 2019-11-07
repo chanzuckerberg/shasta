@@ -29,13 +29,37 @@ std::vector<int> available_gpus;
 uint32_t num_unique_markers;
 
 uint32_t** d_alignments;
-float** d_score;
+uint32_t** d_score;
 uint32_t** d_score_pos;
 uint32_t** d_num_traceback;
 uint32_t** d_common_markers;
 uint32_t** d_num_common_markers;
+uint64_t** d_batch_rid_markers;
 
 using namespace shasta;
+
+__global__
+void initialize_batch_rid_markers (uint64_t* batch_rid_markers, uint32_t num_unique_markers, uint32_t batch_size) {
+    int tx = threadIdx.x;
+    int bs = blockDim.x;
+    int bx = blockIdx.x;
+    int gs = gridDim.x;
+
+    for (uint64_t i=bx; i < 2*batch_size; i+=gs) {
+        uint64_t v, val;
+        v = (i << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+        for (uint64_t j=tx; j< num_unique_markers; j+=bs) {
+            val = v + (j << SHASTA_LOG_MAX_MARKERS_PER_READ);
+            batch_rid_markers[i*num_unique_markers+j] = val;
+        }
+    }
+    if (bx==0) {
+        if (tx == 0) {
+            uint64_t v = 2*batch_size;
+            batch_rid_markers[2*batch_size*num_unique_markers] = (v << (32+SHASTA_LOG_MAX_MARKERS_PER_READ));
+        }
+    }
+}
 
 __global__
 void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_unique_markers, uint64_t* read_pairs, uint64_t* index_table, uint64_t* rid_marker_pos, uint64_t* sorted_rid_marker_pos, uint32_t* num_common_markers, uint32_t* common_markers)
@@ -133,20 +157,19 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
 }
 
 __global__
-void find_traceback (int n, size_t maxSkip, float* d_score, uint32_t* d_common_markers, uint32_t* d_num_common_markers, uint32_t* d_score_pos, uint32_t* d_alignments, uint32_t* d_num_traceback) {
+void find_traceback (int n, size_t maxSkip, uint32_t* d_score, uint32_t* d_common_markers, uint32_t* d_num_common_markers, uint32_t* d_score_pos, uint32_t* d_alignments, uint32_t* d_num_traceback) {
     int tx = threadIdx.x;
     int bs = blockDim.x;
     int bx = blockIdx.x;
     int gs = gridDim.x;
 
-    __shared__ float score[BAND_SIZE];
+    __shared__ uint32_t score[BAND_SIZE];
     __shared__ uint32_t score_pos[BAND_SIZE];
     __shared__ int num_common_markers;
     __shared__ bool stop_shared;
 
     for (int i = bx; i < n; i += gs) {
-        float max_score = 0;
-        uint32_t max_score_pos = 0;
+        uint32_t max_score = 0, max_score_pos = 0;
         uint32_t addr1 = i*SHASTA_MAX_COMMON_MARKERS_PER_READ;
         uint32_t addr2 = bx*SHASTA_MAX_COMMON_MARKERS_PER_READ;
         uint32_t addr3 = i*SHASTA_MAX_TB;
@@ -169,7 +192,7 @@ void find_traceback (int n, size_t maxSkip, float* d_score, uint32_t* d_common_m
 
             int ptr = p - tx - 1;
 
-            score[tx] = 0.1;
+            score[tx] = 1;
             score_pos[tx] = p;
 
             bool stop = false;
@@ -182,13 +205,9 @@ void find_traceback (int n, size_t maxSkip, float* d_score, uint32_t* d_common_m
                     l1 = ((v1 << 16) >> 16);
                     u1 = (v1 >> 16);
                     if ((l1 < l) && (u1 < u) && (u-u1 <= maxSkip) && (l-l1 <= maxSkip)) {
-                        float pscore = d_score[addr2+ptr];
-                        float f1 = (u-u1); 
-                        float f2 = (l-l1); 
-                        float alpha = 1;
-                        float beta = 0.1*fabsf(f1-f2);
-                        if (score[tx] < pscore+alpha-beta) { 
-                            score[tx] = pscore+alpha-beta;
+                        uint32_t pscore = d_score[addr2+ptr];
+                        if (score[tx] < pscore+1) { 
+                            score[tx] = pscore+1;
                             score_pos[tx] = ptr;
                         }
                     }
@@ -295,11 +314,12 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
 
     d_alignments = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
 
-    d_score = (float**) malloc(nDevices*sizeof(float*));
+    d_score = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_score_pos = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_num_traceback = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_num_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
+    d_batch_rid_markers = (uint64_t**) malloc(nDevices*sizeof(uint64_t*));
 
     cudaError_t err;
     size_t num_bytes;
@@ -321,7 +341,7 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
             throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
 
-        num_bytes = NUM_BLOCKS*SHASTA_MAX_COMMON_MARKERS_PER_READ*sizeof(float);
+        num_bytes = NUM_BLOCKS*SHASTA_MAX_COMMON_MARKERS_PER_READ*sizeof(uint32_t);
         if (k==0)
             fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
         err = cudaMalloc(&d_score[k], num_bytes); 
@@ -360,12 +380,22 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
         if (err != cudaSuccess) {
             throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
+
+        num_bytes = (1+2*BATCH_SIZE*numUniqueMarkers)*sizeof(uint64_t);
+        if (k==0)
+            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
+        err = cudaMalloc(&d_batch_rid_markers[k], num_bytes); 
+        if (err != cudaSuccess) {
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
+        }
+
+        initialize_batch_rid_markers<<<NUM_BLOCKS, BLOCK_SIZE>>> (d_batch_rid_markers[k], numUniqueMarkers, BATCH_SIZE);  
     }
 
     return std::make_tuple(nDevices, BATCH_SIZE);
 }
 
-extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_rid_markers, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
+extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
     bool report_time = false;
 
     int k = -1;
@@ -393,13 +423,16 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
     gettimeofday(&t1, NULL);
 
     try {
+        thrust::device_ptr<uint64_t> d_batch_rid_markers_ptr = thrust::device_pointer_cast(d_batch_rid_markers[k]);
+
         thrust::device_vector<uint64_t> t_d_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos + num_pos);
         thrust::device_vector<uint64_t> t_d_sorted_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos+num_pos);
-        thrust::device_vector<uint64_t> t_d_rid_markers (batch_rid_markers, batch_rid_markers + num_reads*num_unique_markers+1);
+        thrust::device_vector<uint64_t> t_d_rid_markers (d_batch_rid_markers_ptr, d_batch_rid_markers_ptr+num_reads*num_unique_markers+1);
         thrust::device_vector<uint64_t> t_d_read_pairs (batch_read_pairs, batch_read_pairs+2*n);
         thrust::device_vector<uint64_t> t_d_index_table (num_reads*num_unique_markers+1);
 
         thrust::sort(t_d_sorted_rid_marker_pos.begin(), t_d_sorted_rid_marker_pos.end());
+
 
         thrust::lower_bound(t_d_sorted_rid_marker_pos.begin(),
                 t_d_sorted_rid_marker_pos.end(),
@@ -428,12 +461,9 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
         throw runtime_error("Error: cudaMemcpy failed!\n");
     }
 
-    for (int i=0; i < n; i++) {
-        int num_tb = h_num_traceback[i];
-        err = cudaMemcpy(&h_alignments[i*SHASTA_MAX_TB], &d_alignments[k][i*SHASTA_MAX_TB], num_tb*sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        if (err != cudaSuccess) {
-            throw runtime_error("Error: cudaMemcpy failed!\n");
-        }
+    err = cudaMemcpy(h_alignments, d_alignments[k], n*SHASTA_MAX_TB*sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        throw runtime_error("Error: cudaMemcpy failed!\n");
     }
     
     {
