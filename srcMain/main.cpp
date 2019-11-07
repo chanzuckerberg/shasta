@@ -193,6 +193,15 @@ void shasta::main::assemble(
         }
     }
 
+    // MacOS does not support alignment method 1.
+#ifndef __linux__
+    if( (assemblerOptions.alignOptions.alignMethodForReadGraph == 1) or
+        (assemblerOptions.alignOptions.alignMethodForMarkerGraph == 1)) {
+        throw runtime_error("Align method 1 is not supported on macOS.");
+    }
+
+#endif
+
 
 
     // Write a startup message.
