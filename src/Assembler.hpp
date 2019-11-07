@@ -226,6 +226,9 @@ public:
     // without storing details of the alignment.
     void computeAlignments(
 
+        // Alignment method (0 or 1).
+        int alignmentMethod,
+
         // Marker frequency threshold.
         // When computing an alignment between two oriented reads,
         // marker kmers that appear more than this number of times
@@ -247,6 +250,11 @@ public:
 
         // Maximum left/right trim (in bases) for an alignment to be used.
         size_t maxTrim,
+
+        // Scores used to compute method 1 alignments.
+        int matchScore,
+        int mismatchScore,
+        int gapScore,
 
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
@@ -886,11 +894,15 @@ private:
     public:
 
         // Parameters.
+        size_t alignmentMethod;
         uint32_t maxMarkerFrequency;
         size_t maxSkip;
         size_t minAlignedMarkerCount;
         size_t maxTrim;
         size_t maxDrift;
+        int matchScore;
+        int mismatchScore;
+        int gapScore;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
         size_t gpuBatchSize;

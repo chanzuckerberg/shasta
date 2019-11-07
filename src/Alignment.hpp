@@ -158,14 +158,13 @@ public:
     {
         // Store the number of markers in the alignment.
         markerCount = uint32_t(alignment.ordinals.size());
-        SHASTA_ASSERT(markerCount > 0);
 
         // Store alignment information for each of the two oriented reads.
         for(size_t i=0; i<2; i++) {
             data[i] = Data(
                 markerCounts[i],
-                alignment.ordinals.front()[i],
-                alignment.ordinals.back() [i]);
+                (markerCounts[i] == 0) ? 0 : alignment.ordinals.front()[i],
+                (markerCounts[i] == 0) ? 0 : alignment.ordinals.back()[i]);
             data[i].check();
         }
     }

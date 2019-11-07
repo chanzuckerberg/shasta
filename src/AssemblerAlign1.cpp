@@ -116,7 +116,7 @@ void Assembler::alignOrientedReads1(
                 break;
             }
         }
-        cout << "Replacement value " << replacementValue << endl;
+        // cout << "Replacement value " << replacementValue << endl;
         SHASTA_ASSERT(replacementValue != seqanGapValue);
     }
 
@@ -147,17 +147,19 @@ void Assembler::alignOrientedReads1(
 
     // Compute the alignment.
     TAlignGraph graph(sequences);
-    const auto t0 = std::chrono::steady_clock::now();
+    // const auto t0 = std::chrono::steady_clock::now();
     const int score = globalAlignment(
         graph,
         Score<int, Simple>(matchScore, mismatchScore, gapScore),
         AlignConfig<true, true, true, true>(),
         LinearGaps());
-    const auto t1 = std::chrono::steady_clock::now();
+    // const auto t1 = std::chrono::steady_clock::now();
+    /*
     cout << "Number of markers in these oriented reads: " <<
         markers0.size() << " " << markers1.size() << endl;
     cout << "Alignment score is " << score << endl;
     cout << "Alignment computation took " << seconds(t1-t0) << " s." << endl;
+    */
 
     // Extract the alignment from the graph.
     // This creates a single sequence consisting of the two rows
@@ -167,7 +169,7 @@ void Assembler::alignOrientedReads1(
     const int totalAlignmentLength = int(seqan::length(align));
     SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
     const int alignmentLength = totalAlignmentLength / 2;
-    cout << "Alignment length " << alignmentLength << endl;
+    // cout << "Alignment length " << alignmentLength << endl;
 
 
 
@@ -195,7 +197,7 @@ void Assembler::alignOrientedReads1(
 
 
     // Debugging.
-#if 1
+#if 0
     {
         ofstream debugOut("AlignDebug.txt");
 

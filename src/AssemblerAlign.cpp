@@ -200,6 +200,9 @@ void Assembler::alignOverlappingOrientedReads(
 // without storing details of the alignment.
 void Assembler::computeAlignments(
 
+    // Alignment method (0 or 1).
+    int alignmentMethod,
+
     // Marker frequency threshold.
     // When computing an alignment between two oriented reads,
     // marker kmers that appear more than this number of times
@@ -221,6 +224,11 @@ void Assembler::computeAlignments(
     // Maximum left/right trim (in bases) for an alignment to be used.
     size_t maxTrim,
 
+    // Scores used to compute method 1 alignments.
+    int matchScore,
+    int mismatchScore,
+    int gapScore,
+
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
     size_t threadCount
@@ -238,11 +246,15 @@ void Assembler::computeAlignments(
 
     // Store parameters so they are accessible to the threads.
     auto& data = computeAlignmentsData;
+    data.alignmentMethod = alignmentMethod;
     data.maxMarkerFrequency = maxMarkerFrequency;
     data.maxSkip = maxSkip;
     data.maxDrift = maxDrift;
     data.minAlignedMarkerCount = minAlignedMarkerCount;
     data.maxTrim = maxTrim;
+    data.matchScore = matchScore;
+    data.mismatchScore = mismatchScore;
+    data.gapScore = gapScore;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -292,7 +304,6 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 {
 
     array<OrientedReadId, 2> orientedReadIds;
-    array<OrientedReadId, 2> orientedReadIdsOppositeStrand;
     array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
     AlignmentGraph graph;
     Alignment alignment;
@@ -300,11 +311,15 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
     const bool debug = false;
     auto& data = computeAlignmentsData;
+    const size_t alignmentMethod = data.alignmentMethod;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
     const size_t maxSkip = data.maxSkip;
     const size_t maxDrift = data.maxDrift;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
     const size_t maxTrim = data.maxTrim;
+    const int matchScore = data.matchScore;
+    const int mismatchScore = data.mismatchScore;
+    const int gapScore = data.gapScore;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
 
@@ -324,26 +339,29 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
             orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
 
-            // Get the oriented read ids for the opposite strand.
-            orientedReadIdsOppositeStrand = orientedReadIds;
-            orientedReadIdsOppositeStrand[0].flipStrand();
-            orientedReadIdsOppositeStrand[1].flipStrand();
+            if(alignmentMethod == 0) {
 
+                // Get the markers for the two oriented reads in this candidate.
+                for(size_t j=0; j<2; j++) {
+                    getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+                }
 
-            // out << timestamp << "Working on " << i << " " << orientedReadIds[0] << " " << orientedReadIds[1] << endl;
+                // Compute the Alignment.
+                alignOrientedReads(
+                    markersSortedByKmerId,
+                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
-            // Get the markers for the two oriented reads in this candidate.
-            for(size_t j=0; j<2; j++) {
-                getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+            } else if(alignmentMethod == 1) {
+                alignOrientedReads1(orientedReadIds[0], orientedReadIds[1],
+                    matchScore, mismatchScore, gapScore,
+                    alignment, alignmentInfo);
+            } else {
+                SHASTA_ASSERT(0);
             }
 
-            // Compute the Alignment.
-            alignOrientedReads(
-                markersSortedByKmerId,
-                maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
-
-            // If the alignment has too few markers skip it.
+            // If the alignment has too few markers, skip it.
             if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                // cout << orientedReadIds[0] << " " << orientedReadIds[1] << " too few markers." << endl;
                 continue;
             }
 
@@ -352,10 +370,12 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             uint32_t rightTrim;
             tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
             if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                // cout << orientedReadIds[0] << " " << orientedReadIds[1] << " too much trim." << endl;
                 continue;
             }
 
             // If getting here, this is a good alignment.
+            // cout << orientedReadIds[0] << " " << orientedReadIds[1] << " good." << endl;
             threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
         }
     }

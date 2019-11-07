@@ -552,11 +552,15 @@ void shasta::main::assemble(
 #endif
     } else {
         assembler.computeAlignments(
+            assemblerOptions.alignOptions.alignMethodForReadGraph,
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
             assemblerOptions.alignOptions.maxDrift,
             assemblerOptions.alignOptions.minAlignedMarkerCount,
             assemblerOptions.alignOptions.maxTrim,
+            assemblerOptions.alignOptions.matchScore,
+            assemblerOptions.alignOptions.mismatchScore,
+            assemblerOptions.alignOptions.mismatchScore,
             threadCount);
     }
 

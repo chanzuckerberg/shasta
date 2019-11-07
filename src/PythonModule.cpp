@@ -245,11 +245,15 @@ PYBIND11_MODULE(shasta, module)
         // Compute an alignment for each alignment candidate.
         .def("computeAlignments",
             &Assembler::computeAlignments,
+            arg("alignmentMethod") = 0,
             arg("maxMarkerFrequency"),
             arg("maxSkip"),
             arg("maxDrift"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
+            arg("matchScore"),
+            arg("mismatchScore"),
+            arg("gapScore"),
             arg("threadCount") = 0)
 #ifdef SHASTA_BUILD_FOR_GPU
         .def("computeAlignmentsGpu",
