@@ -148,7 +148,7 @@ void Assembler::alignOrientedReads1(
     // Compute the alignment.
     TAlignGraph graph(sequences);
     // const auto t0 = std::chrono::steady_clock::now();
-    const int score = globalAlignment(
+    /* const int score = */ globalAlignment(
         graph,
         Score<int, Simple>(matchScore, mismatchScore, gapScore),
         AlignConfig<true, true, true, true>(),

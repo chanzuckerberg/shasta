@@ -104,8 +104,10 @@ public:
         // Sanity check.
         void check() const
         {
-            SHASTA_ASSERT(firstOrdinal < markerCount);
-            SHASTA_ASSERT(lastOrdinal < markerCount);
+            // Use <= to allow for case where the alignment has no markers,
+            // in which case everyting is set to zero.
+            SHASTA_ASSERT(firstOrdinal <= markerCount);
+            SHASTA_ASSERT(lastOrdinal <= markerCount);
         }
 
         // Update to reflect reverse complementing of the oriented read.
@@ -163,8 +165,8 @@ public:
         for(size_t i=0; i<2; i++) {
             data[i] = Data(
                 markerCounts[i],
-                (markerCounts[i] == 0) ? 0 : alignment.ordinals.front()[i],
-                (markerCounts[i] == 0) ? 0 : alignment.ordinals.back()[i]);
+                (markerCount == 0) ? 0 : alignment.ordinals.front()[i],
+                (markerCount == 0) ? 0 : alignment.ordinals.back()[i]);
             data[i].check();
         }
     }
