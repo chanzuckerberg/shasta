@@ -337,6 +337,9 @@ public:
     // with more than one marker on the same oriented read.
     void createMarkerGraphVertices(
 
+        // The method to be used to compute alignments.
+        int alignMethod,
+
         // The maximum frequency of marker k-mers to be used in
         // computing alignments.
         uint32_t maxMarkerFrequency,
@@ -348,6 +351,11 @@ public:
         // The maximum ordinal drift to be tolerated between successive markers
         // in the alignment.
         size_t maxDrift,
+
+        // Scores for method 1 alignments.
+        int matchScore,
+        int mismatchScore,
+        int gapScore,
 
         // Minimum coverage (number of markers) for a vertex
         // of the marker graph to be kept.
@@ -1053,8 +1061,12 @@ private:
     public:
 
         // Parameters.
+        int alignMethod;
         size_t maxSkip;
         size_t maxDrift;
+        int matchScore;
+        int mismatchScore;
+        int gapScore;
         uint32_t maxMarkerFrequency;
 
 #ifdef SHASTA_BUILD_FOR_GPU

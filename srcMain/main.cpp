@@ -589,31 +589,50 @@ void shasta::main::assemble(
     assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
     assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
 
+
+
+    // Create marker graph vertices.
+    // This uses a disjoint sets data structure to merge markers
+    // that are aligned based on an alignment presentin the read graph.
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+
 #ifdef SHASTA_BUILD_FOR_GPU
+
+        // Create marker graph vertices: do it on the GPU.
         cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
         cout << "This is under development and is not ready to be used." << endl;
-        // Create vertices of the marker graph.
         assembler.createMarkerGraphVerticesGpu(
-                assemblerOptions.alignOptions.maxMarkerFrequency,
-                assemblerOptions.alignOptions.maxSkip,
-                assemblerOptions.alignOptions.maxDrift,
-                assemblerOptions.markerGraphOptions.minCoverage,
-                assemblerOptions.markerGraphOptions.maxCoverage,
-                threadCount);
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
 #else
+
+        // The build does not have GPU support.
         throw runtime_error("This Shasta build does not provide GPU acceleration.");
+
 #endif
     } else {
-        // Create vertices of the marker graph.
+
+        // Create marker graph vertices: mainstream code.
         assembler.createMarkerGraphVertices(
-                assemblerOptions.alignOptions.maxMarkerFrequency,
-                assemblerOptions.alignOptions.maxSkip,
-                assemblerOptions.alignOptions.maxDrift,
-                assemblerOptions.markerGraphOptions.minCoverage,
-                assemblerOptions.markerGraphOptions.maxCoverage,
-                threadCount);
+            assemblerOptions.alignOptions.alignMethodForMarkerGraph,
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.alignOptions.matchScore,
+            assemblerOptions.alignOptions.mismatchScore,
+            assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
     }
+
+
+
+    // Find the reverse complement of each marker graph vertex.
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create edges of the marker graph.

@@ -313,9 +313,13 @@ PYBIND11_MODULE(shasta, module)
         // Global marker graph.
         .def("createMarkerGraphVertices",
             &Assembler::createMarkerGraphVertices,
+            arg("alignMethod"),
             arg("maxMarkerFrequency"),
             arg("maxSkip"),
             arg("maxDrift"),
+            arg("matchScore"),
+            arg("mismatchScore"),
+            arg("gapScore"),
             arg("minCoverage"),
             arg("maxCoverage"),
             arg("threadCount") = 0)
