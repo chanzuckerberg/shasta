@@ -293,6 +293,39 @@ public:
         // the number of virtual processors is used.
         size_t threadCount
     );
+    
+    // Loop over all alignments in the read graph
+    // to create vertices of the global marker graph.
+    // Throw away vertices with coverage (number of markers)
+    // less than minCoverage or more than maxCoverage.
+    // Also throw away "bad" vertices - that is, vertices
+    // with more than one marker on the same oriented read.
+    void createMarkerGraphVerticesGpu(
+
+        // The maximum frequency of marker k-mers to be used in
+        // computing alignments.
+        uint32_t maxMarkerFrequency,
+
+        // The maximum ordinal skip to be tolerated between successive markers
+        // in the alignment.
+        size_t maxSkip,
+
+        // The maximum ordinal drift to be tolerated between successive markers
+        // in the alignment.
+        size_t maxDrift,
+
+        // Minimum coverage (number of markers) for a vertex
+        // of the marker graph to be kept.
+        size_t minCoverage,
+
+        // Maximum coverage (number of markers) for a vertex
+        // of the marker graph to be kept.
+        size_t maxCoverage,
+
+        // Number of threads. If zero, a number of threads equal to
+        // the number of virtual processors is used.
+        size_t threadCount
+    );
 #endif
 
 
@@ -696,7 +729,9 @@ private:
     MarkerId getMarkerId(OrientedReadId, uint32_t ordinal) const;
 
 #ifdef SHASTA_BUILD_FOR_GPU
+    vector<KmerId> getMarkersFromOrientedReadId(OrientedReadId);
     size_t getNumMarkers (ReadId, Strand);
+    size_t getNumMarkersFromOrientedReadId (OrientedReadId);
 #endif
 
     // Inverse of the above: given a global marker id,
@@ -1004,6 +1039,9 @@ public:
     // Private functions and data used by createMarkerGraphVertices.
 private:
     void createMarkerGraphVerticesThreadFunction1(size_t threadId);
+#ifdef SHASTA_BUILD_FOR_GPU
+    void createMarkerGraphVerticesThreadFunction1Gpu(size_t threadId);
+#endif
     void createMarkerGraphVerticesThreadFunction2(size_t threadId);
     void createMarkerGraphVerticesThreadFunction3(size_t threadId);
     void createMarkerGraphVerticesThreadFunction4(size_t threadId);
@@ -1018,6 +1056,11 @@ private:
         size_t maxSkip;
         size_t maxDrift;
         uint32_t maxMarkerFrequency;
+
+#ifdef SHASTA_BUILD_FOR_GPU
+        size_t gpuBatchSize;
+        std::unordered_map <KmerId, uint32_t> uniqueMarkersDict;
+#endif
 
         // The total number of oriented markers.
         uint64_t orientedMarkerCount;

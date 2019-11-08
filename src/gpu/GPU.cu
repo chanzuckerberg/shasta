@@ -20,6 +20,7 @@
 #define BLOCK_SIZE (1 << LOG_BLOCK_SIZE)
 
 int NUM_BLOCKS;
+int NUM_DEVICES;
 size_t BATCH_SIZE;
 
 std::mutex mu;
@@ -287,6 +288,7 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
     num_unique_markers = (uint32_t) numUniqueMarkers;
 
     cudaGetDeviceCount(&nDevices);
+    NUM_DEVICES = nDevices;
     
     size_t device_memory;
     for (int i = 0; i < nDevices; i++) {
@@ -490,6 +492,10 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
     return;
 }
 
-extern "C" void shasta_shutdownProcessors(int nDevices) {
+extern "C" size_t shasta_getGpuBatchSize(){
+    return BATCH_SIZE;
+}
+
+extern "C" void shasta_shutdownProcessors() {
     cudaDeviceReset();
 }

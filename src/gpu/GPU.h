@@ -12,4 +12,5 @@ using namespace shasta;
 
 extern "C" std::tuple<int, size_t> shasta_initializeProcessors(size_t numUniqueMarkers);
 extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback);
-extern "C" void shasta_shutdownProcessors(int nDevices);
+extern "C" size_t shasta_getGpuBatchSize();
+extern "C" void shasta_shutdownProcessors();

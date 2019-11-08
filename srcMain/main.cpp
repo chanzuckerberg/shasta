@@ -587,14 +587,31 @@ void shasta::main::assemble(
     assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
     assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
 
-    // Create vertices of the marker graph.
-    assembler.createMarkerGraphVertices(
-        assemblerOptions.alignOptions.maxMarkerFrequency,
-        assemblerOptions.alignOptions.maxSkip,
-        assemblerOptions.alignOptions.maxDrift,
-        assemblerOptions.markerGraphOptions.minCoverage,
-        assemblerOptions.markerGraphOptions.maxCoverage,
-        threadCount);
+    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+#ifdef SHASTA_BUILD_FOR_GPU
+        cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
+        cout << "This is under development and is not ready to be used." << endl;
+        // Create vertices of the marker graph.
+        assembler.createMarkerGraphVerticesGpu(
+                assemblerOptions.alignOptions.maxMarkerFrequency,
+                assemblerOptions.alignOptions.maxSkip,
+                assemblerOptions.alignOptions.maxDrift,
+                assemblerOptions.markerGraphOptions.minCoverage,
+                assemblerOptions.markerGraphOptions.maxCoverage,
+                threadCount);
+#else
+        throw runtime_error("This Shasta build does not provide GPU acceleration.");
+#endif
+    } else {
+        // Create vertices of the marker graph.
+        assembler.createMarkerGraphVertices(
+                assemblerOptions.alignOptions.maxMarkerFrequency,
+                assemblerOptions.alignOptions.maxSkip,
+                assemblerOptions.alignOptions.maxDrift,
+                assemblerOptions.markerGraphOptions.minCoverage,
+                assemblerOptions.markerGraphOptions.maxCoverage,
+                threadCount);
+    }
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create edges of the marker graph.
