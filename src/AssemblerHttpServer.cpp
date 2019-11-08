@@ -2096,10 +2096,7 @@ void Assembler::exploreAlignment(
         "<a href='exploreRead?readId=" << readId0 << "&strand=" << strand0 << "'>" << orientedReadId0 << "</a>" <<
         " and " <<
         "<a href='exploreRead?readId=" << readId1 << "&strand=" << strand1 << "'>" << orientedReadId1 << "</a>" <<
-        "</h1>"
-        "<p>This alignment was computed allowing a skip of up to " << maxSkip << " markers "
-        "and considering only marker k-mers that appear up to " << maxMarkerFrequency <<
-        " times in each oriented read.";
+        "</h1>";
 
 
 
@@ -2141,6 +2138,13 @@ void Assembler::exploreAlignment(
 
     } else {
         SHASTA_ASSERT(0);
+    }
+
+
+
+    if(alignment.ordinals.empty()) {
+        html << "<p>The computed alignment is empty.";
+        return;
     }
 
 

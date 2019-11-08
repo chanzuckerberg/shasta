@@ -569,7 +569,7 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.maxTrim,
             assemblerOptions.alignOptions.matchScore,
             assemblerOptions.alignOptions.mismatchScore,
-            assemblerOptions.alignOptions.mismatchScore,
+            assemblerOptions.alignOptions.gapScore,
             threadCount);
     }
 
