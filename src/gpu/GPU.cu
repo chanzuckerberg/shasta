@@ -289,6 +289,10 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
 
     cudaGetDeviceCount(&nDevices);
     NUM_DEVICES = nDevices;
+
+    if (nDevices < 1) {
+        throw runtime_error("GPU_ERROR: No GPU device found! Consider running without the --gpu flag.");
+    }
     
     size_t device_memory;
     for (int i = 0; i < nDevices; i++) {
