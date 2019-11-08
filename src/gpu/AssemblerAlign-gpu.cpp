@@ -18,6 +18,8 @@ using namespace shasta;
 //#include <cuda_runtime.h>
 #include "GPU.h"
 
+#ifdef SHASTA_BUILD_FOR_GPU
+
 size_t numComputedAlignments=0;
 size_t numGoodAlignments=0;
 size_t numBadTrim=0;
@@ -123,9 +125,6 @@ void Assembler::computeAlignmentsGpu(
     }
     cout << timestamp << "Creating alignment table." << endl;
     computeAlignmentTable();
-
-    //cout << timestamp << "Shutting down processors." << endl;
-    //shasta_shutdownProcessors(nDevices);
 
     cout << timestamp << "Offloaded " << numCpuAlignments << " alignments to CPU." << endl;
     cout << timestamp << "Computed " << numGoodAlignments << " alignments." << endl;
@@ -450,3 +449,4 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
     }
 }
 
+#endif
