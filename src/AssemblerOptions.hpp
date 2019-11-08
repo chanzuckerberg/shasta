@@ -127,6 +127,7 @@ public:
         int maxAlignmentCount;
         int minComponentSize;
         int maxChimericReadDistance;
+        int crossStrandMaxDistance;
         void write(ostream& ) const;
     };
     ReadGraphOptions readGraphOptions;

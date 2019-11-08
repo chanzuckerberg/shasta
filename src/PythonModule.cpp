@@ -291,6 +291,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessReadGraphReadWrite)
         .def("flagCrossStrandReadGraphEdges",
             &Assembler::flagCrossStrandReadGraphEdges,
+            arg("maxDistance"),
             arg("threadCount") = 0)
         .def("flagChimericReads",
              &Assembler::flagChimericReads,

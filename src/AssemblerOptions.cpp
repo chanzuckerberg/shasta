@@ -371,6 +371,12 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(2),
         "Used for chimeric read detection.")
 
+        ("ReadGraph.crossStrandMaxDistance",
+        value<int>(&readGraphOptions.crossStrandMaxDistance)->
+        default_value(6),
+        "Maximum distance (edges) for flagCrossStrandReadGraphEdges. "
+        "Set this to zero to entirely suppress flagCrossStrandReadGraphEdges.")
+
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
@@ -541,6 +547,7 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
     s << "maxAlignmentCount = " << maxAlignmentCount << "\n";
     s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
+    s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
 }
 
 

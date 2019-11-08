@@ -938,7 +938,7 @@ void Assembler::writeLocalReadGraphReads(
 
 
 
-void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
+void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount)
 {
     const bool debug = false;
 
@@ -963,8 +963,13 @@ void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
         readGraph.edges[edgeId].crossesStrands = 0;
     }
 
+    // If maxDistance is 0, don't flag any edges as cross strand edges.
+    if(maxDistance == 0) {
+        cout << "Skipped flagCrossStrandReadGraphEdges." << endl;
+        return;
+    }
+
     // Store the maximum distance so all threads can see it.
-    const size_t maxDistance = 6;
     flagCrossStrandReadGraphEdgesData.maxDistance = maxDistance;
 
     // Find which vertices are close to their reverse complement.
