@@ -21,32 +21,13 @@ but read-only form using MemoryMapped data structures.
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "ReadId.hpp"
 
-// Boost libraries.
-#include <boost/graph/adjacency_list.hpp>
-
 // Standard library.
 #include "cstdint.hpp"
 #include <limits>
-#include <unordered_map>
 
 namespace shasta {
     class ReadGraph;
-
-
-    // Class RawReadGraph is only used inside flagCrossStrandReadGraphEdges.
-    // Here, each vertex corresponds to a Read, not an OrientedRead.
-    // It has one vertex per read instead of two.
-    class RawReadGraph;
-    class RawReadGraphEdge;
-    class RawReadGraphVertex;
-    using RawReadGraphBaseClass = boost::adjacency_list<
-        boost::vecS,
-        boost::vecS,
-        boost::undirectedS,
-        RawReadGraphVertex,
-        RawReadGraphEdge>;
 }
-
 
 
 
@@ -106,66 +87,6 @@ public:
 
         );
     static const uint32_t infiniteDistance;
-};
-
-
-
-class shasta::RawReadGraphVertex {
-public:
-    RawReadGraphVertex() : strand(0) {}
-    uint8_t strand;     // Or RawReadGraph::undiscovered
-};
-
-
-
-class shasta::RawReadGraphEdge {
-public:
-    bool isSameStrand;
-    RawReadGraphEdge(bool isSameStrand) :
-        isSameStrand(isSameStrand) {}
-};
-
-
-
-// Class RawReadGraph is only used inside flagCrossStrandReadGraphEdges.
-// Here, each vertex corresponds to a Read, not an OrientedRead.
-// It has one vertex per read instead of two.
-class shasta::RawReadGraph : public RawReadGraphBaseClass {
-public:
-    using RawReadGraphBaseClass::RawReadGraphBaseClass;
-    static const uint8_t undiscovered = 2;
-
-    // Visitor for maximum_adjacency_search.
-    class Visitor {
-    public:
-        Visitor(vector<edge_descriptor>& crossStrandEdges) :
-            crossStrandEdges(crossStrandEdges) {}
-        void initialize_vertex(vertex_descriptor, const RawReadGraph&)
-        {
-        }
-        void start_vertex(vertex_descriptor, const RawReadGraph&)
-        {
-        }
-        void examine_edge(edge_descriptor, const RawReadGraph&);
-        void finish_vertex(vertex_descriptor, const RawReadGraph&)
-        {
-        }
-        vector<edge_descriptor>& crossStrandEdges;
-    };
-
-    // Write in Graphviz format.
-    void write(ostream&) const;
-    void write(const string& fileName) const;
-
-    // Graphviz writer.
-    class Writer {
-    public:
-        Writer(const RawReadGraph&);
-        void operator()(ostream&) const;
-        void operator()(ostream&, vertex_descriptor) const;
-        void operator()(ostream&, edge_descriptor) const;
-        const RawReadGraph& graph;
-    };
 };
 
 
