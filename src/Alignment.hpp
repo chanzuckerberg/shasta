@@ -118,6 +118,16 @@ public:
             lastOrdinal  = markerCount - 1 - lastOrdinal;
         }
 
+        uint32_t alignmentCenter() const
+        {
+            return (firstOrdinal + lastOrdinal) / 2;
+        }
+
+        uint32_t centerPosition() const
+        {
+            return markerCount / 2;
+        }
+
     private:
 
         // The total number of markers in this oriented read.
@@ -236,6 +246,24 @@ public:
         return false;
     }
 
+
+
+    // Return the offset between the centers of the two oriented reads,
+    // as estimated form the alignment.
+    // The offset is positive if the center of the second read
+    // is to the right of the center of the first read.
+    uint32_t offsetAtCenter() const
+    {
+        const uint32_t alignmentCenter0 = data[0].alignmentCenter();
+        const uint32_t alignmentCenter1 = data[1].alignmentCenter();
+
+        const uint32_t center0 = data[0].centerPosition();
+        const uint32_t center1 = data[1].centerPosition();
+
+        return
+            (int(center1) - int(alignmentCenter1)) -
+            (int(center0) - int(alignmentCenter0));
+    }
 
 
     // Classify this alignment.
