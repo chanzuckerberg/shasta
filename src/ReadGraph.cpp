@@ -57,7 +57,7 @@ void ReadGraph::computeShortPath(
         // Loop over adjacent vertices.
         bool pathFound = false;
         for(const uint32_t edgeId: connectivity[vertex0.getValue()]) {
-            const Edge& edge = edges[edgeId];
+            const ReadGraphEdge& edge = edges[edgeId];
             if(edge.crossesStrands) {
                 continue;
             }

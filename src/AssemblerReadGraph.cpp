@@ -88,7 +88,7 @@ void Assembler::createReadGraph(
         const AlignmentData& alignment = alignmentData[alignmentId];
 
         // Create the edge corresponding to this alignment.
-        ReadGraph::Edge edge;
+        ReadGraphEdge edge;
         edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
         edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
         edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
@@ -107,13 +107,13 @@ void Assembler::createReadGraph(
     // Create read graph connectivity.
     readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
     readGraph.connectivity.beginPass1(orientedReadCount);
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
+    for(const ReadGraphEdge& edge: readGraph.edges) {
         readGraph.connectivity.incrementCount(edge.orientedReadIds[0].getValue());
         readGraph.connectivity.incrementCount(edge.orientedReadIds[1].getValue());
     }
     readGraph.connectivity.beginPass2();
     for(size_t i=0; i<readGraph.edges.size(); i++) {
-        const ReadGraph::Edge& edge = readGraph.edges[i];
+        const ReadGraphEdge& edge = readGraph.edges[i];
         readGraph.connectivity.store(edge.orientedReadIds[0].getValue(), uint32_t(i));
         readGraph.connectivity.store(edge.orientedReadIds[1].getValue(), uint32_t(i));
     }
@@ -209,7 +209,7 @@ bool Assembler::createLocalReadGraph(
         // Loop over edges of the global read graph involving this vertex.
         for(const uint64_t i: readGraph.connectivity[orientedReadId0.getValue()]) {
             SHASTA_ASSERT(i < readGraph.edges.size());
-            const ReadGraph::Edge& globalEdge = readGraph.edges[i];
+            const ReadGraphEdge& globalEdge = readGraph.edges[i];
 
             if(!allowCrossStrandEdges && globalEdge.crossesStrands) {
                 continue;
@@ -399,7 +399,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 // Loop over edges involving this vertex.
                 const auto edgeIds = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edgeIds) {
-                    const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    const ReadGraphEdge& edge = readGraph.edges[edgeId];
                     if(edge.crossesStrands) {
                         continue;
                     }
@@ -452,7 +452,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 SHASTA_ASSERT(u0 != notReached);
                 const auto edges = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edges) {
-                    const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    const ReadGraphEdge& edge = readGraph.edges[edgeId];
                     if(edge.crossesStrands) {
                         continue;
                     }
@@ -544,7 +544,7 @@ void Assembler::computeReadGraphConnectedComponents(
             disjointSets.make_set(OrientedReadId(readId, strand).getValue());
         }
     }
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
+    for(const ReadGraphEdge& edge: readGraph.edges) {
         if(edge.crossesStrands) {
             continue;
         }
@@ -819,7 +819,7 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
             disjointSets.make_set(OrientedReadId(readId, strand).getValue());
         }
     }
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
+    for(const ReadGraphEdge& edge: readGraph.edges) {
         const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
         const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
         const auto v0 = orientedReadId0.getValue();
@@ -886,7 +886,7 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
         for(const OrientedReadId orientedReadId0: vertices) {
             const OrientedReadId::Int v0 = orientedReadId0.getValue();
             for(const uint32_t edgeId: readGraph.connectivity[v0]) {
-                const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                const ReadGraphEdge& edge = readGraph.edges[edgeId];
                 const OrientedReadId orientedReadId1 = edge.getOther(orientedReadId0);
                 if(vertexMap.find(orientedReadId1) == vertexMap.end()) {
                     continue;
@@ -934,7 +934,7 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
         for(const auto& p: edgePairs) {
             const array<uint32_t, 2>& edgeIds = p.first;
             for(const uint32_t edgeId: edgeIds) {
-                const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                const ReadGraphEdge& edge = readGraph.edges[edgeId];
 
                 // Get the oriented reads of this edge.
                 const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];

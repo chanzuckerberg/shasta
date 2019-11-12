@@ -403,12 +403,12 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
         SHASTA_ASSERT((end%2) == 0);
 
         for(size_t i=begin; i!=end; i+=2) {
-            const ReadGraph::Edge& readGraphEdge = readGraph.edges[i];
+            const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
 
             // Check that the next edge is the reverse complement of
             // this edge.
             {
-                const ReadGraph::Edge& readGraphNextEdge = readGraph.edges[i + 1];
+                const ReadGraphEdge& readGraphNextEdge = readGraph.edges[i + 1];
                 array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
                 nextEdgeOrientedReadIds[0].flipStrand();
                 nextEdgeOrientedReadIds[1].flipStrand();

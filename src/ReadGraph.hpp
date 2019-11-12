@@ -27,7 +27,38 @@ but read-only form using MemoryMapped data structures.
 
 namespace shasta {
     class ReadGraph;
+    class ReadGraphEdge;
 }
+
+
+
+// An edge of the read graph.
+class shasta::ReadGraphEdge {
+public:
+    array<OrientedReadId, 2> orientedReadIds;
+
+    // The id of the alignment that corresponds to the edge.
+    // Note  that if an alignment is used to generate an edge,
+    // it is also used to generate the corresponding reverse complemented edge.
+    uint64_t alignmentId : 63;
+
+    // Flag set for an edge that jumps across strands.
+    uint64_t crossesStrands : 1;
+
+    // Given one of the oriented read ids, get the other.
+    OrientedReadId getOther(OrientedReadId orientedReadId) const
+    {
+        if(orientedReadId == orientedReadIds[0]) {
+            return orientedReadIds[1];
+        } else if(orientedReadId == orientedReadIds[1]) {
+            return orientedReadIds[0];
+        } else {
+            // The OrientedReadId that was passed in as an argument
+            // is neithher of the two OrientedReadId's of this edge.
+            SHASTA_ASSERT(0);
+        }
+    }
+};
 
 
 
@@ -36,34 +67,7 @@ namespace shasta {
 class shasta::ReadGraph {
 public:
 
-    // An edge of the read graph.
-    class Edge {
-    public:
-        array<OrientedReadId, 2> orientedReadIds;
-
-        // The id of the alignment that corresponds to the edge.
-        // Note  that if an alignment is used to generate an edge,
-        // it is also used to generate the corresponding reverse complemented edge.
-        uint64_t alignmentId : 63;
-
-        // Flag set for an edge that jumps across strands.
-        uint64_t crossesStrands : 1;
-
-        // Given one of the oriented read ids, get the other.
-        OrientedReadId getOther(OrientedReadId orientedReadId) const
-        {
-            if(orientedReadId == orientedReadIds[0]) {
-                return orientedReadIds[1];
-            } else if(orientedReadId == orientedReadIds[1]) {
-                return orientedReadIds[0];
-            } else {
-                // The OrientedReadId that was passed in as an argument
-                // is neithher of the two OrientedReadId's of this edge.
-                SHASTA_ASSERT(0);
-            }
-        }
-    };
-    MemoryMapped::Vector<Edge> edges;
+    MemoryMapped::Vector<ReadGraphEdge> edges;
 
     // Connectivity of the read graph.
     // Stores, for each OrientedReadId, indexes into the edges vector
