@@ -438,11 +438,15 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                     markersSortedByKmerId,
                     maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
             } else if(alignMethod == 1) {
+#ifdef __linux__
                 alignOrientedReads1(
                     orientedReadIds[0], orientedReadIds[1],
                     matchScore, mismatchScore, gapScore,
                     alignment, alignmentInfo
                 );
+#else
+                throw runtime_error("Alignment method 1 is not supported on macOS.");
+#endif
             } else {
                 SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
             }
