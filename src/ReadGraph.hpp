@@ -17,6 +17,7 @@ but read-only form using MemoryMapped data structures.
 *******************************************************************************/
 
 // Shasta.
+#include "MemoryMappedDirectedGraph.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "ReadId.hpp"
 
