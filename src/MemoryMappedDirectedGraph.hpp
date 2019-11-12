@@ -36,6 +36,17 @@ public:
     // Vertices are identified by their index in this vector
     // (a VertexId).
     Vector<Vertex> vertices;
+    VertexId addVertex(const Vertex& vertex)
+    {
+        const VertexId vertexId = vertices.size();
+        vertices.push_back(vertex);
+        return vertexId;
+    }
+
+    // Accessor for graph vertices.
+    Vertex& getVertex(VertexId vertexId) {
+        return vertices[vertexId];
+    }
 
     // The graph edges of the graph.
     // Vertices are identified by their index in this vector
@@ -45,8 +56,30 @@ public:
         VertexId source;
         VertexId target;
         Edge edge;
+        EdgeInformation(VertexId source, VertexId target, const Edge& edge) :
+            source(source), target(target), edge(edge) {}
     };
     Vector<EdgeInformation> edges;
+    EdgeId addEdge(
+        VertexId v0,
+        VertexId v1,
+        const Edge& edge)
+    {
+        const EdgeId edgeId = edges.size();
+        edges.push_back(EdgeInformation(source, target, edge));
+        return edgeId;
+    }
+
+    // Accessors for graph edges.
+    Edge& getEdge(EdgeId edgeId) {
+        return edges[edgeId].edge;
+    }
+    VertexId source(EdgeId edgeId) {
+        return edges[edgeId].source;
+    }
+    VertexId target(EdgeId edgeId) {
+        return edges[edgeId].target;
+    }
 
     // The list of edges that have each vertex as their source
     // or their target. Indexed by a VertexId.
@@ -60,6 +93,27 @@ public:
     VectorOfVectors<VertexId, uint64_t> edgesBySource;
     VectorOfVectors<VertexId, uint64_t> edgesByTarget;
 
+    // Accessors for edges by source and by target.
+    MemoryAsContainer<EdgeId> outEdges(VertexId vertexId)
+    {
+        return edgesBySource[vertexId];
+    }
+    MemoryAsContainer<EdgeId> inEdges(VertexId vertexId)
+    {
+        return edgesByTarget[vertexId];
+    }
+    uint64_t outDegree(VertexId vertexId)
+    {
+        return edgesBySource.size(vertexId);
+    }
+    uint64_t inDegree(VertexId vertexId)
+    {
+        return edgesByTarget.size(vertexId);
+    }
+    uint64_t totalDegree(VertexId vertexId)
+    {
+        return inDegree(vertexId) + outDegree(vertexId);
+    }
 
 
     // A call to this function recomputes from scratch
@@ -94,9 +148,9 @@ public:
 
         // Pass 3: sort the egde ids for each vertex.
         for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
-            MemoryAsContainer<EdgeId> s = edgesBySource[vertexId];
+            MemoryAsContainer<EdgeId> s = outEdges(vertexId);
             sort(s.begin(), s.end());
-            MemoryAsContainer<EdgeId> t = edgesByTarget[vertexId];
+            MemoryAsContainer<EdgeId> t = inEdges(vertexId);
             sort(t.begin(), t.end());
         }
 
@@ -133,6 +187,15 @@ public:
         edges.accessExisting(fileName("Edges"), readWriteAccess);
         edgesBySource.accessExisting(fileName("EdgesBySource"), readWriteAccess);
         edgesBySource.accessExisting(fileName("EdgesByTarget"), readWriteAccess);
+    }
+
+    bool isOpen()
+    {
+        return
+            vertices.isOpen and
+            edges.isOpen and
+            edgesBySource.isOpen() and
+            edgesByTarget.isOpen();
     }
 
 private:
