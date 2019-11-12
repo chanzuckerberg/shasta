@@ -281,10 +281,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::createReadGraph,
             arg("maxAlignmentCount"),
             arg("maxTrim"))
-        .def("createReadGraphNew",
-            &Assembler::createReadGraphNew,
-            arg("maxAlignmentCount"),
-            arg("maxTrim"))
         .def("accessReadGraph",
             &Assembler::accessReadGraph)
         .def("accessReadGraphReadWrite",
