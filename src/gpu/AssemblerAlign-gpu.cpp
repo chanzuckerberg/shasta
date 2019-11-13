@@ -278,7 +278,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             }
 
             // find alignments on GPU
-            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, (last-first), numPos, numReads, batch_rid_marker_pos, batch_read_pairs, h_alignments, h_num_traceback);
+            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, maxDrift, (last-first), numPos, numReads, batch_rid_marker_pos, batch_read_pairs, h_alignments, h_num_traceback);
 
             // Print progress
             size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, last-first);
