@@ -355,6 +355,12 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(-3),
         "Gap score for marker alignments.")
 
+        ("ReadGraph.creationMethod",
+        value<int>(&readGraphOptions.creationMethod)->
+        default_value(0),
+        "The method used to create the read graph (0=undirected, 1=directed). "
+        "Under development. Leave at default value 0.")
+
         ("ReadGraph.maxAlignmentCount",
         value<int>(&readGraphOptions.maxAlignmentCount)->
         default_value(6),
@@ -544,6 +550,7 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
 void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
 {
     s << "[ReadGraph]\n";
+    s << "creationMethod = " << creationMethod << "\n";
     s << "maxAlignmentCount = " << maxAlignmentCount << "\n";
     s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";

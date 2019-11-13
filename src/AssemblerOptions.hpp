@@ -124,6 +124,7 @@ public:
     // beginning with "ReadGraph.".
     class ReadGraphOptions {
     public:
+        int creationMethod;
         int maxAlignmentCount;
         int minComponentSize;
         int maxChimericReadDistance;
