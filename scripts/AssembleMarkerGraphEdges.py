@@ -22,7 +22,7 @@ if useMarginPhase:
 a.accessKmers()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
-a.accessMarkerGraphEdges()
+a.accessMarkerGraphEdges(accessEdgesReadWrite = True)
 a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
 

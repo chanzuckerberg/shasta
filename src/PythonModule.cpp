@@ -276,7 +276,7 @@ PYBIND11_MODULE(shasta, module)
 
 
 
-        // Read graph
+        // Undirected read graph
         .def("createReadGraph",
             &Assembler::createReadGraph,
             arg("maxAlignmentCount"),
@@ -304,6 +304,11 @@ PYBIND11_MODULE(shasta, module)
             arg("allowChimericReads"),
             arg("allowCrossStrandEdges"))
 
+
+
+        // Directed read graph.
+        .def("createDirectedReadGraph",
+            &Assembler::createDirectedReadGraph)
 
 
         // Global marker graph.

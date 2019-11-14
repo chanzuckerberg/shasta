@@ -7,7 +7,8 @@
 Directed version of the read graph.
 
 Each vertex correspond to an oriented reads (therefore each read corresponds
-to two vertices, one for each orientation).
+to two vertices, one for each orientation). The vertex id of
+the read corresponding to each oriented read is orientedRead.getValue().
 
 Edges are directed so that based on the offset between centers of the two reads.
 More precisely, consider vertex v0 corresponding to oriented read r0 and
@@ -28,18 +29,22 @@ the read graph invariant under reverse complementing, as follows:
 *******************************************************************************/
 
 // Shasta.
+#include "Alignment.hpp"
 #include "MemoryMappedDirectedGraph.hpp"
 
 namespace shasta {
     class DirectedReadGraph;
     class DirectedReadGraphEdge;
     class DirectedReadGraphVertex;
+
+    using DirectedReadGraphBaseClass =
+        MemoryMapped::DirectedGraph<DirectedReadGraphVertex, DirectedReadGraphEdge>;
 }
 
 
 
 // A vertex of the directed read graph.
-// Even though the vertex is empty, is stil occupies one bte.
+// Even though the vertex is empty, is still occupies one byte.
 class shasta::DirectedReadGraphVertex {
 
 };
@@ -48,13 +53,29 @@ class shasta::DirectedReadGraphVertex {
 
 // An edge of the directed read graph.
 class shasta::DirectedReadGraphEdge {
+public:
+    AlignmentInfo alignmentInfo;
+    DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
+        alignmentInfo(alignmentInfo) {}
+    DirectedReadGraphEdge() {}
 
 };
 
 
 
 class shasta::DirectedReadGraph :
-    public MemoryMapped::DirectedGraph<DirectedReadGraphVertex, DirectedReadGraphEdge> {
+    public DirectedReadGraphBaseClass {
+public:
+    using BaseClass = DirectedReadGraphBaseClass;
+
+    // Add a pair of edges corresponding to an alignment.
+    void addEdgePair(const AlignmentData&);
+
+    // Add an edge 0->1, reversing the direction if necessary
+    void addEdge(
+        OrientedReadId orientedReadId0,
+        OrientedReadId orientedReadId1,
+        AlignmentInfo);
 
 };
 

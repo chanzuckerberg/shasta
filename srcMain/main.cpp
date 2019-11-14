@@ -576,24 +576,31 @@ void shasta::main::assemble(
 
 
     // Create the read graph.
-    assembler.createReadGraph(
-        assemblerOptions.readGraphOptions.maxAlignmentCount,
-        assemblerOptions.alignOptions.maxTrim);
+    if(assemblerOptions.readGraphOptions.creationMethod == 0) {
+        assembler.createReadGraph(
+            assemblerOptions.readGraphOptions.maxAlignmentCount,
+            assemblerOptions.alignOptions.maxTrim);
 
-    // Flag read graph edges that cross strands.
-    assembler.flagCrossStrandReadGraphEdges(
-        assemblerOptions.readGraphOptions.crossStrandMaxDistance,
-        threadCount);
+        // Flag read graph edges that cross strands.
+        assembler.flagCrossStrandReadGraphEdges(
+            assemblerOptions.readGraphOptions.crossStrandMaxDistance,
+            threadCount);
 
-    // Flag chimeric reads.
-    assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
-    assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
+        // Flag chimeric reads.
+        assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
+        assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
+    } else if(assemblerOptions.readGraphOptions.creationMethod == 1) {
+        assembler.createDirectedReadGraph();
+        throw runtime_error("Directed read graph functionality is incomplete.");
+    } else {
+        throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
+    }
 
 
 
     // Create marker graph vertices.
     // This uses a disjoint sets data structure to merge markers
-    // that are aligned based on an alignment presentin the read graph.
+    // that are aligned based on an alignment present in the read graph.
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
 
 #ifdef SHASTA_BUILD_FOR_GPU

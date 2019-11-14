@@ -7,6 +7,7 @@
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
+#include "DirectedReadGraph.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
@@ -1018,6 +1019,16 @@ private:
         LocalReadGraph&);
 
 public:
+
+
+
+    // Directed version of the read graph.
+    // This is only used if--ReadGraph.creationMethod is 1
+    // If --ReadGraph.creationMethod is 0, this is not used
+    // and instead we use the undirected read graph defined above.
+    DirectedReadGraph directedReadGraph;
+    void createDirectedReadGraph();
+
 
 
     // Write a FASTA file containing all reads that appear in

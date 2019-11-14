@@ -6,6 +6,7 @@
 #include "MemoryMappedVectorOfVectors.hpp"
 
 // Standard library.
+#include <limits>
 #include "string.hpp"
 
 // A directed graph stored on memory mapped data structures.
@@ -31,6 +32,8 @@ public:
     // The types used to identify vertices and edges.
     using VertexId = uint64_t;
     using EdgeId = uint64_t;
+    static const VertexId invalidVertexId = std::numeric_limits<VertexId>::max();
+    static const EdgeId invalidEdgeId = std::numeric_limits<EdgeId>::max();
 
     // The graph vertices.
     // Vertices are identified by their index in this vector
@@ -53,11 +56,12 @@ public:
     // (an EdgeId).
     class EdgeInformation {
     public:
-        VertexId source;
-        VertexId target;
+        VertexId v0;
+        VertexId v1;
         Edge edge;
-        EdgeInformation(VertexId source, VertexId target, const Edge& edge) :
-            source(source), target(target), edge(edge) {}
+        EdgeInformation(VertexId v0, VertexId v1, const Edge& edge) :
+            v0(v0), v1(v1), edge(edge) {}
+        EdgeInformation() : v0(invalidVertexId), v1(invalidVertexId) {}
     };
     Vector<EdgeInformation> edges;
     EdgeId addEdge(
@@ -66,7 +70,7 @@ public:
         const Edge& edge)
     {
         const EdgeId edgeId = edges.size();
-        edges.push_back(EdgeInformation(source, target, edge));
+        edges.push_back(EdgeInformation(v0, v1, edge));
         return edgeId;
     }
 
@@ -130,8 +134,8 @@ public:
         edgesBySource.beginPass1(vertices.size());
         edgesByTarget.beginPass1(vertices.size());
         for(const EdgeInformation& edge: edges) {
-            edgesBySource.incrementCount(edge.source);
-            edgesByTarget.incrementCount(edge.target);
+            edgesBySource.incrementCount(edge.v0);
+            edgesByTarget.incrementCount(edge.v1);
         }
 
         // Pass 2: store the edges that each vertex
@@ -140,8 +144,8 @@ public:
         edgesByTarget.beginPass2();
         for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
             const EdgeInformation& edge = edges[edgeId];
-            edgesBySource.store(edge.source, edgeId);
-            edgesByTarget.store(edge.target, edgeId);
+            edgesBySource.store(edge.v0, edgeId);
+            edgesByTarget.store(edge.v1, edgeId);
         }
         edgesBySource.endPass2();
         edgesByTarget.endPass2();
@@ -174,7 +178,7 @@ public:
         vertices.createNew(fileName("Vertices"), pageSize);
         edges.createNew(fileName("Edges"), pageSize);
         edgesBySource.createNew(fileName("EdgesBySource"), pageSize);
-        edgesBySource.createNew(fileName("EdgesByTarget"), pageSize);
+        edgesByTarget.createNew(fileName("EdgesByTarget"), pageSize);
     }
 
     // Access an existing Directed graph.

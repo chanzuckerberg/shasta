@@ -122,13 +122,20 @@ public:
         {
             return (firstOrdinal + lastOrdinal) / 2;
         }
+        uint32_t twiceAlignmentCenter() const
+        {
+            return firstOrdinal + lastOrdinal;
+        }
 
         uint32_t centerPosition() const
         {
             return markerCount / 2;
         }
 
-    private:
+        uint32_t twiceCenterPosition() const
+        {
+            return markerCount;
+        }
 
         // The total number of markers in this oriented read.
         uint32_t markerCount;
@@ -264,6 +271,19 @@ public:
             (int(center1) - int(alignmentCenter1)) -
             (int(center0) - int(alignmentCenter0));
     }
+    // Verswion free of rounding error.
+    uint32_t twiceOffsetAtCenter() const
+    {
+        const uint32_t twiceAlignmentCenter0 = data[0].twiceAlignmentCenter();
+        const uint32_t twiceAlignmentCenter1 = data[1].twiceAlignmentCenter();
+
+        const uint32_t twiceCenter0 = data[0].twiceCenterPosition();
+        const uint32_t twiceCenter1 = data[1].twiceCenterPosition();
+
+        return
+            (int(twiceCenter1) - int(twiceAlignmentCenter1)) -
+            (int(twiceCenter0) - int(twiceAlignmentCenter0));
+    }
 
 
     // Classify this alignment.
@@ -308,6 +328,18 @@ public:
             return AlignmentType::read1IsBackward;
         }
         return AlignmentType::ambiguous;
+    }
+
+    void write(ostream& s) const
+    {
+        s << "Alignment with " << markerCount << " aligned markers:\n";
+        for(int i=0; i<2; i++) {
+            const auto& d = data[i];
+            s << "    " << i;
+            s << ": first " << d.firstOrdinal;
+            s << ", last: " << d.lastOrdinal << "\n";
+        }
+        s << "Twice offset at center: " << twiceOffsetAtCenter() << endl;
     }
 };
 
