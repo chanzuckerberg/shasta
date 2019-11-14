@@ -259,7 +259,7 @@ public:
     // as estimated form the alignment.
     // The offset is positive if the center of the second read
     // is to the right of the center of the first read.
-    uint32_t offsetAtCenter() const
+    int32_t offsetAtCenter() const
     {
         const uint32_t alignmentCenter0 = data[0].alignmentCenter();
         const uint32_t alignmentCenter1 = data[1].alignmentCenter();
@@ -271,8 +271,8 @@ public:
             (int(center1) - int(alignmentCenter1)) -
             (int(center0) - int(alignmentCenter0));
     }
-    // Verswion free of rounding error.
-    uint32_t twiceOffsetAtCenter() const
+    // Version free of rounding error.
+    int32_t twiceOffsetAtCenter() const
     {
         const uint32_t twiceAlignmentCenter0 = data[0].twiceAlignmentCenter();
         const uint32_t twiceAlignmentCenter1 = data[1].twiceAlignmentCenter();
@@ -339,7 +339,7 @@ public:
             s << ": first " << d.firstOrdinal;
             s << ", last: " << d.lastOrdinal << "\n";
         }
-        s << "Twice offset at center: " << twiceOffsetAtCenter() << endl;
+        s << "    Twice offset at center: " << twiceOffsetAtCenter() << endl;
     }
 };
 
