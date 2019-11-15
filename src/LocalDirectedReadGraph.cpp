@@ -1,6 +1,5 @@
 // Shasta.
-#include "LocalReadGraph.hpp"
-#include "Alignment.hpp"
+#include "LocalDirectedReadGraph.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -13,18 +12,17 @@ using namespace shasta;
 
 
 
-void LocalReadGraph::addVertex(
+void LocalDirectedReadGraph::addVertex(
     OrientedReadId orientedReadId,
     uint32_t baseCount,
-    bool isChimeric,
     uint32_t distance)
 {
     // Check that we don't already have a vertex with this OrientedReadId.
     SHASTA_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
 
     // Create the vertex.
-    const vertex_descriptor v = add_vertex(LocalReadGraphVertex(
-        orientedReadId, baseCount, isChimeric, distance), *this);
+    const vertex_descriptor v = add_vertex(LocalDirectedReadGraphVertex(
+        orientedReadId, baseCount, distance), *this);
 
     // Store it in the vertex map.
     vertexMap.insert(make_pair(orientedReadId, v));
@@ -32,12 +30,11 @@ void LocalReadGraph::addVertex(
 
 
 
-void LocalReadGraph::addEdge(
+void LocalDirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    uint32_t markerCount,
-    AlignmentType alignmentType,
-    bool crossesStrands)
+    int twiceOffsetAtCenter,
+    uint32_t markerCount)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -49,13 +46,13 @@ void LocalReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(markerCount, alignmentType, crossesStrands),
+        LocalDirectedReadGraphEdge(twiceOffsetAtCenter, markerCount),
         *this);
 }
 
 
 
-uint32_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
+uint32_t LocalDirectedReadGraph::getDistance(OrientedReadId orientedReadId) const
 {
     const auto it = vertexMap.find(orientedReadId);
     SHASTA_ASSERT(it != vertexMap.end());
@@ -65,7 +62,7 @@ uint32_t LocalReadGraph::getDistance(OrientedReadId orientedReadId) const
 
 
 
-bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
+bool LocalDirectedReadGraph::vertexExists(OrientedReadId orientedReadId) const
 {
    return vertexMap.find(orientedReadId) != vertexMap.end();
 }
@@ -73,7 +70,7 @@ bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
 
 
 // Write the graph in Graphviz format.
-void LocalReadGraph::write(const string& fileName, uint32_t maxDistance) const
+void LocalDirectedReadGraph::write(const string& fileName, uint32_t maxDistance) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
@@ -81,15 +78,15 @@ void LocalReadGraph::write(const string& fileName, uint32_t maxDistance) const
     }
     write(outputFileStream, maxDistance);
 }
-void LocalReadGraph::write(ostream& s, uint32_t maxDistance) const
+void LocalDirectedReadGraph::write(ostream& s, uint32_t maxDistance) const
 {
     Writer writer(*this, maxDistance);
     boost::write_graphviz(s, *this, writer, writer, writer,
-        boost::get(&LocalReadGraphVertex::orientedReadIdValue, *this));
+        boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
 }
 
-LocalReadGraph::Writer::Writer(
-    const LocalReadGraph& graph,
+LocalDirectedReadGraph::Writer::Writer(
+    const LocalDirectedReadGraph& graph,
     uint32_t maxDistance) :
     graph(graph),
     maxDistance(maxDistance)
@@ -98,7 +95,7 @@ LocalReadGraph::Writer::Writer(
 
 
 
-void LocalReadGraph::Writer::operator()(std::ostream& s) const
+void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
 {
     s << "layout=sfdp;\n";
     s << "ratio=expand;\n";
@@ -110,9 +107,9 @@ void LocalReadGraph::Writer::operator()(std::ostream& s) const
 }
 
 
-void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
+void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
-    const LocalReadGraphVertex& vertex = graph[v];
+    const LocalDirectedReadGraphVertex& vertex = graph[v];
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     s <<
@@ -127,70 +124,25 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
         s << " color=green fillcolor=green";
     } else if(vertex.distance == maxDistance) {
             s << " color=cyan fillcolor=cyan";
-    } else if(vertex.isChimeric) {
-        s << " color=red fillcolor=red";
     }
     s << "]";
 }
 
 
 
-void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
+void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
-    const LocalReadGraphEdge& edge = graph[e];
+    // const LocalDirectedReadGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
-    const LocalReadGraphVertex& vertex0 = graph[v0];
-    const LocalReadGraphVertex& vertex1 = graph[v1];
+    const LocalDirectedReadGraphVertex& vertex0 = graph[v0];
+    const LocalDirectedReadGraphVertex& vertex1 = graph[v1];
+
+    s << "[";
 
     s <<
-        "["
         "tooltip=\"" << vertex0.orientedReadId << " " <<
         vertex1.orientedReadId << "\"";
-
-
-
-    // A containment alignment is drawn in red, at default thickness.
-    // A non-containment alignment is drawn in black,
-    // with thickness determined by the number of aligned markers.
-    if( edge.alignmentType == AlignmentType::read0IsContained ||
-        edge.alignmentType == AlignmentType::read1IsContained) {
-        s << " color=red";
-    } else {
-        const double thickness = 0.003*double(edge.markerCount);
-        s << " penwidth=" << thickness;
-    }
-
-
-    // An edge that crosses strands is drawn dashed.
-    if(edge.crossesStrands) {
-        s << " style=dashed";
-    }
-
-
-#if 1
-    // The AlignmentType determines the edge endings.
-    // Note that the Graphviz convention for undirected graphs
-    // is that the head is the second vertex and the tail is the first vertex.
-    s << " dir=both ";
-    switch(edge.alignmentType) {
-    case AlignmentType::read0IsContained:
-        s << "arrowhead=none arrowtail=none";
-        break;
-    case AlignmentType::read1IsContained:
-        s << "arrowhead=none arrowtail=none";
-        break;
-    case AlignmentType::read0IsBackward:
-        s << "arrowhead=normal arrowtail=none";
-        break;
-    case AlignmentType::read1IsBackward:
-        s << "arrowhead=none arrowtail=normal";
-        break;
-    case AlignmentType::ambiguous:
-    default:
-        s << "arrowhead=diamond arrowtail=diamond";
-    }
-#endif
 
     s << "]";
 }
