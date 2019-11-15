@@ -1028,6 +1028,8 @@ public:
     // and instead we use the undirected read graph defined above.
     DirectedReadGraph directedReadGraph;
     void createDirectedReadGraph();
+    void accessDirectedReadGraphReadOnly();
+    void accessDirectedReadGraphReadWrite();
 
 
 

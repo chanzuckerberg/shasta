@@ -23,3 +23,11 @@ void Assembler::createDirectedReadGraph()
 
 
 
+void Assembler::accessDirectedReadGraphReadOnly()
+{
+    directedReadGraph.accessExistingReadOnly(largeDataName("DirectedReadGraph"));
+}
+void Assembler::accessDirectedReadGraphReadWrite()
+{
+    directedReadGraph.accessExistingReadWrite(largeDataName("DirectedReadGraph"));
+}

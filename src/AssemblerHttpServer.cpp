@@ -403,12 +403,24 @@ void Assembler::accessAllSoft()
         allDataAreAvailable = false;
     }
 
+
+    // Read graph.
+    // Try accessing the undirected one first.
+    // if that is not there, try the undirected one.
     try {
         accessReadGraph();
     } catch(const exception& e) {
-        cout << "The read graph is not accessible." << endl;
-        allDataAreAvailable = false;
+
+        // We don't have the undirected read graph. Try the directed one.
+        try {
+            accessDirectedReadGraphReadOnly();
+        } catch(const exception& e) {
+            cout << "The read graph is not accessible." << endl;
+            allDataAreAvailable = false;
+        }
     }
+
+
 
     try {
         accessMarkerGraphVertices();

@@ -192,6 +192,14 @@ public:
         edgesBySource.accessExisting(fileName("EdgesBySource"), readWriteAccess);
         edgesBySource.accessExisting(fileName("EdgesByTarget"), readWriteAccess);
     }
+    void accessExistingReadOnly(const string& baseName)
+    {
+        accessExisting(baseName, false);
+    }
+    void accessExistingReadWrite(const string& baseName)
+    {
+        accessExisting(baseName, true);
+    }
 
     bool isOpen()
     {
