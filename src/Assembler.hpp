@@ -1602,6 +1602,8 @@ public:
     void displayAlignmentMatrix(const vector<string>&, ostream&);
     void exploreAlignmentGraph(const vector<string>&, ostream&);
     void exploreReadGraph(const vector<string>&, ostream&);
+    void exploreUndirectedReadGraph(const vector<string>&, ostream&);
+    void exploreDirectedReadGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:
 

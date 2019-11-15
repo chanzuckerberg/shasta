@@ -16,8 +16,24 @@ using namespace shasta;
 #include "iterator.hpp"
 
 
-
 void Assembler::exploreReadGraph(
+    const vector<string>& request,
+    ostream& html)
+{
+    if(readGraph.edges.isOpen && readGraph.connectivity.isOpen()) {
+        exploreUndirectedReadGraph(request, html);
+    } else if(directedReadGraph.isOpen()) {
+        exploreDirectedReadGraph(request, html);
+    } else {
+        html << "The read graph is not available." << endl;
+    }
+
+}
+
+
+
+
+void Assembler::exploreUndirectedReadGraph(
     const vector<string>& request,
     ostream& html)
 {

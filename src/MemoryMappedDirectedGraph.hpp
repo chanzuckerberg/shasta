@@ -190,7 +190,7 @@ public:
         vertices.accessExisting(fileName("Vertices"), readWriteAccess);
         edges.accessExisting(fileName("Edges"), readWriteAccess);
         edgesBySource.accessExisting(fileName("EdgesBySource"), readWriteAccess);
-        edgesBySource.accessExisting(fileName("EdgesByTarget"), readWriteAccess);
+        edgesByTarget.accessExisting(fileName("EdgesByTarget"), readWriteAccess);
     }
     void accessExistingReadOnly(const string& baseName)
     {
