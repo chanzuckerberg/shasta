@@ -31,6 +31,7 @@ the read graph invariant under reverse complementing, as follows:
 // Shasta.
 #include "Alignment.hpp"
 #include "MemoryMappedDirectedGraph.hpp"
+#include "ReadId.hpp"
 
 namespace shasta {
     class DirectedReadGraph;
@@ -44,9 +45,10 @@ namespace shasta {
 
 
 // A vertex of the directed read graph.
-// Even though the vertex is empty, is still occupies one byte.
 class shasta::DirectedReadGraphVertex {
-
+public:
+    DirectedReadGraphBaseClass::VertexId reverseComplementedVertexId =
+        DirectedReadGraphBaseClass::invalidVertexId;
 };
 
 
@@ -55,6 +57,8 @@ class shasta::DirectedReadGraphVertex {
 class shasta::DirectedReadGraphEdge {
 public:
     AlignmentInfo alignmentInfo;
+    DirectedReadGraphBaseClass::EdgeId reverseComplementedEdgeId =
+        DirectedReadGraphBaseClass::invalidEdgeId;;
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
         alignmentInfo(alignmentInfo) {}
     DirectedReadGraphEdge() {}
@@ -67,12 +71,21 @@ class shasta::DirectedReadGraph :
     public DirectedReadGraphBaseClass {
 public:
     using BaseClass = DirectedReadGraphBaseClass;
+    using Vertex = DirectedReadGraphVertex;
+    using Edge = DirectedReadGraphEdge;
+
+    void createVertices(ReadId readCount);
 
     // Add a pair of edges corresponding to an alignment.
     void addEdgePair(const AlignmentData&);
 
+    // Make sure the graph is invariant under reverse complementing.
+    void check();
+
+private:
+
     // Add an edge 0->1, reversing the direction if necessary
-    void addEdge(
+    EdgeId addEdge(
         OrientedReadId orientedReadId0,
         OrientedReadId orientedReadId1,
         AlignmentInfo);

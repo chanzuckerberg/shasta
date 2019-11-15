@@ -4,10 +4,22 @@ using namespace shasta;
 
 
 
+void DirectedReadGraph::createVertices(ReadId readCount)
+{
+    vertices.resize(2*readCount);
+    for(ReadId readId=0; readId<readCount; readId++) {
+        const VertexId vertexId0 = OrientedReadId(readId, 0).getValue();
+        const VertexId vertexId1 = OrientedReadId(readId, 1).getValue();
+        vertices[vertexId0].reverseComplementedVertexId = vertexId1;
+        vertices[vertexId1].reverseComplementedVertexId = vertexId0;
+    }
+}
+
+
 // Add a pair of edges corresponding to an alignment.
 void DirectedReadGraph::addEdgePair(const AlignmentData& alignment)
 {
-    const bool debug = true;
+    const bool debug = false;
 
     const ReadId readId0 = alignment.readIds[0];
     const ReadId readId1 = alignment.readIds[1];
@@ -23,7 +35,7 @@ void DirectedReadGraph::addEdgePair(const AlignmentData& alignment)
     OrientedReadId orientedReadId0(readId0, 0);
     OrientedReadId orientedReadId1(readId1, isSameStrand ? 0 : 1);
     AlignmentInfo alignmentInfo = alignment.info;
-    addEdge(orientedReadId0, orientedReadId1, alignmentInfo);
+    const EdgeId edgeId0 = addEdge(orientedReadId0, orientedReadId1, alignmentInfo);
 
     // Add the second edge.
     orientedReadId0.flipStrand();
@@ -31,19 +43,23 @@ void DirectedReadGraph::addEdgePair(const AlignmentData& alignment)
     swap(orientedReadId0, orientedReadId1);
     alignmentInfo.reverseComplement();
     alignmentInfo.swap();
-    addEdge(orientedReadId0, orientedReadId1, alignmentInfo);
+    const EdgeId edgeId1 = addEdge(orientedReadId0, orientedReadId1, alignmentInfo);
+
+    // Store reverse complemented edge ids.
+    getEdge(edgeId0).reverseComplementedEdgeId = edgeId1;
+    getEdge(edgeId1).reverseComplementedEdgeId = edgeId0;
 
 }
 
 
 
 // Add an edge 0->1, reversing the direction if necessary
-void DirectedReadGraph::addEdge(
+DirectedReadGraph::EdgeId DirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     AlignmentInfo alignmentInfo)
 {
-    const bool debug = true;
+    const bool debug = false;
 
     // Get the read ids and strands.
    const ReadId readId0 = orientedReadId0.getReadId();
@@ -103,7 +119,7 @@ void DirectedReadGraph::addEdge(
    SHASTA_ASSERT(twiceOffsetAtCenter >= 0);
 
    // Add the edge.
-   BaseClass::addEdge(
+   const EdgeId edgeId = BaseClass::addEdge(
        orientedReadId0.getValue(),
        orientedReadId1.getValue(),
        DirectedReadGraphEdge(alignmentInfo));
@@ -113,5 +129,40 @@ void DirectedReadGraph::addEdge(
        alignmentInfo.write(cout);
 
    }
+   return edgeId;
+}
+
+
+
+// Make sure the graph is invariant under reverse complementing.
+void DirectedReadGraph::check()
+{
+    // Check that if we reverse complement a vertex twice
+    // we get the same vertex.
+    for(VertexId v0=0; v0<vertices.size(); v0++) {
+        const Vertex& vertex0 = getVertex(v0);
+        const VertexId v1 = vertex0.reverseComplementedVertexId;
+        SHASTA_ASSERT(v1  != v0);
+        const Vertex& vertex1 = getVertex(v1);
+        SHASTA_ASSERT(vertex1.reverseComplementedVertexId == v0);
+    }
+
+    // Check that if we reverse complement an edge twice
+    // we get the same edge.
+    // Also check that the offset of the reverse complemented edge
+    // is the same.
+    for(EdgeId e0=0; e0<edges.size(); e0++) {
+        const Edge& edge0 = getEdge(e0);
+        const EdgeId e1 = edge0.reverseComplementedEdgeId;
+        SHASTA_ASSERT(e1 != e0);
+        const Edge& edge1 = getEdge(e1);
+        SHASTA_ASSERT(edge0.reverseComplementedEdgeId == e1);
+        SHASTA_ASSERT(edge0.alignmentInfo.twiceOffsetAtCenter() ==
+            edge1.alignmentInfo.twiceOffsetAtCenter());
+
+        // Also check the vertices.
+        SHASTA_ASSERT(source(e0) == getVertex(target(e1)).reverseComplementedVertexId);
+        SHASTA_ASSERT(target(e0) == getVertex(source(e1)).reverseComplementedVertexId);
+    }
 
 }

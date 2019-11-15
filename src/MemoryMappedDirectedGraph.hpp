@@ -79,10 +79,10 @@ public:
         return edges[edgeId].edge;
     }
     VertexId source(EdgeId edgeId) {
-        return edges[edgeId].source;
+        return edges[edgeId].v0;
     }
     VertexId target(EdgeId edgeId) {
-        return edges[edgeId].target;
+        return edges[edgeId].v1;
     }
 
     // The list of edges that have each vertex as their source

@@ -337,7 +337,8 @@ public:
             const auto& d = data[i];
             s << "    " << i;
             s << ": first " << d.firstOrdinal;
-            s << ", last: " << d.lastOrdinal << "\n";
+            s << ", last: " << d.lastOrdinal;
+            s << ", total: " << d.markerCount << "\n";
         }
         s << "    Twice offset at center: " << twiceOffsetAtCenter() << endl;
     }
