@@ -210,7 +210,7 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
                     float b = u-u1;
                     float alpha = fabs(a-b);
                     if ((l1 < l) && (u1 < u) && (u-u1 <= maxSkip) && (l-l1 <= maxSkip) && (alpha <= maxDrift)) {
-                        float pscore = d_score[addr2+ptr]+1-0.1*alpha;
+                        float pscore = d_score[addr2+ptr]+1;
                         if (score[tx] < pscore) { 
                             score[tx] = pscore;
                             score_pos[tx] = ptr;
@@ -219,7 +219,7 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
                 }
                 ptr -= bs;
                 if (tx == bs-1) {
-                    if ((ptr < 0) || (l-l1 > maxSkip))  {
+                    if ((ptr < 0) || (l > l1+maxSkip))  {
                         stop_shared = true;
                     }
                     else {
@@ -291,10 +291,12 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
 
     num_unique_markers = (uint32_t) numUniqueMarkers;
 
-    cudaGetDeviceCount(&nDevices);
+    cudaError_t err;
+    
+    err = cudaGetDeviceCount(&nDevices);
     NUM_DEVICES = nDevices;
 
-    if (nDevices < 1) {
+    if (err != cudaSuccess) {
         throw runtime_error("GPU_ERROR: No GPU device found! Consider running without the --gpu flag.");
     }
     
@@ -331,7 +333,6 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
     d_num_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_batch_rid_markers = (uint64_t**) malloc(nDevices*sizeof(uint64_t*));
 
-    cudaError_t err;
     size_t num_bytes;
 
     for (int k=0; k<nDevices; k++) {
