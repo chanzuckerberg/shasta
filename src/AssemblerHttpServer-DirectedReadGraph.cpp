@@ -5,12 +5,14 @@
 using namespace shasta;
 
 // Boost libraries.
+#include <boost/graph/iteration_macros.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
 // Standard library.
 #include "chrono.hpp"
+#include "iterator.hpp"
 
 
 
@@ -46,8 +48,8 @@ void Assembler::exploreDirectedReadGraph(
     double timeout= 30;
     getParameterValue(request, "timeout", timeout);
 
-    string addBlastAnnotationsString;
-    const bool addBlastAnnotations = getParameterValue(request, "addBlastAnnotations", addBlastAnnotationsString);
+    double blastAnnotationsSampling = 0.;
+    getParameterValue(request, "blastAnnotationsSampling", blastAnnotationsSampling);
 
     string saveDotFileString;
     const bool saveDotFile = getParameterValue(request, "saveDotFile", saveDotFileString);
@@ -122,12 +124,12 @@ void Assembler::exploreDirectedReadGraph(
         " value='" << timeout <<
         "'>"
 
-        "<tr title='Add to each vertex tooltip summary information on the best alignment "
-        "to the reference stored in file reference.fa'>"
-        "<td>Add Blast annotations"
-        "<td class=centered><input type=checkbox name=addBlastAnnotations" <<
-        (addBlastAnnotations ? " checked" : "") <<
-        ">"
+        "<tr title='Fraction of vertices that should be mapped to the reference using Blast. "
+        "Requires Blast to be installed and reference.fa to be present in the assembly directory.'>"
+        "<td>Blast annotations sampling factor"
+        "<td><input type=text required name=blastAnnotationsSampling size=8 style='text-align:center'" <<
+        " value='" << blastAnnotationsSampling <<
+        "'>"
 
         "<tr title='Save the Graphviz dot file representing this local read graph'>"
         "<td>Save the Graphviz dot file"
@@ -165,6 +167,111 @@ void Assembler::exploreDirectedReadGraph(
     const auto createFinishTime = steady_clock::now();
     html << "<p>The local read graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges.";
+
+
+
+    // Add Blast annotations, if requested.
+    if(blastAnnotationsSampling > 0.) {
+        const uint32_t hashThreshold = uint32_t(blastAnnotationsSampling * double(std::numeric_limits<uint32_t>::max()));
+
+        // Create a fasta file containing the sequences of vertices in the graph.
+        // Each vertex is included with probability blastAnnotationsSampling.
+        const string uuid = to_string(boost::uuids::random_generator()());
+        const string fastaFileName = tmpDirectory() + uuid + ".fa";
+        ofstream fastaFile(fastaFileName);
+        BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
+            const LocalDirectedReadGraphVertex& vertex = graph[v];
+            const OrientedReadId orientedReadId = vertex.orientedReadId;
+            // Only include it with probability with probability blastAnnotationsSampling.
+            if(MurmurHash2(&orientedReadId, sizeof(orientedReadId), 117) > hashThreshold) {
+                continue;
+            }
+            const vector<Base> sequence = getOrientedReadRawSequence(vertex.orientedReadId);
+            const auto readName = readNames[vertex.orientedReadId.getReadId()];
+            fastaFile << ">" << vertex.orientedReadId << " ";
+            copy(readName.begin(), readName.end(), ostream_iterator<char>(fastaFile));
+            fastaFile << "\n";
+            copy(sequence.begin(), sequence.end(), ostream_iterator<Base>(fastaFile));
+            fastaFile << "\n";
+        }
+
+        // Create the blast command and run it.
+        const string blastOptions =
+            "-outfmt '10 qseqid sseqid sstart send' "
+            "-evalue 1e-200 -max_hsps 1 -max_target_seqs 1 "
+            "-num_threads " + to_string(std::thread::hardware_concurrency());
+        const string blastOutputFileName = tmpDirectory() + uuid + ".txt";
+        const string blastErrFileName = tmpDirectory() + uuid + ".errtxt";
+        const string command = "blastn -task megablast -subject " + httpServerData.referenceFastaFileName +
+            " -query " + fastaFileName + " 1>" + blastOutputFileName + " 2>" + blastErrFileName +
+            " " + blastOptions;
+        cout << timestamp << "Running Blast command." << endl;
+        if(::system(command.c_str()) != 0) {
+            // Copy any error output to html.
+            if(filesystem::fileSize(blastErrFileName)) {
+                ifstream blastErrFile(blastErrFileName);
+                html << "<pre style='font-size:10px'>";
+                html << blastErrFile.rdbuf();
+                html << "</pre>";
+                blastErrFile.close();
+            }
+            html << "Blast command failed. "
+                "Make sure Blast is installed and reference.fa is present in the assembly directory.";
+            return;
+        }
+        cout << timestamp << "Blast command completed." << endl;
+
+
+        // Store alignments, keyed by OrientedReadId.
+        // For each OrientedReadId we store all the alignments we found,
+        // already tokenized.
+        using Separator = boost::char_separator<char>;
+        using Tokenizer = boost::tokenizer<Separator>;
+        const Separator separator(",");
+        std::map<OrientedReadId, vector< vector<string> > > alignments;
+        ifstream blastOutputFile(blastOutputFileName);
+        string line;
+        vector<string> tokens;
+        while(true) {
+
+            // Get a line.
+            string line;
+            std::getline(blastOutputFile, line);
+            if(!blastOutputFile) {
+                break;
+            }
+
+            // Tokenize it.
+            Tokenizer tokenizer(line, separator);
+            tokens.clear();
+            tokens.insert(tokens.begin(), tokenizer.begin(), tokenizer.end());
+
+            // Extract the OrientedReadId.
+            SHASTA_ASSERT(!tokens.empty());
+            const OrientedReadId orientedReadId = OrientedReadId(tokens.front());
+
+            // Store it.
+            alignments[orientedReadId].push_back(tokens);
+        }
+
+        // Remove the files we created.
+        filesystem::remove(fastaFileName);
+        filesystem::remove(blastOutputFileName);
+        filesystem::remove(blastErrFileName);
+
+        // Now store the alignments as additional text in the vertices tooltips.
+        BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
+            LocalDirectedReadGraphVertex& vertex = graph[v];
+            const auto& vertexAlignments = alignments[vertex.orientedReadId];
+            for(const auto& alignment: vertexAlignments) {
+                SHASTA_ASSERT(alignment.size() == 4);
+                vertex.additionalToolTipText += " " + alignment[1] + ":" + alignment[2] + "-" + alignment[3];
+            }
+        }
+
+    }
+
+
 
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
@@ -213,6 +320,9 @@ void Assembler::exploreDirectedReadGraph(
             "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
             ") from the start vertex</span> "
             ".<br>";
+        if(blastAnnotationsSampling > 0.) {
+            html << "Diamond shaped vertex indicates the presence of Blast annotations.<br>";
+        }
         if(saveDotFile) {
             html << "<p>Graphviz dot file saved as " << dotFileName << "<br>";
         }

@@ -132,6 +132,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const LocalDirectedReadGraphVertex& vertex = graph[v];
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
+    // Tooltip.
     s <<
         "["
         " tooltip=\"Read " << orientedReadId << ", " <<
@@ -140,12 +141,23 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
         "&strand=" << orientedReadId.getStrand() <<
         "\"" <<
-        " width=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount));
+        " width=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount)) <<
+        " height=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount));
+
+    // Color.
     if(vertex.distance == 0) {
-        s << " color=green fillcolor=green";
+        s << " color=green";
     } else if(vertex.distance == maxDistance) {
-            s << " color=cyan fillcolor=cyan";
+            s << " color=cyan";
+    } else {
+        s << "color=black";
     }
+
+    // Shape.
+    if(not vertex.additionalToolTipText.empty()) {
+        s << " shape=diamond style=filled label=\"\"";
+    }
+
     s << "]";
 }
 
