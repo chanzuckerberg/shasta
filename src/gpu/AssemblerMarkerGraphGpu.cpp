@@ -561,7 +561,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1Gpu(size_t threadId)
             }
 
             // find alignments on GPU
-            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, alignCount, numPos, numReads, batch_rid_marker_pos, batch_read_pairs, h_alignments, h_num_traceback);
+            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, maxDrift, alignCount, numPos, numReads, batch_rid_marker_pos, batch_read_pairs, h_alignments, h_num_traceback);
 
             for (size_t i=0; i<alignCount; i++) {
                 auto edgeId = currAlignmentEdgesId[i];
