@@ -459,12 +459,12 @@ void Assembler::createMarkerGraphVerticesThreadFunction1Gpu(size_t threadId)
             remainingAlignmentEdgesId.clear();
 
             for (size_t i=first; i<last; i+=2) {
-                const ReadGraph::Edge& readGraphEdge = readGraph.edges[i];
+                const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
 
                 // Check that the next edge is the reverse complement of
                 // this edge.
                 {
-                    const ReadGraph::Edge& readGraphNextEdge = readGraph.edges[i + 1];
+                    const ReadGraphEdge& readGraphNextEdge = readGraph.edges[i + 1];
                     array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
                     nextEdgeOrientedReadIds[0].flipStrand();
                     nextEdgeOrientedReadIds[1].flipStrand();
@@ -578,7 +578,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1Gpu(size_t threadId)
                     remainingAlignmentEdgesId.push_back(edgeId);
                 }
                 else {
-                    const ReadGraph::Edge& readGraphEdge = readGraph.edges[edgeId];
+                    const ReadGraphEdge& readGraphEdge = readGraph.edges[edgeId];
                     orientedReadIds = readGraphEdge.orientedReadIds;
                     // In the global marker graph, merge pairs
                     // of aligned markers.
@@ -602,7 +602,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1Gpu(size_t threadId)
 
             // Evaluate alignments that failed on GPU
             for (auto& edgeId: remainingAlignmentEdgesId) {
-                const ReadGraph::Edge& readGraphEdge = readGraph.edges[edgeId];
+                const ReadGraphEdge& readGraphEdge = readGraph.edges[edgeId];
                 orientedReadIds = readGraphEdge.orientedReadIds;
                 // Get the markers for the two oriented reads.
                 for(size_t j=0; j<2; j++) {
