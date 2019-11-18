@@ -7,6 +7,8 @@
 
 // Standard library.
 #include <limits>
+#include <map>
+#include <queue>
 #include "string.hpp"
 
 // A directed graph stored on memory mapped data structures.
@@ -209,6 +211,69 @@ public:
             edgesBySource.isOpen() and
             edgesByTarget.isOpen();
     }
+
+
+
+    // Find the neighborhood of a vertex.
+    void findNeighborhood(
+        VertexId vStart,
+        uint64_t maxDistance,
+        bool forward,   // True if allowed to move forward.
+        bool backward,  // True if allowed to move backward.
+        std::map<VertexId, uint64_t>& neighbors
+        )
+    {
+        // The vertices we already encountered but we did not
+        // yet process.
+
+        // Initialize the BFS.
+        std::queue<VertexId> q;
+        neighbors.clear();
+        neighbors.insert(make_pair(0, vStart));
+        q.push(vStart);
+
+        // Do the BFS.
+        while(!q.empty()) {
+
+            // Dequeue a vertex.
+            const VertexId v0 = q.front();
+            q.pop();
+            const uint64_t distance0 = neighbors[v0];
+            const uint64_t distance1 = distance0 + 1;
+
+            // Move forward.
+            if(forward) {
+                for(const EdgeId& edgeId: outEdges(v0)) {
+                    const VertexId v1 = target(edgeId);
+                    if(neighbors.find(v1) != neighbors.end()) {
+                        // We already encountered v1.
+                        continue;
+                    }
+                    neighbors.insert(make_pair(v1, distance1));
+                    if(distance1 < maxDistance) {
+                        q.push(v1);
+                    }
+                }
+            }
+
+            // Move backward.
+            if(backward) {
+                for(const EdgeId& edgeId: inEdges(v0)) {
+                    const VertexId v1 = source(edgeId);
+                    if(neighbors.find(v1) != neighbors.end()) {
+                        // We already encountered v1.
+                        continue;
+                    }
+                    neighbors.insert(make_pair(v1, distance1));
+                    if(distance1 < maxDistance) {
+                        q.push(v1);
+                    }
+                }
+            }
+        }
+    }
+
+
 
 private:
 

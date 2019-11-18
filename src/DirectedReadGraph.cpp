@@ -1,4 +1,6 @@
+// Shasta.
 #include "DirectedReadGraph.hpp"
+#include "LocalDirectedReadGraph.hpp"
 #include "Alignment.hpp"
 using namespace shasta;
 
@@ -166,3 +168,31 @@ void DirectedReadGraph::check()
     }
 
 }
+
+
+
+// Create a LocalDirectedReadGraph.
+void DirectedReadGraph::extractLocalSubgraph(
+    OrientedReadId orientedReadId,
+    uint64_t maxDistance,
+    LocalDirectedReadGraph& graph)
+{
+    // The local graph must start empty.
+    SHASTA_ASSERT(boost::num_vertices(graph) == 0);
+
+    // Get the vertices in this neighborhood.
+    std::map<VertexId, uint64_t> distanceMap;
+    findNeighborhood(orientedReadId.getValue(), maxDistance, true, true, distanceMap);
+
+    // Add them to the local graph.
+    for(const pair<VertexId, uint64_t>& p: distanceMap) {
+        const VertexId vertexId = p.first;
+        const uint64_t distance = p.second;
+        graph.addVertex(OrientedReadId(ReadId(vertexId)),
+            getVertex(vertexId).baseCount, distance);
+    }
+
+    // Add the edges.
+    SHASTA_ASSERT(0);
+}
+

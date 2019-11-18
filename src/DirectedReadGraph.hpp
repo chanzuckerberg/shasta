@@ -38,6 +38,8 @@ namespace shasta {
     class DirectedReadGraphEdge;
     class DirectedReadGraphVertex;
 
+    class LocalDirectedReadGraph;
+
     using DirectedReadGraphBaseClass =
         MemoryMapped::DirectedGraph<DirectedReadGraphVertex, DirectedReadGraphEdge>;
 }
@@ -47,6 +49,10 @@ namespace shasta {
 // A vertex of the directed read graph.
 class shasta::DirectedReadGraphVertex {
 public:
+    // The number of raw bases of the oriented read corresponding to
+    // this vertex.
+    uint64_t baseCount;
+
     DirectedReadGraphBaseClass::VertexId reverseComplementedVertexId =
         DirectedReadGraphBaseClass::invalidVertexId;
 };
@@ -81,6 +87,12 @@ public:
 
     // Make sure the graph is invariant under reverse complementing.
     void check();
+
+    // Create a LocalDirectedReadGraph.
+    void extractLocalSubgraph(
+        OrientedReadId,
+        uint64_t maxDistance,
+        LocalDirectedReadGraph&);
 
 private:
 

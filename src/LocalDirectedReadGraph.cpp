@@ -14,8 +14,8 @@ using namespace shasta;
 
 void LocalDirectedReadGraph::addVertex(
     OrientedReadId orientedReadId,
-    uint32_t baseCount,
-    uint32_t distance)
+    uint64_t baseCount,
+    uint64_t distance)
 {
     // Check that we don't already have a vertex with this OrientedReadId.
     SHASTA_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
@@ -34,7 +34,7 @@ void LocalDirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     int twiceOffsetAtCenter,
-    uint32_t markerCount)
+    uint64_t markerCount)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -52,7 +52,7 @@ void LocalDirectedReadGraph::addEdge(
 
 
 
-uint32_t LocalDirectedReadGraph::getDistance(OrientedReadId orientedReadId) const
+uint64_t LocalDirectedReadGraph::getDistance(OrientedReadId orientedReadId) const
 {
     const auto it = vertexMap.find(orientedReadId);
     SHASTA_ASSERT(it != vertexMap.end());
@@ -70,7 +70,7 @@ bool LocalDirectedReadGraph::vertexExists(OrientedReadId orientedReadId) const
 
 
 // Write the graph in Graphviz format.
-void LocalDirectedReadGraph::write(const string& fileName, uint32_t maxDistance) const
+void LocalDirectedReadGraph::write(const string& fileName, uint64_t maxDistance) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
@@ -78,7 +78,7 @@ void LocalDirectedReadGraph::write(const string& fileName, uint32_t maxDistance)
     }
     write(outputFileStream, maxDistance);
 }
-void LocalDirectedReadGraph::write(ostream& s, uint32_t maxDistance) const
+void LocalDirectedReadGraph::write(ostream& s, uint64_t maxDistance) const
 {
     Writer writer(*this, maxDistance);
     boost::write_graphviz(s, *this, writer, writer, writer,
@@ -87,7 +87,7 @@ void LocalDirectedReadGraph::write(ostream& s, uint32_t maxDistance) const
 
 LocalDirectedReadGraph::Writer::Writer(
     const LocalDirectedReadGraph& graph,
-    uint32_t maxDistance) :
+    uint64_t maxDistance) :
     graph(graph),
     maxDistance(maxDistance)
 {

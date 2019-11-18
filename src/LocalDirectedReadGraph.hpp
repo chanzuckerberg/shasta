@@ -33,21 +33,21 @@ class shasta::LocalDirectedReadGraphVertex {
 public:
 
     OrientedReadId orientedReadId;
-    uint32_t orientedReadIdValue;   // Used as vertex id.
+    OrientedReadId::Int orientedReadIdValue;   // Used as vertex id.
 
     // The number of markers in this read.
-    uint32_t markerCount;
+    uint64_t markerCount;
 
     // The distance of this vertex from the starting vertex.
-    uint32_t distance;
+    uint64_t distance;
 
     // Used for Blast annotations.
     string additionalToolTipText;
 
     LocalDirectedReadGraphVertex(
         OrientedReadId orientedReadId,
-        uint32_t markerCount,
-        uint32_t distance) :
+        uint64_t markerCount,
+        uint64_t distance) :
         orientedReadId(orientedReadId),
         orientedReadIdValue(orientedReadId.getValue()),
         markerCount(markerCount),
@@ -66,7 +66,7 @@ public:
 
     // The number of alignment markers in the alignment
     // that created this edge.
-    uint32_t markerCount;
+    uint64_t markerCount;
 
     LocalDirectedReadGraphEdge(
         int twiceOffsetAtCenter,
@@ -84,24 +84,24 @@ public:
 
     void addVertex(
         OrientedReadId,
-        uint32_t baseCount,
-        uint32_t distance);
+        uint64_t baseCount,
+        uint64_t distance);
 
     void addEdge(
         OrientedReadId,
         OrientedReadId,
         int twiceOffsetAtCenter,
-        uint32_t markerCount);
+        uint64_t markerCount);
 
     // Find out if a vertex with a given OrientedReadId exists.
     bool vertexExists(OrientedReadId) const;
 
     // Get the distance of an existing vertex from the start vertex.
-    uint32_t getDistance(OrientedReadId) const;
+    uint64_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
-    void write(ostream&, uint32_t maxDistance) const;
-    void write(const string& fileName, uint32_t maxDistance) const;
+    void write(ostream&, uint64_t maxDistance) const;
+    void write(const string& fileName, uint64_t maxDistance) const;
 
 private:
 
@@ -111,12 +111,12 @@ private:
     // Graphviz writer.
     class Writer {
     public:
-        Writer(const LocalDirectedReadGraph&, uint32_t maxDistance);
+        Writer(const LocalDirectedReadGraph&, uint64_t maxDistance);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalDirectedReadGraph& graph;
-        uint32_t maxDistance;
+        uint64_t maxDistance;
     };
 };
 
