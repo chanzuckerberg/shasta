@@ -1,7 +1,8 @@
 // Shasta.
 #include "DirectedReadGraph.hpp"
-#include "LocalDirectedReadGraph.hpp"
 #include "Alignment.hpp"
+#include "LocalDirectedReadGraph.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -252,3 +253,72 @@ bool DirectedReadGraph::extractLocalSubgraph(
     return true;
 }
 
+
+
+void DirectedReadGraph::transitiveReduction(
+    double offsetTolerance0,
+    double offsetTolerance1)
+{
+    const bool debug = true;
+    using Edge = DirectedReadGraphEdge;
+
+    // Mark all edges as not removed by transitive reduction.
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        Edge& edge = getEdge(edgeId);
+        edge.wasRemovedByTransitiveReduction = 0;
+        edge.transitiveCoverage = 0;
+    }
+
+    // Sort edges by decreasing offset.
+    vector< pair<EdgeId, uint64_t> > edgeTable;
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        Edge& edge = getEdge(edgeId);
+        edgeTable.push_back(make_pair(edgeId, edge.alignmentInfo.twiceOffsetAtCenter()));
+    }
+    sort(edgeTable.begin(), edgeTable.end(), OrderPairsBySecondOnlyGreater<EdgeId, uint64_t>());
+
+
+
+    // Process all edges in order of decreasing offset.
+    for(const auto& p: edgeTable) {
+
+        // Get some information about this edge.
+        const EdgeId edgeId = p.first;
+        const uint64_t twiceOffsetAtCenter = p.second;
+        const Edge& edge = getEdge(edgeId);
+        SHASTA_ASSERT(!edge.wasRemovedByTransitiveReduction);
+        const VertexId vertexId0 = source(edgeId);
+        const VertexId vertexId1 = target(edgeId);
+        const OrientedReadId orientedReadId0 = OrientedReadId(OrientedReadId::Int(vertexId0));
+        const OrientedReadId orientedReadId1 = OrientedReadId(OrientedReadId::Int(vertexId1));
+
+        if(debug) {
+            cout << "Working on edge " << orientedReadId0 << "->" << orientedReadId1 <<
+                " with offset " << twiceOffsetAtCenter/2 << endl;
+        }
+
+        // Look for the shortest path between vertex0 and vertex1 that:
+        // - Does not use edge vertex0->vertex1.
+        // - Has total offset sufficiently similar to the offset of edge vertex0->vertex1.
+
+        // Compute the allowable range for twice the total offset of the path.
+        const uint64_t offsetToleranceOnTwiceOffset = uint64_t(
+            2. * offsetTolerance0 + offsetTolerance1 * double(twiceOffsetAtCenter));
+        const uint64_t minPathTwiceOffset =
+            (offsetToleranceOnTwiceOffset < twiceOffsetAtCenter) ?
+            (twiceOffsetAtCenter - offsetToleranceOnTwiceOffset) :
+            0;
+        const uint64_t maxPathTwiceOffset =  twiceOffsetAtCenter + offsetToleranceOnTwiceOffset;
+        if(debug) {
+            cout << "Allowable offset range for path: " << minPathTwiceOffset/2 << " " << maxPathTwiceOffset/2 << endl;
+        }
+
+
+
+        // Do a forward BFS starting at vertex0.
+
+
+    }
+
+    SHASTA_ASSERT(0);
+}

@@ -313,6 +313,10 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessDirectedReadGraphReadOnly)
         .def("accessDirectedReadGraphReadWrite",
             &Assembler::accessDirectedReadGraphReadWrite)
+        .def("directedReadGraphTransitiveReduction",
+            &Assembler::directedReadGraphTransitiveReduction,
+            arg("offsetTolerance0"),
+            arg("offsetTolerance1"))
 
 
         // Global marker graph.

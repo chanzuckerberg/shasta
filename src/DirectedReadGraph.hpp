@@ -63,12 +63,33 @@ public:
 // An edge of the directed read graph.
 class shasta::DirectedReadGraphEdge {
 public:
+
+    // Information on the alignment that generated this edge.
     AlignmentInfo alignmentInfo;
+
+    // The reverse complement of this edge.
     DirectedReadGraphBaseClass::EdgeId reverseComplementedEdgeId =
-        DirectedReadGraphBaseClass::invalidEdgeId;;
+        DirectedReadGraphBaseClass::invalidEdgeId;
+
+    // Flag set if this edge is removed due to transitive reduction.
+    uint8_t wasRemovedByTransitiveReduction:1;
+
+    // Transitive coverage begins at 1 and gets set to zero for edges
+    // removed during transitive reduction.
+    // It is incremented on all edges of the path that causes an edge to be removed.
+    uint32_t transitiveCoverage;
+
+    // Constructors.
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
-        alignmentInfo(alignmentInfo) {}
-    DirectedReadGraphEdge() {}
+        alignmentInfo(alignmentInfo), transitiveCoverage(1)
+    {
+        wasRemovedByTransitiveReduction = 0;
+    }
+    DirectedReadGraphEdge() :
+        transitiveCoverage(1)
+    {
+        wasRemovedByTransitiveReduction = 0;
+    }
 
 };
 
@@ -95,6 +116,10 @@ public:
         uint64_t maxDistance,
         double timeout,
         LocalDirectedReadGraph&);
+
+    void transitiveReduction(
+        double offsetTolerance0,
+        double offsetTolerance1);
 
 private:
 

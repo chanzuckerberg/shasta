@@ -213,6 +213,15 @@ public:
             edgesByTarget.isOpen();
     }
 
+    bool isOpenWithWriteAccess()
+    {
+        return
+            vertices.isOpenWithWriteAccess and
+            edges.isOpenWithWriteAccess and
+            edgesBySource.isOpenWithWriteAccess() and
+            edgesByTarget.isOpenWithWriteAccess();
+    }
+
 
 
     // Find the neighborhood of a vertex.

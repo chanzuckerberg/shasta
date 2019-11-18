@@ -1030,6 +1030,10 @@ public:
     void createDirectedReadGraph();
     void accessDirectedReadGraphReadOnly();
     void accessDirectedReadGraphReadWrite();
+    void directedReadGraphTransitiveReduction(
+        double offsetTolerance0,
+        double offsetTolerance1
+        );
 
 
 
