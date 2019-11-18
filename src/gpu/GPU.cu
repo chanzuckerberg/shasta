@@ -248,7 +248,7 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
                 d_score_pos[addr2+p] = score_pos[0];
                 if (score[0] > max_score) {
                     max_score = score[0];
-                    max_score_pos = score_pos[0];
+                    max_score_pos = p;
                 }
             }
             __syncthreads();
