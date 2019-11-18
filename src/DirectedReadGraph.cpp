@@ -10,6 +10,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include <queue>
 
 
 void DirectedReadGraph::createVertices(ReadId readCount)
@@ -279,6 +280,23 @@ void DirectedReadGraph::transitiveReduction(
 
 
 
+    // Priority queue used by the BFS below.
+    // It stores pairs (VertexId, distance),
+    // where distance is sum of twice offsets at centers.
+    std::priority_queue<
+        pair<VertexId, uint64_t>,
+        vector< pair<VertexId, uint64_t> >,
+        OrderPairsBySecondOnlyGreater<VertexId, uint64_t>
+        > q;
+
+    // The vertices visited by the current BFS.
+    vector<VertexId> visitedVertices;
+
+    // Flags set for vertices that were visited in the current BFS.
+    vector<bool> wasVisited(vertices.size(), false);
+
+
+
     // Process all edges in order of decreasing offset.
     for(const auto& p: edgeTable) {
 
@@ -287,10 +305,10 @@ void DirectedReadGraph::transitiveReduction(
         const uint64_t twiceOffsetAtCenter = p.second;
         const Edge& edge = getEdge(edgeId);
         SHASTA_ASSERT(!edge.wasRemovedByTransitiveReduction);
-        const VertexId vertexId0 = source(edgeId);
-        const VertexId vertexId1 = target(edgeId);
-        const OrientedReadId orientedReadId0 = OrientedReadId(OrientedReadId::Int(vertexId0));
-        const OrientedReadId orientedReadId1 = OrientedReadId(OrientedReadId::Int(vertexId1));
+        const VertexId u0 = source(edgeId);
+        const VertexId u1 = target(edgeId);
+        const OrientedReadId orientedReadId0 = OrientedReadId(OrientedReadId::Int(u0));
+        const OrientedReadId orientedReadId1 = OrientedReadId(OrientedReadId::Int(u1));
 
         if(debug) {
             cout << "Working on edge " << orientedReadId0 << "->" << orientedReadId1 <<
@@ -316,7 +334,96 @@ void DirectedReadGraph::transitiveReduction(
 
 
         // Do a forward BFS starting at vertex0.
+        // Use twice offset at center as edge length.
+        SHASTA_ASSERT(visitedVertices.empty());
+        SHASTA_ASSERT(q.empty());
+        q.push(make_pair(u0, 0));
+        visitedVertices.push_back(u0);
+        wasVisited[u0] = true;
+        bool done = false;
+        while(not q.empty()) {
 
+            // Dequeue a vertex.
+            const auto& p = q.top();
+            const VertexId v0 = p.first;
+            const uint64_t distance0 = p.second;
+            q.pop();
+            if(debug) {
+                cout << "Dequeued " << OrientedReadId(OrientedReadId::Int(v0)) << " at distance " << distance0/2 << endl;
+            }
+
+            // Loop over its out-edges, skipping the ones
+            // that were already removed.
+            for(const EdgeId edgeId01: outEdges(v0)) {
+
+                // If this is the edge we are working on, skip it.
+                if(edgeId01 == edgeId) {
+                    continue;
+                }
+                const Edge& edge = getEdge(edgeId01);
+
+                // If this edge was already removed durign transitive reduction, skip it.
+                if(edge.wasRemovedByTransitiveReduction) {
+                    continue;
+                }
+
+                // Get the target vertex.
+                const VertexId v1 = target(edgeId01);
+
+                // If already visited, skip.
+                if(wasVisited[v1]) {
+                    continue;
+                }
+
+                // Compute the updated distance.
+                const uint64_t distance1 = distance0 + edge.alignmentInfo.twiceOffsetAtCenter();
+
+                // If we got too far, skip.
+                if(distance1 > maxPathTwiceOffset) {
+                    continue;
+                }
+
+
+                // Did we find u1?
+                if(v1==u1) {
+                    if(distance1 <= minPathTwiceOffset) {
+                        getEdge(edgeId).wasRemovedByTransitiveReduction = false;
+                        done = true;
+                        if(debug) {
+                            cout << "Transitive reduction removed edge " << orientedReadId0 << "->" << orientedReadId1 <<
+                                " with offset " << twiceOffsetAtCenter/2 << endl;
+                        }
+                        break;
+                    } else {
+                        // We found u1, but the distance is too small. Keep going.
+                        continue;
+                    }
+                } else {
+
+                    SHASTA_ASSERT(v1 != u1);
+                    wasVisited[v1] = true;
+                    visitedVertices.push_back(v1);
+                    q.push(make_pair(v1, distance1));
+                    if(debug) {
+                        cout << "Enqueued " << OrientedReadId(OrientedReadId::Int(v1)) << " at distance " << distance1/2 << endl;
+                    }
+                }
+            }
+
+            if(done) {
+                break;
+            }
+        }
+
+
+        // Clean up after this BFS.
+        for(const VertexId v: visitedVertices) {
+            wasVisited[v] = false;
+        }
+        visitedVertices.clear();
+        while(not q.empty()) {
+            q.pop();
+        }
 
     }
 
