@@ -6,6 +6,7 @@
 #include "MemoryMappedVectorOfVectors.hpp"
 
 // Standard library.
+#include "chrono.hpp"
 #include <limits>
 #include <map>
 #include <queue>
@@ -215,16 +216,17 @@ public:
 
 
     // Find the neighborhood of a vertex.
-    void findNeighborhood(
+    bool findNeighborhood(
         VertexId vStart,
         uint64_t maxDistance,
         bool forward,   // True if allowed to move forward.
         bool backward,  // True if allowed to move backward.
+        double timeout,
         std::map<VertexId, uint64_t>& neighbors
         )
     {
-        // The vertices we already encountered but we did not
-        // yet process.
+        const auto startTime = steady_clock::now();
+        const bool debug = false;
 
         // Initialize the BFS.
         std::queue<VertexId> q;
@@ -232,14 +234,32 @@ public:
         neighbors.insert(make_pair(0, vStart));
         q.push(vStart);
 
+        if(debug) {
+            cout << "BFS begins at " << OrientedReadId(OrientedReadId::Int(vStart)) <<
+                " maximum distance " << maxDistance << endl;
+        }
+
         // Do the BFS.
         while(!q.empty()) {
+
+            // See if we exceeded the timeout.
+            if(timeout>0. and (seconds(steady_clock::now() - startTime) > timeout)) {
+                neighbors.clear();
+                return false;
+            }
 
             // Dequeue a vertex.
             const VertexId v0 = q.front();
             q.pop();
             const uint64_t distance0 = neighbors[v0];
             const uint64_t distance1 = distance0 + 1;
+
+            if(debug) {
+                cout << "Dequeued " << OrientedReadId(OrientedReadId::Int(v0)) <<
+                    " at distance " << distance0 <<
+                    " out-degree " << outDegree(v0) <<
+                    " in-degree " << inDegree(v0) << endl;
+            }
 
             // Move forward.
             if(forward) {
@@ -271,6 +291,8 @@ public:
                 }
             }
         }
+
+        return true;
     }
 
 

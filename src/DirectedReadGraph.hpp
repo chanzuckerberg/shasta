@@ -49,9 +49,10 @@ namespace shasta {
 // A vertex of the directed read graph.
 class shasta::DirectedReadGraphVertex {
 public:
-    // The number of raw bases of the oriented read corresponding to
-    // this vertex.
+    // The number of raw bases and the number of markers
+    // of the oriented read corresponding to this vertex.
     uint64_t baseCount;
+    uint64_t markerCount;
 
     DirectedReadGraphBaseClass::VertexId reverseComplementedVertexId =
         DirectedReadGraphBaseClass::invalidVertexId;
@@ -89,9 +90,10 @@ public:
     void check();
 
     // Create a LocalDirectedReadGraph.
-    void extractLocalSubgraph(
+    bool extractLocalSubgraph(
         OrientedReadId,
         uint64_t maxDistance,
+        double timeout,
         LocalDirectedReadGraph&);
 
 private:

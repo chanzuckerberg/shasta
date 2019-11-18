@@ -15,6 +15,7 @@ using namespace shasta;
 void LocalDirectedReadGraph::addVertex(
     OrientedReadId orientedReadId,
     uint64_t baseCount,
+    uint64_t markerCount,
     uint64_t distance)
 {
     // Check that we don't already have a vertex with this OrientedReadId.
@@ -22,7 +23,7 @@ void LocalDirectedReadGraph::addVertex(
 
     // Create the vertex.
     const vertex_descriptor v = add_vertex(LocalDirectedReadGraphVertex(
-        orientedReadId, baseCount, distance), *this);
+        orientedReadId, baseCount, markerCount, distance), *this);
 
     // Store it in the vertex map.
     vertexMap.insert(make_pair(orientedReadId, v));
@@ -70,26 +71,45 @@ bool LocalDirectedReadGraph::vertexExists(OrientedReadId orientedReadId) const
 
 
 // Write the graph in Graphviz format.
-void LocalDirectedReadGraph::write(const string& fileName, uint64_t maxDistance) const
+void LocalDirectedReadGraph::write(
+    const string& fileName,
+    uint64_t maxDistance,
+    double vertexScalingFactor,
+    double edgeThicknessScalingFactor,
+    double edgeArrowScalingFactor
+    ) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance);
+    write(outputFileStream, maxDistance, vertexScalingFactor,
+        edgeThicknessScalingFactor, edgeArrowScalingFactor);
 }
-void LocalDirectedReadGraph::write(ostream& s, uint64_t maxDistance) const
+void LocalDirectedReadGraph::write(
+    ostream& s,
+    uint64_t maxDistance,
+    double vertexScalingFactor,
+    double edgeThicknessScalingFactor,
+    double edgeArrowScalingFactor) const
 {
-    Writer writer(*this, maxDistance);
+    Writer writer(*this, maxDistance, vertexScalingFactor,
+        edgeThicknessScalingFactor, edgeArrowScalingFactor);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
 }
 
 LocalDirectedReadGraph::Writer::Writer(
     const LocalDirectedReadGraph& graph,
-    uint64_t maxDistance) :
+    uint64_t maxDistance,
+    double vertexScalingFactor,
+    double edgeThicknessScalingFactor,
+    double edgeArrowScalingFactor) :
     graph(graph),
-    maxDistance(maxDistance)
+    maxDistance(maxDistance),
+    vertexScalingFactor(vertexScalingFactor),
+    edgeThicknessScalingFactor(edgeThicknessScalingFactor),
+    edgeArrowScalingFactor(edgeArrowScalingFactor)
 {
 }
 
@@ -114,12 +134,13 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
 
     s <<
         "["
-        " tooltip=\"Read " << orientedReadId << ", " << vertex.markerCount <<
+        " tooltip=\"Read " << orientedReadId << ", " <<
+        vertex.baseCount << " bases, " << vertex.markerCount <<
         " markers, distance " << vertex.distance << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
         "&strand=" << orientedReadId.getStrand() <<
         "\"" <<
-        " width=" << sqrt(1.e-5 * double(vertex.markerCount));
+        " width=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount));
     if(vertex.distance == 0) {
         s << " color=green fillcolor=green";
     } else if(vertex.distance == maxDistance) {
@@ -132,7 +153,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
 
 void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
-    // const LocalDirectedReadGraphEdge& edge = graph[e];
+    const LocalDirectedReadGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
     const LocalDirectedReadGraphVertex& vertex0 = graph[v0];
@@ -141,8 +162,14 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s << "[";
 
     s <<
-        "tooltip=\"" << vertex0.orientedReadId << " " <<
-        vertex1.orientedReadId << "\"";
+        "tooltip=\"" << vertex0.orientedReadId << "->" <<
+        vertex1.orientedReadId <<
+        ", " << edge.markerCount << " aligned markers, centers offset "
+        << edge.twiceOffsetAtCenter/2 <<
+        "\"";
+
+    s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
+    s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
 
     s << "]";
 }

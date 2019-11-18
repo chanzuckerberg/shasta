@@ -7,6 +7,8 @@ using namespace shasta;
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>
 
+// Standard library.
+#include "chrono.hpp"
 
 
 void DirectedReadGraph::createVertices(ReadId readCount)
@@ -175,24 +177,31 @@ void DirectedReadGraph::check()
 
 
 // Create a LocalDirectedReadGraph.
-void DirectedReadGraph::extractLocalSubgraph(
+bool DirectedReadGraph::extractLocalSubgraph(
     OrientedReadId orientedReadId,
     uint64_t maxDistance,
+    double timeout,
     LocalDirectedReadGraph& graph)
 {
+    const auto startTime = steady_clock::now();
+
     // The local graph must start empty.
     SHASTA_ASSERT(boost::num_vertices(graph) == 0);
 
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;
-    findNeighborhood(orientedReadId.getValue(), maxDistance, true, true, distanceMap);
+    if(not findNeighborhood(orientedReadId.getValue(), maxDistance, true, true, timeout, distanceMap)) {
+        graph.clear();
+        return false;
+    }
 
     // Add them to the local subgraph.
     for(const pair<VertexId, uint64_t>& p: distanceMap) {
         const VertexId vertexId = p.first;
         const uint64_t distance = p.second;
+        const DirectedReadGraphVertex& vertex = getVertex(vertexId);
         graph.addVertex(OrientedReadId(ReadId(vertexId)),
-            getVertex(vertexId).baseCount, distance);
+            vertex.baseCount, vertex.markerCount, distance);
     }
 
 
@@ -202,6 +211,12 @@ void DirectedReadGraph::extractLocalSubgraph(
 
     // Loop over vertices of the local subgraph.
     BGL_FORALL_VERTICES(v0, graph, LocalDirectedReadGraph) {
+
+        // See if we exceeded the timeout.
+        if(timeout>0. && (seconds(steady_clock::now() - startTime) > timeout)) {
+            graph.clear();
+            return false;
+        }
 
         // Find the corresponding vertex in the global graph.
         const VertexId vertexId0 = graph[v0].orientedReadId.getValue();
@@ -234,5 +249,6 @@ void DirectedReadGraph::extractLocalSubgraph(
         }
     }
 
+    return true;
 }
 

@@ -35,7 +35,8 @@ public:
     OrientedReadId orientedReadId;
     OrientedReadId::Int orientedReadIdValue;   // Used as vertex id.
 
-    // The number of markers in this read.
+    // The number of bases and markers in this read.
+    uint64_t baseCount;
     uint64_t markerCount;
 
     // The distance of this vertex from the starting vertex.
@@ -46,10 +47,12 @@ public:
 
     LocalDirectedReadGraphVertex(
         OrientedReadId orientedReadId,
+        uint64_t baseCount,
         uint64_t markerCount,
         uint64_t distance) :
         orientedReadId(orientedReadId),
         orientedReadIdValue(orientedReadId.getValue()),
+        baseCount(baseCount),
         markerCount(markerCount),
         distance(distance)
         {}
@@ -85,6 +88,7 @@ public:
     void addVertex(
         OrientedReadId,
         uint64_t baseCount,
+        uint64_t markerCount,
         uint64_t distance);
 
     void addEdge(
@@ -100,8 +104,18 @@ public:
     uint64_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
-    void write(ostream&, uint64_t maxDistance) const;
-    void write(const string& fileName, uint64_t maxDistance) const;
+    void write(
+        ostream&,
+        uint64_t maxDistance,
+        double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
+        double edgeArrowScalingFactor) const;
+    void write(
+        const string& fileName,
+        uint64_t maxDistance,
+        double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
+        double edgeArrowScalingFactor) const;
 
     // Return the vertex corresponding to a given OrientedReadId,
     // or null_vertex() if none.
@@ -123,12 +137,20 @@ private:
     // Graphviz writer.
     class Writer {
     public:
-        Writer(const LocalDirectedReadGraph&, uint64_t maxDistance);
+        Writer(
+            const LocalDirectedReadGraph&,
+            uint64_t maxDistance,
+            double vertexScalingFactor,
+            double edgeThicknessScalingFactor,
+            double edgeArrowScalingFactor);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalDirectedReadGraph& graph;
         uint64_t maxDistance;
+        double vertexScalingFactor;
+        double edgeThicknessScalingFactor;
+        double edgeArrowScalingFactor;
     };
 };
 
