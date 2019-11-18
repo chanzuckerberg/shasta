@@ -41,6 +41,10 @@ void AssembledSegment::clear()
     vertexRawRange.clear();
     edgeRunLengthRange.clear();
     edgeRawRange.clear();
+
+    vertexCoverageData.clear();
+    edgeCoverageData.clear();
+    assembledCoverageData.clear();
 }
 
 

@@ -193,6 +193,15 @@ void shasta::main::assemble(
         }
     }
 
+    // MacOS does not support alignment method 1.
+#ifndef __linux__
+    if( (assemblerOptions.alignOptions.alignMethodForReadGraph == 1) or
+        (assemblerOptions.alignOptions.alignMethodForMarkerGraph == 1)) {
+        throw runtime_error("Align method 1 is not supported on macOS.");
+    }
+
+#endif
+
 
 
     // Write a startup message.
@@ -552,53 +561,85 @@ void shasta::main::assemble(
 #endif
     } else {
         assembler.computeAlignments(
+            assemblerOptions.alignOptions.alignMethodForReadGraph,
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
             assemblerOptions.alignOptions.maxDrift,
             assemblerOptions.alignOptions.minAlignedMarkerCount,
             assemblerOptions.alignOptions.maxTrim,
+            assemblerOptions.alignOptions.matchScore,
+            assemblerOptions.alignOptions.mismatchScore,
+            assemblerOptions.alignOptions.gapScore,
             threadCount);
     }
 
 
 
     // Create the read graph.
-    assembler.createReadGraph(
-        assemblerOptions.readGraphOptions.maxAlignmentCount,
-        assemblerOptions.alignOptions.maxTrim);
+    if(assemblerOptions.readGraphOptions.creationMethod == 0) {
+        assembler.createReadGraph(
+            assemblerOptions.readGraphOptions.maxAlignmentCount,
+            assemblerOptions.alignOptions.maxTrim);
 
-    // Flag read graph edges that cross strands.
-    assembler.flagCrossStrandReadGraphEdges(threadCount);
+        // Flag read graph edges that cross strands.
+        assembler.flagCrossStrandReadGraphEdges(
+            assemblerOptions.readGraphOptions.crossStrandMaxDistance,
+            threadCount);
 
-    // Flag chimeric reads.
-    assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
-    assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
+        // Flag chimeric reads.
+        assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
+        assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
+    } else if(assemblerOptions.readGraphOptions.creationMethod == 1) {
+        assembler.createDirectedReadGraph();
+        throw runtime_error("Directed read graph functionality is incomplete.");
+    } else {
+        throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
+    }
 
+
+
+    // Create marker graph vertices.
+    // This uses a disjoint sets data structure to merge markers
+    // that are aligned based on an alignment present in the read graph.
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+
 #ifdef SHASTA_BUILD_FOR_GPU
+
+        // Create marker graph vertices: do it on the GPU.
         cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
         cout << "This is under development and is not ready to be used." << endl;
-        // Create vertices of the marker graph.
         assembler.createMarkerGraphVerticesGpu(
-                assemblerOptions.alignOptions.maxMarkerFrequency,
-                assemblerOptions.alignOptions.maxSkip,
-                assemblerOptions.alignOptions.maxDrift,
-                assemblerOptions.markerGraphOptions.minCoverage,
-                assemblerOptions.markerGraphOptions.maxCoverage,
-                threadCount);
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
 #else
+
+        // The build does not have GPU support.
         throw runtime_error("This Shasta build does not provide GPU acceleration.");
+
 #endif
     } else {
-        // Create vertices of the marker graph.
+
+        // Create marker graph vertices: mainstream code.
         assembler.createMarkerGraphVertices(
-                assemblerOptions.alignOptions.maxMarkerFrequency,
-                assemblerOptions.alignOptions.maxSkip,
-                assemblerOptions.alignOptions.maxDrift,
-                assemblerOptions.markerGraphOptions.minCoverage,
-                assemblerOptions.markerGraphOptions.maxCoverage,
-                threadCount);
+            assemblerOptions.alignOptions.alignMethodForMarkerGraph,
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.alignOptions.matchScore,
+            assemblerOptions.alignOptions.mismatchScore,
+            assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
     }
+
+
+
+    // Find the reverse complement of each marker graph vertex.
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
     // Create edges of the marker graph.

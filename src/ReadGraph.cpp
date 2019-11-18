@@ -2,85 +2,11 @@
 #include "ReadGraph.hpp"
 using namespace shasta;
 
-// Boost libraries.
-#include <boost/graph/graphviz.hpp>
-
 // Standard library.
 #include "fstream.hpp"
 #include <queue>
 
 const uint32_t ReadGraph::infiniteDistance = std::numeric_limits<uint32_t>::max();
-
-
-void RawReadGraph::Visitor::examine_edge(edge_descriptor e, const RawReadGraph& constGraph)
-{
-    RawReadGraph& graph = const_cast<RawReadGraph&>(constGraph);
-
-    const vertex_descriptor v0 = source(e, graph);
-    const vertex_descriptor v1 = target(e, graph);
-    const bool isSameStrand = graph[e].isSameStrand;
-
-    const uint8_t strand0 = graph[v0].strand;
-    SHASTA_ASSERT(strand0 != undiscovered);
-
-    const uint8_t strand1 = isSameStrand ? strand0 : ((~strand0) & 1);
-    if(graph[v1].strand == undiscovered) {
-        graph[v1].strand = strand1;
-    } else {
-        if(graph[v1].strand != strand1) {
-            crossStrandEdges.push_back(e);
-            // cout << "Edge " << v0 << " " << v1 << " " << int(isSameStrand) <<
-            //     " marked as cross-strand." << endl;
-        }
-    }
-
-}
-
-
-
-// Write the graph in Graphviz format.
-void RawReadGraph::write(const string& fileName) const
-{
-    ofstream outputFileStream(fileName);
-    if(!outputFileStream) {
-        throw runtime_error("Error opening " + fileName);
-    }
-    write(outputFileStream);
-}
-void RawReadGraph::write(ostream& s) const
-{
-    Writer writer(*this);
-    boost::write_graphviz(s, *this, writer, writer, writer);
-}
-
-RawReadGraph::Writer::Writer(const RawReadGraph& graph) :
-    graph(graph)
-{
-}
-
-
-
-void RawReadGraph::Writer::operator()(std::ostream& s) const
-{
-    s << "layout=sfdp;\n";
-    s << "ratio=expand;\n";
-}
-
-
-void RawReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
-{
-}
-
-
-
-void RawReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
-{
-    const vertex_descriptor v0 = source(e, graph);
-    const vertex_descriptor v1 = target(e, graph);
-    if(graph[e].isSameStrand != (graph[v0].strand==graph[v1].strand)) {
-        s << "[color=red]";
-    }
-}
 
 
 
@@ -131,7 +57,7 @@ void ReadGraph::computeShortPath(
         // Loop over adjacent vertices.
         bool pathFound = false;
         for(const uint32_t edgeId: connectivity[vertex0.getValue()]) {
-            const Edge& edge = edges[edgeId];
+            const ReadGraphEdge& edge = edges[edgeId];
             if(edge.crossesStrands) {
                 continue;
             }

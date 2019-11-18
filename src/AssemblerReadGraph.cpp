@@ -88,7 +88,7 @@ void Assembler::createReadGraph(
         const AlignmentData& alignment = alignmentData[alignmentId];
 
         // Create the edge corresponding to this alignment.
-        ReadGraph::Edge edge;
+        ReadGraphEdge edge;
         edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
         edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
         edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
@@ -107,13 +107,13 @@ void Assembler::createReadGraph(
     // Create read graph connectivity.
     readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
     readGraph.connectivity.beginPass1(orientedReadCount);
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
+    for(const ReadGraphEdge& edge: readGraph.edges) {
         readGraph.connectivity.incrementCount(edge.orientedReadIds[0].getValue());
         readGraph.connectivity.incrementCount(edge.orientedReadIds[1].getValue());
     }
     readGraph.connectivity.beginPass2();
     for(size_t i=0; i<readGraph.edges.size(); i++) {
-        const ReadGraph::Edge& edge = readGraph.edges[i];
+        const ReadGraphEdge& edge = readGraph.edges[i];
         readGraph.connectivity.store(edge.orientedReadIds[0].getValue(), uint32_t(i));
         readGraph.connectivity.store(edge.orientedReadIds[1].getValue(), uint32_t(i));
     }
@@ -136,189 +136,6 @@ void Assembler::createReadGraph(
     assemblerInfo->isolatedReadCount = isolatedReadCount;
     assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;
 }
-
-
-#if 1
-// More sophisticated version of createReadGraph with better treatment
-// of containing alignments.
-// - If a read has at least one alignments that covers the entire
-//   read, it is flagged as contained.
-// - If a read is contained, only keep the best alignment
-//   that covers the entire read.
-// - Otherwise, keep the best maxAlignmentCount alignments
-//   that do not entirely cover another read.
-// In the above:
-// - An alignment is considered to cover the entire read
-//   if it at has most maxTrim unaligned markers on each side.
-// - "Best" alignment means the alignment with the greatest
-//   number of aligned markers.
-// This only works well in conjunction with the LowHash
-// algorithm to find alignments.
-void Assembler::createReadGraphNew(
-    uint32_t maxAlignmentCount,
-    uint32_t maxTrim)
-{
-    // Find the number of reads and oriented reads.
-    const ReadId orientedReadCount = uint32_t(markers.size());
-    SHASTA_ASSERT((orientedReadCount % 2) == 0);
-    const ReadId readCount = orientedReadCount / 2;
-
-    // Mark all alignments as not to be kept.
-    vector<bool> keepAlignment(alignmentData.size(), false);
-
-    // Flag to mark which reads are contained.
-    vector<bool> isContainedRead(readCount, false);
-
-    // Vector to keep the alignments for each read,
-    // with their number of markers.
-    // Contains pairs(marker count, alignment id).
-    vector< pair<uint32_t, uint32_t> > readAlignments;
-
-
-
-    // In a first loop over reads, we find contained reads -
-    // that is, reads that have at least an alignment that covers the entire read.
-    // For each contained read we keep the best such alignment.
-    // Loop over reads.
-    for(ReadId readId=0; readId<readCount; readId++) {
-
-        // Get alignments for this read on strand 0,
-        // permuting the reads if necessary to make sure this read is read 0
-        // in the alignment.
-        const vector< pair<OrientedReadId, AlignmentInfo> > orientedReadAlignments =
-            findOrientedAlignments(OrientedReadId(readId, 0));
-
-        // Find the best alignment that covers the entire read, if any.
-        bool containingAlignmentWasFound = false;
-        uint32_t bestContainingAlignmentMarkerCount = 0;
-        uint64_t bestContainingAlignmentId = std::numeric_limits<uint64_t>::max();
-        for(size_t i=0; i<orientedReadAlignments.size(); i++) {
-            const AlignmentInfo& alignmentInfo = orientedReadAlignments[i].second;
-            if( alignmentInfo.leftTrim(0)  <= maxTrim &&
-                alignmentInfo.rightTrim(0) <= maxTrim &&
-                alignmentInfo.leftTrim(1)  >  maxTrim &&
-                alignmentInfo.rightTrim(1) >  maxTrim) {
-                if(containingAlignmentWasFound) {
-                    if(alignmentInfo.markerCount > bestContainingAlignmentMarkerCount) {
-                        bestContainingAlignmentMarkerCount = alignmentInfo.markerCount;
-                        bestContainingAlignmentId = alignmentTable[OrientedReadId(readId, 0).getValue()][i];
-                    }
-                } else {
-                    containingAlignmentWasFound = true;
-                    bestContainingAlignmentMarkerCount = alignmentInfo.markerCount;
-                    bestContainingAlignmentId = alignmentTable[OrientedReadId(readId, 0).getValue()][i];
-                }
-            }
-        }
-
-        // Just mark to keep the best alignment that covers the entire read.
-        if(containingAlignmentWasFound) {
-            keepAlignment[bestContainingAlignmentId] = true;
-            isContainedRead[readId] = true;
-        }
-    }
-
-
-
-    // In a second loop over reads, we process reads that are not marked as contained.
-    // For each, we keep the best maxAlignmentCount alignments among those
-    // that don't involve contained reads.
-    for(ReadId readId=0; readId<readCount; readId++) {
-        if(isContainedRead[readId]) {
-            continue;
-        }
-
-        // Get alignments for this read on strand 0,
-        // permuting the reads if necessary to make sure this read is read 0
-        // in the alignment.
-        const vector< pair<OrientedReadId, AlignmentInfo> > orientedReadAlignments =
-            findOrientedAlignments(OrientedReadId(readId, 0));
-
-        // Find the alignments that we could keep.
-        readAlignments.clear();
-        for(size_t i=0; i<orientedReadAlignments.size(); i++) {
-            const ReadId otherReadId = orientedReadAlignments[i].first.getReadId();
-            if(isContainedRead[otherReadId]) {
-                continue;
-            }
-            const AlignmentInfo& alignmentInfo = orientedReadAlignments[i].second;
-            readAlignments.push_back(make_pair(
-                alignmentInfo.markerCount,
-                alignmentTable[OrientedReadId(readId, 0).getValue()][i]
-                ));
-        }
-
-#if 1
-        // Keep only up to maxAlignmentCount.
-        if(readAlignments.size() > maxAlignmentCount) {
-            std::nth_element(
-                readAlignments.begin(),
-                readAlignments.begin() + maxAlignmentCount,
-                readAlignments.end(),
-                std::greater< pair<uint32_t, uint32_t> >());
-            readAlignments.resize(maxAlignmentCount);
-        }
-#endif
-        for(const auto& p: readAlignments) {
-            const uint32_t alignmentId = p.second;
-            keepAlignment[alignmentId] = true;
-        }
-
-    }
-
-
-
-    const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
-    const size_t containedReadCount =
-        std::count(isContainedRead.begin(), isContainedRead.end(), true);
-    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
-    cout << "Found " << containedReadCount;
-    cout << " contained reads out of " << readCount << " total." << endl;
-
-
-
-    // Now we can create the read graph.
-    // Only the alignments we marked as "keep" generate edges in the read graph.
-    readGraph.edges.createNew(largeDataName("ReadGraphEdges"), largeDataPageSize);
-    for(size_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
-        if(!keepAlignment[alignmentId]) {
-            continue;
-        }
-        const AlignmentData& alignment = alignmentData[alignmentId];
-
-        // Create the edge corresponding to this alignment.
-        ReadGraph::Edge edge;
-        edge.alignmentId = alignmentId & 0x7fff'ffff'ffff'ffff;
-        edge.orientedReadIds[0] = OrientedReadId(alignment.readIds[0], 0);
-        edge.orientedReadIds[1] = OrientedReadId(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
-        SHASTA_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
-        readGraph.edges.push_back(edge);
-
-        // Also create the reverse complemented edge.
-        edge.orientedReadIds[0].flipStrand();
-        edge.orientedReadIds[1].flipStrand();
-        SHASTA_ASSERT(edge.orientedReadIds[0] < edge.orientedReadIds[1]);
-        readGraph.edges.push_back(edge);
-    }
-
-
-
-    // Create read graph connectivity.
-    readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
-    readGraph.connectivity.beginPass1(orientedReadCount);
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
-        readGraph.connectivity.incrementCount(edge.orientedReadIds[0].getValue());
-        readGraph.connectivity.incrementCount(edge.orientedReadIds[1].getValue());
-    }
-    readGraph.connectivity.beginPass2();
-    for(size_t i=0; i<readGraph.edges.size(); i++) {
-        const ReadGraph::Edge& edge = readGraph.edges[i];
-        readGraph.connectivity.store(edge.orientedReadIds[0].getValue(), uint32_t(i));
-        readGraph.connectivity.store(edge.orientedReadIds[1].getValue(), uint32_t(i));
-    }
-    readGraph.connectivity.endPass2();
-}
-#endif
 
 
 
@@ -392,7 +209,7 @@ bool Assembler::createLocalReadGraph(
         // Loop over edges of the global read graph involving this vertex.
         for(const uint64_t i: readGraph.connectivity[orientedReadId0.getValue()]) {
             SHASTA_ASSERT(i < readGraph.edges.size());
-            const ReadGraph::Edge& globalEdge = readGraph.edges[i];
+            const ReadGraphEdge& globalEdge = readGraph.edges[i];
 
             if(!allowCrossStrandEdges && globalEdge.crossesStrands) {
                 continue;
@@ -582,7 +399,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 // Loop over edges involving this vertex.
                 const auto edgeIds = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edgeIds) {
-                    const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    const ReadGraphEdge& edge = readGraph.edges[edgeId];
                     if(edge.crossesStrands) {
                         continue;
                     }
@@ -635,7 +452,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 SHASTA_ASSERT(u0 != notReached);
                 const auto edges = readGraph.connectivity[v0.getValue()];
                 for(const uint32_t edgeId: edges) {
-                    const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                    const ReadGraphEdge& edge = readGraph.edges[edgeId];
                     if(edge.crossesStrands) {
                         continue;
                     }
@@ -727,7 +544,7 @@ void Assembler::computeReadGraphConnectedComponents(
             disjointSets.make_set(OrientedReadId(readId, strand).getValue());
         }
     }
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
+    for(const ReadGraphEdge& edge: readGraph.edges) {
         if(edge.crossesStrands) {
             continue;
         }
@@ -938,7 +755,7 @@ void Assembler::writeLocalReadGraphReads(
 
 
 
-void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
+void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount)
 {
     const bool debug = false;
 
@@ -963,8 +780,13 @@ void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
         readGraph.edges[edgeId].crossesStrands = 0;
     }
 
+    // If maxDistance is 0, don't flag any edges as cross strand edges.
+    if(maxDistance == 0) {
+        cout << "Skipped flagCrossStrandReadGraphEdges." << endl;
+        return;
+    }
+
     // Store the maximum distance so all threads can see it.
-    const size_t maxDistance = 6;
     flagCrossStrandReadGraphEdgesData.maxDistance = maxDistance;
 
     // Find which vertices are close to their reverse complement.
@@ -997,7 +819,7 @@ void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
             disjointSets.make_set(OrientedReadId(readId, strand).getValue());
         }
     }
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
+    for(const ReadGraphEdge& edge: readGraph.edges) {
         const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
         const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
         const auto v0 = orientedReadId0.getValue();
@@ -1020,27 +842,6 @@ void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
         }
     }
 
-#if 0
-    // Reinitialize the disjoint sets adding only edges
-    // that involve one or two vertices that are not near strand jumps.
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
-        }
-    }
-    //To keep the process local, this should not be done.
-    /*
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
-        const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
-        const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
-        const auto v0 = orientedReadId0.getValue();
-        const auto v1 = orientedReadId1.getValue();
-        if(!(isNearStrandJump[v0] && isNearStrandJump[v1])) {
-            disjointSets.union_set(v0, v1);
-        }
-    }
-    */
-#endif
 
 
     // Loop over connected components.
@@ -1085,7 +886,7 @@ void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
         for(const OrientedReadId orientedReadId0: vertices) {
             const OrientedReadId::Int v0 = orientedReadId0.getValue();
             for(const uint32_t edgeId: readGraph.connectivity[v0]) {
-                const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                const ReadGraphEdge& edge = readGraph.edges[edgeId];
                 const OrientedReadId orientedReadId1 = edge.getOther(orientedReadId0);
                 if(vertexMap.find(orientedReadId1) == vertexMap.end()) {
                     continue;
@@ -1133,7 +934,7 @@ void Assembler::flagCrossStrandReadGraphEdges(size_t threadCount)
         for(const auto& p: edgePairs) {
             const array<uint32_t, 2>& edgeIds = p.first;
             for(const uint32_t edgeId: edgeIds) {
-                const ReadGraph::Edge& edge = readGraph.edges[edgeId];
+                const ReadGraphEdge& edge = readGraph.edges[edgeId];
 
                 // Get the oriented reads of this edge.
                 const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
@@ -1222,525 +1023,4 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
 
 }
 
-
-#if 0
-    // Compute connected components of the read graph.
-    vector<ReadId> rank(orientedReadCount);
-    vector<ReadId> parent(orientedReadCount);
-    boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
-    cout << timestamp << "Computing connected components of the read graph." << endl;
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
-        }
-    }
-    for(const ReadGraph::Edge& edge: readGraph.edges) {
-        const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
-        const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
-        disjointSets.union_set(orientedReadId0.getValue(), orientedReadId1.getValue());
-    }
-
-    // Gather the vertices of each component.
-    vector<vector<OrientedReadId> > componentVertices(orientedReadCount);
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-            const ReadId componentId = disjointSets.find_set(orientedReadId.getValue());
-            componentVertices[componentId].push_back(orientedReadId);
-        }
-    }
-
-    // Sort the components by decreasing size (number of reads).
-    // Store in componentTable pairs(size, componentId).
-    // Discard isolated vertices.
-    vector< pair<size_t, uint32_t> > componentTable;
-    for(ReadId componentId=0; componentId!=orientedReadCount; componentId++) {
-        const vector<OrientedReadId>& vertices = componentVertices[componentId];
-        const size_t vertexCount = vertices.size();
-        if(vertexCount > 1) {
-            componentTable.push_back(make_pair(vertexCount, componentId));
-        }
-    }
-    sort(componentTable.begin(), componentTable.end(),
-        std::greater< pair<size_t, uint32_t> >());
-
-
-
-    // Process components in this order of decreasing size.
-    for(const auto& p: componentTable) {
-        const ReadId componentId = p.second;
-        const vector<OrientedReadId>& vertices = componentVertices[componentId];
-        const size_t componentSize = vertices.size();
-        SHASTA_ASSERT(componentSize > 1);
-        SHASTA_ASSERT(componentSize == p.first);
-
-        // Figure out if this component is self-complementary.
-        const bool isSelfComplementary =
-            (vertices[0].getReadId() == vertices[1].getReadId());
-
-        // Sanity checks.
-        if(isSelfComplementary) {
-            SHASTA_ASSERT((componentSize % 2) == 0);
-            for(size_t i=0; i<componentSize; i+=2) {
-                SHASTA_ASSERT(vertices[i].getReadId() == vertices[i+1].getReadId());
-                SHASTA_ASSERT(vertices[i].getStrand() == 0);
-                SHASTA_ASSERT(vertices[i+1].getStrand() == 1);
-            }
-        } else {
-            for(size_t i=1; i<componentSize; i++) {
-                SHASTA_ASSERT(vertices[i-1].getReadId()< vertices[i].getReadId());
-            }
-        }
-
-        // If the component is not self-complementary,
-        // it is already strand-separated. None of its
-        // edges need to be flagged as cross-strand edges.
-        if(!isSelfComplementary) {
-            continue;
-        }
-
-
-
-        cout << "Processing a self-complementary component with " <<
-            componentSize << " vertices." << endl;
-
-        // Loop over reads in this component to find the ones
-        // in which the strand 0 and strand 1 vertices are close
-        // (within maxDistance).
-        for(size_t i=0; i<componentSize; i+=2) {
-
-            // Get this pair of oriented reads
-            // with the same ReadId and opposite strands.
-            const OrientedReadId orientedReadId0 = vertices[i];
-            const OrientedReadId orientedReadId1 = vertices[i+1];
-            const ReadId readId = orientedReadId0.getReadId();
-            SHASTA_ASSERT(readId == orientedReadId1.getReadId());
-            SHASTA_ASSERT(orientedReadId0.getStrand() == 0);
-            SHASTA_ASSERT(orientedReadId1.getStrand() == 1);
-
-
-            // Find the shortest path between these vertices, if it is short enough.
-            // This excluded edges already flagged as cross-strand.
-            readGraph.computeShortPath(orientedReadId0, orientedReadId1,
-                maxDistance, shortestPath);
-
-            // If a sufficiently short path was not found, do nothing.
-            if(shortestPath.empty()) {
-                continue;
-            }
-            cout << readId << " " << shortestPath.size() << endl;
-            readFlags[readId].isChimeric = true;    //      *************TAKE OUT!
-
-        }
-    }
-#endif
-
-
-
-#if 0
-//  Strand separation experiments.
-void Assembler::flagCrossStrandReadGraphEdges()
-{
-    cout << timestamp << "Begin flagCrossStrandReadGraphEdges." << endl;
-
-    // Check that we have what we need.
-    checkReadGraphIsOpen();
-    const size_t readCount = reads.size();
-    const size_t orientedReadCount = 2*readCount;
-    SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
-    checkAlignmentDataAreOpen();
-
-    // Clear the crossesStrands flag for all edges.
-    const size_t edgeCount = readGraph.edges.size();
-    for(size_t edgeId=0; edgeId!=edgeCount; edgeId++) {
-        readGraph.edges[edgeId].crossesStrands = 0;
-    }
-
-    return;
-
-    // Create the graph described in the comments above.
-    using Graph = RawReadGraph;
-    using vertex_descriptor = Graph::vertex_descriptor;
-    using edge_descriptor = Graph::edge_descriptor;
-    // const uint8_t undiscovered = Graph::undiscovered;
-    Graph graph(readCount);
-    for(size_t edgeId=0; edgeId!=edgeCount; edgeId++) {
-        const ReadGraph::Edge& edge = readGraph.edges[edgeId];
-        const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
-        const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
-        const ReadId readId0 = orientedReadId0.getReadId();
-        const ReadId readId1 = orientedReadId1.getReadId();
-        SHASTA_ASSERT(readId0 != readId1);
-        const Strand strand0 = orientedReadId0.getStrand();
-        const Strand strand1 = orientedReadId1.getStrand();
-        const bool isSameStrand = (strand0 == strand1);
-
-        // See if we already have this edge.
-        edge_descriptor e;
-        bool edgeExists;
-        tie(e, edgeExists) = boost::edge(readId0, readId1, graph);
-
-        // Add the edge, if necessary. Otherwise, check that
-        // it is consistent with isSameStrand.
-        if(edgeExists) {
-            SHASTA_ASSERT(graph[e].isSameStrand == isSameStrand);
-        } else {
-            tie(e, edgeExists) = add_edge(readId0, readId1, RawReadGraphEdge(isSameStrand), graph);
-            SHASTA_ASSERT(edgeExists);
-        }
-    }
-    cout << "The raw read graph has " << num_vertices(graph) <<
-        " vertices and " << num_edges(graph) << " edges." << endl;
-
-    // Random source to be used below.
-    const size_t seed = 231;
-    std::mt19937 randomSource(seed);
-    std::uniform_int_distribution<vertex_descriptor> strandDistribution(0, 1);
-
-    vector<uint8_t> newStrand(readCount);
-    const size_t iterationCount = 1000;
-    for(size_t iteration=0; iteration<iterationCount; iteration++) {
-
-        if((iteration%10 == 0)) {
-            for(vertex_descriptor v0=0; v0<readCount; v0++) {
-                graph[v0].strand = uint8_t(strandDistribution(randomSource));
-            }
-        }
-
-        for(vertex_descriptor v0=0; v0<readCount; v0++) {
-            array<size_t, 2> count = {0, 0};
-            BGL_FORALL_OUTEDGES(v0, e01, graph, Graph) {
-                const vertex_descriptor v1 = target(e01, graph);
-                const uint8_t strand1 = graph[v1].strand;
-                const uint8_t strand0 = (graph[e01].isSameStrand) ? strand1 : ((~strand1) & 1);
-                ++count[strand0];
-            }
-            if(count[0] > count[1]) {
-                newStrand[v0] = 0;
-            } else {
-                newStrand[v0] = 1;
-            }
-        }
-        for(vertex_descriptor v0=0; v0<readCount; v0++) {
-            graph[v0].strand = newStrand[v0];
-        }
-
-        size_t unhappyCount = 0;
-        BGL_FORALL_EDGES(e01, graph, Graph) {
-            const vertex_descriptor v0 = source(e01, graph);
-            const vertex_descriptor v1 = target(e01, graph);
-            if(graph[e01].isSameStrand != (graph[v0].strand==graph[v1].strand)) {
-                ++unhappyCount;
-            }
-        }
-        if((iteration%10) == 9) {
-            cout << iteration << " " << unhappyCount << endl;
-        }
-    }
-    graph.write("RawReadGraph.dot");
-
-
-#if 0
-    // Compute connected components.
-    vector<vertex_descriptor> component(readCount);
-    boost::connected_components(graph, &component[0]);
-
-    // Gather the vertices in each connected component.
-    vector< vector<vertex_descriptor> > components(readCount);
-    for(vertex_descriptor v=0; v<num_vertices(graph); v++) {
-        components[component[v]].push_back(v);
-    }
-
-    // Random source to be used below.
-    const size_t seed = 231;
-    std::mt19937 randomSource(seed);
-
-    // Vector to contain adjacent edges and the degree of the target vertex.
-    vector< pair<edge_descriptor, size_t> > adjacentEdges;
-
-
-    // Loop over connected components.
-    size_t size1ComponentCount = 0;
-    size_t size2ComponentCount = 0;
-    for(vertex_descriptor v=0; v<num_vertices(graph); v++) {
-        const vector<vertex_descriptor>& componentVertices = components[v];
-
-        // If the component is empty, skip it.
-        if(componentVertices.empty()) {
-            continue;
-        }
-
-        // If the component has one vertex, check that that vertex
-        // is isolated, then skip the component.
-        if(componentVertices.size() == 1) {
-            const vertex_descriptor v = componentVertices.front();
-            SHASTA_ASSERT(out_degree(v, graph) == 0);
-            ++size1ComponentCount;
-            continue;
-        }
-
-        // If the component has two vertices, check that
-        // they each have only one edge.
-        if(componentVertices.size() == 2) {
-            SHASTA_ASSERT(out_degree(componentVertices[0], graph) == 1);
-            SHASTA_ASSERT(out_degree(componentVertices[1], graph) == 1);
-            ++size2ComponentCount;
-            continue;
-        }
-
-        // This is the general case of a component with 3 or more vertices.
-        const size_t componentSize = componentVertices.size();
-        cout << timestamp << "Processing a connected component with " <<
-            componentSize << " reads." << endl;
-
-        // Uniform distribution to generate a start vertex for this component.
-        std::uniform_int_distribution<vertex_descriptor> startVertexDistribution(0, componentSize-1);
-
-        // Do a few iterations and keep the one that results in the lowest
-        // number of cross-strand edges.
-        const size_t iterationCount = 10000;
-        ofstream csvOut("Debug.csv");
-        vector< vector<edge_descriptor> > crossStrandEdges(iterationCount);
-        for(size_t iteration=0; iteration<iterationCount; iteration++) {
-            // cout << timestamp << "Begin iteration " << iteration << endl;
-
-            // Set all strands to undiscovered.
-            for(const vertex_descriptor v: componentVertices) {
-                graph[v].strand = undiscovered;
-            }
-
-            // Generate the start vertex.
-            vertex_descriptor startVertex = componentVertices[startVertexDistribution(randomSource)];
-            // cout << "Start vertex " << startVertex << " " << out_degree(startVertex, graph) << endl;
-
-            // Do a MAS starting at this vertex.
-            graph[startVertex].strand = 0;
-            Graph::Visitor visitor(crossStrandEdges[iteration]);
-            boost::maximum_adjacency_search(
-                graph,
-                boost::root_vertex(startVertex).
-                weight_map(boost::static_property_map<int, edge_descriptor>(1)).
-                visitor(visitor));
-            //cout << "Found " << crossStrandEdges[iteration].size() <<
-            //    " cross-strand edges." << endl;
-            csvOut << iteration << ",";
-            csvOut << startVertex << ",";
-            csvOut << out_degree(startVertex, graph) << ",";
-            csvOut << crossStrandEdges[iteration].size() << endl;
-
-#if 0
-            // THIS IS THE OLD CODE THAT USES A DFS INSTEAD OF A MAS.
-
-            // Initialize the DFS.
-            for(const vertex_descriptor v: componentVertices) {
-                graph[v].strand = undiscovered;
-            }
-            std::stack<vertex_descriptor> unprocessedVertices;
-            unprocessedVertices.push(startVertex);
-            graph[startVertex].strand = 0; // Put the start vertex on strand 0.
-
-            // Main DFS loop.
-            while(!unprocessedVertices.empty()) {
-
-                // Dequeue a vertex (in LIFO order as we are using a stack).
-                const vertex_descriptor v0 = unprocessedVertices.top();
-                const uint8_t strand0 = graph[v0].strand;
-                unprocessedVertices.pop();
-                // cout << "Dequeued " << v0 << endl;
-
-                // Gather the edges.
-                adjacentEdges.clear();
-                BGL_FORALL_OUTEDGES(v0, e, graph, Graph) {
-                    SHASTA_ASSERT(source(e, graph) == v0);
-                    const vertex_descriptor v1 = target(e, graph);
-                    adjacentEdges.push_back(make_pair(e, out_degree(v1, graph)));
-                }
-                sort(adjacentEdges.begin(), adjacentEdges.end(),
-                    OrderPairsBySecondOnly<edge_descriptor, size_t>());
-
-                // Loop over the edges in this order.
-                for(const auto& p: adjacentEdges) {
-                    const edge_descriptor e = p.first;
-                    SHASTA_ASSERT(source(e, graph) == v0);
-                    const vertex_descriptor v1 = target(e, graph);
-                    // cout << "Found " << v1 << endl;
-
-                    // Figure out the strand this edge wants to assign to v1.
-                    const bool isSameStrand = graph[e].isSameStrand;
-                    const uint8_t strand1 = (isSameStrand ? strand0 : ((~strand0) & 1));
-
-                    // Use this edge in the DFS.
-                    if(graph[v1].strand == undiscovered) {
-                        graph[v1].strand = strand1;
-                        unprocessedVertices.push(v1);
-                    } else {
-                        if(graph[v1].strand != strand1) {
-                            crossStrandEdges[iteration].push_back(e);
-                        }
-                    }
-
-
-                }
-
-            }
-
-            cout << iteration << " " << out_degree(startVertex, graph) << " " << crossStrandEdges[iteration].size() << endl;
-#endif
-        }
-    }
-
-
-
-    cout << "Number of reads is " << readCount << endl;
-    cout << "Number of isolated reads is " << size1ComponentCount << endl;
-    cout << "Number reads in components of size 2 is " << size2ComponentCount << endl;
-
-    cout << timestamp << "End flagCrossStrandReadGraphEdges." << endl;
-#endif
-
-
-#if 0
-    // Compute the number of triangles for each edge.
-    // Gather edge ids by number of triangles.
-    // THIS WORKS WELL ONLY IN SMALL TEST CASES.
-    vector< vector<uint32_t> > edgeTable;
-    for(uint32_t edgeId=0; edgeId!=edgeCount; edgeId++) {
-        const size_t triangleCount = readGraph.countTriangles(edgeId);
-        if(edgeTable.size() <= triangleCount) {
-            edgeTable.resize(triangleCount + 1);
-        }
-        edgeTable[triangleCount].push_back(edgeId);
-    }
-
-    // Initialize the disjoint set data structure.
-    vector<ReadId> rank(orientedReadCount);
-    vector<ReadId> parent(orientedReadCount);
-    boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
-        }
-    }
-
-
-
-    // Loop over edges in order of decreasing number of triangles.
-    size_t crossStrandEdgeCount = 0;
-    for(int triangleCount=int(edgeTable.size()-1); triangleCount>=0; triangleCount--) {
-        const vector<uint32_t>& edgeIds = edgeTable[triangleCount];
-        for(const uint32_t edgeId: edgeIds) {
-            const ReadGraph::Edge& edge = readGraph.edges[edgeId];
-
-            // Get the oriented reads of this edge.
-            const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
-            const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
-
-            // Get their reverse complemented oriented reads.
-            OrientedReadId orientedReadId0rc = orientedReadId0;
-            orientedReadId0rc.flipStrand();
-            OrientedReadId orientedReadId1rc = orientedReadId1;
-            orientedReadId1rc.flipStrand();
-
-            // Get everybody's component.
-            const uint32_t component0 = disjointSets.find_set(orientedReadId0.getValue());
-            const uint32_t component1 = disjointSets.find_set(orientedReadId1.getValue());
-            const uint32_t component0rc = disjointSets.find_set(orientedReadId0rc.getValue());
-            const uint32_t component1rc = disjointSets.find_set(orientedReadId1rc.getValue());
-
-            // Check that we have not already screwed up earlier.
-            SHASTA_ASSERT(component0 != component0rc);
-            SHASTA_ASSERT(component1 != component1rc);
-
-            // If adding this edge would bring (orientedReadId0, orientedReadId1rc)
-            // or (orientedReadId1, orientedReadId0rc)
-            // in the same component, mark it as a cross strand edge.
-            if(component0==component1rc || component1==component0rc) {
-                readGraph.edges[edgeId].crossesStrands = 1;
-                ++crossStrandEdgeCount;
-                cout << "Edge " << edge.orientedReadIds[0] << " " <<
-                    edge.orientedReadIds[1] << " marked as cross-strand." << endl;
-            } else {
-                disjointSets.union_set(orientedReadId0.getValue(), orientedReadId1.getValue());
-            }
-        }
-    }
-    cout << "Marked " << crossStrandEdgeCount << " read graph edges out of " <<
-        edgeCount <<
-        " total as cross-strand." << endl;
-#endif
-
-
-#if 0
-    // PROCESS IN DECREASING ORDER OF NUMBER OF MARKERS.
-    // THIS WORKS WELL ONLY IN SMALL TEST CASES.
-
-    // Create a list of all the edges and the number of aligned markers for each.
-    vector< pair<uint32_t, uint32_t > > edgeTable(edgeCount);
-    for(size_t edgeId=0; edgeId!=edgeCount; edgeId++) {
-        const ReadGraph::Edge& edge = readGraph.edges[edgeId];
-        const AlignmentData& alignment = alignmentData[edge.alignmentId];
-        const uint32_t markerCount = alignment.info.markerCount;
-        edgeTable[edgeId] = make_pair(edgeId, markerCount);
-    }
-
-    // Sort by decreasing number of markers.
-    sort(edgeTable.begin(), edgeTable.end(),
-        OrderPairsBySecondOnlyGreater<uint32_t, uint32_t >());
-
-    // Initialize the disjoint set data structure.
-    vector<ReadId> rank(orientedReadCount);
-    vector<ReadId> parent(orientedReadCount);
-    boost::disjoint_sets<ReadId*, ReadId*> disjointSets(&rank[0], &parent[0]);
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            disjointSets.make_set(OrientedReadId(readId, strand).getValue());
-        }
-    }
-
-
-
-    // Loop over edges in order of decreasing number of markers.
-    size_t crossStrandEdgeCount = 0;
-    for(const auto& p: edgeTable) {
-        const uint32_t edgeId = p.first;
-        const ReadGraph::Edge& edge = readGraph.edges[edgeId];
-
-        // Get the oriented reads of this edge.
-        const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
-        const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
-
-        // Get their reverse complemented oriented reads.
-        OrientedReadId orientedReadId0rc = orientedReadId0;
-        orientedReadId0rc.flipStrand();
-        OrientedReadId orientedReadId1rc = orientedReadId1;
-        orientedReadId1rc.flipStrand();
-
-        // Get everybody's component.
-        const uint32_t component0 = disjointSets.find_set(orientedReadId0.getValue());
-        const uint32_t component1 = disjointSets.find_set(orientedReadId1.getValue());
-        const uint32_t component0rc = disjointSets.find_set(orientedReadId0rc.getValue());
-        const uint32_t component1rc = disjointSets.find_set(orientedReadId1rc.getValue());
-
-        // Check that we have not already screwed up earlier.
-        SHASTA_ASSERT(component0 != component0rc);
-        SHASTA_ASSERT(component1 != component1rc);
-
-        // If adding this edge would bring (orientedReadId0, orientedReadId1rc)
-        // or (orientedReadId1, orientedReadId0rc)
-        // in the same component, mark it as a cross strand edge.
-        if(component0==component1rc || component1==component0rc) {
-            readGraph.edges[edgeId].crossesStrands = 1;
-            ++crossStrandEdgeCount;
-            cout << "Edge " << edge.orientedReadIds[0] << " " <<
-                edge.orientedReadIds[1] << " marked as cross-strand." << endl;
-        } else {
-            disjointSets.union_set(orientedReadId0.getValue(), orientedReadId1.getValue());
-        }
-    }
-    cout << "Marked " << crossStrandEdgeCount << " read graph edges out of " <<
-        edgeCount <<
-        " total as cross-strand." << endl;
-#endif
-}
-#endif
 

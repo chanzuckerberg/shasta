@@ -304,6 +304,16 @@ void AssemblerOptions::addConfigurableOptions()
         "candidates with both orientation. This should only be used for experimentation "
         "on very small runs because it is very time consuming.")
 
+        ("Align.alignMethodForReadGraph",
+        value<int>(&alignOptions.alignMethodForReadGraph)->
+        default_value(0),
+        "The alignment method to be used to create the read graph (0 or 1).")
+
+        ("Align.alignMethodForMarkerGraph",
+        value<int>(&alignOptions.alignMethodForMarkerGraph)->
+        default_value(0),
+        "The alignment method to be used to create the marker graph (0 or 1).")
+
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->
         default_value(30),
@@ -330,6 +340,27 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(100),
         "The minimum number of aligned markers for an alignment to be used.")
 
+        ("Align.matchScore",
+        value<int>(&alignOptions.matchScore)->
+        default_value(3),
+        "Match score for marker alignments.")
+
+        ("Align.mismatchScore",
+        value<int>(&alignOptions.mismatchScore)->
+        default_value(-1),
+        "Mismatch score for marker alignments.")
+
+        ("Align.gapScore",
+        value<int>(&alignOptions.gapScore)->
+        default_value(-3),
+        "Gap score for marker alignments.")
+
+        ("ReadGraph.creationMethod",
+        value<int>(&readGraphOptions.creationMethod)->
+        default_value(0),
+        "The method used to create the read graph (0=undirected, 1=directed). "
+        "Under development. Leave at default value 0.")
+
         ("ReadGraph.maxAlignmentCount",
         value<int>(&readGraphOptions.maxAlignmentCount)->
         default_value(6),
@@ -345,6 +376,12 @@ void AssemblerOptions::addConfigurableOptions()
         value<int>(&readGraphOptions.maxChimericReadDistance)->
         default_value(2),
         "Used for chimeric read detection.")
+
+        ("ReadGraph.crossStrandMaxDistance",
+        value<int>(&readGraphOptions.crossStrandMaxDistance)->
+        default_value(6),
+        "Maximum distance (edges) for flagCrossStrandReadGraphEdges. "
+        "Set this to zero to entirely suppress flagCrossStrandReadGraphEdges.")
 
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
@@ -496,11 +533,16 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
 void AssemblerOptions::AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
+    s << "alignMethodForReadGraph = " << alignMethodForReadGraph << "\n";
+    s << "alignMethodForMarkerGraph = " << alignMethodForMarkerGraph << "\n";
     s << "maxSkip = " << maxSkip << "\n";
     s << "maxDrift = " << maxDrift << "\n";
     s << "maxTrim = " << maxTrim << "\n";
     s << "maxMarkerFrequency = " << maxMarkerFrequency << "\n";
     s << "minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
+    s << "matchScore = " << matchScore << "\n";
+    s << "mismatchScore = " << mismatchScore << "\n";
+    s << "gapScore = " << gapScore << "\n";
 }
 
 
@@ -508,9 +550,11 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
 void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
 {
     s << "[ReadGraph]\n";
+    s << "creationMethod = " << creationMethod << "\n";
     s << "maxAlignmentCount = " << maxAlignmentCount << "\n";
     s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
+    s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
 }
 
 

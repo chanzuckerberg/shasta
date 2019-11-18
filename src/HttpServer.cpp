@@ -91,7 +91,7 @@ void HttpServer::explore(uint16_t port, bool localOnly, bool sameUserOnly)
             ::system(("open http://localhost:" + to_string(port)).c_str());
 #endif
         } else {
-            cout << "Accepting local connections from any user."
+            cout << "Accepting local connections from any user. "
                 "Connections from the local computer are accepted from any user. "
                 "This means that other users with access to the local computer can "
                 "access the server. "

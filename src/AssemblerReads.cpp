@@ -258,23 +258,16 @@ void Assembler::histogramReadLength(const string& fileName)
 // Function to write one or all reads in Fasta format.
 void Assembler::writeReads(const string& fileName)
 {
-    // As written, this only works when using raw read representation.
-    SHASTA_ASSERT(0);
-
     ofstream file(fileName);
     for(ReadId readId=0; readId<readCount(); readId++) {
         writeRead(readId, file);
     }
-
 }
 
 
 
 void Assembler::writeRead(ReadId readId, const string& fileName)
 {
-    // As written, this only works when using raw read representation.
-    SHASTA_ASSERT(0);
-
     ofstream file(fileName);
     writeRead(readId, file);
 }
@@ -282,21 +275,19 @@ void Assembler::writeRead(ReadId readId, const string& fileName)
 
 void Assembler::writeRead(ReadId readId, ostream& file)
 {
-    // As written, this only works when using raw read representation.
-    SHASTA_ASSERT(0);
-
     checkReadsAreOpen();
     checkReadNamesAreOpen();
     checkReadId(readId);
 
-    const auto readSequence = reads[readId];
+    const vector<Base> rawSequence = getOrientedReadRawSequence(OrientedReadId(readId, 0));
     const auto readName = readNames[readId];
 
-    file << ">" << readId;
-    file << " " << readSequence.baseCount << " ";
+    file << ">";
     copy(readName.begin(), readName.end(), ostream_iterator<char>(file));
+    file << " " << readId;
+    file << " " << rawSequence.size() << "\n";
+    copy(rawSequence.begin(), rawSequence.end(), ostream_iterator<Base>(file));
     file << "\n";
-    file << readSequence << "\n";
 
 }
 
@@ -304,9 +295,6 @@ void Assembler::writeRead(ReadId readId, ostream& file)
 
 void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fileName)
 {
-    // As written, this only works when using raw read representation.
-    SHASTA_ASSERT(!0);
-
     writeOrientedRead(OrientedReadId(readId, strand), fileName);
 }
 
@@ -314,9 +302,6 @@ void Assembler::writeOrientedRead(ReadId readId, Strand strand, const string& fi
 
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& fileName)
 {
-    // As written, this only works when using raw read representation.
-    SHASTA_ASSERT(0);
-
     ofstream file(fileName);
     writeOrientedRead(orientedReadId, file);
 }
@@ -325,23 +310,17 @@ void Assembler::writeOrientedRead(OrientedReadId orientedReadId, const string& f
 
 void Assembler::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
 {
-    // As written, this only works when using raw read representation.
-    SHASTA_ASSERT(0);
-
     checkReadsAreOpen();
     checkReadNamesAreOpen();
 
-    const ReadId readId = orientedReadId.getReadId();
-    checkReadId(readId);
-    const Strand strand = orientedReadId.getStrand();
-    const auto readSequence = reads[readId];
-    const auto readName = readNames[readId];
+    const vector<Base> rawSequence = getOrientedReadRawSequence(orientedReadId);
+    const auto readName = readNames[orientedReadId.getReadId()];
 
-    file << ">" << readId << "-" << strand;
-    file << " " << readSequence.baseCount << " ";
+    file << ">" << orientedReadId;
+    file << " " << rawSequence.size() << " ";
     copy(readName.begin(), readName.end(), ostream_iterator<char>(file));
     file << "\n";
-    readSequence.write(file, strand==1);
+    copy(rawSequence.begin(), rawSequence.end(), ostream_iterator<Base>(file));
     file << "\n";
 
 }

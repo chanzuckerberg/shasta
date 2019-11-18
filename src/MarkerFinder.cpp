@@ -32,7 +32,7 @@ MarkerFinder::MarkerFinder(
         threadCount = std::thread::hardware_concurrency();
     }
 
-    const size_t batchSize = 100000;
+    const size_t batchSize = 100;
     markers.beginPass1(2 * reads.size());
     setupLoadBalancing(reads.size(), batchSize);
     pass = 1;

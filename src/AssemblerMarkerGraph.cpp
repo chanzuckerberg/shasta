@@ -29,6 +29,9 @@ using namespace shasta;
 // with more than one marker on the same oriented read.
 void Assembler::createMarkerGraphVertices(
 
+    // The method to be used to compute alignments.
+    int alignMethod,
+
     // The maximum frequency of marker k-mers to be used in
     // computing alignments.
     uint32_t maxMarkerFrequency,
@@ -40,6 +43,11 @@ void Assembler::createMarkerGraphVertices(
     // The maximum ordinal drift to be tolerated between successive markers
     // in the alignment.
     size_t maxDrift,
+
+    // Scores for method 1 alignments.
+    int matchScore,
+    int mismatchScore,
+    int gapScore,
 
     // Minimum coverage (number of markers) for a vertex
     // of the marker graph to be kept.
@@ -75,9 +83,13 @@ void Assembler::createMarkerGraphVertices(
 
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
+    data.alignMethod = alignMethod;
     data.maxSkip = maxSkip;
     data.maxDrift = maxDrift;
     data.maxMarkerFrequency = maxMarkerFrequency;
+    data.matchScore = matchScore;
+    data.mismatchScore = mismatchScore;
+    data.gapScore = gapScore;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -372,8 +384,12 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
     const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
+    const int alignMethod = data.alignMethod;
     const size_t maxSkip = data.maxSkip;
     const size_t maxDrift = data.maxDrift;
+    const int matchScore = data.matchScore;
+    const int mismatchScore = data.mismatchScore;
+    const int gapScore = data.gapScore;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
 
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
@@ -387,12 +403,12 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
         SHASTA_ASSERT((end%2) == 0);
 
         for(size_t i=begin; i!=end; i+=2) {
-            const ReadGraph::Edge& readGraphEdge = readGraph.edges[i];
+            const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
 
             // Check that the next edge is the reverse complement of
             // this edge.
             {
-                const ReadGraph::Edge& readGraphNextEdge = readGraph.edges[i + 1];
+                const ReadGraphEdge& readGraphNextEdge = readGraph.edges[i + 1];
                 array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
                 nextEdgeOrientedReadIds[0].flipStrand();
                 nextEdgeOrientedReadIds[1].flipStrand();
@@ -412,17 +428,28 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 continue;
             }
 
-            // Get the markers for the two oriented reads.
-            for(size_t j=0; j<2; j++) {
-                getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
-            }
 
             // Compute the Alignment.
-            // We already know that this is a good alignment, otherwise we
-            // would not have stored it.
-            alignOrientedReads(
-                markersSortedByKmerId,
-                maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+            if(alignMethod == 0) {
+                for(size_t j=0; j<2; j++) {
+                    getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+                }
+                alignOrientedReads(
+                    markersSortedByKmerId,
+                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+            } else if(alignMethod == 1) {
+#ifdef __linux__
+                alignOrientedReads1(
+                    orientedReadIds[0], orientedReadIds[1],
+                    matchScore, mismatchScore, gapScore,
+                    alignment, alignmentInfo
+                );
+#else
+                throw runtime_error("Alignment method 1 is not supported on macOS.");
+#endif
+            } else {
+                SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
+            }
 
 
             // In the global marker graph, merge pairs

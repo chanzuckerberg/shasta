@@ -104,8 +104,10 @@ public:
         // Sanity check.
         void check() const
         {
-            SHASTA_ASSERT(firstOrdinal < markerCount);
-            SHASTA_ASSERT(lastOrdinal < markerCount);
+            // Use <= to allow for case where the alignment has no markers,
+            // in which case everyting is set to zero.
+            SHASTA_ASSERT(firstOrdinal <= markerCount);
+            SHASTA_ASSERT(lastOrdinal <= markerCount);
         }
 
         // Update to reflect reverse complementing of the oriented read.
@@ -116,7 +118,24 @@ public:
             lastOrdinal  = markerCount - 1 - lastOrdinal;
         }
 
-    private:
+        uint32_t alignmentCenter() const
+        {
+            return (firstOrdinal + lastOrdinal) / 2;
+        }
+        uint32_t twiceAlignmentCenter() const
+        {
+            return firstOrdinal + lastOrdinal;
+        }
+
+        uint32_t centerPosition() const
+        {
+            return markerCount / 2;
+        }
+
+        uint32_t twiceCenterPosition() const
+        {
+            return markerCount;
+        }
 
         // The total number of markers in this oriented read.
         uint32_t markerCount;
@@ -158,14 +177,13 @@ public:
     {
         // Store the number of markers in the alignment.
         markerCount = uint32_t(alignment.ordinals.size());
-        SHASTA_ASSERT(markerCount > 0);
 
         // Store alignment information for each of the two oriented reads.
         for(size_t i=0; i<2; i++) {
             data[i] = Data(
                 markerCounts[i],
-                alignment.ordinals.front()[i],
-                alignment.ordinals.back() [i]);
+                (markerCount == 0) ? 0 : alignment.ordinals.front()[i],
+                (markerCount == 0) ? 0 : alignment.ordinals.back()[i]);
             data[i].check();
         }
     }
@@ -237,6 +255,37 @@ public:
 
 
 
+    // Return the offset between the centers of the two oriented reads,
+    // as estimated form the alignment.
+    // The offset is positive if the center of the second read
+    // is to the right of the center of the first read.
+    int32_t offsetAtCenter() const
+    {
+        const uint32_t alignmentCenter0 = data[0].alignmentCenter();
+        const uint32_t alignmentCenter1 = data[1].alignmentCenter();
+
+        const uint32_t center0 = data[0].centerPosition();
+        const uint32_t center1 = data[1].centerPosition();
+
+        return
+            (int(center1) - int(alignmentCenter1)) -
+            (int(center0) - int(alignmentCenter0));
+    }
+    // Version free of rounding error.
+    int32_t twiceOffsetAtCenter() const
+    {
+        const uint32_t twiceAlignmentCenter0 = data[0].twiceAlignmentCenter();
+        const uint32_t twiceAlignmentCenter1 = data[1].twiceAlignmentCenter();
+
+        const uint32_t twiceCenter0 = data[0].twiceCenterPosition();
+        const uint32_t twiceCenter1 = data[1].twiceCenterPosition();
+
+        return
+            (int(twiceCenter1) - int(twiceAlignmentCenter1)) -
+            (int(twiceCenter0) - int(twiceAlignmentCenter0));
+    }
+
+
     // Classify this alignment.
     AlignmentType classify(uint32_t maxTrim) const
     {
@@ -279,6 +328,19 @@ public:
             return AlignmentType::read1IsBackward;
         }
         return AlignmentType::ambiguous;
+    }
+
+    void write(ostream& s) const
+    {
+        s << "Alignment with " << markerCount << " aligned markers:\n";
+        for(int i=0; i<2; i++) {
+            const auto& d = data[i];
+            s << "    " << i;
+            s << ": first " << d.firstOrdinal;
+            s << ", last: " << d.lastOrdinal;
+            s << ", total: " << d.markerCount << "\n";
+        }
+        s << "    Twice offset at center: " << twiceOffsetAtCenter() << endl;
     }
 };
 

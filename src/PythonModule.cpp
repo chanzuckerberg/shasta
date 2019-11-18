@@ -245,11 +245,15 @@ PYBIND11_MODULE(shasta, module)
         // Compute an alignment for each alignment candidate.
         .def("computeAlignments",
             &Assembler::computeAlignments,
+            arg("alignmentMethod") = 0,
             arg("maxMarkerFrequency"),
             arg("maxSkip"),
             arg("maxDrift"),
             arg("minAlignedMarkerCount"),
             arg("maxTrim"),
+            arg("matchScore"),
+            arg("mismatchScore"),
+            arg("gapScore"),
             arg("threadCount") = 0)
 #ifdef SHASTA_BUILD_FOR_GPU
         .def("computeAlignmentsGpu",
@@ -272,13 +276,9 @@ PYBIND11_MODULE(shasta, module)
 
 
 
-        // Read graph
+        // Undirected read graph
         .def("createReadGraph",
             &Assembler::createReadGraph,
-            arg("maxAlignmentCount"),
-            arg("maxTrim"))
-        .def("createReadGraphNew",
-            &Assembler::createReadGraphNew,
             arg("maxAlignmentCount"),
             arg("maxTrim"))
         .def("accessReadGraph",
@@ -287,6 +287,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessReadGraphReadWrite)
         .def("flagCrossStrandReadGraphEdges",
             &Assembler::flagCrossStrandReadGraphEdges,
+            arg("maxDistance"),
             arg("threadCount") = 0)
         .def("flagChimericReads",
              &Assembler::flagChimericReads,
@@ -305,12 +306,25 @@ PYBIND11_MODULE(shasta, module)
 
 
 
+        // Directed read graph.
+        .def("createDirectedReadGraph",
+            &Assembler::createDirectedReadGraph)
+        .def("accessDirectedReadGraphReadOnly",
+            &Assembler::accessDirectedReadGraphReadOnly)
+        .def("accessDirectedReadGraphReadWrite",
+            &Assembler::accessDirectedReadGraphReadWrite)
+
+
         // Global marker graph.
         .def("createMarkerGraphVertices",
             &Assembler::createMarkerGraphVertices,
+            arg("alignMethod"),
             arg("maxMarkerFrequency"),
             arg("maxSkip"),
             arg("maxDrift"),
+            arg("matchScore"),
+            arg("mismatchScore"),
+            arg("gapScore"),
             arg("minCoverage"),
             arg("maxCoverage"),
             arg("threadCount") = 0)

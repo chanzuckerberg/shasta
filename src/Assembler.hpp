@@ -7,6 +7,7 @@
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
+#include "DirectedReadGraph.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "HttpServer.hpp"
 #include "Kmer.hpp"
@@ -226,6 +227,9 @@ public:
     // without storing details of the alignment.
     void computeAlignments(
 
+        // Alignment method (0 or 1).
+        int alignmentMethod,
+
         // Marker frequency threshold.
         // When computing an alignment between two oriented reads,
         // marker kmers that appear more than this number of times
@@ -247,6 +251,11 @@ public:
 
         // Maximum left/right trim (in bases) for an alignment to be used.
         size_t maxTrim,
+
+        // Scores used to compute method 1 alignments.
+        int matchScore,
+        int mismatchScore,
+        int gapScore,
 
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
@@ -329,6 +338,9 @@ public:
     // with more than one marker on the same oriented read.
     void createMarkerGraphVertices(
 
+        // The method to be used to compute alignments.
+        int alignMethod,
+
         // The maximum frequency of marker k-mers to be used in
         // computing alignments.
         uint32_t maxMarkerFrequency,
@@ -340,6 +352,11 @@ public:
         // The maximum ordinal drift to be tolerated between successive markers
         // in the alignment.
         size_t maxDrift,
+
+        // Scores for method 1 alignments.
+        int matchScore,
+        int mismatchScore,
+        int gapScore,
 
         // Minimum coverage (number of markers) for a vertex
         // of the marker graph to be kept.
@@ -921,11 +938,15 @@ private:
     public:
 
         // Parameters.
+        size_t alignmentMethod;
         uint32_t maxMarkerFrequency;
         size_t maxSkip;
         size_t minAlignedMarkerCount;
         size_t maxTrim;
         size_t maxDrift;
+        int matchScore;
+        int mismatchScore;
+        int gapScore;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
         size_t gpuBatchSize;
@@ -955,17 +976,12 @@ public:
     void createReadGraph(
         uint32_t maxAlignmentCount,
         uint32_t maxTrim);
-#if 1
-    void createReadGraphNew(
-        uint32_t maxAlignmentCount,
-        uint32_t maxTrim);
-#endif
     void accessReadGraph();
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
 
 
-    void flagCrossStrandReadGraphEdges(size_t threadCount);
+    void flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount);
 private:
     void flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId);
     class FlagCrossStrandReadGraphEdgesData {
@@ -1005,6 +1021,18 @@ private:
 public:
 
 
+
+    // Directed version of the read graph.
+    // This is only used if--ReadGraph.creationMethod is 1
+    // If --ReadGraph.creationMethod is 0, this is not used
+    // and instead we use the undirected read graph defined above.
+    DirectedReadGraph directedReadGraph;
+    void createDirectedReadGraph();
+    void accessDirectedReadGraphReadOnly();
+    void accessDirectedReadGraphReadWrite();
+
+
+
     // Write a FASTA file containing all reads that appear in
     // the local read graph.
     void writeLocalReadGraphReads(
@@ -1041,8 +1069,12 @@ private:
     public:
 
         // Parameters.
+        int alignMethod;
         size_t maxSkip;
         size_t maxDrift;
+        int matchScore;
+        int mismatchScore;
+        int gapScore;
         uint32_t maxMarkerFrequency;
 
 #ifdef SHASTA_BUILD_FOR_GPU
@@ -1570,6 +1602,8 @@ public:
     void displayAlignmentMatrix(const vector<string>&, ostream&);
     void exploreAlignmentGraph(const vector<string>&, ostream&);
     void exploreReadGraph(const vector<string>&, ostream&);
+    void exploreUndirectedReadGraph(const vector<string>&, ostream&);
+    void exploreDirectedReadGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:
 
