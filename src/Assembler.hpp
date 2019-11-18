@@ -34,7 +34,7 @@
 
 
 #ifdef SHASTA_BUILD_FOR_GPU
-#include <map>
+#include <unordered_map>
 #endif
 
 namespace shasta {
