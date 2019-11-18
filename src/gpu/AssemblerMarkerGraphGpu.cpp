@@ -22,7 +22,6 @@ using namespace shasta;
 #include "GPU.h"
 
 
-#ifdef SHASTA_BUILD_FOR_GPU
 
 // Loop over all alignments in the read graph
 // to create vertices of the global marker graph.
@@ -131,7 +130,7 @@ void Assembler::createMarkerGraphVerticesGpu(
     setupLoadBalancing(readGraph.edges.size(), batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1Gpu, threadCount);
     
-    cout << timestamp << "Shutting down GPU devices." << endl;
+    cout << timestamp << "Shutting down processors." << endl;
     shasta_shutdownProcessors();
     
     cout << timestamp << "Disjoint set computation completed." << endl;
@@ -645,4 +644,3 @@ void Assembler::createMarkerGraphVerticesThreadFunction1Gpu(size_t threadId)
     }
 }
 
-#endif
