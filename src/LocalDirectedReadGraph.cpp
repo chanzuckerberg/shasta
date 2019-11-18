@@ -150,7 +150,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     } else if(vertex.distance == maxDistance) {
             s << " color=cyan";
     } else {
-        s << "color=black";
+        s << " color=black";
     }
 
     // Shape.
