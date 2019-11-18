@@ -119,7 +119,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
         "&strand=" << orientedReadId.getStrand() <<
         "\"" <<
-        " width=" << sqrt(1.e-5 * vertex.markerCount);
+        " width=" << sqrt(1.e-5 * double(vertex.markerCount));
     if(vertex.distance == 0) {
         s << " color=green fillcolor=green";
     } else if(vertex.distance == maxDistance) {

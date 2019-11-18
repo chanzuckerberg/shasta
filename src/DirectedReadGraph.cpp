@@ -4,6 +4,9 @@
 #include "Alignment.hpp"
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/graph/iteration_macros.hpp>
+
 
 
 void DirectedReadGraph::createVertices(ReadId readCount)
@@ -184,7 +187,7 @@ void DirectedReadGraph::extractLocalSubgraph(
     std::map<VertexId, uint64_t> distanceMap;
     findNeighborhood(orientedReadId.getValue(), maxDistance, true, true, distanceMap);
 
-    // Add them to the local graph.
+    // Add them to the local subgraph.
     for(const pair<VertexId, uint64_t>& p: distanceMap) {
         const VertexId vertexId = p.first;
         const uint64_t distance = p.second;
@@ -192,7 +195,44 @@ void DirectedReadGraph::extractLocalSubgraph(
             getVertex(vertexId).baseCount, distance);
     }
 
-    // Add the edges.
-    SHASTA_ASSERT(0);
+
+
+    // Add the edges to the local subgraph.
+    using boost::vertices;  // Hide DirectedReadGraph::vertices for BGL_FORALL_VERTICES.
+
+    // Loop over vertices of the local subgraph.
+    BGL_FORALL_VERTICES(v0, graph, LocalDirectedReadGraph) {
+
+        // Find the corresponding vertex in the global graph.
+        const VertexId vertexId0 = graph[v0].orientedReadId.getValue();
+        const OrientedReadId orientedReadId0 = OrientedReadId(OrientedReadId::Int(vertexId0));
+
+        // Find its out-edges.
+        const MemoryAsContainer<EdgeId> outEdges0 = outEdges(vertexId0);
+
+        // Loop over the out-edges.
+        for(const EdgeId edgeId: outEdges0) {
+
+            // Find the target vertex.
+            const VertexId vertexId1 = target(edgeId);
+
+            // Find the corresponding local vertex, if any.
+            const OrientedReadId orientedReadId1 = OrientedReadId(OrientedReadId::Int(vertexId1));
+            const LocalDirectedReadGraph::vertex_descriptor v1 =
+                graph.getVertex(orientedReadId1);
+
+            // If no such local vertex, skip.
+            if(v1 == LocalDirectedReadGraph::null_vertex()) {
+                continue;
+            }
+
+            // Add the edge to the local subgraph.
+            const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
+            graph.addEdge(orientedReadId0, orientedReadId1,
+                alignmentInfo.twiceOffsetAtCenter(),
+                alignmentInfo.markerCount);
+        }
+    }
+
 }
 

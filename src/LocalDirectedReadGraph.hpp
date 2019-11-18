@@ -70,7 +70,7 @@ public:
 
     LocalDirectedReadGraphEdge(
         int twiceOffsetAtCenter,
-        uint32_t markerCount) :
+        uint64_t markerCount) :
         twiceOffsetAtCenter(twiceOffsetAtCenter),
         markerCount(markerCount)
         {}
@@ -102,6 +102,18 @@ public:
     // Write in Graphviz format.
     void write(ostream&, uint64_t maxDistance) const;
     void write(const string& fileName, uint64_t maxDistance) const;
+
+    // Return the vertex corresponding to a given OrientedReadId,
+    // or null_vertex() if none.
+    vertex_descriptor getVertex(OrientedReadId orientedReadId) const
+    {
+        const auto it = vertexMap.find(orientedReadId);
+        if(it == vertexMap.end()) {
+            return null_vertex();
+        } else {
+            return it->second;
+        }
+    }
 
 private:
 
