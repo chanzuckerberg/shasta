@@ -595,7 +595,6 @@ void shasta::main::assemble(
             assemblerOptions.readGraphOptions.offsetTolerance0,
             assemblerOptions.readGraphOptions.offsetTolerance1
             );
-        throw runtime_error("Directed read graph functionality is incomplete.");
     } else {
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }
@@ -636,6 +635,7 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.matchScore,
             assemblerOptions.alignOptions.mismatchScore,
             assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.readGraphOptions.creationMethod,
             assemblerOptions.markerGraphOptions.minCoverage,
             assemblerOptions.markerGraphOptions.maxCoverage,
             threadCount);

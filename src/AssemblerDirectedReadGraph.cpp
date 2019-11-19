@@ -33,6 +33,20 @@ void Assembler::createDirectedReadGraph()
     directedReadGraph.check();
 
 
+    // Count the number of isolated reads and their bases.
+    uint64_t isolatedReadCount = 0;
+    uint64_t isolatedReadBaseCount = 0;
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        const OrientedReadId orientedReadId(readId, 0);
+        const DirectedReadGraph::VertexId vertexId = orientedReadId.getValue();
+        if(directedReadGraph.totalDegree(vertexId) > 0) {
+            continue;
+        }
+        ++isolatedReadCount;
+        isolatedReadBaseCount += getReadRawSequenceLength(readId);
+    }
+    assemblerInfo->isolatedReadCount = isolatedReadCount;
+    assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;
 }
 
 

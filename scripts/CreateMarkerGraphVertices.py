@@ -22,7 +22,8 @@ a.createMarkerGraphVertices(
     maxSkip = int(config['Align']['maxSkip']),
     matchScore = int(config['Align']['matchScore']),,
     mismatchScore = int(config['Align']['mismatchScore']),,
-    gapScore = int(config['Align']['gapScore']),,
+    gapScore = int(config['Align']['gapScore']),
+    readGraphCreationMethod = int(config['ReadGraph']['creationMethod']),
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']))
 

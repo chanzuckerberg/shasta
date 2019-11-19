@@ -329,6 +329,7 @@ PYBIND11_MODULE(shasta, module)
             arg("matchScore"),
             arg("mismatchScore"),
             arg("gapScore"),
+            arg("readGraphCreationMethod"),
             arg("minCoverage"),
             arg("maxCoverage"),
             arg("threadCount") = 0)

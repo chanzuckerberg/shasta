@@ -358,6 +358,10 @@ public:
         int mismatchScore,
         int gapScore,
 
+        // The method used to create the read graph.
+        // This affects which alignments are used to create the marker graph.
+        int readGraphCreationMethod,
+
         // Minimum coverage (number of markers) for a vertex
         // of the marker graph to be kept.
         size_t minCoverage,
@@ -1079,7 +1083,9 @@ private:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        int readGraphCreationMethod;
         uint32_t maxMarkerFrequency;
+
 
 #ifdef SHASTA_BUILD_FOR_GPU
         size_t gpuBatchSize;
