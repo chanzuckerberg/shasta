@@ -247,7 +247,8 @@ bool DirectedReadGraph::extractLocalSubgraph(
             const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
             graph.addEdge(orientedReadId0, orientedReadId1,
                 alignmentInfo.twiceOffsetAtCenter(),
-                alignmentInfo.markerCount);
+                alignmentInfo.markerCount,
+                getEdge(edgeId).wasRemovedByTransitiveReduction == 1);
         }
     }
 
@@ -260,14 +261,14 @@ void DirectedReadGraph::transitiveReduction(
     double offsetTolerance0,
     double offsetTolerance1)
 {
-    const bool debug = true;
+    const bool debug = false;
     using Edge = DirectedReadGraphEdge;
 
     // Mark all edges as not removed by transitive reduction.
     for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
         Edge& edge = getEdge(edgeId);
         edge.wasRemovedByTransitiveReduction = 0;
-        edge.transitiveCoverage = 0;
+        edge.transitiveCoverage = 1;
     }
 
     // Sort edges by decreasing offset.
@@ -333,7 +334,7 @@ void DirectedReadGraph::transitiveReduction(
 
 
 
-        // Do a forward BFS starting at vertex0.
+        // Do a forward BFS starting at u0.
         // Use twice offset at center as edge length.
         SHASTA_ASSERT(visitedVertices.empty());
         SHASTA_ASSERT(q.empty());
@@ -362,7 +363,7 @@ void DirectedReadGraph::transitiveReduction(
                 }
                 const Edge& edge = getEdge(edgeId01);
 
-                // If this edge was already removed durign transitive reduction, skip it.
+                // If this edge was already removed during transitive reduction, skip it.
                 if(edge.wasRemovedByTransitiveReduction) {
                     continue;
                 }
@@ -370,32 +371,49 @@ void DirectedReadGraph::transitiveReduction(
                 // Get the target vertex.
                 const VertexId v1 = target(edgeId01);
 
+                if(debug) {
+                    cout << "Found " << OrientedReadId(OrientedReadId::Int(v1)) << endl;
+                }
+
                 // If already visited, skip.
                 if(wasVisited[v1]) {
+                    if(debug) {
+                        cout << "Already visited." << endl;
+                    }
                     continue;
                 }
 
                 // Compute the updated distance.
                 const uint64_t distance1 = distance0 + edge.alignmentInfo.twiceOffsetAtCenter();
+                if(debug) {
+                    cout << "distance1 " << distance1 << endl;
+                }
 
                 // If we got too far, skip.
                 if(distance1 > maxPathTwiceOffset) {
+                    if(debug) {
+                        cout << "Distance is too large " << distance1 << endl;
+                    }
                     continue;
                 }
 
 
                 // Did we find u1?
                 if(v1==u1) {
-                    if(distance1 <= minPathTwiceOffset) {
-                        getEdge(edgeId).wasRemovedByTransitiveReduction = false;
+                    if(distance1 >= minPathTwiceOffset) {
+                        getEdge(edgeId).wasRemovedByTransitiveReduction = true;
                         done = true;
                         if(debug) {
-                            cout << "Transitive reduction removed edge " << orientedReadId0 << "->" << orientedReadId1 <<
+                            cout << "Transitive reduction removed edge " << edgeId << " " <<
+                                orientedReadId0 << "->" << orientedReadId1 <<
                                 " with offset " << twiceOffsetAtCenter/2 << endl;
                         }
                         break;
                     } else {
                         // We found u1, but the distance is too small. Keep going.
+                        if(debug) {
+                            cout << "Found u1, but the distance is too small." << endl;
+                        }
                         continue;
                     }
                 } else {
@@ -427,5 +445,13 @@ void DirectedReadGraph::transitiveReduction(
 
     }
 
-    SHASTA_ASSERT(0);
+    if(debug) {
+        cout << "Edges removed during transitive reduction:" << endl;
+        for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+            if(getEdge(edgeId).wasRemovedByTransitiveReduction) {
+                cout << edgeId << " ";
+            }
+        }
+        cout << endl;
+    }
 }

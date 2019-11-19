@@ -35,7 +35,8 @@ void LocalDirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     int twiceOffsetAtCenter,
-    uint64_t markerCount)
+    uint64_t markerCount,
+    bool wasRemovedByTransitiveReduction)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -47,7 +48,7 @@ void LocalDirectedReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalDirectedReadGraphEdge(twiceOffsetAtCenter, markerCount),
+        LocalDirectedReadGraphEdge(twiceOffsetAtCenter, markerCount, wasRemovedByTransitiveReduction),
         *this);
 }
 
@@ -182,6 +183,10 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
 
     s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
+
+    if(edge.wasRemovedByTransitiveReduction) {
+        s << " color=red";
+    }
 
     s << "]";
 }

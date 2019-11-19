@@ -71,11 +71,15 @@ public:
     // that created this edge.
     uint64_t markerCount;
 
+    bool wasRemovedByTransitiveReduction;
+
     LocalDirectedReadGraphEdge(
         int twiceOffsetAtCenter,
-        uint64_t markerCount) :
+        uint64_t markerCount,
+        bool wasRemovedByTransitiveReduction) :
         twiceOffsetAtCenter(twiceOffsetAtCenter),
-        markerCount(markerCount)
+        markerCount(markerCount),
+        wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction)
         {}
 };
 
@@ -95,7 +99,8 @@ public:
         OrientedReadId,
         OrientedReadId,
         int twiceOffsetAtCenter,
-        uint64_t markerCount);
+        uint64_t markerCount,
+        bool wasRemovedByTransitiveReduction);
 
     // Find out if a vertex with a given OrientedReadId exists.
     bool vertexExists(OrientedReadId) const;
