@@ -16,7 +16,7 @@ a.accessDirectedReadGraphReadWrite()
 # These should be added as additional command line options
 # in the ReadGraph section when this code stabilizes.
 a.directedReadGraphTransitiveReduction(
-    offsetTolerance0 = 10,
+    offsetTolerance0 = 100,
     offsetTolerance1 = 0.1)
 
 
