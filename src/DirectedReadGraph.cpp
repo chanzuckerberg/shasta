@@ -321,7 +321,12 @@ void DirectedReadGraph::transitiveReduction(
         const EdgeId edgeId = p.first;
         const uint64_t twiceOffsetAtCenter = p.second;
         const Edge& edge = getEdge(edgeId);
-        SHASTA_ASSERT(!edge.wasRemovedByTransitiveReduction);
+        if(edge.wasRemovedByTransitiveReduction) {
+            // This edge was already removed. This can happen
+            // because every time we remove an edge we also remove
+            // the reverse complemented edge.
+            continue;
+        }
         const VertexId u0 = source(edgeId);
         const VertexId u1 = target(edgeId);
         const OrientedReadId orientedReadId0 = OrientedReadId(OrientedReadId::Int(u0));
@@ -417,7 +422,10 @@ void DirectedReadGraph::transitiveReduction(
                 // Did we find u1?
                 if(v1==u1) {
                     if(distance1 >= minPathTwiceOffset) {
-                        getEdge(edgeId).wasRemovedByTransitiveReduction = true;
+                        Edge& edge = getEdge(edgeId);
+                        Edge& reverseComplementedEdge = getEdge(edge.reverseComplementedEdgeId);
+                        edge.wasRemovedByTransitiveReduction = true;
+                        reverseComplementedEdge.wasRemovedByTransitiveReduction = true;
                         done = true;
                         if(debug) {
                             cout << "Transitive reduction removed edge " << edgeId << " " <<

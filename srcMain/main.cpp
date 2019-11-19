@@ -591,6 +591,10 @@ void shasta::main::assemble(
         assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
     } else if(assemblerOptions.readGraphOptions.creationMethod == 1) {
         assembler.createDirectedReadGraph();
+        assembler.directedReadGraphTransitiveReduction(
+            assemblerOptions.readGraphOptions.offsetTolerance0,
+            assemblerOptions.readGraphOptions.offsetTolerance1
+            );
         throw runtime_error("Directed read graph functionality is incomplete.");
     } else {
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");

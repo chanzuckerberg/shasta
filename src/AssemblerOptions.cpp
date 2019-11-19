@@ -383,6 +383,18 @@ void AssemblerOptions::addConfigurableOptions()
         "Maximum distance (edges) for flagCrossStrandReadGraphEdges. "
         "Set this to zero to entirely suppress flagCrossStrandReadGraphEdges.")
 
+        ("ReadGraph.offsetTolerance0",
+        value<double>(&readGraphOptions.offsetTolerance0)->
+        default_value(100.),
+        "Constant term for offset tolerance during transitive reduction "
+        "of the directed read graph.")
+
+        ("ReadGraph.offsetTolerance1",
+        value<double>(&readGraphOptions.offsetTolerance1)->
+        default_value(0.1),
+        "Linear term for offset tolerance during transitive reduction "
+        "of the directed read graph.")
+
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
@@ -555,6 +567,8 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
     s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
+    s << "offsetTolerance0 = " << offsetTolerance0 << "\n";
+    s << "offsetTolerance1 = " << offsetTolerance1 << "\n";
 }
 
 
