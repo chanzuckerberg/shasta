@@ -224,10 +224,20 @@ public:
 
 
 
-    // Find the neighborhood of a vertex.
+    // Find the neighborhood of a vertex, allowing only edges
+    // permitted by the edge filter object.
+    // The base class EdgeFilter allows all edges.
+    class EdgeFilter {
+    public:
+        virtual bool allowEdge(EdgeId edgeId, const Edge&) const
+        {
+            return true;
+        }
+    };
     bool findNeighborhood(
         VertexId vStart,
         uint64_t maxDistance,
+        const EdgeFilter& edgeFilter,
         bool forward,   // True if allowed to move forward.
         bool backward,  // True if allowed to move backward.
         double timeout,
@@ -273,6 +283,9 @@ public:
             // Move forward.
             if(forward) {
                 for(const EdgeId& edgeId: outEdges(v0)) {
+                    if(not edgeFilter.allowEdge(edgeId, getEdge(edgeId))) {
+                        continue;
+                    }
                     const VertexId v1 = target(edgeId);
                     if(neighbors.find(v1) != neighbors.end()) {
                         // We already encountered v1.
@@ -288,6 +301,9 @@ public:
             // Move backward.
             if(backward) {
                 for(const EdgeId& edgeId: inEdges(v0)) {
+                    if(not edgeFilter.allowEdge(edgeId, getEdge(edgeId))) {
+                        continue;
+                    }
                     const VertexId v1 = source(edgeId);
                     if(neighbors.find(v1) != neighbors.end()) {
                         // We already encountered v1.

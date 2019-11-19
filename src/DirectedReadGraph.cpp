@@ -10,6 +10,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include "memory.hpp"
 #include <queue>
 
 
@@ -182,6 +183,7 @@ void DirectedReadGraph::check()
 bool DirectedReadGraph::extractLocalSubgraph(
     OrientedReadId orientedReadId,
     uint64_t maxDistance,
+    bool allowTransitiveReductionEdges,
     double timeout,
     LocalDirectedReadGraph& graph)
 {
@@ -190,9 +192,20 @@ bool DirectedReadGraph::extractLocalSubgraph(
     // The local graph must start empty.
     SHASTA_ASSERT(boost::num_vertices(graph) == 0);
 
+    // Construct our edge filter.
+    shared_ptr<EdgeFilter> edgeFilter;
+    if(allowTransitiveReductionEdges) {
+        edgeFilter = make_shared<EdgeFilter>();
+    } else {
+        edgeFilter = make_shared<NonTransitiveReductionEdgeFilter>();
+    }
+
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;
-    if(not findNeighborhood(orientedReadId.getValue(), maxDistance, true, true, timeout, distanceMap)) {
+    if(not findNeighborhood(orientedReadId.getValue(), maxDistance,
+        *edgeFilter,
+        true, true, timeout,
+        distanceMap)) {
         graph.clear();
         return false;
     }
@@ -229,6 +242,9 @@ bool DirectedReadGraph::extractLocalSubgraph(
 
         // Loop over the out-edges.
         for(const EdgeId edgeId: outEdges0) {
+            if(not edgeFilter->allowEdge(edgeId, getEdge(edgeId))) {
+                continue;
+            }
 
             // Find the target vertex.
             const VertexId vertexId1 = target(edgeId);

@@ -30,6 +30,10 @@ void Assembler::exploreDirectedReadGraph(
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
+    string allowTransitiveReductionEdgesString;
+    const bool allowTransitiveReductionEdges = getParameterValue(request,
+        "allowTransitiveReductionEdges", allowTransitiveReductionEdgesString);
+
     uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
 
@@ -81,6 +85,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
         "'>"
+
+        "<tr>"
+        "<td>Include edges removed during transitive reduction"
+        "<td class=centered><input type=checkbox name=allowTransitiveReductionEdges" <<
+        (allowTransitiveReductionEdges ? " checked" : "") <<
+        ">"
 
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
@@ -159,7 +169,7 @@ void Assembler::exploreDirectedReadGraph(
     const OrientedReadId orientedReadId(readId, strand);
     LocalDirectedReadGraph graph;
     const auto createStartTime = steady_clock::now();
-    if(not directedReadGraph.extractLocalSubgraph(orientedReadId, maxDistance, timeout, graph)) {
+    if(not directedReadGraph.extractLocalSubgraph(orientedReadId, maxDistance, allowTransitiveReductionEdges, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";
         return;

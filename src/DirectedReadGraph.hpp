@@ -114,6 +114,7 @@ public:
     bool extractLocalSubgraph(
         OrientedReadId,
         uint64_t maxDistance,
+        bool allowTransitiveReductionEdges,
         double timeout,
         LocalDirectedReadGraph&);
 
@@ -128,6 +129,16 @@ private:
         OrientedReadId orientedReadId0,
         OrientedReadId orientedReadId1,
         AlignmentInfo);
+
+    // And edge checker that allows only edges not removed by transitive reduction.
+    class NonTransitiveReductionEdgeFilter : public EdgeFilter {
+    public:
+        bool allowEdge(EdgeId edgeId, const Edge& edge) const
+        {
+            return edge.wasRemovedByTransitiveReduction == 0;
+        }
+    };
+
 
 };
 
