@@ -240,7 +240,7 @@ public:
         // Initialize the BFS.
         std::queue<VertexId> q;
         neighbors.clear();
-        neighbors.insert(make_pair(0, vStart));
+        neighbors.insert(make_pair(vStart, 0));
         q.push(vStart);
 
         if(debug) {
