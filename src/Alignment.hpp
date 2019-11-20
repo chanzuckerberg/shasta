@@ -338,7 +338,7 @@ public:
             s << ", last: " << d.lastOrdinal;
             s << ", total: " << d.markerCount << "\n";
         }
-        s << "    Twice offset at center: " << twiceOffsetAtCenter() << endl;
+        s << "    Offset at center: " << offsetAtCenter() << endl;
     }
 };
 

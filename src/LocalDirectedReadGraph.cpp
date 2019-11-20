@@ -178,7 +178,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         "tooltip=\"" << vertex0.orientedReadId << "->" <<
         vertex1.orientedReadId <<
         ", " << edge.markerCount << " aligned markers, centers offset "
-        << edge.twiceOffsetAtCenter/2 <<
+        << double(edge.twiceOffsetAtCenter)/2 <<
         "\"";
 
     s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";

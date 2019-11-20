@@ -1968,7 +1968,7 @@ void Assembler::displayAlignments(
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
             "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
-            "<td class=centered>" << alignmentInfo.twiceOffsetAtCenter()/2 <<
+            "<td class=centered>" << alignmentInfo.offsetAtCenter() <<
             "<td class=centered>" << alignmentInfo.leftTrim(0) <<
             "<td class=centered>" << alignmentInfo.range(0) <<
             "<td class=centered>" << alignmentInfo.rightTrim(0) <<

@@ -334,7 +334,7 @@ void DirectedReadGraph::transitiveReduction(
 
         if(debug) {
             cout << "Working on edge " << orientedReadId0 << "->" << orientedReadId1 <<
-                " with offset " << twiceOffsetAtCenter/2 << endl;
+                " with offset " << double(twiceOffsetAtCenter)/2. << endl;
         }
 
         // Look for the shortest path between vertex0 and vertex1 that:
@@ -430,7 +430,7 @@ void DirectedReadGraph::transitiveReduction(
                         if(debug) {
                             cout << "Transitive reduction removed edge " << edgeId << " " <<
                                 orientedReadId0 << "->" << orientedReadId1 <<
-                                " with offset " << twiceOffsetAtCenter/2 << endl;
+                                " with offset " << double(twiceOffsetAtCenter)/2 << endl;
                         }
                         break;
                     } else {
