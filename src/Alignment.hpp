@@ -118,20 +118,19 @@ public:
             lastOrdinal  = markerCount - 1 - lastOrdinal;
         }
 
-        uint32_t alignmentCenter() const
+        double alignmentCenter() const
         {
-            return (firstOrdinal + lastOrdinal) / 2;
+            return double(firstOrdinal + lastOrdinal) / 2.;
         }
         uint32_t twiceAlignmentCenter() const
         {
             return firstOrdinal + lastOrdinal;
         }
 
-        uint32_t centerPosition() const
+        double centerPosition() const
         {
-            return markerCount / 2;
+            return double(markerCount) / 2.;
         }
-
         uint32_t twiceCenterPosition() const
         {
             return markerCount;
@@ -259,19 +258,18 @@ public:
     // as estimated form the alignment.
     // The offset is positive if the center of the second read
     // is to the right of the center of the first read.
-    int32_t offsetAtCenter() const
+    double offsetAtCenter() const
     {
-        const uint32_t alignmentCenter0 = data[0].alignmentCenter();
-        const uint32_t alignmentCenter1 = data[1].alignmentCenter();
+        const double alignmentCenter0 = data[0].alignmentCenter();
+        const double alignmentCenter1 = data[1].alignmentCenter();
 
-        const uint32_t center0 = data[0].centerPosition();
-        const uint32_t center1 = data[1].centerPosition();
+        const double center0 = data[0].centerPosition();
+        const double center1 = data[1].centerPosition();
 
         return
-            (int(center1) - int(alignmentCenter1)) -
-            (int(center0) - int(alignmentCenter0));
+            (center1 - alignmentCenter1) -
+            (center0 - alignmentCenter0);
     }
-    // Version free of rounding error.
     int32_t twiceOffsetAtCenter() const
     {
         const uint32_t twiceAlignmentCenter0 = data[0].twiceAlignmentCenter();
