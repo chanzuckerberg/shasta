@@ -2245,6 +2245,12 @@ void Assembler::exploreAlignment(
         "<td>"
         "<td>"
 
+        "<tr>"
+        "<td title='Marker offset between the center of " << orientedReadId0 <<
+        " and the center of " << orientedReadId1 <<
+        "'>Marker offset at center<td><td>" << std::setprecision(6) << alignmentInfo.offsetAtCenter() <<
+        "<td><td>"
+
         "</table>"
         "<p>See bottom of this page for alignment details.";
 
