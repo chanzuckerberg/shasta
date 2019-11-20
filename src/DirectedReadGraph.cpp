@@ -262,8 +262,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
             // Add the edge to the local subgraph.
             const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
             graph.addEdge(orientedReadId0, orientedReadId1,
-                alignmentInfo.twiceOffsetAtCenter(),
-                alignmentInfo.markerCount,
+                alignmentInfo,
                 getEdge(edgeId).wasRemovedByTransitiveReduction == 1);
         }
     }

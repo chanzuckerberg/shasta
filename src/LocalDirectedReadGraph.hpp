@@ -5,6 +5,7 @@
 
 
 // Shasta.
+#include "Alignment.hpp"
 #include "ReadId.hpp"
 
 // Boost libraries.
@@ -64,21 +65,14 @@ public:
 class shasta::LocalDirectedReadGraphEdge {
 public:
 
-    // Twice the offset between centers.
-    int twiceOffsetAtCenter;
-
-    // The number of alignment markers in the alignment
-    // that created this edge.
-    uint64_t markerCount;
+    AlignmentInfo alignmentInfo;
 
     bool wasRemovedByTransitiveReduction;
 
     LocalDirectedReadGraphEdge(
-        int twiceOffsetAtCenter,
-        uint64_t markerCount,
+        const AlignmentInfo& alignmentInfo,
         bool wasRemovedByTransitiveReduction) :
-        twiceOffsetAtCenter(twiceOffsetAtCenter),
-        markerCount(markerCount),
+        alignmentInfo(alignmentInfo),
         wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction)
         {}
 };
@@ -98,8 +92,7 @@ public:
     void addEdge(
         OrientedReadId,
         OrientedReadId,
-        int twiceOffsetAtCenter,
-        uint64_t markerCount,
+        const AlignmentInfo& alignmentInfo,
         bool wasRemovedByTransitiveReduction);
 
     // Find out if a vertex with a given OrientedReadId exists.

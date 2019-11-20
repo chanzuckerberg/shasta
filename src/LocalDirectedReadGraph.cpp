@@ -34,8 +34,7 @@ void LocalDirectedReadGraph::addVertex(
 void LocalDirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    int twiceOffsetAtCenter,
-    uint64_t markerCount,
+    const AlignmentInfo& alignmentInfo,
     bool wasRemovedByTransitiveReduction)
 {
     // Find the vertices corresponding to these two OrientedReadId.
@@ -48,7 +47,7 @@ void LocalDirectedReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalDirectedReadGraphEdge(twiceOffsetAtCenter, markerCount, wasRemovedByTransitiveReduction),
+        LocalDirectedReadGraphEdge(alignmentInfo, wasRemovedByTransitiveReduction),
         *this);
 }
 
@@ -177,8 +176,12 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s <<
         "tooltip=\"" << vertex0.orientedReadId << "->" <<
         vertex1.orientedReadId <<
-        ", " << edge.markerCount << " aligned markers, centers offset "
-        << double(edge.twiceOffsetAtCenter)/2 <<
+        ", " << edge.alignmentInfo.markerCount << " aligned markers, centers offset " <<
+        std::setprecision(6) << edge.alignmentInfo.offsetAtCenter() <<
+        " aligned fraction " <<
+        std::setprecision(3) <<
+        edge.alignmentInfo.alignedFraction(0) << " " <<
+        edge.alignmentInfo.alignedFraction(1) <<
         "\"";
 
     s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
