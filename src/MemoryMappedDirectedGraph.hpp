@@ -226,18 +226,14 @@ public:
 
     // Find the neighborhood of a vertex, allowing only edges
     // permitted by the edge filter object.
-    // The base class EdgeFilter allows all edges.
-    class EdgeFilter {
+    class AbstractEdgeFilter {
     public:
-        virtual bool allowEdge(EdgeId edgeId, const Edge&) const
-        {
-            return true;
-        }
+        virtual bool allowEdge(EdgeId, const Edge&) const = 0;
     };
     bool findNeighborhood(
         VertexId vStart,
         uint64_t maxDistance,
-        const EdgeFilter& edgeFilter,
+        const AbstractEdgeFilter& edgeFilter,
         bool forward,   // True if allowed to move forward.
         bool backward,  // True if allowed to move backward.
         double timeout,

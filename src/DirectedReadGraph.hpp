@@ -114,6 +114,8 @@ public:
     bool extractLocalSubgraph(
         OrientedReadId,
         uint64_t maxDistance,
+        uint64_t minAlignedMarkerCount,
+        double minAlignedFraction,
         bool allowTransitiveReductionEdges,
         double timeout,
         LocalDirectedReadGraph&);
@@ -131,12 +133,30 @@ private:
         AlignmentInfo);
 
     // And edge checker that allows only edges not removed by transitive reduction.
-    class NonTransitiveReductionEdgeFilter : public EdgeFilter {
+    class EdgeFilter : public AbstractEdgeFilter {
     public:
+        EdgeFilter(
+            uint64_t minAlignedMarkerCount,
+            double minAlignedFraction,
+            bool allowTransitiveReductionEdges) :
+            minAlignedMarkerCount(minAlignedMarkerCount),
+            minAlignedFraction(minAlignedFraction),
+            allowTransitiveReductionEdges(allowTransitiveReductionEdges) {}
+
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
-            return edge.wasRemovedByTransitiveReduction == 0;
+            if(not allowTransitiveReductionEdges and edge.wasRemovedByTransitiveReduction) {
+                return false;
+            }
+            return
+                edge.alignmentInfo.markerCount >= minAlignedMarkerCount
+                and
+                min(edge.alignmentInfo.alignedFraction(0), edge.alignmentInfo.alignedFraction(1))
+                    >= minAlignedFraction;
         }
+        uint64_t minAlignedMarkerCount;
+        double minAlignedFraction;
+        bool allowTransitiveReductionEdges;
     };
 
 

@@ -183,6 +183,8 @@ void DirectedReadGraph::check()
 bool DirectedReadGraph::extractLocalSubgraph(
     OrientedReadId orientedReadId,
     uint64_t maxDistance,
+    uint64_t minAlignedMarkerCount,
+    double minAlignedFraction,
     bool allowTransitiveReductionEdges,
     double timeout,
     LocalDirectedReadGraph& graph)
@@ -193,17 +195,12 @@ bool DirectedReadGraph::extractLocalSubgraph(
     SHASTA_ASSERT(boost::num_vertices(graph) == 0);
 
     // Construct our edge filter.
-    shared_ptr<EdgeFilter> edgeFilter;
-    if(allowTransitiveReductionEdges) {
-        edgeFilter = make_shared<EdgeFilter>();
-    } else {
-        edgeFilter = make_shared<NonTransitiveReductionEdgeFilter>();
-    }
+    EdgeFilter edgeFilter(minAlignedMarkerCount, minAlignedFraction, allowTransitiveReductionEdges);
 
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;
     if(not findNeighborhood(orientedReadId.getValue(), maxDistance,
-        *edgeFilter,
+        edgeFilter,
         true, true, timeout,
         distanceMap)) {
         graph.clear();
@@ -242,7 +239,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
 
         // Loop over the out-edges.
         for(const EdgeId edgeId: outEdges0) {
-            if(not edgeFilter->allowEdge(edgeId, getEdge(edgeId))) {
+            if(not edgeFilter.allowEdge(edgeId, getEdge(edgeId))) {
                 continue;
             }
 

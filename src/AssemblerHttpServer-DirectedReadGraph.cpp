@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblerOptions.hpp"
 #include "LocalDirectedReadGraph.hpp"
 #include "platformDependent.hpp"
 using namespace shasta;
@@ -29,6 +30,12 @@ void Assembler::exploreDirectedReadGraph(
 
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
+
+    uint32_t minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
+    getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
+
+    double minAlignedFraction = 0.;
+    getParameterValue(request, "minAlignedFraction", minAlignedFraction);
 
     string allowTransitiveReductionEdgesString;
     const bool allowTransitiveReductionEdges = getParameterValue(request,
@@ -84,6 +91,18 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Maximum distance"
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
+        "'>"
+
+        "<tr>"
+        "<td>Minimum number of aligned markers"
+        "<td><input type=text required name=minAlignedMarkerCount size=8 style='text-align:center'"
+        " value='" << minAlignedMarkerCount <<
+        "'>"
+
+        "<tr>"
+        "<td>Minimum aligned fraction"
+        "<td><input type=text required name=minAlignedFraction size=8 style='text-align:center'"
+        " value='" << minAlignedFraction <<
         "'>"
 
         "<tr>"
@@ -169,7 +188,9 @@ void Assembler::exploreDirectedReadGraph(
     const OrientedReadId orientedReadId(readId, strand);
     LocalDirectedReadGraph graph;
     const auto createStartTime = steady_clock::now();
-    if(not directedReadGraph.extractLocalSubgraph(orientedReadId, maxDistance, allowTransitiveReductionEdges, timeout, graph)) {
+    if(not directedReadGraph.extractLocalSubgraph(
+        orientedReadId, maxDistance, minAlignedMarkerCount, minAlignedFraction,
+        allowTransitiveReductionEdges, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
