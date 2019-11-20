@@ -249,6 +249,9 @@ public:
         // Minimum number of alignment markers for an alignment to be used.
         size_t minAlignedMarkerCount,
 
+        // The minimum fraction of aligned markers for an alignment to be used.
+        double minAlignedFraction,
+
         // Maximum left/right trim (in bases) for an alignment to be used.
         size_t maxTrim,
 
@@ -946,6 +949,7 @@ private:
         uint32_t maxMarkerFrequency;
         size_t maxSkip;
         size_t minAlignedMarkerCount;
+        double minAlignedFraction;
         size_t maxTrim;
         size_t maxDrift;
         int matchScore;

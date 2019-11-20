@@ -110,6 +110,7 @@ public:
         int maxTrim;
         int maxMarkerFrequency;
         int minAlignedMarkerCount;
+        double minAlignedFraction;
         int matchScore;
         int mismatchScore;
         int gapScore;

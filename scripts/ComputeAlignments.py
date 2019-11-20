@@ -19,6 +19,7 @@ a.computeAlignments(
     maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
     maxSkip = int(config['Align']['maxSkip']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
+    minAlignedFraction = int(config['Align']['minAlignedFraction']),
     maxTrim = int(config['Align']['maxTrim']),
     matchScore = int(config['Align']['matchScore']),
     mismatchScore = int(config['Align']['mismatchScore']),

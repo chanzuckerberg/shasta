@@ -221,6 +221,9 @@ void Assembler::computeAlignments(
     // Minimum number of alignment markers for an alignment to be used.
     size_t minAlignedMarkerCount,
 
+    // The minimum fraction of aligned markers for an alignment to be used.
+    double minAlignedFraction,
+
     // Maximum left/right trim (in bases) for an alignment to be used.
     size_t maxTrim,
 
@@ -251,6 +254,7 @@ void Assembler::computeAlignments(
     data.maxSkip = maxSkip;
     data.maxDrift = maxDrift;
     data.minAlignedMarkerCount = minAlignedMarkerCount;
+    data.minAlignedFraction = minAlignedFraction;
     data.maxTrim = maxTrim;
     data.matchScore = matchScore;
     data.mismatchScore = mismatchScore;
@@ -316,6 +320,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const size_t maxSkip = data.maxSkip;
     const size_t maxDrift = data.maxDrift;
     const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
+    const double minAlignedFraction = data.minAlignedFraction;
     const size_t maxTrim = data.maxTrim;
     const int matchScore = data.matchScore;
     const int mismatchScore = data.mismatchScore;
@@ -366,6 +371,11 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             // If the alignment has too few markers, skip it.
             if(alignment.ordinals.size() < minAlignedMarkerCount) {
                 // cout << orientedReadIds[0] << " " << orientedReadIds[1] << " too few markers." << endl;
+                continue;
+            }
+
+            // If the aligned fraction is too small, skip it.
+            if(min(alignmentInfo.alignedFraction(0), alignmentInfo.alignedFraction(1)) < minAlignedFraction) {
                 continue;
             }
 

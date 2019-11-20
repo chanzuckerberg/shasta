@@ -250,6 +250,7 @@ PYBIND11_MODULE(shasta, module)
             arg("maxSkip"),
             arg("maxDrift"),
             arg("minAlignedMarkerCount"),
+            arg("minAlignedFraction"),
             arg("maxTrim"),
             arg("matchScore"),
             arg("mismatchScore"),

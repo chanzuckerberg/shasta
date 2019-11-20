@@ -566,6 +566,7 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.maxSkip,
             assemblerOptions.alignOptions.maxDrift,
             assemblerOptions.alignOptions.minAlignedMarkerCount,
+            assemblerOptions.alignOptions.minAlignedFraction,
             assemblerOptions.alignOptions.maxTrim,
             assemblerOptions.alignOptions.matchScore,
             assemblerOptions.alignOptions.mismatchScore,

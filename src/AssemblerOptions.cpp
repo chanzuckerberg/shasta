@@ -340,6 +340,11 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(100),
         "The minimum number of aligned markers for an alignment to be used.")
 
+        ("Align.minAlignedFraction",
+        value<double>(&alignOptions.minAlignedFraction)->
+        default_value(0.),
+        "The minimum fraction of aligned markers for an alignment to be used.")
+
         ("Align.matchScore",
         value<int>(&alignOptions.matchScore)->
         default_value(3),
@@ -552,6 +557,7 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
     s << "maxTrim = " << maxTrim << "\n";
     s << "maxMarkerFrequency = " << maxMarkerFrequency << "\n";
     s << "minAlignedMarkerCount = " << minAlignedMarkerCount << "\n";
+    s << "minAlignedFraction = " << minAlignedFraction << "\n";
     s << "matchScore = " << matchScore << "\n";
     s << "mismatchScore = " << mismatchScore << "\n";
     s << "gapScore = " << gapScore << "\n";
