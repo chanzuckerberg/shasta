@@ -16,7 +16,7 @@ a.accessDirectedReadGraphReadWrite()
 # These should be added as additional command line options
 # in the ReadGraph section when this code stabilizes.
 a.directedReadGraphTransitiveReduction(
-    offsetTolerance0 = double(config['ReadGraph']['offsetTolerance0'],
-    offsetTolerance1 = double(config['ReadGraph']['offsetTolerance1'])
+    offsetTolerance0 = float(config['ReadGraph']['offsetTolerance0']),
+    offsetTolerance1 = float(config['ReadGraph']['offsetTolerance1']))
 
 
