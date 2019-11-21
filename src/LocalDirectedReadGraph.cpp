@@ -188,7 +188,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
 
     if(edge.wasRemovedByTransitiveReduction) {
-        s << " color=red";
+        s << " color=\"#ff00007f\""; // Partially transparent.
     }
 
     s << "]";
