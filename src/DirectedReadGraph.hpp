@@ -74,10 +74,14 @@ public:
     // Flag set if this edge is removed due to transitive reduction.
     uint8_t wasRemovedByTransitiveReduction:1;
 
-    // Transitive coverage begins at 1 and gets set to zero for edges
-    // removed during transitive reduction.
-    // It is incremented on all edges of the path that causes an edge to be removed.
-    uint32_t transitiveCoverage;
+    // Transitive coverage begins at 1 for all edges.
+    // During transitive reduction, edge v0->v1 is removed if
+    // we found a path v0->...->v1 that does not use edge v0->v1,
+    // nor any edges that were already removed during transitive reduction.
+    // When this happens, the transitive coverage of edge v0->v1
+    // is set to zero and donated to the edges of path v0->...->v1
+    // (an equal share for each edge of the path).
+    float transitiveCoverage;
 
     // Constructors.
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :

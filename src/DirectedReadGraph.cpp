@@ -280,7 +280,7 @@ void DirectedReadGraph::transitiveReduction(
     for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
         Edge& edge = getEdge(edgeId);
         edge.wasRemovedByTransitiveReduction = 0;
-        edge.transitiveCoverage = 1;
+        edge.transitiveCoverage = 1.;
     }
 
     // Sort edges by decreasing offset.
@@ -307,6 +307,12 @@ void DirectedReadGraph::transitiveReduction(
 
     // Flags set for vertices that were visited in the current BFS.
     vector<bool> wasVisited(vertices.size(), false);
+
+    // The edge that led us to each visited vertex.
+    vector<EdgeId> predecessorEdge(vertices.size(), invalidEdgeId);
+
+    // The path v0->...->v1.
+    vector<EdgeId> path;
 
 
 
@@ -428,6 +434,33 @@ void DirectedReadGraph::transitiveReduction(
                                 orientedReadId0 << "->" << orientedReadId1 <<
                                 " with offset " << double(twiceOffsetAtCenter)/2 << endl;
                         }
+
+                        // To update transitive coverage, we need to reconstruct the path
+                        // we found between v0 and v1.
+                        SHASTA_ASSERT(path.empty());
+                        EdgeId pathEdgeId = edgeId;
+                        while(true) {
+                            SHASTA_ASSERT(pathEdgeId != invalidEdgeId);
+                            path.push_back(pathEdgeId);
+                            const VertexId v = source(pathEdgeId);
+                            if(v == u0) {
+                                break;
+                            }
+                            pathEdgeId = predecessorEdge[v];
+                        }
+
+                        // Donate transitive coverage to the path edges.
+                        const float coverageIncrement = edge.transitiveCoverage / float(path.size());
+                        edge.transitiveCoverage = 0.;
+                        reverseComplementedEdge.transitiveCoverage = 0.;
+                        for(const EdgeId pathEdgeId: path) {
+                            Edge& pathEdge = getEdge(pathEdgeId);
+                            pathEdge.transitiveCoverage += coverageIncrement;
+                            getEdge(pathEdge.reverseComplementedEdgeId).transitiveCoverage += coverageIncrement;
+                        }
+                        path.clear();
+
+
                         break;
                     } else {
                         // We found u1, but the distance is too small. Keep going.
@@ -439,7 +472,10 @@ void DirectedReadGraph::transitiveReduction(
                 } else {
 
                     SHASTA_ASSERT(v1 != u1);
+                    SHASTA_ASSERT(!wasVisited[v1]);
+                    SHASTA_ASSERT(predecessorEdge[v1] == invalidEdgeId);
                     wasVisited[v1] = true;
+                    predecessorEdge[v1] = edgeId01;
                     visitedVertices.push_back(v1);
                     q.push(make_pair(v1, distance1));
                     if(debug) {
@@ -457,6 +493,7 @@ void DirectedReadGraph::transitiveReduction(
         // Clean up after this BFS.
         for(const VertexId v: visitedVertices) {
             wasVisited[v] = false;
+            predecessorEdge[v] = invalidEdgeId;
         }
         visitedVertices.clear();
         while(not q.empty()) {
