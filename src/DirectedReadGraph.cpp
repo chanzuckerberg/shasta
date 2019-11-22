@@ -185,6 +185,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
     uint64_t maxDistance,
     uint64_t minAlignedMarkerCount,
     double minAlignedFraction,
+    float minTransitiveCoverage,
     bool allowTransitiveReductionEdges,
     double timeout,
     LocalDirectedReadGraph& graph)
@@ -195,7 +196,9 @@ bool DirectedReadGraph::extractLocalSubgraph(
     SHASTA_ASSERT(boost::num_vertices(graph) == 0);
 
     // Construct our edge filter.
-    EdgeFilter edgeFilter(minAlignedMarkerCount, minAlignedFraction, allowTransitiveReductionEdges);
+    EdgeFilter edgeFilter(minAlignedMarkerCount,
+        minAlignedFraction, minTransitiveCoverage,
+        allowTransitiveReductionEdges);
 
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;
@@ -459,6 +462,7 @@ void DirectedReadGraph::transitiveReduction(
 
                         // Donate transitive coverage to the path edges.
                         const float coverageIncrement = edge.transitiveCoverage / float(path.size());
+                        // const float coverageIncrement = edge.transitiveCoverage; // EXPERIMENT
                         edge.transitiveCoverage = 0.;
                         reverseComplementedEdge.transitiveCoverage = 0.;
                         for(const EdgeId pathEdgeId: path) {

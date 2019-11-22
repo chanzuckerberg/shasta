@@ -37,6 +37,9 @@ void Assembler::exploreDirectedReadGraph(
     double minAlignedFraction = 0.;
     getParameterValue(request, "minAlignedFraction", minAlignedFraction);
 
+    float minTransitiveCoverage = 0.;
+    getParameterValue(request, "minTransitiveCoverage", minTransitiveCoverage);
+
     string allowTransitiveReductionEdgesString;
     const bool allowTransitiveReductionEdges = getParameterValue(request,
         "allowTransitiveReductionEdges", allowTransitiveReductionEdgesString);
@@ -103,6 +106,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Minimum aligned fraction"
         "<td><input type=text required name=minAlignedFraction size=8 style='text-align:center'"
         " value='" << minAlignedFraction <<
+        "'>"
+
+        "<tr>"
+        "<td>Minimum transitive coverage"
+        "<td><input type=text required name=minTransitiveCoverage size=8 style='text-align:center'"
+        " value='" << minTransitiveCoverage <<
         "'>"
 
         "<tr>"
@@ -190,6 +199,7 @@ void Assembler::exploreDirectedReadGraph(
     const auto createStartTime = steady_clock::now();
     if(not directedReadGraph.extractLocalSubgraph(
         orientedReadId, maxDistance, minAlignedMarkerCount, minAlignedFraction,
+        minTransitiveCoverage,
         allowTransitiveReductionEdges, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";

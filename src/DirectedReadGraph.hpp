@@ -120,6 +120,7 @@ public:
         uint64_t maxDistance,
         uint64_t minAlignedMarkerCount,
         double minAlignedFraction,
+        float minTransitiveCoverage,
         bool allowTransitiveReductionEdges,
         double timeout,
         LocalDirectedReadGraph&);
@@ -142,9 +143,11 @@ private:
         EdgeFilter(
             uint64_t minAlignedMarkerCount,
             double minAlignedFraction,
+            float minTransitiveCoverage,
             bool allowTransitiveReductionEdges) :
             minAlignedMarkerCount(minAlignedMarkerCount),
             minAlignedFraction(minAlignedFraction),
+            minTransitiveCoverage(minTransitiveCoverage),
             allowTransitiveReductionEdges(allowTransitiveReductionEdges) {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
@@ -156,10 +159,13 @@ private:
                 edge.alignmentInfo.markerCount >= minAlignedMarkerCount
                 and
                 min(edge.alignmentInfo.alignedFraction(0), edge.alignmentInfo.alignedFraction(1))
-                    >= minAlignedFraction;
+                    >= minAlignedFraction
+                and
+                edge.transitiveCoverage >= minTransitiveCoverage;
         }
         uint64_t minAlignedMarkerCount;
         double minAlignedFraction;
+        float minTransitiveCoverage;
         bool allowTransitiveReductionEdges;
     };
 
