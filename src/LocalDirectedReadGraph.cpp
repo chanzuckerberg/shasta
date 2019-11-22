@@ -186,7 +186,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         ", transitive coverage " << edge.transitiveCoverage <<
         "\"";
 
-    s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
+    s << " penwidth=\"" << 0.1 * edgeThicknessScalingFactor *
+        max(float(1.), edge.transitiveCoverage) << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
 
     if(edge.wasRemovedByTransitiveReduction) {
