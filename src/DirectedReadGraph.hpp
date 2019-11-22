@@ -119,6 +119,7 @@ public:
         OrientedReadId,
         uint64_t maxDistance,
         uint64_t minAlignedMarkerCount,
+        uint64_t maxOffsetAtCenter,
         double minAlignedFraction,
         float minTransitiveCoverage,
         bool allowTransitiveReductionEdges,
@@ -142,10 +143,12 @@ private:
     public:
         EdgeFilter(
             uint64_t minAlignedMarkerCount,
+            uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
             float minTransitiveCoverage,
             bool allowTransitiveReductionEdges) :
             minAlignedMarkerCount(minAlignedMarkerCount),
+            maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
             minTransitiveCoverage(minTransitiveCoverage),
             allowTransitiveReductionEdges(allowTransitiveReductionEdges) {}
@@ -158,12 +161,14 @@ private:
             return
                 edge.alignmentInfo.markerCount >= minAlignedMarkerCount
                 and
-                min(edge.alignmentInfo.alignedFraction(0), edge.alignmentInfo.alignedFraction(1))
-                    >= minAlignedFraction
+                abs(edge.alignmentInfo.twiceOffsetAtCenter()) <= maxTwiceOffsetAtCenter
+                and
+                min(edge.alignmentInfo.alignedFraction(0), edge.alignmentInfo.alignedFraction(1)) >= minAlignedFraction
                 and
                 edge.transitiveCoverage >= minTransitiveCoverage;
         }
         uint64_t minAlignedMarkerCount;
+        uint64_t maxTwiceOffsetAtCenter;
         double minAlignedFraction;
         float minTransitiveCoverage;
         bool allowTransitiveReductionEdges;

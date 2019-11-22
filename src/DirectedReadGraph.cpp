@@ -184,6 +184,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
     OrientedReadId orientedReadId,
     uint64_t maxDistance,
     uint64_t minAlignedMarkerCount,
+    uint64_t maxOffsetAtCenter,
     double minAlignedFraction,
     float minTransitiveCoverage,
     bool allowTransitiveReductionEdges,
@@ -197,6 +198,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
 
     // Construct our edge filter.
     EdgeFilter edgeFilter(minAlignedMarkerCount,
+        2*maxOffsetAtCenter,
         minAlignedFraction, minTransitiveCoverage,
         allowTransitiveReductionEdges);
 

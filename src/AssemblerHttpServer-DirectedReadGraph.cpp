@@ -34,6 +34,9 @@ void Assembler::exploreDirectedReadGraph(
     uint32_t minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
     getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
 
+    uint32_t maxOffsetAtCenter = 1000000;
+    getParameterValue(request, "maxOffsetAtCenter", maxOffsetAtCenter);
+
     double minAlignedFraction = 0.;
     getParameterValue(request, "minAlignedFraction", minAlignedFraction);
 
@@ -100,6 +103,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Minimum number of aligned markers"
         "<td><input type=text required name=minAlignedMarkerCount size=8 style='text-align:center'"
         " value='" << minAlignedMarkerCount <<
+        "'>"
+
+        "<tr>"
+        "<td>Maximum offset at centers (markers)"
+        "<td><input type=text required name=maxOffsetAtCenter size=8 style='text-align:center'"
+        " value='" << maxOffsetAtCenter <<
         "'>"
 
         "<tr>"
@@ -198,7 +207,7 @@ void Assembler::exploreDirectedReadGraph(
     LocalDirectedReadGraph graph;
     const auto createStartTime = steady_clock::now();
     if(not directedReadGraph.extractLocalSubgraph(
-        orientedReadId, maxDistance, minAlignedMarkerCount, minAlignedFraction,
+        orientedReadId, maxDistance, minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
         minTransitiveCoverage,
         allowTransitiveReductionEdges, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
