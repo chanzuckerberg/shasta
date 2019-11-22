@@ -35,7 +35,8 @@ void LocalDirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     const AlignmentInfo& alignmentInfo,
-    bool wasRemovedByTransitiveReduction)
+    bool wasRemovedByTransitiveReduction,
+    float transitiveCoverage)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -47,7 +48,7 @@ void LocalDirectedReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalDirectedReadGraphEdge(alignmentInfo, wasRemovedByTransitiveReduction),
+        LocalDirectedReadGraphEdge(alignmentInfo, wasRemovedByTransitiveReduction, transitiveCoverage),
         *this);
 }
 
@@ -182,6 +183,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         std::setprecision(3) <<
         edge.alignmentInfo.alignedFraction(0) << " " <<
         edge.alignmentInfo.alignedFraction(1) <<
+        ", transitive coverage " << edge.transitiveCoverage <<
         "\"";
 
     s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";

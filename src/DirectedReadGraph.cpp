@@ -260,7 +260,8 @@ bool DirectedReadGraph::extractLocalSubgraph(
             const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
             graph.addEdge(orientedReadId0, orientedReadId1,
                 alignmentInfo,
-                getEdge(edgeId).wasRemovedByTransitiveReduction == 1);
+                getEdge(edgeId).wasRemovedByTransitiveReduction == 1,
+                getEdge(edgeId).transitiveCoverage);
         }
     }
 
@@ -335,7 +336,7 @@ void DirectedReadGraph::transitiveReduction(
         const OrientedReadId orientedReadId1 = OrientedReadId(OrientedReadId::Int(u1));
 
         if(debug) {
-            cout << "Working on edge " << orientedReadId0 << "->" << orientedReadId1 <<
+            cout << "Working on edge " << edgeId << " " << orientedReadId0 << "->" << orientedReadId1 <<
                 " with offset " << double(twiceOffsetAtCenter)/2. << endl;
         }
 
@@ -379,6 +380,9 @@ void DirectedReadGraph::transitiveReduction(
             // Loop over its out-edges, skipping the ones
             // that were already removed.
             for(const EdgeId edgeId01: outEdges(v0)) {
+                if(debug) {
+                    cout << "Encountered edge " << edgeId01 << endl;
+                }
 
                 // If this is the edge we are working on, skip it.
                 if(edgeId01 == edgeId) {
@@ -438,9 +442,13 @@ void DirectedReadGraph::transitiveReduction(
                         // To update transitive coverage, we need to reconstruct the path
                         // we found between v0 and v1.
                         SHASTA_ASSERT(path.empty());
-                        EdgeId pathEdgeId = edgeId;
+                        EdgeId pathEdgeId = edgeId01;
                         while(true) {
+                            if(debug) {
+                                cout << "Found path edge " << pathEdgeId << endl;
+                            }
                             SHASTA_ASSERT(pathEdgeId != invalidEdgeId);
+                            SHASTA_ASSERT(not getEdge(pathEdgeId).wasRemovedByTransitiveReduction);
                             path.push_back(pathEdgeId);
                             const VertexId v = source(pathEdgeId);
                             if(v == u0) {
@@ -454,7 +462,9 @@ void DirectedReadGraph::transitiveReduction(
                         edge.transitiveCoverage = 0.;
                         reverseComplementedEdge.transitiveCoverage = 0.;
                         for(const EdgeId pathEdgeId: path) {
+                            SHASTA_ASSERT(pathEdgeId != invalidEdgeId);
                             Edge& pathEdge = getEdge(pathEdgeId);
+                            SHASTA_ASSERT(not pathEdge.wasRemovedByTransitiveReduction);
                             pathEdge.transitiveCoverage += coverageIncrement;
                             getEdge(pathEdge.reverseComplementedEdgeId).transitiveCoverage += coverageIncrement;
                         }

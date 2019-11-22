@@ -68,12 +68,15 @@ public:
     AlignmentInfo alignmentInfo;
 
     bool wasRemovedByTransitiveReduction;
+    float transitiveCoverage;
 
     LocalDirectedReadGraphEdge(
         const AlignmentInfo& alignmentInfo,
-        bool wasRemovedByTransitiveReduction) :
+        bool wasRemovedByTransitiveReduction,
+        float transitiveCoverage) :
         alignmentInfo(alignmentInfo),
-        wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction)
+        wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction),
+        transitiveCoverage(transitiveCoverage)
         {}
 };
 
@@ -93,7 +96,8 @@ public:
         OrientedReadId,
         OrientedReadId,
         const AlignmentInfo& alignmentInfo,
-        bool wasRemovedByTransitiveReduction);
+        bool wasRemovedByTransitiveReduction,
+        float transitiveCoverage);
 
     // Find out if a vertex with a given OrientedReadId exists.
     bool vertexExists(OrientedReadId) const;
