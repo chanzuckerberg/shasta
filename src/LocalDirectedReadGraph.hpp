@@ -37,25 +37,29 @@ public:
     OrientedReadId::Int orientedReadIdValue;   // Used as vertex id.
 
     // The number of bases and markers in this read.
-    uint64_t baseCount;
-    uint64_t markerCount;
+    uint32_t baseCount;
+    uint32_t markerCount;
 
     // The distance of this vertex from the starting vertex.
-    uint64_t distance;
+    uint32_t distance;
+
+    bool isContained;
 
     // Used for Blast annotations.
     string additionalToolTipText;
 
     LocalDirectedReadGraphVertex(
         OrientedReadId orientedReadId,
-        uint64_t baseCount,
-        uint64_t markerCount,
-        uint64_t distance) :
+        uint32_t baseCount,
+        uint32_t markerCount,
+        uint32_t distance,
+        bool isContained) :
         orientedReadId(orientedReadId),
         orientedReadIdValue(orientedReadId.getValue()),
         baseCount(baseCount),
         markerCount(markerCount),
-        distance(distance)
+        distance(distance),
+        isContained(isContained)
         {}
 
 };
@@ -67,16 +71,19 @@ public:
 
     AlignmentInfo alignmentInfo;
 
+    bool involvesTwoContainedVertices;
+    bool involvesOneContainedVertex;
     bool wasRemovedByTransitiveReduction;
-    float transitiveCoverage;
 
     LocalDirectedReadGraphEdge(
         const AlignmentInfo& alignmentInfo,
-        bool wasRemovedByTransitiveReduction,
-        float transitiveCoverage) :
+        bool involvesTwoContainedVertices,
+        bool involvesOneContainedVertex,
+        bool wasRemovedByTransitiveReduction):
         alignmentInfo(alignmentInfo),
-        wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction),
-        transitiveCoverage(transitiveCoverage)
+        involvesTwoContainedVertices(involvesTwoContainedVertices),
+        involvesOneContainedVertex(involvesOneContainedVertex),
+        wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction)
         {}
 };
 
@@ -88,33 +95,35 @@ public:
 
     void addVertex(
         OrientedReadId,
-        uint64_t baseCount,
-        uint64_t markerCount,
-        uint64_t distance);
+        uint32_t baseCount,
+        uint32_t markerCount,
+        uint32_t distance,
+        bool isContained);
 
     void addEdge(
         OrientedReadId,
         OrientedReadId,
         const AlignmentInfo& alignmentInfo,
-        bool wasRemovedByTransitiveReduction,
-        float transitiveCoverage);
+        bool involvesTwoContainedVertices,
+        bool involvesOneContainedVertex,
+        bool wasRemovedByTransitiveReduction);
 
     // Find out if a vertex with a given OrientedReadId exists.
     bool vertexExists(OrientedReadId) const;
 
     // Get the distance of an existing vertex from the start vertex.
-    uint64_t getDistance(OrientedReadId) const;
+    uint32_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
     void write(
         ostream&,
-        uint64_t maxDistance,
+        uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor) const;
     void write(
         const string& fileName,
-        uint64_t maxDistance,
+        uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor) const;
@@ -141,7 +150,7 @@ private:
     public:
         Writer(
             const LocalDirectedReadGraph&,
-            uint64_t maxDistance,
+            uint32_t maxDistance,
             double vertexScalingFactor,
             double edgeThicknessScalingFactor,
             double edgeArrowScalingFactor);
@@ -149,7 +158,7 @@ private:
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalDirectedReadGraph& graph;
-        uint64_t maxDistance;
+        uint32_t maxDistance;
         double vertexScalingFactor;
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;

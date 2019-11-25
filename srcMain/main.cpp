@@ -591,7 +591,7 @@ void shasta::main::assemble(
         assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
         assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
     } else if(assemblerOptions.readGraphOptions.creationMethod == 1) {
-        assembler.createDirectedReadGraph();
+        assembler.createDirectedReadGraph(assemblerOptions.alignOptions.maxTrim);
         assembler.directedReadGraphTransitiveReduction(
             assemblerOptions.readGraphOptions.offsetTolerance0,
             assemblerOptions.readGraphOptions.offsetTolerance1

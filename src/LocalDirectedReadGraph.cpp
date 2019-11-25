@@ -14,16 +14,17 @@ using namespace shasta;
 
 void LocalDirectedReadGraph::addVertex(
     OrientedReadId orientedReadId,
-    uint64_t baseCount,
-    uint64_t markerCount,
-    uint64_t distance)
+    uint32_t baseCount,
+    uint32_t markerCount,
+    uint32_t distance,
+    bool isContained)
 {
     // Check that we don't already have a vertex with this OrientedReadId.
     SHASTA_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
 
     // Create the vertex.
     const vertex_descriptor v = add_vertex(LocalDirectedReadGraphVertex(
-        orientedReadId, baseCount, markerCount, distance), *this);
+        orientedReadId, baseCount, markerCount, distance, isContained), *this);
 
     // Store it in the vertex map.
     vertexMap.insert(make_pair(orientedReadId, v));
@@ -35,8 +36,9 @@ void LocalDirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     const AlignmentInfo& alignmentInfo,
-    bool wasRemovedByTransitiveReduction,
-    float transitiveCoverage)
+    bool involvesTwoContainedVertices,
+    bool involvesOneContainedVertex,
+    bool wasRemovedByTransitiveReduction)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -48,13 +50,16 @@ void LocalDirectedReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalDirectedReadGraphEdge(alignmentInfo, wasRemovedByTransitiveReduction, transitiveCoverage),
+        LocalDirectedReadGraphEdge(alignmentInfo,
+            involvesTwoContainedVertices,
+            involvesOneContainedVertex,
+            wasRemovedByTransitiveReduction),
         *this);
 }
 
 
 
-uint64_t LocalDirectedReadGraph::getDistance(OrientedReadId orientedReadId) const
+uint32_t LocalDirectedReadGraph::getDistance(OrientedReadId orientedReadId) const
 {
     const auto it = vertexMap.find(orientedReadId);
     SHASTA_ASSERT(it != vertexMap.end());
@@ -74,7 +79,7 @@ bool LocalDirectedReadGraph::vertexExists(OrientedReadId orientedReadId) const
 // Write the graph in Graphviz format.
 void LocalDirectedReadGraph::write(
     const string& fileName,
-    uint64_t maxDistance,
+    uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor
@@ -89,7 +94,7 @@ void LocalDirectedReadGraph::write(
 }
 void LocalDirectedReadGraph::write(
     ostream& s,
-    uint64_t maxDistance,
+    uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor) const
@@ -102,7 +107,7 @@ void LocalDirectedReadGraph::write(
 
 LocalDirectedReadGraph::Writer::Writer(
     const LocalDirectedReadGraph& graph,
-    uint64_t maxDistance,
+    uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor) :
@@ -149,7 +154,9 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     if(vertex.distance == 0) {
         s << " color=green";
     } else if(vertex.distance == maxDistance) {
-            s << " color=cyan";
+        s << " color=cyan";
+    } else if(vertex.isContained) {
+        s << " color=red";
     } else {
         s << " color=black";
     }
@@ -183,15 +190,19 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         std::setprecision(3) <<
         edge.alignmentInfo.alignedFraction(0) << " " <<
         edge.alignmentInfo.alignedFraction(1) <<
-        ", transitive coverage " << edge.transitiveCoverage <<
         "\"";
 
-    s << " penwidth=\"" << 0.1 * edgeThicknessScalingFactor *
-        max(float(1.), edge.transitiveCoverage) << "\"";
+    s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
 
-    if(edge.wasRemovedByTransitiveReduction) {
-        s << " color=\"#ff00007f\""; // Partially transparent.
+    if(edge.involvesTwoContainedVertices) {
+        s << " color=\"#ff00007f\""; // Partially transparent red.
+    } else if(edge.involvesOneContainedVertex) {
+        s << " color=\"#00ffff7f\""; // Partially transparent cyan.
+    } else if(edge.wasRemovedByTransitiveReduction) {
+        s << " color=\"#00ff007f\""; // Partially transparent green.
+    } else {
+        s << " color=black";
     }
 
     s << "]";

@@ -43,9 +43,17 @@ void Assembler::exploreDirectedReadGraph(
     float minTransitiveCoverage = 0.;
     getParameterValue(request, "minTransitiveCoverage", minTransitiveCoverage);
 
-    string allowTransitiveReductionEdgesString;
-    const bool allowTransitiveReductionEdges = getParameterValue(request,
-        "allowTransitiveReductionEdges", allowTransitiveReductionEdgesString);
+    string allowEdgesInvolvingTwoContainedVerticesString;
+    bool allowEdgesInvolvingTwoContainedVertices = getParameterValue(request,
+        "allowEdgesInvolvingTwoContainedVertices", allowEdgesInvolvingTwoContainedVerticesString);
+
+    string allowEdgesInvolvingOneContainedVertexString;
+    bool allowEdgesInvolvingOneContainedVertex = getParameterValue(request,
+        "allowEdgesInvolvingOneContainedVertex", allowEdgesInvolvingOneContainedVertexString);
+
+    string allowEdgesRemovedDuringTransitiveReductionString;
+    bool allowEdgesRemovedDuringTransitiveReduction = getParameterValue(request,
+        "allowEdgesRemovedDuringTransitiveReduction", allowEdgesRemovedDuringTransitiveReductionString);
 
     uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
@@ -118,15 +126,21 @@ void Assembler::exploreDirectedReadGraph(
         "'>"
 
         "<tr>"
-        "<td>Minimum transitive coverage"
-        "<td><input type=text required name=minTransitiveCoverage size=8 style='text-align:center'"
-        " value='" << minTransitiveCoverage <<
-        "'>"
+        "<td>Include edges involving two contained vertices"
+        "<td class=centered><input type=checkbox name=allowEdgesInvolvingTwoContainedVertices" <<
+        (allowEdgesInvolvingTwoContainedVertices ? " checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Include edges involving one contained vertex"
+        "<td class=centered><input type=checkbox name=allowEdgesInvolvingOneContainedVertex" <<
+        (allowEdgesInvolvingOneContainedVertex ? " checked" : "") <<
+        ">"
 
         "<tr>"
         "<td>Include edges removed during transitive reduction"
-        "<td class=centered><input type=checkbox name=allowTransitiveReductionEdges" <<
-        (allowTransitiveReductionEdges ? " checked" : "") <<
+        "<td class=centered><input type=checkbox name=allowEdgesRemovedDuringTransitiveReduction" <<
+        (allowEdgesRemovedDuringTransitiveReduction ? " checked" : "") <<
         ">"
 
         "<tr title='Graphics size in pixels. "
@@ -207,9 +221,12 @@ void Assembler::exploreDirectedReadGraph(
     LocalDirectedReadGraph graph;
     const auto createStartTime = steady_clock::now();
     if(not directedReadGraph.extractLocalSubgraph(
-        orientedReadId, maxDistance, minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
-        minTransitiveCoverage,
-        allowTransitiveReductionEdges, timeout, graph)) {
+        orientedReadId, maxDistance,
+        minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
+        allowEdgesInvolvingTwoContainedVertices,
+        allowEdgesInvolvingOneContainedVertex,
+        allowEdgesRemovedDuringTransitiveReduction,
+        timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";
         return;

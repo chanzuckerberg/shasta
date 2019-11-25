@@ -13,6 +13,6 @@ a.accessMarkers()
 a.accessAlignmentData()
 
 # Create the global read graph.
-a.createDirectedReadGraph()
+a.createDirectedReadGraph(maxTrim = int(config['Align']['maxTrim']))
 
 

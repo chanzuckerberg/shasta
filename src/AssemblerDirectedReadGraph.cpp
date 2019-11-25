@@ -2,7 +2,7 @@
 using namespace shasta;
 
 
-void Assembler::createDirectedReadGraph()
+void Assembler::createDirectedReadGraph(uint32_t maxTrim)
 {
     // Initialize the directed read graph.
     directedReadGraph.createNew(largeDataName("DirectedReadGraph"), largeDataPageSize);
@@ -10,8 +10,8 @@ void Assembler::createDirectedReadGraph()
 
     // Store the number of bases in each oriented read.
     for(ReadId readId=0; readId<readCount(); readId++) {
-        const uint64_t baseCount = getReadRawSequenceLength(readId);
-        const uint64_t markerCount = markers.size(OrientedReadId(readId, 0).getValue());
+        const uint32_t baseCount = uint32_t(getReadRawSequenceLength(readId));
+        const uint32_t markerCount = uint32_t(markers.size(OrientedReadId(readId, 0).getValue()));
         DirectedReadGraphVertex& vertex0 = directedReadGraph.getVertex(OrientedReadId(readId, 0).getValue());
         DirectedReadGraphVertex& vertex1 = directedReadGraph.getVertex(OrientedReadId(readId, 1).getValue());
         vertex0.baseCount = baseCount;
@@ -28,6 +28,9 @@ void Assembler::createDirectedReadGraph()
 
     // Compute graph connectivity.
     directedReadGraph.computeConnectivity();
+
+    // Flag contained vertices and set edge flags accordingly.
+    directedReadGraph.flagContainedVertices(maxTrim);
 
     // Make sure the read graph is invariant under reverse complementing.
     directedReadGraph.check();
@@ -47,6 +50,7 @@ void Assembler::createDirectedReadGraph()
     }
     assemblerInfo->isolatedReadCount = isolatedReadCount;
     assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;
+
 }
 
 

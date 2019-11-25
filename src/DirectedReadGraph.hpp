@@ -49,13 +49,18 @@ namespace shasta {
 // A vertex of the directed read graph.
 class shasta::DirectedReadGraphVertex {
 public:
-    // The number of raw bases and the number of markers
-    // of the oriented read corresponding to this vertex.
-    uint64_t baseCount;
-    uint64_t markerCount;
+    uint32_t baseCount;
+    uint32_t markerCount;
+    uint8_t isContained : 1;
 
     DirectedReadGraphBaseClass::VertexId reverseComplementedVertexId =
         DirectedReadGraphBaseClass::invalidVertexId;
+
+    DirectedReadGraphVertex() :
+        baseCount(0), markerCount(0)
+    {
+        isContained = 0;
+    }
 };
 
 
@@ -71,30 +76,28 @@ public:
     DirectedReadGraphBaseClass::EdgeId reverseComplementedEdgeId =
         DirectedReadGraphBaseClass::invalidEdgeId;
 
-    // Flag set if this edge is removed due to transitive reduction.
-    uint8_t wasRemovedByTransitiveReduction:1;
-
-    // Transitive coverage begins at 1 for all edges.
-    // During transitive reduction, edge v0->v1 is removed if
-    // we found a path v0->...->v1 that does not use edge v0->v1,
-    // nor any edges that were already removed during transitive reduction.
-    // When this happens, the transitive coverage of edge v0->v1
-    // is set to zero and donated to the edges of path v0->...->v1
-    // (an equal share for each edge of the path).
-    float transitiveCoverage;
+    // Edge flags.
+    uint8_t involvesTwoContainedVertices : 1;
+    uint8_t involvesOneContainedVertex : 1;
+    uint8_t wasRemovedByTransitiveReduction : 1;
 
     // Constructors.
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
-        alignmentInfo(alignmentInfo), transitiveCoverage(1)
+        alignmentInfo(alignmentInfo)
     {
-        wasRemovedByTransitiveReduction = 0;
+        clearFlags();
     }
-    DirectedReadGraphEdge() :
-        transitiveCoverage(1)
+    DirectedReadGraphEdge()
     {
-        wasRemovedByTransitiveReduction = 0;
+        clearFlags();
     }
 
+    void clearFlags()
+    {
+        involvesTwoContainedVertices = 0;
+        involvesOneContainedVertex = 0;
+        wasRemovedByTransitiveReduction = 0;
+    }
 };
 
 
@@ -114,6 +117,9 @@ public:
     // Make sure the graph is invariant under reverse complementing.
     void check();
 
+    // Flag contained vertices and set edge flags accordingly.
+    void flagContainedVertices(uint32_t maxTrim);
+
     // Create a LocalDirectedReadGraph.
     bool extractLocalSubgraph(
         OrientedReadId,
@@ -121,8 +127,9 @@ public:
         uint64_t minAlignedMarkerCount,
         uint64_t maxOffsetAtCenter,
         double minAlignedFraction,
-        float minTransitiveCoverage,
-        bool allowTransitiveReductionEdges,
+        bool allowEdgesInvolvingTwoContainedVertices,
+        bool allowEdgesInvolvingOneContainedVertex,
+        bool allowEdgesRemovedDuringTransitiveReduction,
         double timeout,
         LocalDirectedReadGraph&);
 
@@ -138,24 +145,35 @@ private:
         OrientedReadId orientedReadId1,
         AlignmentInfo);
 
-    // And edge checker that allows only edges not removed by transitive reduction.
+    // And edge checker that allows only edges that satisfy specify criteria.
+    // Used to create the local directed read graph for display.
     class EdgeFilter : public AbstractEdgeFilter {
     public:
         EdgeFilter(
             uint64_t minAlignedMarkerCount,
             uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
-            float minTransitiveCoverage,
-            bool allowTransitiveReductionEdges) :
+            bool allowEdgesInvolvingTwoContainedVertices,
+            bool allowEdgesInvolvingOneContainedVertex,
+            bool allowEdgesRemovedDuringTransitiveReduction) :
+
             minAlignedMarkerCount(minAlignedMarkerCount),
             maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
-            minTransitiveCoverage(minTransitiveCoverage),
-            allowTransitiveReductionEdges(allowTransitiveReductionEdges) {}
+            allowEdgesInvolvingTwoContainedVertices(allowEdgesInvolvingTwoContainedVertices),
+            allowEdgesInvolvingOneContainedVertex(allowEdgesInvolvingOneContainedVertex),
+            allowEdgesRemovedDuringTransitiveReduction(allowEdgesRemovedDuringTransitiveReduction)
+            {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
-            if(not allowTransitiveReductionEdges and edge.wasRemovedByTransitiveReduction) {
+            if(not allowEdgesRemovedDuringTransitiveReduction and edge.wasRemovedByTransitiveReduction) {
+                return false;
+            }
+            if(not allowEdgesInvolvingTwoContainedVertices and edge.involvesTwoContainedVertices) {
+                return false;
+            }
+            if(not allowEdgesInvolvingOneContainedVertex and edge.involvesOneContainedVertex) {
                 return false;
             }
             return
@@ -163,15 +181,17 @@ private:
                 and
                 abs(edge.alignmentInfo.twiceOffsetAtCenter()) <= maxTwiceOffsetAtCenter
                 and
-                min(edge.alignmentInfo.alignedFraction(0), edge.alignmentInfo.alignedFraction(1)) >= minAlignedFraction
-                and
-                edge.transitiveCoverage >= minTransitiveCoverage;
+                edge.alignmentInfo.minAlignedFraction() >= minAlignedFraction
+                ;
         }
+
         uint64_t minAlignedMarkerCount;
         uint64_t maxTwiceOffsetAtCenter;
         double minAlignedFraction;
-        float minTransitiveCoverage;
-        bool allowTransitiveReductionEdges;
+
+        bool allowEdgesInvolvingTwoContainedVertices;
+        bool allowEdgesInvolvingOneContainedVertex;
+        bool allowEdgesRemovedDuringTransitiveReduction;
     };
 
 

@@ -20,8 +20,14 @@ void DirectedReadGraph::createVertices(ReadId readCount)
     for(ReadId readId=0; readId<readCount; readId++) {
         const VertexId vertexId0 = OrientedReadId(readId, 0).getValue();
         const VertexId vertexId1 = OrientedReadId(readId, 1).getValue();
-        vertices[vertexId0].reverseComplementedVertexId = vertexId1;
-        vertices[vertexId1].reverseComplementedVertexId = vertexId0;
+        Vertex& vertex0 = vertices[vertexId0];
+        Vertex& vertex1 = vertices[vertexId1];
+        vertex0.reverseComplementedVertexId = vertexId1;
+        vertex1.reverseComplementedVertexId = vertexId0;
+
+        // The isContained flag is initialized by the constructor.
+        // The number of bases and markers is filled in by
+        // Assembler::createDirectedReadGraph.
     }
 }
 
@@ -155,6 +161,7 @@ void DirectedReadGraph::check()
         SHASTA_ASSERT(v1  != v0);
         const Vertex& vertex1 = getVertex(v1);
         SHASTA_ASSERT(vertex1.reverseComplementedVertexId == v0);
+        SHASTA_ASSERT(vertex0.isContained == vertex1.isContained);
     }
 
     // Check that if we reverse complement an edge twice
@@ -169,12 +176,96 @@ void DirectedReadGraph::check()
         SHASTA_ASSERT(edge0.reverseComplementedEdgeId == e1);
         SHASTA_ASSERT(edge0.alignmentInfo.twiceOffsetAtCenter() ==
             edge1.alignmentInfo.twiceOffsetAtCenter());
+        SHASTA_ASSERT(edge0.involvesTwoContainedVertices == edge1.involvesTwoContainedVertices);
+        SHASTA_ASSERT(edge0.involvesOneContainedVertex == edge1.involvesOneContainedVertex);
+        SHASTA_ASSERT(edge0.wasRemovedByTransitiveReduction == edge1.wasRemovedByTransitiveReduction);
 
         // Also check the vertices.
         SHASTA_ASSERT(source(e0) == getVertex(target(e1)).reverseComplementedVertexId);
         SHASTA_ASSERT(target(e0) == getVertex(source(e1)).reverseComplementedVertexId);
     }
 
+}
+
+
+// Flag contained vertices and set edge flags accordingly.
+void DirectedReadGraph::flagContainedVertices(uint32_t maxTrim)
+{
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+        Vertex& vertex = getVertex(vertexId);
+        vertex.isContained = 0;
+
+        // Check the out-edges.
+        for(const EdgeId edgeId: outEdges(vertexId)) {
+            const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
+            if(alignmentInfo.isContained(0, maxTrim)) {
+                vertex.isContained = 1;
+                break;
+            }
+        }
+
+        // If already marked as contained, no reason to look at the in-edges.
+        if(vertex.isContained) {
+            continue;
+        }
+
+        // Check the in-edges.
+        for(const EdgeId edgeId: inEdges(vertexId)) {
+            const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
+            if(alignmentInfo.isContained(1, maxTrim)) {
+                vertex.isContained = 1;
+                break;
+            }
+        }
+    }
+
+
+
+    // As a sanity check, verify that each vertex is classified the
+    // same way as its reverse complement.
+    uint32_t containedCount = 0;
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+        const Vertex& vertex = getVertex(vertexId);
+        SHASTA_ASSERT(vertex.isContained == getVertex(vertex.reverseComplementedVertexId).isContained);
+        if(vertex.isContained) {
+            ++containedCount;
+        }
+    }
+    cout << "Directed read graph vertices:\n";
+    cout << "    Total " << vertices.size() << endl;
+    cout << "    Contained " << containedCount << endl;
+    cout << "    Not contained " << vertices.size() - containedCount << endl;
+
+
+    // Set the edge flags.
+    uint64_t involvesTwoContainedVerticesCount = 0;
+    uint64_t involvesOneContainedVertexCount = 0;
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        Edge& edge = getEdge(edgeId);
+        edge.involvesTwoContainedVertices = 0;
+        edge.involvesOneContainedVertex = 0;
+
+        // Get the vertices of this edge.
+        const VertexId v0 = source(edgeId);
+        const VertexId v1 = target(edgeId);
+        const Vertex& vertex0 = getVertex(v0);
+        const Vertex& vertex1 = getVertex(v1);
+
+        if(vertex0.isContained and vertex1.isContained) {
+            edge.involvesTwoContainedVertices = 1;
+            involvesTwoContainedVerticesCount++;
+        } else if(vertex0.isContained or vertex1.isContained) {
+            edge.involvesOneContainedVertex = 1;
+            involvesOneContainedVertexCount++;
+        }
+    }
+    const uint64_t involvesNoContainedVertexCount =
+        edges.size() - involvesTwoContainedVerticesCount - involvesOneContainedVertexCount;
+    cout << "Directed read graph edges:\n";
+    cout << "    Total " << edges.size() << endl;
+    cout << "    Involving two contained reads " << involvesTwoContainedVerticesCount << endl;
+    cout << "    Involving one contained reads " << involvesOneContainedVertexCount << endl;
+    cout << "    Involving no contained reads " << involvesNoContainedVertexCount << endl;
 }
 
 
@@ -186,8 +277,9 @@ bool DirectedReadGraph::extractLocalSubgraph(
     uint64_t minAlignedMarkerCount,
     uint64_t maxOffsetAtCenter,
     double minAlignedFraction,
-    float minTransitiveCoverage,
-    bool allowTransitiveReductionEdges,
+    bool allowEdgesInvolvingTwoContainedVertices,
+    bool allowEdgesInvolvingOneContainedVertex,
+    bool allowEdgesRemovedDuringTransitiveReduction,
     double timeout,
     LocalDirectedReadGraph& graph)
 {
@@ -199,8 +291,10 @@ bool DirectedReadGraph::extractLocalSubgraph(
     // Construct our edge filter.
     EdgeFilter edgeFilter(minAlignedMarkerCount,
         2*maxOffsetAtCenter,
-        minAlignedFraction, minTransitiveCoverage,
-        allowTransitiveReductionEdges);
+        minAlignedFraction,
+        allowEdgesInvolvingTwoContainedVertices,
+        allowEdgesInvolvingOneContainedVertex,
+        allowEdgesRemovedDuringTransitiveReduction);
 
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;
@@ -215,10 +309,10 @@ bool DirectedReadGraph::extractLocalSubgraph(
     // Add them to the local subgraph.
     for(const pair<VertexId, uint64_t>& p: distanceMap) {
         const VertexId vertexId = p.first;
-        const uint64_t distance = p.second;
+        const uint32_t distance = uint32_t(p.second);
         const DirectedReadGraphVertex& vertex = getVertex(vertexId);
         graph.addVertex(OrientedReadId(ReadId(vertexId)),
-            vertex.baseCount, vertex.markerCount, distance);
+            vertex.baseCount, vertex.markerCount, distance, vertex.isContained==1);
     }
 
 
@@ -244,7 +338,8 @@ bool DirectedReadGraph::extractLocalSubgraph(
 
         // Loop over the out-edges.
         for(const EdgeId edgeId: outEdges0) {
-            if(not edgeFilter.allowEdge(edgeId, getEdge(edgeId))) {
+            const Edge& edge = getEdge(edgeId);
+            if(not edgeFilter.allowEdge(edgeId, edge)) {
                 continue;
             }
 
@@ -262,11 +357,11 @@ bool DirectedReadGraph::extractLocalSubgraph(
             }
 
             // Add the edge to the local subgraph.
-            const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
-            graph.addEdge(orientedReadId0, orientedReadId1,
-                alignmentInfo,
-                getEdge(edgeId).wasRemovedByTransitiveReduction == 1,
-                getEdge(edgeId).transitiveCoverage);
+            const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
+            graph.addEdge(orientedReadId0, orientedReadId1, alignmentInfo,
+                edge.involvesTwoContainedVertices,
+                edge.involvesOneContainedVertex,
+                edge.wasRemovedByTransitiveReduction);
         }
     }
 
@@ -286,13 +381,16 @@ void DirectedReadGraph::transitiveReduction(
     for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
         Edge& edge = getEdge(edgeId);
         edge.wasRemovedByTransitiveReduction = 0;
-        edge.transitiveCoverage = 1.;
     }
 
     // Sort edges by decreasing offset.
+    // Only consider edges not involving contained vertices.
     vector< pair<EdgeId, uint64_t> > edgeTable;
     for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
         Edge& edge = getEdge(edgeId);
+        if(edge.involvesTwoContainedVertices || edge.involvesOneContainedVertex) {
+            continue;
+        }
         edgeTable.push_back(make_pair(edgeId, edge.alignmentInfo.twiceOffsetAtCenter()));
     }
     sort(edgeTable.begin(), edgeTable.end(), OrderPairsBySecondOnlyGreater<EdgeId, uint64_t>());
@@ -315,10 +413,12 @@ void DirectedReadGraph::transitiveReduction(
     vector<bool> wasVisited(vertices.size(), false);
 
     // The edge that led us to each visited vertex.
-    vector<EdgeId> predecessorEdge(vertices.size(), invalidEdgeId);
+    // vector<EdgeId> predecessorEdge(vertices.size(), invalidEdgeId);
 
     // The path v0->...->v1.
-    vector<EdgeId> path;
+    // This is currently not needed but the code to compute is still
+    // there, commented out.
+    // vector<EdgeId> path;
 
 
 
@@ -400,6 +500,11 @@ void DirectedReadGraph::transitiveReduction(
                     continue;
                 }
 
+                // Skip edges involving contained reads.
+                if(edge.involvesTwoContainedVertices or edge.involvesOneContainedVertex) {
+                    continue;
+                }
+
                 // Get the target vertex.
                 const VertexId v1 = target(edgeId01);
 
@@ -444,6 +549,7 @@ void DirectedReadGraph::transitiveReduction(
                                 " with offset " << double(twiceOffsetAtCenter)/2 << endl;
                         }
 
+                        /*
                         // To update transitive coverage, we need to reconstruct the path
                         // we found between v0 and v1.
                         SHASTA_ASSERT(path.empty());
@@ -475,7 +581,7 @@ void DirectedReadGraph::transitiveReduction(
                             getEdge(pathEdge.reverseComplementedEdgeId).transitiveCoverage += coverageIncrement;
                         }
                         path.clear();
-
+                        */
 
                         break;
                     } else {
@@ -489,9 +595,9 @@ void DirectedReadGraph::transitiveReduction(
 
                     SHASTA_ASSERT(v1 != u1);
                     SHASTA_ASSERT(!wasVisited[v1]);
-                    SHASTA_ASSERT(predecessorEdge[v1] == invalidEdgeId);
+                    // SHASTA_ASSERT(predecessorEdge[v1] == invalidEdgeId);
                     wasVisited[v1] = true;
-                    predecessorEdge[v1] = edgeId01;
+                    // predecessorEdge[v1] = edgeId01;
                     visitedVertices.push_back(v1);
                     q.push(make_pair(v1, distance1));
                     if(debug) {
@@ -509,7 +615,7 @@ void DirectedReadGraph::transitiveReduction(
         // Clean up after this BFS.
         for(const VertexId v: visitedVertices) {
             wasVisited[v] = false;
-            predecessorEdge[v] = invalidEdgeId;
+            // predecessorEdge[v] = invalidEdgeId;
         }
         visitedVertices.clear();
         while(not q.empty()) {
