@@ -1,7 +1,12 @@
 #ifndef SHASTA_DEDUPLICATE_HPP
 #define SHASTA_DEDUPLICATE_HPP
 
+// Shasta.
 #include "algorithm.hpp"
+#include "SHASTA_ASSERT.hpp"
+
+// Standard library.
+#include "iostream.hpp"
 #include "vector.hpp"
 
 namespace shasta {

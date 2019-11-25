@@ -38,7 +38,8 @@ void LocalDirectedReadGraph::addEdge(
     const AlignmentInfo& alignmentInfo,
     bool involvesTwoContainedVertices,
     bool involvesOneContainedVertex,
-    bool wasRemovedByTransitiveReduction)
+    bool wasRemovedByTransitiveReduction,
+    uint32_t commonNeighborCount)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -53,7 +54,8 @@ void LocalDirectedReadGraph::addEdge(
         LocalDirectedReadGraphEdge(alignmentInfo,
             involvesTwoContainedVertices,
             involvesOneContainedVertex,
-            wasRemovedByTransitiveReduction),
+            wasRemovedByTransitiveReduction,
+            commonNeighborCount),
         *this);
 }
 
@@ -190,6 +192,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         std::setprecision(3) <<
         edge.alignmentInfo.alignedFraction(0) << " " <<
         edge.alignmentInfo.alignedFraction(1) <<
+        ", common neighbors " << edge.commonNeighborCount <<
         "\"";
 
     s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";

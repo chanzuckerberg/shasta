@@ -274,6 +274,18 @@ public:
     }
 
 
+
+    // Jaccard similarity of the alignment.
+    double jaccard() const
+    {
+        const uint32_t range0 = range(0);
+        const uint32_t range1 = range(1);
+        const double intersectionRange = double(range0 + range1) / 2.;
+        const double unionRange = double(data[0].markerCount + data[1].markerCount) - intersectionRange;
+        return intersectionRange / unionRange;
+    }
+
+
     // Return the offset between the centers of the two oriented reads,
     // as estimated form the alignment.
     // The offset is positive if the center of the second read

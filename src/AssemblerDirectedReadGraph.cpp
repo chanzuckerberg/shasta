@@ -51,6 +51,10 @@ void Assembler::createDirectedReadGraph(uint32_t maxTrim)
     assemblerInfo->isolatedReadCount = isolatedReadCount;
     assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;
 
+
+    // Write a csv file with information on the edges.
+    directedReadGraph.writeEdges();
+
 }
 
 

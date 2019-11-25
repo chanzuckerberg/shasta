@@ -10,6 +10,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include "fstream.hpp"
 #include "memory.hpp"
 #include <queue>
 
@@ -315,6 +316,10 @@ bool DirectedReadGraph::extractLocalSubgraph(
             vertex.baseCount, vertex.markerCount, distance, vertex.isContained==1);
     }
 
+    vector<VertexId> neighbors0;
+    vector<VertexId> neighbors1;
+    vector<VertexId> intersectionVertices;
+    vector<VertexId> unionVertices;
 
 
     // Add the edges to the local subgraph.
@@ -357,11 +362,14 @@ bool DirectedReadGraph::extractLocalSubgraph(
             }
 
             // Add the edge to the local subgraph.
+            compareNeighborhoods(vertexId0, vertexId1,
+                neighbors0, neighbors1, intersectionVertices, unionVertices);
             const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             graph.addEdge(orientedReadId0, orientedReadId1, alignmentInfo,
                 edge.involvesTwoContainedVertices,
                 edge.involvesOneContainedVertex,
-                edge.wasRemovedByTransitiveReduction);
+                edge.wasRemovedByTransitiveReduction,
+                uint32_t(intersectionVertices.size()));
         }
     }
 
@@ -633,4 +641,46 @@ void DirectedReadGraph::transitiveReduction(
         }
         cout << endl;
     }
+}
+
+
+
+void DirectedReadGraph::writeEdges()
+{
+    ofstream csv("DirectedReadGraphEdges.csv");
+    csv << "EdgeId,v0,v1,OrientedReadId0,OrientedReadId1,AlignmentSimilarity,NeighborhoodSimilarity,\n";
+
+    vector<VertexId> neighbors0;
+    vector<VertexId> neighbors1;
+    vector<VertexId> intersectionVertices;
+    vector<VertexId> unionVertices;
+
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        const Edge& edge = getEdge(edgeId);
+        const VertexId v0 = source(edgeId);
+        const VertexId v1 = target(edgeId);
+        compareNeighborhoods(v0, v1,
+            neighbors0, neighbors1,
+            intersectionVertices,
+            unionVertices);
+
+        // Jaccard similarity of the alignment.
+        const double alignmentSimilarity = edge.alignmentInfo.jaccard();
+
+        // Jaccard similarity of the neighborhoods.
+        const double neighborhoodSimilarity =
+            (unionVertices.empty() ? 0. :
+            double(intersectionVertices.size())/double(unionVertices.size()));
+
+
+        csv << edgeId << ",";
+        csv << v0 << ",";
+        csv << v1 << ",";
+        csv << OrientedReadId(OrientedReadId::Int(v0)) << ",";
+        csv << OrientedReadId(OrientedReadId::Int(v1)) << ",";
+        csv << alignmentSimilarity << ",";
+        csv << neighborhoodSimilarity << ",";
+        csv << "\n";
+    }
+
 }

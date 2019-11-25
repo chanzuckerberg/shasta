@@ -2,6 +2,7 @@
 #define SHASTA_MEMORY_MAPPED_DIRECTED_GRAPH_HPP
 
 // Shasta
+#include "deduplicate.hpp"
 #include "MemoryMappedVector.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
 
@@ -50,7 +51,12 @@ public:
     }
 
     // Accessor for graph vertices.
-    Vertex& getVertex(VertexId vertexId) {
+    Vertex& getVertex(VertexId vertexId)
+    {
+        return vertices[vertexId];
+    }
+    const Vertex& getVertex(VertexId vertexId) const
+    {
         return vertices[vertexId];
     }
 
@@ -81,10 +87,13 @@ public:
     Edge& getEdge(EdgeId edgeId) {
         return edges[edgeId].edge;
     }
-    VertexId source(EdgeId edgeId) {
+    const Edge& getEdge(EdgeId edgeId) const {
+        return edges[edgeId].edge;
+    }
+    VertexId source(EdgeId edgeId) const {
         return edges[edgeId].v0;
     }
-    VertexId target(EdgeId edgeId) {
+    VertexId target(EdgeId edgeId) const {
         return edges[edgeId].v1;
     }
 
@@ -315,6 +324,65 @@ public:
 
         return true;
     }
+
+
+
+    // Compute the immediate (distance 1) neighborhood of two vertices
+    // and their intersecion and union.
+    void compareNeighborhoods(
+        VertexId v0,
+        VertexId v1,
+        vector<VertexId>& neighbors0,
+        vector<VertexId>& neighbors1,
+        vector<VertexId>& intersectionVertices,
+        vector<VertexId>& unionVertices)
+    {
+        // Compute neighbors of v0.
+        neighbors0.clear();
+        for(const EdgeId edgeId: outEdges(v0)) {
+            const VertexId v = target(edgeId);
+            if(v!=v0 && v!=v1) {
+                neighbors0.push_back(target(edgeId));
+            }
+        }
+        for(const EdgeId edgeId: inEdges(v0)) {
+            const VertexId v = source(edgeId);
+            if(v!=v0 && v!=v1) {
+                neighbors0.push_back(target(edgeId));
+            }
+        }
+        deduplicate(neighbors0);
+
+        // Compute neighbors of v1.
+        neighbors1.clear();
+        for(const EdgeId edgeId: outEdges(v1)) {
+            const VertexId v = target(edgeId);
+            if(v!=v0 && v!=v1) {
+                neighbors1.push_back(target(edgeId));
+            }
+        }
+        for(const EdgeId edgeId: inEdges(v1)) {
+            const VertexId v = source(edgeId);
+            if(v!=v0 && v!=v1) {
+                neighbors1.push_back(target(edgeId));
+            }
+        }
+        deduplicate(neighbors1);
+
+
+        // Compute intersection and union.
+        intersectionVertices.clear();
+        std::set_intersection(
+            neighbors0.begin(), neighbors0.end(),
+            neighbors1.begin(), neighbors1.end(),
+            back_inserter(intersectionVertices));
+        unionVertices.clear();
+        std::set_union(
+            neighbors0.begin(), neighbors0.end(),
+            neighbors1.begin(), neighbors1.end(),
+            back_inserter(unionVertices));
+    }
+
 
 
 

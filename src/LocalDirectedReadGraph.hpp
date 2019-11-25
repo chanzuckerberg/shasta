@@ -75,15 +75,19 @@ public:
     bool involvesOneContainedVertex;
     bool wasRemovedByTransitiveReduction;
 
+    uint32_t commonNeighborCount;
+
     LocalDirectedReadGraphEdge(
         const AlignmentInfo& alignmentInfo,
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
-        bool wasRemovedByTransitiveReduction):
+        bool wasRemovedByTransitiveReduction,
+        uint32_t commonNeighborCount):
         alignmentInfo(alignmentInfo),
         involvesTwoContainedVertices(involvesTwoContainedVertices),
         involvesOneContainedVertex(involvesOneContainedVertex),
-        wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction)
+        wasRemovedByTransitiveReduction(wasRemovedByTransitiveReduction),
+        commonNeighborCount(commonNeighborCount)
         {}
 };
 
@@ -106,7 +110,8 @@ public:
         const AlignmentInfo& alignmentInfo,
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
-        bool wasRemovedByTransitiveReduction);
+        bool wasRemovedByTransitiveReduction,
+        uint32_t commonNeighborCount);
 
     // Find out if a vertex with a given OrientedReadId exists.
     bool vertexExists(OrientedReadId) const;

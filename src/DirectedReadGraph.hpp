@@ -137,6 +137,8 @@ public:
         double offsetTolerance0,
         double offsetTolerance1);
 
+    void writeEdges();
+
 private:
 
     // Add an edge 0->1, reversing the direction if necessary
