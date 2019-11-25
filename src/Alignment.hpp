@@ -227,6 +227,10 @@ public:
     {
         return double(markerCount) / double(range(i));
     }
+    double minAlignedFraction() const
+    {
+        return min(alignedFraction(0), alignedFraction(1));
+    }
 
     // Compute the left and right trim, expressed in markers.
     // This is the minimum number of markers (over the two oriented reads)
@@ -252,6 +256,22 @@ public:
         return false;
     }
 
+
+
+    // Return true if this alignment has read i unambiguously contained
+    // in read 1-i.
+    bool isContained(int i, uint32_t maxTrim) const {
+
+        // Figure out if the two reads are fully covered by the alignment
+        // (except possibly up to maxTrim markers at eah end).
+        array<bool, 2> coversFullRead;
+        coversFullRead[0] = (leftTrim(0)<=maxTrim && rightTrim(0)<=maxTrim);
+        coversFullRead[1] = (leftTrim(1)<=maxTrim && rightTrim(1)<=maxTrim);
+
+        // Return true only if the first read is fully covered
+        // and the second read is not.
+        return coversFullRead[i] and not coversFullRead[1-i];
+    }
 
 
     // Return the offset between the centers of the two oriented reads,
