@@ -1477,51 +1477,53 @@ void Assembler::exploreRead(
 
 
     // Markers.
-    for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
-        const CompressedMarker& marker = orientedReadMarkers[ordinal];
+    if(markers.isOpen() and markerGraph.vertices.isOpen()) {
+        for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
+            const CompressedMarker& marker = orientedReadMarkers[ordinal];
 
-        // See if this marker is contained in a vertex of the marker graph.
-        const MarkerGraph::VertexId vertexId =
-            getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-        const bool hasMarkerGraphVertex =
-            (vertexId != MarkerGraph::invalidCompressedVertexId);
+            // See if this marker is contained in a vertex of the marker graph.
+            const MarkerGraph::VertexId vertexId =
+                getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+            const bool hasMarkerGraphVertex =
+                (vertexId != MarkerGraph::invalidCompressedVertexId);
 
 
 
-        // Write the k-mer of this marker.
-        const Kmer kmer(marker.kmerId, k);
-        html << "<a xlink:title='Marker " << ordinal <<
-            ", position " << marker.position <<
-            ", k-mer id " << marker.kmerId;
-        if(hasMarkerGraphVertex) {
-            html << ", coverage " << markerGraph.vertices.size(vertexId);
-        }
-        html << "' id='" << ordinal << "'";
-        if(hasMarkerGraphVertex) {
-            // Add a hyperlink to the marker graph vertex
-            // that contains this marker.
-            const string url = "exploreMarkerGraph?vertexId=" + to_string(vertexId) +
-                "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
-            html << " xlink:href='" << url << "' style='cursor:pointer'";
-        }
-        html << ">";
-
-        // This code uses one <text> element per character.
-        for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
-            html << "<text class='";
+            // Write the k-mer of this marker.
+            const Kmer kmer(marker.kmerId, k);
+            html << "<a xlink:title='Marker " << ordinal <<
+                ", position " << marker.position <<
+                ", k-mer id " << marker.kmerId;
             if(hasMarkerGraphVertex) {
-                html << "blueMono";
-            } else {
-                html << "mono";
+                html << ", coverage " << markerGraph.vertices.size(vertexId);
             }
-            html << "'" <<
-                " x='" << (marker.position+positionInMarker)*horizontalSpacing << "'" <<
-                " y='" << (readSequenceLine+1+markerRow[ordinal])*verticalSpacing << "'>";
-            html << kmer[positionInMarker];
-            html << "</text>";
-        }
-        html << "</a>";
+            html << "' id='" << ordinal << "'";
+            if(hasMarkerGraphVertex) {
+                // Add a hyperlink to the marker graph vertex
+                // that contains this marker.
+                const string url = "exploreMarkerGraph?vertexId=" + to_string(vertexId) +
+                    "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
+                html << " xlink:href='" << url << "' style='cursor:pointer'";
+            }
+            html << ">";
 
+            // This code uses one <text> element per character.
+            for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
+                html << "<text class='";
+                if(hasMarkerGraphVertex) {
+                    html << "blueMono";
+                } else {
+                    html << "mono";
+                }
+                html << "'" <<
+                    " x='" << (marker.position+positionInMarker)*horizontalSpacing << "'" <<
+                    " y='" << (readSequenceLine+1+markerRow[ordinal])*verticalSpacing << "'>";
+                html << kmer[positionInMarker];
+                html << "</text>";
+            }
+            html << "</a>";
+
+        }
     }
 
 
