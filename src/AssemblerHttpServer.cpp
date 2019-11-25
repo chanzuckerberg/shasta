@@ -1988,7 +1988,7 @@ void Assembler::displayAlignments(
 
         // Write the alignment sketch.
         html <<
-            "<td class=centered style='line-height:8px'>"
+            "<td class=centered style='line-height:8px;white-space:nowrap'>"
 
             // Oriented read 0.
             "<div style='display:inline-block;margin:0px;padding:0px;"
