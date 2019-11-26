@@ -960,6 +960,72 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
 
 
+void Assembler::writeAssemblyIndex(ostream& html) const
+{
+    writeHtmlBegin(html, false);
+
+    const string s = R"ABCDE(
+    <body>
+    <h1>Assembly output files</h1>
+    <table>
+
+    <tr>
+    <td><a href='AssemblySummary.html'>AssemblySummary.html</a>
+    <td>Assembly summary information.
+
+    <tr>
+    <td><a href='Assembly.fasta'>Assembly.fasta</a>
+    <td>Assembly in Fasta format (one strand only).
+
+    <tr>
+    <td><a href='Assembly.gfa'>Assembly.gfa</a>
+    <td>Assembly in gfa format (one strand only).
+
+    <tr>
+    <td><a href='Assembly-BothStrands.gfa'>Assembly-BothStrands.gfa</a>
+    <td>Assembly in gfa format (both strands).
+
+    <tr>
+    <td><a href='AssemblySummary.csv'>AssemblySummary.csv</a>
+    <td>List of assembled segments in order of decreasing length.
+
+    <tr>
+    <td><a href='Binned-ReadLengthHistogram.csv'>Binned-ReadLengthHistogram.csv</a>
+    <td>Read length distribution in 1 kb bins.
+
+    <tr>
+    <td><a href='ReadLengthHistogram.csv'>ReadLengthHistogram.csv</a>
+    <td>Detailed read length distribution.
+
+    <tr>
+    <td><a href='ReadSummary.csv'>ReadSummary.csv</a>
+    <td>Summary file containing one line of information for each read.
+
+    <tr>
+    <td><a href='LowHashBucketHistogram.csv'>LowHashBucketHistogram.csv</a>
+    <td>MinHash bucket population histogram.
+
+    <tr>
+    <td><a href='MarkerGraphVertexCoverageHistogram.csv'>MarkerGraphVertexCoverageHistogram.csv</a>
+    <td>Coverage histogram for marker graph vertices.
+
+    <tr>
+    <td><a href='MarkerGraphEdgeCoverageHistogram.csv'>MarkerGraphEdgeCoverageHistogram.csv</a>
+    <td>Coverage histogram for marker graph edges.
+
+    <tr>
+    <td><a href='ReadLengthHistogram.csv'>ReadLengthHistogram.csv</a>
+    <td>Detailed read length distribution.
+
+    </table>
+    </body>
+)ABCDE";
+
+    html << s;
+    writeHtmlEnd(html);
+}
+
+
 
 #ifdef SHASTA_HTTP_SERVER
 

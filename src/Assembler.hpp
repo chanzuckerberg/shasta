@@ -1593,6 +1593,7 @@ public:
     void writeAssemblySummary(ostream&);
     void writeAssemblySummaryBody(ostream&);
     void writeAssemblySummaryJson(ostream&);
+    void writeAssemblyIndex(ostream&) const;
     void writeNavigation(ostream&) const;
     void writeNavigation(
         ostream& html,

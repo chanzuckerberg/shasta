@@ -770,6 +770,8 @@ void shasta::main::assemble(
     assembler.writeAssemblySummary(html);
     ofstream json("AssemblySummary.json");
     assembler.writeAssemblySummaryJson(json);
+    ofstream htmlIndex("index.html");
+    assembler.writeAssemblyIndex(htmlIndex);
 
     // Also write a summary of read information.
     assembler.writeReadsSummary();
