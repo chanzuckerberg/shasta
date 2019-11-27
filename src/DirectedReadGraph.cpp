@@ -395,6 +395,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
     double minAlignedFraction,
     bool allowEdgesInvolvingTwoContainedVertices,
     bool allowEdgesInvolvingOneContainedVertex,
+    bool allowEdgesNotKept,
     double timeout,
     LocalDirectedReadGraph& graph)
 {
@@ -408,7 +409,8 @@ bool DirectedReadGraph::extractLocalSubgraph(
         2*maxOffsetAtCenter,
         minAlignedFraction,
         allowEdgesInvolvingTwoContainedVertices,
-        allowEdgesInvolvingOneContainedVertex);
+        allowEdgesInvolvingOneContainedVertex,
+        allowEdgesNotKept);
 
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;
@@ -479,8 +481,9 @@ bool DirectedReadGraph::extractLocalSubgraph(
                 neighbors0, neighbors1, intersectionVertices, unionVertices);
             const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             graph.addEdge(orientedReadId0, orientedReadId1, alignmentInfo,
-                edge.involvesTwoContainedVertices,
-                edge.involvesOneContainedVertex,
+                edge.involvesTwoContainedVertices == 1,
+                edge.involvesOneContainedVertex == 1,
+                edge.keep == 1,
                 uint32_t(intersectionVertices.size()));
         }
     }

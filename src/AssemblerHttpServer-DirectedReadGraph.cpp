@@ -51,6 +51,10 @@ void Assembler::exploreDirectedReadGraph(
     bool allowEdgesInvolvingOneContainedVertex = getParameterValue(request,
         "allowEdgesInvolvingOneContainedVertex", allowEdgesInvolvingOneContainedVertexString);
 
+    string allowEdgesNotKeptString;
+    bool allowEdgesNotKept = getParameterValue(request,
+        "allowEdgesNotKept", allowEdgesNotKeptString);
+
     uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
 
@@ -131,6 +135,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Include edges involving one contained vertex"
         "<td class=centered><input type=checkbox name=allowEdgesInvolvingOneContainedVertex" <<
         (allowEdgesInvolvingOneContainedVertex ? " checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Include edges not kept for marker graph creation"
+        "<td class=centered><input type=checkbox name=allowEdgesNotKept" <<
+        (allowEdgesNotKept ? " checked" : "") <<
         ">"
 
         "<tr title='Graphics size in pixels. "
@@ -215,6 +225,7 @@ void Assembler::exploreDirectedReadGraph(
         minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
         allowEdgesInvolvingTwoContainedVertices,
         allowEdgesInvolvingOneContainedVertex,
+        allowEdgesNotKept,
         timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";

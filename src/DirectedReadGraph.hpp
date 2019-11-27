@@ -163,6 +163,7 @@ public:
         double minAlignedFraction,
         bool allowEdgesInvolvingTwoContainedVertices,
         bool allowEdgesInvolvingOneContainedVertex,
+        bool allowEdgesNotKept,
         double timeout,
         LocalDirectedReadGraph&);
 
@@ -185,17 +186,22 @@ private:
             uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
             bool allowEdgesInvolvingTwoContainedVertices,
-            bool allowEdgesInvolvingOneContainedVertex) :
+            bool allowEdgesInvolvingOneContainedVertex,
+            bool allowEdgesNotKept) :
 
             minAlignedMarkerCount(minAlignedMarkerCount),
             maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
             allowEdgesInvolvingTwoContainedVertices(allowEdgesInvolvingTwoContainedVertices),
-            allowEdgesInvolvingOneContainedVertex(allowEdgesInvolvingOneContainedVertex)
+            allowEdgesInvolvingOneContainedVertex(allowEdgesInvolvingOneContainedVertex),
+            allowEdgesNotKept(allowEdgesNotKept)
             {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
+            if(not allowEdgesNotKept and (edge.keep == 0)) {
+                return false;
+            }
             if(not allowEdgesInvolvingTwoContainedVertices and edge.involvesTwoContainedVertices) {
                 return false;
             }
@@ -217,6 +223,7 @@ private:
 
         bool allowEdgesInvolvingTwoContainedVertices;
         bool allowEdgesInvolvingOneContainedVertex;
+        bool allowEdgesNotKept;
     };
 
 

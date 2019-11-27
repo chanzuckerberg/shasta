@@ -73,6 +73,7 @@ public:
 
     bool involvesTwoContainedVertices;
     bool involvesOneContainedVertex;
+    bool keep;
 
     uint32_t commonNeighborCount;
 
@@ -80,10 +81,12 @@ public:
         const AlignmentInfo& alignmentInfo,
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
+        bool keep,
         uint32_t commonNeighborCount):
         alignmentInfo(alignmentInfo),
         involvesTwoContainedVertices(involvesTwoContainedVertices),
         involvesOneContainedVertex(involvesOneContainedVertex),
+        keep(keep),
         commonNeighborCount(commonNeighborCount)
         {}
 };
@@ -107,6 +110,7 @@ public:
         const AlignmentInfo& alignmentInfo,
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
+        bool keep,
         uint32_t commonNeighborCount);
 
     // Find out if a vertex with a given OrientedReadId exists.

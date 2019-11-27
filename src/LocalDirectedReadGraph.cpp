@@ -38,6 +38,7 @@ void LocalDirectedReadGraph::addEdge(
     const AlignmentInfo& alignmentInfo,
     bool involvesTwoContainedVertices,
     bool involvesOneContainedVertex,
+    bool keep,
     uint32_t commonNeighborCount)
 {
     // Find the vertices corresponding to these two OrientedReadId.
@@ -53,6 +54,7 @@ void LocalDirectedReadGraph::addEdge(
         LocalDirectedReadGraphEdge(alignmentInfo,
             involvesTwoContainedVertices,
             involvesOneContainedVertex,
+            keep,
             commonNeighborCount),
         *this);
 }
@@ -196,14 +198,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
 
-    if(edge.involvesTwoContainedVertices) {
+    if(not edge.keep) {
         s << " color=\"#ff00007f\""; // Partially transparent red.
-    } else if(edge.involvesOneContainedVertex) {
-        s << " color=\"#03a1137f\""; // Partially transparent green.
-    // } else if(edge.wasRemovedByTransitiveReduction) {
-    //     s << " color=\"#00ff007f\""; // Partially transparent green.
-    } else {
-        s << " color=black";
     }
 
     s << "]";
