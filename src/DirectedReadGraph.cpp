@@ -151,6 +151,121 @@ DirectedReadGraph::EdgeId DirectedReadGraph::addEdge(
 
 
 
+void DirectedReadGraph::flagEdgesToBeKept(
+    uint64_t containedNeighborCount,
+    uint64_t uncontainedNeighborCountPerDirection
+    )
+{
+    // First mark all edges as not to be kept.
+    for(EdgeId e=0; e<edges.size(); e++) {
+        getEdge(e).keep = 0;
+    }
+
+    // Vector used below to store pairs (edge, markerCount).
+    vector< pair<EdgeId, uint32_t> > neighbors;
+
+    // Main loop over vertices.
+    for(VertexId v0=0; v0<vertices.size(); v0++) {
+        const Vertex& vertex0 = vertices[v0];
+
+        if(vertex0.isContained) {
+
+            // The vertex is contained.
+            // Mark as keep the best containedNeighborCount
+            // adjacent edges, in either direction.
+            neighbors.clear();
+            for(const EdgeId edgeId: outEdges(v0)) {
+                const Edge& edge = getEdge(edgeId);
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+            }
+            for(const EdgeId edgeId: inEdges(v0)) {
+                const Edge& edge = getEdge(edgeId);
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+            }
+
+            // Mark the best containedNeighborCount as keep.
+            if(neighbors.size() > containedNeighborCount) {
+                sort(neighbors.begin(), neighbors.end(),
+                    OrderPairsBySecondOnlyGreater<EdgeId, uint32_t>());
+                neighbors.resize(containedNeighborCount);
+            }
+            for(const auto& p: neighbors) {
+                const EdgeId edgeId = p.first;
+                getEdge(edgeId).keep = 1;
+            }
+
+
+        } else {
+
+            // The vertex is uncontained.
+            // Mark as keep the best uncontainedNeighborCountPerDirection
+            // out-edges and the best uncontainedNeighborCountPerDirection in-edges,
+            // considering only out-edges and in-edges
+            // to other uncontained vertices.
+
+            // Out-edges to other uncontained vertices.
+            neighbors.clear();
+            for(const EdgeId edgeId: outEdges(v0)) {
+                const VertexId v1 = target(edgeId);
+                const Vertex& vertex1 = vertices[v1];
+                if(vertex1.isContained) {
+                    continue;
+                }
+                const Edge& edge = getEdge(edgeId);
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+            }
+
+            // Mark the best uncontainedNeighborCountPerDirection as keep.
+            if(neighbors.size() > uncontainedNeighborCountPerDirection) {
+                sort(neighbors.begin(), neighbors.end(),
+                    OrderPairsBySecondOnlyGreater<EdgeId, uint32_t>());
+                neighbors.resize(uncontainedNeighborCountPerDirection);
+            }
+            for(const auto& p: neighbors) {
+                const EdgeId edgeId = p.first;
+                getEdge(edgeId).keep = 1;
+            }
+
+            // In-edges from other uncontained vertices.
+            neighbors.clear();
+            for(const EdgeId edgeId: inEdges(v0)) {
+                const VertexId v1 = source(edgeId);
+                const Vertex& vertex1 = vertices[v1];
+                if(vertex1.isContained) {
+                    continue;
+                }
+                const Edge& edge = getEdge(edgeId);
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+            }
+
+            // Mark the best uncontainedNeighborCountPerDirection as keep.
+            if(neighbors.size() > uncontainedNeighborCountPerDirection) {
+                sort(neighbors.begin(), neighbors.end(),
+                    OrderPairsBySecondOnlyGreater<EdgeId, uint32_t>());
+                neighbors.resize(uncontainedNeighborCountPerDirection);
+            }
+            for(const auto& p: neighbors) {
+                const EdgeId edgeId = p.first;
+                getEdge(edgeId).keep = 1;
+            }
+        }
+    }
+
+    // Count the number of edges marked as keep.
+    uint64_t keepCount = 0;
+    for(EdgeId e=0; e<edges.size(); e++) {
+        if(getEdge(e).keep) {
+            ++keepCount;
+        }
+    }
+    cout << "Marked as keep " << keepCount <<
+        " edges of the directed read graph out of " <<
+        edges.size() << " total." << endl;
+
+
+}
+
+
 // Make sure the graph is invariant under reverse complementing.
 void DirectedReadGraph::check()
 {
@@ -179,6 +294,7 @@ void DirectedReadGraph::check()
             edge1.alignmentInfo.twiceOffsetAtCenter());
         SHASTA_ASSERT(edge0.involvesTwoContainedVertices == edge1.involvesTwoContainedVertices);
         SHASTA_ASSERT(edge0.involvesOneContainedVertex == edge1.involvesOneContainedVertex);
+        SHASTA_ASSERT(edge0.keep == edge1.keep);
 
         // Also check the vertices.
         SHASTA_ASSERT(source(e0) == getVertex(target(e1)).reverseComplementedVertexId);

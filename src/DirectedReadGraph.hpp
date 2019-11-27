@@ -26,6 +26,25 @@ the read graph invariant under reverse complementing, as follows:
 - If strand0 == strand1 ==1, read0 must be greater than read1.
 - If strand0 != strand1, read0 must be on strand 0 and read1 must be on strand1.
 
+A vertex is flagged as contained if there is at least one alignment in which
+the oriented read corresponding to the vertex
+is entirely contained in an another oriented read,
+except possibly for up to maxTrim markers at each end.
+
+The read graph is initially created by adding two edges for each
+known alignment. Then, a subset of all the edges are flagged
+as "keep" as follows:
+
+- For a contained vertex, the best containedNeighborCount adjacent edges,
+as defined by number of aligned markers, are marked as "keep".
+
+- For an uncontained vertex, the best uncontainedNeighborCountPerDirection
+out-edges and the best uncontainedNeighborCountPerDirection in-edges
+of each vertex are marked as "keep", considering only out-edges and in-edges
+to other uncontained vertices.
+
+Only edges marked as "keep" are used to create the marker graph.
+
 *******************************************************************************/
 
 // Shasta.
@@ -87,6 +106,7 @@ public:
     // Edge flags.
     uint8_t involvesTwoContainedVertices : 1;
     uint8_t involvesOneContainedVertex : 1;
+    uint8_t keep : 1;
 
     // Constructors.
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
@@ -103,6 +123,7 @@ public:
     {
         involvesTwoContainedVertices = 0;
         involvesOneContainedVertex = 0;
+        keep = 0;
     }
 };
 
@@ -125,6 +146,13 @@ public:
 
     // Flag contained vertices and set edge flags accordingly.
     void flagContainedVertices(uint32_t maxTrim);
+
+    // Flag as "keep" a subset of all edges.
+    // These are the edges that will be used to create the marker graph.
+    // See comments at the beginning of this file for more information.
+    void flagEdgesToBeKept(
+        uint64_t containedNeighborCount,
+        uint64_t uncontainedNeighborCountPerDirection);
 
     // Create a LocalDirectedReadGraph.
     bool extractLocalSubgraph(

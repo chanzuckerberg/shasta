@@ -122,7 +122,6 @@ void Assembler::createMarkerGraphVertices(
 
     // Update the disjoint set data structure for each alignment
     // in the read graph.
-    cout << "Begin processing " << readGraph.edges.size() << " alignments in the read graph." << endl;
     cout << timestamp << "Disjoint set computation begins." << endl;
     size_t batchSize = 10000;
     setupLoadBalancing(
@@ -452,6 +451,11 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
                 // We use the directed read graph.
                 const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(i);
+
+                // Skip if not marked as "keep".
+                if(edge.keep == 0) {
+                    continue;
+                }
 
                 // Check that the next edge is the reverse complement of
                 // this edge.

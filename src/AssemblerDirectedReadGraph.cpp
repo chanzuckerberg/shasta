@@ -51,6 +51,16 @@ void Assembler::createDirectedReadGraph(uint32_t maxTrim)
     assemblerInfo->isolatedReadCount = isolatedReadCount;
     assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;
 
+    // Flag edges to be kept.
+    // These are the edges that will be used to create the marker graph.
+    // TURN THESE CONSTANTS INTO OPTIONS WHEN THE CODE STABILIZES.
+    const uint64_t containedNeighborCount = 2;
+    const uint64_t uncontainedNeighborCountPerDirection = 2;
+    directedReadGraph. flagEdgesToBeKept(
+        containedNeighborCount,
+        uncontainedNeighborCountPerDirection);
+
+
 
     // Write a csv file with information on the edges.
     directedReadGraph.writeEdges();
