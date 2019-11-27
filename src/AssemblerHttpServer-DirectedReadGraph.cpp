@@ -37,7 +37,7 @@ void Assembler::exploreDirectedReadGraph(
     uint32_t maxOffsetAtCenter = 1000000;
     getParameterValue(request, "maxOffsetAtCenter", maxOffsetAtCenter);
 
-    double minAlignedFraction = 0.;
+    double minAlignedFraction = httpServerData.assemblerOptions->alignOptions.minAlignedFraction;
     getParameterValue(request, "minAlignedFraction", minAlignedFraction);
 
     float minTransitiveCoverage = 0.;
