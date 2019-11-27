@@ -179,7 +179,6 @@ void DirectedReadGraph::check()
             edge1.alignmentInfo.twiceOffsetAtCenter());
         SHASTA_ASSERT(edge0.involvesTwoContainedVertices == edge1.involvesTwoContainedVertices);
         SHASTA_ASSERT(edge0.involvesOneContainedVertex == edge1.involvesOneContainedVertex);
-        SHASTA_ASSERT(edge0.wasRemovedByTransitiveReduction == edge1.wasRemovedByTransitiveReduction);
 
         // Also check the vertices.
         SHASTA_ASSERT(source(e0) == getVertex(target(e1)).reverseComplementedVertexId);
@@ -280,7 +279,6 @@ bool DirectedReadGraph::extractLocalSubgraph(
     double minAlignedFraction,
     bool allowEdgesInvolvingTwoContainedVertices,
     bool allowEdgesInvolvingOneContainedVertex,
-    bool allowEdgesRemovedDuringTransitiveReduction,
     double timeout,
     LocalDirectedReadGraph& graph)
 {
@@ -294,8 +292,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
         2*maxOffsetAtCenter,
         minAlignedFraction,
         allowEdgesInvolvingTwoContainedVertices,
-        allowEdgesInvolvingOneContainedVertex,
-        allowEdgesRemovedDuringTransitiveReduction);
+        allowEdgesInvolvingOneContainedVertex);
 
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;
@@ -368,7 +365,6 @@ bool DirectedReadGraph::extractLocalSubgraph(
             graph.addEdge(orientedReadId0, orientedReadId1, alignmentInfo,
                 edge.involvesTwoContainedVertices,
                 edge.involvesOneContainedVertex,
-                edge.wasRemovedByTransitiveReduction,
                 uint32_t(intersectionVertices.size()));
         }
     }
@@ -377,7 +373,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
 }
 
 
-
+#if 0
 void DirectedReadGraph::transitiveReduction(
     double offsetTolerance0,
     double offsetTolerance1)
@@ -642,6 +638,7 @@ void DirectedReadGraph::transitiveReduction(
         cout << endl;
     }
 }
+#endif
 
 
 

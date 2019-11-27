@@ -457,13 +457,6 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 // this edge.
                 SHASTA_ASSERT(edge.reverseComplementedEdgeId == i+1);
 
-                /*
-                // If this edge was removed during transitive reduction, skip.
-                if(edge.wasRemovedByTransitiveReduction) {
-                    continue;
-                }
-                */
-
                 // Get the oriented read ids.
                 const DirectedReadGraph::VertexId v0 = directedReadGraph.source(i);
                 const DirectedReadGraph::VertexId v1 = directedReadGraph.target(i);
@@ -476,7 +469,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
 
 
-            // Compute the Alignment between these two oriented reads..
+            // Compute the Alignment between these two oriented reads.
             if(alignMethod == 0) {
                 for(size_t j=0; j<2; j++) {
                     getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);

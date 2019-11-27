@@ -1038,10 +1038,6 @@ public:
     void createDirectedReadGraph(uint32_t maxTrim);
     void accessDirectedReadGraphReadOnly();
     void accessDirectedReadGraphReadWrite();
-    void directedReadGraphTransitiveReduction(
-        double offsetTolerance0,
-        double offsetTolerance1
-        );
 
 
 

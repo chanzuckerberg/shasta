@@ -51,10 +51,6 @@ void Assembler::exploreDirectedReadGraph(
     bool allowEdgesInvolvingOneContainedVertex = getParameterValue(request,
         "allowEdgesInvolvingOneContainedVertex", allowEdgesInvolvingOneContainedVertexString);
 
-    string allowEdgesRemovedDuringTransitiveReductionString;
-    bool allowEdgesRemovedDuringTransitiveReduction = getParameterValue(request,
-        "allowEdgesRemovedDuringTransitiveReduction", allowEdgesRemovedDuringTransitiveReductionString);
-
     uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
 
@@ -135,12 +131,6 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Include edges involving one contained vertex"
         "<td class=centered><input type=checkbox name=allowEdgesInvolvingOneContainedVertex" <<
         (allowEdgesInvolvingOneContainedVertex ? " checked" : "") <<
-        ">"
-
-        "<tr>"
-        "<td>Include edges removed during transitive reduction"
-        "<td class=centered><input type=checkbox name=allowEdgesRemovedDuringTransitiveReduction" <<
-        (allowEdgesRemovedDuringTransitiveReduction ? " checked" : "") <<
         ">"
 
         "<tr title='Graphics size in pixels. "
@@ -225,7 +215,6 @@ void Assembler::exploreDirectedReadGraph(
         minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
         allowEdgesInvolvingTwoContainedVertices,
         allowEdgesInvolvingOneContainedVertex,
-        allowEdgesRemovedDuringTransitiveReduction,
         timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";

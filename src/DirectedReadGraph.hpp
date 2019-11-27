@@ -49,10 +49,18 @@ namespace shasta {
 // A vertex of the directed read graph.
 class shasta::DirectedReadGraphVertex {
 public:
+
+    // The namber of raw (not RLE) bases and markers
+    // for the oriented read corresponding to this vertex.
     uint32_t baseCount;
     uint32_t markerCount;
+
+    // Flag set if there is one alignment in which this oriented read
+    // is entirely contained in an another oriented read,
+    // except possibly for up to maxTrim markers at each end.
     uint8_t isContained : 1;
 
+    // The VertexId of the reverse complement of this vertex.
     DirectedReadGraphBaseClass::VertexId reverseComplementedVertexId =
         DirectedReadGraphBaseClass::invalidVertexId;
 
@@ -72,14 +80,13 @@ public:
     // Information on the alignment that generated this edge.
     AlignmentInfo alignmentInfo;
 
-    // The reverse complement of this edge.
+    // The EdgeId of the reverse complement of this edge.
     DirectedReadGraphBaseClass::EdgeId reverseComplementedEdgeId =
         DirectedReadGraphBaseClass::invalidEdgeId;
 
     // Edge flags.
     uint8_t involvesTwoContainedVertices : 1;
     uint8_t involvesOneContainedVertex : 1;
-    uint8_t wasRemovedByTransitiveReduction : 1;
 
     // Constructors.
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
@@ -96,7 +103,6 @@ public:
     {
         involvesTwoContainedVertices = 0;
         involvesOneContainedVertex = 0;
-        wasRemovedByTransitiveReduction = 0;
     }
 };
 
@@ -129,13 +135,8 @@ public:
         double minAlignedFraction,
         bool allowEdgesInvolvingTwoContainedVertices,
         bool allowEdgesInvolvingOneContainedVertex,
-        bool allowEdgesRemovedDuringTransitiveReduction,
         double timeout,
         LocalDirectedReadGraph&);
-
-    void transitiveReduction(
-        double offsetTolerance0,
-        double offsetTolerance1);
 
     void writeEdges();
 
@@ -156,22 +157,17 @@ private:
             uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
             bool allowEdgesInvolvingTwoContainedVertices,
-            bool allowEdgesInvolvingOneContainedVertex,
-            bool allowEdgesRemovedDuringTransitiveReduction) :
+            bool allowEdgesInvolvingOneContainedVertex) :
 
             minAlignedMarkerCount(minAlignedMarkerCount),
             maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
             allowEdgesInvolvingTwoContainedVertices(allowEdgesInvolvingTwoContainedVertices),
-            allowEdgesInvolvingOneContainedVertex(allowEdgesInvolvingOneContainedVertex),
-            allowEdgesRemovedDuringTransitiveReduction(allowEdgesRemovedDuringTransitiveReduction)
+            allowEdgesInvolvingOneContainedVertex(allowEdgesInvolvingOneContainedVertex)
             {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
-            if(not allowEdgesRemovedDuringTransitiveReduction and edge.wasRemovedByTransitiveReduction) {
-                return false;
-            }
             if(not allowEdgesInvolvingTwoContainedVertices and edge.involvesTwoContainedVertices) {
                 return false;
             }
@@ -193,7 +189,6 @@ private:
 
         bool allowEdgesInvolvingTwoContainedVertices;
         bool allowEdgesInvolvingOneContainedVertex;
-        bool allowEdgesRemovedDuringTransitiveReduction;
     };
 
 

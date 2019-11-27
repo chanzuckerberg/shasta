@@ -67,13 +67,3 @@ void Assembler::accessDirectedReadGraphReadWrite()
 {
     directedReadGraph.accessExistingReadWrite(largeDataName("DirectedReadGraph"));
 }
-
-
-
-void Assembler::directedReadGraphTransitiveReduction(
-    double offsetTolerance0,
-    double offsetTolerance1)
-{
-    SHASTA_ASSERT(directedReadGraph.isOpenWithWriteAccess());
-    directedReadGraph.transitiveReduction(offsetTolerance0, offsetTolerance1);
-}
