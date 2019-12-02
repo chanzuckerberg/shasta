@@ -6,6 +6,7 @@
 
 #include "algorithm.hpp"
 #include "array.hpp"
+#include <cmath>
 #include "cstdint.hpp"
 #include "utility.hpp"
 #include "vector.hpp"
@@ -154,6 +155,12 @@ public:
     // It is guaranteed to never be zero for a valid alignment.
     uint32_t markerCount;
 
+    // The minimum, maximum, and average ordinal offset,
+    // computed over all aligned markers.
+    int32_t minOrdinalOffset;
+    int32_t maxOrdinalOffset;
+    int32_t averageOrdinalOffset;
+
 
 
     // Constructors.
@@ -185,6 +192,19 @@ public:
                 (markerCount == 0) ? 0 : alignment.ordinals.back()[i]);
             data[i].check();
         }
+
+        // Compute minimum, maximum, and average ordinal offset.
+        minOrdinalOffset = std::numeric_limits<int32_t>::max();
+        maxOrdinalOffset = std::numeric_limits<int32_t>::min();
+        double sum = 0.;
+        for(const auto& ordinals : alignment.ordinals) {
+            const int32_t offset =
+                int32_t(ordinals[0]) - int32_t(ordinals[1]);
+            minOrdinalOffset = min(minOrdinalOffset, offset);
+            maxOrdinalOffset = max(maxOrdinalOffset, offset);
+            sum += double(offset);
+        }
+        averageOrdinalOffset = int32_t(std::round(sum / double(markerCount)));
     }
     void create(
         const Alignment& alignment,
@@ -201,6 +221,9 @@ public:
     void swap()
     {
         std::swap(data[0], data[1]);
+        minOrdinalOffset = -minOrdinalOffset;
+        maxOrdinalOffset = -maxOrdinalOffset;
+        averageOrdinalOffset = -averageOrdinalOffset;
     }
 
     // Update to reflect reverse complementing of the two oriented reads.
@@ -209,6 +232,10 @@ public:
         for(size_t i=0; i<2; i++) {
             data[i].reverseComplement();
         }
+        const int32_t delta = int32_t(data[0].markerCount) - int32_t(data[1].markerCount);
+        minOrdinalOffset =  delta - minOrdinalOffset;
+        maxOrdinalOffset =  delta - maxOrdinalOffset;
+        averageOrdinalOffset =  delta - averageOrdinalOffset;
     }
 
     // Some accessors.
