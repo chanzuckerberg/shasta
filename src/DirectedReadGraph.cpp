@@ -807,7 +807,7 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
 {
     // The OrientedReadId corresponding to this vertex.
     const OrientedReadId orientedReadIdA = OrientedReadId(OrientedReadId::Int(vA));
-    const uint32_t markerCountA = getVertex(vA).markerCount;
+    // const uint32_t markerCountA = getVertex(vA).markerCount;
 
     // Debug flag to control detailed messages.
     const bool debug = true;
@@ -855,7 +855,7 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
         // Get some information on the alignment of vA with vB.
         const auto& pB = alignments[iB];
         const VertexId vB = pB.first;
-        const uint32_t markerCountB = getVertex(vB).markerCount;
+        // const uint32_t markerCountB = getVertex(vB).markerCount;
         const OrientedReadId orientedReadIdB = OrientedReadId(OrientedReadId::Int(vB));
         const AlignmentInfo& alignmentInfoAB = pB.second;
 
@@ -864,7 +864,7 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
             // Get some information on the alignment of vA with vC.
             const auto& pC = alignments[iC];
             const VertexId vC = pC.first;
-            const uint32_t markerCountC = getVertex(vC).markerCount;
+            // const uint32_t markerCountC = getVertex(vC).markerCount;
             const OrientedReadId orientedReadIdC = OrientedReadId(OrientedReadId::Int(vC));
             const AlignmentInfo& alignmentInfoAC = pC.second;
 
