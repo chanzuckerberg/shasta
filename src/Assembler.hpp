@@ -926,6 +926,7 @@ private:
     // Count the common marker near a given ordinal offset for
     // two oriented reads. This can be used to check
     // whether an alignmnent near the specified ordinal offset exists.
+public:
     uint32_t countCommonMarkersNearOffset(
         OrientedReadId,
         OrientedReadId,
@@ -938,6 +939,7 @@ private:
         int32_t minOffset,
         int32_t maxOffset
     );
+private:
 
 
 

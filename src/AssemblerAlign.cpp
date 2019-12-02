@@ -815,6 +815,18 @@ uint32_t Assembler::countCommonMarkersWithOffsetIn(
     int32_t maxOffset
 )
 {
+#if 1
+    const bool debug = false;
+#else
+    const bool debug =
+        orientedReadId0.getReadId() == 5 and
+        orientedReadId0.getStrand() == 0 and
+        orientedReadId1.getReadId() == 32 and
+        orientedReadId1.getStrand() == 1;
+#endif
+    if(debug) {
+        cout << "countCommonMarkersWithOffsetIn" << endl;
+    }
 
     // Get the markers sorted by kmerId.
     checkMarkersAreOpen();
@@ -864,7 +876,12 @@ uint32_t Assembler::countCommonMarkersWithOffsetIn(
             for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
                 for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
                     const int32_t ordinalOffset = int32_t(jt0->ordinal) - int32_t(jt1->ordinal);
-                    if(ordinalOffset >= minOffset and ordinalOffset >= maxOffset) {
+                    if(debug) {
+                        cout << jt0->ordinal << " " <<
+                            jt1->ordinal << " " <<
+                            ordinalOffset<< endl;
+                    }
+                    if(ordinalOffset >= minOffset and ordinalOffset <= maxOffset) {
                         ++count;
                     }
 

@@ -1,6 +1,7 @@
 // Shasta.
 #include "DirectedReadGraph.hpp"
 #include "Alignment.hpp"
+#include "Assembler.hpp"
 #include "LocalDirectedReadGraph.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
@@ -803,8 +804,15 @@ void DirectedReadGraph::writeEdges()
 
 
 
-void DirectedReadGraph::analyzeVertex(VertexId vA)
+void DirectedReadGraph::analyzeVertex(VertexId vA, Assembler& assembler)
 {
+    // Parameters used by this function.
+    // These should be turned into command line options
+    /// when the code stabilizes.
+    const uint32_t minOverlapLength = 100;
+    const int32_t offsetTolerance = 100;
+    const double minAlignedFraction = 0.4;
+
     // The OrientedReadId corresponding to this vertex.
     const OrientedReadId orientedReadIdA = OrientedReadId(OrientedReadId::Int(vA));
     // const uint32_t markerCountA = getVertex(vA).markerCount;
@@ -855,7 +863,7 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
         // Get some information on the alignment of vA with vB.
         const auto& pB = alignments[iB];
         const VertexId vB = pB.first;
-        // const uint32_t markerCountB = getVertex(vB).markerCount;
+        const uint32_t markerCountB = getVertex(vB).markerCount;
         const OrientedReadId orientedReadIdB = OrientedReadId(OrientedReadId::Int(vB));
         const AlignmentInfo& alignmentInfoAB = pB.second;
 
@@ -864,7 +872,7 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
             // Get some information on the alignment of vA with vC.
             const auto& pC = alignments[iC];
             const VertexId vC = pC.first;
-            // const uint32_t markerCountC = getVertex(vC).markerCount;
+            const uint32_t markerCountC = getVertex(vC).markerCount;
             const OrientedReadId orientedReadIdC = OrientedReadId(OrientedReadId::Int(vC));
             const AlignmentInfo& alignmentInfoAC = pC.second;
 
@@ -884,16 +892,23 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
             const uint32_t overlapFirst = max(firstB, firstC);
             const uint32_t overlapLast = min(lastB, lastC);
 
-            // If there is no overlap, skip this pair.
+            // If there is not sufficient overlap, skip this pair.
             if(overlapFirst > overlapLast) {
                 if(debug) {
                     cout << "These alignments do not overlap." << endl;
                 }
                 continue;
             }
+            const uint32_t overlapLength = overlapLast + 1 - overlapFirst;
+            if(overlapLength < minOverlapLength) {
+                if(debug) {
+                    cout << "The overlap between these alignments is too short: " <<
+                        overlapLength << endl;
+                }
+                continue;
+            }
 
             // Compute the length of the overlap.
-            const uint32_t overlapLength = overlapLast + 1 - overlapFirst;
             if(debug) {
                 cout << "The ranges of these alignments overlap by " <<
                     overlapLength << " markers on " << orientedReadIdA << endl;
@@ -939,9 +954,40 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
             }
 
             if(debug) {
-                cout << "Need to check if a BC alignment is exists with "
+                cout << "Check if a BC alignment exists near "
                     " ordinal offset " << expectedOffset << endl;
             }
+
+            // Quickly check if a BC alignment around this offset is plausible.
+            const uint32_t commonMarkerCount = assembler.countCommonMarkersNearOffset(
+                orientedReadIdB, orientedReadIdC,
+                expectedOffset, offsetTolerance);
+            const uint32_t overlappingMarkerCount =
+                computeOverlappingMarkerCount(markerCountB, markerCountC, expectedOffset);
+            const double estimatedAlignedFraction =
+                double(commonMarkerCount) / double(overlappingMarkerCount);
+            if(debug) {
+                cout << "Number of common markers near this offset is " <<
+                    commonMarkerCount << " out of " << overlappingMarkerCount <<
+                    " overlapping markers."<< endl;
+                cout << "Estimated aligned fraction " <<
+                    estimatedAlignedFraction << endl;
+            }
+
+            if(estimatedAlignedFraction >= minAlignedFraction) {
+                if(debug) {
+                    cout << "Estimated aligned fraction is good." << endl;
+                }
+                continue;
+            }
+
+            if(debug) {
+                cout << "Possibly inconsistent alignments: " <<
+                    orientedReadIdA << " " <<
+                    orientedReadIdB << " " <<
+                    orientedReadIdC << " " << endl;
+            }
+
         }
     }
 }

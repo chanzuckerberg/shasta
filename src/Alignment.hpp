@@ -18,6 +18,12 @@ namespace shasta {
     class AlignmentInfo;
     enum class AlignmentType;
     void reverse(AlignmentType&);
+
+    inline uint32_t computeOverlappingMarkerCount(
+        uint32_t markerCount0,
+        uint32_t markerCount1,
+        int32_t ordinalOffset
+    );
 }
 
 
@@ -426,5 +432,31 @@ public:
     {}
 
 };
+
+
+
+// Compute the number of overlapping markers between two
+// oriented reads with given number of markers
+// and ordinal offset.
+inline uint32_t shasta::computeOverlappingMarkerCount(
+    uint32_t markerCount0,
+    uint32_t markerCount1,
+    int32_t ordinalOffset)
+{
+    const int32_t begin0 = 0;
+    const int32_t end0 = int32_t(markerCount0);
+    const int32_t begin1 = ordinalOffset;
+    const int32_t end1 = begin1 + int32_t(markerCount1);
+
+    const int32_t overlapBegin = max(begin0, begin1);
+    const int32_t overlapEnd = min(end0, end1);
+
+    if(overlapEnd < overlapBegin) {
+        return 0;
+    } else {
+        return overlapEnd - overlapBegin;
+    }
+
+}
 
 #endif

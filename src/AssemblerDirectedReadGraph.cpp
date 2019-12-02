@@ -83,5 +83,5 @@ void Assembler::analyzeDirectedReadGraphVertex(ReadId readId, Strand strand)
 {
     const OrientedReadId orientedReadId(readId, strand);
     const DirectedReadGraph::VertexId vertexId(orientedReadId.getValue());
-    directedReadGraph.analyzeVertex(vertexId);
+    directedReadGraph.analyzeVertex(vertexId, *this);
 }

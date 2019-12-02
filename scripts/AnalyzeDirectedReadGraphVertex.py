@@ -20,6 +20,7 @@ config = GetConfig.getConfig()
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
 a.accessDirectedReadGraphReadOnly()
+a.accessMarkers()
 
 # Analyze the vertex corresponding to this readId and strand.
 a.analyzeDirectedReadGraphVertex(

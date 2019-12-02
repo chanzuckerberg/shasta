@@ -53,6 +53,7 @@ Only edges marked as "keep" are used to create the marker graph.
 #include "ReadId.hpp"
 
 namespace shasta {
+    class Assembler;
     class DirectedReadGraph;
     class DirectedReadGraphEdge;
     class DirectedReadGraphVertex;
@@ -169,7 +170,7 @@ public:
 
     void writeEdges();
 
-    void analyzeVertex(VertexId);
+    void analyzeVertex(VertexId, Assembler&);
 
 private:
 
