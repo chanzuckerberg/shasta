@@ -923,6 +923,24 @@ private:
 
 
 
+    // Count the common marker near a given ordinal offset for
+    // two oriented reads. This can be used to check
+    // whether an alignmnent near the specified ordinal offset exists.
+    uint32_t countCommonMarkersNearOffset(
+        OrientedReadId,
+        OrientedReadId,
+        int32_t offset,
+        int32_t offsetTolerance
+    );
+    uint32_t countCommonMarkersWithOffsetIn(
+        OrientedReadId,
+        OrientedReadId,
+        int32_t minOffset,
+        int32_t maxOffset
+    );
+
+
+
     // The good alignments we found.
     // They are stored with readId0<readId1 and with strand0==0.
     MemoryMapped::Vector<AlignmentData> alignmentData;

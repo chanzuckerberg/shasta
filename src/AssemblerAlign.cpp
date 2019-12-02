@@ -790,3 +790,92 @@ void Assembler::analyzeAlignmentMatrix(
 
 
 }
+
+
+// Count the common marker near a given ordinal offset for
+// two oriented reads. This can be used to check
+// whether an alignmnent near the specified ordinal offset exists.
+uint32_t Assembler::countCommonMarkersNearOffset(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    int32_t offset,
+    int32_t offsetTolerance
+)
+{
+    const int32_t minOffset = offset - offsetTolerance;
+    const int32_t maxOffset = offset + offsetTolerance;
+    return countCommonMarkersWithOffsetIn(
+        orientedReadId0, orientedReadId1,
+        minOffset, maxOffset);
+}
+uint32_t Assembler::countCommonMarkersWithOffsetIn(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    int32_t minOffset,
+    int32_t maxOffset
+)
+{
+
+    // Get the markers sorted by kmerId.
+    checkMarkersAreOpen();
+    vector<MarkerWithOrdinal> markers0;
+    vector<MarkerWithOrdinal> markers1;
+    getMarkersSortedByKmerId(orientedReadId0, markers0);
+    getMarkersSortedByKmerId(orientedReadId1, markers1);
+
+    // Some iterators we will need.
+    using MarkerIterator = vector<MarkerWithOrdinal>::const_iterator;
+    const MarkerIterator begin0 = markers0.begin();
+    const MarkerIterator end0   = markers0.end();
+    const MarkerIterator begin1 = markers1.begin();
+    const MarkerIterator end1   = markers1.end();
+
+
+
+    // Main loop, looking for common markers.
+    uint32_t count = 0;
+    auto it0 = begin0;
+    auto it1 = begin1;
+    while(it0!=end0 && it1!=end1) {
+        if(it0->kmerId < it1->kmerId) {
+            ++it0;
+        } else if(it1->kmerId < it0->kmerId) {
+            ++it1;
+        } else {
+
+            // We found a common marker.
+            const KmerId kmerId = it0->kmerId;
+
+
+            // This k-mer could appear more than once in each of the oriented reads,
+            // so we need to find the streak of this k-mer in markers0 and markers1.
+            MarkerIterator it0Begin = it0;
+            MarkerIterator it1Begin = it1;
+            MarkerIterator it0End = it0Begin;
+            MarkerIterator it1End = it1Begin;
+            while(it0End!=end0 && it0End->kmerId==kmerId) {
+                ++it0End;
+            }
+            while(it1End!=end1 && it1End->kmerId==kmerId) {
+                ++it1End;
+            }
+
+            // Loop over pairs of markers in the streaks.
+            for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
+                for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
+                    const int32_t ordinalOffset = int32_t(jt0->ordinal) - int32_t(jt1->ordinal);
+                    if(ordinalOffset >= minOffset and ordinalOffset >= maxOffset) {
+                        ++count;
+                    }
+
+                }
+            }
+            // Continue main loop.
+            it0 = it0End;
+            it1 = it1End;
+        }
+
+    }
+
+    return count;
+}
