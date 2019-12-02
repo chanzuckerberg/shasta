@@ -1,31 +1,30 @@
 cmake_minimum_required(VERSION 3.10)
-find_package(CUDA 10.0)
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
 
-project(shastaGpu)
+project(shastaGpu LANGUAGES CXX CUDA)
 
 set(Boost_USE_STATIC_LIBS   ON)
 find_package(Boost REQUIRED COMPONENTS system program_options chrono)
 
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
 # C++ dialect.
-add_definitions(-std=c++14)
+SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 # Optimization and debug options.
 if(BUILD_DEBUG)
-    add_definitions(-ggdb3)
-    add_definitions(-O0)
+    SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb3")
+    SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 else(BUILD_DEBUG)
-    add_definitions(-g0)
-    add_definitions(-O3)
+    SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g0")
+    SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 endif(BUILD_DEBUG)
 
 # 16-byte compare and swap.
 # This is required by dset64.hpp/dset64-gccAtomic.hpp".
-add_definitions(-mcx16)
+SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcx16")
 
 # Native build.
 if(BUILD_NATIVE)
-    add_definitions(-march=native)
+    SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif(BUILD_NATIVE)
 
 # Build id.
@@ -41,12 +40,13 @@ add_definitions(-DSHASTA_BUILD_FOR_GPU)
 
 # Sources files.
 file(GLOB GPUSRCS ../src/gpu/*.cu)
-cuda_add_library(gpuLib ${GPUSRCS} STATIC)
+add_library(gpuLib STATIC ${GPUSRCS})
 target_include_directories(gpuLib PUBLIC ../src/gpu)
 
 # Sources files.
 file(GLOB LIBSRCS ../src/*.cpp ../src/gpu/*.cpp ../src/gpu/*.cu)
 add_library(shastaStaticGpuLibrary STATIC ${LIBSRCS})
+set_property(TARGET shastaStaticGpuLibrary PROPERTY IMPORTED_LINK_INTERFACE_LANGUAGES "CUDA")
 target_include_directories(shastaStaticGpuLibrary PUBLIC ../src ../src/gpu)
 target_link_libraries(shastaStaticGpuLibrary
     gpuLib)
@@ -58,6 +58,11 @@ file(GLOB SOURCES ../srcMain/*.cpp)
 add_executable(shastaGpu ${SOURCES})
 
 set_target_properties(shastaGpu PROPERTIES OUTPUT_NAME "shastaGpu")
+
+#if(NOT CMAKE_CUDA_DEVICE_LINK_EXECUTABLE)
+#  set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE
+#    "<CMAKE_CUDA_COMPILER> ${CMAKE_CUDA_HOST_FLAGS} <FLAGS> ${CMAKE_CUDA_COMPILE_OPTIONS_PIC} ${_CMAKE_CUDA_EXTRA_DEVICE_LINK_FLAGS} -shared -dlink <OBJECTS> -o <TARGET> <LINK_LIBRARIES>${__IMPLICT_DLINK_FLAGS}")
+#endif()
 
 # Libraries to link with.
 target_link_libraries(shastaGpu
