@@ -800,3 +800,131 @@ void DirectedReadGraph::writeEdges()
     }
 
 }
+
+
+
+void DirectedReadGraph::analyzeVertex(VertexId vA)
+{
+    // The OrientedReadId corresponding to this vertex.
+    const OrientedReadId orientedReadIdA = OrientedReadId(OrientedReadId::Int(vA));
+    const uint32_t markerCountA = getVertex(vA).markerCount;
+
+    // Debug flag to control detailed messages.
+    const bool debug = true;
+
+    // Gather all alignments that vertex vA is involved in.
+    // Make sure the AlignmentInfo is oriented so vertex vA
+    // corresponds to the first oriented read in the alignment.
+    vector< pair<VertexId, AlignmentInfo> > alignments;
+    for(const EdgeId eAB: outEdges(vA)) {
+        SHASTA_ASSERT(source(eAB) == vA);
+        const VertexId vB = target(eAB);
+        const AlignmentInfo& alignmentInfo = getEdge(eAB).alignmentInfo;
+        // The alignment info already has vA first.
+        alignments.push_back(make_pair(vB, alignmentInfo));
+    }
+    for(const EdgeId eBA: inEdges(vA)) {
+        SHASTA_ASSERT(target(eBA) == vA);
+        const VertexId vB = source(eBA);
+        AlignmentInfo alignmentInfo = getEdge(eBA).alignmentInfo;
+        // The alignment info already has vB first.
+        alignmentInfo.swap();
+        alignments.push_back(make_pair(vB, alignmentInfo));
+    }
+    sort(alignments.begin(), alignments.end(),
+        OrderPairsByFirstOnly<VertexId, AlignmentInfo>());
+    if(debug) {
+        cout << "Found " << alignments.size() <<
+            " alignments involving " << orientedReadIdA << ":" << endl;
+        for(size_t i=0; i<alignments.size(); i++) {
+            const auto& p = alignments[i];
+            const VertexId vertexId = p.first;
+            const AlignmentInfo& alignmentInfo = p.second;
+            cout << i << " " << OrientedReadId(OrientedReadId::Int(vertexId));
+            cout << " center offset " << alignmentInfo.offsetAtCenter();
+            cout << endl;
+        }
+    }
+
+
+
+    // Check all pairs of alignments.
+    // Each pair involves vertices vB and vC.
+    for(size_t iB=0; iB<alignments.size()-1; iB++) {
+
+        // Get some information on the alignment of vA with vB.
+        const auto& pB = alignments[iB];
+        const VertexId vB = pB.first;
+        const uint32_t markerCountB = getVertex(vB).markerCount;
+        const OrientedReadId orientedReadIdB = OrientedReadId(OrientedReadId::Int(vB));
+        const AlignmentInfo& alignmentInfoAB = pB.second;
+
+        for(size_t iC=iB+1; iC<alignments.size(); iC++) {
+
+            // Get some information on the alignment of vA with vC.
+            const auto& pC = alignments[iC];
+            const VertexId vC = pC.first;
+            const uint32_t markerCountC = getVertex(vC).markerCount;
+            const OrientedReadId orientedReadIdC = OrientedReadId(OrientedReadId::Int(vC));
+            const AlignmentInfo& alignmentInfoAC = pC.second;
+
+            if(debug) {
+                cout << "Working on alignments of " <<
+                    orientedReadIdA << " with " <<
+                    orientedReadIdB << " and " << orientedReadIdC << endl;
+            }
+
+            // Find the A range covered by the AB and AC alignments.
+            uint32_t firstB = alignmentInfoAB.data[0].firstOrdinal;
+            uint32_t lastB = alignmentInfoAB.data[0].lastOrdinal;
+            uint32_t firstC = alignmentInfoAC.data[0].firstOrdinal;
+            uint32_t lastC = alignmentInfoAC.data[0].lastOrdinal;
+
+            if(debug) {
+                cout << orientedReadIdA << " alignment range with " <<
+                    orientedReadIdB << ": " << firstB << " to " << lastB << endl;
+                cout << orientedReadIdA << " alignment range with " <<
+                    orientedReadIdC << ": " << firstC << " to " << lastC << endl;
+            }
+
+            // Compute the  overlap of these two ranges.
+            const uint32_t overlapFirst = max(firstB, firstC);
+            const uint32_t overlapLast = min(lastB, lastC);
+
+            // If there is no overlap, skip this pair.
+            if(overlapFirst > overlapLast) {
+                if(debug) {
+                    cout << "These alignments do not overlap." << endl;
+                }
+                continue;
+            }
+
+            // Compute the length of the overlap.
+            const uint32_t overlapLength = overlapLast + 1 - overlapFirst;
+            if(debug) {
+                cout << "The ranges of these alignments overlap by " <<
+                    overlapLength << " markers on " << orientedReadIdA << endl;
+            }
+
+            // See if we have an alignment between vB and vC.
+            // This means an edge vB->vC or vC->vB.
+            bool edgeExists =
+                (findEdge(vB, vC) != invalidEdgeId) or
+                (findEdge(vC, vB) != invalidEdgeId);
+
+            // If an alignment between vB and vC exists, skip this pair.
+            if(edgeExists) {
+                if(debug) {
+                    cout << "An alignment between " << orientedReadIdB <<
+                        " and " << orientedReadIdC << " exists." << endl;
+                }
+                continue;
+            }
+
+            if(debug) {
+                cout << "Possible inconsistent alignments." << endl;
+            }
+        }
+    }
+}
+

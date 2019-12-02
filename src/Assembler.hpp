@@ -1038,6 +1038,7 @@ public:
     void createDirectedReadGraph(uint32_t maxTrim);
     void accessDirectedReadGraphReadOnly();
     void accessDirectedReadGraphReadWrite();
+    void analyzeDirectedReadGraphVertex(ReadId, Strand);
 
 
 

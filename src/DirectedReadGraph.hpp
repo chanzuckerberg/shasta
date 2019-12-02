@@ -69,7 +69,7 @@ namespace shasta {
 class shasta::DirectedReadGraphVertex {
 public:
 
-    // The namber of raw (not RLE) bases and markers
+    // The number of raw (not RLE) bases and markers
     // for the oriented read corresponding to this vertex.
     uint32_t baseCount;
     uint32_t markerCount;
@@ -168,6 +168,8 @@ public:
         LocalDirectedReadGraph&);
 
     void writeEdges();
+
+    void analyzeVertex(VertexId);
 
 private:
 

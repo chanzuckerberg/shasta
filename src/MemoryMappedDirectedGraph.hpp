@@ -174,6 +174,35 @@ public:
 
 
 
+    // Return an edge with given source and target vertices,
+    // or invalidEdgeId if no such edge exists.
+    // If more than one such edge exists, the one with the lowest
+    // EdgeId is returned.
+    EdgeId findEdge(VertexId v0, VertexId v1)
+    {
+        // Look it up in the shortest of the out-edges
+        // of v0 and the in-edges of v1.
+        const auto outEdges0 = outEdges(v0);
+        const auto inEdges1 = inEdges(v1);
+        if(outEdges0.size() < inEdges1.size()) {
+            for(const EdgeId edgeId: outEdges0) {
+                if(target(edgeId) == v1) {
+                    return edgeId;
+                }
+            }
+        } else {
+            for(const EdgeId edgeId: inEdges1) {
+                if(source(edgeId) == v0) {
+                    return edgeId;
+                }
+            }
+        }
+
+        return invalidEdgeId;
+    }
+
+
+
     // The default constructor puts the graph in an uninitialized state.
     // The graph can only be used after calling createNew or accessExisting.
     DirectedGraph() {}
