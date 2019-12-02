@@ -1993,11 +1993,15 @@ void Assembler::displayAlignments(
         "<th rowspan=2>Index"
         "<th rowspan=2>Other<br>oriented<br>read"
         "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
+        "<th colspan=3>Ordinal offset"
         "<th rowspan=2 title='The marker offset of the centers of the two oriented reads.'>Center<br>offset"
         "<th colspan=5>Markers on oriented read " << orientedReadId0 <<
         "<th colspan=5>Markers on other oriented read"
         "<th rowspan=2>Alignment sketch"
-        "<tr>";
+        "<tr>"
+        "<th>Min"
+        "<th>Ave"
+        "<th>Max";
     for(int i=0; i<2; i++) {
         html <<
             "<th title='Number of aligned markers on the left of the alignment'>Left<br>unaligned"
@@ -2036,6 +2040,9 @@ void Assembler::displayAlignments(
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
             "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
+            "<td>" << alignmentInfo.minOrdinalOffset <<
+            "<td>" << alignmentInfo.maxOrdinalOffset <<
+            "<td>" << alignmentInfo.averageOrdinalOffset <<
             "<td class=centered>" << std::setprecision(6) << alignmentInfo.offsetAtCenter() <<
             "<td class=centered>" << alignmentInfo.leftTrim(0) <<
             "<td class=centered>" << alignmentInfo.range(0) <<
