@@ -880,13 +880,6 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
             uint32_t firstC = alignmentInfoAC.data[0].firstOrdinal;
             uint32_t lastC = alignmentInfoAC.data[0].lastOrdinal;
 
-            if(debug) {
-                cout << orientedReadIdA << " alignment range with " <<
-                    orientedReadIdB << ": " << firstB << " to " << lastB << endl;
-                cout << orientedReadIdA << " alignment range with " <<
-                    orientedReadIdC << ": " << firstC << " to " << lastC << endl;
-            }
-
             // Compute the  overlap of these two ranges.
             const uint32_t overlapFirst = max(firstB, firstC);
             const uint32_t overlapLast = min(lastB, lastC);
@@ -906,23 +899,48 @@ void DirectedReadGraph::analyzeVertex(VertexId vA)
                     overlapLength << " markers on " << orientedReadIdA << endl;
             }
 
+            const int32_t expectedOffset =
+                alignmentInfoAC.averageOrdinalOffset -
+                alignmentInfoAB.averageOrdinalOffset;
+            if(debug) {
+                cout << "Alignment of " << orientedReadIdA << " with " <<
+                    orientedReadIdB << ": range " << firstB << "-" << lastB <<
+                    ", average ordinal offset " << alignmentInfoAB.averageOrdinalOffset << endl;
+                cout << "Alignment of " << orientedReadIdA << " with " <<
+                    orientedReadIdC << ": range " << firstC << "-" << lastC <<
+                    ", average ordinal offset " << alignmentInfoAC.averageOrdinalOffset << endl;
+                cout << "Expecting a BC alignment with ordinal offset " <<
+                    expectedOffset << endl;
+            }
+
             // See if we have an alignment between vB and vC.
             // This means an edge vB->vC or vC->vB.
-            bool edgeExists =
-                (findEdge(vB, vC) != invalidEdgeId) or
-                (findEdge(vC, vB) != invalidEdgeId);
+            const EdgeId eBC = findEdge(vB, vC);
+            const EdgeId eCB = findEdge(vC, vB);
+            const bool edgeExists = (eBC != invalidEdgeId) or (eCB != invalidEdgeId);
 
             // If an alignment between vB and vC exists, skip this pair.
             if(edgeExists) {
                 if(debug) {
-                    cout << "An alignment between " << orientedReadIdB <<
-                        " and " << orientedReadIdC << " exists." << endl;
+                    if(eBC != invalidEdgeId) {
+                        cout << "An alignment between " << orientedReadIdB <<
+                            " and " << orientedReadIdC << " exists";
+                        cout << " and has average ordinal offset " <<
+                            getEdge(eBC).alignmentInfo.averageOrdinalOffset << endl;
+                    }
+                    if(eCB != invalidEdgeId) {
+                        cout << "An alignment between " << orientedReadIdB <<
+                            " and " << orientedReadIdC << " exists";
+                        cout << " and has average ordinal offset " <<
+                            -getEdge(eCB).alignmentInfo.averageOrdinalOffset << endl;
+                    }
                 }
                 continue;
             }
 
             if(debug) {
-                cout << "Possible inconsistent alignments." << endl;
+                cout << "Need to check if a BC alignment is exists with "
+                    " ordinal offset " << expectedOffset << endl;
             }
         }
     }
