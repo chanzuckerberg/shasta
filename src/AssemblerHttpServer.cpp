@@ -2321,6 +2321,18 @@ void Assembler::exploreAlignment(
         "<td>"
 
         "<tr>"
+        "<td>Minimum ordinal offset<td><td class=centered>" << alignmentInfo.minOrdinalOffset <<
+        "<td><td>"
+
+        "<tr>"
+        "<td>Average ordinal offset<td><td class=centered>" << alignmentInfo.averageOrdinalOffset <<
+        "<td><td>"
+
+        "<tr>"
+        "<td>Maximum ordinal offset<td><td class=centered>" << alignmentInfo.maxOrdinalOffset <<
+        "<td><td>"
+
+        "<tr>"
         "<td title='Marker offset between the center of " << orientedReadId0 <<
         " and the center of " << orientedReadId1 <<
         "'>Marker offset at center<td><td>" << std::setprecision(6) << alignmentInfo.offsetAtCenter() <<
@@ -2371,12 +2383,13 @@ void Assembler::exploreAlignment(
 
         "<tr>"
         "<th rowspan=2>K-mer"
-        "<th colspan=2>Ordinals"
+        "<th colspan=3>Ordinals"
         "<th colspan=2>Positions"
 
         "<tr>"
         "<th>" << orientedReadId0 <<
         "<th>" << orientedReadId1 <<
+        "<th>Offset"
         "<th>" << orientedReadId0 <<
         "<th>" << orientedReadId1;
 
@@ -2405,6 +2418,7 @@ void Assembler::exploreAlignment(
             "&amp;highlightMarker=" << ordinal1 <<
             "#" << ordinal1 << "\">" << ordinal1 << "</a>"
 
+            "<td class=centered>" << int32_t(ordinal0) - int32_t(ordinal1) <<
             "<td class=centered>" << marker0.position <<
             "<td class=centered>" << marker1.position;
 
