@@ -803,8 +803,35 @@ void DirectedReadGraph::writeEdges()
 }
 
 
+void DirectedReadGraph::flagInconsistentEdges(Assembler& assembler)
+{
 
-void DirectedReadGraph::analyzeVertex(VertexId vA, Assembler& assembler)
+    // First mark all edges are not incosistent.
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        getEdge(edgeId).isInconsistent = 0;
+    }
+
+    // Now, call the lower level function for each vertex.
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+        flagInconsistentEdges(vertexId, assembler, false, true);
+    }
+
+    // Count the edges flagged as incosnsistent.
+    uint64_t count = 0;
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        if(getEdge(edgeId).isInconsistent) {
+            ++count;
+        }
+    }
+    cout << "Of " << edges.size() << " edges, " << count <<
+        " were marked as inconsistent." << endl;
+}
+
+void DirectedReadGraph::flagInconsistentEdges(
+    VertexId vA,
+    Assembler& assembler,
+    bool debug,
+    bool flagEdges)
 {
     // Parameters used by this function.
     // These should be turned into command line options
@@ -817,19 +844,16 @@ void DirectedReadGraph::analyzeVertex(VertexId vA, Assembler& assembler)
     const OrientedReadId orientedReadIdA = OrientedReadId(OrientedReadId::Int(vA));
     // const uint32_t markerCountA = getVertex(vA).markerCount;
 
-    // Debug flag to control detailed messages.
-    const bool debug = true;
-
     // Gather all alignments that vertex vA is involved in.
     // Make sure the AlignmentInfo is oriented so vertex vA
     // corresponds to the first oriented read in the alignment.
-    vector< pair<VertexId, AlignmentInfo> > alignments;
+    vector<FlagInconsistentEdgesData> alignments;
     for(const EdgeId eAB: outEdges(vA)) {
         SHASTA_ASSERT(source(eAB) == vA);
         const VertexId vB = target(eAB);
         const AlignmentInfo& alignmentInfo = getEdge(eAB).alignmentInfo;
         // The alignment info already has vA first.
-        alignments.push_back(make_pair(vB, alignmentInfo));
+        alignments.push_back(FlagInconsistentEdgesData(vB, eAB, alignmentInfo));
     }
     for(const EdgeId eBA: inEdges(vA)) {
         SHASTA_ASSERT(target(eBA) == vA);
@@ -837,23 +861,24 @@ void DirectedReadGraph::analyzeVertex(VertexId vA, Assembler& assembler)
         AlignmentInfo alignmentInfo = getEdge(eBA).alignmentInfo;
         // The alignment info already has vB first.
         alignmentInfo.swap();
-        alignments.push_back(make_pair(vB, alignmentInfo));
+        alignments.push_back(FlagInconsistentEdgesData(vB, eBA, alignmentInfo));
     }
-    sort(alignments.begin(), alignments.end(),
-        OrderPairsByFirstOnly<VertexId, AlignmentInfo>());
+    sort(alignments.begin(), alignments.end());
     if(debug) {
         cout << "Found " << alignments.size() <<
             " alignments involving " << orientedReadIdA << ":" << endl;
         for(size_t i=0; i<alignments.size(); i++) {
-            const auto& p = alignments[i];
-            const VertexId vertexId = p.first;
-            const AlignmentInfo& alignmentInfo = p.second;
-            cout << i << " " << OrientedReadId(OrientedReadId::Int(vertexId));
-            cout << " center offset " << alignmentInfo.offsetAtCenter();
+            const auto& f = alignments[i];
+            cout << i << " " << OrientedReadId(OrientedReadId::Int(f.vertexId));
+            cout << " center offset " << f.alignmentInfo.offsetAtCenter();
             cout << endl;
         }
     }
 
+    // If there are less than 2 alignments, do nothing.
+    if(alignments.size() < 2) {
+        return;
+    }
 
 
     // Check all pairs of alignments.
@@ -861,20 +886,28 @@ void DirectedReadGraph::analyzeVertex(VertexId vA, Assembler& assembler)
     for(size_t iB=0; iB<alignments.size()-1; iB++) {
 
         // Get some information on the alignment of vA with vB.
-        const auto& pB = alignments[iB];
-        const VertexId vB = pB.first;
+        const auto& fB = alignments[iB];
+        const VertexId vB = fB.vertexId;
+        const EdgeId eB = fB.edgeId;
         const uint32_t markerCountB = getVertex(vB).markerCount;
         const OrientedReadId orientedReadIdB = OrientedReadId(OrientedReadId::Int(vB));
-        const AlignmentInfo& alignmentInfoAB = pB.second;
+        const AlignmentInfo& alignmentInfoAB = fB.alignmentInfo;
 
         for(size_t iC=iB+1; iC<alignments.size(); iC++) {
 
             // Get some information on the alignment of vA with vC.
-            const auto& pC = alignments[iC];
-            const VertexId vC = pC.first;
+            const auto& fC = alignments[iC];
+            const VertexId vC = fC.vertexId;
+            const EdgeId eC = fC.edgeId;
             const uint32_t markerCountC = getVertex(vC).markerCount;
             const OrientedReadId orientedReadIdC = OrientedReadId(OrientedReadId::Int(vC));
-            const AlignmentInfo& alignmentInfoAC = pC.second;
+            const AlignmentInfo& alignmentInfoAC = fC.alignmentInfo;
+
+            // If debug is not turned on and both of these edges are already marked as
+            // inconsistent, we can skip this pair.
+            if(not debug and getEdge(eB).isInconsistent and getEdge(eC).isInconsistent) {
+                continue;
+            }
 
             if(debug) {
                 cout << "Working on alignments of " <<
@@ -986,6 +1019,13 @@ void DirectedReadGraph::analyzeVertex(VertexId vA, Assembler& assembler)
                     orientedReadIdA << " " <<
                     orientedReadIdB << " " <<
                     orientedReadIdC << " " << endl;
+            }
+
+            // Mark both edges are inconsistent.
+            // There are other possibilities for what to do here.
+            if(flagEdges) {
+                getEdge(eB).isInconsistent = 1;
+                getEdge(eC).isInconsistent = 1;
             }
 
         }
