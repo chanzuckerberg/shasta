@@ -36,6 +36,7 @@ void LocalDirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     const AlignmentInfo& alignmentInfo,
+    bool isInconsistent,
     bool involvesTwoContainedVertices,
     bool involvesOneContainedVertex,
     bool keep,
@@ -52,6 +53,7 @@ void LocalDirectedReadGraph::addEdge(
     // Add the edge.
     add_edge(v0, v1,
         LocalDirectedReadGraphEdge(alignmentInfo,
+            isInconsistent,
             involvesTwoContainedVertices,
             involvesOneContainedVertex,
             keep,
@@ -158,7 +160,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     } else if(vertex.distance == maxDistance) {
         s << " color=cyan";
     } else if(vertex.isContained) {
-        s << " color=red";
+        // s << " color=red";
     } else {
         s << " color=black";
     }
@@ -198,8 +200,10 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
 
-    if(not edge.keep) {
+    if(edge.isInconsistent) {
         s << " color=\"#ff00007f\""; // Partially transparent red.
+    } else if(not edge.keep) {
+        // s << " color=\"#00ff007f\""; // Partially transparent green.
     }
 
     s << "]";

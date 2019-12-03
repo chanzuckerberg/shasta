@@ -71,6 +71,7 @@ public:
 
     AlignmentInfo alignmentInfo;
 
+    bool isInconsistent;
     bool involvesTwoContainedVertices;
     bool involvesOneContainedVertex;
     bool keep;
@@ -79,11 +80,13 @@ public:
 
     LocalDirectedReadGraphEdge(
         const AlignmentInfo& alignmentInfo,
+        bool isInconsistent,
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
         bool keep,
         uint32_t commonNeighborCount):
         alignmentInfo(alignmentInfo),
+        isInconsistent(isInconsistent),
         involvesTwoContainedVertices(involvesTwoContainedVertices),
         involvesOneContainedVertex(involvesOneContainedVertex),
         keep(keep),
@@ -108,6 +111,7 @@ public:
         OrientedReadId,
         OrientedReadId,
         const AlignmentInfo& alignmentInfo,
+        bool isInconsistent,
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
         bool keep,

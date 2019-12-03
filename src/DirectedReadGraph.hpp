@@ -164,8 +164,7 @@ public:
         uint64_t minAlignedMarkerCount,
         uint64_t maxOffsetAtCenter,
         double minAlignedFraction,
-        bool allowEdgesInvolvingTwoContainedVertices,
-        bool allowEdgesInvolvingOneContainedVertex,
+        bool allowInconsistentEdges,
         bool allowEdgesNotKept,
         double timeout,
         LocalDirectedReadGraph&);
@@ -214,27 +213,22 @@ private:
             uint64_t minAlignedMarkerCount,
             uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
-            bool allowEdgesInvolvingTwoContainedVertices,
-            bool allowEdgesInvolvingOneContainedVertex,
+            bool allowInconsistentEdges,
             bool allowEdgesNotKept) :
 
             minAlignedMarkerCount(minAlignedMarkerCount),
             maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
-            allowEdgesInvolvingTwoContainedVertices(allowEdgesInvolvingTwoContainedVertices),
-            allowEdgesInvolvingOneContainedVertex(allowEdgesInvolvingOneContainedVertex),
+            allowInconsistentEdges(allowInconsistentEdges),
             allowEdgesNotKept(allowEdgesNotKept)
             {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
-            if(not allowEdgesNotKept and (edge.keep == 0)) {
+            if(not allowInconsistentEdges and edge.isInconsistent) {
                 return false;
             }
-            if(not allowEdgesInvolvingTwoContainedVertices and edge.involvesTwoContainedVertices) {
-                return false;
-            }
-            if(not allowEdgesInvolvingOneContainedVertex and edge.involvesOneContainedVertex) {
+            if(not allowEdgesNotKept and not edge.keep) {
                 return false;
             }
             return
@@ -250,8 +244,7 @@ private:
         uint64_t maxTwiceOffsetAtCenter;
         double minAlignedFraction;
 
-        bool allowEdgesInvolvingTwoContainedVertices;
-        bool allowEdgesInvolvingOneContainedVertex;
+        bool allowInconsistentEdges;
         bool allowEdgesNotKept;
     };
 

@@ -43,13 +43,9 @@ void Assembler::exploreDirectedReadGraph(
     float minTransitiveCoverage = 0.;
     getParameterValue(request, "minTransitiveCoverage", minTransitiveCoverage);
 
-    string allowEdgesInvolvingTwoContainedVerticesString;
-    bool allowEdgesInvolvingTwoContainedVertices = getParameterValue(request,
-        "allowEdgesInvolvingTwoContainedVertices", allowEdgesInvolvingTwoContainedVerticesString);
-
-    string allowEdgesInvolvingOneContainedVertexString;
-    bool allowEdgesInvolvingOneContainedVertex = getParameterValue(request,
-        "allowEdgesInvolvingOneContainedVertex", allowEdgesInvolvingOneContainedVertexString);
+    string allowInconsistentEdgesString;
+    bool allowInconsistentEdges = getParameterValue(request,
+        "allowInconsistentEdges", allowInconsistentEdgesString);
 
     string allowEdgesNotKeptString;
     bool allowEdgesNotKept = getParameterValue(request,
@@ -126,15 +122,9 @@ void Assembler::exploreDirectedReadGraph(
         "'>"
 
         "<tr>"
-        "<td>Include edges involving two contained vertices"
-        "<td class=centered><input type=checkbox name=allowEdgesInvolvingTwoContainedVertices" <<
-        (allowEdgesInvolvingTwoContainedVertices ? " checked" : "") <<
-        ">"
-
-        "<tr>"
-        "<td>Include edges involving one contained vertex"
-        "<td class=centered><input type=checkbox name=allowEdgesInvolvingOneContainedVertex" <<
-        (allowEdgesInvolvingOneContainedVertex ? " checked" : "") <<
+        "<td>Include edges flagged as inconsistent"
+        "<td class=centered><input type=checkbox name=allowInconsistentEdges" <<
+        (allowInconsistentEdges ? " checked" : "") <<
         ">"
 
         "<tr>"
@@ -223,8 +213,7 @@ void Assembler::exploreDirectedReadGraph(
     if(not directedReadGraph.extractLocalSubgraph(
         orientedReadId, maxDistance,
         minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
-        allowEdgesInvolvingTwoContainedVertices,
-        allowEdgesInvolvingOneContainedVertex,
+        allowInconsistentEdges,
         allowEdgesNotKept,
         timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "

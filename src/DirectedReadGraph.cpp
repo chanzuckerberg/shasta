@@ -177,11 +177,15 @@ void DirectedReadGraph::flagEdgesToBeKept(
             neighbors.clear();
             for(const EdgeId edgeId: outEdges(v0)) {
                 const Edge& edge = getEdge(edgeId);
-                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                if(not edge.isInconsistent) {
+                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                }
             }
             for(const EdgeId edgeId: inEdges(v0)) {
                 const Edge& edge = getEdge(edgeId);
-                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                if(not edge.isInconsistent) {
+                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                }
             }
 
             // Mark the best containedNeighborCount as keep.
@@ -213,7 +217,9 @@ void DirectedReadGraph::flagEdgesToBeKept(
                     continue;
                 }
                 const Edge& edge = getEdge(edgeId);
-                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                if(not edge.isInconsistent) {
+                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                }
             }
 
             // Mark the best uncontainedNeighborCountPerDirection as keep.
@@ -236,7 +242,9 @@ void DirectedReadGraph::flagEdgesToBeKept(
                     continue;
                 }
                 const Edge& edge = getEdge(edgeId);
-                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                if(not edge.isInconsistent) {
+                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
+                }
             }
 
             // Mark the best uncontainedNeighborCountPerDirection as keep.
@@ -306,6 +314,7 @@ void DirectedReadGraph::check()
 
 
 // Flag contained vertices and set edge flags accordingly.
+// This ignores edges flagged as inconsistent.
 void DirectedReadGraph::flagContainedVertices(uint32_t maxTrim)
 {
     for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
@@ -314,7 +323,11 @@ void DirectedReadGraph::flagContainedVertices(uint32_t maxTrim)
 
         // Check the out-edges.
         for(const EdgeId edgeId: outEdges(vertexId)) {
-            const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
+            const Edge& edge = getEdge(edgeId);
+            if(edge.isInconsistent) {
+                continue;
+            }
+            const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             if(alignmentInfo.isContained(0, maxTrim)) {
                 vertex.isContained = 1;
                 break;
@@ -328,7 +341,11 @@ void DirectedReadGraph::flagContainedVertices(uint32_t maxTrim)
 
         // Check the in-edges.
         for(const EdgeId edgeId: inEdges(vertexId)) {
-            const AlignmentInfo& alignmentInfo = getEdge(edgeId).alignmentInfo;
+            const Edge& edge = getEdge(edgeId);
+            if(edge.isInconsistent) {
+                continue;
+            }
+            const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             if(alignmentInfo.isContained(1, maxTrim)) {
                 vertex.isContained = 1;
                 break;
@@ -394,8 +411,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
     uint64_t minAlignedMarkerCount,
     uint64_t maxOffsetAtCenter,
     double minAlignedFraction,
-    bool allowEdgesInvolvingTwoContainedVertices,
-    bool allowEdgesInvolvingOneContainedVertex,
+    bool allowInconsistentEdges,
     bool allowEdgesNotKept,
     double timeout,
     LocalDirectedReadGraph& graph)
@@ -409,8 +425,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
     EdgeFilter edgeFilter(minAlignedMarkerCount,
         2*maxOffsetAtCenter,
         minAlignedFraction,
-        allowEdgesInvolvingTwoContainedVertices,
-        allowEdgesInvolvingOneContainedVertex,
+        allowInconsistentEdges,
         allowEdgesNotKept);
 
     // Get the vertices in this neighborhood.
@@ -482,6 +497,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
                 neighbors0, neighbors1, intersectionVertices, unionVertices);
             const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             graph.addEdge(orientedReadId0, orientedReadId1, alignmentInfo,
+                edge.isInconsistent == 1,
                 edge.involvesTwoContainedVertices == 1,
                 edge.involvesOneContainedVertex == 1,
                 edge.keep == 1,
@@ -836,7 +852,7 @@ void DirectedReadGraph::flagInconsistentEdges(
     // Parameters used by this function.
     // These should be turned into command line options
     /// when the code stabilizes.
-    const uint32_t minOverlapLength = 100;
+    const uint32_t minOverlapLength = 50;
     const int32_t offsetTolerance = 100;
     const double minAlignedFraction = 0.4;
 
