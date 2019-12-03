@@ -28,6 +28,7 @@ namespace shasta {
             );
 
         void setupHugePages();
+        void segmentFaultHandler(int);
 
         // Functions that implement --command keywords
         void assemble(const AssemblerOptions&);
@@ -45,8 +46,10 @@ using namespace shasta;
 #include  <boost/chrono/process_cpu_clocks.hpp>
 
 //  Linux.
+#include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
+
 
 // Standard library.
 #include "chrono.hpp"
@@ -88,9 +91,22 @@ int main(int argumentCount, const char** arguments)
 
 
 
+void shasta::main::segmentFaultHandler(int)
+{
+    char message[] = "\nA segment fault occurred. Please report it by filing an "
+        "issue on the Shasta repository and attaching the entire log output. "
+        "To file an issue, point your browser to https://github.com/chanzuckerberg/shasta/issues\n";
+    ::write(fileno(stderr), message, sizeof(message));
+    ::_exit(1);
+}
+
+
 void shasta::main::main(int argumentCount, const char** arguments)
 {
-
+    struct sigaction action;
+    ::memset(&action, 0, sizeof(action));
+    action.sa_handler = &segmentFaultHandler;
+    sigaction(SIGSEGV, &action, 0);
 
     // Parse command line options and the configuration file, if one was specified.
     AssemblerOptions assemblerOptions(argumentCount, arguments);
