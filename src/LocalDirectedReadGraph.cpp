@@ -129,8 +129,9 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
 {
     s << "layout=sfdp;\n";
     s << "ratio=expand;\n";
+    s << "smoothing=triangle;\n";
     s << "node [shape=point];\n";
-    s << "edge [penwidth=\"0.2\"];\n";
+    s << "edge [penwidth=\"0.2\" dir=both arrowhead=inv color=\"green:black;0.9:red\"];\n";
 
     // This turns off the tooltip on the graph.
     s << "tooltip = \" \";\n";
@@ -197,11 +198,11 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         ", common neighbors " << edge.commonNeighborCount <<
         "\"";
 
-    s << " penwidth=\"" << edgeThicknessScalingFactor << "\"";
+    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-2 * edge.alignmentInfo.markerCount) << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
 
     if(edge.isInconsistent) {
-        s << " color=\"#ff00007f\""; // Partially transparent red.
+        // s << " color=\"#ff00007f\""; // Partially transparent red.
     } else if(not edge.keep) {
         // s << " color=\"#00ff007f\""; // Partially transparent green.
     }

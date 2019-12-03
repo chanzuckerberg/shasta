@@ -822,7 +822,7 @@ void DirectedReadGraph::writeEdges()
 void DirectedReadGraph::flagInconsistentEdges(Assembler& assembler)
 {
 
-    // First mark all edges are not incosistent.
+    // First mark all edges are not inconsistent.
     for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
         getEdge(edgeId).isInconsistent = 0;
     }
@@ -832,7 +832,7 @@ void DirectedReadGraph::flagInconsistentEdges(Assembler& assembler)
         flagInconsistentEdges(vertexId, assembler, false, true);
     }
 
-    // Count the edges flagged as incosnsistent.
+    // Count the edges flagged as inconsistent.
     uint64_t count = 0;
     for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
         if(getEdge(edgeId).isInconsistent) {
@@ -853,8 +853,8 @@ void DirectedReadGraph::flagInconsistentEdges(
     // These should be turned into command line options
     /// when the code stabilizes.
     const uint32_t minOverlapLength = 50;
-    const int32_t offsetTolerance = 100;
-    const double minAlignedFraction = 0.4;
+    const int32_t offsetTolerance = 50;
+    const double minAlignedFraction = 0.3;
 
     // The OrientedReadId corresponding to this vertex.
     const OrientedReadId orientedReadIdA = OrientedReadId(OrientedReadId::Int(vA));
