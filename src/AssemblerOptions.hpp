@@ -130,8 +130,6 @@ public:
         int minComponentSize;
         int maxChimericReadDistance;
         int crossStrandMaxDistance;
-        double offsetTolerance0;
-        double offsetTolerance1;
         void write(ostream& ) const;
     };
     ReadGraphOptions readGraphOptions;

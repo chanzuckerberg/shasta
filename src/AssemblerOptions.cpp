@@ -109,7 +109,7 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "Write a help message.")
 
         ("version,v",
-        "Write the build id.")
+        "Identify the Shasta version.")
 
         ("config",
         value<string>(&commandLineOnlyOptions.configFileName),
@@ -117,12 +117,12 @@ void AssemblerOptions::addCommandLineOnlyOptions()
 
         ("input",
         value< vector<string> >(&commandLineOnlyOptions.inputFileNames)->multitoken(),
-        "Names of input files. Specify at least one.")
+        "Names of input files containing reads. Specify at least one.")
 
         ("assemblyDirectory",
         value<string>(&commandLineOnlyOptions.assemblyDirectory)->
         default_value("ShastaRun"),
-        "Name of the output directory. Must not exist.")
+        "Name of the output directory. If command is assemble, this directory must not exist.")
 
         ("command",
         value<string>(&commandLineOnlyOptions.command)->
@@ -135,13 +135,13 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         value<string>(&commandLineOnlyOptions.memoryMode)->
         default_value("anonymous"),
         "Specify whether allocated memory is anonymous or backed by a filesystem. "
-        "Allowed values: anonymous (default), filesystem.")
+        "Allowed values: anonymous, filesystem.")
 
         ("memoryBacking",
         value<string>(&commandLineOnlyOptions.memoryBacking)->
         default_value("4K"),
         "Specify the type of pages used to back memory.\n"
-        "Allowed values: disk, 4K (default), 2M (for best performance, Linux only). "
+        "Allowed values: disk, 4K , 2M (for best performance). "
         "All combinations (memoryMode, memoryBacking) are allowed "
         "except for (anonymous, disk).\n"
         "Some combinations require root privilege, which is obtained using sudo "
@@ -153,10 +153,12 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         default_value(0),
         "Number of threads, or 0 to use one thread per virtual processor.")
         
+#ifdef SHASTA_BUILD_FOR_GPU
         ("gpu",
         bool_switch(&commandLineOnlyOptions.useGpu)->
         default_value(false),
-        "Use GPU acceleration. This is under development and is not ready to be used.")
+        "Use GPU acceleration.")
+#endif
         
 #ifdef SHASTA_HTTP_SERVER
         ("exploreAccess",
@@ -186,6 +188,9 @@ void AssemblerOptions::addCommandLineOnlyOptions()
     commandLineOnlyOptions.memoryBacking = "disk";
 #endif
 
+#ifndef SHASTA_BUILD_FOR_GPU
+    commandLineOnlyOptions.useGpu = false;
+#endif
 }
 
 
@@ -205,7 +210,7 @@ void AssemblerOptions::addConfigurableOptions()
         ("Reads.minReadLength",
         value<int>(&readsOptions.minReadLength)->
         default_value(10000),
-        "Read length cutoff.")
+        "Read length cutoff. Shorter reads are discarded.")
 
         ("Reads.palindromicReads.maxSkip",
         value<int>(&readsOptions.palindromicReads.maxSkip)->
@@ -264,7 +269,8 @@ void AssemblerOptions::addConfigurableOptions()
         ("MinHash.version",
         value<int>(&minHashOptions.version)->
         default_value(0),
-        "Controls the version of the LowHash algorithm to use. Can be 0 or 1.")
+        "Controls the version of the LowHash algorithm to use. Can be 0 (default) "
+        "or 1.(experimental).")
 
         ("MinHash.m",
         value<int>(&minHashOptions.m)->
@@ -307,12 +313,12 @@ void AssemblerOptions::addConfigurableOptions()
         ("Align.alignMethodForReadGraph",
         value<int>(&alignOptions.alignMethodForReadGraph)->
         default_value(0),
-        "The alignment method to be used to create the read graph (0 or 1).")
+        "The alignment method to be used to create the read graph. It can be 0 (default) or 1 (experimental).")
 
         ("Align.alignMethodForMarkerGraph",
         value<int>(&alignOptions.alignMethodForMarkerGraph)->
         default_value(0),
-        "The alignment method to be used to create the marker graph (0 or 1).")
+        "The alignment method to be used to create the marker graph. It can be 0 (default) or 1 (experimental).")
 
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->
@@ -322,18 +328,20 @@ void AssemblerOptions::addConfigurableOptions()
         ("Align.maxDrift",
         value<int>(&alignOptions.maxDrift)->
         default_value(30),
-        "The maximum number of marker drift that an alignment is allowed to tolerate "
+        "The maximum amount of marker drift that an alignment is allowed to tolerate "
         "between successive markers.")
 
         ("Align.maxTrim",
         value<int>(&alignOptions.maxTrim)->
         default_value(30),
-        "The maximum number of trim markers tolerated at the beginning and end of an alignment.")
+        "The maximum number of unaligned markers tolerated at the beginning and end of an alignment.")
 
         ("Align.maxMarkerFrequency",
         value<int>(&alignOptions.maxMarkerFrequency)->
         default_value(10),
-        "Marker frequency threshold.")
+        "Marker frequency threshold. Markers more frequent than this value in either of "
+        "two oriented reads being aligned are discarded and not used to compute "
+        "the alignment.")
 
         ("Align.minAlignedMarkerCount",
         value<int>(&alignOptions.minAlignedMarkerCount)->
@@ -348,34 +356,33 @@ void AssemblerOptions::addConfigurableOptions()
         ("Align.matchScore",
         value<int>(&alignOptions.matchScore)->
         default_value(3),
-        "Match score for marker alignments.")
+        "Match score for marker alignments (only for experimental alignment method 1).")
 
         ("Align.mismatchScore",
         value<int>(&alignOptions.mismatchScore)->
         default_value(-1),
-        "Mismatch score for marker alignments.")
+        "Mismatch score for marker alignments (only for experimental alignment method 1).")
 
         ("Align.gapScore",
         value<int>(&alignOptions.gapScore)->
         default_value(-3),
-        "Gap score for marker alignments.")
+        "Gap score for marker alignments (only for experimental alignment method 1).")
 
         ("ReadGraph.creationMethod",
         value<int>(&readGraphOptions.creationMethod)->
         default_value(0),
-        "The method used to create the read graph (0=undirected, 1=directed). "
-        "Under development. Leave at default value 0.")
+        "The method used to create the read graph (0 = undirected, default, 1 = directed, experimental).")
 
         ("ReadGraph.maxAlignmentCount",
         value<int>(&readGraphOptions.maxAlignmentCount)->
         default_value(6),
-        "The maximum alignments to be kept for each read.")
+        "The maximum number of alignments to be kept for each read.")
 
         ("ReadGraph.minComponentSize",
         value<int>(&readGraphOptions.minComponentSize)->
         default_value(100),
         "The minimum size (number of oriented reads) of a connected component "
-        "of the read graph to be kept.")
+        "of the read graph to be kept. This is currently ignored.")
 
         ("ReadGraph.maxChimericReadDistance",
         value<int>(&readGraphOptions.maxChimericReadDistance)->
@@ -387,18 +394,6 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(6),
         "Maximum distance (edges) for flagCrossStrandReadGraphEdges. "
         "Set this to zero to entirely suppress flagCrossStrandReadGraphEdges.")
-
-        ("ReadGraph.offsetTolerance0",
-        value<double>(&readGraphOptions.offsetTolerance0)->
-        default_value(100.),
-        "Constant term for offset tolerance during transitive reduction "
-        "of the directed read graph.")
-
-        ("ReadGraph.offsetTolerance1",
-        value<double>(&readGraphOptions.offsetTolerance1)->
-        default_value(0.1),
-        "Linear term for offset tolerance during transitive reduction "
-        "of the directed read graph.")
 
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
@@ -413,12 +408,14 @@ void AssemblerOptions::addConfigurableOptions()
         ("MarkerGraph.lowCoverageThreshold",
         value<int>(&markerGraphOptions.lowCoverageThreshold)->
         default_value(0),
-        "Used during approximate transitive reduction.")
+        "Used during approximate transitive reduction. Marker graph edges with coverage "
+        "lower than this value are always marked as removed regardless of reachability.")
 
         ("MarkerGraph.highCoverageThreshold",
         value<int>(&markerGraphOptions.highCoverageThreshold)->
         default_value(256),
-        "Used during approximate transitive reduction.")
+        "Used during approximate transitive reduction. Marker graph edges with coverage "
+        "higher than this value are never marked as removed regardless of reachability.")
 
         ("MarkerGraph.maxDistance",
         value<int>(&markerGraphOptions.maxDistance)->
@@ -443,15 +440,13 @@ void AssemblerOptions::addConfigurableOptions()
         ("Assembly.strategy",
         value<int>(&assemblyOptions.strategy)->
         default_value(0),
-        "Keep at default value 0. Other options are under development "
-        "and will not produce a complete assembly.")
+        "Experimental. Leave at default value 0.")
 
         ("Assembly.crossEdgeCoverageThreshold",
         value<int>(&assemblyOptions.crossEdgeCoverageThreshold)->
         default_value(3),
         "Maximum average edge coverage for a cross edge "
         "of the assembly graph to be removed.")
-
 
         ("Assembly.markerGraphEdgeLengthThresholdForConsensus",
         value<int>(&assemblyOptions.markerGraphEdgeLengthThresholdForConsensus)->
@@ -467,7 +462,8 @@ void AssemblerOptions::addConfigurableOptions()
         ("Assembly.useMarginPhase",
         bool_switch(&assemblyOptions.useMarginPhase)->
         default_value(false),
-        "Used to turn on margin phase.")
+        "Used to turn on MarginPhase. Experimental. To use MarginPhase with Shasta, run "
+        "marginPhase separately after the Shasta ssembly is complete.")
 
         ("Assembly.storeCoverageData",
         bool_switch(&assemblyOptions.storeCoverageData)->
@@ -485,13 +481,13 @@ void AssemblerOptions::addConfigurableOptions()
         value<double>(&phasingOptions.phasingSimilarityThreshold)->
         default_value(0.5),
         "The minimum phasing similarity for an edge "
-        "to be added to the phasing graph.")
+        "to be added to the phasing graph. Experimental.")
 
         ("Phasing.maxNeighborCount",
         value<int>(&phasingOptions.maxNeighborCount)->
         default_value(6),
         "The maximum number of phasing graph edges to be kept "
-        "for each oriented read.")
+        "for each oriented read. Experimental.")
 
         ;
 }
@@ -573,8 +569,6 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
     s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
-    s << "offsetTolerance0 = " << offsetTolerance0 << "\n";
-    s << "offsetTolerance1 = " << offsetTolerance1 << "\n";
 }
 
 
