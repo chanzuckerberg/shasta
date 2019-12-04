@@ -177,15 +177,11 @@ void DirectedReadGraph::flagEdgesToBeKept(
             neighbors.clear();
             for(const EdgeId edgeId: outEdges(v0)) {
                 const Edge& edge = getEdge(edgeId);
-                if(not edge.isInconsistent) {
-                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
-                }
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
             }
             for(const EdgeId edgeId: inEdges(v0)) {
                 const Edge& edge = getEdge(edgeId);
-                if(not edge.isInconsistent) {
-                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
-                }
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
             }
 
             // Mark the best containedNeighborCount as keep.
@@ -217,9 +213,7 @@ void DirectedReadGraph::flagEdgesToBeKept(
                     continue;
                 }
                 const Edge& edge = getEdge(edgeId);
-                if(not edge.isInconsistent) {
-                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
-                }
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
             }
 
             // Mark the best uncontainedNeighborCountPerDirection as keep.
@@ -242,9 +236,7 @@ void DirectedReadGraph::flagEdgesToBeKept(
                     continue;
                 }
                 const Edge& edge = getEdge(edgeId);
-                if(not edge.isInconsistent) {
-                    neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
-                }
+                neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
             }
 
             // Mark the best uncontainedNeighborCountPerDirection as keep.
@@ -324,9 +316,6 @@ void DirectedReadGraph::flagContainedVertices(uint32_t maxTrim)
         // Check the out-edges.
         for(const EdgeId edgeId: outEdges(vertexId)) {
             const Edge& edge = getEdge(edgeId);
-            if(edge.isInconsistent) {
-                continue;
-            }
             const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             if(alignmentInfo.isContained(0, maxTrim)) {
                 vertex.isContained = 1;
@@ -342,9 +331,6 @@ void DirectedReadGraph::flagContainedVertices(uint32_t maxTrim)
         // Check the in-edges.
         for(const EdgeId edgeId: inEdges(vertexId)) {
             const Edge& edge = getEdge(edgeId);
-            if(edge.isInconsistent) {
-                continue;
-            }
             const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             if(alignmentInfo.isContained(1, maxTrim)) {
                 vertex.isContained = 1;
@@ -411,7 +397,6 @@ bool DirectedReadGraph::extractLocalSubgraph(
     uint64_t minAlignedMarkerCount,
     uint64_t maxOffsetAtCenter,
     double minAlignedFraction,
-    bool allowInconsistentEdges,
     bool allowEdgesNotKept,
     double timeout,
     LocalDirectedReadGraph& graph)
@@ -425,7 +410,6 @@ bool DirectedReadGraph::extractLocalSubgraph(
     EdgeFilter edgeFilter(minAlignedMarkerCount,
         2*maxOffsetAtCenter,
         minAlignedFraction,
-        allowInconsistentEdges,
         allowEdgesNotKept);
 
     // Get the vertices in this neighborhood.
@@ -497,7 +481,6 @@ bool DirectedReadGraph::extractLocalSubgraph(
                 neighbors0, neighbors1, intersectionVertices, unionVertices);
             const AlignmentInfo& alignmentInfo = edge.alignmentInfo;
             graph.addEdge(orientedReadId0, orientedReadId1, alignmentInfo,
-                edge.isInconsistent == 1,
                 edge.involvesTwoContainedVertices == 1,
                 edge.involvesOneContainedVertex == 1,
                 edge.keep == 1,
@@ -819,232 +802,4 @@ void DirectedReadGraph::writeEdges()
 }
 
 
-void DirectedReadGraph::flagInconsistentEdges(Assembler& assembler)
-{
-
-    // First mark all edges are not inconsistent.
-    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
-        getEdge(edgeId).isInconsistent = 0;
-    }
-
-    // Now, call the lower level function for each vertex.
-    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
-        flagInconsistentEdges(vertexId, assembler, false, true);
-    }
-
-    // Count the edges flagged as inconsistent.
-    uint64_t count = 0;
-    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
-        if(getEdge(edgeId).isInconsistent) {
-            ++count;
-        }
-    }
-    cout << "Of " << edges.size() << " edges, " << count <<
-        " were marked as inconsistent." << endl;
-}
-
-void DirectedReadGraph::flagInconsistentEdges(
-    VertexId vA,
-    Assembler& assembler,
-    bool debug,
-    bool flagEdges)
-{
-    // Parameters used by this function.
-    // These should be turned into command line options
-    /// when the code stabilizes.
-    const uint32_t minOverlapLength = 50;
-    const int32_t offsetTolerance = 50;
-    const double minAlignedFraction = 0.3;
-
-    // The OrientedReadId corresponding to this vertex.
-    const OrientedReadId orientedReadIdA = OrientedReadId(OrientedReadId::Int(vA));
-    // const uint32_t markerCountA = getVertex(vA).markerCount;
-
-    // Gather all alignments that vertex vA is involved in.
-    // Make sure the AlignmentInfo is oriented so vertex vA
-    // corresponds to the first oriented read in the alignment.
-    vector<FlagInconsistentEdgesData> alignments;
-    for(const EdgeId eAB: outEdges(vA)) {
-        SHASTA_ASSERT(source(eAB) == vA);
-        const VertexId vB = target(eAB);
-        const AlignmentInfo& alignmentInfo = getEdge(eAB).alignmentInfo;
-        // The alignment info already has vA first.
-        alignments.push_back(FlagInconsistentEdgesData(vB, eAB, alignmentInfo));
-    }
-    for(const EdgeId eBA: inEdges(vA)) {
-        SHASTA_ASSERT(target(eBA) == vA);
-        const VertexId vB = source(eBA);
-        AlignmentInfo alignmentInfo = getEdge(eBA).alignmentInfo;
-        // The alignment info already has vB first.
-        alignmentInfo.swap();
-        alignments.push_back(FlagInconsistentEdgesData(vB, eBA, alignmentInfo));
-    }
-    sort(alignments.begin(), alignments.end());
-    if(debug) {
-        cout << "Found " << alignments.size() <<
-            " alignments involving " << orientedReadIdA << ":" << endl;
-        for(size_t i=0; i<alignments.size(); i++) {
-            const auto& f = alignments[i];
-            cout << i << " " << OrientedReadId(OrientedReadId::Int(f.vertexId));
-            cout << " center offset " << f.alignmentInfo.offsetAtCenter();
-            cout << endl;
-        }
-    }
-
-    // If there are less than 2 alignments, do nothing.
-    if(alignments.size() < 2) {
-        return;
-    }
-
-
-    // Check all pairs of alignments.
-    // Each pair involves vertices vB and vC.
-    for(size_t iB=0; iB<alignments.size()-1; iB++) {
-
-        // Get some information on the alignment of vA with vB.
-        const auto& fB = alignments[iB];
-        const VertexId vB = fB.vertexId;
-        const EdgeId eB = fB.edgeId;
-        const uint32_t markerCountB = getVertex(vB).markerCount;
-        const OrientedReadId orientedReadIdB = OrientedReadId(OrientedReadId::Int(vB));
-        const AlignmentInfo& alignmentInfoAB = fB.alignmentInfo;
-
-        for(size_t iC=iB+1; iC<alignments.size(); iC++) {
-
-            // Get some information on the alignment of vA with vC.
-            const auto& fC = alignments[iC];
-            const VertexId vC = fC.vertexId;
-            const EdgeId eC = fC.edgeId;
-            const uint32_t markerCountC = getVertex(vC).markerCount;
-            const OrientedReadId orientedReadIdC = OrientedReadId(OrientedReadId::Int(vC));
-            const AlignmentInfo& alignmentInfoAC = fC.alignmentInfo;
-
-            // If debug is not turned on and both of these edges are already marked as
-            // inconsistent, we can skip this pair.
-            if(not debug and getEdge(eB).isInconsistent and getEdge(eC).isInconsistent) {
-                continue;
-            }
-
-            if(debug) {
-                cout << "Working on alignments of " <<
-                    orientedReadIdA << " with " <<
-                    orientedReadIdB << " and " << orientedReadIdC << endl;
-            }
-
-            // Find the A range covered by the AB and AC alignments.
-            uint32_t firstB = alignmentInfoAB.data[0].firstOrdinal;
-            uint32_t lastB = alignmentInfoAB.data[0].lastOrdinal;
-            uint32_t firstC = alignmentInfoAC.data[0].firstOrdinal;
-            uint32_t lastC = alignmentInfoAC.data[0].lastOrdinal;
-
-            // Compute the  overlap of these two ranges.
-            const uint32_t overlapFirst = max(firstB, firstC);
-            const uint32_t overlapLast = min(lastB, lastC);
-
-            // If there is not sufficient overlap, skip this pair.
-            if(overlapFirst > overlapLast) {
-                if(debug) {
-                    cout << "These alignments do not overlap." << endl;
-                }
-                continue;
-            }
-            const uint32_t overlapLength = overlapLast + 1 - overlapFirst;
-            if(overlapLength < minOverlapLength) {
-                if(debug) {
-                    cout << "The overlap between these alignments is too short: " <<
-                        overlapLength << endl;
-                }
-                continue;
-            }
-
-            // Compute the length of the overlap.
-            if(debug) {
-                cout << "The ranges of these alignments overlap by " <<
-                    overlapLength << " markers on " << orientedReadIdA << endl;
-            }
-
-            const int32_t expectedOffset =
-                alignmentInfoAC.averageOrdinalOffset -
-                alignmentInfoAB.averageOrdinalOffset;
-            if(debug) {
-                cout << "Alignment of " << orientedReadIdA << " with " <<
-                    orientedReadIdB << ": range " << firstB << "-" << lastB <<
-                    ", average ordinal offset " << alignmentInfoAB.averageOrdinalOffset << endl;
-                cout << "Alignment of " << orientedReadIdA << " with " <<
-                    orientedReadIdC << ": range " << firstC << "-" << lastC <<
-                    ", average ordinal offset " << alignmentInfoAC.averageOrdinalOffset << endl;
-                cout << "Expecting a BC alignment with ordinal offset " <<
-                    expectedOffset << endl;
-            }
-
-            // See if we have an alignment between vB and vC.
-            // This means an edge vB->vC or vC->vB.
-            const EdgeId eBC = findEdge(vB, vC);
-            const EdgeId eCB = findEdge(vC, vB);
-            const bool edgeExists = (eBC != invalidEdgeId) or (eCB != invalidEdgeId);
-
-            // If an alignment between vB and vC exists, skip this pair.
-            if(edgeExists) {
-                if(debug) {
-                    if(eBC != invalidEdgeId) {
-                        cout << "An alignment between " << orientedReadIdB <<
-                            " and " << orientedReadIdC << " exists";
-                        cout << " and has average ordinal offset " <<
-                            getEdge(eBC).alignmentInfo.averageOrdinalOffset << endl;
-                    }
-                    if(eCB != invalidEdgeId) {
-                        cout << "An alignment between " << orientedReadIdB <<
-                            " and " << orientedReadIdC << " exists";
-                        cout << " and has average ordinal offset " <<
-                            -getEdge(eCB).alignmentInfo.averageOrdinalOffset << endl;
-                    }
-                }
-                continue;
-            }
-
-            if(debug) {
-                cout << "Check if a BC alignment exists near "
-                    " ordinal offset " << expectedOffset << endl;
-            }
-
-            // Quickly check if a BC alignment around this offset is plausible.
-            const uint32_t commonMarkerCount = assembler.countCommonMarkersNearOffset(
-                orientedReadIdB, orientedReadIdC,
-                expectedOffset, offsetTolerance);
-            const uint32_t overlappingMarkerCount =
-                computeOverlappingMarkerCount(markerCountB, markerCountC, expectedOffset);
-            const double estimatedAlignedFraction =
-                double(commonMarkerCount) / double(overlappingMarkerCount);
-            if(debug) {
-                cout << "Number of common markers near this offset is " <<
-                    commonMarkerCount << " out of " << overlappingMarkerCount <<
-                    " overlapping markers."<< endl;
-                cout << "Estimated aligned fraction " <<
-                    estimatedAlignedFraction << endl;
-            }
-
-            if(estimatedAlignedFraction >= minAlignedFraction) {
-                if(debug) {
-                    cout << "Estimated aligned fraction is good." << endl;
-                }
-                continue;
-            }
-
-            if(debug) {
-                cout << "Possibly inconsistent alignments: " <<
-                    orientedReadIdA << " " <<
-                    orientedReadIdB << " " <<
-                    orientedReadIdC << " " << endl;
-            }
-
-            // Mark both edges are inconsistent.
-            // There are other possibilities for what to do here.
-            if(flagEdges) {
-                getEdge(eB).isInconsistent = 1;
-                getEdge(eC).isInconsistent = 1;
-            }
-
-        }
-    }
-}
 

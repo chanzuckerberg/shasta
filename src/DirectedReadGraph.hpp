@@ -105,7 +105,6 @@ public:
         DirectedReadGraphBaseClass::invalidEdgeId;
 
     // Edge flags.
-    uint8_t isInconsistent;
     uint8_t involvesTwoContainedVertices : 1;
     uint8_t involvesOneContainedVertex : 1;
     uint8_t keep : 1;
@@ -123,7 +122,6 @@ public:
 
     void clearFlags()
     {
-        isInconsistent = 0;
         involvesTwoContainedVertices = 0;
         involvesOneContainedVertex = 0;
         keep = 0;
@@ -164,40 +162,13 @@ public:
         uint64_t minAlignedMarkerCount,
         uint64_t maxOffsetAtCenter,
         double minAlignedFraction,
-        bool allowInconsistentEdges,
         bool allowEdgesNotKept,
         double timeout,
         LocalDirectedReadGraph&);
 
     void writeEdges();
 
-    void flagInconsistentEdges(Assembler&);
-    void flagInconsistentEdges(
-        VertexId,
-        Assembler&,
-        bool debug,
-        bool flagEdges);
 private:
-    class FlagInconsistentEdgesData {
-    public:
-        VertexId vertexId;
-        EdgeId edgeId;
-        AlignmentInfo alignmentInfo;
-        FlagInconsistentEdgesData(
-            VertexId vertexId,
-            EdgeId edgeId,
-            AlignmentInfo alignmentInfo) :
-        vertexId(vertexId),
-        edgeId(edgeId),
-        alignmentInfo(alignmentInfo)
-        {}
-
-        // Order by vertex only.
-        bool operator<(const FlagInconsistentEdgesData& that) const
-        {
-            return vertexId < that.vertexId;
-        }
-    };
 
     // Add an edge 0->1, reversing the direction if necessary
     EdgeId addEdge(
@@ -213,21 +184,16 @@ private:
             uint64_t minAlignedMarkerCount,
             uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
-            bool allowInconsistentEdges,
             bool allowEdgesNotKept) :
 
             minAlignedMarkerCount(minAlignedMarkerCount),
             maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
-            allowInconsistentEdges(allowInconsistentEdges),
             allowEdgesNotKept(allowEdgesNotKept)
             {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
-            if(not allowInconsistentEdges and edge.isInconsistent) {
-                return false;
-            }
             if(not allowEdgesNotKept and not edge.keep) {
                 return false;
             }
@@ -244,7 +210,6 @@ private:
         uint64_t maxTwiceOffsetAtCenter;
         double minAlignedFraction;
 
-        bool allowInconsistentEdges;
         bool allowEdgesNotKept;
     };
 

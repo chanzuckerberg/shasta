@@ -43,10 +43,6 @@ void Assembler::exploreDirectedReadGraph(
     float minTransitiveCoverage = 0.;
     getParameterValue(request, "minTransitiveCoverage", minTransitiveCoverage);
 
-    string allowInconsistentEdgesString;
-    bool allowInconsistentEdges = getParameterValue(request,
-        "allowInconsistentEdges", allowInconsistentEdgesString);
-
     string allowEdgesNotKeptString;
     bool allowEdgesNotKept = getParameterValue(request,
         "allowEdgesNotKept", allowEdgesNotKeptString);
@@ -120,12 +116,6 @@ void Assembler::exploreDirectedReadGraph(
         "<td><input type=text required name=minAlignedFraction size=8 style='text-align:center'"
         " value='" << minAlignedFraction <<
         "'>"
-
-        "<tr>"
-        "<td>Include edges flagged as inconsistent"
-        "<td class=centered><input type=checkbox name=allowInconsistentEdges" <<
-        (allowInconsistentEdges ? " checked" : "") <<
-        ">"
 
         "<tr>"
         "<td>Include edges not kept for marker graph creation"
@@ -213,7 +203,6 @@ void Assembler::exploreDirectedReadGraph(
     if(not directedReadGraph.extractLocalSubgraph(
         orientedReadId, maxDistance,
         minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
-        allowInconsistentEdges,
         allowEdgesNotKept,
         timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "

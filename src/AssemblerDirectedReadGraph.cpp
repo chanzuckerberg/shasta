@@ -29,9 +29,6 @@ void Assembler::createDirectedReadGraph(uint32_t maxTrim)
     // Compute graph connectivity.
     directedReadGraph.computeConnectivity();
 
-    // Flag inconsistent edges.
-    directedReadGraph.flagInconsistentEdges(*this);
-
     // Flag contained vertices and set edge flags accordingly.
     directedReadGraph.flagContainedVertices(maxTrim);
 
@@ -81,10 +78,3 @@ void Assembler::accessDirectedReadGraphReadWrite()
     directedReadGraph.accessExistingReadWrite(largeDataName("DirectedReadGraph"));
 }
 
-
-void Assembler::analyzeDirectedReadGraphVertex(ReadId readId, Strand strand)
-{
-    const OrientedReadId orientedReadId(readId, strand);
-    const DirectedReadGraph::VertexId vertexId(orientedReadId.getValue());
-    directedReadGraph.flagInconsistentEdges(vertexId, *this, true, false);
-}
