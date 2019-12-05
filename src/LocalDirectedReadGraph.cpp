@@ -196,8 +196,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         ", common neighbors " << edge.commonNeighborCount <<
         "\"";
 
-    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-2 * edge.alignmentInfo.markerCount) << "\"";
-    s << " arrowsize=\"" << edgeArrowScalingFactor << "\"";
+    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-3 * edge.alignmentInfo.markerCount) << "\"";
+    s << " arrowsize=\"" << edgeArrowScalingFactor * 0.1 << "\"";
 
     if(not edge.keep) {
         s << " color=\"#00ff007f\""; // Partially transparent green.
