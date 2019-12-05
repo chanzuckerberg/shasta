@@ -310,7 +310,9 @@ PYBIND11_MODULE(shasta, module)
         // Directed read graph.
         .def("createDirectedReadGraph",
             &Assembler::createDirectedReadGraph,
-            arg("maxTrim"))
+            arg("maxTrim"),
+            arg("containedNeighborCount"),
+            arg("uncontainedNeighborCountPerDirection"))
         .def("accessDirectedReadGraphReadOnly",
             &Assembler::accessDirectedReadGraphReadOnly)
         .def("accessDirectedReadGraphReadWrite",

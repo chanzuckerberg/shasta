@@ -1055,7 +1055,10 @@ public:
     // If --ReadGraph.creationMethod is 0, this is not used
     // and instead we use the undirected read graph defined above.
     DirectedReadGraph directedReadGraph;
-    void createDirectedReadGraph(uint32_t maxTrim);
+    void createDirectedReadGraph(
+        uint64_t maxTrim,
+        uint64_t containedNeighborCount,
+        uint64_t uncontainedNeighborCountPerDirection);
     void accessDirectedReadGraphReadOnly();
     void accessDirectedReadGraphReadWrite();
 

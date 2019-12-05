@@ -2,7 +2,10 @@
 using namespace shasta;
 
 
-void Assembler::createDirectedReadGraph(uint32_t maxTrim)
+void Assembler::createDirectedReadGraph(
+    uint64_t maxTrim,
+    uint64_t containedNeighborCount,
+    uint64_t uncontainedNeighborCountPerDirection)
 {
     // Initialize the directed read graph.
     directedReadGraph.createNew(largeDataName("DirectedReadGraph"), largeDataPageSize);
@@ -30,7 +33,7 @@ void Assembler::createDirectedReadGraph(uint32_t maxTrim)
     directedReadGraph.computeConnectivity();
 
     // Flag contained vertices and set edge flags accordingly.
-    directedReadGraph.flagContainedVertices(maxTrim);
+    directedReadGraph.flagContainedVertices(uint32_t(maxTrim));
 
     // Make sure the read graph is invariant under reverse complementing.
     directedReadGraph.check();
@@ -54,8 +57,6 @@ void Assembler::createDirectedReadGraph(uint32_t maxTrim)
     // Flag edges to be kept.
     // These are the edges that will be used to create the marker graph.
     // TURN THESE CONSTANTS INTO OPTIONS WHEN THE CODE STABILIZES.
-    const uint64_t containedNeighborCount = 3;
-    const uint64_t uncontainedNeighborCountPerDirection = 3;
     directedReadGraph. flagEdgesToBeKept(
         containedNeighborCount,
         uncontainedNeighborCountPerDirection);

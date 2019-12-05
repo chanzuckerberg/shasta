@@ -130,6 +130,8 @@ public:
         int minComponentSize;
         int maxChimericReadDistance;
         int crossStrandMaxDistance;
+        int containedNeighborCount;
+        int uncontainedNeighborCountPerDirection;
         void write(ostream& ) const;
     };
     ReadGraphOptions readGraphOptions;
