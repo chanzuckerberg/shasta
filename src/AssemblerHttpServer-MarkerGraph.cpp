@@ -3,7 +3,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "ConsensusCaller.hpp"
-#include "iterator.hpp"
+#include "InducedAlignment.hpp"
 #include "LocalMarkerGraph.hpp"
 #include "platformDependent.hpp"
 using namespace shasta;
@@ -19,6 +19,7 @@ using namespace shasta;
 
 // Standard library.
 #include "chrono.hpp"
+#include "iterator.hpp"
 
 
 
@@ -1119,6 +1120,84 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     html << "</table>";
 
 }
+
+
+
+void Assembler::exploreMarkerGraphInducedAlignment(
+    const vector<string>& request,
+    ostream& html)
+{
+    html <<
+        "<h1>Display the induced alignment matrix of two oriented reads</h1>"
+        "<p>The marker graph induces an effective alignment between each pair "
+        "of oriented reads which can be obtained by following each of the oriented reads "
+        "in the marker graph. Aligned markers are those that are on the same vertex. "
+        "The induced alignment matrix of two oriented reads <i>x</i> and <i>y</i> "
+        "with <i>n<sub>x</sub></i> and <i>n<sub>y</sub></i> markers is an "
+        "<i>n<sub>x</sub></i>&times;<i>n<sub>y</sub></i> matrix. "
+        "Element <i>ij</i> of the matrix is 1 if marker <i>i</i> of <i>x</i> "
+        "and marker <i>j</i> of <i>y</i> "
+        "are on the same marker graph vertex and 0 otherwise.";
+
+    // Get the read ids and strands from the request.
+    ReadId readId0 = 0;
+    const bool readId0IsPresent = getParameterValue(request, "readId0", readId0);
+    Strand strand0 = 0;
+    const bool strand0IsPresent = getParameterValue(request, "strand0", strand0);
+    ReadId readId1 = 0;
+    const bool readId1IsPresent = getParameterValue(request, "readId1", readId1);
+    Strand strand1 = 0;
+    const bool strand1IsPresent = getParameterValue(request, "strand1", strand1);
+
+    // Write the form.
+    html <<
+        "<p>Display the induced alignment matrix of these two reads:"
+        "<form>"
+        "<input type=text name=readId0 required size=8 " <<
+        (readId0IsPresent ? "value="+to_string(readId0) : "") <<
+        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html <<
+        "<br><input type=text name=readId1 required size=8 " <<
+        (readId1IsPresent ? "value="+to_string(readId1) : "") <<
+        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
+
+    html << "<p><input type=submit value='Display induced alignment'></form>";
+
+     // If the readId's or strand's are missing, stop here.
+     if(!readId0IsPresent || !strand0IsPresent || !readId1IsPresent || !strand1IsPresent) {
+         return;
+     }
+
+     // Compute the induced alignment.
+     const OrientedReadId orientedReadId0(readId0, strand0);
+     const OrientedReadId orientedReadId1(readId1, strand1);
+     InducedAlignment inducedAlignment;
+     computeInducedAlignment(orientedReadId0, orientedReadId1, inducedAlignment);
+     html << "The induced alignment has " << inducedAlignment.data.size() <<
+         " marker pairs.";
+
+     // Write the induced alignment in a table.
+     html <<
+         "<p><table><tr><th>Vertex"
+         "<th>Ordinal<br> in " << orientedReadId0 <<
+         "<th>Ordinal<br> in " << orientedReadId1;
+     for(const InducedAlignmentData& d: inducedAlignment.data) {
+         html <<
+             "<tr><td class=centered>" << d.vertexId <<
+             "<td class=centered>" << d.ordinal0 <<
+             "<td class=centered>" << d.ordinal1;
+     }
+     html << "</table>";
+
+
+
+}
+
+
 
 #endif
 

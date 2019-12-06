@@ -47,6 +47,7 @@ namespace shasta {
     class AssemblerOptions;
     class AssembledSegment;
     class ConsensusCaller;
+    class InducedAlignment;
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
@@ -1225,6 +1226,12 @@ private:
         OrientedReadId,
         uint32_t ordinal) const;
 
+    // Get pairs (ordinal, marker graph vertex id) for all markers of an oriented read.
+    // The pairs are returned sorted by ordinal.
+    void getMarkerGraphVertices(
+        OrientedReadId,
+        vector< pair<uint32_t, MarkerGraph::VertexId> >&);
+
     // Find the markers contained in a given vertex of the global marker graph.
     // The markers are stored as pairs(oriented read id, ordinal).
     void getGlobalMarkerGraphVertexMarkers(
@@ -1293,6 +1300,15 @@ private:
         // It is left set to all false on exit, so it can be reused.
         array<vector<bool>, 2>& vertexFlags
         ) const;
+
+    // Compute an alignment between two oriented reads
+    // induced by the marker graph. See InducedAlignment.hpp for more
+    // information.
+    void computeInducedAlignment(
+        OrientedReadId,
+        OrientedReadId,
+        InducedAlignment&
+    );
 
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1692,6 +1708,7 @@ public:
         LocalMarkerGraphRequestParameters&) const;
     void exploreMarkerGraphVertex(const vector<string>&, ostream&);
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
+    void exploreMarkerGraphInducedAlignment(const vector<string>&, ostream&);
 #endif
 
 

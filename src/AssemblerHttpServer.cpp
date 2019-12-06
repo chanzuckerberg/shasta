@@ -58,6 +58,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphInducedAlignment);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdgesSupport);
@@ -316,6 +317,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Local marker graph", "exploreMarkerGraph?useBubbleReplacementEdges=on"},
         {"Marker graph vertices", "exploreMarkerGraphVertex"},
         {"Marker graph edges", "exploreMarkerGraphEdge"},
+        {"Induced alignments", "exploreMarkerGraphInducedAlignment"},
         });
     writeNavigation(html, "Assembly graph", {
         {"Local assembly graph", "exploreAssemblyGraph"},
