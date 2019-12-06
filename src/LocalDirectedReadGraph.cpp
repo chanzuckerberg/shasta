@@ -153,9 +153,12 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         " width=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount)) <<
         " height=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount));
 
+    // Id, so we can manipulate the vertex in javascript.
+    s << " id=\"Vertex-" << orientedReadId << "\"";
+
     // Color.
     if(vertex.distance == 0) {
-        s << " color=green";
+        s << " color=\"#ff00ff\"";  // Fuchsia
     } else if(vertex.distance == maxDistance) {
         s << " color=cyan";
     } else if(vertex.isContained) {
