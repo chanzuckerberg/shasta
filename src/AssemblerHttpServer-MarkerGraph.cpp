@@ -1180,6 +1180,38 @@ void Assembler::exploreMarkerGraphInducedAlignment(
      html << "The induced alignment has " << inducedAlignment.data.size() <<
          " marker pairs.";
 
+     // Write the alignment matrix to a png file.
+     inducedAlignment.writePngImage(
+         uint32_t(markers.size(orientedReadId0.getValue())),
+         uint32_t(markers.size(orientedReadId1.getValue())),
+         "Alignment.png");
+
+     // Create a base64 version of the png file.
+     const string command = "base64 Alignment.png > Alignment.png.base64";
+     ::system(command.c_str());
+
+     // Write the image to html.
+     html <<
+         "<p><img id=\"alignmentMatrix\" onmousemove=\"updateTitle(event)\" "
+         "src=\"data:image/png;base64,";
+         ifstream png("Alignment.png.base64");
+         html << png.rdbuf();
+         html << "\"/>"
+             "<script>"
+             "function updateTitle(e)"
+             "{"
+             "    var element = document.getElementById(\"alignmentMatrix\");"
+             "    var rectangle = element.getBoundingClientRect();"
+             "    var x = e.clientX - Math.round(rectangle.left);"
+             "    var y = e.clientY - Math.round(rectangle.top);"
+             "    element.title = " <<
+             "\"" << orientedReadId0 << " marker \" + x + \", \" + "
+             "\"" << orientedReadId1 << " marker \" + y;"
+             "}"
+             "</script>";
+
+
+
      // Write the induced alignment in a table.
      html <<
          "<p><table><tr><th>Vertex"

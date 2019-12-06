@@ -23,6 +23,7 @@ are on the same marker graph vertex and 0 otherwise.
 // Standard library.
 #include "algorithm.hpp"
 #include "array.hpp"
+#include "string.hpp"
 #include "tuple.hpp"
 #include "utility.hpp"
 #include "vector.hpp"
@@ -73,6 +74,11 @@ public:
     {
         std::sort(data.begin(), data.end());
     }
+
+    void writePngImage(
+        uint32_t markerCount0,
+        uint32_t markerCount1,
+        const string& fileName) const;
 };
 
 
