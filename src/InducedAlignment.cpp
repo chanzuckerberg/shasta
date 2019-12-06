@@ -41,8 +41,8 @@ void InducedAlignment::writePngImage(
     }
 
     // Write the induced alignment.
-    for(const InducedAlignmentData& data: data) {
-        image.setPixel(data.ordinal0, data.ordinal1, 0, 255, 0);
+    for(const InducedAlignmentData& d: data) {
+        image.setPixel(d.ordinal0, d.ordinal1, 0, 255, 0);
     }
 
     // Write it out.
