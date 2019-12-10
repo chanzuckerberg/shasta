@@ -357,7 +357,7 @@ void Assembler::exploreDirectedReadGraph(
 
 
 
-        // Write a title and display the graph.
+        // Write a title.
         html <<
             "<h1 style='line-height:10px'>Read graph near oriented read " << orientedReadId << "</h1>"
             "Color legend: "
@@ -371,6 +371,30 @@ void Assembler::exploreDirectedReadGraph(
         if(saveDotFile) {
             html << "<p>Graphviz dot file saved as " << dotFileName << "<br>";
         }
+
+
+
+        // Allow manually highlighting selected vertices.
+        html << R"stringDelimiter(
+<p>
+<input id=highlight type=text onchange="highlight()" size=10>
+Enter an oriented read to highlight, then press Enter. The oriented read should be
+in the form readId-strand where strand is 0 or 1 (for example, "1345871-1").
+To highlight multiple oriented reads, enter them one at a time in the same way.
+<script>
+function highlight()
+{
+    vertex = document.getElementById("highlight").value;
+    element = document.getElementById("Vertex-" + vertex);
+    ellipse = element.children[1].children[0].children[0];
+    ellipse.setAttribute("fill", "#ff00ff");
+    ellipse.setAttribute("stroke", "#ff00ff");
+}
+</script>
+<p>
+            )stringDelimiter";
+
+
 
 
         // Display the graph.
