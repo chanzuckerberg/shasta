@@ -1301,6 +1301,8 @@ private:
         array<vector<bool>, 2>& vertexFlags
         ) const;
 
+
+
     // Compute an alignment between two oriented reads
     // induced by the marker graph. See InducedAlignment.hpp for more
     // information.
@@ -1309,6 +1311,39 @@ private:
         OrientedReadId,
         InducedAlignment&
     );
+
+
+
+    // Find all pairs of incompatible reads that involve a given read.
+    // A pair of reads is incompatible if it has a "bad" induced alignment.
+    // See InducedAlignment.hpp for more information.
+private:
+    void findIncompatibleReadPairs(
+        ReadId readId0,
+
+        // If true, only consider ReadId's readid1<readId0.
+        bool onlyConsiderLowerReadIds,
+
+        // If true, skip pairs that are in the read graph.
+        // Those are already known to have a good induced alignment
+        // by construction.
+        bool skipReadGraphEdges,
+
+        // The incompatible pairs found.
+        vector<OrientedReadPair>& incompatiblePairs);
+public:
+    // Python-callable overload.
+    vector<OrientedReadPair> findIncompatibleReadPairs(
+        ReadId readId0,
+
+        // If true, only consider ReadId's readid1<readId0.
+        bool onlyConsiderLowerReadIds,
+
+        // If true, skip pairs that are in the read graph.
+        // Those are already known to have a good induced alignment
+        // by construction.
+        bool skipReadGraphEdges);
+private:
 
 
 #ifdef SHASTA_HTTP_SERVER
