@@ -70,7 +70,7 @@ set_target_properties(shastaGpu PROPERTIES OUTPUT_NAME "shastaGpu")
 target_link_libraries(shastaGpu
     shastaStaticGpuLibrary
     ${Boost_LIBRARIES}
-    atomic /usr/local/lib/libspoa.a png z
+    atomic /usr/local/lib/libspoa.a png z edlib
     -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 
 # The static executable goes to the bin directory.

@@ -384,6 +384,10 @@ public:
     // See the private section for some more not callable from Python.
     void accessMarkerGraphVertices();
 
+
+    // Get sequence of Bases for the marker vertex
+    vector<Base> getMarkerSequence (MarkerGraph::VertexId vertexid);
+
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
     // it belongs to, plus the ordinal of the marker in the oriented read.
