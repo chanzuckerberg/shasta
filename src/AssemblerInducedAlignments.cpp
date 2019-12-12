@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "deduplicate.hpp"
 #include "InducedAlignment.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
@@ -98,25 +99,6 @@ void Assembler::computeInducedAlignment(
 // Find all pairs of incompatible reads that involve a given read.
 // A pair of reads is incompatible if it has a "bad" induced alignment.
 // See InducedAlignment.hpp for more information.
-void Assembler::findIncompatibleReadPairs(
-    ReadId readId0,
-
-    // If true, only consider ReadId's readid1<readId0.
-    bool onlyConsiderLowerReadIds,
-
-    // If true, skip pairs that are in the read graph.
-    // Those are already known to have a good induced alignment
-    // by construction.
-    bool skipReadGraphEdges,
-
-    // The incompatible pairs found.
-    vector<OrientedReadPair>& incompatiblePairs)
-{
-    incompatiblePairs.clear();
-    incompatiblePairs.push_back(OrientedReadPair(0, 1, 0));
-}
-
-
 // Python-callable overload.
 vector<OrientedReadPair> Assembler::findIncompatibleReadPairs(
     ReadId readId0,
@@ -137,3 +119,83 @@ vector<OrientedReadPair> Assembler::findIncompatibleReadPairs(
         incompatiblePairs);
     return  incompatiblePairs;
 }
+
+
+
+// Find all pairs of incompatible reads that involve a given read.
+// A pair of reads is incompatible if it has a "bad" induced alignment.
+// See InducedAlignment.hpp for more information.
+void Assembler::findIncompatibleReadPairs(
+    ReadId readId0,
+
+    // If true, only consider ReadId's readid1<readId0.
+    bool onlyConsiderLowerReadIds,
+
+    // If true, skip pairs that are in the read graph.
+    // Those are already known to have a good induced alignment
+    // by construction.
+    bool skipReadGraphEdges,
+
+    // The incompatible pairs found.
+    vector<OrientedReadPair>& incompatiblePairs)
+{
+    const bool debug = true;
+
+
+    // We need to find oriented reads that share at least one marker graph
+    // vertex with this read (on the positive strand).
+    // We will store them in this vector.
+    vector<OrientedReadId> incompatibleCandidates;
+
+
+
+    // To do this, we loop over all markers of this
+    // read (on the positive strand)
+    const OrientedReadId orientedReadId0(readId0, 0);
+    const MarkerId firstMarkerId = markers.begin(orientedReadId0.getValue()) - markers.begin();
+    const uint32_t markerCount = uint32_t(markers.size(orientedReadId0.getValue()));
+    for(uint32_t ordinal=0; ordinal<markerCount; ordinal++) {
+        const MarkerId markerId0 = firstMarkerId + ordinal;
+
+        // Find the vertex that this marker is on.
+        const MarkerGraph::CompressedVertexId compressedVertexId =
+            markerGraph.vertexTable[markerId0];
+
+        // If this marker is not on a marker graph vertex, skip.
+        if(compressedVertexId == MarkerGraph::invalidCompressedVertexId) {
+            continue;
+        }
+
+        // Loop over all markers on this vertex,
+        // except the one on orientedReadId0 that we started from.
+        const MemoryAsContainer<MarkerId> vertexMarkers =
+            markerGraph.vertices[compressedVertexId];
+        for(const MarkerId markerId1: vertexMarkers) {
+            if(markerId1 == markerId0) {
+                continue;
+            }
+
+            // Find the oriented read on this marker.
+            OrientedReadId orientedReadId1;
+            uint32_t ordinal1;
+            tie(orientedReadId1, ordinal1) = findMarkerId(markerId1);
+            if(orientedReadId1.getReadId() == readId0) {
+                continue;
+            }
+
+            // Add this oriented read to our incompatible candidates.
+            incompatibleCandidates.push_back(orientedReadId1);
+        }
+    }
+    deduplicate(incompatibleCandidates);
+    if(debug) {
+        cout << "Found " << incompatibleCandidates.size() <<
+            " incompatible candidates." << endl;
+    }
+
+
+    // For now, return no pairs.
+    incompatiblePairs.clear();
+}
+
+
