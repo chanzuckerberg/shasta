@@ -3250,7 +3250,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     detail.assemblyMode = 2;
 
 
-    int maxTransitiveMarkerEdits = 2;
+    int maxTransitiveMarkerEdits = 0;
     int maxTransitiveMarkerDistance = 3;
 
     MarkerGraph::Edge currEdge = markerGraph.edges[edgeId]; 
