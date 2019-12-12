@@ -50,7 +50,7 @@ cd ../
 # Build it.
 mkdir build
 cd build
-cmake ../edlib
+cmake -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -DCMAKE_BUILD_TYPE=Release ../edlib
 make edlib 
 
 # Install it in standard system locations.

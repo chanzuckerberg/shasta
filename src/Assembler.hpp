@@ -1432,6 +1432,8 @@ private:
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount,
         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail&,
+        size_t&,
+        size_t&,
         vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
         );
 
@@ -1572,6 +1574,12 @@ private:
         uint32_t markerGraphEdgeLengthThresholdForConsensus;
         bool useMarginPhase;
         bool storeCoverageData;
+
+
+        // Keep track of the number of transitive reads and the
+        // number of edges to which transitive reads were recovered
+        size_t numTransitiveReads;
+        size_t numTransitiveEdges;
 
         // The results computed by each thread.
         // For each threadId:

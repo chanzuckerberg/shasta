@@ -24,9 +24,6 @@ using namespace shasta;
 #include "edlib.h"
 
 
-size_t numTransitiveReads=0;
-size_t numTransitiveEdges=0;
-
 // Loop over all alignments in the read graph
 // to create vertices of the global marker graph.
 // Throw away vertices with coverage (number of markers)
@@ -1878,6 +1875,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
     // Fill in the consensus sequence for all edges.
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = 1000;
+    size_t numTransitiveReads = 0;
+    size_t numTransitiveEdges = 0;
     BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         LocalMarkerGraphEdge& edge = graph[e];
         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
@@ -1888,6 +1887,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             edge.consensusRepeatCounts,
             edge.consensusOverlappingBaseCount,
             detail,
+            numTransitiveReads,
+            numTransitiveEdges,
             0);
     }
 
@@ -3063,6 +3064,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount,
     ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail& detail,
+    size_t& numTransitiveReads,
+    size_t& numTransitiveEdges,
     vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
     )
 {
@@ -3270,53 +3273,81 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     detail.assemblyMode = 2;
 
 
+    // Maximum number of edits to allow in the alignment of the marker sequence
+    // with a read on its transitive edge for recoverying that read while computing
+    // the consensus sequence
+    // Set to 0 to avoid transitive read recovery
     int maxTransitiveMarkerEdits = 0;
+    // Maximum distance of vertices from current edge to consider for transitive
+    // edge read recovery
     int maxTransitiveMarkerDistance = 3;
-
+   
     MarkerGraph::Edge currEdge = markerGraph.edges[edgeId]; 
-    vector<MarkerGraph::EdgeId> leftVertexIds(1+maxTransitiveMarkerDistance, MarkerGraph::invalidVertexId);
-    vector<MarkerGraph::EdgeId> rightVertexIds(1+maxTransitiveMarkerDistance, MarkerGraph::invalidVertexId);
+
+    // Vector storing vertex ids indexed by distance of vertices to the left of the 
+    // current source vertex
+    // Index 0 stores source vertex id of the current edge
+    vector <vector<MarkerGraph::EdgeId>> leftVertexIdsByDistance(1+maxTransitiveMarkerDistance);
+    leftVertexIdsByDistance[0].push_back(currEdge.source);
+    
+    // Vector storing vertex ids indexed by distance of vertices to the right of the 
+    // current target vertex
+    // Index 0 stores target vertex id of the current edge
+    vector <vector<MarkerGraph::EdgeId>> rightVertexIdsByDistance(1+maxTransitiveMarkerDistance);
+    rightVertexIdsByDistance[0].push_back(currEdge.target);
+    
+    // Vectors for storing marker intervals of reads on left and right
+    // transitive edges. Left marker intervals store marker intervals of reads
+    // on edges from a vertex to the left of source vertex to the target vertex
+    // of current edge. Right marker intervals store marker intervals of reads
+    // on edges from the source vertex of current edge to a vertex right of the
+    // target vertex
     vector<MarkerInterval> leftMarkerIntervals, rightMarkerIntervals;
 
-    leftVertexIds[0] = currEdge.source;
-    rightVertexIds[0] = currEdge.target;
-
     if (maxTransitiveMarkerEdits > 0) {
+        // Breadth-first search to the left of source vertex to find
+        // left marker intervals
         for (int i=1; i<=maxTransitiveMarkerDistance; i++) {
-            auto targetVertexId = leftVertexIds[i-1];
-            if (targetVertexId != MarkerGraph::invalidVertexId) {
-                for (auto eId: markerGraph.edgesByTarget[targetVertexId]) {
-                    auto leftEdge = markerGraph.edges[eId];
-                    if (!leftEdge.wasRemoved()) { 
-                        auto leftVertexId = leftEdge.source;
-                        leftVertexIds[i] = leftVertexId;
-                        if (markerGraph.findEdge (leftVertexId, currEdge.target) > 0) {
-                            auto leftEdgeId = markerGraph.findEdgeId(leftVertexId, currEdge.target);
-                            for (auto interval : markerGraph.edgeMarkerIntervals[leftEdgeId]) {
-                                leftMarkerIntervals.push_back(interval);
+            auto leftVertexIds = leftVertexIdsByDistance[i-1];
+            for (auto targetVertexId: leftVertexIds) {
+                if (targetVertexId != MarkerGraph::invalidVertexId) {
+                    for (auto eId: markerGraph.edgesByTarget[targetVertexId]) {
+                        auto leftEdge = markerGraph.edges[eId];
+                        if (!leftEdge.wasRemoved()) { 
+                            auto leftVertexId = leftEdge.source;
+                            leftVertexIdsByDistance[i].push_back(leftVertexId);
+                            // Check if this transitive edge is valid
+                            if (markerGraph.findEdge (leftVertexId, currEdge.target) > 0) {
+                                auto leftEdgeId = markerGraph.findEdgeId(leftVertexId, currEdge.target);
+                                for (auto interval : markerGraph.edgeMarkerIntervals[leftEdgeId]) {
+                                    leftMarkerIntervals.push_back(interval);
+                                }
                             }
                         }
-                        break;
                     }
                 }
             }
         }
-        
+
+        // Breadth-first search to the right of target vertex to find
+        // right marker intervals
         for (int i=1; i<=maxTransitiveMarkerDistance; i++) {
-            auto sourceVertexId = rightVertexIds[i-1];
-            if (sourceVertexId != MarkerGraph::invalidVertexId) {
-                for (auto eId: markerGraph.edgesBySource[sourceVertexId]) {
-                    auto rightEdge = markerGraph.edges[eId];
-                    if (!rightEdge.wasRemoved()) { 
-                        auto rightVertexId = rightEdge.target;
-                        rightVertexIds[i] = rightVertexId;
-                        if (markerGraph.findEdge (currEdge.source, rightVertexId) > 0) {
-                            auto rightEdgeId = markerGraph.findEdgeId(currEdge.source, rightVertexId);
-                            for (auto interval : markerGraph.edgeMarkerIntervals[rightEdgeId]) {
-                                rightMarkerIntervals.push_back(interval);
+            auto rightVertexIds = rightVertexIdsByDistance[i-1];
+            for (auto sourceVertexId: rightVertexIds) {
+                if (sourceVertexId != MarkerGraph::invalidVertexId) {
+                    for (auto eId: markerGraph.edgesBySource[sourceVertexId]) {
+                        auto rightEdge = markerGraph.edges[eId];
+                        if (!rightEdge.wasRemoved()) { 
+                            auto rightVertexId = rightEdge.target;
+                            rightVertexIdsByDistance[i].push_back(rightVertexId);
+                            // Check if this transitive edge is valid
+                            if (markerGraph.findEdge (currEdge.source, rightVertexId) > 0) {
+                                auto rightEdgeId = markerGraph.findEdgeId(currEdge.source, rightVertexId);
+                                for (auto interval : markerGraph.edgeMarkerIntervals[rightEdgeId]) {
+                                    rightMarkerIntervals.push_back(interval);
+                                }
                             }
                         }
-                        break;
                     }
                 }
             }
@@ -3423,15 +3454,16 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             const uint32_t begin = position0 + k;
             const uint32_t end = position1;
 
-            //Align marker to edge
             string target="", query = "";
             
+            // Target sequence is the sequence on marker interval
             for(uint32_t position=begin; position!=end; position++) {
                 Base base;
                 base = getOrientedReadBase(orientedReadId, position);
                 target += base.character();
             }
 
+            // Get marker sequence for query sequence
             vector<Base> queryBases = getMarkerSequence (currEdge.source);
 
             for (auto b: queryBases) {
@@ -3439,6 +3471,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             }
             
 
+            // Align marker sequence to marker interval to find intervening
+            // sequence
             EdlibAlignResult alignResult = edlibAlign(query.c_str(), static_cast<int> (query.size()), 
                     target.c_str(), static_cast<int> (target.size()),
                     edlibNewAlignConfig(maxTransitiveMarkerEdits, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
@@ -3455,7 +3489,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             
             distinctSequenceStrands[curr_size+i] = orientedReadId.getStrand();
 
-            interveningSequence.clear();
+            // Sequence on marker interval to the right of alignment is used to
+            // generate interveningSequence 
             for(uint32_t position=begin+alignResult.endLocations[0]+1; position!=end; position++) {
                 Base base;
                 uint8_t repeatCount;
@@ -3523,21 +3558,24 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             const uint32_t begin = position0 + k;
             const uint32_t end = position1;
 
-            //Align marker to edge
             string target="", query = "";
             
+            // Target sequence is the sequence on marker interval
             for(uint32_t position=begin; position!=end; position++) {
                 Base base;
                 base = getOrientedReadBase(orientedReadId, position);
                 target += base.character();
             }
 
+            // Get marker sequence for query sequence
             vector<Base> queryBases = getMarkerSequence (currEdge.target);
 
             for (auto b: queryBases) {
                 query += b.character();
             }
             
+            // Align marker sequence to marker interval to find intervening
+            // sequence
             EdlibAlignResult alignResult = edlibAlign(query.c_str(), static_cast<int> (query.size()), 
                     target.c_str(), static_cast<int> (target.size()),
                     edlibNewAlignConfig(maxTransitiveMarkerEdits, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
@@ -3554,6 +3592,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
             distinctSequenceStrands[curr_size+i] = orientedReadId.getStrand();
 
+            // Sequence on marker interval to the left of alignment is used to
+            // generate interveningSequence 
             interveningSequence.clear();
             for(uint32_t position=begin; position!=begin+alignResult.startLocations[0]; position++) {
                 Base base;
@@ -4937,6 +4977,8 @@ void Assembler::assembleMarkerGraphEdges(
     assembleMarkerGraphEdgesData.threadEdgeIds.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensus.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount.resize(threadCount);
+    assembleMarkerGraphEdgesData.numTransitiveEdges = 0;
+    assembleMarkerGraphEdgesData.numTransitiveReads = 0;
     if(storeCoverageData) {
         assembleMarkerGraphEdgesData.threadEdgeCoverageData.resize(threadCount);
     }
@@ -5007,9 +5049,10 @@ void Assembler::assembleMarkerGraphEdges(
         assembleMarkerGraphEdgesData.threadEdgeCoverageData.clear();
     }
 
-    if (numTransitiveEdges > 0) {
-        cout << timestamp << "Added average " << (static_cast<float>(numTransitiveReads)/static_cast<float>(numTransitiveEdges)) 
-            << " transitive reads per edge." << endl;
+    if (assembleMarkerGraphEdgesData.numTransitiveEdges > 0) {
+        cout << timestamp << "Recovered an average of " << 
+            (static_cast<float>(assembleMarkerGraphEdgesData.numTransitiveReads)/static_cast<float>(assembleMarkerGraphEdgesData.numTransitiveEdges)) 
+            << " transitive reads per marker graph edge." << endl;
     }
     cout << timestamp << "assembleMarkerGraphEdges ends." << endl;
 }
@@ -5125,6 +5168,8 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                             edgeId, markerGraphEdgeLengthThresholdForConsensus,
                             sequence, repeatCounts, overlappingBaseCount,
                             detail,
+                            assembleMarkerGraphEdgesData.numTransitiveReads,
+                            assembleMarkerGraphEdgesData.numTransitiveEdges,
                             storeCoverageData ? &coverageData : 0
                             );
                     }

@@ -65,7 +65,7 @@ set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN
 target_link_libraries(
     shastaDynamicExecutable
     shastaDynamicLibrary
-    atomic boost_system boost_program_options boost_chrono spoa png z pthread edlib)
+    atomic boost_system boost_program_options boost_chrono spoa png z pthread)
 if(BUILD_DEBUG) 
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
 endif(BUILD_DEBUG)
