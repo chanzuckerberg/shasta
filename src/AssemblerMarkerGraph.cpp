@@ -771,6 +771,26 @@ MarkerGraph::VertexId Assembler::getGlobalMarkerGraphVertex(
 }
 
 
+
+// Get pairs (ordinal, marker graph vertex id) for all markers of an oriented read.
+// The pairs are returned sorted by ordinal.
+void Assembler::getMarkerGraphVertices(
+    OrientedReadId orientedReadId,
+    vector< pair<uint32_t, MarkerGraph::VertexId> >& v)
+{
+    const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
+    v.clear();
+    for(uint32_t ordinal=0; ordinal<markerCount; ordinal++) {
+        const MarkerGraph::VertexId vertexId =
+            getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+        if(vertexId != MarkerGraph::invalidCompressedVertexId) {
+            v.push_back(make_pair(ordinal, vertexId));
+        }
+    }
+}
+
+
+
 // Find the markers contained in a given vertex of the global marker graph.
 // Returns the markers as tuples(read id, strand, ordinal).
 vector< tuple<ReadId, Strand, uint32_t> >
@@ -5230,4 +5250,6 @@ void Assembler::computeMarkerGraphCoverageHistogram()
         edgesCsv << coverage << "," << frequency << "\n";
     }
 }
+
+
 

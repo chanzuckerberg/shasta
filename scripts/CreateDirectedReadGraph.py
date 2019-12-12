@@ -13,6 +13,9 @@ a.accessMarkers()
 a.accessAlignmentData()
 
 # Create the global read graph.
-a.createDirectedReadGraph(maxTrim = int(config['Align']['maxTrim']))
+a.createDirectedReadGraph(
+    maxTrim = int(config['Align']['maxTrim']))
+    containedNeighborCount = int(config['ReadGraph']['containedNeighborCount']))
+    uncontainedNeighborCountPerDirection = int(config['ReadGraph']['uncontainedNeighborCountPerDirection']))
 
 

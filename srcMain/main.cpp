@@ -607,7 +607,10 @@ void shasta::main::assemble(
         assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
         assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
     } else if(assemblerOptions.readGraphOptions.creationMethod == 1) {
-        assembler.createDirectedReadGraph(assemblerOptions.alignOptions.maxTrim);
+        assembler.createDirectedReadGraph(
+            assemblerOptions.alignOptions.maxTrim,
+            assemblerOptions.readGraphOptions.containedNeighborCount,
+            assemblerOptions.readGraphOptions.uncontainedNeighborCountPerDirection);
     } else {
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }
@@ -669,20 +672,18 @@ void shasta::main::assemble(
         assemblerOptions.markerGraphOptions.highCoverageThreshold,
         assemblerOptions.markerGraphOptions.maxDistance,
         assemblerOptions.markerGraphOptions.edgeMarkerSkipThreshold);
+    if(assemblerOptions.markerGraphOptions.reverseTransitiveReduction) {
+        assembler.reverseTransitiveReduction(
+            assemblerOptions.markerGraphOptions.lowCoverageThreshold,
+            assemblerOptions.markerGraphOptions.highCoverageThreshold,
+            assemblerOptions.markerGraphOptions.maxDistance);
+    }
 
 
 
     // Marker graph processing that varies according to
     // --Assembly.strategy.
     if(assemblerOptions.assemblyOptions.strategy == 1) {
-
-        // Do a reverse transitive reduction to remove
-        // the short reverse bubbles, but don't do
-        // bubble/superbubble removal!
-        assembler.reverseTransitiveReduction(
-            assemblerOptions.markerGraphOptions.lowCoverageThreshold,
-            assemblerOptions.markerGraphOptions.highCoverageThreshold,
-            assemblerOptions.markerGraphOptions.maxDistance);
 
         // Prune the marker graph.
         assembler.pruneMarkerGraphStrongSubgraph(

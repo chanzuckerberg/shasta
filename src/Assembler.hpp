@@ -47,6 +47,7 @@ namespace shasta {
     class AssemblerOptions;
     class AssembledSegment;
     class ConsensusCaller;
+    class InducedAlignment;
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
@@ -1059,7 +1060,10 @@ public:
     // If --ReadGraph.creationMethod is 0, this is not used
     // and instead we use the undirected read graph defined above.
     DirectedReadGraph directedReadGraph;
-    void createDirectedReadGraph(uint32_t maxTrim);
+    void createDirectedReadGraph(
+        uint64_t maxTrim,
+        uint64_t containedNeighborCount,
+        uint64_t uncontainedNeighborCountPerDirection);
     void accessDirectedReadGraphReadOnly();
     void accessDirectedReadGraphReadWrite();
 
@@ -1226,6 +1230,12 @@ private:
         OrientedReadId,
         uint32_t ordinal) const;
 
+    // Get pairs (ordinal, marker graph vertex id) for all markers of an oriented read.
+    // The pairs are returned sorted by ordinal.
+    void getMarkerGraphVertices(
+        OrientedReadId,
+        vector< pair<uint32_t, MarkerGraph::VertexId> >&);
+
     // Find the markers contained in a given vertex of the global marker graph.
     // The markers are stored as pairs(oriented read id, ordinal).
     void getGlobalMarkerGraphVertexMarkers(
@@ -1294,6 +1304,50 @@ private:
         // It is left set to all false on exit, so it can be reused.
         array<vector<bool>, 2>& vertexFlags
         ) const;
+
+
+
+    // Compute an alignment between two oriented reads
+    // induced by the marker graph. See InducedAlignment.hpp for more
+    // information.
+    void computeInducedAlignment(
+        OrientedReadId,
+        OrientedReadId,
+        InducedAlignment&
+    );
+
+
+
+    // Find all pairs of incompatible reads that involve a given read.
+    // A pair of reads is incompatible if it has a "bad" induced alignment.
+    // See InducedAlignment.hpp for more information.
+private:
+    void findIncompatibleReadPairs(
+        ReadId readId0,
+
+        // If true, only consider ReadId's readid1<readId0.
+        bool onlyConsiderLowerReadIds,
+
+        // If true, skip pairs that are in the read graph.
+        // Those are already known to have a good induced alignment
+        // by construction.
+        bool skipReadGraphEdges,
+
+        // The incompatible pairs found.
+        vector<OrientedReadPair>& incompatiblePairs);
+public:
+    // Python-callable overload.
+    vector<OrientedReadPair> findIncompatibleReadPairs(
+        ReadId readId0,
+
+        // If true, only consider ReadId's readid1<readId0.
+        bool onlyConsiderLowerReadIds,
+
+        // If true, skip pairs that are in the read graph.
+        // Those are already known to have a good induced alignment
+        // by construction.
+        bool skipReadGraphEdges);
+private:
 
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1693,6 +1747,7 @@ public:
         LocalMarkerGraphRequestParameters&) const;
     void exploreMarkerGraphVertex(const vector<string>&, ostream&);
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
+    void exploreMarkerGraphInducedAlignment(const vector<string>&, ostream&);
 #endif
 
 

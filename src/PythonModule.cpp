@@ -310,7 +310,9 @@ PYBIND11_MODULE(shasta, module)
         // Directed read graph.
         .def("createDirectedReadGraph",
             &Assembler::createDirectedReadGraph,
-            arg("maxTrim"))
+            arg("maxTrim"),
+            arg("containedNeighborCount"),
+            arg("uncontainedNeighborCountPerDirection"))
         .def("accessDirectedReadGraphReadOnly",
             &Assembler::accessDirectedReadGraphReadOnly)
         .def("accessDirectedReadGraphReadWrite",
@@ -430,6 +432,17 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessMarkerGraphConsensus)
         .def("accessMarkerGraphCoverageData",
             &Assembler::accessMarkerGraphCoverageData)
+        .def("findIncompatibleReadPairs",
+            (
+                vector<OrientedReadPair> (Assembler::*)
+                    (ReadId,
+                    bool,
+                    bool)
+            )
+            &Assembler::findIncompatibleReadPairs,
+            arg("readId"),
+            arg("onlyConsiderLowerReadIds") = false,
+            arg("skipReadGraphEdges") = true)
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",

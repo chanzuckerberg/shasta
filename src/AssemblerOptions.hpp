@@ -130,6 +130,8 @@ public:
         int minComponentSize;
         int maxChimericReadDistance;
         int crossStrandMaxDistance;
+        int containedNeighborCount;
+        int uncontainedNeighborCountPerDirection;
         void write(ostream& ) const;
     };
     ReadGraphOptions readGraphOptions;
@@ -150,6 +152,7 @@ public:
         int pruneIterationCount;
         string simplifyMaxLength;
         vector<size_t> simplifyMaxLengthVector;
+        bool reverseTransitiveReduction;
         void parseSimplifyMaxLength();
         void write(ostream&) const;
     };

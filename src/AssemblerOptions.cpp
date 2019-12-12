@@ -395,6 +395,18 @@ void AssemblerOptions::addConfigurableOptions()
         "Maximum distance (edges) for flagCrossStrandReadGraphEdges. "
         "Set this to zero to entirely suppress flagCrossStrandReadGraphEdges.")
 
+        ("ReadGraph.containedNeighborCount",
+        value<int>(&readGraphOptions.containedNeighborCount)->
+        default_value(6),
+        "Maximum number of alignments to be kept for each contained read "
+        "(only used when creationMethod is 1).")
+
+        ("ReadGraph.uncontainedNeighborCountPerDirection",
+        value<int>(&readGraphOptions.uncontainedNeighborCountPerDirection)->
+        default_value(3),
+        "Maximum number of alignments to be kept in each direction "
+        "(forward, backward) for each uncontained read (only used when creationMethod is 1).")
+
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
@@ -436,6 +448,11 @@ void AssemblerOptions::addConfigurableOptions()
         value<string>(&markerGraphOptions.simplifyMaxLength)->
         default_value("10,100,1000"),
         "Maximum lengths (in markers) used at each iteration of simplifyMarkerGraph.")
+
+        ("MarkerGraph.reverseTransitiveReduction",
+        bool_switch(&markerGraphOptions.reverseTransitiveReduction)->
+        default_value(false),
+        "Perform approximate reverse transitive reduction of the marker graph.")
 
         ("Assembly.strategy",
         value<int>(&assemblyOptions.strategy)->
@@ -569,6 +586,9 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
     s << "minComponentSize = " << minComponentSize << "\n";
     s << "maxChimericReadDistance = " << maxChimericReadDistance << "\n";
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
+    s << "containedNeighborCount = " << containedNeighborCount << "\n";
+    s << "uncontainedNeighborCountPerDirection = " << uncontainedNeighborCountPerDirection << "\n";
+
 }
 
 
@@ -584,6 +604,8 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
     s << "edgeMarkerSkipThreshold = " << edgeMarkerSkipThreshold << "\n";
     s << "pruneIterationCount = " << pruneIterationCount << "\n";
     s << "simplifyMaxLength = " << simplifyMaxLength << "\n";
+    s << "reverseTransitiveReduction = " <<
+        convertBoolToPythonString(reverseTransitiveReduction) << "\n";
 }
 
 
