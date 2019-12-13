@@ -69,14 +69,6 @@ PYBIND11_MODULE(shasta, module)
         .def("readCount",
             &Assembler::readCount,
             "Get the number of reads.")
-        .def("addReadsFromFasta",
-            &Assembler::addReadsFromFasta,
-            "Add reads from a fasta file.",
-            arg("fileName"),
-            arg("minReadLength"),
-            arg("blockSize") = 2ULL * 1024ULL * 1024ULL * 1024ULL,
-            arg("threadCountForReading") = 1,
-            arg("threadCountForProcessing") = 0)
         .def("histogramReadLength",
             &Assembler::histogramReadLength,
             "Create a histogram of read length and write it to a csv file.",

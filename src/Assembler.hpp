@@ -169,12 +169,6 @@ public:
 
     // Add reads.
     // The reads in the specified file are added to those already previously present.
-    void addReadsFromFasta(
-        const string& fileName,
-        size_t minReadLength,
-        size_t blockSize,
-        size_t threadCountForReading,
-        size_t threadCountForProcessing);
     void addReads(
         const string& fileName,
         size_t minReadLength,
@@ -657,6 +651,11 @@ private:
     // These names are only used as an aid in tracing each read
     // back to its origin.
     MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
+
+    // Read meta data. This is the information following the read name
+    // in the header line for fasta and fastq files.
+    // Indexed by ReadId.
+    MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
 
     // Function to write a read in Fasta format.
     void writeRead(ReadId, ostream&);
