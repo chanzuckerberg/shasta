@@ -23,6 +23,12 @@ void Assembler::checkReadNamesAreOpen() const
         throw runtime_error("Read names are not accessible.");
     }
 }
+void Assembler::checkReadMetaDataAreOpen() const
+{
+    if(!readMetaData.isOpen()) {
+        throw runtime_error("Read metadata are not accessible.");
+    }
+}
 void Assembler::checkReadId(ReadId readId) const
 {
     if(readId >= reads.size()) {
@@ -52,7 +58,12 @@ void Assembler::addReads(
         largeDataPageSize,
         reads,
         readNames,
+        readMetaData,
         readRepeatCounts);
+
+    // Sanity checks.
+    SHASTA_ASSERT(readNames.size() == reads.size());
+    SHASTA_ASSERT(readMetaData.size() == reads.size());
 
     cout << "Discarded read statistics for file " << fileName << ":" << endl;
     cout << "    Discarded " << readLoader.discardedInvalidBaseReadCount <<
@@ -237,11 +248,17 @@ void Assembler::writeRead(ReadId readId, ostream& file)
 
     const vector<Base> rawSequence = getOrientedReadRawSequence(OrientedReadId(readId, 0));
     const auto readName = readNames[readId];
+    const auto metaData = readMetaData[readId];
 
     file << ">";
     copy(readName.begin(), readName.end(), ostream_iterator<char>(file));
     file << " " << readId;
-    file << " " << rawSequence.size() << "\n";
+    file << " " << rawSequence.size();
+    if(metaData.size() > 0) {
+        file << " ";
+        copy(metaData.begin(), metaData.end(), ostream_iterator<char>(file));
+    }
+    file << "\n";
     copy(rawSequence.begin(), rawSequence.end(), ostream_iterator<Base>(file));
     file << "\n";
 

@@ -31,6 +31,7 @@ public:
         size_t pageSize,
         LongBaseSequences& reads,
         MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
+        MemoryMapped::VectorOfVectors<char, uint64_t>& readMetaData,
         MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts);
 
     // The number of reads and raw bases discarded because the read
@@ -70,6 +71,7 @@ private:
     // The data structure that the reads will be added to.
     LongBaseSequences& reads;
     MemoryMapped::VectorOfVectors<char, uint64_t>& readNames;
+    MemoryMapped::VectorOfVectors<char, uint64_t>& readMetaData;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
 
     // Create the name to be used for a MemoryMapped object.
@@ -87,6 +89,7 @@ private:
     // Vectors where each thread stores the reads it found.
     // Indexed by threadId.
     vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadNames;
+    vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadMetaData;
     vector< shared_ptr<LongBaseSequences> > threadReads;
     vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
     void allocatePerThreadDataStructures();

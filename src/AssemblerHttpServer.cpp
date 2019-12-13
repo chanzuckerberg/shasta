@@ -1100,6 +1100,7 @@ void Assembler::exploreRead(
     const vector<Base> rawOrientedReadSequence = getOrientedReadRawSequence(orientedReadId);
     const auto readStoredSequence = reads[readId];
     const auto readName = readNames[readId];
+    const auto metaData = readMetaData[readId];
     const auto orientedReadMarkers = markers[orientedReadId.getValue()];
     if(!beginPositionIsPresent) {
         beginPosition = 0;
@@ -1124,8 +1125,12 @@ void Assembler::exploreRead(
     html << "'>Oriented read " << orientedReadId << "</h1>";
 
     // Read name.
-    html << "<p>Read name on input: ";
+    html << "<p>Read name: ";
     copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
+
+    // Read meta data.
+    html << "<p>Read meta data: ";
+    copy(metaData.begin(), metaData.end(), ostream_iterator<char>(html));
 
     // Read length.
     html << "<p>This read is " << rawOrientedReadSequence.size() << " bases long";

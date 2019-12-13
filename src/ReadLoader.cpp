@@ -20,6 +20,7 @@ ReadLoader::ReadLoader(
     size_t pageSize,
     LongBaseSequences& reads,
     MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
+    MemoryMapped::VectorOfVectors<char, uint64_t>& readMetaData,
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts) :
 
     MultithreadedObject(*this),
@@ -30,6 +31,7 @@ ReadLoader::ReadLoader(
     pageSize(pageSize),
     reads(reads),
     readNames(readNames),
+    readMetaData(readMetaData),
     readRepeatCounts(readRepeatCounts)
 {
     cout << timestamp << "Loading reads from " << fileName << endl;
@@ -119,6 +121,7 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
     // reads it finds.
     allocatePerThreadDataStructures(threadId);
     MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames = *threadReadNames[threadId];
+    MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadMetaData = *threadReadMetaData[threadId];
     LongBaseSequences& thisThreadReads = *threadReads[threadId];
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
         *threadReadRepeatCounts[threadId];
@@ -152,6 +155,7 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
 
     // Main loop over the reads in the file block allocated to this thread.
     string readName;
+    string readMetaData;
     vector<Base> read;
     vector<Base> runLengthRead;
     vector<uint8_t> readRepeatCount;
@@ -176,16 +180,23 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
             offset++;
         }
 
-        // Read the rest of the line.
+        // Read the meta data.
+        readMetaData.clear();
         while(true) {
             if(offset == bufferSize) {
                 throw runtime_error("Reached end of file while processing header line for read "
                     + readName);
             }
-            if(bufferPointer[offset] == '\n') {
+            const char c = bufferPointer[offset];
+            if(c == '\n') {
                 break;
             }
             ++offset;
+            if(isspace(c) and readMetaData.empty()) {
+                // Do nothing. Only start storing after encountering the first non-space.
+            } else {
+                readMetaData.push_back(c);
+            }
         }
 
         // Consume the line end at the end of the header line.
@@ -239,6 +250,7 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
         // Store the read bases.
         if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
             thisThreadReadNames.appendVector(readName.begin(), readName.end());
+            thisThreadReadMetaData.appendVector(readMetaData.begin(), readMetaData.end());
             thisThreadReads.append(runLengthRead);
             thisThreadReadRepeatCounts.appendVector(readRepeatCount);
         } else {
@@ -329,6 +341,7 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
     // reads it finds.
     allocatePerThreadDataStructures(threadId);
     MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames = *threadReadNames[threadId];
+    MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadMetaData = *threadReadMetaData[threadId];
     LongBaseSequences& thisThreadReads = *threadReads[threadId];
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
         *threadReadRepeatCounts[threadId];
@@ -348,6 +361,7 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
 
     // Loop over this range of reads.
     string readName;
+    string readMetaData;
     vector<Base> read;
     vector<Base> runLengthRead;
     vector<uint8_t> readRepeatCount;
@@ -405,6 +419,19 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
                 to_string(headerBegin-fileBegin) + ".");
         }
 
+        // Extract the read meta data. It starts at the first non-space character
+        // following the read name.
+        readMetaData.clear();
+        for(auto it = nameBegin + readName.size(); it != headerEnd; ++it) {
+            const char c = *it;
+            if(isspace(c) and readMetaData.empty()) {
+                // Do nothing. Only start storing at the first non-space character.
+            } else {
+                readMetaData.push_back(c);
+            }
+        }
+
+
         // Check the line containing the plus.
         if(plusEnd - plusBegin != 1) {
             throw runtime_error("Extraneous characters on third line for read " +
@@ -449,6 +476,7 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         // Store the read.
         if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
             thisThreadReadNames.appendVector(readName.begin(), readName.end());
+            thisThreadReadMetaData.appendVector(readMetaData.begin(), readMetaData.end());
             thisThreadReads.append(runLengthRead);
             thisThreadReadRepeatCounts.appendVector(readRepeatCount);
         } else {
@@ -572,6 +600,7 @@ string ReadLoader::threadDataName(
 void ReadLoader::allocatePerThreadDataStructures()
 {
     threadReadNames.resize(threadCount);
+    threadReadMetaData.resize(threadCount);
     threadReads.resize(threadCount);
     threadReadRepeatCounts.resize(threadCount);
 }
@@ -580,6 +609,9 @@ void ReadLoader::allocatePerThreadDataStructures(size_t threadId)
     threadReadNames[threadId] = make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
     threadReadNames[threadId]->createNew(
         threadDataName(threadId, "ReadNames"), pageSize);
+    threadReadMetaData[threadId] = make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
+    threadReadMetaData[threadId]->createNew(
+        threadDataName(threadId, "ReadMetaData"), pageSize);
     threadReads[threadId] = make_shared<LongBaseSequences>();
     threadReads[threadId]->createNew(
         threadDataName(threadId, "Reads"), pageSize);
@@ -610,6 +642,7 @@ void ReadLoader::processCompressedRunnieFile()
         const uint64_t baseCount = reader.getLength(i);
         if(baseCount >= minReadLength) {
             readNames.appendVector(reader.getReadName(i).size());
+            readMetaData.appendVector(0);   // Empty meta data.
             reads.append(baseCount);
             readRepeatCounts.appendVector(baseCount);
             readIdTable[i] = readId++;
@@ -672,10 +705,15 @@ void ReadLoader::storeReads()
         MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames =
             *(threadReadNames[threadId]);
 
+        // Access the meta data.
+        MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadMetaData =
+            *(threadReadMetaData[threadId]);
+
         // Access the reads.
         LongBaseSequences& thisThreadReads = *(threadReads[threadId]);
         const size_t n = thisThreadReadNames.size();
         SHASTA_ASSERT(thisThreadReads.size() == n);
+        SHASTA_ASSERT(thisThreadReadMetaData.size() == n);
 
         // Access the repeat counts.
         MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
@@ -685,6 +723,7 @@ void ReadLoader::storeReads()
         // Store the reads.
         for(size_t i=0; i<n; i++) {
             readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
+            readMetaData.appendVector(thisThreadReadMetaData.begin(i), thisThreadReadMetaData.end(i));
             reads.append(thisThreadReads[i]);
             const size_t j = readRepeatCounts.size();
             readRepeatCounts.appendVector(thisThreadReadRepeatCounts.size(i));
@@ -696,12 +735,14 @@ void ReadLoader::storeReads()
 
         // Remove the data structures used by this thread.
         thisThreadReadNames.remove();
+        thisThreadReadMetaData.remove();
         thisThreadReads.remove();
         thisThreadReadRepeatCounts.remove();
     }
 
     // Clear the per-thread data structures.
     threadReadNames.clear();
+    threadReadMetaData.clear();
     threadReads.clear();
     threadReadRepeatCounts.clear();
 

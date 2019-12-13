@@ -579,6 +579,7 @@ public:
 private:
     void checkReadsAreOpen() const;
     void checkReadNamesAreOpen() const;
+    void checkReadMetaDataAreOpen() const;
     void checkReadId(ReadId) const;
 
 
