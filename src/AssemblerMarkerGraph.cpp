@@ -3491,6 +3491,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
             // Sequence on marker interval to the right of alignment is used to
             // generate interveningSequence 
+            interveningSequence.clear();
             for(uint32_t position=begin+alignResult.endLocations[0]+1; position!=end; position++) {
                 Base base;
                 uint8_t repeatCount;
