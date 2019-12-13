@@ -658,6 +658,12 @@ private:
     // Indexed by ReadId.
     MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
 
+    // Return a meta data field for a read, or an empty string
+    // if that field is missing. This treats the meta data
+    // as a space separated sequence of Key=Value,
+    // without embedded spaces in each Key=Value pair.
+    string getMetaData(ReadId, const string& key);
+
     // Function to write a read in Fasta format.
     void writeRead(ReadId, ostream&);
     void writeOrientedRead(OrientedReadId, ostream&);

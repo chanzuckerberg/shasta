@@ -4,6 +4,7 @@
 using namespace shasta;
 
 // Standard libraries.
+#include "algorithm.hpp"
 #include "iterator.hpp"
 
 
@@ -409,7 +410,7 @@ void Assembler::writeReadsSummary()
         "MarkerCount,MarkerDensity,MaximumMarkerOffset,"
         "Palindromic,Chimeric,"
         "AlignmentCandidates,ReadGraphNeighbors,"
-        "VertexCount,VertexDensity,\n";
+        "VertexCount,VertexDensity,runid,sampleid,read,ch,start_time,\n";
     for(ReadId readId=0; readId!=reads.size(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
 
@@ -484,7 +485,72 @@ void Assembler::writeReadsSummary()
         csv << vertexCount << ",";
         csv << double(vertexCount) / double(markerCount) << ",";
 
+        // Oxford Nanopore standard metadata.
+        csv << getMetaData(readId, "runid") << ",";
+        csv << getMetaData(readId, "sampleid") << ",";
+        csv << getMetaData(readId, "read") << ",";
+        csv << getMetaData(readId, "ch") << ",";
+        csv << getMetaData(readId, "start_time") << ",";
+
         // End of the line for this read.
         csv << "\n";
      }
+}
+
+
+
+// Return a meta data field for a read, or an empty string
+// if that field is missing. This treats the meta data
+// as a space separated sequence of Key=Value,
+// without embedded spaces in each Key=Value pair.
+string Assembler::getMetaData(ReadId readId, const string& key)
+{
+    SHASTA_ASSERT(readId < readMetaData.size());
+    const uint64_t keySize = key.size();
+    const char* keyBegin = key.data();
+    const char* keyEnd = keyBegin + keySize;
+    const char* begin = readMetaData.begin(readId);
+    const char* end = readMetaData.end(readId);
+
+
+    const char* p = begin;
+    while(p != end) {
+
+        // Look for the next space or line end.
+        const char*q = p;
+        while(q != end and not isspace(*q)) {
+            ++q;
+        }
+
+        // When getting here, the interval [p, q) contains
+        // a possible (Key,Value) pair.
+
+        // Check if we have the key we are looking for,
+        // immediately followed by an equal sign.
+        // If so, return what follows.
+        if(q > p + keySize + 1) {
+            if(std::equal(keyBegin, keyEnd, p)) {
+                if(p[keySize] == '=') {
+                    const char* valueBegin = p + keySize + 1;
+                    const char* valueEnd = q;
+                    return string(valueBegin, valueEnd - valueBegin);
+                }
+            }
+        }
+
+        // If we reached the end of our metadata, stop here.
+        if(q == end) {
+            break;
+        }
+
+        // Look for the next non-space.
+        p = q;
+        while(p != end and isspace(*p)) {
+            ++p;
+        }
+    }
+
+    // If getting here, we didn't find this keyword.
+    // Return an empty string.
+    return "";
 }
