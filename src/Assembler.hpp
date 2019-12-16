@@ -793,6 +793,11 @@ private:
     FlagPalindromicReadsData flagPalindromicReadsData;
 
 
+    // Check if an alignment between two reads should be suppressed,
+    // bases on the setting of command line option
+    // --Align.sameChannelReadAlignment.suppressDeltaThreshold.
+    bool suppressAlignment(ReadId, ReadId, uint64_t delta);
+
 
     // Alignment candidates found by the LowHash algorithm.
     // They all have readId0<readId1.

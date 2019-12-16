@@ -896,3 +896,89 @@ uint32_t Assembler::countCommonMarkersWithOffsetIn(
 
     return count;
 }
+
+
+
+// Check if an alignment between two reads should be suppressed,
+// bases on the setting of command line option
+// --Align.sameChannelReadAlignment.suppressDeltaThreshold.
+bool Assembler::suppressAlignment(
+    ReadId readId0,
+    ReadId readId1,
+    uint64_t delta)
+{
+    // If the ch meta data fields of the two reads are missing or different,
+    // don't suppress the alignment.
+    // Check the channel first for efficiency,
+    // so we can return faster in most cases.
+    const auto ch0 = getMetaData(readId0, "ch");
+    if(ch0.empty()) {
+        return false;
+    }
+    const auto ch1 = getMetaData(readId1, "ch");
+    if(ch1.empty()) {
+        return false;
+    }
+    if(ch0 not_eq ch1) {
+        return false;
+    }
+
+
+
+    // If the sampleid meta data fields of the two reads are missing or different,
+    // don't suppress the alignment.
+    const auto sampleid0 = getMetaData(readId0, "sampleid");
+    if(sampleid0.empty()) {
+        return false;
+    }
+    const auto sampleid1 = getMetaData(readId1, "sampleid");
+    if(sampleid1.empty()) {
+        return false;
+    }
+    if(sampleid0 not_eq sampleid1) {
+        return false;
+    }
+
+
+
+    // If the runid meta data fields of the two reads are missing or different,
+    // don't suppress the alignment.
+    const auto runid0 = getMetaData(readId0, "runid");
+    if(runid0.empty()) {
+        return false;
+    }
+    const auto runid1 = getMetaData(readId1, "runid");
+    if(runid1.empty()) {
+        return false;
+    }
+    if(runid0 not_eq runid1) {
+        return false;
+    }
+
+
+
+    // If the read meta data fields of the two reads are missing,
+    // don't suppress the alignment.
+    const auto read0 = getMetaData(readId0, "read");
+    if(read0.empty()) {
+        return false;
+    }
+    const auto read1 = getMetaData(readId1, "read");
+    if(read1.empty()) {
+        return false;
+    }
+
+
+
+    // Convert the read meta data fields to integers.
+    // Keep in mind the MemoryAsContainer<char> is not null-terminated.
+    const int64_t r0 = int64_t(atoul(read0));
+    const int64_t r1 = int64_t(atoul(read1));
+
+
+
+    // Suppress the alignment if the absolute difference of the
+    // read meta data fields is less than delta.
+    return abs(r0 - r1) < delta;
+
+}

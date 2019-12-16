@@ -3,13 +3,26 @@
 #ifndef SHASTA_MEMORY_AS_CONTAINER_HPP
 #define SHASTA_MEMORY_AS_CONTAINER_HPP
 
+#include "algorithm.hpp"
 #include "cstddef.hpp"
 #include "iostream.hpp"
 #include "iterator.hpp"
+#include "stdexcept.hpp"
+#include "string.hpp"
 
 namespace shasta {
     template<class T> class MemoryAsContainer;
+
+    // Output a MemoryAsContainer<char> as a string.
     inline ostream& operator<<(ostream&, const MemoryAsContainer<char>&);
+
+    // Convert a MemoryAsContainer<char> to an integer.
+    // This cannot be done using std::atol because the
+    // MemoryAsContainer<char> is not null terminated.
+    uint64_t atoul(const MemoryAsContainer<char>&);
+
+    // Convert a MemoryAsContainer<char> to an std::string.
+    string convertToString(const MemoryAsContainer<char>&);
 }
 
 
@@ -61,6 +74,19 @@ public:
         SHASTA_ASSERT(!empty());
         return *(dataEnd - 1);
     }
+
+    bool operator==(const MemoryAsContainer<T>& that) const
+    {
+        if(size() == that.size()) {
+            return std::equal(begin(), end(), that.begin());
+        } else {
+            return false;
+        }
+    }
+    bool operator!=(const MemoryAsContainer<T>& that) const
+    {
+        return (*this) not_eq that;
+    }
 private:
     T* dataBegin;
     T* dataEnd;
@@ -68,7 +94,7 @@ private:
 
 
 
-// Write a MemoryAsContainer<char> as a string.
+// Output a MemoryAsContainer<char> as a string.
 inline std::ostream& shasta::operator<<(
     std::ostream& s,
     const shasta::MemoryAsContainer<char>&  m)
@@ -76,5 +102,37 @@ inline std::ostream& shasta::operator<<(
     copy(m.begin(), m.end(), ostream_iterator<char>(s));
     return s;
 }
+
+
+// Convert a MemoryAsContainer<char> to an integer.
+// This cannot be done using std::atol because the
+// MemoryAsContainer<char> is not null terminated.
+// The string can only contain numeric characters.
+inline uint64_t shasta::atoul(const MemoryAsContainer<char>& s)
+{
+    uint64_t n = 0;
+    for(uint64_t i=0; ; i++) {
+        const char c = s[i];
+        if(not std::isdigit(c)) {
+            throw runtime_error("Non-digit found in " + convertToString(s));
+        }
+
+        if(i ==  s.size()-1) {
+            return n;
+        }
+
+        n *= 10;
+    }
+}
+
+
+
+// Convert a MemoryAsContainer<char> to an std::string.
+inline std::string shasta::convertToString(const MemoryAsContainer<char>& m)
+{
+    return string(m.begin(), m.size());
+}
+
+
 
 #endif
