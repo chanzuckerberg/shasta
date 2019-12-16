@@ -798,6 +798,20 @@ private:
     // --Align.sameChannelReadAlignment.suppressDeltaThreshold.
     bool suppressAlignment(ReadId, ReadId, uint64_t delta);
 
+    // Remove all alignment candidates for which suppressAlignment
+    // returns false.
+public:
+    void suppressAlignmentCandidates(uint64_t delta, size_t threadCount);
+private:
+    class SuppressAlignmentCandidatesData {
+    public:
+        uint64_t delta;
+        MemoryMapped::Vector<bool> suppress; // For each alignment candidate.
+    };
+    SuppressAlignmentCandidatesData suppressAlignmentCandidatesData;
+    void suppressAlignmentCandidatesThreadFunction(size_t threadId);
+
+
 
     // Alignment candidates found by the LowHash algorithm.
     // They all have readId0<readId1.

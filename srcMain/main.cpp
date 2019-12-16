@@ -560,6 +560,15 @@ void shasta::main::assemble(
 
 
 
+    // Suppress alignment candidates where reads are close on the same channel.
+    if(assemblerOptions.alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold > 0) {
+        assembler.suppressAlignmentCandidates(
+            assemblerOptions.alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold,
+            threadCount);
+    }
+
+
+
     // Compute alignments.
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
 #ifdef SHASTA_BUILD_FOR_GPU

@@ -85,7 +85,7 @@ public:
     }
     bool operator!=(const MemoryAsContainer<T>& that) const
     {
-        return (*this) not_eq that;
+        return not((*this) == that);
     }
 private:
     T* dataBegin;
@@ -116,6 +116,8 @@ inline uint64_t shasta::atoul(const MemoryAsContainer<char>& s)
         if(not std::isdigit(c)) {
             throw runtime_error("Non-digit found in " + convertToString(s));
         }
+
+        n += (c- '0');
 
         if(i ==  s.size()-1) {
             return n;
