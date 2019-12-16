@@ -368,6 +368,19 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(-3),
         "Gap score for marker alignments (only for experimental alignment method 1).")
 
+        ("Align.sameChannelReadAlignment.suppressDeltaThreshold",
+        value<int>(&alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold)->
+        default_value(0),
+        "If not zero, alignments between reads from the same nanopore channel "
+        "and close in time are suppressed. The \"read\" meta data fields "
+        "from the FASTA or FASTQ header are checked. If their difference, in "
+        "absolute value, is less than the value of this option, the alignment "
+        "is suppressed. This can help avoid assembly artifact. "
+        "This check is only done if the two reads have identical meta data fields "
+        "\"runid\", \"sampleid\", and \"ch\". "
+        "If any of these meta data fields are missing, this check is suppressed and this "
+        "option has no effect.")
+
         ("ReadGraph.creationMethod",
         value<int>(&readGraphOptions.creationMethod)->
         default_value(0),
@@ -574,6 +587,8 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
     s << "matchScore = " << matchScore << "\n";
     s << "mismatchScore = " << mismatchScore << "\n";
     s << "gapScore = " << gapScore << "\n";
+    s << "sameChannelReadAlignment.suppressDeltaThreshold = " <<
+        sameChannelReadAlignmentSuppressDeltaThreshold << "\n";
 }
 
 
