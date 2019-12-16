@@ -4,9 +4,12 @@
 #define SHASTA_MEMORY_AS_CONTAINER_HPP
 
 #include "cstddef.hpp"
+#include "iostream.hpp"
+#include "iterator.hpp"
 
 namespace shasta {
     template<class T> class MemoryAsContainer;
+    inline ostream& operator<<(ostream&, const MemoryAsContainer<char>&);
 }
 
 
@@ -64,5 +67,14 @@ private:
 };
 
 
+
+// Write a MemoryAsContainer<char> as a string.
+inline std::ostream& shasta::operator<<(
+    std::ostream& s,
+    const shasta::MemoryAsContainer<char>&  m)
+{
+    copy(m.begin(), m.end(), ostream_iterator<char>(s));
+    return s;
+}
 
 #endif

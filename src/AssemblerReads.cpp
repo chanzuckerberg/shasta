@@ -503,21 +503,21 @@ void Assembler::writeReadsSummary()
 // if that field is missing. This treats the meta data
 // as a space separated sequence of Key=Value,
 // without embedded spaces in each Key=Value pair.
-string Assembler::getMetaData(ReadId readId, const string& key)
+MemoryAsContainer<char> Assembler::getMetaData(ReadId readId, const string& key)
 {
     SHASTA_ASSERT(readId < readMetaData.size());
     const uint64_t keySize = key.size();
-    const char* keyBegin = key.data();
-    const char* keyEnd = keyBegin + keySize;
-    const char* begin = readMetaData.begin(readId);
-    const char* end = readMetaData.end(readId);
+    char* keyBegin = const_cast<char*>(&key[0]);
+    char* keyEnd = keyBegin + keySize;
+    char* begin = readMetaData.begin(readId);
+    char* end = readMetaData.end(readId);
 
 
-    const char* p = begin;
+    char* p = begin;
     while(p != end) {
 
         // Look for the next space or line end.
-        const char*q = p;
+        char*q = p;
         while(q != end and not isspace(*q)) {
             ++q;
         }
@@ -531,14 +531,14 @@ string Assembler::getMetaData(ReadId readId, const string& key)
         if(q > p + keySize + 1) {
             if(std::equal(keyBegin, keyEnd, p)) {
                 if(p[keySize] == '=') {
-                    const char* valueBegin = p + keySize + 1;
-                    const char* valueEnd = q;
-                    return string(valueBegin, valueEnd - valueBegin);
+                    char* valueBegin = p + keySize + 1;
+                    char* valueEnd = q;
+                    return MemoryAsContainer<char>(valueBegin, valueEnd);
                 }
             }
         }
 
-        // If we reached the end of our metadata, stop here.
+        // If we reached the end of our meta data, stop here.
         if(q == end) {
             break;
         }
@@ -552,5 +552,5 @@ string Assembler::getMetaData(ReadId readId, const string& key)
 
     // If getting here, we didn't find this keyword.
     // Return an empty string.
-    return "";
+    return MemoryAsContainer<char>();
 }
