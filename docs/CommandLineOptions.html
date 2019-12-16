@@ -392,7 +392,16 @@ Defines how low a hash has to be to be used with the LowHash algorithm.
 
 <tr id='MinHash.minHashIterationCount'>
 <td><code>--MinHash.minHashIterationCount</code><td class=centered><code>10</code><td>
-The number of MinHash/LowHash iterations.
+The number of MinHash/LowHash iterations, or 0 to let
+--MinHash.alignmentCandidatesPerRead control the number of iterations.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='MinHash.alignmentCandidatesPerRead'>
+<td><code>--MinHash.alignmentCandidatesPerRead</code><td class=centered><code>20</code><td>
+If <code>--MinHash.minHashIterationCount</code> is 0, 
+MinHash iteration is stopped when the average number of alignment candidates 
+that each read is involved in reaches this value. 
+If <code>--MinHash.minHashIterationCount</code> is not 0, this is not used.
 <a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='MinHash.maxBucketSize'>

@@ -155,6 +155,7 @@ PYBIND11_MODULE(shasta, module)
             arg("m"),
             arg("hashFraction"),
             arg("minHashIterationCount"),
+            arg("alignmentCandidatesPerRead"),
             arg("log2MinHashBucketCount") = 0,
             arg("minBucketSize"),
             arg("maxBucketSize"),

@@ -285,7 +285,16 @@ void AssemblerOptions::addConfigurableOptions()
         ("MinHash.minHashIterationCount",
         value<int>(&minHashOptions.minHashIterationCount)->
         default_value(10),
-        "The number of MinHash/LowHash iterations.")
+        "The number of MinHash/LowHash iterations, or 0 to let "
+        "--MinHash.alignmentCandidatesPerRead control the number of iterations.")
+
+        ("MinHash.alignmentCandidatesPerRead",
+        value<double>(&minHashOptions.alignmentCandidatesPerRead)->
+        default_value(20.),
+        "If --MinHash.minHashIterationCount is 0, MinHash iteration is stopped "
+        "when the average number of alignment candidates that each read is involved in "
+        "reaches this value. If --MinHash.minHashIterationCount is not 0, "
+        "this is not used.")
 
         ("MinHash.minBucketSize",
         value<int>(&minHashOptions.minBucketSize)->
@@ -564,6 +573,7 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
     s << "m = " << m << "\n";
     s << "hashFraction = " << hashFraction << "\n";
     s << "minHashIterationCount = " << minHashIterationCount << "\n";
+    s << "alignmentCandidatesPerRead = " << alignmentCandidatesPerRead << "\n";
     s << "minBucketSize = " << minBucketSize << "\n";
     s << "maxBucketSize = " << maxBucketSize << "\n";
     s << "minFrequency = " << minFrequency << "\n";

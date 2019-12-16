@@ -540,6 +540,7 @@ void shasta::main::assemble(
             assemblerOptions.minHashOptions.m,
             assemblerOptions.minHashOptions.hashFraction,
             assemblerOptions.minHashOptions.minHashIterationCount,
+            assemblerOptions.minHashOptions.alignmentCandidatesPerRead,
             0,
             assemblerOptions.minHashOptions.minBucketSize,
             assemblerOptions.minHashOptions.maxBucketSize,

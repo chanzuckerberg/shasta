@@ -29,6 +29,7 @@ a.findAlignmentCandidatesLowHash0(
     m = int(config['MinHash']['m']), 
     hashFraction = float(config['MinHash']['hashFraction']),
     minHashIterationCount = int(config['MinHash']['minHashIterationCount']), 
+    alignmentCandidatesPerRead = float(config['MinHash']['alignmentCandidatesPerRead']), 
     minBucketSize = int(config['MinHash']['minBucketSize']),
     maxBucketSize = int(config['MinHash']['maxBucketSize']),
     minFrequency = int(config['MinHash']['minFrequency']))

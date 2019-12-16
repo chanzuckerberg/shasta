@@ -88,6 +88,7 @@ public:
         int m;
         double hashFraction;
         int minHashIterationCount;
+        double alignmentCandidatesPerRead;
         int minBucketSize;
         int maxBucketSize;
         int minFrequency;
