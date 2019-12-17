@@ -1,6 +1,10 @@
+// Shasta.
 #include "InducedAlignment.hpp"
 #include "PngImage.hpp"
 using namespace shasta;
+
+// Standard library.
+#include "algorithm.hpp"
 
 
 
@@ -48,3 +52,79 @@ void InducedAlignment::writePngImage(
     // Write it out.
     image.write(fileName);
 }
+
+
+
+// Evaluate the quality of an induced alignment.
+// Returns true if the induced alignment satisfies the specified criteria.
+bool InducedAlignment::evaluate(
+    uint32_t markerCount0,
+    uint32_t markerCount1,
+    const InducedAlignmentCriteria& inducedAlignmentCriteria) const
+{
+    SHASTA_ASSERT(not data.empty());
+
+    // Compute the average and standard deviation of the offset
+    // between the first and second ordinal.
+    int64_t sum1 = 0;
+    int64_t sum2 = 0;
+    for(const auto& d: data) {
+        const int64_t offset = int64_t(d.ordinal0) - int64_t(d.ordinal1);
+        sum1 += offset;
+        sum2 += offset * offset;
+    }
+    const double n = double(data.size());
+    const double offset = double(sum1) / n;
+    const double sigma = (data.size()==1) ? 0. : sqrt((double(sum2) - n*offset*offset) / (n-1.));
+    cout << "Offset: average " << offset << ", sigma " << sigma << endl;
+    if(uint32_t(sigma) > inducedAlignmentCriteria.maxOffsetSigma) {
+        cout << "Offset sigma is too large." << endl;
+        return false;
+    }
+
+    // Compute ordinal sums and sort them.
+    vector<uint32_t> ordinalSum;
+    ordinalSum.reserve(data.size());
+    for(const auto& d: data) {
+        ordinalSum.push_back(d.ordinal0 + d.ordinal1);
+    }
+    std::sort(ordinalSum.begin(), ordinalSum.end());
+
+    // Compute minimum and maximum ordinal sum for a perfect alignment
+    // with this offset.
+    const double minOrdinalSum = abs(offset);
+    const double maxOrdinalSum = min(
+        double(2*markerCount1) + offset,
+        double(2*markerCount0) - offset);
+    cout << "Minimum ordinal sum: ideal " << minOrdinalSum <<
+        ", actual " << ordinalSum.front() <<
+        ", deviation " << double(ordinalSum.front()) - minOrdinalSum << endl;
+    cout << "Maximum ordinal sum: ideal " << maxOrdinalSum <<
+        ", actual " << ordinalSum.back() <<
+        ", deviation " << double(ordinalSum.back()) - maxOrdinalSum << endl;
+
+    if(abs(double(ordinalSum.front()) - minOrdinalSum) >
+        double(inducedAlignmentCriteria.maxTrim)) {
+        cout << "Too much trim on left." << endl;
+        return false;
+    }
+    if(abs(double(ordinalSum.back()) - maxOrdinalSum) >
+        double(inducedAlignmentCriteria.maxTrim)) {
+        cout << "Too much trim on right." << endl;
+        return false;
+    }
+
+    // Check for gaps.
+    for(uint64_t i=1; i<ordinalSum.size(); i++) {
+        if(ordinalSum[i] - ordinalSum[i-1] > 2*inducedAlignmentCriteria.maxSkip) {
+            cout << "Large gap." << endl;
+            return false;
+        }
+    }
+
+    // If getting here, this is a good induced alignment according to
+    // the given criteria.
+    cout << "Good induced alignment." << endl;
+    return true;
+}
+

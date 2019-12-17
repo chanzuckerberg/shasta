@@ -141,6 +141,13 @@ void Assembler::findIncompatibleReadPairs(
 {
     const bool debug = true;
 
+    // Criteria used to evaluate induced alignments.
+    // Get thsi values from comand line options when the code stabilizes.
+    InducedAlignmentCriteria inducedAlignmentCriteria;
+    inducedAlignmentCriteria.maxOffsetSigma = 50;
+    inducedAlignmentCriteria.maxTrim = 100;
+    inducedAlignmentCriteria.maxSkip = 100;
+
     // Check that we have what we need.
     // The code as written only supports the directed read graph.
     SHASTA_ASSERT(directedReadGraph.edges.isOpen);
@@ -234,6 +241,7 @@ void Assembler::findIncompatibleReadPairs(
 
 
     // Compute the induced alignment with each of these incompatible candidates.
+    incompatiblePairs.clear();
     InducedAlignment inducedAlignment;
     for(const OrientedReadId orientedReadId1: incompatibleCandidates) {
         cout << "Checking induced alignment of " <<
@@ -243,10 +251,16 @@ void Assembler::findIncompatibleReadPairs(
             orientedReadId1,
             inducedAlignment);
 
-    }
+        const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
+        const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
+        if(not inducedAlignment.evaluate(markerCount0, markerCount1, inducedAlignmentCriteria)) {
+            incompatiblePairs.push_back(OrientedReadPair(
+                readId0,
+                orientedReadId1.getReadId(),
+                orientedReadId1.getStrand() == 0));
+        }
 
-    // For now, return no pairs.
-    incompatiblePairs.clear();
+    }
 }
 
 
