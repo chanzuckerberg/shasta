@@ -436,6 +436,8 @@ PYBIND11_MODULE(shasta, module)
             arg("readId"),
             arg("onlyConsiderLowerReadIds") = false,
             arg("skipReadGraphEdges") = true)
+        .def("findAllIncompatibleReadPairs",
+            &Assembler::findAllIncompatibleReadPairs)
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",

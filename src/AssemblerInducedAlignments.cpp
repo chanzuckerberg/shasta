@@ -139,7 +139,7 @@ void Assembler::findIncompatibleReadPairs(
     // The incompatible pairs found.
     vector<OrientedReadPair>& incompatiblePairs)
 {
-    const bool debug = true;
+    const bool debug = false;
 
     // Criteria used to evaluate induced alignments.
     // Get thsi values from comand line options when the code stabilizes.
@@ -244,8 +244,10 @@ void Assembler::findIncompatibleReadPairs(
     incompatiblePairs.clear();
     InducedAlignment inducedAlignment;
     for(const OrientedReadId orientedReadId1: incompatibleCandidates) {
+        /*
         cout << "Checking induced alignment of " <<
             orientedReadId0 << " and " << orientedReadId1 << endl;
+        */
         computeInducedAlignment(
             orientedReadId0,
             orientedReadId1,
@@ -262,5 +264,42 @@ void Assembler::findIncompatibleReadPairs(
 
     }
 }
+
+
+
+// Find all incompatible read pairs.
+void Assembler::findAllIncompatibleReadPairs()
+{
+    vector<OrientedReadPair> allIncompatiblePairs;
+    vector<OrientedReadPair> incompatiblePairs;
+
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        findIncompatibleReadPairs(readId, true, true, incompatiblePairs);
+        copy(incompatiblePairs.begin(), incompatiblePairs.end(),
+            back_inserter(allIncompatiblePairs));
+    }
+    cout << "Found " << allIncompatiblePairs.size() << " incompatible pairs for " <<
+        readCount() << " reads." << endl;
+
+    ofstream csv("IncompatiblePairs.csv");
+    for(const OrientedReadPair& p: allIncompatiblePairs) {
+        csv << p.readIds[0] << ",";
+        csv << p.readIds[1] << ",";
+        csv << int(p.isSameStrand) << "\n";
+    }
+
+    ofstream dot("IncompatiblePairs.dot");
+    dot << "graph G{\n";
+    for(const OrientedReadPair& p: allIncompatiblePairs) {
+        OrientedReadId orientedReadId0(p.readIds[0], 0);
+        OrientedReadId orientedReadId1(p.readIds[1], p.isSameStrand ? 0 : 1);
+        dot << "\"" << orientedReadId0 << "\"--\"" << orientedReadId1 << "\";\n";
+        orientedReadId0.flipStrand();
+        orientedReadId1.flipStrand();
+        dot << "\"" << orientedReadId0 << "\"--\"" << orientedReadId1 << "\";\n";
+    }
+    dot << "}\n";
+}
+
 
 

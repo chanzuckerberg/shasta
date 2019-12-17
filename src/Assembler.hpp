@@ -1371,6 +1371,9 @@ public:
         // Those are already known to have a good induced alignment
         // by construction.
         bool skipReadGraphEdges);
+
+    // Find all incompatible read pairs.
+    void findAllIncompatibleReadPairs();
 private:
 
 

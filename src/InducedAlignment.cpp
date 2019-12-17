@@ -76,9 +76,9 @@ bool InducedAlignment::evaluate(
     const double n = double(data.size());
     const double offset = double(sum1) / n;
     const double sigma = (data.size()==1) ? 0. : sqrt((double(sum2) - n*offset*offset) / (n-1.));
-    cout << "Offset: average " << offset << ", sigma " << sigma << endl;
+    // cout << "Offset: average " << offset << ", sigma " << sigma << endl;
     if(uint32_t(sigma) > inducedAlignmentCriteria.maxOffsetSigma) {
-        cout << "Offset sigma is too large." << endl;
+        // cout << "Offset sigma is too large." << endl;
         return false;
     }
 
@@ -96,35 +96,37 @@ bool InducedAlignment::evaluate(
     const double maxOrdinalSum = min(
         double(2*markerCount1) + offset,
         double(2*markerCount0) - offset);
+    /*
     cout << "Minimum ordinal sum: ideal " << minOrdinalSum <<
         ", actual " << ordinalSum.front() <<
         ", deviation " << double(ordinalSum.front()) - minOrdinalSum << endl;
     cout << "Maximum ordinal sum: ideal " << maxOrdinalSum <<
         ", actual " << ordinalSum.back() <<
         ", deviation " << double(ordinalSum.back()) - maxOrdinalSum << endl;
+    */
 
     if(abs(double(ordinalSum.front()) - minOrdinalSum) >
-        double(inducedAlignmentCriteria.maxTrim)) {
-        cout << "Too much trim on left." << endl;
+        double(2*inducedAlignmentCriteria.maxTrim)) {
+        // cout << "Too much trim on left." << endl;
         return false;
     }
     if(abs(double(ordinalSum.back()) - maxOrdinalSum) >
-        double(inducedAlignmentCriteria.maxTrim)) {
-        cout << "Too much trim on right." << endl;
+        double(2*inducedAlignmentCriteria.maxTrim)) {
+        // cout << "Too much trim on right." << endl;
         return false;
     }
 
     // Check for gaps.
     for(uint64_t i=1; i<ordinalSum.size(); i++) {
         if(ordinalSum[i] - ordinalSum[i-1] > 2*inducedAlignmentCriteria.maxSkip) {
-            cout << "Large gap." << endl;
+            // cout << "Large gap." << endl;
             return false;
         }
     }
 
     // If getting here, this is a good induced alignment according to
     // the given criteria.
-    cout << "Good induced alignment." << endl;
+    // cout << "Good induced alignment." << endl;
     return true;
 }
 
