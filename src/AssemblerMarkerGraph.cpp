@@ -3362,7 +3362,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             +rightMarkerIntervals.size());
     vector< vector<size_t> >& distinctSequenceOccurrences = detail.distinctSequenceOccurrences;
     distinctSequenceOccurrences.clear();
-    vector<bool> isUsed(markerCount);
+    vector<bool> isUsed(markerCount+leftMarkerIntervals.size()+rightMarkerIntervals.size());
     vector<Base> interveningSequence;
     vector< vector<uint8_t> > interveningRepeatCounts(markerCount+leftMarkerIntervals.size()
             +rightMarkerIntervals.size());
@@ -3445,10 +3445,10 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
             // If the offset is too small, discard this marker interval.
             if(offset <= k) {
-                isUsed[i] = false;
+                isUsed[curr_size+i] = false;
                 continue;
             }
-            isUsed[i] = true;
+            isUsed[curr_size+i] = true;
 
             // Construct the sequence and repeat counts between the markers.
             const uint32_t begin = position0 + k;
@@ -3550,10 +3550,10 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
             // If the offset is too small, discard this marker interval.
             if(offset <= k) {
-                isUsed[i] = false;
+                isUsed[curr_size+i] = false;
                 continue;
             }
-            isUsed[i] = true;
+            isUsed[curr_size+i] = true;
 
             // Construct the sequence and repeat counts between the markers.
             const uint32_t begin = position0 + k;
