@@ -128,7 +128,7 @@ vector<OrientedReadPair> Assembler::findIncompatibleReadPairs(
 void Assembler::findIncompatibleReadPairs(
     ReadId readId0,
 
-    // If true, only consider ReadId's readid1<readId0.
+    // If true, only consider ReadId's readId1<readId0.
     bool onlyConsiderLowerReadIds,
 
     // If true, skip pairs that are in the read graph.
@@ -140,6 +140,12 @@ void Assembler::findIncompatibleReadPairs(
     vector<OrientedReadPair>& incompatiblePairs)
 {
     const bool debug = true;
+
+    // Check that we have what we need.
+    // The code as written only supports the directed read graph.
+    SHASTA_ASSERT(directedReadGraph.edges.isOpen);
+    SHASTA_ASSERT(directedReadGraph.edgesBySource.isOpen());
+    SHASTA_ASSERT(directedReadGraph.edgesByTarget.isOpen());
 
 
     // We need to find oriented reads that share at least one marker graph
@@ -183,8 +189,39 @@ void Assembler::findIncompatibleReadPairs(
                 continue;
             }
 
+
+
+            // See if this pair should be skipped because it corresponds
+            // to a read graph edge.
+            if(skipReadGraphEdges) {
+                const DirectedReadGraph::VertexId v0 = orientedReadId0.getValue();
+                const DirectedReadGraph::VertexId v1 = orientedReadId1.getValue();
+                const bool forwardExists = directedReadGraph.findEdge(v0, v1)
+                    != DirectedReadGraph::invalidEdgeId;
+                const bool backwardExists = directedReadGraph.findEdge(v1, v0)
+                    != DirectedReadGraph::invalidEdgeId;
+
+                if(forwardExists or backwardExists) {
+                    continue;
+                }
+            }
+
+
+
+
             // Add this oriented read to our incompatible candidates.
-            incompatibleCandidates.push_back(orientedReadId1);
+            if(onlyConsiderLowerReadIds) {
+
+                // Only if readId1 < readId0.
+                if(orientedReadId1.getReadId() < orientedReadId0.getReadId()) {
+                    incompatibleCandidates.push_back(orientedReadId1);
+                }
+
+            } else {
+
+                // Unconditionally.
+                incompatibleCandidates.push_back(orientedReadId1);
+            }
         }
     }
     deduplicate(incompatibleCandidates);
@@ -193,6 +230,20 @@ void Assembler::findIncompatibleReadPairs(
             " incompatible candidates." << endl;
     }
 
+
+
+
+    // Compute the induced alignment with each of these incompatible candidates.
+    InducedAlignment inducedAlignment;
+    for(const OrientedReadId orientedReadId1: incompatibleCandidates) {
+        cout << "Checking induced alignment of " <<
+            orientedReadId0 << " and " << orientedReadId1 << endl;
+        computeInducedAlignment(
+            orientedReadId0,
+            orientedReadId1,
+            inducedAlignment);
+
+    }
 
     // For now, return no pairs.
     incompatiblePairs.clear();

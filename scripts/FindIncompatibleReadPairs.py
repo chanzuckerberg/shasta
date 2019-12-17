@@ -1,9 +1,16 @@
 #!/usr/bin/python3
 
+import argparse
 import shasta
 import GetConfig
 
-readId = 0  # For now
+# Get the argument.
+parser = argparse.ArgumentParser(description=
+    'Find reads that have bad induced alignments with a given read.')    
+parser.add_argument('--readId', type=int, required=True)
+arguments = parser.parse_args()
+readId = arguments.readId
+
 
 # Read the config file.
 config = GetConfig.getConfig()
@@ -12,6 +19,7 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices()
+a.accessDirectedReadGraphReadOnly()
 
 # Find incompatible read pairs
 incompatiblePairs = a.findIncompatibleReadPairs(
