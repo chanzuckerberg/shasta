@@ -168,6 +168,54 @@ public:
 
     void writeEdges();
 
+
+
+    // Find adjacent vertices (parent + children) of a given vertex,
+    // considering only edges that were kept.
+    // Return them without duplicates and sorted by VertexId.
+    vector<VertexId> findKeptAdjacent(VertexId v)
+    {
+        vector<VertexId> adjacent;
+
+        // Children.
+        for(EdgeId edgeId: edgesBySource[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(target(edgeId));
+            }
+        }
+
+        // Parents.
+        for(EdgeId edgeId: edgesByTarget[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(source(edgeId));
+            }
+        }
+
+        // Return them without duplicates and sorted by VertexId.
+        deduplicate(adjacent);
+        return adjacent;
+    }
+
+
+
+    // Return common adjacent vertices of two given vertices,
+    // considering only edges that were kept.
+    // Return them without duplicates and sorted by VertexId.
+    vector<VertexId> findCommonKeptAdjacent(VertexId v0, VertexId v1)
+    {
+        const vector<VertexId> adjacent0 = findKeptAdjacent(v0);
+        const vector<VertexId> adjacent1 = findKeptAdjacent(v1);
+
+        // Find common adjacent vertices.
+        vector<VertexId> commonAdjacent;
+        std::set_intersection(
+            adjacent0.begin(), adjacent0.end(),
+            adjacent1.begin(), adjacent1.end(),
+            back_inserter(commonAdjacent)
+            );
+
+        return commonAdjacent;
+    }
 private:
 
     // Add an edge 0->1, reversing the direction if necessary

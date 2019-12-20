@@ -8,6 +8,7 @@
 
 // Standard library.
 #include "chrono.hpp"
+#include "iterator.hpp"
 #include <limits>
 #include <map>
 #include <queue>
@@ -130,6 +131,50 @@ public:
     {
         return inDegree(vertexId) + outDegree(vertexId);
     }
+
+
+
+    // Find adjacent vertices (parent + children) of a given vertex.
+    // Return them without duplicates and sorted by VertexId.
+    vector<VertexId> findAdjacent(VertexId v)
+    {
+        vector<VertexId> adjacent;
+
+        // Children.
+        for(EdgeId edgeId: edgesBySource[v]) {
+            adjacent.push_back(target(edgeId));
+        }
+
+        // Parents.
+        for(EdgeId edgeId: edgesByTarget[v]) {
+            adjacent.push_back(source(edgeId));
+        }
+
+        // Return them without duplicates and sorted by VertexId.
+        deduplicate(adjacent);
+        return adjacent;
+    }
+
+
+
+    // Return common adjacent vertices of two given vertices.
+    // Return them without duplicates and sorted by VertexId.
+    vector<VertexId> findCommonAdjacent(VertexId v0, VertexId v1)
+    {
+        const vector<VertexId> adjacent0 = findAdjacent(v0);
+        const vector<VertexId> adjacent1 = findAdjacent(v1);
+
+        // Find common adjacent vertices.
+        vector<VertexId> commonAdjacent;
+        std::set_intersection(
+            adjacent0.begin(), adjacent0.end(),
+            adjacent1.begin(), adjacent1.end(),
+            back_inserter(commonAdjacent)
+            );
+
+        return commonAdjacent;
+    }
+
 
 
     // A call to this function recomputes from scratch
