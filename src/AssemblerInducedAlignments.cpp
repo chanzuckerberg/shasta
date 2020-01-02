@@ -2,6 +2,7 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
 #include "InducedAlignment.hpp"
+#include "MemoryMappedUndirectedGraph.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
