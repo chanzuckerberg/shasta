@@ -154,7 +154,7 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "Number of threads, or 0 to use one thread per virtual processor.")
         
 #ifdef SHASTA_BUILD_FOR_GPU
-        ("gpu",
+        ("useGpu",
         bool_switch(&commandLineOnlyOptions.useGpu)->
         default_value(false),
         "Use GPU acceleration.")

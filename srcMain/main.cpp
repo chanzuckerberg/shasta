@@ -185,7 +185,7 @@ void shasta::main::assemble(
         throw runtime_error("Assembly.useMarginPhase is not supported.");
     }
 
-    // If the build does not support GPU acceleration, reject the --gpu option.
+    // If the build does not support GPU acceleration, reject the --useGpu option.
 #ifndef SHASTA_BUILD_FOR_GPU
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
         throw runtime_error("This Shasta build does not provide GPU acceleration.");
@@ -287,11 +287,12 @@ void shasta::main::assemble(
 #ifdef __linux__
     cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
     cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << endl;
-    cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << "\n" << endl;
+    cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << endl;
     cout << "useGpu = " <<
-        AssemblerOptions::convertBoolToPythonString(assemblerOptions.commandLineOnlyOptions.useGpu) <<
-        "\n" << endl;
+        AssemblerOptions::convertBoolToPythonString(assemblerOptions.commandLineOnlyOptions.useGpu)
+        << endl;
 #endif
+    cout << endl;
     assemblerOptions.write(cout);
     {
         ofstream configurationFile("shasta.conf");
