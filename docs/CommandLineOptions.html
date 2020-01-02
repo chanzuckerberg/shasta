@@ -383,6 +383,16 @@ this controls the enrichment threshold above which k-mers
 are not considered as possible markers.
 Enrichment is ratio of k-mer frequency in reads to random.
 
+<tr id='Kmers.file'>
+<td><code>--Kmers.file</code><td class=centered><td>
+The absolute path of a file containing the k-mers
+to be used as markers, one per line. 
+A relative path is not accepted. 
+If this is empty, k-mers to be used as markers
+are selected according to the other <code>--Kmers</code> options.
+If this is not empty, all other <code>--Kmers</code> options are ignored 
+except for <code>--Kmers.k</code>.
+
 <tr id='MinHash.version'>
 <td><code>--MinHash.version</code><td class=centered><code>0</code><td>
 The version of the MinHash/LowHash algorithm to be used.

@@ -422,3 +422,85 @@ void Assembler::computeKmerFrequency(size_t threadId)
 }
 
 
+
+// Read the k-mers from file.
+void Assembler::readKmersFromFile(uint64_t k, const string& fileName)
+{
+    // Sanity check on the value of k, then store it.
+    if(k > Kmer::capacity) {
+        throw runtime_error("K-mer capacity exceeded.");
+    }
+    assemblerInfo->k = k;
+
+    // Fill in the fields of the k-mer table
+    // that depends only on k.
+    initializeKmerTable();
+
+    // Open the file.
+    ifstream file(fileName);
+    if(not file) {
+        throw runtime_error("Error opening " + fileName);
+    }
+
+
+
+    // Read one k-mer per line.
+    uint64_t lineCount = 0;
+    while(true) {
+
+        // Read a line.
+        string line;
+        std::getline(file, line);
+        if(not file) {
+            break;
+        }
+
+        // Check the length.
+        if(line.size() != k) {
+            throw runtime_error("Unexpected line length in " + fileName + ":\n" + line + "\n" +
+                "Expected " + to_string(k) + " characters, found " + to_string(line.size()));
+        }
+
+        // Read the k-mer.
+        Kmer kmer;
+        for(uint64_t i=0; i<k; i++) {
+            const char c = line[i];
+            const Base base = Base::fromCharacterNoException(c);
+            if(not base.isValid()) {
+                throw runtime_error("Unexpected base character in " + fileName + ":\n" + line);
+            }
+            kmer.set(i, base);
+        }
+
+        // Sanity checks.
+        const KmerId kmerId = KmerId(kmer.id(k));
+        SHASTA_ASSERT(kmerId < kmerTable.size());
+        KmerInfo& kmerInfo = kmerTable[kmerId];
+        if(not kmerInfo.isRleKmer) {
+            throw runtime_error("Non-RLE k-mer (duplicate consecutive bases) in " +
+                fileName + ":\n" + line);
+        }
+
+        // Flag it as a marker, together with its reverse complement.
+        kmerInfo.isMarker = 1;
+        kmerTable[kmerInfo.reverseComplementedKmerId].isMarker = 1;
+        ++lineCount;
+
+    }
+    cout << "Processed " << lineCount << " lines of " << fileName << endl;
+
+    // Count the number of k-mers flagged as markers.
+    uint64_t usedKmerCount = 0;
+    uint64_t rleKmerCount = 0;
+    for(const KmerInfo& kmerInfo: kmerTable) {
+        if(kmerInfo.isMarker) {
+            ++usedKmerCount;
+        }
+        if(kmerInfo.isRleKmer) {
+            ++rleKmerCount;
+        }
+    }
+    cout << "Flagged as markers " << usedKmerCount << " out of " << rleKmerCount <<
+        " RLE k-mers of length " << k << endl;
+}
+

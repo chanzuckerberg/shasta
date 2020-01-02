@@ -732,6 +732,10 @@ public:
 
         size_t threadCount
     );
+
+    // Read the k-mers from file.
+    void readKmersFromFile(uint64_t k, const string& fileName);
+
 private:
     void computeKmerFrequency(size_t threadId);
     void initializeKmerTable();

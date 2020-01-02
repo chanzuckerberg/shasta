@@ -266,6 +266,15 @@ void AssemblerOptions::addConfigurableOptions()
         "enrichment threshold above which a k-mer is not considered as a possible marker. "
         "Enrichment is ratio of k-mer frequency in reads to random.")
 
+        ("Kmers.file",
+        value<string>(&kmersOptions.file),
+        "The absolute path of a file containing the k-mers "
+        "to be used as markers, one per line. "
+        "A relative path is not accepted. "
+        "If this is empty, k-mers to be used as markers "
+        "are selected according to the other --Kmers options. "
+        "If this is not empty, all other --Kmers options are ignored except for --Kmers.k.")
+
         ("MinHash.version",
         value<int>(&minHashOptions.version)->
         default_value(0),
@@ -562,6 +571,7 @@ void AssemblerOptions::KmersOptions::write(ostream& s) const
     s << "suppressHighFrequencyMarkers = " <<
         convertBoolToPythonString(suppressHighFrequencyMarkers) << "\n";
     s << "enrichmentThreshold = " << enrichmentThreshold << "\n";
+    s << "file = " << file << "\n";
 }
 
 

@@ -505,17 +505,42 @@ void shasta::main::assemble(
     // Create a histogram of read lengths.
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
+
+
     // Select the k-mers that will be used as markers.
-    if(assemblerOptions.kmersOptions.suppressHighFrequencyMarkers) {
+    if(not assemblerOptions.kmersOptions.file.empty()) {
+
+        // A file name was specified. Read the k-mers to be used as markers from there.
+
+        // This must be an absolute path.
+        if(assemblerOptions.kmersOptions.file[0] != '/') {
+            throw runtime_error("Option --Kmers.file must specify an absolute path. "
+                "A relative path is not accepted.");
+        }
+
+        // Read the k-mers.
+        assembler.readKmersFromFile(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.file);
+
+
+    } else if(assemblerOptions.kmersOptions.suppressHighFrequencyMarkers) {
+
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that are highly frequent in the input reads.
         assembler.selectKmersBasedOnFrequency(
             assemblerOptions.kmersOptions.k,
             assemblerOptions.kmersOptions.probability, 231,
             assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
     } else {
+
+        // Randomly select the k-mers to be used as markers.
         assembler.randomlySelectKmers(
             assemblerOptions.kmersOptions.k,
             assemblerOptions.kmersOptions.probability, 231);
     }
+
+
 
     // Find the markers in the reads.
     assembler.findMarkers(0);
