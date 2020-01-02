@@ -1,6 +1,7 @@
 #!/bin/bash
 
-
+# This installs all packages needed to build Shasta or to run
+# the dynamic executable. The static executable has no prerequisites.
 
 apt-get update
 apt install -y git
