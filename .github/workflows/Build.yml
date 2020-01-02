@@ -58,22 +58,22 @@ jobs:
         cmake .. -DBUILD_NATIVE=OFF -DBUILD_FOR_GPU=ON -DBUILD_ID="Shasta unreleased test build (with GPU acceleration) newer than release 0.3.0 at commit "$GITHUB_SHA
         make -j 2 all
         make install/strip
-        mv shasta-install shasta-Ubuntu-18.04-gpu
-        tar -cvf shasta-Ubuntu-18.04-gpu.tar shasta-Ubuntu-18.04-gpu        
+        mv shasta-install shastaGpu-Ubuntu-18.04
+        tar -cvf shastaGpu-Ubuntu-18.04.tar shastaGpu-Ubuntu-18.04        
     - name: Test-ubuntu-18.04-gpu
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-Ubuntu-18.04-gpu/bin/shasta --input tests/TinyTest.fasta
+        shasta-build/shastaGpu-Ubuntu-18.04/bin/shastaGpu --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
-        name: shasta-Linux-gpu
-        path: shasta-build/shasta-Ubuntu-18.04-gpu/bin/shasta
+        name: shastaGpu-Ubuntu-18.04
+        path: shasta-build/shastaGpu-Ubuntu-18.04/bin/shastaGpu
     - uses: actions/upload-artifact@master
       with:
-        name: shasta-Ubuntu-18.04-gpu.tar
-        path: shasta-build/shasta-Ubuntu-18.04-gpu.tar
+        name: shastaGpu-Ubuntu-18.04.tar
+        path: shasta-build/shastaGpu-Ubuntu-18.04.tar
 
 
 
