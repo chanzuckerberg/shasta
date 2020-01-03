@@ -122,7 +122,7 @@ public:
     }
     uint64_t degree(VertexId vertexId)
     {
-        return incidentEdges.size(vertexId);
+        return edgesByVertex.size(vertexId);
     }
 
 
