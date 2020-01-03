@@ -438,6 +438,14 @@ PYBIND11_MODULE(shasta, module)
             arg("skipReadGraphEdges") = true)
         .def("findAllIncompatibleReadPairs",
             &Assembler::findAllIncompatibleReadPairs)
+        .def("createConflictReadGraph",
+            &Assembler::createConflictReadGraph,
+            arg("threadCount") = 0,
+            arg("maxOffsetSigma"),
+            arg("maxTrim"),
+            arg("maxSkip"))
+
+
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",

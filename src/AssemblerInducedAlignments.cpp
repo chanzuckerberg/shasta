@@ -2,7 +2,6 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
 #include "InducedAlignment.hpp"
-#include "MemoryMappedUndirectedGraph.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
@@ -93,6 +92,85 @@ void Assembler::computeInducedAlignment(
     }
 
     inducedAlignment.sort();
+}
+
+
+
+// Compute induced alignments between an oriented read orientedReadId0
+// and the oriented reads stored sorted in orientedReadIds1.
+void Assembler::computeInducedAlignments(
+    OrientedReadId orientedReadId0,
+    const vector<OrientedReadId>& orientedReadIds1,
+    vector<InducedAlignment>& inducedAlignments
+)
+{
+    // Initialize one induced alignment for each
+    // OrientedReadId in orientedReadIds1.
+    inducedAlignments.clear();
+    inducedAlignments.resize(orientedReadIds1.size());
+
+    // Fast exit if orientedReadIds1 is empty.
+    if(orientedReadIds1.empty()) {
+        return;
+    }
+
+    // Check that orientedReadIds1 is sorted.
+    SHASTA_ASSERT(std::is_sorted(orientedReadIds1.begin(), orientedReadIds1.end()));
+
+
+
+    // Main loop over markers in orientedReadId0.
+    const MarkerId firstMarkerId = markers.begin(orientedReadId0.getValue()) - markers.begin();
+    const uint32_t markerCount = uint32_t(markers.size(orientedReadId0.getValue()));
+    for(uint32_t ordinal0=0; ordinal0<markerCount; ordinal0++) {
+        const MarkerId markerId0 = firstMarkerId + ordinal0;
+
+        // Find the vertex that this marker is on.
+        const MarkerGraph::CompressedVertexId compressedVertexId =
+            markerGraph.vertexTable[markerId0];
+
+        // If this marker is not on a marker graph vertex, skip.
+        if(compressedVertexId == MarkerGraph::invalidCompressedVertexId) {
+            continue;
+        }
+
+        // Loop over all markers on this vertex.
+        const MemoryAsContainer<MarkerId> vertexMarkers =
+            markerGraph.vertices[compressedVertexId];
+        for(const MarkerId markerId1: vertexMarkers) {
+
+            // Skip the marker that we started from.
+            if(markerId1 == markerId0) {
+                continue;
+            }
+
+            // Find the oriented read on this marker.
+            OrientedReadId orientedReadId1;
+            uint32_t ordinal1;
+            tie(orientedReadId1, ordinal1) = findMarkerId(markerId1);
+
+            // Look for orientedReadId1 in the orientedReadIds1 vector.
+            const vector<OrientedReadId>::const_iterator it =
+                std::lower_bound(
+                    orientedReadIds1.begin(),
+                    orientedReadIds1.end(),
+                    orientedReadId1);
+            if((it == orientedReadIds1.end()) or (*it != orientedReadId1)) {
+                continue;
+            }
+
+            // Add this marker to the corresponding induced alignment.
+            const uint64_t index1 = it -orientedReadIds1.begin();
+            const MarkerGraph::VertexId vertexId = compressedVertexId;
+            inducedAlignments[index1].data.push_back(
+                InducedAlignmentData(vertexId, ordinal0, ordinal1));
+        }
+    }
+
+    // Sort the induced alignments.
+    for(InducedAlignment& inducedAlignment: inducedAlignments) {
+        inducedAlignment.sort();
+    }
 }
 
 

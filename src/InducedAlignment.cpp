@@ -78,7 +78,13 @@ bool InducedAlignment::evaluate(
     const double sigma = (data.size()==1) ? 0. : sqrt((double(sum2) - n*offset*offset) / (n-1.));
     // cout << "Offset: average " << offset << ", sigma " << sigma << endl;
     if(uint32_t(sigma) > inducedAlignmentCriteria.maxOffsetSigma) {
-        // cout << "Offset sigma is too large." << endl;
+        /*
+        cout << "Offset sigma is too large. Induced alignment follows" << endl;
+        for(const auto& d: data) {
+            cout << d.vertexId << " " << d.ordinal0 << " " << d.ordinal1 << " " << int(d.ordinal0)-int(d.ordinal1) << endl;
+        }
+        cout << "Offset sigma is too large." << endl;
+        */
         return false;
     }
 

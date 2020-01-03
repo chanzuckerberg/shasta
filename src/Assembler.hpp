@@ -6,10 +6,12 @@
 #include "AlignmentCandidates.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
+#include "ConflictReadGraph.hpp"
 #include "Coverage.hpp"
 #include "DirectedReadGraph.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "HttpServer.hpp"
+#include "InducedAlignment.hpp"
 #include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
@@ -47,7 +49,6 @@ namespace shasta {
     class AssemblerOptions;
     class AssembledSegment;
     class ConsensusCaller;
-    class InducedAlignment;
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
@@ -1344,11 +1345,20 @@ private:
         InducedAlignment&
     );
 
+    // Compute induced alignments between an oriented read orientedReadId0
+    // and the oriented reads stored sorted in orientedReadIds1.
+    void computeInducedAlignments(
+        OrientedReadId orientedReadId0,
+        const vector<OrientedReadId>& orientedReadIds1,
+        vector<InducedAlignment>& inducedAlignments);
+
 
 
     // Find all pairs of incompatible reads that involve a given read.
     // A pair of reads is incompatible if it has a "bad" induced alignment.
     // See InducedAlignment.hpp for more information.
+    // This section is obsolete and being replaced by the next
+    // section that deals with the ConflicReadGraph.
 private:
     void findIncompatibleReadPairs(
         ReadId readId0,
@@ -1378,7 +1388,33 @@ public:
 
     // Find all incompatible read pairs.
     void findAllIncompatibleReadPairs();
+
+
+
+    // Conflict read graph.
+    // See ConflictReadGraph.hpp for more information.
+    void createConflictReadGraph(
+        uint64_t threadCount,
+        uint32_t maxOffsetSigma,
+        uint32_t maxTrim,
+        uint32_t maxSkip);
 private:
+    void createConflictReadGraphThreadFunction(size_t threadId);
+    void addConflictGraphEdges(
+        ReadId,
+        const InducedAlignmentCriteria&,
+        // Work areas.
+        vector<OrientedReadId>&,
+        vector<OrientedReadId>&,
+        vector<InducedAlignment>&
+        );
+    class CreateConflictReadGraphData {
+    public:
+        InducedAlignmentCriteria inducedAlignmentCriteria;
+    };
+    CreateConflictReadGraphData createConflictReadGraphData;
+    ConflictReadGraph conflictReadGraph;
+
 
 
 #ifdef SHASTA_HTTP_SERVER
