@@ -1398,6 +1398,8 @@ public:
         uint32_t maxOffsetSigma,
         uint32_t maxTrim,
         uint32_t maxSkip);
+    void accessConflictReadGraph();
+    void colorConflictReadGraph();
 private:
     void createConflictReadGraphThreadFunction(size_t threadId);
     void addConflictGraphEdges(

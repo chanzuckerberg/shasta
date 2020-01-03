@@ -43,6 +43,17 @@ namespace shasta {
 class shasta::ConflictReadGraphVertex {
 public:
 
+    static const uint64_t invalid = std::numeric_limits<uint64_t>::max();
+
+    // The connected component this vertex belongs to, a positive number,
+    // or invalid if the vertex is isolated and makes up its own trivial
+    // connected component.
+    uint64_t componentId = invalid;
+
+    // The color within this connected component, a positive number.
+    // or invalid if the vertex is isolated and makes up its own trivial
+    // connected component.
+    uint64_t color = invalid;
 };
 
 
@@ -66,6 +77,8 @@ public:
     {
         vertices.resize(2 * readCount);
     }
+
+    void colorConnectedComponent(const vector<VertexId>&);
 
     // Convert a VertexId to an OrientedReadId and vice versa.
     static OrientedReadId getOrientedReadId(VertexId vertexId)

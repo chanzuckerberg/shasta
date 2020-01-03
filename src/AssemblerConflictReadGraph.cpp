@@ -1,6 +1,9 @@
 #include "Assembler.hpp"
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/pending/disjoint_sets.hpp>
+
 
 
 void Assembler::createConflictReadGraph(
@@ -45,6 +48,14 @@ void Assembler::createConflictReadGraph(
         conflictReadGraph.vertices.size() << " vertices and " <<
         conflictReadGraph.edges.size() << " edges" << endl;
     cout << timestamp << "createConflictReadGraph ends." << endl;
+}
+
+
+
+void Assembler::accessConflictReadGraph()
+{
+    conflictReadGraph.accessExistingReadWrite(largeDataName("ConflictReadGraph"));
+
 }
 
 
@@ -230,4 +241,127 @@ void Assembler::addConflictGraphEdges(
         }
 
     }
+}
+
+
+
+// Use a greedy coloring algorithm to color each non-trivial
+// connected component of the conflict read graph.
+void Assembler::colorConflictReadGraph()
+{
+    SHASTA_ASSERT(conflictReadGraph.isOpen());
+    using VertexId = ConflictReadGraph::VertexId;
+    using EdgeId = ConflictReadGraph::EdgeId;
+
+    // Initialize all vertex components and colors to invalid.
+    const VertexId n = conflictReadGraph.vertices.size();
+    for(VertexId vertexId=0; vertexId<n; vertexId++) {
+        auto& vertex = conflictReadGraph.getVertex(vertexId);
+        vertex.componentId = ConflictReadGraphVertex::invalid;
+        vertex.color = ConflictReadGraphVertex::invalid;
+    }
+
+
+    // Compute connected components.
+    vector<VertexId> rank(n);
+    vector<VertexId> parent(n);
+    boost::disjoint_sets<VertexId*, VertexId*> disjointSets(&rank[0], &parent[0]);
+    for(VertexId vertexId=0; vertexId<n; vertexId++) {
+        disjointSets.make_set(vertexId);
+    }
+    for(EdgeId edgeId=0; edgeId<conflictReadGraph.edges.size(); edgeId++) {
+        disjointSets.union_set(
+            conflictReadGraph.v0(edgeId),
+            conflictReadGraph.v1(edgeId));
+    }
+
+
+
+    // Gather the vertices of each connected component.
+    std::map<VertexId, vector<VertexId> > componentMap;
+    for(VertexId vertexId=0; vertexId<n; vertexId++) {
+        const VertexId componentId = disjointSets.find_set(vertexId);
+        componentMap[componentId].push_back(vertexId);
+    }
+
+
+
+
+    // Sort the components by decreasing size.
+    // Discard trivial connected components containing only one isolated vertex.
+    // componentTable contains pairs(size, componentId as key in componentMap).
+    vector< pair<VertexId, VertexId> > componentTable;
+    for(const auto& p: componentMap) {
+        const VertexId componentId = p.first;
+        const vector<VertexId>& component = p.second;
+        const VertexId componentSize = component.size();
+        if(componentSize > 1) {
+            componentTable.push_back(make_pair(componentSize, componentId));
+        }
+    }
+    sort(componentTable.begin(), componentTable.end(), std::greater<pair<VertexId, VertexId>>());
+
+
+
+    // Store components in this order of decreasing size.
+    vector< vector<VertexId> > components;
+    VertexId nonTrivialComponentVertexCount = 0;
+    for(const auto& p: componentTable) {
+        const vector<VertexId>& component = componentMap[p.second];
+        components.push_back(component);
+        nonTrivialComponentVertexCount += component.size();
+    }
+    cout << "Found " << components.size() <<
+        " non-trivial connected components with a total " <<
+        nonTrivialComponentVertexCount <<  " vertices out " << n <<
+        " vertices in the conflict read graph." << endl;
+
+
+
+    // Write graphviz file containing each of the non-trivial connected component.
+    for(VertexId componentId=0; componentId<components.size(); componentId++) {
+        const vector<VertexId>& component = components[componentId];
+        ofstream graphOut("ConflictReadGaph-" + to_string(componentId) + ".dot");
+        graphOut << "graph component" << componentId << " {\n";
+
+        // Write the vertices.
+        for(const VertexId vertexId: component) {
+            graphOut << "\"" << conflictReadGraph.getOrientedReadId(vertexId) << "\";\n";
+        }
+
+        // Write the edges.
+        for(const VertexId vertexId: component) {
+            const MemoryAsContainer<EdgeId> incidentEdges =
+                conflictReadGraph.incidentEdges(vertexId);
+            for(const EdgeId edgeId: incidentEdges) {
+                const VertexId v0 = conflictReadGraph.v0(edgeId);
+                if(v0 == vertexId) {
+                    const VertexId v1 = conflictReadGraph.v1(edgeId);
+                    graphOut << "\"" << conflictReadGraph.getOrientedReadId(v0) << "\"--\"" <<
+                        conflictReadGraph.getOrientedReadId(v1) << "\";\n";
+                }
+
+            }
+        }
+
+        graphOut << "}\n";
+    }
+
+
+
+
+    // Color each connected component separately.
+    for(VertexId componentId=0; componentId<components.size(); componentId++) {
+        const vector<VertexId>& component = components[componentId];
+
+        // Store the component id in each vertex.
+        for(const VertexId vertexId: component) {
+            conflictReadGraph.getVertex(vertexId).componentId = componentId;
+        }
+
+        cout << "Coloring component " << componentId << " with " <<
+            component.size() << " vertices." << endl;
+        conflictReadGraph.colorConnectedComponent(component);
+    }
+
 }

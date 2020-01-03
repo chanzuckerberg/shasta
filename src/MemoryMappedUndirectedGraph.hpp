@@ -102,7 +102,7 @@ public:
     }
 
     // Return the higher-numbered vertex.
-    VertexId target(EdgeId edgeId) const {
+    VertexId v1(EdgeId edgeId) const {
         return edges[edgeId].v1;
     }
 

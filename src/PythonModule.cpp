@@ -444,6 +444,10 @@ PYBIND11_MODULE(shasta, module)
             arg("maxOffsetSigma"),
             arg("maxTrim"),
             arg("maxSkip"))
+        .def("accessConflictReadGraph",
+            &Assembler::accessConflictReadGraph)
+        .def("colorConflictReadGraph",
+            &Assembler::colorConflictReadGraph)
 
 
 
