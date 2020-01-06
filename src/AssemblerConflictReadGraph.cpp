@@ -252,13 +252,14 @@ void Assembler::colorConflictReadGraph()
     SHASTA_ASSERT(conflictReadGraph.isOpen());
     using VertexId = ConflictReadGraph::VertexId;
     using EdgeId = ConflictReadGraph::EdgeId;
+    const auto invalid = ConflictReadGraphVertex::invalid;
 
     // Initialize all vertex components and colors to invalid.
     const VertexId n = conflictReadGraph.vertices.size();
     for(VertexId vertexId=0; vertexId<n; vertexId++) {
         auto& vertex = conflictReadGraph.getVertex(vertexId);
-        vertex.componentId = ConflictReadGraphVertex::invalid;
-        vertex.color = ConflictReadGraphVertex::invalid;
+        vertex.componentId = invalid;
+        vertex.color = invalid;
     }
 
 
@@ -318,38 +319,6 @@ void Assembler::colorConflictReadGraph()
 
 
 
-    // Write graphviz file containing each of the non-trivial connected component.
-    for(VertexId componentId=0; componentId<components.size(); componentId++) {
-        const vector<VertexId>& component = components[componentId];
-        ofstream graphOut("ConflictReadGaph-" + to_string(componentId) + ".dot");
-        graphOut << "graph component" << componentId << " {\n";
-
-        // Write the vertices.
-        for(const VertexId vertexId: component) {
-            graphOut << "\"" << conflictReadGraph.getOrientedReadId(vertexId) << "\";\n";
-        }
-
-        // Write the edges.
-        for(const VertexId vertexId: component) {
-            const MemoryAsContainer<EdgeId> incidentEdges =
-                conflictReadGraph.incidentEdges(vertexId);
-            for(const EdgeId edgeId: incidentEdges) {
-                const VertexId v0 = conflictReadGraph.v0(edgeId);
-                if(v0 == vertexId) {
-                    const VertexId v1 = conflictReadGraph.v1(edgeId);
-                    graphOut << "\"" << conflictReadGraph.getOrientedReadId(v0) << "\"--\"" <<
-                        conflictReadGraph.getOrientedReadId(v1) << "\";\n";
-                }
-
-            }
-        }
-
-        graphOut << "}\n";
-    }
-
-
-
-
     // Color each connected component separately.
     for(VertexId componentId=0; componentId<components.size(); componentId++) {
         const vector<VertexId>& component = components[componentId];
@@ -363,5 +332,67 @@ void Assembler::colorConflictReadGraph()
             component.size() << " vertices." << endl;
         conflictReadGraph.colorConnectedComponent(component);
     }
+
+
+
+    // Write graphviz file containing each of the non-trivial connected component.
+    for(VertexId componentId=0; componentId<components.size(); componentId++) {
+        const vector<VertexId>& component = components[componentId];
+        ofstream graphOut("ConflictReadGaph-" + to_string(componentId) + ".dot");
+        graphOut << "graph component" << componentId << " {\n";
+
+        // Write the vertices.
+        for(const VertexId vertexId: component) {
+            const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(vertexId);
+            graphOut << "\"" << conflictReadGraph.getOrientedReadId(vertexId) << "\" [";
+
+            // Tooltip.
+            graphOut << " tooltip=\"" << conflictReadGraph.getOrientedReadId(vertexId);
+            if(vertex.componentId != invalid) {
+                SHASTA_ASSERT(vertex.color != invalid);
+                graphOut << " component " << vertex.componentId << " color " <<
+                    vertex.color;
+            }
+            graphOut << "\"";
+
+            // Colors.
+            if(vertex.componentId != invalid) {
+                SHASTA_ASSERT(vertex.color != invalid);
+                graphOut << " color=\"/set18/" << (vertex.color % 8) + 1 << "\"";
+                graphOut << " fillcolor=\"/set18/" << (vertex.color % 8) + 1 << "\"";
+
+            }
+            graphOut << "];\n";
+        }
+
+
+
+        // Write the edges.
+        for(const VertexId vertexId: component) {
+            const MemoryAsContainer<EdgeId> incidentEdges =
+                conflictReadGraph.incidentEdges(vertexId);
+            for(const EdgeId edgeId: incidentEdges) {
+                const VertexId v0 = conflictReadGraph.v0(edgeId);
+                if(v0 == vertexId) {
+                    const VertexId v1 = conflictReadGraph.v1(edgeId);
+                    graphOut << "\"" << conflictReadGraph.getOrientedReadId(v0) << "\"--\"" <<
+                        conflictReadGraph.getOrientedReadId(v1) << "\";\n";
+
+                    // Also check that the other vertex has the same
+                    // component and a different color.
+                    const ConflictReadGraphVertex& vertex0 = conflictReadGraph.getVertex(v0);
+                    const ConflictReadGraphVertex& vertex1 = conflictReadGraph.getVertex(v1);
+                    SHASTA_ASSERT(vertex0.componentId == vertex1.componentId);
+                    SHASTA_ASSERT(vertex0.color != vertex1.color);
+                }
+
+            }
+        }
+
+        graphOut << "}\n";
+    }
+
+
+
 
 }
