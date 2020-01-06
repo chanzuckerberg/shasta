@@ -89,21 +89,38 @@ public:
     }
 
     // Accessors for graph edges.
-    Edge& getEdge(EdgeId edgeId) {
+    Edge& getEdge(EdgeId edgeId)
+    {
         return edges[edgeId].edge;
     }
-    const Edge& getEdge(EdgeId edgeId) const {
+    const Edge& getEdge(EdgeId edgeId) const
+    {
         return edges[edgeId].edge;
     }
 
     // Return the lower-numbered vertex.
-    VertexId v0(EdgeId edgeId) const {
+    VertexId v0(EdgeId edgeId) const
+    {
         return edges[edgeId].v0;
     }
 
     // Return the higher-numbered vertex.
-    VertexId v1(EdgeId edgeId) const {
+    VertexId v1(EdgeId edgeId) const
+    {
         return edges[edgeId].v1;
+    }
+
+    // Return the other vertex of a given edge.
+    VertexId otherVertex(EdgeId edgeId, VertexId v) const
+    {
+        if(v0(edgeId) == v) {
+            return v1(edgeId);
+        } else if(v1(edgeId) == v) {
+            return v0(edgeId);
+        } else {
+            SHASTA_ASSERT(0);
+        }
+
     }
 
     // The list of edges incident to a vertex.
