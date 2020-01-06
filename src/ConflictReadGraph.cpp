@@ -3,7 +3,7 @@
 using namespace shasta;
 
 // Boost libraries.
-#include <boost/container/pmr/flat_set.hpp>
+#include <boost/container/flat_set.hpp>
 
 // Standard library.
 #include <map>
