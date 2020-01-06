@@ -62,6 +62,10 @@ public:
         isContained(isContained)
         {}
 
+    // Component and color from the global conflict read graph.
+    uint64_t componentId = std::numeric_limits<uint64_t>::max();
+    uint64_t color = std::numeric_limits<uint64_t>::max();
+
 };
 
 
@@ -125,13 +129,15 @@ public:
         uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
-        double edgeArrowScalingFactor) const;
+        double edgeArrowScalingFactor,
+        bool colorUsingConflictInformation) const;
     void write(
         const string& fileName,
         uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
-        double edgeArrowScalingFactor) const;
+        double edgeArrowScalingFactor,
+        bool colorUsingConflictInformation) const;
 
     // Return the vertex corresponding to a given OrientedReadId,
     // or null_vertex() if none.
@@ -158,7 +164,8 @@ private:
             uint32_t maxDistance,
             double vertexScalingFactor,
             double edgeThicknessScalingFactor,
-            double edgeArrowScalingFactor);
+            double edgeArrowScalingFactor,
+            bool colorUsingConflictInformation);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
@@ -167,6 +174,7 @@ private:
         double vertexScalingFactor;
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
+        bool colorUsingConflictInformation;
     };
 };
 

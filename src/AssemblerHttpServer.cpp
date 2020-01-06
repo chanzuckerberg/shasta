@@ -419,6 +419,11 @@ void Assembler::accessAllSoft()
             cout << "The read graph is not accessible." << endl;
             allDataAreAvailable = false;
         }
+
+        try {
+            accessConflictReadGraph();
+        } catch(const exception& e) {
+        }
     }
 
 

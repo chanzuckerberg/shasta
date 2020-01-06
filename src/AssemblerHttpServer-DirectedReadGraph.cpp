@@ -215,6 +215,23 @@ void Assembler::exploreDirectedReadGraph(
 
 
 
+    // If the conflict read graph is available, add
+    // componentId and color information to the vertices.
+    if(conflictReadGraph.isOpen()) {
+        BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
+            LocalDirectedReadGraphVertex& vertex = graph[v];
+            const OrientedReadId orientedReadId = vertex.orientedReadId;
+            const ConflictReadGraph::VertexId cVertexId =
+                ConflictReadGraph::getVertexId(orientedReadId);
+            const ConflictReadGraphVertex& cVertex =
+                conflictReadGraph.getVertex(cVertexId);
+            vertex.componentId = cVertex.componentId;
+            vertex.color = cVertex.color;
+        }
+    }
+
+
+
     // Add Blast annotations, if requested.
     if(blastAnnotationsSampling > 0.) {
         const uint32_t hashThreshold = uint32_t(blastAnnotationsSampling * double(std::numeric_limits<uint32_t>::max()));
@@ -321,7 +338,12 @@ void Assembler::exploreDirectedReadGraph(
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
-    graph.write(dotFileName, maxDistance, vertexScalingFactor, edgeThicknessScalingFactor, edgeArrowScalingFactor);
+    graph.write(dotFileName,
+        maxDistance,
+        vertexScalingFactor,
+        edgeThicknessScalingFactor,
+        edgeArrowScalingFactor,
+        conflictReadGraph.isOpen());
 
 
 

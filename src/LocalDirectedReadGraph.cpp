@@ -84,7 +84,8 @@ void LocalDirectedReadGraph::write(
     uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
-    double edgeArrowScalingFactor
+    double edgeArrowScalingFactor,
+    bool colorUsingConflictInformation
     ) const
 {
     ofstream outputFileStream(fileName);
@@ -92,17 +93,20 @@ void LocalDirectedReadGraph::write(
         throw runtime_error("Error opening " + fileName);
     }
     write(outputFileStream, maxDistance, vertexScalingFactor,
-        edgeThicknessScalingFactor, edgeArrowScalingFactor);
+        edgeThicknessScalingFactor, edgeArrowScalingFactor,
+        colorUsingConflictInformation);
 }
 void LocalDirectedReadGraph::write(
     ostream& s,
     uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
-    double edgeArrowScalingFactor) const
+    double edgeArrowScalingFactor,
+    bool colorUsingConflictInformation) const
 {
     Writer writer(*this, maxDistance, vertexScalingFactor,
-        edgeThicknessScalingFactor, edgeArrowScalingFactor);
+        edgeThicknessScalingFactor, edgeArrowScalingFactor,
+        colorUsingConflictInformation);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
 }
@@ -112,12 +116,14 @@ LocalDirectedReadGraph::Writer::Writer(
     uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
-    double edgeArrowScalingFactor) :
+    double edgeArrowScalingFactor,
+    bool colorUsingConflictInformation) :
     graph(graph),
     maxDistance(maxDistance),
     vertexScalingFactor(vertexScalingFactor),
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
-    edgeArrowScalingFactor(edgeArrowScalingFactor)
+    edgeArrowScalingFactor(edgeArrowScalingFactor),
+    colorUsingConflictInformation(colorUsingConflictInformation)
 {
 }
 
@@ -128,7 +134,16 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
     s << "layout=sfdp;\n";
     s << "ratio=expand;\n";
     s << "smoothing=triangle;\n";
-    s << "node [shape=point];\n";
+
+    if(colorUsingConflictInformation) {
+        s << "overlap=true;\n";
+        s << "node [shape=ellipse];\n";
+        s << "node [style=wedged];\n";
+        s << "node [label=\"\"];\n";
+    } else {
+        s << "node [shape=point];\n";
+    }
+
     s << "edge [penwidth=\"0.2\" dir=both arrowhead=inv color=\"green:black;0.9:red\"];\n";
 
     // This turns off the tooltip on the graph.
@@ -156,16 +171,43 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     // Id, so we can manipulate the vertex in javascript.
     s << " id=\"Vertex-" << orientedReadId << "\"";
 
+
+
     // Color.
-    if(vertex.distance == 0) {
-        s << " color=\"#ff00ff\"";  // Fuchsia
-    } else if(vertex.distance == maxDistance) {
-        s << " color=cyan";
-    } else if(vertex.isContained) {
-        // s << " color=red";
+    // If conflict information from the conflict read graph is available,
+    // use it for coloring.
+    if(colorUsingConflictInformation) {
+
+        // The vertex is displayed using a circle divided
+        // in two by a horizontal line.
+        // The top half codes the componentId
+        // and the bottom half codes the color.
+        if(
+            vertex.componentId != std::numeric_limits<uint64_t>::max() and
+            vertex.color != std::numeric_limits<uint64_t>::max()) {
+            s << " fillcolor=\""
+            "/set18/" << (vertex.componentId % 8) + 1 << ":"
+            "/set18/" << (vertex.color % 8) + 1 << "\""
+            " color=\"#ffffff00\"";
+        } else {
+            s << " style=filled color=black fillcolor=black";
+        }
     } else {
-        s << " color=black";
+
+        // If conflict information from the conflict read graph is
+        // not available, color in this way.,
+        if(vertex.distance == 0) {
+            s << " color=\"#ff00ff\"";  // Fuchsia
+        } else if(vertex.distance == maxDistance) {
+            s << " color=cyan";
+        } else if(vertex.isContained) {
+            // s << " color=red";
+        } else {
+            s << " color=black";
+        }
     }
+
+
 
     // Shape.
     if(not vertex.additionalToolTipText.empty()) {
