@@ -94,7 +94,7 @@ private:
     bool constructBuiltin(const string& constructorString);
 
     // Ensure that the config file specified matrices with rectangular, matching dimensions.
-    void validateMatrixDimensions();
+    void validateMatrixDimensions(string configPath);
 
     // For parsing any character separated file format
     void splitAsDouble(string s, string& separators, vector<double>& tokens);
