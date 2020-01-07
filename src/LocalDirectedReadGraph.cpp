@@ -258,9 +258,22 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-3 * edge.alignmentInfo.markerCount) << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor * 0.1 << "\"";
 
+
+
     if(not edge.keep) {
         s << " color=\"#00ff007f\""; // Partially transparent green.
+    } else if(displayConflictInformation) {
+
+        // If this edge is between vertices in the same conflict read graph
+        // component and different colors, this is a conflict edge.
+        if(vertex0.componentId == vertex1.componentId and
+            vertex0.color != vertex1.color) {
+            s << " color=\"#ff00007f\""; // Partially transparent red.
+        }
+
     }
+
+
 
     s << "]";
 }
