@@ -171,7 +171,12 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         "["
         " tooltip=\"Read " << orientedReadId << ", " <<
         vertex.baseCount << " bases, " << vertex.markerCount <<
-        " markers, distance " << vertex.distance << vertex.additionalToolTipText << "\"" <<
+        " markers, distance " << vertex.distance;
+    if(displayConflictInformation) {
+        s << " conflict read graph component " << vertex.componentId <<
+            ", color " << vertex.color;
+     }
+    s << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
         "&strand=" << orientedReadId.getStrand() <<
         "\"" <<
