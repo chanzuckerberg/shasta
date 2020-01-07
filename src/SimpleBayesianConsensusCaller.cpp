@@ -74,6 +74,16 @@ void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
         }
     }
 
+    if (priors[0].empty() || priors[1].empty()){
+        throw runtime_error("ERROR: no priors in bayesian config file, or possible error parsing priors");
+    }
+
+    for (auto& baseMatrix: probabilityMatrices){
+        if (baseMatrix.empty()){
+            throw runtime_error("ERROR: no likelihoods in bayesian config file, or possible error parsing likelihoods");
+        }
+    }
+
     if (priors[0].size() != priors[1].size()){
         throw runtime_error("ERROR: prior probability vector sizes do not match.");
     }
