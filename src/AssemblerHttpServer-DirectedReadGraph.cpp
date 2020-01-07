@@ -62,6 +62,9 @@ void Assembler::exploreDirectedReadGraph(
     string colorEdgeArrowsString;
     const bool colorEdgeArrows = getParameterValue(request, "colorEdgeArrows", colorEdgeArrowsString);
 
+    string displayConflictInformationString;
+    const bool displayConflictInformation = getParameterValue(request, "displayConflictInformation", displayConflictInformationString);
+
     string format = "png";
     getParameterValue(request, "format", format);
 
@@ -156,8 +159,18 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Color edge arrows by direction"
         "<td class=centered><input type=checkbox name=colorEdgeArrows" <<
         (colorEdgeArrows ? " checked" : "") <<
-        ">"
+        ">";
 
+    if(conflictReadGraph.isOpen()) {
+        html <<
+            "<tr>"
+            "<td>Display conflict information"
+            "<td class=centered><input type=checkbox name=displayConflictInformation" <<
+            (displayConflictInformation ? " checked" : "") <<
+            ">";
+    }
+
+    html <<
         "<tr>"
         "<td>Graphics format"
         "<td class=centered>"
@@ -226,7 +239,7 @@ void Assembler::exploreDirectedReadGraph(
 
     // If the conflict read graph is available, add
     // componentId and color information to the vertices.
-    if(conflictReadGraph.isOpen()) {
+    if(displayConflictInformation && conflictReadGraph.isOpen()) {
         BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
             LocalDirectedReadGraphVertex& vertex = graph[v];
             const OrientedReadId orientedReadId = vertex.orientedReadId;
@@ -353,7 +366,7 @@ void Assembler::exploreDirectedReadGraph(
         edgeThicknessScalingFactor,
         edgeArrowScalingFactor,
         colorEdgeArrows,
-        conflictReadGraph.isOpen());
+        displayConflictInformation && conflictReadGraph.isOpen());
 
 
 

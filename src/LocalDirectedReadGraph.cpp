@@ -86,7 +86,7 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
-    bool colorUsingConflictInformation
+    bool displayConflictInformation
     ) const
 {
     ofstream outputFileStream(fileName);
@@ -96,7 +96,7 @@ void LocalDirectedReadGraph::write(
     write(outputFileStream, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
-        colorUsingConflictInformation);
+        displayConflictInformation);
 }
 void LocalDirectedReadGraph::write(
     ostream& s,
@@ -105,12 +105,12 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
-    bool colorUsingConflictInformation) const
+    bool displayConflictInformation) const
 {
     Writer writer(*this, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
-        colorUsingConflictInformation);
+        displayConflictInformation);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
 }
@@ -122,14 +122,14 @@ LocalDirectedReadGraph::Writer::Writer(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
-    bool colorUsingConflictInformation) :
+    bool displayConflictInformation) :
     graph(graph),
     maxDistance(maxDistance),
     vertexScalingFactor(vertexScalingFactor),
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
     edgeArrowScalingFactor(edgeArrowScalingFactor),
     colorEdgeArrows(colorEdgeArrows),
-    colorUsingConflictInformation(colorUsingConflictInformation)
+    displayConflictInformation(displayConflictInformation)
 {
 }
 
@@ -141,7 +141,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
     s << "ratio=expand;\n";
     s << "smoothing=triangle;\n";
 
-    if(colorUsingConflictInformation) {
+    if(displayConflictInformation) {
         s << "overlap=true;\n";
         s << "node [shape=ellipse];\n";
         s << "node [style=wedged];\n";
@@ -186,7 +186,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     // Color.
     // If conflict information from the conflict read graph is available,
     // use it for coloring.
-    if(colorUsingConflictInformation) {
+    if(displayConflictInformation) {
 
         // The vertex is displayed using a circle divided
         // in two by a horizontal line.

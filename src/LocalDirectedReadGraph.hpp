@@ -131,7 +131,7 @@ public:
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
         bool colorEdgeArrows,
-        bool colorUsingConflictInformation) const;
+        bool displayConflictInformation) const;
     void write(
         const string& fileName,
         uint32_t maxDistance,
@@ -139,7 +139,7 @@ public:
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
         bool colorEdgeArrows,
-        bool colorUsingConflictInformation) const;
+        bool displayConflictInformation) const;
 
     // Return the vertex corresponding to a given OrientedReadId,
     // or null_vertex() if none.
@@ -168,7 +168,7 @@ private:
             double edgeThicknessScalingFactor,
             double edgeArrowScalingFactor,
             bool colorEdgeArrows,
-            bool colorUsingConflictInformation);
+            bool displayConflictInformation);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
@@ -178,7 +178,7 @@ private:
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
         bool colorEdgeArrows;
-        bool colorUsingConflictInformation;
+        bool displayConflictInformation;
     };
 };
 
