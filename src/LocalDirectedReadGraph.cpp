@@ -261,7 +261,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
 
 
     if(not edge.keep) {
-        s << " color=\"#00ff007f\""; // Partially transparent green.
+        s << " color=\"#0000ff7f\""; // Partially transparent blue.
     } else if(displayConflictInformation) {
 
         // If this edge is between vertices in the same conflict read graph
