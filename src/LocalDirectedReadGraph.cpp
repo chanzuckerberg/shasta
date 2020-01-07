@@ -151,7 +151,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
         s << "node [shape=point];\n";
     }
 
-    s << "edge [dir=both arrowhead=inv];\n";
+    s << "edge [dir=both arrowtail=inv];\n";
     if(colorEdgeArrows) {
         s << "edge [color=\"green:black;0.9:red\"];\n";
     }
