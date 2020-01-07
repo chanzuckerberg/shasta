@@ -310,8 +310,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessDirectedReadGraphReadOnly)
         .def("accessDirectedReadGraphReadWrite",
             &Assembler::accessDirectedReadGraphReadWrite)
-        .def("accessDirectedReadGraphReadWrite",
-            &Assembler::accessDirectedReadGraphReadWrite)
+        .def("markDirectedReadGraphConflictEdges",
+            &Assembler::markDirectedReadGraphConflictEdges)
 
 
         // Global marker graph.

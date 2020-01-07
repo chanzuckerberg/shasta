@@ -398,6 +398,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
     uint64_t maxOffsetAtCenter,
     double minAlignedFraction,
     bool allowEdgesNotKept,
+    bool excludeConflictEdges,
     double timeout,
     LocalDirectedReadGraph& graph)
 {
@@ -410,7 +411,8 @@ bool DirectedReadGraph::extractLocalSubgraph(
     EdgeFilter edgeFilter(minAlignedMarkerCount,
         2*maxOffsetAtCenter,
         minAlignedFraction,
-        allowEdgesNotKept);
+        allowEdgesNotKept,
+        excludeConflictEdges);
 
     // Get the vertices in this neighborhood.
     std::map<VertexId, uint64_t> distanceMap;

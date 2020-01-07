@@ -104,10 +104,18 @@ public:
     DirectedReadGraphBaseClass::EdgeId reverseComplementedEdgeId =
         DirectedReadGraphBaseClass::invalidEdgeId;
 
+
+
     // Edge flags.
     uint8_t involvesTwoContainedVertices : 1;
     uint8_t involvesOneContainedVertex : 1;
     uint8_t keep : 1;
+
+    // Flag set if this is a confict edge.
+    // That is, if the two vertices are in the same
+    // connected of the conflict read  graph, but have
+    // different colors.
+    uint8_t isConflict : 1;
 
     // Constructors.
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
@@ -125,6 +133,7 @@ public:
         involvesTwoContainedVertices = 0;
         involvesOneContainedVertex = 0;
         keep = 0;
+        isConflict = 0;
     }
 };
 
@@ -163,6 +172,7 @@ public:
         uint64_t maxOffsetAtCenter,
         double minAlignedFraction,
         bool allowEdgesNotKept,
+        bool excludeConflictEdges,
         double timeout,
         LocalDirectedReadGraph&);
 
@@ -232,17 +242,22 @@ private:
             uint64_t minAlignedMarkerCount,
             uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
-            bool allowEdgesNotKept) :
+            bool allowEdgesNotKept,
+            bool excludeConflictEdges) :
 
             minAlignedMarkerCount(minAlignedMarkerCount),
             maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
-            allowEdgesNotKept(allowEdgesNotKept)
+            allowEdgesNotKept(allowEdgesNotKept),
+            excludeConflictEdges(excludeConflictEdges)
             {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
             if(not allowEdgesNotKept and not edge.keep) {
+                return false;
+            }
+            if(excludeConflictEdges and edge.isConflict) {
                 return false;
             }
             return
@@ -259,6 +274,7 @@ private:
         double minAlignedFraction;
 
         bool allowEdgesNotKept;
+        bool excludeConflictEdges;
     };
 
 

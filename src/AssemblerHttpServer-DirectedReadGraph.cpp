@@ -47,6 +47,10 @@ void Assembler::exploreDirectedReadGraph(
     bool allowEdgesNotKept = getParameterValue(request,
         "allowEdgesNotKept", allowEdgesNotKeptString);
 
+    string excludeConflictEdgesString;
+    bool excludeConflictEdges = getParameterValue(request,
+        "excludeConflictEdges", excludeConflictEdgesString);
+
     uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
 
@@ -127,6 +131,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Include edges not kept for marker graph creation"
         "<td class=centered><input type=checkbox name=allowEdgesNotKept" <<
         (allowEdgesNotKept ? " checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Exclude conflict edges"
+        "<td class=centered><input type=checkbox name=excludeConflictEdges" <<
+        (excludeConflictEdges ? " checked" : "") <<
         ">"
 
         "<tr title='Graphics size in pixels. "
@@ -226,6 +236,7 @@ void Assembler::exploreDirectedReadGraph(
         orientedReadId, maxDistance,
         minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
         allowEdgesNotKept,
+        excludeConflictEdges,
         timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";
