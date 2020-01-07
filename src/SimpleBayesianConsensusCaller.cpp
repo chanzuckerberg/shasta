@@ -46,7 +46,7 @@ void SimpleBayesianConsensusCaller::splitAsString(string s, string& separators, 
 }
 
 
-void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
+void SimpleBayesianConsensusCaller::validateMatrixDimensions(string configPath){
     size_t ySize = 0;
     size_t xSize = 0;
 
@@ -74,14 +74,28 @@ void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
         }
     }
 
+    if (priors[0].empty() || priors[1].empty()){
+        throw runtime_error("ERROR: no priors in bayesian config file, or possible error parsing priors"
+        "\n in config file: " + configPath);
+    }
+
+    for (auto& baseMatrix: probabilityMatrices){
+        if (baseMatrix.empty()){
+            throw runtime_error("ERROR: no likelihoods in bayesian config file, or possible error parsing likelihoods"
+            "\n in config file: " + configPath);
+        }
+    }
+
     if (priors[0].size() != priors[1].size()){
-        throw runtime_error("ERROR: prior probability vector sizes do not match.");
+        throw runtime_error("ERROR: prior probability vector sizes do not match."
+        "\n in config file: " + configPath);
     }
 
     if (probabilityMatrices[0].size() != priors[0].size()){
         throw runtime_error("ERROR: prior probability vector size (" + to_string(priors[0].size()) +
         ") does not match y (true) dimension size (" + to_string(probabilityMatrices[0].size()) +
-        ") of likelihood matrix.");
+        ") of likelihood matrix." +
+        "\n in config file: " + configPath);
     }
 }
 
@@ -126,7 +140,7 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
             constructorString << endl;
     }
 
-    validateMatrixDimensions();
+    validateMatrixDimensions(constructorString);
 
     maxInputRunlength = uint16_t(probabilityMatrices[0][0].size() - 1);
     maxOutputRunlength = uint16_t(probabilityMatrices[0].size() - 1);
