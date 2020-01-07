@@ -130,6 +130,7 @@ public:
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
+        bool colorEdgeArrows,
         bool colorUsingConflictInformation) const;
     void write(
         const string& fileName,
@@ -137,6 +138,7 @@ public:
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
+        bool colorEdgeArrows,
         bool colorUsingConflictInformation) const;
 
     // Return the vertex corresponding to a given OrientedReadId,
@@ -165,6 +167,7 @@ private:
             double vertexScalingFactor,
             double edgeThicknessScalingFactor,
             double edgeArrowScalingFactor,
+            bool colorEdgeArrows,
             bool colorUsingConflictInformation);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
@@ -174,6 +177,7 @@ private:
         double vertexScalingFactor;
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
+        bool colorEdgeArrows;
         bool colorUsingConflictInformation;
     };
 };

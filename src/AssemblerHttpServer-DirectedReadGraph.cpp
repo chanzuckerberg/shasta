@@ -59,6 +59,9 @@ void Assembler::exploreDirectedReadGraph(
     double edgeArrowScalingFactor = 1.;
     getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
 
+    string colorEdgeArrowsString;
+    const bool colorEdgeArrows = getParameterValue(request, "colorEdgeArrows", colorEdgeArrowsString);
+
     string format = "png";
     getParameterValue(request, "format", format);
 
@@ -148,6 +151,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td><input type=text required name=edgeArrowScalingFactor size=8 style='text-align:center'" <<
         " value='" << edgeArrowScalingFactor <<
         "'>"
+
+        "<tr>"
+        "<td>Color edge arrows by direction"
+        "<td class=centered><input type=checkbox name=colorEdgeArrows" <<
+        (colorEdgeArrows ? " checked" : "") <<
+        ">"
 
         "<tr>"
         "<td>Graphics format"
@@ -343,6 +352,7 @@ void Assembler::exploreDirectedReadGraph(
         vertexScalingFactor,
         edgeThicknessScalingFactor,
         edgeArrowScalingFactor,
+        colorEdgeArrows,
         conflictReadGraph.isOpen());
 
 

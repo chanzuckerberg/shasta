@@ -85,6 +85,7 @@ void LocalDirectedReadGraph::write(
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
+    bool colorEdgeArrows,
     bool colorUsingConflictInformation
     ) const
 {
@@ -94,6 +95,7 @@ void LocalDirectedReadGraph::write(
     }
     write(outputFileStream, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
+        colorEdgeArrows,
         colorUsingConflictInformation);
 }
 void LocalDirectedReadGraph::write(
@@ -102,10 +104,12 @@ void LocalDirectedReadGraph::write(
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
+    bool colorEdgeArrows,
     bool colorUsingConflictInformation) const
 {
     Writer writer(*this, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
+        colorEdgeArrows,
         colorUsingConflictInformation);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
@@ -117,12 +121,14 @@ LocalDirectedReadGraph::Writer::Writer(
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
+    bool colorEdgeArrows,
     bool colorUsingConflictInformation) :
     graph(graph),
     maxDistance(maxDistance),
     vertexScalingFactor(vertexScalingFactor),
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
     edgeArrowScalingFactor(edgeArrowScalingFactor),
+    colorEdgeArrows(colorEdgeArrows),
     colorUsingConflictInformation(colorUsingConflictInformation)
 {
 }
@@ -139,12 +145,16 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
         s << "overlap=true;\n";
         s << "node [shape=ellipse];\n";
         s << "node [style=wedged];\n";
+        s << "node [penwidth=\"0.\"];\n";
         s << "node [label=\"\"];\n";
     } else {
         s << "node [shape=point];\n";
     }
 
-    s << "edge [penwidth=\"0.2\" dir=both arrowhead=inv color=\"green:black;0.9:red\"];\n";
+    s << "edge [dir=both arrowhead=inv];\n";
+    if(colorEdgeArrows) {
+        s << "edge [color=\"green:black;0.9:red\"];\n";
+    }
 
     // This turns off the tooltip on the graph.
     s << "tooltip = \" \";\n";
@@ -187,8 +197,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
             vertex.color != std::numeric_limits<uint64_t>::max()) {
             s << " fillcolor=\""
             "/set18/" << (vertex.componentId % 8) + 1 << ":"
-            "/set18/" << (vertex.color % 8) + 1 << "\""
-            " color=\"#ffffff00\"";
+            "/set18/" << (vertex.color % 8) + 1 << "\"";
         } else {
             s << " style=filled color=black fillcolor=black";
         }
