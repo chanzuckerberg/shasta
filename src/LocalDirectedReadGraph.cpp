@@ -261,7 +261,12 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
 
 
     if(not edge.keep) {
-        s << " color=\"#0000ff7f\""; // Partially transparent blue.
+        if(colorEdgeArrows) {
+            s << " color=\"green:#0000ff7f;0.9:red\""; // Partially transparent blue with green/red ends
+            s << " dir=both arrowtail=inv";
+        } else {
+            s << " color=\"#0000ff7f\""; // Partially transparent blue.
+        }
     } else if(displayConflictInformation) {
 
         // If this edge is between vertices in the same conflict read graph
