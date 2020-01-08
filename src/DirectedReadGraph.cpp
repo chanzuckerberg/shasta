@@ -200,18 +200,11 @@ void DirectedReadGraph::flagEdgesToBeKept(
 
             // The vertex is uncontained.
             // Mark as keep the best uncontainedNeighborCountPerDirection
-            // out-edges and the best uncontainedNeighborCountPerDirection in-edges,
-            // considering only out-edges and in-edges
-            // to other uncontained vertices.
+            // out-edges and the best uncontainedNeighborCountPerDirection in-edges.
 
-            // Out-edges to other uncontained vertices.
+            // Out-edges.
             neighbors.clear();
             for(const EdgeId edgeId: outEdges(v0)) {
-                const VertexId v1 = target(edgeId);
-                const Vertex& vertex1 = vertices[v1];
-                if(vertex1.isContained) {
-                    continue;
-                }
                 const Edge& edge = getEdge(edgeId);
                 neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
             }
@@ -227,14 +220,9 @@ void DirectedReadGraph::flagEdgesToBeKept(
                 getEdge(edgeId).keep = 1;
             }
 
-            // In-edges from other uncontained vertices.
+            // In-edges.
             neighbors.clear();
             for(const EdgeId edgeId: inEdges(v0)) {
-                const VertexId v1 = source(edgeId);
-                const Vertex& vertex1 = vertices[v1];
-                if(vertex1.isContained) {
-                    continue;
-                }
                 const Edge& edge = getEdge(edgeId);
                 neighbors.push_back(make_pair(edgeId, edge.alignmentInfo.markerCount));
             }
