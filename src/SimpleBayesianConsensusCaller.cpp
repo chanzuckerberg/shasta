@@ -46,6 +46,27 @@ void SimpleBayesianConsensusCaller::splitAsString(string s, string& separators, 
 }
 
 
+void validate_text_file(string configPath){
+    ///
+    /// Check if all characters in a string are printable, used for checking if input files are valid. If any
+    /// non-printables exist, throw an error
+    ///
+    ifstream file(configPath);
+    char character;
+    uint64_t c = 0;
+
+    while(file.get(character)) {
+        if (not std::isgraph(character) and not std::isspace(character)) {
+            throw runtime_error("ERROR: unprintable character detected in bayesian config file"
+                                "\n in config file: " + configPath +
+                                "\n at position " + to_string(c));
+
+        }
+        c++;
+    }
+}
+
+
 void SimpleBayesianConsensusCaller::validateMatrixDimensions(string configPath){
     size_t ySize = 0;
     size_t xSize = 0;
@@ -135,6 +156,7 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
                 "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a";
             throw runtime_error(errorMessage);
         }
+        validate_text_file(constructorString);
         loadConfiguration(matrixFile);
         cout << "Loaded Bayesian consensus caller from configuration file " <<
             constructorString << endl;
@@ -255,7 +277,6 @@ void SimpleBayesianConsensusCaller::loadConfiguration(ifstream& matrixFile){
     string separators = " ";
 
     while (getline(matrixFile, line)){
-
         // Header line (labeled via fasta-like headers)
         if (line[0] == '>'){
             vector<string> tokens;
