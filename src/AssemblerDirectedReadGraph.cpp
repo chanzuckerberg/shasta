@@ -56,7 +56,6 @@ void Assembler::createDirectedReadGraph(
 
     // Flag edges to be kept.
     // These are the edges that will be used to create the marker graph.
-    // TURN THESE CONSTANTS INTO OPTIONS WHEN THE CODE STABILIZES.
     directedReadGraph. flagEdgesToBeKept(
         containedNeighborCount,
         uncontainedNeighborCountPerDirection);
