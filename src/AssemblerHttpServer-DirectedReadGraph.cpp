@@ -437,12 +437,13 @@ void Assembler::exploreDirectedReadGraph(
 <p>
 <input id=highlight type=text onchange="highlight()" size=10>
 Enter an oriented read to highlight, then press Enter. The oriented read should be
-in the form readId-strand where strand is 0 or 1 (for example, "1345871-1").
+in the form <code>readId-strand</code> where strand is 0 or 1 (for example, <code>"1345871-1</code>").
 To highlight multiple oriented reads, enter them one at a time in the same way.
 <script>
 function highlight()
 {
     vertex = document.getElementById("highlight").value;
+    document.getElementById("highlight").value = "";
     element = document.getElementById("Vertex-" + vertex);
     ellipse = element.children[1].children[0].children[0];
     ellipse.setAttribute("fill", "#ff00ff");
