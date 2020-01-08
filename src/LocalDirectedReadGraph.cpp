@@ -140,16 +140,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
     s << "layout=sfdp;\n";
     s << "ratio=expand;\n";
     s << "smoothing=triangle;\n";
+    s << "node [shape=point];\n";
 
-    if(displayConflictInformation) {
-        s << "overlap=true;\n";
-        s << "node [shape=ellipse];\n";
-        s << "node [style=wedged];\n";
-        s << "node [penwidth=\"0.\"];\n";
-        s << "node [label=\"\"];\n";
-    } else {
-        s << "node [shape=point];\n";
-    }
 
     s << "edge [dir=both arrowtail=inv];\n";
     if(colorEdgeArrows) {
@@ -166,13 +158,18 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const LocalDirectedReadGraphVertex& vertex = graph[v];
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
+    const bool hasColoringInformation =
+        vertex.componentId != std::numeric_limits<uint64_t>::max()
+        and
+        vertex.color != std::numeric_limits<uint64_t>::max();
+
     // Tooltip.
     s <<
         "["
         " tooltip=\"Read " << orientedReadId << ", " <<
         vertex.baseCount << " bases, " << vertex.markerCount <<
         " markers, distance " << vertex.distance;
-    if(displayConflictInformation) {
+    if(displayConflictInformation and hasColoringInformation) {
         s << " conflict read graph component " << vertex.componentId <<
             ", color " << vertex.color;
      }
@@ -189,33 +186,55 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
 
 
     // Color.
-    // If conflict information from the conflict read graph is available,
-    // use it for coloring.
     if(displayConflictInformation) {
 
-        // The vertex is displayed using a circle divided
-        // in two by a horizontal line.
-        // The top half codes the componentId
-        // and the bottom half codes the color.
-        if(
-            vertex.componentId != std::numeric_limits<uint64_t>::max() and
-            vertex.color != std::numeric_limits<uint64_t>::max()) {
-            s << " fillcolor=\""
+        if(hasColoringInformation) {
+
+            // We are displaying conflict information, and
+            // component and color information is available for this vertex.
+            // The vertex is displayed using a circle divided
+            // in two by a horizontal line.
+            // The top half codes the componentId
+            // and the bottom half codes the color.
+            s << " penwidth=\"0.\"";
+            s << " label=\"\"";
+            s << " shape=ellipse style=wedged fillcolor=\""
             "/set18/" << (vertex.componentId % 8) + 1 << ":"
             "/set18/" << (vertex.color % 8) + 1 << "\"";
+
         } else {
-            s << " style=filled color=black fillcolor=black";
+
+            // We are displaying conflict information, but
+            // component and color information is not available for this vertex.
+            // This could happen for one of two reasons:
+            // 1. Coloring of the directed read graph was not done.
+            // 2. Coloring of the directed read graph was done, but this vertex
+            //    has no conflicting vertices.
+
+            if(vertex.distance == 0) {
+                // Start vertex.
+                s << " color=\"#ff00ff\"";  // Fuchsia
+            } else if(vertex.distance == maxDistance) {
+                // Vertex at maximum distance.
+                s << " color=cyan";
+            } else {
+                // Not the start vertex, at distance less than the maximum.
+                if(vertex.hasConflict) {
+                    s << " color=orange";
+                } else {
+                    s << " color=black";
+                }
+            }
+
         }
     } else {
 
-        // If conflict information from the conflict read graph is
-        // not available, color in this way.,
+        // We are not displaying conflict information from the conflict read graph.
+        // Just color based on distance from the start vertex.
         if(vertex.distance == 0) {
             s << " color=\"#ff00ff\"";  // Fuchsia
         } else if(vertex.distance == maxDistance) {
             s << " color=cyan";
-        } else if(vertex.isContained) {
-            // s << " color=red";
         } else {
             s << " color=black";
         }

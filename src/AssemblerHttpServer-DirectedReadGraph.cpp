@@ -249,7 +249,7 @@ void Assembler::exploreDirectedReadGraph(
 
 
     // If the conflict read graph is available, add
-    // componentId and color information to the vertices.
+    // conflict to the vertices.
     if(displayConflictInformation && conflictReadGraph.isOpen()) {
         BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
             LocalDirectedReadGraphVertex& vertex = graph[v];
@@ -260,6 +260,8 @@ void Assembler::exploreDirectedReadGraph(
                 conflictReadGraph.getVertex(cVertexId);
             vertex.componentId = cVertex.componentId;
             vertex.color = cVertex.color;
+
+            vertex.hasConflict = conflictReadGraph.incidentEdges(cVertexId).size() > 0;
         }
     }
 
