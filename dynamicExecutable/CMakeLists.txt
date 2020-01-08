@@ -71,10 +71,10 @@ if(BUILD_DEBUG)
 endif(BUILD_DEBUG)
 
 # Install the dynamic executable into the bin directory.
-install(TARGETS shastaDynamicExecutable DESTINATION shasta-install/bin)
+install(TARGETS shastaDynamicExecutable DESTINATION bin)
 
 # When install is complete, create the AppImage.
 if(BUILD_APPIMAGE)
-install(CODE "execute_process(COMMAND ${CMAKE_SOURCE_DIR}/AppImage/CreateAppImage.py shasta-install)")
+install(CODE "execute_process(COMMAND ${CMAKE_SOURCE_DIR}/AppImage/CreateAppImage.py share/shasta/appimage)")
 endif(BUILD_APPIMAGE)
 

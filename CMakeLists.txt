@@ -127,21 +127,18 @@ endif(BUILD_DYNAMIC_EXECUTABLE)
 
 
 
-# Install to the shasta-install directory.
-set(CMAKE_INSTALL_PREFIX .)
-
 # Install the scripts.
 file(GLOB SCRIPTS scripts/*.py scripts/*.sh)
-install(PROGRAMS ${SCRIPTS} DESTINATION shasta-install/bin)
+install(PROGRAMS ${SCRIPTS} DESTINATION share/shasta/scripts)
 
 # Install the configuration files.
-install(DIRECTORY conf DESTINATION shasta-install USE_SOURCE_PERMISSIONS)
+install(DIRECTORY conf DESTINATION share/shasta USE_SOURCE_PERMISSIONS)
 
 # Install the docs directory.
-install(DIRECTORY docs DESTINATION shasta-install)
+install(DIRECTORY docs DESTINATION share/shasta)
 
 # Install the docker directory.
-install(DIRECTORY docker DESTINATION shasta-install)
+install(DIRECTORY docker DESTINATION share/shasta)
 
 # The targets built in each subdirectory are
 # installed by the cmake file of each subdirectory.

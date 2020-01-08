@@ -89,6 +89,6 @@ if(NOT MACOS)
 endif(NOT MACOS)
 
 # The static executable goes to the bin directory.
-install(TARGETS shastaStaticExecutable DESTINATION shasta-install/bin)
+install(TARGETS shastaStaticExecutable DESTINATION bin)
 
 
