@@ -62,7 +62,7 @@ set_target_properties(shastaDynamicExecutable PROPERTIES OUTPUT_NAME "shastaDyna
 if(NOT SYSTEM_INSTALL)
   set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN")
 else()
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+  set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN/../lib")
 endif()
 
 # Libraries to link with.
