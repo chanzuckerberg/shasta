@@ -6,6 +6,7 @@
 using namespace shasta;
 
 // Boost libraries.
+#include <boost/algorithm/string.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -69,6 +70,9 @@ void Assembler::exploreDirectedReadGraph(
     string displayConflictInformationString;
     const bool displayConflictInformation = getParameterValue(request, "displayConflictInformation", displayConflictInformationString);
 
+    string highlightConflicting;
+    getParameterValue(request, "highlightConflicting", highlightConflicting);
+
     string format = "png";
     getParameterValue(request, "format", format);
 
@@ -91,12 +95,12 @@ void Assembler::exploreDirectedReadGraph(
         "<table>"
 
         "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
-        "<td>Read id"
+        "<td>Start vertex read id"
         "<td><input type=text required name=readId size=8 style='text-align:center'"
         << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
         ">";
 
-    html << "<tr><td>Strand<td class=centered>";
+    html << "<tr><td>Start vertex strand<td class=centered>";
         writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
 
 
@@ -131,14 +135,18 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Include edges not kept for marker graph creation"
         "<td class=centered><input type=checkbox name=allowEdgesNotKept" <<
         (allowEdgesNotKept ? " checked" : "") <<
-        ">"
+        ">";
 
-        "<tr>"
-        "<td>Exclude conflict edges"
-        "<td class=centered><input type=checkbox name=excludeConflictEdges" <<
-        (excludeConflictEdges ? " checked" : "") <<
-        ">"
+    if(conflictReadGraph.isOpen()) {
+        html <<
+            "<tr>"
+            "<td>Exclude conflict edges"
+            "<td class=centered><input type=checkbox name=excludeConflictEdges" <<
+            (excludeConflictEdges ? " checked" : "") <<
+            ">";
+    }
 
+    html <<
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
         " Ok to make it much larger than screen size.'>"
@@ -177,6 +185,12 @@ void Assembler::exploreDirectedReadGraph(
             "<td>Display conflict information"
             "<td class=centered><input type=checkbox name=displayConflictInformation" <<
             (displayConflictInformation ? " checked" : "") <<
+            ">"
+
+            "<tr title='Enter oriented reads in the format readId-strand'>"
+            "<td>Highlight vertices conflicting with"
+            "<td class=centered><input type=text name=highlightConflicting size=8 " <<
+            " value=\"" << highlightConflicting << "\""
             ">";
     }
 
@@ -187,12 +201,12 @@ void Assembler::exploreDirectedReadGraph(
         "svg <input type=radio required name=format value='svg'" <<
         (format == "svg" ? " checked=on" : "") <<
         ">"
-        "<td class=centered>png <input type=radio required name=format value='png'" <<
+        "<br>png <input type=radio required name=format value='png'" <<
         (format == "png" ? " checked=on" : "") <<
         ">"
 
         "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
-        "<td>Timeout (seconds) for graph creation and layout"
+        "<td>Timeout (seconds) for graph layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
         " value='" << timeout <<
         "'>"
@@ -249,8 +263,10 @@ void Assembler::exploreDirectedReadGraph(
 
 
     // If the conflict read graph is available, add
-    // conflict to the vertices.
+    // conflict information to the vertices.
     if(displayConflictInformation && conflictReadGraph.isOpen()) {
+
+        // Set componentId, color, hasConflict for each vertex.
         BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
             LocalDirectedReadGraphVertex& vertex = graph[v];
             const OrientedReadId orientedReadId = vertex.orientedReadId;
@@ -260,9 +276,61 @@ void Assembler::exploreDirectedReadGraph(
                 conflictReadGraph.getVertex(cVertexId);
             vertex.componentId = cVertex.componentId;
             vertex.color = cVertex.color;
-
             vertex.hasConflict = conflictReadGraph.incidentEdges(cVertexId).size() > 0;
         }
+
+
+
+        // Highlight in green vertices specified in highlightConflicting
+        // and in red the vertices that have a conflict with them.
+        vector<string> tokens;
+        boost::algorithm::split(tokens, highlightConflicting,
+            boost::algorithm::is_any_of(" "),
+            boost::algorithm::token_compress_on);
+        for(const string& token: tokens) {
+
+            // Parse the token as an OrientedReadId (readId-Strand).
+            vector<string> tokens2;
+            boost::algorithm::split(tokens2, token,
+                boost::algorithm::is_any_of("-"));
+            if(tokens2.size() != 2) {
+                continue;
+            }
+            ReadId readId0;
+            Strand strand0;
+            try {
+                readId0 = boost::lexical_cast<ReadId>(tokens2[0]);
+                strand0 = boost::lexical_cast<ReadId>(tokens2[1]);
+            } catch(boost::bad_lexical_cast) {
+                continue;
+            }
+            if(strand0 > 1) {
+                continue;
+            }
+            const OrientedReadId orientedReadId0(readId0, strand0);
+
+            // Find the corresponding vertex in the local directed read graph.
+            const auto v0 = graph.getVertex(orientedReadId0);
+            if(v0 != graph.null_vertex()) {
+                graph[v0].isConflictingGreen = true;
+            }
+
+            // Now, use the ConflictReadGraph to find conflicting oriented reads.
+            const ConflictReadGraph::VertexId cv0 = ConflictReadGraph::getVertexId(orientedReadId0);
+            if(cv0 > conflictReadGraph.vertices.size()) {
+                continue;
+            }
+            const auto incidentEdges = conflictReadGraph.incidentEdges(cv0);
+            for(const auto cEdgeId: incidentEdges) {
+                const auto cv1 = conflictReadGraph.otherVertex(cEdgeId, cv0);
+                const OrientedReadId orientedReadId1 = ConflictReadGraph::getOrientedReadId(cv1);
+                const auto v1 = graph.getVertex(orientedReadId1);
+                if(v1 != graph.null_vertex()) {
+                    graph[v1].isConflictingRed = true;
+                }
+                            }
+        }
+
     }
 
 

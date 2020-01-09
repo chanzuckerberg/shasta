@@ -219,7 +219,11 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
                 s << " color=cyan";
             } else {
                 // Not the start vertex, at distance less than the maximum.
-                if(vertex.hasConflict) {
+                if(vertex.isConflictingGreen) {
+                    s << " color=green";
+                } else if(vertex.isConflictingRed) {
+                    s << " color=red";
+                } else if(vertex.hasConflict) {
                     s << " color=orange";
                 } else {
                     s << " color=black";

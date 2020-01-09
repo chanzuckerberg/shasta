@@ -67,6 +67,9 @@ public:
     uint64_t color = std::numeric_limits<uint64_t>::max();
     bool hasConflict = false;
 
+    bool isConflictingGreen = false;
+    bool isConflictingRed = false;
+
 };
 
 
