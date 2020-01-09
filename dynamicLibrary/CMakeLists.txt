@@ -95,7 +95,11 @@ else(BUILD_FOR_GPU)
 endif(BUILD_FOR_GPU)
 
 # Install the shared library into the bin directory.
-install(TARGETS shastaDynamicLibrary DESTINATION lib)
+if(NOT SYSTEM_INSTALL)
+  install(TARGETS shastaDynamicLibrary DESTINATION shasta-install/bin)
+else()
+  install(TARGETS shastaDynamicLibrary DESTINATION lib)
+endif()
 
 
 

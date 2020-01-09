@@ -125,20 +125,39 @@ if(BUILD_DYNAMIC_EXECUTABLE)
     add_subdirectory(dynamicExecutable)
 endif(BUILD_DYNAMIC_EXECUTABLE)
 
-
+if(NOT SYSTEM_INSTALL)
+  # Install to the shasta-install directory.
+  set(CMAKE_INSTALL_PREFIX .)
+endif()
 
 # Install the scripts.
 file(GLOB SCRIPTS scripts/*.py scripts/*.sh)
-install(PROGRAMS ${SCRIPTS} DESTINATION share/shasta/scripts)
+if(NOT SYSTEM_INSTALL)
+  install(PROGRAMS ${SCRIPTS} DESTINATION shasta-install/bin)
+else()
+  install(PROGRAMS ${SCRIPTS} DESTINATION share/shasta/scripts)
+endif()
 
 # Install the configuration files.
-install(DIRECTORY conf DESTINATION share/shasta USE_SOURCE_PERMISSIONS)
+if(NOT SYSTEM_INSTALL)
+  install(DIRECTORY conf DESTINATION shasta-install USE_SOURCE_PERMISSIONS)
+else()
+  install(DIRECTORY conf DESTINATION share/shasta USE_SOURCE_PERMISSIONS)
+endif()
 
 # Install the docs directory.
-install(DIRECTORY docs DESTINATION share/shasta)
+if(NOT SYSTEM_INSTALL)
+  install(DIRECTORY docs DESTINATION shasta-install)
+else()
+  install(DIRECTORY docs DESTINATION share/shasta)
+endif()
 
 # Install the docker directory.
-install(DIRECTORY docker DESTINATION share/shasta)
+if(NOT SYSTEM_INSTALL)
+  install(DIRECTORY docker DESTINATION shasta-install)
+else()
+  install(DIRECTORY docker DESTINATION share/shasta)
+endif()
 
 # The targets built in each subdirectory are
 # installed by the cmake file of each subdirectory.

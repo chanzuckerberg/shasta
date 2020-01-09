@@ -59,7 +59,11 @@ set_target_properties(shastaDynamicExecutable PROPERTIES OUTPUT_NAME "shastaDyna
 
 # This is needed to make sure the executable looks for the shared
 # library in the same directory.
-set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN")
+if(NOT SYSTEM_INSTALL)
+  set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN")
+else()
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
 
 # Libraries to link with.
 target_link_libraries(
@@ -71,10 +75,18 @@ if(BUILD_DEBUG)
 endif(BUILD_DEBUG)
 
 # Install the dynamic executable into the bin directory.
-install(TARGETS shastaDynamicExecutable DESTINATION bin)
+if(NOT SYSTEM_INSTALL)
+  install(TARGETS shastaDynamicExecutable DESTINATION shasta-install/bin)
+else()
+  install(TARGETS shastaDynamicExecutable DESTINATION bin)
+endif()
 
 # When install is complete, create the AppImage.
 if(BUILD_APPIMAGE)
-install(CODE "execute_process(COMMAND ${CMAKE_SOURCE_DIR}/AppImage/CreateAppImage.py share/shasta/appimage)")
+  if(NOT SYSTEM_INSTALL)
+    install(CODE "execute_process(COMMAND ${CMAKE_SOURCE_DIR}/AppImage/CreateAppImage.py shasta-install)")
+  else()
+    install(CODE "execute_process(COMMAND ${CMAKE_SOURCE_DIR}/AppImage/CreateAppImage.py share/shasta/appimage)")
+  endif()
 endif(BUILD_APPIMAGE)
 

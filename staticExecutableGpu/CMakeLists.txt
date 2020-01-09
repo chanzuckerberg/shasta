@@ -74,6 +74,10 @@ target_link_libraries(shastaGpu
     -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 
 # The static executable goes to the bin directory.
-install(TARGETS shastaGpu DESTINATION bin)
+if(NOT SYSTEM_INSTALL)
+  install(TARGETS shastaGpu DESTINATION shasta-install/bin)
+else()
+  install(TARGETS shastaGpu DESTINATION bin)
+endif()
 
 

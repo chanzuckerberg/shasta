@@ -63,7 +63,11 @@ set_target_properties(shastaStaticLibrary PROPERTIES PREFIX "")
 set_target_properties(shastaStaticLibrary PROPERTIES DEFINE_SYMBOL "")
 
 # Install the static library into the bin directory.
-install(TARGETS shastaStaticLibrary DESTINATION lib)
+if(NOT SYSTEM_INSTALL)
+  install(TARGETS shastaStaticLibrary DESTINATION shasta-install/bin)
+else()
+  install(TARGETS shastaStaticLibrary DESTINATION lib)
+endif()
 
 
 
