@@ -353,6 +353,42 @@ void Assembler::writeNavigation(
 
 
 
+// Write to html an img tag displaying a png file.
+void Assembler::writePngToHtml(
+    ostream& html,
+    const string& pngFileName,
+    const string useMap)
+{
+    // Convert the png file to base64.
+    const string base64FileName = tmpDirectory() + to_string(boost::uuids::random_generator()());
+    const string base64Command = "base64 " + pngFileName + " > " +
+        base64FileName;
+    const int errorCode = ::system(base64Command.c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " +
+            to_string(errorCode) + " " + strerror(errorCode) +
+            "\nrunning command: " + base64Command);
+    }
+
+    // Write the base64 file to html in an img tag.
+    html << "<p><img ";
+    if(not useMap.empty()) {
+        html << "usemap='" << useMap << "'";
+    }
+    html << " src=\"data:image/png;base64,";
+    ifstream png(base64FileName);
+    SHASTA_ASSERT(png);
+    html << png.rdbuf();
+    html << "\"/>";
+
+    // Remove the base64 file.
+    filesystem::remove(base64FileName);
+
+}
+
+
+
+
 #ifdef SHASTA_HTTP_SERVER
 
 // Access all available assembly data, without throwing exceptions

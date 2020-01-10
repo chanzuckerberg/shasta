@@ -1744,6 +1744,11 @@ public:
         const string& title,
         const vector<pair <string, string> >&) const;
     static void writeStyle(ostream& html);
+    static void writePngToHtml(
+        ostream& html,
+        const string& pngFileName,
+        const string useMap = ""
+        );
 
 #ifdef SHASTA_HTTP_SERVER
 

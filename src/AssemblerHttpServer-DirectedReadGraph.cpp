@@ -592,11 +592,6 @@ function highlight()
         const string pngFileName = dotFileName + ".png";
         const string cmapxFileName = dotFileName + ".cmapx";
 
-        // Create a base64 version of the png file.
-        const string base64FileName = pngFileName + ".base64";
-        const string base64Command = "base64 " + pngFileName + " > " +
-            base64FileName;
-        ::system(base64Command.c_str());
 
 
         // Write a title.
@@ -609,17 +604,13 @@ function highlight()
             ".<br>";
 
         // Write out the png image.
-        html << "<p><img usemap='#G' src=\"data:image/png;base64,";
-        ifstream png(base64FileName);
-        html << png.rdbuf();
-        html << "\"/>";
+        writePngToHtml(html, pngFileName, "#G");
         ifstream cmapx(cmapxFileName);
         html << cmapx.rdbuf();
 
         // Remove the files we created.
         filesystem::remove(pngFileName);
         filesystem::remove(cmapxFileName);
-        filesystem::remove(base64FileName);
     }
 
 
