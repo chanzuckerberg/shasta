@@ -1231,5 +1231,67 @@ void Assembler::exploreMarkerGraphInducedAlignment(
 
 
 
+void Assembler::exploreMarkerCoverage(
+    const vector<string>& request,
+    ostream&html)
+{
+    html <<
+        "<h1>Marker coverage of an oriented read</h1>"
+        "<p>For each marker of a read, marker coverage is defined "
+        "as the coverage (number of oriented reads) for the "
+        "marker graph vertex associated with that marker, "
+        "or zero if there is no marker graph vertex "
+        "associated with the marker.";
+
+    // Get the ReadId and Strand from the request.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Plot marker coverage for read'> "
+        "<input type=text name=readId required" <<
+        (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
+        " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
+    html << "</form>";
+
+    // If the readId or strand are missing, stop here.
+    if(!readIdIsPresent || !strandIsPresent) {
+        return;
+    }
+
+    const OrientedReadId orientedReadId(readId, strand);
+    html << "<h2>Marker coverage of oriented read " << orientedReadId << "</h2>";
+
+    std::ostringstream gnuplotCommands;
+    gnuplotCommands <<
+        "set border linewidth 1\n"
+        "set xtics out nomirror\n"
+        "set ytics out nomirror\n"
+        "set grid xtics ytics linestyle 1 linewidth 1 linecolor rgb '#e0e0e0'\n"
+        "plot '-' with points pointtype 13 pointsize 0.5 linecolor rgb '#0000ff' notitle\n";
+
+    const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
+    for(uint32_t ordinal=0; ordinal<markerCount; ordinal++) {
+        const MarkerGraph::VertexId vertexId =
+            getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+        if(vertexId == MarkerGraph::invalidCompressedVertexId) {
+            gnuplotCommands << ordinal << " " << "0\n";
+        } else {
+            const uint64_t coverage = markerGraph.vertices.size(vertexId);
+            gnuplotCommands << ordinal << " " << coverage << "\n";
+        }
+    }
+
+    gnuplotCommands << "e\n";
+    writeGnuPlotPngToHtml(html, 600, 400, true ? gnuplotCommands.str() : string("test\n"));
+}
+
+
 #endif
 

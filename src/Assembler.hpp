@@ -1749,6 +1749,11 @@ public:
         const string& pngFileName,
         const string useMap = ""
         );
+    static void writeGnuPlotPngToHtml(
+        ostream& html,
+        int width,
+        int height,
+        const string& gnuplotCommands);
 
 #ifdef SHASTA_HTTP_SERVER
 
@@ -1822,6 +1827,7 @@ public:
         LocalMarkerGraphRequestParameters&) const;
     void exploreMarkerGraphVertex(const vector<string>&, ostream&);
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
+    void exploreMarkerCoverage(const vector<string>&, ostream&);
     void exploreMarkerGraphInducedAlignment(const vector<string>&, ostream&);
 #endif
 

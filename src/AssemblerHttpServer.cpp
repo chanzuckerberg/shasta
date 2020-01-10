@@ -58,6 +58,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerCoverage);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphInducedAlignment);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
@@ -317,6 +318,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Local marker graph", "exploreMarkerGraph?useBubbleReplacementEdges=on"},
         {"Marker graph vertices", "exploreMarkerGraphVertex"},
         {"Marker graph edges", "exploreMarkerGraphEdge"},
+        {"Marker coverage", "exploreMarkerCoverage"},
         {"Induced alignments", "exploreMarkerGraphInducedAlignment"},
         });
     writeNavigation(html, "Assembly graph", {
@@ -387,6 +389,39 @@ void Assembler::writePngToHtml(
 }
 
 
+
+void Assembler::writeGnuPlotPngToHtml(
+    ostream& html,
+    int width,
+    int height,
+    const string& gnuplotCommands)
+{
+
+    // Create a file to contain gnuplot commands.
+    const string gnuplotFileName = tmpDirectory() + to_string(boost::uuids::random_generator()());
+    const string pngFileName = tmpDirectory() + to_string(boost::uuids::random_generator()());
+    {
+        ofstream gnuplotFile(gnuplotFileName);
+        gnuplotFile <<
+            "set terminal png size " << width << "," << height <<
+            " font '/usr/share/fonts/truetype/noto/NotoSerif-Regular.ttf'"
+            "\n"
+            "set output '" << pngFileName << "'\n" <<
+            gnuplotCommands;
+    }
+
+    // Invoke gnuplot.
+    const string command = "gnuplot " + gnuplotFileName;
+    const int errorCode = ::system(command.c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " +
+            to_string(errorCode) + " " + strerror(errorCode) +
+            "\nrunning command: " + command);
+    }
+
+    // Write the png file to html.
+    writePngToHtml(html, pngFileName);
+}
 
 
 #ifdef SHASTA_HTTP_SERVER
