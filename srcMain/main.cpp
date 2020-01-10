@@ -146,14 +146,15 @@ void shasta::main::assemble(
 {
     SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble");
 
-    const string executableDescription =
-        "\nThis is the static executable for the Shasta assembler. "
-        "It has no dependencies and requires no installation.\n\n"
-        "To run an assembly, use the \"--input\" option to specify the input files. "
-        "See below for a description of the other options and parameters.\n\n"
-        "Default values of assembly parameters are optimized for an assembly "
-        "at coverage 60x. If your data have significantly different coverage, "
-        "some changes in assembly parameters may be necessary to get good results.\n\n"
+    const string startupMessage =
+        "\nTo run an assembly, use the \"--input\" option to specify the input files. "
+        "Use the \"--help\" option for a description of the other options and parameters.\n\n"
+        "Default values of assembly parameters are not recommended for any "
+        "specific application and mostly reflect approximate compatibility "
+        "with previous releases."
+        "See the shasta/conf or shasta-install/conf directory for "
+        "sample configuration files containing assembly parameters "
+        "for specific applications.\n\n"
         "For more information about the Shasta assembler, see\n"
         "https://github.com/chanzuckerberg/shasta\n\n"
         "Complete documentation for the latest version of Shasta is available here:\n"
@@ -175,7 +176,7 @@ void shasta::main::assemble(
 
     // Check that we have at least one input file.
     if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
-        cout << executableDescription << assemblerOptions.allOptionsDescription << endl;
+        cout << startupMessage << assemblerOptions.allOptionsDescription << endl;
         throw runtime_error("Specify at least one input file "
             "using command line option \"--input\".");
     }
@@ -221,16 +222,7 @@ void shasta::main::assemble(
 
 
     // Write a startup message.
-    cout << timestamp <<
-        "\nThis is the static executable for the Shasta assembler. "
-        "It has no dependencies and requires no installation.\n\n"
-        "Default values of assembly parameters are optimized for an assembly "
-        "at coverage 60x. If your data have significantly different coverage, "
-        "some changes in assembly parameters may be necessary to get good results.\n\n"
-        "For more information about the Shasta assembler, see\n"
-        "https://github.com/chanzuckerberg/shasta\n\n"
-        "Complete documentation for the latest version of Shasta is available here:\n"
-        "https://chanzuckerberg.github.io/shasta\n\n";
+    cout << timestamp << startupMessage << endl;
 
     // Find absolute paths of the input files.
     // We will use them below after changing directory to the output directory.

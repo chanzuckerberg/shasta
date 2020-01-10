@@ -61,6 +61,21 @@ of this page.
 
 
 
+<h2 id=Defaults>Defaults</h2>
+<p>
+Default values of Shasta command line options are not 
+recommended for any application scenario, and mostly reflect
+approximate compatibility with previous versions. 
+The <code>shasta/conf</code> or <code>shasta-install/conf</code>
+directories provide sample configuration files (with a <code>.conf</code> extension) containing best known
+sets of assembly parameters for specific applications.
+See the beginning of each configuration file for comments
+on what scenario the file applies to.
+See <a href="#ConfigFile">below</a> for 
+information on how to use a configuration file 
+in a Shasta assembly.
+
+
 <h2 id=bashCompletion>Saving some typing</h2>
 <p>Many option names are long and descriptive, and to make it easier to type them
 Shasta provides the ability to create a <code>bash</code> completion script.
@@ -98,13 +113,25 @@ completion scripts.
 
 
 
-<h2>Configuration file</h2>
+<h2 id=ConfigFile>Configuration file</h2>
 <p>
 Some options are only allowed on the command line,
 but most of them can also optionally be specified using a configuration file.
-If a configuration file is specified (via <code>--config</code>),
-values specified on the command line take precedence over
+A configuration file is specified using command line option <code>--config</code>
+followed by the <b>absolute path</b> to the desired configuration file.
+A relative path is not accepted.
+
+<p>
+See <a href=#Defaults>above</a> for some information
+on Shasta default values and on available sample configuration files.
+
+<p> 
+Values specified on the command line take precedence over
 values specified in the configuration file.
+This makes it easy to override specific values in a 
+configuration file.
+
+<p>
 Options that can be specified in both places are of the form 
 <code>--SectionName.optionName</code>. The format of the configuration file
 is as follows:
