@@ -1,7 +1,7 @@
 # Definitions
 git_commit = $(shell git log --pretty=oneline -n 1 | cut -f1 -d " ")
-image_name = tpesout/shasta
-shasta_version = 0.1.0
+image_name = kishwar/shasta
+shasta_version = 0.3.0
 tag = ${shasta_version}--${git_commit}
 
 # Steps
