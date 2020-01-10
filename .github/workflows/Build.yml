@@ -18,7 +18,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
+        # cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta Release 0.4.0" 
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-18.04
@@ -55,7 +56,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_FOR_GPU=ON -DBUILD_ID="Shasta unreleased test build (with GPU acceleration) newer than release 0.3.0 at commit "$GITHUB_SHA
+        # cmake .. -DBUILD_NATIVE=OFF -DBUILD_FOR_GPU=ON -DBUILD_ID="Shasta unreleased test build (with GPU acceleration) newer than release 0.3.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_FOR_GPU=ON -DBUILD_ID="Shasta Release 0.4.0 (with GPU acceleration)"
         make -j 2 all
         make install/strip
         mv shasta-install shastaGpu-Ubuntu-18.04
@@ -90,7 +92,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
+        # cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta Release 0.4.0"
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-16.04
@@ -124,7 +127,7 @@ jobs:
       run: |
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.3.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta Release 0.4.0"
         make VERBOSE=1 -j 2 all
         make install/strip
         # See what libraries the executable depends on.
