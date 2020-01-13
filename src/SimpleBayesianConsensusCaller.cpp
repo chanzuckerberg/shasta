@@ -60,7 +60,6 @@ void validate_text_file(string configPath){
             throw runtime_error("ERROR: unprintable character detected in bayesian config file"
                                 "\n in config file: " + configPath +
                                 "\n at position " + to_string(c));
-
         }
         c++;
     }
@@ -277,6 +276,11 @@ void SimpleBayesianConsensusCaller::loadConfiguration(ifstream& matrixFile){
     string separators = " ";
 
     while (getline(matrixFile, line)){
+        // Ignore empty lines
+        if (line.empty()){
+            continue;
+        }
+
         // Header line (labeled via fasta-like headers)
         if (line[0] == '>'){
             vector<string> tokens;
@@ -288,10 +292,10 @@ void SimpleBayesianConsensusCaller::loadConfiguration(ifstream& matrixFile){
             if (tokens[0] == "Name"){
                 parseName(matrixFile, line);
 
-            }else if (tokens[1] == "prior"){
+            }else if (tokens.size() > 1 and not tokens[0].empty() and tokens[1] == "prior"){
                 parsePrior(matrixFile, line, tokens);
 
-            }else if (tokens[1] == "likelihood"){
+            }else if (tokens.size() > 1 and not tokens[0].empty() and tokens[1] == "likelihood"){
                 parseLikelihood(matrixFile, line, tokens);
             }
         }
