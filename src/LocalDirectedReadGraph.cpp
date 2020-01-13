@@ -223,10 +223,10 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
                     s << " color=green";
                 } else if(vertex.isConflictingRed) {
                     s << " color=red";
-                } else if(vertex.hasConflict) {
-                    s << " color=orange";
                 } else {
-                    s << " color=black";
+                    // Color by the number of comnflicting vertices.
+                    const double grey = min(0.8, 0.1*double(vertex.conflictCount));
+                    s << " color=\"0,0," << grey << "\"";
                 }
             }
 

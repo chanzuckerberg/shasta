@@ -65,7 +65,7 @@ public:
     // Information from the global conflict read graph.
     uint64_t componentId = std::numeric_limits<uint64_t>::max();
     uint64_t color = std::numeric_limits<uint64_t>::max();
-    bool hasConflict = false;
+    uint64_t conflictCount = 0;
 
     bool isConflictingGreen = false;
     bool isConflictingRed = false;
