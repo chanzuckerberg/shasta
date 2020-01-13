@@ -403,9 +403,8 @@ void Assembler::writeGnuPlotPngToHtml(
     {
         ofstream gnuplotFile(gnuplotFileName);
         gnuplotFile <<
-            "set terminal png size " << width << "," << height <<
-            " font '/usr/share/fonts/truetype/noto/NotoSerif-Regular.ttf'"
-            "\n"
+            "set terminal pngcairo size " << width << "," << height <<
+            " font 'Noto Serif'\n"
             "set output '" << pngFileName << "'\n" <<
             gnuplotCommands;
     }

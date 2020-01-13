@@ -1274,7 +1274,7 @@ void Assembler::exploreMarkerCoverage(
         "set xtics out nomirror\n"
         "set ytics out nomirror\n"
         "set grid xtics ytics linestyle 1 linewidth 1 linecolor rgb '#e0e0e0'\n"
-        "plot '-' with points pointtype 13 pointsize 0.5 linecolor rgb '#0000ff' notitle\n";
+        "plot '-' with points pointtype 7 pointsize 0.5 linecolor rgb '#0000ff' notitle\n";
 
     const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
     for(uint32_t ordinal=0; ordinal<markerCount; ordinal++) {
