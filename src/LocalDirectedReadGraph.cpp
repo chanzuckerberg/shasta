@@ -222,8 +222,14 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
                     s << " color=red";
                 } else {
                     // Color by the number of comnflicting vertices.
-                    const double grey = min(0.8, 0.1*double(vertex.conflictCount));
-                    s << " color=\"0,0," << grey << "\"";
+                    if(vertex.conflictCount == 0) {
+                        s << "color=black";
+                    } else {
+                        const double hue = 0.67;
+                        const double saturation = 0.5;
+                        const double value = min(0.8, 0.5 + 0.05*double(vertex.conflictCount));
+                        s << " color=\"" << hue << ","<< saturation << "," << value << "\"";
+                    }
                 }
             }
 

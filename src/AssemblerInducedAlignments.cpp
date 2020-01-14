@@ -382,3 +382,142 @@ void Assembler::findAllIncompatibleReadPairs()
 
 
 
+
+// Evaluate an induced alignment.
+// Contrary to InducedAlignment::evaluate, this takes into account
+// markers that don't correspond to a marker graph vertex.
+bool Assembler::evaluateInducedAlignment(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    const InducedAlignment& inducedAlignment,
+    const InducedAlignmentCriteria& criteria,
+    vector<bool>& work0,
+    vector<bool>& work1)
+{
+    // Sanity check.
+    SHASTA_ASSERT(not inducedAlignment.data.empty());
+
+    // Compute the average and standard deviation of the offset
+    // between the first and second ordinal.
+    int64_t sum1 = 0;
+    int64_t sum2 = 0;
+    for(const auto& d: inducedAlignment.data) {
+        const int64_t offset = int64_t(d.ordinal0) - int64_t(d.ordinal1);
+        sum1 += offset;
+        sum2 += offset * offset;
+    }
+    const double n = double(inducedAlignment.data.size());
+    const double offset = double(sum1) / n;
+    const double sigma = (inducedAlignment.data.size()==1) ? 0. :
+        sqrt((double(sum2) - n*offset*offset) / (n-1.));
+
+    // If the standard deviation is too large, return false.
+    if(uint32_t(sigma) > criteria.maxOffsetSigma) {
+        return false;
+    }
+
+    // Access the markers for the two oriented reads.
+    const MemoryAsContainer<CompressedMarker> markers0 = markers[orientedReadId0.getValue()];
+    const MemoryAsContainer<CompressedMarker> markers1 = markers[orientedReadId1.getValue()];
+    const int64_t markerCount0 = markers0.size();
+    const int64_t markerCount1 = markers1.size();
+    const int64_t firstMarkerId0 = markers.begin(orientedReadId0.getValue()) - markers.begin();
+    const int64_t firstMarkerId1 = markers.begin(orientedReadId1.getValue()) - markers.begin();
+
+
+
+    // Assuming this offset, the induced alignment covers a portion of each
+    // of the two oriented reads.
+    const int64_t iOffset = uint64_t(offset);
+    int64_t ordinal0Begin, ordinal0End;
+    int64_t ordinal1Begin, ordinal1End;
+    if(iOffset >= 0) {
+        ordinal0Begin = iOffset;
+        ordinal0End = min(markerCount0, markerCount1 + iOffset);
+        ordinal1Begin = 0;
+        ordinal1End = ordinal0End - iOffset;
+    } else {
+        ordinal1Begin = -iOffset;
+        ordinal1End = min(markerCount1, markerCount0 - iOffset);
+        ordinal0Begin = 0;
+        ordinal0End = ordinal1End + iOffset;
+    }
+    SHASTA_ASSERT(ordinal0Begin >= 0);
+    SHASTA_ASSERT(ordinal0Begin <  markerCount0);
+    SHASTA_ASSERT(ordinal1Begin >= 0);
+    SHASTA_ASSERT(ordinal1Begin <  markerCount1);
+    SHASTA_ASSERT(ordinal0End   >  0);
+    SHASTA_ASSERT(ordinal0End   <=  markerCount0);
+    SHASTA_ASSERT(ordinal1End   >  0);
+    SHASTA_ASSERT(ordinal1End   <=  markerCount1);
+    const int64_t m =  ordinal0End - ordinal0Begin;
+    SHASTA_ASSERT(m == ordinal1End - ordinal1Begin);
+
+
+    // Use work0 and work1 to keep tract of markers in these two ranges.
+    work0.clear();
+    work1.clear();
+    work0.resize(m, false);
+    work1.resize(m, false);
+
+    // Set to true the ones that are in the induced alignment.
+    for(const auto& d: inducedAlignment.data) {
+        if(d.ordinal0 >= ordinal0Begin and d.ordinal0 < ordinal0End) {
+            work0[d.ordinal0 - ordinal0Begin] = true;
+        }
+        if(d.ordinal1 >= ordinal1Begin and d.ordinal1 < ordinal1End) {
+            work1[d.ordinal1 - ordinal1Begin] = true;
+        }
+    }
+
+    // Set to true the ones that are not associated with a marker graph vertex.
+    for(int64_t ordinal0=ordinal0Begin; ordinal0!=ordinal0End; ++ordinal0) {
+        if(markerGraph.vertexTable[firstMarkerId0 + ordinal0] == MarkerGraph::invalidCompressedVertexId) {
+            work0[ordinal0 - ordinal0Begin] = true;
+        }
+    }
+    for(int64_t ordinal1=ordinal1Begin; ordinal1!=ordinal1End; ++ordinal1) {
+        if(markerGraph.vertexTable[firstMarkerId1 + ordinal1] == MarkerGraph::invalidCompressedVertexId) {
+            work1[ordinal1 - ordinal1Begin] = true;
+        }
+    }
+
+
+
+    // Any entries still set to false in the work arrays correspond to markers
+    // that were not in the induced alignment, yet have an associated
+    // marker graph vertex.
+    // If we find a long streak of these entries, this is a bad induced alignment and
+    // we return false;
+    uint64_t lastTrueIndex0 = 0;
+    for(uint64_t index0=0; index0<work0.size(); index0++) {
+        if(work0[index0]) {
+            lastTrueIndex0 = index0;
+        } else {
+            if(index0 - lastTrueIndex0 > criteria.maxSkip) {
+                return false;
+            }
+        }
+    }
+    if(work0.size() - lastTrueIndex0 > criteria.maxSkip) {
+        return false;
+    }
+    uint64_t lastTrueIndex1 = 0;
+    for(uint64_t index1=0; index1<work1.size(); index1++) {
+        if(work1[index1]) {
+            lastTrueIndex1 = index1;
+        } else {
+            if(index1 - lastTrueIndex1> criteria.maxSkip) {
+                return false;
+            }
+        }
+    }
+    if(work1.size() - lastTrueIndex1 > criteria.maxSkip) {
+        return false;
+    }
+
+
+
+    // If getting here, this is a good induced alignment.
+    return true;
+}

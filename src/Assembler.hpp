@@ -1353,6 +1353,17 @@ private:
         const vector<OrientedReadId>& orientedReadIds1,
         vector<InducedAlignment>& inducedAlignments);
 
+    // Evaluate an induced alignment.
+    // Contrary to InducedAlignment::evaluate, this takes into account
+    // markers that don't correspond to a marker graph vertex.
+    bool evaluateInducedAlignment(
+        OrientedReadId orientedReadId0,
+        OrientedReadId orientgedReadId1,
+        const InducedAlignment&,
+        const InducedAlignmentCriteria&,
+        vector<bool>& work0,
+        vector<bool>& work1);
+
 
 
     // Find all pairs of incompatible reads that involve a given read.
@@ -1409,7 +1420,9 @@ private:
         // Work areas.
         vector<OrientedReadId>&,
         vector<OrientedReadId>&,
-        vector<InducedAlignment>&
+        vector<InducedAlignment>&,
+        vector<bool>&,
+        vector<bool>&
         );
     class CreateConflictReadGraphData {
     public:

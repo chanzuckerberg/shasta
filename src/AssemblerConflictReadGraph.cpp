@@ -69,6 +69,8 @@ void Assembler::createConflictReadGraphThreadFunction(size_t threadId)
     vector<OrientedReadId> conflictCandidates;
     vector<OrientedReadId> conflictingOrientedReads;
     vector<InducedAlignment> inducedAlignments;
+    vector<bool> work0;
+    vector<bool> work1;
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
@@ -82,7 +84,9 @@ void Assembler::createConflictReadGraphThreadFunction(size_t threadId)
                 inducedAlignmentCriteria,
                 conflictCandidates,
                 conflictingOrientedReads,
-                inducedAlignments);
+                inducedAlignments,
+                work0,
+                work1);
         }
     }
 
@@ -102,7 +106,9 @@ void Assembler::addConflictGraphEdges(
     // Work areas.
     vector<OrientedReadId>& conflictCandidates,
     vector<OrientedReadId>& conflictingOrientedReads,
-    vector<InducedAlignment>& inducedAlignments)
+    vector<InducedAlignment>& inducedAlignments,
+    vector<bool>& work0,
+    vector<bool>& work1)
 {
 
     // Put this read on strand 0.
@@ -197,12 +203,25 @@ void Assembler::addConflictGraphEdges(
         const OrientedReadId orientedReadId1 = conflictCandidates[i];
         const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
         // cout << "Checking induced alignment of " << orientedReadId0 << " " << orientedReadId1 << endl;
+
         if(not inducedAlignments[i].evaluate(
             markerCount0,
             markerCount1,
             inducedAlignmentCriteria)) {
             conflictingOrientedReads.push_back(orientedReadId1);
         }
+#if 0
+        // This also takes into account the presence or absence of marker graph vertices.
+        if(not evaluateInducedAlignment(
+            orientedReadId0,
+            orientedReadId1,
+            inducedAlignments[i],
+            inducedAlignmentCriteria,
+            work0,
+            work1)) {
+            conflictingOrientedReads.push_back(orientedReadId1);
+        }
+#endif
     }
     // cout << "Counts: " << conflictCandidates.size () << " " << conflictingOrientedReads.size() << endl;
 
