@@ -211,10 +211,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
             // 2. Coloring of the directed read graph was done, but this vertex
             //    has no conflicting vertices.
 
-            if(vertex.distance == 0) {
-                // Start vertex.
-                s << " color=\"#ff00ff\"";  // Fuchsia
-            } else if(vertex.distance == maxDistance) {
+            if(vertex.distance == maxDistance) {
                 // Vertex at maximum distance.
                 s << " color=cyan";
             } else {
@@ -235,9 +232,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
 
         // We are not displaying conflict information from the conflict read graph.
         // Just color based on distance from the start vertex.
-        if(vertex.distance == 0) {
-            s << " color=\"#ff00ff\"";  // Fuchsia
-        } else if(vertex.distance == maxDistance) {
+        if(vertex.distance == maxDistance) {
             s << " color=cyan";
         } else {
             s << " color=black";
