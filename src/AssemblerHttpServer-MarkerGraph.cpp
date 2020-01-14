@@ -1243,22 +1243,31 @@ void Assembler::exploreMarkerCoverage(
         "or zero if there is no marker graph vertex "
         "associated with the marker.";
 
-    // Get the ReadId and Strand from the request.
+    // Get the parameters from the request.
     ReadId readId = 0;
     const bool readIdIsPresent = getParameterValue(request, "readId", readId);
     Strand strand = 0;
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
+    int width = 600;
+    getParameterValue(request, "width", width);
+    int height = 400;
+    getParameterValue(request, "height", height);
 
     // Write the form.
     html <<
-        "<form>"
-        "<input type=submit value='Plot marker coverage for read'> "
-        "<input type=text name=readId required" <<
+        "<form><table>"
+        "<tr><td>Read id<td class=centered>"
+        "<input type=text name=readId required style='text-align:center'" <<
         (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
         " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
-        " on strand ";
+        "<tr><td>Strand<td class=centered>";
     writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
-    html << "</form>";
+    html <<
+        "<tr><td>Plot width<td class=centered>"
+        "<input type=text name=width style='text-align:center' size=8 value='" << width << "'>"
+        "<tr><td>Plot height<td class=centered>"
+        "<input type=text name=height style='text-align:center' size=8 value='" << height << "'>"
+        "</table><input type=submit value='Plot'></form>";
 
     // If the readId or strand are missing, stop here.
     if(!readIdIsPresent || !strandIsPresent) {
@@ -1272,8 +1281,9 @@ void Assembler::exploreMarkerCoverage(
     gnuplotCommands <<
         "set border linewidth 1\n"
         "set xtics out nomirror\n"
+        "set mxtics 10\n"
         "set ytics out nomirror\n"
-        "set grid xtics ytics linestyle 1 linewidth 1 linecolor rgb '#e0e0e0'\n"
+        "set grid xtics mxtics ytics linestyle 1 linewidth 1 linecolor rgb '#e0e0e0'\n"
         "plot '-' with points pointtype 7 pointsize 0.5 linecolor rgb '#0000ff' notitle\n";
 
     const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
@@ -1289,7 +1299,7 @@ void Assembler::exploreMarkerCoverage(
     }
 
     gnuplotCommands << "e\n";
-    writeGnuPlotPngToHtml(html, 600, 400, true ? gnuplotCommands.str() : string("test\n"));
+    writeGnuPlotPngToHtml(html, width, height, gnuplotCommands.str());
 }
 
 
