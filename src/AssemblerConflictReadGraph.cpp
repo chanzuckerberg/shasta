@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -263,9 +264,10 @@ void Assembler::addConflictGraphEdges(
 }
 
 
-
+#if 0
 // Use a greedy coloring algorithm to color each non-trivial
 // connected component of the conflict read graph.
+// The coloring algorithm is in ConflictReadGraph::colorConnectedComponent
 void Assembler::colorConflictReadGraph()
 {
     SHASTA_ASSERT(conflictReadGraph.isOpen());
@@ -413,6 +415,194 @@ void Assembler::colorConflictReadGraph()
 
 
 
+
+}
+#endif
+
+
+
+// This colors the ConflictReadGraph by walking the
+// DirectedReadGraph.
+void Assembler::colorConflictReadGraph()
+{
+
+    // Check that we have what we need.
+    SHASTA_ASSERT(directedReadGraph.isOpen());
+    SHASTA_ASSERT(conflictReadGraph.isOpen());
+
+    // Types for vertices and edges of the two graphs we will use.
+    using VertexId = DirectedReadGraph::VertexId;
+    using EdgeId   = DirectedReadGraph::EdgeId;
+
+    // We are assuming the two graphs use the same VertexId and EdgeId.
+    static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
+        "Unexpected VertexId discrepancy.");
+    static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
+        "Unexpected VertexId discrepancy.");
+
+    // Initialize all vertex components and colors to invalid.
+    const auto invalid = ConflictReadGraphVertex::invalid;
+    const VertexId n = conflictReadGraph.vertices.size();
+    for(VertexId vertexId=0; vertexId<n; vertexId++) {
+        auto& vertex = conflictReadGraph.getVertex(vertexId);
+        vertex.componentId = invalid;
+        vertex.color = invalid;
+    }
+
+
+
+    // Find clusters of vertices in the DirectedReadGraph that
+    // have no conflicts. These will be used as starting points
+    // for each iteration in the coloring process.
+    vector<VertexId> rank(n);
+    vector<VertexId> parent(n);
+    boost::disjoint_sets<VertexId*, VertexId*> disjointSets(&rank[0], &parent[0]);
+    for(VertexId vertexId=0; vertexId<n; vertexId++) {
+        disjointSets.make_set(vertexId);
+    }
+    for(EdgeId edgeId=0; edgeId<directedReadGraph.edges.size(); edgeId++) {
+        const VertexId v0 = directedReadGraph.source(edgeId);
+        if(conflictReadGraph.degree(v0) > 0) {
+            continue;   // v0 has conflict. Skip.
+        }
+        const VertexId v1 = directedReadGraph.target(edgeId);
+        if(conflictReadGraph.degree(v1) > 0) {
+            continue;   // v1 has conflict. Skip.
+        }
+        disjointSets.union_set(v0, v1);
+    }
+
+
+
+    // Gather the vertices of each cluster.
+    std::map<VertexId, vector<VertexId> > clusterMap;
+    for(VertexId vertexId=0; vertexId<n; vertexId++) {
+        const VertexId clusterId = disjointSets.find_set(vertexId);
+        clusterMap[clusterId].push_back(vertexId);
+    }
+
+
+
+
+    // Sort the clusters by decreasing size.
+    // clusterTable contains pairs(size, clusterId as key in clusterMap).
+    vector< pair<VertexId, VertexId> > clusterTable;
+    for(const auto& p: clusterMap) {
+        const VertexId clusterId = p.first;
+        const vector<VertexId>& cluster = p.second;
+        const VertexId clusterSize = cluster.size();
+        SHASTA_ASSERT(clusterSize > 0);
+        if(clusterSize==1) {
+            // The cluster consists of a single vertex.
+            const VertexId v = cluster.front();
+            if(conflictReadGraph.degree(v) > 0) {
+                // That single vertex has conflicts, so don't consider it.
+            } else {
+                // That single vertex has no conflicts, so store it.
+                clusterTable.push_back(make_pair(clusterSize, clusterId));
+            }
+        } else {
+            // The cluster consists of two or more vertices.
+            clusterTable.push_back(make_pair(clusterSize, clusterId));
+        }
+    }
+    sort(clusterTable.begin(), clusterTable.end(), std::greater<pair<VertexId, VertexId>>());
+
+
+
+    // Store clusters in this order of decreasing size.
+    vector< vector<VertexId> > clusters;
+    VertexId clustersVertexCount = 0;
+    for(const auto& p: clusterTable) {
+        const vector<VertexId>& cluster = clusterMap[p.second];
+        clusters.push_back(cluster);
+        clustersVertexCount += cluster.size();
+    }
+    cout << "Found " << clusters.size() <<
+        " clusters of vertices without conflict for a total " <<
+        clustersVertexCount <<  " vertices out " << n <<
+        " vertices in the read graph." << endl;
+
+    // Data structures to keep track, at each iteration, of the vertices
+    // that conflict with vertices we already encountered.
+    vector<VertexId> forbiddenVertices;
+    vector<bool> isForbidden(directedReadGraph.vertices.size(), false);
+
+    // Other data structures used below.
+    vector<VertexId> adjacentVertices;
+    vector< pair<VertexId, uint64_t > > adjacentVerticesSortedByConflicts;
+
+    // Iterate over clusters in this order of decreasing size.
+    for(uint64_t iteration=0; iteration<clusters.size(); iteration++) {
+        const vector<VertexId>& cluster = clusters[iteration];
+        cout << "Cluster with " << cluster.size() << " vertices:";
+        for(const VertexId vertexId: cluster) {
+            cout << " " << ConflictReadGraph::getOrientedReadId(vertexId);
+        }
+        cout << endl;
+
+
+        // We use a process similar to a BFS starting at the vertices
+        // of this cluster, with a few differences:
+        // - When encountering a vertex that conflicts with another vertex
+        //   we already encountered at this iteration, we skip it.
+        // - When encountering a vertex that was already colored at a previous
+        //   iteration, we skip it.
+        // - When we enqueue neighbors of a vertex, we enqueue them in order
+        //   of increasing number of conflicting vertices.
+
+
+        // Initialize the BFS.
+        std::queue<VertexId> q;
+        for(const VertexId vertexId: cluster) {
+            q.push(vertexId);
+        }
+
+
+        // BFS loop.
+        while(not q.empty()) {
+
+            // Dequeue a vertex.
+            const VertexId v0 = q.front();
+            const OrientedReadId orientedReadId0 = ConflictReadGraph::getOrientedReadId(v0);
+            cout << "Queue size " << q.size() << ", dequeued " << orientedReadId0 << endl;
+            q.pop();
+
+            // Gather adjacent vertices.
+            directedReadGraph.findKeptAdjacent(v0, adjacentVertices);
+
+            // Sort adjacent vertices by increasing number of conflicts.
+            // Skip the ones that are conflicting with vertices we
+            // already encountered at this iteration or that have
+            // already been colored at a previous iteration.
+            adjacentVerticesSortedByConflicts.clear();
+            for(const VertexId v1: adjacentVertices) {
+                if(isForbidden[v1]) {
+                    cout << ConflictReadGraph::getOrientedReadId(v1) << " forbidden" << endl;
+                    continue;
+                }
+                if(conflictReadGraph.vertices[v1].color != invalid) {
+                    cout << ConflictReadGraph::getOrientedReadId(v1) << " already colored" << endl;
+                    continue;
+                }
+                adjacentVerticesSortedByConflicts.push_back(
+                    make_pair(v1, conflictReadGraph.degree(v1)));
+            }
+            sort(
+                adjacentVerticesSortedByConflicts.begin(),
+                adjacentVerticesSortedByConflicts.end(),
+                OrderPairsBySecondOnly<VertexId, uint64_t>());
+        }
+
+
+
+        // Clean up data structures to prepare them for the next iteration.
+        for(const VertexId v: forbiddenVertices) {
+            isForbidden[v] = false;
+        }
+        forbiddenVertices.clear();
+
+    }
 
 }
 

@@ -208,6 +208,31 @@ public:
 
 
 
+    // Same as above, but use a reference argument instead of returning by value.
+    void findKeptAdjacent(VertexId v, vector<VertexId>& adjacent)
+    {
+        adjacent.clear();
+
+        // Children.
+        for(EdgeId edgeId: edgesBySource[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(target(edgeId));
+            }
+        }
+
+        // Parents.
+        for(EdgeId edgeId: edgesByTarget[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(source(edgeId));
+            }
+        }
+
+        // Return them without duplicates and sorted by VertexId.
+        deduplicate(adjacent);
+    }
+
+
+
     // Return common adjacent vertices of two given vertices,
     // considering only edges that were kept.
     // Return them without duplicates and sorted by VertexId.
