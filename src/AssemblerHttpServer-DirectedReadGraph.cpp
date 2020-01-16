@@ -274,7 +274,6 @@ void Assembler::exploreDirectedReadGraph(
                 ConflictReadGraph::getVertexId(orientedReadId);
             const ConflictReadGraphVertex& cVertex =
                 conflictReadGraph.getVertex(cVertexId);
-            vertex.componentId = cVertex.componentId;
             vertex.color = cVertex.color;
             vertex.conflictCount = conflictReadGraph.incidentEdges(cVertexId).size();
         }

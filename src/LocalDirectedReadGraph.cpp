@@ -159,8 +159,6 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     const bool hasColoringInformation =
-        vertex.componentId != std::numeric_limits<uint64_t>::max()
-        and
         vertex.color != std::numeric_limits<uint64_t>::max();
 
     // Tooltip.
@@ -170,8 +168,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         vertex.baseCount << " bases, " << vertex.markerCount <<
         " markers, distance " << vertex.distance;
     if(displayConflictInformation and hasColoringInformation) {
-        s << " conflict read graph component " << vertex.componentId <<
-            ", color " << vertex.color;
+        s << " conflict read graph color " << vertex.color;
      }
     s << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
@@ -191,25 +188,14 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         if(hasColoringInformation) {
 
             // We are displaying conflict information, and
-            // component and color information is available for this vertex.
-            // The vertex is displayed using a circle divided
-            // in two by a horizontal line.
-            // The top half codes the componentId
-            // and the bottom half codes the color.
-            s << " penwidth=\"0.\"";
-            s << " label=\"\"";
-            s << " shape=ellipse style=wedged fillcolor=\""
-            "/set18/" << (vertex.componentId % 8) + 1 << ":"
-            "/set18/" << (vertex.color % 8) + 1 << "\"";
+            // color information is available for this vertex.
+            s << " color=\"/set18/" << (vertex.color % 8) + 1 << "\"";
 
         } else {
 
             // We are displaying conflict information, but
-            // component and color information is not available for this vertex.
-            // This could happen for one of two reasons:
-            // 1. Coloring of the directed read graph was not done.
-            // 2. Coloring of the directed read graph was done, but this vertex
-            //    has no conflicting vertices.
+            // color information is not available for this vertex.
+            // This could happen if coloring of the directed read graph was not done.
 
             if(vertex.distance == maxDistance) {
                 // Vertex at maximum distance.
@@ -221,7 +207,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
                 } else if(vertex.isConflictingRed) {
                     s << " color=red";
                 } else {
-                    // Color by the number of comnflicting vertices.
+                    // Color by the number of conflicting vertices.
                     if(vertex.conflictCount == 0) {
                         s << "color=black";
                     } else {
@@ -293,9 +279,10 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         }
     } else if(displayConflictInformation) {
 
-        // If this edge is between vertices in the same conflict read graph
-        // component and different colors, this is a conflict edge.
-        if(vertex0.componentId == vertex1.componentId and
+        // If this edge is between different colors, this is a conflict edge.
+        if(
+            vertex0.color != std::numeric_limits<uint64_t>::max() and
+            vertex1.color != std::numeric_limits<uint64_t>::max() and
             vertex0.color != vertex1.color) {
             s << " color=\"#ff00007f\""; // Partially transparent red.
         }

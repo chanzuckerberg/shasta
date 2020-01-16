@@ -285,12 +285,11 @@ void Assembler::colorConflictReadGraph()
     static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
         "Unexpected VertexId discrepancy.");
 
-    // Initialize all vertex components and colors to invalid.
+    // Initialize all vertex colors to invalid.
     const auto invalid = ConflictReadGraphVertex::invalid;
     const VertexId n = conflictReadGraph.vertices.size();
     for(VertexId vertexId=0; vertexId<n; vertexId++) {
         auto& vertex = conflictReadGraph.getVertex(vertexId);
-        vertex.componentId = invalid;
         vertex.color = invalid;
     }
 
@@ -441,8 +440,7 @@ void Assembler::colorConflictReadGraph()
 
             // Give it a color equal to this iteration.
             conflictReadGraph.getVertex(v0).color = iteration;
-            conflictReadGraph.getVertex(v0).componentId = iteration;
-            if(true) {
+            if(debug) {
                 cout<< orientedReadId0 << " being colored " << iteration << endl;
             }
 
@@ -538,6 +536,8 @@ void Assembler::markDirectedReadGraphConflictEdges()
     // Loop over all edges of the directed read graph.
     const auto invalid = ConflictReadGraphVertex::invalid;
     uint64_t invalidEdgeCount = 0;
+    uint64_t invalidKeptEdgeCount = 0;
+    uint64_t keptEdgeCount = 0;
     for(DirectedReadGraph::EdgeId edgeId=0; edgeId<directedReadGraph.edges.size(); edgeId++) {
         DirectedReadGraphEdge& edge = directedReadGraph.getEdge(edgeId);
 
@@ -554,49 +554,31 @@ void Assembler::markDirectedReadGraphConflictEdges()
         const ConflictReadGraph::VertexId u1 = ConflictReadGraph::getVertexId(orientedReadId1);
         const ConflictReadGraphVertex& cVertex0 = conflictReadGraph.getVertex(u0);
         const ConflictReadGraphVertex& cVertex1 = conflictReadGraph.getVertex(u1);
+        SHASTA_ASSERT(cVertex0.color != invalid);
+        SHASTA_ASSERT(cVertex1.color != invalid);
 
         // With current numbering, the vertex ids should be the same.
         SHASTA_ASSERT(u0 == v0);
         SHASTA_ASSERT(u1 == v1);
 
-
-
         // Figure out if this a conflict edge.
-        if(cVertex0.componentId == invalid or cVertex1.componentId==invalid) {
+        edge.isConflict = (cVertex0.color != cVertex1.color);
 
-            // One or both vertices are isolated in the conflict graph.
-            // Therefore there is no conflict.
-            edge.isConflict = 0;
-
-        } else {
-
-            // Both vertices belong to non-trivial connected components of the
-            // conflict read graph. Check that the color was set.
-            SHASTA_ASSERT(cVertex0.color != invalid);
-            SHASTA_ASSERT(cVertex1.color != invalid);
-
-            if(cVertex0.componentId == cVertex1.componentId) {
-
-                // The two vertices belong to the same connected components
-                // of the conflict read graph. Therefore there is conflict
-                // if their colors are different.
-                edge.isConflict = (cVertex0.color != cVertex1.color);
-
-            } else {
-
-                // The two vertices belong to different connected components
-                // of the conflict read graph. Therefore there is no conflict.
-                edge.isConflict = 0;
-            }
-
-
-        }
         if(edge.isConflict) {
             ++invalidEdgeCount;
         }
+
+        if(edge.keep) {
+            ++keptEdgeCount;
+            if(edge.isConflict) {
+                ++invalidKeptEdgeCount;
+            }
+        }
     }
 
-    cout << "Marked as conflict edges " << invalidEdgeCount << " edges out of " <<
-        directedReadGraph.edges.size() <<
-        " edges in the directed read graph." << endl;
+    cout << "Directed read graph edge counts:" << endl;
+    cout << "    Total " << directedReadGraph.edges.size() << endl;
+    cout << "    Kept for marker graph creation " << keptEdgeCount << endl;
+    cout << "    Marked as conflict " << invalidEdgeCount << endl;
+    cout << "    Kept for marker graph creation and marked as conflict " << invalidKeptEdgeCount << endl;
 }
