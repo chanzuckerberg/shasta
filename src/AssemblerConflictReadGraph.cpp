@@ -462,6 +462,9 @@ void Assembler::colorConflictReadGraph()
         disjointSets.make_set(v);
     }
     for(EdgeId edgeId=0; edgeId<directedReadGraph.edges.size(); edgeId++) {
+        if(not directedReadGraph.getEdge(edgeId).keep) {
+            continue;
+        }
         const VertexId v0 = directedReadGraph.source(edgeId);
         if(conflictReadGraph.degree(v0) > 0) {
             continue;   // v0 has conflict. Skip.
