@@ -663,7 +663,7 @@ private:
     // if that field is missing. This treats the meta data
     // as a space separated sequence of Key=Value,
     // without embedded spaces in each Key=Value pair.
-    MemoryAsContainer<char> getMetaData(ReadId, const string& key);
+    span<char> getMetaData(ReadId, const string& key);
 
     // Function to write a read in Fasta format.
     void writeRead(ReadId, ostream&);
@@ -1730,8 +1730,8 @@ private:
     // Construct the CIGAR string given two vectors of repeat counts.
     // Used by writeGfa1.
     static void constructCigarString(
-        const MemoryAsContainer<uint8_t>& repeatCounts0,
-        const MemoryAsContainer<uint8_t>& repeatCounts1,
+        const span<uint8_t>& repeatCounts0,
+        const span<uint8_t>& repeatCounts1,
         string&
         );
 

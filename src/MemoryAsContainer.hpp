@@ -23,6 +23,10 @@ namespace shasta {
 
     // Convert a MemoryAsContainer<char> to an std::string.
     string convertToString(const MemoryAsContainer<char>&);
+
+    // MemoryAsContainer is similar to std::span in C++20.
+    // Add this template typedef to ease the transition.
+    template<class T> using span = MemoryAsContainer<T>;
 }
 
 

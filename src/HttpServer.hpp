@@ -190,7 +190,7 @@ public:
     // The form data.
     // Keyed by the name.
     // The values point into the content data string above.
-    std::map<string, MemoryAsContainer<const char> > formData;
+    std::map<string, span<const char> > formData;
 
     PostData(const vector<string>& request, istream&);
 

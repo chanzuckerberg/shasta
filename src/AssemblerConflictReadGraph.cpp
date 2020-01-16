@@ -139,7 +139,7 @@ void Assembler::addConflictGraphEdges(
         }
 
         // Loop over all markers on this vertex.
-        const MemoryAsContainer<MarkerId> vertexMarkers =
+        const span<MarkerId> vertexMarkers =
             markerGraph.vertices[compressedVertexId];
         for(const MarkerId markerId1: vertexMarkers) {
 
@@ -390,7 +390,7 @@ void Assembler::colorConflictReadGraph()
 
         // Write the edges.
         for(const VertexId vertexId: component) {
-            const MemoryAsContainer<EdgeId> incidentEdges =
+            const span<EdgeId> incidentEdges =
                 conflictReadGraph.incidentEdges(vertexId);
             for(const EdgeId edgeId: incidentEdges) {
                 const VertexId v0 = conflictReadGraph.v0(edgeId);
