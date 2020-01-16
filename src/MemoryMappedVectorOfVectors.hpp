@@ -220,11 +220,21 @@ public:
     {
         return span<const T>(begin(i), end(i));
     }
+
+    // Front and back, in const and non-const versions.
     span<T> front() {
         SHASTA_ASSERT(size() > 0);
         return (*this)[0];
     }
+    span<const T> front() const {
+        SHASTA_ASSERT(size() > 0);
+        return (*this)[0];
+    }
     span<T> back() {
+        SHASTA_ASSERT(size() > 0);
+        return (*this)[size() - 1];
+    }
+    span<const T> back() const {
         SHASTA_ASSERT(size() > 0);
         return (*this)[size() - 1];
     }
