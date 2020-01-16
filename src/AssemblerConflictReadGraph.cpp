@@ -374,6 +374,11 @@ void Assembler::colorConflictReadGraph()
     }
 
     // Data structures to keep track, at each iteration, of the vertices
+    // we already encountered.
+    vector<VertexId> encounteredVertices;
+    vector<bool> wasEncountered(directedReadGraph.vertices.size(), false);
+
+    // Data structures to keep track, at each iteration, of the vertices
     // that conflict with vertices we already encountered.
     vector<VertexId> forbiddenVertices;
     vector<bool> isForbidden(directedReadGraph.vertices.size(), false);
@@ -436,7 +441,8 @@ void Assembler::colorConflictReadGraph()
 
             // Give it a color equal to this iteration.
             conflictReadGraph.getVertex(v0).color = iteration;
-            if(debug) {
+            conflictReadGraph.getVertex(v0).componentId = iteration;
+            if(true) {
                 cout<< orientedReadId0 << " being colored " << iteration << endl;
             }
 
@@ -461,9 +467,9 @@ void Assembler::colorConflictReadGraph()
                     }
                     continue;
                 }
-                if(conflictReadGraph.vertices[v1].componentId != invalid) {
+                if(wasEncountered[v1]) {
                     if(debug) {
-                        cout << ConflictReadGraph::getOrientedReadId(v1) << " already enqueued" << endl;
+                        cout << ConflictReadGraph::getOrientedReadId(v1) << " already encountered" << endl;
                     }
                     continue;
                 }
@@ -480,9 +486,10 @@ void Assembler::colorConflictReadGraph()
                 const VertexId v1 = p.first;
 
                 // We know this vertex is not forbidden and was not already
-                // color at this or the previous iteration, so we can enqueue it now.
-                // Set the component id to indicate that it was enqueued.
-                conflictReadGraph.vertices[v1].componentId = iteration;
+                // colored at this or the previous iteration, so we can enqueue it now.
+                SHASTA_ASSERT(not wasEncountered[v1]);
+                wasEncountered[v1] = true;
+                encounteredVertices.push_back(v1);
                 q.push(v1);
                 if(debug) {
                     cout << "Enqueued " << conflictReadGraph.getOrientedReadId(v1) << endl;
@@ -507,10 +514,15 @@ void Assembler::colorConflictReadGraph()
 
         // Clean up data structures to prepare them for the next iteration.
         for(const VertexId v: forbiddenVertices) {
+            SHASTA_ASSERT(isForbidden[v]);
             isForbidden[v] = false;
         }
         forbiddenVertices.clear();
-
+        for(const VertexId v: encounteredVertices) {
+            SHASTA_ASSERT(wasEncountered[v]);
+            wasEncountered[v] = false;
+        }
+        encounteredVertices.clear();
     }
 
 }
