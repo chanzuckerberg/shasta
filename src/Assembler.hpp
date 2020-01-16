@@ -1366,45 +1366,9 @@ private:
 
 
 
-    // Find all pairs of incompatible reads that involve a given read.
-    // A pair of reads is incompatible if it has a "bad" induced alignment.
-    // See InducedAlignment.hpp for more information.
-    // This section is obsolete and being replaced by the next
-    // section that deals with the ConflicReadGraph.
-private:
-    void findIncompatibleReadPairs(
-        ReadId readId0,
-
-        // If true, only consider ReadId's readid1<readId0.
-        bool onlyConsiderLowerReadIds,
-
-        // If true, skip pairs that are in the read graph.
-        // Those are already known to have a good induced alignment
-        // by construction.
-        bool skipReadGraphEdges,
-
-        // The incompatible pairs found.
-        vector<OrientedReadPair>& incompatiblePairs);
-public:
-    // Python-callable overload.
-    vector<OrientedReadPair> findIncompatibleReadPairs(
-        ReadId readId0,
-
-        // If true, only consider ReadId's readid1<readId0.
-        bool onlyConsiderLowerReadIds,
-
-        // If true, skip pairs that are in the read graph.
-        // Those are already known to have a good induced alignment
-        // by construction.
-        bool skipReadGraphEdges);
-
-    // Find all incompatible read pairs.
-    void findAllIncompatibleReadPairs();
-
-
-
     // Conflict read graph.
     // See ConflictReadGraph.hpp for more information.
+public:
     void createConflictReadGraph(
         uint64_t threadCount,
         uint32_t maxOffsetSigma,

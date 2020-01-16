@@ -425,19 +425,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessMarkerGraphConsensus)
         .def("accessMarkerGraphCoverageData",
             &Assembler::accessMarkerGraphCoverageData)
-        .def("findIncompatibleReadPairs",
-            (
-                vector<OrientedReadPair> (Assembler::*)
-                    (ReadId,
-                    bool,
-                    bool)
-            )
-            &Assembler::findIncompatibleReadPairs,
-            arg("readId"),
-            arg("onlyConsiderLowerReadIds") = false,
-            arg("skipReadGraphEdges") = true)
-        .def("findAllIncompatibleReadPairs",
-            &Assembler::findAllIncompatibleReadPairs)
         .def("createConflictReadGraph",
             &Assembler::createConflictReadGraph,
             arg("threadCount") = 0,
