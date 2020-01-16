@@ -93,9 +93,9 @@ void Assembler::alignOrientedReads1(
     using TAlignGraph = Graph<Alignment<TDepStringSet> >;
 
     // Access the markers of our oriented reads.
-    const MemoryAsContainer<CompressedMarker> markers0 =
+    const span<CompressedMarker> markers0 =
         markers[orientedReadId0.getValue()];
-    const MemoryAsContainer<CompressedMarker> markers1 =
+    const span<CompressedMarker> markers1 =
         markers[orientedReadId1.getValue()];
 
 

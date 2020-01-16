@@ -440,7 +440,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
     }
 
     // Access the markers of this vertex.
-    MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
+    span<MarkerId> markerIds = markerGraph.vertices[vertexId];
     const size_t markerCount = markerIds.size();
     SHASTA_ASSERT(markerCount > 0);
 
@@ -774,7 +774,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     const size_t markerCount = edge.coverage;
 
     // The marker intervals of this edge.
-    const MemoryAsContainer<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
+    const span<MarkerInterval> markerIntervals = markerGraph.edgeMarkerIntervals[edgeId];
     SHASTA_ASSERT(markerIntervals.size() == markerCount);
 
     // The length of each marker sequence.

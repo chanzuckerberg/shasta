@@ -431,7 +431,7 @@ void LowHash0::pass3ThreadFunction(size_t threadId)
 
                     // Loop over oriented read ids in the bucket corresponding to this hash.
                     const uint64_t bucketId = hash & mask;
-                    const MemoryAsContainer<BucketEntry> bucket = buckets[bucketId];
+                    const span<BucketEntry> bucket = buckets[bucketId];
                     if(bucket.size() < max(size_t(2), minBucketSize)) {
                         continue;
                     }

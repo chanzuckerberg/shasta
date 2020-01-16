@@ -133,7 +133,7 @@ public:
     VectorOfVectors<VertexId, uint64_t> edgesByVertex;
 
     // Accessors for edges by source and by target.
-    MemoryAsContainer<EdgeId> incidentEdges(VertexId vertexId)
+    span<EdgeId> incidentEdges(VertexId vertexId)
     {
         return edgesByVertex[vertexId];
     }
@@ -171,7 +171,7 @@ public:
 
         // Pass 3: sort the egde ids for each vertex.
         for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
-            MemoryAsContainer<EdgeId> s = incidentEdges(vertexId);
+            span<EdgeId> s = incidentEdges(vertexId);
             sort(s.begin(), s.end());
         }
 

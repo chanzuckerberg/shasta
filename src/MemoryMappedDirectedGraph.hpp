@@ -111,11 +111,11 @@ public:
     VectorOfVectors<VertexId, uint64_t> edgesByTarget;
 
     // Accessors for edges by source and by target.
-    MemoryAsContainer<EdgeId> outEdges(VertexId vertexId)
+    span<EdgeId> outEdges(VertexId vertexId)
     {
         return edgesBySource[vertexId];
     }
-    MemoryAsContainer<EdgeId> inEdges(VertexId vertexId)
+    span<EdgeId> inEdges(VertexId vertexId)
     {
         return edgesByTarget[vertexId];
     }
@@ -209,9 +209,9 @@ public:
 
         // Pass 3: sort the egde ids for each vertex.
         for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
-            MemoryAsContainer<EdgeId> s = outEdges(vertexId);
+            span<EdgeId> s = outEdges(vertexId);
             sort(s.begin(), s.end());
-            MemoryAsContainer<EdgeId> t = inEdges(vertexId);
+            span<EdgeId> t = inEdges(vertexId);
             sort(t.begin(), t.end());
         }
 

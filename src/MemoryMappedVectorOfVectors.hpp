@@ -211,19 +211,19 @@ public:
 
 
     // Operator[] return a MemoryAsContainer object.
-    MemoryAsContainer<T> operator[](Int i)
+    span<T> operator[](Int i)
     {
-        return MemoryAsContainer<T>(begin(i), end(i));
+        return span<T>(begin(i), end(i));
     }
-    MemoryAsContainer<const T> operator[](Int i) const
+    span<const T> operator[](Int i) const
     {
-        return MemoryAsContainer<const T>(begin(i), end(i));
+        return span<const T>(begin(i), end(i));
     }
-    MemoryAsContainer<T> front() {
+    span<T> front() {
         SHASTA_ASSERT(size() > 0);
         return (*this)[0];
     }
-    MemoryAsContainer<T> back() {
+    span<T> back() {
         SHASTA_ASSERT(size() > 0);
         return (*this)[size() - 1];
     }

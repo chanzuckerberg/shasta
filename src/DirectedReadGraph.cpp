@@ -444,7 +444,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
         const OrientedReadId orientedReadId0 = OrientedReadId(OrientedReadId::Int(vertexId0));
 
         // Find its out-edges.
-        const MemoryAsContainer<EdgeId> outEdges0 = outEdges(vertexId0);
+        const span<EdgeId> outEdges0 = outEdges(vertexId0);
 
         // Loop over the out-edges.
         for(const EdgeId edgeId: outEdges0) {

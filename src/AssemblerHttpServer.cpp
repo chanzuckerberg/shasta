@@ -1734,7 +1734,7 @@ void Assembler::exploreRead(
 
     // Phasing information.
     if (phasingData.assemblyGraphEdges.isOpen()) {
-        const MemoryAsContainer<AssemblyGraph::EdgeId> edges =
+        const span<AssemblyGraph::EdgeId> edges =
             phasingData.assemblyGraphEdges[orientedReadId.getValue()];
         html << "<p>This oriented read is internal to the following "
             "assembly graph edges:<br>";

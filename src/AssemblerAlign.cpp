@@ -438,7 +438,7 @@ void Assembler::computeAlignmentTable()
             const OrientedReadId orientedReadId0(readId0, strand0);
 
             // Access the section of the alignment table for this oriented read.
-            const MemoryAsContainer<uint32_t> alignmentTableSection =
+            const span<uint32_t> alignmentTableSection =
                 alignmentTable[orientedReadId0.getValue()];
 
             // Store pairs(OrientedReadId, alignmentIndex).
