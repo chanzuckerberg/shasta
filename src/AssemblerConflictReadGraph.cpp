@@ -425,6 +425,7 @@ void Assembler::colorConflictReadGraph()
 // DirectedReadGraph.
 void Assembler::colorConflictReadGraph()
 {
+    const bool debug = false;
 
     // Check that we have what we need.
     SHASTA_ASSERT(directedReadGraph.isOpen());
@@ -457,8 +458,8 @@ void Assembler::colorConflictReadGraph()
     vector<VertexId> rank(n);
     vector<VertexId> parent(n);
     boost::disjoint_sets<VertexId*, VertexId*> disjointSets(&rank[0], &parent[0]);
-    for(VertexId vertexId=0; vertexId<n; vertexId++) {
-        disjointSets.make_set(vertexId);
+    for(VertexId v=0; v<n; v++) {
+        disjointSets.make_set(v);
     }
     for(EdgeId edgeId=0; edgeId<directedReadGraph.edges.size(); edgeId++) {
         const VertexId v0 = directedReadGraph.source(edgeId);
@@ -518,10 +519,12 @@ void Assembler::colorConflictReadGraph()
         clusters.push_back(cluster);
         clustersVertexCount += cluster.size();
     }
-    cout << "Found " << clusters.size() <<
-        " clusters of vertices without conflict for a total " <<
-        clustersVertexCount <<  " vertices out " << n <<
-        " vertices in the read graph." << endl;
+    if(debug) {
+        cout << "Found " << clusters.size() <<
+            " clusters of vertices without conflict for a total " <<
+            clustersVertexCount <<  " vertices out " << n <<
+            " vertices in the read graph." << endl;
+    }
 
     // Data structures to keep track, at each iteration, of the vertices
     // that conflict with vertices we already encountered.
@@ -530,16 +533,21 @@ void Assembler::colorConflictReadGraph()
 
     // Other data structures used below.
     vector<VertexId> adjacentVertices;
-    vector< pair<VertexId, uint64_t > > adjacentVerticesSortedByConflicts;
+    vector< pair<VertexId, uint64_t > > adjacentVerticesSortedByConflictCount;
+
+
 
     // Iterate over clusters in this order of decreasing size.
     for(uint64_t iteration=0; iteration<clusters.size(); iteration++) {
         const vector<VertexId>& cluster = clusters[iteration];
-        cout << "Cluster with " << cluster.size() << " vertices:";
-        for(const VertexId vertexId: cluster) {
-            cout << " " << ConflictReadGraph::getOrientedReadId(vertexId);
+        if(debug) {
+            cout << "Coloring iteration " << iteration <<
+                " starting from a cluster with " << cluster.size() << " vertices." << endl;
+            for(const VertexId vertexId: cluster) {
+                cout << ConflictReadGraph::getOrientedReadId(vertexId) << " ";
+            }
+            cout << endl;
         }
-        cout << endl;
 
 
         // We use a process similar to a BFS starting at the vertices
@@ -547,7 +555,7 @@ void Assembler::colorConflictReadGraph()
         // - When encountering a vertex that conflicts with another vertex
         //   we already encountered at this iteration, we skip it.
         // - When encountering a vertex that was already colored at a previous
-        //   iteration, we skip it.
+        //   iteration (not just one colored at the current iteration), we skip it.
         // - When we enqueue neighbors of a vertex, we enqueue them in order
         //   of increasing number of conflicting vertices.
 
@@ -565,8 +573,25 @@ void Assembler::colorConflictReadGraph()
             // Dequeue a vertex.
             const VertexId v0 = q.front();
             const OrientedReadId orientedReadId0 = ConflictReadGraph::getOrientedReadId(v0);
-            cout << "Queue size " << q.size() << ", dequeued " << orientedReadId0 << endl;
+            if(debug) {
+                cout << "Queue size " << q.size() << ", dequeued " << orientedReadId0 << endl;
+            }
             q.pop();
+
+            // If v0 is now forbidden, skip it.
+            if(isForbidden[v0]) {
+                // v0 was not forbidden when we enqueud it, but it is forbidden now.
+                if(debug) {
+                    cout << orientedReadId0 << " skipped because it is now forbidden." << endl;
+                }
+                continue;
+            }
+
+            // Give it a color equal to this iteration.
+            conflictReadGraph.getVertex(v0).color = iteration;
+            if(debug) {
+                cout<< orientedReadId0 << " being colored " << iteration << endl;
+            }
 
             // Gather adjacent vertices.
             directedReadGraph.findKeptAdjacent(v0, adjacentVertices);
@@ -575,23 +600,60 @@ void Assembler::colorConflictReadGraph()
             // Skip the ones that are conflicting with vertices we
             // already encountered at this iteration or that have
             // already been colored at a previous iteration.
-            adjacentVerticesSortedByConflicts.clear();
+            adjacentVerticesSortedByConflictCount.clear();
             for(const VertexId v1: adjacentVertices) {
                 if(isForbidden[v1]) {
-                    cout << ConflictReadGraph::getOrientedReadId(v1) << " forbidden" << endl;
+                    if(debug) {
+                        cout << ConflictReadGraph::getOrientedReadId(v1) << " forbidden" << endl;
+                    }
                     continue;
                 }
                 if(conflictReadGraph.vertices[v1].color != invalid) {
-                    cout << ConflictReadGraph::getOrientedReadId(v1) << " already colored" << endl;
+                    if(debug) {
+                        cout << ConflictReadGraph::getOrientedReadId(v1) << " already colored" << endl;
+                    }
                     continue;
                 }
-                adjacentVerticesSortedByConflicts.push_back(
+                if(conflictReadGraph.vertices[v1].componentId != invalid) {
+                    if(debug) {
+                        cout << ConflictReadGraph::getOrientedReadId(v1) << " already enqueued" << endl;
+                    }
+                    continue;
+                }
+                adjacentVerticesSortedByConflictCount.push_back(
                     make_pair(v1, conflictReadGraph.degree(v1)));
             }
             sort(
-                adjacentVerticesSortedByConflicts.begin(),
-                adjacentVerticesSortedByConflicts.end(),
+                adjacentVerticesSortedByConflictCount.begin(),
+                adjacentVerticesSortedByConflictCount.end(),
                 OrderPairsBySecondOnly<VertexId, uint64_t>());
+
+            // Loop over adjacent vertices, in this order of increasing number of conflicts.
+            for(const auto& p: adjacentVerticesSortedByConflictCount) {
+                const VertexId v1 = p.first;
+
+                // We know this vertex is not forbidden and was not already
+                // color at this or the previous iteration, so we can enqueue it now.
+                // Set the component id to indicate that it was enqueued.
+                conflictReadGraph.vertices[v1].componentId = iteration;
+                q.push(v1);
+                if(debug) {
+                    cout << "Enqueued " << conflictReadGraph.getOrientedReadId(v1) << endl;
+                }
+
+                // Mark as forbidden the vertices that conflict with v1.
+                for(const EdgeId e12: conflictReadGraph.edgesByVertex[v1]) {
+                    const VertexId v2 = conflictReadGraph.otherVertex(e12, v1);
+                    if(not isForbidden[v2]) {
+                        isForbidden[v2] = true;
+                        forbiddenVertices.push_back(v2);
+                        if(debug) {
+                            cout << "Marked as forbidden " <<
+                                conflictReadGraph.getOrientedReadId(v2) << endl;
+                        }
+                    }
+                }
+            }
         }
 
 
