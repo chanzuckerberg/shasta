@@ -210,7 +210,8 @@ public:
 
 
 
-    // Operator[] return a MemoryAsContainer object.
+    // Operator[] returns a span object containing all elements
+    // of the vector with the requested index.
     span<T> operator[](Int i)
     {
         return span<T>(begin(i), end(i));

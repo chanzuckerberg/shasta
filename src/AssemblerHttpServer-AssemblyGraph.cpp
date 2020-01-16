@@ -83,7 +83,7 @@ void Assembler::exploreAssemblyGraph(
         const OrientedReadId orientedReadId(
             requestParameters.highlightedReadId,
             requestParameters.highlightedStrand);
-        const MemoryAsContainer<AssemblyGraph::EdgeId> highlightedEdges =
+        const span<AssemblyGraph::EdgeId> highlightedEdges =
             phasingGraph.assemblyGraphEdges[orientedReadId.getValue()];
 
         // Highlight those edges, if present in the local assembly graph.
@@ -360,7 +360,7 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
 
     // Phasing information.
     if (phasingData.orientedReads.isOpen()) {
-        const MemoryAsContainer<OrientedReadId> orientedReadIds =
+        const span<OrientedReadId> orientedReadIds =
             phasingData.orientedReads[edgeId];
         html << "<p>The following oriented reads are internal to the this "
             "assembly graph edge:<br>";
@@ -503,7 +503,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
 
 
         // Access the marker graph edges corresponding to the assembly graph edge.
-        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges =
+        const span<MarkerGraph::EdgeId> markerGraphEdges =
             assemblyGraph.edgeLists[edgeId];
 
         // Construct the requested marker interval.
@@ -527,7 +527,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
     for(size_t i=0; i<edges.size(); i++)  {
         const auto& t = edges[i];
         const AssemblyGraph::EdgeId assemblyGraphEdgeId = std::get<0>(t);
-        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdgeIds =
+        const span<MarkerGraph::EdgeId> markerGraphEdgeIds =
             assemblyGraph.edgeLists[assemblyGraphEdgeId];
         const uint32_t begin = std::get<1>(t);
         const uint32_t end = std::get<2>(t);
@@ -557,7 +557,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
         for(MarkerGraph::VertexId vertexId: v) {
 
             // Access the marker ids on this vertex.
-            const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
+            const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
 
             // Loop over these markers.
             for(const MarkerId markerId: markerIds) {
@@ -595,7 +595,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
             const MarkerGraph::VertexId vertexId = v[iv];
 
             // Access the marker ids on this vertex.
-            const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
+            const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
 
             // Loop over these markers.
             for(const MarkerId markerId: markerIds) {

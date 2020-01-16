@@ -974,7 +974,7 @@ bool Assembler::suppressAlignment(
 
 
     // Convert the read meta data fields to integers.
-    // Keep in mind the MemoryAsContainer<char> is not null-terminated.
+    // Keep in mind the span<char> is not null-terminated.
     const int64_t r0 = int64_t(atoul(read0));
     const int64_t r1 = int64_t(atoul(read1));
     // cout << r0 << " " << r1 << endl;
