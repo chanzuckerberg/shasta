@@ -8,7 +8,7 @@
 #ifndef SHASTA_HTTP_SERVER_HPP
 #define SHASTA_HTTP_SERVER_HPP
 
-#include "MemoryAsContainer.hpp"
+#include "span.hpp"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/lexical_cast.hpp>

@@ -1,7 +1,8 @@
-// Simple class to make a range objects in memory appear as a container.
+#ifndef SHASTA_SPAN_HPP
+#define SHASTA_SPAN_HPP
 
-#ifndef SHASTA_MEMORY_AS_CONTAINER_HPP
-#define SHASTA_MEMORY_AS_CONTAINER_HPP
+// A span class similar to std::span in C++20.
+// We currently compile using the C++14 standard, so we cannot use std::span.
 
 #include "algorithm.hpp"
 #include "cstddef.hpp"

@@ -6,7 +6,7 @@
 
 // Shasta.
 #include "MemoryMappedVector.hpp"
-#include "MemoryAsContainer.hpp"
+#include "span.hpp"
 
 // Standard libraries.
 #include "algorithm.hpp"
