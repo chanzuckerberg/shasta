@@ -503,7 +503,7 @@ void Assembler::writeReadsSummary()
 // if that field is missing. This treats the meta data
 // as a space separated sequence of Key=Value,
 // without embedded spaces in each Key=Value pair.
-MemoryAsContainer<char> Assembler::getMetaData(ReadId readId, const string& key)
+span<char> Assembler::getMetaData(ReadId readId, const string& key)
 {
     SHASTA_ASSERT(readId < readMetaData.size());
     const uint64_t keySize = key.size();
@@ -533,7 +533,7 @@ MemoryAsContainer<char> Assembler::getMetaData(ReadId readId, const string& key)
                 if(p[keySize] == '=') {
                     char* valueBegin = p + keySize + 1;
                     char* valueEnd = q;
-                    return MemoryAsContainer<char>(valueBegin, valueEnd);
+                    return span<char>(valueBegin, valueEnd);
                 }
             }
         }
@@ -552,5 +552,5 @@ MemoryAsContainer<char> Assembler::getMetaData(ReadId readId, const string& key)
 
     // If getting here, we didn't find this keyword.
     // Return an empty string.
-    return MemoryAsContainer<char>();
+    return span<char>();
 }

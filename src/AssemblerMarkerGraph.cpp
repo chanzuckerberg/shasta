@@ -1131,7 +1131,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
         for (VertexId vertexId=begin; vertexId!=end; vertexId++) {
 
             // Get the markers of this vertex.
-            const MemoryAsContainer<MarkerId> vertexMarkers =
+            const span<MarkerId> vertexMarkers =
                 markerGraph.vertices[vertexId];
             SHASTA_ASSERT(vertexMarkers.size() > 0);
 
@@ -1148,7 +1148,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
             SHASTA_ASSERT(vertexIdReverseComplement != MarkerGraph::invalidCompressedVertexId);
 
             // Get the markers of the reverse complemented vertex.
-            const MemoryAsContainer<MarkerId> vertexMarkersReverseComplement =
+            const span<MarkerId> vertexMarkersReverseComplement =
                 markerGraph.vertices[vertexIdReverseComplement];
 
             // Check that the markers are all consistent.
@@ -1257,9 +1257,9 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
             markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
 
             // Check that marker intervals of the two are consistent.
-            const MemoryAsContainer<MarkerInterval> markerIntervals =
+            const span<MarkerInterval> markerIntervals =
                 markerGraph.edgeMarkerIntervals[edgeId];
-            const MemoryAsContainer<MarkerInterval> markerIntervalsRc =
+            const span<MarkerInterval> markerIntervalsRc =
                 markerGraph.edgeMarkerIntervals[edgeIdRc];
             SHASTA_ASSERT(markerIntervals.size() == markerIntervalsRc.size());
             for (size_t i=0; i<markerIntervals.size(); i++) {
@@ -1364,8 +1364,8 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId
             SHASTA_ASSERT(v2 == v0);
             SHASTA_ASSERT(v1 != v0);
 
-            const MemoryAsContainer<MarkerId> markers0 = markerGraph.vertices[v0];
-            const MemoryAsContainer<MarkerId> markers1 = markerGraph.vertices[v1];
+            const span<MarkerId> markers0 = markerGraph.vertices[v0];
+            const span<MarkerId> markers1 = markerGraph.vertices[v1];
             SHASTA_ASSERT(markers0.size() == markers1.size());
             for (size_t i = 0; i < markers0.size(); i++) {
                 const MarkerId markerId0 = markers0[i];
@@ -1410,9 +1410,9 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId
             const EdgeId e0rc = markerGraph.findEdgeId(v1rc, v0rc);
             SHASTA_ASSERT(e0rc == e1);
 
-            const MemoryAsContainer<MarkerInterval> markerIntervals0 =
+            const span<MarkerInterval> markerIntervals0 =
                 markerGraph.edgeMarkerIntervals[e0];
-            const MemoryAsContainer<MarkerInterval> markerIntervals1 =
+            const span<MarkerInterval> markerIntervals1 =
                 markerGraph.edgeMarkerIntervals[e1];
             SHASTA_ASSERT(markerIntervals0.size() == markerIntervals1.size());
             for (size_t i=0; i<markerIntervals0.size(); i++) {
@@ -2221,7 +2221,7 @@ void Assembler::transitiveReduction(
     const auto& edgesWithCoverage1 = edgesByCoverage[1];
     size_t coverage1HighSkipCount = 0;
     for(const EdgeId edgeId: edgesWithCoverage1) {
-        const MemoryAsContainer<MarkerInterval> markerIntervals =
+        const span<MarkerInterval> markerIntervals =
             markerGraph.edgeMarkerIntervals[edgeId];
         if(markerIntervals.size() > 1) {
             continue;
@@ -2963,7 +2963,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 {
 
     // Access the markers of this vertex.
-    const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
+    const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
     const size_t markerCount = markerIds.size();
     SHASTA_ASSERT(markerCount > 0);
 
@@ -3045,7 +3045,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
     // Access the markerIntervals for this edge.
     // Each corresponds to an oriented read on this edge.
-    const MemoryAsContainer<MarkerInterval> markerIntervals =
+    const span<MarkerInterval> markerIntervals =
         markerGraph.edgeMarkerIntervals[edgeId];
     const size_t markerCount = markerIntervals.size();
     SHASTA_ASSERT(markerCount > 0);
@@ -3535,7 +3535,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
 
     // Access the markerIntervals for this edge.
     // Each corresponds to an oriented read on this edge.
-    const MemoryAsContainer<MarkerInterval> markerIntervals =
+    const span<MarkerInterval> markerIntervals =
         markerGraph.edgeMarkerIntervals[edgeId];
     const size_t markerCount = markerIntervals.size();
     SHASTA_ASSERT(markerCount > 0);
@@ -3922,7 +3922,7 @@ void Assembler::simplifyMarkerGraphIterationPart1(
     for(AssemblyGraph::VertexId v0=0; v0<assemblyGraph.vertices.size(); v0++) {
 
         // Get edges that have this vertex as the source.
-        const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+        const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
 
         // If any of these edges have more than maxLength markers, do nothing.
         bool longEdgeExists = false;
@@ -3981,7 +3981,7 @@ void Assembler::simplifyMarkerGraphIterationPart1(
             continue;
         }
 
-        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        const span<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
             markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
             markerGraph.edges[markerGraph.reverseComplementEdge[markerGraphEdgeId]].isSuperBubbleEdge = 1;
@@ -4115,7 +4115,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     vector<bool> isExit(n, false);
     for(AssemblyGraph::VertexId v0=0; v0<n; v0++) {
         const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
-        const MemoryAsContainer<AssemblyGraph::EdgeId> inEdges = assemblyGraph.edgesByTarget[v0];
+        const span<AssemblyGraph::EdgeId> inEdges = assemblyGraph.edgesByTarget[v0];
         for(AssemblyGraph::EdgeId edgeId : inEdges) {
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
             SHASTA_ASSERT(edge.target == v0);
@@ -4125,7 +4125,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 break;
             }
         }
-        const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+        const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
         for(AssemblyGraph::EdgeId edgeId : outEdges) {
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
             SHASTA_ASSERT(edge.source == v0);
@@ -4179,7 +4179,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         		component.size() << " vertices." << endl;
             for(const AssemblyGraph::VertexId v0: component) {
                 const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
-                const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+                const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
                 for(AssemblyGraph::EdgeId edgeId : outEdges) {
                     const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
                     SHASTA_ASSERT(edge.source == v0);
@@ -4229,7 +4229,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             }
             for(const AssemblyGraph::VertexId v0: component) {
                 const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
-                const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+                const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
                 for(AssemblyGraph::EdgeId edgeId : outEdges) {
                     const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
                     SHASTA_ASSERT(edge.source == v0);
@@ -4297,7 +4297,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 SHASTA_ASSERT(color[v0] == 1);
 
                 // Find the out edges and sort them.
-                const MemoryAsContainer<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
+                const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
                 sortedOutEdges.clear();
                 for(const AssemblyGraph::EdgeId e01: outEdges) {
                     sortedOutEdges.push_back(make_pair(1./assemblyGraph.edges[e01].averageEdgeCoverage, e01));
@@ -4378,7 +4378,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             continue;
         }
 
-        const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        const span<MarkerGraph::EdgeId> markerGraphEdges = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
             markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
         }
@@ -4557,7 +4557,7 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
         for(MarkerGraph::VertexId vertexId=begin; vertexId!=end; vertexId++) {
 
             // Access the markers of this vertex.
-            const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
+            const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
             const size_t markerCount = markerIds.size();
             SHASTA_ASSERT(markerCount > 0);
 

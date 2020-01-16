@@ -135,7 +135,7 @@ void Assembler::computeInducedAlignments(
         }
 
         // Loop over all markers on this vertex.
-        const MemoryAsContainer<MarkerId> vertexMarkers =
+        const span<MarkerId> vertexMarkers =
             markerGraph.vertices[compressedVertexId];
         for(const MarkerId markerId1: vertexMarkers) {
 
@@ -260,7 +260,7 @@ void Assembler::findIncompatibleReadPairs(
 
         // Loop over all markers on this vertex,
         // except the one on orientedReadId0 that we started from.
-        const MemoryAsContainer<MarkerId> vertexMarkers =
+        const span<MarkerId> vertexMarkers =
             markerGraph.vertices[compressedVertexId];
         for(const MarkerId markerId1: vertexMarkers) {
             if(markerId1 == markerId0) {
@@ -417,8 +417,8 @@ bool Assembler::evaluateInducedAlignment(
     }
 
     // Access the markers for the two oriented reads.
-    const MemoryAsContainer<CompressedMarker> markers0 = markers[orientedReadId0.getValue()];
-    const MemoryAsContainer<CompressedMarker> markers1 = markers[orientedReadId1.getValue()];
+    const span<CompressedMarker> markers0 = markers[orientedReadId0.getValue()];
+    const span<CompressedMarker> markers1 = markers[orientedReadId1.getValue()];
     const int64_t markerCount0 = markers0.size();
     const int64_t markerCount1 = markers1.size();
     const int64_t firstMarkerId0 = markers.begin(orientedReadId0.getValue()) - markers.begin();
