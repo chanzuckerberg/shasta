@@ -251,6 +251,27 @@ public:
 
         return commonAdjacent;
     }
+
+    // Return the number of edges flagged as "keep" and which
+    // have a given vertex as source or target.
+    uint64_t keptDegree(VertexId v) const
+    {
+        uint64_t n = 0 ;
+        for(const EdgeId e: edgesBySource[v]) {
+            if(getEdge(e).keep) {
+                ++n;
+            }
+        }
+        for(const EdgeId e: edgesByTarget[v]) {
+            if(getEdge(e).keep) {
+                ++n;
+            }
+        }
+        return n;
+    }
+
+
+
 private:
 
     // Add an edge 0->1, reversing the direction if necessary

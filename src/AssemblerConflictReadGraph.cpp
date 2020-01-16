@@ -294,83 +294,32 @@ void Assembler::colorConflictReadGraph()
     }
 
 
-
-    // Find clusters of vertices in the DirectedReadGraph that
-    // have no conflicts. These will be used as starting points
-    // for each iteration in the coloring process.
-    vector<VertexId> rank(n);
-    vector<VertexId> parent(n);
-    boost::disjoint_sets<VertexId*, VertexId*> disjointSets(&rank[0], &parent[0]);
+    // Create a table of vertices containing:
+    // 0: VertexId
+    // 1: Number of conflicts (degree in the conflict read graph).
+    // 2: Degree in the read graph, counting only edges flagged as "keep".
+    vector<tuple<VertexId, uint64_t, uint64_t> > vertexTable(n);
     for(VertexId v=0; v<n; v++) {
-        disjointSets.make_set(v);
+        vertexTable[v] = make_tuple(
+            v,
+            conflictReadGraph.degree(v),
+            directedReadGraph.keptDegree(v));
     }
-    for(EdgeId edgeId=0; edgeId<directedReadGraph.edges.size(); edgeId++) {
-        if(not directedReadGraph.getEdge(edgeId).keep) {
-            continue;
+
+    // Sort it by increasing number of conflicts, then by decreasing degree.
+    sort(
+        vertexTable.begin(),
+        vertexTable.end(),
+        [](const auto& x, const auto& y)
+        {
+            return
+                (get<1>(x) < get<1>(y))
+                or
+                ((get<1>(x) == get<1>(y)) and (get<2>(x) > get<2>(y)));
         }
-        const VertexId v0 = directedReadGraph.source(edgeId);
-        if(conflictReadGraph.degree(v0) > 0) {
-            continue;   // v0 has conflict. Skip.
-        }
-        const VertexId v1 = directedReadGraph.target(edgeId);
-        if(conflictReadGraph.degree(v1) > 0) {
-            continue;   // v1 has conflict. Skip.
-        }
-        disjointSets.union_set(v0, v1);
-    }
+        );
 
 
-
-    // Gather the vertices of each cluster.
-    std::map<VertexId, vector<VertexId> > clusterMap;
-    for(VertexId vertexId=0; vertexId<n; vertexId++) {
-        const VertexId clusterId = disjointSets.find_set(vertexId);
-        clusterMap[clusterId].push_back(vertexId);
-    }
-
-
-
-
-    // Sort the clusters by decreasing size.
-    // clusterTable contains pairs(size, clusterId as key in clusterMap).
-    vector< pair<VertexId, VertexId> > clusterTable;
-    for(const auto& p: clusterMap) {
-        const VertexId clusterId = p.first;
-        const vector<VertexId>& cluster = p.second;
-        const VertexId clusterSize = cluster.size();
-        SHASTA_ASSERT(clusterSize > 0);
-        if(clusterSize==1) {
-            // The cluster consists of a single vertex.
-            const VertexId v = cluster.front();
-            if(conflictReadGraph.degree(v) > 0) {
-                // That single vertex has conflicts, so don't consider it.
-            } else {
-                // That single vertex has no conflicts, so store it.
-                clusterTable.push_back(make_pair(clusterSize, clusterId));
-            }
-        } else {
-            // The cluster consists of two or more vertices.
-            clusterTable.push_back(make_pair(clusterSize, clusterId));
-        }
-    }
-    sort(clusterTable.begin(), clusterTable.end(), std::greater<pair<VertexId, VertexId>>());
-
-
-
-    // Store clusters in this order of decreasing size.
-    vector< vector<VertexId> > clusters;
-    VertexId clustersVertexCount = 0;
-    for(const auto& p: clusterTable) {
-        const vector<VertexId>& cluster = clusterMap[p.second];
-        clusters.push_back(cluster);
-        clustersVertexCount += cluster.size();
-    }
-    if(debug) {
-        cout << "Found " << clusters.size() <<
-            " clusters of vertices without conflict for a total " <<
-            clustersVertexCount <<  " vertices out " << n <<
-            " vertices in the read graph." << endl;
-    }
 
     // Data structures to keep track, at each iteration, of the vertices
     // we already encountered.
@@ -388,21 +337,41 @@ void Assembler::colorConflictReadGraph()
 
 
 
-    // Iterate over clusters in this order of decreasing size.
-    for(uint64_t iteration=0; iteration<clusters.size(); iteration++) {
-        const vector<VertexId>& cluster = clusters[iteration];
-        if(debug) {
-            cout << "Coloring iteration " << iteration <<
-                " starting from a cluster with " << cluster.size() << " vertices." << endl;
-            for(const VertexId vertexId: cluster) {
-                cout << ConflictReadGraph::getOrientedReadId(vertexId) << " ";
+    // Iterate over possible starting vertices in the order in which
+    // they appear in the vertex table.
+    uint64_t vertexTableIndex = 0;
+    for(uint64_t iteration=0; ; iteration++) {
+        if(vertexTableIndex == vertexTable.size()) {
+            break;
+        }
+
+        // Find the next vertex that has not yet been colored.
+        VertexId startVertexId = get<0>(vertexTable[vertexTableIndex++]);
+        bool done = false;
+        while(true) {
+            if(not conflictReadGraph.getVertex(startVertexId).hasValidColor()) {
+                break;
             }
-            cout << endl;
+            if(vertexTableIndex == n) {
+                done = true;
+                break;
+            }
+            startVertexId = get<0>(vertexTable[vertexTableIndex++]);
+        }
+        if(done) {
+            break;
+        }
+        if(true) {
+            cout << "Start iteration " << iteration <<
+                " from " << ConflictReadGraph::getOrientedReadId(startVertexId);
+            cout << " with number of conflicts " <<
+                get<1>(vertexTable[vertexTableIndex-1]) <<
+                " and kept degree  " <<
+                get<2>(vertexTable[vertexTableIndex-1]) << endl;
         }
 
 
-        // We use a process similar to a BFS starting at the vertices
-        // of this cluster, with a few differences:
+        // We use a process similar to a BFS starting at this vertex:
         // - When encountering a vertex that conflicts with another vertex
         //   we already encountered at this iteration, we skip it.
         // - When encountering a vertex that was already colored at a previous
@@ -413,9 +382,10 @@ void Assembler::colorConflictReadGraph()
 
         // Initialize the BFS.
         std::queue<VertexId> q;
-        for(const VertexId vertexId: cluster) {
-            q.push(vertexId);
-        }
+        q.push(startVertexId);
+        wasEncountered[startVertexId] = true;
+        encounteredVertices.push_back(startVertexId);
+        conflictReadGraph.getVertex(startVertexId).color = iteration;
 
 
         // BFS loop.
@@ -523,6 +493,13 @@ void Assembler::colorConflictReadGraph()
         encounteredVertices.clear();
     }
 
+
+
+    // Check that all vertices were colored.
+    for(VertexId v=0; v<n; v++) {
+        SHASTA_ASSERT(conflictReadGraph.getVertex(v).hasValidColor());
+    }
+
 }
 
 
@@ -534,7 +511,6 @@ void Assembler::markDirectedReadGraphConflictEdges()
     SHASTA_ASSERT(conflictReadGraph.isOpen());
 
     // Loop over all edges of the directed read graph.
-    const auto invalid = ConflictReadGraphVertex::invalid;
     uint64_t invalidEdgeCount = 0;
     uint64_t invalidKeptEdgeCount = 0;
     uint64_t keptEdgeCount = 0;
@@ -554,8 +530,8 @@ void Assembler::markDirectedReadGraphConflictEdges()
         const ConflictReadGraph::VertexId u1 = ConflictReadGraph::getVertexId(orientedReadId1);
         const ConflictReadGraphVertex& cVertex0 = conflictReadGraph.getVertex(u0);
         const ConflictReadGraphVertex& cVertex1 = conflictReadGraph.getVertex(u1);
-        SHASTA_ASSERT(cVertex0.color != invalid);
-        SHASTA_ASSERT(cVertex1.color != invalid);
+        SHASTA_ASSERT(cVertex0.hasValidColor());
+        SHASTA_ASSERT(cVertex1.hasValidColor());
 
         // With current numbering, the vertex ids should be the same.
         SHASTA_ASSERT(u0 == v0);

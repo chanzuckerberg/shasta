@@ -49,6 +49,11 @@ public:
     // or invalid if the vertex is isolated and makes up its own trivial
     // connected component.
     uint64_t color = invalid;
+
+    bool hasValidColor() const
+    {
+        return color != invalid;
+    }
 };
 
 
