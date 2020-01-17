@@ -348,7 +348,7 @@ void Assembler::colorConflictReadGraph()
         if(done) {
             break;
         }
-        if(true) {
+        if(debug) {
             cout << "Start iteration " << iteration <<
                 " from " << ConflictReadGraph::getOrientedReadId(startVertexId);
             cout << " with number of conflicts " <<
@@ -356,6 +356,7 @@ void Assembler::colorConflictReadGraph()
                 " and kept degree  " <<
                 vertexTable[vertexTableIndex-1].directedReadGraphKeptDegree << endl;
         }
+        SHASTA_ASSERT(not conflictReadGraph.getVertex(startVertexId).hasValidColor());
 
 
         // We use a process similar to a BFS starting at this vertex:
@@ -372,7 +373,7 @@ void Assembler::colorConflictReadGraph()
         q.push(startVertexId);
         wasEncountered[startVertexId] = true;
         encounteredVertices.push_back(startVertexId);
-        conflictReadGraph.getVertex(startVertexId).color = iteration;
+        uint64_t coloredCount = 0;
 
 
         // BFS loop.
@@ -396,7 +397,9 @@ void Assembler::colorConflictReadGraph()
             }
 
             // Give it a color equal to this iteration.
+            SHASTA_ASSERT(not conflictReadGraph.getVertex(v0).hasValidColor());
             conflictReadGraph.getVertex(v0).color = iteration;
+            coloredCount++;
             if(debug) {
                 cout<< orientedReadId0 << " being colored " << iteration << endl;
             }
@@ -478,6 +481,11 @@ void Assembler::colorConflictReadGraph()
             wasEncountered[v] = false;
         }
         encounteredVertices.clear();
+
+        if(true) {
+            cout << "Iteration " << iteration << " colored " <<
+                coloredCount << " vertices." << endl;
+        }
     }
 
 
