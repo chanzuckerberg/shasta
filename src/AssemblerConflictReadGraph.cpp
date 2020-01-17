@@ -295,29 +295,16 @@ void Assembler::colorConflictReadGraph()
 
 
     // Create a table of vertices containing:
-    // 0: VertexId
-    // 1: Number of conflicts (degree in the conflict read graph).
-    // 2: Degree in the read graph, counting only edges flagged as "keep".
-    vector<tuple<VertexId, uint64_t, uint64_t> > vertexTable(n);
-    for(VertexId v=0; v<n; v++) {
-        vertexTable[v] = make_tuple(
-            v,
-            conflictReadGraph.degree(v),
-            directedReadGraph.keptDegree(v));
-    }
-
+    // - VertexId.
+    // - Number of conflicts (degree in the conflict read graph).
+    // - Degree in the read graph, counting only edges flagged as "keep".
     // Sort it by increasing number of conflicts, then by decreasing degree.
-    sort(
-        vertexTable.begin(),
-        vertexTable.end(),
-        [](const auto& x, const auto& y)
-        {
-            return
-                (get<1>(x) < get<1>(y))
-                or
-                ((get<1>(x) == get<1>(y)) and (get<2>(x) > get<2>(y)));
-        }
-        );
+    vector<ColorConflictReadGraphData> vertexTable;
+    for(VertexId v=0; v<n; v++) {
+        vertexTable.push_back(
+            ColorConflictReadGraphData(v, directedReadGraph, conflictReadGraph));
+    }
+    sort(vertexTable.begin(), vertexTable.end());
 
 
 
@@ -346,7 +333,7 @@ void Assembler::colorConflictReadGraph()
         }
 
         // Find the next vertex that has not yet been colored.
-        VertexId startVertexId = get<0>(vertexTable[vertexTableIndex++]);
+        VertexId startVertexId = vertexTable[vertexTableIndex++].vertexId;
         bool done = false;
         while(true) {
             if(not conflictReadGraph.getVertex(startVertexId).hasValidColor()) {
@@ -356,7 +343,7 @@ void Assembler::colorConflictReadGraph()
                 done = true;
                 break;
             }
-            startVertexId = get<0>(vertexTable[vertexTableIndex++]);
+            startVertexId = vertexTable[vertexTableIndex++].vertexId;
         }
         if(done) {
             break;
@@ -365,9 +352,9 @@ void Assembler::colorConflictReadGraph()
             cout << "Start iteration " << iteration <<
                 " from " << ConflictReadGraph::getOrientedReadId(startVertexId);
             cout << " with number of conflicts " <<
-                get<1>(vertexTable[vertexTableIndex-1]) <<
+                vertexTable[vertexTableIndex-1].conflictReadGraphDegree <<
                 " and kept degree  " <<
-                get<2>(vertexTable[vertexTableIndex-1]) << endl;
+                vertexTable[vertexTableIndex-1].directedReadGraphKeptDegree << endl;
         }
 
 
@@ -557,4 +544,16 @@ void Assembler::markDirectedReadGraphConflictEdges()
     cout << "    Kept for marker graph creation " << keptEdgeCount << endl;
     cout << "    Marked as conflict " << invalidEdgeCount << endl;
     cout << "    Kept for marker graph creation and marked as conflict " << invalidKeptEdgeCount << endl;
+}
+
+
+
+Assembler::ColorConflictReadGraphData::ColorConflictReadGraphData(
+    DirectedReadGraph::VertexId vertexId,
+    const DirectedReadGraph& directedReadGraph,
+    const ConflictReadGraph& conflictReadGraph) :
+    vertexId(vertexId),
+    conflictReadGraphDegree(conflictReadGraph.degree(vertexId)),
+    directedReadGraphKeptDegree(directedReadGraph.keptDegree(vertexId))
+{
 }

@@ -1397,6 +1397,49 @@ private:
 
 
 
+    // Class used by colorConflictReadGraph.
+    // It creates a priority_queue containing this type.
+    class ColorConflictReadGraphData {
+    public:
+        DirectedReadGraph::VertexId vertexId;
+        uint64_t conflictReadGraphDegree;
+        uint64_t directedReadGraphKeptDegree;
+
+        ColorConflictReadGraphData(
+            DirectedReadGraph::VertexId,
+            const DirectedReadGraph&,
+            const ConflictReadGraph&);
+
+        // Used for sorting, so values with low conflict degree come first.
+        bool operator <(const ColorConflictReadGraphData& that) const
+        {
+            return
+                conflictReadGraphDegree < that.conflictReadGraphDegree
+                or
+                (
+                    conflictReadGraphDegree == that.conflictReadGraphDegree
+                    and
+                    directedReadGraphKeptDegree > that.directedReadGraphKeptDegree
+                );
+        }
+
+        // Used for sorting, so values with low conflict degree
+        // are at the top of the queue.
+        bool operator>(const ColorConflictReadGraphData& that) const
+        {
+            return
+                conflictReadGraphDegree > that.conflictReadGraphDegree
+                or
+                (
+                    conflictReadGraphDegree == that.conflictReadGraphDegree
+                    and
+                    directedReadGraphKeptDegree < that.directedReadGraphKeptDegree
+                );
+        }
+    };
+
+
+
 #ifdef SHASTA_HTTP_SERVER
     // Extract a local subgraph of the global marker graph.
     bool extractLocalMarkerGraphUsingStoredConnectivity(

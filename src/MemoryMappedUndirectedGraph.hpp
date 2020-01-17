@@ -137,7 +137,7 @@ public:
     {
         return edgesByVertex[vertexId];
     }
-    uint64_t degree(VertexId vertexId)
+    uint64_t degree(VertexId vertexId) const
     {
         return edgesByVertex.size(vertexId);
     }
