@@ -45,14 +45,12 @@ public:
 
     static const uint64_t invalid = std::numeric_limits<uint64_t>::max();
 
-    // The color within this connected component, a positive number.
-    // or invalid if the vertex is isolated and makes up its own trivial
-    // connected component.
-    uint64_t color = invalid;
+    // The cluster id assigned during coloring of the conflict read graph.
+    uint64_t clusterId = invalid;
 
-    bool hasValidColor() const
+    bool hasValidClusterId() const
     {
-        return color != invalid;
+        return clusterId != invalid;
     }
 };
 

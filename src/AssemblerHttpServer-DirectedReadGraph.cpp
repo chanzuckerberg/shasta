@@ -273,7 +273,6 @@ void Assembler::exploreDirectedReadGraph(
     // conflict information to the vertices.
     if(displayConflictInformation && conflictReadGraph.isOpen()) {
 
-        // Set componentId, color, hasConflict for each vertex.
         BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
             LocalDirectedReadGraphVertex& vertex = graph[v];
             const OrientedReadId orientedReadId = vertex.orientedReadId;
@@ -281,7 +280,7 @@ void Assembler::exploreDirectedReadGraph(
                 ConflictReadGraph::getVertexId(orientedReadId);
             const ConflictReadGraphVertex& cVertex =
                 conflictReadGraph.getVertex(cVertexId);
-            vertex.color = cVertex.color;
+            vertex.clusterId = cVertex.clusterId;
             vertex.conflictCount = conflictReadGraph.incidentEdges(cVertexId).size();
         }
 

@@ -285,12 +285,12 @@ void Assembler::colorConflictReadGraph()
     static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
         "Unexpected VertexId discrepancy.");
 
-    // Initialize all vertex colors to invalid.
+    // Initialize all vertex clusterId's to invalid.
     const auto invalid = ConflictReadGraphVertex::invalid;
     const VertexId n = conflictReadGraph.vertices.size();
     for(VertexId vertexId=0; vertexId<n; vertexId++) {
         auto& vertex = conflictReadGraph.getVertex(vertexId);
-        vertex.color = invalid;
+        vertex.clusterId = invalid;
     }
 
 
@@ -332,11 +332,11 @@ void Assembler::colorConflictReadGraph()
             break;
         }
 
-        // Find the next vertex that has not yet been colored.
+        // Find the next vertex that has not yet been colored (assigned to a cluster).
         VertexId startVertexId = vertexTable[vertexTableIndex++].vertexId;
         bool done = false;
         while(true) {
-            if(not conflictReadGraph.getVertex(startVertexId).hasValidColor()) {
+            if(not conflictReadGraph.getVertex(startVertexId).hasValidClusterId()) {
                 break;
             }
             if(vertexTableIndex == n) {
@@ -356,7 +356,7 @@ void Assembler::colorConflictReadGraph()
                 " and kept degree  " <<
                 vertexTable[vertexTableIndex-1].directedReadGraphKeptDegree << endl;
         }
-        SHASTA_ASSERT(not conflictReadGraph.getVertex(startVertexId).hasValidColor());
+        SHASTA_ASSERT(not conflictReadGraph.getVertex(startVertexId).hasValidClusterId());
 
 
         // We use a process similar to a BFS starting at this vertex:
@@ -408,12 +408,12 @@ void Assembler::colorConflictReadGraph()
                 continue;
             }
 
-            // Give it a color equal to this iteration.
-            SHASTA_ASSERT(not conflictReadGraph.getVertex(v0).hasValidColor());
-            conflictReadGraph.getVertex(v0).color = iteration;
+            // Give it a cluster id equal to this iteration.
+            SHASTA_ASSERT(not conflictReadGraph.getVertex(v0).hasValidClusterId());
+            conflictReadGraph.getVertex(v0).clusterId = iteration;
             coloredCount++;
             if(debug) {
-                cout<< orientedReadId0 << " being colored " << iteration << endl;
+                cout<< orientedReadId0 << " being assigned to cluster id " << iteration << endl;
             }
 
             // Gather adjacent vertices.
@@ -429,9 +429,9 @@ void Assembler::colorConflictReadGraph()
                     }
                     continue;
                 }
-                if(conflictReadGraph.vertices[v1].color != invalid) {
+                if(conflictReadGraph.vertices[v1].clusterId != invalid) {
                     if(debug) {
-                        cout << ConflictReadGraph::getOrientedReadId(v1) << " already colored" << endl;
+                        cout << ConflictReadGraph::getOrientedReadId(v1) << " already assigned to a cluster" << endl;
                     }
                     continue;
                 }
@@ -489,30 +489,36 @@ void Assembler::colorConflictReadGraph()
 
 
 
-    // Check that all vertices were colored.
+    // Check that all vertices were assigned to clusters.
     for(VertexId v=0; v<n; v++) {
-        SHASTA_ASSERT(conflictReadGraph.getVertex(v).hasValidColor());
+        SHASTA_ASSERT(conflictReadGraph.getVertex(v).hasValidClusterId());
     }
 
 
     // Write out a statistics file with a line for each edge
     // in the conflict read graph.
     ofstream csv("ColoringStatistics.csv");
+    csv << "OrientedReadId0,OrientedREadId1,ClusterId0,ClusterId1,MinClusterId,MaxClusterId\n";
     for(EdgeId e=0; e<conflictReadGraph.edges.size(); e++) {
         const VertexId v0 = conflictReadGraph.v0(e);
         const VertexId v1 = conflictReadGraph.v1(e);
-        const uint64_t color0 = conflictReadGraph.getVertex(v0).color;
-        const uint64_t color1 = conflictReadGraph.getVertex(v1).color;
-        if(color0 == color1) {
+        const uint64_t clusterId0 = conflictReadGraph.getVertex(v0).clusterId;
+        const uint64_t clusterId1 = conflictReadGraph.getVertex(v1).clusterId;
+        /*
+        if(clusterId0 == clusterId1) {
             cout << "Inconsistent coloring " <<
                 ConflictReadGraph::getOrientedReadId(v0) << " " <<
                 ConflictReadGraph::getOrientedReadId(v1) << endl;
         }
-        // SHASTA_ASSERT(color0 != color1);
-        csv << ConflictReadGraph::getOrientedReadId(v0) << ",";
-        csv << ConflictReadGraph::getOrientedReadId(v1) << ",";
-        csv << min(color0, color1) << ",";
-        csv << max(color0, color1) << "\n";
+        */
+        SHASTA_ASSERT(clusterId0 != clusterId1);
+        csv <<
+            ConflictReadGraph::getOrientedReadId(v0) << "," <<
+            ConflictReadGraph::getOrientedReadId(v1) << "," <<
+            clusterId0 << "," <<
+            clusterId1 << "," <<
+            min(clusterId0, clusterId1) << "," <<
+            max(clusterId0, clusterId1) << "\n";
     }
 
 }
@@ -540,20 +546,20 @@ void Assembler::markDirectedReadGraphConflictEdges()
         const OrientedReadId orientedReadId0 = OrientedReadId(OrientedReadId::Int(v0));
         const OrientedReadId orientedReadId1 = OrientedReadId(OrientedReadId::Int(v1));
 
-        // Get the corresponding vertices of the ConclictReadGraph.
+        // Get the corresponding vertices of the ConflictReadGraph.
         const ConflictReadGraph::VertexId u0 = ConflictReadGraph::getVertexId(orientedReadId0);
         const ConflictReadGraph::VertexId u1 = ConflictReadGraph::getVertexId(orientedReadId1);
         const ConflictReadGraphVertex& cVertex0 = conflictReadGraph.getVertex(u0);
         const ConflictReadGraphVertex& cVertex1 = conflictReadGraph.getVertex(u1);
-        SHASTA_ASSERT(cVertex0.hasValidColor());
-        SHASTA_ASSERT(cVertex1.hasValidColor());
+        SHASTA_ASSERT(cVertex0.hasValidClusterId());
+        SHASTA_ASSERT(cVertex1.hasValidClusterId());
 
         // With current numbering, the vertex ids should be the same.
         SHASTA_ASSERT(u0 == v0);
         SHASTA_ASSERT(u1 == v1);
 
         // Figure out if this a conflict edge.
-        edge.isConflict = (cVertex0.color != cVertex1.color);
+        edge.isConflict = (cVertex0.clusterId != cVertex1.clusterId);
 
         if(edge.isConflict) {
             ++invalidEdgeCount;

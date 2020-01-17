@@ -158,8 +158,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const LocalDirectedReadGraphVertex& vertex = graph[v];
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
-    const bool hasColoringInformation =
-        vertex.color != std::numeric_limits<uint64_t>::max();
+    const bool hasClusterInformation =
+        vertex.clusterId != std::numeric_limits<uint64_t>::max();
 
     // Tooltip.
     s <<
@@ -167,8 +167,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         " tooltip=\"Read " << orientedReadId << ", " <<
         vertex.baseCount << " bases, " << vertex.markerCount <<
         " markers, distance " << vertex.distance;
-    if(displayConflictInformation and hasColoringInformation) {
-        s << " conflict read graph color " << vertex.color;
+    if(displayConflictInformation and hasClusterInformation) {
+        s << " conflict read graph cluster " << vertex.clusterId;
      }
     s << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
@@ -185,11 +185,11 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     // Color.
     if(displayConflictInformation) {
 
-        if(hasColoringInformation) {
+        if(hasClusterInformation) {
 
             // We are displaying conflict information, and
             // color information is available for this vertex.
-            s << " color=\"/set18/" << (vertex.color % 8) + 1 << "\"";
+            s << " color=\"/set18/" << (vertex.clusterId % 8) + 1 << "\"";
 
         } else {
 
@@ -281,9 +281,9 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
 
         // If this edge is between different colors, this is a conflict edge.
         if(
-            vertex0.color != std::numeric_limits<uint64_t>::max() and
-            vertex1.color != std::numeric_limits<uint64_t>::max() and
-            vertex0.color != vertex1.color) {
+            vertex0.clusterId != std::numeric_limits<uint64_t>::max() and
+            vertex1.clusterId != std::numeric_limits<uint64_t>::max() and
+            vertex0.clusterId != vertex1.clusterId) {
             s << " color=\"#ff00007f\""; // Partially transparent red.
         }
 
