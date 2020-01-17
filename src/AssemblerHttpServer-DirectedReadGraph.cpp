@@ -91,7 +91,8 @@ void Assembler::exploreDirectedReadGraph(
     html <<
         "<h3>Display a local subgraph of the global read graph</a></h3>"
         "<form>"
-
+        "<div style='clear:both; display:table;'>"
+        "<div style='float:left;margin:10px;'>"
         "<table>"
 
         "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
@@ -135,18 +136,8 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Include edges not kept for marker graph creation"
         "<td class=centered><input type=checkbox name=allowEdgesNotKept" <<
         (allowEdgesNotKept ? " checked" : "") <<
-        ">";
+        ">"
 
-    if(conflictReadGraph.isOpen()) {
-        html <<
-            "<tr>"
-            "<td>Exclude conflict edges"
-            "<td class=centered><input type=checkbox name=excludeConflictEdges" <<
-            (excludeConflictEdges ? " checked" : "") <<
-            ">";
-    }
-
-    html <<
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
         " Ok to make it much larger than screen size.'>"
@@ -177,24 +168,8 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Color edge arrows by direction"
         "<td class=centered><input type=checkbox name=colorEdgeArrows" <<
         (colorEdgeArrows ? " checked" : "") <<
-        ">";
+        ">"
 
-    if(conflictReadGraph.isOpen()) {
-        html <<
-            "<tr>"
-            "<td>Display conflict information"
-            "<td class=centered><input type=checkbox name=displayConflictInformation" <<
-            (displayConflictInformation ? " checked" : "") <<
-            ">"
-
-            "<tr title='Enter oriented reads in the format readId-strand'>"
-            "<td>Highlight vertices conflicting with"
-            "<td class=centered><input type=text name=highlightConflicting size=8 " <<
-            " value=\"" << highlightConflicting << "\""
-            ">";
-    }
-
-    html <<
         "<tr>"
         "<td>Graphics format"
         "<td class=centered>"
@@ -224,7 +199,39 @@ void Assembler::exploreDirectedReadGraph(
         (saveDotFile ? " checked" : "") <<
         ">"
         "</table>"
+        "</div>";
 
+    // If the conflict read graph is open, also show the second table,
+    // containing parameters to control the display of conflict information.
+    if(conflictReadGraph.isOpen()) {
+        html <<
+            "<div style='float:left;margin:10px;'>"
+            "<table>"
+
+            "<tr>"
+            "<td>Exclude conflict edges"
+            "<td class=centered><input type=checkbox name=excludeConflictEdges" <<
+            (excludeConflictEdges ? " checked" : "") <<
+            ">"
+
+            "<tr>"
+            "<td>Display conflict information"
+            "<td class=centered><input type=checkbox name=displayConflictInformation" <<
+            (displayConflictInformation ? " checked" : "") <<
+            ">"
+
+            "<tr title='Enter oriented reads in the format readId-strand'>"
+            "<td>Highlight vertices conflicting with"
+            "<td class=centered><input type=text name=highlightConflicting size=8 " <<
+            " value=\"" << highlightConflicting << "\""
+            ">"
+
+            "</table>"
+            "</div>";
+    }
+
+    html <<
+        "</div>"
         "<br><input type=submit value='Display'>"
         "</form>";
 
