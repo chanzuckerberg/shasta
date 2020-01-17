@@ -327,7 +327,8 @@ void Assembler::colorConflictReadGraph()
     // Iterate over possible starting vertices in the order in which
     // they appear in the vertex table.
     uint64_t vertexTableIndex = 0;
-    for(uint64_t iteration=0; ; iteration++) {
+    uint64_t iteration=0;
+    for(; ; iteration++) {
         if(vertexTableIndex == vertexTable.size()) {
             break;
         }
@@ -494,11 +495,27 @@ void Assembler::colorConflictReadGraph()
         SHASTA_ASSERT(conflictReadGraph.getVertex(v).hasValidClusterId());
     }
 
+    // Store the vertices in each cluster.
+    vector< vector<VertexId> > clusters(iteration);
+    for(VertexId v=0; v<n; v++) {
+        clusters[conflictReadGraph.getVertex(v).clusterId].push_back(v);
+    }
+
+    // Write a summary of the non-trivial clusters we found.
+    const uint64_t trivialClusterSizeThreshold = 2; // ****************** EXPOSE AS AN OPTION WHEN CODE STABILIZES
+    for(uint64_t clusterId=0; clusterId<clusters.size(); clusterId++) {
+        const vector<VertexId>& cluster = clusters[clusterId];
+        if(cluster.size() > trivialClusterSizeThreshold) {
+            cout << "Cluster " << clusterId << " has " << cluster.size() << " vertices." << endl;
+        }
+    }
+
+
 
     // Write out a statistics file with a line for each edge
     // in the conflict read graph.
     ofstream csv("ColoringStatistics.csv");
-    csv << "OrientedReadId0,OrientedREadId1,ClusterId0,ClusterId1,MinClusterId,MaxClusterId\n";
+    csv << "OrientedReadId0,OrientedREadId1,ClusterId0,ClusterId1,MinClusterId,MaxClusterId,ClusterSize0,ClusterSize1\n";
     for(EdgeId e=0; e<conflictReadGraph.edges.size(); e++) {
         const VertexId v0 = conflictReadGraph.v0(e);
         const VertexId v1 = conflictReadGraph.v1(e);
@@ -518,7 +535,62 @@ void Assembler::colorConflictReadGraph()
             clusterId0 << "," <<
             clusterId1 << "," <<
             min(clusterId0, clusterId1) << "," <<
-            max(clusterId0, clusterId1) << "\n";
+            max(clusterId0, clusterId1) << "," <<
+            clusters[clusterId0].size() << "," <<
+            clusters[clusterId1].size() << "\n";
+    }
+
+
+
+
+    // Create a map that contains all conflict graph edges between each pair of clusters.
+    std::map< pair<uint64_t, uint64_t>, vector<EdgeId> > conflictGraphEdgesBetweenClusters;
+    for(EdgeId e=0; e<conflictReadGraph.edges.size(); e++) {
+        const VertexId v0 = conflictReadGraph.v0(e);
+        const VertexId v1 = conflictReadGraph.v1(e);
+        uint64_t clusterId0 = conflictReadGraph.getVertex(v0).clusterId;
+        uint64_t clusterId1 = conflictReadGraph.getVertex(v1).clusterId;
+        SHASTA_ASSERT(clusterId0 != clusterId1);
+        if(clusterId1 < clusterId0) {
+            swap(clusterId0, clusterId1);
+        }
+        conflictGraphEdgesBetweenClusters[make_pair(clusterId0,clusterId1)].push_back(e);
+    }
+
+
+
+    // Check pairs of non-trivial clusters with confliCTs between them.
+    for(const auto& p: conflictGraphEdgesBetweenClusters) {
+
+        const uint64_t clusterId0 = p.first.first;
+        const vector<VertexId>& cluster0 = clusters[clusterId0];
+        const uint64_t clusterSize0 = cluster0.size();
+        if(clusterSize0 <= trivialClusterSizeThreshold) {
+            continue;
+        }
+
+        const uint64_t clusterId1 = p.first.second;
+        const vector<VertexId>& cluster1 = clusters[clusterId1];
+        const uint64_t clusterSize1 = cluster1.size();
+        if(clusterSize1 <= trivialClusterSizeThreshold) {
+            continue;
+        }
+
+        const vector<EdgeId>& conflictEdges =p.second;
+        cout << conflictEdges.size() << " conflicts between clusters " <<
+            clusterId0 << " " << clusterId1 <<
+            " of sizes " << clusterSize0 << " " << clusterSize1 << endl;
+    }
+
+
+
+    // Set to invalid the colors of vertices that are in a trivial cluster.
+    for(const vector<VertexId>& cluster: clusters) {
+        if(cluster.size() <= trivialClusterSizeThreshold) {
+            for(const VertexId v: cluster) {
+                conflictReadGraph.getVertex(v).clusterId = ConflictReadGraphVertex::invalid;
+            }
+        }
     }
 
 }
@@ -551,15 +623,16 @@ void Assembler::markDirectedReadGraphConflictEdges()
         const ConflictReadGraph::VertexId u1 = ConflictReadGraph::getVertexId(orientedReadId1);
         const ConflictReadGraphVertex& cVertex0 = conflictReadGraph.getVertex(u0);
         const ConflictReadGraphVertex& cVertex1 = conflictReadGraph.getVertex(u1);
-        SHASTA_ASSERT(cVertex0.hasValidClusterId());
-        SHASTA_ASSERT(cVertex1.hasValidClusterId());
 
         // With current numbering, the vertex ids should be the same.
         SHASTA_ASSERT(u0 == v0);
         SHASTA_ASSERT(u1 == v1);
 
         // Figure out if this a conflict edge.
-        edge.isConflict = (cVertex0.clusterId != cVertex1.clusterId);
+        edge.isConflict =
+            (not cVertex0.hasValidClusterId()) or
+            (not cVertex1.hasValidClusterId()) or
+            (cVertex0.clusterId != cVertex1.clusterId);
 
         if(edge.isConflict) {
             ++invalidEdgeCount;
