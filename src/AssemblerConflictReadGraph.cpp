@@ -375,6 +375,18 @@ void Assembler::colorConflictReadGraph()
         encounteredVertices.push_back(startVertexId);
         uint64_t coloredCount = 0;
 
+        // Mark as forbidden the vertices that conflict with startVertex.
+        for(const EdgeId e: conflictReadGraph.edgesByVertex[startVertexId]) {
+            const VertexId v = conflictReadGraph.otherVertex(e, startVertexId);
+            if(not isForbidden[v]) {
+                isForbidden[v] = true;
+                forbiddenVertices.push_back(v);
+                if(debug) {
+                    cout << "Marked as forbidden " <<
+                        conflictReadGraph.getOrientedReadId(v) << endl;
+                }
+            }
+        }
 
         // BFS loop.
         while(not q.empty()) {
@@ -407,12 +419,10 @@ void Assembler::colorConflictReadGraph()
             // Gather adjacent vertices.
             directedReadGraph.findKeptAdjacent(v0, adjacentVertices);
 
-            // Sort adjacent vertices by increasing number of conflicts.
-            // Skip the ones that are conflicting with vertices we
-            // already encountered at this iteration or that have
-            // already been colored at a previous iteration.
-            adjacentVerticesSortedByConflictCount.clear();
+            // Loop over adjacent vertices, in this order of increasing number of conflicts.
             for(const VertexId v1: adjacentVertices) {
+
+                // See if this vertex should be skipped.
                 if(isForbidden[v1]) {
                     if(debug) {
                         cout << ConflictReadGraph::getOrientedReadId(v1) << " forbidden" << endl;
@@ -431,17 +441,6 @@ void Assembler::colorConflictReadGraph()
                     }
                     continue;
                 }
-                adjacentVerticesSortedByConflictCount.push_back(
-                    make_pair(v1, conflictReadGraph.degree(v1)));
-            }
-            sort(
-                adjacentVerticesSortedByConflictCount.begin(),
-                adjacentVerticesSortedByConflictCount.end(),
-                OrderPairsBySecondOnly<VertexId, uint64_t>());
-
-            // Loop over adjacent vertices, in this order of increasing number of conflicts.
-            for(const auto& p: adjacentVerticesSortedByConflictCount) {
-                const VertexId v1 = p.first;
 
                 // We know this vertex is not forbidden and was not already
                 // colored at this or the previous iteration, so we can enqueue it now.
@@ -504,7 +503,12 @@ void Assembler::colorConflictReadGraph()
         const VertexId v1 = conflictReadGraph.v1(e);
         const uint64_t color0 = conflictReadGraph.getVertex(v0).color;
         const uint64_t color1 = conflictReadGraph.getVertex(v1).color;
-        SHASTA_ASSERT(color0 != color1);
+        if(color0 == color1) {
+            cout << "Inconsistent coloring " <<
+                ConflictReadGraph::getOrientedReadId(v0) << " " <<
+                ConflictReadGraph::getOrientedReadId(v1) << endl;
+        }
+        // SHASTA_ASSERT(color0 != color1);
         csv << ConflictReadGraph::getOrientedReadId(v0) << ",";
         csv << ConflictReadGraph::getOrientedReadId(v1) << ",";
         csv << min(color0, color1) << ",";
