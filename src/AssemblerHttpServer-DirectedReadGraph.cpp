@@ -67,8 +67,16 @@ void Assembler::exploreDirectedReadGraph(
     string colorEdgeArrowsString;
     const bool colorEdgeArrows = getParameterValue(request, "colorEdgeArrows", colorEdgeArrowsString);
 
-    string displayConflictInformationString;
-    const bool displayConflictInformation = getParameterValue(request, "displayConflictInformation", displayConflictInformationString);
+    string vertexColoringMethodString = "ByDistance";
+    getParameterValue(request, "vertexColoringMethod", vertexColoringMethodString);
+    LocalDirectedReadGraph::VertexColoringMethod vertexColoringMethod;
+    if(vertexColoringMethodString == "ByConflictCount") {
+        vertexColoringMethod = LocalDirectedReadGraph::VertexColoringMethod::ByConflictCount;
+    } else if(vertexColoringMethodString == "ByCluster") {
+        vertexColoringMethod = LocalDirectedReadGraph::VertexColoringMethod::ByCluster;
+    } else {
+        vertexColoringMethod = LocalDirectedReadGraph::VertexColoringMethod::None;
+    }
 
     string highlightConflicting;
     getParameterValue(request, "highlightConflicting", highlightConflicting);
@@ -173,12 +181,12 @@ void Assembler::exploreDirectedReadGraph(
         "<tr>"
         "<td>Graphics format"
         "<td class=centered>"
-        "svg <input type=radio required name=format value='svg'" <<
+        "<input type=radio required name=format value='svg'" <<
         (format == "svg" ? " checked=on" : "") <<
-        ">"
-        "<br>png <input type=radio required name=format value='png'" <<
+        ">svg"
+        "<br><input type=radio required name=format value='png'" <<
         (format == "png" ? " checked=on" : "") <<
-        ">"
+        ">png"
 
         "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
         "<td>Timeout (seconds) for graph layout"
@@ -214,17 +222,24 @@ void Assembler::exploreDirectedReadGraph(
             (excludeConflictEdges ? " checked" : "") <<
             ">"
 
-            "<tr>"
-            "<td>Display conflict information"
-            "<td class=centered><input type=checkbox name=displayConflictInformation" <<
-            (displayConflictInformation ? " checked" : "") <<
-            ">"
-
             "<tr title='Enter oriented reads in the format readId-strand'>"
             "<td>Highlight vertices conflicting with"
-            "<td class=centered><input type=text name=highlightConflicting size=8 " <<
+            "<td class=centered><input type=text name=highlightConflicting size=20 " <<
             " value=\"" << highlightConflicting << "\""
             ">"
+
+            "<tr>"
+            "<td>Vertex coloring method"
+            "<td>"
+            "<input type=radio required name=vertexColoringMethod value='None'" <<
+            (vertexColoringMethod == LocalDirectedReadGraph::VertexColoringMethod::None ? " checked=on" : "") <<
+            ">None"
+            "<br><input type=radio required name=vertexColoringMethod value='ByConflictCount'" <<
+            (vertexColoringMethod == LocalDirectedReadGraph::VertexColoringMethod::ByConflictCount ? " checked=on" : "") <<
+            ">By number of conflicts"
+            "<br><input type=radio required name=vertexColoringMethod value='ByCluster'" <<
+            (vertexColoringMethod == LocalDirectedReadGraph::VertexColoringMethod::ByCluster ? " checked=on" : "") <<
+            ">By cluster"
 
             "</table>"
             "</div>";
@@ -271,7 +286,7 @@ void Assembler::exploreDirectedReadGraph(
 
     // If the conflict read graph is available, add
     // conflict information to the vertices.
-    if(displayConflictInformation && conflictReadGraph.isOpen()) {
+    if(conflictReadGraph.isOpen()) {
 
         BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
             LocalDirectedReadGraphVertex& vertex = graph[v];
@@ -452,7 +467,7 @@ void Assembler::exploreDirectedReadGraph(
         edgeThicknessScalingFactor,
         edgeArrowScalingFactor,
         colorEdgeArrows,
-        displayConflictInformation && conflictReadGraph.isOpen());
+        vertexColoringMethod);
 
 
 

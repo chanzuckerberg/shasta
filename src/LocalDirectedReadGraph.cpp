@@ -86,7 +86,7 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
-    bool displayConflictInformation
+    VertexColoringMethod vertexColoringMethod
     ) const
 {
     ofstream outputFileStream(fileName);
@@ -96,7 +96,7 @@ void LocalDirectedReadGraph::write(
     write(outputFileStream, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
-        displayConflictInformation);
+        vertexColoringMethod);
 }
 void LocalDirectedReadGraph::write(
     ostream& s,
@@ -105,12 +105,12 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
-    bool displayConflictInformation) const
+    VertexColoringMethod vertexColoringMethod) const
 {
     Writer writer(*this, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
-        displayConflictInformation);
+        vertexColoringMethod);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
 }
@@ -122,14 +122,14 @@ LocalDirectedReadGraph::Writer::Writer(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
-    bool displayConflictInformation) :
+    VertexColoringMethod vertexColoringMethod) :
     graph(graph),
     maxDistance(maxDistance),
     vertexScalingFactor(vertexScalingFactor),
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
     edgeArrowScalingFactor(edgeArrowScalingFactor),
     colorEdgeArrows(colorEdgeArrows),
-    displayConflictInformation(displayConflictInformation)
+    vertexColoringMethod(vertexColoringMethod)
 {
 }
 
@@ -167,8 +167,11 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         " tooltip=\"Read " << orientedReadId << ", " <<
         vertex.baseCount << " bases, " << vertex.markerCount <<
         " markers, distance " << vertex.distance;
-    if(displayConflictInformation and hasClusterInformation) {
-        s << " conflict read graph cluster " << vertex.clusterId;
+    if(vertex.conflictCount) {
+        s << ", " << vertex.conflictCount << " conflicting vertices" ;
+    }
+    if(hasClusterInformation) {
+        s << ", conflict read graph cluster " << vertex.clusterId;
      }
     s << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
@@ -182,52 +185,37 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
 
 
 
+
     // Color.
-    if(displayConflictInformation) {
-
-        if(hasClusterInformation) {
-
-            // We are displaying conflict information, and
-            // color information is available for this vertex.
-            s << " color=\"/set18/" << (vertex.clusterId % 8) + 1 << "\"";
-
-        } else {
-
-            // We are displaying conflict information, but
-            // color information is not available for this vertex.
-            // This could happen if coloring of the directed read graph was not done.
-
-            if(vertex.distance == maxDistance) {
-                // Vertex at maximum distance.
-                s << " color=cyan";
-            } else {
-                // Not the start vertex, at distance less than the maximum.
-                if(vertex.isConflictingGreen) {
-                    s << " color=green";
-                } else if(vertex.isConflictingRed) {
-                    s << " color=red";
-                } else {
-                    // Color by the number of conflicting vertices.
-                    if(vertex.conflictCount == 0) {
-                        s << "color=black";
-                    } else {
-                        const double hue = 0.67;
-                        const double saturation = 0.5;
-                        const double value = min(0.8, 0.5 + 0.05*double(vertex.conflictCount));
-                        s << " color=\"" << hue << ","<< saturation << "," << value << "\"";
-                    }
-                }
-            }
-
-        }
+    if(vertex.distance == maxDistance) {
+        s << " color=cyan";
+    } else if(vertex.isConflictingGreen) {
+        s << " color=green";
+    } else if(vertex.isConflictingRed) {
+        s << " color=red";
     } else {
 
-        // We are not displaying conflict information from the conflict read graph.
-        // Just color based on distance from the start vertex.
-        if(vertex.distance == maxDistance) {
-            s << " color=cyan";
-        } else {
-            s << " color=black";
+        switch(vertexColoringMethod) {
+
+        case VertexColoringMethod::ByConflictCount:
+            if(vertex.conflictCount == 0) {
+                s << "color=black";
+            } else {
+                const double hue = 0.67;
+                const double saturation = 0.3;
+                const double value = min(1.0, 0.7 + 0.01*double(vertex.conflictCount));
+                s << " color=\"" << hue << ","<< saturation << "," << value << "\"";
+            }
+            break;
+
+        case VertexColoringMethod::ByCluster:
+            if(vertex.clusterId != std::numeric_limits<uint64_t>::max()) {
+                s << " color=\"/set18/" << (vertex.clusterId % 8) + 1 << "\"";
+            }
+            break;
+
+        default:
+            break;
         }
     }
 
@@ -277,7 +265,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         } else {
             s << " color=\"#0000ff7f\""; // Partially transparent blue.
         }
-    } else if(displayConflictInformation) {
+    } else {
 
         // If this edge is between different colors, this is a conflict edge.
         if(
