@@ -369,8 +369,8 @@ void Assembler::colorConflictReadGraph()
 
 
         // Initialize the BFS.
-        std::queue<VertexId> q;
-        q.push(startVertexId);
+        std::priority_queue<ColorConflictReadGraphData> q;
+        q.push(ColorConflictReadGraphData(startVertexId, directedReadGraph, conflictReadGraph));
         wasEncountered[startVertexId] = true;
         encounteredVertices.push_back(startVertexId);
         uint64_t coloredCount = 0;
@@ -380,7 +380,7 @@ void Assembler::colorConflictReadGraph()
         while(not q.empty()) {
 
             // Dequeue a vertex.
-            const VertexId v0 = q.front();
+            const VertexId v0 = q.top().vertexId;
             const OrientedReadId orientedReadId0 = ConflictReadGraph::getOrientedReadId(v0);
             if(debug) {
                 cout << "Queue size " << q.size() << ", dequeued " << orientedReadId0 << endl;
@@ -448,8 +448,8 @@ void Assembler::colorConflictReadGraph()
                 SHASTA_ASSERT(not wasEncountered[v1]);
                 wasEncountered[v1] = true;
                 encounteredVertices.push_back(v1);
-                q.push(v1);
-                if(debug) {
+                q.push(
+                    ColorConflictReadGraphData(v1, directedReadGraph, conflictReadGraph));               if(debug) {
                     cout << "Enqueued " << conflictReadGraph.getOrientedReadId(v1) << endl;
                 }
 
@@ -482,7 +482,7 @@ void Assembler::colorConflictReadGraph()
         }
         encounteredVertices.clear();
 
-        if(true) {
+        if(debug) {
             cout << "Iteration " << iteration << " colored " <<
                 coloredCount << " vertices." << endl;
         }
@@ -493,6 +493,22 @@ void Assembler::colorConflictReadGraph()
     // Check that all vertices were colored.
     for(VertexId v=0; v<n; v++) {
         SHASTA_ASSERT(conflictReadGraph.getVertex(v).hasValidColor());
+    }
+
+
+    // Write out a statistics file with a line for each edge
+    // in the conflict read graph.
+    ofstream csv("ColoringStatistics.csv");
+    for(EdgeId e=0; e<conflictReadGraph.edges.size(); e++) {
+        const VertexId v0 = conflictReadGraph.v0(e);
+        const VertexId v1 = conflictReadGraph.v1(e);
+        const uint64_t color0 = conflictReadGraph.getVertex(v0).color;
+        const uint64_t color1 = conflictReadGraph.getVertex(v1).color;
+        SHASTA_ASSERT(color0 != color1);
+        csv << ConflictReadGraph::getOrientedReadId(v0) << ",";
+        csv << ConflictReadGraph::getOrientedReadId(v1) << ",";
+        csv << min(color0, color1) << ",";
+        csv << max(color0, color1) << "\n";
     }
 
 }
