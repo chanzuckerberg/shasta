@@ -6,6 +6,7 @@
 using namespace shasta;
 
 // Boost libraries.
+#include <boost/algorithm/string.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -47,6 +48,10 @@ void Assembler::exploreDirectedReadGraph(
     bool allowEdgesNotKept = getParameterValue(request,
         "allowEdgesNotKept", allowEdgesNotKeptString);
 
+    string excludeConflictEdgesString;
+    bool excludeConflictEdges = getParameterValue(request,
+        "excludeConflictEdges", excludeConflictEdgesString);
+
     uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
 
@@ -58,6 +63,23 @@ void Assembler::exploreDirectedReadGraph(
 
     double edgeArrowScalingFactor = 1.;
     getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
+
+    string colorEdgeArrowsString;
+    const bool colorEdgeArrows = getParameterValue(request, "colorEdgeArrows", colorEdgeArrowsString);
+
+    string vertexColoringMethodString = "ByDistance";
+    getParameterValue(request, "vertexColoringMethod", vertexColoringMethodString);
+    LocalDirectedReadGraph::VertexColoringMethod vertexColoringMethod;
+    if(vertexColoringMethodString == "ByConflictCount") {
+        vertexColoringMethod = LocalDirectedReadGraph::VertexColoringMethod::ByConflictCount;
+    } else if(vertexColoringMethodString == "ByCluster") {
+        vertexColoringMethod = LocalDirectedReadGraph::VertexColoringMethod::ByCluster;
+    } else {
+        vertexColoringMethod = LocalDirectedReadGraph::VertexColoringMethod::None;
+    }
+
+    string highlightConflicting;
+    getParameterValue(request, "highlightConflicting", highlightConflicting);
 
     string format = "png";
     getParameterValue(request, "format", format);
@@ -77,16 +99,17 @@ void Assembler::exploreDirectedReadGraph(
     html <<
         "<h3>Display a local subgraph of the global read graph</a></h3>"
         "<form>"
-
+        "<div style='clear:both; display:table;'>"
+        "<div style='float:left;margin:10px;'>"
         "<table>"
 
         "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
-        "<td>Read id"
+        "<td>Start vertex read id"
         "<td><input type=text required name=readId size=8 style='text-align:center'"
         << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
         ">";
 
-    html << "<tr><td>Strand<td class=centered>";
+    html << "<tr><td>Start vertex strand<td class=centered>";
         writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
 
 
@@ -150,17 +173,23 @@ void Assembler::exploreDirectedReadGraph(
         "'>"
 
         "<tr>"
-        "<td>Graphics format"
-        "<td class=centered>"
-        "svg <input type=radio required name=format value='svg'" <<
-        (format == "svg" ? " checked=on" : "") <<
-        ">"
-        "<td class=centered>png <input type=radio required name=format value='png'" <<
-        (format == "png" ? " checked=on" : "") <<
+        "<td>Color edge arrows by direction"
+        "<td class=centered><input type=checkbox name=colorEdgeArrows" <<
+        (colorEdgeArrows ? " checked" : "") <<
         ">"
 
+        "<tr>"
+        "<td>Graphics format"
+        "<td class=centered>"
+        "<input type=radio required name=format value='svg'" <<
+        (format == "svg" ? " checked=on" : "") <<
+        ">svg"
+        "<br><input type=radio required name=format value='png'" <<
+        (format == "png" ? " checked=on" : "") <<
+        ">png"
+
         "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
-        "<td>Timeout (seconds) for graph creation and layout"
+        "<td>Timeout (seconds) for graph layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
         " value='" << timeout <<
         "'>"
@@ -178,7 +207,46 @@ void Assembler::exploreDirectedReadGraph(
         (saveDotFile ? " checked" : "") <<
         ">"
         "</table>"
+        "</div>";
 
+    // If the conflict read graph is open, also show the second table,
+    // containing parameters to control the display of conflict information.
+    if(conflictReadGraph.isOpen()) {
+        html <<
+            "<div style='float:left;margin:10px;'>"
+            "<table>"
+
+            "<tr>"
+            "<td>Exclude conflict edges"
+            "<td class=centered><input type=checkbox name=excludeConflictEdges" <<
+            (excludeConflictEdges ? " checked" : "") <<
+            ">"
+
+            "<tr title='Enter oriented reads in the format readId-strand'>"
+            "<td>Highlight vertices conflicting with"
+            "<td class=centered><input type=text name=highlightConflicting size=20 " <<
+            " value=\"" << highlightConflicting << "\""
+            ">"
+
+            "<tr>"
+            "<td>Vertex coloring method"
+            "<td>"
+            "<input type=radio required name=vertexColoringMethod value='None'" <<
+            (vertexColoringMethod == LocalDirectedReadGraph::VertexColoringMethod::None ? " checked=on" : "") <<
+            ">None"
+            "<br><input type=radio required name=vertexColoringMethod value='ByConflictCount'" <<
+            (vertexColoringMethod == LocalDirectedReadGraph::VertexColoringMethod::ByConflictCount ? " checked=on" : "") <<
+            ">By number of conflicts"
+            "<br><input type=radio required name=vertexColoringMethod value='ByCluster'" <<
+            (vertexColoringMethod == LocalDirectedReadGraph::VertexColoringMethod::ByCluster ? " checked=on" : "") <<
+            ">By cluster"
+
+            "</table>"
+            "</div>";
+    }
+
+    html <<
+        "</div>"
         "<br><input type=submit value='Display'>"
         "</form>";
 
@@ -204,6 +272,7 @@ void Assembler::exploreDirectedReadGraph(
         orientedReadId, maxDistance,
         minAlignedMarkerCount, maxOffsetAtCenter, minAlignedFraction,
         allowEdgesNotKept,
+        excludeConflictEdges,
         timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. "
             "Increase the timeout or reduce the maximum distance from the start vertex.";
@@ -212,6 +281,77 @@ void Assembler::exploreDirectedReadGraph(
     const auto createFinishTime = steady_clock::now();
     html << "<p>The local read graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges.";
+
+
+
+    // If the conflict read graph is available, add
+    // conflict information to the vertices.
+    if(conflictReadGraph.isOpen()) {
+
+        BGL_FORALL_VERTICES(v, graph, LocalDirectedReadGraph) {
+            LocalDirectedReadGraphVertex& vertex = graph[v];
+            const OrientedReadId orientedReadId = vertex.orientedReadId;
+            const ConflictReadGraph::VertexId cVertexId =
+                ConflictReadGraph::getVertexId(orientedReadId);
+            const ConflictReadGraphVertex& cVertex =
+                conflictReadGraph.getVertex(cVertexId);
+            vertex.clusterId = cVertex.clusterId;
+            vertex.conflictCount = conflictReadGraph.incidentEdges(cVertexId).size();
+        }
+
+
+
+        // Highlight in green vertices specified in highlightConflicting
+        // and in red the vertices that have a conflict with them.
+        vector<string> tokens;
+        boost::algorithm::split(tokens, highlightConflicting,
+            boost::algorithm::is_any_of(" "),
+            boost::algorithm::token_compress_on);
+        for(const string& token: tokens) {
+
+            // Parse the token as an OrientedReadId (readId-Strand).
+            vector<string> tokens2;
+            boost::algorithm::split(tokens2, token,
+                boost::algorithm::is_any_of("-"));
+            if(tokens2.size() != 2) {
+                continue;
+            }
+            ReadId readId0;
+            Strand strand0;
+            try {
+                readId0 = boost::lexical_cast<ReadId>(tokens2[0]);
+                strand0 = boost::lexical_cast<ReadId>(tokens2[1]);
+            } catch(boost::bad_lexical_cast) {
+                continue;
+            }
+            if(strand0 > 1) {
+                continue;
+            }
+            const OrientedReadId orientedReadId0(readId0, strand0);
+
+            // Find the corresponding vertex in the local directed read graph.
+            const auto v0 = graph.getVertex(orientedReadId0);
+            if(v0 != graph.null_vertex()) {
+                graph[v0].isConflictingGreen = true;
+            }
+
+            // Now, use the ConflictReadGraph to find conflicting oriented reads.
+            const ConflictReadGraph::VertexId cv0 = ConflictReadGraph::getVertexId(orientedReadId0);
+            if(cv0 > conflictReadGraph.vertices.size()) {
+                continue;
+            }
+            const auto incidentEdges = conflictReadGraph.incidentEdges(cv0);
+            for(const auto cEdgeId: incidentEdges) {
+                const auto cv1 = conflictReadGraph.otherVertex(cEdgeId, cv0);
+                const OrientedReadId orientedReadId1 = ConflictReadGraph::getOrientedReadId(cv1);
+                const auto v1 = graph.getVertex(orientedReadId1);
+                if(v1 != graph.null_vertex()) {
+                    graph[v1].isConflictingRed = true;
+                }
+                            }
+        }
+
+    }
 
 
 
@@ -321,7 +461,13 @@ void Assembler::exploreDirectedReadGraph(
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
-    graph.write(dotFileName, maxDistance, vertexScalingFactor, edgeThicknessScalingFactor, edgeArrowScalingFactor);
+    graph.write(dotFileName,
+        maxDistance,
+        vertexScalingFactor,
+        edgeThicknessScalingFactor,
+        edgeArrowScalingFactor,
+        colorEdgeArrows,
+        vertexColoringMethod);
 
 
 
@@ -379,12 +525,13 @@ void Assembler::exploreDirectedReadGraph(
 <p>
 <input id=highlight type=text onchange="highlight()" size=10>
 Enter an oriented read to highlight, then press Enter. The oriented read should be
-in the form readId-strand where strand is 0 or 1 (for example, "1345871-1").
+in the form <code>readId-strand</code> where strand is 0 or 1 (for example, <code>"1345871-1</code>").
 To highlight multiple oriented reads, enter them one at a time in the same way.
 <script>
 function highlight()
 {
     vertex = document.getElementById("highlight").value;
+    document.getElementById("highlight").value = "";
     element = document.getElementById("Vertex-" + vertex);
     ellipse = element.children[1].children[0].children[0];
     ellipse.setAttribute("fill", "#ff00ff");
@@ -465,11 +612,6 @@ function highlight()
         const string pngFileName = dotFileName + ".png";
         const string cmapxFileName = dotFileName + ".cmapx";
 
-        // Create a base64 version of the png file.
-        const string base64FileName = pngFileName + ".base64";
-        const string base64Command = "base64 " + pngFileName + " > " +
-            base64FileName;
-        ::system(base64Command.c_str());
 
 
         // Write a title.
@@ -482,17 +624,13 @@ function highlight()
             ".<br>";
 
         // Write out the png image.
-        html << "<p><img usemap='#G' src=\"data:image/png;base64,";
-        ifstream png(base64FileName);
-        html << png.rdbuf();
-        html << "\"/>";
+        writePngToHtml(html, pngFileName, "#G");
         ifstream cmapx(cmapxFileName);
         html << cmapx.rdbuf();
 
         // Remove the files we created.
         filesystem::remove(pngFileName);
         filesystem::remove(cmapxFileName);
-        filesystem::remove(base64FileName);
     }
 
 

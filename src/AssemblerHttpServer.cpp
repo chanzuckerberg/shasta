@@ -58,6 +58,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphEdge);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerCoverage);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphInducedAlignment);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
@@ -317,6 +318,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Local marker graph", "exploreMarkerGraph?useBubbleReplacementEdges=on"},
         {"Marker graph vertices", "exploreMarkerGraphVertex"},
         {"Marker graph edges", "exploreMarkerGraphEdge"},
+        {"Marker coverage", "exploreMarkerCoverage"},
         {"Induced alignments", "exploreMarkerGraphInducedAlignment"},
         });
     writeNavigation(html, "Assembly graph", {
@@ -351,6 +353,74 @@ void Assembler::writeNavigation(
 
 }
 
+
+
+// Write to html an img tag displaying a png file.
+void Assembler::writePngToHtml(
+    ostream& html,
+    const string& pngFileName,
+    const string useMap)
+{
+    // Convert the png file to base64.
+    const string base64FileName = tmpDirectory() + to_string(boost::uuids::random_generator()());
+    const string base64Command = "base64 " + pngFileName + " > " +
+        base64FileName;
+    const int errorCode = ::system(base64Command.c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " +
+            to_string(errorCode) + " " + strerror(errorCode) +
+            "\nrunning command: " + base64Command);
+    }
+
+    // Write the base64 file to html in an img tag.
+    html << "<p><img ";
+    if(not useMap.empty()) {
+        html << "usemap='" << useMap << "'";
+    }
+    html << " src=\"data:image/png;base64,";
+    ifstream png(base64FileName);
+    SHASTA_ASSERT(png);
+    html << png.rdbuf();
+    html << "\"/>";
+
+    // Remove the base64 file.
+    filesystem::remove(base64FileName);
+
+}
+
+
+
+void Assembler::writeGnuPlotPngToHtml(
+    ostream& html,
+    int width,
+    int height,
+    const string& gnuplotCommands)
+{
+
+    // Create a file to contain gnuplot commands.
+    const string gnuplotFileName = tmpDirectory() + to_string(boost::uuids::random_generator()());
+    const string pngFileName = tmpDirectory() + to_string(boost::uuids::random_generator()());
+    {
+        ofstream gnuplotFile(gnuplotFileName);
+        gnuplotFile <<
+            "set terminal pngcairo size " << width << "," << height <<
+            " font 'Noto Serif'\n"
+            "set output '" << pngFileName << "'\n" <<
+            gnuplotCommands;
+    }
+
+    // Invoke gnuplot.
+    const string command = "gnuplot " + gnuplotFileName;
+    const int errorCode = ::system(command.c_str());
+    if(errorCode != 0) {
+        throw runtime_error("Error " +
+            to_string(errorCode) + " " + strerror(errorCode) +
+            "\nrunning command: " + command);
+    }
+
+    // Write the png file to html.
+    writePngToHtml(html, pngFileName);
+}
 
 
 #ifdef SHASTA_HTTP_SERVER
@@ -418,6 +488,11 @@ void Assembler::accessAllSoft()
         } catch(const exception& e) {
             cout << "The read graph is not accessible." << endl;
             allDataAreAvailable = false;
+        }
+
+        try {
+            accessConflictReadGraph();
+        } catch(const exception& e) {
         }
     }
 
@@ -1100,6 +1175,7 @@ void Assembler::exploreRead(
     const vector<Base> rawOrientedReadSequence = getOrientedReadRawSequence(orientedReadId);
     const auto readStoredSequence = reads[readId];
     const auto readName = readNames[readId];
+    const auto metaData = readMetaData[readId];
     const auto orientedReadMarkers = markers[orientedReadId.getValue()];
     if(!beginPositionIsPresent) {
         beginPosition = 0;
@@ -1124,8 +1200,12 @@ void Assembler::exploreRead(
     html << "'>Oriented read " << orientedReadId << "</h1>";
 
     // Read name.
-    html << "<p>Read name on input: ";
+    html << "<p>Read name: ";
     copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
+
+    // Read meta data.
+    html << "<p>Read meta data: ";
+    copy(metaData.begin(), metaData.end(), ostream_iterator<char>(html));
 
     // Read length.
     html << "<p>This read is " << rawOrientedReadSequence.size() << " bases long";
@@ -1654,7 +1734,7 @@ void Assembler::exploreRead(
 
     // Phasing information.
     if (phasingData.assemblyGraphEdges.isOpen()) {
-        const MemoryAsContainer<AssemblyGraph::EdgeId> edges =
+        const span<AssemblyGraph::EdgeId> edges =
             phasingData.assemblyGraphEdges[orientedReadId.getValue()];
         html << "<p>This oriented read is internal to the following "
             "assembly graph edges:<br>";

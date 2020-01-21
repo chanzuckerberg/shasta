@@ -4,7 +4,7 @@ using namespace shasta;
 const MarkerGraph::VertexId MarkerGraph::invalidVertexId = std::numeric_limits<VertexId>::max();
 const MarkerGraph::EdgeId MarkerGraph::invalidEdgeId = std::numeric_limits<EdgeId>::max();
 const MarkerGraph::CompressedVertexId
-	MarkerGraph::invalidCompressedVertexId = std::numeric_limits<uint64_t>::max();
+    MarkerGraph::invalidCompressedVertexId = std::numeric_limits<uint64_t>::max();
 
 
 
@@ -25,7 +25,7 @@ const MarkerGraph::Edge*
 
 MarkerGraph::EdgeId MarkerGraph::findEdgeId(Uint40 source, Uint40 target) const
 {
-	const Edge* edgePointer = findEdge(source, target);
-	SHASTA_ASSERT(edgePointer);
-	return edgePointer - edges.begin();
+    const Edge *edgePointer = findEdge(source, target);
+    SHASTA_ASSERT(edgePointer);
+    return edgePointer - edges.begin();
 }

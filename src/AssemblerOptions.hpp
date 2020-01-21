@@ -73,6 +73,7 @@ public:
         double probability;
         bool suppressHighFrequencyMarkers;
         double enrichmentThreshold;
+        string file;
         void write(ostream&) const;
     };
     KmersOptions kmersOptions;
@@ -88,6 +89,7 @@ public:
         int m;
         double hashFraction;
         int minHashIterationCount;
+        double alignmentCandidatesPerRead;
         int minBucketSize;
         int maxBucketSize;
         int minFrequency;
@@ -114,6 +116,7 @@ public:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        int sameChannelReadAlignmentSuppressDeltaThreshold;
         void write(ostream&) const;
     };
     AlignOptions alignOptions;

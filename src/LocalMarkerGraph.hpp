@@ -210,7 +210,7 @@ public:
     vertex_descriptor addVertex(
         MarkerGraph::VertexId,
         int distance,
-        MemoryAsContainer<MarkerId> markers);
+        span<MarkerId> markers);
 
     // Get the KmerId for a vertex.
     KmerId getKmerId(vertex_descriptor) const;

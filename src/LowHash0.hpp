@@ -26,7 +26,11 @@ public:
     LowHash0(
         size_t m,                       // Number of consecutive markers that define a feature.
         double hashFraction,
-        size_t minHashIterationCount,   // Number of minHash iterations.
+
+        // Iteration control. See MinHashOptions for details.
+        size_t minHashIterationCount,
+        double alignmentCandidatesPerRead,
+
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
         size_t minBucketSize,           // The minimum size for a bucket to be used.
         size_t maxBucketSize,           // The maximum size for a bucket to be used.

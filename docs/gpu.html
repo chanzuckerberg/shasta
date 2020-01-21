@@ -39,6 +39,7 @@
                             <a href=ComputationalMethods.html><li>Computational methods</li></a>
                             <a href=CommandLineOptions.html><li>Command line options</li></a>
                             <a href=Compatibility.html><li>Compatibility across releases</li></a>
+                            <a href=gpu.html><li>GPU acceleration</li></a>
     
                     </ul>
                 </li>
@@ -49,13 +50,14 @@
 
 <h1>GPU acceleration</h1>
 
-<!--
-<h2>Current status</h2>
 <p>
-Shasta GPU acceleration is under development and is not ready
-for production use. This documentation page is provided only as an aid in
-development.
--->
+Shasta includes a GPU implementation of the computation of marker alignments,
+which results in improved performance and assembly cost. It is likely that
+future versions of Shasta will also use GPU accelaration for other computational phases.
+The table below contains a conparison illustrating the benefits 
+of GPU acceleration for a human assembly at low coverage 24x.
+<p>
+<img src="gpu-acceleration-results.png" width=100%>
 
 <h2>Supported platform</h2>
 <p>
@@ -73,10 +75,25 @@ even if you are using the Shasta
 static executable or the Shasta AppImage.
 
 <p>
-Directions for downloading and installing the appropriate version of
+To download and install the appropriate version of the 
+Nvidia CUDA toolkit, you can use Shasta script
+<code>InstallCuda-Ubuntu-18.04.sh</code>
+available in a Shasta source tree at <code>shasta/script</code>
+and in a Shasta install tree at <code>shasta-install/bin</code>.
+This script requires root privilege, so you will typically want
+so invoke it using <code>sudo</code>.
+
+<p>
+If for some reason you prefer not to use this script, 
+directions for downloading and installing the appropriate version of
 the toolkit are available 
 <a href="https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&target_distro=Ubuntu&target_version=1804&target_type=deblocal">
 here</a>.
+
+<p>
+On machines with at Nvidia GPU, the toolkit is often already installed.
+
+
 
 <!--
 The link for Ubuntu 16.04 is
@@ -86,10 +103,25 @@ For Ubuntu 16.04</a>
 
 
 
-<h2>Build with GPU acceleration</h2>
+<h2>Downloading a pre-built version of Shasta with GPU acceleration</h2>
+<p>
+<ul>
+<li>For a Shasta release <code>x.y.z</code> starting at 0.4.0, you can download from the GitHub 
+page for the release the asset named <code>shastaGpu-Linux-x.y.z</code>.
+This is a static executable with GPU accelaration capability.
+<li>You can also download a current test build following
+<a href="BuildingFromSource.html#DownloadTestBuild">these directions</a>
+and selecting the build artifact named 
+<code>shastaGpu-Ubuntu-18.04</code>.
+</ul>
+
+
+
+<h2>Building with GPU acceleration</h2>
 <p>
 The code builds with GPU acceleration turned off by default.
-To obtain a build with GPU acceleration, build it yourself on Ubuntu 18.04
+To obtain a build with GPU acceleration, you can also build it yourself 
+on Ubuntu 18.04
 after installings the CUDA toolkit as described above by specifying 
 the option below when running <code>cmake</code>:
 <br>
@@ -104,7 +136,7 @@ Following <code>make</code>, this will generate a dynamic executable (<code>shas
 
 <h2>Running an assembly with GPU acceleration</h2>
 <p>
-Run the assembly as usual, adding <code>--gpu</code> to your command line.
+Run the assembly as usual, adding <code>--useGpu</code> to your command line.
 
 </main>
 </body>

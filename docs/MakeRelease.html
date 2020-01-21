@@ -39,6 +39,7 @@
                             <a href=ComputationalMethods.html><li>Computational methods</li></a>
                             <a href=CommandLineOptions.html><li>Command line options</li></a>
                             <a href=Compatibility.html><li>Compatibility across releases</li></a>
+                            <a href=gpu.html><li>GPU acceleration</li></a>
     
                     </ul>
                 </li>
@@ -66,16 +67,18 @@ with the release number you picked.
 <li>In 
 <code>shasta/.github/workflows/Build.yml</code>,
 change the build id to <code>Shasta Release X.Y.Z</code>
-in three places.
+in 4 places.
 <li>Commit and push this change to trigger a new build on GitHub Actions.
 Wait for that build to complete.
-<li>Download the 5 artifacts. Unzip them and rename  them to the following:
+<li>Download the 7 artifacts. Unzip them and rename  them to the following:
 <ul>
 <li><code>shasta-Linux-X.Y.Z</code>
-<li><code>shasta-OldLinux-X.Y.Z</code> (beginning with Release 0.3.0)
+<li><code>shasta-OldLinux-X.Y.Z</code> 
 <li><code>shasta-macOS-X.Y.Z</code>
 <li><code>shasta-Ubuntu-16.04-X.Y.Z.tar</code>
 <li><code>shasta-Ubuntu-18.04-X.Y.Z.tar</code>
+<li><code>shastaGpu-Ubuntu-18.04-X.Y.Z</code>
+<li><code>shastaGpu-Ubuntu-18.04-X.Y.Z.tar</code>
 </ul>
 
 <li>Create the release on GitHub and write some release notes.
@@ -89,7 +92,7 @@ to the new release as assets.
 <code>shasta/.github/workflows/Build.yml</code>,
 change the build id to 
 <code>Shasta unreleased test build newer than release X.Y.Z</code>
-in 3 places for future GitHub Actions builds.
+in 4 places for future GitHub Actions builds.
 </ul>
 
 

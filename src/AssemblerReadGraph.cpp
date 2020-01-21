@@ -732,6 +732,11 @@ void Assembler::writeLocalReadGraphReads(
         const auto readName = readNames[readId];
         fasta << ">" << readId << " ";
         copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
+        const auto metaData = readMetaData[readId];
+        if(metaData.size() > 0) {
+            fasta << " ";
+            copy(metaData.begin(), metaData.end(), ostream_iterator<char>(fasta));
+        }
         fasta << "\n";
 
         // Write the sequence.

@@ -31,7 +31,18 @@ are on the same marker graph vertex and 0 otherwise.
 namespace shasta {
     class InducedAlignment;
     class InducedAlignmentData;
+    class InducedAlignmentCriteria;
 }
+
+
+
+// Criteria used to evaluate an InducedAlignment.
+class shasta::InducedAlignmentCriteria {
+public:
+    uint32_t maxOffsetSigma;
+    uint32_t maxTrim;
+    uint32_t maxSkip;
+};
 
 
 
@@ -79,6 +90,13 @@ public:
         uint32_t markerCount0,
         uint32_t markerCount1,
         const string& fileName) const;
+
+    // Evaluate the quality of an induced alignment.
+    // Returns true if the induced alignment satisfies the specified criteria.
+    bool evaluate(
+        uint32_t markerCount0,
+        uint32_t markerCount1,
+        const InducedAlignmentCriteria&) const;
 };
 
 

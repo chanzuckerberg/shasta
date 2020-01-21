@@ -84,7 +84,9 @@ void LocalDirectedReadGraph::write(
     uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
-    double edgeArrowScalingFactor
+    double edgeArrowScalingFactor,
+    bool colorEdgeArrows,
+    VertexColoringMethod vertexColoringMethod
     ) const
 {
     ofstream outputFileStream(fileName);
@@ -92,17 +94,23 @@ void LocalDirectedReadGraph::write(
         throw runtime_error("Error opening " + fileName);
     }
     write(outputFileStream, maxDistance, vertexScalingFactor,
-        edgeThicknessScalingFactor, edgeArrowScalingFactor);
+        edgeThicknessScalingFactor, edgeArrowScalingFactor,
+        colorEdgeArrows,
+        vertexColoringMethod);
 }
 void LocalDirectedReadGraph::write(
     ostream& s,
     uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
-    double edgeArrowScalingFactor) const
+    double edgeArrowScalingFactor,
+    bool colorEdgeArrows,
+    VertexColoringMethod vertexColoringMethod) const
 {
     Writer writer(*this, maxDistance, vertexScalingFactor,
-        edgeThicknessScalingFactor, edgeArrowScalingFactor);
+        edgeThicknessScalingFactor, edgeArrowScalingFactor,
+        colorEdgeArrows,
+        vertexColoringMethod);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
 }
@@ -112,12 +120,16 @@ LocalDirectedReadGraph::Writer::Writer(
     uint32_t maxDistance,
     double vertexScalingFactor,
     double edgeThicknessScalingFactor,
-    double edgeArrowScalingFactor) :
+    double edgeArrowScalingFactor,
+    bool colorEdgeArrows,
+    VertexColoringMethod vertexColoringMethod) :
     graph(graph),
     maxDistance(maxDistance),
     vertexScalingFactor(vertexScalingFactor),
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
-    edgeArrowScalingFactor(edgeArrowScalingFactor)
+    edgeArrowScalingFactor(edgeArrowScalingFactor),
+    colorEdgeArrows(colorEdgeArrows),
+    vertexColoringMethod(vertexColoringMethod)
 {
 }
 
@@ -129,7 +141,12 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s) const
     s << "ratio=expand;\n";
     s << "smoothing=triangle;\n";
     s << "node [shape=point];\n";
-    s << "edge [penwidth=\"0.2\" dir=both arrowhead=inv color=\"green:black;0.9:red\"];\n";
+
+
+    s << "edge [dir=both arrowtail=inv];\n";
+    if(colorEdgeArrows) {
+        s << "edge [color=\"green:black;0.9:red\"];\n";
+    }
 
     // This turns off the tooltip on the graph.
     s << "tooltip = \" \";\n";
@@ -141,12 +158,22 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const LocalDirectedReadGraphVertex& vertex = graph[v];
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
+    const bool hasClusterInformation =
+        vertex.clusterId != std::numeric_limits<uint64_t>::max();
+
     // Tooltip.
     s <<
         "["
         " tooltip=\"Read " << orientedReadId << ", " <<
         vertex.baseCount << " bases, " << vertex.markerCount <<
-        " markers, distance " << vertex.distance << vertex.additionalToolTipText << "\"" <<
+        " markers, distance " << vertex.distance;
+    if(vertex.conflictCount) {
+        s << ", " << vertex.conflictCount << " conflicting vertices" ;
+    }
+    if(hasClusterInformation) {
+        s << ", conflict read graph cluster " << vertex.clusterId;
+     }
+    s << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
         "&strand=" << orientedReadId.getStrand() <<
         "\"" <<
@@ -156,16 +183,43 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     // Id, so we can manipulate the vertex in javascript.
     s << " id=\"Vertex-" << orientedReadId << "\"";
 
+
+
+
     // Color.
-    if(vertex.distance == 0) {
-        s << " color=\"#ff00ff\"";  // Fuchsia
-    } else if(vertex.distance == maxDistance) {
+    if(vertex.distance == maxDistance) {
         s << " color=cyan";
-    } else if(vertex.isContained) {
-        // s << " color=red";
+    } else if(vertex.isConflictingGreen) {
+        s << " color=green";
+    } else if(vertex.isConflictingRed) {
+        s << " color=red";
     } else {
-        s << " color=black";
+
+        switch(vertexColoringMethod) {
+
+        case VertexColoringMethod::ByConflictCount:
+            if(vertex.conflictCount == 0) {
+                s << "color=black";
+            } else {
+                const double hue = 0.67;
+                const double saturation = 0.3;
+                const double value = min(1.0, 0.7 + 0.01*double(vertex.conflictCount));
+                s << " color=\"" << hue << ","<< saturation << "," << value << "\"";
+            }
+            break;
+
+        case VertexColoringMethod::ByCluster:
+            if(vertex.clusterId != std::numeric_limits<uint64_t>::max()) {
+                s << " color=\"/set18/" << (vertex.clusterId % 8) + 1 << "\"";
+            }
+            break;
+
+        default:
+            break;
+        }
     }
+
+
 
     // Shape.
     if(not vertex.additionalToolTipText.empty()) {
@@ -202,9 +256,28 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-3 * edge.alignmentInfo.markerCount) << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor * 0.1 << "\"";
 
+
+
     if(not edge.keep) {
-        s << " color=\"#00ff007f\""; // Partially transparent green.
+        if(colorEdgeArrows) {
+            s << " color=\"green:#0000ff7f;0.9:red\""; // Partially transparent blue with green/red ends
+            s << " dir=both arrowtail=inv";
+        } else {
+            s << " color=\"#0000ff7f\""; // Partially transparent blue.
+        }
+    } else {
+
+        // If this edge is between different colors, this is a conflict edge.
+        if(
+            vertex0.clusterId != std::numeric_limits<uint64_t>::max() and
+            vertex1.clusterId != std::numeric_limits<uint64_t>::max() and
+            vertex0.clusterId != vertex1.clusterId) {
+            s << " color=\"#ff00007f\""; // Partially transparent red.
+        }
+
     }
+
+
 
     s << "]";
 }

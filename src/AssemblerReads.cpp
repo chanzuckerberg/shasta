@@ -1,10 +1,10 @@
 // Shasta.
 #include "Assembler.hpp"
-#include "OldFastaReadLoader.hpp"
 #include "ReadLoader.hpp"
 using namespace shasta;
 
 // Standard libraries.
+#include "algorithm.hpp"
 #include "iterator.hpp"
 
 
@@ -24,6 +24,12 @@ void Assembler::checkReadNamesAreOpen() const
         throw runtime_error("Read names are not accessible.");
     }
 }
+void Assembler::checkReadMetaDataAreOpen() const
+{
+    if(!readMetaData.isOpen()) {
+        throw runtime_error("Read metadata are not accessible.");
+    }
+}
 void Assembler::checkReadId(ReadId readId) const
 {
     if(readId >= reads.size()) {
@@ -31,49 +37,6 @@ void Assembler::checkReadId(ReadId readId) const
             " is not valid. Must be between 0 and " + to_string(reads.size()) +
             " inclusive.");
     }
-}
-
-
-
-// Add reads from a fasta file.
-// The reads are added to those already previously present.
-// This is the old version that uses the old fasta read loader
-// and will eventually be phased out.
-void Assembler::addReadsFromFasta(
-    const string& fileName,
-    size_t minReadLength,
-    size_t blockSize,
-    const size_t threadCountForReading,
-    const size_t threadCountForProcessing)
-{
-    checkReadsAreOpen();
-    checkReadNamesAreOpen();
-
-    OldFastaReadLoader readLoader(
-        fileName,
-        minReadLength,
-        blockSize,
-        threadCountForReading,
-        threadCountForProcessing,
-        largeDataFileNamePrefix,
-        largeDataPageSize,
-        reads,
-        readNames,
-        readRepeatCounts);
-
-    cout << "Discarded read statistics for file " << fileName << ":" << endl;;
-    cout << "    Discarded " << readLoader.discardedShortReadReadCount <<
-        " reads shorter than " << minReadLength <<
-        " bases for a total " << readLoader.discardedShortReadBaseCount << " bases." << endl;
-    cout << "    Discarded " << readLoader.discardedBadRepeatCountReadCount <<
-        " reads containing repeat counts 256 or more" <<
-        " for a total " << readLoader.discardedBadRepeatCountBaseCount << " bases." << endl;
-
-    // Increment the discarded reads statistics.
-    assemblerInfo->discardedShortReadReadCount += readLoader.discardedShortReadReadCount;
-    assemblerInfo->discardedShortReadBaseCount += readLoader.discardedShortReadBaseCount;
-    assemblerInfo->discardedBadRepeatCountReadCount += readLoader.discardedBadRepeatCountReadCount;
-    assemblerInfo->discardedBadRepeatCountBaseCount += readLoader.discardedBadRepeatCountBaseCount;
 }
 
 
@@ -96,7 +59,12 @@ void Assembler::addReads(
         largeDataPageSize,
         reads,
         readNames,
+        readMetaData,
         readRepeatCounts);
+
+    // Sanity checks.
+    SHASTA_ASSERT(readNames.size() == reads.size());
+    SHASTA_ASSERT(readMetaData.size() == reads.size());
 
     cout << "Discarded read statistics for file " << fileName << ":" << endl;
     cout << "    Discarded " << readLoader.discardedInvalidBaseReadCount <<
@@ -281,11 +249,17 @@ void Assembler::writeRead(ReadId readId, ostream& file)
 
     const vector<Base> rawSequence = getOrientedReadRawSequence(OrientedReadId(readId, 0));
     const auto readName = readNames[readId];
+    const auto metaData = readMetaData[readId];
 
     file << ">";
     copy(readName.begin(), readName.end(), ostream_iterator<char>(file));
     file << " " << readId;
-    file << " " << rawSequence.size() << "\n";
+    file << " " << rawSequence.size();
+    if(metaData.size() > 0) {
+        file << " ";
+        copy(metaData.begin(), metaData.end(), ostream_iterator<char>(file));
+    }
+    file << "\n";
     copy(rawSequence.begin(), rawSequence.end(), ostream_iterator<Base>(file));
     file << "\n";
 
@@ -436,7 +410,7 @@ void Assembler::writeReadsSummary()
         "MarkerCount,MarkerDensity,MaximumMarkerOffset,"
         "Palindromic,Chimeric,"
         "AlignmentCandidates,ReadGraphNeighbors,"
-        "VertexCount,VertexDensity,\n";
+        "VertexCount,VertexDensity,runid,sampleid,read,ch,start_time,\n";
     for(ReadId readId=0; readId!=reads.size(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
 
@@ -511,7 +485,72 @@ void Assembler::writeReadsSummary()
         csv << vertexCount << ",";
         csv << double(vertexCount) / double(markerCount) << ",";
 
+        // Oxford Nanopore standard metadata.
+        csv << getMetaData(readId, "runid") << ",";
+        csv << getMetaData(readId, "sampleid") << ",";
+        csv << getMetaData(readId, "read") << ",";
+        csv << getMetaData(readId, "ch") << ",";
+        csv << getMetaData(readId, "start_time") << ",";
+
         // End of the line for this read.
         csv << "\n";
      }
+}
+
+
+
+// Return a meta data field for a read, or an empty string
+// if that field is missing. This treats the meta data
+// as a space separated sequence of Key=Value,
+// without embedded spaces in each Key=Value pair.
+span<char> Assembler::getMetaData(ReadId readId, const string& key)
+{
+    SHASTA_ASSERT(readId < readMetaData.size());
+    const uint64_t keySize = key.size();
+    char* keyBegin = const_cast<char*>(&key[0]);
+    char* keyEnd = keyBegin + keySize;
+    char* begin = readMetaData.begin(readId);
+    char* end = readMetaData.end(readId);
+
+
+    char* p = begin;
+    while(p != end) {
+
+        // Look for the next space or line end.
+        char*q = p;
+        while(q != end and not isspace(*q)) {
+            ++q;
+        }
+
+        // When getting here, the interval [p, q) contains
+        // a possible (Key,Value) pair.
+
+        // Check if we have the key we are looking for,
+        // immediately followed by an equal sign.
+        // If so, return what follows.
+        if(q > p + keySize + 1) {
+            if(std::equal(keyBegin, keyEnd, p)) {
+                if(p[keySize] == '=') {
+                    char* valueBegin = p + keySize + 1;
+                    char* valueEnd = q;
+                    return span<char>(valueBegin, valueEnd);
+                }
+            }
+        }
+
+        // If we reached the end of our meta data, stop here.
+        if(q == end) {
+            break;
+        }
+
+        // Look for the next non-space.
+        p = q;
+        while(p != end and isspace(*p)) {
+            ++p;
+        }
+    }
+
+    // If getting here, we didn't find this keyword.
+    // Return an empty string.
+    return span<char>();
 }

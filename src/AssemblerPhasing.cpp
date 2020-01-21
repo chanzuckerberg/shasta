@@ -70,7 +70,7 @@ void Assembler::createPhasingData(
     for(uint64_t forkId=0; forkId<assemblyGraph.forks.size(); forkId++) {
 
         // Get the branches (edges) of this fork.
-        MemoryAsContainer<AssemblyGraph::EdgeId> edgeIds = assemblyGraph.getForkEdges(forkId);
+        span<AssemblyGraph::EdgeId> edgeIds = assemblyGraph.getForkEdges(forkId);
         const uint64_t branchCount = edgeIds.size();
         SHASTA_ASSERT(branchCount);
         // cout << "Working on a fork with " << branchCount << " branches." << endl;
@@ -82,7 +82,7 @@ void Assembler::createPhasingData(
             const AssemblyGraph::EdgeId edgeId = edgeIds[branchId];
 
             // Access the oriented reads internal to this branch.
-            const MemoryAsContainer<OrientedReadId> orientedReadIds =
+            const span<OrientedReadId> orientedReadIds =
                 phasingData.orientedReads[edgeId];
             /*
             cout << "Branch " << branchId << " (edge " << edgeId << ")"
@@ -307,7 +307,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
 
             // Access the marker graph edges corresponding
             // to this assembly graph edge.
-            const MemoryAsContainer<MarkerGraph::EdgeId> markerGraphEdges =
+            const span<MarkerGraph::EdgeId> markerGraphEdges =
                 assemblyGraph.edgeLists[assemblyGraphEdgeId];
             const uint64_t n = markerGraphEdges.size();
             SHASTA_ASSERT(n > 0);
@@ -320,7 +320,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
                 // The OrientedReadId's are the ones in that one edge.
                 const MarkerGraph::EdgeId markerGraphEdgeId =
                     markerGraphEdges[0];
-                const MemoryAsContainer<MarkerInterval> markerIntervals =
+                const span<MarkerInterval> markerIntervals =
                     markerGraph.edgeMarkerIntervals[markerGraphEdgeId];
                 for (const MarkerInterval markerInterval : markerIntervals) {
                     orientedReadIds.push_back(markerInterval.orientedReadId);
@@ -340,7 +340,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
                         markedGraphEdge.target;
 
                     // Loop over the markers in this marker graph vertex.
-                    const MemoryAsContainer<MarkerId> markerIds =
+                    const span<MarkerId> markerIds =
                         markerGraph.vertices[markerGraphVertexId];
                     for (const MarkerId markerId : markerIds) {
                         OrientedReadId orientedReadId;
@@ -416,7 +416,7 @@ void Assembler::phasingGatherAssemblyGraphEdgesPass(int pass)
             assemblyGraphEdgeId != end; ++assemblyGraphEdgeId) {
 
             // Access the oriented reads internal to this assembly graph edge.
-            const MemoryAsContainer<OrientedReadId> orientedReadIds =
+            const span<OrientedReadId> orientedReadIds =
                 phasingData.orientedReads[assemblyGraphEdgeId];
 
             // Loop over these oriented reads.
@@ -456,7 +456,7 @@ void Assembler::phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId)
             ++orientedReadId) {
 
             //  Sort the assembly graph edges that this oriented read is internal to.
-            MemoryAsContainer<AssemblyGraph::EdgeId> edges =
+            span<AssemblyGraph::EdgeId> edges =
                 phasingData.assemblyGraphEdges[orientedReadId];
             sort(edges.begin(), edges.end());
         }
@@ -544,7 +544,7 @@ void Assembler::phasingWriteBipartiteGraph()
             continue;
         }
 
-        const MemoryAsContainer<OrientedReadId> orientedReadIds = phasingData.orientedReads[edgeId];
+        const span<OrientedReadId> orientedReadIds = phasingData.orientedReads[edgeId];
         for(const OrientedReadId orientedReadId: orientedReadIds) {
             out << edgeId << "--\"" << orientedReadId << "\";\n";
         }
@@ -565,7 +565,7 @@ void Assembler::phasingFindSimilarForks()
     dot << "graph G {\n";
     for(uint64_t forkId0=0; forkId0<assemblyGraph.forks.size()-1; forkId0++) {
         const AssemblyGraph::Fork fork0 = assemblyGraph.forks[forkId0];
-        const MemoryAsContainer<EdgeId> edges0 =
+        const span<EdgeId> edges0 =
             fork0.isForward ?
             assemblyGraph.edgesBySource[fork0.vertexId] :
             assemblyGraph.edgesByTarget[fork0.vertexId];
@@ -574,7 +574,7 @@ void Assembler::phasingFindSimilarForks()
         }
         for(uint64_t forkId1=forkId0+1; forkId1<assemblyGraph.forks.size(); forkId1++) {
             const AssemblyGraph::Fork fork1 = assemblyGraph.forks[forkId1];
-            const MemoryAsContainer<EdgeId> edges1 =
+            const span<EdgeId> edges1 =
                 fork1.isForward ?
                 assemblyGraph.edgesBySource[fork1.vertexId] :
                 assemblyGraph.edgesByTarget[fork1.vertexId];

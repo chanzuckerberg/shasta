@@ -1,6 +1,7 @@
 #!/bin/bash
 
-
+# This installs all packages needed to build Shasta or to run
+# the dynamic executable. The static executable has no prerequisites.
 
 apt-get update
 apt install -y git
@@ -9,6 +10,7 @@ apt install -y cmake
 apt install -y libboost-all-dev
 apt install -y libpng-dev
 apt install -y graphviz
+apt install -y gnuplot
 apt install -y ncbi-blast+
 apt install -y python3
 apt install -y python3-pip

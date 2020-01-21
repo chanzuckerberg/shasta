@@ -8,7 +8,7 @@
 #ifndef SHASTA_HTTP_SERVER_HPP
 #define SHASTA_HTTP_SERVER_HPP
 
-#include "MemoryAsContainer.hpp"
+#include "span.hpp"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/lexical_cast.hpp>
@@ -190,7 +190,7 @@ public:
     // The form data.
     // Keyed by the name.
     // The values point into the content data string above.
-    std::map<string, MemoryAsContainer<const char> > formData;
+    std::map<string, span<const char> > formData;
 
     PostData(const vector<string>& request, istream&);
 

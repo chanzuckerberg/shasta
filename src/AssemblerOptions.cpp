@@ -154,7 +154,7 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         "Number of threads, or 0 to use one thread per virtual processor.")
         
 #ifdef SHASTA_BUILD_FOR_GPU
-        ("gpu",
+        ("useGpu",
         bool_switch(&commandLineOnlyOptions.useGpu)->
         default_value(false),
         "Use GPU acceleration.")
@@ -266,6 +266,15 @@ void AssemblerOptions::addConfigurableOptions()
         "enrichment threshold above which a k-mer is not considered as a possible marker. "
         "Enrichment is ratio of k-mer frequency in reads to random.")
 
+        ("Kmers.file",
+        value<string>(&kmersOptions.file),
+        "The absolute path of a file containing the k-mers "
+        "to be used as markers, one per line. "
+        "A relative path is not accepted. "
+        "If this is empty, k-mers to be used as markers "
+        "are selected according to the other --Kmers options. "
+        "If this is not empty, all other --Kmers options are ignored except for --Kmers.k.")
+
         ("MinHash.version",
         value<int>(&minHashOptions.version)->
         default_value(0),
@@ -285,7 +294,16 @@ void AssemblerOptions::addConfigurableOptions()
         ("MinHash.minHashIterationCount",
         value<int>(&minHashOptions.minHashIterationCount)->
         default_value(10),
-        "The number of MinHash/LowHash iterations.")
+        "The number of MinHash/LowHash iterations, or 0 to let "
+        "--MinHash.alignmentCandidatesPerRead control the number of iterations.")
+
+        ("MinHash.alignmentCandidatesPerRead",
+        value<double>(&minHashOptions.alignmentCandidatesPerRead)->
+        default_value(20.),
+        "If --MinHash.minHashIterationCount is 0, MinHash iteration is stopped "
+        "when the average number of alignment candidates that each read is involved in "
+        "reaches this value. If --MinHash.minHashIterationCount is not 0, "
+        "this is not used.")
 
         ("MinHash.minBucketSize",
         value<int>(&minHashOptions.minBucketSize)->
@@ -367,6 +385,19 @@ void AssemblerOptions::addConfigurableOptions()
         value<int>(&alignOptions.gapScore)->
         default_value(-3),
         "Gap score for marker alignments (only for experimental alignment method 1).")
+
+        ("Align.sameChannelReadAlignment.suppressDeltaThreshold",
+        value<int>(&alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold)->
+        default_value(0),
+        "If not zero, alignments between reads from the same nanopore channel "
+        "and close in time are suppressed. The \"read\" meta data fields "
+        "from the FASTA or FASTQ header are checked. If their difference, in "
+        "absolute value, is less than the value of this option, the alignment "
+        "is suppressed. This can help avoid assembly artifact. "
+        "This check is only done if the two reads have identical meta data fields "
+        "\"runid\", \"sampleid\", and \"ch\". "
+        "If any of these meta data fields are missing, this check is suppressed and this "
+        "option has no effect.")
 
         ("ReadGraph.creationMethod",
         value<int>(&readGraphOptions.creationMethod)->
@@ -540,6 +571,7 @@ void AssemblerOptions::KmersOptions::write(ostream& s) const
     s << "suppressHighFrequencyMarkers = " <<
         convertBoolToPythonString(suppressHighFrequencyMarkers) << "\n";
     s << "enrichmentThreshold = " << enrichmentThreshold << "\n";
+    s << "file = " << file << "\n";
 }
 
 
@@ -551,6 +583,7 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
     s << "m = " << m << "\n";
     s << "hashFraction = " << hashFraction << "\n";
     s << "minHashIterationCount = " << minHashIterationCount << "\n";
+    s << "alignmentCandidatesPerRead = " << alignmentCandidatesPerRead << "\n";
     s << "minBucketSize = " << minBucketSize << "\n";
     s << "maxBucketSize = " << maxBucketSize << "\n";
     s << "minFrequency = " << minFrequency << "\n";
@@ -574,6 +607,8 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
     s << "matchScore = " << matchScore << "\n";
     s << "mismatchScore = " << mismatchScore << "\n";
     s << "gapScore = " << gapScore << "\n";
+    s << "sameChannelReadAlignment.suppressDeltaThreshold = " <<
+        sameChannelReadAlignmentSuppressDeltaThreshold << "\n";
 }
 
 

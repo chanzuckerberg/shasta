@@ -54,7 +54,7 @@ LocalMarkerGraph::vertex_descriptor
     LocalMarkerGraph::addVertex(
     MarkerGraph::VertexId vertexId,
     int distance,
-    MemoryAsContainer<MarkerId> vertexMarkers)
+    span<MarkerId> vertexMarkers)
 {
     // Check that the vertex does not already exist.
     SHASTA_ASSERT(vertexMap.find(vertexId) == vertexMap.end());

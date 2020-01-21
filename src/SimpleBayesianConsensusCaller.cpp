@@ -46,7 +46,27 @@ void SimpleBayesianConsensusCaller::splitAsString(string s, string& separators, 
 }
 
 
-void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
+void validate_text_file(string configPath){
+    ///
+    /// Check if all characters in a string are printable, used for checking if input files are valid. If any
+    /// non-printables exist, throw an error
+    ///
+    ifstream file(configPath);
+    char character;
+    uint64_t c = 0;
+
+    while(file.get(character)) {
+        if (not std::isgraph(character) and not std::isspace(character)) {
+            throw runtime_error("ERROR: unprintable character detected in bayesian config file"
+                                "\n in config file: " + configPath +
+                                "\n at position " + to_string(c));
+        }
+        c++;
+    }
+}
+
+
+void SimpleBayesianConsensusCaller::validateMatrixDimensions(string configPath){
     size_t ySize = 0;
     size_t xSize = 0;
 
@@ -74,14 +94,28 @@ void SimpleBayesianConsensusCaller::validateMatrixDimensions(){
         }
     }
 
+    if (priors[0].empty() || priors[1].empty()){
+        throw runtime_error("ERROR: no priors in bayesian config file, or possible error parsing priors"
+        "\n in config file: " + configPath);
+    }
+
+    for (auto& baseMatrix: probabilityMatrices){
+        if (baseMatrix.empty()){
+            throw runtime_error("ERROR: no likelihoods in bayesian config file, or possible error parsing likelihoods"
+            "\n in config file: " + configPath);
+        }
+    }
+
     if (priors[0].size() != priors[1].size()){
-        throw runtime_error("ERROR: prior probability vector sizes do not match.");
+        throw runtime_error("ERROR: prior probability vector sizes do not match."
+        "\n in config file: " + configPath);
     }
 
     if (probabilityMatrices[0].size() != priors[0].size()){
         throw runtime_error("ERROR: prior probability vector size (" + to_string(priors[0].size()) +
         ") does not match y (true) dimension size (" + to_string(probabilityMatrices[0].size()) +
-        ") of likelihood matrix.");
+        ") of likelihood matrix." +
+        "\n in config file: " + configPath);
     }
 }
 
@@ -121,12 +155,13 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
                 "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a";
             throw runtime_error(errorMessage);
         }
+        validate_text_file(constructorString);
         loadConfiguration(matrixFile);
         cout << "Loaded Bayesian consensus caller from configuration file " <<
             constructorString << endl;
     }
 
-    validateMatrixDimensions();
+    validateMatrixDimensions(constructorString);
 
     maxInputRunlength = uint16_t(probabilityMatrices[0][0].size() - 1);
     maxOutputRunlength = uint16_t(probabilityMatrices[0].size() - 1);
@@ -241,6 +276,10 @@ void SimpleBayesianConsensusCaller::loadConfiguration(ifstream& matrixFile){
     string separators = " ";
 
     while (getline(matrixFile, line)){
+        // Ignore empty lines
+        if (line.empty()){
+            continue;
+        }
 
         // Header line (labeled via fasta-like headers)
         if (line[0] == '>'){
@@ -253,10 +292,10 @@ void SimpleBayesianConsensusCaller::loadConfiguration(ifstream& matrixFile){
             if (tokens[0] == "Name"){
                 parseName(matrixFile, line);
 
-            }else if (tokens[1] == "prior"){
+            }else if (tokens.size() > 1 and not tokens[0].empty() and tokens[1] == "prior"){
                 parsePrior(matrixFile, line, tokens);
 
-            }else if (tokens[1] == "likelihood"){
+            }else if (tokens.size() > 1 and not tokens[0].empty() and tokens[1] == "likelihood"){
                 parseLikelihood(matrixFile, line, tokens);
             }
         }

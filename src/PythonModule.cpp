@@ -69,14 +69,6 @@ PYBIND11_MODULE(shasta, module)
         .def("readCount",
             &Assembler::readCount,
             "Get the number of reads.")
-        .def("addReadsFromFasta",
-            &Assembler::addReadsFromFasta,
-            "Add reads from a fasta file.",
-            arg("fileName"),
-            arg("minReadLength"),
-            arg("blockSize") = 2ULL * 1024ULL * 1024ULL * 1024ULL,
-            arg("threadCountForReading") = 1,
-            arg("threadCountForProcessing") = 0)
         .def("histogramReadLength",
             &Assembler::histogramReadLength,
             "Create a histogram of read length and write it to a csv file.",
@@ -163,6 +155,7 @@ PYBIND11_MODULE(shasta, module)
             arg("m"),
             arg("hashFraction"),
             arg("minHashIterationCount"),
+            arg("alignmentCandidatesPerRead"),
             arg("log2MinHashBucketCount") = 0,
             arg("minBucketSize"),
             arg("maxBucketSize"),
@@ -317,8 +310,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessDirectedReadGraphReadOnly)
         .def("accessDirectedReadGraphReadWrite",
             &Assembler::accessDirectedReadGraphReadWrite)
-        .def("accessDirectedReadGraphReadWrite",
-            &Assembler::accessDirectedReadGraphReadWrite)
+        .def("markDirectedReadGraphConflictEdges",
+            &Assembler::markDirectedReadGraphConflictEdges)
 
 
         // Global marker graph.
@@ -432,17 +425,18 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessMarkerGraphConsensus)
         .def("accessMarkerGraphCoverageData",
             &Assembler::accessMarkerGraphCoverageData)
-        .def("findIncompatibleReadPairs",
-            (
-                vector<OrientedReadPair> (Assembler::*)
-                    (ReadId,
-                    bool,
-                    bool)
-            )
-            &Assembler::findIncompatibleReadPairs,
-            arg("readId"),
-            arg("onlyConsiderLowerReadIds") = false,
-            arg("skipReadGraphEdges") = true)
+        .def("createConflictReadGraph",
+            &Assembler::createConflictReadGraph,
+            arg("threadCount") = 0,
+            arg("maxOffsetSigma"),
+            arg("maxTrim"),
+            arg("maxSkip"))
+        .def("accessConflictReadGraph",
+            &Assembler::accessConflictReadGraph)
+        .def("colorConflictReadGraph",
+            &Assembler::colorConflictReadGraph)
+
+
 
         // Assembly graph.
         .def("createAssemblyGraphEdges",

@@ -86,7 +86,7 @@ int LocalAssemblyGraph::baseCount(edge_descriptor e) const
     SHASTA_ASSERT(globalAssemblyGraph.isAssembledEdge(edgeId));
 
     // Get the repeat counts for this edge.
-    const MemoryAsContainer<uint8_t> repeatCounts = globalAssemblyGraph.repeatCounts[edgeId];
+    const span<uint8_t> repeatCounts = globalAssemblyGraph.repeatCounts[edgeId];
 
 
     // Add them up.

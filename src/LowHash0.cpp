@@ -19,7 +19,11 @@ using namespace shasta;
 LowHash0::LowHash0(
     size_t m,                       // Number of consecutive markers that define a feature.
     double hashFraction,
-    size_t minHashIterationCount,   // Number of minHash iterations.
+
+    // Iteration control. See MinHashOptions for details.
+    size_t minHashIterationCount,
+    double alignmentCandidatesPerRead,
+
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for minHash.
     size_t minBucketSize,           // The minimum size for a bucket to be used.
     size_t maxBucketSize,           // The maximum size for a bucket to be used.
@@ -125,7 +129,34 @@ LowHash0::LowHash0(
 
 
     // LowHash0 iteration loop.
-    for(iteration=0; iteration<minHashIterationCount; iteration++) {
+    uint64_t highFrequency = 0;
+    for(iteration=0; ; iteration++) {
+
+        // Decide if it is time to stop the iteration.
+        if(minHashIterationCount==0) {
+
+            // minHashIterationCount is zero, so alignmentCandidatesPerRead
+            // controls the iteration.
+            const double currentAlignmentCandidatesPerRead =
+                2. * double(highFrequency) / double(readCount);
+            if(iteration != 0) {
+                cout << "Average number of alignment candidates that each read is involved in is " <<
+                    currentAlignmentCandidatesPerRead << endl;
+            }
+            if(currentAlignmentCandidatesPerRead >= alignmentCandidatesPerRead) {
+                break;
+            }
+
+        } else {
+
+            // minHashIterationCount is not zero, so it controls the number of iterations.
+            if(iteration==minHashIterationCount) {
+                break;
+            }
+        }
+
+
+
         cout << timestamp << "LowHash0 iteration " << iteration << " begins." << endl;
 
         // Pass1: compute the low hashes for each oriented read
@@ -150,7 +181,7 @@ LowHash0::LowHash0(
         runThreads(&LowHash0::pass3ThreadFunction, threadCount);
 
         // Write a summary for this iteration.
-        uint64_t highFrequency = 0;
+        highFrequency = 0;
         uint64_t total = 0;
         uint64_t capacity = 0;
         for(const auto& s: threadStatistics) {
@@ -400,7 +431,7 @@ void LowHash0::pass3ThreadFunction(size_t threadId)
 
                     // Loop over oriented read ids in the bucket corresponding to this hash.
                     const uint64_t bucketId = hash & mask;
-                    const MemoryAsContainer<BucketEntry> bucket = buckets[bucketId];
+                    const span<BucketEntry> bucket = buckets[bucketId];
                     if(bucket.size() < max(size_t(2), minBucketSize)) {
                         continue;
                     }

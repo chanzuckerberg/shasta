@@ -375,7 +375,7 @@ void LowHash1::scanBucketsThreadFunction(size_t threadId)
         for(uint64_t bucketId=begin; bucketId!=end; bucketId++) {
 
             // Access this bucket.
-            const MemoryAsContainer<BucketEntry> bucket = buckets[bucketId];
+            const span<BucketEntry> bucket = buckets[bucketId];
             if(bucket.size() < max(size_t(2), minBucketSize)) {
                 continue;
             }
@@ -589,7 +589,7 @@ void LowHash1::processCommonFeaturesThreadFunction(size_t threadId)
         for(ReadId readId0=ReadId(begin); readId0!=ReadId(end); readId0++) {
             // std::lock_guard<std::mutex> lock(mutex); // ************************** TAKE OUT!
             // cout << "Working on readId0 " << readId0 << endl;
-            const MemoryAsContainer<CommonFeatureInfo> features = commonFeatures[readId0];
+            const span<CommonFeatureInfo> features = commonFeatures[readId0];
             threadCandidateTable[readId0][0] = uint64_t(threadId);
             threadCandidateTable[readId0][1] = alignmentCandidates.candidates.size();;
 

@@ -10,7 +10,11 @@ using namespace shasta;
 void Assembler::findAlignmentCandidatesLowHash0(
     size_t m,                       // Number of consecutive k-mers that define a feature.
     double hashFraction,            // Low hash threshold.
-    size_t minHashIterationCount,   // Number of lowHash iterations.
+
+    // Iteration control. See MinHashOptions for details.
+    size_t minHashIterationCount,
+    double alignmentCandidatesPerRead,
+
     size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
     size_t minBucketSize,           // The minimum size for a bucket to be used.
     size_t maxBucketSize,           // The maximum size for a bucket to be used.
@@ -33,6 +37,7 @@ void Assembler::findAlignmentCandidatesLowHash0(
         m,
         hashFraction,
         minHashIterationCount,
+        alignmentCandidatesPerRead,
         log2MinHashBucketCount,
         minBucketSize,
         maxBucketSize,

@@ -39,6 +39,7 @@
                             <a href=ComputationalMethods.html><li>Computational methods</li></a>
                             <a href=CommandLineOptions.html><li>Command line options</li></a>
                             <a href=Compatibility.html><li>Compatibility across releases</li></a>
+                            <a href=gpu.html><li>GPU acceleration</li></a>
     
                     </ul>
                 </li>
@@ -58,6 +59,21 @@ obtained by invoking the Shasta executable with
 <code>--help</code> is, of course, more authoritative than the contents
 of this page.
 
+
+
+<h2 id=Defaults>Defaults</h2>
+<p>
+Default values of Shasta command line options are not 
+recommended for any application scenario, and mostly reflect
+approximate compatibility with previous versions. 
+The <code>shasta/conf</code> or <code>shasta-install/conf</code>
+directories provide sample configuration files (with a <code>.conf</code> extension) containing best known
+sets of assembly parameters for specific applications.
+See the beginning of each configuration file for comments
+on what scenario the file applies to.
+See <a href="#ConfigFile">below</a> for 
+information on how to use a configuration file 
+in a Shasta assembly.
 
 
 <h2 id=bashCompletion>Saving some typing</h2>
@@ -97,13 +113,25 @@ completion scripts.
 
 
 
-<h2>Configuration file</h2>
+<h2 id=ConfigFile>Configuration file</h2>
 <p>
 Some options are only allowed on the command line,
 but most of them can also optionally be specified using a configuration file.
-If a configuration file is specified (via <code>--config</code>),
-values specified on the command line take precedence over
+A configuration file is specified using command line option <code>--config</code>
+followed by the <b>absolute path</b> to the desired configuration file.
+A relative path is not accepted.
+
+<p>
+See <a href=#Defaults>above</a> for some information
+on Shasta default values and on available sample configuration files.
+
+<p> 
+Values specified on the command line take precedence over
 values specified in the configuration file.
+This makes it easy to override specific values in a 
+configuration file.
+
+<p>
 Options that can be specified in both places are of the form 
 <code>--SectionName.optionName</code>. The format of the configuration file
 is as follows:
@@ -304,6 +332,13 @@ The TCP port to be used by command <code>explore</code>.
 If the specified port is not available,
 Shasta will try again after incrementing the port number a few times.
 
+<tr><td><code>--useGpu</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+If set, some portion of Shasta run using GPU acceleration.
+This option is only available in a build that includes GPU acceleration.
+<a class=qm href='gpu.html'/>
+
 </table>
 
 
@@ -375,6 +410,16 @@ this controls the enrichment threshold above which k-mers
 are not considered as possible markers.
 Enrichment is ratio of k-mer frequency in reads to random.
 
+<tr id='Kmers.file'>
+<td><code>--Kmers.file</code><td class=centered><td>
+The absolute path of a file containing the k-mers
+to be used as markers, one per line. 
+A relative path is not accepted. 
+If this is empty, k-mers to be used as markers
+are selected according to the other <code>--Kmers</code> options.
+If this is not empty, all other <code>--Kmers</code> options are ignored 
+except for <code>--Kmers.k</code>.
+
 <tr id='MinHash.version'>
 <td><code>--MinHash.version</code><td class=centered><code>0</code><td>
 The version of the MinHash/LowHash algorithm to be used.
@@ -392,7 +437,16 @@ Defines how low a hash has to be to be used with the LowHash algorithm.
 
 <tr id='MinHash.minHashIterationCount'>
 <td><code>--MinHash.minHashIterationCount</code><td class=centered><code>10</code><td>
-The number of MinHash/LowHash iterations.
+The number of MinHash/LowHash iterations, or 0 to let
+--MinHash.alignmentCandidatesPerRead control the number of iterations.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
+<tr id='MinHash.alignmentCandidatesPerRead'>
+<td><code>--MinHash.alignmentCandidatesPerRead</code><td class=centered><code>20</code><td>
+If <code>--MinHash.minHashIterationCount</code> is 0, 
+MinHash iteration is stopped when the average number of alignment candidates 
+that each read is involved in reaches this value. 
+If <code>--MinHash.minHashIterationCount</code> is not 0, this is not used.
 <a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='MinHash.maxBucketSize'>
@@ -470,6 +524,18 @@ Mismatch score for marker alignments (only for experimental alignment method 1).
 <tr id='Align.gapScore'>
 <td><code>--Align.gapScore</code><td class=centered><code>-3</code><td>
 Gap score for marker alignments (only for experimental alignment method 1).
+
+<tr id='Align.sameChannelReadAlignment.suppressDeltaThreshold'>
+<td><code>--Align.sameChannelReadAlignment.suppressDeltaThreshold</code><td class=centered><code>0</code><td>
+If not zero, alignments between reads from the same nanopore channel
+and close in time are suppressed. The <code>read</code> meta data fields
+from the FASTA or FASTQ header are checked. If their difference, in
+absolute value, is less than the value of this option, the alignment
+is suppressed. This can help avoid assembly artifact.
+This check is only done if the two reads have identical meta data fields
+<code>runid</code>, <code>sampleid</code>, and <code>ch</code>. 
+If any of these meta data fields are missing, this check is suppressed and this
+option has no effect.
 
 
 <tr id='ReadGraph.creationMethod'>

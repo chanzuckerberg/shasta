@@ -62,6 +62,13 @@ public:
         isContained(isContained)
         {}
 
+    // Information from the global conflict read graph.
+    uint64_t clusterId = std::numeric_limits<uint64_t>::max();
+    uint64_t conflictCount = 0;
+
+    bool isConflictingGreen = false;
+    bool isConflictingRed = false;
+
 };
 
 
@@ -120,18 +127,25 @@ public:
     uint32_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
+    enum class VertexColoringMethod {
+        None, ByConflictCount, ByCluster
+    };
     void write(
         ostream&,
         uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
-        double edgeArrowScalingFactor) const;
+        double edgeArrowScalingFactor,
+        bool colorEdgeArrows,
+        VertexColoringMethod) const;
     void write(
         const string& fileName,
         uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
-        double edgeArrowScalingFactor) const;
+        double edgeArrowScalingFactor,
+        bool colorEdgeArrows,
+        VertexColoringMethod) const;
 
     // Return the vertex corresponding to a given OrientedReadId,
     // or null_vertex() if none.
@@ -158,7 +172,9 @@ private:
             uint32_t maxDistance,
             double vertexScalingFactor,
             double edgeThicknessScalingFactor,
-            double edgeArrowScalingFactor);
+            double edgeArrowScalingFactor,
+            bool colorEdgeArrows,
+            VertexColoringMethod);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
@@ -167,6 +183,8 @@ private:
         double vertexScalingFactor;
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
+        bool colorEdgeArrows;
+        VertexColoringMethod vertexColoringMethod;
     };
 };
 

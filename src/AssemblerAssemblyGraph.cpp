@@ -236,7 +236,7 @@ void Assembler::createAssemblyGraphEdges()
         assemblyGraph.markerToAssemblyTable.end(),
         make_pair(std::numeric_limits<VertexId>::max(), 0));
     for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edgeLists.size(); assemblyGraphEdgeId++) {
-        const MemoryAsContainer<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        const span<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         for(uint32_t position=0; position!=chain.size(); position++) {
             const EdgeId markerGraphEdgeId = chain[position];
             assemblyGraph.markerToAssemblyTable[markerGraphEdgeId] = make_pair(assemblyGraphEdgeId, position);
@@ -646,7 +646,7 @@ void Assembler::assemble(
         // Store the repeat count for this edge.
         MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& threadRepeatCounts =
             *(assembleData.repeatCounts[threadId]);
-        const MemoryAsContainer<uint8_t> vertexRepeatCounts = threadRepeatCounts[i];
+        const span<uint8_t> vertexRepeatCounts = threadRepeatCounts[i];
         assemblyGraph.repeatCounts.appendVector();
         for(uint8_t r: vertexRepeatCounts) {
             assemblyGraph.repeatCounts.append(r);
@@ -812,7 +812,7 @@ void Assembler::computeAssemblyStatistics()
             continue;
         }
         assembledEdgeCount++;
-        const MemoryAsContainer<uint8_t> repeatCounts = assemblyGraph.repeatCounts[edgeId];
+        const span<uint8_t> repeatCounts = assemblyGraph.repeatCounts[edgeId];
         size_t length = 0;
         for(uint8_t repeatCount: repeatCounts) {
             length += repeatCount;
@@ -922,28 +922,28 @@ void Assembler::writeGfa1(const string& fileName)
     for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
 
         // In-edges.
-        const MemoryAsContainer<EdgeId> edges0 = assemblyGraph.edgesByTarget[vertexId];
+        const span<EdgeId> edges0 = assemblyGraph.edgesByTarget[vertexId];
 
         // Out-edges.
-        const MemoryAsContainer<EdgeId> edges1 = assemblyGraph.edgesBySource[vertexId];
+        const span<EdgeId> edges1 = assemblyGraph.edgesBySource[vertexId];
 
         // Loop over combinations of in-edges and out-edges.
         for(const EdgeId edge0: edges0) {
             if(assemblyGraph.edges[edge0].wasRemoved()) {
                 continue;
             }
-            const MemoryAsContainer<uint8_t> repeatCounts0 = assemblyGraph.repeatCounts[edge0];
+            const span<uint8_t> repeatCounts0 = assemblyGraph.repeatCounts[edge0];
             for(const EdgeId edge1: edges1) {
                 if(assemblyGraph.edges[edge1].wasRemoved()) {
                     continue;
                 }
-                const MemoryAsContainer<uint8_t> repeatCounts1 = assemblyGraph.repeatCounts[edge1];
+                const span<uint8_t> repeatCounts1 = assemblyGraph.repeatCounts[edge1];
 
                 // Locate the last k repeat counts of v0 and the first k of v1.
-                const MemoryAsContainer<uint8_t> lastRepeatCounts0(
+                const span<uint8_t> lastRepeatCounts0(
                     repeatCounts0.begin() + repeatCounts0.size() - k,
                     repeatCounts0.end());
-                const MemoryAsContainer<uint8_t> firstRepeatCounts1(
+                const span<uint8_t> firstRepeatCounts1(
                     repeatCounts1.begin(),
                     repeatCounts1.begin() + k);
 
@@ -1074,10 +1074,10 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
     for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
 
         // In-edges.
-        const MemoryAsContainer<EdgeId> edges0 = assemblyGraph.edgesByTarget[vertexId];
+        const span<EdgeId> edges0 = assemblyGraph.edgesByTarget[vertexId];
 
         // Out-edges.
-        const MemoryAsContainer<EdgeId> edges1 = assemblyGraph.edgesBySource[vertexId];
+        const span<EdgeId> edges1 = assemblyGraph.edgesBySource[vertexId];
 
         // Loop over in-edges.
         for(const EdgeId edge0: edges0) {
@@ -1089,12 +1089,12 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
             // Get the last k repeat counts of edge0.
             vector<uint8_t> lastRepeatCounts0(k);
             if(assemblyGraph.isAssembledEdge(edge0)) {
-                const MemoryAsContainer<uint8_t> storedRepeatCounts0 = assemblyGraph.repeatCounts[edge0];
+                const span<uint8_t> storedRepeatCounts0 = assemblyGraph.repeatCounts[edge0];
                 const auto end0 = storedRepeatCounts0.end();
                 copy(end0-k, end0, lastRepeatCounts0.begin());
             } else {
                 SHASTA_ASSERT(assemblyGraph.isAssembledEdge(edge0Rc));
-                const MemoryAsContainer<uint8_t> storedRepeatCounts0Rc = assemblyGraph.repeatCounts[edge0Rc];
+                const span<uint8_t> storedRepeatCounts0Rc = assemblyGraph.repeatCounts[edge0Rc];
                 const auto begin0Rc = storedRepeatCounts0Rc.begin();
                 copy(begin0Rc, begin0Rc+k, lastRepeatCounts0.begin());
                 std::reverse(lastRepeatCounts0.begin(), lastRepeatCounts0.end());
@@ -1110,12 +1110,12 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
                 // Get the first k repeat counts of edge1.
                 vector<uint8_t> firstRepeatCounts1(k);
                 if(assemblyGraph.isAssembledEdge(edge1)) {
-                    const MemoryAsContainer<uint8_t> storedRepeatCounts1 = assemblyGraph.repeatCounts[edge1];
+                    const span<uint8_t> storedRepeatCounts1 = assemblyGraph.repeatCounts[edge1];
                     const auto begin1 = storedRepeatCounts1.begin();
                     copy(begin1, begin1+k, firstRepeatCounts1.begin());
                 } else {
                     SHASTA_ASSERT(assemblyGraph.isAssembledEdge(edge1Rc));
-                    const MemoryAsContainer<uint8_t> storedRepeatCounts1Rc = assemblyGraph.repeatCounts[edge1Rc];
+                    const span<uint8_t> storedRepeatCounts1Rc = assemblyGraph.repeatCounts[edge1Rc];
                     const auto end1Rc = storedRepeatCounts1Rc.end();
                     copy(end1Rc-k, end1Rc, firstRepeatCounts1.begin());
                     std::reverse(firstRepeatCounts1.begin(), firstRepeatCounts1.end());
@@ -1124,10 +1124,10 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 
                 // Construct the cigar string.
                 constructCigarString(
-                    MemoryAsContainer<uint8_t>(
+                    span<uint8_t>(
                         lastRepeatCounts0.data(),
                         lastRepeatCounts0.data() + lastRepeatCounts0.size()),
-                    MemoryAsContainer<uint8_t>(
+                    span<uint8_t>(
                         firstRepeatCounts1.data(),
                         firstRepeatCounts1.data() + firstRepeatCounts1.size()),
                     cigarString);
@@ -1198,8 +1198,8 @@ void Assembler::writeFasta(const string& fileName)
 // Construct the CIGAR string given two vectors of repeat counts.
 // Used by writeGfa1.
 void Assembler::constructCigarString(
-    const MemoryAsContainer<uint8_t>& repeatCounts0,
-    const MemoryAsContainer<uint8_t>& repeatCounts1,
+    const span<uint8_t>& repeatCounts0,
+    const span<uint8_t>& repeatCounts1,
     string& cigarString
     )
 {
@@ -1521,7 +1521,7 @@ void Assembler::assembleAssemblyGraphEdge(
     assembledSegment.assemblyGraphEdgeId = edgeId;
 
     // The edges of this chain in the marker graph.
-    const MemoryAsContainer<MarkerGraph::EdgeId> assemblerEdgeIds = assemblyGraph.edgeLists[edgeId];
+    const span<MarkerGraph::EdgeId> assemblerEdgeIds = assemblyGraph.edgeLists[edgeId];
     assembledSegment.edgeCount = assemblerEdgeIds.size();
     assembledSegment.vertexCount = assembledSegment.edgeCount + 1;
     assembledSegment.edgeIds.resize(assembledSegment.edgeCount);

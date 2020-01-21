@@ -6,7 +6,7 @@
 
 // Shasta.
 #include "MemoryMappedVector.hpp"
-#include "MemoryAsContainer.hpp"
+#include "span.hpp"
 
 // Standard libraries.
 #include "algorithm.hpp"
@@ -210,20 +210,31 @@ public:
 
 
 
-    // Operator[] return a MemoryAsContainer object.
-    MemoryAsContainer<T> operator[](Int i)
+    // Operator[] returns a span object containing all elements
+    // of the vector with the requested index.
+    span<T> operator[](Int i)
     {
-        return MemoryAsContainer<T>(begin(i), end(i));
+        return span<T>(begin(i), end(i));
     }
-    MemoryAsContainer<const T> operator[](Int i) const
+    span<const T> operator[](Int i) const
     {
-        return MemoryAsContainer<const T>(begin(i), end(i));
+        return span<const T>(begin(i), end(i));
     }
-    MemoryAsContainer<T> front() {
+
+    // Front and back, in const and non-const versions.
+    span<T> front() {
         SHASTA_ASSERT(size() > 0);
         return (*this)[0];
     }
-    MemoryAsContainer<T> back() {
+    span<const T> front() const {
+        SHASTA_ASSERT(size() > 0);
+        return (*this)[0];
+    }
+    span<T> back() {
+        SHASTA_ASSERT(size() > 0);
+        return (*this)[size() - 1];
+    }
+    span<const T> back() const {
         SHASTA_ASSERT(size() > 0);
         return (*this)[size() - 1];
     }

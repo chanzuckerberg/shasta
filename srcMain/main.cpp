@@ -146,14 +146,15 @@ void shasta::main::assemble(
 {
     SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble");
 
-    const string executableDescription =
-        "\nThis is the static executable for the Shasta assembler. "
-        "It has no dependencies and requires no installation.\n\n"
-        "To run an assembly, use the \"--input\" option to specify the input files. "
-        "See below for a description of the other options and parameters.\n\n"
-        "Default values of assembly parameters are optimized for an assembly "
-        "at coverage 60x. If your data have significantly different coverage, "
-        "some changes in assembly parameters may be necessary to get good results.\n\n"
+    const string startupMessage =
+        "\nTo run an assembly, use the \"--input\" option to specify the input files. "
+        "Use the \"--help\" option for a description of the other options and parameters.\n\n"
+        "Default values of assembly parameters are not recommended for any "
+        "specific application and mostly reflect approximate compatibility "
+        "with previous releases."
+        "See the shasta/conf or shasta-install/conf directory for "
+        "sample configuration files containing assembly parameters "
+        "for specific applications.\n\n"
         "For more information about the Shasta assembler, see\n"
         "https://github.com/chanzuckerberg/shasta\n\n"
         "Complete documentation for the latest version of Shasta is available here:\n"
@@ -175,7 +176,7 @@ void shasta::main::assemble(
 
     // Check that we have at least one input file.
     if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
-        cout << executableDescription << assemblerOptions.allOptionsDescription << endl;
+        cout << startupMessage << assemblerOptions.allOptionsDescription << endl;
         throw runtime_error("Specify at least one input file "
             "using command line option \"--input\".");
     }
@@ -185,7 +186,7 @@ void shasta::main::assemble(
         throw runtime_error("Assembly.useMarginPhase is not supported.");
     }
 
-    // If the build does not support GPU acceleration, reject the --gpu option.
+    // If the build does not support GPU acceleration, reject the --useGpu option.
 #ifndef SHASTA_BUILD_FOR_GPU
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
         throw runtime_error("This Shasta build does not provide GPU acceleration.");
@@ -221,16 +222,7 @@ void shasta::main::assemble(
 
 
     // Write a startup message.
-    cout << timestamp <<
-        "\nThis is the static executable for the Shasta assembler. "
-        "It has no dependencies and requires no installation.\n\n"
-        "Default values of assembly parameters are optimized for an assembly "
-        "at coverage 60x. If your data have significantly different coverage, "
-        "some changes in assembly parameters may be necessary to get good results.\n\n"
-        "For more information about the Shasta assembler, see\n"
-        "https://github.com/chanzuckerberg/shasta\n\n"
-        "Complete documentation for the latest version of Shasta is available here:\n"
-        "https://chanzuckerberg.github.io/shasta\n\n";
+    cout << timestamp << startupMessage << endl;
 
     // Find absolute paths of the input files.
     // We will use them below after changing directory to the output directory.
@@ -287,11 +279,12 @@ void shasta::main::assemble(
 #ifdef __linux__
     cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
     cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << endl;
-    cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << "\n" << endl;
+    cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << endl;
     cout << "useGpu = " <<
-        AssemblerOptions::convertBoolToPythonString(assemblerOptions.commandLineOnlyOptions.useGpu) <<
-        "\n" << endl;
+        AssemblerOptions::convertBoolToPythonString(assemblerOptions.commandLineOnlyOptions.useGpu)
+        << endl;
 #endif
+    cout << endl;
     assemblerOptions.write(cout);
     {
         ofstream configurationFile("shasta.conf");
@@ -504,17 +497,42 @@ void shasta::main::assemble(
     // Create a histogram of read lengths.
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
+
+
     // Select the k-mers that will be used as markers.
-    if(assemblerOptions.kmersOptions.suppressHighFrequencyMarkers) {
+    if(not assemblerOptions.kmersOptions.file.empty()) {
+
+        // A file name was specified. Read the k-mers to be used as markers from there.
+
+        // This must be an absolute path.
+        if(assemblerOptions.kmersOptions.file[0] != '/') {
+            throw runtime_error("Option --Kmers.file must specify an absolute path. "
+                "A relative path is not accepted.");
+        }
+
+        // Read the k-mers.
+        assembler.readKmersFromFile(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.file);
+
+
+    } else if(assemblerOptions.kmersOptions.suppressHighFrequencyMarkers) {
+
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that are highly frequent in the input reads.
         assembler.selectKmersBasedOnFrequency(
             assemblerOptions.kmersOptions.k,
             assemblerOptions.kmersOptions.probability, 231,
             assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
     } else {
+
+        // Randomly select the k-mers to be used as markers.
         assembler.randomlySelectKmers(
             assemblerOptions.kmersOptions.k,
             assemblerOptions.kmersOptions.probability, 231);
     }
+
+
 
     // Find the markers in the reads.
     assembler.findMarkers(0);
@@ -540,6 +558,7 @@ void shasta::main::assemble(
             assemblerOptions.minHashOptions.m,
             assemblerOptions.minHashOptions.hashFraction,
             assemblerOptions.minHashOptions.minHashIterationCount,
+            assemblerOptions.minHashOptions.alignmentCandidatesPerRead,
             0,
             assemblerOptions.minHashOptions.minBucketSize,
             assemblerOptions.minHashOptions.maxBucketSize,
@@ -555,6 +574,15 @@ void shasta::main::assemble(
             assemblerOptions.minHashOptions.minBucketSize,
             assemblerOptions.minHashOptions.maxBucketSize,
             assemblerOptions.minHashOptions.minFrequency,
+            threadCount);
+    }
+
+
+
+    // Suppress alignment candidates where reads are close on the same channel.
+    if(assemblerOptions.alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold > 0) {
+        assembler.suppressAlignmentCandidates(
+            assemblerOptions.alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold,
             threadCount);
     }
 

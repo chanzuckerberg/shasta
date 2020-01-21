@@ -201,7 +201,7 @@ public:
     };
     MemoryMapped::Vector<Fork> forks;
     void createForks();
-    MemoryAsContainer<EdgeId> getForkEdges(uint64_t forkId);
+    span<EdgeId> getForkEdges(uint64_t forkId);
 
 private:
     // Class used by createForks.

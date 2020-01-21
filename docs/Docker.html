@@ -8,7 +8,7 @@
 
 <body>
     <nav role="navigation">
-        <!-- 
+        <!--
         Navigation as updated 8/15/2019.
         To make any changes, here, update Navigation.html,
         then rerun UpdateNavigation.py from the docs directory.
@@ -18,7 +18,7 @@
         <ul>
             <a class="main-nav" href=index.html><li >Shasta</li></a>
                 <a href=QuickStart.html><li>Quick Start</li></a>
-                
+
                 <li aria-haspopup="true"> How to
                 <ul class="dropdown" aria-label="submenu">
                 <a href=Running.html><li>Run an assembly</li></a>
@@ -39,10 +39,11 @@
                             <a href=ComputationalMethods.html><li>Computational methods</li></a>
                             <a href=CommandLineOptions.html><li>Command line options</li></a>
                             <a href=Compatibility.html><li>Compatibility across releases</li></a>
-    
+                            <a href=gpu.html><li>GPU acceleration</li></a>
+
                     </ul>
                 </li>
-    
+
         </ul>
     </nav>
 <main>
@@ -74,7 +75,7 @@
     The image name and version tag must be specified, followed by
     any arguments that would be passed to the Shasta executable:
 
-    <pre>docker run -v `pwd`:/data tpesout/shasta:latest --input input.fasta</pre>
+    <pre>docker run -v `pwd`:/data kishwars/shasta:latest --input input.fasta</pre>
 
     When Shasta is run via this method, the Docker image is set up to save the command, all output logged to the console,
     and the time and maximum memory usage to a file called <code>shasta.log</code>.  This log will be present in the
@@ -89,7 +90,7 @@
     so it must be given elevated privileges.
     To do this the <code>--privileged</code> flag must be set when invoking Docker:
 
-    <pre>docker run --privileged -v `pwd`:/data tpesout/shasta:latest --input input.fasta --memoryMode filesystem --memoryBacking 2M</pre>
+    <pre>docker run --privileged -v `pwd`:/data kishwars/shasta:latest --input input.fasta --memoryMode filesystem --memoryBacking 2M</pre>
 
     When running Shasta in this mode, the <code>cleanupBinaryData</code> command is not required,
     and the binary data is not available for use with the http server or the Python API.
@@ -97,8 +98,8 @@
 
     <h3>Compiling Docker Image</h3>
 
-    The Shasta image is currently published to the <code>tpesout/shasta</code> repository on
-    <a href="https://hub.docker.com/r/tpesout/shasta">Docker Hub</a> and does not need to be compiled locally.
+    The Shasta image is currently published to the <code>kishwars/shasta</code> repository on
+    <a href="https://hub.docker.com/r/kishwars/shasta">Docker Hub</a> and does not need to be compiled locally.
     For advanced users, an image can be compiled using the Makefile in the
     <code>docker/</code> folder in the Shasta repository.
 
@@ -115,7 +116,7 @@ make</pre>
 
     <pre>make -e git_commit=&lt;your_git_commit&gt;</pre>
 
-    In addition to <code>git_commit</code>, the specifications for <code>image_name=tpesout/shasta</code>,
+    In addition to <code>git_commit</code>, the specifications for <code>image_name=kishwars/shasta</code>,
     <code>shasta_version=0.1.0</code>, and <code>tag=${version}--${git_commit}</code> can be changed in the same way.
 
 

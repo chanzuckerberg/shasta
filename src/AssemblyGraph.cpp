@@ -251,7 +251,7 @@ void AssemblyGraph::createForks()
     // Simple-minded code to find forks.
     vector<ForkInfo> forkInfos;
     for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
-        const MemoryAsContainer<EdgeId> outgoingEdges = edgesBySource[vertexId];
+        const span<EdgeId> outgoingEdges = edgesBySource[vertexId];
         if(outgoingEdges.size() > 1) {
             ForkInfo forkInfo;
             forkInfo.vertexId = vertexId;
@@ -259,7 +259,7 @@ void AssemblyGraph::createForks()
             copy(outgoingEdges.begin(), outgoingEdges.end(), back_inserter(forkInfo.edgeIds));
             forkInfos.push_back(forkInfo);
         }
-        const MemoryAsContainer<EdgeId> incomingEdges = edgesByTarget[vertexId];
+        const span<EdgeId> incomingEdges = edgesByTarget[vertexId];
         if(incomingEdges.size() > 1) {
             ForkInfo forkInfo;
             forkInfo.vertexId = vertexId;
@@ -321,7 +321,7 @@ void AssemblyGraph::createForks()
 
 
 
-MemoryAsContainer<AssemblyGraph::EdgeId> AssemblyGraph::getForkEdges(uint64_t forkId)
+span<AssemblyGraph::EdgeId> AssemblyGraph::getForkEdges(uint64_t forkId)
 {
     const Fork& fork = forks[forkId];
     if(fork.isForward) {

@@ -614,7 +614,7 @@ void PostData::constructFormData()
         const string name = content.substr(nameBegin, nameEnd-nameBegin);
         // cout << "Name is ***" << name << "***" << endl;
 
-        formData.insert(make_pair(name, MemoryAsContainer<const char>(
+        formData.insert(make_pair(name, span<const char>(
             content.data() + dataBegin,
             content.data() + dataEnd)));
 

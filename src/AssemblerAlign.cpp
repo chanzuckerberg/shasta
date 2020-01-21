@@ -438,7 +438,7 @@ void Assembler::computeAlignmentTable()
             const OrientedReadId orientedReadId0(readId0, strand0);
 
             // Access the section of the alignment table for this oriented read.
-            const MemoryAsContainer<uint32_t> alignmentTableSection =
+            const span<uint32_t> alignmentTableSection =
                 alignmentTable[orientedReadId0.getValue()];
 
             // Store pairs(OrientedReadId, alignmentIndex).
@@ -896,3 +896,171 @@ uint32_t Assembler::countCommonMarkersWithOffsetIn(
 
     return count;
 }
+
+
+
+// Check if an alignment between two reads should be suppressed,
+// bases on the setting of command line option
+// --Align.sameChannelReadAlignment.suppressDeltaThreshold.
+bool Assembler::suppressAlignment(
+    ReadId readId0,
+    ReadId readId1,
+    uint64_t delta)
+{
+
+    // If the ch meta data fields of the two reads are missing or different,
+    // don't suppress the alignment.
+    // Check the channel first for efficiency,
+    // so we can return faster in most cases.
+    const auto ch0 = getMetaData(readId0, "ch");
+    if(ch0.empty()) {
+        return false;
+    }
+    const auto ch1 = getMetaData(readId1, "ch");
+    if(ch1.empty()) {
+        return false;
+    }
+    if(ch0 not_eq ch1) {
+        return false;
+    }
+
+
+
+    // If the sampleid meta data fields of the two reads are missing or different,
+    // don't suppress the alignment.
+    const auto sampleid0 = getMetaData(readId0, "sampleid");
+    if(sampleid0.empty()) {
+        return false;
+    }
+    const auto sampleid1 = getMetaData(readId1, "sampleid");
+    if(sampleid1.empty()) {
+        return false;
+    }
+    if(sampleid0 not_eq sampleid1) {
+        return false;
+    }
+
+
+
+    // If the runid meta data fields of the two reads are missing or different,
+    // don't suppress the alignment.
+    const auto runid0 = getMetaData(readId0, "runid");
+    if(runid0.empty()) {
+        return false;
+    }
+    const auto runid1 = getMetaData(readId1, "runid");
+    if(runid1.empty()) {
+        return false;
+    }
+    if(runid0 not_eq runid1) {
+        return false;
+    }
+
+    // cout << "Checking " << readId0 << " " << readId1 << endl;
+
+
+    // If the read meta data fields of the two reads are missing,
+    // don't suppress the alignment.
+    const auto read0 = getMetaData(readId0, "read");
+    if(read0.empty()) {
+        return false;
+    }
+    const auto read1 = getMetaData(readId1, "read");
+    if(read1.empty()) {
+        return false;
+    }
+    // cout << read0 << " " << read1 << endl;
+
+
+
+    // Convert the read meta data fields to integers.
+    // Keep in mind the span<char> is not null-terminated.
+    const int64_t r0 = int64_t(atoul(read0));
+    const int64_t r1 = int64_t(atoul(read1));
+    // cout << r0 << " " << r1 << endl;
+
+
+
+    // Suppress the alignment if the absolute difference of the
+    // read meta data fields is less than delta.
+    return abs(r0 - r1) < int64_t(delta);
+
+}
+
+
+
+// Remove all alignment candidates for which suppressAlignment
+// returns false.
+void Assembler::suppressAlignmentCandidates(
+    uint64_t delta,
+    size_t threadCount)
+{
+    cout << timestamp << "Suppressing alignment candidates." << endl;
+
+    // Allocate memory for flags to keep track of which alignments
+    // should be suppressed.
+
+    suppressAlignmentCandidatesData.suppress.createNew(
+        largeDataName("tmp-suppressAlignmentCandidates"), largeDataPageSize);
+    const uint64_t candidateCount = alignmentCandidates.candidates.size();
+    suppressAlignmentCandidatesData.suppress.resize(candidateCount);
+
+    // Figure out which candidates should be suppressed.
+    suppressAlignmentCandidatesData.delta = delta;
+    const uint64_t batchSize = 10000;
+    setupLoadBalancing(alignmentCandidates.candidates.size(), batchSize);
+    runThreads(&Assembler::suppressAlignmentCandidatesThreadFunction, threadCount);
+
+    // Suppress the alignment candidates we flagged.
+    cout << "Number of alignment candidates before suppression is " << candidateCount << endl;
+    uint64_t j = 0;
+    uint64_t suppressCount = 0;
+    for(uint64_t i=0; i<candidateCount; i++) {
+        if(suppressAlignmentCandidatesData.suppress[i]) {
+            ++suppressCount;
+            const ReadId readId0 = alignmentCandidates.candidates[i].readIds[0];
+            const ReadId readId1 = alignmentCandidates.candidates[i].readIds[1];
+            cout << "Suppressing alignment candidate " <<
+                readId0 << " " <<
+                readId1 << " " <<
+                int(alignmentCandidates.candidates[i].isSameStrand) << endl;
+            cout << readId0 << " " << readNames[readId0] << " " << readMetaData[readId0] << endl;
+            cout << readId1 << " " << readNames[readId1] << " " << readMetaData[readId1] << endl;
+        } else {
+            alignmentCandidates.candidates[j++] =
+                alignmentCandidates.candidates[i];
+        }
+    }
+    SHASTA_ASSERT(j + suppressCount == candidateCount);
+    alignmentCandidates.candidates.resize(j);
+    cout << "Suppressed " << suppressCount << " alignment candidates." << endl;
+    cout << "Number of alignment candidates after suppression is " << candidateCount << endl;
+
+
+    // Clean up.
+    suppressAlignmentCandidatesData.suppress.remove();
+
+    cout << timestamp << "Done suppressing alignment candidates." << endl;
+}
+
+
+
+void Assembler::suppressAlignmentCandidatesThreadFunction(size_t threadId)
+{
+    const uint64_t delta = suppressAlignmentCandidatesData.delta;
+
+    // Loop over batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over candidate alignments in this batch.
+        for(uint64_t i=begin; i!=end; i++) {
+            const OrientedReadPair& p = alignmentCandidates.candidates[i];
+            // cout << "Checking " << p.readIds[0] << " " << p.readIds[1] <<  " " << int(p.isSameStrand) << endl;
+            suppressAlignmentCandidatesData.suppress[i] =
+                suppressAlignment(p.readIds[0], p.readIds[1], delta);
+        }
+
+    }
+}
+

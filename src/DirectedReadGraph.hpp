@@ -104,10 +104,18 @@ public:
     DirectedReadGraphBaseClass::EdgeId reverseComplementedEdgeId =
         DirectedReadGraphBaseClass::invalidEdgeId;
 
+
+
     // Edge flags.
     uint8_t involvesTwoContainedVertices : 1;
     uint8_t involvesOneContainedVertex : 1;
     uint8_t keep : 1;
+
+    // Flag set if this is a confict edge.
+    // That is, if the two vertices are in the same
+    // connected of the conflict read  graph, but have
+    // different colors.
+    uint8_t isConflict : 1;
 
     // Constructors.
     DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
@@ -125,6 +133,7 @@ public:
         involvesTwoContainedVertices = 0;
         involvesOneContainedVertex = 0;
         keep = 0;
+        isConflict = 0;
     }
 };
 
@@ -163,10 +172,105 @@ public:
         uint64_t maxOffsetAtCenter,
         double minAlignedFraction,
         bool allowEdgesNotKept,
+        bool excludeConflictEdges,
         double timeout,
         LocalDirectedReadGraph&);
 
     void writeEdges();
+
+
+
+    // Find adjacent vertices (parent + children) of a given vertex,
+    // considering only edges that were kept.
+    // Return them without duplicates and sorted by VertexId.
+    vector<VertexId> findKeptAdjacent(VertexId v)
+    {
+        vector<VertexId> adjacent;
+
+        // Children.
+        for(EdgeId edgeId: edgesBySource[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(target(edgeId));
+            }
+        }
+
+        // Parents.
+        for(EdgeId edgeId: edgesByTarget[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(source(edgeId));
+            }
+        }
+
+        // Return them without duplicates and sorted by VertexId.
+        deduplicate(adjacent);
+        return adjacent;
+    }
+
+
+
+    // Same as above, but use a reference argument instead of returning by value.
+    void findKeptAdjacent(VertexId v, vector<VertexId>& adjacent)
+    {
+        adjacent.clear();
+
+        // Children.
+        for(EdgeId edgeId: edgesBySource[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(target(edgeId));
+            }
+        }
+
+        // Parents.
+        for(EdgeId edgeId: edgesByTarget[v]) {
+            if(getEdge(edgeId).keep) {
+                adjacent.push_back(source(edgeId));
+            }
+        }
+
+        // Return them without duplicates and sorted by VertexId.
+        deduplicate(adjacent);
+    }
+
+
+
+    // Return common adjacent vertices of two given vertices,
+    // considering only edges that were kept.
+    // Return them without duplicates and sorted by VertexId.
+    vector<VertexId> findCommonKeptAdjacent(VertexId v0, VertexId v1)
+    {
+        const vector<VertexId> adjacent0 = findKeptAdjacent(v0);
+        const vector<VertexId> adjacent1 = findKeptAdjacent(v1);
+
+        // Find common adjacent vertices.
+        vector<VertexId> commonAdjacent;
+        std::set_intersection(
+            adjacent0.begin(), adjacent0.end(),
+            adjacent1.begin(), adjacent1.end(),
+            back_inserter(commonAdjacent)
+            );
+
+        return commonAdjacent;
+    }
+
+    // Return the number of edges flagged as "keep" and which
+    // have a given vertex as source or target.
+    uint64_t keptDegree(VertexId v) const
+    {
+        uint64_t n = 0 ;
+        for(const EdgeId e: edgesBySource[v]) {
+            if(getEdge(e).keep) {
+                ++n;
+            }
+        }
+        for(const EdgeId e: edgesByTarget[v]) {
+            if(getEdge(e).keep) {
+                ++n;
+            }
+        }
+        return n;
+    }
+
+
 
 private:
 
@@ -184,17 +288,22 @@ private:
             uint64_t minAlignedMarkerCount,
             uint64_t maxTwiceOffsetAtCenter,
             double minAlignedFraction,
-            bool allowEdgesNotKept) :
+            bool allowEdgesNotKept,
+            bool excludeConflictEdges) :
 
             minAlignedMarkerCount(minAlignedMarkerCount),
             maxTwiceOffsetAtCenter(maxTwiceOffsetAtCenter),
             minAlignedFraction(minAlignedFraction),
-            allowEdgesNotKept(allowEdgesNotKept)
+            allowEdgesNotKept(allowEdgesNotKept),
+            excludeConflictEdges(excludeConflictEdges)
             {}
 
         bool allowEdge(EdgeId edgeId, const Edge& edge) const
         {
             if(not allowEdgesNotKept and not edge.keep) {
+                return false;
+            }
+            if(excludeConflictEdges and edge.isConflict) {
                 return false;
             }
             return
@@ -211,6 +320,7 @@ private:
         double minAlignedFraction;
 
         bool allowEdgesNotKept;
+        bool excludeConflictEdges;
     };
 
 

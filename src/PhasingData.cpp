@@ -22,9 +22,9 @@ double PhasingData::computePhasingSimilarity(
 {
     // Access the oriented reads internals to these
     // assembly graph edges.
-    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
+    const span<OrientedReadId> orientedReadIds0 =
         orientedReads[edgeId0];
-    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
+    const span<OrientedReadId> orientedReadIds1 =
         orientedReads[edgeId1];
 
     // Compute the size of the intersection
@@ -55,9 +55,9 @@ uint64_t PhasingData::countCommonInternalOrientedReads(
 {
     // Access the oriented reads internals to these
     // assembly graph edges
-    const MemoryAsContainer<OrientedReadId> orientedReadIds0 =
+    const span<OrientedReadId> orientedReadIds0 =
         orientedReads[edgeId0];
-    const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
+    const span<OrientedReadId> orientedReadIds1 =
         orientedReads[edgeId1];
 
     // Count the number of common oriented reads.
@@ -92,12 +92,12 @@ void PhasingData::gatherRelatedAssemblyGraphEdges(uint64_t minCommonReadCount)
         edges.clear();
 
         // Loop over the oriented reads internal to this edge.
-        const MemoryAsContainer<OrientedReadId> orientedReadIds0 = orientedReads[e0];
+        const span<OrientedReadId> orientedReadIds0 = orientedReads[e0];
         for(const OrientedReadId orientedReadId: orientedReadIds0) {
 
             // Loop over the assembly graph edges that this oriented
             // read is internal to.
-            const MemoryAsContainer<EdgeId> edges1 = assemblyGraphEdges[orientedReadId.getValue()];
+            const span<EdgeId> edges1 = assemblyGraphEdges[orientedReadId.getValue()];
             for(const EdgeId e1: edges1) {
                 if(e1 != e0) {
                     edges.push_back(e1);
@@ -209,9 +209,9 @@ double PhasingData::computePhasingSimilarity(
 
     // Access the assembly graph edges that these two oriented reads
     // are internal to.
-    const MemoryAsContainer<EdgeId> edges0 =
+    const span<EdgeId> edges0 =
         assemblyGraphEdges[orientedReadId0.getValue()];
-    const MemoryAsContainer<EdgeId> edges1 =
+    const span<EdgeId> edges1 =
         assemblyGraphEdges[orientedReadId1.getValue()];
 
     // Count the number of common assembly graph edges.
@@ -266,12 +266,12 @@ void PhasingData::findSimilarPairs(
     // Store in the orientedReadIds vector
     // all oriented reads with readId>readId0
     // that share at least one assembly graph edge with orientedReadId0.
-    const MemoryAsContainer<EdgeId> edges0 = assemblyGraphEdges[orientedReadId0.getValue()];
+    const span<EdgeId> edges0 = assemblyGraphEdges[orientedReadId0.getValue()];
     orientedReadIds.clear();
     for(const EdgeId edge0: edges0) {
 
         // Loop over oriented read ids internal to this edge.
-        const MemoryAsContainer<OrientedReadId> orientedReadIds1 =
+        const span<OrientedReadId> orientedReadIds1 =
             orientedReads[edge0];
         for(const OrientedReadId orientedReadId1: orientedReadIds1) {
             if(orientedReadId1.getReadId() > readId0) {
@@ -360,9 +360,9 @@ pair<uint64_t, uint64_t> PhasingData::countCommonTurns(
     uint64_t discordantCount = 0;
 
     // Access the turns of these two oriented reads.
-    const MemoryAsContainer<Turn> turns0 =
+    const span<Turn> turns0 =
         turns[orientedReadId0.getValue()];
-    const MemoryAsContainer<Turn> turns1 =
+    const span<Turn> turns1 =
         turns[orientedReadId1.getValue()];
 
     // Iterate over common turns.

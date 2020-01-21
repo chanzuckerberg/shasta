@@ -6,10 +6,12 @@
 #include "AlignmentCandidates.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
+#include "ConflictReadGraph.hpp"
 #include "Coverage.hpp"
 #include "DirectedReadGraph.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "HttpServer.hpp"
+#include "InducedAlignment.hpp"
 #include "Kmer.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
@@ -47,7 +49,6 @@ namespace shasta {
     class AssemblerOptions;
     class AssembledSegment;
     class ConsensusCaller;
-    class InducedAlignment;
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
@@ -169,12 +170,6 @@ public:
 
     // Add reads.
     // The reads in the specified file are added to those already previously present.
-    void addReadsFromFasta(
-        const string& fileName,
-        size_t minReadLength,
-        size_t blockSize,
-        size_t threadCountForReading,
-        size_t threadCountForProcessing);
     void addReads(
         const string& fileName,
         size_t minReadLength,
@@ -589,6 +584,7 @@ public:
 private:
     void checkReadsAreOpen() const;
     void checkReadNamesAreOpen() const;
+    void checkReadMetaDataAreOpen() const;
     void checkReadId(ReadId) const;
 
 
@@ -662,6 +658,17 @@ private:
     // back to its origin.
     MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
 
+    // Read meta data. This is the information following the read name
+    // in the header line for fasta and fastq files.
+    // Indexed by ReadId.
+    MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
+
+    // Return a meta data field for a read, or an empty string
+    // if that field is missing. This treats the meta data
+    // as a space separated sequence of Key=Value,
+    // without embedded spaces in each Key=Value pair.
+    span<char> getMetaData(ReadId, const string& key);
+
     // Function to write a read in Fasta format.
     void writeRead(ReadId, ostream&);
     void writeOrientedRead(OrientedReadId, ostream&);
@@ -730,6 +737,10 @@ public:
 
         size_t threadCount
     );
+
+    // Read the k-mers from file.
+    void readKmersFromFile(uint64_t k, const string& fileName);
+
 private:
     void computeKmerFrequency(size_t threadId);
     void initializeKmerTable();
@@ -791,6 +802,25 @@ private:
     FlagPalindromicReadsData flagPalindromicReadsData;
 
 
+    // Check if an alignment between two reads should be suppressed,
+    // bases on the setting of command line option
+    // --Align.sameChannelReadAlignment.suppressDeltaThreshold.
+    bool suppressAlignment(ReadId, ReadId, uint64_t delta);
+
+    // Remove all alignment candidates for which suppressAlignment
+    // returns false.
+public:
+    void suppressAlignmentCandidates(uint64_t delta, size_t threadCount);
+private:
+    class SuppressAlignmentCandidatesData {
+    public:
+        uint64_t delta;
+        MemoryMapped::Vector<bool> suppress; // For each alignment candidate.
+    };
+    SuppressAlignmentCandidatesData suppressAlignmentCandidatesData;
+    void suppressAlignmentCandidatesThreadFunction(size_t threadId);
+
+
 
     // Alignment candidates found by the LowHash algorithm.
     // They all have readId0<readId1.
@@ -807,7 +837,10 @@ public:
     void findAlignmentCandidatesLowHash0(
         size_t m,                       // Number of consecutive k-mers that define a feature.
         double hashFraction,            // Low hash threshold.
-        size_t minHashIterationCount,   // Number of lowHash iterations.
+        // Iteration control. See MinHashOptions for details.
+        size_t minHashIterationCount,
+        double alignmentCandidatesPerRead,
+
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
         size_t minBucketSize,           // The minimum size for a bucket to be used.
         size_t maxBucketSize,           // The maximum size for a bucket to be used.
@@ -817,7 +850,7 @@ public:
     void findAlignmentCandidatesLowHash1(
         size_t m,                       // Number of consecutive k-mers that define a feature.
         double hashFraction,            // Low hash threshold.
-        size_t minHashIterationCount,   // Number of lowHash iterations.
+        size_t minHashIterationCount,
         size_t log2MinHashBucketCount,  // Base 2 log of number of buckets for lowHash.
         size_t minBucketSize,           // The minimum size for a bucket to be used.
         size_t maxBucketSize,           // The maximum size for a bucket to be used.
@@ -1066,6 +1099,7 @@ public:
         uint64_t uncontainedNeighborCountPerDirection);
     void accessDirectedReadGraphReadOnly();
     void accessDirectedReadGraphReadWrite();
+    void markDirectedReadGraphConflictEdges();
 
 
 
@@ -1316,38 +1350,98 @@ private:
         InducedAlignment&
     );
 
+    // Compute induced alignments between an oriented read orientedReadId0
+    // and the oriented reads stored sorted in orientedReadIds1.
+    void computeInducedAlignments(
+        OrientedReadId orientedReadId0,
+        const vector<OrientedReadId>& orientedReadIds1,
+        vector<InducedAlignment>& inducedAlignments);
+
+    // Evaluate an induced alignment.
+    // Contrary to InducedAlignment::evaluate, this takes into account
+    // markers that don't correspond to a marker graph vertex.
+    bool evaluateInducedAlignment(
+        OrientedReadId orientedReadId0,
+        OrientedReadId orientgedReadId1,
+        const InducedAlignment&,
+        const InducedAlignmentCriteria&,
+        vector<bool>& work0,
+        vector<bool>& work1);
 
 
-    // Find all pairs of incompatible reads that involve a given read.
-    // A pair of reads is incompatible if it has a "bad" induced alignment.
-    // See InducedAlignment.hpp for more information.
-private:
-    void findIncompatibleReadPairs(
-        ReadId readId0,
 
-        // If true, only consider ReadId's readid1<readId0.
-        bool onlyConsiderLowerReadIds,
-
-        // If true, skip pairs that are in the read graph.
-        // Those are already known to have a good induced alignment
-        // by construction.
-        bool skipReadGraphEdges,
-
-        // The incompatible pairs found.
-        vector<OrientedReadPair>& incompatiblePairs);
+    // Conflict read graph.
+    // See ConflictReadGraph.hpp for more information.
 public:
-    // Python-callable overload.
-    vector<OrientedReadPair> findIncompatibleReadPairs(
-        ReadId readId0,
-
-        // If true, only consider ReadId's readid1<readId0.
-        bool onlyConsiderLowerReadIds,
-
-        // If true, skip pairs that are in the read graph.
-        // Those are already known to have a good induced alignment
-        // by construction.
-        bool skipReadGraphEdges);
+    void createConflictReadGraph(
+        uint64_t threadCount,
+        uint32_t maxOffsetSigma,
+        uint32_t maxTrim,
+        uint32_t maxSkip);
+    void accessConflictReadGraph();
+    void colorConflictReadGraph();
 private:
+    void createConflictReadGraphThreadFunction(size_t threadId);
+    void addConflictGraphEdges(
+        ReadId,
+        const InducedAlignmentCriteria&,
+        // Work areas.
+        vector<OrientedReadId>&,
+        vector<OrientedReadId>&,
+        vector<InducedAlignment>&,
+        vector<bool>&,
+        vector<bool>&
+        );
+    class CreateConflictReadGraphData {
+    public:
+        InducedAlignmentCriteria inducedAlignmentCriteria;
+    };
+    CreateConflictReadGraphData createConflictReadGraphData;
+    ConflictReadGraph conflictReadGraph;
+
+
+
+    // Class used by colorConflictReadGraph.
+    // It creates a priority_queue containing this type.
+    class ColorConflictReadGraphData {
+    public:
+        DirectedReadGraph::VertexId vertexId;
+        uint64_t conflictReadGraphDegree;
+        uint64_t directedReadGraphKeptDegree;
+
+        ColorConflictReadGraphData(
+            DirectedReadGraph::VertexId,
+            const DirectedReadGraph&,
+            const ConflictReadGraph&);
+
+        // Used for sorting, so values with low conflict degree come first.
+        bool operator <(const ColorConflictReadGraphData& that) const
+        {
+            return
+                conflictReadGraphDegree < that.conflictReadGraphDegree
+                or
+                (
+                    conflictReadGraphDegree == that.conflictReadGraphDegree
+                    and
+                    directedReadGraphKeptDegree > that.directedReadGraphKeptDegree
+                );
+        }
+
+        // Used for sorting, so values with low conflict degree
+        // are at the top of the queue.
+        bool operator>(const ColorConflictReadGraphData& that) const
+        {
+            return
+                conflictReadGraphDegree > that.conflictReadGraphDegree
+                or
+                (
+                    conflictReadGraphDegree == that.conflictReadGraphDegree
+                    and
+                    directedReadGraphKeptDegree < that.directedReadGraphKeptDegree
+                );
+        }
+    };
+
 
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1655,8 +1749,8 @@ private:
     // Construct the CIGAR string given two vectors of repeat counts.
     // Used by writeGfa1.
     static void constructCigarString(
-        const MemoryAsContainer<uint8_t>& repeatCounts0,
-        const MemoryAsContainer<uint8_t>& repeatCounts1,
+        const span<uint8_t>& repeatCounts0,
+        const span<uint8_t>& repeatCounts1,
         string&
         );
 
@@ -1682,6 +1776,16 @@ public:
         const string& title,
         const vector<pair <string, string> >&) const;
     static void writeStyle(ostream& html);
+    static void writePngToHtml(
+        ostream& html,
+        const string& pngFileName,
+        const string useMap = ""
+        );
+    static void writeGnuPlotPngToHtml(
+        ostream& html,
+        int width,
+        int height,
+        const string& gnuplotCommands);
 
 #ifdef SHASTA_HTTP_SERVER
 
@@ -1755,6 +1859,7 @@ public:
         LocalMarkerGraphRequestParameters&) const;
     void exploreMarkerGraphVertex(const vector<string>&, ostream&);
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
+    void exploreMarkerCoverage(const vector<string>&, ostream&);
     void exploreMarkerGraphInducedAlignment(const vector<string>&, ostream&);
 #endif
 
