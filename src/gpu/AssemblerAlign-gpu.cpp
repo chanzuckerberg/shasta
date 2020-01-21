@@ -271,7 +271,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             }
 
             // find alignments on GPU
-            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, maxDrift, (last-first), numPos, numReads, batch_rid_marker_pos, batch_read_pairs, h_alignments, h_num_traceback);
+            shasta_alignBatchGPU (maxMarkerFrequency, maxSkip, maxDrift, (last-first), numPos, numReads, batch_rid_marker_pos, batch_read_pairs, h_alignments, h_num_traceback, false);
 
             // Print progress
             size_t currNumComputedAlignments = __sync_fetch_and_add(&numComputedAlignments, last-first);
@@ -286,14 +286,28 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             for (size_t i=first; i<last; i++) {
                 auto candidate = alignmentCandidates.candidates[i];
                 alignment.ordinals.clear();
-                size_t last_addr = (i-first)*SHASTA_MAX_TB+h_num_traceback[i-first];
-                for (size_t j=1; j<=h_num_traceback[i-first]; j++) {
-                    uint32_t v = h_alignments[last_addr-j];
-                    uint32_t l, u;
-                    l = ((v << 16) >> 16);
-                    u = (v >> 16);
-                    alignment.ordinals.push_back(
-                            array<uint32_t, 2>({(u-1), (l-1)}));
+                size_t last_addr = (i-first)*2+2;
+                if (h_num_traceback[i-first] >= 2) {
+                    {
+                        uint32_t v = h_alignments[last_addr-1];
+                        uint32_t l, u;
+                        l = ((v << 16) >> 16);
+                        u = (v >> 16);
+                        alignment.ordinals.push_back(
+                                array<uint32_t, 2>({(u-1), (l-1)}));
+                    }
+                    for (size_t j=0; j<h_num_traceback[i-first]-2; j++) {
+                        alignment.ordinals.push_back(
+                                array<uint32_t, 2>({0, 0}));
+                    }
+                    {
+                        uint32_t v = h_alignments[last_addr-2];
+                        uint32_t l, u;
+                        l = ((v << 16) >> 16);
+                        u = (v >> 16);
+                        alignment.ordinals.push_back(
+                                array<uint32_t, 2>({(u-1), (l-1)}));
+                    }
                 }
                 // Re-evaluate this alignment on CPU which likely failed on GPU
                 if (alignment.ordinals.size() == 0) {

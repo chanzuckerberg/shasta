@@ -36,8 +36,10 @@ uint32_t** d_num_traceback;
 uint64_t** d_common_markers;
 uint32_t** d_num_common_markers;
 uint64_t** d_batch_rid_markers;
+uint64_t** d_rid_marker_pos;
 
 using namespace shasta;
+
 
 __global__
 void initialize_batch_rid_markers (uint64_t* batch_rid_markers, uint32_t num_unique_markers, uint32_t batch_size) {
@@ -68,13 +70,13 @@ void skip_high_frequency_markers (uint64_t maxMarkerFrequency, uint32_t num_uniq
     int bs = blockDim.x;
     int bx = blockIdx.x;
     
-    __shared__ uint16_t prefix[1+BAND_SIZE];
     __shared__ uint64_t s, e;
     
+    uint16_t sum = 0;
+    uint16_t prev_sum = 0;
     uint64_t m_mask = ((uint64_t) 1 << 32) - 1;
 
     if (tx == 0) {
-        prefix[0] = 0;
         s = index_table[bx*num_unique_markers];
         e = index_table[(bx+1)*num_unique_markers];
     }
@@ -86,7 +88,7 @@ void skip_high_frequency_markers (uint64_t maxMarkerFrequency, uint32_t num_uniq
         uint64_t marker = ((v >> SHASTA_LOG_MAX_MARKERS_PER_READ) & m_mask);
         uint64_t sm=0, em=0;
 
-        prefix[1+tx] = 0;
+        sum = prev_sum;
         if (idx < e) {
             uint64_t v = rid_marker_pos[idx];
             marker = ((v >> SHASTA_LOG_MAX_MARKERS_PER_READ) & m_mask);
@@ -94,25 +96,29 @@ void skip_high_frequency_markers (uint64_t maxMarkerFrequency, uint32_t num_uniq
             sm = index_table[bx*num_unique_markers+marker];
             em = index_table[bx*num_unique_markers+marker+1];
             if ((em-sm) <= maxMarkerFrequency) {
-                prefix[1+tx] = 1;
+                sum += 1;
             }
         }
 
         __syncthreads();
-        if (tx == 0) {
-            for (int k = 0; k < bs; k++)
-            {
-                prefix[1+k] += prefix[k];
+
+        for (int s = 1; s <= bs; s *= 2) {
+            int val = __shfl_up_sync(0xffffffff, sum, s, bs);
+
+            if (tx >= s) {
+                sum += val;
             }
         }
+            
         __syncthreads();
 
         if (idx < e) {
-            adjusted_pos[idx] = prefix[tx];
+            adjusted_pos[idx] = sum;
         }
         
+        int prev = __shfl_down_sync(0xffffffff, sum, bs-1, bs);
         if (tx == 0) {
-            prefix[0] = prefix[bs];
+            prev_sum = prev;
         }
 
         __syncthreads();
@@ -186,6 +192,8 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
 
                 uint32_t mhs = prefix[tx];
                 uint32_t mhe = prefix[1+tx];
+                
+                __syncthreads();
 
                 for (uint64_t k1 = 0; k1 < (mhe-mhs); k1++) {
                     if (mhs+k1 < (i+1)*SHASTA_MAX_COMMON_MARKERS_PER_READ) {
@@ -201,7 +209,6 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
                     }
                 }
 
-                __syncthreads();
 
                 if (tx == 0) {
                     prefix[tx] = prefix[BLOCK_SIZE];
@@ -221,16 +228,15 @@ void find_common_markers (uint64_t maxMarkerFrequency, uint64_t n, uint32_t num_
 }
 
 __global__
-void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uint64_t* d_common_markers, uint32_t* d_num_common_markers, uint32_t* d_score_pos, uint32_t* d_alignments, uint32_t* d_num_traceback) {
+void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uint64_t const * __restrict__ d_common_markers, uint32_t const*  __restrict__ d_num_common_markers, uint32_t* d_score_pos, uint32_t* d_alignments, uint32_t* d_num_traceback, bool get_complete_traceback) {
     int tx = threadIdx.x;
     int bs = blockDim.x;
     int bx = blockIdx.x;
     int gs = gridDim.x;
 
-    __shared__ float score[BAND_SIZE];
-    __shared__ uint32_t score_pos[BAND_SIZE];
-    __shared__ int num_common_markers;
-    __shared__ bool stop_shared;
+    float score;
+    uint32_t score_pos;
+    int num_common_markers;
 
     uint64_t p_mask = ((uint64_t) 1 << SHASTA_LOG_MAX_MARKERS_PER_READ) - 1;
 
@@ -240,35 +246,37 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
         uint32_t addr1 = i*SHASTA_MAX_COMMON_MARKERS_PER_READ;
         uint32_t addr2 = bx*SHASTA_MAX_COMMON_MARKERS_PER_READ;
         uint32_t addr3 = i*SHASTA_MAX_TB;
-
-        if (tx == 0) {
-            num_common_markers = d_num_common_markers[i];
-            if (num_common_markers >= SHASTA_MAX_COMMON_MARKERS_PER_READ) {
-                num_common_markers = 0;
-            }
-            d_alignments[addr3] = 0;
+        if (!get_complete_traceback) {
+            addr3 = 2*i;
         }
-        score[tx] = 0;
+
+        num_common_markers = d_num_common_markers[i];
+        if (num_common_markers >= SHASTA_MAX_COMMON_MARKERS_PER_READ) {
+            num_common_markers = 0;
+        }
 
         __syncthreads();
 
         for (int p = 0; p < num_common_markers; p++) {
-            uint64_t v = d_common_markers[addr1+p];
+//            uint64_t v =  __ldg(&d_common_markers[addr1+p]);
+            uint64_t v =  d_common_markers[addr1+p];
+            
             uint64_t l = ((v >> 32) & p_mask);
             uint64_t u = ((v >> 48) & p_mask);
-
-            int ptr = p - tx - 1;
-
-            score[tx] = 0.01;
-            score_pos[tx] = p;
+            
+            score = 0.01;
+            score_pos = p;
+            
+            int ptr = p + tx;
 
             bool stop = false;
             __syncthreads();
 
             while (!stop) {
-                uint64_t l1, u1;
+                ptr -= bs;
                 if (ptr >= 0) {
                     uint64_t v1 = d_common_markers[addr1+ptr];
+                    uint64_t l1, u1;
                     l1 = ((v1 >> 32) & p_mask);
                     u1 = ((v1 >> 48) & p_mask);
                     float a = l-l1;
@@ -276,43 +284,43 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
                     float alpha = fabs(a-b);
                     if ((l1 < l) && (u1 < u) && (u-u1 <= maxSkip) && (l-l1 <= maxSkip) && (alpha <= maxDrift)) {
                         float pscore = d_score[addr2+ptr]+1;
-                        if (score[tx] < pscore) { 
-                            score[tx] = pscore;
-                            score_pos[tx] = ptr;
+                        if (score < pscore) { 
+                            score = pscore;
+                            score_pos = ptr;
                         }
                     }
-                }
-                ptr -= bs;
-                if (tx == bs-1) {
-                    if ((ptr < 0) || (l > l1+maxSkip))  {
-                        stop_shared = true;
-                    }
-                    else {
-                        stop_shared = false;
+
+                    if (l > l1+maxSkip)  {
+                        stop = true;
                     }
                 }
-                __syncthreads();
-                stop = stop_shared;
+                else {
+                    stop = true;
+                }
+                
+                stop = __shfl_sync(0xffffffff, stop, 0);
             }
 
             __syncthreads();
 
             // parallel reduction (max)
-            for(unsigned int s = 1; s < bs; s *= 2) {
-                if (tx % (2*s) == 0) {
-                    if (score[tx] < score[tx+s]) { 
-                        score[tx] = score[tx + s];
-                        score_pos[tx] = score_pos[tx + s];
+            for (int s = 1; s <= bs; s *= 2) {
+                float val = __shfl_up_sync(0xffffffff, score, s, bs);
+                uint32_t val_pos = __shfl_up_sync(0xffffffff, score_pos, s, bs);
+
+                if (tx >= s) {
+                    if (val > score) {
+                        score = val;
+                        score_pos = val_pos; 
                     }
                 }
-                __syncthreads();
             }
             
-            if (tx == 0) {
-                d_score[addr2+p] = score[0];
-                d_score_pos[addr2+p] = score_pos[0];
-                if (score[0] > max_score) {
-                    max_score = score[0];
+            if (tx == bs-1) {
+                d_score[addr2+p] = score;
+                d_score_pos[addr2+p] = score_pos;
+                if (score > max_score) {
+                    max_score = score;
                     max_score_pos = p;
                 }
             }
@@ -321,8 +329,9 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
 
         __syncthreads();
 
-        if (tx == 0) {
+        if (tx == bs-1) {
             int num_ptr = 0;
+            uint64_t last_common_marker = 0;
 
             if (max_score > 0) {
                 int curr_pos = max_score_pos;
@@ -331,7 +340,17 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
                 while ((curr_pos >= 0) && (prev_pos > curr_pos)) {
                     prev_pos = curr_pos;
                     if (num_ptr < SHASTA_MAX_TB) {
-                        d_alignments[addr3+num_ptr] = d_common_markers[addr1+curr_pos];
+                        if (get_complete_traceback) {
+                            d_alignments[addr3+num_ptr] = d_common_markers[addr1+curr_pos];
+                        }
+                        else {
+                            if (num_ptr == 0) {
+                                d_alignments[addr3] = d_common_markers[addr1+curr_pos];
+                            }
+                            else {
+                                last_common_marker = d_common_markers[addr1+curr_pos];
+                            }
+                        }
                     }
                     num_ptr++;
                     curr_pos = d_score_pos[addr2+curr_pos];
@@ -339,7 +358,12 @@ void find_traceback (int n, size_t maxSkip, size_t maxDrift, float* d_score, uin
             }
 
             if (num_ptr < SHASTA_MAX_TB) {
-                d_alignments[addr3+num_ptr] = 0;
+                if (get_complete_traceback) {
+                    d_alignments[addr3+num_ptr] = 0;
+                }
+                else {
+                    d_alignments[addr3+1] = last_common_marker;
+                }
                 d_num_traceback[i] = num_ptr;
             }
             else {
@@ -371,8 +395,8 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
         cudaGetDeviceProperties(&prop, i);
         device_memory = prop.totalGlobalMem;
         if (device_memory > 0xffffffff) {
-            NUM_BLOCKS = (1 << 10);
-            BATCH_SIZE = (1 << 11);
+            NUM_BLOCKS = (1 << 11);
+            BATCH_SIZE = (1 << 12);
         }
         else {
             NUM_BLOCKS = (1 << 8);
@@ -397,6 +421,7 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
     d_common_markers = (uint64_t**) malloc(nDevices*sizeof(uint64_t*));
     d_num_common_markers = (uint32_t**) malloc(nDevices*sizeof(uint32_t*));
     d_batch_rid_markers = (uint64_t**) malloc(nDevices*sizeof(uint64_t*));
+    d_rid_marker_pos = (uint64_t**) malloc(nDevices*sizeof(uint64_t*));
 
     size_t num_bytes;
 
@@ -465,13 +490,21 @@ extern "C" std::tuple<int, size_t> shasta_initializeProcessors (size_t numUnique
             throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
         }
 
+        num_bytes = (BATCH_SIZE*SHASTA_MAX_MARKERS_PER_READ)*sizeof(uint64_t);
+        if (k==0)
+            fprintf(stdout, "\t-Requesting %3.0e bytes on GPU\n", (double)num_bytes);
+        err = cudaMalloc(&d_rid_marker_pos[k], num_bytes); 
+        if (err != cudaSuccess) {
+            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
+        }
+
         initialize_batch_rid_markers<<<NUM_BLOCKS, BLOCK_SIZE>>> (d_batch_rid_markers[k], numUniqueMarkers, BATCH_SIZE);  
     }
 
     return std::make_tuple(nDevices, BATCH_SIZE);
 }
 
-extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip, size_t maxDrift, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback) {
+extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip, size_t maxDrift, size_t n, uint64_t num_pos, uint64_t num_reads, uint64_t* batch_rid_marker_pos, uint64_t* batch_read_pairs, uint32_t* h_alignments, uint32_t* h_num_traceback, bool get_complete_traceback) {
     bool report_time = false;
 
     int k = -1;
@@ -499,14 +532,22 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
     gettimeofday(&t1, NULL);
 
     try {
-        thrust::device_ptr<uint64_t> d_batch_rid_markers_ptr = thrust::device_pointer_cast(d_batch_rid_markers[k]);
+        err = cudaMemcpy(d_rid_marker_pos[k], batch_rid_marker_pos, num_pos*sizeof(uint64_t), cudaMemcpyHostToDevice);
+        if (err != cudaSuccess) {
+            throw runtime_error("Error: cudaMemcpy failed!\n");
+        }
 
-        thrust::device_vector<uint64_t> t_d_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos + num_pos);
-        thrust::device_vector<uint64_t> t_d_sorted_rid_marker_pos (batch_rid_marker_pos, batch_rid_marker_pos+num_pos);
+        thrust::device_ptr<uint64_t> d_batch_rid_markers_ptr (d_batch_rid_markers[k]);
+        thrust::device_ptr<uint64_t> d_rid_marker_pos_ptr (d_rid_marker_pos[k]);
+
+        thrust::device_vector<uint64_t> t_d_rid_marker_pos (d_rid_marker_pos_ptr, d_rid_marker_pos_ptr + num_pos);
+        thrust::device_vector<uint16_t> t_d_adjusted_pos (num_pos);
+        thrust::device_vector<uint64_t> t_d_sorted_rid_marker_pos (num_pos);
         thrust::device_vector<uint64_t> t_d_rid_markers (d_batch_rid_markers_ptr, d_batch_rid_markers_ptr+num_reads*num_unique_markers+1);
         thrust::device_vector<uint64_t> t_d_read_pairs (batch_read_pairs, batch_read_pairs+2*n);
         thrust::device_vector<uint64_t> t_d_index_table (num_reads*num_unique_markers+1);
 
+        thrust::copy (t_d_rid_marker_pos.begin(), t_d_rid_marker_pos.end(), t_d_sorted_rid_marker_pos.begin());
         thrust::sort(t_d_sorted_rid_marker_pos.begin(), t_d_sorted_rid_marker_pos.end());
 
 
@@ -519,23 +560,16 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
         gettimeofday(&t2, NULL);
 
         uint64_t* d_sorted_rid_marker_pos = thrust::raw_pointer_cast (t_d_sorted_rid_marker_pos.data());
+        uint16_t* d_adjusted_pos = thrust::raw_pointer_cast (t_d_adjusted_pos.data()); 
         uint64_t* d_rid_marker_pos = thrust::raw_pointer_cast (t_d_rid_marker_pos.data());
         uint64_t* d_index_table = thrust::raw_pointer_cast (t_d_index_table.data());
         uint64_t* d_read_pairs = thrust::raw_pointer_cast (t_d_read_pairs.data());
 
-        uint16_t* d_adjusted_pos;
-        err = cudaMalloc(&d_adjusted_pos, num_pos*sizeof(uint16_t)); 
-        if (err != cudaSuccess) {
-            throw runtime_error("GPU_ERROR: cudaMalloc failed!\n");
-        }
-
-        skip_high_frequency_markers <<< num_reads, BAND_SIZE>>> (maxMarkerFrequency, num_unique_markers, d_index_table, d_rid_marker_pos, d_sorted_rid_marker_pos, d_adjusted_pos);
+        skip_high_frequency_markers <<< num_reads, 32>>> (maxMarkerFrequency, num_unique_markers, d_index_table, d_rid_marker_pos, d_sorted_rid_marker_pos, d_adjusted_pos);
 
         find_common_markers <<<NUM_BLOCKS, BLOCK_SIZE>>> (maxMarkerFrequency, n, num_unique_markers, d_read_pairs, d_index_table, d_rid_marker_pos, d_sorted_rid_marker_pos, d_adjusted_pos, d_num_common_markers[k], d_common_markers[k]);
         
-        find_traceback <<<NUM_BLOCKS, BAND_SIZE>>>(n, maxSkip, maxDrift, d_score[k], d_common_markers[k], d_num_common_markers[k], d_score_pos[k], d_alignments[k], d_num_traceback[k]);
-
-        cudaFree(d_adjusted_pos);
+        find_traceback <<<NUM_BLOCKS, BAND_SIZE>>>(n, maxSkip, maxDrift, d_score[k], d_common_markers[k], d_num_common_markers[k], d_score_pos[k], d_alignments[k], d_num_traceback[k], get_complete_traceback);
 
     }
     catch (std::bad_alloc) {
@@ -547,9 +581,17 @@ extern "C" void shasta_alignBatchGPU (size_t maxMarkerFrequency, size_t maxSkip,
         throw runtime_error("Error: cudaMemcpy failed!\n");
     }
 
-    err = cudaMemcpy(h_alignments, d_alignments[k], n*SHASTA_MAX_TB*sizeof(uint32_t), cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess) {
-        throw runtime_error("Error: cudaMemcpy failed!\n");
+    if (get_complete_traceback) {
+        err = cudaMemcpy(h_alignments, d_alignments[k], n*SHASTA_MAX_TB*sizeof(uint32_t), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            throw runtime_error("Error: cudaMemcpy failed!\n");
+        }
+    }
+    else {
+        err = cudaMemcpy(h_alignments, d_alignments[k], 2*n*sizeof(uint32_t), cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess) {
+            throw runtime_error("Error: cudaMemcpy failed!\n");
+        }
     }
     
     {
