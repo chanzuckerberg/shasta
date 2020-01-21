@@ -380,10 +380,6 @@ public:
     // See the private section for some more not callable from Python.
     void accessMarkerGraphVertices();
 
-
-    // Get sequence of Bases for the marker vertex
-    vector<Base> getMarkerSequence (MarkerGraph::VertexId vertexid);
-
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
     // it belongs to, plus the ordinal of the marker in the oriented read.
@@ -1526,8 +1522,6 @@ private:
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount,
         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail&,
-        size_t&,
-        size_t&,
         vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
         );
 
@@ -1668,12 +1662,6 @@ private:
         uint32_t markerGraphEdgeLengthThresholdForConsensus;
         bool useMarginPhase;
         bool storeCoverageData;
-
-
-        // Keep track of the number of transitive reads and the
-        // number of edges to which transitive reads were recovered
-        size_t numTransitiveReads;
-        size_t numTransitiveEdges;
 
         // The results computed by each thread.
         // For each threadId:

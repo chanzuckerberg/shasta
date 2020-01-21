@@ -821,8 +821,6 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     vector<Base> spoaSequence;
     vector<uint32_t> spoaRepeatCounts;
     uint8_t spoaOverlappingBaseCount;
-    size_t numTransitiveReads = 0; 
-    size_t numTransitiveEdges = 0; 
     ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail spoaDetail;
     computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         edgeId,
@@ -831,8 +829,6 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         spoaRepeatCounts,
         spoaOverlappingBaseCount,
         spoaDetail,
-        numTransitiveReads,
-        numTransitiveEdges,
         0);
 
 

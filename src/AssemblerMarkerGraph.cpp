@@ -20,9 +20,6 @@ using namespace shasta;
 #include <queue>
 
 
-//Edlib
-#include "edlib.h"
-
 
 // Loop over all alignments in the read graph
 // to create vertices of the global marker graph.
@@ -1875,8 +1872,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
     // Fill in the consensus sequence for all edges.
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = 1000;
-    size_t numTransitiveReads = 0;
-    size_t numTransitiveEdges = 0;
     BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         LocalMarkerGraphEdge& edge = graph[e];
         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
@@ -1887,8 +1882,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             edge.consensusRepeatCounts,
             edge.consensusOverlappingBaseCount,
             detail,
-            numTransitiveReads,
-            numTransitiveEdges,
             0);
     }
 
@@ -3025,29 +3018,6 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
     }
 }
 
-vector<Base> Assembler::getMarkerSequence (MarkerGraph::VertexId vertexId) {
-    vector<Base> markerSequence;
-    
-    const MemoryAsContainer<MarkerId> markerIds = markerGraph.vertices[vertexId];
-    const size_t markerCount = markerIds.size();
-    SHASTA_ASSERT(markerCount > 0);
-
-    const size_t k = assemblerInfo->k;
-    
-    // Loop over all base positions of this marker.
-    for(uint32_t position=0; position<uint32_t(k); position++) {
-        
-        // Get the base .
-        auto markerId = markerIds[0];
-        const OrientedReadId orientedReadId = findMarkerId(markerId).first;
-        const uint32_t markerPosition = markers.begin()[markerId].position;
-        Base base;
-        base = getOrientedReadBase(orientedReadId, markerPosition + position);
-
-        markerSequence.push_back(base);
-    }
-    return markerSequence;
-}
 
 
 // Compute consensus sequence for an edge of the marker graph.
@@ -3064,8 +3034,6 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount,
     ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail& detail,
-    size_t& numTransitiveReads,
-    size_t& numTransitiveEdges,
     vector< pair<uint32_t, CompressedCoverageData> >* coverageData // Optional
     )
 {
@@ -3273,99 +3241,16 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     detail.assemblyMode = 2;
 
 
-    // Maximum number of edits to allow in the alignment of the marker sequence
-    // with a read on its transitive edge for recoverying that read while computing
-    // the consensus sequence
-    // Set to 0 to avoid transitive read recovery
-    int maxTransitiveMarkerEdits = 0;
-    // Maximum distance of vertices from current edge to consider for transitive
-    // edge read recovery
-    int maxTransitiveMarkerDistance = 3;
-   
-    MarkerGraph::Edge currEdge = markerGraph.edges[edgeId]; 
-
-    // Vector storing vertex ids indexed by distance of vertices to the left of the 
-    // current source vertex
-    // Index 0 stores source vertex id of the current edge
-    vector <vector<MarkerGraph::EdgeId>> leftVertexIdsByDistance(1+maxTransitiveMarkerDistance);
-    leftVertexIdsByDistance[0].push_back(currEdge.source);
-    
-    // Vector storing vertex ids indexed by distance of vertices to the right of the 
-    // current target vertex
-    // Index 0 stores target vertex id of the current edge
-    vector <vector<MarkerGraph::EdgeId>> rightVertexIdsByDistance(1+maxTransitiveMarkerDistance);
-    rightVertexIdsByDistance[0].push_back(currEdge.target);
-    
-    // Vectors for storing marker intervals of reads on left and right
-    // transitive edges. Left marker intervals store marker intervals of reads
-    // on edges from a vertex to the left of source vertex to the target vertex
-    // of current edge. Right marker intervals store marker intervals of reads
-    // on edges from the source vertex of current edge to a vertex right of the
-    // target vertex
-    vector<MarkerInterval> leftMarkerIntervals, rightMarkerIntervals;
-
-    if (maxTransitiveMarkerEdits > 0) {
-        // Breadth-first search to the left of source vertex to find
-        // left marker intervals
-        for (int i=1; i<=maxTransitiveMarkerDistance; i++) {
-            auto leftVertexIds = leftVertexIdsByDistance[i-1];
-            for (auto targetVertexId: leftVertexIds) {
-                if (targetVertexId != MarkerGraph::invalidVertexId) {
-                    for (auto eId: markerGraph.edgesByTarget[targetVertexId]) {
-                        auto leftEdge = markerGraph.edges[eId];
-                        if (!leftEdge.wasRemoved()) { 
-                            auto leftVertexId = leftEdge.source;
-                            leftVertexIdsByDistance[i].push_back(leftVertexId);
-                            // Check if this transitive edge is valid
-                            if (markerGraph.findEdge (leftVertexId, currEdge.target) > 0) {
-                                auto leftEdgeId = markerGraph.findEdgeId(leftVertexId, currEdge.target);
-                                for (auto interval : markerGraph.edgeMarkerIntervals[leftEdgeId]) {
-                                    leftMarkerIntervals.push_back(interval);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Breadth-first search to the right of target vertex to find
-        // right marker intervals
-        for (int i=1; i<=maxTransitiveMarkerDistance; i++) {
-            auto rightVertexIds = rightVertexIdsByDistance[i-1];
-            for (auto sourceVertexId: rightVertexIds) {
-                if (sourceVertexId != MarkerGraph::invalidVertexId) {
-                    for (auto eId: markerGraph.edgesBySource[sourceVertexId]) {
-                        auto rightEdge = markerGraph.edges[eId];
-                        if (!rightEdge.wasRemoved()) { 
-                            auto rightVertexId = rightEdge.target;
-                            rightVertexIdsByDistance[i].push_back(rightVertexId);
-                            // Check if this transitive edge is valid
-                            if (markerGraph.findEdge (currEdge.source, rightVertexId) > 0) {
-                                auto rightEdgeId = markerGraph.findEdgeId(currEdge.source, rightVertexId);
-                                for (auto interval : markerGraph.edgeMarkerIntervals[rightEdgeId]) {
-                                    rightMarkerIntervals.push_back(interval);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // Gather all of the intervening sequences and repeatCounts, keeping track of distinct
     // sequences. For each sequence we store a vector of i values
     // where each sequence appear.
     vector< vector<Base> > distinctSequences;
-    vector< Strand > distinctSequenceStrands(markerCount+leftMarkerIntervals.size()
-            +rightMarkerIntervals.size());
     vector< vector<size_t> >& distinctSequenceOccurrences = detail.distinctSequenceOccurrences;
     distinctSequenceOccurrences.clear();
-    vector<bool> isUsed(markerCount+leftMarkerIntervals.size()+rightMarkerIntervals.size());
+    vector<bool> isUsed(markerCount);
     vector<Base> interveningSequence;
-    vector< vector<uint8_t> > interveningRepeatCounts(markerCount+leftMarkerIntervals.size()
-            +rightMarkerIntervals.size());
+    vector< vector<uint8_t> > interveningRepeatCounts(markerCount);
     for(size_t i=0; i!=markerCount; i++) {
         const MarkerInterval& markerInterval = markerIntervals[i];
         const OrientedReadId orientedReadId = markerInterval.orientedReadId;
@@ -3386,7 +3271,6 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         }
         isUsed[i] = true;
 
-        distinctSequenceStrands[i] = orientedReadId.getStrand();
         // Construct the sequence and repeat counts between the markers.
         const uint32_t begin = position0 + k;
         const uint32_t end = position1;
@@ -3428,218 +3312,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         }
     }
 
-    if (maxTransitiveMarkerEdits > 0) {
-        size_t curr_size = markerCount;
-        for(size_t i=0; i!=leftMarkerIntervals.size(); i++) {
-            const MarkerInterval& markerInterval = leftMarkerIntervals[i];
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-            const auto orientedReadMarkers = markers[orientedReadId.getValue()];
 
-            // Get the two markers and their positions.
-            const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-            const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-            const uint32_t position0 = marker0.position;
-            const uint32_t position1 = marker1.position;
-            SHASTA_ASSERT(position1 > position0);
-            const uint32_t offset = position1 - position0;
-
-            // If the offset is too small, discard this marker interval.
-            if(offset <= k) {
-                isUsed[curr_size+i] = false;
-                continue;
-            }
-            isUsed[curr_size+i] = true;
-
-            // Construct the sequence and repeat counts between the markers.
-            const uint32_t begin = position0 + k;
-            const uint32_t end = position1;
-
-            string target="", query = "";
-            
-            // Target sequence is the sequence on marker interval
-            for(uint32_t position=begin; position!=end; position++) {
-                Base base;
-                base = getOrientedReadBase(orientedReadId, position);
-                target += base.character();
-            }
-
-            // Get marker sequence for query sequence
-            vector<Base> queryBases = getMarkerSequence (currEdge.source);
-
-            for (auto b: queryBases) {
-                query += b.character();
-            }
-            
-
-            // Align marker sequence to marker interval to find intervening
-            // sequence
-            EdlibAlignResult alignResult = edlibAlign(query.c_str(), static_cast<int> (query.size()), 
-                    target.c_str(), static_cast<int> (target.size()),
-                    edlibNewAlignConfig(maxTransitiveMarkerEdits, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
-
-            // Require unique alignment location
-            if (alignResult.numLocations != 1) {
-                continue;
-            }
-            
-            // Skip is sequence is 0-length
-            if (begin+alignResult.endLocations[0]+1 >= end) {
-                continue;
-            }
-            
-            distinctSequenceStrands[curr_size+i] = orientedReadId.getStrand();
-
-            // Sequence on marker interval to the right of alignment is used to
-            // generate interveningSequence 
-            interveningSequence.clear();
-            for(uint32_t position=begin+alignResult.endLocations[0]+1; position!=end; position++) {
-                Base base;
-                uint8_t repeatCount;
-                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-                interveningSequence.push_back(getOrientedReadBase(orientedReadId, position));
-                interveningRepeatCounts[curr_size+i].push_back(repeatCount);
-            }
-
-            edlibFreeAlignResult(alignResult);
-
-            if(debug) {
-                std::lock_guard<std::mutex> lock(mutex);
-                cout << orientedReadId << endl;
-                for(const Base base: interveningSequence) {
-                    cout << base;
-                }
-                cout << endl;
-                for(const uint8_t repeatCount: interveningRepeatCounts[curr_size+i]) {
-                    if(repeatCount < 10) {
-                        cout << int(repeatCount);
-                    } else {
-                        cout << "*";
-                    }
-                }
-                cout << endl;
-            }
-
-            // Store, making sure to check if we already encountered this sequence.
-            const auto it = find(distinctSequences.begin(), distinctSequences.end(), interveningSequence);
-            if(it == distinctSequences.end()) {
-                // We did not already encountered this sequence.
-                distinctSequences.push_back(interveningSequence);
-                distinctSequenceOccurrences.resize(distinctSequenceOccurrences.size() + 1);
-                distinctSequenceOccurrences.back().push_back(curr_size+i);
-            } else {
-                // We already encountered this sequence,
-                distinctSequenceOccurrences[it - distinctSequences.begin()].push_back(curr_size+i);
-            }
-            
-            __sync_fetch_and_add(&numTransitiveReads, 1);
-        }
-
-        curr_size = markerCount+leftMarkerIntervals.size();
-        for(size_t i=0; i!=rightMarkerIntervals.size(); i++) {
-            const MarkerInterval& markerInterval = rightMarkerIntervals[i];
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-            const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-
-            // Get the two markers and their positions.
-            const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-            const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-            const uint32_t position0 = marker0.position;
-            const uint32_t position1 = marker1.position;
-            SHASTA_ASSERT(position1 > position0);
-            const uint32_t offset = position1 - position0;
-
-            // If the offset is too small, discard this marker interval.
-            if(offset <= k) {
-                isUsed[curr_size+i] = false;
-                continue;
-            }
-            isUsed[curr_size+i] = true;
-
-            // Construct the sequence and repeat counts between the markers.
-            const uint32_t begin = position0 + k;
-            const uint32_t end = position1;
-
-            string target="", query = "";
-            
-            // Target sequence is the sequence on marker interval
-            for(uint32_t position=begin; position!=end; position++) {
-                Base base;
-                base = getOrientedReadBase(orientedReadId, position);
-                target += base.character();
-            }
-
-            // Get marker sequence for query sequence
-            vector<Base> queryBases = getMarkerSequence (currEdge.target);
-
-            for (auto b: queryBases) {
-                query += b.character();
-            }
-            
-            // Align marker sequence to marker interval to find intervening
-            // sequence
-            EdlibAlignResult alignResult = edlibAlign(query.c_str(), static_cast<int> (query.size()), 
-                    target.c_str(), static_cast<int> (target.size()),
-                    edlibNewAlignConfig(maxTransitiveMarkerEdits, EDLIB_MODE_HW, EDLIB_TASK_LOC, NULL, 0));
-
-            // Require unique alignment location
-            if (alignResult.numLocations != 1) {
-                continue;
-            }
-            
-            // Skip is sequence is 0-length
-            if (alignResult.startLocations[0] < 1) {
-                continue;
-            }
-
-            distinctSequenceStrands[curr_size+i] = orientedReadId.getStrand();
-
-            // Sequence on marker interval to the left of alignment is used to
-            // generate interveningSequence 
-            interveningSequence.clear();
-            for(uint32_t position=begin; position!=begin+alignResult.startLocations[0]; position++) {
-                Base base;
-                uint8_t repeatCount;
-                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-                interveningSequence.push_back(getOrientedReadBase(orientedReadId, position));
-                interveningRepeatCounts[curr_size+i].push_back(repeatCount);
-            }
-
-            edlibFreeAlignResult(alignResult);
-
-            if(debug) {
-                std::lock_guard<std::mutex> lock(mutex);
-                cout << orientedReadId << endl;
-                for(const Base base: interveningSequence) {
-                    cout << base;
-                }
-                cout << endl;
-                for(const uint8_t repeatCount: interveningRepeatCounts[curr_size+i]) {
-                    if(repeatCount < 10) {
-                        cout << int(repeatCount);
-                    } else {
-                        cout << "*";
-                    }
-                }
-                cout << endl;
-            }
-
-            // Store, making sure to check if we already encountered this sequence.
-            const auto it = find(distinctSequences.begin(), distinctSequences.end(), interveningSequence);
-            if(it == distinctSequences.end()) {
-                // We did not already encountered this sequence.
-                distinctSequences.push_back(interveningSequence);
-                distinctSequenceOccurrences.resize(distinctSequenceOccurrences.size() + 1);
-                distinctSequenceOccurrences.back().push_back(curr_size+i);
-            } else {
-                // We already encountered this sequence,
-                distinctSequenceOccurrences[it - distinctSequences.begin()].push_back(curr_size+i);
-            }
-            
-            __sync_fetch_and_add(&numTransitiveReads, 1);
-        }
-
-        __sync_fetch_and_add(&numTransitiveEdges, 1);
-    }
 
     // We want to enter the distinct sequences in order of decreasing frequency,
     // so we create a table of distinct sequences.
@@ -3654,7 +3327,6 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         OrderPairsBySecondOnlyGreater<size_t, uint32_t>());
 
     if(debug) {
-        std::lock_guard<std::mutex> lock(mutex);
         cout << "Distinct sequences:" << endl;
         for(size_t i=0; i<distinctSequences.size(); i++) {
             const vector<Base>& distinctSequence = distinctSequences[i];
@@ -3681,8 +3353,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
     // Find the alignment row that will correspond to each oriented read.
     detail.alignmentRow.clear();
-    detail.alignmentRow.resize(markerCount+leftMarkerIntervals.size()+
-            rightMarkerIntervals.size(), -1);
+    detail.alignmentRow.resize(markerCount, -1);
     for(size_t i=0; i<distinctSequenceTable.size(); i++) {
         const size_t indexInDistinctSequences =  distinctSequenceTable[i].first;
         const vector<size_t>& occurrences = distinctSequenceOccurrences[indexInDistinctSequences];
@@ -3754,8 +3425,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     // We loop over all positions in the alignment.
     // At each position we compute a consensus base and repeat count.
     // If the consensus bases is not '-', we store the base and repeat count.
-    vector<uint32_t> positions(markerCount+leftMarkerIntervals.size()
-            +rightMarkerIntervals.size(), 0);
+    vector<uint32_t> positions(markerCount, 0);
     for(size_t position=0; position<alignmentLength; position++) {
 
         if(debug) {
@@ -3775,19 +3445,21 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
             // Loop over the marker intervals that have this sequence.
             for(const size_t i: occurrences) {
+                const MarkerInterval& markerInterval = markerIntervals[i];
+                const OrientedReadId orientedReadId = markerInterval.orientedReadId;
                 const AlignedBase base = AlignedBase::fromCharacter(msa[j][position]);
                 if(base.isGap()) {
-                    coverage.addRead(base, distinctSequenceStrands[i], 0);
+                    coverage.addRead(base, orientedReadId.getStrand(), 0);
                     if(debug) {
-                        cout << base << " " << 0 << " " << distinctSequenceStrands[i] << endl;
+                        cout << base << " " << 0 << " " << orientedReadId.getStrand() << endl;
                     }
                 } else {
                     coverage.addRead(
                         base,
-                        distinctSequenceStrands[i],
+                        orientedReadId.getStrand(),
                         interveningRepeatCounts[i][positions[i]]);
                     if(debug) {
-                        cout << base << " " << int(interveningRepeatCounts[i][positions[i]]) << " " << distinctSequenceStrands[i] << endl;
+                        cout << base << " " << int(interveningRepeatCounts[i][positions[i]]) << " " << orientedReadId.getStrand() << endl;
                     }
                     ++positions[i];
                 }
@@ -4978,8 +4650,6 @@ void Assembler::assembleMarkerGraphEdges(
     assembleMarkerGraphEdgesData.threadEdgeIds.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensus.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensusOverlappingBaseCount.resize(threadCount);
-    assembleMarkerGraphEdgesData.numTransitiveEdges = 0;
-    assembleMarkerGraphEdgesData.numTransitiveReads = 0;
     if(storeCoverageData) {
         assembleMarkerGraphEdgesData.threadEdgeCoverageData.resize(threadCount);
     }
@@ -5050,11 +4720,6 @@ void Assembler::assembleMarkerGraphEdges(
         assembleMarkerGraphEdgesData.threadEdgeCoverageData.clear();
     }
 
-    if (assembleMarkerGraphEdgesData.numTransitiveEdges > 0) {
-        cout << timestamp << "Recovered an average of " << 
-            (static_cast<float>(assembleMarkerGraphEdgesData.numTransitiveReads)/static_cast<float>(assembleMarkerGraphEdgesData.numTransitiveEdges)) 
-            << " transitive reads per marker graph edge." << endl;
-    }
     cout << timestamp << "assembleMarkerGraphEdges ends." << endl;
 }
 
@@ -5169,8 +4834,6 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                             edgeId, markerGraphEdgeLengthThresholdForConsensus,
                             sequence, repeatCounts, overlappingBaseCount,
                             detail,
-                            assembleMarkerGraphEdgesData.numTransitiveReads,
-                            assembleMarkerGraphEdgesData.numTransitiveEdges,
                             storeCoverageData ? &coverageData : 0
                             );
                     }

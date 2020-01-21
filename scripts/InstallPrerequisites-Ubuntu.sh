@@ -81,26 +81,11 @@ pushd build
 cmake ../marginPhase
 make MarginCore
 
-# This gets the edlib code from GitHub,
-# builds the edlib library, and installs it in standard system locations.
-
-# Do everything in a temporary directory.
-tmpDirectoryName=$(mktemp --directory --tmpdir)
-pushd $tmpDirectoryName
-
-# Get the code.
-git clone https://github.com/Martinsos/edlib.git
-pushd edlib
-git checkout ba4272ba68fcdbe31cbc10853de1841701e4e60a 
-popd
-
-# Build it.
-mkdir build
-pushd build
-cmake -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -DCMAKE_BUILD_TYPE=Release ../edlib
-make edlib 
-
 # Install it in standard system locations.
+# This installs the following:
+# - Shared library /usr/local/lib/libMarginCore.so,
+#   required to build and run Shasta.
+# - Header files in /usr/local/include/marginPhase
 sudo make install
 
 # Remove our temporary directory.

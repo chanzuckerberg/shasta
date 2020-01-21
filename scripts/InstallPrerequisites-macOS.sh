@@ -36,27 +36,8 @@ cd build-static
 cmake ../spoa-v3.0.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_optimize_for_native=OFF
 make -j all
 make install
-cd ..  
-
-# This gets the edlib code from GitHub,
-# builds the edlib library, and installs it in standard system locations.
-
-# Get the code.
-git clone https://github.com/Martinsos/edlib.git
-cd edlib
-git checkout ba4272ba68fcdbe31cbc10853de1841701e4e60a 
-cd ../
-
-# Build it.
-mkdir build
-cd build
-cmake -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -DCMAKE_BUILD_TYPE=Release ../edlib
-make edlib 
-
-# Install it in standard system locations.
-sudo make install
+cd 
 
 # Remove the temporary directory.
-cd
 rm -rf $tmpDirectoryName
 
