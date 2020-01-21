@@ -370,7 +370,9 @@ void Assembler::colorConflictReadGraph()
 
 
         // Initialize the BFS.
-        std::priority_queue<ColorConflictReadGraphData> q;
+        std::priority_queue<ColorConflictReadGraphData,
+            vector<ColorConflictReadGraphData>,
+            std::greater<ColorConflictReadGraphData> > q;
         q.push(ColorConflictReadGraphData(startVertexId, directedReadGraph, conflictReadGraph));
         wasEncountered[startVertexId] = true;
         encounteredVertices.push_back(startVertexId);
@@ -396,7 +398,9 @@ void Assembler::colorConflictReadGraph()
             const VertexId v0 = q.top().vertexId;
             const OrientedReadId orientedReadId0 = ConflictReadGraph::getOrientedReadId(v0);
             if(debug) {
-                cout << "Queue size " << q.size() << ", dequeued " << orientedReadId0 << endl;
+                cout << "Queue size " << q.size() << ", dequeued " << orientedReadId0 << " " <<
+                    q.top().conflictReadGraphDegree << " " <<
+                    q.top().directedReadGraphKeptDegree << endl;
             }
             q.pop();
 
@@ -448,9 +452,12 @@ void Assembler::colorConflictReadGraph()
                 SHASTA_ASSERT(not wasEncountered[v1]);
                 wasEncountered[v1] = true;
                 encounteredVertices.push_back(v1);
-                q.push(
-                    ColorConflictReadGraphData(v1, directedReadGraph, conflictReadGraph));               if(debug) {
-                    cout << "Enqueued " << conflictReadGraph.getOrientedReadId(v1) << endl;
+                const ColorConflictReadGraphData data1(v1, directedReadGraph, conflictReadGraph);
+                q.push(data1);
+                if(debug) {
+                    cout << "Enqueued " << conflictReadGraph.getOrientedReadId(v1) << " " <<
+                        data1.conflictReadGraphDegree << " " <<
+                        data1.directedReadGraphKeptDegree << endl;
                 }
 
                 // Mark as forbidden the vertices that conflict with v1.
