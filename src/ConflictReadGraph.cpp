@@ -7,6 +7,7 @@ using namespace shasta;
 
 // Standard library.
 #include <map>
+#include "fstream.hpp"
 
 
 
@@ -195,4 +196,31 @@ void ConflictReadGraph::colorConnectedComponent(const vector<VertexId>& componen
     }
     cout << "Used " << maxColor+1 << " colors." << endl;
 
+}
+
+
+
+void ConflictReadGraph::writeGraphviz(const string& fileName) const
+{
+    ofstream s(fileName);
+    writeGraphviz(s);
+}
+void ConflictReadGraph::writeGraphviz(ostream& s) const
+{
+    s <<
+        "graph G {\n" <<
+        "node [shape=point];\n";
+
+    // Write the vertices.
+    for(VertexId v=0; v<vertices.size(); v++) {
+        const OrientedReadId orientedReadId = getOrientedReadId(v);
+        s << v << "[tooltip=\"" << orientedReadId << "\"];\n";
+    }
+
+    // Write the edges.
+    for(EdgeId e=0; e<edges.size(); e++) {
+        s << v0(e) << "--" << v1(e) << ";\n";
+    }
+
+    s << "}\n";
 }

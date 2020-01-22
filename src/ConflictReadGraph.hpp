@@ -88,6 +88,9 @@ public:
         return orientedReadId.getValue();
     }
 
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
+
 private:
 
 
