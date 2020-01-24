@@ -37,12 +37,33 @@ void Assembler::createConflictReadGraph(
     conflictReadGraph.createNew(largeDataName("ConflictReadGraph"), largeDataPageSize);
     conflictReadGraph.createVertices(readCount());
 
+    // Compute leftTrim, rightTrim, longestGap for each vertex.
+    setupLoadBalancing(conflictReadGraph.vertices.size(), 10);
+    runThreads(&Assembler::createConflictReadGraphThreadFunction1, threadCount);
+
+    // Write a csv file summarizing vertices of the conflict read graph.
+    {
+        ofstream csv("ConflictReadGraphVertices.csv");
+        csv << "VertexId,OrientedReadId,MarkerCount,LeftTrim,RightTrim,LongestGap\n";
+        for(ConflictReadGraph::VertexId v=0; v<conflictReadGraph.vertices.size(); v++) {
+            const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
+            csv <<
+                v << "," <<
+                ConflictReadGraph::getOrientedReadId(v) << "," <<
+                markers.size(v) << "," <<
+                vertex.leftTrim << "," <<
+                vertex.rightTrim << "," <<
+                vertex.longestGap << "\n";
+        }
+    }
+
     // Add edges.
     conflictReadGraph.edges.reserve(10 * readCount());
     setupLoadBalancing(readCount(), 1);
-    runThreads(&Assembler::createConflictReadGraphThreadFunction, threadCount);
+    runThreads(&Assembler::createConflictReadGraphThreadFunction2, threadCount);
     conflictReadGraph.edges.unreserve();
     conflictReadGraph.computeConnectivity();
+    conflictReadGraph.writeGraphviz("ConflictReadGraph.dot");
 
 
     cout << "The conflict read graph has " <<
@@ -61,7 +82,99 @@ void Assembler::accessConflictReadGraph()
 
 
 
-void Assembler::createConflictReadGraphThreadFunction(size_t threadId)
+void Assembler::createConflictReadGraphThreadFunction1(size_t threadId)
+{
+
+    // Loop over batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over vertices in this batch.
+        for(ConflictReadGraph::VertexId v=begin; v!=end; v++) {
+            ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
+
+            // The MarkerId of the first marker for this oriented read.
+            const MarkerId firstMarkerId =  markers.begin(v) - markers.begin();
+
+            // The number of markers in this oriented read.
+            const uint32_t markerCount = uint32_t(markers.size(v));
+
+            // Compute leftTrim for this vertex.
+            bool done = false;
+            for(uint32_t ordinal=0; ordinal<markerCount; ordinal++) {
+                const MarkerId markerId = firstMarkerId + ordinal;
+                const MarkerGraph::CompressedVertexId compressedVertexId =
+                    markerGraph.vertexTable[markerId];
+                if(compressedVertexId != MarkerGraph::invalidCompressedVertexId) {
+                    vertex.leftTrim = ordinal;
+                    done = true;
+                    break;
+                }
+            }
+            if(not done) {
+                vertex.leftTrim = markerCount;
+            }
+
+            // Compute rightTrim for this vertex;
+            done = false;
+            for(uint32_t ordinal=markerCount-1; ; ordinal--) {
+                const MarkerId markerId = firstMarkerId + ordinal;
+                const MarkerGraph::CompressedVertexId compressedVertexId =
+                    markerGraph.vertexTable[markerId];
+                if(compressedVertexId != MarkerGraph::invalidCompressedVertexId) {
+                    vertex.rightTrim = markerCount - 1 - ordinal;
+                    done = true;
+                    break;
+                }
+
+                if(ordinal == 0) {
+                    break;
+                }
+            }
+            if(not done) {
+                vertex.rightTrim = markerCount;
+            }
+
+            // Compute longestGap for this vertex;
+            vertex.longestGap = markerCount;
+            if(vertex.leftTrim + vertex.rightTrim < markerCount-1) {
+                vertex.longestGap = 0;
+                uint32_t last = vertex.leftTrim;
+                for(uint32_t ordinal=vertex.leftTrim+1; ordinal != markerCount-vertex.rightTrim; ordinal++) {
+                    const MarkerId markerId = firstMarkerId + ordinal;
+                    const MarkerGraph::CompressedVertexId compressedVertexId =
+                        markerGraph.vertexTable[markerId];
+                    if(compressedVertexId == MarkerGraph::invalidCompressedVertexId) {
+                        vertex.longestGap = max(vertex.longestGap, ordinal-last);
+                    } else {
+                        last = ordinal;
+                    }
+                }
+                if(not(vertex.leftTrim + vertex.rightTrim + vertex.longestGap <= markerCount-2)) {
+                    cout <<
+                        ConflictReadGraph::getOrientedReadId(v) << " " <<
+                        vertex.leftTrim << " " <<
+                        vertex.rightTrim << " " <<
+                        vertex.longestGap << " " <<
+                        markerCount << endl;
+                }
+                SHASTA_ASSERT(vertex.leftTrim + vertex.rightTrim + vertex.longestGap <= markerCount-2);
+            }
+
+
+            // Set the hasLongGap field.
+            vertex.hasLongGap =
+                (
+                vertex.longestGap >
+                createConflictReadGraphData.inducedAlignmentCriteria.maxSkip
+                );
+        }
+    }
+}
+
+
+
+void Assembler::createConflictReadGraphThreadFunction2(size_t threadId)
 {
     const InducedAlignmentCriteria inducedAlignmentCriteria =
         createConflictReadGraphData.inducedAlignmentCriteria;
@@ -70,8 +183,7 @@ void Assembler::createConflictReadGraphThreadFunction(size_t threadId)
     vector<OrientedReadId> conflictCandidates;
     vector<OrientedReadId> conflictingOrientedReads;
     vector<InducedAlignment> inducedAlignments;
-    vector<bool> work0;
-    vector<bool> work1;
+    vector<uint64_t> work;
 
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
@@ -86,8 +198,7 @@ void Assembler::createConflictReadGraphThreadFunction(size_t threadId)
                 conflictCandidates,
                 conflictingOrientedReads,
                 inducedAlignments,
-                work0,
-                work1);
+                work);
         }
     }
 
@@ -96,8 +207,8 @@ void Assembler::createConflictReadGraphThreadFunction(size_t threadId)
 
 
 // This creates edges of the conflict read graph where
-// the lower number read is readId0.
-// It add the edges to the conflict read graph directly, under mutex protection.
+// the lower numbered read is readId0.
+// It adds the edges to the conflict read graph directly, under mutex protection.
 // This should not create significant contention as adding edges to the
 // graph is most of the times much faster than computing them.
 void Assembler::addConflictGraphEdges(
@@ -108,14 +219,20 @@ void Assembler::addConflictGraphEdges(
     vector<OrientedReadId>& conflictCandidates,
     vector<OrientedReadId>& conflictingOrientedReads,
     vector<InducedAlignment>& inducedAlignments,
-    vector<bool>& work0,
-    vector<bool>& work1)
+    vector<uint64_t>& work)
 {
 
     // Put this read on strand 0.
     // When adding edges to the conflict read graph, we will make sure
     // to also add the reverse complemented edge.
     const OrientedReadId orientedReadId0(readId0, 0);
+    const ConflictReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
+    const ConflictReadGraphVertex& vertex0 = conflictReadGraph.getVertex(v0);
+
+    // If the vertex corresponding to this read has a long gap don't add any edges.
+    if(vertex0.hasLongGap) {
+        return;
+    }
 
 
 
@@ -168,6 +285,8 @@ void Assembler::addConflictGraphEdges(
 
     // Remove conflict candidates that correspond to an edge of the read graph.
     // For those we already have a good alignment.
+    // Also remove conflict candidates in which the other vertex
+    // has a long gap.
     auto itA = conflictCandidates.begin();
     auto itB = itA;
     for(; itA!=conflictCandidates.end(); ++itA) {
@@ -178,8 +297,10 @@ void Assembler::addConflictGraphEdges(
             != DirectedReadGraph::invalidEdgeId;
         const bool backwardExists = directedReadGraph.findEdge(v1, v0)
             != DirectedReadGraph::invalidEdgeId;
+        const bool hasLongGap =
+            conflictReadGraph.getVertex(v1).hasLongGap;
 
-        if(forwardExists or backwardExists) {
+        if(hasLongGap or forwardExists or backwardExists) {
             continue;
         } else {
             *itB++ = orientedReadId1;
@@ -202,15 +323,31 @@ void Assembler::addConflictGraphEdges(
     const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
     for(uint64_t i=0;i<inducedAlignments.size(); i++) {
         const OrientedReadId orientedReadId1 = conflictCandidates[i];
+        const ConflictReadGraph::VertexId v1 = ConflictReadGraph::getVertexId(orientedReadId1);
+        const ConflictReadGraphVertex& vertex1 = conflictReadGraph.getVertex(v1);
         const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
+#if 1
+        // std::lock_guard<std::mutex> lock(mutex);
         // cout << "Checking induced alignment of " << orientedReadId0 << " " << orientedReadId1 << endl;
-
+        if(not inducedAlignments[i].evaluate(
+            markerCount0,
+            markerCount1,
+            vertex0.leftTrim,
+            vertex0.rightTrim,
+            vertex1.leftTrim,
+            vertex1.rightTrim,
+            inducedAlignmentCriteria)) {
+            conflictingOrientedReads.push_back(orientedReadId1);
+        }
+#endif
+#if 0
         if(not inducedAlignments[i].evaluate(
             markerCount0,
             markerCount1,
             inducedAlignmentCriteria)) {
             conflictingOrientedReads.push_back(orientedReadId1);
         }
+#endif
 #if 0
         // This also takes into account the presence or absence of marker graph vertices.
         if(not evaluateInducedAlignment(
@@ -218,8 +355,7 @@ void Assembler::addConflictGraphEdges(
             orientedReadId1,
             inducedAlignments[i],
             inducedAlignmentCriteria,
-            work0,
-            work1)) {
+            work)) {
             conflictingOrientedReads.push_back(orientedReadId1);
         }
 #endif
@@ -265,8 +401,7 @@ void Assembler::addConflictGraphEdges(
 
 
 
-// This colors the ConflictReadGraph by walking the
-// DirectedReadGraph.
+// This colors the ConflictReadGraph by walking the DirectedReadGraph.
 void Assembler::colorConflictReadGraph()
 {
     const bool debug = false;
@@ -294,15 +429,17 @@ void Assembler::colorConflictReadGraph()
     }
 
 
-    // Create a table of vertices containing:
+    // Create a table of vertices excluding vertices with long gap and containing:
     // - VertexId.
     // - Number of conflicts (degree in the conflict read graph).
     // - Degree in the read graph, counting only edges flagged as "keep".
     // Sort it by increasing number of conflicts, then by decreasing degree.
     vector<ColorConflictReadGraphData> vertexTable;
     for(VertexId v=0; v<n; v++) {
-        vertexTable.push_back(
-            ColorConflictReadGraphData(v, directedReadGraph, conflictReadGraph));
+        if(not conflictReadGraph.getVertex(v).hasLongGap) {
+            vertexTable.push_back(
+                ColorConflictReadGraphData(v, directedReadGraph, conflictReadGraph));
+        }
     }
     sort(vertexTable.begin(), vertexTable.end());
 
@@ -327,7 +464,7 @@ void Assembler::colorConflictReadGraph()
     // Iterate over possible starting vertices in the order in which
     // they appear in the vertex table.
     uint64_t vertexTableIndex = 0;
-    uint64_t iteration=0;
+    uint32_t iteration=0;
     for(; ; iteration++) {
         if(vertexTableIndex == vertexTable.size()) {
             break;
@@ -425,6 +562,7 @@ void Assembler::colorConflictReadGraph()
             directedReadGraph.findKeptAdjacent(v0, adjacentVertices);
 
             // Loop over adjacent vertices, in this order of increasing number of conflicts.
+            // Skip vertices with a long gap.
             for(const VertexId v1: adjacentVertices) {
 
                 // See if this vertex should be skipped.
@@ -443,6 +581,12 @@ void Assembler::colorConflictReadGraph()
                 if(wasEncountered[v1]) {
                     if(debug) {
                         cout << ConflictReadGraph::getOrientedReadId(v1) << " already encountered" << endl;
+                    }
+                    continue;
+                }
+                if(conflictReadGraph.vertices[v1].hasLongGap) {
+                    if(debug) {
+                        cout << ConflictReadGraph::getOrientedReadId(v1) << " has long gap" << endl;
                     }
                     continue;
                 }
@@ -497,25 +641,49 @@ void Assembler::colorConflictReadGraph()
 
 
 
-    // Check that all vertices were assigned to clusters.
+    // Check that all vertices were assigned to clusters except for those
+    // that have a long gap.
+    uint32_t longGapCount = 0;
     for(VertexId v=0; v<n; v++) {
-        SHASTA_ASSERT(conflictReadGraph.getVertex(v).hasValidClusterId());
+        const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
+        if(not vertex.hasLongGap) {
+            SHASTA_ASSERT(conflictReadGraph.getVertex(v).hasValidClusterId());
+        } else {
+            ++longGapCount;
+        }
     }
 
     // Store the vertices in each cluster.
     vector< vector<VertexId> > clusters(iteration);
     for(VertexId v=0; v<n; v++) {
-        clusters[conflictReadGraph.getVertex(v).clusterId].push_back(v);
-    }
-
-    // Write a summary of the non-trivial clusters we found.
-    const uint64_t trivialClusterSizeThreshold = 2; // ****************** EXPOSE AS AN OPTION WHEN CODE STABILIZES
-    for(uint64_t clusterId=0; clusterId<clusters.size(); clusterId++) {
-        const vector<VertexId>& cluster = clusters[clusterId];
-        if(cluster.size() > trivialClusterSizeThreshold) {
-            cout << "Cluster " << clusterId << " has " << cluster.size() << " vertices." << endl;
+        const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
+        if(not vertex.hasLongGap) {
+            clusters[conflictReadGraph.getVertex(v).clusterId].push_back(v);
         }
     }
+
+
+
+
+    // Uncolor small clusters, and write a summary of the clusters we found.
+    const uint64_t clusterSizeThreshold = 10;  // ********************* EXPOSE WHEN CODE STABILIZES.
+    uint64_t smallClusterVertexCount = 0;
+    for(uint64_t clusterId=0; clusterId<clusters.size(); clusterId++) {
+        const vector<VertexId>& cluster = clusters[clusterId];
+        if(cluster.size() >= clusterSizeThreshold) {
+            cout << "Cluster " << clusterId << " has " << cluster.size() << " vertices." << endl;
+        } else {
+            for(const VertexId v: cluster) {
+                conflictReadGraph.getVertex(v).clusterId = invalid;
+                ++smallClusterVertexCount;
+            }
+        }
+    }
+    cout << "Number of vertices in small, discarded clusters: "
+        << smallClusterVertexCount << endl;
+    cout << "Number of vertices with a long gap, not assigned to any cluster: "
+        << longGapCount << endl;
+    cout << "Total number of vertices " << conflictReadGraph.vertices.size() << endl;
 
 
 
@@ -535,18 +703,21 @@ void Assembler::colorConflictReadGraph()
                 ConflictReadGraph::getOrientedReadId(v1) << endl;
         }
         */
-        SHASTA_ASSERT(clusterId0 != clusterId1);
         csv <<
             ConflictReadGraph::getOrientedReadId(v0) << "," <<
             ConflictReadGraph::getOrientedReadId(v1) << "," <<
             clusterId0 << "," <<
             clusterId1 << "," <<
             min(clusterId0, clusterId1) << "," <<
-            max(clusterId0, clusterId1) << "," <<
-            clusters[clusterId0].size() << "," <<
-            clusters[clusterId1].size() << "\n";
+            max(clusterId0, clusterId1) << ",";
+        if(clusterId0!=invalid and clusterId1!=invalid) {
+            SHASTA_ASSERT(clusterId0 != clusterId1);
+            csv <<
+                clusters[clusterId0].size() << "," <<
+                clusters[clusterId1].size();
+        }
+        csv << "\n";
     }
-
 
 
 
@@ -557,6 +728,9 @@ void Assembler::colorConflictReadGraph()
         const VertexId v1 = conflictReadGraph.v1(e);
         uint64_t clusterId0 = conflictReadGraph.getVertex(v0).clusterId;
         uint64_t clusterId1 = conflictReadGraph.getVertex(v1).clusterId;
+        if(clusterId0==invalid || clusterId1==invalid) {
+            continue;
+        }
         SHASTA_ASSERT(clusterId0 != clusterId1);
         if(clusterId1 < clusterId0) {
             swap(clusterId0, clusterId1);
@@ -566,38 +740,21 @@ void Assembler::colorConflictReadGraph()
 
 
 
-    // Check pairs of non-trivial clusters with confliCTs between them.
+    // Check pairs of clusters with conflicts between them.
     for(const auto& p: conflictGraphEdgesBetweenClusters) {
 
         const uint64_t clusterId0 = p.first.first;
         const vector<VertexId>& cluster0 = clusters[clusterId0];
         const uint64_t clusterSize0 = cluster0.size();
-        if(clusterSize0 <= trivialClusterSizeThreshold) {
-            continue;
-        }
 
         const uint64_t clusterId1 = p.first.second;
         const vector<VertexId>& cluster1 = clusters[clusterId1];
         const uint64_t clusterSize1 = cluster1.size();
-        if(clusterSize1 <= trivialClusterSizeThreshold) {
-            continue;
-        }
 
         const vector<EdgeId>& conflictEdges =p.second;
         cout << conflictEdges.size() << " conflicts between clusters " <<
             clusterId0 << " " << clusterId1 <<
             " of sizes " << clusterSize0 << " " << clusterSize1 << endl;
-    }
-
-
-
-    // Set to invalid the colors of vertices that are in a trivial cluster.
-    for(const vector<VertexId>& cluster: clusters) {
-        if(cluster.size() <= trivialClusterSizeThreshold) {
-            for(const VertexId v: cluster) {
-                conflictReadGraph.getVertex(v).clusterId = ConflictReadGraphVertex::invalid;
-            }
-        }
     }
 
 }

@@ -176,16 +176,32 @@ void Assembler::computeInducedAlignments(
 
 
 // Evaluate an induced alignment.
-// Contrary to InducedAlignment::evaluate, this takes into account
+// This is more sophisticated than InducedAlignment::evaluate,
+// as it takes into account
 // markers that don't correspond to a marker graph vertex.
 bool Assembler::evaluateInducedAlignment(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     const InducedAlignment& inducedAlignment,
     const InducedAlignmentCriteria& criteria,
-    vector<bool>& work0,
-    vector<bool>& work1)
+    vector<uint64_t>& work)
 {
+
+    // Set the flag to control debug output.
+#if 1
+    const bool debug = false;
+#else
+    const bool debug =
+        (orientedReadId0 == OrientedReadId(691, 0)  and
+         orientedReadId1 == OrientedReadId(307, 0))
+        or
+        (orientedReadId0 == OrientedReadId(307, 0) and
+         orientedReadId1 == OrientedReadId(691, 0));
+#endif
+   if(debug) {
+       cout << "Evaluating induced alignment " << orientedReadId0 << " " << orientedReadId1 << endl;
+   }
+
     // Sanity check.
     SHASTA_ASSERT(not inducedAlignment.data.empty());
 
@@ -220,7 +236,7 @@ bool Assembler::evaluateInducedAlignment(
 
     // Assuming this offset, the induced alignment covers a portion of each
     // of the two oriented reads.
-    const int64_t iOffset = uint64_t(offset);
+    const int64_t iOffset = int64_t(offset);
     int64_t ordinal0Begin, ordinal0End;
     int64_t ordinal1Begin, ordinal1End;
     if(iOffset >= 0) {
@@ -245,7 +261,77 @@ bool Assembler::evaluateInducedAlignment(
     const int64_t m =  ordinal0End - ordinal0Begin;
     SHASTA_ASSERT(m == ordinal1End - ordinal1Begin);
 
+    if(debug) {
+        cout << "iOffset "<< iOffset << endl;
+        cout << "ordinal0Begin "<< ordinal0Begin << endl;
+        cout << "ordinal0End "<< ordinal0End << endl;
+        cout << "ordinal1Begin "<< ordinal1Begin << endl;
+        cout << "ordinal1End "<< ordinal1End << endl;
+        cout << "m "<< m << endl;
+    }
 
+
+
+    // For each of the two oriented reads, we now have
+    // an expected alignment range based on the computed offset.
+    // We locate large gaps of the alignment in this range.
+    // If the large gaps contain markers associated to marker graph vertices,
+    // this is a bad induced alignment.
+
+    // Check large gaps on orientedReadId0.
+    work.clear();
+    for(const auto& d: inducedAlignment.data) {
+        if(d.ordinal0 >= ordinal0Begin and d.ordinal0 < ordinal0End) {
+            work.push_back(d.ordinal0);
+        }
+    }
+    sort(work.begin(), work.end());
+    for(uint64_t i=0; i<=work.size(); i++) {
+        const uint64_t begin = (i==0) ? ordinal0Begin : work[i-1];
+        const uint64_t end = (i==work.size()) ? ordinal0End : work[i]+1;
+        if(end - begin > criteria.maxSkip) {
+            // This is a long gap.
+            for(uint64_t ordinal0=begin+1; ordinal0!=end; ordinal0++) {
+                if(markerGraph.vertexTable[firstMarkerId0 + ordinal0] != MarkerGraph::invalidCompressedVertexId) {
+                    if(debug) {
+                        cout << "Bad induced alignment for " << orientedReadId0 <<
+                            " at ordinal " << ordinal0 <<
+                            ", gap " << begin << " " << end << endl;
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Check large gaps on orientedReadId1.
+    work.clear();
+    for(const auto& d: inducedAlignment.data) {
+        if(d.ordinal1 >= ordinal1Begin and d.ordinal1 < ordinal1End) {
+            work.push_back(d.ordinal1);
+        }
+    }
+    sort(work.begin(), work.end());
+    for(uint64_t i=0; i<=work.size(); i++) {
+        const uint64_t begin = (i==0) ? ordinal1Begin : work[i-1];
+        const uint64_t end = (i==work.size()) ? ordinal1End : work[i]+1;
+        if(end - begin > criteria.maxSkip) {
+            // This is a long gap.
+            for(uint64_t ordinal1=begin+1; ordinal1!=end; ordinal1++) {
+                if(markerGraph.vertexTable[firstMarkerId1 + ordinal1] != MarkerGraph::invalidCompressedVertexId) {
+                    if(debug) {
+                        cout << "Bad induced alignment for " << orientedReadId1 <<
+                            " at ordinal " << ordinal1 <<
+                            ", gap " << begin << " " << end << endl;
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+
+
+#if 0
     // Use work0 and work1 to keep tract of markers in these two ranges.
     work0.clear();
     work1.clear();
@@ -261,6 +347,16 @@ bool Assembler::evaluateInducedAlignment(
             work1[d.ordinal1 - ordinal1Begin] = true;
         }
     }
+    if(debug) {
+        for(int64_t i=0; i<m; i++) {
+            cout << "Intermediate " <<
+                i << " " <<
+                i+ordinal0Begin << " " <<
+                i+ordinal1Begin << " " <<
+                int(work0[i]) << " " <<
+                int(work1[i]) << endl;
+        }
+    }
 
     // Set to true the ones that are not associated with a marker graph vertex.
     for(int64_t ordinal0=ordinal0Begin; ordinal0!=ordinal0End; ++ordinal0) {
@@ -274,6 +370,17 @@ bool Assembler::evaluateInducedAlignment(
         }
     }
 
+
+    if(debug) {
+        for(int64_t i=0; i<m; i++) {
+            cout << "Final " <<
+                i << " " <<
+                i+ordinal0Begin << " " <<
+                i+ordinal1Begin << " " <<
+                int(work0[i]) << " " <<
+                int(work1[i]) << endl;
+        }
+    }
 
 
     // Any entries still set to false in the work arrays correspond to markers
@@ -307,7 +414,7 @@ bool Assembler::evaluateInducedAlignment(
     if(work1.size() - lastTrueIndex1 > criteria.maxSkip) {
         return false;
     }
-
+#endif
 
 
     // If getting here, this is a good induced alignment.

@@ -209,7 +209,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
             break;
 
         case VertexColoringMethod::ByCluster:
-            if(vertex.clusterId != std::numeric_limits<uint64_t>::max()) {
+            if(vertex.clusterId != std::numeric_limits<uint32_t>::max()) {
                 s << " color=\"/set18/" << (vertex.clusterId % 8) + 1 << "\"";
             }
             break;
