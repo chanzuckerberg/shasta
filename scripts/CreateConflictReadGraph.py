@@ -17,7 +17,7 @@ a.accessDirectedReadGraphReadOnly()
 # Create the conflict read graph.
 # Use hardwired parameter values for now.
 a.createConflictReadGraph(
-    maxOffsetSigma = 50,
+    maxOffsetSigma = 100,
     maxTrim = 100,
     maxSkip = 100)
 
