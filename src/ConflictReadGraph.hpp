@@ -40,18 +40,39 @@ namespace shasta {
 
 
 // A vertex of the conflict read graph.
+// Each vertex corresponds to an oriented read.
 class shasta::ConflictReadGraphVertex {
 public:
 
-    static const uint64_t invalid = std::numeric_limits<uint64_t>::max();
+    static const uint32_t invalid = std::numeric_limits<uint32_t>::max();
+
 
     // The cluster id assigned during coloring of the conflict read graph.
-    uint64_t clusterId = invalid;
+    uint32_t clusterId = invalid;
 
     bool hasValidClusterId() const
     {
         return clusterId != invalid;
     }
+
+    // Number of markers preceding the first marker with non-zero marker coverage
+    // (that is, the first marker associated with a marker graph vertex).
+    uint32_t leftTrim;
+
+    // Number of markers following the last marker with non-zero marker coverage
+    // (that is, the last marker associated with a marker graph vertex).
+    uint32_t rightTrim;
+
+    // The length of the longest internal streak of markers with zero marker coverage
+    // (that is, not associated with a marker graph vertex).
+    // This excludes the streaks at the beginning and end, which are
+    // described by leftTrim and rightTrim.
+    // If this is too long, the read is considered pathological and
+    // excluded from the assembly.
+    uint32_t longestGap;
+
+    // This is set is longestGap>maxSkip.
+    bool hasLongGap;
 };
 
 
@@ -87,6 +108,9 @@ public:
     {
         return orientedReadId.getValue();
     }
+
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
 
 private:
 

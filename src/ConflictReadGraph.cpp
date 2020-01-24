@@ -7,6 +7,7 @@ using namespace shasta;
 
 // Standard library.
 #include <map>
+#include "fstream.hpp"
 
 
 
@@ -137,7 +138,7 @@ void ConflictReadGraph::colorConnectedComponent(const vector<VertexId>& componen
         //     " color " << color0 << endl;
         ConflictReadGraphVertex& vertex0 = getVertex(u0);
         SHASTA_ASSERT(vertex0.clusterId = ConflictReadGraphVertex::invalid);
-        vertex0.clusterId = color0;
+        vertex0.clusterId = uint32_t(color0);
 
         // Increment adjacentColoredCount for adjacent uncolored vertices.
         for(EdgeId edgeId: incidentEdges(u0)) {
@@ -189,10 +190,37 @@ void ConflictReadGraph::colorConnectedComponent(const vector<VertexId>& componen
 
 
     // Find the number of colors used.
-    Int maxColor = 0;
+    uint32_t maxColor = 0;
     for(Int v=0; v<n; v++) {
         maxColor = max(maxColor, getVertex(component[v]).clusterId);
     }
     cout << "Used " << maxColor+1 << " colors." << endl;
 
+}
+
+
+
+void ConflictReadGraph::writeGraphviz(const string& fileName) const
+{
+    ofstream s(fileName);
+    writeGraphviz(s);
+}
+void ConflictReadGraph::writeGraphviz(ostream& s) const
+{
+    s <<
+        "graph G {\n" <<
+        "node [shape=point];\n";
+
+    // Write the vertices.
+    for(VertexId v=0; v<vertices.size(); v++) {
+        const OrientedReadId orientedReadId = getOrientedReadId(v);
+        s << v << "[tooltip=\"" << orientedReadId << "\"];\n";
+    }
+
+    // Write the edges.
+    for(EdgeId e=0; e<edges.size(); e++) {
+        s << v0(e) << "--" << v1(e) << ";\n";
+    }
+
+    s << "}\n";
 }

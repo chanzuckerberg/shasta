@@ -1361,8 +1361,7 @@ private:
         OrientedReadId orientgedReadId1,
         const InducedAlignment&,
         const InducedAlignmentCriteria&,
-        vector<bool>& work0,
-        vector<bool>& work1);
+        vector<uint64_t>& work);
 
 
 
@@ -1377,7 +1376,8 @@ public:
     void accessConflictReadGraph();
     void colorConflictReadGraph();
 private:
-    void createConflictReadGraphThreadFunction(size_t threadId);
+    void createConflictReadGraphThreadFunction1(size_t threadId);
+    void createConflictReadGraphThreadFunction2(size_t threadId);
     void addConflictGraphEdges(
         ReadId,
         const InducedAlignmentCriteria&,
@@ -1385,8 +1385,7 @@ private:
         vector<OrientedReadId>&,
         vector<OrientedReadId>&,
         vector<InducedAlignment>&,
-        vector<bool>&,
-        vector<bool>&
+        vector<uint64_t>&
         );
     class CreateConflictReadGraphData {
     public:

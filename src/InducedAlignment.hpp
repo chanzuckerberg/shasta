@@ -97,6 +97,14 @@ public:
         uint32_t markerCount0,
         uint32_t markerCount1,
         const InducedAlignmentCriteria&) const;
+    bool evaluate(
+        uint32_t markerCount0,
+        uint32_t markerCount1,
+        uint32_t leftTrim0,
+        uint32_t rightTrim0,
+        uint32_t leftTrim1,
+        uint32_t rightTrim1,
+        const InducedAlignmentCriteria&) const;
 };
 
 
