@@ -492,10 +492,13 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
 // using threadCountForReading threads.
 void ReadLoader::readFile()
 {
-    // Resize our buffer to contain the entire file.
+    // Create a buffer to contain the entire file.
     const auto t0 = std::chrono::steady_clock::now();
     int64_t bytesToRead = filesystem::fileSize(fileName);
     buffer.createNew(dataName("tmp-FastaBuffer"), pageSize);
+    // Do reserve before resize, to force using exactly the
+    // amount of memory necessary and nothing more.
+    buffer.reserve(bytesToRead);
     buffer.resize(bytesToRead);
 
     // Open the input file.
