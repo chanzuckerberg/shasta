@@ -39,6 +39,7 @@ void LocalDirectedReadGraph::addEdge(
     bool involvesTwoContainedVertices,
     bool involvesOneContainedVertex,
     bool keep,
+    bool isConflict,
     uint32_t commonNeighborCount)
 {
     // Find the vertices corresponding to these two OrientedReadId.
@@ -55,6 +56,7 @@ void LocalDirectedReadGraph::addEdge(
             involvesTwoContainedVertices,
             involvesOneContainedVertex,
             keep,
+            isConflict,
             commonNeighborCount),
         *this);
 }
@@ -267,11 +269,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         }
     } else {
 
-        // If this edge is between different colors, this is a conflict edge.
-        if(
-            vertex0.clusterId != std::numeric_limits<uint64_t>::max() and
-            vertex1.clusterId != std::numeric_limits<uint64_t>::max() and
-            vertex0.clusterId != vertex1.clusterId) {
+        if(edge.isConflict) {
             s << " color=\"#ff00007f\""; // Partially transparent red.
         }
 

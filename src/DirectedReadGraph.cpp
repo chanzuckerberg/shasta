@@ -474,6 +474,7 @@ bool DirectedReadGraph::extractLocalSubgraph(
                 edge.involvesTwoContainedVertices == 1,
                 edge.involvesOneContainedVertex == 1,
                 edge.keep == 1,
+                edge.isConflict == 1,
                 uint32_t(intersectionVertices.size()));
         }
     }
