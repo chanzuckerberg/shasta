@@ -5,6 +5,8 @@ import shasta
 a = shasta.Assembler()
 a.accessDirectedReadGraphReadWrite()
 a.accessConflictReadGraph()
-a.markDirectedReadGraphConflictEdges()
+
+# For testing use a fixed radius.
+a.markDirectedReadGraphConflictEdges2(radius = 6)
 
 

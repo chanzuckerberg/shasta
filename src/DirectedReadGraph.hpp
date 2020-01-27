@@ -280,6 +280,7 @@ private:
         OrientedReadId orientedReadId1,
         AlignmentInfo);
 
+public:
     // And edge checker that allows only edges that satisfy specify criteria.
     // Used to create the local directed read graph for display.
     class EdgeFilter : public AbstractEdgeFilter {

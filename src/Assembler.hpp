@@ -1095,7 +1095,8 @@ public:
         uint64_t uncontainedNeighborCountPerDirection);
     void accessDirectedReadGraphReadOnly();
     void accessDirectedReadGraphReadWrite();
-    void markDirectedReadGraphConflictEdges();
+    void markDirectedReadGraphConflictEdges1();
+    void markDirectedReadGraphConflictEdges2(int radius);
 
 
 

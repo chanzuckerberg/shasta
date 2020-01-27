@@ -761,7 +761,9 @@ void Assembler::colorConflictReadGraph()
 
 
 
-void Assembler::markDirectedReadGraphConflictEdges()
+// This uses the coloring of the conflict graph.
+// It walks the read graph while avoiding conflicts.
+void Assembler::markDirectedReadGraphConflictEdges1()
 {
     // Check that we have what we need.
     SHASTA_ASSERT(directedReadGraph.isOpen());
@@ -827,4 +829,124 @@ Assembler::ColorConflictReadGraphData::ColorConflictReadGraphData(
     conflictReadGraphDegree(conflictReadGraph.degree(vertexId)),
     directedReadGraphKeptDegree(directedReadGraph.keptDegree(vertexId))
 {
+}
+
+
+
+// This does not use the coloring of conflict graph.
+// If gradually adds edges to the read graph, making sure
+// to not create conflicts in read graph neighborhoods
+// of the specified radius.
+void Assembler::markDirectedReadGraphConflictEdges2(int radius)
+{
+    // Check that we have what we need.
+    SHASTA_ASSERT(directedReadGraph.isOpen());
+    SHASTA_ASSERT(conflictReadGraph.isOpen());
+
+    // Types for vertices and edges of the two graphs we will use.
+    using VertexId = DirectedReadGraph::VertexId;
+    using EdgeId   = DirectedReadGraph::EdgeId;
+
+    // We are assuming the two graphs use the same VertexId and EdgeId.
+    static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
+        "Unexpected VertexId discrepancy.");
+    static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
+        "Unexpected VertexId discrepancy.");
+
+    // Begin by marking all read graph edges as "isConflict".
+    for(EdgeId e=0; e<directedReadGraph.edges.size(); e++) {
+        DirectedReadGraphEdge& edge = directedReadGraph.getEdge(e);
+        edge.isConflict = 1;
+    }
+
+
+    // Gather all read graph edges that:
+    // 1. Are marked "keep"
+    // AND
+    // 2. Do not involve vertices that are marked "hasLongGap"
+    //    in the ConflictReadGraph.
+    // For each edge, also store the number aligned markers,
+    // then sort by decreasing number of aligned markers.
+    vector< pair<VertexId, uint32_t> > edges;
+    for(EdgeId e=0; e<directedReadGraph.edges.size(); e++) {
+        const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(e);
+
+        // If the edge is not marked "keep", skip it.
+        if(not edge.keep) {
+            continue;
+        }
+
+        // Check that the vertices are not marker "hasLongGap"
+        // in the ConflictReadGraph.
+        const VertexId v0 = directedReadGraph.source(e);
+        if(conflictReadGraph.getVertex(v0).hasLongGap) {
+            continue;
+        }
+        const VertexId v1 = directedReadGraph.target(e);
+        if(conflictReadGraph.getVertex(v1).hasLongGap) {
+            continue;
+        }
+
+        edges.push_back(make_pair(e, edge.alignmentInfo.markerCount));
+    }
+    sort(edges.begin(), edges.end(),
+        OrderPairsBySecondOnlyGreater<VertexId, uint32_t>());
+
+
+
+    // Create an edge filter that allows edges
+    // marked as "keep" and not marked as "isConflict".
+    const DirectedReadGraph::EdgeFilter edgeFilter(
+        0,
+        std::numeric_limits<uint64_t>::max(),
+        0.,
+        false,
+        true);
+
+
+
+    // Loop over these edges in this order. Only add an edge to read
+    // graph (by clearing the "isConflict" flag) if adding it
+    // does not introduce a conflict within the specified radius of the edge.
+    std::map<VertexId, uint64_t> neighborMap;
+    vector<VertexId> neighborhood;
+    for(const auto& p: edges) {
+        const EdgeId e = p.first;
+        SHASTA_ASSERT(directedReadGraph.getEdge(e).isConflict == 1);
+        const VertexId v0 = directedReadGraph.source(e);
+        const VertexId v1 = directedReadGraph.target(e);
+
+        neighborhood.clear();
+        directedReadGraph.findNeighborhood(v0, radius, edgeFilter, true, true, 0., neighborMap);
+        for(const auto& p: neighborMap) {
+            neighborhood.push_back(p.first);
+        }
+        directedReadGraph.findNeighborhood(v1, radius, edgeFilter, true, true, 0., neighborMap);
+        for(const auto& p: neighborMap) {
+            neighborhood.push_back(p.first);
+        }
+
+        // Deduplicate and sort the vertices in this neighborhood.
+        deduplicate(neighborhood);
+
+        // Look for edges in the conflict read graph involving vertices in this neighborhood.
+        bool conflictEdgeWasFound = false;
+        for(const VertexId v0: neighborhood) {
+            const span<EdgeId> edges0 = conflictReadGraph.incidentEdges(v0);
+            for(const EdgeId e01: edges0) {
+                const VertexId v1 = conflictReadGraph.otherVertex(e01, v0);
+                if(binary_search(neighborhood.begin(), neighborhood.end(), v1)) {
+                    conflictEdgeWasFound = true;
+                    break;
+                }
+            }
+        }
+
+        // If we did not find a conflict, we can add this edge to the read
+        // graph by clearing its "isConflict" flag.
+        if(not conflictEdgeWasFound) {
+            directedReadGraph.getEdge(e).isConflict = 0;
+        }
+    }
+
 }

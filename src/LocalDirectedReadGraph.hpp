@@ -63,6 +63,7 @@ public:
         {}
 
     // Information from the global conflict read graph.
+    bool isConflict = false;
     uint64_t clusterId = std::numeric_limits<uint64_t>::max();
     uint64_t conflictCount = 0;
 
@@ -81,6 +82,7 @@ public:
     bool involvesTwoContainedVertices;
     bool involvesOneContainedVertex;
     bool keep;
+    bool isConflict;
 
     uint32_t commonNeighborCount;
 
@@ -89,11 +91,13 @@ public:
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
         bool keep,
+        bool isConflict,
         uint32_t commonNeighborCount):
         alignmentInfo(alignmentInfo),
         involvesTwoContainedVertices(involvesTwoContainedVertices),
         involvesOneContainedVertex(involvesOneContainedVertex),
         keep(keep),
+        isConflict(isConflict),
         commonNeighborCount(commonNeighborCount)
         {}
 };
@@ -118,6 +122,7 @@ public:
         bool involvesTwoContainedVertices,
         bool involvesOneContainedVertex,
         bool keep,
+        bool isConflict,
         uint32_t commonNeighborCount);
 
     // Find out if a vertex with a given OrientedReadId exists.
