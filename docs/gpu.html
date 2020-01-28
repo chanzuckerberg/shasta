@@ -138,6 +138,13 @@ Following <code>make</code>, this will generate a dynamic executable (<code>shas
 <p>
 Run the assembly as usual, adding <code>--useGpu</code> to your command line.
 
+<h2>Selecting GPU devices for Shasta eexecution</h2>
+<p>
+By default, Shasta utilizes all available GPU devices for execution. However, it is also 
+possible to selectively choose available GPU devices for Shasta execution by setting the environment 
+variable, <code>CUDA_VISIBLE_DEVICES</code>. The instructions to do this are provided 
+<a href="https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/">here</a>.
+
 </main>
 </body>
 </html>
