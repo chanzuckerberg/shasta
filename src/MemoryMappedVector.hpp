@@ -194,8 +194,8 @@ private:
         static const size_t constantMagicNumber =  0xa3756fd4b5d8bcc1ULL;
         size_t magicNumber;
 
-        // Pad to 256 bytes to make sure the data are aligned with cache lines.
-        array<size_t, 24> padding;
+        // Pad to 4096 bytes to make sure the data are page aligned.
+        array<size_t, 4096/sizeof(size_t) - 8 > padding;
 
 
 
@@ -224,7 +224,7 @@ private:
         }
 
     };
-    static_assert(sizeof(Header) == 256, "Unexpected header size for MemoryMapped::Vector.");
+    static_assert(sizeof(Header) == 4096, "Unexpected header size for MemoryMapped::Vector.");
     Header* header;
 
     // The data immediately follow the header.
