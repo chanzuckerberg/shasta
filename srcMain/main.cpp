@@ -20,6 +20,11 @@ namespace shasta {
             const AssemblerOptions&,
             vector<string> inputNames);
 
+        void createMarkerGraphVertices(
+            Assembler&,
+            const AssemblerOptions&,
+            uint32_t threadCount);
+
         void setupRunDirectory(
             const string& memoryMode,
             const string& memoryBacking,
@@ -643,49 +648,10 @@ void shasta::main::assemble(
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }
 
-
-
     // Create marker graph vertices.
     // This uses a disjoint sets data structure to merge markers
     // that are aligned based on an alignment present in the read graph.
-    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
-
-#ifdef SHASTA_BUILD_FOR_GPU
-
-        // Create marker graph vertices: do it on the GPU.
-        cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
-        cout << "This is under development and is not ready to be used." << endl;
-        assembler.createMarkerGraphVerticesGpu(
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.markerGraphOptions.minCoverage,
-            assemblerOptions.markerGraphOptions.maxCoverage,
-            threadCount);
-#else
-
-        // The build does not have GPU support.
-        throw runtime_error("This Shasta build does not provide GPU acceleration.");
-
-#endif
-    } else {
-
-        // Create marker graph vertices: mainstream code.
-        assembler.createMarkerGraphVertices(
-            assemblerOptions.alignOptions.alignMethodForMarkerGraph,
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.alignOptions.matchScore,
-            assemblerOptions.alignOptions.mismatchScore,
-            assemblerOptions.alignOptions.gapScore,
-            assemblerOptions.readGraphOptions.creationMethod,
-            assemblerOptions.markerGraphOptions.minCoverage,
-            assemblerOptions.markerGraphOptions.maxCoverage,
-            threadCount);
-    }
-
-
+    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
 
     // Find the reverse complement of each marker graph vertex.
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
@@ -825,6 +791,56 @@ void shasta::main::assemble(
         return;
     }
 }
+
+
+
+// Create marker graph vertices.
+// This uses a disjoint sets data structure to merge markers
+// that are aligned based on an alignment present in the read graph.
+void shasta::main::createMarkerGraphVertices(
+    Assembler& assembler,
+    const AssemblerOptions& assemblerOptions,
+    uint32_t threadCount
+    )
+{
+    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+
+    #ifdef SHASTA_BUILD_FOR_GPU
+
+        // Create marker graph vertices: do it on the GPU.
+        cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
+        cout << "This is under development and is not ready to be used." << endl;
+        assembler.createMarkerGraphVerticesGpu(
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
+    #else
+
+        // The build does not have GPU support.
+        throw runtime_error("This Shasta build does not provide GPU acceleration.");
+
+    #endif
+    } else {
+
+        // Create marker graph vertices: mainstream code.
+        assembler.createMarkerGraphVertices(
+            assemblerOptions.alignOptions.alignMethodForMarkerGraph,
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.alignOptions.matchScore,
+            assemblerOptions.alignOptions.mismatchScore,
+            assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.readGraphOptions.creationMethod,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
+    }
+}
+
 
 
 // This function sets nr_overcommit_hugepages for 2MB pages
