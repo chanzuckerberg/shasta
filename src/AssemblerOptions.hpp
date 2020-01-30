@@ -135,6 +135,7 @@ public:
         int crossStrandMaxDistance;
         int containedNeighborCount;
         int uncontainedNeighborCountPerDirection;
+        bool removeConflicts;
         void write(ostream& ) const;
     };
     ReadGraphOptions readGraphOptions;

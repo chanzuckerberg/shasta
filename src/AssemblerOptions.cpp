@@ -438,6 +438,11 @@ void AssemblerOptions::addConfigurableOptions()
         "Maximum number of alignments to be kept in each direction "
         "(forward, backward) for each uncontained read (only used when creationMethod is 1).")
 
+        ("ReadGraph.removeConflicts",
+        bool_switch(&readGraphOptions.removeConflicts)->
+        default_value(false),
+        "Remove conflicts from the read graph. Experimental - do not use.")
+
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
@@ -606,6 +611,8 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
     s << "containedNeighborCount = " << containedNeighborCount << "\n";
     s << "uncontainedNeighborCountPerDirection = " << uncontainedNeighborCountPerDirection << "\n";
+    s << "removeConflicts = " <<
+        convertBoolToPythonString(removeConflicts) << "\n";
 
 }
 
