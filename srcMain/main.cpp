@@ -169,16 +169,6 @@ void shasta::main::assemble(
 
     // Various checks for option validity.
 
-    // Check that a valid assembly strategy was specified.
-    switch(assemblerOptions.assemblyOptions.strategy) {
-    case 0:
-    case 1:
-        break;
-    default:
-        throw runtime_error("Invalid Assembly.strategy " +
-            to_string(assemblerOptions.assemblyOptions.strategy));
-    }
-
     // Check that we have at least one input file.
     if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
         cout << startupMessage << assemblerOptions.allOptionsDescription << endl;
@@ -673,56 +663,21 @@ void shasta::main::assemble(
             assemblerOptions.markerGraphOptions.maxDistance);
     }
 
+    // Prune the marker graph.
+    assembler.pruneMarkerGraphStrongSubgraph(
+        assemblerOptions.markerGraphOptions.pruneIterationCount);
 
+    // Compute marker graph coverage histogram.
+    assembler.computeMarkerGraphCoverageHistogram();
 
-    // Marker graph processing that varies according to
-    // --Assembly.strategy.
-    if(assemblerOptions.assemblyOptions.strategy == 1) {
+    // Simplify the marker graph to remove bubbles and superbubbles.
+    // The maxLength parameter controls the maximum number of markers
+    // for a branch to be collapsed during each iteration.
+    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
 
-        // Prune the marker graph.
-        assembler.pruneMarkerGraphStrongSubgraph(
-            assemblerOptions.markerGraphOptions.pruneIterationCount);
-
-        // Create the assembly graph.
-        assembler.createAssemblyGraphEdges();
-        assembler.createAssemblyGraphVertices();
-
-        // Remove low coverage cross edges of the assembly graph
-        // and the corresponding marker graph edges.
-        assembler.removeLowCoverageCrossEdges(
-            assemblerOptions.assemblyOptions.crossEdgeCoverageThreshold);
-
-        // Compute marker graph coverage histogram.
-        assembler.computeMarkerGraphCoverageHistogram();
-
-        // Recreate the assembly graph, to
-        // allow edges to be combined after cross edge removal.
-        assembler.assemblyGraph.remove();
-        assembler.createAssemblyGraphEdges();
-        assembler.createAssemblyGraphVertices();
-
-    } else {
-        SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
-
-        // Prune the marker graph.
-        assembler.pruneMarkerGraphStrongSubgraph(
-            assemblerOptions.markerGraphOptions.pruneIterationCount);
-
-        // Compute marker graph coverage histogram.
-        assembler.computeMarkerGraphCoverageHistogram();
-
-        // Simplify the marker graph to remove bubbles and superbubbles.
-        // The maxLength parameter controls the maximum number of markers
-        // for a branch to be collapsed during each iteration.
-        assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
-
-        // Create the assembly graph.
-        assembler.createAssemblyGraphEdges();
-        assembler.createAssemblyGraphVertices();
-    }
-
-
-
+    // Create the assembly graph.
+    assembler.createAssemblyGraphEdges();
+    assembler.createAssemblyGraphVertices();
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 
     // Compute optimal repeat counts for each vertex of the marker graph.
@@ -783,13 +738,6 @@ void shasta::main::assemble(
     // Also write a summary of read information.
     assembler.writeReadsSummary();
 
-    // For Assembly strategy 1,write a warning message
-    if(assemblerOptions.assemblyOptions.strategy == 1) {
-        cout << "This assembly was created using --Assembly.strategy 1. "
-            "This option is under development and "
-            " does not produce usable assembly results." << endl;
-        return;
-    }
 }
 
 

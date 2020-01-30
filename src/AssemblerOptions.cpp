@@ -485,11 +485,6 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(false),
         "Perform approximate reverse transitive reduction of the marker graph.")
 
-        ("Assembly.strategy",
-        value<int>(&assemblyOptions.strategy)->
-        default_value(0),
-        "Experimental. Leave at default value 0.")
-
         ("Assembly.crossEdgeCoverageThreshold",
         value<int>(&assemblyOptions.crossEdgeCoverageThreshold)->
         default_value(3),
@@ -524,18 +519,6 @@ void AssemblerOptions::addConfigurableOptions()
         "Used to specify the minimum length of an assembled segment "
         "for which coverage data in csv format should be stored. "
         "If 0, no coverage data in csv format is stored.")
-
-        ("Phasing.phasingSimilarityThreshold",
-        value<double>(&phasingOptions.phasingSimilarityThreshold)->
-        default_value(0.5),
-        "The minimum phasing similarity for an edge "
-        "to be added to the phasing graph. Experimental.")
-
-        ("Phasing.maxNeighborCount",
-        value<int>(&phasingOptions.maxNeighborCount)->
-        default_value(6),
-        "The maximum number of phasing graph edges to be kept "
-        "for each oriented read. Experimental.")
 
         ;
 }
@@ -648,7 +631,6 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
 void AssemblerOptions::AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
-    s << "strategy = " << strategy << "\n";
     s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
         markerGraphEdgeLengthThresholdForConsensus << "\n";
@@ -660,15 +642,6 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
         convertBoolToPythonString(storeCoverageData) << "\n";
     s << "storeCoverageDataCsvLengthThreshold = " <<
         storeCoverageDataCsvLengthThreshold << "\n";
-}
-
-
-
-void AssemblerOptions::PhasingOptions::write(ostream& s) const
-{
-    s << "[Phasing]\n";
-    s << "phasingSimilarityThreshold = " << phasingSimilarityThreshold << "\n";
-    s << "maxNeighborCount = " << maxNeighborCount << "\n";
 }
 
 
@@ -688,8 +661,6 @@ void AssemblerOptions::write(ostream& s) const
     markerGraphOptions.write(s);
     s << "\n";
     assemblyOptions.write(s);
-    s << endl;
-    phasingOptions.write(s);
     s << endl;
 }
 

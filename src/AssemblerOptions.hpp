@@ -168,7 +168,6 @@ public:
     // beginning with "Assembly.".
     class AssemblyOptions {
     public:
-        int strategy;   // 0: bubble removal, 1: phasing
         int crossEdgeCoverageThreshold;
         int markerGraphEdgeLengthThresholdForConsensus;
         string consensusCaller;
@@ -178,17 +177,6 @@ public:
         void write(ostream&) const;
     };
     AssemblyOptions assemblyOptions;
-
-    // Options in the [Phasing] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "Phasing.".
-    class PhasingOptions {
-    public:
-        double phasingSimilarityThreshold;
-        int maxNeighborCount;
-        void write(ostream& ) const;
-    };
-    PhasingOptions phasingOptions;
 
     // Constructor.
     AssemblerOptions(int argumentCount, const char** arguments);
