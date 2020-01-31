@@ -638,6 +638,37 @@ void shasta::main::assemble(
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }
 
+
+
+    // Optional removal of conflicts from the read graph (experimental).
+    if(assemblerOptions.readGraphOptions.removeConflicts) {
+
+        // This only work when using the directed read graph.
+        SHASTA_ASSERT(assembler.directedReadGraph.isOpen());
+
+        // Preliminary creation of marker graph vertices,
+        // necessary to be able to create the conflict read graph.
+        createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+
+        // Create the conflict read graph.
+        // TURN THESE PARAMETERS INTO COMMAND LINE OPTIONS WHEN CODE STABILIZES. ****************
+        const uint32_t maxOffsetSigma = 100;
+        const uint32_t maxTrim = 100;
+        const uint32_t maxSkip = 100;
+        assembler.createConflictReadGraph(threadCount, maxOffsetSigma, maxTrim, maxSkip);
+
+        // Mark conflict edges in the read graph.
+        // TURN THIS PARAMETER INTO A COMMAND LINE OPTION WHEN CODE STABILIZES. ****************
+        const uint32_t radius = 6;
+        assembler.markDirectedReadGraphConflictEdges2(radius);
+
+        // Remove the preliminary marker graph vertices we created.
+        assembler.removeMarkerGraphVertices();
+
+    }
+
+
+
     // Create marker graph vertices.
     // This uses a disjoint sets data structure to merge markers
     // that are aligned based on an alignment present in the read graph.
@@ -754,6 +785,9 @@ void shasta::main::createMarkerGraphVertices(
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
 
     #ifdef SHASTA_BUILD_FOR_GPU
+
+        // This only supports --ReadGraph.creationMethod 0.
+        SHASTA_ASSERT(assemblerOptions.readGraphOptions.creationMethod == 0);
 
         // Create marker graph vertices: do it on the GPU.
         cout << "Using GPU acceleration for creating marker graph vertices.." << endl;

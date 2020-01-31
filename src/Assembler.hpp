@@ -1194,6 +1194,7 @@ private:
 public:
     void findMarkerGraphReverseComplementVertices(size_t threadCount);
     void accessMarkerGraphReverseComplementVertex();
+    void removeMarkerGraphVertices();
 private:
     void findMarkerGraphReverseComplementVerticesThreadFunction1(size_t threadId);
     void findMarkerGraphReverseComplementVerticesThreadFunction2(size_t threadId);

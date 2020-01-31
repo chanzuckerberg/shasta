@@ -457,6 +457,11 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                     continue;
                 }
 
+                // Skip if marked as "conflict".
+                if(edge.isConflict == 1) {
+                    continue;
+                }
+
                 // Check that the next edge is the reverse complement of
                 // this edge.
                 SHASTA_ASSERT(edge.reverseComplementedEdgeId == i+1);
@@ -4962,3 +4967,8 @@ void Assembler::computeMarkerGraphCoverageHistogram()
 
 
 
+void Assembler::removeMarkerGraphVertices()
+{
+    markerGraph.vertices.remove();
+    markerGraph.vertexTable.remove();
+}
