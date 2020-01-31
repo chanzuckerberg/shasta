@@ -2075,7 +2075,7 @@ void Assembler::displayAlignments(
         "{"
         "    var elements = document.getElementsByClassName('sketch');"
         "    for (i=0; i<elements.length; i++) {"
-        "        elements[i].style.width = factor * parseInt(elements[i].style.width) + 'px'"
+        "        elements[i].style.width = factor * parseFloat(elements[i].style.width) + 'px'"
         "    }"
         "}"
         "function larger() {scale(1.5);}"
@@ -2087,7 +2087,7 @@ void Assembler::displayAlignments(
 
 
     // Begin the table.
-    const int bitShift = 6; // Controls the scaling of the alignment sketch.
+    const double markersPerPixel = 50.; // Controls the scaling of the alignment sketch.
     html <<
         "<table>"
         "<tr>"
@@ -2166,40 +2166,40 @@ void Assembler::displayAlignments(
 
             // Oriented read 0.
             "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << (maxLeftHang>>bitShift) <<
+            "background-color:white;height:6px;width:" << double(maxLeftHang)/markersPerPixel <<
             "px;'></div>"
             "<div class=sketch title='Oriented read " << orientedReadId0 <<
             "' style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:blue;height:6px;width:" << (markerCount0>>bitShift) <<
+            "background-color:blue;height:6px;width:" << double(markerCount0)/markersPerPixel <<
             "px;'></div>"
             "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << (maxRightHang>>bitShift) <<
+            "background-color:white;height:6px;width:" << double(maxRightHang)/markersPerPixel <<
             "px;'></div>"
 
             // Aligned portion.
             "<br>"
             "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0)>>bitShift) <<
+            "background-color:white;height:6px;width:" << double(maxLeftHang+leftTrim0)/markersPerPixel <<
             "px;'></div>"
             "<div class=sketch title='Aligned portion'"
             " style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:red;height:6px;width:" << ((markerCount0-leftTrim0-rightTrim0)>>bitShift) <<
+            "background-color:red;height:6px;width:" << double(markerCount0-leftTrim0-rightTrim0)/markersPerPixel <<
             "px;'></div>"
             "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0)>>bitShift) <<
+            "background-color:white;height:6px;width:" << double(maxRightHang+rightTrim0)/markersPerPixel <<
             "px;'></div>"
 
             // Oriented read 1.
             "<br>"
             "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0-leftTrim1)>>bitShift) <<
+            "background-color:white;height:6px;width:" << double(maxLeftHang+leftTrim0-leftTrim1)/markersPerPixel <<
             "px;'></div>"
             "<div class=sketch title='Oriented read " << orientedReadId1 <<
             "' style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:green;height:6px;width:" << (markerCount1>>bitShift) <<
+            "background-color:green;height:6px;width:" << double(markerCount1)/markersPerPixel <<
             "px;'></div>"
             "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0-rightTrim1)>>bitShift) <<
+            "background-color:white;height:6px;width:" << double(maxRightHang+rightTrim0-rightTrim1)/markersPerPixel <<
             "px;'></div>"
              ;
     }
