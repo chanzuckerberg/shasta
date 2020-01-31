@@ -2067,6 +2067,25 @@ void Assembler::displayAlignments(
     }
 
 
+
+    // Buttons to scale the alignment sketches.
+    html <<
+        "<script>"
+        "function scale(factor)"
+        "{"
+        "    var elements = document.getElementsByClassName('sketch');"
+        "    for (i=0; i<elements.length; i++) {"
+        "        elements[i].style.width = factor * parseInt(elements[i].style.width) + 'px'"
+        "    }"
+        "}"
+        "function larger() {scale(1.5);}"
+        "function smaller() {scale(1./1.5);}"
+        "</script>"
+        "&nbsp;<button onclick='larger()'>Make alignment sketches larger</button>"
+        "&nbsp;<button onclick='smaller()'>Make alignment sketches smaller</button>"
+        ;
+
+
     // Begin the table.
     const int bitShift = 6; // Controls the scaling of the alignment sketch.
     html <<
@@ -2146,40 +2165,40 @@ void Assembler::displayAlignments(
             "<td class=centered style='line-height:8px;white-space:nowrap'>"
 
             // Oriented read 0.
-            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
             "background-color:white;height:6px;width:" << (maxLeftHang>>bitShift) <<
             "px;'></div>"
-            "<div title='Oriented read " << orientedReadId0 <<
+            "<div class=sketch title='Oriented read " << orientedReadId0 <<
             "' style='display:inline-block;margin:0px;padding:0px;"
             "background-color:blue;height:6px;width:" << (markerCount0>>bitShift) <<
             "px;'></div>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
             "background-color:white;height:6px;width:" << (maxRightHang>>bitShift) <<
             "px;'></div>"
 
             // Aligned portion.
             "<br>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
             "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0)>>bitShift) <<
             "px;'></div>"
-            "<div title='Aligned portion'"
+            "<div class=sketch title='Aligned portion'"
             " style='display:inline-block;margin:0px;padding:0px;"
             "background-color:red;height:6px;width:" << ((markerCount0-leftTrim0-rightTrim0)>>bitShift) <<
             "px;'></div>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
             "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0)>>bitShift) <<
             "px;'></div>"
 
             // Oriented read 1.
             "<br>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
             "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0-leftTrim1)>>bitShift) <<
             "px;'></div>"
-            "<div title='Oriented read " << orientedReadId1 <<
+            "<div class=sketch title='Oriented read " << orientedReadId1 <<
             "' style='display:inline-block;margin:0px;padding:0px;"
             "background-color:green;height:6px;width:" << (markerCount1>>bitShift) <<
             "px;'></div>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
             "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0-rightTrim1)>>bitShift) <<
             "px;'></div>"
              ;
