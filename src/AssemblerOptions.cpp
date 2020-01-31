@@ -212,6 +212,13 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(10000),
         "Read length cutoff. Shorter reads are discarded.")
 
+        ("Reads.noCache",
+        bool_switch(&readsOptions.noCache)->
+        default_value(false),
+        "If set, skip the Linux cache when loading reads. "
+        "This is done by specifying the O_DIRECT flag when opening "
+        "input files containing reads.")
+
         ("Reads.palindromicReads.maxSkip",
         value<int>(&readsOptions.palindromicReads.maxSkip)->
         default_value(100),
@@ -546,6 +553,8 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
     s << "minReadLength = " << minReadLength << "\n";
+    s << "noCache = " <<
+        convertBoolToPythonString(noCache) << "\n";
     palindromicReads.write(s);
 }
 

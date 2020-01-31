@@ -363,6 +363,13 @@ on input and not used in the assembly.
 <a class=qm href='Running.html#InputFiles'></a>   
 <a class=qm href='ComputationalMethods.html#InitialAssemblySteps'></a>
 
+<tr><td><code>--Reads.noCache</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+If set, requests skipping the Linux cache when loading reads.
+Implemented for Linux only (uses the <a href='http://man7.org/linux/man-pages/man2/open.2.html'>O_DIRECT flag</a>).
+Can help performance, but only use it if you know you will not 
+need to access the input files again soon.
 
 <tr id='Reads.palindromicReads.maxSkip'>
 <td><code>--Reads.palindromicReads.maxSkip</code><td class=centered><code>100</code><td>

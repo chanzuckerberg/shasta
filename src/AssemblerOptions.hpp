@@ -46,6 +46,7 @@ public:
     class ReadsOptions {
     public:
         int minReadLength;
+        bool noCache;
         class PalindromicReadOptions {
         public:
             int maxSkip;

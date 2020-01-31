@@ -15,6 +15,7 @@ using namespace shasta;
 ReadLoader::ReadLoader(
     const string& fileName,
     size_t minReadLength,
+    bool noCache,
     size_t threadCount,
     const string& dataNamePrefix,
     size_t pageSize,
@@ -26,6 +27,7 @@ ReadLoader::ReadLoader(
     MultithreadedObject(*this),
     fileName(fileName),
     minReadLength(minReadLength),
+    noCache(noCache),
     threadCount(threadCount),
     dataNamePrefix(dataNamePrefix),
     pageSize(pageSize),
@@ -502,7 +504,13 @@ void ReadLoader::readFile()
     buffer.resize(bytesToRead);
 
     // Open the input file.
-    const int fileDescriptor = ::open(fileName.c_str(), O_RDONLY);
+    int flags = O_RDONLY;
+#ifdef __linux__
+    if(noCache) {
+        flags |= O_DIRECT;
+    }
+#endif
+    const int fileDescriptor = ::open(fileName.c_str(), flags);
     if(fileDescriptor == -1) {
         throw runtime_error("Error opening " + fileName + " for read.");
     }
@@ -510,8 +518,9 @@ void ReadLoader::readFile()
     // Read it in.
     const auto t1 = std::chrono::steady_clock::now();
     char* bufferPointer = &buffer[0];
+    uint64_t bufferCapacity = buffer.capacity();
     while(bytesToRead) {
-        const int64_t bytesRead = ::read(fileDescriptor, bufferPointer, bytesToRead);
+        const int64_t bytesRead = ::read(fileDescriptor, bufferPointer, bufferCapacity);
         if(bytesRead == -1) {
             ::close(fileDescriptor);
             throw runtime_error("Error reading from " + fileName + " near offset " +
@@ -519,6 +528,7 @@ void ReadLoader::readFile()
         }
         bufferPointer += bytesRead;
         bytesToRead -= bytesRead;
+        bufferCapacity -= bytesRead;
     }
     ::close(fileDescriptor);
     const auto t2 = std::chrono::steady_clock::now();
