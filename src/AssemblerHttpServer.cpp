@@ -2232,11 +2232,11 @@ void Assembler::exploreAlignment(
     getParameterValue(request, "maxDrift", maxDrift);
     uint32_t maxMarkerFrequency = httpServerData.assemblerOptions->alignOptions.maxMarkerFrequency;
     getParameterValue(request, "maxMarkerFrequency", maxMarkerFrequency);
-    int matchScore = 3;
+    int matchScore = httpServerData.assemblerOptions->alignOptions.matchScore;
     getParameterValue(request, "matchScore", matchScore);
-    int mismatchScore = -1;
+    int mismatchScore = httpServerData.assemblerOptions->alignOptions.mismatchScore;
     getParameterValue(request, "mismatchScore", mismatchScore);
-    int gapScore = -1;
+    int gapScore = httpServerData.assemblerOptions->alignOptions.gapScore;
     getParameterValue(request, "gapScore", gapScore);
 
 
