@@ -158,11 +158,18 @@ export CUDA_VISIBLE_DEVICES=2,3
 </code>
 
 <p>
-You can use the following command to list the available GPUs and their identifiers:
+You can use the following commands to list the available GPUs and their identifiers:
 <br>
 <code>
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
 nvidia-smi --list-gpus
 </code>
+
+<p>
+Setting environment variable <code>CUDA_DEVICE_ORDER</code> as shown
+is required to make sure that the <code>nvidia-smi</code>
+lists available GPUs with device identifiers consistent
+with those to be used when setting <code>CUDA_VISIBLE_DEVICES</code>.
 
 <p>
 For more information on the <code>CUDA_VISIBLE_DEVICES</code> environment variable see 
