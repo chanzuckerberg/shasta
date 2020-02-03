@@ -649,7 +649,9 @@ void shasta::main::assemble(
 
         // Preliminary creation of marker graph vertices,
         // necessary to be able to create the conflict read graph.
-        createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+        AssemblerOptions tmpOptions = assemblerOptions;
+        tmpOptions.markerGraphOptions.minCoverage = 3;  //  ************ EXPOSE WHEN CODE STABILIZES
+        createMarkerGraphVertices(assembler, tmpOptions, threadCount);
 
         // Create the conflict read graph.
         // TURN THESE PARAMETERS INTO COMMAND LINE OPTIONS WHEN CODE STABILIZES. ****************

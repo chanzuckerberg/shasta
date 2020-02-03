@@ -200,7 +200,9 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         switch(vertexColoringMethod) {
 
         case VertexColoringMethod::ByConflictCount:
-            if(vertex.conflictCount == 0) {
+            if(vertex.hasLongGap) {
+                s << "color=orange";
+            } else  if(vertex.conflictCount == 0) {
                 s << "color=black";
             } else {
                 const double hue = 0.67;

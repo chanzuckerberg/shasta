@@ -839,6 +839,8 @@ Assembler::ColorConflictReadGraphData::ColorConflictReadGraphData(
 // of the specified radius.
 void Assembler::markDirectedReadGraphConflictEdges2(int radius)
 {
+    const bool debug = false;
+
     // Check that we have what we need.
     SHASTA_ASSERT(directedReadGraph.isOpen());
     SHASTA_ASSERT(conflictReadGraph.isOpen());
@@ -915,6 +917,11 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
         SHASTA_ASSERT(directedReadGraph.getEdge(e).isConflict == 1);
         const VertexId v0 = directedReadGraph.source(e);
         const VertexId v1 = directedReadGraph.target(e);
+        if(debug) {
+            cout << "Checking for conflicts read graph edge " <<
+                ConflictReadGraph::getOrientedReadId(v0) << "->" <<
+                ConflictReadGraph::getOrientedReadId(v1) << endl;
+        }
 
         neighborhood.clear();
         directedReadGraph.findNeighborhood(v0, radius, edgeFilter, true, true, 0., neighborMap);
@@ -931,12 +938,22 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
 
         // Look for edges in the conflict read graph involving vertices in this neighborhood.
         bool conflictEdgeWasFound = false;
-        for(const VertexId v0: neighborhood) {
-            const span<EdgeId> edges0 = conflictReadGraph.incidentEdges(v0);
+        for(const VertexId u0: neighborhood) {
+            const span<EdgeId> edges0 = conflictReadGraph.incidentEdges(u0);
             for(const EdgeId e01: edges0) {
-                const VertexId v1 = conflictReadGraph.otherVertex(e01, v0);
-                if(binary_search(neighborhood.begin(), neighborhood.end(), v1)) {
+                const VertexId u1 = conflictReadGraph.otherVertex(e01, u0);
+                if(binary_search(neighborhood.begin(), neighborhood.end(), u1)) {
                     conflictEdgeWasFound = true;
+
+                    if(debug) {
+                        cout << "Read graph edge " <<
+                            ConflictReadGraph::getOrientedReadId(v0) << "->" <<
+                            ConflictReadGraph::getOrientedReadId(v1) <<
+                            " marked as conflict because of conflict graph edge " <<
+                            ConflictReadGraph::getOrientedReadId(u0) << "->" <<
+                            ConflictReadGraph::getOrientedReadId(u1) << endl;
+                    }
+
                     break;
                 }
             }

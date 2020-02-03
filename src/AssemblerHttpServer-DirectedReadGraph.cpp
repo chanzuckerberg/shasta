@@ -297,6 +297,7 @@ void Assembler::exploreDirectedReadGraph(
                 conflictReadGraph.getVertex(cVertexId);
             vertex.clusterId = cVertex.clusterId;
             vertex.conflictCount = conflictReadGraph.incidentEdges(cVertexId).size();
+            vertex.hasLongGap = cVertex.hasLongGap;
         }
 
 

@@ -66,6 +66,7 @@ public:
     bool isConflict = false;
     uint64_t clusterId = std::numeric_limits<uint64_t>::max();
     uint64_t conflictCount = 0;
+    bool hasLongGap = false;
 
     bool isConflictingGreen = false;
     bool isConflictingRed = false;
