@@ -657,7 +657,10 @@ void shasta::main::assemble(
         // TURN THESE PARAMETERS INTO COMMAND LINE OPTIONS WHEN CODE STABILIZES. ****************
         const uint32_t maxOffsetSigma = 100;
         const uint32_t maxTrim = 100;
-        const uint32_t maxSkip = 100;
+        // Disable long gap (unreliable un low complexity regions because
+        // of gaps caused by high frequency markers).
+        const uint32_t maxSkip = 1000000;
+        // const uint32_t maxSkip = 100;
         assembler.createConflictReadGraph(threadCount, maxOffsetSigma, maxTrim, maxSkip);
 
         // Mark conflict edges in the read graph.
