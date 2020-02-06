@@ -1,9 +1,11 @@
 #include "Assembler.hpp"
+#include "DynamicConflictReadGraph.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
+#include <boost/graph/biconnected_components.hpp>
 
 
 
@@ -428,16 +430,66 @@ void Assembler::cleanupConflictReadGraph()
 {
     using VertexId = ConflictReadGraph::VertexId;
     using EdgeId = ConflictReadGraph::EdgeId;
+    using vertex_descriptor = DynamicConflictReadGraph::vertex_descriptor;
+    using edge_descriptor = DynamicConflictReadGraph::edge_descriptor;
+    using boost::vertex_index_map;
+    using boost::make_assoc_property_map;
 
     // Check that we have what we need.
     SHASTA_ASSERT(conflictReadGraph.isOpen());
 
-    // Clear the wasRemoved flag for all vertices and edges.
+    // Create the Boost version of the conflict read graph.
+    DynamicConflictReadGraph graph(conflictReadGraph);
+    SHASTA_ASSERT(num_vertices(graph) == conflictReadGraph.vertices.size());
+    SHASTA_ASSERT(num_edges(graph) == conflictReadGraph.edges.size());
+
+
+
+    // Recursively remove articulation points.
+    while(true) {
+        std::map<vertex_descriptor, uint64_t> vertexMap;
+        uint64_t vertexIndex = 0;
+        BGL_FORALL_VERTICES(v, graph, DynamicConflictReadGraph) {
+            vertexMap.insert(make_pair(v, vertexIndex++));
+        }
+        vector<vertex_descriptor> articulationPoints;
+        std::map<edge_descriptor, uint64_t> componentMap;
+        boost::biconnected_components(
+            graph,
+            make_assoc_property_map(componentMap),
+            back_inserter(articulationPoints),
+            vertex_index_map(make_assoc_property_map(vertexMap)));
+
+        if(articulationPoints.empty()) {
+            break;
+        }
+
+        // Remove the articulation points.
+        for(const vertex_descriptor v: articulationPoints) {
+            clear_vertex(v, graph);
+            remove_vertex(v, graph);
+        }
+        cout << "Removed " << articulationPoints.size() << " articulation points." << endl;
+    }
+
+
+
+    // Set the wasRemoved flag for all vertices and edges in the original conflict graph.
     for(VertexId vertexId=0; vertexId<conflictReadGraph.vertices.size(); vertexId++) {
-        conflictReadGraph.getVertex(vertexId).wasRemoved = 0;
+        conflictReadGraph.getVertex(vertexId).wasRemoved = true;
     }
     for(EdgeId edgeId=0; edgeId<conflictReadGraph.edges.size(); edgeId++) {
-        conflictReadGraph.getEdge(edgeId).wasRemoved = 0;
+        conflictReadGraph.getEdge(edgeId).wasRemoved = true;
+    }
+
+    // Now clear the wasRemoved flag for the surviving vertices and edges.
+    BGL_FORALL_VERTICES(v, graph, DynamicConflictReadGraph) {
+        const VertexId vertexId = graph[v].vertexId;
+        conflictReadGraph.getVertex(vertexId).wasRemoved = false;
+    }
+    BGL_FORALL_EDGES(e, graph, DynamicConflictReadGraph) {
+        const EdgeId edgeId = graph[e].edgeId;
+        conflictReadGraph.getEdge(edgeId).wasRemoved = false;
     }
 
 }
