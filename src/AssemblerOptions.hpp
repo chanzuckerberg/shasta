@@ -176,6 +176,7 @@ public:
         bool useMarginPhase;
         bool storeCoverageData;
         int storeCoverageDataCsvLengthThreshold;
+        bool writeReadsByAssembledSegment;
         void write(ostream&) const;
     };
     AssemblyOptions assemblyOptions;

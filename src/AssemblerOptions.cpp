@@ -532,6 +532,11 @@ void AssemblerOptions::addConfigurableOptions()
         "for which coverage data in csv format should be stored. "
         "If 0, no coverage data in csv format is stored.")
 
+        ("Assembly.writeReadsByAssembledSegment",
+        bool_switch(&assemblyOptions.writeReadsByAssembledSegment)->
+        default_value(false),
+        "Used to request writing the reads that contributed to assembling each segment.")
+
         ;
 }
 
@@ -658,6 +663,8 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
         convertBoolToPythonString(storeCoverageData) << "\n";
     s << "storeCoverageDataCsvLengthThreshold = " <<
         storeCoverageDataCsvLengthThreshold << "\n";
+    s << "writeReadsByAssembledSegment = " <<
+        convertBoolToPythonString(writeReadsByAssembledSegment) << "\n";
 }
 
 

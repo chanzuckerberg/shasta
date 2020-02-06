@@ -758,11 +758,13 @@ void shasta::main::assemble(
         (userTime + systemTime) / (double(std::thread::hardware_concurrency()) * elapsedTime);
     assembler.storeAssemblyTime(elapsedTime, averageCpuUtilization);
 
-    cout << "Assembly time statistics:\n"
-        "    Elapsed seconds: " << elapsedTime << "\n"
-        "    Elapsed minutes: " << elapsedTime/60. << "\n"
-        "    Elapsed hours:   " << elapsedTime/3600. << "\n";
-    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
+    // If requested, write out the oriented reads that were used to assemble
+    // each assembled segment.
+    if(assemblerOptions.assemblyOptions.writeReadsByAssembledSegment) {
+        cout << timestamp << " Writing the oriented reads that were used to assemble each segment." << endl;
+        assembler.gatherOrientedReadsByAssemblyGraphEdge(threadCount);
+        assembler.writeOrientedReadsByAssemblyGraphEdge();
+    }
 
     // Write the assembly summary.
     ofstream html("AssemblySummary.html");
@@ -775,6 +777,12 @@ void shasta::main::assemble(
     // Also write a summary of read information.
     assembler.writeReadsSummary();
 
+    cout << timestamp << endl;
+    cout << "Assembly time statistics:\n"
+        "    Elapsed seconds: " << elapsedTime << "\n"
+        "    Elapsed minutes: " << elapsedTime/60. << "\n"
+        "    Elapsed hours:   " << elapsedTime/3600. << "\n";
+    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
 }
 
 
