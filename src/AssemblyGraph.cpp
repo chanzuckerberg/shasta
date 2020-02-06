@@ -51,6 +51,10 @@ void AssemblyGraph::remove()
     if(repeatCounts.isOpen()) {
         repeatCounts.remove();
     }
+
+    if(orientedReadsByEdge.isOpen()) {
+        orientedReadsByEdge.remove();
+    }
 }
 
 

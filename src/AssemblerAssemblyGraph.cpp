@@ -1657,3 +1657,136 @@ void Assembler::assembleAssemblyGraphEdge(
     assembledSegment.assemble();
 
 }
+
+
+
+void Assembler::writeOrientedReadsByAssemblyGraphEdge()
+{
+    ofstream csv("ReadsBySegment.csv");
+    csv << "AssembledSegmentId,ReadId,Strand\n";
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.orientedReadsByEdge.size(); edgeId++) {
+        for(const OrientedReadId orientedReadId: assemblyGraph.orientedReadsByEdge[edgeId]) {
+            csv << edgeId << ",";
+            csv << orientedReadId.getReadId() << ",";
+            csv << orientedReadId.getStrand() << "\n";
+        }
+    }
+}
+
+
+
+// Gather all oriented reads used to assembly each edge of the
+// assembly graph.
+void Assembler::gatherOrientedReadsByAssemblyGraphEdge(size_t threadCount)
+{
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    assemblyGraph.orientedReadsByEdge.createNew(
+        largeDataName("PhasingGraphOrientedReads"), largeDataPageSize);
+    assemblyGraph.orientedReadsByEdge.beginPass1(assemblyGraph.edgeLists.size());
+    setupLoadBalancing(assemblyGraph.edgeLists.size(), 1);
+    runThreads(&Assembler::gatherOrientedReadsByAssemblyGraphEdgePass1, threadCount);
+    assemblyGraph.orientedReadsByEdge.beginPass2();
+    setupLoadBalancing(assemblyGraph.edgeLists.size(), 1);
+    runThreads(&Assembler::gatherOrientedReadsByAssemblyGraphEdgePass2, threadCount);
+    assemblyGraph.orientedReadsByEdge.endPass2();
+}
+
+
+
+void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass1(size_t threadId)
+{
+    gatherOrientedReadsByAssemblyGraphEdgePass(1);
+}
+void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass2(size_t threadId)
+{
+    gatherOrientedReadsByAssemblyGraphEdgePass(2);
+}
+void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass(int pass)
+{
+    // Define this here to reduce memory allocation activity.
+    vector<OrientedReadId> orientedReadIds;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while (getNextBatch(begin, end)) {
+
+        // Loop over assembly graph edges assigned to this batch.
+        for (AssemblyGraph::EdgeId assemblyGraphEdgeId = begin;
+            assemblyGraphEdgeId != end; ++assemblyGraphEdgeId) {
+
+            // Access the marker graph edges corresponding
+            // to this assembly graph edge.
+            const span<MarkerGraph::EdgeId> markerGraphEdges =
+                assemblyGraph.edgeLists[assemblyGraphEdgeId];
+            const uint64_t n = markerGraphEdges.size();
+            SHASTA_ASSERT(n > 0);
+
+            // Gather the oriented read ids.
+            orientedReadIds.clear();
+            if (n == 1) {
+
+                // There is only one marker graph edge.
+                // The OrientedReadId's are the ones in that one edge.
+                const MarkerGraph::EdgeId markerGraphEdgeId =
+                    markerGraphEdges[0];
+                const span<MarkerInterval> markerIntervals =
+                    markerGraph.edgeMarkerIntervals[markerGraphEdgeId];
+                for (const MarkerInterval markerInterval : markerIntervals) {
+                    orientedReadIds.push_back(markerInterval.orientedReadId);
+                }
+
+            } else {
+
+                // The OrientedReadId's are the ones from all of the
+                // marker graph vertices internal to this chain.
+                // These are the target vertices of every edge except the last in the chain.
+                for (uint64_t i = 0; i < n - 1; i++) {
+                    const MarkerGraph::EdgeId markerGraphEdgeId =
+                        markerGraphEdges[i];
+                    const MarkerGraph::Edge &markedGraphEdge =
+                        markerGraph.edges[markerGraphEdgeId];
+                    const MarkerGraph::VertexId markerGraphVertexId =
+                        markedGraphEdge.target;
+
+                    // Loop over the markers in this marker graph vertex.
+                    const span<MarkerId> markerIds =
+                        markerGraph.vertices[markerGraphVertexId];
+                    for (const MarkerId markerId : markerIds) {
+                        OrientedReadId orientedReadId;
+                        tie(orientedReadId, ignore) = findMarkerId(markerId);
+                        orientedReadIds.push_back(orientedReadId);
+                    }
+
+                }
+            }
+
+            // Deduplicate.
+            sort(orientedReadIds.begin(), orientedReadIds.end(),
+                std::greater<OrientedReadId>());
+            orientedReadIds.resize(
+                unique(orientedReadIds.begin(), orientedReadIds.end())
+                    - orientedReadIds.begin());
+
+            // Store.
+            // We don't need to use multithreaded versions of these functions
+            // as each threads works on a different assembly graph edge.
+            if (pass == 1) {
+                assemblyGraph.orientedReadsByEdge.incrementCount(assemblyGraphEdgeId,
+                    orientedReadIds.size());
+            } else {
+                for (const OrientedReadId orientedReadId : orientedReadIds) {
+                    assemblyGraph.orientedReadsByEdge.store(assemblyGraphEdgeId,
+                        orientedReadId);
+                }
+            }
+
+        }
+
+    }
+
+}
+

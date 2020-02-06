@@ -481,6 +481,11 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::assembleAssemblyGraphEdge,
             arg("edgeId"),
             arg("storeCoverageData") = true)
+        .def("gatherOrientedReadsByAssemblyGraphEdge",
+            &Assembler::gatherOrientedReadsByAssemblyGraphEdge,
+            arg("threadCount") = 0)
+        .def("writeOrientedReadsByAssemblyGraphEdge",
+            &Assembler::writeOrientedReadsByAssemblyGraphEdge)
 
         // Consensus caller.
         .def("setupConsensusCaller",

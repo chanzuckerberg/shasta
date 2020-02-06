@@ -170,6 +170,10 @@ public:
     LongBaseSequences sequences;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> repeatCounts;
 
+    // The oriented reads internal to each assembly graph edge.
+    // Indexed by EdgeId.
+    MemoryMapped::VectorOfVectors<OrientedReadId, uint64_t> orientedReadsByEdge;
+
     // Close and remove all open data.
     void remove();
 

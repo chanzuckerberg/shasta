@@ -1584,7 +1584,15 @@ public:
     void accessAssemblyGraphEdges();
     void writeAssemblyGraph(const string& fileName) const;
     void findAssemblyGraphBubbles();
+
+    // Gather and write out all reads that contributed to
+    // each assembly graph edge.
+    void gatherOrientedReadsByAssemblyGraphEdge(size_t threadCount);
+    void writeOrientedReadsByAssemblyGraphEdge();
 private:
+    void gatherOrientedReadsByAssemblyGraphEdgePass1(size_t threadId);
+    void gatherOrientedReadsByAssemblyGraphEdgePass2(size_t threadId);
+    void gatherOrientedReadsByAssemblyGraphEdgePass(int);
 
     // Extract a local assembly graph from the global assembly graph.
     // This returns false if the timeout was exceeded.
