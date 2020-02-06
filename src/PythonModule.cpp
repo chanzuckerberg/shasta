@@ -438,7 +438,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessConflictReadGraph)
         .def("colorConflictReadGraph",
             &Assembler::colorConflictReadGraph)
-
+        .def("cleanupConflictReadGraph",
+            &Assembler::cleanupConflictReadGraph)
 
 
         // Assembly graph.

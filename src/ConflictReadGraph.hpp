@@ -72,7 +72,12 @@ public:
     uint32_t longestGap;
 
     // This is set is longestGap>maxSkip.
-    bool hasLongGap;
+    bool hasLongGap = false;
+
+    // If set (by  cleanupConflictReadGraph), the corresponding read graph
+    // edge is effectively excluded from assembly by marking all
+    // edges incident to it as conflict edges.
+    bool wasRemoved = false;
 };
 
 
@@ -81,6 +86,9 @@ public:
 class shasta::ConflictReadGraphEdge {
 public:
 
+    // If set (by  cleanupConflictReadGraph), this edge is ignored
+    // by markDirectedReadGraphConflictEdges2.
+    bool wasRemoved = false;
 };
 
 

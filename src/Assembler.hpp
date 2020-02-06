@@ -1378,6 +1378,7 @@ public:
         uint32_t maxSkip);
     void accessConflictReadGraph();
     void colorConflictReadGraph();
+    void cleanupConflictReadGraph();
 private:
     void createConflictReadGraphThreadFunction1(size_t threadId);
     void createConflictReadGraphThreadFunction2(size_t threadId);

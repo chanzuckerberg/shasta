@@ -662,6 +662,7 @@ void shasta::main::assemble(
         const uint32_t maxSkip = 1000000;
         // const uint32_t maxSkip = 100;
         assembler.createConflictReadGraph(threadCount, maxOffsetSigma, maxTrim, maxSkip);
+        assembler.cleanupConflictReadGraph();
 
         // Mark conflict edges in the read graph.
         // TURN THIS PARAMETER INTO A COMMAND LINE OPTION WHEN CODE STABILIZES. ****************

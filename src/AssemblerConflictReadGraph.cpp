@@ -401,6 +401,49 @@ void Assembler::addConflictGraphEdges(
 
 
 
+/*******************************************************************************
+
+This removes some vertices from the conflict read graph,
+and all edges incident to those vertices.
+The vertices and edges are not actually removed,
+but their wasRemoved flag is set.
+When marking conflict edges in the read graph,
+this information is used as follows:
+- All read graph edges incident to read graph vertices corresponding to
+  conflict read graph vertices that were removed are marked as conflict edges.
+  So the oriented reads corresponding to those vertices are
+  effectively excluded from the assembly.
+- All conflict read graph edges that were removed are ignored.
+
+The goal here is to remove a small number of pathological vertices
+with lots of meaningless conflicts.
+
+The current algorithm recursively removes articulation points of
+the conflict read graph. This is done by creating a "dynamic"
+version of the conflict read graph that uses the Boost library.
+
+*******************************************************************************/
+
+void Assembler::cleanupConflictReadGraph()
+{
+    using VertexId = ConflictReadGraph::VertexId;
+    using EdgeId = ConflictReadGraph::EdgeId;
+
+    // Check that we have what we need.
+    SHASTA_ASSERT(conflictReadGraph.isOpen());
+
+    // Clear the wasRemoved flag for all vertices and edges.
+    for(VertexId vertexId=0; vertexId<conflictReadGraph.vertices.size(); vertexId++) {
+        conflictReadGraph.getVertex(vertexId).wasRemoved = 0;
+    }
+    for(EdgeId edgeId=0; edgeId<conflictReadGraph.edges.size(); edgeId++) {
+        conflictReadGraph.getEdge(edgeId).wasRemoved = 0;
+    }
+
+}
+
+
+
 // This colors the ConflictReadGraph by walking the DirectedReadGraph.
 void Assembler::colorConflictReadGraph()
 {
@@ -865,8 +908,7 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
     // Gather all read graph edges that:
     // 1. Are marked "keep"
     // AND
-    // 2. Do not involve vertices that are marked "hasLongGap"
-    //    in the ConflictReadGraph.
+    // 2. Do not involve vertices that were removed from the ConflictReadGraph.
     // For each edge, also store the number aligned markers,
     // then sort by decreasing number of aligned markers.
     vector< pair<VertexId, uint32_t> > edges;
@@ -878,14 +920,13 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
             continue;
         }
 
-        // Check that the vertices are not marker "hasLongGap"
-        // in the ConflictReadGraph.
+        // Check that the vertices are were not removed from the ConflictReadGraph.
         const VertexId v0 = directedReadGraph.source(e);
-        if(conflictReadGraph.getVertex(v0).hasLongGap) {
+        if(conflictReadGraph.getVertex(v0).wasRemoved) {
             continue;
         }
         const VertexId v1 = directedReadGraph.target(e);
-        if(conflictReadGraph.getVertex(v1).hasLongGap) {
+        if(conflictReadGraph.getVertex(v1).wasRemoved) {
             continue;
         }
 
