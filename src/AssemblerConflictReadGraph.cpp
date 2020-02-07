@@ -446,7 +446,10 @@ void Assembler::cleanupConflictReadGraph()
 
 
     // Recursively remove articulation points.
-    while(true) {
+    int iteration = 0;
+    for(; ; iteration++) {
+        graph.writeGraphviz("ConflictReadGraph-" + to_string(iteration) + ".dot");
+
         std::map<vertex_descriptor, uint64_t> vertexMap;
         uint64_t vertexIndex = 0;
         BGL_FORALL_VERTICES(v, graph, DynamicConflictReadGraph) {
@@ -461,6 +464,8 @@ void Assembler::cleanupConflictReadGraph()
             vertex_index_map(make_assoc_property_map(vertexMap)));
 
         if(articulationPoints.empty()) {
+            iteration++;
+            graph.writeGraphviz("ConflictReadGraph-" + to_string(iteration) + ".dot");
             break;
         }
 

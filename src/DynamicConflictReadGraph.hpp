@@ -35,6 +35,11 @@ public:
         ConflictReadGraph::VertexId vertexId = std::numeric_limits<ConflictReadGraph::VertexId>::max()
         ) :
         vertexId(vertexId) {}
+
+    OrientedReadId getOrientedReadId() const
+    {
+        return ConflictReadGraph::getOrientedReadId(vertexId);
+    }
 };
 
 
@@ -54,6 +59,12 @@ public:
     using EdgeId = ConflictReadGraph::EdgeId;
 
     DynamicConflictReadGraph(const ConflictReadGraph&);
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
+
+private:
+    void writeGraphviz(ostream&, vertex_descriptor) const;
+    void writeGraphviz(ostream&, edge_descriptor) const;
 };
 
 #endif
