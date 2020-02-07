@@ -351,7 +351,7 @@ void Assembler::exploreDirectedReadGraph(
                 const auto cv1 = conflictReadGraph.otherVertex(cEdgeId, cv0);
                 const OrientedReadId orientedReadId1 = ConflictReadGraph::getOrientedReadId(cv1);
                 const auto v1 = graph.getVertex(orientedReadId1);
-                if(v1 != graph.null_vertex()) {
+                if(v1 != graph.null_vertex() and not graph[v1].wasRemoved) {
                     graph[v1].isConflictingRed = true;
                 }
                             }
