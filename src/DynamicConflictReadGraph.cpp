@@ -63,7 +63,22 @@ void DynamicConflictReadGraph::writeGraphviz(ostream& s, vertex_descriptor v) co
 
     s << "\"" << orientedReadId << "\"";
     s << "[";
-    s << "tooltip=\"" << orientedReadId << "\"";
+
+    // Tooltip.
+    s << "tooltip=\"" << orientedReadId;
+    if(vertex.isColored()) {
+        s << " component " << vertex.componentId << " color " << vertex.color;
+    }
+    s << "\"";
+
+    // Color.
+    if(vertex.isColored()) {
+        const string color = "/set18/" + to_string(1 + vertex.color%8);
+        s << " style=filled";
+        s << " color=\"" << color << "\"";
+        s << " fillcolor=\"" << color << "\"";
+    }
+
     s << "];\n";
 }
 

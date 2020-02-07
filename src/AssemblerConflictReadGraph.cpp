@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "approximateColoring.hpp"
 #include "DynamicConflictReadGraph.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
@@ -6,6 +7,10 @@ using namespace shasta;
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
 #include <boost/graph/biconnected_components.hpp>
+
+// Standard library.
+#include <map>
+#include <set>
 
 
 
@@ -447,16 +452,19 @@ void Assembler::cleanupConflictReadGraph()
 
     // Recursively remove articulation points.
     int iteration = 0;
+    std::map<vertex_descriptor, uint64_t> vertexMap;
+    vector<vertex_descriptor> articulationPoints;
+    std::map<edge_descriptor, uint64_t> componentMap;
     for(; ; iteration++) {
         graph.writeGraphviz("ConflictReadGraph-" + to_string(iteration) + ".dot");
 
-        std::map<vertex_descriptor, uint64_t> vertexMap;
+        vertexMap.clear();
         uint64_t vertexIndex = 0;
         BGL_FORALL_VERTICES(v, graph, DynamicConflictReadGraph) {
             vertexMap.insert(make_pair(v, vertexIndex++));
         }
-        vector<vertex_descriptor> articulationPoints;
-        std::map<edge_descriptor, uint64_t> componentMap;
+        articulationPoints.clear();
+        componentMap.clear();
         boost::biconnected_components(
             graph,
             make_assoc_property_map(componentMap),
@@ -479,6 +487,71 @@ void Assembler::cleanupConflictReadGraph()
 
 
 
+    // At this point the graph has no articulation points,
+    // which meant that the connected components are all biconnected,
+    // and therefore the connected components and the biconnected
+    // components are the same.
+    // We do approximate coloring of each component.
+    // At this stage the coloring is not used for any purpose.
+
+    // Gather the components.
+    std::map<uint64_t, std::set<vertex_descriptor> > components;
+    BGL_FORALL_EDGES(e, graph, DynamicConflictReadGraph) {
+        const uint64_t componentId = componentMap[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        components[componentId].insert(v0);
+        components[componentId].insert(v1);
+    }
+
+
+
+    // Do approximate coloring of each component.
+    uint64_t componentId = 0;
+    for(const auto& p: components) {
+        const std::set<vertex_descriptor>& componentSet = p.second;
+        if(componentSet.size() == 1) {
+            continue;
+        }
+        vector<vertex_descriptor> component;
+        copy(componentSet.begin(), componentSet.end(), back_inserter(component));
+
+        // Create a graph representing this component.
+        using ComponentGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
+        ComponentGraph componentGraph(component.size());
+        for(uint64_t iv0=0; iv0<component.size(); iv0++) {
+            const vertex_descriptor v0 = component[iv0];
+            BGL_FORALL_ADJ(v0, v1, graph, DynamicConflictReadGraph) {
+                if(v0 < v1) {
+                    const uint64_t iv1 = lower_bound(component.begin(), component.end(), v1) - component.begin();
+                    SHASTA_ASSERT(iv1 < component.size());
+                    boost::add_edge(iv0, iv1, componentGraph);
+                }
+            }
+        }
+
+        vector<uint64_t> color(component.size());
+        approximateColoring(componentGraph, color);
+        for(uint64_t i=0; i<component.size(); i++) {
+            auto& vertex = graph[component[i]];
+            vertex.componentId = componentId;
+            vertex.color = color[i];
+        }
+
+        vector<uint64_t> colorFrequency;
+        deduplicateAndCount(color, colorFrequency);
+        cout << "Used " << color.size() << " colors to color a component with " <<
+            component.size() << " vertices:" << endl;
+        for(uint64_t i=0; i<color.size(); i++) {
+            cout << "Color " << color[i] << ": " << colorFrequency[i] << " vertices." << endl;
+        }
+
+        componentId++;
+    }
+    graph.writeGraphviz("ConflictReadGraph-Final.dot");
+
+
+
     // Set the wasRemoved flag for all vertices and edges in the original conflict graph.
     for(VertexId vertexId=0; vertexId<conflictReadGraph.vertices.size(); vertexId++) {
         conflictReadGraph.getVertex(vertexId).wasRemoved = true;
@@ -488,9 +561,13 @@ void Assembler::cleanupConflictReadGraph()
     }
 
     // Now clear the wasRemoved flag for the surviving vertices and edges.
+    // Also propagate coloring information.
     BGL_FORALL_VERTICES(v, graph, DynamicConflictReadGraph) {
         const VertexId vertexId = graph[v].vertexId;
         conflictReadGraph.getVertex(vertexId).wasRemoved = false;
+        if(graph[v].isColored()) {
+            conflictReadGraph.getVertex(vertexId).clusterId = uint32_t(graph[v].color);
+        }
     }
     BGL_FORALL_EDGES(e, graph, DynamicConflictReadGraph) {
         const EdgeId edgeId = graph[e].edgeId;

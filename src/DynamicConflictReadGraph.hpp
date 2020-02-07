@@ -11,6 +11,9 @@
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
 
+// Standard library.
+#include <limits>
+
 namespace shasta {
     class DynamicConflictReadGraph;
     class DynamicConflictReadGraphVertex;
@@ -39,6 +42,15 @@ public:
     OrientedReadId getOrientedReadId() const
     {
         return ConflictReadGraph::getOrientedReadId(vertexId);
+    }
+
+    // Coloring information.
+    static const uint64_t invalid = std::numeric_limits<uint64_t>::max();
+    uint64_t componentId = invalid;
+    uint64_t color = invalid;
+    bool isColored() const
+    {
+        return componentId != invalid and color != invalid;
     }
 };
 
