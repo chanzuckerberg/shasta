@@ -242,12 +242,14 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     const vertex_descriptor v1 = target(e, graph);
     const LocalDirectedReadGraphVertex& vertex0 = graph[v0];
     const LocalDirectedReadGraphVertex& vertex1 = graph[v1];
+    const OrientedReadId orientedReadId0 = vertex0.orientedReadId;
+    const OrientedReadId orientedReadId1 = vertex1.orientedReadId;
 
     s << "[";
 
     s <<
-        "tooltip=\"" << vertex0.orientedReadId << "->" <<
-        vertex1.orientedReadId <<
+        "tooltip=\"" << orientedReadId0 << "->" <<
+        orientedReadId1 <<
         ", " << edge.alignmentInfo.markerCount << " aligned markers, centers offset " <<
         std::setprecision(6) << edge.alignmentInfo.offsetAtCenter() <<
         " aligned fraction " <<
@@ -259,6 +261,16 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
 
     s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.alignmentInfo.markerCount) << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
+
+
+    // Hyperlink to the alignment corresponding to this edge.
+    s << " URL=\""
+        "exploreAlignment"
+        "?readId0=" << orientedReadId0.getReadId() <<
+        "&strand0=" << orientedReadId0.getStrand() <<
+        "&readId1=" << orientedReadId1.getReadId() <<
+        "&strand1=" << orientedReadId0.getStrand() <<
+        "\"";
 
 
 
