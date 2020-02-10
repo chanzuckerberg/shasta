@@ -657,7 +657,7 @@ void shasta::main::assemble(
         // TURN THESE PARAMETERS INTO COMMAND LINE OPTIONS WHEN CODE STABILIZES. ****************
         const uint32_t maxOffsetSigma = 100;
         const uint32_t maxTrim = 100;
-        // Disable long gap (unreliable un low complexity regions because
+        // Disable long gap (unreliable in low complexity regions because
         // of gaps caused by high frequency markers).
         const uint32_t maxSkip = 1000000;
         // const uint32_t maxSkip = 100;
@@ -667,7 +667,7 @@ void shasta::main::assemble(
         // Mark conflict edges in the read graph.
         // TURN THIS PARAMETER INTO A COMMAND LINE OPTION WHEN CODE STABILIZES. ****************
         const uint32_t radius = 6;
-        assembler.markDirectedReadGraphConflictEdges2(radius);
+        assembler.markDirectedReadGraphConflictEdges3(radius);
 
         // Remove the preliminary marker graph vertices we created.
         assembler.removeMarkerGraphVertices();

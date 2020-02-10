@@ -315,6 +315,9 @@ PYBIND11_MODULE(shasta, module)
         .def("markDirectedReadGraphConflictEdges2",
             &Assembler::markDirectedReadGraphConflictEdges2,
             arg("radius"))
+        .def("markDirectedReadGraphConflictEdges3",
+            &Assembler::markDirectedReadGraphConflictEdges3,
+            arg("radius"))
 
 
         // Global marker graph.
@@ -436,8 +439,6 @@ PYBIND11_MODULE(shasta, module)
             arg("maxSkip"))
         .def("accessConflictReadGraph",
             &Assembler::accessConflictReadGraph)
-        .def("colorConflictReadGraph",
-            &Assembler::colorConflictReadGraph)
         .def("cleanupConflictReadGraph",
             &Assembler::cleanupConflictReadGraph)
 

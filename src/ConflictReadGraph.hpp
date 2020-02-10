@@ -48,11 +48,12 @@ public:
 
 
     // The cluster id assigned during coloring of the conflict read graph.
-    uint32_t clusterId = invalid;
+    uint32_t componentId = invalid;
+    uint32_t color = invalid;
 
-    bool hasValidClusterId() const
+    bool hasValidColor() const
     {
-        return clusterId != invalid;
+        return color != invalid;
     }
 
     // Number of markers preceding the first marker with non-zero marker coverage

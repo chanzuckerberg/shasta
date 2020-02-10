@@ -1098,6 +1098,7 @@ public:
     void accessDirectedReadGraphReadWrite();
     void markDirectedReadGraphConflictEdges1();
     void markDirectedReadGraphConflictEdges2(int radius);
+    void markDirectedReadGraphConflictEdges3(int radius);
 
 
 
@@ -1377,7 +1378,7 @@ public:
         uint32_t maxTrim,
         uint32_t maxSkip);
     void accessConflictReadGraph();
-    void colorConflictReadGraph();
+    // void colorConflictReadGraph();
     void cleanupConflictReadGraph();
 private:
     void createConflictReadGraphThreadFunction1(size_t threadId);

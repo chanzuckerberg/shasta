@@ -161,7 +161,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     const bool hasClusterInformation =
-        vertex.clusterId != std::numeric_limits<uint64_t>::max();
+        vertex.color != std::numeric_limits<uint64_t>::max();
 
     // Tooltip.
     s <<
@@ -173,7 +173,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         s << ", " << vertex.conflictCount << " conflicting vertices" ;
     }
     if(hasClusterInformation) {
-        s << ", conflict read graph cluster " << vertex.clusterId;
+        s << ", conflict read graph component " << vertex.componentId <<
+            " color " << vertex.color;
      }
     s << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
@@ -213,8 +214,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
             break;
 
         case VertexColoringMethod::ByCluster:
-            if(vertex.clusterId != std::numeric_limits<uint32_t>::max()) {
-                s << " color=\"/set18/" << (vertex.clusterId % 8) + 1 << "\"";
+            if(vertex.color != std::numeric_limits<uint32_t>::max()) {
+                s << " color=\"/set18/" << (vertex.color % 8) + 1 << "\"";
             }
             break;
 
