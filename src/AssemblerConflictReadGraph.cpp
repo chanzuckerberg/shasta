@@ -1,12 +1,12 @@
 #include "Assembler.hpp"
 #include "approximateColoring.hpp"
 #include "DynamicConflictReadGraph.hpp"
+#include "makeBiconnected.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
-#include <boost/graph/biconnected_components.hpp>
 
 // Standard library.
 #include <map>
@@ -412,6 +412,8 @@ void Assembler::addConflictGraphEdges(
 
 This removes some vertices from the conflict read graph,
 and all edges incident to those vertices.
+It also does approximate coloring of the resulting conflict graph.
+
 The vertices and edges are not actually removed,
 but their wasRemoved flag is set.
 When marking conflict edges in the read graph,
@@ -437,8 +439,6 @@ void Assembler::cleanupConflictReadGraph()
     using EdgeId = ConflictReadGraph::EdgeId;
     using vertex_descriptor = DynamicConflictReadGraph::vertex_descriptor;
     using edge_descriptor = DynamicConflictReadGraph::edge_descriptor;
-    using boost::vertex_index_map;
-    using boost::make_assoc_property_map;
 
     // Check that we have what we need.
     SHASTA_ASSERT(conflictReadGraph.isOpen());
@@ -447,52 +447,25 @@ void Assembler::cleanupConflictReadGraph()
     DynamicConflictReadGraph graph(conflictReadGraph);
     SHASTA_ASSERT(num_vertices(graph) == conflictReadGraph.vertices.size());
     SHASTA_ASSERT(num_edges(graph) == conflictReadGraph.edges.size());
+    cout << "The initial conflict graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
 
 
 
     // Recursively remove articulation points.
-    int iteration = 0;
-    std::map<vertex_descriptor, uint64_t> vertexMap;
-    vector<vertex_descriptor> articulationPoints;
     std::map<edge_descriptor, uint64_t> componentMap;
-    for(; ; iteration++) {
-        graph.writeGraphviz("ConflictReadGraph-" + to_string(iteration) + ".dot");
-
-        vertexMap.clear();
-        uint64_t vertexIndex = 0;
-        BGL_FORALL_VERTICES(v, graph, DynamicConflictReadGraph) {
-            vertexMap.insert(make_pair(v, vertexIndex++));
-        }
-        articulationPoints.clear();
-        componentMap.clear();
-        boost::biconnected_components(
-            graph,
-            make_assoc_property_map(componentMap),
-            back_inserter(articulationPoints),
-            vertex_index_map(make_assoc_property_map(vertexMap)));
-
-        if(articulationPoints.empty()) {
-            iteration++;
-            graph.writeGraphviz("ConflictReadGraph-" + to_string(iteration) + ".dot");
-            break;
-        }
-
-        // Remove the articulation points.
-        for(const vertex_descriptor v: articulationPoints) {
-            clear_vertex(v, graph);
-            remove_vertex(v, graph);
-        }
-        cout << "Removed " << articulationPoints.size() << " articulation points." << endl;
-    }
+    makeBiconnected(graph, componentMap);
+    cout << "After recursive removal of articulation points, the resulting biconnected conflict graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
 
 
 
     // At this point the graph has no articulation points,
-    // which meant that the connected components are all biconnected,
+    // which means that the connected components are all biconnected,
     // and therefore the connected components and the biconnected
     // components are the same.
     // We do approximate coloring of each component.
-    // At this stage the coloring is not used for any purpose.
+    // Right now the coloring is not used for any purpose.
 
     // Gather the components.
     std::map<uint64_t, std::set<vertex_descriptor> > components;
