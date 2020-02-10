@@ -61,7 +61,7 @@ void Assembler::exploreDirectedReadGraph(
     double edgeThicknessScalingFactor = 1.;
     getParameterValue(request, "edgeThicknessScalingFactor", edgeThicknessScalingFactor);
 
-    double edgeArrowScalingFactor = 1.;
+    double edgeArrowScalingFactor = 0.;
     getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
 
     string colorEdgeArrowsString;
@@ -81,7 +81,7 @@ void Assembler::exploreDirectedReadGraph(
     string highlightConflicting;
     getParameterValue(request, "highlightConflicting", highlightConflicting);
 
-    string format = "png";
+    string format = "svg";
     getParameterValue(request, "format", format);
 
     double timeout= 30;

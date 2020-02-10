@@ -257,8 +257,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         ", common neighbors " << edge.commonNeighborCount <<
         "\"";
 
-    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-3 * edge.alignmentInfo.markerCount) << "\"";
-    s << " arrowsize=\"" << edgeArrowScalingFactor * 0.1 << "\"";
+    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.alignmentInfo.markerCount) << "\"";
+    s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
 
 
 
