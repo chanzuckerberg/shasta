@@ -1823,8 +1823,12 @@ public:
     void displayAlignments(
         OrientedReadId,
         const vector< pair<OrientedReadId, AlignmentInfo> >&,
-        ostream&);
-
+        ostream&) const;
+    void displayAlignment(
+        OrientedReadId orientedReadId0,
+        OrientedReadId orientedReadId1,
+        const AlignmentInfo& alignment,
+        ostream&) const;
 
     // Functions and data used by the http server
     // for display of the local marker graph.

@@ -2029,12 +2029,24 @@ void Assembler::exploreAlignments(
 }
 
 
+void Assembler::displayAlignment(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    const AlignmentInfo& alignment,
+    ostream& html) const
+{
+    vector< pair<OrientedReadId, AlignmentInfo> > alignments;
+    alignments.push_back(make_pair(orientedReadId1, alignment));
+    displayAlignments(orientedReadId0, alignments, html);
+}
+
+
 
 // Display alignments in an html table.
 void Assembler::displayAlignments(
     OrientedReadId orientedReadId0,
     const vector< pair<OrientedReadId, AlignmentInfo> >& alignments,
-    ostream& html)
+    ostream& html) const
 {
     const ReadId readId0 = orientedReadId0.getReadId();
     const Strand strand0 = orientedReadId0.getStrand();
@@ -2080,24 +2092,37 @@ void Assembler::displayAlignments(
         "}"
         "function larger() {scale(1.5);}"
         "function smaller() {scale(1./1.5);}"
-        "</script>"
+        "</script>";
+    if(alignments.size() > 1) {
+        html <<
         "&nbsp;<button onclick='larger()'>Make alignment sketches larger</button>"
         "&nbsp;<button onclick='smaller()'>Make alignment sketches smaller</button>"
         ;
-
+    } else {
+        html <<
+        "&nbsp;<button onclick='larger()'>Make alignment sketch larger</button>"
+        "&nbsp;<button onclick='smaller()'>Make alignment sketch smaller</button>"
+        ;
+    }
 
     // Begin the table.
     const double markersPerPixel = 50.; // Controls the scaling of the alignment sketch.
     html <<
-        "<table>"
+        "<p><table>"
         "<tr>"
         "<th rowspan=2>Index"
         "<th rowspan=2>Other<br>oriented<br>read"
         "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
         "<th colspan=3>Ordinal offset"
         "<th rowspan=2 title='The marker offset of the centers of the two oriented reads.'>Center<br>offset"
-        "<th colspan=5>Markers on oriented read " << orientedReadId0 <<
-        "<th colspan=5>Markers on other oriented read"
+        "<th colspan=5>Markers on oriented read " << orientedReadId0;
+    if(alignments.size() > 1) {
+        html << "<th colspan=5>Markers on other oriented read";
+    } else {
+        html << "<th colspan=5>Markers on oriented read " <<
+            alignments.front().first;
+    }
+    html <<
         "<th rowspan=2>Alignment sketch"
         "<tr>"
         "<th>Min"
@@ -2350,98 +2375,14 @@ void Assembler::exploreAlignment(
 
 
 
-    // Write out a table with some information on the alignment.
-    const auto markers0 = markers[orientedReadId0.getValue()];
-    const auto markers1 = markers[orientedReadId1.getValue()];
-    const auto markerCount0 = markers0.size();
-    const auto markerCount1 = markers1.size();
-    const auto baseCount0 = reads[orientedReadId0.getReadId()].baseCount;
-    const auto baseCount1 = reads[orientedReadId1.getReadId()].baseCount;
-    const auto firstOrdinal0 = alignment.ordinals.front()[0];
-    const auto firstOrdinal1 = alignment.ordinals.front()[1];
-    const auto lastOrdinal0 = alignment.ordinals.back()[0];
-    const auto lastOrdinal1 = alignment.ordinals.back()[1];
-    const auto& firstMarker0 = markers0[firstOrdinal0];
-    const auto& firstMarker1 = markers1[firstOrdinal1];
-    const auto& lastMarker0 = markers0[lastOrdinal0];
-    const auto& lastMarker1 = markers1[lastOrdinal1];
-    html <<
-        "<h3>Alignment summary</h3>"
-        "<table>"
-        "<tr>"
-        "<th rowspan=2>"
-        "<th colspan=2>Markers"
-        "<th colspan=2>Bases"
-
-        "<tr>"
-        "<th>" << orientedReadId0 <<
-        "<th>" << orientedReadId1 <<
-        "<th>" << orientedReadId0 <<
-        "<th>" << orientedReadId1 <<
-
-        "<tr>"
-        "<td title='Total number of markers or bases in this read'>Total"
-        "<td class=centered>" << markerCount0 <<
-        "<td class=centered>" << markerCount1 <<
-        "<td class=centered>" << baseCount0 <<
-        "<td class=centered>" << baseCount1 <<
-
-        "<tr>"
-        "<td title='Number of unaligned markers or bases to the left of the aligned portion'>Unaligned on left"
-        "<td class=centered>" << firstOrdinal0 <<
-        "<td class=centered>" << firstOrdinal1 <<
-        "<td class=centered>" << firstMarker0.position <<
-        "<td class=centered>" << firstMarker1.position <<
-
-        "<tr>"
-        "<td title='Number of unaligned markers or bases to the right of the aligned portion'>Unaligned on right"
-        "<td class=centered>" << markerCount0 - 1 - lastOrdinal0 <<
-        "<td class=centered>" << markerCount1 - 1 - lastOrdinal1 <<
-        "<td class=centered>" << baseCount0 - 1 - lastMarker0.position <<
-        "<td class=centered>" << baseCount1 - 1 - lastMarker1.position <<
-
-        "<tr>"
-        "<td title='Number of aligned markers or bases in the aligned portion'>Aligned range"
-        "<td class=centered>" << lastOrdinal0 + 1 - firstOrdinal0 <<
-        "<td class=centered>" << lastOrdinal1 + 1 - firstOrdinal1 <<
-        "<td class=centered>" << lastMarker0.position + 1 - firstMarker0.position <<
-        "<td class=centered>" << lastMarker1.position + 1 - firstMarker1.position <<
-
-        "<tr>"
-        "<td title='Number of aligned markers'>Aligned"
-        "<td class=centered>" << alignment.ordinals.size() <<
-        "<td class=centered>" << alignment.ordinals.size() <<
-        "<td>"
-        "<td>"
-
-        "<tr>"
-        "<td title='Fraction of aligned markers in the aligned portion'>Aligned fraction"
-        "<td class=centered>" << std::setprecision(2) << double(alignment.ordinals.size()) / double(lastOrdinal0 + 1 - firstOrdinal0) <<
-        "<td class=centered>" << std::setprecision(2) << double(alignment.ordinals.size()) / double(lastOrdinal1 + 1 - firstOrdinal1) <<
-        "<td>"
-        "<td>"
-
-        "<tr>"
-        "<td>Minimum ordinal offset<td><td class=centered>" << alignmentInfo.minOrdinalOffset <<
-        "<td><td>"
-
-        "<tr>"
-        "<td>Average ordinal offset<td><td class=centered>" << alignmentInfo.averageOrdinalOffset <<
-        "<td><td>"
-
-        "<tr>"
-        "<td>Maximum ordinal offset<td><td class=centered>" << alignmentInfo.maxOrdinalOffset <<
-        "<td><td>"
-
-        "<tr>"
-        "<td title='Marker offset between the center of " << orientedReadId0 <<
-        " and the center of " << orientedReadId1 <<
-        "'>Marker offset at center<td><td>" << std::setprecision(6) << alignmentInfo.offsetAtCenter() <<
-        "<td><td>"
-
-        "</table>"
-        "<p>See bottom of this page for alignment details.";
-
+    // Write summary information for this alignment.
+    html << "<h3>Alignment summary</h3>";
+    displayAlignment(
+        orientedReadId0,
+        orientedReadId1,
+        alignmentInfo,
+        html);
+    html << "<br>See below for alignment details.";
 
 
     // Create a base64 version of the png file.
@@ -2485,7 +2426,7 @@ void Assembler::exploreAlignment(
         "<tr>"
         "<th rowspan=2>K-mer"
         "<th colspan=3>Ordinals"
-        "<th colspan=2>Positions"
+        "<th colspan=2>Positions<br>(RLE)"
 
         "<tr>"
         "<th>" << orientedReadId0 <<
@@ -2494,6 +2435,8 @@ void Assembler::exploreAlignment(
         "<th>" << orientedReadId0 <<
         "<th>" << orientedReadId1;
 
+    const auto markers0 = markers[orientedReadId0.getValue()];
+    const auto markers1 = markers[orientedReadId1.getValue()];
     for(const auto& ordinals: alignment.ordinals) {
         const auto ordinal0 = ordinals[0];
         const auto ordinal1 = ordinals[1];
