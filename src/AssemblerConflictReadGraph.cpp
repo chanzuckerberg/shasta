@@ -11,6 +11,7 @@ using namespace shasta;
 // Standard library.
 #include <map>
 #include <set>
+#include "tuple.hpp"
 
 
 
@@ -521,9 +522,11 @@ void Assembler::cleanupConflictReadGraph()
 
         componentId++;
     }
-    graph.writeGraphviz("ConflictReadGraph-Final.dot");
+    graph.writeGraphviz("ConflictReadGraph-0.dot");
 
 
+
+    // Propagate information in the DynamicConflictReadGraph to the ConflictReadGraph.
 
     // Set the wasRemoved flag for all vertices and edges in the original conflict graph.
     for(VertexId vertexId=0; vertexId<conflictReadGraph.vertices.size(); vertexId++) {
@@ -549,6 +552,113 @@ void Assembler::cleanupConflictReadGraph()
         conflictReadGraph.getEdge(edgeId).wasRemoved = false;
     }
 
+
+    // The vertices that can be colored.
+    // (Vertexid, componentId, color).
+    vector< tuple<VertexId, uint32_t, uint32_t> > colorableVertices;
+
+    // The ambiguos vertices.
+    vector<VertexId> ambiguousVertices;
+
+    // Analyze alignments to color more vertices.
+    for(VertexId v0=0; v0<conflictReadGraph.vertices.size(); v0++) {
+        ConflictReadGraphVertex cVertex0 = conflictReadGraph.getVertex(v0);
+
+        // If this vertex is already colored, skip it.
+        if(cVertex0.hasValidColor()) {
+            continue;
+        }
+
+        // We will look for alignments where v0 is entirely contained in the other read,
+        const uint32_t leftTrim0 = cVertex0.leftTrim;
+        const uint32_t rightTrim0 = cVertex0.rightTrim;
+
+        // Set to hold pairs(componentId, color) for containing vertices.
+        std::set< pair<uint32_t, uint32_t> > colorInfo;
+
+        // Loop over alignments involving this oriented read.
+        // Note this involving using all read graph edges, including the
+        // ones not marked as "keep".
+        for(EdgeId e01: directedReadGraph.outEdges(v0)) {
+            const DirectedReadGraphEdge dEdge01 = directedReadGraph.getEdge(e01);
+
+            // If v0 is not contained, skip.
+            const uint32_t maxTrim = 100; // **************** EXPOSE WHEN CODE STABILIZES.
+            if(dEdge01.alignmentInfo.leftTrim(0) > leftTrim0 + maxTrim) {
+                continue;
+            }
+            if(dEdge01.alignmentInfo.rightTrim(0) > rightTrim0 + maxTrim) {
+                continue;
+            }
+
+            const VertexId v1 = directedReadGraph.target(e01);
+            const ConflictReadGraphVertex cVertex1 = conflictReadGraph.getVertex(v1);
+            if(not cVertex1.hasValidColor()) {
+                continue;
+            }
+            colorInfo.insert(make_pair(cVertex1.componentId, cVertex1.color));
+
+            /*
+            cout << ConflictReadGraph::getOrientedReadId(v0) <<
+                " is contained in " << ConflictReadGraph::getOrientedReadId(v1) <<
+                " with componentId " << cVertex1.componentId <<
+                " color " << cVertex1.color << endl;
+            */
+        }
+        for(EdgeId e10: directedReadGraph.inEdges(v0)) {
+            const DirectedReadGraphEdge dEdge10 = directedReadGraph.getEdge(e10);
+
+            // If v0 is not contained, skip.
+            const uint32_t maxTrim = 100; // **************** EXPOSE WHEN CODE STABILIZES.
+            if(dEdge10.alignmentInfo.leftTrim(1) > leftTrim0 + maxTrim) {
+                continue;
+            }
+            if(dEdge10.alignmentInfo.rightTrim(1) > rightTrim0 + maxTrim) {
+                continue;
+            }
+
+            const VertexId v1 = directedReadGraph.source(e10);
+            const ConflictReadGraphVertex cVertex1 = conflictReadGraph.getVertex(v1);
+            if(not cVertex1.hasValidColor()) {
+                continue;
+            }
+            colorInfo.insert(make_pair(cVertex1.componentId, cVertex1.color));
+
+            /*
+            cout << ConflictReadGraph::getOrientedReadId(v0) <<
+                " is contained in " << ConflictReadGraph::getOrientedReadId(v1) <<
+                " with componentId " << cVertex1.componentId <<
+                " color " << cVertex1.color << endl;
+            */
+        }
+
+        if(colorInfo.size() == 1) {
+            // cout << "Unambiguous coloring possible for " << ConflictReadGraph::getOrientedReadId(v0) << endl;
+            const auto& p = *colorInfo.begin();
+            colorableVertices.push_back(make_tuple(v0, p.first, p.second));
+        } else if(colorInfo.size() > 1) {
+            ambiguousVertices.push_back(v0);
+            // cout << "Ambiguous containments for " << ConflictReadGraph::getOrientedReadId(v0) << endl;
+        }
+    }
+    cout << "After containment analysis, found " <<
+        colorableVertices.size() << " vertices that can be colored and " <<
+        ambiguousVertices.size() << " ambiguous vertices." << endl;
+
+    // Color them.
+    for(const auto& t: colorableVertices) {
+        ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(get<0>(t));
+        vertex.componentId = get<1>(t);
+        vertex.color = get<2>(t);
+    }
+
+    // Mark the ambiguous vertices as removed.
+    for(const VertexId v: ambiguousVertices) {
+        conflictReadGraph.getVertex(v).wasRemoved = true;
+        for(const EdgeId e: conflictReadGraph.incidentEdges(v)) {
+            conflictReadGraph.getEdge(e).wasRemoved = true;
+        }
+    }
 }
 
 
