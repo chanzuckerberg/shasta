@@ -214,7 +214,9 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
             break;
 
         case VertexColoringMethod::ByCluster:
-            if(vertex.color != std::numeric_limits<uint32_t>::max()) {
+            if(vertex.wasRemoved) {
+                s << "color=orange";
+            } else if(vertex.color != std::numeric_limits<uint32_t>::max()) {
                 s << " color=\"/set18/" << (vertex.color % 8) + 1 << "\"";
             }
             break;
