@@ -553,6 +553,10 @@ void Assembler::cleanupConflictReadGraph()
     }
 
 
+
+#if 0
+    // Analyze alignments to color more vertices.
+
     // The vertices that can be colored.
     // (Vertexid, componentId, color).
     vector< tuple<VertexId, uint32_t, uint32_t> > colorableVertices;
@@ -659,6 +663,7 @@ void Assembler::cleanupConflictReadGraph()
             conflictReadGraph.getEdge(e).wasRemoved = true;
         }
     }
+#endif
 }
 
 
@@ -1338,7 +1343,9 @@ void Assembler::markDirectedReadGraphConflictEdges3(int radius)
         for(const VertexId vertexId: neighbors) {
             const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(vertexId);
             SHASTA_ASSERT(!vertex.wasRemoved);
-            colorTable[vertex.componentId].insert(vertex.color);
+            if(vertex.hasValidColor()) {
+                colorTable[vertex.componentId].insert(vertex.color);
+            }
         }
 
         // Check for conflicts.

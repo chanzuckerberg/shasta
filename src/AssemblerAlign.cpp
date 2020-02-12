@@ -4,6 +4,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "compressAlignment.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
