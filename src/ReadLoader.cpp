@@ -93,11 +93,11 @@ void ReadLoader::processFastaFile()
     allocatePerThreadDataStructures();
     runThreads(&ReadLoader::processFastaFileThreadFunction, threadCount);
     const auto t2 = std::chrono::steady_clock::now();
+    buffer.remove();
 
     // Store the reads computed by each thread and free
     // the per-thread data structures.
     storeReads();
-    buffer.remove();
     const auto t3 = std::chrono::steady_clock::now();
 
 
@@ -316,13 +316,13 @@ void ReadLoader::processFastqFile()
     const auto t2 = std::chrono::steady_clock::now();
     allocatePerThreadDataStructures();
     runThreads(&ReadLoader::processFastqFileThreadFunction, threadCount);
+    buffer.remove();
 
 
     // Store the reads computed by each thread and free
     // the per-thread data structures.
     const auto t3 = std::chrono::steady_clock::now();
     storeReads();
-    buffer.remove();
     const auto t4 = std::chrono::steady_clock::now();
 
 

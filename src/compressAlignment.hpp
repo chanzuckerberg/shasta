@@ -21,7 +21,7 @@ previous pair by simply incrementing both ordinals by 1.
 A streak can be completely described by the number of marker pairs
 in the streak, n, plus the number of markers skipped relative to the
 previous streak, skip0 and skip1 (or relative to the origin, for the first streak).
-Note that n is always unsigned, but skipx and skipy can in general
+Note that n is always unsigned, but skip0 and skip1 can in general
 be negative, and so they generally need to be represented using
 a signed integer.
 
@@ -63,11 +63,11 @@ Number of bits not used to identify
 the format                                 7      13      29      61     125
 Number of bits used to represent n-1       3       5       9      21      32
 Number of bits used to represent
-each of skipx and skipy                    2       4      10      20      32
-skipx and skipy are signed                 No      Yes    Yes     Yes     Yes
-Minimum value of skipx and skipy
+each of skip0 and skip1                    2       4      10      20      32
+skip0 and skip1 are signed                 No      Yes    Yes     Yes     Yes
+Minimum value of skip0 and skip1
 that can be represented.                   0      -8     -512    2^19-1  2^31-1
-Maximum value of skipx and skipy
+Maximum value of skip0 and skip1
 that can be represented                    3       7      511   -2^19   -2^31
 
 *******************************************************************************/
@@ -98,29 +98,38 @@ namespace shasta {
 class shasta::compressAlignment::Format0 {
 public:
     uint8_t formatIdentifier: 1;
-    uint8_t skipx: 2;
-    uint8_t skipy: 2;
+    uint8_t skip0: 2;
+    uint8_t skip1: 2;
     uint8_t nMinus1: 3;
+
     uint32_t n() const
     {
         return uint32_t(nMinus1) + 1;
     }
+
     Format0(
-        int32_t skipxArgument,
-        int32_t skipyArgument,
+        int32_t skip0Argument,
+        int32_t skip1Argument,
         uint32_t nArgument)
     {
-        SHASTA_ASSERT(skipxArgument >= 0);
-        SHASTA_ASSERT(skipxArgument <= 3);
-        SHASTA_ASSERT(skipyArgument >= 0);
-        SHASTA_ASSERT(skipyArgument <= 3);
-        SHASTA_ASSERT(nArgument <= 8);
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-        skipx = skipxArgument;
-        skipy = skipyArgument;
+        skip0 = skip0Argument;
+        skip1 = skip1Argument;
         nMinus1 = nArgument - 1;
 #pragma GCC diagnostic pop
+    }
+
+    static bool ok(int32_t skip0, int32_t skip1, uint32_t n)
+    {
+        return
+            skip0 >= 0 and
+            skip0 <= 3 and
+            skip1 >= 0 and
+            skip1 <= 3 and
+            n >= 1 and
+            n <= 8;
     }
 };
 static_assert(sizeof(shasta::compressAlignment::Format0) == 1,
@@ -131,30 +140,39 @@ static_assert(sizeof(shasta::compressAlignment::Format0) == 1,
 class shasta::compressAlignment::Format1 {
 public:
     uint16_t formatIdentifier: 3;
-    int16_t skipx: 4;
-    int16_t skipy: 4;
+    int16_t skip0: 4;
+    int16_t skip1: 4;
     uint16_t nMinus1: 5;
+
     uint32_t n() const
     {
         return uint32_t(nMinus1) + 1;
     }
+
     Format1(
-         int32_t skipxArgument,
-         int32_t skipyArgument,
+         int32_t skip0Argument,
+         int32_t skip1Argument,
          uint32_t nArgument)
-     {
-         SHASTA_ASSERT(skipxArgument >= -8);
-         SHASTA_ASSERT(skipxArgument <= 7);
-         SHASTA_ASSERT(skipyArgument >= -8);
-         SHASTA_ASSERT(skipyArgument <= 7);
-         SHASTA_ASSERT(nArgument <= 32);
+    {
+         SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-         skipx = skipxArgument;
-         skipy = skipyArgument;
+         skip0 = skip0Argument;
+         skip1 = skip1Argument;
          nMinus1 = nArgument - 1;
 #pragma GCC diagnostic pop
-     }
+    }
+
+    static bool ok(int32_t skip0, int32_t skip1, uint32_t n)
+    {
+        return
+            skip0 >= -8 and
+            skip0 <= 7 and
+            skip1 >= -8 and
+            skip1 <= 7 and
+            n >= 1 and
+            n <= 32;
+    }
 };
 static_assert(sizeof(shasta::compressAlignment::Format1) == 2,
     "Unexpected size for shasta::compressAlignment::Format1");
@@ -164,27 +182,29 @@ static_assert(sizeof(shasta::compressAlignment::Format1) == 2,
 class shasta::compressAlignment::Format2 {
 public:
     uint32_t formatIdentifier: 3;
-    int32_t skipx: 10;
-    int32_t skipy: 10;
+    int32_t skip0: 10;
+    int32_t skip1: 10;
     uint32_t nMinus1: 9;
+
     uint32_t n() const
     {
         return nMinus1 + 1;
     }
+
     Format2(
-         int32_t skipxArgument,
-         int32_t skipyArgument,
+         int32_t skip0Argument,
+         int32_t skip1Argument,
          uint32_t nArgument)
      {
-         SHASTA_ASSERT(skipxArgument >= -512);
-         SHASTA_ASSERT(skipxArgument <= 511);
-         SHASTA_ASSERT(skipyArgument >= -512);
-         SHASTA_ASSERT(skipyArgument <= 511);
+         SHASTA_ASSERT(skip0Argument >= -512);
+         SHASTA_ASSERT(skip0Argument <= 511);
+         SHASTA_ASSERT(skip1Argument >= -512);
+         SHASTA_ASSERT(skip1Argument <= 511);
          SHASTA_ASSERT(nArgument <= 512);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-         skipx = skipxArgument;
-         skipy = skipyArgument;
+         skip0 = skip0Argument;
+         skip1 = skip1Argument;
          nMinus1 = nArgument - 1;
 #pragma GCC diagnostic pop
      }
@@ -197,30 +217,33 @@ static_assert(sizeof(shasta::compressAlignment::Format2) == 4,
 class shasta::compressAlignment::Format3 {
 public:
     uint64_t formatIdentifier: 3;
-    int64_t skipx: 20;
-    int64_t skipy: 20;
+    int64_t skip0: 20;
+    int64_t skip1: 20;
     uint64_t nMinus1: 21;
+
     uint32_t n() const
     {
         return uint32_t(nMinus1) + 1;
     }
+
     Format3(
-         int32_t skipxArgument,
-         int32_t skipyArgument,
+         int32_t skip0Argument,
+         int32_t skip1Argument,
          uint32_t nArgument)
      {
-         SHASTA_ASSERT(skipxArgument >= -524288);
-         SHASTA_ASSERT(skipxArgument <= 524287);
-         SHASTA_ASSERT(skipyArgument >= -524288);
-         SHASTA_ASSERT(skipyArgument <= 524287);
+         SHASTA_ASSERT(skip0Argument >= -524288);
+         SHASTA_ASSERT(skip0Argument <= 524287);
+         SHASTA_ASSERT(skip1Argument >= -524288);
+         SHASTA_ASSERT(skip1Argument <= 524287);
          SHASTA_ASSERT(nArgument <= 2097152);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-         skipx = skipxArgument;
-         skipy = skipyArgument;
+         skip0 = skip0Argument;
+         skip1 = skip1Argument;
          nMinus1 = nArgument - 1;
 #pragma GCC diagnostic pop
      }
+
 };
 static_assert(sizeof(shasta::compressAlignment::Format3) == 8,
     "Unexpected size for shasta::compressAlignment::Format3");
@@ -230,19 +253,19 @@ static_assert(sizeof(shasta::compressAlignment::Format3) == 8,
 class shasta::compressAlignment::Format4 {
 public:
     uint32_t formatIdentifier: 3;
-    int32_t skipx;
-    int32_t skipy;
+    int32_t skip0;
+    int32_t skip1;
     uint32_t nMinus1;
     uint32_t n() const
     {
         return nMinus1 + 1;
     }
     Format4(
-         int32_t skipx,
-         int32_t skipy,
+         int32_t skip0,
+         int32_t skip1,
          uint32_t n):
-         skipx(skipx),
-         skipy(skipy),
+         skip0(skip0),
+         skip1(skip1),
          nMinus1(n-1)
      {
      }
