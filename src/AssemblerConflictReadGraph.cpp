@@ -1336,6 +1336,18 @@ void Assembler::markDirectedReadGraphConflictEdges3(int radius)
         }
         deduplicate(neighbors);
 
+        if(debug) {
+            cout << "Neighbors: ";
+            for(const VertexId vertexId: neighbors) {
+                cout << ConflictReadGraph::getOrientedReadId(vertexId);
+                const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(vertexId);
+                SHASTA_ASSERT(!vertex.wasRemoved);
+                if(vertex.hasValidColor()) {
+                    cout << vertex.componentId << " " << vertex.color << endl;
+                }
+            }
+        }
+
         // Find the colors present for each component.
         // The colorTable is indexed by component id and contains
         // the set of colors present in the neighbors for each component.
@@ -1361,6 +1373,9 @@ void Assembler::markDirectedReadGraphConflictEdges3(int radius)
         // If we did not find a conflict, we can add this edge to the read
         // graph by clearing its "isConflict" flag.
         if(not conflictWasFound) {
+            if(debug)  {
+                cout << "No conflict found." << endl;
+            }
             directedReadGraph.getEdge(e).isConflict = 0;
         }
     }
