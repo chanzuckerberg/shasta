@@ -144,6 +144,8 @@ public:
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
         bool colorEdgeArrows,
+        bool dashedContainmentEdges,
+        uint32_t maxTrim,
         VertexColoringMethod) const;
     void write(
         const string& fileName,
@@ -152,6 +154,8 @@ public:
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
         bool colorEdgeArrows,
+        bool dashedContainmentEdges,
+        uint32_t maxTrim,
         VertexColoringMethod) const;
 
     // Return the vertex corresponding to a given OrientedReadId,
@@ -181,6 +185,8 @@ private:
             double edgeThicknessScalingFactor,
             double edgeArrowScalingFactor,
             bool colorEdgeArrows,
+            bool dashedContainmentEdges,
+            uint32_t maxTrim,
             VertexColoringMethod);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
@@ -191,6 +197,8 @@ private:
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
         bool colorEdgeArrows;
+        bool dashedContainmentEdges;
+        uint32_t maxTrim;
         VertexColoringMethod vertexColoringMethod;
     };
 };

@@ -88,6 +88,8 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
+    bool dashedContainmentEdges,
+    uint32_t maxTrim,
     VertexColoringMethod vertexColoringMethod
     ) const
 {
@@ -98,6 +100,7 @@ void LocalDirectedReadGraph::write(
     write(outputFileStream, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
+        dashedContainmentEdges, maxTrim,
         vertexColoringMethod);
 }
 void LocalDirectedReadGraph::write(
@@ -107,11 +110,15 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
+    bool dashedContainmentEdges,
+    uint32_t maxTrim,
     VertexColoringMethod vertexColoringMethod) const
 {
     Writer writer(*this, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
+        dashedContainmentEdges,
+        maxTrim,
         vertexColoringMethod);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
@@ -124,6 +131,8 @@ LocalDirectedReadGraph::Writer::Writer(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
+    bool dashedContainmentEdges,
+    uint32_t maxTrim,
     VertexColoringMethod vertexColoringMethod) :
     graph(graph),
     maxDistance(maxDistance),
@@ -131,6 +140,8 @@ LocalDirectedReadGraph::Writer::Writer(
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
     edgeArrowScalingFactor(edgeArrowScalingFactor),
     colorEdgeArrows(colorEdgeArrows),
+    dashedContainmentEdges(dashedContainmentEdges),
+    maxTrim(maxTrim),
     vertexColoringMethod(vertexColoringMethod)
 {
 }
@@ -248,6 +259,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     const OrientedReadId orientedReadId0 = vertex0.orientedReadId;
     const OrientedReadId orientedReadId1 = vertex1.orientedReadId;
 
+    const bool isContainment = edge.alignmentInfo.isContaining(maxTrim);
+
     s << "[";
 
     s <<
@@ -264,6 +277,10 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
 
     s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.alignmentInfo.markerCount) << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
+
+    if(isContainment) {
+        s << " style=dashed";
+    }
 
 
     // Hyperlink to the alignment corresponding to this edge.

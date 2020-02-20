@@ -67,6 +67,9 @@ void Assembler::exploreDirectedReadGraph(
     string colorEdgeArrowsString;
     const bool colorEdgeArrows = getParameterValue(request, "colorEdgeArrows", colorEdgeArrowsString);
 
+    string dashedContainmentEdgesString;
+    const bool dashedContainmentEdges = getParameterValue(request, "dashedContainmentEdges", dashedContainmentEdgesString);
+
     string vertexColoringMethodString = "ByDistance";
     getParameterValue(request, "vertexColoringMethod", vertexColoringMethodString);
     LocalDirectedReadGraph::VertexColoringMethod vertexColoringMethod;
@@ -176,6 +179,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Color edge arrows by direction"
         "<td class=centered><input type=checkbox name=colorEdgeArrows" <<
         (colorEdgeArrows ? " checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Draw containment edges dashed"
+        "<td class=centered><input type=checkbox name=dashedContainmentEdges" <<
+        (dashedContainmentEdges ? " checked" : "") <<
         ">"
 
         "<tr>"
@@ -474,6 +483,8 @@ void Assembler::exploreDirectedReadGraph(
         edgeThicknessScalingFactor,
         edgeArrowScalingFactor,
         colorEdgeArrows,
+        dashedContainmentEdges,
+        httpServerData.assemblerOptions->alignOptions.maxTrim,
         vertexColoringMethod);
 
 
