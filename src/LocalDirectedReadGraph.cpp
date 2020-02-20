@@ -278,7 +278,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.alignmentInfo.markerCount) << "\"";
     s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
 
-    if(isContainment) {
+    if(dashedContainmentEdges and isContainment) {
         s << " style=dashed";
     }
 
