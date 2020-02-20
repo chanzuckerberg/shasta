@@ -666,7 +666,7 @@ void shasta::main::assemble(
 
         // Mark conflict edges in the read graph.
         // TURN THIS PARAMETER INTO A COMMAND LINE OPTION WHEN CODE STABILIZES. ****************
-        const uint32_t radius = 0;
+        const uint32_t radius = 4;
         assembler.markDirectedReadGraphConflictEdges3(radius);
 
         // Remove the preliminary marker graph vertices we created.
