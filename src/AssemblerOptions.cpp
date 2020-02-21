@@ -406,6 +406,13 @@ void AssemblerOptions::addConfigurableOptions()
         "If any of these meta data fields are missing, this check is suppressed and this "
         "option has no effect.")
 
+        ("Align.suppressContainments",
+        bool_switch(&alignOptions.suppressContainments)->
+        default_value(false),
+        "Suppress containment alignments, that is alignments in which "
+        "one read is entirely contained in another read, "
+        "except possibly for up to maxTrim markers at the beginning and end.")
+
         ("ReadGraph.creationMethod",
         value<int>(&readGraphOptions.creationMethod)->
         default_value(0),
@@ -611,6 +618,8 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
     s << "gapScore = " << gapScore << "\n";
     s << "sameChannelReadAlignment.suppressDeltaThreshold = " <<
         sameChannelReadAlignmentSuppressDeltaThreshold << "\n";
+    s << "suppressContainments = " <<
+        convertBoolToPythonString(suppressContainments) << "\n";
 }
 
 

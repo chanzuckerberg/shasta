@@ -589,6 +589,10 @@ void shasta::main::assemble(
 #ifdef SHASTA_BUILD_FOR_GPU
         cout << "Using GPU acceleration for alignment computation." << endl;
         cout << "This is under development and is not ready to be used." << endl;
+        if(assemblerOptions.alignOptions.suppressContainments) {
+            throw runtime_error("Suppressing containment alignments is not supported by "
+                "the GPU code.");
+        }
         assembler.computeAlignmentsGpu(
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
@@ -611,6 +615,7 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.matchScore,
             assemblerOptions.alignOptions.mismatchScore,
             assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.alignOptions.suppressContainments,
             threadCount);
     }
 

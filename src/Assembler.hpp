@@ -257,6 +257,9 @@ public:
         int mismatchScore,
         int gapScore,
 
+        // If true, discard containment alignments.
+        bool suppressContainments,
+
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
         size_t threadCount
@@ -1010,6 +1013,7 @@ private:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        bool suppressContainments;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
         size_t gpuBatchSize;

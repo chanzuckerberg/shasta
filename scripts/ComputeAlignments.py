@@ -3,6 +3,7 @@
 import shasta
 import GetConfig
 import sys
+import ast
 
 # Read the config file.
 config = GetConfig.getConfig()
@@ -23,7 +24,9 @@ a.computeAlignments(
     maxTrim = int(config['Align']['maxTrim']),
     matchScore = int(config['Align']['matchScore']),
     mismatchScore = int(config['Align']['mismatchScore']),
-    gapScore = int(config['Align']['gapScore']))
+    gapScore = int(config['Align']['gapScore']),
+    suppressContainments = ast.literal_eval(config['Align']['suppressContainments'])
+    )
     
     
     

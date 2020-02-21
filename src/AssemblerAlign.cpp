@@ -233,6 +233,9 @@ void Assembler::computeAlignments(
     int mismatchScore,
     int gapScore,
 
+    // If true, discard containment alignments.
+    bool suppressContainments,
+
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
     size_t threadCount
@@ -260,6 +263,7 @@ void Assembler::computeAlignments(
     data.matchScore = matchScore;
     data.mismatchScore = mismatchScore;
     data.gapScore = gapScore;
+    data.suppressContainments = suppressContainments;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -326,6 +330,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const int matchScore = data.matchScore;
     const int mismatchScore = data.mismatchScore;
     const int gapScore = data.gapScore;
+    const bool suppressContainments = data.suppressContainments;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
 
@@ -386,6 +391,11 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
             if(leftTrim>maxTrim || rightTrim>maxTrim) {
                 // cout << orientedReadIds[0] << " " << orientedReadIds[1] << " too much trim." << endl;
+                continue;
+            }
+
+            // Skip containing alignments, if so requested.
+            if(suppressContainments and alignmentInfo.isContaining(uint32_t(maxTrim))) {
                 continue;
             }
 

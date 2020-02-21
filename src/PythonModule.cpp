@@ -248,6 +248,7 @@ PYBIND11_MODULE(shasta, module)
             arg("matchScore"),
             arg("mismatchScore"),
             arg("gapScore"),
+            arg("suppressContainments"),
             arg("threadCount") = 0)
 #ifdef SHASTA_BUILD_FOR_GPU
         .def("computeAlignmentsGpu",

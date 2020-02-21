@@ -118,6 +118,7 @@ public:
         int mismatchScore;
         int gapScore;
         int sameChannelReadAlignmentSuppressDeltaThreshold;
+        bool suppressContainments;
         void write(ostream&) const;
     };
     AlignOptions alignOptions;
