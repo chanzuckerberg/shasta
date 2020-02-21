@@ -298,6 +298,7 @@ void Assembler::computeAlignments(
             alignmentData.push_back(ad);
         }
     }
+    cout << "Found and stored " << alignmentData.size() << " good alignments." << endl;
     cout << timestamp << "Creating alignment table." << endl;
     computeAlignmentTable();
 
