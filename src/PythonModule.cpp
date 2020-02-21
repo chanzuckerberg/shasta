@@ -386,6 +386,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("computeMarkerGraphCoverageHistogram",
             &Assembler::computeMarkerGraphCoverageHistogram)
+        .def("analyzeMarkerGraphVertex",
+            &Assembler::analyzeMarkerGraphVertex)
 
 
 

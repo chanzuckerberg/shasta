@@ -1252,6 +1252,10 @@ public:
 
     // Prune leaves from the strong subgraph of the global marker graph.
     void pruneMarkerGraphStrongSubgraph(size_t iterationCount);
+
+    // Analyze a vertex of the Marker graph.
+    void analyzeMarkerGraphVertex(MarkerGraph::VertexId) const;
+
 private:
 
 

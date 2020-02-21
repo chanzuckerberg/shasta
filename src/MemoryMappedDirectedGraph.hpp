@@ -115,7 +115,15 @@ public:
     {
         return edgesBySource[vertexId];
     }
+    span<const EdgeId> outEdges(VertexId vertexId) const
+    {
+        return edgesBySource[vertexId];
+    }
     span<EdgeId> inEdges(VertexId vertexId)
+    {
+        return edgesByTarget[vertexId];
+    }
+    span<const EdgeId> inEdges(VertexId vertexId) const
     {
         return edgesByTarget[vertexId];
     }

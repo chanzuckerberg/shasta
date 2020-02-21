@@ -4972,3 +4972,96 @@ void Assembler::removeMarkerGraphVertices()
     markerGraph.vertices.remove();
     markerGraph.vertexTable.remove();
 }
+
+
+
+// Analyze a vertex of the Marker graph.
+void Assembler::analyzeMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
+{
+    // Check that we have a valid vertex id.
+    if(vertexId >= markerGraph.vertices.size()) {
+        throw runtime_error("Invalid vertex id. Must be less than " +
+            to_string(markerGraph.vertices.size()) +  ".");
+        return;
+    }
+
+    // Access the markers of this vertex.
+    span<const MarkerId> markerIds = markerGraph.vertices[vertexId];
+    const size_t markerCount = markerIds.size();
+    SHASTA_ASSERT(markerCount > 0);
+
+    // Get the marker sequence.
+    const KmerId kmerId = markers.begin()[markerIds[0]].kmerId;
+    const size_t k = assemblerInfo->k;
+    const Kmer kmer(kmerId, k);
+
+    // Initial message.
+    cout << "Marker graph vertex " << vertexId << " ";
+    kmer.write(cout, k);
+    cout << " has coverage " << markerCount << endl;
+
+    // Get the oriented read ids and corresponding components and colors in
+    // the conflict read graph.
+    vector<OrientedReadId> orientedReadIds;
+    vector<uint32_t> componentIds;
+    vector<uint32_t> colors;
+    for(const MarkerId markerId: markerIds) {
+        OrientedReadId orientedReadId;
+        tie(orientedReadId, ignore) = findMarkerId(markerId);
+
+        const auto cVertexId = ConflictReadGraph::getVertexId(orientedReadId);
+        const auto& cVertex = conflictReadGraph.getVertex(cVertexId);
+
+        orientedReadIds.push_back(orientedReadId);
+        componentIds.push_back(cVertex.componentId);
+        colors.push_back(cVertex.color);
+
+        cout << orientedReadId;
+        if(cVertex.componentId != ConflictReadGraphVertex::invalid) {
+            cout << " " << cVertex.componentId << " " << cVertex.color;
+        }
+        cout << endl;
+    }
+
+
+
+    // Write out the subgraph of the read graph induced by these oriented reads.
+    ofstream graphOut("Subgraph.dot");
+    graphOut << "digraph G {\n";
+
+    // Vertices.
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        const OrientedReadId orientedReadId = orientedReadIds[i];
+        const uint32_t componentId = componentIds[i];
+        const uint32_t color = colors[i];
+
+        graphOut << "\"" << orientedReadId << "\"";
+        if(componentId != ConflictReadGraphVertex::invalid) {
+            graphOut << "[style=filled fillcolor=\"/set18/" << (color % 8) + 1 << "\"]";
+        }
+        graphOut << ";\n";
+    }
+
+    // Edges.
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        const OrientedReadId orientedReadId0 = orientedReadIds[i];
+        const DirectedReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
+        for(const DirectedReadGraph::EdgeId e01: directedReadGraph.outEdges(v0)) {
+            const DirectedReadGraphEdge& edge01 = directedReadGraph.getEdge(e01);
+            if(edge01.keep == 0) {
+                continue;
+            }
+            if(edge01.isConflict == 1) {
+                continue;
+            }
+            const DirectedReadGraph::VertexId v1 = directedReadGraph.target(e01);
+            const OrientedReadId orientedReadId1 = ConflictReadGraph::getOrientedReadId(v1);
+            if(binary_search(orientedReadIds.begin(), orientedReadIds.end(), orientedReadId1)) {
+                graphOut << "\"" << orientedReadId0 << "\"->\"" <<
+                    orientedReadId1 << "\";\n";
+            }
+        }
+    }
+
+    graphOut << "}\n";
+}
