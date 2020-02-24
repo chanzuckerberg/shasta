@@ -1380,4 +1380,17 @@ void Assembler::markDirectedReadGraphConflictEdges3(int radius)
         }
     }
 
+
+
+    // If an edge is marked as conflict, also mark the reverse complement as conflict.
+    for(EdgeId edgeId=0; edgeId<directedReadGraph.edges.size(); edgeId++) {
+        const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(edgeId);
+        if(edge.isConflict == 1) {
+            const EdgeId reverseComplementEdgeId = edge.reverseComplementedEdgeId;
+            DirectedReadGraphEdge& reverseComplementEdge =
+                directedReadGraph.getEdge(reverseComplementEdgeId);
+            reverseComplementEdge.isConflict = 1;
+        }
+    }
+
 }

@@ -452,6 +452,14 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 // We use the directed read graph.
                 const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(i);
 
+                // Sanity checks.
+                // Pairs of reverse complemented adges are stored consecutively.
+                SHASTA_ASSERT(edge.reverseComplementedEdgeId == i+1);
+                const DirectedReadGraphEdge& nextEdge = directedReadGraph.getEdge(i+1);
+                SHASTA_ASSERT(nextEdge.reverseComplementedEdgeId == i);
+                SHASTA_ASSERT(nextEdge.keep == edge.keep);
+                SHASTA_ASSERT(nextEdge.isConflict == edge.isConflict);
+
                 // Skip if not marked as "keep".
                 if(edge.keep == 0) {
                     continue;
@@ -462,9 +470,6 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                     continue;
                 }
 
-                // Check that the next edge is the reverse complement of
-                // this edge.
-                SHASTA_ASSERT(edge.reverseComplementedEdgeId == i+1);
 
                 // Get the oriented read ids.
                 const DirectedReadGraph::VertexId v0 = directedReadGraph.source(i);
