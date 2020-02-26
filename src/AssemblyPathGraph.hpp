@@ -39,6 +39,8 @@ data structures.
 #include <boost/graph/adjacency_list.hpp>
 
 // Standard library.
+#include "iosfwd.hpp"
+#include "string.hpp"
 #include "vector.hpp"
 
 
@@ -91,6 +93,10 @@ public:
 class shasta::AssemblyPathGraph : public AssemblyPathGraphBaseClass {
 public:
     AssemblyPathGraph(const AssemblyGraph&);
+
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
+
 };
 
 
