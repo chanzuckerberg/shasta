@@ -491,6 +491,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("writeOrientedReadsByAssemblyGraphEdge",
             &Assembler::writeOrientedReadsByAssemblyGraphEdge)
+        .def("detangle",
+            &Assembler::detangle)
 
         // Consensus caller.
         .def("setupConsensusCaller",

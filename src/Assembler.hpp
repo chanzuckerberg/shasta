@@ -1645,6 +1645,13 @@ private:
 
 
 
+    // Detangle the AssemblyGraph.
+public:
+    void detangle();
+private:
+
+
+
 public:
     // Mark as isLowCoverageCrossEdge all low coverage cross edges
     // of the assembly graph and the corresponding marker graph edges.
