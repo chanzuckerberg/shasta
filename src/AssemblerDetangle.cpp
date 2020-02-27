@@ -55,8 +55,12 @@ void Assembler::detangle()
         // Also store the path length, measured on the marker graph.
         edge.pathLength = markerGraphEdgeIds.size();
     }
-    graph.writeGraphviz("AssemblyPathGraph.dot");
 
-    graph.detangle();
+
+    graph.createTangles();
+    graph.writeGraphviz("AssemblyPathGraph.dot");
+    graph.writeTangles("Tangles.txt");
+
+    // graph.detangle();
 }
 
