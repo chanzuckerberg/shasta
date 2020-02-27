@@ -102,16 +102,7 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
             to_string(vertex1.vertexId) +
             "\"";
         s << pseudoVertexName << " [";
-        s << "shape=rectangle label=\"";
-        for(uint64_t i=0; i<edge.path.size(); i++) {
-            AssemblyGraph::EdgeId edgeId = edge.path[i];
-            s << edgeId;
-            if(i != edge.path.size()-1) {
-                s << " ";
-            }
-            s << "\\n" << edge.pathLength;
-        }
-        s << "\"";
+        s << "shape=rectangle label=\"" << edge << "\\n" << edge.pathLength << "\"";
         if(isTangle) {
             s << " style=filled fillcolor=pink";
         }
@@ -131,3 +122,111 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
 
 
 
+void AssemblyPathGraph::detangle()
+{
+    AssemblyPathGraph& graph = *this;
+
+    // Detangle iteration.
+    for(int iteration=0; ; ++iteration) {
+
+        // Find the shortest edge that can be detangled.
+        edge_descriptor eTangle;
+        uint64_t tangleLength = std::numeric_limits<uint64_t>::max();
+
+        BGL_FORALL_EDGES(e01, graph, AssemblyPathGraph) {
+            const vertex_descriptor v0 = source(e01, graph);
+            const vertex_descriptor v1 = target(e01, graph);
+            if(in_degree(v0, graph) <2) {
+                continue;   // Not a tagle.
+            }
+            if(out_degree(v1, graph) <2) {
+                continue;   // Not a tangle.
+            }
+
+            const AssemblyPathGraphEdge& edge01 = graph[e01];
+            const auto inDegree = in_degree(v0, graph);
+            const auto outDegree = out_degree(v1, graph);
+
+            cout << "Tangle edge " << edge01 <<
+                " path length " << graph[e01].pathLength <<
+                " in-degree " << inDegree <<
+                " out-degree " << outDegree << endl;
+
+            // Gather the in-edges and out-edges.
+            vector<edge_descriptor> inEdges;
+            vector<edge_descriptor> outEdges;
+            BGL_FORALL_INEDGES(v0, e, graph, AssemblyPathGraph) {
+                inEdges.push_back(e);
+            }
+            BGL_FORALL_OUTEDGES(v1, e, graph, AssemblyPathGraph) {
+                outEdges.push_back(e);
+            }
+
+
+            // Count common oriented reads for each pair of in-edges and
+            // out-edges.
+            vector<OrientedReadId> commonOrientedReadIds;
+            vector< vector<uint64_t> > tangleMatrix(inEdges.size(), vector<uint64_t>(outEdges.size()));
+            cout << "Tangle matrix:" << endl;
+            for(uint64_t inEdgeIndex=0; inEdgeIndex<inEdges.size(); inEdgeIndex++) {
+                const AssemblyPathGraphEdge& inEdge = graph[inEdges[inEdgeIndex]];
+                for(uint64_t outEdgeIndex=0; outEdgeIndex<outEdges.size(); outEdgeIndex++) {
+                    const AssemblyPathGraphEdge& outEdge = graph[outEdges[outEdgeIndex]];
+                    commonOrientedReadIds.clear();
+                    std::set_intersection(
+                        inEdge.orientedReadIds.begin(), inEdge.orientedReadIds.end(),
+                        outEdge.orientedReadIds.begin(), outEdge.orientedReadIds.end(),
+                        back_inserter(commonOrientedReadIds));
+                    tangleMatrix[inEdgeIndex][outEdgeIndex] = commonOrientedReadIds.size();
+                    cout << inEdge << " " << outEdge << " " << commonOrientedReadIds.size() << endl;
+                }
+            }
+
+
+
+            // Count the non-zero elements in each row/column of the tangle.
+            vector<uint64_t> inCounts(inDegree, 0);
+            vector<uint64_t> outCounts(outDegree, 0);
+            for(uint64_t inEdgeIndex=0; inEdgeIndex<inEdges.size(); inEdgeIndex++) {
+                for(uint64_t outEdgeIndex=0; outEdgeIndex<outEdges.size(); outEdgeIndex++) {
+                    if(tangleMatrix[inEdgeIndex][outEdgeIndex]) {
+                        ++inCounts[inEdgeIndex];
+                        ++outCounts[outEdgeIndex];
+                    }
+                }
+            }
+            cout << "inCounts ";
+            copy(inCounts.begin(), inCounts.end(), ostream_iterator<uint64_t>(cout," "));
+            cout << endl;
+            cout << "outCounts ";
+            copy(outCounts.begin(), outCounts.end(), ostream_iterator<uint64_t>(cout," "));
+            cout << endl;
+
+            const bool canDetangle =
+                std::count(inCounts.begin(), inCounts.end(), 1) == int64_t(inCounts.size()) and
+                std::count(outCounts.begin(), outCounts.end(), 1) == int64_t(outCounts.size());
+            if(not canDetangle) {
+                cout << "This edge cannot be detangled due to ambiguity." << endl;
+            }
+
+            if(not canDetangle) {
+                continue;
+            }
+
+            if(graph[e01].pathLength >= tangleLength) {
+                continue;   // We already have a shorter one.
+            }
+
+            eTangle = e01;
+            tangleLength = graph[e01].pathLength;
+
+
+        }
+
+        cout << "This iteration will detangle edge " << graph[eTangle] << endl;
+
+        break;  // For now.
+
+
+    }
+}

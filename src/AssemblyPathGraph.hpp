@@ -39,6 +39,7 @@ data structures.
 #include <boost/graph/adjacency_list.hpp>
 
 // Standard library.
+#include "algorithm.hpp"
 #include "iosfwd.hpp"
 #include "string.hpp"
 #include "vector.hpp"
@@ -56,6 +57,9 @@ namespace shasta {
         AssemblyPathGraphVertex,
         AssemblyPathGraphEdge
         >;
+    inline ostream& operator<<(
+        ostream&,
+        const AssemblyPathGraphEdge&);
 
     class AssemblyGraph;
 }
@@ -86,13 +90,36 @@ public:
 
     // The OrientedReadId's on this path, sorted.
     vector<OrientedReadId> orientedReadIds;
+
+    // Represent it as a string consisting of the path edge ids,
+    // separated by dashes.
+    operator string() const
+    {
+        string s;
+        for(uint64_t i=0; i<path.size(); i++) {
+            s += to_string(path[i]);
+            if(i != path.size()-1) {
+                s += "-";
+            }
+        }
+        return s;
+    }
 };
+
+inline std::ostream& shasta::operator<<(
+    ostream& s,
+    const AssemblyPathGraphEdge& edge)
+{
+    s << string(edge);
+    return s;
+}
 
 
 
 class shasta::AssemblyPathGraph : public AssemblyPathGraphBaseClass {
 public:
     AssemblyPathGraph(const AssemblyGraph&);
+    void detangle();
 
     void writeGraphviz(const string& fileName) const;
     void writeGraphviz(ostream&) const;

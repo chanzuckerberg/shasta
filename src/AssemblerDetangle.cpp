@@ -56,5 +56,7 @@ void Assembler::detangle()
         edge.pathLength = markerGraphEdgeIds.size();
     }
     graph.writeGraphviz("AssemblyPathGraph.dot");
+
+    graph.detangle();
 }
 
