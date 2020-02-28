@@ -56,7 +56,7 @@ AssemblyPathGraph::AssemblyPathGraph(const AssemblyGraph& assemblyGraph)
     }
 
     // Sanity check.
-    BGL_FORALL_VERTICES(e, graph, AssemblyPathGraph) {
+    BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
         SHASTA_ASSERT(graph[graph[e].reverseComplementEdge].reverseComplementEdge == e);
     }
 }
@@ -320,7 +320,51 @@ void AssemblyPathGraph::writeTangles(ostream& file) const
             }
         }
 
+        file << "Reverse complement tangle: " << reverseComplementTangle(tangle.tangleId);
+
     }
+}
+
+
+
+Tangle& AssemblyPathGraph::getTangle(TangleId tangleId)
+{
+    auto it = tangles.find(tangleId);
+    SHASTA_ASSERT(it != tangles.end());
+    Tangle& tangle = it->second;
+    SHASTA_ASSERT(tangle.tangleId == tangleId);
+    return tangle;
+}
+
+// Const version.
+const Tangle& AssemblyPathGraph::getTangle(TangleId tangleId) const
+{
+    auto it = tangles.find(tangleId);
+    SHASTA_ASSERT(it != tangles.end());
+    const Tangle& tangle = it->second;
+    SHASTA_ASSERT(tangle.tangleId == tangleId);
+    return tangle;
+}
+
+
+
+TangleId AssemblyPathGraph::reverseComplementTangle(
+    TangleId tangleId) const
+{
+    const AssemblyPathGraph& graph = *this;
+
+    // Get the edge of this tangle.
+    const edge_descriptor e = getTangle(tangleId).edge;
+    const AssemblyPathGraphEdge& edge = graph[e];
+
+    // Get the reverse complement edge.
+    const edge_descriptor eReverseComplement = edge.reverseComplementEdge;
+    const AssemblyPathGraphEdge& reverseComplementEdge = graph[eReverseComplement];
+
+    // Return its tangle.
+    const TangleId reverseComplementTangleId = reverseComplementEdge.tangle;
+    SHASTA_ASSERT(reverseComplementTangleId != invalidTangleId);
+    return reverseComplementTangleId;
 }
 
 

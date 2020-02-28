@@ -238,6 +238,9 @@ public:
     // The tangles currently present in the graph, keyed by their ids.
     TangleId nextTangleId = 0;
     std::map<TangleId, Tangle> tangles;
+    Tangle& getTangle(TangleId);
+    const Tangle& getTangle(TangleId) const;
+    TangleId reverseComplementTangle(TangleId) const;
     void writeTangles(const string& fileName) const;
     void writeTangles(ostream&) const;
 
