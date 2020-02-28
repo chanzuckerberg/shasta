@@ -57,10 +57,11 @@ void Assembler::detangle()
     }
 
 
+    // Create the tangles.
     graph.createTangles();
-    graph.writeGraphviz("AssemblyPathGraph.dot");
-    graph.writeTangles("Tangles.txt");
 
-    // graph.detangle();
+    // Write the initial AssemblyPathGraph.
+    graph.writeGraphviz("AssemblyPathGraph.dot");
+    graph.writeHtml("AssemblyPathGraph.html");
 }
 

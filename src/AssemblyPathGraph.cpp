@@ -1,5 +1,6 @@
 // Shasta.
 #include "AssemblyPathGraph.hpp"
+#include "html.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -282,51 +283,6 @@ void AssemblyPathGraph::createTangles()
 
 
 
-
-void AssemblyPathGraph::writeTangles(const string& fileName) const
-{
-    ofstream file(fileName);
-    writeTangles(file);
-}
-void AssemblyPathGraph::writeTangles(ostream& file) const
-{
-    const AssemblyPathGraph& graph = *this;
-
-    for(const auto& p: tangles) {
-        const Tangle& tangle = p.second;
-        file << "Tangle " << tangle.tangleId << endl;
-        file << "Tangle edge path " << graph[tangle.edge] << endl;
-        file << "Tangle edge path length " << graph[tangle.edge].pathLength << " markers." << endl;
-        file << "In-degree " << tangle.inDegree() << " out-degree " << tangle.outDegree() << endl;
-
-        file << "In-edges: ";
-        for(const edge_descriptor e: tangle.inEdges) {
-            file << graph[e] << " ";
-        }
-        file << endl;
-
-        file << "Out-edges: ";
-        for(const edge_descriptor e: tangle.outEdges) {
-            file << graph[e] << " ";
-        }
-        file << endl;
-
-        file << "Tangle matrix:" << endl;
-        for(uint64_t i=0; i<tangle.inDegree(); i++) {
-            for(uint64_t j=0; j<tangle.outDegree(); j++) {
-                file << graph[tangle.inEdges[i]] << " ";
-                file << graph[tangle.outEdges[j]] << " ";
-                file << tangle.matrix[i][j] << endl;
-            }
-        }
-
-        file << "Reverse complement tangle: " << reverseComplementTangle(tangle.tangleId);
-
-    }
-}
-
-
-
 Tangle& AssemblyPathGraph::getTangle(TangleId tangleId)
 {
     auto it = tangles.find(tangleId);
@@ -379,4 +335,152 @@ void AssemblyPathGraph::detangle()
 
 
     }
+}
+
+
+
+void AssemblyPathGraph::writeHtml(const string& fileName) const
+{
+    ofstream html(fileName);
+    writeHtml(html);
+}
+
+
+
+void AssemblyPathGraph::writeHtml(ostream& html) const
+{
+    writeHtmlBegin(html, "Assembly path graph");
+    html << "<body>"
+        "<h1>Assembly path graph</h1>";
+    writeVerticesHtml(html);
+    writeEdgesHtml(html);
+    writeTanglesHtml(html);
+    html << "</body>";
+}
+
+
+
+void AssemblyPathGraph::writeVerticesHtml(ostream& html) const
+{
+    const AssemblyPathGraph& graph = *this;
+
+    html << "<h2>Vertices</h2>"
+        "<p>Each vertex corresponds to a vertex of the assembly graph."
+        "<p><table><tr>"
+        "<th>Id"
+        "<th>Id of<br>reverse<br>complement<br>vertex";
+
+    BGL_FORALL_VERTICES(v, graph, AssemblyPathGraph) {
+        const AssemblyPathGraphVertex& vertex = graph[v];
+        const vertex_descriptor vReverseComplement = vertex.reverseComplementVertex;
+        html <<
+            "<tr id=v" << vertex.vertexId << ">" <<
+            "<td class=centered>" << vertex.vertexId <<
+            "<td class=centered>" << graph[vReverseComplement].vertexId;
+    }
+
+    html << "</table>";
+}
+
+
+
+void AssemblyPathGraph::writeEdgesHtml(ostream& html) const
+{
+    const AssemblyPathGraph& graph = *this;
+
+    html << "<h2>Edges</h2>"
+        "<p>Each edge corresponds to a path in the assembly graph vertex."
+        "<p><table><tr>"
+        "<th>Path"
+        "<th>Path of<br>reverse<br>complement<br>edge"
+        "<th>Source<br>vertex"
+        "<th>Target<br>vertex"
+        "<th>Path<br>length<br>(markers)"
+        "<th>In-tangle"
+        "<th>Tangle"
+        "<th>Out-tangle";
+
+
+
+    BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const AssemblyGraph::VertexId vertexId0 = graph[v0].vertexId;
+        const AssemblyGraph::VertexId vertexId1 = graph[v1].vertexId;
+        const AssemblyPathGraphEdge& edge = graph[e];
+        const edge_descriptor eReverseComplement = edge.reverseComplementEdge;
+        html <<
+            "<tr id='e" << edge << "'>"
+            "<td class=centered>" << edge <<
+            "<td class=centered>" << graph[eReverseComplement] <<
+            "<td class=centered><a href='#v" << vertexId0 << "'>" << vertexId0 << "</a>" <<
+            "<td class=centered><a href='#v" << vertexId1 << "'>" << vertexId1 << "</a>" <<
+            "<td class=centered>" << edge.pathLength;
+
+        html <<  "<td class=centered>";
+        if(edge.inTangle != invalidTangleId) {
+            html << "<a href='#t" << edge.inTangle << "'>" << edge.inTangle << "</a>";
+        }
+
+        html <<  "<td class=centered>";
+        if(edge.tangle != invalidTangleId) {
+            html << "<a href='#t" << edge.tangle << "'>" << edge.tangle << "</a>";
+        }
+
+        html <<  "<td class=centered>";
+        if(edge.outTangle != invalidTangleId) {
+            html << "<a href='#t" << edge.outTangle << "'>" << edge.outTangle << "</a>";
+        }
+    }
+
+    html << "</table>";
+
+}
+
+
+
+void AssemblyPathGraph::writeTanglesHtml(ostream& html) const
+{
+    const AssemblyPathGraph& graph = *this;
+
+    html << "<h2>Tangle</h2>"
+        "A tangle is generated by each edge v<sub>0</sub>&rarr;v<sub>1</sub> "
+        "for which the source vertex v<sub>0</sub> has in-degree greater than 1 "
+        "and the target vertex v<sub>1</sub> has out-degree "
+        "greater than 1."
+        "<p><table><tr>"
+        "<th>Id"
+        "<th>In-edges"
+        "<th>Tangle<br>edge"
+        "<th>Out-edges";
+
+    for(const auto& p: tangles) {
+        const Tangle& tangle = p.second;
+        html <<
+            "<tr id=t" << tangle.tangleId << ">"
+            "<td class=centered>" << tangle.tangleId;
+
+        // In-edges.
+        html << "<td class=centered>";
+        for(const edge_descriptor e: tangle.inEdges) {
+            html << "<a href='#e" << graph[e] << "'>" <<
+                graph[e] << "</a>" << " ";
+        }
+
+        // Tangle edge.
+        html << "<td class=centered><a href='#e" << graph[tangle.edge] << "'>" <<
+            graph[tangle.edge] << "</a>";
+
+        // Out-edges.
+        html << "<td class=centered>";
+        for(const edge_descriptor e: tangle.outEdges) {
+            html << "<a href='#e" << graph[e] << "'>" <<
+                graph[e] << "</a>" << " ";
+        }
+
+    }
+
+
+    html << "</table>";
+
 }

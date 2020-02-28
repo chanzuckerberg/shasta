@@ -241,8 +241,6 @@ public:
     Tangle& getTangle(TangleId);
     const Tangle& getTangle(TangleId) const;
     TangleId reverseComplementTangle(TangleId) const;
-    void writeTangles(const string& fileName) const;
-    void writeTangles(ostream&) const;
 
     // Initial creation of the tangles.
     void createTangles();
@@ -250,9 +248,16 @@ public:
 
     void detangle();
 
-
+    // Output in Graphviz format.
     void writeGraphviz(const string& fileName) const;
     void writeGraphviz(ostream&) const;
+
+    // Html output.
+    void writeHtml(const string& fileName) const;
+    void writeHtml(ostream&) const;
+    void writeVerticesHtml(ostream&) const;
+    void writeEdgesHtml(ostream&) const;
+    void writeTanglesHtml(ostream&) const;
 
 };
 
