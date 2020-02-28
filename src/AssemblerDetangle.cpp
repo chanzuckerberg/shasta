@@ -60,8 +60,7 @@ void Assembler::detangle()
     // Create the tangles.
     graph.createTangles();
 
-    // Write the initial AssemblyPathGraph.
-    graph.writeGraphviz("AssemblyPathGraph.dot");
-    graph.writeHtml("AssemblyPathGraph.html");
+    // Do the detangling.
+    graph.detangle();
 }
 

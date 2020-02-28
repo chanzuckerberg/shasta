@@ -209,6 +209,7 @@ public:
     edge_descriptor edge;
     vector<edge_descriptor> inEdges;
     vector<edge_descriptor> outEdges;
+    bool unsolvable = false;
 
     uint64_t inDegree() const
     {
@@ -240,13 +241,22 @@ public:
     std::map<TangleId, Tangle> tangles;
     Tangle& getTangle(TangleId);
     const Tangle& getTangle(TangleId) const;
-    TangleId reverseComplementTangle(TangleId) const;
+    TangleId getReverseComplementTangle(TangleId) const;
 
     // Initial creation of the tangles.
     void createTangles();
 
+    // Return the next tangle to work on.
+    TangleId findNextTangle() const;
 
+    // Return true if a tangle collides with its reverse complement.
+    bool collidesWithReverseComplement(TangleId) const;
+
+    // Detangle all we can.
     void detangle();
+
+    // Detangle a single tangle.
+    void detangle(TangleId);
 
     // Output in Graphviz format.
     void writeGraphviz(const string& fileName) const;

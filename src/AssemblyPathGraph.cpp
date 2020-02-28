@@ -304,7 +304,7 @@ const Tangle& AssemblyPathGraph::getTangle(TangleId tangleId) const
 
 
 
-TangleId AssemblyPathGraph::reverseComplementTangle(
+TangleId AssemblyPathGraph::getReverseComplementTangle(
     TangleId tangleId) const
 {
     const AssemblyPathGraph& graph = *this;
@@ -327,14 +327,113 @@ TangleId AssemblyPathGraph::reverseComplementTangle(
 
 void AssemblyPathGraph::detangle()
 {
-    // AssemblyPathGraph& graph = *this;
+    AssemblyPathGraph& graph = *this;
 
     // Detangle iteration.
     for(int iteration=0; ; ++iteration) {
 
+        const TangleId tangleId = findNextTangle();
+        if(tangleId == invalidTangleId) {
+            break;
+        }
+        Tangle& tangle = getTangle(tangleId);
+        const TangleId reverseComplementTangleId = getReverseComplementTangle(tangleId);
+        cout << "Detangle iteration " << iteration <<
+            " begins, working on tangle " << tangleId <<
+            " and its reverse complement tangle " <<
+            reverseComplementTangleId << endl;
 
 
+        // If the tangle collides with its reverse complement,
+        // mark it as unsolvable, for now. This is restriction is
+        // not fundamental - it just requires more coding.
+        if(collidesWithReverseComplement(tangleId)) {
+            tangle.unsolvable = true;
+            getTangle(reverseComplementTangleId).unsolvable = true;
+            cout << "Reverse complement tangles " << tangleId <<
+                " and " << reverseComplementTangleId <<
+                " marked unsolvable because they collide." << endl;
+            continue;
+        }
+
+        // Write the graph at the beginning of this iteration.
+        graph.writeGraphviz("AssemblyPathGraph-" + to_string(iteration) + ".dot");
+        graph.writeHtml("AssemblyPathGraph-" + to_string(iteration) + ".html");
+
+        // Detangle this tangle and its reverse complement.
+        detangle(tangleId);
+        detangle(reverseComplementTangleId);
     }
+}
+
+
+// Detangle a single tangle.
+void AssemblyPathGraph::detangle(TangleId tangleId)
+{
+    cout << "Detangling tangle " << tangleId << endl;
+    SHASTA_ASSERT(0);
+}
+
+
+
+// Return the next tangle to work on.
+// This does a linear search, which coudl be eliminated
+// with appropriated data structures if it becomes a
+// performance problem.
+// It currently returns the tangle with the shortest path
+// on the tangle edge.
+TangleId AssemblyPathGraph::findNextTangle() const
+{
+    const AssemblyPathGraph& graph = *this;
+
+    TangleId bestTangleId = invalidTangleId;
+    uint64_t bestTanglePathLength = std::numeric_limits<uint64_t>::max();
+    for(const auto& p: tangles) {
+        const Tangle& tangle = p.second;
+        if(tangle.unsolvable) {
+            continue;   // We gave up on this one.
+        }
+        const uint64_t pathLength = graph[tangle.edge].pathLength;
+        if(pathLength < bestTanglePathLength) {
+            bestTanglePathLength = pathLength;
+            bestTangleId = tangle.tangleId;
+        }
+    }
+    return bestTangleId;
+}
+
+
+
+// Return true if a tangle collides with its reverse complement.
+bool AssemblyPathGraph::collidesWithReverseComplement(TangleId tangleId) const
+{
+    const AssemblyPathGraph& graph = *this;
+    const Tangle& tangle = getTangle(tangleId);
+    const TangleId reverseComplementTangleId = getReverseComplementTangle(tangleId);
+
+    // If the tangle is the same as its reverse complement, we have a collision.
+    // This is unusual but possible.
+    if(reverseComplementTangleId == tangleId) {
+        return true;
+    }
+
+    // Check the in-edges.
+    for(const edge_descriptor e: tangle.inEdges) {
+        if(graph[e].inTangle == reverseComplementTangleId) {
+            return true;
+        }
+    }
+
+    // Check the out-edges.
+    for(const edge_descriptor e: tangle.outEdges) {
+        if(graph[e].outTangle == reverseComplementTangleId) {
+            return true;
+        }
+    }
+
+    // If getting here, we did not find a collision between this tangle
+    // and its reverse complement.
+    return false;
 }
 
 
@@ -476,6 +575,10 @@ void AssemblyPathGraph::writeTanglesHtml(ostream& html) const
         for(const edge_descriptor e: tangle.outEdges) {
             html << "<a href='#e" << graph[e] << "'>" <<
                 graph[e] << "</a>" << " ";
+        }
+
+        if(tangle.unsolvable) {
+            html << "<td class=centered>Unsolvable";
         }
 
     }
