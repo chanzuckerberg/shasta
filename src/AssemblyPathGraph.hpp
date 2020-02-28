@@ -137,7 +137,8 @@ public:
     AssemblyPathGraphVertex(AssemblyGraph::VertexId vertexId) :
         vertexId(vertexId) {}
 
-    AssemblyPathGraphBaseClass::vertex_descriptor reverseComplementVertex;
+    AssemblyPathGraphBaseClass::vertex_descriptor reverseComplementVertex =
+        AssemblyPathGraphBaseClass::null_vertex();
 };
 
 
@@ -149,7 +150,7 @@ public:
     vector <AssemblyGraph::EdgeId> path;
 
     // The length of the path, as measured on the marker graph.
-    uint64_t pathLength;
+    uint64_t pathLength = 0;
 
     // The tangles that this edge participates in.
     // These are set to invalidTangleId if missing.
@@ -171,6 +172,7 @@ public:
     // Initialize the path to a single AssemblyGraph edge.
     AssemblyPathGraphEdge(AssemblyGraph::EdgeId edgeId) :
         path(1, edgeId) {}
+    AssemblyPathGraphEdge() {}
 
     // The OrientedReadId's on this path, sorted.
     vector<OrientedReadId> orientedReadIds;
@@ -188,6 +190,12 @@ public:
         }
         return s;
     }
+
+    void mergeOrientedReadIds(
+        const vector<OrientedReadId>&,
+        const vector<OrientedReadId>&,
+        const vector<OrientedReadId>&
+        );
 };
 
 inline std::ostream& shasta::operator<<(
@@ -225,6 +233,7 @@ public:
     // Indexed by [i][j] where i is an index into inEdges and j
     // ins an index into outEdges.
     vector< vector<uint64_t> > matrix;
+    bool hasNonZeroMatrixElements() const;
 };
 
 
@@ -242,6 +251,9 @@ public:
     Tangle& getTangle(TangleId);
     const Tangle& getTangle(TangleId) const;
     TangleId getReverseComplementTangle(TangleId) const;
+    void removeTangle(TangleId);
+
+    void fillReverseComplementEdge(edge_descriptor);
 
     // Initial creation of the tangles.
     void createTangles();
@@ -256,7 +268,9 @@ public:
     void detangle();
 
     // Detangle a single tangle.
-    void detangle(TangleId);
+    // This does not fill in the reverseComplementEdge of newly created edges,
+    // and does not create new tangles involving those edges.
+    bool detangle(TangleId, vector<edge_descriptor>& newEdges);
 
     // Output in Graphviz format.
     void writeGraphviz(const string& fileName) const;

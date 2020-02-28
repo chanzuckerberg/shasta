@@ -1,5 +1,6 @@
 // Shasta.
 #include "AssemblyPathGraph.hpp"
+#include "deduplicate.hpp"
 #include "html.hpp"
 using namespace shasta;
 
@@ -361,17 +362,233 @@ void AssemblyPathGraph::detangle()
         graph.writeHtml("AssemblyPathGraph-" + to_string(iteration) + ".html");
 
         // Detangle this tangle and its reverse complement.
-        detangle(tangleId);
-        detangle(reverseComplementTangleId);
+        vector<edge_descriptor> newEdges;
+        if(detangle(tangleId, newEdges)) {
+            SHASTA_ASSERT(detangle(reverseComplementTangleId, newEdges));
+        } else {
+            tangle.unsolvable = true;
+            getTangle(reverseComplementTangleId).unsolvable = true;
+            cout << "Reverse complement tangles " << tangleId <<
+                " and " << reverseComplementTangleId <<
+                " marked unsolvable because they could not be removed." << endl;
+        }
+
+        // Fill in the reverseComplementEdge for the edges we just created.
+        for(const edge_descriptor e: newEdges) {
+            fillReverseComplementEdge(e);
+        }
+
+
+        // HERE WE NEED TO CREATE NEW TANGLES INVOLVING THE NEWLY ADDED EDGES.
+        cout << "******* CREATION OF NEW TANGLES IS MISSING." << endl;
     }
+
+    graph.writeGraphviz("AssemblyPathGraph-Final.dot");
+    graph.writeHtml("AssemblyPathGraph-Final.html");
 }
 
 
+void AssemblyPathGraph::fillReverseComplementEdge(edge_descriptor e)
+{
+    AssemblyPathGraph& graph = *this;
+
+    const vertex_descriptor v0 = source(e, graph);
+    const vertex_descriptor v1 = target(e, graph);
+
+    const vertex_descriptor v0rc = graph[v0].reverseComplementVertex;
+    const vertex_descriptor v1rc = graph[v1].reverseComplementVertex;
+
+    edge_descriptor erc;
+    bool exists;
+    tie(erc, exists) =edge(v1rc, v0rc, graph);
+    SHASTA_ASSERT(exists);
+    graph[e].reverseComplementEdge = erc;
+}
+
+
+
 // Detangle a single tangle.
-void AssemblyPathGraph::detangle(TangleId tangleId)
+// Return true if successful.
+// This does not fill in the reverseComplementEdge of newly created edges,
+// and does not create new tangles involving those edges.
+bool AssemblyPathGraph::detangle(
+    TangleId tangleId,
+    vector<edge_descriptor>& newEdges)
 {
     cout << "Detangling tangle " << tangleId << endl;
-    SHASTA_ASSERT(0);
+    AssemblyPathGraph& graph = *this;
+
+    // If the tangle matrix does not have any zeros, we cannot detangle.
+    Tangle& tangle = getTangle(tangleId);
+    if(not tangle.hasNonZeroMatrixElements()) {
+        return false;
+    }
+
+
+
+    // Create the new edges.
+    // We loop over all pairs of in-edges and out-edges that have read support
+    // (that is, a non-zero element in the tangle matrix).
+    const AssemblyPathGraphEdge& tangleEdge = graph[tangle.edge];
+    for(uint64_t i=0; i<tangle.inEdges.size(); i++) {
+        const edge_descriptor eIn = tangle.inEdges[i];
+        const AssemblyPathGraphEdge& inEdge = graph[eIn];
+        const vertex_descriptor vA = source(eIn, graph);
+
+        for(uint64_t j=0; j<tangle.outEdges.size(); j++) {
+            const edge_descriptor eOut = tangle.outEdges[j];
+            const AssemblyPathGraphEdge& outEdge = graph[eOut];
+            const vertex_descriptor vB = target(eOut, graph);
+
+            if(tangle.matrix[i][j] == 0) {
+                continue;
+            }
+
+            // Add the new edge and fill in what we can now.
+            edge_descriptor eNew;
+            tie(eNew, ignore) = add_edge(vA, vB, graph);
+            newEdges.push_back(eNew);
+            AssemblyPathGraphEdge& newEdge = graph[eNew];
+            newEdge.pathLength =
+                inEdge.pathLength + tangleEdge.pathLength + outEdge.pathLength;
+            newEdge.mergeOrientedReadIds(
+                inEdge.orientedReadIds,
+                tangleEdge.orientedReadIds,
+                outEdge.orientedReadIds
+            );
+            newEdge.path = inEdge.path;
+            copy(tangleEdge.path.begin(), tangleEdge.path.end(),
+                back_inserter(newEdge.path));
+            copy(outEdge.path.begin(), outEdge.path.end(),
+                back_inserter(newEdge.path));
+        }
+    }
+
+
+    // Remove other tangles that the in-edges and out-edges
+    // of this tangle are involved in.
+    // Those will be recreated later, using the combined edges.
+    vector<TangleId> tanglesToBeRemoved;
+    for(const edge_descriptor e: tangle.inEdges) {
+        const AssemblyPathGraphEdge& edge = graph[e];
+        SHASTA_ASSERT(edge.outTangle == tangleId);
+        SHASTA_ASSERT(edge.tangle == invalidTangleId);
+        if(edge.inTangle != invalidTangleId) {
+            tanglesToBeRemoved.push_back(edge.inTangle);
+            cout << "Will remove preceding tangle " << edge.inTangle <<
+                " due to tangle in-edge " << edge << endl;
+        }
+    }
+    for(const edge_descriptor e: tangle.outEdges) {
+        const AssemblyPathGraphEdge& edge = graph[e];
+        SHASTA_ASSERT(edge.tangle == invalidTangleId);
+        SHASTA_ASSERT(edge.inTangle == tangleId);
+        if(edge.outTangle != invalidTangleId) {
+            tanglesToBeRemoved.push_back(edge.outTangle);
+            cout << "Will remove following tangle " << edge.outTangle <<
+                " due to tangle out-edge " << edge << endl;
+        }
+    }
+    deduplicate(tanglesToBeRemoved);
+    for(const TangleId tangleId: tanglesToBeRemoved) {
+        removeTangle(tangleId);
+        cout << "Removed adjacent tangle " << tangleId << endl;
+    }
+
+
+    // Remove all the edges involved in the tangle we are detangling,
+    // as well as the source and target vertices of the tangle edge.
+    for(const edge_descriptor e: tangle.inEdges) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        boost::remove_edge(v0, v1, graph);
+    }
+    for(const edge_descriptor e: tangle.outEdges) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        boost::remove_edge(v0, v1, graph);
+    }
+    const vertex_descriptor v0 = source(tangle.edge, graph);
+    const vertex_descriptor v1 = target(tangle.edge, graph);
+    boost::remove_edge(v0, v1, graph);
+    SHASTA_ASSERT(in_degree(v0, graph) == 0);
+    SHASTA_ASSERT(out_degree(v0, graph) == 0);
+    SHASTA_ASSERT(in_degree(v1, graph) == 0);
+    SHASTA_ASSERT(out_degree(v1, graph) == 0);
+    remove_vertex(v0, graph);
+    remove_vertex(v1, graph);
+
+    // Finally we can remove this tangle.
+    tangles.erase(tangleId);
+
+    return true;
+}
+
+
+void AssemblyPathGraph::removeTangle(TangleId tangleId)
+{
+    AssemblyPathGraph& graph = *this;
+    const Tangle& tangle = getTangle(tangleId);
+
+    // Remove all references to this tangle.
+    graph[tangle.edge].tangle = invalidTangleId;
+
+    for(const edge_descriptor e: tangle.inEdges) {
+        AssemblyPathGraphEdge& edge = graph[e];
+        SHASTA_ASSERT(edge.tangle == invalidTangleId);
+        SHASTA_ASSERT(edge.outTangle == tangleId);
+        edge.outTangle = invalidTangleId;
+    }
+
+    for(const edge_descriptor e: tangle.outEdges) {
+        AssemblyPathGraphEdge& edge = graph[e];
+        SHASTA_ASSERT(edge.tangle == invalidTangleId);
+        SHASTA_ASSERT(edge.inTangle == tangleId);
+        edge.inTangle = invalidTangleId;
+    }
+
+    // Now we can remove the tangle.
+    tangles.erase(tangleId);
+}
+
+
+
+
+void AssemblyPathGraphEdge::mergeOrientedReadIds(
+    const vector<OrientedReadId>& v0,
+    const vector<OrientedReadId>& v1,
+    const vector<OrientedReadId>& v2
+    )
+{
+    // v = union(v0, v1)
+    vector<OrientedReadId> v;
+    std::set_union(
+        v0.begin(), v0.end(),
+        v1.begin(), v1.end(),
+        back_inserter(v));
+
+    // orientedReads = union(v, v2)
+    orientedReadIds.clear();
+    std::set_union(
+        v.begin(), v.end(),
+        v2.begin(), v2.end(),
+        back_inserter(orientedReadIds));
+}
+
+
+
+bool Tangle::hasNonZeroMatrixElements() const
+{
+    for(const auto& v: matrix) {
+        for(const auto x: v) {
+            if(x == 0) {
+                return true;
+            }
+        }
+    }
+
+    // If getting here, we did not find any non-zero matrix elements.
+    return false;
 }
 
 
