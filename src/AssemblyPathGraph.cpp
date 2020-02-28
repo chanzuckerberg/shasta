@@ -551,7 +551,8 @@ void AssemblyPathGraph::writeTanglesHtml(ostream& html) const
         "<th>Id"
         "<th>In-edges"
         "<th>Tangle<br>edge"
-        "<th>Out-edges";
+        "<th>Out-edges"
+        "<th>Tangle<br>matrix";
 
     for(const auto& p: tangles) {
         const Tangle& tangle = p.second;
@@ -576,6 +577,32 @@ void AssemblyPathGraph::writeTanglesHtml(ostream& html) const
             html << "<a href='#e" << graph[e] << "'>" <<
                 graph[e] << "</a>" << " ";
         }
+
+
+
+        // Tangle matrix.
+        html << "<td class=centered>";
+        html << "<table style='margin-left:auto;margin-right:auto;'>";
+        html << "<tr><td class=centered>";
+        for(uint64_t j=0; j<tangle.outEdges.size(); j++) {
+            const edge_descriptor e = tangle.outEdges[j];
+            html << "<td class=centered>" << graph[e];
+        }
+        for(uint64_t i=0; i<tangle.inEdges.size(); i++) {
+            const edge_descriptor e = tangle.inEdges[i];
+            html << "<tr><td class=centered>" << graph[e];
+            for(uint64_t j=0; j<tangle.outEdges.size(); j++) {
+                const uint64_t value = tangle.matrix[i][j];
+                html << "<td class=centered>";
+                if(value) {
+                    html << value;
+                }
+            }
+        }
+        html << "</table>";
+
+
+
 
         if(tangle.unsolvable) {
             html << "<td class=centered>Unsolvable";
