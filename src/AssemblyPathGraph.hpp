@@ -136,6 +136,8 @@ public:
     AssemblyGraph::VertexId vertexId;
     AssemblyPathGraphVertex(AssemblyGraph::VertexId vertexId) :
         vertexId(vertexId) {}
+
+    AssemblyPathGraphBaseClass::vertex_descriptor reverseComplementVertex;
 };
 
 
@@ -161,6 +163,9 @@ public:
         inTangle = invalidTangleId;
         outTangle = invalidTangleId;
     }
+
+    // The reverse complement of this edge.
+    AssemblyPathGraphBaseClass::edge_descriptor reverseComplementEdge;
 
 
     // Initialize the path to a single AssemblyGraph edge.

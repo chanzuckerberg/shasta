@@ -4,6 +4,7 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/iteration_macros.hpp>
 
 // Standard library.
 #include "fstream.hpp"
@@ -16,25 +17,48 @@ AssemblyPathGraph::AssemblyPathGraph(const AssemblyGraph& assemblyGraph)
     AssemblyPathGraph& graph = *this;
 
     // Create a vertex for each assembly graph vertex.
-    vector<vertex_descriptor> vertices;
+    vector<vertex_descriptor> vertexDescriptors;
     for(AssemblyGraph::VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
         const vertex_descriptor v = add_vertex(AssemblyPathGraphVertex(vertexId), graph);
-        vertices.push_back(v);
+        vertexDescriptors.push_back(v);
+    }
+
+    // Fill in the reverse complemented vertex.
+    for(AssemblyGraph::VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
+        vertex_descriptor v = vertexDescriptors[vertexId];
+        graph[v].reverseComplementVertex = vertexDescriptors[assemblyGraph.reverseComplementVertex[vertexId]];
+    }
+
+    // Sanity check.
+    BGL_FORALL_VERTICES(v, graph, AssemblyPathGraph) {
+        SHASTA_ASSERT(graph[graph[v].reverseComplementVertex].reverseComplementVertex == v);
     }
 
 
 
     // Create an edge for each assembly graph edge.
+    vector<edge_descriptor> edgeDescriptors;
     for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
         const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
         const AssemblyGraph::VertexId vertexId0 = edge.source;
         const AssemblyGraph::VertexId vertexId1 = edge.target;
-        const vertex_descriptor v0 = vertices[vertexId0];
-        const vertex_descriptor v1 = vertices[vertexId1];
+        const vertex_descriptor v0 = vertexDescriptors[vertexId0];
+        const vertex_descriptor v1 = vertexDescriptors[vertexId1];
         edge_descriptor e;
         tie(e, ignore) = add_edge(v0, v1, AssemblyPathGraphEdge(edgeId), graph);
+        edgeDescriptors.push_back(e);
     }
 
+    // Fill in the reverse complemented edge.
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        edge_descriptor e = edgeDescriptors[edgeId];
+        graph[e].reverseComplementEdge = edgeDescriptors[assemblyGraph.reverseComplementEdge[edgeId]];
+    }
+
+    // Sanity check.
+    BGL_FORALL_VERTICES(e, graph, AssemblyPathGraph) {
+        SHASTA_ASSERT(graph[graph[e].reverseComplementEdge].reverseComplementEdge == e);
+    }
 }
 
 
