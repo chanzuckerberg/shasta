@@ -193,7 +193,6 @@ public:
 
     void mergeOrientedReadIds(
         const vector<OrientedReadId>&,
-        const vector<OrientedReadId>&,
         const vector<OrientedReadId>&
         );
 };
@@ -255,8 +254,21 @@ public:
 
     void fillReverseComplementEdge(edge_descriptor);
 
-    // Initial creation of the tangles.
+    // Initial creation of all tangles.
     void createTangles();
+
+    // Create tangles involving a given edge.
+    // This can create up to two tangles involving
+    // the given edge as an in-edge, out-edge, or tangle edge.
+    // This is used for incrementally create new tangles as
+    // edges are created during detangling.
+    void createTanglesInvolvingEdge(edge_descriptor e);
+
+    // Create a new tangle that has the specified edge
+    // as the tangle edge, if such a tangle is valid
+    // and does not already exist.
+    // Return true if the new tangle was created.
+    bool createTangleAtEdge(edge_descriptor e);
 
     // Return the next tangle to work on.
     TangleId findNextTangle() const;

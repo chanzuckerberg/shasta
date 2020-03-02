@@ -169,7 +169,7 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
 
 
 
-// Initial creation of the tangles.
+// Initial creation of all tangles.
 void AssemblyPathGraph::createTangles()
 {
     AssemblyPathGraph& graph = *this;
@@ -181,105 +181,106 @@ void AssemblyPathGraph::createTangles()
     tangles.clear();
     nextTangleId = 0;
 
-
-    // Consider all edges.
-    BGL_FORALL_EDGES(e01, graph, AssemblyPathGraph) {
-        const vertex_descriptor v0 = source(e01, graph);
-        const vertex_descriptor v1 = target(e01, graph);
-
-        // If the in-degree and out-degree are not at least 2, this edge
-        // does not generate a tangle.
-        if(in_degree(v0, graph) <2) {
-            continue;
-        }
-        if(out_degree(v1, graph) <2) {
-            continue;
-        }
-
-        const auto inDegree = in_degree(v0, graph);
-        const auto outDegree = out_degree(v1, graph);
-
-        Tangle tangle;
-        tangle.edge = e01;
-        SHASTA_ASSERT(graph[e01].tangle == invalidTangleId);
-        graph[e01].tangle = nextTangleId;
-
-        // Gather the in-edges and out-edges.
-        BGL_FORALL_INEDGES(v0, e, graph, AssemblyPathGraph) {
-            tangle.inEdges.push_back(e);
-            SHASTA_ASSERT(graph[e].outTangle == invalidTangleId);
-            graph[e].outTangle = nextTangleId;
-        }
-        BGL_FORALL_OUTEDGES(v1, e, graph, AssemblyPathGraph) {
-            tangle.outEdges.push_back(e);
-            SHASTA_ASSERT(graph[e].inTangle == invalidTangleId);
-            graph[e].inTangle = nextTangleId;
-        }
-
-
-
-        // Compute the tangle matrix, which contains the number of common oriented reads
-        // for each pair of in-edges and out-edges.
-        vector<OrientedReadId> commonOrientedReadIds;
-        tangle.matrix.resize(inDegree, vector<uint64_t>(outDegree));
-        for(uint64_t inEdgeIndex=0; inEdgeIndex<inDegree; inEdgeIndex++) {
-            const AssemblyPathGraphEdge& inEdge = graph[tangle.inEdges[inEdgeIndex]];
-            for(uint64_t outEdgeIndex=0; outEdgeIndex<outDegree; outEdgeIndex++) {
-                const AssemblyPathGraphEdge& outEdge = graph[tangle.outEdges[outEdgeIndex]];
-                commonOrientedReadIds.clear();
-                std::set_intersection(
-                    inEdge.orientedReadIds.begin(), inEdge.orientedReadIds.end(),
-                    outEdge.orientedReadIds.begin(), outEdge.orientedReadIds.end(),
-                    back_inserter(commonOrientedReadIds));
-                tangle.matrix[inEdgeIndex][outEdgeIndex] = commonOrientedReadIds.size();
-            }
-        }
-
-#if 0
-
-
-        // Count the non-zero elements in each row/column of the tangle.
-        vector<uint64_t> inCounts(inDegree, 0);
-        vector<uint64_t> outCounts(outDegree, 0);
-        for(uint64_t inEdgeIndex=0; inEdgeIndex<inEdges.size(); inEdgeIndex++) {
-            for(uint64_t outEdgeIndex=0; outEdgeIndex<outEdges.size(); outEdgeIndex++) {
-                if(tangleMatrix[inEdgeIndex][outEdgeIndex]) {
-                    ++inCounts[inEdgeIndex];
-                    ++outCounts[outEdgeIndex];
-                }
-            }
-        }
-        cout << "inCounts ";
-        copy(inCounts.begin(), inCounts.end(), ostream_iterator<uint64_t>(cout," "));
-        cout << endl;
-        cout << "outCounts ";
-        copy(outCounts.begin(), outCounts.end(), ostream_iterator<uint64_t>(cout," "));
-        cout << endl;
-
-        const bool canDetangle =
-            std::count(inCounts.begin(), inCounts.end(), 1) == int64_t(inCounts.size()) and
-            std::count(outCounts.begin(), outCounts.end(), 1) == int64_t(outCounts.size());
-        if(not canDetangle) {
-            cout << "This edge cannot be detangled due to ambiguity." << endl;
-        }
-
-        if(not canDetangle) {
-            continue;
-        }
-
-        if(graph[e01].pathLength >= tangleLength) {
-            continue;   // We already have a shorter one.
-        }
-
-        eTangle = e01;
-        tangleLength = graph[e01].pathLength;
-#endif
-
-        tangle.tangleId = nextTangleId;
-        tangles.insert(make_pair(nextTangleId++, tangle));
-
+    // Create the tangles.
+    BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
+        createTangleAtEdge(e);
     }
     cout << "Found " << tangles.size() << " tangles." << endl;
+}
+
+
+
+// Create a new tangle that has the specified edge
+// as the tangle edge, if such a tangle is valid
+// and does not already exist.
+// Return true if the new tangle was created.
+bool AssemblyPathGraph::createTangleAtEdge(edge_descriptor e01)
+{
+    AssemblyPathGraph& graph = *this;
+
+    if(graph[e01].tangle != invalidTangleId) {
+        return false;
+    }
+
+    const vertex_descriptor v0 = source(e01, graph);
+    const vertex_descriptor v1 = target(e01, graph);
+
+    // If the in-degree and out-degree are not at least 2, this edge
+    // does not generate a tangle.
+    if(in_degree(v0, graph) <2) {
+        return false;
+    }
+    if(out_degree(v1, graph) <2) {
+        return false;
+    }
+
+    const auto inDegree = in_degree(v0, graph);
+    const auto outDegree = out_degree(v1, graph);
+
+    Tangle tangle;
+    tangle.edge = e01;
+    SHASTA_ASSERT(graph[e01].tangle == invalidTangleId);
+    graph[e01].tangle = nextTangleId;
+
+    // Gather the in-edges and out-edges.
+    BGL_FORALL_INEDGES(v0, e, graph, AssemblyPathGraph) {
+        tangle.inEdges.push_back(e);
+        SHASTA_ASSERT(graph[e].outTangle == invalidTangleId);
+        graph[e].outTangle = nextTangleId;
+    }
+    BGL_FORALL_OUTEDGES(v1, e, graph, AssemblyPathGraph) {
+        tangle.outEdges.push_back(e);
+        SHASTA_ASSERT(graph[e].inTangle == invalidTangleId);
+        graph[e].inTangle = nextTangleId;
+    }
+
+
+
+    // Compute the tangle matrix, which contains the number of common oriented reads
+    // for each pair of in-edges and out-edges.
+    vector<OrientedReadId> commonOrientedReadIds;
+    tangle.matrix.resize(inDegree, vector<uint64_t>(outDegree));
+    for(uint64_t inEdgeIndex=0; inEdgeIndex<inDegree; inEdgeIndex++) {
+        const AssemblyPathGraphEdge& inEdge = graph[tangle.inEdges[inEdgeIndex]];
+        for(uint64_t outEdgeIndex=0; outEdgeIndex<outDegree; outEdgeIndex++) {
+            const AssemblyPathGraphEdge& outEdge = graph[tangle.outEdges[outEdgeIndex]];
+            commonOrientedReadIds.clear();
+            std::set_intersection(
+                inEdge.orientedReadIds.begin(), inEdge.orientedReadIds.end(),
+                outEdge.orientedReadIds.begin(), outEdge.orientedReadIds.end(),
+                back_inserter(commonOrientedReadIds));
+            tangle.matrix[inEdgeIndex][outEdgeIndex] = commonOrientedReadIds.size();
+        }
+    }
+
+    tangle.tangleId = nextTangleId;
+    tangles.insert(make_pair(nextTangleId++, tangle));
+    cout << "Created tangle " << tangle.tangleId << " at " << graph[e01] << endl;
+
+    return true;
+}
+
+
+
+// Create tangles involving a given edge.
+// This can create up to two tangles involving
+// the given edge as an in-edge, out-edge, or tangle edge.
+// This is used for incrementally create new tangles as
+// edges are created during detangling.
+void AssemblyPathGraph::createTanglesInvolvingEdge(edge_descriptor e)
+{
+    AssemblyPathGraph& graph = *this;
+    const vertex_descriptor v0 = source(e, graph);
+    const vertex_descriptor v1 = target(e, graph);
+
+    createTangleAtEdge(e);
+
+    BGL_FORALL_INEDGES(v0, e, graph, AssemblyPathGraph) {
+        createTangleAtEdge(e);
+    }
+    BGL_FORALL_OUTEDGES(v1, e, graph, AssemblyPathGraph) {
+        createTangleAtEdge(e);
+    }
 }
 
 
@@ -379,8 +380,10 @@ void AssemblyPathGraph::detangle()
         }
 
 
-        // HERE WE NEED TO CREATE NEW TANGLES INVOLVING THE NEWLY ADDED EDGES.
-        cout << "******* CREATION OF NEW TANGLES IS MISSING." << endl;
+        // Create tangles involving the newly created edges.
+        for(const edge_descriptor e: newEdges) {
+            createTanglesInvolvingEdge(e);
+        }
     }
 
     graph.writeGraphviz("AssemblyPathGraph-Final.dot");
@@ -451,9 +454,9 @@ bool AssemblyPathGraph::detangle(
             AssemblyPathGraphEdge& newEdge = graph[eNew];
             newEdge.pathLength =
                 inEdge.pathLength + tangleEdge.pathLength + outEdge.pathLength;
+            // Don't include the reads of the tangle edge in the new edge!
             newEdge.mergeOrientedReadIds(
                 inEdge.orientedReadIds,
-                tangleEdge.orientedReadIds,
                 outEdge.orientedReadIds
             );
             newEdge.path = inEdge.path;
@@ -555,23 +558,14 @@ void AssemblyPathGraph::removeTangle(TangleId tangleId)
 
 
 void AssemblyPathGraphEdge::mergeOrientedReadIds(
-    const vector<OrientedReadId>& v0,
-    const vector<OrientedReadId>& v1,
-    const vector<OrientedReadId>& v2
+    const vector<OrientedReadId>& in,
+    const vector<OrientedReadId>& out
     )
 {
-    // v = union(v0, v1)
-    vector<OrientedReadId> v;
-    std::set_union(
-        v0.begin(), v0.end(),
-        v1.begin(), v1.end(),
-        back_inserter(v));
-
-    // orientedReads = union(v, v2)
     orientedReadIds.clear();
     std::set_union(
-        v.begin(), v.end(),
-        v2.begin(), v2.end(),
+        in.begin(), in.end(),
+        out.begin(), out.end(),
         back_inserter(orientedReadIds));
 }
 
