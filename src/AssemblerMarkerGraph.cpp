@@ -1712,10 +1712,10 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph edge.
-                if(assemblyGraph.markerToAssemblyTable.isOpen) {
-                    const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                    graph[e].assemblyEdgeId = p.first;
-                    graph[e].positionInAssemblyEdge = p.second;
+                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
+                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
+                    copy(locations.begin(), locations.end(),
+                        back_inserter(graph[e].assemblyGraphLocations));
                 }
             }
         }
@@ -1772,10 +1772,10 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph vertex.
-                if(assemblyGraph.markerToAssemblyTable.isOpen) {
-                    const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                    graph[e].assemblyEdgeId = p.first;
-                    graph[e].positionInAssemblyEdge = p.second;
+                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
+                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
+                    copy(locations.begin(), locations.end(),
+                        back_inserter(graph[e].assemblyGraphLocations));
                 }
             }
         }
@@ -1853,10 +1853,10 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
             // Link to assembly graph vertex.
-            if(assemblyGraph.markerToAssemblyTable.isOpen) {
-                const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                graph[e].assemblyEdgeId = p.first;
-                graph[e].positionInAssemblyEdge = p.second;
+            if(assemblyGraph.markerToAssemblyTable.isOpen()) {
+                const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
+                copy(locations.begin(), locations.end(),
+                    back_inserter(graph[e].assemblyGraphLocations));
             }
         }
     }
@@ -4811,13 +4811,16 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                 shouldAssemble = false;
             } else {
                 // This marker graph edge was not removed.
-                // Find the corresponding assembly graph edge.
-                const AssemblyGraph::EdgeId assemblyGraphEdgeId =
-                    assemblyGraph.markerToAssemblyTable[edgeId].first;
-                if(!assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
-                    // The assembly graph edge will not be assembled.
-                    // So we don't need to assemble this marker graph edge.
-                    shouldAssemble = false;
+                // Check its assembly graph locations to see if it
+                // should be assembled.
+                shouldAssemble = false;
+                for(const auto& location: assemblyGraph.markerToAssemblyTable[edgeId]) {
+                    const AssemblyGraph::EdgeId assemblyGraphEdgeId =
+                        location.first;
+                    if(assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
+                        shouldAssemble = true;
+                        break;
+                    }
                 }
             }
 

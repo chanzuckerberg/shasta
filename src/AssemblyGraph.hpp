@@ -153,16 +153,20 @@ public:
     void findBubbles(); // Assumes bubble Vector was already initialized.
 
 
-    // A table that can be used to find the location of a marker graph
+    // A table that can be used to find the locations of a marker graph
     // edge in the assembly graph, if any.
+    // Note that, before detangling,or if detangling is not used,
+    // each marker graph edge corresponds to at most one location
+    // in the assembly graph. However, after detangling a marker
+    // graph edge can correspond to multiple locations in the
+    // assembly graph.
     // Indexed by the edge id in the marker graph, gives for each marker graph
-    // edge a pair(EdgeId, position), where:
+    // edge a vector of pair(EdgeId, position), where:
     // - EdgeId is the id of the assembly graph edge containing the
-    //   given marker graph edge, or invalidEdgeId
-    //   if the marker graph edge is not part of any assembly graph edge.
-    // - Position is the index of this marker graph edge in the
-    //   chain corresponding to that assembly graph edge.
-    MemoryMapped::Vector< pair<EdgeId, uint32_t> > markerToAssemblyTable;
+    //   given marker graph edge.
+    // - Position is the index of this marker graph edge in that
+    //   assembly graph edge.
+    MemoryMapped::VectorOfVectors< pair<EdgeId, uint32_t> , uint64_t> markerToAssemblyTable;
 
     // The assembled sequenced and repeat counts for each edge of the
     // assembly graph.

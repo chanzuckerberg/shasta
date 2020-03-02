@@ -35,7 +35,7 @@ using namespace shasta;
 void Assembler::createAssemblyGraphEdges()
 {
     // Some shorthands.
-    using VertexId = AssemblyGraph::VertexId;
+    // using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
     // Check that we have what we need.
@@ -230,18 +230,24 @@ void Assembler::createAssemblyGraphEdges()
     assemblyGraph.markerToAssemblyTable.createNew(
         largeDataName("MarkerToAssemblyTable"),
         largeDataPageSize);
-    assemblyGraph.markerToAssemblyTable.resize(edges.size());
-    fill(
-        assemblyGraph.markerToAssemblyTable.begin(),
-        assemblyGraph.markerToAssemblyTable.end(),
-        make_pair(std::numeric_limits<VertexId>::max(), 0));
+    assemblyGraph.markerToAssemblyTable.beginPass1(edges.size());
     for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edgeLists.size(); assemblyGraphEdgeId++) {
         const span<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
         for(uint32_t position=0; position!=chain.size(); position++) {
             const EdgeId markerGraphEdgeId = chain[position];
-            assemblyGraph.markerToAssemblyTable[markerGraphEdgeId] = make_pair(assemblyGraphEdgeId, position);
+            assemblyGraph.markerToAssemblyTable.incrementCount(markerGraphEdgeId);
         }
     }
+    assemblyGraph.markerToAssemblyTable.beginPass2();
+    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edgeLists.size(); assemblyGraphEdgeId++) {
+        const span<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
+        for(uint32_t position=0; position!=chain.size(); position++) {
+            const EdgeId markerGraphEdgeId = chain[position];
+            assemblyGraph.markerToAssemblyTable.store(
+                markerGraphEdgeId, make_pair(assemblyGraphEdgeId, position));
+        }
+    }
+    assemblyGraph.markerToAssemblyTable.endPass2();
 
 
 

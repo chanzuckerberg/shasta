@@ -330,10 +330,12 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
         SHASTA_ASSERT(edge.edgeId != MarkerGraph::invalidEdgeId);
         s << "<tr><td>Edge " << edge.edgeId << "</td></tr>";
 
-        // Assembly edge id.
-        if((edge.assemblyEdgeId != std::numeric_limits<AssemblyGraph::VertexId>::max())) {
-            s << "<tr><td>Assembly " << edge.assemblyEdgeId << "-" <<
-                edge.positionInAssemblyEdge << "</td></tr>";
+        // Assembly graph locations.
+        for(const auto& p: edge.assemblyGraphLocations) {
+            const AssemblyGraph::EdgeId edgeId = p.first;
+            const uint32_t position = p.second;
+            s << "<tr><td>Assembly " << edgeId << "-" <<
+                position << "</td></tr>";
         }
 
         // Coverage.

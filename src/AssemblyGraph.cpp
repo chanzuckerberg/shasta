@@ -40,7 +40,7 @@ void AssemblyGraph::remove()
         bubbles.remove();
     }
 
-    if(markerToAssemblyTable.isOpen) {
+    if(markerToAssemblyTable.isOpen()) {
         markerToAssemblyTable.remove();
     }
 
