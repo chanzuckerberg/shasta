@@ -277,7 +277,9 @@ public:
     bool collidesWithReverseComplement(TangleId) const;
 
     // Detangle all we can.
-    void detangle();
+    // The average number of bases per marker is only used
+    // for GFA output.
+    void detangle(double basesPerMarker);
 
     // Detangle a single tangle.
     // This does not fill in the reverseComplementEdge of newly created edges,
@@ -294,6 +296,11 @@ public:
     void writeVerticesHtml(ostream&) const;
     void writeEdgesHtml(ostream&) const;
     void writeTanglesHtml(ostream&) const;
+
+    // GFA output (without sequence).
+    void writeGfa(const string& fileName, double basesPerMarker) const;
+    void writeGfa(ostream&, double basesPerMarker) const;
+
 
 };
 

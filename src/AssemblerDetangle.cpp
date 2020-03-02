@@ -61,6 +61,9 @@ void Assembler::detangle()
     graph.createTangles();
 
     // Do the detangling.
-    graph.detangle();
+    const double basesPerMarker =
+        double(assemblerInfo->baseCount) /
+        double(markers.totalSize()/2);
+    graph.detangle(basesPerMarker);
 }
 

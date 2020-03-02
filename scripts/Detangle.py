@@ -3,6 +3,7 @@
 import shasta
 
 a = shasta.Assembler()
+a.accessMarkers()
 a.accessMarkerGraphEdges()
 a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()

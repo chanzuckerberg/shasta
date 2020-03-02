@@ -327,7 +327,10 @@ TangleId AssemblyPathGraph::getReverseComplementTangle(
 
 
 
-void AssemblyPathGraph::detangle()
+// Detangle all we can.
+// The average number of bases per marker is only used
+// for GFA output.
+void AssemblyPathGraph::detangle(double basesPerMarker)
 {
     AssemblyPathGraph& graph = *this;
 
@@ -361,6 +364,8 @@ void AssemblyPathGraph::detangle()
         // Write the graph at the beginning of this iteration.
         graph.writeGraphviz("AssemblyPathGraph-" + to_string(iteration) + ".dot");
         graph.writeHtml("AssemblyPathGraph-" + to_string(iteration) + ".html");
+        graph.writeGfa("AssemblyPathGraph-" + to_string(iteration) + ".gfa",
+            basesPerMarker);
 
         // Detangle this tangle and its reverse complement.
         vector<edge_descriptor> newEdges;
@@ -388,6 +393,7 @@ void AssemblyPathGraph::detangle()
 
     graph.writeGraphviz("AssemblyPathGraph-Final.dot");
     graph.writeHtml("AssemblyPathGraph-Final.html");
+    graph.writeGfa("AssemblyPathGraph-Final.gfa", basesPerMarker);
 }
 
 
@@ -824,4 +830,59 @@ void AssemblyPathGraph::writeTanglesHtml(ostream& html) const
 
     html << "</table>";
 
+}
+
+
+
+// GFA output (without sequence).
+void AssemblyPathGraph::writeGfa(
+    const string& fileName,
+    double basesPerMarker) const
+{
+    ofstream gfa(fileName);
+    writeGfa(gfa, basesPerMarker);
+}
+
+
+
+void AssemblyPathGraph::writeGfa(
+    ostream& gfa,
+    double basesPerMarker) const
+{
+    const AssemblyPathGraph& graph = *this;
+
+    // Write the header line.
+    gfa << "H\tVN:Z:1.0\n";
+
+
+    // Write a segment record for each edge.
+    BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
+        gfa <<
+            "S\t" <<
+            graph[e] << "\t" <<
+            "*\t" <<
+            "LN:i:" << uint64_t(basesPerMarker * double(graph[e].pathLength)) <<
+            "\n";
+    }
+
+
+
+    // Write GFA links.
+    // For each vertex in the assembly path graph there is a link for
+    // each combination of in-edges and out-edges.
+    // Therefore each vertex generates a number of
+    // links equal to the product of its in-degree and out-degree.
+    BGL_FORALL_VERTICES(v, graph, AssemblyPathGraph) {
+        BGL_FORALL_INEDGES(v, eIn, graph, AssemblyPathGraph) {
+            BGL_FORALL_OUTEDGES(v, eOut, graph, AssemblyPathGraph) {
+                gfa <<
+                    "L\t" <<
+                    graph[eIn] << "\t" <<
+                    "+\t" <<
+                    graph[eOut] << "\t" <<
+                    "+\t" <<
+                    "*\n";
+            }
+        }
+    }
 }
