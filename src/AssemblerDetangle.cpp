@@ -241,5 +241,52 @@ void Assembler::detangle()
         }
         assemblyGraphEdge.averageEdgeCoverage = uint32_t(sum / path.size());
     }
+
+
+#if 0
+    // Now replace the tangled assembly graph with the detangled one.
+    assemblyGraph.remove();
+    newAssemblyGraph.close();
+    filesystem::move(
+        largeDataName("New-AssemblyGraphVertices"),
+        largeDataName("AssemblyGraphVertices"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphReverseComplementVertex"),
+        largeDataName("AssemblyGraphReverseComplementVertex"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphEdges"),
+        largeDataName("AssemblyGraphEdges"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphEdgeLists.toc"),
+        largeDataName("AssemblyGraphEdgeLists.toc"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphEdgeLists.data"),
+        largeDataName("AssemblyGraphEdgeLists.data"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphEdgesBySource.toc"),
+        largeDataName("AssemblyGraphEdgesBySource.toc"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphEdgesBySource.data"),
+        largeDataName("AssemblyGraphEdgesBySource.data"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphEdgesByTarget.toc"),
+        largeDataName("AssemblyGraphEdgesByTarget.toc"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphEdgesByTarget.data"),
+        largeDataName("AssemblyGraphEdgesByTarget.data"));
+    filesystem::move(
+        largeDataName("New-AssemblyGraphReverseComplementEdge"),
+        largeDataName("AssemblyGraphReverseComplementEdge"));
+    filesystem::move(
+        largeDataName("New-MarkerToAssemblyTable.toc"),
+        largeDataName("MarkerToAssemblyTable.toc"));
+    filesystem::move(
+        largeDataName("New-MarkerToAssemblyTable.data"),
+        largeDataName("MarkerToAssemblyTable.data"));
+    accessAssemblyGraphVertices();
+    accessAssemblyGraphEdges();
+    accessAssemblyGraphEdgeLists();
+#endif
+
 }
 
