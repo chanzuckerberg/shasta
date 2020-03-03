@@ -177,5 +177,16 @@ void Assembler::detangle()
 
     }
     SHASTA_ASSERT(newAssemblyGraph.edges.size() == newAssemblyGraph.edgeLists.size());
+
+
+
+    // Compute connectivity of the new assembly graph.
+    newAssemblyGraph.edgesBySource.createNew(
+        largeDataName("New-AssemblyGraphEdgesBySource"),
+        largeDataPageSize);
+    newAssemblyGraph.edgesByTarget.createNew(
+        largeDataName("New-AssemblyGraphEdgesByTarget"),
+        largeDataPageSize);
+    newAssemblyGraph.computeConnectivity();
 }
 
