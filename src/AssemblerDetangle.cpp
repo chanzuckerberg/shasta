@@ -243,6 +243,15 @@ void Assembler::detangle()
     }
 
 
+
+    // Create the marker to assembly table for the detangled marker graph.
+    newAssemblyGraph.markerToAssemblyTable.createNew(
+        largeDataName("New-MarkerToAssemblyTable"),
+        largeDataPageSize);
+    newAssemblyGraph.createMarkerToAssemblyTable(markerGraph.edges.size());
+
+
+
 #if 0
     // Now replace the tangled assembly graph with the detangled one.
     assemblyGraph.remove();
