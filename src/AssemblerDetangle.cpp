@@ -188,5 +188,11 @@ void Assembler::detangle()
         largeDataName("New-AssemblyGraphEdgesByTarget"),
         largeDataPageSize);
     newAssemblyGraph.computeConnectivity();
+
+
+    // Find reverse complement edges of the new assembly graph.
+    newAssemblyGraph.reverseComplementEdge.createNew(
+        largeDataName("New-AssemblyGraphReverseComplementEdge"), largeDataPageSize);
+    newAssemblyGraph.computeReverseComplementEdge();
 }
 

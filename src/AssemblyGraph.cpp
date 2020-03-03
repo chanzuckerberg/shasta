@@ -150,6 +150,38 @@ void AssemblyGraph::computeConnectivity()
 }
 
 
+void AssemblyGraph::computeReverseComplementEdge()
+{
+    reverseComplementEdge.resize(edges.size());
+    for(EdgeId e=0; e<edges.size(); e++) {
+        const Edge& edge = edges[e];
+        const VertexId v0 = edge.source;
+        const VertexId v1 = edge.target;
+
+        // Use the Rc suffix for reverse complement entities.
+        const VertexId v0Rc = reverseComplementVertex[v0];
+        const VertexId v1Rc = reverseComplementVertex[v1];
+
+        // Look for edge v1Rc->v0Rc.
+        bool found = false;
+        for(const EdgeId eRc: edgesBySource[v1Rc]) {
+            if(edges[eRc].target == v0Rc) {
+                reverseComplementEdge[e] = eRc;
+                found = true;
+            }
+        }
+        SHASTA_ASSERT(found);
+    }
+
+    // Sanity check.
+    for(EdgeId e=0; e<edges.size(); e++) {
+        const EdgeId eRc = reverseComplementEdge[e];
+        SHASTA_ASSERT(reverseComplementEdge[eRc] == e);
+    }
+}
+
+
+
 
 // Find incoming/outgoing edges of a vertex
 // that were not removed.
