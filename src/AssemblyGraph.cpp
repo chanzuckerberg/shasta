@@ -5,6 +5,60 @@ using namespace shasta;
 #include "fstream.hpp"
 #include "iterator.hpp"
 
+
+// Close all open data.
+void AssemblyGraph::close()
+{
+    if(vertices.isOpen) {
+        vertices.close();
+    }
+
+    if(reverseComplementVertex.isOpen) {
+        reverseComplementVertex.close();
+    }
+
+    if(edges.isOpen) {
+        edges.close();
+    }
+
+    if(reverseComplementEdge.isOpen) {
+        reverseComplementEdge.close();
+    }
+
+    if(edgesBySource.isOpen()) {
+        edgesBySource.close();
+    }
+
+    if(edgesByTarget.isOpen()) {
+        edgesByTarget.close();
+    }
+
+    if(edgeLists.isOpen()) {
+        edgeLists.close();
+    }
+
+    if(bubbles.isOpen) {
+        bubbles.close();
+    }
+
+    if(markerToAssemblyTable.isOpen()) {
+        markerToAssemblyTable.close();
+    }
+
+    if(sequences.isOpen()) {
+        sequences.close();
+    }
+
+    if(repeatCounts.isOpen()) {
+        repeatCounts.close();
+    }
+
+    if(orientedReadsByEdge.isOpen()) {
+        orientedReadsByEdge.close();
+    }
+}
+
+
 // Close and remove all open data.
 void AssemblyGraph::remove()
 {

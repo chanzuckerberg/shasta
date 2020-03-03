@@ -182,6 +182,9 @@ public:
     // Indexed by EdgeId.
     MemoryMapped::VectorOfVectors<OrientedReadId, uint64_t> orientedReadsByEdge;
 
+    // Close all open data.
+    void close();
+
     // Close and remove all open data.
     void remove();
 
