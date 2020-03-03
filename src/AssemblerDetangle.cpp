@@ -252,7 +252,6 @@ void Assembler::detangle()
 
 
 
-#if 0
     // Now replace the tangled assembly graph with the detangled one.
     assemblyGraph.remove();
     newAssemblyGraph.close();
@@ -295,7 +294,7 @@ void Assembler::detangle()
     accessAssemblyGraphVertices();
     accessAssemblyGraphEdges();
     accessAssemblyGraphEdgeLists();
-#endif
+
 
 }
 
