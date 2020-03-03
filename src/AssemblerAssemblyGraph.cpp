@@ -444,29 +444,7 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesByTarget.createNew(
         largeDataName("AssemblyGraphEdgesByTarget"),
         largeDataPageSize);
-    assemblyGraph.edgesBySource.beginPass1(assemblyGraph.vertices.size());
-    assemblyGraph.edgesByTarget.beginPass1(assemblyGraph.vertices.size());
-    for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
-        assemblyGraph.edgesBySource.incrementCount(edge.source);
-        assemblyGraph.edgesByTarget.incrementCount(edge.target);
-    }
-    assemblyGraph.edgesBySource.beginPass2();
-    assemblyGraph.edgesByTarget.beginPass2();
-    for(EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
-        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-        assemblyGraph.edgesBySource.store(edge.source, edgeId);
-        assemblyGraph.edgesByTarget.store(edge.target, edgeId);
-    }
-    assemblyGraph.edgesBySource.endPass2();
-    assemblyGraph.edgesByTarget.endPass2();
-
-    // Make sure edges by source and by target are sorted.
-    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
-        const auto edgesBySource = assemblyGraph.edgesBySource[vertexId];
-        const auto edgesByTarget = assemblyGraph.edgesByTarget[vertexId];
-        sort(edgesBySource.begin(), edgesBySource.end());
-        sort(edgesByTarget.begin(), edgesByTarget.end());
-    }
+    assemblyGraph.computeConnectivity();
 
 }
 

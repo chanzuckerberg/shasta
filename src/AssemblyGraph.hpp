@@ -114,6 +114,9 @@ public:
     // Contains edge ids that can be used as indexes into edges and edgeLists.
     MemoryMapped::VectorOfVectors<EdgeId, EdgeId> edgesByTarget;
 
+    // Fill in edgesBySource and edgesByTarget.
+    void computeConnectivity();
+
     // The edge ids of global marker graph edges corresponding
     // to each edge of the assembly graph.
     // Indexed by the edge id of the assembly graph edge.

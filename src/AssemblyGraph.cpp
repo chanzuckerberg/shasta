@@ -120,6 +120,37 @@ AssemblyGraph::VertexId AssemblyGraph::outDegree(VertexId vertexId) const
 
 
 
+// Fill in edgesBySource and edgesByTarget.
+void AssemblyGraph::computeConnectivity()
+{
+    edgesBySource.beginPass1(vertices.size());
+    edgesByTarget.beginPass1(vertices.size());
+    for(const Edge& edge: edges) {
+        edgesBySource.incrementCount(edge.source);
+        edgesByTarget.incrementCount(edge.target);
+    }
+    edgesBySource.beginPass2();
+    edgesByTarget.beginPass2();
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        const Edge& edge = edges[edgeId];
+        edgesBySource.store(edge.source, edgeId);
+        edgesByTarget.store(edge.target, edgeId);
+    }
+    edgesBySource.endPass2();
+    edgesByTarget.endPass2();
+
+    // Make sure edges by source and by target are sorted.
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+        const auto es = edgesBySource[vertexId];
+        const auto et = edgesByTarget[vertexId];
+        sort(es.begin(), es.end());
+        sort(et.begin(), et.end());
+    }
+
+}
+
+
+
 // Find incoming/outgoing edges of a vertex
 // that were not removed.
 // They are returned sorted by edge id.
