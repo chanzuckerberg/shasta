@@ -74,9 +74,6 @@ void Assembler::detangle()
 
 
     // Create the vertices of the new AssemblyGraph.
-    newAssemblyGraph.vertices.createNew(
-        largeDataName("New-AssemblyGraphVertices"),
-        largeDataPageSize);
     vector< pair<MarkerGraph::VertexId, AssemblyPathGraph::vertex_descriptor> > newVertices;
     BGL_FORALL_VERTICES(v, graph, AssemblyPathGraph) {
         const AssemblyGraph::VertexId oldVertexId = graph[v].vertexId;
@@ -87,6 +84,9 @@ void Assembler::detangle()
 
     // The new vertices are sorted by marker graph vertex id.
     // The position in the newVertices vector is the vertex id in the new assembly graph.
+    newAssemblyGraph.vertices.createNew(
+        largeDataName("New-AssemblyGraphVertices"),
+        largeDataPageSize);
     newAssemblyGraph.vertices.resize(newVertices.size());
     for(AssemblyGraph::VertexId vertexId=0; vertexId<newVertices.size(); vertexId++) {
         newAssemblyGraph.vertices[vertexId] = newVertices[vertexId].first;
@@ -124,5 +124,58 @@ void Assembler::detangle()
         const AssemblyGraph::VertexId vertexIdRc = newAssemblyGraph.reverseComplementVertex[vertexId];
         SHASTA_ASSERT(newAssemblyGraph.reverseComplementVertex[vertexIdRc] == vertexId);
     }
+
+
+
+    // Create edges of the new assembly graph.
+    vector<AssemblyPathGraph::edge_descriptor> newEdges;
+    BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
+        newEdges.push_back(e);
+    }
+    cout << "The detangled assembly graph has " <<
+        newEdges.size() << " edges." << endl;
+
+    newAssemblyGraph.edges.createNew(
+        largeDataName("New-AssemblyGraphEdges"),
+        largeDataPageSize);
+    newAssemblyGraph.edgeLists.createNew(
+        largeDataName("New-AssemblyGraphEdgeLists"),
+        largeDataPageSize);
+    for(AssemblyGraph::EdgeId newEdgeId=0; newEdgeId<newEdges.size(); newEdgeId++) {
+        const AssemblyPathGraph::edge_descriptor e = newEdges[newEdgeId];
+        const AssemblyPathGraphEdge edge = graph[e];
+        const AssemblyPathGraph::vertex_descriptor v0 = source(e, graph);
+        const AssemblyPathGraph::vertex_descriptor v1 = target(e, graph);
+
+        // Find the corresponding vertex ids in the new assembly graph.
+        const auto p0 = make_pair(assemblyGraph.vertices[graph[v0].vertexId], v0);
+        const auto it0 = std::lower_bound(newVertices.begin(), newVertices.end(), p0);
+        SHASTA_ASSERT(it0 != newVertices.end());
+        SHASTA_ASSERT(*it0 == p0);
+        const AssemblyGraph::VertexId newVertexId0 = it0 - newVertices.begin();
+
+        const auto p1 = make_pair(assemblyGraph.vertices[graph[v1].vertexId], v1);
+        const auto it1 = std::lower_bound(newVertices.begin(), newVertices.end(), p1);
+        SHASTA_ASSERT(it1 != newVertices.end());
+        SHASTA_ASSERT(*it1 == p1);
+        const AssemblyGraph::VertexId newVertexId1 = it1 - newVertices.begin();
+
+        // Create ands store the new AssemblyGraph::Edge.
+        AssemblyGraph::Edge newEdge;
+        newEdge.source = newVertexId0;
+        newEdge.target = newVertexId1;
+        newAssemblyGraph.edges.push_back(newEdge);
+
+        // Now store the marker graph path corresponding to this edge.
+        newAssemblyGraph.edgeLists.appendVector();
+        for(const AssemblyGraph::EdgeId oldAssemblyGraphEdgeId: edge.path) {
+            const span<MarkerGraph::EdgeId> partialPath = assemblyGraph.edgeLists[oldAssemblyGraphEdgeId];
+            for(const MarkerGraph::EdgeId markerGraphEdgeId: partialPath) {
+                newAssemblyGraph.edgeLists.append(markerGraphEdgeId);
+            }
+        }
+
+    }
+    SHASTA_ASSERT(newAssemblyGraph.edges.size() == newAssemblyGraph.edgeLists.size());
 }
 
