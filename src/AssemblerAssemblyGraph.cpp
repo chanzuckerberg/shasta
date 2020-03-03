@@ -230,24 +230,7 @@ void Assembler::createAssemblyGraphEdges()
     assemblyGraph.markerToAssemblyTable.createNew(
         largeDataName("MarkerToAssemblyTable"),
         largeDataPageSize);
-    assemblyGraph.markerToAssemblyTable.beginPass1(edges.size());
-    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edgeLists.size(); assemblyGraphEdgeId++) {
-        const span<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
-        for(uint32_t position=0; position!=chain.size(); position++) {
-            const EdgeId markerGraphEdgeId = chain[position];
-            assemblyGraph.markerToAssemblyTable.incrementCount(markerGraphEdgeId);
-        }
-    }
-    assemblyGraph.markerToAssemblyTable.beginPass2();
-    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edgeLists.size(); assemblyGraphEdgeId++) {
-        const span<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
-        for(uint32_t position=0; position!=chain.size(); position++) {
-            const EdgeId markerGraphEdgeId = chain[position];
-            assemblyGraph.markerToAssemblyTable.store(
-                markerGraphEdgeId, make_pair(assemblyGraphEdgeId, position));
-        }
-    }
-    assemblyGraph.markerToAssemblyTable.endPass2();
+    assemblyGraph.createMarkerToAssemblyTable(edges.size());
 
 
 

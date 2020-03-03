@@ -171,6 +171,7 @@ public:
     // - Position is the index of this marker graph edge in that
     //   assembly graph edge.
     MemoryMapped::VectorOfVectors< pair<EdgeId, uint32_t> , uint64_t> markerToAssemblyTable;
+    void createMarkerToAssemblyTable(uint64_t markerGrapEdgeCount);
 
     // The assembled sequenced and repeat counts for each edge of the
     // assembly graph.

@@ -6,6 +6,32 @@ using namespace shasta;
 #include "iterator.hpp"
 
 
+
+void AssemblyGraph::createMarkerToAssemblyTable(uint64_t markerGrapEdgeCount)
+{
+    markerToAssemblyTable.beginPass1(markerGrapEdgeCount);
+    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<edgeLists.size(); assemblyGraphEdgeId++) {
+        const span<EdgeId> chain = edgeLists[assemblyGraphEdgeId];
+        for(uint32_t position=0; position!=chain.size(); position++) {
+            const EdgeId markerGraphEdgeId = chain[position];
+            markerToAssemblyTable.incrementCount(markerGraphEdgeId);
+        }
+    }
+    markerToAssemblyTable.beginPass2();
+    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<edgeLists.size(); assemblyGraphEdgeId++) {
+        const span<EdgeId> chain = edgeLists[assemblyGraphEdgeId];
+        for(uint32_t position=0; position!=chain.size(); position++) {
+            const EdgeId markerGraphEdgeId = chain[position];
+            markerToAssemblyTable.store(
+                markerGraphEdgeId, make_pair(assemblyGraphEdgeId, position));
+        }
+    }
+    markerToAssemblyTable.endPass2();
+
+}
+
+
+
 // Close all open data.
 void AssemblyGraph::close()
 {
