@@ -194,5 +194,52 @@ void Assembler::detangle()
     newAssemblyGraph.reverseComplementEdge.createNew(
         largeDataName("New-AssemblyGraphReverseComplementEdge"), largeDataPageSize);
     newAssemblyGraph.computeReverseComplementEdge();
+
+
+
+    // Fill in coverage metrics for the detangled assembly graph.
+    for(AssemblyGraph::EdgeId assemblyGraphEdgeId=0;
+        assemblyGraphEdgeId<newAssemblyGraph.edges.size(); assemblyGraphEdgeId++) {
+        AssemblyGraph::Edge& assemblyGraphEdge = newAssemblyGraph.edges[assemblyGraphEdgeId];
+        const span<MarkerGraph::EdgeId> path = newAssemblyGraph.edgeLists[assemblyGraphEdgeId];
+
+        // Vertex coverage.
+        // Only internal vertices contribute to this -
+        // the first and last vertex don't contribute.
+        // If there is only one marker graph edge, there are
+        // no internal vertices, and in that case vertex coverage
+        // metrics are set to zero.
+        if(path.size() == 1) {
+            assemblyGraphEdge.minVertexCoverage = 0;
+            assemblyGraphEdge.averageVertexCoverage = 0;
+            assemblyGraphEdge.maxVertexCoverage = 0;
+        } else {
+            assemblyGraphEdge.minVertexCoverage = std::numeric_limits<uint32_t>::max();
+            assemblyGraphEdge.maxVertexCoverage = 0;
+            uint64_t sum = 0;
+            for(uint64_t i=1; i<path.size(); i++) {
+                const MarkerGraph::EdgeId markerGraphEdgeId = path[i];
+                const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
+                const MarkerGraph::VertexId markerGraphVertexId = markerGraphEdge.source;
+                const uint32_t coverage = uint32_t(markerGraph.vertices.size(markerGraphVertexId));
+                assemblyGraphEdge.minVertexCoverage = min(assemblyGraphEdge.minVertexCoverage, coverage);
+                assemblyGraphEdge.maxVertexCoverage = max(assemblyGraphEdge.maxVertexCoverage, coverage);
+            }
+            assemblyGraphEdge.averageVertexCoverage = uint32_t(sum / (path.size() - 1));
+        }
+
+
+        // Edge coverage.
+        assemblyGraphEdge.minEdgeCoverage = std::numeric_limits<uint32_t>::max();
+        assemblyGraphEdge.maxEdgeCoverage = 0;
+        uint64_t sum = 0;
+        for(uint64_t i=0; i<path.size(); i++) {
+            const MarkerGraph::EdgeId markerGraphEdgeId = path[i];
+            const uint32_t coverage = uint32_t(markerGraph.edgeMarkerIntervals.size(markerGraphEdgeId));
+            assemblyGraphEdge.minEdgeCoverage = min(assemblyGraphEdge.minEdgeCoverage, coverage);
+            assemblyGraphEdge.maxEdgeCoverage = max(assemblyGraphEdge.maxEdgeCoverage, coverage);
+        }
+        assemblyGraphEdge.averageEdgeCoverage = uint32_t(sum / path.size());
+    }
 }
 
