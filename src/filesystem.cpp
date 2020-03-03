@@ -104,6 +104,27 @@ void shasta::filesystem::remove(const string& path)
 }
 
 
+
+// Move (rename). In case of failure, throw an exception.
+void shasta::filesystem::move(const string& oldPath, const string& newPath)
+{
+    if(not exists(oldPath)) {
+        throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath +
+            " because " + oldPath + " does not exist.");
+
+    }
+    if(exists(newPath)) {
+        throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath +
+            " because " + newPath + " already exists.");
+
+    }
+    if(::rename(oldPath.c_str(), newPath.c_str()) != 0) {
+        throw runtime_error("Unable to rename/move " + oldPath + " to " + newPath);
+    }
+}
+
+
+
 // Copy a file.
 void shasta::filesystem::copy(const string& input, const string& output)
 {
