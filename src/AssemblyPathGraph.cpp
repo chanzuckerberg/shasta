@@ -80,12 +80,14 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
     s << "digraph G {\n";
 
     // Default attributes.
+    // The font is necessary to avoid labels that go out
+    // of their shape.
     s << "layout=sfdp;\n";
     s << "K=10;\n";
     s << "overlap=false;\n";
     s << "splines=true;\n";
     s << "smoothing=triangle;\n";
-    s << "node [shape=point];\n";
+    s << "node [shape=point font=\"Courier New\"];\n";
 
     // This turns off the tooltip on the graph and the edges.
     s << "tooltip = \" \";\n";
