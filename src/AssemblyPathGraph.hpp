@@ -232,7 +232,7 @@ public:
     // Indexed by [i][j] where i is an index into inEdges and j
     // ins an index into outEdges.
     vector< vector<uint64_t> > matrix;
-    bool hasNonZeroMatrixElements() const;
+    bool hasZeroMatrixElements() const;
 };
 
 

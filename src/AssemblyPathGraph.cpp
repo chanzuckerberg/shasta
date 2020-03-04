@@ -450,7 +450,7 @@ bool AssemblyPathGraph::detangle(
 
     // If the tangle matrix does not have any zeros, we cannot detangle.
     Tangle& tangle = getTangle(tangleId);
-    if(not tangle.hasNonZeroMatrixElements()) {
+    if(not tangle.hasZeroMatrixElements()) {
         return false;
     }
 
@@ -598,7 +598,7 @@ void AssemblyPathGraphEdge::mergeOrientedReadIds(
 
 
 
-bool Tangle::hasNonZeroMatrixElements() const
+bool Tangle::hasZeroMatrixElements() const
 {
     for(const auto& v: matrix) {
         for(const auto x: v) {
