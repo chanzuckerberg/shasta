@@ -585,6 +585,7 @@ void Assembler::writeAssemblySummary(ostream& html)
 void Assembler::writeAssemblySummaryBody(ostream& html)
 {
     using std::setprecision;
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
 
     // Compute the number of run-length k-mers used as markers.
@@ -828,6 +829,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
 void Assembler::writeAssemblySummaryJson(ostream& json)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using std::setprecision;
 
 

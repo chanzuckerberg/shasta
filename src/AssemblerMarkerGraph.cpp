@@ -1621,6 +1621,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     checkMarkerGraphEdgesIsOpen();
 
     // Some shorthands.
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using vertex_descriptor = LocalMarkerGraph::vertex_descriptor;
     using edge_descriptor = LocalMarkerGraph::edge_descriptor;
 
@@ -3918,6 +3919,7 @@ void Assembler::simplifyMarkerGraphIterationPart1(
     // Create a temporary assembly graph.
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     if(debug) {
         assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart1-" + to_string(iteration) + ".dot");
     }
@@ -4021,6 +4023,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     // Create a temporary assembly graph.
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     if(debug) {
         assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart2-" + to_string(iteration) + ".dot");
     }
@@ -4756,6 +4759,7 @@ void Assembler::accessMarkerGraphCoverageData()
 
 void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus;
     const bool useMarginPhase = assembleMarkerGraphEdgesData.useMarginPhase;
     const bool storeCoverageData = assembleMarkerGraphEdgesData.storeCoverageData;

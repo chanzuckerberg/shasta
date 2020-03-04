@@ -1586,7 +1586,7 @@ public:
     // A directed vertex A->B is created if the last marker graph vertex
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
-    AssemblyGraph assemblyGraph;
+    shared_ptr<AssemblyGraph> assemblyGraphPointer;
     void createAssemblyGraphVertices();
     void accessAssemblyGraphVertices();
     void createAssemblyGraphEdges();

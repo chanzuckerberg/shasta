@@ -37,6 +37,10 @@ void Assembler::createAssemblyGraphEdges()
     // Some shorthands.
     // using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
@@ -257,6 +261,10 @@ void Assembler::createAssemblyGraphEdges()
 
 void Assembler::accessAssemblyGraphVertices()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     assemblyGraph.vertices.accessExistingReadOnly(
         largeDataName("AssemblyGraphVertices"));
     assemblyGraph.reverseComplementVertex.accessExistingReadOnly(
@@ -280,8 +288,7 @@ void Assembler::accessAssemblyGraphVertices()
 // age indicates an assembly graph edge id.
 void Assembler::createAssemblyGraphVertices()
 {
-
-    // cout << timestamp << "Creating assembly graph vertices." << endl;
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Check that we have what we need.
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
@@ -443,6 +450,8 @@ void Assembler::createAssemblyGraphVertices()
 // is <= crossEdgeCoverageThreshold.
 void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     // We want to process edges in order of increasing coverage.
     // Gather edges by coverage.
     vector< vector<AssemblyGraph::EdgeId> > edgesByCoverage(crossEdgeCoverageThreshold+1);
@@ -503,6 +512,11 @@ void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
 
 void Assembler::accessAssemblyGraphEdgeLists()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assemblyGraph.edgeLists.accessExistingReadOnly(
         largeDataName("AssemblyGraphEdgeLists"));
 }
@@ -511,6 +525,11 @@ void Assembler::accessAssemblyGraphEdgeLists()
 
 void Assembler::accessAssemblyGraphEdges()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assemblyGraph.edges.accessExistingReadOnly(
         largeDataName("AssemblyGraphEdges"));
     assemblyGraph.reverseComplementEdge.accessExistingReadOnly(
@@ -523,6 +542,8 @@ void Assembler::accessAssemblyGraphEdges()
 
 void Assembler::writeAssemblyGraph(const string& fileName) const
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     cout << "The assembly graph has " <<
         assemblyGraph.vertices.size() << " vertices and " <<
         assemblyGraph.edges.size() << " edges." << endl;
@@ -535,6 +556,7 @@ void Assembler::assemble(
     size_t threadCount,
     uint32_t storeCoverageDataCsvLengthThreshold)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Check that we have what we need.
     checkKmersAreOpen();
@@ -639,6 +661,7 @@ void Assembler::assemble(
 
 void Assembler::assembleThreadFunction(size_t threadId)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Initialize data structures for this thread.
     vector<AssemblyGraph::EdgeId>& edges = assembleData.edges[threadId];
@@ -733,6 +756,11 @@ void Assembler::AssembleData::free()
 
 void Assembler::accessAssemblyGraphSequences()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assemblyGraph.sequences.accessExistingReadOnly(
         largeDataName("AssembledSequences"));
     assemblyGraph.repeatCounts.accessExistingReadOnly(
@@ -743,6 +771,8 @@ void Assembler::accessAssemblyGraphSequences()
 
 void Assembler::findAssemblyGraphBubbles()
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     SHASTA_ASSERT(assemblyGraph.vertices.isOpen);
     SHASTA_ASSERT(assemblyGraph.edges.isOpen);
     SHASTA_ASSERT(assemblyGraph.edgesBySource.isOpen());
@@ -755,7 +785,7 @@ void Assembler::findAssemblyGraphBubbles()
 
 void Assembler::computeAssemblyStatistics()
 {
-
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using EdgeId = AssemblyGraph::EdgeId;
 
     // Check that we have what we need.
@@ -833,6 +863,7 @@ void Assembler::computeAssemblyStatistics()
 // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
 void Assembler::writeGfa1(const string& fileName)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
@@ -960,6 +991,7 @@ void Assembler::writeGfa1(const string& fileName)
 // This version writes a GFA file containing both strands.
 void Assembler::writeGfa1BothStrands(const string& fileName)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
@@ -1119,6 +1151,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 // Write assembled sequences in FASTA format.
 void Assembler::writeFasta(const string& fileName)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using EdgeId = AssemblyGraph::EdgeId;
 
     cout << timestamp << "writeFasta begins" << endl;
@@ -1238,6 +1271,8 @@ bool Assembler::extractLocalAssemblyGraph(
     double timeout,
     LocalAssemblyGraph& graph) const
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     using vertex_descriptor = LocalAssemblyGraph::vertex_descriptor;
     using edge_descriptor = LocalAssemblyGraph::edge_descriptor;
     using VertexId = AssemblyGraph::VertexId;
@@ -1482,6 +1517,8 @@ void Assembler::assembleAssemblyGraphEdge(
     bool storeCoverageData,
     AssembledSegment& assembledSegment)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assembledSegment.clear();
     const auto k = assemblerInfo->k;
     assembledSegment.k = k;
@@ -1629,6 +1666,7 @@ void Assembler::assembleAssemblyGraphEdge(
 
 void Assembler::writeOrientedReadsByAssemblyGraphEdge()
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     ofstream csv("ReadsBySegment.csv");
     csv << "AssembledSegmentId,ReadId,Strand\n";
     for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.orientedReadsByEdge.size(); edgeId++) {
@@ -1646,6 +1684,8 @@ void Assembler::writeOrientedReadsByAssemblyGraphEdge()
 // assembly graph.
 void Assembler::gatherOrientedReadsByAssemblyGraphEdge(size_t threadCount)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
@@ -1674,6 +1714,8 @@ void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass2(size_t threadId)
 }
 void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass(int pass)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     // Define this here to reduce memory allocation activity.
     vector<OrientedReadId> orientedReadIds;
 

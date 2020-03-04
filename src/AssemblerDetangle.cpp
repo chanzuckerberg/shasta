@@ -9,6 +9,8 @@ using namespace shasta;
 
 void Assembler::detangle()
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     // Check that we have what we need.
     SHASTA_ASSERT(markerGraph.edgeMarkerIntervals.isOpen());
     SHASTA_ASSERT(assemblyGraph.vertices.isOpen);
