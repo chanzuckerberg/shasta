@@ -6,6 +6,8 @@ using namespace shasta;
 // Boost libraries.
 #include <boost/graph/iteration_macros.hpp>
 
+#include <cstdlib>
+
 
 void Assembler::detangle()
 {
@@ -71,7 +73,8 @@ void Assembler::detangle()
 
 
     // Use the detangled AssemblyPathGraph to create a new AssemblyGraph.
-    AssemblyGraph newAssemblyGraph;
+    shared_ptr<AssemblyGraph> newAssemblyGraphPointer = make_shared<AssemblyGraph>();
+    AssemblyGraph& newAssemblyGraph = *newAssemblyGraphPointer;
 
 
 
@@ -254,48 +257,26 @@ void Assembler::detangle()
 
 
 
-    // Now replace the tangled assembly graph with the detangled one.
+    // Now replace the old tangled assembly graph with the detangled one.
     assemblyGraph.remove();
-    newAssemblyGraph.close();
-    filesystem::move(
-        largeDataName("New-AssemblyGraphVertices"),
+    assemblyGraphPointer = 0;
+    newAssemblyGraph.vertices.rename(
         largeDataName("AssemblyGraphVertices"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphReverseComplementVertex"),
+    newAssemblyGraph.reverseComplementVertex.rename(
         largeDataName("AssemblyGraphReverseComplementVertex"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphEdges"),
+    newAssemblyGraph.edges.rename(
         largeDataName("AssemblyGraphEdges"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphEdgeLists.toc"),
-        largeDataName("AssemblyGraphEdgeLists.toc"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphEdgeLists.data"),
-        largeDataName("AssemblyGraphEdgeLists.data"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphEdgesBySource.toc"),
-        largeDataName("AssemblyGraphEdgesBySource.toc"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphEdgesBySource.data"),
-        largeDataName("AssemblyGraphEdgesBySource.data"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphEdgesByTarget.toc"),
-        largeDataName("AssemblyGraphEdgesByTarget.toc"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphEdgesByTarget.data"),
-        largeDataName("AssemblyGraphEdgesByTarget.data"));
-    filesystem::move(
-        largeDataName("New-AssemblyGraphReverseComplementEdge"),
+    newAssemblyGraph.edgeLists.rename(
+        largeDataName("AssemblyGraphEdgeLists"));
+    newAssemblyGraph.edgesBySource.rename(
+        largeDataName("AssemblyGraphEdgesBySource"));
+    newAssemblyGraph.edgesByTarget.rename(
+        largeDataName("AssemblyGraphEdgesByTarget"));
+    newAssemblyGraph.reverseComplementEdge.rename(
         largeDataName("AssemblyGraphReverseComplementEdge"));
-    filesystem::move(
-        largeDataName("New-MarkerToAssemblyTable.toc"),
-        largeDataName("MarkerToAssemblyTable.toc"));
-    filesystem::move(
-        largeDataName("New-MarkerToAssemblyTable.data"),
-        largeDataName("MarkerToAssemblyTable.data"));
-    accessAssemblyGraphVertices();
-    accessAssemblyGraphEdges();
-    accessAssemblyGraphEdgeLists();
+    newAssemblyGraph.markerToAssemblyTable.rename(
+        largeDataName("MarkerToAssemblyTable"));
+    assemblyGraphPointer = newAssemblyGraphPointer;
 
 
 }
