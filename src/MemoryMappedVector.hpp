@@ -148,6 +148,9 @@ public:
     // Can be used to check integrity.
     uint64_t hash() const;
 
+    // Rename the supporting memory mapped file, if any.
+    void rename(const string& newFileName);
+
 private:
 
 
@@ -1132,5 +1135,21 @@ template<class T> inline uint64_t shasta::MemoryMapped::Vector<T>::hash() const
     SHASTA_ASSERT(byteCount <= uint64_t(std::numeric_limits<int>::max()));
     return MurmurHash64A(begin(), int(byteCount), 231);
 }
+
+template<class T> inline void shasta::MemoryMapped::Vector<T>::rename(const string& newFileName)
+{
+    SHASTA_ASSERT(isOpen);
+
+    if(fileName.empty()) {
+        SHASTA_ASSERT(newFileName.empty());
+    } else {
+        const string oldFileName = fileName;
+        const bool writeAccess = isOpenWithWriteAccess;
+        close();
+        filesystem::move(oldFileName, newFileName);
+        accessExisting(newFileName, writeAccess);
+    }
+}
+
 
 #endif

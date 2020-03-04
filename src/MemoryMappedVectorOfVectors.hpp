@@ -276,6 +276,12 @@ public:
     // This requires a binary search in the toc.
     pair<Int, Int> find(Int k) const;
 
+    void rename(const string& newName)
+    {
+        toc.rename(newName + ".toc");
+        data.rename(newName + ".data");
+    }
+
 private:
     Vector<Int> toc;
     Vector<Int> count;
