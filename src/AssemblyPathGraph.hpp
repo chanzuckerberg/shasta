@@ -301,7 +301,8 @@ public:
     void writeGfa(const string& fileName, double basesPerMarker) const;
     void writeGfa(ostream&, double basesPerMarker) const;
 
-
+private:
+    void removeIsolatedVertices();
 };
 
 

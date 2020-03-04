@@ -87,11 +87,12 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
     s << "overlap=false;\n";
     s << "splines=true;\n";
     s << "smoothing=triangle;\n";
-   s << "node [shape=point fontname=\"Courier New\"];\n";
+    s << "levels=10;\n";
+    s << "node [shape=point fontname=\"Courier New\"];\n";
 
     // This turns off the tooltip on the graph and the edges.
-   s << "tooltip = \" \";\n";
-   s << "edge[tooltip = \" \"];\n";
+    s << "tooltip = \" \";\n";
+    s << "edge[tooltip = \" \"];\n";
 
 
 
@@ -406,6 +407,9 @@ void AssemblyPathGraph::detangle(double basesPerMarker)
         for(const edge_descriptor e: newEdges) {
             createTanglesInvolvingEdge(e);
         }
+
+        // Remove any vertices that were left isolated.
+        removeIsolatedVertices();
     }
 
     graph.writeGraphviz("AssemblyPathGraph-Final.dot");
@@ -901,5 +905,23 @@ void AssemblyPathGraph::writeGfa(
                     "*\n";
             }
         }
+    }
+}
+
+
+void AssemblyPathGraph::removeIsolatedVertices()
+{
+    AssemblyPathGraph& graph = *this;
+    vector<vertex_descriptor> isolatedVertices;
+
+    BGL_FORALL_VERTICES(v, graph, AssemblyPathGraph) {
+        if(in_degree(v, graph)==0 and out_degree(v, graph)==0) {
+            isolatedVertices.push_back(v);
+        }
+    }
+
+    for(const vertex_descriptor v: isolatedVertices) {
+        clear_vertex(v, graph);
+        remove_vertex(v, graph);
     }
 }
