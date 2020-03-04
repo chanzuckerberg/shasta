@@ -87,10 +87,11 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
     s << "overlap=false;\n";
     s << "splines=true;\n";
     s << "smoothing=triangle;\n";
-    s << "node [shape=point font=\"Courier New\"];\n";
+   s << "node [shape=point fontname=\"Courier New\"];\n";
 
     // This turns off the tooltip on the graph and the edges.
-    s << "tooltip = \" \";\n";
+   s << "tooltip = \" \";\n";
+   s << "edge[tooltip = \" \"];\n";
 
 
 
@@ -102,6 +103,10 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
         s << " [";
 
         s << "tooltip=\"" << vertex.vertexId << "\"";
+
+        if(in_degree(v, graph)==0 or out_degree(v,graph)==0) {
+            s << " color=red";
+        }
 
         s << "]";
 
@@ -129,9 +134,19 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
             to_string(vertex1.vertexId) +
             "\"";
         s << pseudoVertexName << " [";
-        s << "shape=rectangle label=\"" << edge << "\\n" << edge.pathLength << "";
+        s << "shape=rectangle";
+
+        // Label.
+        s << " label=\"" << edge << "\\n" << edge.pathLength << "";
         if(edge.tangle != invalidTangleId) {
             s << "\\n" << edge.tangle;
+        }
+        s << "\"";
+
+        // Tooltip.
+        s << " tooltip=\"Path " << edge << ", " << edge.pathLength << " markers";
+        if(edge.tangle != invalidTangleId) {
+            s << ", tangle " << edge.tangle;
         }
         s << "\"";
 
