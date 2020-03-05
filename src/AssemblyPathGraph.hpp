@@ -216,7 +216,11 @@ public:
     edge_descriptor edge;
     vector<edge_descriptor> inEdges;
     vector<edge_descriptor> outEdges;
-    bool unsolvable = false;
+
+    // Flag that indicates if thsi tangle is solvable by the criteria
+    // used in the current implementation.
+    bool isSolvable = false;
+    void findIfSolvable();
 
     uint64_t inDegree() const
     {
@@ -233,6 +237,14 @@ public:
     // ins an index into outEdges.
     vector< vector<uint64_t> > matrix;
     bool hasZeroMatrixElements() const;
+    bool hasNonZeroMatrixElements() const;
+    uint64_t countNonZeroElementsInRow(uint64_t i) const;
+    uint64_t countNonZeroElementsInColumn(uint64_t j) const;
+
+    // The tangle priority is the lowest non-zero element of the tangle
+    // matrix. Solvable tangles are processed in order of decreasing priority.
+    uint64_t priority;
+    void computePriority();
 };
 
 

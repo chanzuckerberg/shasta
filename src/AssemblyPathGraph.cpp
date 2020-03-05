@@ -158,7 +158,12 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
             // Tangle edge.
             SHASTA_ASSERT(edge.inTangle == invalidTangleId);
             SHASTA_ASSERT(edge.outTangle == invalidTangleId);
-            s << " style=filled fillcolor=pink";
+            const Tangle& tangle = getTangle(edge.tangle);
+            if(tangle.isSolvable) {
+                s << " style=filled fillcolor=pink";
+            } else {
+                s << " style=filled fillcolor=orange";
+            }
         } else if(edge.inTangle != invalidTangleId and edge.outTangle != invalidTangleId) {
             // The edge is an in-edge of a tangle and an out-edge of another tangle.
             s << " style=filled fillcolor=purple";
@@ -271,6 +276,13 @@ bool AssemblyPathGraph::createTangleAtEdge(edge_descriptor e01)
         }
     }
 
+    // Now that the tangfle matrix is available we can find out if this tangle
+    // is solvable, and if it is we can compute its priority.
+    tangle.findIfSolvable();
+    if(tangle.isSolvable) {
+        tangle.computePriority();
+    }
+
     tangle.tangleId = nextTangleId;
     tangles.insert(make_pair(nextTangleId++, tangle));
     cout << "Created tangle " << tangle.tangleId << " at " << graph[e01] << endl;
@@ -371,8 +383,8 @@ void AssemblyPathGraph::detangle(double basesPerMarker)
         // mark it as unsolvable, for now. This is restriction is
         // not fundamental - it just requires more coding.
         if(collidesWithReverseComplement(tangleId)) {
-            tangle.unsolvable = true;
-            getTangle(reverseComplementTangleId).unsolvable = true;
+            tangle.isSolvable = false;
+            getTangle(reverseComplementTangleId).isSolvable = false;
             cout << "Reverse complement tangles " << tangleId <<
                 " and " << reverseComplementTangleId <<
                 " marked unsolvable because they collide." << endl;
@@ -390,8 +402,8 @@ void AssemblyPathGraph::detangle(double basesPerMarker)
         if(detangle(tangleId, newEdges)) {
             SHASTA_ASSERT(detangle(reverseComplementTangleId, newEdges));
         } else {
-            tangle.unsolvable = true;
-            getTangle(reverseComplementTangleId).unsolvable = true;
+            tangle.isSolvable = false;
+            getTangle(reverseComplementTangleId).isSolvable = false;
             cout << "Reverse complement tangles " << tangleId <<
                 " and " << reverseComplementTangleId <<
                 " marked unsolvable because they could not be removed." << endl;
@@ -614,26 +626,107 @@ bool Tangle::hasZeroMatrixElements() const
 
 
 
+bool Tangle::hasNonZeroMatrixElements() const
+{
+    for(const auto& v: matrix) {
+        for(const auto x: v) {
+            if(x != 0) {
+                return true;
+            }
+        }
+    }
+
+    // If getting here, we did not find any non-zero matrix elements.
+    return false;
+}
+
+
+
+uint64_t Tangle::countNonZeroElementsInRow(uint64_t i) const
+{
+    uint64_t n = 0;
+    for(uint64_t j=0; j<outDegree(); j++) {
+        if(matrix[i][j] != 0) {
+            ++n;
+        }
+    }
+    return n;
+}
+
+uint64_t Tangle::countNonZeroElementsInColumn(uint64_t j) const
+{
+    uint64_t n = 0;
+    for(uint64_t i=0; i<inDegree(); i++) {
+        if(matrix[i][j] != 0) {
+            ++n;
+        }
+    }
+    return n;
+}
+
+
+// We currently only process tangles where the in-degree and out-degree
+// are equal, and each row and each column of the tangle matrix
+// has exactly one non-zero element. This establishes a
+// biunivocal correspondence between the in-edges and out-edges,
+// which is used in detangling.
+void Tangle::findIfSolvable()
+{
+    if(inDegree() != outDegree()) {
+        isSolvable = false;
+        return;
+    }
+
+    for(uint64_t i=0; i<inDegree(); i++) {
+        if(countNonZeroElementsInRow(i) != 1) {
+            isSolvable = false;
+            return;
+        }
+    }
+    for(uint64_t j=0; j<outDegree(); j++) {
+        if(countNonZeroElementsInColumn(j) != 1) {
+            isSolvable = false;
+            return;
+        }
+    }
+
+    isSolvable = true;
+}
+
+
+
+// The tangle priority is the lowest non-zero element of the tangle
+// matrix. Solvable tangles are processed in order of decreasing priority.
+void Tangle::computePriority()
+{
+    priority = std::numeric_limits<uint64_t>::max();
+    for(const auto& v: matrix) {
+        for(const auto x: v) {
+            if(x != 0) {
+                priority = min(priority, x);
+            }
+        }
+    }
+}
+
+
 // Return the next tangle to work on.
-// This does a linear search, which coudl be eliminated
+// This does a linear search, which could be eliminated
 // with appropriated data structures if it becomes a
 // performance problem.
-// It currently returns the tangle with the shortest path
-// on the tangle edge.
+
 TangleId AssemblyPathGraph::findNextTangle() const
 {
-    const AssemblyPathGraph& graph = *this;
 
     TangleId bestTangleId = invalidTangleId;
-    uint64_t bestTanglePathLength = std::numeric_limits<uint64_t>::max();
+    uint64_t bestPriority = 0;
     for(const auto& p: tangles) {
         const Tangle& tangle = p.second;
-        if(tangle.unsolvable) {
-            continue;   // We gave up on this one.
+        if(not tangle.isSolvable) {
+            continue;
         }
-        const uint64_t pathLength = graph[tangle.edge].pathLength;
-        if(pathLength < bestTanglePathLength) {
-            bestTanglePathLength = pathLength;
+        if(tangle.priority > bestPriority) {
+            bestPriority = tangle.priority;
             bestTangleId = tangle.tangleId;
         }
     }
@@ -790,7 +883,8 @@ void AssemblyPathGraph::writeTanglesHtml(ostream& html) const
         "<th>In-edges"
         "<th>Tangle<br>edge"
         "<th>Out-edges"
-        "<th>Tangle<br>matrix";
+        "<th>Tangle<br>matrix"
+        "<th>Solvable?";
 
     for(const auto& p: tangles) {
         const Tangle& tangle = p.second;
@@ -841,9 +935,11 @@ void AssemblyPathGraph::writeTanglesHtml(ostream& html) const
 
 
 
-
-        if(tangle.unsolvable) {
-            html << "<td class=centered>Unsolvable";
+        html << "<td class=centered>";
+        if(tangle.isSolvable) {
+            html << "Yes";
+        } else {
+            html << "No";
         }
 
     }
