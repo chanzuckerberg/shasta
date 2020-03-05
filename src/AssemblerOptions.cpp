@@ -544,6 +544,11 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(false),
         "Used to request writing the reads that contributed to assembling each segment.")
 
+        ("Assembly.detangle",
+        bool_switch(&assemblyOptions.detangle)->
+        default_value(false),
+        "Experimental. Used to request detangling of the assembly graph.")
+
         ;
 }
 
@@ -674,6 +679,8 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
         storeCoverageDataCsvLengthThreshold << "\n";
     s << "writeReadsByAssembledSegment = " <<
         convertBoolToPythonString(writeReadsByAssembledSegment) << "\n";
+    s << "detangle = " <<
+        convertBoolToPythonString(detangle) << "\n";
 }
 
 
