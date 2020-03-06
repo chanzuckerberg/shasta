@@ -128,13 +128,8 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
 
 
         // Write is as a pseudo vertex.
-        const string pseudoVertexName =
-            "\"" +
-            to_string(vertex0.vertexId) +
-            "to" +
-            to_string(vertex1.vertexId) +
-            "\"";
-        s << pseudoVertexName << " [";
+        const string pseudoVertexName = "edge" + string(edge);
+        s << "\"" << pseudoVertexName << "\" [";
         s << "shape=rectangle";
 
         // Label.
@@ -179,8 +174,8 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
 
 
         // Write the arrows to/from the pseudovertex.
-        s << vertex0.vertexId << "->" << pseudoVertexName << ";\n";
-        s << pseudoVertexName << "->" << vertex1.vertexId << ";\n";
+        s << vertex0.vertexId << "->\"" << pseudoVertexName << "\";\n";
+        s << "\"" << pseudoVertexName << "\"->" << vertex1.vertexId << ";\n";
     }
 
 
