@@ -64,7 +64,7 @@ sequencing platforms.
 <p>
 Oxford Nanopore reads are rapidly evolving in characteristics, 
 and the Shasta assembler was developed targeting reads obtained
-using the sequencing protocols in used in the nanopore group at
+using the sequencing protocols used in the nanopore group at
 University of California at Santa Cruz in early 2019.
 These reads can be characterized as follows:
 
@@ -219,7 +219,7 @@ that something is wrong with the read anyway.
 <ul>
 
 <li>In the sequence portion of the run-length encoding,
-consecutive bases always are always distinct. If they were not, the second one
+consecutive bases are always distinct. If they were not, the second one
 would be removed from the run-length encoded sequence,
 while increasing the repeat count for the first one.
 
@@ -478,7 +478,7 @@ alignments.
 To compute the optimal alignment highlighted in green,
 the Shasta assembler uses a simple alignment algorithm
 on the marker representations of the two reads to be aligned.
-It effectively costructs an optimal path in the alignment matrix,
+It effectively constructs an optimal path in the alignment matrix,
 but using some heuristics to speed up the computation:
 <ul>
 <li>The maximum number of markers that an alignment 
@@ -504,7 +504,7 @@ marker k-mers that are too frequent in either of the two reads
 being aligned are not used in the alignment computation.
 For this purpose, the Shasta assembler uses a criterion based
 on absolute number of occurrences of marker k-mers in the two reads,
-altough a relative criterion (occurrences per Kb) may be more appropriate.
+although a relative criterion (occurrences per Kb) may be more appropriate.
 The current absolute frequency threshold is under control of assembly parameter
 <code><a href='CommandLineOptions.html#Align.maxMarkerFrequency'>Align.maxMarkerFrequency</a></code>
 (default 10 occurrences).
@@ -755,7 +755,7 @@ assembly of Oxford Nanopore reads.
 
 <p>
 In the current simple approach, the Shasta assembler creates
-un undirected graph, the <i>Read Graph</i>, in which
+an undirected graph, the <i>Read Graph</i>, in which
 each vertex represents an oriented read
 (that is, a read in either original orientation or reverse
 complemented), and an undirected edge
@@ -1433,7 +1433,7 @@ the contributing marker graph edges.
 <p>
 When all iterations of bubble/superbubble removal are complete,
 the assembler creates a final version of the assembly graph.
-Each edge of the assemble graph corresponds to a path
+Each edge of the assembly graph corresponds to a path
 in the marker graph, for which sequence can be assembled
 using the 
 <a href='#AssembleSequence'>method described above</a>.
