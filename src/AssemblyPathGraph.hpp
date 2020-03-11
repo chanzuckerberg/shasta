@@ -264,7 +264,9 @@ public:
     TangleId getReverseComplementTangle(TangleId) const;
     void removeTangle(TangleId);
 
-    void fillReverseComplementEdge(edge_descriptor);
+    void fillReverseComplementNewEdges(
+        const vector<edge_descriptor>& newEdges,
+        const AssemblyGraph&);
 
     // Initial creation of all tangles.
     void createTangles();
@@ -291,7 +293,9 @@ public:
     // Detangle all we can.
     // The average number of bases per marker is only used
     // for GFA output.
-    void detangle(double basesPerMarker);
+    void detangle(
+        double basesPerMarker,
+        const AssemblyGraph&);
 
     // Detangle a single tangle.
     // This does not fill in the reverseComplementEdge of newly created edges,

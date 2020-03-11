@@ -24,6 +24,10 @@ void Assembler::detangle()
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
     SHASTA_ASSERT(assemblyGraph.reverseComplementEdge.isOpen);
 
+    cout << timestamp << "Before detangling, the assembly graph has " <<
+        assemblyGraph.vertices.size() << " vertices and " <<
+        assemblyGraph.edges.size() << " edges." << endl;
+
     // Create the AssemblyGraphPath.
     // Initially, it is a faithful copy of the assembly graph.
     AssemblyPathGraph graph(assemblyGraph);
@@ -68,7 +72,7 @@ void Assembler::detangle()
     const double basesPerMarker =
         double(assemblerInfo->baseCount) /
         double(markers.totalSize()/2);
-    graph.detangle(basesPerMarker);
+    graph.detangle(basesPerMarker, assemblyGraph);
 
 
 
@@ -134,7 +138,9 @@ void Assembler::detangle()
 
     // Create edges of the new assembly graph.
     vector<AssemblyPathGraph::edge_descriptor> newEdges;
+    std::map<AssemblyPathGraph::edge_descriptor, AssemblyGraph::EdgeId> newEdgesMap;
     BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
+        newEdgesMap.insert(make_pair(e, newEdges.size()));
         newEdges.push_back(e);
     }
     cout << "The detangled assembly graph has " <<
@@ -198,7 +204,12 @@ void Assembler::detangle()
     // Find reverse complement edges of the new assembly graph.
     newAssemblyGraph.reverseComplementEdge.createNew(
         largeDataName("New-AssemblyGraphReverseComplementEdge"), largeDataPageSize);
-    newAssemblyGraph.computeReverseComplementEdge();
+    newAssemblyGraph.reverseComplementEdge.resize(newAssemblyGraph.edges.size());
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<newAssemblyGraph.edges.size(); edgeId++) {
+        const AssemblyPathGraph::edge_descriptor e = newEdges[edgeId];
+        const AssemblyPathGraph::edge_descriptor eRc = graph[e].reverseComplementEdge;
+        newAssemblyGraph.reverseComplementEdge[edgeId] = newEdgesMap[eRc];
+    }
 
 
 

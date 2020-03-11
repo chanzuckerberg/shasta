@@ -355,7 +355,9 @@ TangleId AssemblyPathGraph::getReverseComplementTangle(
 // Detangle all we can.
 // The average number of bases per marker is only used
 // for GFA output.
-void AssemblyPathGraph::detangle(double basesPerMarker)
+void AssemblyPathGraph::detangle(
+    double basesPerMarker,
+    const AssemblyGraph& assemblyGraph)
 {
     AssemblyPathGraph& graph = *this;
 
@@ -405,9 +407,7 @@ void AssemblyPathGraph::detangle(double basesPerMarker)
         }
 
         // Fill in the reverseComplementEdge for the edges we just created.
-        for(const edge_descriptor e: newEdges) {
-            fillReverseComplementEdge(e);
-        }
+        fillReverseComplementNewEdges(newEdges, assemblyGraph);
 
 
         // Create tangles involving the newly created edges.
@@ -425,21 +425,43 @@ void AssemblyPathGraph::detangle(double basesPerMarker)
 }
 
 
-void AssemblyPathGraph::fillReverseComplementEdge(edge_descriptor e)
+void AssemblyPathGraph::fillReverseComplementNewEdges(
+    const vector<edge_descriptor>& newEdges,
+    const AssemblyGraph& assemblyGraph)
 {
     AssemblyPathGraph& graph = *this;
 
-    const vertex_descriptor v0 = source(e, graph);
-    const vertex_descriptor v1 = target(e, graph);
+    // Loop over the new edges.
+    for(const edge_descriptor e: newEdges)  {
 
-    const vertex_descriptor v0rc = graph[v0].reverseComplementVertex;
-    const vertex_descriptor v1rc = graph[v1].reverseComplementVertex;
+        // Extract the path for this edge.
+        const vector <AssemblyGraph::EdgeId>& path = graph[e].path;
 
-    edge_descriptor erc;
-    bool exists;
-    tie(erc, exists) =edge(v1rc, v0rc, graph);
-    SHASTA_ASSERT(exists);
-    graph[e].reverseComplementEdge = erc;
+        // Use the AssemblyGraph to create the reverse complement path.
+        vector <AssemblyGraph::EdgeId> pathRc;
+        for(const AssemblyGraph::EdgeId edgeId: path) {
+            const AssemblyGraph::EdgeId edgeIdRc = assemblyGraph.reverseComplementEdge[edgeId];
+            pathRc.push_back(edgeIdRc);
+        }
+        std::reverse(pathRc.begin(), pathRc.end());
+
+        // Now look for this in the new edges.
+        bool wasFound = false;
+        for(const edge_descriptor eRc: newEdges) {
+            if(graph[eRc].path == pathRc) {
+                graph[e].reverseComplementEdge = eRc;
+                wasFound = true;
+                break;
+            }
+        }
+        SHASTA_ASSERT(wasFound);
+    }
+
+    // Sanity check.
+    for(const edge_descriptor e: newEdges)  {
+        const  edge_descriptor eRc = graph[e].reverseComplementEdge;
+        SHASTA_ASSERT(graph[eRc].reverseComplementEdge == e);
+    }
 }
 
 

@@ -93,7 +93,6 @@ public:
     // The reverse complement of each edge.
     // Indexed by EdgeId.
     MemoryMapped::Vector<EdgeId> reverseComplementEdge;
-    void computeReverseComplementEdge();
 
     // Return true if this edge is an assembled edge.
     // To avoid assembling both strands, we only assemble
