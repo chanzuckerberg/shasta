@@ -223,12 +223,18 @@ bool AssemblyPathGraph::createTangleAtEdge(edge_descriptor e01)
     const vertex_descriptor v0 = source(e01, graph);
     const vertex_descriptor v1 = target(e01, graph);
 
-    // If the in-degree and out-degree are not at least 2, this edge
-    // does not generate a tangle.
-    if(in_degree(v0, graph) <2) {
+    // If this edge does not generate a tangle, return false.
+    // See the top of AssemblyPathGraph.hpp for details.
+    if(out_degree(v0, graph) != 1) {
         return false;
     }
-    if(out_degree(v1, graph) <2) {
+    if(in_degree(v1, graph) != 1) {
+        return false;
+    }
+    if(in_degree(v0, graph) < 2) {
+        return false;
+    }
+    if(out_degree(v1, graph) < 2) {
         return false;
     }
 
