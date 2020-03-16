@@ -35,6 +35,7 @@ void Assembler::detangle()
 
 
     // Fill in the oriented read ids of the edges.
+    cout << timestamp << "Filling in oriented reads." << endl;
     BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
         AssemblyPathGraphEdge& edge = graph[e];
 
@@ -66,6 +67,7 @@ void Assembler::detangle()
 
 
     // Create the tangles.
+    cout << timestamp << "Creating the tangles." << endl;
     graph.createTangles();
 
     // Do the detangling.
