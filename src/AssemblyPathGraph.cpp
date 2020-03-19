@@ -601,7 +601,7 @@ void AssemblyPathGraph::detangleCollidingComplementaryPair(
     const TangleId tangleIdB = getReverseComplementTangle(tangleIdA);
     Tangle& tangleB = getTangle(tangleIdB);
 
-    cout << "Detangling colliding pair of reverse complemet tangles " <<
+    cout << "Detangling colliding pair of reverse complement tangles " <<
         tangleIdA << " " << tangleIdB << endl;
 
     // Gather in-edges and out-edges and sort them.
