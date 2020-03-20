@@ -245,6 +245,7 @@ void Assembler::detangle()
                 const uint32_t coverage = uint32_t(markerGraph.vertices.size(markerGraphVertexId));
                 assemblyGraphEdge.minVertexCoverage = min(assemblyGraphEdge.minVertexCoverage, coverage);
                 assemblyGraphEdge.maxVertexCoverage = max(assemblyGraphEdge.maxVertexCoverage, coverage);
+                sum += coverage;
             }
             assemblyGraphEdge.averageVertexCoverage = uint32_t(sum / (path.size() - 1));
         }
@@ -259,6 +260,7 @@ void Assembler::detangle()
             const uint32_t coverage = uint32_t(markerGraph.edgeMarkerIntervals.size(markerGraphEdgeId));
             assemblyGraphEdge.minEdgeCoverage = min(assemblyGraphEdge.minEdgeCoverage, coverage);
             assemblyGraphEdge.maxEdgeCoverage = max(assemblyGraphEdge.maxEdgeCoverage, coverage);
+            sum += coverage;
         }
         assemblyGraphEdge.averageEdgeCoverage = uint32_t(sum / path.size());
     }
