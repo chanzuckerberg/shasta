@@ -193,6 +193,7 @@ void DirectedReadGraph::flagEdgesToBeKept(
             for(const auto& p: neighbors) {
                 const EdgeId edgeId = p.first;
                 getEdge(edgeId).keep = 1;
+                getEdge(getEdge(edgeId).reverseComplementedEdgeId).keep = 1;
             }
 
 
@@ -218,6 +219,7 @@ void DirectedReadGraph::flagEdgesToBeKept(
             for(const auto& p: neighbors) {
                 const EdgeId edgeId = p.first;
                 getEdge(edgeId).keep = 1;
+                getEdge(getEdge(edgeId).reverseComplementedEdgeId).keep = 1;
             }
 
             // In-edges.
@@ -236,6 +238,7 @@ void DirectedReadGraph::flagEdgesToBeKept(
             for(const auto& p: neighbors) {
                 const EdgeId edgeId = p.first;
                 getEdge(edgeId).keep = 1;
+                getEdge(getEdge(edgeId).reverseComplementedEdgeId).keep = 1;
             }
         }
     }

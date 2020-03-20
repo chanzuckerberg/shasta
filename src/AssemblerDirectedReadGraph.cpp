@@ -35,9 +35,6 @@ void Assembler::createDirectedReadGraph(
     // Flag contained vertices and set edge flags accordingly.
     directedReadGraph.flagContainedVertices(uint32_t(maxTrim));
 
-    // Make sure the read graph is invariant under reverse complementing.
-    directedReadGraph.check();
-
 
     // Count the number of isolated reads and their bases.
     uint64_t isolatedReadCount = 0;
@@ -60,11 +57,11 @@ void Assembler::createDirectedReadGraph(
         containedNeighborCount,
         uncontainedNeighborCountPerDirection);
 
-
-
     // Write a csv file with information on the edges.
     directedReadGraph.writeEdges();
 
+    // Make sure the read graph is invariant under reverse complementing.
+    directedReadGraph.check();
 }
 
 
