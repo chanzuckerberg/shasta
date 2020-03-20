@@ -1257,13 +1257,6 @@ void Assembler::constructCigarString(
                 }
             }
         }
-
-        // Now we can put together the Cigar string.
-        cigarString.clear();
-        for(const auto& p: cigar) {
-            cigarString += to_string(p.second);
-            cigarString += p.first;
-        }
     }
 
 }

@@ -82,6 +82,7 @@ void AssemblyPathGraph::writeGraphviz(ostream& s) const
     // Default attributes.
     // The font is necessary to avoid labels that go out
     // of their shape.
+    s << "layout=sfdp;\n";
     s << "K=10;\n";
     s << "overlap=false;\n";
     s << "splines=true;\n";
@@ -222,18 +223,12 @@ bool AssemblyPathGraph::createTangleAtEdge(edge_descriptor e01)
     const vertex_descriptor v0 = source(e01, graph);
     const vertex_descriptor v1 = target(e01, graph);
 
-    // If this edge does not generate a tangle, return false.
-    // See the top of AssemblyPathGraph.hpp for details.
-    if(out_degree(v0, graph) != 1) {
+    // If the in-degree and out-degree are not at least 2, this edge
+    // does not generate a tangle.
+    if(in_degree(v0, graph) <2) {
         return false;
     }
-    if(in_degree(v1, graph) != 1) {
-        return false;
-    }
-    if(in_degree(v0, graph) < 2) {
-        return false;
-    }
-    if(out_degree(v1, graph) < 2) {
+    if(out_degree(v1, graph) <2) {
         return false;
     }
 
@@ -276,10 +271,12 @@ bool AssemblyPathGraph::createTangleAtEdge(edge_descriptor e01)
         }
     }
 
-    // Now that the tangle matrix is available we can find out if this tangle
+    // Now that the tangfle matrix is available we can find out if this tangle
     // is solvable, and if it is we can compute its priority.
     tangle.findIfSolvable();
-    tangle.computePriority();
+    if(tangle.isSolvable) {
+        tangle.computePriority();
+    }
 
     tangle.tangleId = nextTangleId;
     tangles.insert(make_pair(nextTangleId++, tangle));
@@ -371,10 +368,25 @@ void AssemblyPathGraph::detangle(
         if(tangleId == invalidTangleId) {
             break;
         }
+        Tangle& tangle = getTangle(tangleId);
+        const TangleId reverseComplementTangleId = getReverseComplementTangle(tangleId);
         cout << "Detangle iteration " << iteration <<
             " begins, working on tangle " << tangleId <<
             " and its reverse complement tangle " <<
-            getReverseComplementTangle(tangleId) << endl;
+            reverseComplementTangleId << endl;
+
+
+        // If the tangle collides with its reverse complement,
+        // mark it as unsolvable, for now. This is restriction is
+        // not fundamental - it just requires more coding.
+        if(collidesWithReverseComplement(tangleId)) {
+            tangle.isSolvable = false;
+            getTangle(reverseComplementTangleId).isSolvable = false;
+            cout << "Reverse complement tangles " << tangleId <<
+                " and " << reverseComplementTangleId <<
+                " marked unsolvable because they collide." << endl;
+            continue;
+        }
 
         // Write the graph at the beginning of this iteration.
         graph.writeGraphviz("AssemblyPathGraph-" + to_string(iteration) + ".dot");
@@ -384,10 +396,19 @@ void AssemblyPathGraph::detangle(
 
         // Detangle this tangle and its reverse complement.
         vector<edge_descriptor> newEdges;
-        detangleComplementaryPair(tangleId, newEdges);
+        if(detangle(tangleId, newEdges)) {
+            SHASTA_ASSERT(detangle(reverseComplementTangleId, newEdges));
+        } else {
+            tangle.isSolvable = false;
+            getTangle(reverseComplementTangleId).isSolvable = false;
+            cout << "Reverse complement tangles " << tangleId <<
+                " and " << reverseComplementTangleId <<
+                " marked unsolvable because they could not be removed." << endl;
+        }
 
         // Fill in the reverseComplementEdge for the edges we just created.
         fillReverseComplementNewEdges(newEdges, assemblyGraph);
+
 
         // Create tangles involving the newly created edges.
         for(const edge_descriptor e: newEdges) {
@@ -446,9 +467,10 @@ void AssemblyPathGraph::fillReverseComplementNewEdges(
 
 
 // Detangle a single tangle.
+// Return true if successful.
 // This does not fill in the reverseComplementEdge of newly created edges,
 // and does not create new tangles involving those edges.
-void AssemblyPathGraph::detangle(
+bool AssemblyPathGraph::detangle(
     TangleId tangleId,
     vector<edge_descriptor>& newEdges)
 {
@@ -457,7 +479,9 @@ void AssemblyPathGraph::detangle(
 
     // If the tangle matrix does not have any zeros, we cannot detangle.
     Tangle& tangle = getTangle(tangleId);
-    SHASTA_ASSERT(tangle.isSolvable);
+    if(not tangle.hasZeroMatrixElements()) {
+        return false;
+    }
 
 
 
@@ -525,7 +549,6 @@ void AssemblyPathGraph::detangle(
         }
     }
     deduplicate(tanglesToBeRemoved);
-    cout << "Removing " << tanglesToBeRemoved.size() << " adjacent tangles." << endl;
     for(const TangleId tangleId: tanglesToBeRemoved) {
         removeTangle(tangleId);
         cout << "Removed adjacent tangle " << tangleId << endl;
@@ -535,14 +558,18 @@ void AssemblyPathGraph::detangle(
     // Remove all the edges involved in the tangle we are detangling,
     // as well as the source and target vertices of the tangle edge.
     for(const edge_descriptor e: tangle.inEdges) {
-        boost::remove_edge(e, graph);
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        boost::remove_edge(v0, v1, graph);
     }
     for(const edge_descriptor e: tangle.outEdges) {
-        boost::remove_edge(e, graph);
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        boost::remove_edge(v0, v1, graph);
     }
     const vertex_descriptor v0 = source(tangle.edge, graph);
     const vertex_descriptor v1 = target(tangle.edge, graph);
-    boost::remove_edge(tangle.edge, graph);
+    boost::remove_edge(v0, v1, graph);
     SHASTA_ASSERT(in_degree(v0, graph) == 0);
     SHASTA_ASSERT(out_degree(v0, graph) == 0);
     SHASTA_ASSERT(in_degree(v1, graph) == 0);
@@ -553,259 +580,8 @@ void AssemblyPathGraph::detangle(
     // Finally we can remove this tangle.
     tangles.erase(tangleId);
 
+    return true;
 }
-
-
-
-// Detangle a tangle and its reverse complement.
-// This does not fill in the reverseComplementEdge of newly created edges,
-// and does not create new tangles involving those edges.
-// If the tangles in the pair don't collide, they are detangled separately
-// using the above detangle function.
-// Otherwise, they are detangled atthe same time using
-// detangleCollidingComplementaryPair.
-void AssemblyPathGraph::detangleComplementaryPair(
-    TangleId tangleId,
-    vector<edge_descriptor>& newEdges)
-{
-    if(collidesWithReverseComplement(tangleId)) {
-        detangleCollidingComplementaryPair(tangleId, newEdges);
-    } else {
-
-        // Get the id of the reverse complement tangle.
-        // This needs to be done before callign detangle, otherwise
-        // our tangle goes away!
-        const TangleId  reverseComplementTangleId = getReverseComplementTangle(tangleId);
-
-        // Detangle both of them separately.
-        detangle(tangleId, newEdges);
-        detangle(reverseComplementTangleId, newEdges);
-    }
-}
-
-
-
-// Detangle a tangle and its reverse complement
-// that collide with each other (that is, share edges).
-// This does not fill in the reverseComplementEdge of newly created edges,
-// and does not create new tangles involving those edges.
-void AssemblyPathGraph::detangleCollidingComplementaryPair(
-    TangleId tangleIdA,
-    vector<edge_descriptor>& newEdges)
-{
-    AssemblyPathGraph& graph = *this;
-
-    // For now, call A the tangle passed in as an argument and B
-    // its reverse complement.
-    Tangle& tangleA = getTangle(tangleIdA);
-    const TangleId tangleIdB = getReverseComplementTangle(tangleIdA);
-    Tangle& tangleB = getTangle(tangleIdB);
-
-    cout << "Detangling colliding pair of reverse complement tangles " <<
-        tangleIdA << " " << tangleIdB << endl;
-
-    // Gather in-edges and out-edges and sort them.
-    auto inEdgesA  = tangleA.inEdges;
-    auto inEdgesB  = tangleB.inEdges;
-    auto outEdgesA = tangleA.outEdges;
-    auto outEdgesB = tangleB.outEdges;
-    sort(inEdgesA.begin(), inEdgesA.end());
-    sort(inEdgesB.begin(), inEdgesB.end());
-    sort(outEdgesA.begin(), outEdgesA.end());
-    sort(outEdgesB.begin(), outEdgesB.end());
-
-
-    // Figure out which of the two tangles follows the other.
-    const bool BFollowsA = (inEdgesB == outEdgesA);
-    const bool AFollowsB = (inEdgesA == outEdgesB);
-    SHASTA_ASSERT(BFollowsA or AFollowsB);  // By construction.
-    if(BFollowsA and AFollowsB) {
-        // This is a horrible mess where the two tangles follow each other.
-        // Just mark both of them as unsolvable.
-        tangleA.isSolvable = false;
-        tangleB.isSolvable = false;
-        tangleA.priority = 0;
-        tangleB.priority = 0;
-        cout << "Colliding pair of reverse complement tangles " <<
-            tangleIdA << " " << tangleIdB <<
-            " follow each other and were marked as unsolvable." << endl;
-        return;
-    }
-
-
-
-    // Arrange the two tangles in the pair as tangle0 and tangle1,
-    // such that the out-edges of tangle0 are the same as the in-edges of tangle1
-    // (possibly in different order).
-    // That is, tangle1 follows tangle 0.
-    TangleId tangleId0 = tangleIdA;
-    TangleId tangleId1 = tangleIdB;
-    if(AFollowsB) {
-        std::swap(tangleId0, tangleId1);
-    } else {
-        SHASTA_ASSERT(BFollowsA);
-    }
-    cout << "Tangle " << tangleId1 << " follows tangle " << tangleId0 << endl;
-    const Tangle& tangle0 = getTangle(tangleId0);
-    const Tangle& tangle1 = getTangle(tangleId1);
-
-
-
-    // At this point, we know that tangle 1 follows tangle0.
-    // Use this nomenclature:
-    // inEdges: the in-edges of tangle0;
-    // middleEdges: the out-edges of tangle 0 and in-edges of tangle1
-    //     (but the two tangles could store them in different orders).
-    // outEdges: the out-edges of tangle1.
-
-
-
-    // Loop over triplets (inEdge, middleEdge, outEdge) corresponding to
-    // non-zero matrix elements in both tangles.
-
-    // Loop over inEdge.
-    for(uint64_t i0=0; i0<tangle0.inEdges.size(); i0++) {
-        const edge_descriptor inEdge = tangle0.inEdges[i0];
-        const vertex_descriptor v0 = source(inEdge, graph);
-
-        // Loop over middleEdge.
-        for(uint64_t j0=0; j0<tangle0.outEdges.size(); j0++) {
-
-            // If matrix element is zero, skip.
-            if(tangle0.matrix[i0][j0] == 0) {
-                continue;
-            }
-            const edge_descriptor middleEdge = tangle0.outEdges[j0];
-
-            // Locate the middle edge in the in-edges of tangle1.
-            const auto it = find(tangle1.inEdges.begin(), tangle1.inEdges.end(), middleEdge);
-            SHASTA_ASSERT(it != tangle1.inEdges.end());
-            const uint64_t i1 = it - tangle1.inEdges.begin();
-
-            // Loop over outEdge.
-            for(uint64_t j1=0; j1<tangle1.outEdges.size(); j1++) {
-
-                // If matrix element is zero, skip.
-                if(tangle1.matrix[i1][j1] == 0) {
-                    continue;
-                }
-                const edge_descriptor outEdge = tangle1.outEdges[j1];
-                const vertex_descriptor v1 = target(outEdge, graph);
-
-                // If getting here, we generate a new detangled edge.
-
-                // Add the new edge and fill in what we can now.
-                edge_descriptor eNew;
-                tie(eNew, ignore) = add_edge(v0, v1, graph);
-                newEdges.push_back(eNew);
-                AssemblyPathGraphEdge& newEdge = graph[eNew];
-
-                // Path length (number of markers).
-                newEdge.pathLength =
-                    graph[inEdge].pathLength +
-                    graph[tangle0.edge].pathLength +
-                    graph[middleEdge].pathLength +
-                    graph[tangle1.edge].pathLength +
-                    graph[outEdge].pathLength;
-
-                // Oriented read ids (excluding the ones from the tangle edges).
-                newEdge.mergeOrientedReadIds(
-                    graph[inEdge].orientedReadIds,
-                    graph[middleEdge].orientedReadIds,
-                    graph[outEdge].orientedReadIds);
-
-                // Path in the assembly graph.
-                newEdge.path = graph[inEdge].path;
-                copy(graph[tangle0.edge].path.begin(), graph[tangle0.edge].path.end(),
-                    back_inserter(newEdge.path));
-                copy(graph[middleEdge].path.begin(), graph[middleEdge].path.end(),
-                    back_inserter(newEdge.path));
-                copy(graph[tangle1.edge].path.begin(), graph[tangle1.edge].path.end(),
-                    back_inserter(newEdge.path));
-                copy(graph[outEdge].path.begin(), graph[outEdge].path.end(),
-                    back_inserter(newEdge.path));
-                cout << "Created " << newEdge << endl;
-            }
-        }
-    }
-
-
-
-    // Remove other tangles that the in-edges of tangle0 and out-edges
-    // of tangle1 are involved in.
-    // Those will be recreated later, using the combined edges.
-    vector<TangleId> tanglesToBeRemoved;
-    for(const edge_descriptor e: tangle0.inEdges) {
-        const AssemblyPathGraphEdge& edge = graph[e];
-        SHASTA_ASSERT(edge.outTangle == tangleId0);
-        SHASTA_ASSERT(edge.tangle == invalidTangleId);
-        if(edge.inTangle != invalidTangleId) {
-            tanglesToBeRemoved.push_back(edge.inTangle);
-            cout << "Will remove preceding tangle " << edge.inTangle <<
-                " due to tangle in-edge " << edge << endl;
-        }
-    }
-    for(const edge_descriptor e: tangle1.outEdges) {
-        const AssemblyPathGraphEdge& edge = graph[e];
-        SHASTA_ASSERT(edge.tangle == invalidTangleId);
-        SHASTA_ASSERT(edge.inTangle == tangleId1);
-        if(edge.outTangle != invalidTangleId) {
-            tanglesToBeRemoved.push_back(edge.outTangle);
-            cout << "Will remove following tangle " << edge.outTangle <<
-                " due to tangle out-edge " << edge << endl;
-        }
-    }
-    deduplicate(tanglesToBeRemoved);
-    cout << "Removing " << tanglesToBeRemoved.size() << " adjacent tangles." << endl;
-    for(const TangleId tangleId: tanglesToBeRemoved) {
-        removeTangle(tangleId);
-        cout << "Removed adjacent tangle " << tangleId << endl;
-    }
-
-
-
-    // Gather the vertices that should be removed, but don't remove
-    // them for now. We have to remove the edges first.
-    vector<vertex_descriptor> verticesToBeRemoved;
-    verticesToBeRemoved.push_back(source(tangle0.edge, graph));
-    verticesToBeRemoved.push_back(target(tangle0.edge, graph));
-    verticesToBeRemoved.push_back(source(tangle1.edge, graph));
-    verticesToBeRemoved.push_back(target(tangle1.edge, graph));
-
-
-
-    // Remove all the edges involved in the two tangles we are detangling,
-    // as well as the source and target vertices of the tangle edge.
-    for(const edge_descriptor e: tangle0.inEdges) {
-        boost::remove_edge(e, graph);
-    }
-    for(const edge_descriptor e: tangle0.outEdges) {
-        boost::remove_edge(e, graph);
-    }
-    // Tangle1 in-edges are the same as tangle1 out-edges.
-    for(const edge_descriptor e: tangle1.outEdges) {
-        boost::remove_edge(e, graph);
-    }
-    boost::remove_edge(tangle0.edge, graph);
-    boost::remove_edge(tangle1.edge, graph);
-
-
-
-    // Now we can remove the vertices.
-    for(vertex_descriptor v: verticesToBeRemoved) {
-        SHASTA_ASSERT(in_degree(v, graph) == 0);
-        SHASTA_ASSERT(out_degree(v, graph) == 0);
-        clear_vertex(v, graph);
-        remove_vertex(v, graph);
-    }
-
-
-
-    // Finally we can remove these two tangles.
-    tangles.erase(tangleId0);
-    tangles.erase(tangleId1);
-}
-
 
 
 void AssemblyPathGraph::removeTangle(TangleId tangleId)
@@ -836,39 +612,16 @@ void AssemblyPathGraph::removeTangle(TangleId tangleId)
 
 
 
+
 void AssemblyPathGraphEdge::mergeOrientedReadIds(
-    const vector<OrientedReadId>& r0,
-    const vector<OrientedReadId>& r1
+    const vector<OrientedReadId>& in,
+    const vector<OrientedReadId>& out
     )
 {
     orientedReadIds.clear();
     std::set_union(
-        r0.begin(), r0.end(),
-        r1.begin(), r1.end(),
-        back_inserter(orientedReadIds));
-}
-
-
-
-void AssemblyPathGraphEdge::mergeOrientedReadIds(
-    const vector<OrientedReadId>& r0,
-    const vector<OrientedReadId>& r1,
-    const vector<OrientedReadId>& r2
-    )
-{
-    // r01 = union(r0, r1)
-    vector<OrientedReadId> r01;
-    std::set_union(
-        r0.begin(), r0.end(),
-        r1.begin(), r1.end(),
-        back_inserter(r01));
-
-
-    // orientedReadIds = union(r01, r2)
-    orientedReadIds.clear();
-    std::set_union(
-        r01.begin(), r01.end(),
-        r2.begin(), r2.end(),
+        in.begin(), in.end(),
+        out.begin(), out.end(),
         back_inserter(orientedReadIds));
 }
 
@@ -963,17 +716,13 @@ void Tangle::findIfSolvable()
 // matrix. Solvable tangles are processed in order of decreasing priority.
 void Tangle::computePriority()
 {
-    if(isSolvable) {
-        priority = std::numeric_limits<uint64_t>::max();
-        for(const auto& v: matrix) {
-            for(const auto x: v) {
-                if(x != 0) {
-                    priority = min(priority, x);
-                }
+    priority = std::numeric_limits<uint64_t>::max();
+    for(const auto& v: matrix) {
+        for(const auto x: v) {
+            if(x != 0) {
+                priority = min(priority, x);
             }
         }
-    } else {
-        priority = 0;
     }
 }
 

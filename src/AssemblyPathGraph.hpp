@@ -195,11 +195,6 @@ public:
         const vector<OrientedReadId>&,
         const vector<OrientedReadId>&
         );
-    void mergeOrientedReadIds(
-        const vector<OrientedReadId>&,
-        const vector<OrientedReadId>&,
-        const vector<OrientedReadId>&
-        );
 };
 
 inline std::ostream& shasta::operator<<(
@@ -248,7 +243,7 @@ public:
 
     // The tangle priority is the lowest non-zero element of the tangle
     // matrix. Solvable tangles are processed in order of decreasing priority.
-    uint64_t priority = 0;
+    uint64_t priority;
     void computePriority();
 };
 
@@ -305,22 +300,7 @@ public:
     // Detangle a single tangle.
     // This does not fill in the reverseComplementEdge of newly created edges,
     // and does not create new tangles involving those edges.
-    void detangle(TangleId, vector<edge_descriptor>& newEdges);
-
-    // Detangle a tangle and its reverse complement.
-    // This does not fill in the reverseComplementEdge of newly created edges,
-    // and does not create new tangles involving those edges.
-    // If the tangles in the pair don't collide, they are detangled separately
-    // using the above detangle function.
-    // Otherwise, they are detangled together using
-    // detangleCollidingComplementaryPair.
-    void detangleComplementaryPair(TangleId, vector<edge_descriptor>& newEdges);
-
-    // Detangle a tangle and its reverse complement
-    // that collide with each other (that is, share edges).
-    // This does not fill in the reverseComplementEdge of newly created edges,
-    // and does not create new tangles involving those edges.
-    void detangleCollidingComplementaryPair(TangleId, vector<edge_descriptor>& newEdges);
+    bool detangle(TangleId, vector<edge_descriptor>& newEdges);
 
     // Output in Graphviz format.
     void writeGraphviz(const string& fileName) const;

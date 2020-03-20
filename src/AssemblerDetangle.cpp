@@ -35,7 +35,6 @@ void Assembler::detangle()
 
 
     // Fill in the oriented read ids of the edges.
-    cout << timestamp << "Filling in oriented reads." << endl;
     BGL_FORALL_EDGES(e, graph, AssemblyPathGraph) {
         AssemblyPathGraphEdge& edge = graph[e];
 
@@ -67,7 +66,6 @@ void Assembler::detangle()
 
 
     // Create the tangles.
-    cout << timestamp << "Creating the tangles." << endl;
     graph.createTangles();
 
     // Do the detangling.
@@ -154,12 +152,9 @@ void Assembler::detangle()
     newAssemblyGraph.edgeLists.createNew(
         largeDataName("New-AssemblyGraphEdgeLists"),
         largeDataPageSize);
-    ofstream csv("DetangleMap.csv");
-    csv << "Path before detangle,Edge after detangle\n";
     for(AssemblyGraph::EdgeId newEdgeId=0; newEdgeId<newEdges.size(); newEdgeId++) {
         const AssemblyPathGraph::edge_descriptor e = newEdges[newEdgeId];
         const AssemblyPathGraphEdge edge = graph[e];
-        csv << edge << "," << newEdgeId << "\n";
         const AssemblyPathGraph::vertex_descriptor v0 = source(e, graph);
         const AssemblyPathGraph::vertex_descriptor v1 = target(e, graph);
 
@@ -245,7 +240,6 @@ void Assembler::detangle()
                 const uint32_t coverage = uint32_t(markerGraph.vertices.size(markerGraphVertexId));
                 assemblyGraphEdge.minVertexCoverage = min(assemblyGraphEdge.minVertexCoverage, coverage);
                 assemblyGraphEdge.maxVertexCoverage = max(assemblyGraphEdge.maxVertexCoverage, coverage);
-                sum += coverage;
             }
             assemblyGraphEdge.averageVertexCoverage = uint32_t(sum / (path.size() - 1));
         }
@@ -260,7 +254,6 @@ void Assembler::detangle()
             const uint32_t coverage = uint32_t(markerGraph.edgeMarkerIntervals.size(markerGraphEdgeId));
             assemblyGraphEdge.minEdgeCoverage = min(assemblyGraphEdge.minEdgeCoverage, coverage);
             assemblyGraphEdge.maxEdgeCoverage = max(assemblyGraphEdge.maxEdgeCoverage, coverage);
-            sum += coverage;
         }
         assemblyGraphEdge.averageEdgeCoverage = uint32_t(sum / path.size());
     }
