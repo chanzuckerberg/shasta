@@ -1,8 +1,9 @@
 name: build
 
-on: [push]
-
-
+on:
+  push:
+    branches:
+      - '*'
 
 jobs:
   ubuntu-18-04:
