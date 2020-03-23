@@ -465,7 +465,10 @@ void Assembler::exploreReadExperimental(
     // alignment.
     const uint64_t blockSize = 100;
     for(uint64_t blockBegin=0; blockBegin<(endRlePosition-beginRlePosition); blockBegin+=blockSize) {
-        const uint64_t blockEnd = min(blockBegin+blockSize, (endRlePosition-beginRlePosition));
+        const uint64_t blockEnd = min(
+            uint64_t(blockBegin+blockSize),
+            uint64_t(endRlePosition-beginRlePosition)
+        );
         html <<
             "<text class='mono'" <<
             " x='" << blockBegin*horizontalSpacing << "'" <<
@@ -514,7 +517,10 @@ void Assembler::exploreReadExperimental(
     // alignment.
     const uint32_t readSequenceLine = 4;
     for(uint64_t blockBegin=0; blockBegin<(endRlePosition-beginRlePosition); blockBegin+=blockSize) {
-        const uint64_t blockEnd = min(blockBegin+blockSize, (endRlePosition-beginRlePosition));
+        const uint64_t blockEnd = min(
+            uint64_t(blockBegin+blockSize), 
+            uint64_t(endRlePosition-beginRlePosition)
+        );
         html <<
             "<text class='mono'" <<
             " x='" << blockBegin*horizontalSpacing << "'" <<
