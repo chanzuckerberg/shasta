@@ -35,25 +35,38 @@ void Assembler::exploreReadExperimental(
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Show read'> "
+        "<input type=submit value='Show' style='background-color:dodgerblue;padding:4px'> " <<
+        "read &nbsp" <<
         "<input type=text name=readId required" <<
         (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
         " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
-    html << "<br><input type=text name=beginPosition size=8";
+    
+    html << "<font color=grey style='font-size:smaller'>";
+    html << "&nbsp&nbsp starting at&nbsp";
+    html << "<input type=text name=beginPosition size=8 "
+        "title='Begin display of raw sequence at this base position (leave blank to begin at beginning of read).'";
     if(beginPositionIsPresent) {
         html << " value=" << beginPosition;
     }
-    html <<
-        ">Begin display of raw sequence at this base position (leave blank to begin at beginning of read)."
-        "<br><input type=text name=endPosition size=8";
+    html << "> &nbsp ending at&nbsp";
+    
+    html << "<input type=text name=endPosition size=8 "
+        "title='End display of raw sequence at this base position (leave blank to end at end of read).'";
     if(endPositionIsPresent) {
         html << " value=" << endPosition;
     }
-    html <<
-        ">End display of raw sequence at this base position (leave blank to end at end of read)."
-        "</form>";
+    html << "> &nbsp with marker&nbsp";
+    html << "<input type=text name=highlightMarker size=5 "
+        "title='Highlight specified marker string (form accepts only one. URL can be modified to highlight multiple)'";
+    if(highlightedMarkerStrings.size() > 0) {
+        html << " value=" << highlightedMarkerStrings[0];
+    }
+    html << "> highlighted.";
+    html << "</font>";
+    
+    html << "</form>";
 
     // If the readId or strand are missing, stop here.
     if(!readIdIsPresent || !strandIsPresent) {
@@ -91,28 +104,110 @@ void Assembler::exploreReadExperimental(
 
 
     // Page title.
-    html << "<h1 title='Read " << readId << " on strand " << strand;
+    html << "<h2 title='Read " << readId << " on strand " << strand;
     if(strand == 0) {
         html << " (input read without reverse complementing)";
     } else {
         html << " (reverse complement of input read)";
     }
-    html << "'>Oriented read " << orientedReadId << "</h1>";
+    html << "'>Oriented read " << orientedReadId << "</h2>";
 
-    // Read name.
-    html << "<p>Read name: ";
-    copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
+    html << "<div style='display:flex;margin-top:10px'>";
+    html << "<div style='flex:50%;margin-right:10px'>"; // start column 1
+        html << "<div style='background-color:lightgrey;padding:10px'>";
+        html << "<font style='font-size:small'>";
+        // Read name.
+        html << "Read name: ";
+        copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
 
-    // Read meta data.
-    html << "<p>Read meta data: ";
-    copy(metaData.begin(), metaData.end(), ostream_iterator<char>(html));
+        // Read meta data.
+        html << "<br/>Read meta data: ";
+        copy(metaData.begin(), metaData.end(), ostream_iterator<char>(html));
+        html << "</font>";
 
-    // Read length.
-    html << "<p>This read is " << rawOrientedReadSequence.size() << " bases long";
-    html << " (" << readStoredSequence.baseCount << " bases in run-length representation)";
-    html << " and has " << orientedReadMarkers.size() << " markers.";
+        // Read length.
+        html << "<br/><br/> This read is <b>" << rawOrientedReadSequence.size() << "</b> bases long";
+        html << " (" << readStoredSequence.baseCount << " bases in run-length representation)";
+        html << " and has <b>" << orientedReadMarkers.size() << "</b> markers.";
+
+        html << "</div>";
+    html << "</div>"; // end column 1
+    html << "<div style='flex:50%'>"; // start column 2
+        // Button to Blat this read or portion of a read.
+        // We cannot use a simple <a> because we need to do a POST
+        // (the GET request fails when the read is too long).
+        html <<
+            "<form style='padding-bottom:8px' action='https://genome.ucsc.edu/cgi-bin/hgBlat' method=post>"
+            "<input style='font-size:12px' type=submit value='Blat ";
+        if(beginPositionIsPresent || endPositionIsPresent) {
+            html << "this portion of ";
+        }
+        html <<
+            "this read in the UCSC browser'>"
+            "<input type=text hidden name=type value=DNA>"
+            // Don't specify the genome.
+            // UCSC browser will Blat again last used genome (stored in cookies).
+            // "<input type=text hidden name=type value=DNA>"
+            // "<input type=text hidden name=name value=Human>"
+            // "<input type=text hidden name=db value=hg38>"
+            "<input type=text hidden name=userSeq value=";
+        copy(
+            rawOrientedReadSequence.begin() + beginPosition,
+            rawOrientedReadSequence.begin() + endPosition,
+            ostream_iterator<Base>(html));
+        html << "></form>";
+
+        // Button to Blast this read or portion of a read.
+        html <<
+            "<form style='padding-bottom:8px' action='blastRead'>"
+            "<input style='font-size:12px' type=submit value='Blast ";
+        if(beginPositionIsPresent || endPositionIsPresent) {
+            html << "this portion of ";
+        }
+        html <<
+            "this read against " << httpServerData.referenceFastaFileName << " using Blast options: '>"
+            "<input type=text hidden name=readId value=" << readId << ">" <<
+            "<input type=text hidden name=strand value=" << strand << ">" <<
+            "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
+            "<input type=text hidden name=endPosition value=" << endPosition << ">"
+            "<input type=text size=80 name=blastOptions>"
+            "</form>";
+
+        // Button to Blast this read or portion of a read (summary output).
+        html <<
+            "<form action='blastRead'>"
+            "<input style='font-size:12px' type=submit value='Blast ";
+        if(beginPositionIsPresent || endPositionIsPresent) {
+            html << "this portion of ";
+        }
+        html <<
+            "this read against " << httpServerData.referenceFastaFileName << " (summary output)'>"
+            "<input type=text hidden name=readId value=" << readId << ">" <<
+            "<input type=text hidden name=strand value=" << strand << ">" <<
+            "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
+            "<input type=text hidden name=endPosition value=" << endPosition << ">"
+            "<input type=checkbox checked hidden name=summary>"
+            "</form>";
+
+        // Link to align this read against another read.
+        html <<
+            "<button style='background-color:lightsteelblue;font-size:12px;margin-top:16px' " 
+            "onclick=\"window.location.href = 'exploreAlignment?readId0=" << readId << "&strand0=" << strand <<
+            "';\">Compute a marker alignment of this read with another read</button>";
+
+        html << "<br/>";
+
+        // Link to show overlapping reads.
+        html <<
+            "<button style='background-color:lightsteelblue;font-size:12px;margin-top:4px' " 
+            "onclick=\"window.location.href = 'exploreOverlappingReads?readId=" << readId << "&strand=" << strand <<
+            "';\">Find other reads that overlap this read</button>";
+
+    html << "</div>"; // end column 2
+    html << "</div>"; // end row
 
     // Begin/end position (in raw sequence).
+    html << "<br/><br/>";
     if(beginPositionIsPresent || endPositionIsPresent) {
         html <<
             " Displaying only " << endPosition-beginPosition << " bases";
@@ -122,81 +217,6 @@ void Assembler::exploreReadExperimental(
             " .";
         html << " For sequence in run-length representation see below.";
     }
-
-
-
-    // Button to Blat this read or portion of a read.
-    // We cannot use a simple <a> because we need to do a POST
-    // (the GET request fails when the read is too long).
-    html <<
-        "<p><form action='https://genome.ucsc.edu/cgi-bin/hgBlat' method=post>"
-        "<input type=submit value='Blat ";
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html << "this portion of ";
-    }
-    html <<
-        "this read in the UCSC browser'>"
-        "<input type=text hidden name=type value=DNA>"
-        // Don't specify the genome.
-        // UCSC browser will Blat again last used genome (stored in cookies).
-        // "<input type=text hidden name=type value=DNA>"
-        // "<input type=text hidden name=name value=Human>"
-        // "<input type=text hidden name=db value=hg38>"
-        "<input type=text hidden name=userSeq value=";
-    copy(
-        rawOrientedReadSequence.begin() + beginPosition,
-        rawOrientedReadSequence.begin() + endPosition,
-        ostream_iterator<Base>(html));
-    html << "></form>";
-
-
-
-    // Button to Blast this read or portion of a read.
-    html <<
-        "<p><form action='blastRead'>"
-        "<input type=submit value='Blast ";
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html << "this portion of ";
-    }
-    html <<
-        "this read against " << httpServerData.referenceFastaFileName << " using Blast options: '>"
-        "<input type=text hidden name=readId value=" << readId << ">" <<
-        "<input type=text hidden name=strand value=" << strand << ">" <<
-        "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
-        "<input type=text hidden name=endPosition value=" << endPosition << ">"
-        "<input type=text size=80 name=blastOptions>"
-        "</form>";
-
-
-
-    // Button to Blast this read or portion of a read (summary output).
-    html <<
-        "<p><form action='blastRead'>"
-        "<input type=submit value='Blast ";
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html << "this portion of ";
-    }
-    html <<
-        "this read against " << httpServerData.referenceFastaFileName << " (summary output)'>"
-        "<input type=text hidden name=readId value=" << readId << ">" <<
-        "<input type=text hidden name=strand value=" << strand << ">" <<
-        "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
-        "<input type=text hidden name=endPosition value=" << endPosition << ">"
-        "<input type=checkbox checked hidden name=summary>"
-        "</form>";
-
-
-
-    // Link to align this read against another read.
-    html <<
-        "<p><a href='exploreAlignment?readId0=" << readId << "&strand0=" << strand <<
-        "'>Compute a marker alignment of this read with another read.</a>";
-
-    // Link to show overlapping reads.
-    html <<
-        "<p><a href='exploreOverlappingReads?readId=" << readId << "&strand=" << strand <<
-        "'>Find other reads that overlap this read.</a>";
-
 
 
     // Display the selected portion of raw sequence.
