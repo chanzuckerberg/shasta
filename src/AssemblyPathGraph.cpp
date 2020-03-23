@@ -237,6 +237,13 @@ bool AssemblyPathGraph::createTangleAtEdge(edge_descriptor e01)
         return false;
     }
 
+    // If there is an edge v1->v0, this is a reverse bubble, not a tangle.
+    bool reverseEdgeExists = false;
+    tie(ignore, reverseEdgeExists) = boost::edge(v1, v0, graph);
+    if(reverseEdgeExists) {
+        return false;
+    }
+
     const auto inDegree = in_degree(v0, graph);
     const auto outDegree = out_degree(v1, graph);
 

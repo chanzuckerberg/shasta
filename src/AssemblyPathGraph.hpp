@@ -38,6 +38,8 @@ with source vertex v0 and target vertex v1 such that:
 
 - In-degree(v0)>1, out-degree(v0)=1
 - In-degree(v1)=1, out-degree(v1)>1
+- No out-edges of v1 are also in-edges of v0 (this clause added
+  to make sure reverse bubbles are not classified as tangles).
 
 In words, a tangle is a "bottleneck" where a number of incoming branches
 all converge and from which a number of outgoing branches all diverge.
