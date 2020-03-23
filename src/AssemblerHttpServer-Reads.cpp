@@ -200,7 +200,7 @@ void Assembler::exploreReadExperimental(
         // Link to show overlapping reads.
         html <<
             "<button style='background-color:lightsteelblue;font-size:12px;margin-top:4px' " 
-            "onclick=\"window.location.href = 'exploreOverlappingReads?readId=" << readId << "&strand=" << strand <<
+            "onclick=\"window.location.href = 'exploreAlignments?readId=" << readId << "&strand=" << strand <<
             "';\">Find other reads that overlap this read</button>";
 
     html << "</div>"; // end column 2
