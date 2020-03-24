@@ -4,7 +4,7 @@
 using namespace shasta;
 
 
-void Assembler::exploreReadExperimental(
+void Assembler::exploreRead(
     const vector<string>& request,
     ostream& html)
 {
@@ -690,7 +690,7 @@ void Assembler::exploreReadExperimental(
 
 }
 
-void Assembler::exploreRead(
+void Assembler::exploreReadOld(
     const vector<string>& request,
     ostream& html)
 {
