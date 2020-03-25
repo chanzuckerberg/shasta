@@ -1,6 +1,8 @@
 // From repository https://github.com/masri2019/edlib 
 // Branch gen-seqs-shasta
 // Commit 6f140c04fa7c8b503ae9b72c7b2c7e5505f585fd
+// Then made a few non-template functions ibline to avoid
+// multiple definitions.
 
 #include "edlib.hpp"
 
@@ -311,7 +313,7 @@ EdlibAlignResult edlibAlign(const Element* const queryOriginal, const int queryL
     return result;
 }
 
-char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alignmentLength,
+inline char* edlibAlignmentToCigar(const unsigned char* const alignment, const int alignmentLength,
                             const EdlibCigarFormat cigarFormat) {
     if (cigarFormat != EDLIB_CIGAR_EXTENDED && cigarFormat != EDLIB_CIGAR_STANDARD) {
         return 0;
@@ -964,7 +966,7 @@ int myersCalcEditDistanceNW(
  * @param [out] alignmentLength  Length of alignment.
  * @return Status code.
  */
-int obtainAlignmentTraceback(const int queryLength, const int targetLength,
+inline int obtainAlignmentTraceback(const int queryLength, const int targetLength,
                              const int bestScore, const AlignmentData* const alignData,
                              unsigned char** const alignment, int* const alignmentLength) {
     const int maxNumBlocks = ceilDiv(queryLength, WORD_SIZE);
@@ -1490,7 +1492,7 @@ unordered_map<Element, AlphabetIdx> transformSequences(
 
 } // namespace internal
 
-EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
+inline EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask task,
                                      EdlibEqualityPair* additionalEqualities,
                                      int additionalEqualitiesLength) {
     EdlibAlignConfig config;
@@ -1502,11 +1504,11 @@ EdlibAlignConfig edlibNewAlignConfig(int k, EdlibAlignMode mode, EdlibAlignTask 
     return config;
 }
 
-EdlibAlignConfig edlibDefaultAlignConfig(void) {
+inline EdlibAlignConfig edlibDefaultAlignConfig(void) {
     return edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_DISTANCE, NULL, 0);
 }
 
-void edlibFreeAlignResult(EdlibAlignResult result) {
+inline void edlibFreeAlignResult(EdlibAlignResult result) {
     if (result.endLocations) free(result.endLocations);
     if (result.startLocations) free(result.startLocations);
     if (result.alignment) free(result.alignment);

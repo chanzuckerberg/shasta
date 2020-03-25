@@ -1,4 +1,4 @@
-// Alternative alignment functions with 1 suffix.
+// Alternative alignment functions with 1 suffix (SeqAn).
 #include "Assembler.hpp"
 using namespace shasta;
 

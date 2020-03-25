@@ -907,7 +907,7 @@ public:
 private:
 
 
-    // Alternative alignment functions with 1 suffix.
+    // Alternative alignment functions with 1 suffix (SeqAn).
     void alignOrientedReads1(
         OrientedReadId,
         OrientedReadId,
@@ -931,6 +931,14 @@ public:
         int gapScore);
 private:
 
+
+
+    // Alternative alignment function with 2 suffix (Edlib).
+    void alignOrientedReads2(
+        OrientedReadId,
+        OrientedReadId,
+        Alignment&,
+        AlignmentInfo&);
 
 
     // Create a local alignment graph starting from a given oriented read

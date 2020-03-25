@@ -1712,6 +1712,21 @@ void Assembler::exploreAlignment(
         alignOrientedReads1(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+#else
+        html << "<p>Alignment method 1 is not available on macOS.";
+        return;
+#endif
+    } else if(method == 2) {
+        alignOrientedReads2(
+            orientedReadId0, orientedReadId1,
+            alignment, alignmentInfo);
+    } else {
+        SHASTA_ASSERT(0);
+    }
+
+
+    // Make sure we have Alignment.png to display.
+    if(method != 0) {
         vector<MarkerWithOrdinal> sortedMarkers0;
         vector<MarkerWithOrdinal> sortedMarkers1;
         getMarkersSortedByKmerId(orientedReadId0, sortedMarkers0);
@@ -1721,15 +1736,7 @@ void Assembler::exploreAlignment(
             sortedMarkers1,
             alignment,
             "Alignment.png");
-#else
-        html << "<p>Alignment method 1 is not available on macOS.";
-        return;
-#endif
-
-    } else {
-        SHASTA_ASSERT(0);
     }
-
 
 
     if(alignment.ordinals.empty()) {

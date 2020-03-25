@@ -16,12 +16,12 @@ using namespace shasta;
 
 void shasta::edlibTest()
 {
-    const vector<uint32_t> x = {1,2,  4,5,6,7,8};
-    const vector<uint32_t> y = {1,2,3,4,5,  7,8};
+    const vector<uint32_t> x = {1,2,3,4,5,6,7,8};
+    const vector<uint32_t> y = {    3,4,5,  7  };
 
     EdlibAlignConfig config;
     config.k = -1;
-    config.mode = EDLIB_MODE_NW;
+    config.mode = EDLIB_MODE_HW;
     config.task = EDLIB_TASK_PATH;
     config.additionalEqualities = 0;
     config.additionalEqualitiesLength = 0;
@@ -34,6 +34,7 @@ void shasta::edlibTest()
         throw runtime_error("Error during edlibAlign.");
     }
     cout << "Edit distance " << result.editDistance << endl;
+    cout << "Number of start/end locations " << result.numLocations << endl;
 
     cout << "Alignment:" << endl;
     for(int i=0; i<result.alignmentLength; i++) {
