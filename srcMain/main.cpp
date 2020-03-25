@@ -649,7 +649,7 @@ void shasta::main::assemble(
     // Optional removal of conflicts from the read graph (experimental).
     if(assemblerOptions.readGraphOptions.removeConflicts) {
 
-        // This only work when using the directed read graph.
+        // This only works when using the directed read graph.
         SHASTA_ASSERT(assembler.directedReadGraph.isOpen());
 
         // Preliminary creation of marker graph vertices,
@@ -671,7 +671,7 @@ void shasta::main::assemble(
 
         // Mark conflict edges in the read graph.
         // TURN THIS PARAMETER INTO A COMMAND LINE OPTION WHEN CODE STABILIZES. ****************
-        const uint32_t radius = 4;
+        const uint32_t radius = 12;
         assembler.markDirectedReadGraphConflictEdges3(radius);
 
         // Remove the preliminary marker graph vertices we created.

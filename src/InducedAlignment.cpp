@@ -181,7 +181,8 @@ bool InducedAlignment::evaluate(
             }
             cout << "Offset sigma is too large." << endl;
         }
-        return false;
+        // return false;
+        return true;     // EXPERIMENT ****************
     }
 
     // Compute ordinal sums and sort them.
@@ -212,6 +213,7 @@ bool InducedAlignment::evaluate(
         ", deviation " << double(ordinalSum.back()) - maxOrdinalSum << endl;
     }
 
+#if 0
     if(abs(double(ordinalSum.front()) - minOrdinalSum) >
         double(2*inducedAlignmentCriteria.maxTrim)) {
         if(debug) {
@@ -226,6 +228,23 @@ bool InducedAlignment::evaluate(
         }
         return false;
     }
+#endif
+
+    // Mark the induced alignment as bad if it does not reach the boundary of the
+    // alignment matrix on both side.
+    // Alignments that reach the boundary of the alignment matrix on one side
+    // only occur in bubbles and we don't want to mark them as bad.
+    if(
+        abs(double(ordinalSum.front())-minOrdinalSum) > double(2*inducedAlignmentCriteria.maxTrim)
+        and
+        abs(double(ordinalSum.back()) -maxOrdinalSum) > double(2*inducedAlignmentCriteria.maxTrim)
+        ) {
+        if(debug) {
+            cout << "Too much trim on both sides." << endl;
+        }
+        return false;
+    }
+
 
     // Check for gaps.
     for(uint64_t i=1; i<ordinalSum.size(); i++) {
