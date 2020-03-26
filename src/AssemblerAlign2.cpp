@@ -13,7 +13,10 @@ using namespace shasta;
 using namespace edlib;
 
 
-
+// This uses Edlib to align two oriented reads.
+// Edlib does not support local alignment
+// so we use a 3-step process that produces less than
+// optimal alignments.
 
 void Assembler::alignOrientedReads2(
     OrientedReadId orientedReadId0,
@@ -41,46 +44,63 @@ void Assembler::alignOrientedReads2(
         // cout << "kmerIds1: " << marker.kmerId << endl;
     }
 
-    cout << "Number of markers " << kmerIds0.size() << " " << kmerIds1.size() << endl;
-
     // Edlib alignment options.
+    // For the first two steps, don't compute the alignment paths and use infix mode.
     EdlibAlignConfig config;
     config.k = -1;
     config.mode = EDLIB_MODE_HW;
-    config.task = EDLIB_TASK_PATH;
+    config.task = EDLIB_TASK_LOC;
     config.additionalEqualities = 0;
     config.additionalEqualitiesLength = 0;
 
-    // THIS NEEDS WORK *******************************
-
-    // Call Edlib to compute the alignment.
-    const EdlibAlignResult result = edlibAlign<KmerId, KmerId>(
+    // Step 1: EDLIB_MODE_HW, EDLIB_TASK_LOC
+    // with read0 as the query and read1 as the target.
+    // Get approximate alignment range in read1.
+    EdlibAlignResult result = edlibAlign<KmerId, KmerId>(
         kmerIds0.data(), kmerIds0.size(),
         kmerIds1.data(), kmerIds1.size(),
         config);
     if(result.status != EDLIB_STATUS_OK) {
         throw runtime_error("Error during edlibAlign.");
     }
+    const int begin1 = result.startLocations[0];
+    const int end1 = result.endLocations[0];
 
-    // For debugging, write to cout.
-    cout << "Edit distance " << result.editDistance << endl;
-    cout << "Alignment length " << endl;
-    cout << "Start/end locations:" << endl;
-    for(int i=0; i<result.numLocations; i++) {
-        cout << result.startLocations[i] << " " << result.endLocations[i] << endl;
+
+
+    // Step 2: EDLIB_MODE_HW, EDLIB_TASK_LOC
+    // with read1 as the query and read1 as the target.
+    // Get approximate alignment range in read1.
+    result = edlibAlign<KmerId, KmerId>(
+        kmerIds1.data(), kmerIds1.size(),
+        kmerIds0.data(), kmerIds0.size(),
+        config);
+    if(result.status != EDLIB_STATUS_OK) {
+        throw runtime_error("Error during edlibAlign.");
     }
-#if 0
-    cout << "Alignment:" << endl;
-    for(int i=0; i<result.alignmentLength; i++) {
-        cout << int(result.alignment[i]);
+    const int begin0 = result.startLocations[0];
+    const int end0 = result.endLocations[0];
+
+
+
+    // Step 3: EDLIB_MODE_NW, EDLIB_TASK_PATH
+    // for the read portions found in the first two steps.
+    config.mode = EDLIB_MODE_NW;
+    config.task = EDLIB_TASK_PATH;
+    result = edlibAlign<KmerId, KmerId>(
+        kmerIds0.data() + begin0, kmerIds0.size() - (end0-begin0),
+        kmerIds1.data() + begin1, kmerIds1.size() - (end1-begin1),
+        config);
+    if(result.status != EDLIB_STATUS_OK) {
+        throw runtime_error("Error during edlibAlign.");
     }
-    cout << endl;
-#endif
+    SHASTA_ASSERT(result.numLocations == 1);
+    SHASTA_ASSERT(result.startLocations[0] == 0);
 
     // Fill in the alignment.
     alignment.ordinals.clear();
-    uint32_t ordinal0 = 0;
-    uint32_t ordinal1 = 0;
+    uint32_t ordinal0 = begin0;
+    uint32_t ordinal1 = begin1;
     for(int i=0; i<result.alignmentLength; i++) {
         const unsigned char code = result.alignment[i];
         switch(code) {
@@ -107,6 +127,6 @@ void Assembler::alignOrientedReads2(
 
     // Store the alignment info.
     alignmentInfo.create(alignment, uint32_t(markers0.size()), uint32_t(markers1.size()));
-}
 
+}
 #pragma GCC diagnostic pop

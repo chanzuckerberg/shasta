@@ -338,12 +338,14 @@ void AssemblerOptions::addConfigurableOptions()
         ("Align.alignMethodForReadGraph",
         value<int>(&alignOptions.alignMethodForReadGraph)->
         default_value(0),
-        "The alignment method to be used to create the read graph. It can be 0 (default) or 1 (experimental).")
+        "The alignment method to be used to create the read graph. "
+        "Values other than 0 are experimental.")
 
         ("Align.alignMethodForMarkerGraph",
         value<int>(&alignOptions.alignMethodForMarkerGraph)->
         default_value(0),
-        "The alignment method to be used to create the marker graph. It can be 0 (default) or 1 (experimental).")
+        "The alignment method to be used to create the marker graph. "
+        "Values other than 0 are experimental.")
 
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->

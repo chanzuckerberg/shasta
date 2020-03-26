@@ -201,7 +201,7 @@ void Assembler::alignOverlappingOrientedReads(
 // without storing details of the alignment.
 void Assembler::computeAlignments(
 
-    // Alignment method (0 or 1).
+    // Alignment method (0, 1, or 2).
     int alignmentMethod,
 
     // Marker frequency threshold.
@@ -371,6 +371,9 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 #else
                 throw runtime_error("Align method 1 is not supported on macOS.");
 #endif
+            } else if(alignmentMethod == 2) {
+                alignOrientedReads2(orientedReadIds[0], orientedReadIds[1],
+                    alignment, alignmentInfo);
             } else {
                 SHASTA_ASSERT(0);
             }

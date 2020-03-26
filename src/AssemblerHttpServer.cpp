@@ -1650,7 +1650,7 @@ void Assembler::exploreAlignment(
 
         // Method 0
         "<br><br><input type=radio name=method value=0" <<
-        (method==0 ? " checked=checked" : "") << "> Use method 0"
+        (method==0 ? " checked=checked" : "") << "> Use method 0 (Shasta)"
         "<br><table><tr><th class=left>Maximum ordinal skip<td>" <<
         "<input type=text name=maxSkip size=8 value=" << maxSkip << ">"
         "<tr><th class=left>Maximum ordinal drift" <<
@@ -1661,14 +1661,21 @@ void Assembler::exploreAlignment(
 
         // Method 1
         "<br><input type=radio name=method value=1" <<
-        (method==1 ? " checked=checked" : "") << "> Use method 1"
+        (method==1 ? " checked=checked" : "") << "> Use method 1 (SeqAn)"
         "<br><table><tr><th class=left>Match score" <<
         "<td><input type=text name=matchScore size=8 value=" << matchScore << ">"
         "<tr><th class=left>Mismatch score " <<
         "<td><input type=text name=mismatchScore size=8 value=" << mismatchScore << ">"
         "<tr><th class=left>Gap score" <<
         "<td><input type=text name=gapScore size=8 value=" << gapScore << ">"
-        "</table><br><input type=submit value='Compute marker alignment'>"
+        "</table>"
+
+        // Method 2
+        "<br><input type=radio name=method value=2" <<
+        (method==2 ? " checked=checked" : "") << "> Use method 2 (Edlib 3-step process "
+            "to mimic local alignment))"
+
+        "<p><input type=submit value='Compute marker alignment'>"
         "</form>";
 
     // If the readId's or strand's are missing, stop here.
