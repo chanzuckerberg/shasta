@@ -391,6 +391,23 @@ Used for palindromic read detection.
 <td><code>--Reads.palindromicReads.deltaThreshold</code><td class=centered><code>100</code><td>
 Used for palindromic read detection.
 
+<tr id='Kmers.generationMethod'>
+<td><code>--Kmers.generationMethod</code><td class=centered><code>0</code><td>
+Used to select how k-mers to be used as markers are generated.
+Can be one of the following:
+<ul>
+<li>0: Random selection.
+<li>1: Random selection, excluding k-mers that are globally overenriched,
+as defined by their global frequency in input reads, and by
+the value specified as <code>--Kmers.enrichmentThreshold</code>.
+<li>2: Random selection, excluding k-mers that are overenriched
+even in a single read, 
+as defined by 
+the value specified as <code>--Kmers.enrichmentThreshold</code>.
+<li>3: Read from file. Use <code>--Kmers.file</code>
+to specify the file.
+</ul>
+
 <tr id='Kmers.k'>
 <td><code>--Kmers.k</code><td class=centered><code>10</code><td>
 Length of marker <i>k</i>-mers (in run-length representation).
@@ -401,31 +418,19 @@ Length of marker <i>k</i>-mers (in run-length representation).
 Probability that a k-mer is selected to be used as a marker.
 <a class=qm href='ComputationalMethods.html#Markers'/>
 
-<tr id='Kmers.suppressHighFrequencyMarkers'>
-<td><code>--Kmers.suppressHighFrequencyMarkers</code><td class=centered><code>False</code><td>
-This is a 
-<a href="#BooleanSwitches">Boolean switch</a>.
-If set, high frequency k-mers 
-are not used as markers. High frequency k-mers are those 
-with enrichment greater than the value specified by 
-<code>--Kmers.enrichmentThreshold</code>.
-
 <tr id='Kmers.enrichmentThreshold'>
 <td><code>--Kmers.enrichmentThreshold</code><td class=centered><code>10.</code><td>
 If <code>--Kmers.suppressHighFrequencyMarkers</code> is set, 
 this controls the enrichment threshold above which k-mers
-are not considered as possible markers.
+are considered overenriched.
 Enrichment is ratio of k-mer frequency in reads to random.
+Only used if <code>--Kmers.generationMethod</code> is 1 or 2.
 
 <tr id='Kmers.file'>
 <td><code>--Kmers.file</code><td class=centered><td>
 The absolute path of a file containing the k-mers
 to be used as markers, one per line. 
-A relative path is not accepted. 
-If this is empty, k-mers to be used as markers
-are selected according to the other <code>--Kmers</code> options.
-If this is not empty, all other <code>--Kmers</code> options are ignored 
-except for <code>--Kmers.k</code>.
+Only used if <code>--Kmers.generationMethod</code> is 3.
 
 <tr id='MinHash.version'>
 <td><code>--MinHash.version</code><td class=centered><code>0</code><td>

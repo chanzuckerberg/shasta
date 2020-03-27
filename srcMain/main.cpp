@@ -496,7 +496,46 @@ void shasta::main::assemble(
 
 
     // Select the k-mers that will be used as markers.
-    if(not assemblerOptions.kmersOptions.file.empty()) {
+    switch(assemblerOptions.kmersOptions.generationMethod) {
+    case 0:
+        assembler.randomlySelectKmers(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231);
+        break;
+
+    case 1:
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that are globally overenriched in the input reads,
+        // as measured by total frequency in all reads.
+        assembler.selectKmersBasedOnFrequency(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231,
+            assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
+        break;
+
+    case 2:
+        throw runtime_error("--Kmers generationMethod 2 not yet implemented.");
+
+    case 3:
+        // Read the k-mers to be used as markers from a file.
+        if(assemblerOptions.kmersOptions.file.empty() or
+            assemblerOptions.kmersOptions.file[0] != '/') {
+            throw runtime_error("Option --Kmers.file must specify an absolute path. "
+                "A relative path is not accepted.");
+        }
+        assembler.readKmersFromFile(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.file);
+        break;
+
+    default:
+        throw runtime_error("Invalid --Kmers generationMethod. "
+            "Specify a value between 0 and 3, inclusive.");
+    }
+
+#if 0
+    if(not assemblerOptions.kmersOptions.file.empty() or
+        assemblerOptions.kmersOptions.file[0] != '/') {
 
         // A file name was specified. Read the k-mers to be used as markers from there.
 
@@ -527,7 +566,7 @@ void shasta::main::assemble(
             assemblerOptions.kmersOptions.k,
             assemblerOptions.kmersOptions.probability, 231);
     }
-
+#endif
 
 
     // Find the markers in the reads.

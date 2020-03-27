@@ -249,38 +249,36 @@ void AssemblerOptions::addConfigurableOptions()
          default_value(100),
          "Used for palindromic read detection.")
 
-        ("Kmers.k",
-        value<int>(&kmersOptions.k)->
-        default_value(10),
-        "Length of marker k-mers (in run-length space).")
+         ("Kmers.generationMethod",
+         value<int>(&kmersOptions.generationMethod)->
+         default_value(0),
+         "Method to generate marker k-mers: "
+         "0 = random, "
+         "1 = random, excluding globally overenriched,"
+         "2 = random, excluding overenriched even in a single read,"
+         "3 = read from file.")
 
-        ("Kmers.probability",
-        value<double>(&kmersOptions.probability)->
-        default_value(0.1, "0.1"),
-        "Probability that a k-mer is used as a marker.")
+         ("Kmers.k",
+         value<int>(&kmersOptions.k)->
+         default_value(10),
+         "Length of marker k-mers (in run-length space).")
 
-        ("Kmers.suppressHighFrequencyMarkers",
-        bool_switch(&kmersOptions.suppressHighFrequencyMarkers)->
-        default_value(false),
-        "If set, high frequency k-mers are not used as markers. "
-        "High frequency k-mers are those with enrichment greater "
-        "than the value specified by Kmers.enrichmentThreshold.")
+         ("Kmers.probability",
+         value<double>(&kmersOptions.probability)->
+         default_value(0.1, "0.1"),
+         "Fraction k-mers used as a marker.")
 
         ("Kmers.enrichmentThreshold",
         value<double>(&kmersOptions.enrichmentThreshold)->
         default_value(10., "10."),
-        "If Kmers.suppressHighFrequencyMarkers is set, this controls the "
-        "enrichment threshold above which a k-mer is not considered as a possible marker. "
-        "Enrichment is ratio of k-mer frequency in reads to random.")
+        "Enrichment threshold for Kmers.generationMethod 1 and 2.")
 
         ("Kmers.file",
         value<string>(&kmersOptions.file),
         "The absolute path of a file containing the k-mers "
         "to be used as markers, one per line. "
         "A relative path is not accepted. "
-        "If this is empty, k-mers to be used as markers "
-        "are selected according to the other --Kmers options. "
-        "If this is not empty, all other --Kmers options are ignored except for --Kmers.k.")
+        "Only used if Kmers.generationMethod is 3.")
 
         ("MinHash.version",
         value<int>(&minHashOptions.version)->
@@ -582,10 +580,9 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 void AssemblerOptions::KmersOptions::write(ostream& s) const
 {
     s << "[Kmers]\n";
+    s << "generationMethod = " << generationMethod << "\n";
     s << "k = " << k << "\n";
     s << "probability = " << probability << "\n";
-    s << "suppressHighFrequencyMarkers = " <<
-        convertBoolToPythonString(suppressHighFrequencyMarkers) << "\n";
     s << "enrichmentThreshold = " << enrichmentThreshold << "\n";
     s << "file = " << file << "\n";
 }

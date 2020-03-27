@@ -70,9 +70,9 @@ public:
     // beginning with "Kmers.".
     class KmersOptions {
     public:
+        int generationMethod;
         int k;
         double probability;
-        bool suppressHighFrequencyMarkers;
         double enrichmentThreshold;
         string file;
         void write(ostream&) const;
