@@ -110,10 +110,10 @@ void Assembler::alignOrientedReads3(
             const int64_t offset = offsetBegin + int64_t(i);
             const int64_t range0 =
                 min(int64_t(markerCount0), int64_t(markerCount1) + offset) -
-                max(0L, offset);
+                max(int64_t(0L), offset);
             const int64_t range1 =
                 min(int64_t(markerCount0-offset), int64_t(markerCount1)) -
-                max(-offset, 0L);
+                max(-offset, int64_t(0L));
             SHASTA_ASSERT(range0 == range1);
             csv <<
                 offset << "," <<
