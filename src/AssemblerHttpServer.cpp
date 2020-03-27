@@ -1727,6 +1727,10 @@ void Assembler::exploreAlignment(
         alignOrientedReads2(
             orientedReadId0, orientedReadId1,
             alignment, alignmentInfo);
+    } else if(method == 3) {
+        alignOrientedReads3(
+            orientedReadId0, orientedReadId1,
+            alignment, alignmentInfo);
     } else {
         SHASTA_ASSERT(0);
     }

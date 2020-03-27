@@ -941,6 +941,14 @@ private:
         AlignmentInfo&);
 
 
+    // Alternative alignment function with 3 suffix (SeqAn, banded).
+    void alignOrientedReads3(
+        OrientedReadId,
+        OrientedReadId,
+        Alignment&,
+        AlignmentInfo&);
+
+
     // Create a local alignment graph starting from a given oriented read
     // and walking out a given distance on the global alignment graph.
     // An alignment graph is an undirected graph in which each vertex
