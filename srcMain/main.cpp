@@ -514,7 +514,13 @@ void shasta::main::assemble(
         break;
 
     case 2:
-        throw runtime_error("--Kmers generationMethod 2 not yet implemented.");
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that are overenriched even in a single oriented read.
+        assembler.selectKmers2(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231,
+            assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
+        break;
 
     case 3:
         // Read the k-mers to be used as markers from a file.

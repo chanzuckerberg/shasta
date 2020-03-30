@@ -123,6 +123,13 @@ PYBIND11_MODULE(shasta, module)
             arg("seed") = 231,
             arg("enrichmentThreshold"),
             arg("threadCount") = 0)
+        .def("selectKmers2",
+            &Assembler::selectKmers2,
+            arg("k"),
+            arg("markerDensity"),
+            arg("seed") = 231,
+            arg("enrichmentThreshold"),
+            arg("threadCount") = 0)
 
 
 

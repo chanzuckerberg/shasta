@@ -738,7 +738,53 @@ public:
         size_t threadCount
     );
 
+
+
+    // In this version, marker k-mers are selected randomly, but excluding
+    // any k-mer that is over-enriched even in a single oriented read.
+    void selectKmers2(
+
+        // k-mer length.
+        size_t k,
+
+        // The desired marker density
+        double markerDensity,
+
+        // Seed for random number generator.
+        int seed,
+
+        // Exclude k-mers enriched by more than this amount,
+        // even in a single oriented read.
+        // Enrichment is the ratio of k-mer frequency in reads
+        // over what a random distribution would give.
+        double enrichmentThreshold,
+
+        size_t threadCount
+    );
+private:
+
+    class SelectKmers2Data {
+    public:
+
+        double enrichmentThreshold;
+
+        // The number of times each k-mer appears in an oriented read.
+        // Indexed by KmerId.
+        MemoryMapped::Vector<uint64_t> globalFrequency;
+
+        // The number of oriented reads that each k-mer is
+        // over-enriched in by more than a factor enrichmentThreshold.
+        // Indexed by KmerId.
+        MemoryMapped::Vector<ReadId> overenrichedReadCount;
+
+    };
+    SelectKmers2Data selectKmers2Data;
+    void selectKmers2ThreadFunction(size_t threadId);
+
+
+
     // Read the k-mers from file.
+public:
     void readKmersFromFile(uint64_t k, const string& fileName);
 
 private:
