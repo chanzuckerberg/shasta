@@ -4,6 +4,7 @@
 #include "Assembler.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
+#include "compressAlignment.hpp"
 #include "deduplicate.hpp"
 #include "dset64Test.hpp"
 #include "edlibTest.hpp"
@@ -632,7 +633,9 @@ PYBIND11_MODULE(shasta, module)
     module.def("mappedCopy",
         mappedCopy
         );
-
+    module.def("testAlignmentCompression",
+        testAlignmentCompression
+        );
 }
 
 #endif
