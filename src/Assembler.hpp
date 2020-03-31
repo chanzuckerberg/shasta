@@ -991,6 +991,9 @@ private:
     void alignOrientedReads3(
         OrientedReadId,
         OrientedReadId,
+        int matchScore,
+        int mismatchScore,
+        int gapScore,
         Alignment&,
         AlignmentInfo&);
 

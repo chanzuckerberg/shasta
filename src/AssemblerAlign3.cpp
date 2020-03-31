@@ -1,126 +1,288 @@
 #include "Assembler.hpp"
+#include "PngImage.hpp"
 using namespace shasta;
+
+
+// Seqan.
+#ifdef __linux__
+#include <seqan/align.h>
+#endif
 
 #include <numeric>
 
 
+
+#ifndef __linux__
+
+// For macOS we don't have SeqAn, so we can't do any of this.
+void Assembler::alignOrientedReads3(
+    ReadId readId0, Strand strand0,
+    ReadId readId1, Strand strand1,
+    int matchScore,
+    int mismatchScore,
+    int gapScore)
+{
+    throw runtime_error("alignOrientedReads3 is not available on macOS.");
+}
+
+#else
+
+
+
 // Align two oriented reads using SeqAn banded alignment.
+// This id done in two steps:
+// 1. Compute an alignment (unbanded) using downsampled marker
+//    sequences for the two oriented reads.
+// 2. Use the downsampled alignment to compute a band.
+//    Then do a banded alignment using that band.
+
 void Assembler::alignOrientedReads3(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
+    int matchScore,
+    int mismatchScore,
+    int gapScore,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo)
 {
     const bool debug = true;
 
+    // Parameters that control this function, which will have to be passed in.
+    // The fraction of markers to keep in the first step.
+    const double downsamplingFactor = 0.1;
+    // How much to extend the band computed in the first step.
+    const int32_t bandExtend = 10;
+
+    // Hide shasta::Alignment.
+    using namespace seqan;
+    using seqan::Alignment;
+    const uint32_t seqanGapValue = 45;
+
+    // An oriented read is represented as a sequence of KmerId
+    // (the KmerId's of its markers). We want to align a pair of
+    // such sequences.
+    using TSequence = String<KmerId>;
+
+    // Other SeqAn types we need.
+    using TStringSet = StringSet<TSequence>;
+    using TDepStringSet = StringSet<TSequence, Dependent<> >;
+    using TAlignGraph = Graph<Alignment<TDepStringSet> >;
+
+
     // Get the markers for the two oriented reads.
-    const span<CompressedMarker> markers0 = markers[orientedReadId0.getValue()];
-    const span<CompressedMarker> markers1 = markers[orientedReadId1.getValue()];
-    const uint64_t markerCount0 = markers0.size();
-    const uint64_t markerCount1 = markers1.size();
+    array<span<CompressedMarker>, 2> allMarkers;
+    allMarkers[0] = markers[orientedReadId0.getValue()];
+    allMarkers[1] = markers[orientedReadId1.getValue()];
 
-    // Get the markers sorted by kmerId.
-    vector<MarkerWithOrdinal> markersSortedByKmerId0;
-    vector<MarkerWithOrdinal> markersSortedByKmerId1;
-    getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId0);
-    getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId1);
-    SHASTA_ASSERT(markersSortedByKmerId0.size() == markerCount0);
-    SHASTA_ASSERT(markersSortedByKmerId1.size() == markerCount1);
+    // Vectors to contain downsampled markers.
+    // For each of the two reads we store vectors of
+    // (ordinal, KmerId).
+    array< vector<pair<uint32_t, KmerId> >, 2> downsampledMarkers;
+    array<TSequence, 2> downsampledSequences;
 
-    // Some iterators we will need.
-    using MarkerIterator = vector<MarkerWithOrdinal>::const_iterator;
-    const MarkerIterator begin0 = markersSortedByKmerId0.begin();
-    const MarkerIterator end0   = markersSortedByKmerId0.end();
-    const MarkerIterator begin1 = markersSortedByKmerId1.begin();
-    const MarkerIterator end1   = markersSortedByKmerId1.end();
-
-    // For an element in the alignment matrix at coordinates (m0, m1)
-    // we define the offset as m0-m1.
-    // Compute the range for possible values of the offset.
-    const int64_t offsetBegin = -int64_t(markerCount1-1);
-    const int64_t offsetEnd = int64_t(markerCount0);
-
-
-
-    // Compute a histogram of the offset of alignment matrix elements that are 1.
-    // Use a joint loop over the markers sorted by KmerId, looking for common KmerId's.
-    vector<uint64_t> histogram(offsetEnd-offsetBegin, 0);
-    auto it0 = begin0;
-    auto it1 = begin1;
-    while(it0!=end0 && it1!=end1) {
-        if(it0->kmerId < it1->kmerId) {
-            ++it0;
-        } else if(it1->kmerId < it0->kmerId) {
-            ++it1;
-        } else {
-
-            // We found a common k-mer id.
-            const KmerId kmerId = it0->kmerId;
-
-
-            // This k-mer could appear more than once in each of the oriented reads,
-            // so we need to find the streak of this k-mer
-            // in markersSortedByKmerId0 and markersSortedByKmerId0.
-            MarkerIterator it0Begin = it0;
-            MarkerIterator it1Begin = it1;
-            MarkerIterator it0End = it0Begin;
-            MarkerIterator it1End = it1Begin;
-            while(it0End!=end0 && it0End->kmerId==kmerId) {
-                ++it0End;
+    // Fill in downsampled markers.
+    // SeqAn uses 45 to represent gaps, so we add 45 to the KmerIds passed to SeqAn.
+    // This means that we can't do k=16.
+    const uint32_t hashThreshold =
+        uint32_t(downsamplingFactor * double(std::numeric_limits<uint32_t>::max()));
+    for(uint64_t i=0; i<2; i++) {
+        for(uint32_t ordinal=0; ordinal<uint32_t(allMarkers[i].size()); ordinal++) {
+            const KmerId kmerId = allMarkers[i][ordinal].kmerId;
+             if(kmerTable[kmerId].hash < hashThreshold) {
+                downsampledMarkers[i].push_back(make_pair(ordinal, kmerId));
+                appendValue(downsampledSequences[i], kmerId + 100);
             }
-            while(it1End!=end1 && it1End->kmerId==kmerId) {
-                ++it1End;
-            }
+        }
+    }
 
-            // Loop over pairs in the two streaks.
-            for(MarkerIterator jt0=it0Begin; jt0!=it0End; ++jt0) {
-                for(MarkerIterator jt1=it1Begin; jt1!=it1End; ++jt1) {
-                    const int64_t offset = int64_t(jt0->ordinal) - int64_t(jt1->ordinal);
-                    ++histogram[offset - offsetBegin];
+    if(debug) {
+        cout << "Aligning two oriented reads with " <<
+            allMarkers[0].size() << " and " << allMarkers[1].size() << " markers." << endl;
+        cout << "Downsampled markers for step 1 to " <<
+            downsampledMarkers[0].size() << " and " <<
+            downsampledMarkers[1].size() << " markers." << endl;
+
+
+        for(uint64_t i=0; i<2; i++) {
+            ofstream csv("OrientedReadDownsampled-" + to_string(i) + ".csv");
+            for(const auto& p: downsampledMarkers[i]) {
+                csv << p.first << "," << p.second << "\n";
+            }
+        }
+
+    }
+
+
+
+    // Use SeqAn to compute an alignment of the downsampled markers, free at both ends.
+    // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
+
+    // Store them in a SeqAn string set.
+    TStringSet downsampledSequencesSet;
+    appendValue(downsampledSequencesSet, downsampledSequences[0]);
+    appendValue(downsampledSequencesSet, downsampledSequences[1]);
+
+    // Compute the alignment.
+    TAlignGraph downsampledGraph(downsampledSequencesSet);
+    const auto t0 = std::chrono::steady_clock::now();
+    const int downsampledScore = globalAlignment(
+        downsampledGraph,
+        Score<int, Simple>(matchScore, mismatchScore, gapScore),
+        AlignConfig<true, true, true, true>(),
+        LinearGaps());
+    const auto t1 = std::chrono::steady_clock::now();
+    cout << "Downsampled alignment score is " << downsampledScore << endl;
+    cout << "Downsampled alignment computation took " << seconds(t1-t0) << " s." << endl;
+
+    // Extract the alignment from the graph.
+    // This creates a single sequence consisting of the two rows
+    // of the alignment, concatenated.
+    TSequence downsampledAlign;
+    convertAlignment(downsampledGraph, downsampledAlign);
+    const int totalDownsampledAlignmentLength = int(seqan::length(downsampledAlign));
+    SHASTA_ASSERT((totalDownsampledAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
+    const int downsampledAlignmentLength = totalDownsampledAlignmentLength / 2;
+    cout << "Downsampled alignment length " << downsampledAlignmentLength << endl;
+
+
+
+    // Write the downsampled alignment on its alignment matrix.
+    if(debug) {
+        PngImage image(int(downsampledMarkers[0].size()), int(downsampledMarkers[1].size()));
+        for(uint64_t i0=0; i0<downsampledMarkers[0].size(); i0++) {
+            const KmerId kmerId0 = downsampledMarkers[0][i0].second;
+            for(uint64_t i1=0; i1<downsampledMarkers[1].size(); i1++) {
+                const KmerId kmerId1 = downsampledMarkers[1][i1].second;
+                if(kmerId1 == kmerId0) {
+                    image.setPixel(int(i0), int(i1), 255, 0, 0);
                 }
             }
+        }
 
-            // Continue joint loop over k-mers.
-            it0 = it0End;
-            it1 = it1End;
+        uint32_t i0 = 0;
+        uint32_t i1 = 0;
+        for(int i=0;
+            i<downsampledAlignmentLength and
+            i0<downsampledMarkers[0].size() and
+            i1<downsampledMarkers[1].size(); i++) {
+            if( downsampledAlign[i] != seqanGapValue and
+                downsampledAlign[i + downsampledAlignmentLength] != seqanGapValue) {
+                if(downsampledMarkers[0][i0].second == downsampledMarkers[1][i1].second) {
+                    image.setPixel(int(i0), int(i1), 0, 255, 0);
+                } else {
+                    image.setPixel(int(i0), int(i1), 80, 80, 0);
+                }
+            }
+            if(downsampledAlign[i] != seqanGapValue) {
+                ++i0;
+            }
+            if(downsampledAlign[i + downsampledAlignmentLength] != seqanGapValue) {
+                ++i1;
+            }
+        }
+
+        image.write("DownsampledAlignment.png");
+    }
+
+
+    // Use the downsampled alignment to compute the band to be used
+    // for the full alignment.
+    int32_t offsetMin = std::numeric_limits<int32_t>::max();
+    int32_t offsetMax = std::numeric_limits<int32_t>::min();
+    uint32_t i0 = 0;
+    uint32_t i1 = 0;
+    for(int i=0;
+        i<downsampledAlignmentLength and
+        i0<downsampledMarkers[0].size() and
+        i1<downsampledMarkers[1].size(); i++) {
+        if( downsampledAlign[i] != seqanGapValue and
+            downsampledAlign[i + downsampledAlignmentLength] != seqanGapValue) {
+            if(downsampledMarkers[0][i0].second == downsampledMarkers[1][i1].second) {
+                const int32_t offset =
+                    int32_t(downsampledMarkers[0][i0].first) -
+                    int32_t(downsampledMarkers[1][i1].first);
+                offsetMin = min(offsetMin, offset);
+                offsetMax = max(offsetMax, offset);
+            }
+        }
+        if(downsampledAlign[i] != seqanGapValue) {
+            ++i0;
+        }
+        if(downsampledAlign[i + downsampledAlignmentLength] != seqanGapValue) {
+            ++i1;
+        }
+    }
+    cout << "Offset range " << offsetMin << " " << offsetMax << endl;
+    const int32_t bandMin = offsetMin - bandExtend;
+    const int32_t bandMax = offsetMax + bandExtend;
+    cout << "Banded alignment will use band " << bandMin << " " << bandMax << endl;
+
+
+
+    // Now, do a alignment using this band and all markers.
+    array<TSequence, 2> sequences;
+    for(uint64_t i=0; i<2; i++) {
+        for(uint32_t ordinal=0; ordinal<uint32_t(allMarkers[i].size()); ordinal++) {
+            const KmerId kmerId = allMarkers[i][ordinal].kmerId;
+            appendValue(sequences[i], kmerId + 100);
+        }
+    }
+    TStringSet sequencesSet;
+    appendValue(sequencesSet, sequences[0]);
+    appendValue(sequencesSet, sequences[1]);
+    TAlignGraph graph(sequencesSet);
+    const auto t2 = std::chrono::steady_clock::now();
+    const int score = globalAlignment(
+        graph,
+        Score<int, Simple>(matchScore, mismatchScore, gapScore),
+        AlignConfig<true, true, true, true>(),
+        bandMin, bandMax,
+        LinearGaps());
+    const auto t3 = std::chrono::steady_clock::now();
+    cout << "Full alignment score is " << score << endl;
+    cout << "Full alignment computation took " << seconds(t3-t2) << " s." << endl;
+    TSequence align;
+    convertAlignment(graph, align);
+    const int totalAlignmentLength = int(seqan::length(align));
+    SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
+    const int alignmentLength = totalAlignmentLength / 2;
+    cout << "Full alignment length " << alignmentLength << endl;
+
+
+
+    // Fill in the alignment.
+    alignment.ordinals.clear();
+    uint32_t ordinal0 = 0;
+    uint32_t ordinal1 = 0;
+    for(int i=0;
+        i<alignmentLength and ordinal0<allMarkers[0].size() and ordinal1<allMarkers[1].size(); i++) {
+        if( align[i] != seqanGapValue and
+            align[i + alignmentLength] != seqanGapValue and
+            allMarkers[0][ordinal0].kmerId == allMarkers[1][ordinal1].kmerId) {
+            alignment.ordinals.push_back(array<uint32_t, 2>{ordinal0, ordinal1});
+        }
+        if(align[i] != seqanGapValue) {
+            ++ordinal0;
+        }
+        if(align[i + alignmentLength] != seqanGapValue) {
+            ++ordinal1;
         }
     }
 
-
-    // Create a smoothed offset histogram.
-    const double nDrift = 20.;  // Distance over which we expect unit diffusion relative drift.
-    const int64_t halfWidth = int64_t(sqrt(double(min(markerCount0, markerCount1)) / nDrift));
-    vector<uint64_t> smoothedHistogram(histogram.size(), 0);
-    uint64_t sum = std::accumulate(histogram.begin(), histogram.begin() + (2*halfWidth+1), 0);
-    for(uint64_t i=halfWidth; i<smoothedHistogram.size()-halfWidth-1; i++) {
-        smoothedHistogram[i] = sum;
-        sum -= histogram[i-halfWidth];
-        sum += histogram[i+halfWidth];
+    // Check how close to the band we got.
+    int32_t distanceToLowerDiagonal = std::numeric_limits<int32_t>::max();
+    int32_t distanceToUpperDiagonal = std::numeric_limits<int32_t>::max();
+    for(const auto& ordinals: alignment.ordinals) {
+        const int32_t offset = int32_t(ordinals[0]) - int32_t(ordinals[1]);
+        distanceToLowerDiagonal = min(distanceToLowerDiagonal, offset-bandMin);
+        distanceToUpperDiagonal = min(distanceToUpperDiagonal, bandMax-offset);
     }
+    cout << "Distance of alignment from band " <<
+        distanceToLowerDiagonal << " " << distanceToUpperDiagonal << endl;
 
+    // Store the alignment info.
+    alignmentInfo.create(alignment, uint32_t(allMarkers[0].size()), uint32_t(allMarkers[1].size()));
 
-
-    // Write out the offset histogram.
-    if(debug) {
-        ofstream csv("OffsetHistogram.csv");
-        csv << "Offset,Frequency,Smoothed frequency,Range,Smoothed frequency/Range\n";
-        for(uint64_t i=0; i<histogram.size(); i++) {
-            const uint64_t frequency = histogram[i];
-            const uint64_t smoothedFrequency = smoothedHistogram[i];
-            const int64_t offset = offsetBegin + int64_t(i);
-            const int64_t range0 =
-                min(int64_t(markerCount0), int64_t(markerCount1) + offset) -
-                max(int64_t(0L), offset);
-            const int64_t range1 =
-                min(int64_t(markerCount0-offset), int64_t(markerCount1)) -
-                max(-offset, int64_t(0L));
-            SHASTA_ASSERT(range0 == range1);
-            csv <<
-                offset << "," <<
-                frequency << "," <<
-                smoothedFrequency << "," <<
-                range0 << "," <<
-                double(smoothedFrequency) / double(range0) << "\n";
-        }
-    }
 }
+
+#endif

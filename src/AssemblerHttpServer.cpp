@@ -1730,7 +1730,7 @@ void Assembler::exploreAlignment(
     } else if(method == 3) {
         alignOrientedReads3(
             orientedReadId0, orientedReadId1,
-            alignment, alignmentInfo);
+            matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
     } else {
         SHASTA_ASSERT(0);
     }
