@@ -390,7 +390,7 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Align.gapScore",
         value<int>(&alignOptions.gapScore)->
-        default_value(-3),
+        default_value(-1),
         "Gap score for marker alignments (only for experimental alignment method 1).")
 
         ("Align.sameChannelReadAlignment.suppressDeltaThreshold",
