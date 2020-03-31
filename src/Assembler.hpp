@@ -224,7 +224,7 @@ public:
     // without storing details of the alignment.
     void computeAlignments(
 
-        // Alignment method (0 or 1).
+        // Alignment method.
         int alignmentMethod,
 
         // Marker frequency threshold.

@@ -201,7 +201,7 @@ void Assembler::alignOverlappingOrientedReads(
 // without storing details of the alignment.
 void Assembler::computeAlignments(
 
-    // Alignment method (0, 1, or 2).
+    // Alignment method.
     int alignmentMethod,
 
     // Marker frequency threshold.
@@ -373,6 +373,10 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 #endif
             } else if(alignmentMethod == 2) {
                 alignOrientedReads2(orientedReadIds[0], orientedReadIds[1],
+                    alignment, alignmentInfo);
+            } else if(alignmentMethod == 3) {
+                alignOrientedReads3(orientedReadIds[0], orientedReadIds[1],
+                    matchScore, mismatchScore, gapScore,
                     alignment, alignmentInfo);
             } else {
                 SHASTA_ASSERT(0);

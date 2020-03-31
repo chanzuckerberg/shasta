@@ -506,6 +506,12 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                     orientedReadIds[0], orientedReadIds[1],
                     alignment, alignmentInfo
                 );
+            } else if(alignMethod == 3) {
+                alignOrientedReads3(
+                    orientedReadIds[0], orientedReadIds[1],
+                    matchScore, mismatchScore, gapScore,
+                    alignment, alignmentInfo
+                );
             } else {
                 SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
             }
