@@ -1,6 +1,66 @@
 #ifndef SHASTA_ASSEMBLER_OPTIONS_HPP
 #define SHASTA_ASSEMBLER_OPTIONS_HPP
 
+
+/*******************************************************************************
+
+CLASSES DESCRIBING ASSEMBLER OPTIONS
+
+There are two types of options:
+- Options that can be used both on the command line and in a configuration file
+  ("configurable options").
+- Options that can only be used in a configuration file
+  ("non-configurable options").
+
+Configuration files are divided in sections formatted like this:
+
+[SectionName]
+optionName = optionValue
+
+The command line syntax corresponding to the above is
+--SectionName.optionName optionValue
+
+Each SectionName corresponds to a class defined below. For example,
+section [Align] corresonds to class AlignOptions.
+
+If the option is a Boolean switch, use True or False as the optionValue.
+
+
+
+ADDING A NEW CONFIGURABLE OPTION
+
+1. Add the option to the class corresponding to the desired section.
+2. Modify the write function to that class to also write the newly added option.3.
+3. Modify AssemblerOptions::addCommandLineOnlyOptions to reflect the new option,
+   making sure to include a default value and at least a minimal help message.
+4. Add the option to shasta/conf/shasta.conf with a short comment
+   and its default value.
+5. Document the option in shasta/docs/CommandLineOptions.html.
+6. If the option requires validation add it at the appropriate place in
+   shasta/srcMain/main.cpp.
+
+For options not ready for end users, it is fine in steps 3 4 5 to use a
+comment just saying "Experimental - leave at default value"
+or something to that effect.
+
+
+
+ADDING A NEW NON-CONFIGURABLE OPTION
+
+1. Add the option to class CommandLineOnlyOptions.
+2. Modify the write function to that class to also write the newly added option
+3. Modify AssemblerOptions::addConfigurableOptions to reflect the new option,
+   making sure to include a default value and at least a minimal help message.
+4. Document the option in shasta/docs/CommandLineOptions.html.
+5. If the option requires validation add it at tha appropriate place in
+   shasta/srcMain/main.cpp.
+
+For options not ready for end users, it is fine in steps 3 4 5 to use a
+comment just saying "Experimental - leave at default value"
+or something to that effect.
+
+*******************************************************************************/
+
 // Boost libraries.
 #include <boost/program_options.hpp>
 
