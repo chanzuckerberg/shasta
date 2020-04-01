@@ -22,7 +22,11 @@ void Assembler::alignOrientedReads3(
     ReadId readId1, Strand strand1,
     int matchScore,
     int mismatchScore,
-    int gapScore)
+    int gapScore,
+    double downsamplingFactor,  // The fraction of markers to keep in the first step.
+    int bandExtend,             // How much to extend the band computed in the first step.
+    Alignment& alignment,
+    AlignmentInfo& alignmentInfo)
 {
     throw runtime_error("alignOrientedReads3 is not available on macOS.");
 }
