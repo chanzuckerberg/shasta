@@ -1650,37 +1650,70 @@ void Assembler::exploreAlignment(
         " on strand ";
     writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
 
+
+    // Write a table with the rest of the form.
     html <<
+        "<p><table>"
 
-        // Method 0
-        "<br><br><input type=radio name=method value=0" <<
-        (method==0 ? " checked=checked" : "") << "> Use method 0 (Shasta)"
-        "<br><table><tr><th class=left>Maximum ordinal skip<td>" <<
-        "<input type=text name=maxSkip size=8 value=" << maxSkip << ">"
-        "<tr><th class=left>Maximum ordinal drift" <<
-        "<td><input type=text name=maxDrift size=8 value=" << maxDrift << ">"
-        "<tr><th class=left>Maximum k-mer frequency " <<
-        "<td><input type=text name=maxMarkerFrequency size=8 value=" << maxMarkerFrequency << ">"
-        "</table>"
+        "<tr><th class=left>Alignment method<td>"
+        "<input type=radio name=method value=0" <<
+        (method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
+        "<input type=radio name=method value=1" <<
+        (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
+        "<input type=radio name=method value=2" <<
+        (method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
+        "<input type=radio name=method value=3" <<
+        (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
 
-        // Method 1
-        "<br><input type=radio name=method value=1" <<
-        (method==1 ? " checked=checked" : "") << "> Use method 1 (SeqAn)"
-        "<br><table><tr><th class=left>Match score" <<
-        "<td><input type=text name=matchScore size=8 value=" << matchScore << ">"
-        "<tr><th class=left>Mismatch score " <<
-        "<td><input type=text name=mismatchScore size=8 value=" << mismatchScore << ">"
-        "<tr><th class=left>Gap score" <<
-        "<td><input type=text name=gapScore size=8 value=" << gapScore << ">"
-        "</table>"
+        "<tr title='Used by alignment method 0'><th class=left>"
+        "Maximum ordinal skip<td class=centered>" <<
+        "<input type=text style='text-align:center' "
+        "name=maxSkip size=16 value=" <<
+        maxSkip << ">"
 
-        // Method 2
-        "<br><input type=radio name=method value=2" <<
-        (method==2 ? " checked=checked" : "") << "> Use method 2 (Edlib 3-step process "
-            "to mimic local alignment))"
+        "<tr title='Used by alignment method 0'>"
+        "<th class=left>Maximum ordinal drift" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxDrift size=16 value=" <<
+        maxDrift << ">"
 
-        "<p><input type=submit value='Compute marker alignment'>"
+        "<tr title='Used by alignment method 0'>"
+        "<th class=left>"
+        "Maximum k-mer frequency " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxMarkerFrequency size=16 value=" <<
+        maxMarkerFrequency << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Match score" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=matchScore size=16 value=" <<
+        matchScore << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Mismatch score " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=mismatchScore size=16 value=" <<
+        mismatchScore << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Gap score" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=gapScore size=16 value=" <<
+        gapScore << ">"
+
+        "<tr title='Used by alignment method 3'><th class=left>Downsampling ratio" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=downsamplingFactor size=16 value=" <<
+        downsamplingFactor << ">"
+
+        "<tr title='Used by alignment method 3'><th class=left>Band extend" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=bandExtend size=16 value=" <<
+        bandExtend << ">"
+
+        "</table><p><input type=submit value='Compute marker alignment'>"
         "</form>";
+
+
+
 
     // If the readId's or strand's are missing, stop here.
     if(!readId0IsPresent || !strand0IsPresent || !readId1IsPresent || !strand1IsPresent) {
