@@ -257,6 +257,10 @@ public:
         int mismatchScore,
         int gapScore,
 
+        // Parameters for alignment method 3.
+        double downsamplingFactor,
+        int bandExtend,
+
         // If true, discard containment alignments.
         bool suppressContainments,
 
@@ -360,6 +364,10 @@ public:
         int matchScore,
         int mismatchScore,
         int gapScore,
+
+        // Parameters for method 3 alignments.
+        double downsamplingFactor,
+        int bandExtend,
 
         // The method used to create the read graph.
         // This affects which alignments are used to create the marker graph.
@@ -994,6 +1002,8 @@ private:
         int matchScore,
         int mismatchScore,
         int gapScore,
+        double downsamplingFactor,
+        int bandExtend,
         Alignment&,
         AlignmentInfo&);
 
@@ -1078,6 +1088,8 @@ private:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        double downsamplingFactor;
+        int bandExtend;
         bool suppressContainments;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
@@ -1213,6 +1225,8 @@ private:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        double downsamplingFactor;
+        int bandExtend;
         int readGraphCreationMethod;
         uint32_t maxMarkerFrequency;
 

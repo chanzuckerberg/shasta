@@ -177,6 +177,8 @@ public:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        double downsamplingFactor;
+        int bandExtend;
         int sameChannelReadAlignmentSuppressDeltaThreshold;
         bool suppressContainments;
         void write(ostream&) const;

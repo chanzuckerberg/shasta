@@ -660,6 +660,8 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.matchScore,
             assemblerOptions.alignOptions.mismatchScore,
             assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.alignOptions.downsamplingFactor,
+            assemblerOptions.alignOptions.bandExtend,
             assemblerOptions.alignOptions.suppressContainments,
             threadCount);
     }
@@ -886,6 +888,8 @@ void shasta::main::createMarkerGraphVertices(
             assemblerOptions.alignOptions.matchScore,
             assemblerOptions.alignOptions.mismatchScore,
             assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.alignOptions.downsamplingFactor,
+            assemblerOptions.alignOptions.bandExtend,
             assemblerOptions.readGraphOptions.creationMethod,
             assemblerOptions.markerGraphOptions.minCoverage,
             assemblerOptions.markerGraphOptions.maxCoverage,

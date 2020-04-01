@@ -23,6 +23,8 @@ a.createMarkerGraphVertices(
     matchScore = int(config['Align']['matchScore']),,
     mismatchScore = int(config['Align']['mismatchScore']),,
     gapScore = int(config['Align']['gapScore']),
+    downsamplingFactor = float(config['Align']['downsamplingFactor']),
+    bandExtend = int(config['Align']['bandExtend']),
     readGraphCreationMethod = int(config['ReadGraph']['creationMethod']),
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']))

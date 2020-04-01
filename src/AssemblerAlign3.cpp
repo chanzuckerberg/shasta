@@ -42,16 +42,16 @@ void Assembler::alignOrientedReads3(
     int matchScore,
     int mismatchScore,
     int gapScore,
+    double downsamplingFactor,  // The fraction of markers to keep in the first step.
+    int bandExtend,             // How much to extend the band computed in the first step.
     Alignment& alignment,
     AlignmentInfo& alignmentInfo)
 {
     const bool debug = true;
-
-    // Parameters that control this function, which will have to be passed in.
-    // The fraction of markers to keep in the first step.
-    const double downsamplingFactor = 0.1;
-    // How much to extend the band computed in the first step.
-    const int32_t bandExtend = 10;
+    if(debug) {
+        cout << "Assembler::alignOrientedReads3 begins for " <<
+            orientedReadId0 << " " << orientedReadId1 << endl;
+    }
 
     // Hide shasta::Alignment.
     using namespace seqan;
@@ -124,15 +124,14 @@ void Assembler::alignOrientedReads3(
 
     // Compute the alignment.
     TAlignGraph downsampledGraph(downsampledSequencesSet);
-    const auto t0 = std::chrono::steady_clock::now();
     const int downsampledScore = globalAlignment(
         downsampledGraph,
         Score<int, Simple>(matchScore, mismatchScore, gapScore),
         AlignConfig<true, true, true, true>(),
         LinearGaps());
-    const auto t1 = std::chrono::steady_clock::now();
-    cout << "Downsampled alignment score is " << downsampledScore << endl;
-    cout << "Downsampled alignment computation took " << seconds(t1-t0) << " s." << endl;
+    if(debug) {
+        cout << "Downsampled alignment score is " << downsampledScore << endl;
+    }
 
     // Extract the alignment from the graph.
     // This creates a single sequence consisting of the two rows
@@ -142,7 +141,9 @@ void Assembler::alignOrientedReads3(
     const int totalDownsampledAlignmentLength = int(seqan::length(downsampledAlign));
     SHASTA_ASSERT((totalDownsampledAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
     const int downsampledAlignmentLength = totalDownsampledAlignmentLength / 2;
-    cout << "Downsampled alignment length " << downsampledAlignmentLength << endl;
+    if(debug) {
+        cout << "Downsampled alignment length " << downsampledAlignmentLength << endl;
+    }
 
 
 
@@ -212,10 +213,12 @@ void Assembler::alignOrientedReads3(
             ++i1;
         }
     }
-    cout << "Offset range " << offsetMin << " " << offsetMax << endl;
     const int32_t bandMin = offsetMin - bandExtend;
     const int32_t bandMax = offsetMax + bandExtend;
-    cout << "Banded alignment will use band " << bandMin << " " << bandMax << endl;
+    if(debug) {
+        cout << "Offset range " << offsetMin << " " << offsetMax << endl;
+        cout << "Banded alignment will use band " << bandMin << " " << bandMax << endl;
+    }
 
 
 
@@ -231,22 +234,23 @@ void Assembler::alignOrientedReads3(
     appendValue(sequencesSet, sequences[0]);
     appendValue(sequencesSet, sequences[1]);
     TAlignGraph graph(sequencesSet);
-    const auto t2 = std::chrono::steady_clock::now();
     const int score = globalAlignment(
         graph,
         Score<int, Simple>(matchScore, mismatchScore, gapScore),
         AlignConfig<true, true, true, true>(),
         bandMin, bandMax,
         LinearGaps());
-    const auto t3 = std::chrono::steady_clock::now();
-    cout << "Full alignment score is " << score << endl;
-    cout << "Full alignment computation took " << seconds(t3-t2) << " s." << endl;
+    if(debug) {
+        cout << "Full alignment score is " << score << endl;
+    }
     TSequence align;
     convertAlignment(graph, align);
     const int totalAlignmentLength = int(seqan::length(align));
     SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
     const int alignmentLength = totalAlignmentLength / 2;
-    cout << "Full alignment length " << alignmentLength << endl;
+    if(debug) {
+        cout << "Full alignment length " << alignmentLength << endl;
+    }
 
 
 
@@ -277,8 +281,10 @@ void Assembler::alignOrientedReads3(
         distanceToLowerDiagonal = min(distanceToLowerDiagonal, offset-bandMin);
         distanceToUpperDiagonal = min(distanceToUpperDiagonal, bandMax-offset);
     }
-    cout << "Distance of alignment from band " <<
-        distanceToLowerDiagonal << " " << distanceToUpperDiagonal << endl;
+    if(debug) {
+        cout << "Distance of alignment from band " <<
+            distanceToLowerDiagonal << " " << distanceToUpperDiagonal << endl;
+    }
 
     // Store the alignment info.
     alignmentInfo.create(alignment, uint32_t(allMarkers[0].size()), uint32_t(allMarkers[1].size()));

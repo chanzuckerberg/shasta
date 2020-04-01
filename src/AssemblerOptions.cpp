@@ -393,6 +393,17 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(-1),
         "Gap score for marker alignments (only for experimental alignment method 1).")
 
+        ("Align.downsamplingFactor",
+        value<double>(&alignOptions.downsamplingFactor)->
+        default_value(0.1),
+        "Downsampling factor (only used for experimental alignment method 3).")
+
+        ("Align.bandExtend",
+        value<int>(&alignOptions.bandExtend)->
+        default_value(10),
+        "Amount to extend the downsampled band "
+        "(only used for experimental alignment method 3).")
+
         ("Align.sameChannelReadAlignment.suppressDeltaThreshold",
         value<int>(&alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold)->
         default_value(0),
@@ -620,6 +631,8 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
     s << "matchScore = " << matchScore << "\n";
     s << "mismatchScore = " << mismatchScore << "\n";
     s << "gapScore = " << gapScore << "\n";
+    s << "downsamplingFactor = " << downsamplingFactor << "\n";
+    s << "bandExtend = " << bandExtend << "\n";
     s << "sameChannelReadAlignment.suppressDeltaThreshold = " <<
         sameChannelReadAlignmentSuppressDeltaThreshold << "\n";
     s << "suppressContainments = " <<

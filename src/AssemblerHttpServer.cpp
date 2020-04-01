@@ -1627,6 +1627,10 @@ void Assembler::exploreAlignment(
     getParameterValue(request, "mismatchScore", mismatchScore);
     int gapScore = httpServerData.assemblerOptions->alignOptions.gapScore;
     getParameterValue(request, "gapScore", gapScore);
+    double downsamplingFactor = httpServerData.assemblerOptions->alignOptions.downsamplingFactor;
+    getParameterValue(request, "downsamplingFactor", downsamplingFactor);
+    int bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
+    getParameterValue(request, "bandExtend", bandExtend);
 
 
 
@@ -1730,7 +1734,9 @@ void Assembler::exploreAlignment(
     } else if(method == 3) {
         alignOrientedReads3(
             orientedReadId0, orientedReadId1,
-            matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+            matchScore, mismatchScore, gapScore,
+            downsamplingFactor, bandExtend,
+            alignment, alignmentInfo);
     } else {
         SHASTA_ASSERT(0);
     }

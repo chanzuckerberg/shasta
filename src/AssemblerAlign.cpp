@@ -228,10 +228,14 @@ void Assembler::computeAlignments(
     // Maximum left/right trim (in bases) for an alignment to be used.
     size_t maxTrim,
 
-    // Scores used to compute method 1 alignments.
+    // Scores used to compute method 1 and 3 alignments.
     int matchScore,
     int mismatchScore,
     int gapScore,
+
+    // Parameters for alignment method 3.
+    double downsamplingFactor,
+    int bandExtend,
 
     // If true, discard containment alignments.
     bool suppressContainments,
@@ -263,6 +267,8 @@ void Assembler::computeAlignments(
     data.matchScore = matchScore;
     data.mismatchScore = mismatchScore;
     data.gapScore = gapScore;
+    data.downsamplingFactor = downsamplingFactor;
+    data.bandExtend = bandExtend;
     data.suppressContainments = suppressContainments;
 
     // Adjust the numbers of threads, if necessary.
@@ -331,6 +337,8 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const int matchScore = data.matchScore;
     const int mismatchScore = data.mismatchScore;
     const int gapScore = data.gapScore;
+    const double downsamplingFactor = data.downsamplingFactor;
+    const int bandExtend = data.bandExtend;
     const bool suppressContainments = data.suppressContainments;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
@@ -377,6 +385,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             } else if(alignmentMethod == 3) {
                 alignOrientedReads3(orientedReadIds[0], orientedReadIds[1],
                     matchScore, mismatchScore, gapScore,
+                    downsamplingFactor, bandExtend,
                     alignment, alignmentInfo);
             } else {
                 SHASTA_ASSERT(0);
