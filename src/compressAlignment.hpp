@@ -74,6 +74,7 @@ that can be represented                    3       7      511   2^19-1  2^31-1
 
 // Shasta.
 #include "Alignment.hpp"
+#include "span.hpp"
 
 // Standard library.
 #include "string.hpp"
@@ -81,7 +82,7 @@ that can be represented                    3       7      511   2^19-1  2^31-1
 
 namespace shasta {
     void compress(const Alignment&, string&);
-    void decompress(const string&, Alignment&);
+    void decompress(span<const char>, Alignment&);
 
     void testAlignmentCompression();
 
@@ -100,8 +101,8 @@ namespace shasta {
 
 class shasta::compressAlignment::Format0 {
 public:
-    static const uint8_t ID = 0b0;
-    static const uint8_t ID_MASK = 0x01;
+    static const uint8_t id = 0b0;
+    static const uint8_t idMask = 0x01;
 
     uint8_t formatIdentifier: 1;
     uint8_t skip0: 2;
@@ -117,11 +118,9 @@ public:
         int32_t skip0Argument,
         int32_t skip1Argument,
         uint32_t nArgument):
-        formatIdentifier(ID)
+        formatIdentifier(id)
     {
-        SHASTA_ASSERT(skip0Argument >= 0 && skip0Argument <= 3);
-        SHASTA_ASSERT(skip1Argument >= 0 && skip1Argument <= 3);
-        SHASTA_ASSERT(nArgument <= 8);
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
         skip0 = skip0Argument;
@@ -148,8 +147,8 @@ static_assert(sizeof(shasta::compressAlignment::Format0) == 1,
 
 class shasta::compressAlignment::Format1 {
 public:
-    static const uint8_t ID = 0b001;
-    static const uint8_t ID_MASK = 0x07;
+    static const uint8_t id = 0b001;
+    static const uint8_t idMask = 0x07;
     
     uint16_t formatIdentifier: 3;
     int16_t skip0: 4;
@@ -165,11 +164,9 @@ public:
         int32_t skip0Argument,
         int32_t skip1Argument,
         uint32_t nArgument):
-        formatIdentifier(ID)
+        formatIdentifier(id)
     {
-        SHASTA_ASSERT(skip0Argument >= -8 && skip0Argument <= 7);
-        SHASTA_ASSERT(skip1Argument >= -8 && skip1Argument <= 7);
-        SHASTA_ASSERT(nArgument <= 32);
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
         skip0 = skip0Argument;
@@ -196,8 +193,8 @@ static_assert(sizeof(shasta::compressAlignment::Format1) == 2,
 
 class shasta::compressAlignment::Format2 {
 public:
-    static const uint8_t ID = 0b011;
-    static const uint8_t ID_MASK = 0x07;
+    static const uint8_t id = 0b011;
+    static const uint8_t idMask = 0x07;
     
     uint32_t formatIdentifier: 3;
     int32_t skip0: 10;
@@ -213,11 +210,9 @@ public:
         int32_t skip0Argument,
         int32_t skip1Argument,
         uint32_t nArgument):
-        formatIdentifier(ID)
+        formatIdentifier(id)
     {
-        SHASTA_ASSERT(skip0Argument >= -512 && skip0Argument <= 511);
-        SHASTA_ASSERT(skip1Argument >= -512 && skip1Argument <= 511);
-        SHASTA_ASSERT(nArgument <= 512);
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
         skip0 = skip0Argument;
@@ -244,8 +239,8 @@ static_assert(sizeof(shasta::compressAlignment::Format2) == 4,
 
 class shasta::compressAlignment::Format3 {
 public:
-    static const uint8_t ID = 0b101;
-    static const uint8_t ID_MASK = 0x07;
+    static const uint8_t id = 0b101;
+    static const uint8_t idMask = 0x07;
     
     uint64_t formatIdentifier: 3;
     int64_t skip0: 20;
@@ -261,11 +256,9 @@ public:
         int32_t skip0Argument,
         int32_t skip1Argument,
         uint32_t nArgument):
-        formatIdentifier(ID)
+        formatIdentifier(id)
     {
-        SHASTA_ASSERT(skip0Argument >= -524288 && skip0Argument <= 524287);
-        SHASTA_ASSERT(skip1Argument >= -524288 && skip1Argument <= 524287);
-        SHASTA_ASSERT(nArgument <= 2097152);
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
         skip0 = skip0Argument;
@@ -292,8 +285,8 @@ static_assert(sizeof(shasta::compressAlignment::Format3) == 8,
 
 class shasta::compressAlignment::Format4 {
 public:
-    static const uint8_t ID = 0b111;
-    static const uint8_t ID_MASK = 0x07;
+    static const uint8_t id = 0b111;
+    static const uint8_t idMask = 0x07;
     
     uint32_t formatIdentifier;
     int32_t skip0;
@@ -307,7 +300,7 @@ public:
         int32_t skip0,
         int32_t skip1,
         uint32_t n):
-        formatIdentifier(ID),
+        formatIdentifier(id),
         skip0(skip0),
         skip1(skip1),
         nMinus1(n-1)

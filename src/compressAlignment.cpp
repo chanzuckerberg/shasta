@@ -61,7 +61,7 @@ void shasta::compress(const Alignment& alignment, string& s)
             Format4 format(skip0, skip1, n);
             s.append(reinterpret_cast<char*>(&format), sizeof(format));
         } else {
-            throw std::runtime_error("Unable to compress alignment streak: "
+            throw std::runtime_error("Shasta Internal Error: Unable to compress alignment streak: "
                 "skip0 " + to_string(skip0) +
                 ", skip1 " + to_string(skip1) +
                 ", n " + to_string(n));
@@ -70,7 +70,7 @@ void shasta::compress(const Alignment& alignment, string& s)
 }
 
 
-void shasta::decompress(const string& s, Alignment& alignment)
+void shasta::decompress(span<const char> s, Alignment& alignment)
 {
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
@@ -80,8 +80,8 @@ void shasta::decompress(const string& s, Alignment& alignment)
         uint32_t streakSize;
         int32_t skip0, skip1;
 
-        uint8_t fid = shasta::compressAlignment::extractFormatIdentifier(s[pos]);
-        if (fid == Format0::ID) {
+        uint8_t formatIdentifier = compressAlignment::extractFormatIdentifier(s[pos]);
+        if (formatIdentifier == Format0::id) {
             // Format0
             Format0 const *f0 = reinterpret_cast<Format0*>(const_cast<char*>(&s[pos]));
             pos += sizeof(Format0);
@@ -89,7 +89,7 @@ void shasta::decompress(const string& s, Alignment& alignment)
             skip1 = f0->skip1;
             streakSize = f0->n();
             
-        } else if (fid == Format1::ID) {
+        } else if (formatIdentifier == Format1::id) {
             // Format1
             Format1 const *f1 = reinterpret_cast<Format1*>(const_cast<char*>(&s[pos]));
             pos += sizeof(Format1);
@@ -97,7 +97,7 @@ void shasta::decompress(const string& s, Alignment& alignment)
             skip1 = f1->skip1;
             streakSize = f1->n();
             
-        } else if (fid == Format2::ID) {
+        } else if (formatIdentifier == Format2::id) {
             // Format2
             Format2 const *f2 = reinterpret_cast<Format2*>(const_cast<char*>(&s[pos]));
             pos += sizeof(Format2);
@@ -105,7 +105,7 @@ void shasta::decompress(const string& s, Alignment& alignment)
             skip1 = f2->skip1;
             streakSize = f2->n();
 
-        } else if (fid == Format3::ID) {
+        } else if (formatIdentifier == Format3::id) {
             // Format3
             Format3 const *f3 = reinterpret_cast<Format3*>(const_cast<char*>(&s[pos]));
             pos += sizeof(Format3);
@@ -136,18 +136,18 @@ void shasta::decompress(const string& s, Alignment& alignment)
 }
 
 uint8_t shasta::compressAlignment::extractFormatIdentifier(const char c) {
-    if ((c & Format0::ID_MASK) == Format0::ID) {
-        return Format0::ID;
-    } else if ((c & Format1::ID_MASK) == Format1::ID) {
-        return Format1::ID;
-    } else if ((c & Format2::ID_MASK) == Format2::ID) {
-        return Format2::ID;
-    } else if ((c & Format3::ID_MASK) == Format3::ID) {
-        return Format3::ID;
-    } else if ((c & Format4::ID_MASK) == Format4::ID) {
-        return Format4::ID;
+    if ((c & Format0::idMask) == Format0::id) {
+        return Format0::id;
+    } else if ((c & Format1::idMask) == Format1::id) {
+        return Format1::id;
+    } else if ((c & Format2::idMask) == Format2::id) {
+        return Format2::id;
+    } else if ((c & Format3::idMask) == Format3::id) {
+        return Format3::id;
+    } else if ((c & Format4::idMask) == Format4::id) {
+        return Format4::id;
     } else {
-        string errorStr("Unsupported format in byte - ");
+        string errorStr("Shasta Internal Error: Unsupported format in byte - ");
         for (uint8_t i = 0; i < sizeof(c) * 8; i++) {                                                          
             errorStr.append(1, !!((c << i) & 0x80) ? '1': '0');                                                                     
         }
@@ -180,7 +180,14 @@ void shasta::testAlignmentCompression() {
         {600000, 500000}, // Seventh streak begins here (Format4)
         {600001, 500001},
         {500000, 500005}, // Eighth streak (negative skip0) (Format3)
-        {500001, 500006},
+        {500001, 500007},
+        {500002, 500008},
+        {500003, 500009},
+        {500004, 500010},
+        {500005, 500011},
+        {500006, 500012},
+        {500007, 500013},
+        {500008, 500014},
     };
   
     Alignment alignment;
@@ -199,7 +206,8 @@ void shasta::testAlignmentCompression() {
     cout << "Compressed size = " << compressed.size() << " bytes." << endl;
 
     Alignment decompressedAlignment;
-    shasta::decompress(compressed, decompressedAlignment);
+    span<const char> spanOfBytes(compressed.c_str(), compressed.c_str() + compressed.size());
+    shasta::decompress(spanOfBytes, decompressedAlignment);
 
     // cout << "---Decompressed Alignment -----" << endl;
     // for(const auto& x: decompressedAlignment.ordinals) {
@@ -207,8 +215,5 @@ void shasta::testAlignmentCompression() {
     // }
     // cout << "-------------------------------" << endl;
 
-    SHASTA_ASSERT(alignment.ordinals.size() == decompressedAlignment.ordinals.size());
-    for(size_t i = 0; i < alignment.ordinals.size(); i++) {
-        SHASTA_ASSERT(alignment.ordinals[i] == decompressedAlignment.ordinals[i]);
-    }
+    SHASTA_ASSERT(alignment.ordinals == decompressedAlignment.ordinals);
 }
