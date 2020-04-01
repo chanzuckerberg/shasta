@@ -66,23 +66,25 @@ Number of bits used to represent
 each of skip0 and skip1                    2       4      10      20      32
 skip0 and skip1 are signed                 No      Yes    Yes     Yes     Yes
 Minimum value of skip0 and skip1
-that can be represented.                   0      -8     -512    2^19-1  2^31-1
+that can be represented.                   0      -8     -512   -2^19   -2^31
 Maximum value of skip0 and skip1
-that can be represented                    3       7      511   -2^19   -2^31
+that can be represented                    3       7      511   2^19-1  2^31-1
 
 *******************************************************************************/
 
 // Shasta.
 #include "Alignment.hpp"
+#include "span.hpp"
 
 // Standard library.
 #include "string.hpp"
-#include "span.hpp"
 
 
 namespace shasta {
     void compress(const Alignment&, string&);
-    void decompress(span<const char>, Alignment);
+    void decompress(span<const char>, Alignment&);
+
+    void testAlignmentCompression();
 
     namespace compressAlignment {
         class Format0;
@@ -90,6 +92,8 @@ namespace shasta {
         class Format2;
         class Format3;
         class Format4;
+
+        uint8_t extractFormatIdentifier(const char);
     }
 }
 
@@ -97,6 +101,9 @@ namespace shasta {
 
 class shasta::compressAlignment::Format0 {
 public:
+    static const uint8_t id = 0b0;
+    static const uint8_t idMask = 0x01;
+
     uint8_t formatIdentifier: 1;
     uint8_t skip0: 2;
     uint8_t skip1: 2;
@@ -110,7 +117,8 @@ public:
     Format0(
         int32_t skip0Argument,
         int32_t skip1Argument,
-        uint32_t nArgument)
+        uint32_t nArgument):
+        formatIdentifier(id)
     {
         SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
@@ -130,7 +138,7 @@ public:
             skip1 <= 3 and
             n >= 1 and
             n <= 8;
-    }
+    }   
 };
 static_assert(sizeof(shasta::compressAlignment::Format0) == 1,
     "Unexpected size for shasta::compressAlignment::Format0");
@@ -139,6 +147,9 @@ static_assert(sizeof(shasta::compressAlignment::Format0) == 1,
 
 class shasta::compressAlignment::Format1 {
 public:
+    static const uint8_t id = 0b001;
+    static const uint8_t idMask = 0x07;
+    
     uint16_t formatIdentifier: 3;
     int16_t skip0: 4;
     int16_t skip1: 4;
@@ -150,16 +161,17 @@ public:
     }
 
     Format1(
-         int32_t skip0Argument,
-         int32_t skip1Argument,
-         uint32_t nArgument)
+        int32_t skip0Argument,
+        int32_t skip1Argument,
+        uint32_t nArgument):
+        formatIdentifier(id)
     {
-         SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-         skip0 = skip0Argument;
-         skip1 = skip1Argument;
-         nMinus1 = nArgument - 1;
+        skip0 = skip0Argument;
+        skip1 = skip1Argument;
+        nMinus1 = nArgument - 1;
 #pragma GCC diagnostic pop
     }
 
@@ -181,6 +193,9 @@ static_assert(sizeof(shasta::compressAlignment::Format1) == 2,
 
 class shasta::compressAlignment::Format2 {
 public:
+    static const uint8_t id = 0b011;
+    static const uint8_t idMask = 0x07;
+    
     uint32_t formatIdentifier: 3;
     int32_t skip0: 10;
     int32_t skip1: 10;
@@ -192,22 +207,30 @@ public:
     }
 
     Format2(
-         int32_t skip0Argument,
-         int32_t skip1Argument,
-         uint32_t nArgument)
-     {
-         SHASTA_ASSERT(skip0Argument >= -512);
-         SHASTA_ASSERT(skip0Argument <= 511);
-         SHASTA_ASSERT(skip1Argument >= -512);
-         SHASTA_ASSERT(skip1Argument <= 511);
-         SHASTA_ASSERT(nArgument <= 512);
+        int32_t skip0Argument,
+        int32_t skip1Argument,
+        uint32_t nArgument):
+        formatIdentifier(id)
+    {
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-         skip0 = skip0Argument;
-         skip1 = skip1Argument;
-         nMinus1 = nArgument - 1;
+        skip0 = skip0Argument;
+        skip1 = skip1Argument;
+        nMinus1 = nArgument - 1;
 #pragma GCC diagnostic pop
-     }
+    }
+
+    static bool ok(int32_t skip0, int32_t skip1, uint32_t n)
+    {
+        return
+            skip0 >= -512 and
+            skip0 <= 511 and
+            skip1 >= -512 and
+            skip1 <= 511 and
+            n >= 1 and
+            n <= 512;
+    }
 };
 static_assert(sizeof(shasta::compressAlignment::Format2) == 4,
     "Unexpected size for shasta::compressAlignment::Format2");
@@ -216,6 +239,9 @@ static_assert(sizeof(shasta::compressAlignment::Format2) == 4,
 
 class shasta::compressAlignment::Format3 {
 public:
+    static const uint8_t id = 0b101;
+    static const uint8_t idMask = 0x07;
+    
     uint64_t formatIdentifier: 3;
     int64_t skip0: 20;
     int64_t skip1: 20;
@@ -227,23 +253,30 @@ public:
     }
 
     Format3(
-         int32_t skip0Argument,
-         int32_t skip1Argument,
-         uint32_t nArgument)
-     {
-         SHASTA_ASSERT(skip0Argument >= -524288);
-         SHASTA_ASSERT(skip0Argument <= 524287);
-         SHASTA_ASSERT(skip1Argument >= -524288);
-         SHASTA_ASSERT(skip1Argument <= 524287);
-         SHASTA_ASSERT(nArgument <= 2097152);
+        int32_t skip0Argument,
+        int32_t skip1Argument,
+        uint32_t nArgument):
+        formatIdentifier(id)
+    {
+        SHASTA_ASSERT(ok(skip0Argument, skip1Argument, nArgument));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-         skip0 = skip0Argument;
-         skip1 = skip1Argument;
-         nMinus1 = nArgument - 1;
+        skip0 = skip0Argument;
+        skip1 = skip1Argument;
+        nMinus1 = nArgument - 1;
 #pragma GCC diagnostic pop
-     }
+    }
 
+    static bool ok(int64_t skip0, int64_t skip1, uint64_t n)
+    {
+        return
+            skip0 >= -524288 and
+            skip0 <= 524287 and
+            skip1 >= -524288 and
+            skip1 <= 524287 and
+            n >= 1 and
+            n <= 2097152;
+    }   
 };
 static_assert(sizeof(shasta::compressAlignment::Format3) == 8,
     "Unexpected size for shasta::compressAlignment::Format3");
@@ -252,7 +285,10 @@ static_assert(sizeof(shasta::compressAlignment::Format3) == 8,
 
 class shasta::compressAlignment::Format4 {
 public:
-    uint32_t formatIdentifier: 3;
+    static const uint8_t id = 0b111;
+    static const uint8_t idMask = 0x07;
+    
+    uint32_t formatIdentifier;
     int32_t skip0;
     int32_t skip1;
     uint32_t nMinus1;
@@ -261,14 +297,25 @@ public:
         return nMinus1 + 1;
     }
     Format4(
-         int32_t skip0,
-         int32_t skip1,
-         uint32_t n):
-         skip0(skip0),
-         skip1(skip1),
-         nMinus1(n-1)
-     {
-     }
+        int32_t skip0,
+        int32_t skip1,
+        uint32_t n):
+        formatIdentifier(id),
+        skip0(skip0),
+        skip1(skip1),
+        nMinus1(n-1)
+    {
+    }
+
+    static bool ok(int64_t skip0, int64_t skip1, uint64_t n)
+    {
+        return
+            skip0 >= std::numeric_limits<int32_t>::min() and
+            skip0 <= std::numeric_limits<int32_t>::max() and
+            skip1 >= std::numeric_limits<int32_t>::min() and
+            skip1 <= std::numeric_limits<int32_t>::max() and
+            n <= std::numeric_limits<uint32_t>::max();
+    }
 };
 static_assert(sizeof(shasta::compressAlignment::Format4) == 16,
     "Unexpected size for shasta::compressAlignment::Format4");
