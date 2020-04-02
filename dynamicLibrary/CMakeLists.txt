@@ -26,6 +26,8 @@ if(BUILD_DEBUG)
 else(BUILD_DEBUG)
     add_definitions(-g0)
     add_definitions(-O3)
+    # NDEBUG is required to turn off SeqAn debug code.
+    add_definitions(-DNDEBUG)
 endif(BUILD_DEBUG)
 
 # 16-byte compare and swap.
