@@ -53,7 +53,7 @@ void Assembler::alignOrientedReads3(
     Alignment& alignment,
     AlignmentInfo& alignmentInfo)
 {
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         cout << "Assembler::alignOrientedReads3 begins for " <<
             orientedReadId0 << " " << orientedReadId1 << endl;
