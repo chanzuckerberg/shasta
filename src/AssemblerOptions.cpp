@@ -532,12 +532,6 @@ void AssemblerOptions::addConfigurableOptions()
         "Selects the consensus caller for repeat counts. "
         "See the documentation for available choices.")
 
-        ("Assembly.useMarginPhase",
-        bool_switch(&assemblyOptions.useMarginPhase)->
-        default_value(false),
-        "Used to turn on MarginPhase. Experimental. To use MarginPhase with Shasta, run "
-        "marginPhase separately after the Shasta ssembly is complete.")
-
         ("Assembly.storeCoverageData",
         bool_switch(&assemblyOptions.storeCoverageData)->
         default_value(false),
@@ -683,8 +677,6 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
         markerGraphEdgeLengthThresholdForConsensus << "\n";
     s << "consensusCaller = " <<
         consensusCaller << "\n";
-    s << "useMarginPhase = " <<
-        convertBoolToPythonString(useMarginPhase) << "\n";
     s << "storeCoverageData = " <<
         convertBoolToPythonString(storeCoverageData) << "\n";
     s << "storeCoverageDataCsvLengthThreshold = " <<

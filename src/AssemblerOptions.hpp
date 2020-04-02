@@ -236,7 +236,6 @@ public:
         int crossEdgeCoverageThreshold;
         int markerGraphEdgeLengthThresholdForConsensus;
         string consensusCaller;
-        bool useMarginPhase;
         bool storeCoverageData;
         int storeCoverageDataCsvLengthThreshold;
         bool writeReadsByAssembledSegment;

@@ -44,7 +44,6 @@ add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 # Definitions that control what components get built.
 add_definitions(-DSHASTA_HTTP_SERVER)
 add_definitions(-DSHASTA_PYTHON_API)
-add_definitions(-DSHASTA_MARGINPHASE)
 if(BUILD_FOR_GPU)
     add_definitions(-DSHASTA_BUILD_FOR_GPU)
 endif(BUILD_FOR_GPU)

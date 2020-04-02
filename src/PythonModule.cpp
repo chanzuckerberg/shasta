@@ -13,7 +13,6 @@
 #include "MultithreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
-#include "testMarginCore.hpp"
 #include "testSpoa.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
@@ -441,7 +440,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::assembleMarkerGraphEdges,
             arg("threadCount") = 0,
             arg("markerGraphEdgeLengthThresholdForConsensus"),
-            arg("useMarginPhase"),
             arg("storeCoverageData"))
         .def("accessMarkerGraphConsensus",
             &Assembler::accessMarkerGraphConsensus)
@@ -547,10 +545,6 @@ PYBIND11_MODULE(shasta, module)
             arg("edgeId1")
             )
 
-        // MarginPhase parameters.
-        .def("setupMarginPhase",
-            &Assembler::setupMarginPhase)
-
         // Definition of class_<Assembler> ends here.
     ;
 
@@ -610,9 +604,6 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testSpoa",
         testSpoa
-        );
-    module.def("testMarginCore",
-        testMarginCore
         );
     module.def("testSimpleBayesianConsensusCaller",
         testSimpleBayesianConsensusCaller

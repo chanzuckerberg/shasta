@@ -24,11 +24,6 @@
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
 
-#ifdef SHASTA_MARGINPHASE
-// MarginPhase.
-#include "marginPhase/callConsensus.h"
-#endif
-
 // Standard library.
 #include "memory.hpp"
 #include "string.hpp"
@@ -164,9 +159,6 @@ public:
         const string& largeDataFileNamePrefix,
         bool createNew,
         size_t largeDataPageSize);
-
-    // Destructor.
-    ~Assembler();
 
     // Add reads.
     // The reads in the specified file are added to those already previously present.
@@ -1618,20 +1610,6 @@ private:
 
 
 
-    // Use MarginPhase to compute consensus sequence for an edge of the marker graph.
-    // This does not include the bases corresponding to the flanking markers.
-    // This is not yet functional.
-#ifdef SHASTA_MARGINPHASE
-    void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-        MarkerGraph::EdgeId,
-        vector<Base>& sequence,
-        vector<uint32_t>& repeatCounts,
-        uint8_t& overlappingBaseCount
-        );
-#endif
-
-
-
     // Simplify the marker graph.
     // The first argument is a number of marker graph edges.
     // See the code for detail on its meaning and how it is used.
@@ -1751,10 +1729,6 @@ public:
         // This controls when we give up trying to compute consensus for long edges.
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
 
-        // Parameter to control whether we use spoa or marginPhase
-        // to compute consensus sequence.
-        bool useMarginPhase,
-
         // Request storing detailed coverage information in binary format.
         bool storeCoverageData
         );
@@ -1766,7 +1740,6 @@ private:
         // The arguments to assembleMarkerGraphEdges, stored here so
         // they are accessible to the threads.
         uint32_t markerGraphEdgeLengthThresholdForConsensus;
-        bool useMarginPhase;
         bool storeCoverageData;
 
         // The results computed by each thread.
@@ -2075,16 +2048,6 @@ private:
 
 
 
-
-    // Parameters for marginPhase.
-    // Read from file MarginPhase.json in the run directory.
-public:
-    void setupMarginPhase();
-private:
-    void checkMarginPhaseWasSetup();
-#ifdef SHASTA_MARGINPHASE
-    PolishParams* marginPhaseParameters;
-#endif
 };
 
 #endif

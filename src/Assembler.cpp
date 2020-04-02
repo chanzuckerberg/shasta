@@ -15,9 +15,6 @@ Assembler::Assembler(
 
     MultithreadedObject(*this),
     largeDataFileNamePrefix(largeDataFileNamePrefix)
-#ifdef SHASTA_MARGINPHASE
-    , marginPhaseParameters(0)
-#endif
 {
 
     if(createNew) {
@@ -52,19 +49,6 @@ Assembler::Assembler(
 
 #ifdef SHASTA_HTTP_SERVER
     fillServerFunctionTable();
-#endif
-}
-
-
-
-// Destructor.
-Assembler::~Assembler()
-{
-#ifdef SHASTA_MARGINPHASE
-    if(marginPhaseParameters) {
-        destroyConsensusParameters(marginPhaseParameters);
-        marginPhaseParameters = 0;
-    }
 #endif
 }
 
@@ -155,36 +139,6 @@ void Assembler::setupConsensusCaller(const string& s)
         ". Valid choices are: Modal, Median, Bayesian:absolutePathToConfigFile.");
 }
 
-
-
-// Read marginPhase parameters from file MarginPhase.json in the run directory.
-void Assembler::setupMarginPhase()
-{
-#ifdef SHASTA_MARGINPHASE
-    const string fileName = "MarginPhase.json";
-    marginPhaseParameters = getConsensusParameters(const_cast<char*>(fileName.c_str()));
-    if(!marginPhaseParameters) {
-        throw runtime_error("Error reading marginPhase parameters from " + fileName);
-    }
-#else
-    // The static executable does not support MarginPhase.
-    SHASTA_ASSERT(0);
-#endif
-}
-
-
-
-void Assembler::checkMarginPhaseWasSetup()
-{
-#ifdef SHASTA_MARGINPHASE
-    if(!marginPhaseParameters) {
-        throw runtime_error("MarginPhase was not set up.");
-    }
-#else
-    // The static executable does not support MarginPhase.
-    SHASTA_ASSERT(0);
-#endif
-}
 
 
 // Store assembly time.

@@ -176,11 +176,6 @@ void shasta::main::assemble(
             "using command line option \"--input\".");
     }
 
-    // Assembly.useMarginPhase is not supported.
-    if(assemblerOptions.assemblyOptions.useMarginPhase) {
-        throw runtime_error("Assembly.useMarginPhase is not supported.");
-    }
-
     // If the build does not support GPU acceleration, reject the --useGpu option.
 #ifndef SHASTA_BUILD_FOR_GPU
     if(assemblerOptions.commandLineOnlyOptions.useGpu) {
@@ -788,7 +783,6 @@ void shasta::main::assemble(
     assembler.assembleMarkerGraphEdges(
         threadCount,
         assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
-        false,
         assemblerOptions.assemblyOptions.storeCoverageData or
         assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
         );
