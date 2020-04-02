@@ -192,6 +192,18 @@ void Assembler::alignOrientedReads3(
     }
 
 
+
+    // If the downsampled alignment is empty, just return an empty alignment.
+    if(uint64_t(downsampledAlignmentLength) ==
+        downsampledMarkers[0].size() + downsampledMarkers[1].size()) {
+        alignment.ordinals.clear();
+        alignmentInfo.create(
+            alignment, uint32_t(allMarkers[0].size()), uint32_t(allMarkers[1].size()));
+        return;
+    }
+
+
+
     // Use the downsampled alignment to compute the band to be used
     // for the full alignment.
     int32_t offsetMin = std::numeric_limits<int32_t>::max();
