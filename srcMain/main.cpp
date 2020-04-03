@@ -658,6 +658,7 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.downsamplingFactor,
             assemblerOptions.alignOptions.bandExtend,
             assemblerOptions.alignOptions.suppressContainments,
+            true, // Store good alignments in a compressed format.
             threadCount);
     }
 
