@@ -16,7 +16,7 @@
 // Forward declarations.
 namespace shasta {
     namespace MemoryMapped {
-        template<class Int, class T> class VectorOfVectors;
+        template<class T, class Int> class VectorOfVectors;
     }
 }
 
