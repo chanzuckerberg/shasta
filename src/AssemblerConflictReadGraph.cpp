@@ -74,6 +74,23 @@ void Assembler::createConflictReadGraph(
     conflictReadGraph.writeGraphviz("ConflictReadGraph.dot");
 
 
+    // Write a csv file summarizing edges of the conflict read graph.
+    {
+        ofstream csv("ConflictReadGraphEdges.csv");
+        csv << "VertexId0,VertexId1,OrientedReadId0,OrientedReadId1,\n";
+        for(ConflictReadGraph::EdgeId e=0; e<conflictReadGraph.edges.size(); e++) {
+            const ConflictReadGraph::VertexId v0 = conflictReadGraph.v0(e);
+            const ConflictReadGraph::VertexId v1 = conflictReadGraph.v1(e);
+            csv <<
+                v0 << "," <<
+                v1 << "," <<
+                ConflictReadGraph::getOrientedReadId(v0) << "," <<
+                ConflictReadGraph::getOrientedReadId(v1) << "\n";
+        }
+    }
+
+
+
     cout << "The conflict read graph has " <<
         conflictReadGraph.vertices.size() << " vertices and " <<
         conflictReadGraph.edges.size() << " edges" << endl;
