@@ -1100,7 +1100,7 @@ private:
         vector< vector<AlignmentData> > threadAlignmentData;
 
         // Compressed alignments corresponding to the AlignmentInfo found by each thread.
-        vector< vector<string> > threadCompressedAlignments;
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<char, uint64_t> > > threadCompressedAlignments;
     };
     ComputeAlignmentsData computeAlignmentsData;
 

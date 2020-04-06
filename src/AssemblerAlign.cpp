@@ -311,9 +311,13 @@ void Assembler::computeAlignments(
         }
 
         if (data.storeAlignments) {
-            const vector<string>& threadCompressedAlignments = data.threadCompressedAlignments[threadId];
-            for(const string& compressed: threadCompressedAlignments) {
-                compressedAlignments.appendVector(compressed.c_str(), compressed.c_str() + compressed.size());
+            const auto threadCompressedAlignments = data.threadCompressedAlignments[threadId];
+            const auto size = threadCompressedAlignments->size();
+            for(size_t i=0; i<size; i++) {
+                compressedAlignments.appendList(
+                    (*threadCompressedAlignments)[i].begin(),
+                    (*threadCompressedAlignments)[i].end()
+                );
             }
         }
     }
@@ -364,7 +368,14 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const bool storeAlignments = data.storeAlignments;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
-    vector<string>& threadCompressedAlignments = data.threadCompressedAlignments[threadId];
+    
+    shared_ptr< MemoryMapped::VectorOfVectors<char, uint64_t> > thisThreadCompressedAlignmentsPointer =
+        make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
+    data.threadCompressedAlignments[threadId] = thisThreadCompressedAlignmentsPointer;
+    auto& thisThreadCompressedAlignments = *thisThreadCompressedAlignmentsPointer;
+    thisThreadCompressedAlignments.createNew(
+        largeDataName("tmp-ThreadGlobalCompressedAlignments-" + to_string(threadId)),
+        largeDataPageSize);
     
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
@@ -447,7 +458,10 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             if (storeAlignments) {
                 string compressed;
                 shasta::compress(alignment, compressed);
-                threadCompressedAlignments.push_back(compressed);
+                thisThreadCompressedAlignments.appendList(
+                    compressed.c_str(),
+                    compressed.c_str() + compressed.size()
+                );
             }
         }
     }
