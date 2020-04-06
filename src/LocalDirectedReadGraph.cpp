@@ -172,7 +172,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     const bool hasClusterInformation =
-        vertex.color != std::numeric_limits<uint64_t>::max();
+        vertex.color != std::numeric_limits<uint32_t>::max();
 
     // Tooltip.
     s <<
@@ -219,7 +219,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
             } else {
                 const double hue = 0.67;
                 const double saturation = 0.3;
-                const double value = min(1.0, 0.7 + 0.01*double(vertex.conflictCount));
+                const double value = min(1.0, 0.5 + 0.05*double(vertex.conflictCount));
                 s << " color=\"" << hue << ","<< saturation << "," << value << "\"";
             }
             break;
