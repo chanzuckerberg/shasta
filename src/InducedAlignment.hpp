@@ -89,10 +89,7 @@ public:
     // The number marker of markers associated with a
     /// marker graph vertex, for each of the oriented reads
     // involved in this induced alignment.
-    array<uint32_t, 2> compressedMarkerCount = {
-        std::numeric_limits<uint32_t>::max(),
-        std::numeric_limits<uint32_t>::max()
-        };
+    array<uint32_t, 2> compressedMarkerCount;
 
     void sort()
     {
