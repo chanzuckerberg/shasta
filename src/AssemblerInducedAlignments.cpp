@@ -171,6 +171,15 @@ void Assembler::computeInducedAlignments(
     for(InducedAlignment& inducedAlignment: inducedAlignments) {
         inducedAlignment.sort();
     }
+
+    // Fill in the compressed ordinals.
+    SHASTA_ASSERT(orientedReadIds1.size() == inducedAlignments.size());
+    for(uint64_t i=0; i<orientedReadIds1.size(); i++){
+        const OrientedReadId orientedReadId1 = orientedReadIds1[i];
+        InducedAlignment& inducedAlignment = inducedAlignments[i];
+        fillCompressedOrdinals(orientedReadId0, orientedReadId1, inducedAlignment);
+    }
+
 }
 
 
@@ -419,4 +428,57 @@ bool Assembler::evaluateInducedAlignment(
 
     // If getting here, this is a good induced alignment.
     return true;
+}
+
+
+
+// Fill in compressed ordinals of an InducedAlignment.
+// Compressed ordinals are marker ordinals in which
+// only markers associated with a marker graph vertex are counted.
+void Assembler::fillCompressedOrdinals(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    InducedAlignment& inducedAlignment)
+{
+    array<OrientedReadId, 2> orientedReadIds = {orientedReadId0, orientedReadId1};
+
+
+
+    // Create vectors to convert ordinals to compressed ordinals.
+    // Indexed by the ordinal.
+    // This also fills in the compressedMarkerCount in the induced alignment.
+    array< vector<uint32_t>, 2> ordinalTable;
+    for(uint64_t i=0; i<2; i++) {
+        const OrientedReadId orientedReadId = orientedReadIds[i];
+
+        const MarkerId firstMarkerId = markers.begin(orientedReadId.getValue()) - markers.begin();
+        const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
+
+        uint32_t compressedOrdinal = 0;
+        for(uint32_t ordinal=0; ordinal<markerCount; ordinal++) {
+            ordinalTable[i][ordinal] = compressedOrdinal;
+            const MarkerId markerId = firstMarkerId + ordinal;
+
+            // Find the vertex that this marker is on.
+            const MarkerGraph::CompressedVertexId compressedVertexId =
+                markerGraph.vertexTable[markerId];
+
+            // If this marker is on a marker graph vertex, increment
+            // the compressed ordinal.
+            if(compressedVertexId != MarkerGraph::invalidCompressedVertexId) {
+                ++compressedOrdinal;
+            }
+        }
+
+        // Store the number of compressed markers on this oriented read.
+        inducedAlignment.compressedMarkerCount[i] = compressedOrdinal;
+    }
+
+
+    // Now we can fill in the compressed ordinal.
+    for(InducedAlignmentData& data: inducedAlignment.data) {
+        data.compressedOrdinal0 = ordinalTable[0][data.ordinal0];
+        data.compressedOrdinal1 = ordinalTable[1][data.ordinal1];
+    }
+
 }

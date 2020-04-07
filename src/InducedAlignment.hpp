@@ -55,6 +55,11 @@ public:
     uint32_t ordinal0;
     uint32_t ordinal1;
 
+    // The compressed ordinals. These only count markers
+    // that are associated with a marker graph vertex.
+    uint32_t compressedOrdinal0 = std::numeric_limits<uint32_t>::max();
+    uint32_t compressedOrdinal1 = std::numeric_limits<uint32_t>::max();
+
     InducedAlignmentData(
         MarkerGraph::VertexId vertexId,
         uint32_t ordinal0,
@@ -80,6 +85,14 @@ public:
 
     // A vector defining this induced alignment.
     vector<InducedAlignmentData> data;
+
+    // The number marker of markers associated with a
+    /// marker graph vertex, for each of the oriented reads
+    // involved in this induced alignment.
+    array<uint32_t, 2> compressedMarkerCount = {
+        std::numeric_limits<uint32_t>::max(),
+        std::numeric_limits<uint32_t>::max()
+        };
 
     void sort()
     {

@@ -1177,6 +1177,7 @@ void Assembler::exploreMarkerGraphInducedAlignment(
      const OrientedReadId orientedReadId1(readId1, strand1);
      InducedAlignment inducedAlignment;
      computeInducedAlignment(orientedReadId0, orientedReadId1, inducedAlignment);
+     fillCompressedOrdinals(orientedReadId0, orientedReadId1, inducedAlignment);
      html << "The induced alignment has " << inducedAlignment.data.size() <<
          " marker pairs.";
 

@@ -1436,6 +1436,12 @@ private:
         const vector<OrientedReadId>& orientedReadIds1,
         vector<InducedAlignment>& inducedAlignments);
 
+    // Fill in compressed ordinals of an InducedAlignment.
+    void fillCompressedOrdinals(
+        OrientedReadId,
+        OrientedReadId,
+        InducedAlignment&);
+
     // Evaluate an induced alignment.
     // Contrary to InducedAlignment::evaluate, this takes into account
     // markers that don't correspond to a marker graph vertex.
