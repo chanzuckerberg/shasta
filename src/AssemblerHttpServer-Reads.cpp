@@ -664,8 +664,13 @@ void Assembler::exploreRead(
     }
     sort(markerFrequencyTable.begin(), markerFrequencyTable.end(),
         OrderPairsBySecondOnlyGreater<KmerId, uint32_t>());
-    html << "<h2>Frequency of markers in this oriented read</h2>"
-        "<table><tr><th>KmerId<th>Marker<th>Frequency";
+
+    if(beginPositionIsPresent || endPositionIsPresent) {
+        html << "<h2>Frequency of markers in the selected portion in this oriented read</h2>";
+    } else {
+        html << "<h2>Frequency of markers in this oriented read</h2>";
+    }
+    html << "<table><tr><th>KmerId<th>Marker<th>Frequency";
     for(const auto& p: markerFrequencyTable) {
         const KmerId kmerId = p.first;
         const uint32_t frequency = p.second;
