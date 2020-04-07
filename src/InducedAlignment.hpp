@@ -102,6 +102,7 @@ public:
     void writePngImage(
         uint32_t markerCount0,
         uint32_t markerCount1,
+        bool useCompressedOrdinals,
         const string& fileName) const;
 
     // Evaluate the quality of an induced alignment.

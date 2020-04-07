@@ -453,6 +453,7 @@ void Assembler::fillCompressedOrdinals(
 
         const MarkerId firstMarkerId = markers.begin(orientedReadId.getValue()) - markers.begin();
         const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
+        ordinalTable[i].resize(markerCount);
 
         uint32_t compressedOrdinal = 0;
         for(uint32_t ordinal=0; ordinal<markerCount; ordinal++) {

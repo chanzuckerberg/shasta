@@ -1148,6 +1148,8 @@ void Assembler::exploreMarkerGraphInducedAlignment(
     const bool readId1IsPresent = getParameterValue(request, "readId1", readId1);
     Strand strand1 = 0;
     const bool strand1IsPresent = getParameterValue(request, "strand1", strand1);
+    string ordinalType = "ordinals";
+    getParameterValue(request, "ordinalType", ordinalType);
 
     // Write the form.
     html <<
@@ -1165,7 +1167,16 @@ void Assembler::exploreMarkerGraphInducedAlignment(
         " on strand ";
     writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
 
-    html << "<p><input type=submit value='Display induced alignment'></form>";
+    html <<
+        "<p>Plot alignment matrix using "
+        "<input type=radio required name=ordinalType value='ordinals'" <<
+        (ordinalType == "ordinals" ? " checked=on" : "") <<
+        ">ordinals "
+        "<input type=radio required name=ordinalType value='compressedOrdinals'" <<
+        (ordinalType == "compressedOrdinals" ? " checked=on" : "") <<
+        ">compressed ordinals"
+        "<p><input type=submit value='Display induced alignment'></form>";
+
 
      // If the readId's or strand's are missing, stop here.
      if(!readId0IsPresent || !strand0IsPresent || !readId1IsPresent || !strand1IsPresent) {
@@ -1185,6 +1196,7 @@ void Assembler::exploreMarkerGraphInducedAlignment(
      inducedAlignment.writePngImage(
          uint32_t(markers.size(orientedReadId0.getValue())),
          uint32_t(markers.size(orientedReadId1.getValue())),
+         ordinalType == "compressedOrdinals",
          "Alignment.png");
 
      // Create a base64 version of the png file.
@@ -1217,12 +1229,16 @@ void Assembler::exploreMarkerGraphInducedAlignment(
      html <<
          "<p><table><tr><th>Vertex"
          "<th>Ordinal<br> in " << orientedReadId0 <<
-         "<th>Ordinal<br> in " << orientedReadId1;
-     for(const InducedAlignmentData& d: inducedAlignment.data) {
+         "<th>Ordinal<br> in " << orientedReadId1 <<
+         "<th>Compressed<br>ordinal<br> in " << orientedReadId0 <<
+         "<th>Compressed<br>ordinal<br> in " << orientedReadId1;
+    for(const InducedAlignmentData& d: inducedAlignment.data) {
          html <<
              "<tr><td class=centered>" << d.vertexId <<
              "<td class=centered>" << d.ordinal0 <<
-             "<td class=centered>" << d.ordinal1;
+             "<td class=centered>" << d.ordinal1 <<
+             "<td class=centered>" << d.compressedOrdinal0 <<
+             "<td class=centered>" << d.compressedOrdinal1;
      }
      html << "</table>";
 

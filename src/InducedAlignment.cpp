@@ -11,11 +11,12 @@ using namespace shasta;
 void InducedAlignment::writePngImage(
     uint32_t markerCount0,
     uint32_t markerCount1,
+    bool useCompressedOrdinals,
     const string& fileName) const
 {
     // Create the image, which gets initialized to black.
-    const int n0 = int(markerCount0);
-    const int n1 = int(markerCount1);
+    const int n0 = useCompressedOrdinals ? compressedMarkerCount[0]: int(markerCount0);
+    const int n1 = useCompressedOrdinals ? compressedMarkerCount[1]: int(markerCount1);
     PngImage image(n0, n1);
 
     // Write a grid.
@@ -46,7 +47,11 @@ void InducedAlignment::writePngImage(
 
     // Write the induced alignment.
     for(const InducedAlignmentData& d: data) {
-        image.setPixel(d.ordinal0, d.ordinal1, 0, 255, 0);
+        if(useCompressedOrdinals) {
+            image.setPixel(d.compressedOrdinal0, d.compressedOrdinal1, 0, 255, 0);
+        } else {
+            image.setPixel(d.ordinal0, d.ordinal1, 0, 255, 0);
+        }
     }
 
     // Write it out.
