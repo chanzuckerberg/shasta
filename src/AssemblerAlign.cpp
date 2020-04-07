@@ -314,7 +314,7 @@ void Assembler::computeAlignments(
             const auto threadCompressedAlignments = data.threadCompressedAlignments[threadId];
             const auto size = threadCompressedAlignments->size();
             for(size_t i=0; i<size; i++) {
-                compressedAlignments.appendList(
+                compressedAlignments.appendVector(
                     (*threadCompressedAlignments)[i].begin(),
                     (*threadCompressedAlignments)[i].end()
                 );
@@ -458,7 +458,19 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             if (storeAlignments) {
                 string compressed;
                 shasta::compress(alignment, compressed);
-                thisThreadCompressedAlignments.appendList(
+
+                // // Testing code to immediately decompress to verify no loss of information.
+                // // This code should be removed once the task of using compressed alignments
+                // // is complete.
+                // span<const char> compressedSpan(compressed.c_str(), compressed.c_str() + compressed.size());
+                // Alignment decompressedAlignment;
+                // shasta::decompress(compressedSpan, decompressedAlignment);
+
+                // if(alignment.ordinals != decompressedAlignment.ordinals) {
+                //     throw std::runtime_error("Compression failed!");
+                // }
+
+                thisThreadCompressedAlignments.appendVector(
                     compressed.c_str(),
                     compressed.c_str() + compressed.size()
                 );
