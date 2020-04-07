@@ -256,6 +256,9 @@ public:
         // If true, discard containment alignments.
         bool suppressContainments,
 
+        // If true, store good alignments in a compressed format.
+        bool storeAlignments,
+
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
         size_t threadCount
@@ -1050,7 +1053,10 @@ private:
 
     // The good alignments we found.
     // They are stored with readId0<readId1 and with strand0==0.
+    // The order in compressedAlignments matches that in alignmentData.
     MemoryMapped::Vector<AlignmentData> alignmentData;
+    MemoryMapped::VectorOfVectors<char, uint64_t> compressedAlignments;
+    
     void checkAlignmentDataAreOpen();
 
     // The alignment table stores the AlignmentData that each oriented read is involved in.
@@ -1083,6 +1089,7 @@ private:
         double downsamplingFactor;
         int bandExtend;
         bool suppressContainments;
+        bool storeAlignments;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
         size_t gpuBatchSize;
@@ -1091,6 +1098,9 @@ private:
 
         // The AlignmentInfo found by each thread.
         vector< vector<AlignmentData> > threadAlignmentData;
+
+        // Compressed alignments corresponding to the AlignmentInfo found by each thread.
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<char, uint64_t> > > threadCompressedAlignments;
     };
     ComputeAlignmentsData computeAlignmentsData;
 

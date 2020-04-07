@@ -259,6 +259,7 @@ PYBIND11_MODULE(shasta, module)
             arg("downsamplingFactor"),
             arg("bandExtend"),
             arg("suppressContainments"),
+            arg("storeAlignments"),
             arg("threadCount") = 0)
 #ifdef SHASTA_BUILD_FOR_GPU
         .def("computeAlignmentsGpu",
