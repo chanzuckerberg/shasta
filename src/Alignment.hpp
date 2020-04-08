@@ -34,6 +34,10 @@ public:
     // The ordinals in each of the two oriented reads of the
     // markers in the alignment.
     vector< array<uint32_t, 2> > ordinals;
+    
+    void clear() {
+        ordinals.clear();
+    }
 };
 
 

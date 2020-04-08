@@ -333,9 +333,9 @@ void Assembler::computeAlignments(
 
     cout << timestamp;
     if (data.storeAlignments) {
-        cout << "Stored compressed alignments." << endl;
+        cout << "Cached compressed alignments for potential reuse." << endl;
     } else {
-        cout << "Not storing alignments." << endl;
+        cout << "Not caching compressed alignments." << endl;
     }
 }
 

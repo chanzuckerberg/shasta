@@ -72,6 +72,7 @@ void shasta::compress(const Alignment& alignment, string& s)
 
 void shasta::decompress(span<const char> s, Alignment& alignment)
 {
+    alignment.clear();
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
     
