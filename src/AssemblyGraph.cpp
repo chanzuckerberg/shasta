@@ -1,4 +1,5 @@
 #include "AssemblyGraph.hpp"
+#include "BubbleGraph.hpp"
 #include "deduplicate.hpp"
 using namespace shasta;
 
@@ -340,6 +341,15 @@ void AssemblyGraph::findBubbles()
     cout << "Total number of edges is " << totalEdgeCount << "." << endl;
     cout << "Total number of bubble edges is " << bubbleEdgeCount << "." << endl;
     cout << "Total number of non-bubble edges is " << totalEdgeCount-bubbleEdgeCount << "." << endl;
+}
+
+
+
+void AssemblyGraph::findBubbleChains()
+{
+    BubbleGraph graph(*this);
+    graph.findLinearChains();
+    graph.writeLinearChains("BubbleChains.csv", *this);
 }
 
 

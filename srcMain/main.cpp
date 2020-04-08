@@ -791,6 +791,7 @@ void shasta::main::assemble(
     assembler.assemble(
         threadCount,
         assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
+    assembler.findAssemblyGraphBubbles();
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");

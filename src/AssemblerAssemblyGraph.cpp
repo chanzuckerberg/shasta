@@ -773,12 +773,23 @@ void Assembler::findAssemblyGraphBubbles()
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
+    // Check that we have what we need.
     SHASTA_ASSERT(assemblyGraph.vertices.isOpen);
     SHASTA_ASSERT(assemblyGraph.edges.isOpen);
     SHASTA_ASSERT(assemblyGraph.edgesBySource.isOpen());
     SHASTA_ASSERT(assemblyGraph.edgesByTarget.isOpen());
-    assemblyGraph.bubbles.createNew(largeDataName("AssemblyGraphBubbles"), largeDataPageSize);
+
+    // Find the bubbles.
+    assemblyGraph.bubbles.createNew(
+        largeDataName("AssemblyGraphBubbles"),
+        largeDataPageSize);
     assemblyGraph.findBubbles();
+
+    // Find the bubble chains.
+    assemblyGraph.bubbleChains.createNew(
+        largeDataName("AssemblyGraphBubbleChains"),
+        largeDataPageSize);
+    assemblyGraph.findBubbleChains();
 }
 
 

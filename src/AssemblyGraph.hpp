@@ -136,6 +136,7 @@ public:
     void findOutEdges(VertexId, vector<EdgeId>&) const;
 
 
+
     // Bubbles in the assembly graph.
     // A bubble is a set of two vertices v0, v1
     // such that the outgoing edges of v0 are the same
@@ -153,7 +154,19 @@ public:
         Bubble(VertexId v0, VertexId v1) : v0(v0), v1(v1) {}
     };
     MemoryMapped::Vector<Bubble> bubbles;
-    void findBubbles(); // Assumes bubble Vector was already initialized.
+    void findBubbles(); // Assumes bubble was already initialized.
+
+
+
+    // Bubble chains. A bubble chain is a linear sequence of bubbles.
+    // Each pair of consecutive bubbles in the sequence may be separated by
+    // a homozygous segment, but the bubble can also be
+    // immediately adjacent (v1 of thr first bubble is the same
+    // as v0 of the second bubble).
+    // For each bubble chain, we store the bubble ids (indexes in
+    // the bubbles vector above).
+    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> bubbleChains;
+    void findBubbleChains(); // Assumes bubbleChains was already initialized.
 
 
     // A table that can be used to find the locations of a marker graph
