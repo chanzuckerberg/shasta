@@ -25,8 +25,9 @@ void Assembler::createDirectedReadGraph(
 
     // Add a pair of edges for each stored alignment.
     directedReadGraph.edges.reserve(2 * alignmentData.size());
-    for(const AlignmentData& alignment: alignmentData) {
-        directedReadGraph.addEdgePair(alignment);
+    for(uint64_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
+        const AlignmentData& alignment = alignmentData[alignmentId];
+        directedReadGraph.addEdgePair(alignment, alignmentId);
     }
 
     // Compute graph connectivity.

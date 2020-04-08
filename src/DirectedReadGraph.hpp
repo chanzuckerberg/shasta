@@ -99,6 +99,7 @@ public:
 
     // Information on the alignment that generated this edge.
     AlignmentInfo alignmentInfo;
+    uint64_t alignmentId;
 
     // The EdgeId of the reverse complement of this edge.
     DirectedReadGraphBaseClass::EdgeId reverseComplementedEdgeId =
@@ -118,8 +119,11 @@ public:
     uint8_t isConflict : 1;
 
     // Constructors.
-    DirectedReadGraphEdge(const AlignmentInfo& alignmentInfo) :
-        alignmentInfo(alignmentInfo)
+    DirectedReadGraphEdge(
+        const AlignmentInfo& alignmentInfo,
+        uint64_t alignmentId) :
+        alignmentInfo(alignmentInfo),
+        alignmentId(alignmentId)
     {
         clearFlags();
     }
@@ -149,7 +153,7 @@ public:
     void createVertices(ReadId readCount);
 
     // Add a pair of edges corresponding to an alignment.
-    void addEdgePair(const AlignmentData&);
+    void addEdgePair(const AlignmentData&, uint64_t alignmentId);
 
     // Make sure the graph is invariant under reverse complementing.
     void check();
@@ -278,7 +282,8 @@ private:
     EdgeId addEdge(
         OrientedReadId orientedReadId0,
         OrientedReadId orientedReadId1,
-        AlignmentInfo);
+        AlignmentInfo,
+        uint64_t alignmentId);
 
 public:
     // And edge checker that allows only edges that satisfy specify criteria.

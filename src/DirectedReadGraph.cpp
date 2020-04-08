@@ -35,7 +35,9 @@ void DirectedReadGraph::createVertices(ReadId readCount)
 
 
 // Add a pair of edges corresponding to an alignment.
-void DirectedReadGraph::addEdgePair(const AlignmentData& alignment)
+void DirectedReadGraph::addEdgePair(
+    const AlignmentData& alignment,
+    uint64_t alignmentId)
 {
     const bool debug = false;
 
@@ -53,7 +55,9 @@ void DirectedReadGraph::addEdgePair(const AlignmentData& alignment)
     OrientedReadId orientedReadId0(readId0, 0);
     OrientedReadId orientedReadId1(readId1, isSameStrand ? 0 : 1);
     AlignmentInfo alignmentInfo = alignment.info;
-    const EdgeId edgeId0 = addEdge(orientedReadId0, orientedReadId1, alignmentInfo);
+    const EdgeId edgeId0 = addEdge(
+        orientedReadId0, orientedReadId1,
+        alignmentInfo, alignmentId);
 
     // Add the second edge.
     orientedReadId0.flipStrand();
@@ -61,7 +65,9 @@ void DirectedReadGraph::addEdgePair(const AlignmentData& alignment)
     swap(orientedReadId0, orientedReadId1);
     alignmentInfo.reverseComplement();
     alignmentInfo.swap();
-    const EdgeId edgeId1 = addEdge(orientedReadId0, orientedReadId1, alignmentInfo);
+    const EdgeId edgeId1 = addEdge(
+        orientedReadId0, orientedReadId1,
+        alignmentInfo, alignmentId);
 
     // Store reverse complemented edge ids.
     getEdge(edgeId0).reverseComplementedEdgeId = edgeId1;
@@ -75,7 +81,8 @@ void DirectedReadGraph::addEdgePair(const AlignmentData& alignment)
 DirectedReadGraph::EdgeId DirectedReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    AlignmentInfo alignmentInfo)
+    AlignmentInfo alignmentInfo,
+    uint64_t alignmentId)
 {
     const bool debug = false;
 
@@ -140,7 +147,7 @@ DirectedReadGraph::EdgeId DirectedReadGraph::addEdge(
    const EdgeId edgeId = BaseClass::addEdge(
        orientedReadId0.getValue(),
        orientedReadId1.getValue(),
-       DirectedReadGraphEdge(alignmentInfo));
+       DirectedReadGraphEdge(alignmentInfo, alignmentId));
 
    if(debug) {
        cout << "Adding edge " << orientedReadId0 << " -> " << orientedReadId1 << endl;
