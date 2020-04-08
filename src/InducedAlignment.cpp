@@ -277,8 +277,30 @@ bool InducedAlignment::evaluate(
 // A conflict means that the two oriented reads
 // are likely to originate in different regions of the genome,
 // and triggers the creation of an edge in the ConflictReadGraph.
-bool InducedAlignment::indicatesConflict(const InducedAlignmentCriteria&) const
+bool InducedAlignment::indicatesConflict(const InducedAlignmentCriteria& criteria) const
 {
-    SHASTA_ASSERT(0);
+    // Sanity check.
+    SHASTA_ASSERT(not data.empty());
+
+    // If the number of aligned markers is too small, this induced alignment
+    // is questionable and so does not indicate a conflict.
+    if(data.size() < criteria.minAlignedMarkerCount) {
+        return false;
+    }
+
+    // Compute trim using compressed ordinals.
+    const uint32_t leftCompressedTrim = min(
+        data.front().compressedOrdinal0,
+        data.front().compressedOrdinal1);
+    const uint32_t rightCompressedTrim = min(
+        compressedMarkerCount[0] - data.back().compressedOrdinal0,
+        compressedMarkerCount[1] - data.back().compressedOrdinal1);
+
+    // This induced alignment indicate conflicts if there is
+    // large trim on both sides.
+    return
+        leftCompressedTrim > criteria.maxTrim and
+        rightCompressedTrim > criteria.maxTrim;
 }
+
 
