@@ -269,3 +269,16 @@ bool InducedAlignment::evaluate(
     return true;
 }
 
+
+
+// Return true if, based on the specified criteria,
+// this induced alignment indicates a conflict
+// between the aligned oriented reads.
+// A conflict means that the two oriented reads
+// are likely to originate in different regions of the genome,
+// and triggers the creation of an edge in the ConflictReadGraph.
+bool InducedAlignment::indicatesConflict(const InducedAlignmentCriteria&) const
+{
+    SHASTA_ASSERT(0);
+}
+

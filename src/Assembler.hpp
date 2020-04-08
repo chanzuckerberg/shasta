@@ -1471,7 +1471,8 @@ public:
         uint64_t threadCount,
         uint32_t maxOffsetSigma,
         uint32_t maxTrim,
-        uint32_t maxSkip);
+        uint32_t maxSkip,
+        uint32_t minAlignedMarkerCount);
     void accessConflictReadGraph();
     // void colorConflictReadGraph();
     void cleanupConflictReadGraph();

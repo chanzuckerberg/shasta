@@ -451,7 +451,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0,
             arg("maxOffsetSigma"),
             arg("maxTrim"),
-            arg("maxSkip"))
+            arg("maxSkip"),
+            arg("minAlignedMarkerCount"))
         .def("accessConflictReadGraph",
             &Assembler::accessConflictReadGraph)
         .def("cleanupConflictReadGraph",

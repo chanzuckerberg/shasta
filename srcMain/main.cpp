@@ -706,7 +706,9 @@ void shasta::main::assemble(
         const uint32_t maxOffsetSigma = 100;
         const uint32_t maxTrim = 100;
         const uint32_t maxSkip = 100;
-        assembler.createConflictReadGraph(threadCount, maxOffsetSigma, maxTrim, maxSkip);
+        const uint32_t minAlignedMarkerCount = 100;
+        assembler.createConflictReadGraph(
+            threadCount, maxOffsetSigma, maxTrim, maxSkip,minAlignedMarkerCount);
         assembler.cleanupConflictReadGraph();
 
         // Mark conflict edges in the read graph.

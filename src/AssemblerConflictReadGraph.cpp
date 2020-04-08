@@ -19,7 +19,8 @@ void Assembler::createConflictReadGraph(
     uint64_t threadCount,
     uint32_t maxOffsetSigma,
     uint32_t maxTrim,
-    uint32_t maxSkip)
+    uint32_t maxSkip,
+    uint32_t minAlignedMarkerCount)
 {
     cout << timestamp << "createConflictReadGraph begins." << endl;
 
@@ -40,6 +41,8 @@ void Assembler::createConflictReadGraph(
     createConflictReadGraphData.inducedAlignmentCriteria.maxOffsetSigma = maxOffsetSigma;
     createConflictReadGraphData.inducedAlignmentCriteria.maxTrim = maxTrim;
     createConflictReadGraphData.inducedAlignmentCriteria.maxSkip = maxSkip;
+    createConflictReadGraphData.inducedAlignmentCriteria.minAlignedMarkerCount =
+        minAlignedMarkerCount;
 
     // Initialize the conflict read graph.
     conflictReadGraph.createNew(largeDataName("ConflictReadGraph"), largeDataPageSize);
