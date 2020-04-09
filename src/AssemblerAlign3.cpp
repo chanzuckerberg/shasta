@@ -196,7 +196,7 @@ void Assembler::alignOrientedReads3(
     // If the downsampled alignment is empty, just return an empty alignment.
     if(uint64_t(downsampledAlignmentLength) ==
         downsampledMarkers[0].size() + downsampledMarkers[1].size()) {
-        alignment.ordinals.clear();
+        alignment.clear();
         alignmentInfo.create(
             alignment, uint32_t(allMarkers[0].size()), uint32_t(allMarkers[1].size()));
         return;
@@ -273,7 +273,7 @@ void Assembler::alignOrientedReads3(
 
 
     // Fill in the alignment.
-    alignment.ordinals.clear();
+    alignment.clear();
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
     for(int i=0;

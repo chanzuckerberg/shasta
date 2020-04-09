@@ -285,7 +285,7 @@ void Assembler::computeAlignmentsThreadFunctionGPU(size_t threadId)
             // Evaluate alignments and push good alignments
             for (size_t i=first; i<last; i++) {
                 auto candidate = alignmentCandidates.candidates[i];
-                alignment.ordinals.clear();
+                alignment.clear();
                 size_t last_addr = (i-first)*2+2;
                 if (h_num_traceback[i-first] >= 2) {
                     {
