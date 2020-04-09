@@ -16,7 +16,7 @@ a.accessAlignmentCandidates()
 
 # Do the computation.
 a.computeAlignments(
-    alignmentMethod = int(config['Align']['alignMethodForReadGraph']),
+    alignmentMethod = int(config['Align']['alignMethod']),
     maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
     maxSkip = int(config['Align']['maxSkip']),
     maxDrift = int(config['Align']['maxDrift']),

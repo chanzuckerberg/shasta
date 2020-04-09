@@ -17,7 +17,7 @@ a.accessReadFlags()
 
 # Do the computation.
 a.createMarkerGraphVertices(
-    alignMethod = int(config['Align']['alignMethodForMarkerGraph']),
+    alignMethod = int(config['Align']['alignMethod']),
     maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
     maxSkip = int(config['Align']['maxSkip']),
     matchScore = int(config['Align']['matchScore']),,

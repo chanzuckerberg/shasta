@@ -202,8 +202,7 @@ void shasta::main::assemble(
 
     // MacOS does not support alignment method 1.
 #ifndef __linux__
-    if( (assemblerOptions.alignOptions.alignMethodForReadGraph == 1) or
-        (assemblerOptions.alignOptions.alignMethodForMarkerGraph == 1)) {
+    if(assemblerOptions.alignOptions.alignMethod == 1) {
         throw runtime_error("Align method 1 is not supported on macOS.");
     }
 
@@ -645,7 +644,7 @@ void shasta::main::assemble(
 #endif
     } else {
         assembler.computeAlignments(
-            assemblerOptions.alignOptions.alignMethodForReadGraph,
+            assemblerOptions.alignOptions.alignMethod,
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
             assemblerOptions.alignOptions.maxDrift,
@@ -876,7 +875,7 @@ void shasta::main::createMarkerGraphVertices(
 
         // Create marker graph vertices: mainstream code.
         assembler.createMarkerGraphVertices(
-            assemblerOptions.alignOptions.alignMethodForMarkerGraph,
+            assemblerOptions.alignOptions.alignMethod,
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
             assemblerOptions.alignOptions.maxDrift,
