@@ -1722,8 +1722,11 @@ private:
     // Detangle the AssemblyGraph.
 public:
     void detangle();
-private:
 
+
+
+    // CompressedAssemblyGraph.
+    void createCompressedAssemblyGraph();
 
 
 public:

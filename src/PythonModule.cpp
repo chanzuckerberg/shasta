@@ -511,6 +511,10 @@ PYBIND11_MODULE(shasta, module)
         .def("setupConsensusCaller",
             &Assembler::setupConsensusCaller)
 
+        // CompressedAssemblyGraph.
+        .def("createCompressedAssemblyGraph",
+            &Assembler::createCompressedAssemblyGraph)
+
         // Phasing.
         .def("createPhasingData",
             &Assembler::createPhasingData,
