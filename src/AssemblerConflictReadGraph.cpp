@@ -349,7 +349,7 @@ void Assembler::addConflictGraphEdges(
 
     // Find which of the induced alignments are bad.
     conflictingOrientedReads.clear();
-    const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
+    // const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
     for(uint64_t i=0;i<inducedAlignments.size(); i++) {
         const OrientedReadId orientedReadId1 = conflictCandidates[i];
         // const ConflictReadGraph::VertexId v1 = ConflictReadGraph::getVertexId(orientedReadId1);
