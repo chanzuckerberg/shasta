@@ -1,4 +1,5 @@
 #include "CompressedAssemblyGraph.hpp"
+#include "findLinearChains.hpp"
 using namespace shasta;
 
 #include "vector.hpp"
@@ -35,6 +36,11 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
     cout << "Before compression, the compressed assembly graph has " <<
         num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
+
+    // Find linear chains.
+    vector< vector<edge_descriptor> > chains;
+    findLinearChains(graph, chains);
+    cout << "Found " << chains.size() << " linear chains." << endl;
 
     SHASTA_ASSERT(0);
 }
