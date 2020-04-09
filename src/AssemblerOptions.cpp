@@ -333,16 +333,10 @@ void AssemblerOptions::addConfigurableOptions()
         "candidates with both orientation. This should only be used for experimentation "
         "on very small runs because it is very time consuming.")
 
-        ("Align.alignMethodForReadGraph",
-        value<int>(&alignOptions.alignMethodForReadGraph)->
+        ("Align.alignMethod",
+        value<int>(&alignOptions.alignMethod)->
         default_value(0),
-        "The alignment method to be used to create the read graph. "
-        "Values other than 0 are experimental.")
-
-        ("Align.alignMethodForMarkerGraph",
-        value<int>(&alignOptions.alignMethodForMarkerGraph)->
-        default_value(0),
-        "The alignment method to be used to create the marker graph. "
+        "The alignment method to be used to create the read graph & the marker graph. "
         "Values other than 0 are experimental.")
 
         ("Align.maxSkip",
@@ -614,8 +608,7 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
 void AssemblerOptions::AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
-    s << "alignMethodForReadGraph = " << alignMethodForReadGraph << "\n";
-    s << "alignMethodForMarkerGraph = " << alignMethodForMarkerGraph << "\n";
+    s << "alignMethod = " << alignMethod << "\n";
     s << "maxSkip = " << maxSkip << "\n";
     s << "maxDrift = " << maxDrift << "\n";
     s << "maxTrim = " << maxTrim << "\n";

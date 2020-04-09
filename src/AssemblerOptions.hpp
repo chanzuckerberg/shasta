@@ -166,8 +166,7 @@ public:
     // beginning with "Align.".
     class AlignOptions {
     public:
-        int alignMethodForReadGraph;
-        int alignMethodForMarkerGraph;
+        int alignMethod;
         int maxSkip;
         int maxDrift;
         int maxTrim;
