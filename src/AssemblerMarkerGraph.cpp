@@ -2,6 +2,7 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
+#include "compressAlignment.hpp"
 #ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
 #endif
@@ -399,7 +400,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
-
+    
     const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
     const int alignMethod = data.alignMethod;
@@ -415,9 +416,11 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
 
+    const auto& storedAlignments = compressedAlignments;
+    uint64_t alignmentId;
+
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-
 
         // We process read graph edges in pairs.
         // In each pair, the second edge is the reverse complement of the first.
@@ -432,6 +435,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
                 // We use the undirected read graph.
                 const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
+                alignmentId = readGraphEdge.alignmentId;
 
                 // Check that the next edge is the reverse complement of
                 // this edge.
@@ -459,6 +463,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
                 // We use the directed read graph.
                 const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(i);
+                alignmentId = edge.alignmentId;
 
                 // Sanity checks.
                 // Pairs of reverse complemented adges are stored consecutively.
@@ -489,42 +494,45 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 throw runtime_error("Invalid read graph creation method " + to_string(readGraphCreationMethod));
             }
 
-
-
-            // Compute the Alignment between these two oriented reads.
-            if(alignMethod == 0) {
-                for(size_t j=0; j<2; j++) {
-                    getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
-                }
-                alignOrientedReads(
-                    markersSortedByKmerId,
-                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
-            } else if(alignMethod == 1) {
-#ifdef __linux__
-                alignOrientedReads1(
-                    orientedReadIds[0], orientedReadIds[1],
-                    matchScore, mismatchScore, gapScore,
-                    alignment, alignmentInfo
-                );
-#else
-                throw runtime_error("Alignment method 1 is not supported on macOS.");
-#endif
-            } else if(alignMethod == 2) {
-                alignOrientedReads2(
-                    orientedReadIds[0], orientedReadIds[1],
-                    alignment, alignmentInfo
-                );
-            } else if(alignMethod == 3) {
-                alignOrientedReads3(
-                    orientedReadIds[0], orientedReadIds[1],
-                    matchScore, mismatchScore, gapScore,
-                    downsamplingFactor, bandExtend,
-                    alignment, alignmentInfo
-                );
+            if(storedAlignments.size() > 0) {
+                // Reuse stored alignments if available.
+                span<const char> compressedAlignment = storedAlignments[alignmentId];
+                shasta::decompress(compressedAlignment, alignment);
             } else {
-                SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
+                // Compute the Alignment between these two oriented reads.
+                if(alignMethod == 0) {
+                    for(size_t j=0; j<2; j++) {
+                        getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+                    }
+                    alignOrientedReads(
+                        markersSortedByKmerId,
+                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                } else if(alignMethod == 1) {
+    #ifdef __linux__
+                    alignOrientedReads1(
+                        orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        alignment, alignmentInfo
+                    );
+    #else
+                    throw runtime_error("Alignment method 1 is not supported on macOS.");
+    #endif
+                } else if(alignMethod == 2) {
+                    alignOrientedReads2(
+                        orientedReadIds[0], orientedReadIds[1],
+                        alignment, alignmentInfo
+                    );
+                } else if(alignMethod == 3) {
+                    alignOrientedReads3(
+                        orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        downsamplingFactor, bandExtend,
+                        alignment, alignmentInfo
+                    );
+                } else {
+                    SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
+                }
             }
-
 
             // In the global marker graph, merge pairs
             // of aligned markers.
