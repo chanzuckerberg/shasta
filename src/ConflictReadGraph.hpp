@@ -56,6 +56,7 @@ public:
         return color != invalid;
     }
 
+#if 0
     // Number of markers preceding the first marker with non-zero marker coverage
     // (that is, the first marker associated with a marker graph vertex).
     uint32_t leftTrim;
@@ -74,6 +75,7 @@ public:
 
     // This is set is longestGap>maxSkip.
     bool hasLongGap = false;
+#endif
 
     // If set (by  cleanupConflictReadGraph), the corresponding read graph
     // edge is effectively excluded from assembly by marking all

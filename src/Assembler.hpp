@@ -1477,7 +1477,7 @@ public:
     // void colorConflictReadGraph();
     void cleanupConflictReadGraph();
 private:
-    void createConflictReadGraphThreadFunction1(size_t threadId);
+    // void createConflictReadGraphThreadFunction1(size_t threadId);
     void createConflictReadGraphThreadFunction2(size_t threadId);
     void addConflictGraphEdges(
         ReadId,

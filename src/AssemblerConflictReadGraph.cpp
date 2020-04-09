@@ -48,23 +48,21 @@ void Assembler::createConflictReadGraph(
     conflictReadGraph.createNew(largeDataName("ConflictReadGraph"), largeDataPageSize);
     conflictReadGraph.createVertices(readCount());
 
+#if 0
     // Compute leftTrim, rightTrim, longestGap for each vertex.
     setupLoadBalancing(conflictReadGraph.vertices.size(), 10);
     runThreads(&Assembler::createConflictReadGraphThreadFunction1, threadCount);
+#endif
 
     // Write a csv file summarizing vertices of the conflict read graph.
     {
         ofstream csv("ConflictReadGraphVertices.csv");
-        csv << "VertexId,OrientedReadId,MarkerCount,LeftTrim,RightTrim,LongestGap\n";
+        csv << "VertexId,OrientedReadId\n";
         for(ConflictReadGraph::VertexId v=0; v<conflictReadGraph.vertices.size(); v++) {
-            const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
+            // const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
             csv <<
                 v << "," <<
-                ConflictReadGraph::getOrientedReadId(v) << "," <<
-                markers.size(v) << "," <<
-                vertex.leftTrim << "," <<
-                vertex.rightTrim << "," <<
-                vertex.longestGap << "\n";
+                ConflictReadGraph::getOrientedReadId(v) <<  "\n";
         }
     }
 
@@ -109,7 +107,7 @@ void Assembler::accessConflictReadGraph()
 }
 
 
-
+#if 0
 void Assembler::createConflictReadGraphThreadFunction1(size_t threadId)
 {
 
@@ -199,7 +197,7 @@ void Assembler::createConflictReadGraphThreadFunction1(size_t threadId)
         }
     }
 }
-
+#endif
 
 
 void Assembler::createConflictReadGraphThreadFunction2(size_t threadId)
@@ -254,14 +252,15 @@ void Assembler::addConflictGraphEdges(
     // When adding edges to the conflict read graph, we will make sure
     // to also add the reverse complemented edge.
     const OrientedReadId orientedReadId0(readId0, 0);
-    const ConflictReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
-    const ConflictReadGraphVertex& vertex0 = conflictReadGraph.getVertex(v0);
+    // const ConflictReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
+    // const ConflictReadGraphVertex& vertex0 = conflictReadGraph.getVertex(v0);
 
+#if 0
     // If the vertex corresponding to this read has a long gap don't add any edges.
     if(vertex0.hasLongGap) {
         return;
     }
-
+#endif
 
 
     // Find conflict candidates for orientedReadId0.
@@ -325,10 +324,12 @@ void Assembler::addConflictGraphEdges(
             != DirectedReadGraph::invalidEdgeId;
         const bool backwardExists = directedReadGraph.findEdge(v1, v0)
             != DirectedReadGraph::invalidEdgeId;
+#if 0
         const bool hasLongGap =
             conflictReadGraph.getVertex(v1).hasLongGap;
+#endif
 
-        if(hasLongGap or forwardExists or backwardExists) {
+        if(/*hasLongGap or */forwardExists or backwardExists) {
             continue;
         } else {
             *itB++ = orientedReadId1;
@@ -351,10 +352,13 @@ void Assembler::addConflictGraphEdges(
     const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
     for(uint64_t i=0;i<inducedAlignments.size(); i++) {
         const OrientedReadId orientedReadId1 = conflictCandidates[i];
-        const ConflictReadGraph::VertexId v1 = ConflictReadGraph::getVertexId(orientedReadId1);
-        const ConflictReadGraphVertex& vertex1 = conflictReadGraph.getVertex(v1);
-        const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
-#if 1
+        // const ConflictReadGraph::VertexId v1 = ConflictReadGraph::getVertexId(orientedReadId1);
+        // const ConflictReadGraphVertex& vertex1 = conflictReadGraph.getVertex(v1);
+        // const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
+        if(inducedAlignments[i].indicatesConflict(inducedAlignmentCriteria)) {
+            conflictingOrientedReads.push_back(orientedReadId1);
+        }
+#if 0
         // std::lock_guard<std::mutex> lock(mutex);
         // cout << "Checking induced alignment of " << orientedReadId0 << " " << orientedReadId1 << endl;
         if(not inducedAlignments[i].evaluate(

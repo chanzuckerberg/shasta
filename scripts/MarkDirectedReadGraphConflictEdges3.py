@@ -7,6 +7,6 @@ a.accessDirectedReadGraphReadWrite()
 a.accessConflictReadGraph()
 
 # For testing use a fixed radius.
-a.markDirectedReadGraphConflictEdges3(radius = 0)
+a.markDirectedReadGraphConflictEdges3(radius = 12)
 
 
