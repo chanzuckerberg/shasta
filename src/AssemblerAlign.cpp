@@ -333,9 +333,9 @@ void Assembler::computeAlignments(
 
     cout << timestamp;
     if (data.storeAlignments) {
-        cout << "Cached compressed alignments for potential reuse." << endl;
+        cout << "Storing compressed alignments for potential reuse." << endl;
     } else {
-        cout << "Not caching compressed alignments." << endl;
+        cout << "Not storing compressed alignments." << endl;
     }
 }
 
@@ -349,6 +349,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
+    string compressedAlignment;
 
     const bool debug = false;
     auto& data = computeAlignmentsData;
@@ -456,23 +457,11 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
             // Store the compressed alignment if so configured.
             if (storeAlignments) {
-                string compressed;
-                shasta::compress(alignment, compressed);
-
-                // // Testing code to immediately decompress to verify no loss of information.
-                // // This code should be removed once the task of using compressed alignments
-                // // is complete.
-                // span<const char> compressedSpan(compressed.c_str(), compressed.c_str() + compressed.size());
-                // Alignment decompressedAlignment;
-                // shasta::decompress(compressedSpan, decompressedAlignment);
-
-                // if(alignment.ordinals != decompressedAlignment.ordinals) {
-                //     throw std::runtime_error("Compression failed!");
-                // }
+                shasta::compress(alignment, compressedAlignment);
 
                 thisThreadCompressedAlignments.appendVector(
-                    compressed.c_str(),
-                    compressed.c_str() + compressed.size()
+                    compressedAlignment.c_str(),
+                    compressedAlignment.c_str() + compressedAlignment.size()
                 );
             }
         }
