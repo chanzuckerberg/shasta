@@ -174,7 +174,7 @@ void Assembler::alignOrientedReads1(
 
 
     // Fill in the alignment.
-    alignment.ordinals.clear();
+    alignment.clear();
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
     for(int i=0;

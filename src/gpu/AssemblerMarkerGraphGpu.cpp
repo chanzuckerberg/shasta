@@ -564,7 +564,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1Gpu(size_t threadId)
 
             for (size_t i=0; i<alignCount; i++) {
                 auto edgeId = currAlignmentEdgesId[i];
-                alignment.ordinals.clear();
+                alignment.clear();
                 size_t last_addr = i*SHASTA_MAX_TB+h_num_traceback[i];
                 for (size_t j=1; j<=h_num_traceback[i]; j++) {
                     uint32_t v = h_alignments[last_addr-j];

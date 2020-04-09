@@ -98,7 +98,7 @@ void Assembler::alignOrientedReads2(
     SHASTA_ASSERT(result.startLocations[0] == 0);
 
     // Fill in the alignment.
-    alignment.ordinals.clear();
+    alignment.clear();
     uint32_t ordinal0 = begin0;
     uint32_t ordinal1 = begin1;
     for(int i=0; i<result.alignmentLength; i++) {
