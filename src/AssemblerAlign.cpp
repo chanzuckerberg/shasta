@@ -319,6 +319,9 @@ void Assembler::computeAlignments(
                     (*threadCompressedAlignments)[i].end()
                 );
             }
+
+            // Clean up thread storage.
+            data.threadCompressedAlignments[threadId]->remove();
         }
     }
 
