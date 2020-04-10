@@ -635,7 +635,7 @@ void Assembler::selectKmers2(
         rleKmerCount - candidateKmers.size() <<
         " were found to be over-enriched by more than a factor of " <<
         enrichmentThreshold <<
-        " in at last one read and will not be used as markers." << endl;
+        " in at least one read and will not be used as markers." << endl;
     cout << "Markers will be chosen randomly from the remaining pool of " <<
         candidateKmers.size() << " k-mers." << endl;
     cout << "The enrichment threshold of " << enrichmentThreshold <<
