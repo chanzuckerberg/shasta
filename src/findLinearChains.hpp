@@ -4,20 +4,21 @@
 // Find linear chains in a directed graph
 
 #include <boost/graph/iteration_macros.hpp>
+#include <list>
 #include "vector.hpp"
 
 namespace shasta {
 
     template<class Graph> void findLinearChains(
         const Graph&,
-        vector< vector<typename Graph::edge_descriptor> >&);
+        vector< std::list<typename Graph::edge_descriptor> >&);
 
 }
 
 
 template<class Graph> inline void shasta::findLinearChains(
     const Graph& graph,
-    vector< vector<typename Graph::edge_descriptor> >& chains)
+    vector< std::list<typename Graph::edge_descriptor> >& chains)
 {
     using vertex_descriptor = typename Graph::vertex_descriptor;
     using edge_descriptor = typename Graph::edge_descriptor;
@@ -38,7 +39,7 @@ template<class Graph> inline void shasta::findLinearChains(
 
         // Add a new chain consisting of the start edge.
         chains.resize(chains.size() + 1);
-        vector<edge_descriptor>& chain = chains.back();
+        std::list<edge_descriptor>& chain = chains.back();
         chain.push_back(eStart);
         edgesFound.insert(eStart);
 
@@ -47,6 +48,9 @@ template<class Graph> inline void shasta::findLinearChains(
         edge_descriptor e = eStart;
         while(true) {
             const vertex_descriptor v = target(e, graph);
+            if(in_degree(v, graph) != 1) {
+                break;
+            }
             if(out_degree(v, graph) != 1) {
                 break;
             }
@@ -59,6 +63,7 @@ template<class Graph> inline void shasta::findLinearChains(
                 break;
             }
             chain.push_back(e);
+            SHASTA_ASSERT(edgesFound.find(e) == edgesFound.end());
             edgesFound.insert(e);
         }
 
@@ -71,6 +76,9 @@ template<class Graph> inline void shasta::findLinearChains(
                 if(in_degree(v, graph) != 1) {
                     break;
                 }
+                if(out_degree(v, graph) != 1) {
+                    break;
+                }
                 BGL_FORALL_INEDGES_T(v, ePrevious, graph, Graph) {
                     e = ePrevious;
                     break;
@@ -79,10 +87,12 @@ template<class Graph> inline void shasta::findLinearChains(
                     isCircular = true;
                     break;
                 }
-                chain.push_back(e);
+                chain.push_front(e);
+                SHASTA_ASSERT(edgesFound.find(e) == edgesFound.end());
                 edgesFound.insert(e);
             }
         }
+
     }
 
     // Check that all edges were found.
