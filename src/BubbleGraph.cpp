@@ -135,6 +135,9 @@ void BubbleGraph::findLinearChains()
         edge_descriptor e = startEdge;
         while(true) {
             const vertex_descriptor v = target(e, graph);
+            if(in_degree(v, graph) != 1) {
+                break;
+            }
             if(out_degree(v, graph) != 1) {
                 break;
             }
@@ -157,6 +160,9 @@ void BubbleGraph::findLinearChains()
             while(true) {
                 const vertex_descriptor v = source(e, graph);
                 if(in_degree(v, graph) != 1) {
+                    break;
+                }
+                if(out_degree(v, graph) != 1) {
                     break;
                 }
                 BGL_FORALL_INEDGES(v, ePrevious, graph, BubbleGraph) {
