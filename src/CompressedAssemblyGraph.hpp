@@ -45,6 +45,9 @@ public:
     // This includes the assembly graph vertices
     // associated with the source and target of this edge.
     vector<AssemblyGraph::VertexId> vertices;
+
+    // The chain of sets of parallel assembly graph edges.
+    vector< vector<AssemblyGraph::EdgeId> > edges;
 };
 
 
@@ -53,6 +56,7 @@ class shasta::CompressedAssemblyGraph :
     public CompressedAssemblyGraphBaseClass {
 public:
     using VertexId = AssemblyGraph::VertexId;
+    using EdgeId = AssemblyGraph::EdgeId;
 
 
     // Create the CompressedAssemblyGraph from the AssemblyGraph.

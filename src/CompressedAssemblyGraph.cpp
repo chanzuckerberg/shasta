@@ -92,4 +92,23 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
         num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
 
+
+
+    // Fill in the assembly graph edges that went into each compressed edge.
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        CompressedAssemblyGraphEdge& edge = graph[e];
+        edge.edges.resize(edge.vertices.size() - 1);
+        for(uint64_t i=1; i<edge.edges.size(); i++) {
+            const VertexId vertexId0 = edge.vertices[i-1];
+            const VertexId vertexId1 = edge.vertices[i];
+            const span<const EdgeId> edges0 = assemblyGraph.edgesBySource[vertexId0];
+            for(const EdgeId edge01: edges0) {
+                if(assemblyGraph.edges[edge01].target == vertexId1) {
+                    edge.edges[i].push_back(edge01);
+                }
+            }
+        }
+
+    }
+
 }
