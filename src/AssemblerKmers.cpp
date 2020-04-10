@@ -812,5 +812,7 @@ void Assembler::selectKmers2ThreadFunction(size_t threadId)
             selectKmers2Data.overenrichedReadCount[kmerId] += overenrichedReadCount[kmerId];
         }
     }
+    globalFrequency.remove();
+    overenrichedReadCount.remove();
 }
 
