@@ -270,7 +270,7 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Kmers.enrichmentThreshold",
         value<double>(&kmersOptions.enrichmentThreshold)->
-        default_value(10., "10."),
+        default_value(100., "100."),
         "Enrichment threshold for Kmers.generationMethod 1 and 2.")
 
         ("Kmers.file",
