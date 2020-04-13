@@ -397,37 +397,59 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
             orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
 
-            if(alignmentMethod == 0) {
 
-                // Get the markers for the two oriented reads in this candidate.
-                for(size_t j=0; j<2; j++) {
-                    getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
-                }
 
-                // Compute the Alignment.
-                alignOrientedReads(
-                    markersSortedByKmerId,
-                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+            // Compute the alignment.
+            try {
+                if(alignmentMethod == 0) {
 
-            } else if(alignmentMethod == 1) {
+                    // Get the markers for the two oriented reads in this candidate.
+                    for(size_t j=0; j<2; j++) {
+                        getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+                    }
+
+                    // Compute the Alignment.
+                    alignOrientedReads(
+                        markersSortedByKmerId,
+                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+
+                } else if(alignmentMethod == 1) {
 #ifdef __linux__
-                alignOrientedReads1(orientedReadIds[0], orientedReadIds[1],
-                    matchScore, mismatchScore, gapScore,
-                    alignment, alignmentInfo);
+                    alignOrientedReads1(orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        alignment, alignmentInfo);
 #else
-                throw runtime_error("Align method 1 is not supported on macOS.");
+                    throw runtime_error("Align method 1 is not supported on macOS.");
 #endif
-            } else if(alignmentMethod == 2) {
-                alignOrientedReads2(orientedReadIds[0], orientedReadIds[1],
-                    alignment, alignmentInfo);
-            } else if(alignmentMethod == 3) {
-                alignOrientedReads3(orientedReadIds[0], orientedReadIds[1],
-                    matchScore, mismatchScore, gapScore,
-                    downsamplingFactor, bandExtend,
-                    alignment, alignmentInfo);
-            } else {
-                SHASTA_ASSERT(0);
+                } else if(alignmentMethod == 2) {
+                    alignOrientedReads2(orientedReadIds[0], orientedReadIds[1],
+                        alignment, alignmentInfo);
+                } else if(alignmentMethod == 3) {
+                    alignOrientedReads3(orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        downsamplingFactor, bandExtend,
+                        alignment, alignmentInfo);
+                } else {
+                    SHASTA_ASSERT(0);
+                }
+            } catch (std::exception& e) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout <<
+                    "An error occurred while computing a marker alignment "
+                    " of oriented reads " << orientedReadIds[0] << " and " << orientedReadIds[1] <<
+                    ". This alignment candidate will be skipped. Error description is: " <<
+                    e.what() << endl;
+                continue;
+            } catch(...) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout <<
+                    "An error occurred while computing a marker alignment "
+                    " of oriented reads " << orientedReadIds[0] << " and " << orientedReadIds[1] <<
+                    ". This alignment candidate will be skipped. " << endl;
+                continue;
             }
+
+
 
             // If the alignment has too few markers, skip it.
             if(alignment.ordinals.size() < minAlignedMarkerCount) {
