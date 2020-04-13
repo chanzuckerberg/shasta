@@ -48,7 +48,6 @@ void Assembler::fillServerFunctionTable()
 
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreSummary);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreRead);
-    SHASTA_ADD_TO_FUNCTION_TABLE(exploreReadOld);
     SHASTA_ADD_TO_FUNCTION_TABLE(blastRead);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignments);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignment);
@@ -304,7 +303,6 @@ void Assembler::writeNavigation(ostream& html) const
         });
     writeNavigation(html, "Reads", {
         {"Reads", "exploreRead"},
-        {"Reads (Old)", "exploreReadOld"},
         });
     writeNavigation(html, "Alignments", {
         {"Stored alignments", "exploreAlignments"},
