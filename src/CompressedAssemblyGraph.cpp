@@ -273,7 +273,7 @@ void CompressedAssemblyGraph::writeHtml(ostream& html) const
         "<p>Each edge of the compressed assembly graph corresponds to either "
         "a single edge of uncompressed assembly graph, "
         "or a chain of bubbles in the uncompressed assembly graph. "
-        "The following table summarizes that uncompressed assembly graph edges "
+        "The following table summarizes the uncompressed assembly graph edges "
         "that contribute to each edge of the compressed assembly graph."
         "<table>"
         "<tr><th>Compressed<br>edge<th>Position<th>Uncompressed<br>edges\n";
