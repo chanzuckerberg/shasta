@@ -48,6 +48,17 @@ public:
 
     // The chain of sets of parallel assembly graph edges.
     vector< vector<AssemblyGraph::EdgeId> > edges;
+
+    // An id assigned to this edge of the compressed assembly graph
+    // and used in gfa and other output.
+    uint64_t id;
+    string gfaId() const;
+
+    // The minimum and maximum marker count (path length) in markers.
+    uint64_t minMarkerCount;
+    uint64_t maxMarkerCount;
+    void fillMarkerCounts(const AssemblyGraph&);
+
 };
 
 
@@ -62,6 +73,39 @@ public:
     // Create the CompressedAssemblyGraph from the AssemblyGraph.
     CompressedAssemblyGraph(const AssemblyGraph&);
 
+    // GFA output (without sequence).
+    void writeGfa(const string& fileName, double basesPerMarker) const;
+    void writeGfa(ostream&, double basesPerMarker) const;
+
+    // HTML output.
+    void writeHtml(const string& fileName) const;
+    void writeHtml(ostream&) const;
+
+private:
+
+    // Create a vertex for each vertex of the assembly graph.
+    void createVertices(
+        uint64_t vertexCount,
+        vector<vertex_descriptor>& vertexTable);
+
+    // Create an edge for each set of parallel edges of the assembly graph.
+    void createEdges(
+        const AssemblyGraph&,
+        const vector<vertex_descriptor>& vertexTable
+    );
+
+    // Merge linear chains of edges.
+    void mergeLinearChains();
+
+    // Assign an id to each edge.
+    void assignEdgeIds();
+
+    // Fill in the assembly graph edges that go into each
+    // edge of the compressed assembly graph.
+    void fillContributingEdges(const AssemblyGraph&);
+
+    // Fill in minimum and maximum marker counts for each edge.
+    void fillMarkerCounts(const AssemblyGraph&);
 };
 
 

@@ -3,8 +3,10 @@
 import shasta
 
 a = shasta.Assembler()
+a.accessMarkers()
 a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
+a.accessAssemblyGraphEdgeLists()
 a.createCompressedAssemblyGraph()
 
 
