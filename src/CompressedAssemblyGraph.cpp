@@ -1,5 +1,6 @@
 #include "CompressedAssemblyGraph.hpp"
 #include "findLinearChains.hpp"
+#include "html.hpp"
 using namespace shasta;
 
 #include "fstream.hpp"
@@ -266,14 +267,28 @@ void CompressedAssemblyGraph::writeHtml(const string& fileName) const
 }
 void CompressedAssemblyGraph::writeHtml(ostream& html) const
 {
+    writeHtmlBegin(html, "Compressed assembly graph");
+    html <<
+        "<body><h1>Compressed assembly graph</h1>"
+        "<p>Each edge of the compressed assembly graph corresponds to either "
+        "a single edge of uncompressed assembly graph, "
+        "or a chain of bubbles in the uncompressed assembly graph. "
+        "The following table summarizes that uncompressed assembly graph edges "
+        "that contribute to each edge of the compressed assembly graph."
+        "<table>"
+        "<tr><th>Compressed<br>edge<th>Position<th>Uncompressed<br>edges\n";
+
     const CompressedAssemblyGraph& graph = *this;
 
     BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
         const CompressedAssemblyGraphEdge& edge = graph[e];
 
+
         for(uint64_t position=0; position<edge.edges.size(); position++) {
             const vector<AssemblyGraph::EdgeId>& edgesAtPosition = edge.edges[position];
-            html << "<p>Edge " << edge.gfaId() << " position " << position << ":";
+            html << "<tr><td class=centered title='Compressed edge'>" << edge.gfaId();
+            html << "<td class=centered title='Position in compressed edge'>" <<
+                position << "<td class=centered title='Uncompressed edges'>";
             for(const AssemblyGraph::EdgeId edgeId: edgesAtPosition) {
                 html << " " << edgeId;
             }
@@ -281,6 +296,8 @@ void CompressedAssemblyGraph::writeHtml(ostream& html) const
         }
     }
 
+    html << "</table></body>";
+    writeHtmlEnd(html);
 }
 
 
