@@ -24,6 +24,8 @@ namespace shasta {
         CompressedAssemblyGraphVertex,
         CompressedAssemblyGraphEdge
         >;
+
+    class Assembler;
 }
 
 
@@ -59,6 +61,19 @@ public:
     uint64_t maxMarkerCount;
     void fillMarkerCounts(const AssemblyGraph&);
 
+    // Find the oriented reads that appear in marker graph vertices
+    // internal to this edge of the compressed assembly graph.
+    void findOrientedReads(const Assembler&);
+    vector<OrientedReadId> orientedReadIds;
+    vector<uint64_t> orientedReadIdsFrequency;
+
+private:
+
+    // Append to orientedReadIds the oriented reads that
+    // appear in a given marker graph edge.
+    void findOrientedReads(
+        const Assembler&,
+        const MarkerGraph::EdgeId&);
 };
 
 
@@ -71,7 +86,8 @@ public:
 
 
     // Create the CompressedAssemblyGraph from the AssemblyGraph.
-    CompressedAssemblyGraph(const AssemblyGraph&);
+    CompressedAssemblyGraph(
+        const Assembler&);
 
     // GFA output (without sequence).
     void writeGfa(const string& fileName, double basesPerMarker) const;
@@ -106,6 +122,10 @@ private:
 
     // Fill in minimum and maximum marker counts for each edge.
     void fillMarkerCounts(const AssemblyGraph&);
+
+    // Find the oriented reads that appear in marker graph vertices
+    // internal to each edge of the compressed assembly graph.
+    void findOrientedReads(const Assembler&);
 };
 
 

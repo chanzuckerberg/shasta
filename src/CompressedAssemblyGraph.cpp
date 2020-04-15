@@ -1,4 +1,6 @@
 #include "CompressedAssemblyGraph.hpp"
+#include "Assembler.hpp"
+#include "deduplicate.hpp"
 #include "findLinearChains.hpp"
 #include "html.hpp"
 using namespace shasta;
@@ -10,9 +12,10 @@ using namespace shasta;
 
 // Create the CompressedAssemblyGraph from the AssemblyGraph.
 CompressedAssemblyGraph::CompressedAssemblyGraph(
-    const AssemblyGraph& assemblyGraph)
+    const Assembler& assembler)
 {
     CompressedAssemblyGraph& graph = *this;
+    const AssemblyGraph& assemblyGraph = *(assembler.assemblyGraphPointer);
 
     cout << "The assembly graph has " << assemblyGraph.vertices.size() <<
         " vertices and " << assemblyGraph.edges.size() << " edges." << endl;
@@ -40,6 +43,10 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
 
     // Fill in minimum and maximum marker counts for each edge.
     fillMarkerCounts(assemblyGraph);
+
+    // Find the oriented reads that appear in marker graph vertices
+    // internal to each edge of the compressed assembly graph.
+    findOrientedReads(assembler);
 }
 
 
@@ -190,6 +197,67 @@ void CompressedAssemblyGraph::fillContributingEdges(
             }
         }
 
+    }
+}
+
+
+
+// Find the oriented reads that appear in marker graph vertices
+// internal to each edge of the compressed assembly graph.
+void CompressedAssemblyGraph::findOrientedReads(
+    const Assembler& assembler)
+{
+    CompressedAssemblyGraph& graph = *this;
+
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        graph[e].findOrientedReads(assembler);
+    }
+
+}
+
+
+
+// Find the oriented reads that appear in marker graph vertices
+// internal to an edge of the compressed assembly graph.
+void CompressedAssemblyGraphEdge::findOrientedReads(
+    const Assembler& assembler)
+{
+    const AssemblyGraph& assemblyGraph = *assembler.assemblyGraphPointer;
+
+
+    // Loop over assembly graph edges.
+    for(const vector<AssemblyGraph::EdgeId>& edgesHere: edges) {
+        for(const AssemblyGraph::EdgeId assemblyGraphEdgeId: edgesHere) {
+
+            // Loop over marker graph edges corresponding to this
+            // assembly graph edge.
+            const span<const MarkerGraph::EdgeId> markerGraphEdgeIds =
+                assemblyGraph.edgeLists[assemblyGraphEdgeId];
+            for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdgeIds) {
+                findOrientedReads(assembler, markerGraphEdgeId);
+            }
+        }
+    }
+
+
+
+    // Deduplicate oriented reads and count their occurrences.
+    deduplicateAndCount(orientedReadIds, orientedReadIdsFrequency);
+    cout << gfaId() << " " << orientedReadIds.size() << endl;
+}
+
+
+
+// Append to orientedReadIds the oriented reads that
+// appear in a given marker graph edge.
+void CompressedAssemblyGraphEdge::findOrientedReads(
+    const Assembler& assembler,
+    const MarkerGraph::EdgeId& markerGraphEdgeId)
+{
+    const span<const MarkerInterval> markerIntervals =
+        assembler.markerGraph.edgeMarkerIntervals[markerGraphEdgeId];
+    for(const MarkerInterval markerInterval: markerIntervals) {
+        orientedReadIds.push_back(markerInterval.orientedReadId);
     }
 }
 

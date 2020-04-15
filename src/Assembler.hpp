@@ -820,7 +820,9 @@ private:
     // This requires a binary search in the markers toc.
     // This could be avoided, at the cost of storing
     // an additional 4 bytes per marker.
+public:
     pair<OrientedReadId, uint32_t> findMarkerId(MarkerId) const;
+private:
 
     // Given a MarkerId, compute the MarkerId of the
     // reverse complemented marker.
@@ -1275,10 +1277,10 @@ private:
 
 
     // Marker graph.
+public:
     MarkerGraph markerGraph;
 
     // Find the reverse complement of each marker graph vertex.
-public:
     void findMarkerGraphReverseComplementVertices(size_t threadCount);
     void accessMarkerGraphReverseComplementVertex();
     void removeMarkerGraphVertices();
