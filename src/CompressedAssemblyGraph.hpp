@@ -67,6 +67,11 @@ public:
     vector<OrientedReadId> orientedReadIds;
     vector<uint64_t> orientedReadIdsFrequency;
 
+    // The edges that have at least one oriented read in common
+    // with this edge.
+    vector<CompressedAssemblyGraphBaseClass::edge_descriptor>
+        relatedEdges;
+
 private:
 
     // Append to orientedReadIds the oriented reads that
@@ -130,6 +135,11 @@ private:
     // The edges that each oriented read appears in.
     // Indexed by OrientedRead::getValue().
     vector< vector<edge_descriptor> > orientedReadTable;
+
+    // Find edges that have at least one common oriented read
+    // which each edge.
+    void findRelatedEdges();
+    void findRelatedEdges(edge_descriptor);
 };
 
 

@@ -47,6 +47,10 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
     // Find the oriented reads that appear in marker graph vertices
     // internal to each edge of the compressed assembly graph.
     findOrientedReads(assembler);
+
+    // Find edges that have at least one common oriented read
+    // which each edge.
+    findRelatedEdges();
 }
 
 
@@ -266,6 +270,38 @@ void CompressedAssemblyGraphEdge::findOrientedReads(
     }
 }
 
+
+
+// Find edges that have at least one common oriented read
+// which each edge.
+void CompressedAssemblyGraph::findRelatedEdges()
+{
+    CompressedAssemblyGraph& graph = *this;
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        findRelatedEdges(e);
+    }
+}
+void CompressedAssemblyGraph::findRelatedEdges(edge_descriptor e0)
+{
+    CompressedAssemblyGraph& graph = *this;
+    CompressedAssemblyGraphEdge& edge0 = graph[e0];
+    for(const OrientedReadId orientedReadId: edge0.orientedReadIds) {
+        const vector<edge_descriptor>& edges = orientedReadTable[orientedReadId.getValue()];
+        for(const edge_descriptor e1: edges) {
+            if(e1 != e0) {
+                edge0.relatedEdges.push_back(e1);
+            }
+        }
+    }
+    deduplicate(edge0.relatedEdges);
+    edge0.relatedEdges.shrink_to_fit();
+
+    cout << edge0.gfaId() << ":";
+    for(const edge_descriptor e1: edge0.relatedEdges) {
+        cout << " " << graph[e1].gfaId();
+    }
+    cout << endl;
+}
 
 
 string CompressedAssemblyGraphEdge::gfaId() const
