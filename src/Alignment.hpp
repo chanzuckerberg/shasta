@@ -38,6 +38,10 @@ public:
     void clear() {
         ordinals.clear();
     }
+
+    uint32_t maxSkip() const;
+    uint32_t maxDrift() const;
+
 };
 
 

@@ -471,6 +471,17 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
                 continue;
             }
 
+            // For alignment methods other than method 0, we also need to check for
+            // maxSip and maxDrift. Method 0 does that automatically.
+            if(alignmentMethod != 0) {
+                if(alignment.maxSkip() > maxSkip) {
+                    continue;
+                }
+                if(alignment.maxDrift() > maxDrift) {
+                    continue;
+                }
+            }
+
             // Skip containing alignments, if so requested.
             if(suppressContainments and alignmentInfo.isContaining(uint32_t(maxTrim))) {
                 continue;
