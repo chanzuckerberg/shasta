@@ -1611,7 +1611,7 @@ void Assembler::exploreAlignment(
     const bool strand1IsPresent = getParameterValue(request, "strand1", strand1);
 
     // Get alignment parameters.
-    int method = 0;
+    int method = httpServerData.assemblerOptions->alignOptions.alignMethod;
     getParameterValue(request, "method", method);
     size_t maxSkip = httpServerData.assemblerOptions->alignOptions.maxSkip;
     getParameterValue(request, "maxSkip", maxSkip);
