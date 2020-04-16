@@ -145,7 +145,11 @@ void Assembler::initializeKmerTable()
 
     // Fill in hash values used for downsampling.
     for(uint64_t kmerId=0; kmerId<kmerCount; kmerId++) {
-        kmerTable[kmerId].hash = MurmurHash2(&kmerId, sizeof(kmerId), 13477);
+        const uint64_t reverseComplementedKmerId = kmerTable[kmerId].reverseComplementedKmerId;
+        kmerTable[kmerId].hash = min(
+            MurmurHash2(&kmerId, sizeof(uint64_t), 13477),
+            MurmurHash2(&reverseComplementedKmerId, sizeof(uint64_t), 13477)
+            );
     }
 
 }
