@@ -126,6 +126,10 @@ private:
     // Find the oriented reads that appear in marker graph vertices
     // internal to each edge of the compressed assembly graph.
     void findOrientedReads(const Assembler&);
+
+    // The edges that each oriented read appears in.
+    // Indexed by OrientedRead::getValue().
+    vector< vector<edge_descriptor> > orientedReadTable;
 };
 
 

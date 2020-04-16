@@ -213,6 +213,14 @@ void CompressedAssemblyGraph::findOrientedReads(
         graph[e].findOrientedReads(assembler);
     }
 
+    // Fill in the oriented read table, which tells us
+    // which edges each read appears in.
+    orientedReadTable.resize(2 * assembler.readCount());
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        for(const OrientedReadId orientedReadId: graph[e].orientedReadIds) {
+            orientedReadTable[orientedReadId.getValue()].push_back(e);
+        }
+    }
 }
 
 
@@ -223,7 +231,6 @@ void CompressedAssemblyGraphEdge::findOrientedReads(
     const Assembler& assembler)
 {
     const AssemblyGraph& assemblyGraph = *assembler.assemblyGraphPointer;
-
 
     // Loop over assembly graph edges.
     for(const vector<AssemblyGraph::EdgeId>& edgesHere: edges) {
@@ -240,10 +247,8 @@ void CompressedAssemblyGraphEdge::findOrientedReads(
     }
 
 
-
     // Deduplicate oriented reads and count their occurrences.
     deduplicateAndCount(orientedReadIds, orientedReadIdsFrequency);
-    cout << gfaId() << " " << orientedReadIds.size() << endl;
 }
 
 
