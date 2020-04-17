@@ -5,7 +5,8 @@ using namespace shasta;
 
 void Assembler::createCompressedAssemblyGraph()
 {
-    CompressedAssemblyGraph graph(*this);
+    compressedAssemblyGraph = make_shared<CompressedAssemblyGraph>(*this);
+    CompressedAssemblyGraph& graph = *compressedAssemblyGraph;
 
     // GFA output (without sequence).
     const double basesPerMarker =

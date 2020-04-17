@@ -43,6 +43,7 @@ namespace shasta {
     class AlignmentInfo;
     class AssemblerOptions;
     class AssembledSegment;
+    class CompressedAssemblyGraph;
     class ConsensusCaller;
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
@@ -1728,7 +1729,10 @@ public:
 
 
     // CompressedAssemblyGraph.
+    // Note that we have no persistent version of this.
+    // It must be created from scratch each time.
     void createCompressedAssemblyGraph();
+    shared_ptr<CompressedAssemblyGraph> compressedAssemblyGraph;
 
 
 public:
