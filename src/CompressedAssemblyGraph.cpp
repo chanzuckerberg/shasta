@@ -321,6 +321,29 @@ string CompressedAssemblyGraphEdge::gfaId() const
 
 
 
+uint64_t CompressedAssemblyGraph::maxPloidy() const
+{
+    const CompressedAssemblyGraph& graph = *this;
+    uint64_t returnValue = 0;
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        returnValue = max(returnValue, graph[e].maxPloidy());
+    }
+    return returnValue;
+}
+
+
+
+uint64_t CompressedAssemblyGraphEdge::maxPloidy() const
+{
+    uint64_t returnValue = 0;
+    for(const auto& v: edges) {
+        returnValue = max(returnValue, v.size());
+    }
+    return returnValue;
+}
+
+
+
 // GFA output (without sequence).
 void CompressedAssemblyGraph::writeGfa(const string& fileName, double basesPerMarker) const
 {
@@ -375,6 +398,8 @@ void CompressedAssemblyGraph::writeCsv() const
 {
     writeCsvEdges();
     writeCsvBubbleChains();
+    writeCsvOrientedReadsByEdge();
+    writeCsvOrientedReads();
 }
 
 
@@ -404,9 +429,76 @@ void CompressedAssemblyGraph::writeCsvEdges() const
 
 
 
+void CompressedAssemblyGraph::writeCsvOrientedReadsByEdge() const
+{
+    const CompressedAssemblyGraph& graph = *this;
+
+    ofstream csv("CompressedGraph-OrientedReadsByEdge.csv");
+    csv << "Id,GFA id,OrientedRead,Frequency\n";
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        const CompressedAssemblyGraphEdge& edge = graph[e];
+        SHASTA_ASSERT(edge.orientedReadIds.size() == edge.orientedReadIdsFrequency.size());
+        for(uint64_t i=0; i<edge.orientedReadIds.size(); i++) {
+            const OrientedReadId orientedReadId = edge.orientedReadIds[i];
+            const uint64_t frequency = edge.orientedReadIdsFrequency[i];
+            csv << edge.id << ",";
+            csv << edge.gfaId() << ",";
+            csv << orientedReadId << ",";
+            csv << frequency << "\n";
+        }
+    }
+
+}
+
+
+
 void CompressedAssemblyGraph::writeCsvBubbleChains() const
 {
+    const CompressedAssemblyGraph& graph = *this;
+    const uint64_t maxPloidy = graph.maxPloidy();
 
+    ofstream csv("CompressedGraph-BubbleChains.csv");
+    csv << "Id,GFA id,Position,";
+    for(uint64_t i=0; i<maxPloidy; i++) {
+        csv << "Edge" << i << ",";
+    }
+    csv << "\n";
+
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        const CompressedAssemblyGraphEdge& edge = graph[e];
+
+        for(uint64_t position=0; position<edge.edges.size(); position++) {
+            const vector<AssemblyGraph::EdgeId>& edgesAtPosition = edge.edges[position];
+
+            csv << edge.id << ",";
+            csv << edge.gfaId() << ",";
+            csv << position << ",";
+            for(const AssemblyGraph::EdgeId edgeId: edgesAtPosition) {
+                csv << edgeId << ",";
+            }
+            csv << "\n";
+        }
+    }
+}
+
+
+
+void CompressedAssemblyGraph::writeCsvOrientedReads() const
+{
+    const CompressedAssemblyGraph& graph = *this;
+
+    ofstream csv("CompressedGraph-OrientedReads.csv");
+    csv << "OrientedReadId,Id,GFA id,\n";
+    for(OrientedReadId::Int orientedReadId=0; orientedReadId<orientedReadTable.size();
+        orientedReadId++) {
+        const vector<edge_descriptor>& edges = orientedReadTable[orientedReadId];
+        for(const edge_descriptor e: edges) {
+            const CompressedAssemblyGraphEdge& edge = graph[e];
+            csv << OrientedReadId(orientedReadId) << ",";
+            csv << edge.id << ",";
+            csv << edge.gfaId() << "\n";
+        }
+    }
 }
 
 

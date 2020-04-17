@@ -72,6 +72,9 @@ public:
     vector<CompressedAssemblyGraphBaseClass::edge_descriptor>
         relatedEdges;
 
+    // Return the maximum number of branches in a bubble.
+    uint64_t maxPloidy() const;
+
 private:
 
     // Append to orientedReadIds the oriented reads that
@@ -79,6 +82,7 @@ private:
     void findOrientedReads(
         const Assembler&,
         const MarkerGraph::EdgeId&);
+
 };
 
 
@@ -103,6 +107,8 @@ public:
 private:
     void writeCsvEdges() const;
     void writeCsvBubbleChains() const;
+    void writeCsvOrientedReadsByEdge() const;
+    void writeCsvOrientedReads() const;
 
     // Create a vertex for each vertex of the assembly graph.
     void createVertices(
@@ -140,6 +146,9 @@ private:
     // which each edge.
     void findRelatedEdges();
     void findRelatedEdges(edge_descriptor);
+
+private:
+    uint64_t maxPloidy() const;
 };
 
 
