@@ -13,5 +13,7 @@ void Assembler::createCompressedAssemblyGraph()
         double(assemblerInfo->baseCount) /
         double(markers.totalSize()/2);
     graph.writeGfa("CompressedAssemblyGraph.gfa", basesPerMarker);
-    graph.writeHtml("CompressedAssemblyGraph.html");
+
+    // Write everything in csv format.
+    graph.writeCsv();
 }

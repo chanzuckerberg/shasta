@@ -98,11 +98,11 @@ public:
     void writeGfa(const string& fileName, double basesPerMarker) const;
     void writeGfa(ostream&, double basesPerMarker) const;
 
-    // HTML output.
-    void writeHtml(const string& fileName) const;
-    void writeHtml(ostream&) const;
-
+    // Dump everything to csv files.
+    void writeCsv() const;
 private:
+    void writeCsvEdges() const;
+    void writeCsvBubbleChains() const;
 
     // Create a vertex for each vertex of the assembly graph.
     void createVertices(

@@ -296,11 +296,13 @@ void CompressedAssemblyGraph::findRelatedEdges(edge_descriptor e0)
     deduplicate(edge0.relatedEdges);
     edge0.relatedEdges.shrink_to_fit();
 
+    /*
     cout << edge0.gfaId() << ":";
     for(const edge_descriptor e1: edge0.relatedEdges) {
         cout << " " << graph[e1].gfaId();
     }
     cout << endl;
+    */
 }
 
 
@@ -368,46 +370,45 @@ void CompressedAssemblyGraph::writeGfa(ostream& gfa, double basesPerMarker) cons
 }
 
 
-// HTML output.
-void CompressedAssemblyGraph::writeHtml(const string& fileName) const
-{
-    ofstream html(fileName);
-    writeHtml(html);
-}
-void CompressedAssemblyGraph::writeHtml(ostream& html) const
-{
-    writeHtmlBegin(html, "Compressed assembly graph");
-    html <<
-        "<body><h1>Compressed assembly graph</h1>"
-        "<p>Each edge of the compressed assembly graph corresponds to either "
-        "a single edge of uncompressed assembly graph, "
-        "or a chain of bubbles in the uncompressed assembly graph. "
-        "The following table summarizes the uncompressed assembly graph edges "
-        "that contribute to each edge of the compressed assembly graph."
-        "<table>"
-        "<tr><th>Compressed<br>edge<th>Position<th>Uncompressed<br>edges\n";
 
+void CompressedAssemblyGraph::writeCsv() const
+{
+    writeCsvEdges();
+    writeCsvBubbleChains();
+}
+
+
+
+void CompressedAssemblyGraph::writeCsvEdges() const
+{
     const CompressedAssemblyGraph& graph = *this;
 
+    ofstream csv("CompressedGraph-Edges.csv");
+    csv << "Id,GFA id,Source,Target,MinMarkerCount,MaxMarkerCount,OrientedReadsCount,RelatedEdgesCount,\n";
     BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
         const CompressedAssemblyGraphEdge& edge = graph[e];
-
-
-        for(uint64_t position=0; position<edge.edges.size(); position++) {
-            const vector<AssemblyGraph::EdgeId>& edgesAtPosition = edge.edges[position];
-            html << "<tr><td class=centered title='Compressed edge'>" << edge.gfaId();
-            html << "<td class=centered title='Position in compressed edge'>" <<
-                position << "<td class=centered title='Uncompressed edges'>";
-            for(const AssemblyGraph::EdgeId edgeId: edgesAtPosition) {
-                html << " " << edgeId;
-            }
-            html << "\n";
-        }
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        csv << edge.id << ",";
+        csv << edge.gfaId() << ",";
+        csv << graph[v0].vertexId << ",";
+        csv << graph[v1].vertexId << ",";
+        csv << edge.minMarkerCount << ",";
+        csv << edge.maxMarkerCount << ",";
+        csv << edge.orientedReadIds.size() << ",";
+        csv << edge.relatedEdges.size() << ",";
+        csv << "\n";
     }
 
-    html << "</table></body>";
-    writeHtmlEnd(html);
 }
+
+
+
+void CompressedAssemblyGraph::writeCsvBubbleChains() const
+{
+
+}
+
 
 
 // Fill in minimum and maximum marker counts for each edge.
