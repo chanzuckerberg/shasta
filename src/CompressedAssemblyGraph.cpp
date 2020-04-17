@@ -326,7 +326,7 @@ uint64_t CompressedAssemblyGraph::maxPloidy() const
     const CompressedAssemblyGraph& graph = *this;
     uint64_t returnValue = 0;
     BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
-        returnValue = max(returnValue, uint64_t(graph[e].maxPloidy()));
+        returnValue = max(returnValue, graph[e].maxPloidy());
     }
     return returnValue;
 }
@@ -337,7 +337,7 @@ uint64_t CompressedAssemblyGraphEdge::maxPloidy() const
 {
     uint64_t returnValue = 0;
     for(const auto& v: edges) {
-        returnValue = max(returnValue, v.size());
+        returnValue = max(returnValue, uint64_t(v.size()));
     }
     return returnValue;
 }
