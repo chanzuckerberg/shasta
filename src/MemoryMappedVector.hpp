@@ -717,7 +717,8 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::unmapAnonymous()
 
     const int munmapReturnCode = ::munmap(header, header->fileSize);
     if(munmapReturnCode == -1) {
-        throw runtime_error("Error unmapping.");
+        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+            + " unmapping MemoryMapped::Vector: " + string(strerror(errno)));
     }
 
     // Mark it as not open.
