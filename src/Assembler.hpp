@@ -706,6 +706,9 @@ private:
     // kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarker
     MemoryMapped::Vector<KmerInfo> kmerTable;
     void checkKmersAreOpen() const;
+    inline size_t getKmerCount(size_t k) const {
+      return(1ULL << (2ULL*k));
+    };
 
 public:
     void accessKmers();
