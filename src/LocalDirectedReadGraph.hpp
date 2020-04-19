@@ -64,8 +64,10 @@ public:
 
     // Information from the global conflict read graph.
     bool isConflict = false;
-    uint64_t clusterId = std::numeric_limits<uint64_t>::max();
+    uint32_t componentId = std::numeric_limits<uint32_t>::max();
+    uint32_t color = std::numeric_limits<uint32_t>::max();
     uint64_t conflictCount = 0;
+    bool wasRemoved = false;
 
     bool isConflictingGreen = false;
     bool isConflictingRed = false;
@@ -142,6 +144,8 @@ public:
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
         bool colorEdgeArrows,
+        bool dashedContainmentEdges,
+        uint32_t maxTrim,
         VertexColoringMethod) const;
     void write(
         const string& fileName,
@@ -150,6 +154,8 @@ public:
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
         bool colorEdgeArrows,
+        bool dashedContainmentEdges,
+        uint32_t maxTrim,
         VertexColoringMethod) const;
 
     // Return the vertex corresponding to a given OrientedReadId,
@@ -179,6 +185,8 @@ private:
             double edgeThicknessScalingFactor,
             double edgeArrowScalingFactor,
             bool colorEdgeArrows,
+            bool dashedContainmentEdges,
+            uint32_t maxTrim,
             VertexColoringMethod);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
@@ -189,6 +197,8 @@ private:
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
         bool colorEdgeArrows;
+        bool dashedContainmentEdges;
+        uint32_t maxTrim;
         VertexColoringMethod vertexColoringMethod;
     };
 };

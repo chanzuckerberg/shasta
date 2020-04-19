@@ -46,6 +46,7 @@ void Assembler::checkReadId(ReadId readId) const
 void Assembler::addReads(
     const string& fileName,
     size_t minReadLength,
+    bool noCache,
     const size_t threadCount)
 {
     checkReadsAreOpen();
@@ -54,6 +55,7 @@ void Assembler::addReads(
     ReadLoader readLoader(
         fileName,
         minReadLength,
+        noCache,
         threadCount,
         largeDataFileNamePrefix,
         largeDataPageSize,

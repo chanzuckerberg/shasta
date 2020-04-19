@@ -24,11 +24,6 @@
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
 
-#ifdef SHASTA_MARGINPHASE
-// MarginPhase.
-#include "marginPhase/callConsensus.h"
-#endif
-
 // Standard library.
 #include "memory.hpp"
 #include "string.hpp"
@@ -48,6 +43,7 @@ namespace shasta {
     class AlignmentInfo;
     class AssemblerOptions;
     class AssembledSegment;
+    class CompressedAssemblyGraph;
     class ConsensusCaller;
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
@@ -165,14 +161,12 @@ public:
         bool createNew,
         size_t largeDataPageSize);
 
-    // Destructor.
-    ~Assembler();
-
     // Add reads.
     // The reads in the specified file are added to those already previously present.
     void addReads(
         const string& fileName,
         size_t minReadLength,
+        bool noCache,
         size_t threadCount);
 
     // Create a histogram of read lengths.
@@ -223,7 +217,7 @@ public:
     // without storing details of the alignment.
     void computeAlignments(
 
-        // Alignment method (0 or 1).
+        // Alignment method.
         int alignmentMethod,
 
         // Marker frequency threshold.
@@ -255,6 +249,16 @@ public:
         int matchScore,
         int mismatchScore,
         int gapScore,
+
+        // Parameters for alignment method 3.
+        double downsamplingFactor,
+        int bandExtend,
+
+        // If true, discard containment alignments.
+        bool suppressContainments,
+
+        // If true, store good alignments in a compressed format.
+        bool storeAlignments,
 
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
@@ -356,6 +360,10 @@ public:
         int matchScore,
         int mismatchScore,
         int gapScore,
+
+        // Parameters for method 3 alignments.
+        double downsamplingFactor,
+        int bandExtend,
 
         // The method used to create the read graph.
         // This affects which alignments are used to create the marker graph.
@@ -734,7 +742,53 @@ public:
         size_t threadCount
     );
 
+
+
+    // In this version, marker k-mers are selected randomly, but excluding
+    // any k-mer that is over-enriched even in a single oriented read.
+    void selectKmers2(
+
+        // k-mer length.
+        size_t k,
+
+        // The desired marker density
+        double markerDensity,
+
+        // Seed for random number generator.
+        int seed,
+
+        // Exclude k-mers enriched by more than this amount,
+        // even in a single oriented read.
+        // Enrichment is the ratio of k-mer frequency in reads
+        // over what a random distribution would give.
+        double enrichmentThreshold,
+
+        size_t threadCount
+    );
+private:
+
+    class SelectKmers2Data {
+    public:
+
+        double enrichmentThreshold;
+
+        // The number of times each k-mer appears in an oriented read.
+        // Indexed by KmerId.
+        MemoryMapped::Vector<uint64_t> globalFrequency;
+
+        // The number of oriented reads that each k-mer is
+        // over-enriched in by more than a factor enrichmentThreshold.
+        // Indexed by KmerId.
+        MemoryMapped::Vector<ReadId> overenrichedReadCount;
+
+    };
+    SelectKmers2Data selectKmers2Data;
+    void selectKmers2ThreadFunction(size_t threadId);
+
+
+
     // Read the k-mers from file.
+public:
     void readKmersFromFile(uint64_t k, const string& fileName);
 
 private:
@@ -767,7 +821,9 @@ private:
     // This requires a binary search in the markers toc.
     // This could be avoided, at the cost of storing
     // an additional 4 bytes per marker.
+public:
     pair<OrientedReadId, uint32_t> findMarkerId(MarkerId) const;
+private:
 
     // Given a MarkerId, compute the MarkerId of the
     // reverse complemented marker.
@@ -903,7 +959,7 @@ public:
 private:
 
 
-    // Alternative alignment functions with 1 suffix.
+    // Alternative alignment functions with 1 suffix (SeqAn).
     void alignOrientedReads1(
         OrientedReadId,
         OrientedReadId,
@@ -927,6 +983,27 @@ public:
         int gapScore);
 private:
 
+
+
+    // Alternative alignment function with 2 suffix (Edlib).
+    void alignOrientedReads2(
+        OrientedReadId,
+        OrientedReadId,
+        Alignment&,
+        AlignmentInfo&);
+
+
+    // Alternative alignment function with 3 suffix (SeqAn, banded).
+    void alignOrientedReads3(
+        OrientedReadId,
+        OrientedReadId,
+        int matchScore,
+        int mismatchScore,
+        int gapScore,
+        double downsamplingFactor,
+        int bandExtend,
+        Alignment&,
+        AlignmentInfo&);
 
 
     // Create a local alignment graph starting from a given oriented read
@@ -979,7 +1056,10 @@ private:
 
     // The good alignments we found.
     // They are stored with readId0<readId1 and with strand0==0.
+    // The order in compressedAlignments matches that in alignmentData.
     MemoryMapped::Vector<AlignmentData> alignmentData;
+    MemoryMapped::VectorOfVectors<char, uint64_t> compressedAlignments;
+    
     void checkAlignmentDataAreOpen();
 
     // The alignment table stores the AlignmentData that each oriented read is involved in.
@@ -1009,6 +1089,10 @@ private:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        double downsamplingFactor;
+        int bandExtend;
+        bool suppressContainments;
+        bool storeAlignments;
 #ifdef SHASTA_BUILD_FOR_GPU
         int nDevices;
         size_t gpuBatchSize;
@@ -1017,6 +1101,9 @@ private:
 
         // The AlignmentInfo found by each thread.
         vector< vector<AlignmentData> > threadAlignmentData;
+
+        // Compressed alignments corresponding to the AlignmentInfo found by each thread.
+        vector< shared_ptr< MemoryMapped::VectorOfVectors<char, uint64_t> > > threadCompressedAlignments;
     };
     ComputeAlignmentsData computeAlignmentsData;
 
@@ -1097,6 +1184,7 @@ public:
     void accessDirectedReadGraphReadWrite();
     void markDirectedReadGraphConflictEdges1();
     void markDirectedReadGraphConflictEdges2(int radius);
+    void markDirectedReadGraphConflictEdges3(int radius);
 
 
 
@@ -1142,6 +1230,8 @@ private:
         int matchScore;
         int mismatchScore;
         int gapScore;
+        double downsamplingFactor;
+        int bandExtend;
         int readGraphCreationMethod;
         uint32_t maxMarkerFrequency;
 
@@ -1188,12 +1278,13 @@ private:
 
 
     // Marker graph.
+public:
     MarkerGraph markerGraph;
 
     // Find the reverse complement of each marker graph vertex.
-public:
     void findMarkerGraphReverseComplementVertices(size_t threadCount);
     void accessMarkerGraphReverseComplementVertex();
+    void removeMarkerGraphVertices();
 private:
     void findMarkerGraphReverseComplementVerticesThreadFunction1(size_t threadId);
     void findMarkerGraphReverseComplementVerticesThreadFunction2(size_t threadId);
@@ -1245,6 +1336,10 @@ public:
 
     // Prune leaves from the strong subgraph of the global marker graph.
     void pruneMarkerGraphStrongSubgraph(size_t iterationCount);
+
+    // Analyze a vertex of the Marker graph.
+    void analyzeMarkerGraphVertex(MarkerGraph::VertexId) const;
+
 private:
 
 
@@ -1354,6 +1449,12 @@ private:
         const vector<OrientedReadId>& orientedReadIds1,
         vector<InducedAlignment>& inducedAlignments);
 
+    // Fill in compressed ordinals of an InducedAlignment.
+    void fillCompressedOrdinals(
+        OrientedReadId,
+        OrientedReadId,
+        InducedAlignment&);
+
     // Evaluate an induced alignment.
     // Contrary to InducedAlignment::evaluate, this takes into account
     // markers that don't correspond to a marker graph vertex.
@@ -1373,11 +1474,13 @@ public:
         uint64_t threadCount,
         uint32_t maxOffsetSigma,
         uint32_t maxTrim,
-        uint32_t maxSkip);
+        uint32_t maxSkip,
+        uint32_t minAlignedMarkerCount);
     void accessConflictReadGraph();
-    void colorConflictReadGraph();
+    // void colorConflictReadGraph();
+    void cleanupConflictReadGraph();
 private:
-    void createConflictReadGraphThreadFunction1(size_t threadId);
+    // void createConflictReadGraphThreadFunction1(size_t threadId);
     void createConflictReadGraphThreadFunction2(size_t threadId);
     void addConflictGraphEdges(
         ReadId,
@@ -1527,20 +1630,6 @@ private:
 
 
 
-    // Use MarginPhase to compute consensus sequence for an edge of the marker graph.
-    // This does not include the bases corresponding to the flanking markers.
-    // This is not yet functional.
-#ifdef SHASTA_MARGINPHASE
-    void computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-        MarkerGraph::EdgeId,
-        vector<Base>& sequence,
-        vector<uint32_t>& repeatCounts,
-        uint8_t& overlappingBaseCount
-        );
-#endif
-
-
-
     // Simplify the marker graph.
     // The first argument is a number of marker graph edges.
     // See the code for detail on its meaning and how it is used.
@@ -1574,7 +1663,7 @@ public:
     // A directed vertex A->B is created if the last marker graph vertex
     // of the edge chain corresponding to A coincides with the
     // first marker graph vertex of the edge chain corresponding to B.
-    AssemblyGraph assemblyGraph;
+    shared_ptr<AssemblyGraph> assemblyGraphPointer;
     void createAssemblyGraphVertices();
     void accessAssemblyGraphVertices();
     void createAssemblyGraphEdges();
@@ -1582,7 +1671,15 @@ public:
     void accessAssemblyGraphEdges();
     void writeAssemblyGraph(const string& fileName) const;
     void findAssemblyGraphBubbles();
+
+    // Gather and write out all reads that contributed to
+    // each assembly graph edge.
+    void gatherOrientedReadsByAssemblyGraphEdge(size_t threadCount);
+    void writeOrientedReadsByAssemblyGraphEdge();
 private:
+    void gatherOrientedReadsByAssemblyGraphEdgePass1(size_t threadId);
+    void gatherOrientedReadsByAssemblyGraphEdgePass2(size_t threadId);
+    void gatherOrientedReadsByAssemblyGraphEdgePass(int);
 
     // Extract a local assembly graph from the global assembly graph.
     // This returns false if the timeout was exceeded.
@@ -1625,6 +1722,19 @@ private:
 
 
 
+    // Detangle the AssemblyGraph.
+public:
+    void detangle();
+
+
+
+    // CompressedAssemblyGraph.
+    // Note that we have no persistent version of this.
+    // It must be created from scratch each time.
+    void createCompressedAssemblyGraph();
+    shared_ptr<CompressedAssemblyGraph> compressedAssemblyGraph;
+
+
 public:
     // Mark as isLowCoverageCrossEdge all low coverage cross edges
     // of the assembly graph and the corresponding marker graph edges.
@@ -1645,10 +1755,6 @@ public:
         // This controls when we give up trying to compute consensus for long edges.
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
 
-        // Parameter to control whether we use spoa or marginPhase
-        // to compute consensus sequence.
-        bool useMarginPhase,
-
         // Request storing detailed coverage information in binary format.
         bool storeCoverageData
         );
@@ -1660,7 +1766,6 @@ private:
         // The arguments to assembleMarkerGraphEdges, stored here so
         // they are accessible to the threads.
         uint32_t markerGraphEdgeLengthThresholdForConsensus;
-        bool useMarginPhase;
         bool storeCoverageData;
 
         // The results computed by each thread.
@@ -1793,6 +1898,7 @@ public:
     void exploreReadGraph(const vector<string>&, ostream&);
     void exploreUndirectedReadGraph(const vector<string>&, ostream&);
     void exploreDirectedReadGraph(const vector<string>&, ostream&);
+    void exploreCompressedAssemblyGraph(const vector<string>&, ostream&);
     class HttpServerData {
     public:
 
@@ -1812,8 +1918,12 @@ public:
     void displayAlignments(
         OrientedReadId,
         const vector< pair<OrientedReadId, AlignmentInfo> >&,
-        ostream&);
-
+        ostream&) const;
+    void displayAlignment(
+        OrientedReadId orientedReadId0,
+        OrientedReadId orientedReadId1,
+        const AlignmentInfo& alignment,
+        ostream&) const;
 
     // Functions and data used by the http server
     // for display of the local marker graph.
@@ -1964,16 +2074,6 @@ private:
 
 
 
-
-    // Parameters for marginPhase.
-    // Read from file MarginPhase.json in the run directory.
-public:
-    void setupMarginPhase();
-private:
-    void checkMarginPhaseWasSetup();
-#ifdef SHASTA_MARGINPHASE
-    PolishParams* marginPhaseParameters;
-#endif
 };
 
 #endif

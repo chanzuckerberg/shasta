@@ -114,6 +114,9 @@ public:
     // Contains edge ids that can be used as indexes into edges and edgeLists.
     MemoryMapped::VectorOfVectors<EdgeId, EdgeId> edgesByTarget;
 
+    // Fill in edgesBySource and edgesByTarget.
+    void computeConnectivity();
+
     // The edge ids of global marker graph edges corresponding
     // to each edge of the assembly graph.
     // Indexed by the edge id of the assembly graph edge.
@@ -133,6 +136,7 @@ public:
     void findOutEdges(VertexId, vector<EdgeId>&) const;
 
 
+
     // Bubbles in the assembly graph.
     // A bubble is a set of two vertices v0, v1
     // such that the outgoing edges of v0 are the same
@@ -150,25 +154,49 @@ public:
         Bubble(VertexId v0, VertexId v1) : v0(v0), v1(v1) {}
     };
     MemoryMapped::Vector<Bubble> bubbles;
-    void findBubbles(); // Assumes bubble Vector was already initialized.
+    void findBubbles(); // Assumes bubble was already initialized.
 
 
-    // A table that can be used to find the location of a marker graph
+
+    // Bubble chains. A bubble chain is a linear sequence of bubbles.
+    // Each pair of consecutive bubbles in the sequence may be separated by
+    // a homozygous segment, but the bubble can also be
+    // immediately adjacent (v1 of thr first bubble is the same
+    // as v0 of the second bubble).
+    // For each bubble chain, we store the bubble ids (indexes in
+    // the bubbles vector above).
+    MemoryMapped::VectorOfVectors<uint64_t, uint64_t> bubbleChains;
+    void findBubbleChains(); // Assumes bubbleChains was already initialized.
+
+
+    // A table that can be used to find the locations of a marker graph
     // edge in the assembly graph, if any.
+    // Note that, before detangling,or if detangling is not used,
+    // each marker graph edge corresponds to at most one location
+    // in the assembly graph. However, after detangling a marker
+    // graph edge can correspond to multiple locations in the
+    // assembly graph.
     // Indexed by the edge id in the marker graph, gives for each marker graph
-    // edge a pair(EdgeId, position), where:
+    // edge a vector of pair(EdgeId, position), where:
     // - EdgeId is the id of the assembly graph edge containing the
-    //   given marker graph edge, or invalidEdgeId
-    //   if the marker graph edge is not part of any assembly graph edge.
-    // - Position is the index of this marker graph edge in the
-    //   chain corresponding to that assembly graph edge.
-    MemoryMapped::Vector< pair<EdgeId, uint32_t> > markerToAssemblyTable;
+    //   given marker graph edge.
+    // - Position is the index of this marker graph edge in that
+    //   assembly graph edge.
+    MemoryMapped::VectorOfVectors< pair<EdgeId, uint32_t> , uint64_t> markerToAssemblyTable;
+    void createMarkerToAssemblyTable(uint64_t markerGrapEdgeCount);
 
     // The assembled sequenced and repeat counts for each edge of the
     // assembly graph.
     // Indexed edge id in the assembly graph.
     LongBaseSequences sequences;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> repeatCounts;
+
+    // The oriented reads internal to each assembly graph edge.
+    // Indexed by EdgeId.
+    MemoryMapped::VectorOfVectors<OrientedReadId, uint64_t> orientedReadsByEdge;
+
+    // Close all open data.
+    void close();
 
     // Close and remove all open data.
     void remove();

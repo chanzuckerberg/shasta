@@ -115,7 +115,15 @@ public:
     {
         return edgesBySource[vertexId];
     }
+    span<const EdgeId> outEdges(VertexId vertexId) const
+    {
+        return edgesBySource[vertexId];
+    }
     span<EdgeId> inEdges(VertexId vertexId)
+    {
+        return edgesByTarget[vertexId];
+    }
+    span<const EdgeId> inEdges(VertexId vertexId) const
     {
         return edgesByTarget[vertexId];
     }
@@ -370,8 +378,8 @@ public:
                         // We already encountered v1.
                         continue;
                     }
-                    neighbors.insert(make_pair(v1, distance1));
                     if(distance1 < maxDistance) {
+                        neighbors.insert(make_pair(v1, distance1));
                         q.push(v1);
                     }
                 }
@@ -388,8 +396,8 @@ public:
                         // We already encountered v1.
                         continue;
                     }
-                    neighbors.insert(make_pair(v1, distance1));
                     if(distance1 < maxDistance) {
+                        neighbors.insert(make_pair(v1, distance1));
                         q.push(v1);
                     }
                 }

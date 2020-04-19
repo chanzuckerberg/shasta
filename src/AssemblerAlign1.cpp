@@ -1,4 +1,4 @@
-// Alternative alignment functions with 1 suffix.
+// Alternative alignment functions with 1 suffix (SeqAn).
 #include "Assembler.hpp"
 using namespace shasta;
 
@@ -174,7 +174,7 @@ void Assembler::alignOrientedReads1(
 
 
     // Fill in the alignment.
-    alignment.ordinals.clear();
+    alignment.clear();
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
     for(int i=0;

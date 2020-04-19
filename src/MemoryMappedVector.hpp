@@ -148,6 +148,9 @@ public:
     // Can be used to check integrity.
     uint64_t hash() const;
 
+    // Rename the supporting memory mapped file, if any.
+    void rename(const string& newFileName);
+
 private:
 
 
@@ -194,8 +197,8 @@ private:
         static const size_t constantMagicNumber =  0xa3756fd4b5d8bcc1ULL;
         size_t magicNumber;
 
-        // Pad to 256 bytes to make sure the data are aligned with cache lines.
-        array<size_t, 24> padding;
+        // Pad to 4096 bytes to make sure the data are page aligned.
+        array<size_t, 4096/sizeof(size_t) - 8 > padding;
 
 
 
@@ -224,7 +227,7 @@ private:
         }
 
     };
-    static_assert(sizeof(Header) == 256, "Unexpected header size for MemoryMapped::Vector.");
+    static_assert(sizeof(Header) == 4096, "Unexpected header size for MemoryMapped::Vector.");
     Header* header;
 
     // The data immediately follow the header.
@@ -714,7 +717,8 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::unmapAnonymous()
 
     const int munmapReturnCode = ::munmap(header, header->fileSize);
     if(munmapReturnCode == -1) {
-        throw runtime_error("Error unmapping.");
+        throw runtime_error("Error " + boost::lexical_cast<string>(errno)
+            + " unmapping MemoryMapped::Vector: " + string(strerror(errno)));
     }
 
     // Mark it as not open.
@@ -1132,5 +1136,21 @@ template<class T> inline uint64_t shasta::MemoryMapped::Vector<T>::hash() const
     SHASTA_ASSERT(byteCount <= uint64_t(std::numeric_limits<int>::max()));
     return MurmurHash64A(begin(), int(byteCount), 231);
 }
+
+template<class T> inline void shasta::MemoryMapped::Vector<T>::rename(const string& newFileName)
+{
+    SHASTA_ASSERT(isOpen);
+
+    if(fileName.empty()) {
+        SHASTA_ASSERT(newFileName.empty());
+    } else {
+        const string oldFileName = fileName;
+        const bool writeAccess = isOpenWithWriteAccess;
+        close();
+        filesystem::move(oldFileName, newFileName);
+        accessExisting(newFileName, writeAccess);
+    }
+}
+
 
 #endif

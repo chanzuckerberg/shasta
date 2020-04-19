@@ -32,6 +32,10 @@ public:
     KmerId reverseComplementedKmerId;
     bool isMarker;
     bool isRleKmer;
+
+    // Hash function of the KmerId, used for downsampling markers
+    // for alignments using method 3.
+    uint32_t hash;
 };
 
 #endif

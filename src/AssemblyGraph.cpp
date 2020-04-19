@@ -1,9 +1,90 @@
 #include "AssemblyGraph.hpp"
+#include "BubbleGraph.hpp"
 #include "deduplicate.hpp"
 using namespace shasta;
 
 #include "fstream.hpp"
 #include "iterator.hpp"
+
+
+
+void AssemblyGraph::createMarkerToAssemblyTable(uint64_t markerGrapEdgeCount)
+{
+    markerToAssemblyTable.beginPass1(markerGrapEdgeCount);
+    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<edgeLists.size(); assemblyGraphEdgeId++) {
+        const span<EdgeId> chain = edgeLists[assemblyGraphEdgeId];
+        for(uint32_t position=0; position!=chain.size(); position++) {
+            const EdgeId markerGraphEdgeId = chain[position];
+            markerToAssemblyTable.incrementCount(markerGraphEdgeId);
+        }
+    }
+    markerToAssemblyTable.beginPass2();
+    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<edgeLists.size(); assemblyGraphEdgeId++) {
+        const span<EdgeId> chain = edgeLists[assemblyGraphEdgeId];
+        for(uint32_t position=0; position!=chain.size(); position++) {
+            const EdgeId markerGraphEdgeId = chain[position];
+            markerToAssemblyTable.store(
+                markerGraphEdgeId, make_pair(assemblyGraphEdgeId, position));
+        }
+    }
+    markerToAssemblyTable.endPass2();
+
+}
+
+
+
+// Close all open data.
+void AssemblyGraph::close()
+{
+    if(vertices.isOpen) {
+        vertices.close();
+    }
+
+    if(reverseComplementVertex.isOpen) {
+        reverseComplementVertex.close();
+    }
+
+    if(edges.isOpen) {
+        edges.close();
+    }
+
+    if(reverseComplementEdge.isOpen) {
+        reverseComplementEdge.close();
+    }
+
+    if(edgesBySource.isOpen()) {
+        edgesBySource.close();
+    }
+
+    if(edgesByTarget.isOpen()) {
+        edgesByTarget.close();
+    }
+
+    if(edgeLists.isOpen()) {
+        edgeLists.close();
+    }
+
+    if(bubbles.isOpen) {
+        bubbles.close();
+    }
+
+    if(markerToAssemblyTable.isOpen()) {
+        markerToAssemblyTable.close();
+    }
+
+    if(sequences.isOpen()) {
+        sequences.close();
+    }
+
+    if(repeatCounts.isOpen()) {
+        repeatCounts.close();
+    }
+
+    if(orientedReadsByEdge.isOpen()) {
+        orientedReadsByEdge.close();
+    }
+}
+
 
 // Close and remove all open data.
 void AssemblyGraph::remove()
@@ -40,7 +121,7 @@ void AssemblyGraph::remove()
         bubbles.remove();
     }
 
-    if(markerToAssemblyTable.isOpen) {
+    if(markerToAssemblyTable.isOpen()) {
         markerToAssemblyTable.remove();
     }
 
@@ -50,6 +131,10 @@ void AssemblyGraph::remove()
 
     if(repeatCounts.isOpen()) {
         repeatCounts.remove();
+    }
+
+    if(orientedReadsByEdge.isOpen()) {
+        orientedReadsByEdge.remove();
     }
 }
 
@@ -112,6 +197,37 @@ AssemblyGraph::VertexId AssemblyGraph::outDegree(VertexId vertexId) const
         }
     }
     return outDegree;
+}
+
+
+
+// Fill in edgesBySource and edgesByTarget.
+void AssemblyGraph::computeConnectivity()
+{
+    edgesBySource.beginPass1(vertices.size());
+    edgesByTarget.beginPass1(vertices.size());
+    for(const Edge& edge: edges) {
+        edgesBySource.incrementCount(edge.source);
+        edgesByTarget.incrementCount(edge.target);
+    }
+    edgesBySource.beginPass2();
+    edgesByTarget.beginPass2();
+    for(EdgeId edgeId=0; edgeId<edges.size(); edgeId++) {
+        const Edge& edge = edges[edgeId];
+        edgesBySource.store(edge.source, edgeId);
+        edgesByTarget.store(edge.target, edgeId);
+    }
+    edgesBySource.endPass2();
+    edgesByTarget.endPass2();
+
+    // Make sure edges by source and by target are sorted.
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+        const auto es = edgesBySource[vertexId];
+        const auto et = edgesByTarget[vertexId];
+        sort(es.begin(), es.end());
+        sort(et.begin(), et.end());
+    }
+
 }
 
 
@@ -225,6 +341,15 @@ void AssemblyGraph::findBubbles()
     cout << "Total number of edges is " << totalEdgeCount << "." << endl;
     cout << "Total number of bubble edges is " << bubbleEdgeCount << "." << endl;
     cout << "Total number of non-bubble edges is " << totalEdgeCount-bubbleEdgeCount << "." << endl;
+}
+
+
+
+void AssemblyGraph::findBubbleChains()
+{
+    BubbleGraph graph(*this);
+    graph.findLinearChains();
+    graph.writeLinearChains("BubbleChains.csv", *this);
 }
 
 

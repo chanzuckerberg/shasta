@@ -104,7 +104,7 @@ void AlignmentGraph::create(
     // Look for the shortest path between vStart and vFinish.
     findShortestPath(*this, vStart, vFinish, shortestPath, queue);
     if(shortestPath.empty()) {
-        alignment.ordinals.clear();
+        alignment.clear();
         if(debug) {
             cout << "The shortest path is empty." << endl;
         }
@@ -117,7 +117,7 @@ void AlignmentGraph::create(
     }
 
     // Store the alignment.
-    alignment.ordinals.clear();
+    alignment.clear();
     for(const vertex_descriptor v: shortestPath) {
         if(v==vStart || v==vFinish) {
             continue;

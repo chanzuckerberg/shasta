@@ -212,6 +212,13 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(10000),
         "Read length cutoff. Shorter reads are discarded.")
 
+        ("Reads.noCache",
+        bool_switch(&readsOptions.noCache)->
+        default_value(false),
+        "If set, skip the Linux cache when loading reads. "
+        "This is done by specifying the O_DIRECT flag when opening "
+        "input files containing reads.")
+
         ("Reads.palindromicReads.maxSkip",
         value<int>(&readsOptions.palindromicReads.maxSkip)->
         default_value(100),
@@ -242,38 +249,36 @@ void AssemblerOptions::addConfigurableOptions()
          default_value(100),
          "Used for palindromic read detection.")
 
-        ("Kmers.k",
-        value<int>(&kmersOptions.k)->
-        default_value(10),
-        "Length of marker k-mers (in run-length space).")
+         ("Kmers.generationMethod",
+         value<int>(&kmersOptions.generationMethod)->
+         default_value(0),
+         "Method to generate marker k-mers: "
+         "0 = random, "
+         "1 = random, excluding globally overenriched,"
+         "2 = random, excluding overenriched even in a single read,"
+         "3 = read from file.")
 
-        ("Kmers.probability",
-        value<double>(&kmersOptions.probability)->
-        default_value(0.1, "0.1"),
-        "Probability that a k-mer is used as a marker.")
+         ("Kmers.k",
+         value<int>(&kmersOptions.k)->
+         default_value(10),
+         "Length of marker k-mers (in run-length space).")
 
-        ("Kmers.suppressHighFrequencyMarkers",
-        bool_switch(&kmersOptions.suppressHighFrequencyMarkers)->
-        default_value(false),
-        "If set, high frequency k-mers are not used as markers. "
-        "High frequency k-mers are those with enrichment greater "
-        "than the value specified by Kmers.enrichmentThreshold.")
+         ("Kmers.probability",
+         value<double>(&kmersOptions.probability)->
+         default_value(0.1, "0.1"),
+         "Fraction k-mers used as a marker.")
 
         ("Kmers.enrichmentThreshold",
         value<double>(&kmersOptions.enrichmentThreshold)->
-        default_value(10., "10."),
-        "If Kmers.suppressHighFrequencyMarkers is set, this controls the "
-        "enrichment threshold above which a k-mer is not considered as a possible marker. "
-        "Enrichment is ratio of k-mer frequency in reads to random.")
+        default_value(100., "100."),
+        "Enrichment threshold for Kmers.generationMethod 1 and 2.")
 
         ("Kmers.file",
         value<string>(&kmersOptions.file),
         "The absolute path of a file containing the k-mers "
         "to be used as markers, one per line. "
         "A relative path is not accepted. "
-        "If this is empty, k-mers to be used as markers "
-        "are selected according to the other --Kmers options. "
-        "If this is not empty, all other --Kmers options are ignored except for --Kmers.k.")
+        "Only used if Kmers.generationMethod is 3.")
 
         ("MinHash.version",
         value<int>(&minHashOptions.version)->
@@ -328,15 +333,11 @@ void AssemblerOptions::addConfigurableOptions()
         "candidates with both orientation. This should only be used for experimentation "
         "on very small runs because it is very time consuming.")
 
-        ("Align.alignMethodForReadGraph",
-        value<int>(&alignOptions.alignMethodForReadGraph)->
+        ("Align.alignMethod",
+        value<int>(&alignOptions.alignMethod)->
         default_value(0),
-        "The alignment method to be used to create the read graph. It can be 0 (default) or 1 (experimental).")
-
-        ("Align.alignMethodForMarkerGraph",
-        value<int>(&alignOptions.alignMethodForMarkerGraph)->
-        default_value(0),
-        "The alignment method to be used to create the marker graph. It can be 0 (default) or 1 (experimental).")
+        "The alignment method to be used to create the read graph & the marker graph. "
+        "Values other than 0 are experimental.")
 
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->
@@ -383,8 +384,19 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Align.gapScore",
         value<int>(&alignOptions.gapScore)->
-        default_value(-3),
+        default_value(-1),
         "Gap score for marker alignments (only for experimental alignment method 1).")
+
+        ("Align.downsamplingFactor",
+        value<double>(&alignOptions.downsamplingFactor)->
+        default_value(0.1),
+        "Downsampling factor (only used for experimental alignment method 3).")
+
+        ("Align.bandExtend",
+        value<int>(&alignOptions.bandExtend)->
+        default_value(10),
+        "Amount to extend the downsampled band "
+        "(only used for experimental alignment method 3).")
 
         ("Align.sameChannelReadAlignment.suppressDeltaThreshold",
         value<int>(&alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold)->
@@ -398,6 +410,13 @@ void AssemblerOptions::addConfigurableOptions()
         "\"runid\", \"sampleid\", and \"ch\". "
         "If any of these meta data fields are missing, this check is suppressed and this "
         "option has no effect.")
+
+        ("Align.suppressContainments",
+        bool_switch(&alignOptions.suppressContainments)->
+        default_value(false),
+        "Suppress containment alignments, that is alignments in which "
+        "one read is entirely contained in another read, "
+        "except possibly for up to maxTrim markers at the beginning and end.")
 
         ("ReadGraph.creationMethod",
         value<int>(&readGraphOptions.creationMethod)->
@@ -437,6 +456,11 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(3),
         "Maximum number of alignments to be kept in each direction "
         "(forward, backward) for each uncontained read (only used when creationMethod is 1).")
+
+        ("ReadGraph.removeConflicts",
+        bool_switch(&readGraphOptions.removeConflicts)->
+        default_value(false),
+        "Remove conflicts from the read graph. Experimental - do not use.")
 
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
@@ -485,11 +509,6 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(false),
         "Perform approximate reverse transitive reduction of the marker graph.")
 
-        ("Assembly.strategy",
-        value<int>(&assemblyOptions.strategy)->
-        default_value(0),
-        "Experimental. Leave at default value 0.")
-
         ("Assembly.crossEdgeCoverageThreshold",
         value<int>(&assemblyOptions.crossEdgeCoverageThreshold)->
         default_value(3),
@@ -507,12 +526,6 @@ void AssemblerOptions::addConfigurableOptions()
         "Selects the consensus caller for repeat counts. "
         "See the documentation for available choices.")
 
-        ("Assembly.useMarginPhase",
-        bool_switch(&assemblyOptions.useMarginPhase)->
-        default_value(false),
-        "Used to turn on MarginPhase. Experimental. To use MarginPhase with Shasta, run "
-        "marginPhase separately after the Shasta ssembly is complete.")
-
         ("Assembly.storeCoverageData",
         bool_switch(&assemblyOptions.storeCoverageData)->
         default_value(false),
@@ -525,17 +538,15 @@ void AssemblerOptions::addConfigurableOptions()
         "for which coverage data in csv format should be stored. "
         "If 0, no coverage data in csv format is stored.")
 
-        ("Phasing.phasingSimilarityThreshold",
-        value<double>(&phasingOptions.phasingSimilarityThreshold)->
-        default_value(0.5),
-        "The minimum phasing similarity for an edge "
-        "to be added to the phasing graph. Experimental.")
+        ("Assembly.writeReadsByAssembledSegment",
+        bool_switch(&assemblyOptions.writeReadsByAssembledSegment)->
+        default_value(false),
+        "Used to request writing the reads that contributed to assembling each segment.")
 
-        ("Phasing.maxNeighborCount",
-        value<int>(&phasingOptions.maxNeighborCount)->
-        default_value(6),
-        "The maximum number of phasing graph edges to be kept "
-        "for each oriented read. Experimental.")
+        ("Assembly.detangle",
+        bool_switch(&assemblyOptions.detangle)->
+        default_value(false),
+        "Experimental. Used to request detangling of the assembly graph.")
 
         ;
 }
@@ -558,6 +569,8 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
     s << "minReadLength = " << minReadLength << "\n";
+    s << "noCache = " <<
+        convertBoolToPythonString(noCache) << "\n";
     palindromicReads.write(s);
 }
 
@@ -566,10 +579,9 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 void AssemblerOptions::KmersOptions::write(ostream& s) const
 {
     s << "[Kmers]\n";
+    s << "generationMethod = " << generationMethod << "\n";
     s << "k = " << k << "\n";
     s << "probability = " << probability << "\n";
-    s << "suppressHighFrequencyMarkers = " <<
-        convertBoolToPythonString(suppressHighFrequencyMarkers) << "\n";
     s << "enrichmentThreshold = " << enrichmentThreshold << "\n";
     s << "file = " << file << "\n";
 }
@@ -596,8 +608,7 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
 void AssemblerOptions::AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
-    s << "alignMethodForReadGraph = " << alignMethodForReadGraph << "\n";
-    s << "alignMethodForMarkerGraph = " << alignMethodForMarkerGraph << "\n";
+    s << "alignMethod = " << alignMethod << "\n";
     s << "maxSkip = " << maxSkip << "\n";
     s << "maxDrift = " << maxDrift << "\n";
     s << "maxTrim = " << maxTrim << "\n";
@@ -607,8 +618,12 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
     s << "matchScore = " << matchScore << "\n";
     s << "mismatchScore = " << mismatchScore << "\n";
     s << "gapScore = " << gapScore << "\n";
+    s << "downsamplingFactor = " << downsamplingFactor << "\n";
+    s << "bandExtend = " << bandExtend << "\n";
     s << "sameChannelReadAlignment.suppressDeltaThreshold = " <<
         sameChannelReadAlignmentSuppressDeltaThreshold << "\n";
+    s << "suppressContainments = " <<
+        convertBoolToPythonString(suppressContainments) << "\n";
 }
 
 
@@ -623,6 +638,8 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
     s << "crossStrandMaxDistance = " << crossStrandMaxDistance << "\n";
     s << "containedNeighborCount = " << containedNeighborCount << "\n";
     s << "uncontainedNeighborCountPerDirection = " << uncontainedNeighborCountPerDirection << "\n";
+    s << "removeConflicts = " <<
+        convertBoolToPythonString(removeConflicts) << "\n";
 
 }
 
@@ -648,27 +665,19 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
 void AssemblerOptions::AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
-    s << "strategy = " << strategy << "\n";
     s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
     s << "markerGraphEdgeLengthThresholdForConsensus = " <<
         markerGraphEdgeLengthThresholdForConsensus << "\n";
     s << "consensusCaller = " <<
         consensusCaller << "\n";
-    s << "useMarginPhase = " <<
-        convertBoolToPythonString(useMarginPhase) << "\n";
     s << "storeCoverageData = " <<
         convertBoolToPythonString(storeCoverageData) << "\n";
     s << "storeCoverageDataCsvLengthThreshold = " <<
         storeCoverageDataCsvLengthThreshold << "\n";
-}
-
-
-
-void AssemblerOptions::PhasingOptions::write(ostream& s) const
-{
-    s << "[Phasing]\n";
-    s << "phasingSimilarityThreshold = " << phasingSimilarityThreshold << "\n";
-    s << "maxNeighborCount = " << maxNeighborCount << "\n";
+    s << "writeReadsByAssembledSegment = " <<
+        convertBoolToPythonString(writeReadsByAssembledSegment) << "\n";
+    s << "detangle = " <<
+        convertBoolToPythonString(detangle) << "\n";
 }
 
 
@@ -688,8 +697,6 @@ void AssemblerOptions::write(ostream& s) const
     markerGraphOptions.write(s);
     s << "\n";
     assemblyOptions.write(s);
-    s << endl;
-    phasingOptions.write(s);
     s << endl;
 }
 

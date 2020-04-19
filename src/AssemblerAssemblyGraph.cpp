@@ -35,8 +35,12 @@ using namespace shasta;
 void Assembler::createAssemblyGraphEdges()
 {
     // Some shorthands.
-    using VertexId = AssemblyGraph::VertexId;
+    // using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Check that we have what we need.
     checkMarkerGraphVerticesAreAvailable();
@@ -230,18 +234,7 @@ void Assembler::createAssemblyGraphEdges()
     assemblyGraph.markerToAssemblyTable.createNew(
         largeDataName("MarkerToAssemblyTable"),
         largeDataPageSize);
-    assemblyGraph.markerToAssemblyTable.resize(edges.size());
-    fill(
-        assemblyGraph.markerToAssemblyTable.begin(),
-        assemblyGraph.markerToAssemblyTable.end(),
-        make_pair(std::numeric_limits<VertexId>::max(), 0));
-    for(EdgeId assemblyGraphEdgeId=0; assemblyGraphEdgeId<assemblyGraph.edgeLists.size(); assemblyGraphEdgeId++) {
-        const span<EdgeId> chain = assemblyGraph.edgeLists[assemblyGraphEdgeId];
-        for(uint32_t position=0; position!=chain.size(); position++) {
-            const EdgeId markerGraphEdgeId = chain[position];
-            assemblyGraph.markerToAssemblyTable[markerGraphEdgeId] = make_pair(assemblyGraphEdgeId, position);
-        }
-    }
+    assemblyGraph.createMarkerToAssemblyTable(edges.size());
 
 
 
@@ -268,6 +261,10 @@ void Assembler::createAssemblyGraphEdges()
 
 void Assembler::accessAssemblyGraphVertices()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     assemblyGraph.vertices.accessExistingReadOnly(
         largeDataName("AssemblyGraphVertices"));
     assemblyGraph.reverseComplementVertex.accessExistingReadOnly(
@@ -291,8 +288,7 @@ void Assembler::accessAssemblyGraphVertices()
 // age indicates an assembly graph edge id.
 void Assembler::createAssemblyGraphVertices()
 {
-
-    // cout << timestamp << "Creating assembly graph vertices." << endl;
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Check that we have what we need.
     SHASTA_ASSERT(assemblyGraph.edgeLists.isOpen());
@@ -438,29 +434,7 @@ void Assembler::createAssemblyGraphVertices()
     assemblyGraph.edgesByTarget.createNew(
         largeDataName("AssemblyGraphEdgesByTarget"),
         largeDataPageSize);
-    assemblyGraph.edgesBySource.beginPass1(assemblyGraph.vertices.size());
-    assemblyGraph.edgesByTarget.beginPass1(assemblyGraph.vertices.size());
-    for(const AssemblyGraph::Edge& edge: assemblyGraph.edges) {
-        assemblyGraph.edgesBySource.incrementCount(edge.source);
-        assemblyGraph.edgesByTarget.incrementCount(edge.target);
-    }
-    assemblyGraph.edgesBySource.beginPass2();
-    assemblyGraph.edgesByTarget.beginPass2();
-    for(EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
-        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-        assemblyGraph.edgesBySource.store(edge.source, edgeId);
-        assemblyGraph.edgesByTarget.store(edge.target, edgeId);
-    }
-    assemblyGraph.edgesBySource.endPass2();
-    assemblyGraph.edgesByTarget.endPass2();
-
-    // Make sure edges by source and by target are sorted.
-    for(VertexId vertexId=0; vertexId<assemblyGraph.vertices.size(); vertexId++) {
-        const auto edgesBySource = assemblyGraph.edgesBySource[vertexId];
-        const auto edgesByTarget = assemblyGraph.edgesByTarget[vertexId];
-        sort(edgesBySource.begin(), edgesBySource.end());
-        sort(edgesByTarget.begin(), edgesByTarget.end());
-    }
+    assemblyGraph.computeConnectivity();
 
 }
 
@@ -476,6 +450,8 @@ void Assembler::createAssemblyGraphVertices()
 // is <= crossEdgeCoverageThreshold.
 void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     // We want to process edges in order of increasing coverage.
     // Gather edges by coverage.
     vector< vector<AssemblyGraph::EdgeId> > edgesByCoverage(crossEdgeCoverageThreshold+1);
@@ -536,6 +512,11 @@ void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
 
 void Assembler::accessAssemblyGraphEdgeLists()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assemblyGraph.edgeLists.accessExistingReadOnly(
         largeDataName("AssemblyGraphEdgeLists"));
 }
@@ -544,6 +525,11 @@ void Assembler::accessAssemblyGraphEdgeLists()
 
 void Assembler::accessAssemblyGraphEdges()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assemblyGraph.edges.accessExistingReadOnly(
         largeDataName("AssemblyGraphEdges"));
     assemblyGraph.reverseComplementEdge.accessExistingReadOnly(
@@ -556,6 +542,8 @@ void Assembler::accessAssemblyGraphEdges()
 
 void Assembler::writeAssemblyGraph(const string& fileName) const
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     cout << "The assembly graph has " <<
         assemblyGraph.vertices.size() << " vertices and " <<
         assemblyGraph.edges.size() << " edges." << endl;
@@ -568,6 +556,7 @@ void Assembler::assemble(
     size_t threadCount,
     uint32_t storeCoverageDataCsvLengthThreshold)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Check that we have what we need.
     checkKmersAreOpen();
@@ -672,6 +661,7 @@ void Assembler::assemble(
 
 void Assembler::assembleThreadFunction(size_t threadId)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Initialize data structures for this thread.
     vector<AssemblyGraph::EdgeId>& edges = assembleData.edges[threadId];
@@ -766,6 +756,11 @@ void Assembler::AssembleData::free()
 
 void Assembler::accessAssemblyGraphSequences()
 {
+    if(not assemblyGraphPointer) {
+        assemblyGraphPointer = make_shared<AssemblyGraph>();
+    }
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assemblyGraph.sequences.accessExistingReadOnly(
         largeDataName("AssembledSequences"));
     assemblyGraph.repeatCounts.accessExistingReadOnly(
@@ -776,19 +771,32 @@ void Assembler::accessAssemblyGraphSequences()
 
 void Assembler::findAssemblyGraphBubbles()
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
+    // Check that we have what we need.
     SHASTA_ASSERT(assemblyGraph.vertices.isOpen);
     SHASTA_ASSERT(assemblyGraph.edges.isOpen);
     SHASTA_ASSERT(assemblyGraph.edgesBySource.isOpen());
     SHASTA_ASSERT(assemblyGraph.edgesByTarget.isOpen());
-    assemblyGraph.bubbles.createNew(largeDataName("AssemblyGraphBubbles"), largeDataPageSize);
+
+    // Find the bubbles.
+    assemblyGraph.bubbles.createNew(
+        largeDataName("AssemblyGraphBubbles"),
+        largeDataPageSize);
     assemblyGraph.findBubbles();
+
+    // Find the bubble chains.
+    assemblyGraph.bubbleChains.createNew(
+        largeDataName("AssemblyGraphBubbleChains"),
+        largeDataPageSize);
+    assemblyGraph.findBubbleChains();
 }
 
 
 
 void Assembler::computeAssemblyStatistics()
 {
-
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using EdgeId = AssemblyGraph::EdgeId;
 
     // Check that we have what we need.
@@ -866,6 +874,7 @@ void Assembler::computeAssemblyStatistics()
 // https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
 void Assembler::writeGfa1(const string& fileName)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
@@ -993,6 +1002,7 @@ void Assembler::writeGfa1(const string& fileName)
 // This version writes a GFA file containing both strands.
 void Assembler::writeGfa1BothStrands(const string& fileName)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
 
@@ -1152,6 +1162,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 // Write assembled sequences in FASTA format.
 void Assembler::writeFasta(const string& fileName)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using EdgeId = AssemblyGraph::EdgeId;
 
     cout << timestamp << "writeFasta begins" << endl;
@@ -1257,6 +1268,13 @@ void Assembler::constructCigarString(
                 }
             }
         }
+
+        // Now we can put together the Cigar string.
+        cigarString.clear();
+        for(const auto& p: cigar) {
+            cigarString += to_string(p.second);
+            cigarString += p.first;
+        }
     }
 
 }
@@ -1271,6 +1289,8 @@ bool Assembler::extractLocalAssemblyGraph(
     double timeout,
     LocalAssemblyGraph& graph) const
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     using vertex_descriptor = LocalAssemblyGraph::vertex_descriptor;
     using edge_descriptor = LocalAssemblyGraph::edge_descriptor;
     using VertexId = AssemblyGraph::VertexId;
@@ -1515,6 +1535,8 @@ void Assembler::assembleAssemblyGraphEdge(
     bool storeCoverageData,
     AssembledSegment& assembledSegment)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     assembledSegment.clear();
     const auto k = assemblerInfo->k;
     assembledSegment.k = k;
@@ -1657,3 +1679,141 @@ void Assembler::assembleAssemblyGraphEdge(
     assembledSegment.assemble();
 
 }
+
+
+
+void Assembler::writeOrientedReadsByAssemblyGraphEdge()
+{
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    ofstream csv("ReadsBySegment.csv");
+    csv << "AssembledSegmentId,ReadId,Strand\n";
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.orientedReadsByEdge.size(); edgeId++) {
+        for(const OrientedReadId orientedReadId: assemblyGraph.orientedReadsByEdge[edgeId]) {
+            csv << edgeId << ",";
+            csv << orientedReadId.getReadId() << ",";
+            csv << orientedReadId.getStrand() << "\n";
+        }
+    }
+}
+
+
+
+// Gather all oriented reads used to assembly each edge of the
+// assembly graph.
+void Assembler::gatherOrientedReadsByAssemblyGraphEdge(size_t threadCount)
+{
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    assemblyGraph.orientedReadsByEdge.createNew(
+        largeDataName("PhasingGraphOrientedReads"), largeDataPageSize);
+    assemblyGraph.orientedReadsByEdge.beginPass1(assemblyGraph.edgeLists.size());
+    setupLoadBalancing(assemblyGraph.edgeLists.size(), 1);
+    runThreads(&Assembler::gatherOrientedReadsByAssemblyGraphEdgePass1, threadCount);
+    assemblyGraph.orientedReadsByEdge.beginPass2();
+    setupLoadBalancing(assemblyGraph.edgeLists.size(), 1);
+    runThreads(&Assembler::gatherOrientedReadsByAssemblyGraphEdgePass2, threadCount);
+    assemblyGraph.orientedReadsByEdge.endPass2();
+}
+
+
+
+void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass1(size_t threadId)
+{
+    gatherOrientedReadsByAssemblyGraphEdgePass(1);
+}
+void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass2(size_t threadId)
+{
+    gatherOrientedReadsByAssemblyGraphEdgePass(2);
+}
+void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass(int pass)
+{
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
+    // Define this here to reduce memory allocation activity.
+    vector<OrientedReadId> orientedReadIds;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while (getNextBatch(begin, end)) {
+
+        // Loop over assembly graph edges assigned to this batch.
+        for (AssemblyGraph::EdgeId assemblyGraphEdgeId = begin;
+            assemblyGraphEdgeId != end; ++assemblyGraphEdgeId) {
+
+            // Access the marker graph edges corresponding
+            // to this assembly graph edge.
+            const span<MarkerGraph::EdgeId> markerGraphEdges =
+                assemblyGraph.edgeLists[assemblyGraphEdgeId];
+            const uint64_t n = markerGraphEdges.size();
+            SHASTA_ASSERT(n > 0);
+
+            // Gather the oriented read ids.
+            orientedReadIds.clear();
+            if (n == 1) {
+
+                // There is only one marker graph edge.
+                // The OrientedReadId's are the ones in that one edge.
+                const MarkerGraph::EdgeId markerGraphEdgeId =
+                    markerGraphEdges[0];
+                const span<MarkerInterval> markerIntervals =
+                    markerGraph.edgeMarkerIntervals[markerGraphEdgeId];
+                for (const MarkerInterval markerInterval : markerIntervals) {
+                    orientedReadIds.push_back(markerInterval.orientedReadId);
+                }
+
+            } else {
+
+                // The OrientedReadId's are the ones from all of the
+                // marker graph vertices internal to this chain.
+                // These are the target vertices of every edge except the last in the chain.
+                for (uint64_t i = 0; i < n - 1; i++) {
+                    const MarkerGraph::EdgeId markerGraphEdgeId =
+                        markerGraphEdges[i];
+                    const MarkerGraph::Edge &markedGraphEdge =
+                        markerGraph.edges[markerGraphEdgeId];
+                    const MarkerGraph::VertexId markerGraphVertexId =
+                        markedGraphEdge.target;
+
+                    // Loop over the markers in this marker graph vertex.
+                    const span<MarkerId> markerIds =
+                        markerGraph.vertices[markerGraphVertexId];
+                    for (const MarkerId markerId : markerIds) {
+                        OrientedReadId orientedReadId;
+                        tie(orientedReadId, ignore) = findMarkerId(markerId);
+                        orientedReadIds.push_back(orientedReadId);
+                    }
+
+                }
+            }
+
+            // Deduplicate.
+            sort(orientedReadIds.begin(), orientedReadIds.end(),
+                std::greater<OrientedReadId>());
+            orientedReadIds.resize(
+                unique(orientedReadIds.begin(), orientedReadIds.end())
+                    - orientedReadIds.begin());
+
+            // Store.
+            // We don't need to use multithreaded versions of these functions
+            // as each threads works on a different assembly graph edge.
+            if (pass == 1) {
+                assemblyGraph.orientedReadsByEdge.incrementCount(assemblyGraphEdgeId,
+                    orientedReadIds.size());
+            } else {
+                for (const OrientedReadId orientedReadId : orientedReadIds) {
+                    assemblyGraph.orientedReadsByEdge.store(assemblyGraphEdgeId,
+                        orientedReadId);
+                }
+            }
+
+        }
+
+    }
+
+}
+

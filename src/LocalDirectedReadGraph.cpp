@@ -88,6 +88,8 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
+    bool dashedContainmentEdges,
+    uint32_t maxTrim,
     VertexColoringMethod vertexColoringMethod
     ) const
 {
@@ -98,6 +100,7 @@ void LocalDirectedReadGraph::write(
     write(outputFileStream, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
+        dashedContainmentEdges, maxTrim,
         vertexColoringMethod);
 }
 void LocalDirectedReadGraph::write(
@@ -107,11 +110,15 @@ void LocalDirectedReadGraph::write(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
+    bool dashedContainmentEdges,
+    uint32_t maxTrim,
     VertexColoringMethod vertexColoringMethod) const
 {
     Writer writer(*this, maxDistance, vertexScalingFactor,
         edgeThicknessScalingFactor, edgeArrowScalingFactor,
         colorEdgeArrows,
+        dashedContainmentEdges,
+        maxTrim,
         vertexColoringMethod);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalDirectedReadGraphVertex::orientedReadIdValue, *this));
@@ -124,6 +131,8 @@ LocalDirectedReadGraph::Writer::Writer(
     double edgeThicknessScalingFactor,
     double edgeArrowScalingFactor,
     bool colorEdgeArrows,
+    bool dashedContainmentEdges,
+    uint32_t maxTrim,
     VertexColoringMethod vertexColoringMethod) :
     graph(graph),
     maxDistance(maxDistance),
@@ -131,6 +140,8 @@ LocalDirectedReadGraph::Writer::Writer(
     edgeThicknessScalingFactor(edgeThicknessScalingFactor),
     edgeArrowScalingFactor(edgeArrowScalingFactor),
     colorEdgeArrows(colorEdgeArrows),
+    dashedContainmentEdges(dashedContainmentEdges),
+    maxTrim(maxTrim),
     vertexColoringMethod(vertexColoringMethod)
 {
 }
@@ -161,7 +172,7 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     const bool hasClusterInformation =
-        vertex.clusterId != std::numeric_limits<uint64_t>::max();
+        vertex.color != std::numeric_limits<uint32_t>::max();
 
     // Tooltip.
     s <<
@@ -173,7 +184,8 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         s << ", " << vertex.conflictCount << " conflicting vertices" ;
     }
     if(hasClusterInformation) {
-        s << ", conflict read graph cluster " << vertex.clusterId;
+        s << ", conflict read graph component " << vertex.componentId <<
+            " color " << vertex.color;
      }
     s << vertex.additionalToolTipText << "\"" <<
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
@@ -200,19 +212,23 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, vertex_descript
         switch(vertexColoringMethod) {
 
         case VertexColoringMethod::ByConflictCount:
-            if(vertex.conflictCount == 0) {
+            if(vertex.wasRemoved) {
+                s << "color=orange";
+            } else  if(vertex.conflictCount == 0) {
                 s << "color=black";
             } else {
                 const double hue = 0.67;
                 const double saturation = 0.3;
-                const double value = min(1.0, 0.7 + 0.01*double(vertex.conflictCount));
+                const double value = min(1.0, 0.5 + 0.05*double(vertex.conflictCount));
                 s << " color=\"" << hue << ","<< saturation << "," << value << "\"";
             }
             break;
 
         case VertexColoringMethod::ByCluster:
-            if(vertex.clusterId != std::numeric_limits<uint32_t>::max()) {
-                s << " color=\"/set18/" << (vertex.clusterId % 8) + 1 << "\"";
+            if(vertex.wasRemoved) {
+                s << "color=orange";
+            } else if(vertex.color != std::numeric_limits<uint32_t>::max()) {
+                s << " color=\"/set18/" << (vertex.color % 8) + 1 << "\"";
             }
             break;
 
@@ -240,12 +256,16 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
     const vertex_descriptor v1 = target(e, graph);
     const LocalDirectedReadGraphVertex& vertex0 = graph[v0];
     const LocalDirectedReadGraphVertex& vertex1 = graph[v1];
+    const OrientedReadId orientedReadId0 = vertex0.orientedReadId;
+    const OrientedReadId orientedReadId1 = vertex1.orientedReadId;
+
+    const bool isContainment = edge.alignmentInfo.isContaining(maxTrim);
 
     s << "[";
 
     s <<
-        "tooltip=\"" << vertex0.orientedReadId << "->" <<
-        vertex1.orientedReadId <<
+        "tooltip=\"" << orientedReadId0 << "->" <<
+        orientedReadId1 <<
         ", " << edge.alignmentInfo.markerCount << " aligned markers, centers offset " <<
         std::setprecision(6) << edge.alignmentInfo.offsetAtCenter() <<
         " aligned fraction " <<
@@ -255,8 +275,22 @@ void LocalDirectedReadGraph::Writer::operator()(std::ostream& s, edge_descriptor
         ", common neighbors " << edge.commonNeighborCount <<
         "\"";
 
-    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-3 * edge.alignmentInfo.markerCount) << "\"";
-    s << " arrowsize=\"" << edgeArrowScalingFactor * 0.1 << "\"";
+    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.alignmentInfo.markerCount) << "\"";
+    s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
+
+    if(dashedContainmentEdges and isContainment) {
+        s << " style=dashed";
+    }
+
+
+    // Hyperlink to the alignment corresponding to this edge.
+    s << " URL=\""
+        "exploreAlignment"
+        "?readId0=" << orientedReadId0.getReadId() <<
+        "&strand0=" << orientedReadId0.getStrand() <<
+        "&readId1=" << orientedReadId1.getReadId() <<
+        "&strand1=" << orientedReadId0.getStrand() <<
+        "\"";
 
 
 

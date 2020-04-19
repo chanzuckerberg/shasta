@@ -2,6 +2,7 @@
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
+#include "compressAlignment.hpp"
 #ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
 #endif
@@ -44,10 +45,14 @@ void Assembler::createMarkerGraphVertices(
     // in the alignment.
     size_t maxDrift,
 
-    // Scores for method 1 alignments.
+    // Scores for method 1  and 3 alignments.
     int matchScore,
     int mismatchScore,
     int gapScore,
+
+    // Parameters for method 3 alignments.
+    double downsamplingFactor,
+    int bandExtend,
 
     // The method used to create the read graph.
     // This affects which alignments are used to create the marker graph.
@@ -100,6 +105,8 @@ void Assembler::createMarkerGraphVertices(
     data.matchScore = matchScore;
     data.mismatchScore = mismatchScore;
     data.gapScore = gapScore;
+    data.downsamplingFactor = downsamplingFactor;
+    data.bandExtend = bandExtend;
     data.readGraphCreationMethod = readGraphCreationMethod;
 
     // Adjust the numbers of threads, if necessary.
@@ -393,7 +400,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
-
+    
     const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
     const int alignMethod = data.alignMethod;
@@ -402,14 +409,18 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     const int matchScore = data.matchScore;
     const int mismatchScore = data.mismatchScore;
     const int gapScore = data.gapScore;
+    const double downsamplingFactor = data.downsamplingFactor;
+    const int bandExtend = data.bandExtend;
     const int readGraphCreationMethod = data.readGraphCreationMethod;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
 
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
 
+    const auto& storedAlignments = compressedAlignments;
+    uint64_t alignmentId;
+
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-
 
         // We process read graph edges in pairs.
         // In each pair, the second edge is the reverse complement of the first.
@@ -424,6 +435,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
                 // We use the undirected read graph.
                 const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
+                alignmentId = readGraphEdge.alignmentId;
 
                 // Check that the next edge is the reverse complement of
                 // this edge.
@@ -451,15 +463,26 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
                 // We use the directed read graph.
                 const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(i);
+                alignmentId = edge.alignmentId;
+
+                // Sanity checks.
+                // Pairs of reverse complemented adges are stored consecutively.
+                SHASTA_ASSERT(edge.reverseComplementedEdgeId == i+1);
+                const DirectedReadGraphEdge& nextEdge = directedReadGraph.getEdge(i+1);
+                SHASTA_ASSERT(nextEdge.reverseComplementedEdgeId == i);
+                SHASTA_ASSERT(nextEdge.keep == edge.keep);
+                SHASTA_ASSERT(nextEdge.isConflict == edge.isConflict);
 
                 // Skip if not marked as "keep".
                 if(edge.keep == 0) {
                     continue;
                 }
 
-                // Check that the next edge is the reverse complement of
-                // this edge.
-                SHASTA_ASSERT(edge.reverseComplementedEdgeId == i+1);
+                // Skip if marked as "conflict".
+                if(edge.isConflict == 1) {
+                    continue;
+                }
+
 
                 // Get the oriented read ids.
                 const DirectedReadGraph::VertexId v0 = directedReadGraph.source(i);
@@ -471,30 +494,45 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 throw runtime_error("Invalid read graph creation method " + to_string(readGraphCreationMethod));
             }
 
-
-
-            // Compute the Alignment between these two oriented reads.
-            if(alignMethod == 0) {
-                for(size_t j=0; j<2; j++) {
-                    getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
-                }
-                alignOrientedReads(
-                    markersSortedByKmerId,
-                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
-            } else if(alignMethod == 1) {
-#ifdef __linux__
-                alignOrientedReads1(
-                    orientedReadIds[0], orientedReadIds[1],
-                    matchScore, mismatchScore, gapScore,
-                    alignment, alignmentInfo
-                );
-#else
-                throw runtime_error("Alignment method 1 is not supported on macOS.");
-#endif
+            if(storedAlignments.size() > 0) {
+                // Reuse stored alignments if available.
+                span<const char> compressedAlignment = storedAlignments[alignmentId];
+                shasta::decompress(compressedAlignment, alignment);
             } else {
-                SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
+                // Compute the Alignment between these two oriented reads.
+                if(alignMethod == 0) {
+                    for(size_t j=0; j<2; j++) {
+                        getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+                    }
+                    alignOrientedReads(
+                        markersSortedByKmerId,
+                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                } else if(alignMethod == 1) {
+    #ifdef __linux__
+                    alignOrientedReads1(
+                        orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        alignment, alignmentInfo
+                    );
+    #else
+                    throw runtime_error("Alignment method 1 is not supported on macOS.");
+    #endif
+                } else if(alignMethod == 2) {
+                    alignOrientedReads2(
+                        orientedReadIds[0], orientedReadIds[1],
+                        alignment, alignmentInfo
+                    );
+                } else if(alignMethod == 3) {
+                    alignOrientedReads3(
+                        orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        downsamplingFactor, bandExtend,
+                        alignment, alignmentInfo
+                    );
+                } else {
+                    SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
+                }
             }
-
 
             // In the global marker graph, merge pairs
             // of aligned markers.
@@ -1611,6 +1649,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     checkMarkerGraphEdgesIsOpen();
 
     // Some shorthands.
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using vertex_descriptor = LocalMarkerGraph::vertex_descriptor;
     using edge_descriptor = LocalMarkerGraph::edge_descriptor;
 
@@ -1702,10 +1741,10 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph edge.
-                if(assemblyGraph.markerToAssemblyTable.isOpen) {
-                    const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                    graph[e].assemblyEdgeId = p.first;
-                    graph[e].positionInAssemblyEdge = p.second;
+                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
+                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
+                    copy(locations.begin(), locations.end(),
+                        back_inserter(graph[e].assemblyGraphLocations));
                 }
             }
         }
@@ -1762,10 +1801,10 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
                 graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
                 // Link to assembly graph vertex.
-                if(assemblyGraph.markerToAssemblyTable.isOpen) {
-                    const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                    graph[e].assemblyEdgeId = p.first;
-                    graph[e].positionInAssemblyEdge = p.second;
+                if(assemblyGraph.markerToAssemblyTable.isOpen()) {
+                    const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
+                    copy(locations.begin(), locations.end(),
+                        back_inserter(graph[e].assemblyGraphLocations));
                 }
             }
         }
@@ -1843,10 +1882,10 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             graph[e].wasAssembled = markerGraph.edges[edgeId].wasAssembled;
 
             // Link to assembly graph vertex.
-            if(assemblyGraph.markerToAssemblyTable.isOpen) {
-                const auto& p = assemblyGraph.markerToAssemblyTable[edgeId];
-                graph[e].assemblyEdgeId = p.first;
-                graph[e].positionInAssemblyEdge = p.second;
+            if(assemblyGraph.markerToAssemblyTable.isOpen()) {
+                const auto& locations = assemblyGraph.markerToAssemblyTable[edgeId];
+                copy(locations.begin(), locations.end(),
+                    back_inserter(graph[e].assemblyGraphLocations));
             }
         }
     }
@@ -3519,305 +3558,6 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
 
 
-#ifdef SHASTA_MARGINPHASE
-void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-    MarkerGraph::EdgeId edgeId,
-    vector<Base>& sequence,
-    vector<uint32_t>& repeatCounts,
-    uint8_t& overlappingBaseCount
-    )
-{
-    // Get the marker length.
-    const uint32_t k = uint32_t(assemblerInfo->k);
-
-    // Check that MarginPhase was setup.
-    checkMarginPhaseWasSetup();
-
-    // Access the markerIntervals for this edge.
-    // Each corresponds to an oriented read on this edge.
-    const span<MarkerInterval> markerIntervals =
-        markerGraph.edgeMarkerIntervals[edgeId];
-    const size_t markerCount = markerIntervals.size();
-    SHASTA_ASSERT(markerCount > 0);
-
-    // We will process the edge in one of two modes:
-    // - Mode 1 supports only marker intervals in which the left and right
-    //   markers are adjacent or overlapping.
-    // - Mode 2 supports only marker intervals in which there is at least
-    //   one base of sequence intervening between the left and right
-    //   markers.
-    // It would be nice if we could find a mode that supports all of the
-    // reads, but in general this is not possible. So we do the following:
-    // - Count the number of marker intervals supported by mode 1 and mode 2.
-    // - Pick the mode that supports the most marker intervals.
-    // - Discard the marker intervals that are not supported by the mode we picked.
-    // In the worst case, this results in discarding half of the marker intervals.
-    // But in most cases, the number of marker intervals that must be discarded
-    // is small, and often zero.
-    // See comments below for details of the processing for each mode.
-    size_t mode1Count = 0;
-    size_t mode2Count = 0;
-    for(size_t i=0; i!=markerCount; i++) {
-        const MarkerInterval& markerInterval = markerIntervals[i];
-        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-
-        // Get the two markers.
-        SHASTA_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
-        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-
-        // Get the positions of the markers in the read.
-        const uint32_t position0 = marker0.position;
-        const uint32_t position1 = marker1.position;
-        SHASTA_ASSERT(position1 > position0);
-
-        // Compute the offset between the markers.
-        const uint32_t offset = position1 - position0;
-
-        // Update counts for mode 1 and mode 2.
-        if(offset <= k) {
-            // The markers are adjacent or overlapping.
-            ++mode1Count;
-        }
-        if(offset > k) {
-            // The markers are adjacent or non-overlapping.
-            ++mode2Count;
-        }
-    }
-    SHASTA_ASSERT(mode1Count + mode2Count == markerCount);
-
-
-
-    // Mode 1: only use marker intervals in which the two markers
-    // are adjacent or overlapping.
-    // To construct the sequence, we use the most frequent
-    // offset between the two markers.
-    if(mode1Count >= mode2Count) {
-
-        // Offset histogram.
-        // Count marker offsets up to k.
-        // Since we are at it, also get the kmerIds.
-        vector<uint32_t> offsetHistogram(k+1, 0);
-        for(size_t i=0; i!=markerCount; i++) {
-            const MarkerInterval& markerInterval = markerIntervals[i];
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-            const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-
-            // Get the two markers.
-            SHASTA_ASSERT(markerInterval.ordinals[1] > markerInterval.ordinals[0]);
-            const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-            const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-
-            // Get the positions of the markers in the read.
-            const uint32_t position0 = marker0.position;
-            const uint32_t position1 = marker1.position;
-            SHASTA_ASSERT(position1 > position0);
-
-            // Compute the offset between the markers.
-            const uint32_t offset = position1 - position0;
-
-            // Update the offset, but only if the markers are adjacent or overlapping.
-            if(offset <= k) {
-                ++offsetHistogram[offset];
-            }
-        }
-
-
-        // Compute the most frequent offset.
-        const uint32_t bestOffset = uint32_t(
-            std::max_element(offsetHistogram.begin(), offsetHistogram.end())
-            - offsetHistogram.begin());
-
-        // Set the output accordingly.
-        sequence.clear();
-        repeatCounts.clear();
-        overlappingBaseCount = uint8_t(k - bestOffset);
-        return;
-    }
-
-
-
-    // Mode 2: only use marker intervals in which there is at least
-    // one base of sequence intervening between the left and right
-    // markers.
-    // We do a multiple sequence alignment using MarginPhase
-    // of the sequences between the two markers.
-    // Results are dependent on the order in which the
-    // sequences are entered, and so we enter the sequences in order
-    // of decreasing frequency.
-    SHASTA_ASSERT(mode2Count > mode1Count);
-
-
-
-    // Gather all of the intervening sequences and repeatCounts, keeping track of distinct
-    // sequences. For each sequence we store a vector of i values
-    // where each sequence appear.
-    vector< vector<Base> > distinctSequences;
-    vector< vector<size_t> > distinctSequenceOccurrences;
-    vector<bool> isUsed(markerCount);
-    vector<Base> interveningSequence;
-    vector< vector<uint8_t> > interveningRepeatCounts(markerCount);
-    for(size_t i=0; i!=markerCount; i++) {
-        const MarkerInterval& markerInterval = markerIntervals[i];
-        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-
-        // Get the two markers and their positions.
-        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-        const uint32_t position0 = marker0.position;
-        const uint32_t position1 = marker1.position;
-        SHASTA_ASSERT(position1 > position0);
-        const uint32_t offset = position1 - position0;
-
-        // If the offset is too small, discard this marker interval.
-        if(offset <= k) {
-            isUsed[i] = false;
-            continue;
-        }
-        isUsed[i] = true;
-
-        // Construct the sequence and repeat counts between the markers.
-        const uint32_t begin = position0 + k;
-        const uint32_t end = position1;
-        interveningSequence.clear();
-        for(uint32_t position=begin; position!=end; position++) {
-            Base base;
-            uint8_t repeatCount;
-            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-            interveningSequence.push_back(getOrientedReadBase(orientedReadId, position));
-            interveningRepeatCounts[i].push_back(repeatCount);
-        }
-
-        // Store, making sure to check if we already encountered this sequence.
-        const auto it = find(distinctSequences.begin(), distinctSequences.end(), interveningSequence);
-        if(it == distinctSequences.end()) {
-            // We did not already encountered this sequence.
-            distinctSequences.push_back(interveningSequence);
-            distinctSequenceOccurrences.resize(distinctSequenceOccurrences.size() + 1);
-            distinctSequenceOccurrences.back().push_back(i);
-        } else {
-            // We already encountered this sequence,
-            distinctSequenceOccurrences[it - distinctSequences.begin()].push_back(i);
-        }
-    }
-
-
-
-    // We want to enter the distinct sequences in order of decreasing frequency,
-    // so we create a table of distinct sequences.
-    // For each pair stored:
-    // first = index of the distinct sequence in distinctSequences, distinctSequenceOccurrences.
-    // second = frequency.
-    vector< pair<size_t, uint32_t> > distinctSequenceTable;
-    for(size_t j=0; j<distinctSequences.size(); j++) {
-        distinctSequenceTable.push_back(make_pair(j, distinctSequenceOccurrences[j].size()));
-    }
-    sort(distinctSequenceTable.begin(), distinctSequenceTable.end(),
-        OrderPairsBySecondOnlyGreater<size_t, uint32_t>());
-
-
-    // We are now ready to compute the MarginPhase alignment for the distinct sequences.
-
-    // Vectors to contain the input to callConsensus.
-    vector<string> marginPhaseSequences;
-    vector< vector<uint8_t> > marginPhaseRepeatCounts;
-    vector<uint8_t> marginPhaseStrands;
-
-
-    // Fill in the input vectors.
-    for(const auto& p: distinctSequenceTable) {
-    	const size_t j = p.first;
-        const vector<Base>& sequence = distinctSequences[j];
-        const vector<size_t>& occurrences = distinctSequenceOccurrences[j];
-        string sequenceString;
-        for(const Base b: sequence) {
-        	sequenceString.push_back(b.character());
-        }
-        for(const size_t i: occurrences) {
-            const MarkerInterval& markerInterval = markerIntervals[i];
-            const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-        	marginPhaseSequences.push_back(sequenceString);
-        	marginPhaseRepeatCounts.push_back(interveningRepeatCounts[i]);
-        	marginPhaseStrands.push_back(uint8_t(orientedReadId.getStrand()));
-        }
-
-    }
-
-#if 0
-
-    // Fill in the input vectors.
-    for(size_t i=0; i!=markerCount; i++) {
-        const MarkerInterval& markerInterval = markerIntervals[i];
-        const OrientedReadId orientedReadId = markerInterval.orientedReadId;
-        const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-
-        // Get the two markers.
-        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
-        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
-
-        // Get the position range, including the flanking markers.
-        const uint32_t positionBegin = marker0.position;
-        const uint32_t positionEnd = marker1.position + uint32_t(assemblerInfo->k);
-        const uint32_t length = positionEnd - positionBegin;
-
-        // Fill in the sequence and repeat counts for this read the sequence.
-        string& s = readSequences[i];
-        vector<uint8_t>& r = readRepeatCounts[i];
-        s.resize(length);
-        r.resize(length);
-        size_t j = 0;
-        for(uint32_t position=positionBegin; position!=positionEnd; position++, j++) {
-            Base b;
-            uint8_t rr;
-            tie(b, rr) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-            s[j] = b.character();
-            r[j] = rr;
-        }
-    }
-#endif
-
-
-    // Create vectors of pointers to be passed to callConsensus.
-    vector<char*> marginPhaseSequencePointers;
-    vector<uint8_t*> marginPhaseRepeatCountPointers;
-    SHASTA_ASSERT(marginPhaseSequences.size() == marginPhaseRepeatCounts.size());
-    SHASTA_ASSERT(marginPhaseSequences.size() == marginPhaseStrands.size());
-    for(size_t i=0; i<marginPhaseSequences.size(); i++) {
-    	marginPhaseSequencePointers.push_back(const_cast<char*>(marginPhaseSequences[i].data()));
-    	marginPhaseRepeatCountPointers.push_back(const_cast<uint8_t*>(marginPhaseRepeatCounts[i].data()));
-    }
-
-    // Use marginPhase to compute consensus sequence
-    // and repeat counts.
-    RleString* consensusPointer = callConsensus(
-    	marginPhaseSequencePointers.size(),
-		marginPhaseSequencePointers.data(),
-		marginPhaseRepeatCountPointers.data(),
-        marginPhaseStrands.data(),
-        marginPhaseParameters);
-    const RleString& consensus = *consensusPointer;
-
-    // Store the results.
-    overlappingBaseCount = 0;
-    sequence.resize(consensus.length);
-    repeatCounts.resize(consensus.length);
-    for(size_t i=0; i<size_t(consensus.length); i++) {
-        sequence[i] = Base::fromCharacter(consensus.rleString[i]);
-        const uint64_t r = consensus.repeatCounts[i];
-        SHASTA_ASSERT(r < 256);
-        repeatCounts[i] = uint8_t(r);
-    }
-
-    // Clean up.
-    destroyRleString(consensusPointer);
-
-}
-#endif
-
-
-
 // Simplify the marker graph.
 // The first argument is a number of marker graph edges.
 // See the code for detail on its meaning and how it is used.
@@ -3908,6 +3648,7 @@ void Assembler::simplifyMarkerGraphIterationPart1(
     // Create a temporary assembly graph.
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     if(debug) {
         assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart1-" + to_string(iteration) + ".dot");
     }
@@ -4011,6 +3752,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     // Create a temporary assembly graph.
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     if(debug) {
         assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart2-" + to_string(iteration) + ".dot");
     }
@@ -4621,10 +4363,6 @@ void Assembler::assembleMarkerGraphEdges(
     // This controls when we give up trying to compute consensus for long edges.
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
 
-    // Parameter to control whether we use spoa or marginPhase
-    // to compute consensus sequence.
-    bool useMarginPhase,
-
     // Request storing detailed coverage information.
     bool storeCoverageData
     )
@@ -4645,7 +4383,6 @@ void Assembler::assembleMarkerGraphEdges(
 
     // Do the computation in parallel.
     assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus = markerGraphEdgeLengthThresholdForConsensus;
-    assembleMarkerGraphEdgesData.useMarginPhase = useMarginPhase;
     assembleMarkerGraphEdgesData.storeCoverageData = storeCoverageData;
     assembleMarkerGraphEdgesData.threadEdgeIds.resize(threadCount);
     assembleMarkerGraphEdgesData.threadEdgeConsensus.resize(threadCount);
@@ -4746,8 +4483,8 @@ void Assembler::accessMarkerGraphCoverageData()
 
 void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = assembleMarkerGraphEdgesData.markerGraphEdgeLengthThresholdForConsensus;
-    const bool useMarginPhase = assembleMarkerGraphEdgesData.useMarginPhase;
     const bool storeCoverageData = assembleMarkerGraphEdgesData.storeCoverageData;
 
     // Allocate space for the results computed by this thread.
@@ -4801,13 +4538,16 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                 shouldAssemble = false;
             } else {
                 // This marker graph edge was not removed.
-                // Find the corresponding assembly graph edge.
-                const AssemblyGraph::EdgeId assemblyGraphEdgeId =
-                    assemblyGraph.markerToAssemblyTable[edgeId].first;
-                if(!assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
-                    // The assembly graph edge will not be assembled.
-                    // So we don't need to assemble this marker graph edge.
-                    shouldAssemble = false;
+                // Check its assembly graph locations to see if it
+                // should be assembled.
+                shouldAssemble = false;
+                for(const auto& location: assemblyGraph.markerToAssemblyTable[edgeId]) {
+                    const AssemblyGraph::EdgeId assemblyGraphEdgeId =
+                        location.first;
+                    if(assemblyGraph.isAssembledEdge(assemblyGraphEdgeId)) {
+                        shouldAssemble = true;
+                        break;
+                    }
                 }
             }
 
@@ -4820,23 +4560,13 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
             } else {
                 markerGraph.edges[edgeId].wasAssembled = 1;
                 try {
-                    if(useMarginPhase) {
-#ifdef SHASTA_MARGINPHASE
-                        computeMarkerGraphEdgeConsensusSequenceUsingMarginPhase(
-                            edgeId, sequence, repeatCounts, overlappingBaseCount);
-#else
-                        // The build does not include MarginPhase.
-                        SHASTA_ASSERT(0);
-#endif
-                    } else {
-                        ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
-                        computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
-                            edgeId, markerGraphEdgeLengthThresholdForConsensus,
-                            sequence, repeatCounts, overlappingBaseCount,
-                            detail,
-                            storeCoverageData ? &coverageData : 0
-                            );
-                    }
+                    ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
+                    computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
+                        edgeId, markerGraphEdgeLengthThresholdForConsensus,
+                        sequence, repeatCounts, overlappingBaseCount,
+                        detail,
+                        storeCoverageData ? &coverageData : 0
+                        );
                 } catch(const std::exception& e) {
                     std::lock_guard<std::mutex> lock(mutex);
                     cout << "A standard exception was thrown while assembling "
@@ -4962,3 +4692,101 @@ void Assembler::computeMarkerGraphCoverageHistogram()
 
 
 
+void Assembler::removeMarkerGraphVertices()
+{
+    markerGraph.vertices.remove();
+    markerGraph.vertexTable.remove();
+}
+
+
+
+// Analyze a vertex of the Marker graph.
+void Assembler::analyzeMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
+{
+    // Check that we have a valid vertex id.
+    if(vertexId >= markerGraph.vertices.size()) {
+        throw runtime_error("Invalid vertex id. Must be less than " +
+            to_string(markerGraph.vertices.size()) +  ".");
+        return;
+    }
+
+    // Access the markers of this vertex.
+    span<const MarkerId> markerIds = markerGraph.vertices[vertexId];
+    const size_t markerCount = markerIds.size();
+    SHASTA_ASSERT(markerCount > 0);
+
+    // Get the marker sequence.
+    const KmerId kmerId = markers.begin()[markerIds[0]].kmerId;
+    const size_t k = assemblerInfo->k;
+    const Kmer kmer(kmerId, k);
+
+    // Initial message.
+    cout << "Marker graph vertex " << vertexId << " ";
+    kmer.write(cout, k);
+    cout << " has coverage " << markerCount << endl;
+
+    // Get the oriented read ids and corresponding components and colors in
+    // the conflict read graph.
+    vector<OrientedReadId> orientedReadIds;
+    vector<uint32_t> componentIds;
+    vector<uint32_t> colors;
+    for(const MarkerId markerId: markerIds) {
+        OrientedReadId orientedReadId;
+        tie(orientedReadId, ignore) = findMarkerId(markerId);
+
+        const auto cVertexId = ConflictReadGraph::getVertexId(orientedReadId);
+        const auto& cVertex = conflictReadGraph.getVertex(cVertexId);
+
+        orientedReadIds.push_back(orientedReadId);
+        componentIds.push_back(cVertex.componentId);
+        colors.push_back(cVertex.color);
+
+        cout << orientedReadId;
+        if(cVertex.componentId != ConflictReadGraphVertex::invalid) {
+            cout << " " << cVertex.componentId << " " << cVertex.color;
+        }
+        cout << endl;
+    }
+
+
+
+    // Write out the subgraph of the read graph induced by these oriented reads.
+    ofstream graphOut("Subgraph.dot");
+    graphOut << "digraph G {\n";
+
+    // Vertices.
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        const OrientedReadId orientedReadId = orientedReadIds[i];
+        const uint32_t componentId = componentIds[i];
+        const uint32_t color = colors[i];
+
+        graphOut << "\"" << orientedReadId << "\"";
+        if(componentId != ConflictReadGraphVertex::invalid) {
+            graphOut << "[style=filled fillcolor=\"/set18/" << (color % 8) + 1 << "\"]";
+        }
+        graphOut << ";\n";
+    }
+
+    // Edges.
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        const OrientedReadId orientedReadId0 = orientedReadIds[i];
+        const DirectedReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
+        for(const DirectedReadGraph::EdgeId e01: directedReadGraph.outEdges(v0)) {
+            const DirectedReadGraphEdge& edge01 = directedReadGraph.getEdge(e01);
+            if(edge01.keep == 0) {
+                continue;
+            }
+            if(edge01.isConflict == 1) {
+                continue;
+            }
+            const DirectedReadGraph::VertexId v1 = directedReadGraph.target(e01);
+            const OrientedReadId orientedReadId1 = ConflictReadGraph::getOrientedReadId(v1);
+            if(binary_search(orientedReadIds.begin(), orientedReadIds.end(), orientedReadId1)) {
+                graphOut << "\"" << orientedReadId0 << "\"->\"" <<
+                    orientedReadId1 << "\";\n";
+            }
+        }
+    }
+
+    graphOut << "}\n";
+}

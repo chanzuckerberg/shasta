@@ -48,13 +48,15 @@ public:
 
 
     // The cluster id assigned during coloring of the conflict read graph.
-    uint32_t clusterId = invalid;
+    uint32_t componentId = invalid;
+    uint32_t color = invalid;
 
-    bool hasValidClusterId() const
+    bool hasValidColor() const
     {
-        return clusterId != invalid;
+        return color != invalid;
     }
 
+#if 0
     // Number of markers preceding the first marker with non-zero marker coverage
     // (that is, the first marker associated with a marker graph vertex).
     uint32_t leftTrim;
@@ -72,7 +74,13 @@ public:
     uint32_t longestGap;
 
     // This is set is longestGap>maxSkip.
-    bool hasLongGap;
+    bool hasLongGap = false;
+#endif
+
+    // If set (by  cleanupConflictReadGraph), the corresponding read graph
+    // edge is effectively excluded from assembly by marking all
+    // edges incident to it as conflict edges.
+    bool wasRemoved = false;
 };
 
 
@@ -81,6 +89,9 @@ public:
 class shasta::ConflictReadGraphEdge {
 public:
 
+    // If set (by  cleanupConflictReadGraph), this edge is ignored
+    // by markDirectedReadGraphConflictEdges2.
+    bool wasRemoved = false;
 };
 
 

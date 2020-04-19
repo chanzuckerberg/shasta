@@ -26,6 +26,7 @@ public:
     ReadLoader(
         const string& fileName,
         size_t minReadLength,
+        bool noCache,
         size_t threadCount,
         const string& dataNamePrefix,
         size_t pageSize,
@@ -56,6 +57,9 @@ private:
 
     // The minimum read length. Shorter reads are not stored.
     const size_t minReadLength;
+
+    // If set, use the O_DIRECT flag when opening input files (Linux only).
+    bool noCache;
 
     // The number of threads to be used for processing.
     // Reading is done single-threaded as there is usually no benefit

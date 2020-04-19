@@ -363,6 +363,13 @@ on input and not used in the assembly.
 <a class=qm href='Running.html#InputFiles'></a>   
 <a class=qm href='ComputationalMethods.html#InitialAssemblySteps'></a>
 
+<tr><td><code>--Reads.noCache</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+If set, requests skipping the Linux cache when loading reads.
+Implemented for Linux only (uses the <a href='http://man7.org/linux/man-pages/man2/open.2.html'>O_DIRECT flag</a>).
+Can help performance, but only use it if you know you will not 
+need to access the input files again soon.
 
 <tr id='Reads.palindromicReads.maxSkip'>
 <td><code>--Reads.palindromicReads.maxSkip</code><td class=centered><code>100</code><td>
@@ -384,6 +391,23 @@ Used for palindromic read detection.
 <td><code>--Reads.palindromicReads.deltaThreshold</code><td class=centered><code>100</code><td>
 Used for palindromic read detection.
 
+<tr id='Kmers.generationMethod'>
+<td><code>--Kmers.generationMethod</code><td class=centered><code>0</code><td>
+Used to select how k-mers to be used as markers are generated.
+Can be one of the following:
+<ul>
+<li>0: Random selection.
+<li>1: Random selection, excluding k-mers that are globally overenriched,
+as defined by their global frequency in input reads, and by
+the value specified as <code>--Kmers.enrichmentThreshold</code>.
+<li>2: Random selection, excluding k-mers that are overenriched
+even in a single read, 
+as defined by 
+the value specified as <code>--Kmers.enrichmentThreshold</code>.
+<li>3: Read from file. Use <code>--Kmers.file</code>
+to specify the file.
+</ul>
+
 <tr id='Kmers.k'>
 <td><code>--Kmers.k</code><td class=centered><code>10</code><td>
 Length of marker <i>k</i>-mers (in run-length representation).
@@ -394,31 +418,19 @@ Length of marker <i>k</i>-mers (in run-length representation).
 Probability that a k-mer is selected to be used as a marker.
 <a class=qm href='ComputationalMethods.html#Markers'/>
 
-<tr id='Kmers.suppressHighFrequencyMarkers'>
-<td><code>--Kmers.suppressHighFrequencyMarkers</code><td class=centered><code>False</code><td>
-This is a 
-<a href="#BooleanSwitches">Boolean switch</a>.
-If set, high frequency k-mers 
-are not used as markers. High frequency k-mers are those 
-with enrichment greater than the value specified by 
-<code>--Kmers.enrichmentThreshold</code>.
-
 <tr id='Kmers.enrichmentThreshold'>
-<td><code>--Kmers.enrichmentThreshold</code><td class=centered><code>10.</code><td>
+<td><code>--Kmers.enrichmentThreshold</code><td class=centered><code>100.</code><td>
 If <code>--Kmers.suppressHighFrequencyMarkers</code> is set, 
 this controls the enrichment threshold above which k-mers
-are not considered as possible markers.
+are considered overenriched.
 Enrichment is ratio of k-mer frequency in reads to random.
+Only used if <code>--Kmers.generationMethod</code> is 1 or 2.
 
 <tr id='Kmers.file'>
 <td><code>--Kmers.file</code><td class=centered><td>
 The absolute path of a file containing the k-mers
 to be used as markers, one per line. 
-A relative path is not accepted. 
-If this is empty, k-mers to be used as markers
-are selected according to the other <code>--Kmers</code> options.
-If this is not empty, all other <code>--Kmers</code> options are ignored 
-except for <code>--Kmers.k</code>.
+Only used if <code>--Kmers.generationMethod</code> is 3.
 
 <tr id='MinHash.version'>
 <td><code>--MinHash.version</code><td class=centered><code>0</code><td>
@@ -469,15 +481,10 @@ Instead, all possible read pairs are marked as alignment candidates, on both
 relative orientations. This should only be used for very small test
 assemblies as it can become prohibitively slow for large assemblies.
 
-<tr id='Align.alignMethodForReadGraph'>
-<td><code>--Align.alignMethodForReadGraph</code><td class=centered><code>0</code><td>
- The alignment method to be used to create the read graph. 
- It can be 0 (default) or 1 (experimental).
-
-<tr id='Align.alignMethodForMarkerGraph'>
-<td><code>--Align.alignMethodForMarkerGraph</code><td class=centered><code>0</code><td>
- The alignment method to be used to create the marker graph. 
- It can be 0 (default) or 1 (experimental).
+<tr id='Align.alignMethod'>
+<td><code>--Align.alignMethod</code><td class=centered><code>0</code><td>
+The alignment method to be used to create the read graph and the marker graph. 
+Values other than 0 are experimental.
 
 <tr id='Align.maxSkip'>
 <td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
@@ -515,15 +522,24 @@ The minimum fraction of aligned markers for an alignment to be used.
 
 <tr id='Align.matchScore'>
 <td><code>--Align.matchScore</code><td class=centered><code>3</code><td>
-Match score for marker alignments (only for experimental alignment method 1).
+Match score for marker alignments (only for experimental alignment methods 1 and 3).
 
 <tr id='Align.mismatchScore'>
 <td><code>--Align.mismatchScore</code><td class=centered><code>-1</code><td>
-Mismatch score for marker alignments (only for experimental alignment method 1).
+Mismatch score for marker alignments (only for experimental alignment methods 1 and 3).
 
 <tr id='Align.gapScore'>
-<td><code>--Align.gapScore</code><td class=centered><code>-3</code><td>
-Gap score for marker alignments (only for experimental alignment method 1).
+<td><code>--Align.gapScore</code><td class=centered><code>-1</code><td>
+Gap score for marker alignments (only for experimental alignment methods 1 and 3).
+
+<tr id='Align.downsamplingFactor'>
+<td><code>--Align.downsamplingFactor</code><td class=centered><code>0.1</code><td>
+Downsampling factor for downsampled marker alignments 
+(only for experimental alignment method 3).
+
+<tr id='Align.bandExtend'>
+<td><code>--Align.bandExtend</code><td class=centered><code>10</code><td>
+Amount to extend the alignment band (only for experimental alignment method 3).
 
 <tr id='Align.sameChannelReadAlignment.suppressDeltaThreshold'>
 <td><code>--Align.sameChannelReadAlignment.suppressDeltaThreshold</code><td class=centered><code>0</code><td>
@@ -537,6 +553,14 @@ This check is only done if the two reads have identical meta data fields
 If any of these meta data fields are missing, this check is suppressed and this
 option has no effect.
 
+<tr id='Align.suppressContainments'>
+<td><code>--Align.suppressContainments</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+If set, containment alignments are suppressed.
+Containment alignments are alignments in which
+one read is entirely contained in another read,
+except possibly for up to <a href="#Align.maxTrim">maxTrim</a> markers at the beginning and end.
 
 <tr id='ReadGraph.creationMethod'>
 <td><code>--ReadGraph.creationMethod</code><td class=centered><code>0</code><td>
@@ -558,6 +582,13 @@ of the read graph to be kept. This is currently ignored.
 <td><code>--ReadGraph.maxChimericReadDistance</code><td class=centered><code>2</code><td>
 Used for chimeric read detection.
 <a class=qm href='ComputationalMethods.html#ReadGraph'/>
+
+<tr id='ReadGraph.removeConflicts'>
+<td><code>--ReadGraph.removeConflicts</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>.
+Remove conflicts from the read graph.
+Experimental - do not use.
 
 <tr id='MarkerGraph.minCoverage'>
 <td><code>--MarkerGraph.minCoverage</code><td class=centered><code>10</code><td>
@@ -627,12 +658,6 @@ This is a
 If set, approximate reverse transitive reduction of the marker
 graph in the reverse direction is also performed.
 
-<tr id='Assembly.strategy'>
-<td><code>--Assembly.strategy</code>
-<td class=centered><code>0</code><td>
-Experimental. Leave at default value 0.
-
-
 <tr id='Assembly.markerGraphEdgeLengthThresholdForConsensus'>
 <td><code>--Assembly.markerGraphEdgeLengthThresholdForConsensus</code>
 <td class=centered><code>0</code><td>
@@ -643,28 +668,24 @@ Controls assembly of long marker graph edges.
 <td class=centered><code>Bayesian:guppy-2.3.5-a</code><td>
 Used to select the consensus caller for repeat counts. <a class=qm href='ComputationalMethods.html#RepeatCounts'/>
 
-<tr id='Assembly.useMarginPhase'>
-<td><code>--Assembly.useMarginPhase</code><td class=centered><code>False</code><td>
-This is a 
-<a href="#BooleanSwitches">Boolean switch</a>
-Used to turn on MarginPhase. Experimental. To use MarginPhase with 
-Shasta, run marginPhase separately after the Shasta ssembly is complete.
-
 <tr id='Assembly.storeCoverageData'>
 <td><code>--Assembly.storeCoverageData</code><td class=centered><code>False</code><td>
 This is a 
 <a href="#BooleanSwitches">Boolean switch</a>
 used to request storing of coverage data (only useful in conjunction with <code>--memoryMode filesystem</code>).
 
-<tr id='Phasing.phasingSimilarityThreshold'>
-<td><code>--Phasing.phasingSimilarityThreshold</code><td class=centered><code>0.5</code><td>
-Only used with <code>--Assembly.strategy 1</code>, which is new functionality
-under development. Experimental.
+<tr id='Assembly.writeReadsByAssembledSegment'>
+<td><code>--Assembly.writeReadsByAssembledSegment</code><td class=centered><code>False</code><td>
+This is a 
+<a href="#BooleanSwitches">Boolean switch</a>
+used to request writing a csv file containing all the reads that were used
+to assemble each segment).
 
-<tr id='Phasing.maxNeighborCount'>
-<td><code>--Phasing.maxNeighborCount</code><td class=centered><code>6</code><td>
-Only used with <code>--Assembly.strategy 1</code>, which is new functionality
-under development. Experimental.
+<tr id='Assembly.detangle'>
+<td><code>--Assembly.detangle</code><td class=centered><code>False</code><td>
+Experimental. This is a 
+<a href="#BooleanSwitches">Boolean switch</a>
+used to request detangling of the assembly graph.
 
 </table>
 

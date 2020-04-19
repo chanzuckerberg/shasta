@@ -4,14 +4,15 @@
 #include "Assembler.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
+#include "compressAlignment.hpp"
 #include "deduplicate.hpp"
 #include "dset64Test.hpp"
+#include "edlibTest.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
 #include "MultithreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
-#include "testMarginCore.hpp"
 #include "testSpoa.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
 #include "MedianConsensusCaller.hpp"
@@ -117,6 +118,13 @@ PYBIND11_MODULE(shasta, module)
             arg("seed") = 231)
         .def("selectKmersBasedOnFrequency",
             &Assembler::selectKmersBasedOnFrequency,
+            arg("k"),
+            arg("markerDensity"),
+            arg("seed") = 231,
+            arg("enrichmentThreshold"),
+            arg("threadCount") = 0)
+        .def("selectKmers2",
+            &Assembler::selectKmers2,
             arg("k"),
             arg("markerDensity"),
             arg("seed") = 231,
@@ -248,6 +256,10 @@ PYBIND11_MODULE(shasta, module)
             arg("matchScore"),
             arg("mismatchScore"),
             arg("gapScore"),
+            arg("downsamplingFactor"),
+            arg("bandExtend"),
+            arg("suppressContainments"),
+            arg("storeAlignments"),
             arg("threadCount") = 0)
 #ifdef SHASTA_BUILD_FOR_GPU
         .def("computeAlignmentsGpu",
@@ -315,6 +327,9 @@ PYBIND11_MODULE(shasta, module)
         .def("markDirectedReadGraphConflictEdges2",
             &Assembler::markDirectedReadGraphConflictEdges2,
             arg("radius"))
+        .def("markDirectedReadGraphConflictEdges3",
+            &Assembler::markDirectedReadGraphConflictEdges3,
+            arg("radius"))
 
 
         // Global marker graph.
@@ -327,6 +342,8 @@ PYBIND11_MODULE(shasta, module)
             arg("matchScore"),
             arg("mismatchScore"),
             arg("gapScore"),
+            arg("downsamplingFactor"),
+            arg("bandExtend"),
             arg("readGraphCreationMethod"),
             arg("minCoverage"),
             arg("maxCoverage"),
@@ -382,6 +399,8 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("computeMarkerGraphCoverageHistogram",
             &Assembler::computeMarkerGraphCoverageHistogram)
+        .def("analyzeMarkerGraphVertex",
+            &Assembler::analyzeMarkerGraphVertex)
 
 
 
@@ -422,7 +441,6 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::assembleMarkerGraphEdges,
             arg("threadCount") = 0,
             arg("markerGraphEdgeLengthThresholdForConsensus"),
-            arg("useMarginPhase"),
             arg("storeCoverageData"))
         .def("accessMarkerGraphConsensus",
             &Assembler::accessMarkerGraphConsensus)
@@ -433,12 +451,12 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0,
             arg("maxOffsetSigma"),
             arg("maxTrim"),
-            arg("maxSkip"))
+            arg("maxSkip"),
+            arg("minAlignedMarkerCount"))
         .def("accessConflictReadGraph",
             &Assembler::accessConflictReadGraph)
-        .def("colorConflictReadGraph",
-            &Assembler::colorConflictReadGraph)
-
+        .def("cleanupConflictReadGraph",
+            &Assembler::cleanupConflictReadGraph)
 
 
         // Assembly graph.
@@ -481,10 +499,21 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::assembleAssemblyGraphEdge,
             arg("edgeId"),
             arg("storeCoverageData") = true)
+        .def("gatherOrientedReadsByAssemblyGraphEdge",
+            &Assembler::gatherOrientedReadsByAssemblyGraphEdge,
+            arg("threadCount") = 0)
+        .def("writeOrientedReadsByAssemblyGraphEdge",
+            &Assembler::writeOrientedReadsByAssemblyGraphEdge)
+        .def("detangle",
+            &Assembler::detangle)
 
         // Consensus caller.
         .def("setupConsensusCaller",
             &Assembler::setupConsensusCaller)
+
+        // CompressedAssemblyGraph.
+        .def("createCompressedAssemblyGraph",
+            &Assembler::createCompressedAssemblyGraph)
 
         // Phasing.
         .def("createPhasingData",
@@ -521,10 +550,6 @@ PYBIND11_MODULE(shasta, module)
             arg("edgeId0"),
             arg("edgeId1")
             )
-
-        // MarginPhase parameters.
-        .def("setupMarginPhase",
-            &Assembler::setupMarginPhase)
 
         // Definition of class_<Assembler> ends here.
     ;
@@ -586,9 +611,6 @@ PYBIND11_MODULE(shasta, module)
     module.def("testSpoa",
         testSpoa
         );
-    module.def("testMarginCore",
-        testMarginCore
-        );
     module.def("testSimpleBayesianConsensusCaller",
         testSimpleBayesianConsensusCaller
         );
@@ -606,10 +628,15 @@ PYBIND11_MODULE(shasta, module)
         arg("batchSize"),
         arg("seed")
         );
+    module.def("edlibTest",
+        edlibTest
+        );
     module.def("mappedCopy",
         mappedCopy
         );
-
+    module.def("testAlignmentCompression",
+        testAlignmentCompression
+        );
 }
 
 #endif

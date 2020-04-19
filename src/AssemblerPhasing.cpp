@@ -8,6 +8,8 @@ void Assembler::createPhasingData(
     double phasingSimilarityThreshold,
     int maxNeighborCount)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
@@ -270,6 +272,8 @@ void Assembler::accessPhasingData()
 // Find the oriented reads internal to each assembly graph edge.
 void Assembler::phasingGatherOrientedReads(size_t threadCount)
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     phasingData.orientedReads.createNew(
         largeDataName("PhasingGraphOrientedReads"), largeDataPageSize);
     phasingData.orientedReads.beginPass1(assemblyGraph.edges.size());
@@ -293,6 +297,7 @@ void Assembler::phasingGatherOrientedReadsPass2(size_t threadId)
 }
 void Assembler::phasingGatherOrientedReadsPass(int pass)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Define this here to reduce memory allocation activity.
     vector<OrientedReadId> orientedReadIds;
@@ -380,6 +385,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
 // Find the assembly graph edges that each oriented read is internal to..
 void Assembler::phasingGatherAssemblyGraphEdges(size_t threadCount)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint64_t orientedReadCount = 2 * reads.size();
 
     phasingData.assemblyGraphEdges.createNew(
@@ -513,6 +519,8 @@ uint64_t Assembler::countCommonInternalOrientedReads(
 // if out-deg(v0)=in_deg(v1)=1.
 void Assembler::phasingWriteBipartiteGraph()
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
     using VertexId = AssemblyGraph::VertexId;
     using EdgeId = AssemblyGraph::EdgeId;
     using Edge = AssemblyGraph::Edge;
@@ -558,6 +566,7 @@ void Assembler::phasingWriteBipartiteGraph()
 // Find similar forks.
 void Assembler::phasingFindSimilarForks()
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using EdgeId = AssemblyGraph::EdgeId;
 
     // For now just loop over all forks.
@@ -565,7 +574,7 @@ void Assembler::phasingFindSimilarForks()
     dot << "graph G {\n";
     for(uint64_t forkId0=0; forkId0<assemblyGraph.forks.size()-1; forkId0++) {
         const AssemblyGraph::Fork fork0 = assemblyGraph.forks[forkId0];
-        const span<EdgeId> edges0 =
+        const span<const EdgeId> edges0 =
             fork0.isForward ?
             assemblyGraph.edgesBySource[fork0.vertexId] :
             assemblyGraph.edgesByTarget[fork0.vertexId];
@@ -574,7 +583,7 @@ void Assembler::phasingFindSimilarForks()
         }
         for(uint64_t forkId1=forkId0+1; forkId1<assemblyGraph.forks.size(); forkId1++) {
             const AssemblyGraph::Fork fork1 = assemblyGraph.forks[forkId1];
-            const span<EdgeId> edges1 =
+            const span<const EdgeId> edges1 =
                 fork1.isForward ?
                 assemblyGraph.edgesBySource[fork1.vertexId] :
                 assemblyGraph.edgesByTarget[fork1.vertexId];

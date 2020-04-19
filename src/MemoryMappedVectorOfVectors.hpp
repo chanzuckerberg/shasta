@@ -16,7 +16,7 @@
 // Forward declarations.
 namespace shasta {
     namespace MemoryMapped {
-        template<class Int, class T> class VectorOfVectors;
+        template<class T, class Int> class VectorOfVectors;
     }
 }
 
@@ -275,6 +275,12 @@ public:
     // (stored at the same position) as v.begin()[k].
     // This requires a binary search in the toc.
     pair<Int, Int> find(Int k) const;
+
+    void rename(const string& newName)
+    {
+        toc.rename(newName + ".toc");
+        data.rename(newName + ".data");
+    }
 
 private:
     Vector<Int> toc;

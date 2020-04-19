@@ -25,8 +25,9 @@ void Assembler::createDirectedReadGraph(
 
     // Add a pair of edges for each stored alignment.
     directedReadGraph.edges.reserve(2 * alignmentData.size());
-    for(const AlignmentData& alignment: alignmentData) {
-        directedReadGraph.addEdgePair(alignment);
+    for(uint64_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
+        const AlignmentData& alignment = alignmentData[alignmentId];
+        directedReadGraph.addEdgePair(alignment, alignmentId);
     }
 
     // Compute graph connectivity.
@@ -34,9 +35,6 @@ void Assembler::createDirectedReadGraph(
 
     // Flag contained vertices and set edge flags accordingly.
     directedReadGraph.flagContainedVertices(uint32_t(maxTrim));
-
-    // Make sure the read graph is invariant under reverse complementing.
-    directedReadGraph.check();
 
 
     // Count the number of isolated reads and their bases.
@@ -60,11 +58,11 @@ void Assembler::createDirectedReadGraph(
         containedNeighborCount,
         uncontainedNeighborCountPerDirection);
 
-
-
     // Write a csv file with information on the edges.
     directedReadGraph.writeEdges();
 
+    // Make sure the read graph is invariant under reverse complementing.
+    directedReadGraph.check();
 }
 
 

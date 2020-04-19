@@ -51,9 +51,11 @@
 <h1>GPU acceleration</h1>
 
 <p>
-Shasta includes a GPU implementation of the computation of marker alignments,
-which results in improved performance and assembly cost. It is likely that
-future versions of Shasta will also use GPU accelaration for other computational phases.
+Shasta includes a GPU implementation, 
+contributed by 
+<a href="https://github.com/yatisht">Yatish Turakhia</a>,
+of the computation of marker alignments. It is likely that
+future versions of Shasta will also use GPU acceleration for other computational phases.
 The table below contains a conparison illustrating the benefits 
 of GPU acceleration for a human assembly at low coverage 24x.
 <p>
@@ -138,11 +140,41 @@ Following <code>make</code>, this will generate a dynamic executable (<code>shas
 <p>
 Run the assembly as usual, adding <code>--useGpu</code> to your command line.
 
-<h2>Selecting GPU devices for Shasta eexecution</h2>
+<h2>Selecting GPU devices for Shasta execution</h2>
 <p>
-By default, Shasta utilizes all available GPU devices for execution. However, it is also 
-possible to selectively choose available GPU devices for Shasta execution by setting the environment 
-variable, <code>CUDA_VISIBLE_DEVICES</code>. The instructions to do this are provided 
+By default, when command line option 
+<code>--useGpu</code> is specified on a GPU-enabled version of Shasta,
+all available GPU devices are used. 
+However, it is also 
+possible to selectively choose a subset of available GPU devices by setting environment 
+variable <code>CUDA_VISIBLE_DEVICES</code>. 
+
+<p>
+Each of the GPUs attached to a computer is assigned an identifier consisting of a small integer.
+To use a subset of the GPUs, set <code>CUDA_VISIBLE_DEVICES</code> to a comma separated list
+of the identifiers for the GPUs you want to use. For example, assuming your
+system has GPUs 0, 1, 2, and 3, and you want to only use 2 and 3:
+<br>
+<code>
+export CUDA_VISIBLE_DEVICES=2,3
+</code>
+
+<p>
+You can use the following commands to list the available GPUs and their identifiers:
+<br>
+<code>
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
+nvidia-smi --list-gpus
+</code>
+
+<p>
+Setting environment variable <code>CUDA_DEVICE_ORDER</code> as shown
+is required to make sure that the <code>nvidia-smi</code>
+lists available GPUs with device identifiers consistent
+with those to be used when setting <code>CUDA_VISIBLE_DEVICES</code>.
+
+<p>
+For more information on the <code>CUDA_VISIBLE_DEVICES</code> environment variable see 
 <a href="https://devblogs.nvidia.com/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/">here</a>.
 
 </main>

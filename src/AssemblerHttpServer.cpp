@@ -63,6 +63,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdgesSupport);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreCompressedAssemblyGraph);
 
 }
 #undef SHASTA_ADD_TO_FUNCTION_TABLE
@@ -325,6 +326,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Local assembly graph", "exploreAssemblyGraph"},
         {"Assembly graph edges", "exploreAssemblyGraphEdge"},
         {"Assembly graph edges support", "exploreAssemblyGraphEdgesSupport"},
+        {"Compressed assembly graph", "exploreCompressedAssemblyGraph"},
         });
     writeNavigation(html, "Help", {
         {"Documentation", "docs/index.html"},
@@ -585,6 +587,7 @@ void Assembler::writeAssemblySummary(ostream& html)
 void Assembler::writeAssemblySummaryBody(ostream& html)
 {
     using std::setprecision;
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
 
     // Compute the number of run-length k-mers used as markers.
@@ -828,6 +831,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
 void Assembler::writeAssemblySummaryJson(ostream& json)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using std::setprecision;
 
 
@@ -1105,646 +1109,6 @@ void Assembler::writeAssemblyIndex(ostream& html) const
 
 
 #ifdef SHASTA_HTTP_SERVER
-
-void Assembler::exploreRead(
-    const vector<string>& request,
-    ostream& html)
-{
-    // Get the ReadId and Strand from the request.
-    ReadId readId = 0;
-    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
-    Strand strand = 0;
-    const bool strandIsPresent = getParameterValue(request, "strand", strand);
-
-    // Get the begin and end position.
-    uint32_t beginPosition = 0;
-    const bool beginPositionIsPresent = getParameterValue(request, "beginPosition", beginPosition);
-    uint32_t endPosition = 0;
-    const bool endPositionIsPresent = getParameterValue(request, "endPosition", endPosition);
-
-    // Get the set of ordinal for markers that should be highlighted.
-    vector<string> highlightedMarkerStrings;
-    getParameterValues(request, "highlightMarker", highlightedMarkerStrings);
-    std::set<uint32_t> highlightedMarkers;
-    for(const string& s: highlightedMarkerStrings) {
-        try {
-            highlightedMarkers.insert(boost::lexical_cast<uint32_t>(s));
-        } catch(std::exception&) {
-            // Ignore.
-        }
-    }
-
-    // Write the form.
-    html <<
-        "<form>"
-        "<input type=submit value='Show read'> "
-        "<input type=text name=readId required" <<
-        (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
-        " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
-        " on strand ";
-    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
-    html << "<br><input type=text name=beginPosition size=8";
-    if(beginPositionIsPresent) {
-        html << " value=" << beginPosition;
-    }
-    html <<
-        ">Begin display of raw sequence at this base position (leave blank to begin at beginning of read)."
-        "<br><input type=text name=endPosition size=8";
-    if(endPositionIsPresent) {
-        html << " value=" << endPosition;
-    }
-    html <<
-        ">End display of raw sequence at this base position (leave blank to end at end of read)."
-        "</form>";
-
-    // If the readId or strand are missing, stop here.
-    if(!readIdIsPresent || !strandIsPresent) {
-        return;
-    }
-
-    // Access the read.
-    if(readId >= reads.size()) {
-        html << "<p>Invalid read id.";
-        return;
-    }
-    if(strand!=0 && strand!=1) {
-        html << "<p>Invalid strand.";
-        return;
-    }
-    const OrientedReadId orientedReadId(readId, strand);
-    const vector<Base> rawOrientedReadSequence = getOrientedReadRawSequence(orientedReadId);
-    const auto readStoredSequence = reads[readId];
-    const auto readName = readNames[readId];
-    const auto metaData = readMetaData[readId];
-    const auto orientedReadMarkers = markers[orientedReadId.getValue()];
-    if(!beginPositionIsPresent) {
-        beginPosition = 0;
-    }
-    if(!endPositionIsPresent) {
-        endPosition = uint32_t(rawOrientedReadSequence.size());
-    }
-    if(endPosition <= beginPosition) {
-        html << "<p>Invalid choice of begin and end position.";
-        return;
-    }
-
-
-
-    // Page title.
-    html << "<h1 title='Read " << readId << " on strand " << strand;
-    if(strand == 0) {
-        html << " (input read without reverse complementing)";
-    } else {
-        html << " (reverse complement of input read)";
-    }
-    html << "'>Oriented read " << orientedReadId << "</h1>";
-
-    // Read name.
-    html << "<p>Read name: ";
-    copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
-
-    // Read meta data.
-    html << "<p>Read meta data: ";
-    copy(metaData.begin(), metaData.end(), ostream_iterator<char>(html));
-
-    // Read length.
-    html << "<p>This read is " << rawOrientedReadSequence.size() << " bases long";
-    html << " (" << readStoredSequence.baseCount << " bases in run-length representation)";
-    html << " and has " << orientedReadMarkers.size() << " markers.";
-
-    // Begin/end position (in raw sequence).
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html <<
-            " Displaying only " << endPosition-beginPosition << " bases";
-        html << " of raw read sequences";
-        html << " beginning at base position " << beginPosition <<
-            " and ending at base position " << endPosition <<
-            " .";
-        html << " For sequence in run-length representation see below.";
-    }
-
-
-
-    // Button to Blat this read or portion of a read.
-    // We cannot use a simple <a> because we need to do a POST
-    // (the GET request fails when the read is too long).
-    html <<
-        "<p><form action='https://genome.ucsc.edu/cgi-bin/hgBlat' method=post>"
-        "<input type=submit value='Blat ";
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html << "this portion of ";
-    }
-    html <<
-        "this read in the UCSC browser'>"
-        "<input type=text hidden name=type value=DNA>"
-        // Don't specify the genome.
-        // UCSC browser will Blat again last used genome (stored in cookies).
-        // "<input type=text hidden name=type value=DNA>"
-        // "<input type=text hidden name=name value=Human>"
-        // "<input type=text hidden name=db value=hg38>"
-        "<input type=text hidden name=userSeq value=";
-    copy(
-        rawOrientedReadSequence.begin() + beginPosition,
-        rawOrientedReadSequence.begin() + endPosition,
-        ostream_iterator<Base>(html));
-    html << "></form>";
-
-
-
-    // Button to Blast this read or portion of a read.
-    html <<
-        "<p><form action='blastRead'>"
-        "<input type=submit value='Blast ";
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html << "this portion of ";
-    }
-    html <<
-        "this read against " << httpServerData.referenceFastaFileName << " using Blast options: '>"
-        "<input type=text hidden name=readId value=" << readId << ">" <<
-        "<input type=text hidden name=strand value=" << strand << ">" <<
-        "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
-        "<input type=text hidden name=endPosition value=" << endPosition << ">"
-        "<input type=text size=80 name=blastOptions>"
-        "</form>";
-
-
-
-    // Button to Blast this read or portion of a read (summary output).
-    html <<
-        "<p><form action='blastRead'>"
-        "<input type=submit value='Blast ";
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html << "this portion of ";
-    }
-    html <<
-        "this read against " << httpServerData.referenceFastaFileName << " (summary output)'>"
-        "<input type=text hidden name=readId value=" << readId << ">" <<
-        "<input type=text hidden name=strand value=" << strand << ">" <<
-        "<input type=text hidden name=beginPosition value=" << beginPosition << ">" <<
-        "<input type=text hidden name=endPosition value=" << endPosition << ">"
-        "<input type=checkbox checked hidden name=summary>"
-        "</form>";
-
-
-
-    // Link to align this read against another read.
-    html <<
-        "<p><a href='exploreAlignment?readId0=" << readId << "&strand0=" << strand <<
-        "'>Compute a marker alignment of this read with another read.</a>";
-
-    // Link to show overlapping reads.
-    html <<
-        "<p><a href='exploreOverlappingReads?readId=" << readId << "&strand=" << strand <<
-        "'>Find other reads that overlap this read.</a>";
-
-
-
-    // Display the selected portion of raw sequence.
-    const bool partialSequenceRequested =  beginPositionIsPresent || endPositionIsPresent;
-    if(true) {
-        html << "<h3>";
-        if(partialSequenceRequested) {
-            html << "Selected portion of raw sequence of this oriented read";
-        } else {
-            html << "Raw sequence of this oriented read";
-        }
-        html << "</h3>";
-
-        // Here we don't have to worry about using an svg object like we do below,
-        // because we are just writing text without html, and so there will
-        // be no alignment problems.
-
-        // Labels for position scale.
-        html << "<pre style='font-family:monospace;margin:0'";
-        html << " title='Position in raw read sequence'";
-        html<< ">";
-        for(size_t position=beginPosition; position<endPosition; ) {
-            if((position%10)==0) {
-                const string label = to_string(position);
-                html << label;
-                for(size_t i=0; i<10-label.size(); i++) {
-                    html << " ";
-                }
-                position += 10;
-            } else {
-                html << " ";
-                ++position;
-            }
-        }
-        html<< "\n";
-
-        // Position scale.
-        for(size_t position=beginPosition; position!=endPosition; position++) {
-            if((position%10)==0) {
-                html << "|";
-            } else if((position%5)==0) {
-                html << "+";
-            } else {
-                html << ".";
-            }
-        }
-        html << "</pre>";
-
-
-
-        // Sequence.
-        html << "<pre style='font-family:monospace;margin:0'>";
-        for(uint32_t position=beginPosition; position!=endPosition; position++) {
-            html << rawOrientedReadSequence[position];
-        }
-        html << "</pre>";
-
-
-
-        // Also write a position scale for positions in the run-length representation.
-        if(true) {
-            html << "<pre style='font-family:monospace;margin:0'";
-            html << " title='Position in run-length read sequence'>";
-
-            const vector<uint32_t> rawPositions = getRawPositions(orientedReadId);
-
-            // Scale.
-            bool firstTime = true;
-            for(int runLengthPosition=0; runLengthPosition<int(rawPositions.size()); runLengthPosition++) {
-                const int rawPosition = rawPositions[runLengthPosition];
-                // cout << runLengthPosition << " " << rawPosition << endl;
-                if(rawPosition >= int(endPosition)) {
-                    break;
-                }
-                if(rawPosition < int(beginPosition)) {
-                    continue;
-                }
-                uint32_t skip;
-                if(firstTime) {
-                    skip = rawPosition - beginPosition;
-                } else {
-                    skip = rawPosition - rawPositions[runLengthPosition-1] - 1;
-                }
-                for(uint32_t i=0; i<skip; i++) {
-                    html << " ";
-                }
-                firstTime = false;
-                if((runLengthPosition % 10) == 0) {
-                    html << "|";
-                    //cout << "|";
-                } else if((runLengthPosition % 5) == 0) {
-                    html << "+";
-                    //cout << "+";
-                } else {
-                    html << ".";
-                    //cout << ".";
-                }
-            }
-            html << "\n";
-
-            // Labels.
-            firstTime = true;
-            for(int runLengthPosition=0; runLengthPosition<int(rawPositions.size()); runLengthPosition+=10) {
-                const int rawPosition = rawPositions[runLengthPosition];
-                if(rawPosition >= int(endPosition)) {
-                    break;
-                }
-                if(rawPosition < int(beginPosition)) {
-                    continue;
-                }
-
-                uint32_t skip;
-                if(firstTime) {
-                    skip = rawPosition - beginPosition;
-                } else {
-                    skip = rawPosition - rawPositions[runLengthPosition-10] - 10;
-                }
-                for(uint32_t i=0; i<skip; i++) {
-                    html << " ";
-                }
-                firstTime = false;
-
-                const string label = to_string(runLengthPosition);
-                html << label;
-                for(size_t i=0; i<10-label.size(); i++) {
-                    html << " ";
-                }
-
-            }
-
-
-            html << "</pre>";
-            //cout << endl;
-        }
-
-
-        // Button to download the sequence to a fasta file
-        html <<
-            "<a id=fastaDownload>Download in FASTA format</a><br>"
-            "<script>"
-            "var element = document.getElementById('fastaDownload');"
-            "element.setAttribute('href', 'data:text/plain;charset=utf-8,' +"
-            "encodeURIComponent('>" << orientedReadId <<
-            "-" << beginPosition << "-" << endPosition << " " << endPosition-beginPosition <<
-            " ";
-        copy(readName.begin(), readName.end(), ostream_iterator<char>(html));
-        html << "\\n";
-        for(uint32_t position=beginPosition; position!=endPosition; position++) {
-            html << rawOrientedReadSequence[position];
-        }
-        html << "\\n'));"
-            "element.setAttribute('download', '" << orientedReadId << "-" <<
-            beginPosition << "-" << endPosition <<
-            ".fa');"
-            "</script>";
-    }
-
-
-
-    // If there are no markers, stop here.
-    if(orientedReadMarkers.empty()) {
-        html << "<p>This read has no markers.";
-        return;
-    }
-
-
-
-    // Decide on which row each marker gets displayed
-    // (first row of markers is row 0).
-    const size_t k = assemblerInfo->k;
-    vector<int> markerRow(orientedReadMarkers.size(), -1);
-    vector<uint32_t> nextAvailableCharacterPosition(k, 0);
-    for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
-        const uint32_t position = orientedReadMarkers[ordinal].position;
-        for(int row=0; row<int(k); row++) {
-            if(position >= nextAvailableCharacterPosition[row]) {
-                markerRow[ordinal] = row;
-                // Require one character space to next marker.
-                nextAvailableCharacterPosition[row] = position + uint32_t(k) + 1;
-                // cout << "Marker " << ordinal << " at position " << position << " placed on row " << row << endl;
-                break;
-            }
-        }
-        /*
-        if(markerRow[ordinal] == -1) {
-            cout << "Marker " << ordinal << " at position " << position << " could not be placed." << endl;
-            cout << "nextAvailableCharacterPosition: ";
-            for(const auto rowNext: nextAvailableCharacterPosition) {
-                cout << " " << rowNext;
-            }
-            cout << endl;
-        }
-        */
-        SHASTA_ASSERT(markerRow[ordinal] != -1);
-    }
-    const int markerRowCount = *std::max_element(markerRow.begin(), markerRow.end());
-
-
-    // Title for the next portion of the display, which shows the markers.
-    html << "<h3>Run-length representation of oriented read sequence and its markers</h3>";
-
-
-
-    // Use an svg object to display the read sequence as stored and the markers.
-    // To ensure correct positioning and alignment, we use
-    // a textLength attribute on every <text> element.
-    // (The older code, ifdef'ed out, uses a separate <text>
-    // element for each character).
-    // Note that here we display the entire read, regardless of beginPosition and endPosition.
-    const int monospaceFontSize = 12;
-    const int horizontalSpacing = 7;
-    const int verticalSpacing = 13;
-    const int charactersPerLine = int(readStoredSequence.baseCount) + 10; // Add space for labels
-    int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
-    svgLineCount++;     // Add a line with the repeat counts.
-    const int svgWidth = horizontalSpacing * charactersPerLine;
-    const int svgHeight = verticalSpacing * svgLineCount;
-    const int highlightedMarkerVerticalOffset = 2;
-    html <<
-        "<p><svg width=" << svgWidth << " height=" << svgHeight << ">"
-        "<style>"
-        ".mono{font-family:monospace; font-size:" << monospaceFontSize << "px;}"
-        ".blueMono{font-family:monospace; font-size:" << monospaceFontSize << "px; fill:blue;}"
-        "</style>";
-
-
-
-    // Labels for position scale.
-    for(uint32_t position=0; position<readStoredSequence.baseCount; position+=10) {
-        const string label = to_string(position);
-
-        // Use a single <text> element with a textLength attribute for exact alignment.
-        html <<
-            "<text class='mono'" <<
-            " x='" << position * horizontalSpacing << "'" <<
-            " y='" << verticalSpacing << "'" <<
-            " textLength='" << label.size() * horizontalSpacing << "px'>" <<
-            label << "</text>";
-    }
-
-
-
-    // Position scale.
-    // This code uses one <text> element for every blockSize characters.
-    // This way you can select sequence text without getting a
-    // new line after each character, while still achieving good
-    // alignment.
-    const uint64_t blockSize = 100;
-    for(uint64_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
-        const uint64_t blockEnd = min(blockBegin+blockSize, uint64_t(readStoredSequence.baseCount));
-        html <<
-            "<text class='mono'" <<
-            " x='" << blockBegin*horizontalSpacing << "'" <<
-            " y='" << 2*verticalSpacing << "'"
-            " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
-        for(size_t position=blockBegin; position!=blockEnd; position++) {
-            if((position%10)==0) {
-                html << "|";
-            } else if((position%5)==0) {
-                html << "+";
-            } else {
-                html << ".";
-            }
-        }
-        html << "</text>";
-    }
-
-
-
-    // Repeat counts.
-    for(size_t position=0; position!=readStoredSequence.baseCount; position++) {
-        Base base;
-        uint8_t repeatCount;
-        tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
-        html <<
-            "<text class='mono'" <<
-            " x='" << position*horizontalSpacing << "'" <<
-            " y='" << 3*verticalSpacing << "'"
-            " textLength='" << horizontalSpacing<< "'>";
-        if(repeatCount < 10) {
-            html << int(repeatCount);
-        } else {
-            html << "*";
-        }
-        html << "<title>" << base << " at run-length position " << position <<
-            " is repeated " << int(repeatCount) << " times</title>";
-        html << "</text>";
-    }
-
-
-
-    // Raw read sequence.
-    // This code uses one <text> element for every blockSize characters.
-    // This way you can select sequence text without getting a
-    // new line after each character, while still achieving good
-    // alignment.
-    const uint32_t readSequenceLine = 4;
-    for(uint64_t blockBegin=0; blockBegin<readStoredSequence.baseCount; blockBegin+=blockSize) {
-        const uint64_t blockEnd = min(blockBegin+blockSize, uint64_t(readStoredSequence.baseCount));
-        html <<
-            "<text class='mono'" <<
-            " x='" << blockBegin*horizontalSpacing << "'" <<
-            " y='" << readSequenceLine*verticalSpacing << "'"
-            " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
-        for(size_t position=blockBegin; position!=blockEnd; position++) {
-            html << getOrientedReadBase(orientedReadId, uint32_t(position));
-        }
-        html << "</text>";
-    }
-
-
-
-    // Draw a rectangle for each highlighted marker.
-    for(const uint32_t ordinal: highlightedMarkers) {
-        const CompressedMarker& marker = orientedReadMarkers[ordinal];
-        html <<
-            "<rect" <<
-            " x='" << (marker.position-beginPosition)*horizontalSpacing << "'"
-            " y='" << (readSequenceLine + markerRow[ordinal])*verticalSpacing + highlightedMarkerVerticalOffset << "'"
-            " height='" << verticalSpacing << "'"
-            " width='" << k * horizontalSpacing << "'"
-            " style='fill:pink; stroke:none;'"
-            "/>";
-    }
-
-
-
-    // Markers.
-    if(markers.isOpen() and markerGraph.vertices.isOpen()) {
-        for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
-            const CompressedMarker& marker = orientedReadMarkers[ordinal];
-
-            // See if this marker is contained in a vertex of the marker graph.
-            const MarkerGraph::VertexId vertexId =
-                getGlobalMarkerGraphVertex(orientedReadId, ordinal);
-            const bool hasMarkerGraphVertex =
-                (vertexId != MarkerGraph::invalidCompressedVertexId);
-
-
-
-            // Write the k-mer of this marker.
-            const Kmer kmer(marker.kmerId, k);
-            html << "<a xlink:title='Marker " << ordinal <<
-                ", position " << marker.position <<
-                ", k-mer id " << marker.kmerId;
-            if(hasMarkerGraphVertex) {
-                html << ", coverage " << markerGraph.vertices.size(vertexId);
-            }
-            html << "' id='" << ordinal << "'";
-            if(hasMarkerGraphVertex) {
-                // Add a hyperlink to the marker graph vertex
-                // that contains this marker.
-                const string url = "exploreMarkerGraph?vertexId=" + to_string(vertexId) +
-                    "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=3200&timeout=30";
-                html << " xlink:href='" << url << "' style='cursor:pointer'";
-            }
-            html << ">";
-
-            // This code uses one <text> element per character.
-            for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
-                html << "<text class='";
-                if(hasMarkerGraphVertex) {
-                    html << "blueMono";
-                } else {
-                    html << "mono";
-                }
-                html << "'" <<
-                    " x='" << (marker.position+positionInMarker)*horizontalSpacing << "'" <<
-                    " y='" << (readSequenceLine+1+markerRow[ordinal])*verticalSpacing << "'>";
-                html << kmer[positionInMarker];
-                html << "</text>";
-            }
-            html << "</a>";
-
-        }
-    }
-
-
-    // Finish the svg object.
-    html << "</svg>";
-
-    // Scroll to the first highlighted marker.
-    if(!highlightedMarkers.empty()) {
-        const uint32_t ordinal = *highlightedMarkers.begin();
-        html <<
-            "<script>"
-            "var element = document.getElementById('" << ordinal << "');"
-            "var rectangle = element.getBoundingClientRect();"
-            "window.scroll(rectangle.left-100, rectangle.top-100);"
-            "</script>";
-    }
-
-
-
-
-
-
-    html <<
-        "<p>You can click on a blue marker above "
-        "to see the global marker graph around that marker. "
-        "Black markers correspond to a vertex of the marker graph "
-        "that was removed because of low coverage.";
-
-
-
-
-    // Frequency of markers on this oriented read.
-    vector<KmerId> kmers;
-    for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
-        const CompressedMarker& marker = orientedReadMarkers[ordinal];
-        kmers.push_back(marker.kmerId);
-    }
-    vector<uint32_t> kmerFrequency;
-    deduplicateAndCount(kmers, kmerFrequency);
-    vector< pair<KmerId, uint32_t> > markerFrequencyTable;
-    for(uint32_t i=0; i<kmers.size(); i++) {
-        markerFrequencyTable.push_back(make_pair(kmers[i], kmerFrequency[i]));
-    }
-    sort(markerFrequencyTable.begin(), markerFrequencyTable.end(),
-        OrderPairsBySecondOnlyGreater<KmerId, uint32_t>());
-    html << "<h2>Frequency of markers in this oriented read</h2>"
-        "<table><tr><th>KmerId<th>Marker<th>Frequency";
-    for(const auto& p: markerFrequencyTable) {
-        const KmerId kmerId = p.first;
-        const uint32_t frequency = p.second;
-        const Kmer kmer(kmerId, k);
-        html << "<tr><td>" << kmerId << "<td>";
-        kmer.write(html, k);
-        html << "<td>" << frequency;
-    }
-    html << "<table>";
-
-
-
-
-    // Phasing information.
-    if (phasingData.assemblyGraphEdges.isOpen()) {
-        const span<AssemblyGraph::EdgeId> edges =
-            phasingData.assemblyGraphEdges[orientedReadId.getValue()];
-        html << "<p>This oriented read is internal to the following "
-            "assembly graph edges:<br>";
-        for(const AssemblyGraph::EdgeId edge: edges) {
-            html << edge << " ";
-        }
-    }
-
-}
-
 
 
 void Assembler::blastRead(
@@ -2029,12 +1393,24 @@ void Assembler::exploreAlignments(
 }
 
 
+void Assembler::displayAlignment(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    const AlignmentInfo& alignment,
+    ostream& html) const
+{
+    vector< pair<OrientedReadId, AlignmentInfo> > alignments;
+    alignments.push_back(make_pair(orientedReadId1, alignment));
+    displayAlignments(orientedReadId0, alignments, html);
+}
+
+
 
 // Display alignments in an html table.
 void Assembler::displayAlignments(
     OrientedReadId orientedReadId0,
     const vector< pair<OrientedReadId, AlignmentInfo> >& alignments,
-    ostream& html)
+    ostream& html) const
 {
     const ReadId readId0 = orientedReadId0.getReadId();
     const Strand strand0 = orientedReadId0.getStrand();
@@ -2067,18 +1443,50 @@ void Assembler::displayAlignments(
     }
 
 
-    // Begin the table.
-    const int bitShift = 6; // Controls the scaling of the alignment sketch.
+
+    // Buttons to scale the alignment sketches.
     html <<
-        "<table>"
+        "<script>"
+        "function scale(factor)"
+        "{"
+        "    var elements = document.getElementsByClassName('sketch');"
+        "    for (i=0; i<elements.length; i++) {"
+        "        elements[i].style.width = factor * parseFloat(elements[i].style.width) + 'px'"
+        "    }"
+        "}"
+        "function larger() {scale(1.5);}"
+        "function smaller() {scale(1./1.5);}"
+        "</script>";
+    if(alignments.size() > 1) {
+        html <<
+        "&nbsp;<button onclick='larger()'>Make alignment sketches larger</button>"
+        "&nbsp;<button onclick='smaller()'>Make alignment sketches smaller</button>"
+        ;
+    } else {
+        html <<
+        "&nbsp;<button onclick='larger()'>Make alignment sketch larger</button>"
+        "&nbsp;<button onclick='smaller()'>Make alignment sketch smaller</button>"
+        ;
+    }
+
+    // Begin the table.
+    const double markersPerPixel = 50.; // Controls the scaling of the alignment sketch.
+    html <<
+        "<p><table>"
         "<tr>"
         "<th rowspan=2>Index"
         "<th rowspan=2>Other<br>oriented<br>read"
         "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
         "<th colspan=3>Ordinal offset"
         "<th rowspan=2 title='The marker offset of the centers of the two oriented reads.'>Center<br>offset"
-        "<th colspan=5>Markers on oriented read " << orientedReadId0 <<
-        "<th colspan=5>Markers on other oriented read"
+        "<th colspan=5>Markers on oriented read " << orientedReadId0;
+    if(alignments.size() > 1) {
+        html << "<th colspan=5>Markers on other oriented read";
+    } else {
+        html << "<th colspan=5>Markers on oriented read " <<
+            alignments.front().first;
+    }
+    html <<
         "<th rowspan=2>Alignment sketch"
         "<tr>"
         "<th>Min"
@@ -2146,41 +1554,41 @@ void Assembler::displayAlignments(
             "<td class=centered style='line-height:8px;white-space:nowrap'>"
 
             // Oriented read 0.
-            "<div style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << (maxLeftHang>>bitShift) <<
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << double(maxLeftHang)/markersPerPixel <<
             "px;'></div>"
-            "<div title='Oriented read " << orientedReadId0 <<
+            "<div class=sketch title='Oriented read " << orientedReadId0 <<
             "' style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:blue;height:6px;width:" << (markerCount0>>bitShift) <<
+            "background-color:blue;height:6px;width:" << double(markerCount0)/markersPerPixel <<
             "px;'></div>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << (maxRightHang>>bitShift) <<
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << double(maxRightHang)/markersPerPixel <<
             "px;'></div>"
 
             // Aligned portion.
             "<br>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0)>>bitShift) <<
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << double(maxLeftHang+leftTrim0)/markersPerPixel <<
             "px;'></div>"
-            "<div title='Aligned portion'"
+            "<div class=sketch title='Aligned portion'"
             " style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:red;height:6px;width:" << ((markerCount0-leftTrim0-rightTrim0)>>bitShift) <<
+            "background-color:red;height:6px;width:" << double(markerCount0-leftTrim0-rightTrim0)/markersPerPixel <<
             "px;'></div>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0)>>bitShift) <<
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << double(maxRightHang+rightTrim0)/markersPerPixel <<
             "px;'></div>"
 
             // Oriented read 1.
             "<br>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxLeftHang+leftTrim0-leftTrim1)>>bitShift) <<
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << double(maxLeftHang+leftTrim0-leftTrim1)/markersPerPixel <<
             "px;'></div>"
-            "<div title='Oriented read " << orientedReadId1 <<
+            "<div class=sketch title='Oriented read " << orientedReadId1 <<
             "' style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:green;height:6px;width:" << (markerCount1>>bitShift) <<
+            "background-color:green;height:6px;width:" << double(markerCount1)/markersPerPixel <<
             "px;'></div>"
-            "<div style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:white;height:6px;width:" << ((maxRightHang+rightTrim0-rightTrim1)>>bitShift) <<
+            "<div class=sketch style='display:inline-block;margin:0px;padding:0px;"
+            "background-color:white;height:6px;width:" << double(maxRightHang+rightTrim0-rightTrim1)/markersPerPixel <<
             "px;'></div>"
              ;
     }
@@ -2205,7 +1613,7 @@ void Assembler::exploreAlignment(
     const bool strand1IsPresent = getParameterValue(request, "strand1", strand1);
 
     // Get alignment parameters.
-    int method = 0;
+    int method = httpServerData.assemblerOptions->alignOptions.alignMethod;
     getParameterValue(request, "method", method);
     size_t maxSkip = httpServerData.assemblerOptions->alignOptions.maxSkip;
     getParameterValue(request, "maxSkip", maxSkip);
@@ -2213,12 +1621,16 @@ void Assembler::exploreAlignment(
     getParameterValue(request, "maxDrift", maxDrift);
     uint32_t maxMarkerFrequency = httpServerData.assemblerOptions->alignOptions.maxMarkerFrequency;
     getParameterValue(request, "maxMarkerFrequency", maxMarkerFrequency);
-    int matchScore = 3;
+    int matchScore = httpServerData.assemblerOptions->alignOptions.matchScore;
     getParameterValue(request, "matchScore", matchScore);
-    int mismatchScore = -1;
+    int mismatchScore = httpServerData.assemblerOptions->alignOptions.mismatchScore;
     getParameterValue(request, "mismatchScore", mismatchScore);
-    int gapScore = -1;
+    int gapScore = httpServerData.assemblerOptions->alignOptions.gapScore;
     getParameterValue(request, "gapScore", gapScore);
+    double downsamplingFactor = httpServerData.assemblerOptions->alignOptions.downsamplingFactor;
+    getParameterValue(request, "downsamplingFactor", downsamplingFactor);
+    int bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
+    getParameterValue(request, "bandExtend", bandExtend);
 
 
 
@@ -2238,30 +1650,70 @@ void Assembler::exploreAlignment(
         " on strand ";
     writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
 
+
+    // Write a table with the rest of the form.
     html <<
+        "<p><table>"
 
-        // Method 0
-        "<br><br><input type=radio name=method value=0" <<
-        (method==0 ? " checked=checked" : "") << "> Use method 0"
-        "<br><table><tr><th class=left>Maximum ordinal skip<td>" <<
-        "<input type=text name=maxSkip size=8 value=" << maxSkip << ">"
-        "<tr><th class=left>Maximum ordinal drift" <<
-        "<td><input type=text name=maxDrift size=8 value=" << maxDrift << ">"
-        "<tr><th class=left>Maximum k-mer frequency " <<
-        "<td><input type=text name=maxMarkerFrequency size=8 value=" << maxMarkerFrequency << ">"
-        "</table>"
+        "<tr><th class=left>Alignment method<td>"
+        "<input type=radio name=method value=0" <<
+        (method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
+        "<input type=radio name=method value=1" <<
+        (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
+        "<input type=radio name=method value=2" <<
+        (method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
+        "<input type=radio name=method value=3" <<
+        (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
 
-        // Method 1
-        "<br><input type=radio name=method value=1" <<
-        (method==1 ? " checked=checked" : "") << "> Use method 1"
-        "<br><table><tr><th class=left>Match score" <<
-        "<td><input type=text name=matchScore size=8 value=" << matchScore << ">"
-        "<tr><th class=left>Mismatch score " <<
-        "<td><input type=text name=mismatchScore size=8 value=" << mismatchScore << ">"
-        "<tr><th class=left>Gap score" <<
-        "<td><input type=text name=gapScore size=8 value=" << gapScore << ">"
-        "</table><br><input type=submit value='Compute marker alignment'>"
+        "<tr title='Used by alignment method 0'><th class=left>"
+        "Maximum ordinal skip<td class=centered>" <<
+        "<input type=text style='text-align:center' "
+        "name=maxSkip size=16 value=" <<
+        maxSkip << ">"
+
+        "<tr title='Used by alignment method 0'>"
+        "<th class=left>Maximum ordinal drift" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxDrift size=16 value=" <<
+        maxDrift << ">"
+
+        "<tr title='Used by alignment method 0'>"
+        "<th class=left>"
+        "Maximum k-mer frequency " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxMarkerFrequency size=16 value=" <<
+        maxMarkerFrequency << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Match score" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=matchScore size=16 value=" <<
+        matchScore << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Mismatch score " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=mismatchScore size=16 value=" <<
+        mismatchScore << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Gap score" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=gapScore size=16 value=" <<
+        gapScore << ">"
+
+        "<tr title='Used by alignment method 3'><th class=left>Downsampling ratio" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=downsamplingFactor size=16 value=" <<
+        downsamplingFactor << ">"
+
+        "<tr title='Used by alignment method 3'><th class=left>Band extend" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=bandExtend size=16 value=" <<
+        bandExtend << ">"
+
+        "</table><p><input type=submit value='Compute marker alignment'>"
         "</form>";
+
+
+
 
     // If the readId's or strand's are missing, stop here.
     if(!readId0IsPresent || !strand0IsPresent || !readId1IsPresent || !strand1IsPresent) {
@@ -2304,6 +1756,27 @@ void Assembler::exploreAlignment(
         alignOrientedReads1(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+#else
+        html << "<p>Alignment method 1 is not available on macOS.";
+        return;
+#endif
+    } else if(method == 2) {
+        alignOrientedReads2(
+            orientedReadId0, orientedReadId1,
+            alignment, alignmentInfo);
+    } else if(method == 3) {
+        alignOrientedReads3(
+            orientedReadId0, orientedReadId1,
+            matchScore, mismatchScore, gapScore,
+            downsamplingFactor, bandExtend,
+            alignment, alignmentInfo);
+    } else {
+        SHASTA_ASSERT(0);
+    }
+
+
+    // Make sure we have Alignment.png to display.
+    if(method != 0) {
         vector<MarkerWithOrdinal> sortedMarkers0;
         vector<MarkerWithOrdinal> sortedMarkers1;
         getMarkersSortedByKmerId(orientedReadId0, sortedMarkers0);
@@ -2313,15 +1786,7 @@ void Assembler::exploreAlignment(
             sortedMarkers1,
             alignment,
             "Alignment.png");
-#else
-        html << "<p>Alignment method 1 is not available on macOS.";
-        return;
-#endif
-
-    } else {
-        SHASTA_ASSERT(0);
     }
-
 
 
     if(alignment.ordinals.empty()) {
@@ -2331,98 +1796,14 @@ void Assembler::exploreAlignment(
 
 
 
-    // Write out a table with some information on the alignment.
-    const auto markers0 = markers[orientedReadId0.getValue()];
-    const auto markers1 = markers[orientedReadId1.getValue()];
-    const auto markerCount0 = markers0.size();
-    const auto markerCount1 = markers1.size();
-    const auto baseCount0 = reads[orientedReadId0.getReadId()].baseCount;
-    const auto baseCount1 = reads[orientedReadId1.getReadId()].baseCount;
-    const auto firstOrdinal0 = alignment.ordinals.front()[0];
-    const auto firstOrdinal1 = alignment.ordinals.front()[1];
-    const auto lastOrdinal0 = alignment.ordinals.back()[0];
-    const auto lastOrdinal1 = alignment.ordinals.back()[1];
-    const auto& firstMarker0 = markers0[firstOrdinal0];
-    const auto& firstMarker1 = markers1[firstOrdinal1];
-    const auto& lastMarker0 = markers0[lastOrdinal0];
-    const auto& lastMarker1 = markers1[lastOrdinal1];
-    html <<
-        "<h3>Alignment summary</h3>"
-        "<table>"
-        "<tr>"
-        "<th rowspan=2>"
-        "<th colspan=2>Markers"
-        "<th colspan=2>Bases"
-
-        "<tr>"
-        "<th>" << orientedReadId0 <<
-        "<th>" << orientedReadId1 <<
-        "<th>" << orientedReadId0 <<
-        "<th>" << orientedReadId1 <<
-
-        "<tr>"
-        "<td title='Total number of markers or bases in this read'>Total"
-        "<td class=centered>" << markerCount0 <<
-        "<td class=centered>" << markerCount1 <<
-        "<td class=centered>" << baseCount0 <<
-        "<td class=centered>" << baseCount1 <<
-
-        "<tr>"
-        "<td title='Number of unaligned markers or bases to the left of the aligned portion'>Unaligned on left"
-        "<td class=centered>" << firstOrdinal0 <<
-        "<td class=centered>" << firstOrdinal1 <<
-        "<td class=centered>" << firstMarker0.position <<
-        "<td class=centered>" << firstMarker1.position <<
-
-        "<tr>"
-        "<td title='Number of unaligned markers or bases to the right of the aligned portion'>Unaligned on right"
-        "<td class=centered>" << markerCount0 - 1 - lastOrdinal0 <<
-        "<td class=centered>" << markerCount1 - 1 - lastOrdinal1 <<
-        "<td class=centered>" << baseCount0 - 1 - lastMarker0.position <<
-        "<td class=centered>" << baseCount1 - 1 - lastMarker1.position <<
-
-        "<tr>"
-        "<td title='Number of aligned markers or bases in the aligned portion'>Aligned range"
-        "<td class=centered>" << lastOrdinal0 + 1 - firstOrdinal0 <<
-        "<td class=centered>" << lastOrdinal1 + 1 - firstOrdinal1 <<
-        "<td class=centered>" << lastMarker0.position + 1 - firstMarker0.position <<
-        "<td class=centered>" << lastMarker1.position + 1 - firstMarker1.position <<
-
-        "<tr>"
-        "<td title='Number of aligned markers'>Aligned"
-        "<td class=centered>" << alignment.ordinals.size() <<
-        "<td class=centered>" << alignment.ordinals.size() <<
-        "<td>"
-        "<td>"
-
-        "<tr>"
-        "<td title='Fraction of aligned markers in the aligned portion'>Aligned fraction"
-        "<td class=centered>" << std::setprecision(2) << double(alignment.ordinals.size()) / double(lastOrdinal0 + 1 - firstOrdinal0) <<
-        "<td class=centered>" << std::setprecision(2) << double(alignment.ordinals.size()) / double(lastOrdinal1 + 1 - firstOrdinal1) <<
-        "<td>"
-        "<td>"
-
-        "<tr>"
-        "<td>Minimum ordinal offset<td><td class=centered>" << alignmentInfo.minOrdinalOffset <<
-        "<td><td>"
-
-        "<tr>"
-        "<td>Average ordinal offset<td><td class=centered>" << alignmentInfo.averageOrdinalOffset <<
-        "<td><td>"
-
-        "<tr>"
-        "<td>Maximum ordinal offset<td><td class=centered>" << alignmentInfo.maxOrdinalOffset <<
-        "<td><td>"
-
-        "<tr>"
-        "<td title='Marker offset between the center of " << orientedReadId0 <<
-        " and the center of " << orientedReadId1 <<
-        "'>Marker offset at center<td><td>" << std::setprecision(6) << alignmentInfo.offsetAtCenter() <<
-        "<td><td>"
-
-        "</table>"
-        "<p>See bottom of this page for alignment details.";
-
+    // Write summary information for this alignment.
+    html << "<h3>Alignment summary</h3>";
+    displayAlignment(
+        orientedReadId0,
+        orientedReadId1,
+        alignmentInfo,
+        html);
+    html << "<br>See below for alignment details.";
 
 
     // Create a base64 version of the png file.
@@ -2466,7 +1847,7 @@ void Assembler::exploreAlignment(
         "<tr>"
         "<th rowspan=2>K-mer"
         "<th colspan=3>Ordinals"
-        "<th colspan=2>Positions"
+        "<th colspan=2>Positions<br>(RLE)"
 
         "<tr>"
         "<th>" << orientedReadId0 <<
@@ -2475,6 +1856,8 @@ void Assembler::exploreAlignment(
         "<th>" << orientedReadId0 <<
         "<th>" << orientedReadId1;
 
+    const auto markers0 = markers[orientedReadId0.getValue()];
+    const auto markers1 = markers[orientedReadId1.getValue()];
     for(const auto& ordinals: alignment.ordinals) {
         const auto ordinal0 = ordinals[0];
         const auto ordinal1 = ordinals[1];

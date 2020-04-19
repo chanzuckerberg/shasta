@@ -20,6 +20,11 @@ namespace shasta {
             const AssemblerOptions&,
             vector<string> inputNames);
 
+        void createMarkerGraphVertices(
+            Assembler&,
+            const AssemblerOptions&,
+            uint32_t threadCount);
+
         void setupRunDirectory(
             const string& memoryMode,
             const string& memoryBacking,
@@ -164,26 +169,11 @@ void shasta::main::assemble(
 
     // Various checks for option validity.
 
-    // Check that a valid assembly strategy was specified.
-    switch(assemblerOptions.assemblyOptions.strategy) {
-    case 0:
-    case 1:
-        break;
-    default:
-        throw runtime_error("Invalid Assembly.strategy " +
-            to_string(assemblerOptions.assemblyOptions.strategy));
-    }
-
     // Check that we have at least one input file.
     if(assemblerOptions.commandLineOnlyOptions.inputFileNames.empty()) {
         cout << startupMessage << assemblerOptions.allOptionsDescription << endl;
         throw runtime_error("Specify at least one input file "
             "using command line option \"--input\".");
-    }
-
-    // Assembly.useMarginPhase is not supported.
-    if(assemblerOptions.assemblyOptions.useMarginPhase) {
-        throw runtime_error("Assembly.useMarginPhase is not supported.");
     }
 
     // If the build does not support GPU acceleration, reject the --useGpu option.
@@ -212,8 +202,7 @@ void shasta::main::assemble(
 
     // MacOS does not support alignment method 1.
 #ifndef __linux__
-    if( (assemblerOptions.alignOptions.alignMethodForReadGraph == 1) or
-        (assemblerOptions.alignOptions.alignMethodForMarkerGraph == 1)) {
+    if(assemblerOptions.alignOptions.alignMethod == 1) {
         throw runtime_error("Align method 1 is not supported on macOS.");
     }
 
@@ -480,6 +469,7 @@ void shasta::main::assemble(
         assembler.addReads(
             inputFileName,
             assemblerOptions.readsOptions.minReadLength,
+            assemblerOptions.readsOptions.noCache,
             threadCount);
     }
     if(assembler.readCount() == 0) {
@@ -500,7 +490,52 @@ void shasta::main::assemble(
 
 
     // Select the k-mers that will be used as markers.
-    if(not assemblerOptions.kmersOptions.file.empty()) {
+    switch(assemblerOptions.kmersOptions.generationMethod) {
+    case 0:
+        assembler.randomlySelectKmers(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231);
+        break;
+
+    case 1:
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that are globally overenriched in the input reads,
+        // as measured by total frequency in all reads.
+        assembler.selectKmersBasedOnFrequency(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231,
+            assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
+        break;
+
+    case 2:
+        // Randomly select the k-mers to be used as markers, but
+        // excluding those that are overenriched even in a single oriented read.
+        assembler.selectKmers2(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.probability, 231,
+            assemblerOptions.kmersOptions.enrichmentThreshold, threadCount);
+        break;
+
+    case 3:
+        // Read the k-mers to be used as markers from a file.
+        if(assemblerOptions.kmersOptions.file.empty() or
+            assemblerOptions.kmersOptions.file[0] != '/') {
+            throw runtime_error("Option --Kmers.file must specify an absolute path. "
+                "A relative path is not accepted.");
+        }
+        assembler.readKmersFromFile(
+            assemblerOptions.kmersOptions.k,
+            assemblerOptions.kmersOptions.file);
+        break;
+
+    default:
+        throw runtime_error("Invalid --Kmers generationMethod. "
+            "Specify a value between 0 and 3, inclusive.");
+    }
+
+#if 0
+    if(not assemblerOptions.kmersOptions.file.empty() or
+        assemblerOptions.kmersOptions.file[0] != '/') {
 
         // A file name was specified. Read the k-mers to be used as markers from there.
 
@@ -531,7 +566,7 @@ void shasta::main::assemble(
             assemblerOptions.kmersOptions.k,
             assemblerOptions.kmersOptions.probability, 231);
     }
-
+#endif
 
 
     // Find the markers in the reads.
@@ -593,6 +628,10 @@ void shasta::main::assemble(
 #ifdef SHASTA_BUILD_FOR_GPU
         cout << "Using GPU acceleration for alignment computation." << endl;
         cout << "This is under development and is not ready to be used." << endl;
+        if(assemblerOptions.alignOptions.suppressContainments) {
+            throw runtime_error("Suppressing containment alignments is not supported by "
+                "the GPU code.");
+        }
         assembler.computeAlignmentsGpu(
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
@@ -605,7 +644,7 @@ void shasta::main::assemble(
 #endif
     } else {
         assembler.computeAlignments(
-            assemblerOptions.alignOptions.alignMethodForReadGraph,
+            assemblerOptions.alignOptions.alignMethod,
             assemblerOptions.alignOptions.maxMarkerFrequency,
             assemblerOptions.alignOptions.maxSkip,
             assemblerOptions.alignOptions.maxDrift,
@@ -615,6 +654,10 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.matchScore,
             assemblerOptions.alignOptions.mismatchScore,
             assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.alignOptions.downsamplingFactor,
+            assemblerOptions.alignOptions.bandExtend,
+            assemblerOptions.alignOptions.suppressContainments,
+            true, // Store good alignments in a compressed format.
             threadCount);
     }
 
@@ -645,47 +688,44 @@ void shasta::main::assemble(
 
 
 
-    // Create marker graph vertices.
-    // This uses a disjoint sets data structure to merge markers
-    // that are aligned based on an alignment present in the read graph.
-    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+    // Optional removal of conflicts from the read graph (experimental).
+    if(assemblerOptions.readGraphOptions.removeConflicts) {
 
-#ifdef SHASTA_BUILD_FOR_GPU
+        // This only works when using the directed read graph.
+        SHASTA_ASSERT(assembler.directedReadGraph.isOpen());
 
-        // Create marker graph vertices: do it on the GPU.
-        cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
-        cout << "This is under development and is not ready to be used." << endl;
-        assembler.createMarkerGraphVerticesGpu(
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.markerGraphOptions.minCoverage,
-            assemblerOptions.markerGraphOptions.maxCoverage,
-            threadCount);
-#else
+        // Preliminary creation of marker graph vertices,
+        // necessary to be able to create the conflict read graph.
+        AssemblerOptions tmpOptions = assemblerOptions;
+        tmpOptions.markerGraphOptions.minCoverage = 3;  //  ************ EXPOSE WHEN CODE STABILIZES
+        createMarkerGraphVertices(assembler, tmpOptions, threadCount);
 
-        // The build does not have GPU support.
-        throw runtime_error("This Shasta build does not provide GPU acceleration.");
+        // Create the conflict read graph.
+        // TURN THESE PARAMETERS INTO COMMAND LINE OPTIONS WHEN CODE STABILIZES. ****************
+        const uint32_t maxOffsetSigma = 100;
+        const uint32_t maxTrim = 100;
+        const uint32_t maxSkip = 100;
+        const uint32_t minAlignedMarkerCount = 100;
+        assembler.createConflictReadGraph(
+            threadCount, maxOffsetSigma, maxTrim, maxSkip,minAlignedMarkerCount);
+        assembler.cleanupConflictReadGraph();
 
-#endif
-    } else {
+        // Mark conflict edges in the read graph.
+        // TURN THIS PARAMETER INTO A COMMAND LINE OPTION WHEN CODE STABILIZES. ****************
+        const uint32_t radius = 12;
+        assembler.markDirectedReadGraphConflictEdges3(radius);
 
-        // Create marker graph vertices: mainstream code.
-        assembler.createMarkerGraphVertices(
-            assemblerOptions.alignOptions.alignMethodForMarkerGraph,
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.alignOptions.matchScore,
-            assemblerOptions.alignOptions.mismatchScore,
-            assemblerOptions.alignOptions.gapScore,
-            assemblerOptions.readGraphOptions.creationMethod,
-            assemblerOptions.markerGraphOptions.minCoverage,
-            assemblerOptions.markerGraphOptions.maxCoverage,
-            threadCount);
+        // Remove the preliminary marker graph vertices we created.
+        assembler.removeMarkerGraphVertices();
+
     }
 
 
+
+    // Create marker graph vertices.
+    // This uses a disjoint sets data structure to merge markers
+    // that are aligned based on an alignment present in the read graph.
+    createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
 
     // Find the reverse complement of each marker graph vertex.
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
@@ -707,56 +747,26 @@ void shasta::main::assemble(
             assemblerOptions.markerGraphOptions.maxDistance);
     }
 
+    // Prune the marker graph.
+    assembler.pruneMarkerGraphStrongSubgraph(
+        assemblerOptions.markerGraphOptions.pruneIterationCount);
 
+    // Compute marker graph coverage histogram.
+    assembler.computeMarkerGraphCoverageHistogram();
 
-    // Marker graph processing that varies according to
-    // --Assembly.strategy.
-    if(assemblerOptions.assemblyOptions.strategy == 1) {
+    // Simplify the marker graph to remove bubbles and superbubbles.
+    // The maxLength parameter controls the maximum number of markers
+    // for a branch to be collapsed during each iteration.
+    assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
 
-        // Prune the marker graph.
-        assembler.pruneMarkerGraphStrongSubgraph(
-            assemblerOptions.markerGraphOptions.pruneIterationCount);
+    // Create the assembly graph.
+    assembler.createAssemblyGraphEdges();
+    assembler.createAssemblyGraphVertices();
 
-        // Create the assembly graph.
-        assembler.createAssemblyGraphEdges();
-        assembler.createAssemblyGraphVertices();
-
-        // Remove low coverage cross edges of the assembly graph
-        // and the corresponding marker graph edges.
-        assembler.removeLowCoverageCrossEdges(
-            assemblerOptions.assemblyOptions.crossEdgeCoverageThreshold);
-
-        // Compute marker graph coverage histogram.
-        assembler.computeMarkerGraphCoverageHistogram();
-
-        // Recreate the assembly graph, to
-        // allow edges to be combined after cross edge removal.
-        assembler.assemblyGraph.remove();
-        assembler.createAssemblyGraphEdges();
-        assembler.createAssemblyGraphVertices();
-
-    } else {
-        SHASTA_ASSERT(assemblerOptions.assemblyOptions.strategy == 0);
-
-        // Prune the marker graph.
-        assembler.pruneMarkerGraphStrongSubgraph(
-            assemblerOptions.markerGraphOptions.pruneIterationCount);
-
-        // Compute marker graph coverage histogram.
-        assembler.computeMarkerGraphCoverageHistogram();
-
-        // Simplify the marker graph to remove bubbles and superbubbles.
-        // The maxLength parameter controls the maximum number of markers
-        // for a branch to be collapsed during each iteration.
-        assembler.simplifyMarkerGraph(assemblerOptions.markerGraphOptions.simplifyMaxLengthVector, false);
-
-        // Create the assembly graph.
-        assembler.createAssemblyGraphEdges();
-        assembler.createAssemblyGraphVertices();
+    // Detangle, if requested.
+    if(assemblerOptions.assemblyOptions.detangle) {
+        assembler.detangle();
     }
-
-
-
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 
     // Compute optimal repeat counts for each vertex of the marker graph.
@@ -772,7 +782,6 @@ void shasta::main::assemble(
     assembler.assembleMarkerGraphEdges(
         threadCount,
         assemblerOptions.assemblyOptions.markerGraphEdgeLengthThresholdForConsensus,
-        false,
         assemblerOptions.assemblyOptions.storeCoverageData or
         assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold>0
         );
@@ -781,6 +790,7 @@ void shasta::main::assemble(
     assembler.assemble(
         threadCount,
         assemblerOptions.assemblyOptions.storeCoverageDataCsvLengthThreshold);
+    // assembler.findAssemblyGraphBubbles();
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
@@ -800,11 +810,13 @@ void shasta::main::assemble(
         (userTime + systemTime) / (double(std::thread::hardware_concurrency()) * elapsedTime);
     assembler.storeAssemblyTime(elapsedTime, averageCpuUtilization);
 
-    cout << "Assembly time statistics:\n"
-        "    Elapsed seconds: " << elapsedTime << "\n"
-        "    Elapsed minutes: " << elapsedTime/60. << "\n"
-        "    Elapsed hours:   " << elapsedTime/3600. << "\n";
-    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
+    // If requested, write out the oriented reads that were used to assemble
+    // each assembled segment.
+    if(assemblerOptions.assemblyOptions.writeReadsByAssembledSegment) {
+        cout << timestamp << " Writing the oriented reads that were used to assemble each segment." << endl;
+        assembler.gatherOrientedReadsByAssemblyGraphEdge(threadCount);
+        assembler.writeOrientedReadsByAssemblyGraphEdge();
+    }
 
     // Write the assembly summary.
     ofstream html("AssemblySummary.html");
@@ -817,14 +829,68 @@ void shasta::main::assemble(
     // Also write a summary of read information.
     assembler.writeReadsSummary();
 
-    // For Assembly strategy 1,write a warning message
-    if(assemblerOptions.assemblyOptions.strategy == 1) {
-        cout << "This assembly was created using --Assembly.strategy 1. "
-            "This option is under development and "
-            " does not produce usable assembly results." << endl;
-        return;
+    cout << timestamp << endl;
+    cout << "Assembly time statistics:\n"
+        "    Elapsed seconds: " << elapsedTime << "\n"
+        "    Elapsed minutes: " << elapsedTime/60. << "\n"
+        "    Elapsed hours:   " << elapsedTime/3600. << "\n";
+    cout << "Average CPU utilization: " << averageCpuUtilization << endl;
+}
+
+
+
+// Create marker graph vertices.
+// This uses a disjoint sets data structure to merge markers
+// that are aligned based on an alignment present in the read graph.
+void shasta::main::createMarkerGraphVertices(
+    Assembler& assembler,
+    const AssemblerOptions& assemblerOptions,
+    uint32_t threadCount
+    )
+{
+    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
+
+    #ifdef SHASTA_BUILD_FOR_GPU
+
+        // This only supports --ReadGraph.creationMethod 0.
+        SHASTA_ASSERT(assemblerOptions.readGraphOptions.creationMethod == 0);
+
+        // Create marker graph vertices: do it on the GPU.
+        cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
+        cout << "This is under development and is not ready to be used." << endl;
+        assembler.createMarkerGraphVerticesGpu(
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
+    #else
+
+        // The build does not have GPU support.
+        throw runtime_error("This Shasta build does not provide GPU acceleration.");
+
+    #endif
+    } else {
+
+        // Create marker graph vertices: mainstream code.
+        assembler.createMarkerGraphVertices(
+            assemblerOptions.alignOptions.alignMethod,
+            assemblerOptions.alignOptions.maxMarkerFrequency,
+            assemblerOptions.alignOptions.maxSkip,
+            assemblerOptions.alignOptions.maxDrift,
+            assemblerOptions.alignOptions.matchScore,
+            assemblerOptions.alignOptions.mismatchScore,
+            assemblerOptions.alignOptions.gapScore,
+            assemblerOptions.alignOptions.downsamplingFactor,
+            assemblerOptions.alignOptions.bandExtend,
+            assemblerOptions.readGraphOptions.creationMethod,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.maxCoverage,
+            threadCount);
     }
 }
+
 
 
 // This function sets nr_overcommit_hugepages for 2MB pages
@@ -906,6 +972,12 @@ void shasta::main::saveBinaryData(
             " running command:\n" + command);
     }
     cout << "Binary data successfully saved." << endl;
+
+    cout << "Data are not guaranteed to be physically on disk until a sync command completes. "
+        "To guarantee that all data are physically on disk, use a sync command "
+        "and wait for it to complete, "
+        "or stop the system using a clean shutdown procedure (shutdown command), "
+        "which includes a sync." << endl;
 }
 
 

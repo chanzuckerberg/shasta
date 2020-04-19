@@ -1,9 +1,17 @@
 #include "Assembler.hpp"
+#include "approximateColoring.hpp"
+#include "DynamicConflictReadGraph.hpp"
+#include "makeBiconnected.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
+
+// Standard library.
+#include <map>
+#include <set>
+#include "tuple.hpp"
 
 
 
@@ -11,7 +19,8 @@ void Assembler::createConflictReadGraph(
     uint64_t threadCount,
     uint32_t maxOffsetSigma,
     uint32_t maxTrim,
-    uint32_t maxSkip)
+    uint32_t maxSkip,
+    uint32_t minAlignedMarkerCount)
 {
     cout << timestamp << "createConflictReadGraph begins." << endl;
 
@@ -32,28 +41,28 @@ void Assembler::createConflictReadGraph(
     createConflictReadGraphData.inducedAlignmentCriteria.maxOffsetSigma = maxOffsetSigma;
     createConflictReadGraphData.inducedAlignmentCriteria.maxTrim = maxTrim;
     createConflictReadGraphData.inducedAlignmentCriteria.maxSkip = maxSkip;
+    createConflictReadGraphData.inducedAlignmentCriteria.minAlignedMarkerCount =
+        minAlignedMarkerCount;
 
     // Initialize the conflict read graph.
     conflictReadGraph.createNew(largeDataName("ConflictReadGraph"), largeDataPageSize);
     conflictReadGraph.createVertices(readCount());
 
+#if 0
     // Compute leftTrim, rightTrim, longestGap for each vertex.
     setupLoadBalancing(conflictReadGraph.vertices.size(), 10);
     runThreads(&Assembler::createConflictReadGraphThreadFunction1, threadCount);
+#endif
 
     // Write a csv file summarizing vertices of the conflict read graph.
     {
         ofstream csv("ConflictReadGraphVertices.csv");
-        csv << "VertexId,OrientedReadId,MarkerCount,LeftTrim,RightTrim,LongestGap\n";
+        csv << "VertexId,OrientedReadId\n";
         for(ConflictReadGraph::VertexId v=0; v<conflictReadGraph.vertices.size(); v++) {
-            const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
+            // const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(v);
             csv <<
                 v << "," <<
-                ConflictReadGraph::getOrientedReadId(v) << "," <<
-                markers.size(v) << "," <<
-                vertex.leftTrim << "," <<
-                vertex.rightTrim << "," <<
-                vertex.longestGap << "\n";
+                ConflictReadGraph::getOrientedReadId(v) <<  "\n";
         }
     }
 
@@ -64,6 +73,23 @@ void Assembler::createConflictReadGraph(
     conflictReadGraph.edges.unreserve();
     conflictReadGraph.computeConnectivity();
     conflictReadGraph.writeGraphviz("ConflictReadGraph.dot");
+
+
+    // Write a csv file summarizing edges of the conflict read graph.
+    {
+        ofstream csv("ConflictReadGraphEdges.csv");
+        csv << "VertexId0,VertexId1,OrientedReadId0,OrientedReadId1,\n";
+        for(ConflictReadGraph::EdgeId e=0; e<conflictReadGraph.edges.size(); e++) {
+            const ConflictReadGraph::VertexId v0 = conflictReadGraph.v0(e);
+            const ConflictReadGraph::VertexId v1 = conflictReadGraph.v1(e);
+            csv <<
+                v0 << "," <<
+                v1 << "," <<
+                ConflictReadGraph::getOrientedReadId(v0) << "," <<
+                ConflictReadGraph::getOrientedReadId(v1) << "\n";
+        }
+    }
+
 
 
     cout << "The conflict read graph has " <<
@@ -81,7 +107,7 @@ void Assembler::accessConflictReadGraph()
 }
 
 
-
+#if 0
 void Assembler::createConflictReadGraphThreadFunction1(size_t threadId)
 {
 
@@ -171,7 +197,7 @@ void Assembler::createConflictReadGraphThreadFunction1(size_t threadId)
         }
     }
 }
-
+#endif
 
 
 void Assembler::createConflictReadGraphThreadFunction2(size_t threadId)
@@ -226,14 +252,15 @@ void Assembler::addConflictGraphEdges(
     // When adding edges to the conflict read graph, we will make sure
     // to also add the reverse complemented edge.
     const OrientedReadId orientedReadId0(readId0, 0);
-    const ConflictReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
-    const ConflictReadGraphVertex& vertex0 = conflictReadGraph.getVertex(v0);
+    // const ConflictReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
+    // const ConflictReadGraphVertex& vertex0 = conflictReadGraph.getVertex(v0);
 
+#if 0
     // If the vertex corresponding to this read has a long gap don't add any edges.
     if(vertex0.hasLongGap) {
         return;
     }
-
+#endif
 
 
     // Find conflict candidates for orientedReadId0.
@@ -297,10 +324,12 @@ void Assembler::addConflictGraphEdges(
             != DirectedReadGraph::invalidEdgeId;
         const bool backwardExists = directedReadGraph.findEdge(v1, v0)
             != DirectedReadGraph::invalidEdgeId;
+#if 0
         const bool hasLongGap =
             conflictReadGraph.getVertex(v1).hasLongGap;
+#endif
 
-        if(hasLongGap or forwardExists or backwardExists) {
+        if(/*hasLongGap or */forwardExists or backwardExists) {
             continue;
         } else {
             *itB++ = orientedReadId1;
@@ -320,13 +349,16 @@ void Assembler::addConflictGraphEdges(
 
     // Find which of the induced alignments are bad.
     conflictingOrientedReads.clear();
-    const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
+    // const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
     for(uint64_t i=0;i<inducedAlignments.size(); i++) {
         const OrientedReadId orientedReadId1 = conflictCandidates[i];
-        const ConflictReadGraph::VertexId v1 = ConflictReadGraph::getVertexId(orientedReadId1);
-        const ConflictReadGraphVertex& vertex1 = conflictReadGraph.getVertex(v1);
-        const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
-#if 1
+        // const ConflictReadGraph::VertexId v1 = ConflictReadGraph::getVertexId(orientedReadId1);
+        // const ConflictReadGraphVertex& vertex1 = conflictReadGraph.getVertex(v1);
+        // const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
+        if(inducedAlignments[i].indicatesConflict(inducedAlignmentCriteria)) {
+            conflictingOrientedReads.push_back(orientedReadId1);
+        }
+#if 0
         // std::lock_guard<std::mutex> lock(mutex);
         // cout << "Checking induced alignment of " << orientedReadId0 << " " << orientedReadId1 << endl;
         if(not inducedAlignments[i].evaluate(
@@ -401,6 +433,266 @@ void Assembler::addConflictGraphEdges(
 
 
 
+/*******************************************************************************
+
+This removes some vertices from the conflict read graph,
+and all edges incident to those vertices.
+It also does approximate coloring of the resulting conflict graph.
+
+The vertices and edges are not actually removed,
+but their wasRemoved flag is set.
+When marking conflict edges in the read graph,
+this information is used as follows:
+- All read graph edges incident to read graph vertices corresponding to
+  conflict read graph vertices that were removed are marked as conflict edges.
+  So the oriented reads corresponding to those vertices are
+  effectively excluded from the assembly.
+- All conflict read graph edges that were removed are ignored.
+
+The goal here is to remove a small number of pathological vertices
+with lots of meaningless conflicts.
+
+The current algorithm recursively removes articulation points of
+the conflict read graph. This is done by creating a "dynamic"
+version of the conflict read graph that uses the Boost library.
+
+*******************************************************************************/
+
+void Assembler::cleanupConflictReadGraph()
+{
+    using VertexId = ConflictReadGraph::VertexId;
+    using EdgeId = ConflictReadGraph::EdgeId;
+    using vertex_descriptor = DynamicConflictReadGraph::vertex_descriptor;
+    using edge_descriptor = DynamicConflictReadGraph::edge_descriptor;
+
+    // Check that we have what we need.
+    SHASTA_ASSERT(conflictReadGraph.isOpen());
+
+    // Create the Boost version of the conflict read graph.
+    DynamicConflictReadGraph graph(conflictReadGraph);
+    SHASTA_ASSERT(num_vertices(graph) == conflictReadGraph.vertices.size());
+    SHASTA_ASSERT(num_edges(graph) == conflictReadGraph.edges.size());
+    cout << "The initial conflict graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+
+
+
+    // Recursively remove articulation points.
+    std::map<edge_descriptor, uint64_t> componentMap;
+    makeBiconnected(graph, componentMap);
+    cout << "After recursive removal of articulation points, the resulting biconnected conflict graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+
+
+
+    // At this point the graph has no articulation points,
+    // which means that the connected components are all biconnected,
+    // and therefore the connected components and the biconnected
+    // components are the same.
+    // We do approximate coloring of each component.
+    // Right now the coloring is not used for any purpose.
+
+    // Gather the components.
+    std::map<uint64_t, std::set<vertex_descriptor> > components;
+    BGL_FORALL_EDGES(e, graph, DynamicConflictReadGraph) {
+        const uint64_t componentId = componentMap[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        components[componentId].insert(v0);
+        components[componentId].insert(v1);
+    }
+
+
+
+    // Do approximate coloring of each component.
+    uint64_t componentId = 0;
+    for(const auto& p: components) {
+        const std::set<vertex_descriptor>& componentSet = p.second;
+        if(componentSet.size() == 1) {
+            continue;
+        }
+        vector<vertex_descriptor> component;
+        copy(componentSet.begin(), componentSet.end(), back_inserter(component));
+
+        // Create a graph representing this component.
+        using ComponentGraph = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>;
+        ComponentGraph componentGraph(component.size());
+        for(uint64_t iv0=0; iv0<component.size(); iv0++) {
+            const vertex_descriptor v0 = component[iv0];
+            BGL_FORALL_ADJ(v0, v1, graph, DynamicConflictReadGraph) {
+                if(v0 < v1) {
+                    const uint64_t iv1 = lower_bound(component.begin(), component.end(), v1) - component.begin();
+                    SHASTA_ASSERT(iv1 < component.size());
+                    boost::add_edge(iv0, iv1, componentGraph);
+                }
+            }
+        }
+
+        vector<uint64_t> color(component.size());
+        approximateColoring(componentGraph, color);
+        for(uint64_t i=0; i<component.size(); i++) {
+            auto& vertex = graph[component[i]];
+            vertex.componentId = componentId;
+            vertex.color = color[i];
+        }
+
+        vector<uint64_t> colorFrequency;
+        deduplicateAndCount(color, colorFrequency);
+        cout << "Used " << color.size() << " colors to color a component with " <<
+            component.size() << " vertices:" << endl;
+        for(uint64_t i=0; i<color.size(); i++) {
+            cout << "Color " << color[i] << ": " << colorFrequency[i] << " vertices." << endl;
+        }
+
+        componentId++;
+    }
+    graph.writeGraphviz("ConflictReadGraph-0.dot");
+
+
+
+    // Propagate information in the DynamicConflictReadGraph to the ConflictReadGraph.
+
+    // Set the wasRemoved flag for all vertices and edges in the original conflict graph.
+    for(VertexId vertexId=0; vertexId<conflictReadGraph.vertices.size(); vertexId++) {
+        conflictReadGraph.getVertex(vertexId).wasRemoved = true;
+    }
+    for(EdgeId edgeId=0; edgeId<conflictReadGraph.edges.size(); edgeId++) {
+        conflictReadGraph.getEdge(edgeId).wasRemoved = true;
+    }
+
+    // Now clear the wasRemoved flag for the surviving vertices and edges.
+    // Also propagate coloring information.
+    BGL_FORALL_VERTICES(v, graph, DynamicConflictReadGraph) {
+        const VertexId vertexId = graph[v].vertexId;
+        auto& vertex = conflictReadGraph.getVertex(vertexId);
+        vertex.wasRemoved = false;
+        if(graph[v].isColored()) {
+            vertex.componentId = uint32_t(graph[v].componentId);
+            vertex.color = uint32_t(graph[v].color);
+        }
+    }
+    BGL_FORALL_EDGES(e, graph, DynamicConflictReadGraph) {
+        const EdgeId edgeId = graph[e].edgeId;
+        conflictReadGraph.getEdge(edgeId).wasRemoved = false;
+    }
+
+
+
+#if 0
+    // Analyze alignments to color more vertices.
+
+    // The vertices that can be colored.
+    // (Vertexid, componentId, color).
+    vector< tuple<VertexId, uint32_t, uint32_t> > colorableVertices;
+
+    // The ambiguos vertices.
+    vector<VertexId> ambiguousVertices;
+
+    // Analyze alignments to color more vertices.
+    for(VertexId v0=0; v0<conflictReadGraph.vertices.size(); v0++) {
+        ConflictReadGraphVertex cVertex0 = conflictReadGraph.getVertex(v0);
+
+        // If this vertex is already colored, skip it.
+        if(cVertex0.hasValidColor()) {
+            continue;
+        }
+
+        // We will look for alignments where v0 is entirely contained in the other read,
+        const uint32_t leftTrim0 = cVertex0.leftTrim;
+        const uint32_t rightTrim0 = cVertex0.rightTrim;
+
+        // Set to hold pairs(componentId, color) for containing vertices.
+        std::set< pair<uint32_t, uint32_t> > colorInfo;
+
+        // Loop over alignments involving this oriented read.
+        // Note this involving using all read graph edges, including the
+        // ones not marked as "keep".
+        for(EdgeId e01: directedReadGraph.outEdges(v0)) {
+            const DirectedReadGraphEdge dEdge01 = directedReadGraph.getEdge(e01);
+
+            // If v0 is not contained, skip.
+            const uint32_t maxTrim = 100; // **************** EXPOSE WHEN CODE STABILIZES.
+            if(dEdge01.alignmentInfo.leftTrim(0) > leftTrim0 + maxTrim) {
+                continue;
+            }
+            if(dEdge01.alignmentInfo.rightTrim(0) > rightTrim0 + maxTrim) {
+                continue;
+            }
+
+            const VertexId v1 = directedReadGraph.target(e01);
+            const ConflictReadGraphVertex cVertex1 = conflictReadGraph.getVertex(v1);
+            if(not cVertex1.hasValidColor()) {
+                continue;
+            }
+            colorInfo.insert(make_pair(cVertex1.componentId, cVertex1.color));
+
+            /*
+            cout << ConflictReadGraph::getOrientedReadId(v0) <<
+                " is contained in " << ConflictReadGraph::getOrientedReadId(v1) <<
+                " with componentId " << cVertex1.componentId <<
+                " color " << cVertex1.color << endl;
+            */
+        }
+        for(EdgeId e10: directedReadGraph.inEdges(v0)) {
+            const DirectedReadGraphEdge dEdge10 = directedReadGraph.getEdge(e10);
+
+            // If v0 is not contained, skip.
+            const uint32_t maxTrim = 100; // **************** EXPOSE WHEN CODE STABILIZES.
+            if(dEdge10.alignmentInfo.leftTrim(1) > leftTrim0 + maxTrim) {
+                continue;
+            }
+            if(dEdge10.alignmentInfo.rightTrim(1) > rightTrim0 + maxTrim) {
+                continue;
+            }
+
+            const VertexId v1 = directedReadGraph.source(e10);
+            const ConflictReadGraphVertex cVertex1 = conflictReadGraph.getVertex(v1);
+            if(not cVertex1.hasValidColor()) {
+                continue;
+            }
+            colorInfo.insert(make_pair(cVertex1.componentId, cVertex1.color));
+
+            /*
+            cout << ConflictReadGraph::getOrientedReadId(v0) <<
+                " is contained in " << ConflictReadGraph::getOrientedReadId(v1) <<
+                " with componentId " << cVertex1.componentId <<
+                " color " << cVertex1.color << endl;
+            */
+        }
+
+        if(colorInfo.size() == 1) {
+            // cout << "Unambiguous coloring possible for " << ConflictReadGraph::getOrientedReadId(v0) << endl;
+            const auto& p = *colorInfo.begin();
+            colorableVertices.push_back(make_tuple(v0, p.first, p.second));
+        } else if(colorInfo.size() > 1) {
+            ambiguousVertices.push_back(v0);
+            // cout << "Ambiguous containments for " << ConflictReadGraph::getOrientedReadId(v0) << endl;
+        }
+    }
+    cout << "After containment analysis, found " <<
+        colorableVertices.size() << " vertices that can be colored and " <<
+        ambiguousVertices.size() << " ambiguous vertices." << endl;
+
+    // Color them.
+    for(const auto& t: colorableVertices) {
+        ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(get<0>(t));
+        vertex.componentId = get<1>(t);
+        vertex.color = get<2>(t);
+    }
+
+    // Mark the ambiguous vertices as removed.
+    for(const VertexId v: ambiguousVertices) {
+        conflictReadGraph.getVertex(v).wasRemoved = true;
+        for(const EdgeId e: conflictReadGraph.incidentEdges(v)) {
+            conflictReadGraph.getEdge(e).wasRemoved = true;
+        }
+    }
+#endif
+}
+
+
+
+#if 0
 // This colors the ConflictReadGraph by walking the DirectedReadGraph.
 void Assembler::colorConflictReadGraph()
 {
@@ -425,7 +717,8 @@ void Assembler::colorConflictReadGraph()
     const VertexId n = conflictReadGraph.vertices.size();
     for(VertexId vertexId=0; vertexId<n; vertexId++) {
         auto& vertex = conflictReadGraph.getVertex(vertexId);
-        vertex.clusterId = invalid;
+        vertex.componentId = invalid;
+        vertex.color = invalid;
     }
 
 
@@ -474,7 +767,7 @@ void Assembler::colorConflictReadGraph()
         VertexId startVertexId = vertexTable[vertexTableIndex++].vertexId;
         bool done = false;
         while(true) {
-            if(not conflictReadGraph.getVertex(startVertexId).hasValidClusterId()) {
+            if(not conflictReadGraph.getVertex(startVertexId).hasValidColor()) {
                 break;
             }
             if(vertexTableIndex == n) {
@@ -494,7 +787,7 @@ void Assembler::colorConflictReadGraph()
                 " and kept degree  " <<
                 vertexTable[vertexTableIndex-1].directedReadGraphKeptDegree << endl;
         }
-        SHASTA_ASSERT(not conflictReadGraph.getVertex(startVertexId).hasValidClusterId());
+        SHASTA_ASSERT(not conflictReadGraph.getVertex(startVertexId).hasValidColor());
 
 
         // We use a process similar to a BFS starting at this vertex:
@@ -550,9 +843,9 @@ void Assembler::colorConflictReadGraph()
                 continue;
             }
 
-            // Give it a cluster id equal to this iteration.
-            SHASTA_ASSERT(not conflictReadGraph.getVertex(v0).hasValidClusterId());
-            conflictReadGraph.getVertex(v0).clusterId = iteration;
+            // Give it a color equal to this iteration.
+            SHASTA_ASSERT(not conflictReadGraph.getVertex(v0).hasValidColor());
+            conflictReadGraph.getVertex(v0).color = iteration;
             coloredCount++;
             if(debug) {
                 cout<< orientedReadId0 << " being assigned to cluster id " << iteration << endl;
@@ -572,7 +865,7 @@ void Assembler::colorConflictReadGraph()
                     }
                     continue;
                 }
-                if(conflictReadGraph.vertices[v1].clusterId != invalid) {
+                if(conflictReadGraph.vertices[v1].color != invalid) {
                     if(debug) {
                         cout << ConflictReadGraph::getOrientedReadId(v1) << " already assigned to a cluster" << endl;
                     }
@@ -758,6 +1051,7 @@ void Assembler::colorConflictReadGraph()
     }
 
 }
+#endif
 
 
 
@@ -796,9 +1090,9 @@ void Assembler::markDirectedReadGraphConflictEdges1()
 
         // Figure out if this a conflict edge.
         edge.isConflict =
-            (not cVertex0.hasValidClusterId()) or
-            (not cVertex1.hasValidClusterId()) or
-            (cVertex0.clusterId != cVertex1.clusterId);
+            (not cVertex0.hasValidColor()) or
+            (not cVertex1.hasValidColor()) or
+            (cVertex0.color != cVertex1.color);
 
         if(edge.isConflict) {
             ++invalidEdgeCount;
@@ -839,6 +1133,8 @@ Assembler::ColorConflictReadGraphData::ColorConflictReadGraphData(
 // of the specified radius.
 void Assembler::markDirectedReadGraphConflictEdges2(int radius)
 {
+    const bool debug = false;
+
     // Check that we have what we need.
     SHASTA_ASSERT(directedReadGraph.isOpen());
     SHASTA_ASSERT(conflictReadGraph.isOpen());
@@ -863,8 +1159,7 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
     // Gather all read graph edges that:
     // 1. Are marked "keep"
     // AND
-    // 2. Do not involve vertices that are marked "hasLongGap"
-    //    in the ConflictReadGraph.
+    // 2. Do not involve vertices that were removed from the ConflictReadGraph.
     // For each edge, also store the number aligned markers,
     // then sort by decreasing number of aligned markers.
     vector< pair<VertexId, uint32_t> > edges;
@@ -876,14 +1171,13 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
             continue;
         }
 
-        // Check that the vertices are not marker "hasLongGap"
-        // in the ConflictReadGraph.
+        // Check that the vertices are were not removed from the ConflictReadGraph.
         const VertexId v0 = directedReadGraph.source(e);
-        if(conflictReadGraph.getVertex(v0).hasLongGap) {
+        if(conflictReadGraph.getVertex(v0).wasRemoved) {
             continue;
         }
         const VertexId v1 = directedReadGraph.target(e);
-        if(conflictReadGraph.getVertex(v1).hasLongGap) {
+        if(conflictReadGraph.getVertex(v1).wasRemoved) {
             continue;
         }
 
@@ -915,6 +1209,11 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
         SHASTA_ASSERT(directedReadGraph.getEdge(e).isConflict == 1);
         const VertexId v0 = directedReadGraph.source(e);
         const VertexId v1 = directedReadGraph.target(e);
+        if(debug) {
+            cout << "Checking for conflicts read graph edge " <<
+                ConflictReadGraph::getOrientedReadId(v0) << "->" <<
+                ConflictReadGraph::getOrientedReadId(v1) << endl;
+        }
 
         neighborhood.clear();
         directedReadGraph.findNeighborhood(v0, radius, edgeFilter, true, true, 0., neighborMap);
@@ -931,12 +1230,22 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
 
         // Look for edges in the conflict read graph involving vertices in this neighborhood.
         bool conflictEdgeWasFound = false;
-        for(const VertexId v0: neighborhood) {
-            const span<EdgeId> edges0 = conflictReadGraph.incidentEdges(v0);
+        for(const VertexId u0: neighborhood) {
+            const span<EdgeId> edges0 = conflictReadGraph.incidentEdges(u0);
             for(const EdgeId e01: edges0) {
-                const VertexId v1 = conflictReadGraph.otherVertex(e01, v0);
-                if(binary_search(neighborhood.begin(), neighborhood.end(), v1)) {
+                const VertexId u1 = conflictReadGraph.otherVertex(e01, u0);
+                if(binary_search(neighborhood.begin(), neighborhood.end(), u1)) {
                     conflictEdgeWasFound = true;
+
+                    if(debug) {
+                        cout << "Read graph edge " <<
+                            ConflictReadGraph::getOrientedReadId(v0) << "->" <<
+                            ConflictReadGraph::getOrientedReadId(v1) <<
+                            " marked as conflict because of conflict graph edge " <<
+                            ConflictReadGraph::getOrientedReadId(u0) << "->" <<
+                            ConflictReadGraph::getOrientedReadId(u1) << endl;
+                    }
+
                     break;
                 }
             }
@@ -946,6 +1255,165 @@ void Assembler::markDirectedReadGraphConflictEdges2(int radius)
         // graph by clearing its "isConflict" flag.
         if(not conflictEdgeWasFound) {
             directedReadGraph.getEdge(e).isConflict = 0;
+        }
+    }
+
+}
+
+
+
+void Assembler::markDirectedReadGraphConflictEdges3(int radius)
+{
+    const bool debug = false;
+
+    // Check that we have what we need.
+    SHASTA_ASSERT(directedReadGraph.isOpen());
+    SHASTA_ASSERT(conflictReadGraph.isOpen());
+
+    // Types for vertices and edges of the two graphs we will use.
+    using VertexId = DirectedReadGraph::VertexId;
+    using EdgeId   = DirectedReadGraph::EdgeId;
+
+    // We are assuming the two graphs use the same VertexId and EdgeId.
+    static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
+        "Unexpected VertexId discrepancy.");
+    static_assert(std::is_same<VertexId, ConflictReadGraph::VertexId>::value,
+        "Unexpected VertexId discrepancy.");
+
+    // Begin by marking all read graph edges as "isConflict".
+    for(EdgeId e=0; e<directedReadGraph.edges.size(); e++) {
+        DirectedReadGraphEdge& edge = directedReadGraph.getEdge(e);
+        edge.isConflict = 1;
+    }
+
+
+    // Gather all read graph edges that:
+    // 1. Are marked "keep"
+    // AND
+    // 2. Do not involve vertices that were removed from the ConflictReadGraph.
+    // For each edge, also store the number aligned markers,
+    // then sort by decreasing number of aligned markers.
+    vector< pair<VertexId, uint32_t> > edges;
+    for(EdgeId e=0; e<directedReadGraph.edges.size(); e++) {
+        const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(e);
+
+        // If the edge is not marked "keep", skip it.
+        if(not edge.keep) {
+            continue;
+        }
+
+        // Check that the vertices are were not removed from the ConflictReadGraph.
+        const VertexId v0 = directedReadGraph.source(e);
+        if(conflictReadGraph.getVertex(v0).wasRemoved) {
+            continue;
+        }
+        const VertexId v1 = directedReadGraph.target(e);
+        if(conflictReadGraph.getVertex(v1).wasRemoved) {
+            continue;
+        }
+
+        edges.push_back(make_pair(e, edge.alignmentInfo.markerCount));
+    }
+    sort(edges.begin(), edges.end(),
+        OrderPairsBySecondOnlyGreater<VertexId, uint32_t>());
+
+
+
+    // Create an edge filter that allows edges
+    // marked as "keep" and not marked as "isConflict".
+    const DirectedReadGraph::EdgeFilter edgeFilter(
+        0,
+        std::numeric_limits<uint64_t>::max(),
+        0.,
+        false,
+        true);
+
+
+
+    // Loop over these edges in this order. Only add an edge to the read
+    // graph (by clearing the "isConflict" flag) if adding it
+    // does not introduce a path, within the specified radius of the edge,
+    // between vertices belonging to the same connected component and different colors
+    // of the conflict read graph.
+    std::map<VertexId, uint64_t> neighborMap;
+    vector<VertexId> neighbors;
+    for(const auto& p: edges) {
+        const EdgeId e = p.first;
+        SHASTA_ASSERT(directedReadGraph.getEdge(e).isConflict == 1);
+        const VertexId v0 = directedReadGraph.source(e);
+        const VertexId v1 = directedReadGraph.target(e);
+        if(debug) {
+            cout << "Checking for conflicts read graph edge " <<
+                ConflictReadGraph::getOrientedReadId(v0) << "->" <<
+                ConflictReadGraph::getOrientedReadId(v1) << endl;
+        }
+
+        // Compute the neighbors of v0 and v1, within the specified radius.
+        neighbors.clear();
+        directedReadGraph.findNeighborhood(v0, radius, edgeFilter, true, true, 0., neighborMap);
+        for(const auto& p: neighborMap) {
+            neighbors.push_back(p.first);
+        }
+        directedReadGraph.findNeighborhood(v1, radius, edgeFilter, true, true, 0., neighborMap);
+        for(const auto& p: neighborMap) {
+            neighbors.push_back(p.first);
+        }
+        deduplicate(neighbors);
+
+        if(debug) {
+            cout << "Neighbors: ";
+            for(const VertexId vertexId: neighbors) {
+                cout << ConflictReadGraph::getOrientedReadId(vertexId);
+                const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(vertexId);
+                SHASTA_ASSERT(!vertex.wasRemoved);
+                if(vertex.hasValidColor()) {
+                    cout << vertex.componentId << " " << vertex.color << endl;
+                }
+            }
+        }
+
+        // Find the colors present for each component.
+        // The colorTable is indexed by component id and contains
+        // the set of colors present in the neighbors for each component.
+        std::map<uint32_t, std::set<uint32_t> > colorTable;
+        for(const VertexId vertexId: neighbors) {
+            const ConflictReadGraphVertex& vertex = conflictReadGraph.getVertex(vertexId);
+            SHASTA_ASSERT(!vertex.wasRemoved);
+            if(vertex.hasValidColor()) {
+                colorTable[vertex.componentId].insert(vertex.color);
+            }
+        }
+
+        // Check for conflicts.
+        // A conflict occurs if any component has more than one color present.
+        bool conflictWasFound = false;
+        for(const auto& p: colorTable) {
+            if(p.second.size() > 1) {
+                conflictWasFound = true;
+                break;
+            }
+        }
+
+        // If we did not find a conflict, we can add this edge to the read
+        // graph by clearing its "isConflict" flag.
+        if(not conflictWasFound) {
+            if(debug)  {
+                cout << "No conflict found." << endl;
+            }
+            directedReadGraph.getEdge(e).isConflict = 0;
+        }
+    }
+
+
+
+    // If an edge is marked as conflict, also mark the reverse complement as conflict.
+    for(EdgeId edgeId=0; edgeId<directedReadGraph.edges.size(); edgeId++) {
+        const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(edgeId);
+        if(edge.isConflict == 1) {
+            const EdgeId reverseComplementEdgeId = edge.reverseComplementedEdgeId;
+            DirectedReadGraphEdge& reverseComplementEdge =
+                directedReadGraph.getEdge(reverseComplementEdgeId);
+            reverseComplementEdge.isConflict = 1;
         }
     }
 

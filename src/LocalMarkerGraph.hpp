@@ -146,15 +146,15 @@ public:
     // Only filled in when the graph is created using stored connectivity.
     MarkerGraph::EdgeId edgeId = MarkerGraph::invalidEdgeId;
 
-    // The id of the assembly graph edge that contains this marker graph edge,
-    // or std::numeric_limits<AssemblyGraph::EdgeId>::max() if this
-    // marker graph edge is not part of any assembly graph edge.
-    AssemblyGraph::EdgeId assemblyEdgeId = std::numeric_limits<AssemblyGraph::EdgeId>::max();
-
-    // The position (index) of this marker graph edge
-    // in the chain corresponding to the containing assembly graph edge.
-    // Only valid if assemblyEdgeId!=std::numeric_limits<AssemblyGraph::EdgeId>::max()
-    uint32_t positionInAssemblyEdge = 0;
+    // The locations of this edge in the assembly graph.
+    // Each location is a pair(AssemblyGraph::EdgeId, position),
+    // where position is the index of this marker graph edge in the assembly graph edge.
+    // Note that, before detangling, or if detangling is not used,
+    // each marker graph edge corresponds to at most one location
+    // in the assembly graph. However, after detangling a marker
+    // graph edge can correspond to multiple locations in the
+    // assembly graph.
+    vector< pair<AssemblyGraph::EdgeId, uint32_t> > assemblyGraphLocations;
 
     // Flag that is set if the edge was removed during
     // approximate transitive reduction by flagWeakMarkerGraphEdges.

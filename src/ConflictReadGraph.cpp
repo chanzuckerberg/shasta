@@ -91,9 +91,10 @@ void ConflictReadGraph::colorConnectedComponent(const vector<VertexId>& componen
         verticesBySaturationDegree.insert(make_pair(0, v));
     }
 
-    // Make sure all vertices have no cluster id.
+    // Make sure all vertices have no color.
     for(Int v=0; v<n; v++) {
-        getVertex(component[v]).clusterId = ConflictReadGraphVertex::invalid;
+        getVertex(component[v]).componentId = ConflictReadGraphVertex::invalid;
+        getVertex(component[v]).color = ConflictReadGraphVertex::invalid;
     }
 
 
@@ -140,14 +141,14 @@ void ConflictReadGraph::colorConnectedComponent(const vector<VertexId>& componen
         // cout << "Iteration " << iteration << " colored vertex " << v0 << " " << getOrientedReadId(u0) <<
         //     " color " << color0 << endl;
         ConflictReadGraphVertex& vertex0 = getVertex(u0);
-        SHASTA_ASSERT(vertex0.clusterId = ConflictReadGraphVertex::invalid);
-        vertex0.clusterId = uint32_t(color0);
+        SHASTA_ASSERT(vertex0.color = ConflictReadGraphVertex::invalid);
+        vertex0.color = uint32_t(color0);
 
         // Increment adjacentColoredCount for adjacent uncolored vertices.
         for(EdgeId edgeId: incidentEdges(u0)) {
             const VertexId u1 = otherVertex(edgeId, u0);
             const ConflictReadGraphVertex& vertex1 = getVertex(u1);
-            if(vertex1.clusterId == ConflictReadGraphVertex::invalid) {
+            if(vertex1.color == ConflictReadGraphVertex::invalid) {
                 const auto it = lower_bound(component.begin(), component.end(), u1);
                 SHASTA_ASSERT(*it == u1);
                 const Int v1 = it - component.begin();
@@ -162,7 +163,7 @@ void ConflictReadGraph::colorConnectedComponent(const vector<VertexId>& componen
         for(EdgeId edgeId: incidentEdges(u0)) {
             const VertexId u1 = otherVertex(edgeId, u0);
             const ConflictReadGraphVertex& vertex1 = getVertex(u1);
-            if(vertex1.clusterId == ConflictReadGraphVertex::invalid) {
+            if(vertex1.color == ConflictReadGraphVertex::invalid) {
                 const auto it = lower_bound(component.begin(), component.end(), u1);
                 SHASTA_ASSERT(*it == u1);
                 const Int v1 = it - component.begin();
@@ -195,7 +196,7 @@ void ConflictReadGraph::colorConnectedComponent(const vector<VertexId>& componen
     // Find the number of colors used.
     uint32_t maxColor = 0;
     for(Int v=0; v<n; v++) {
-        maxColor = max(maxColor, getVertex(component[v]).clusterId);
+        maxColor = max(maxColor, getVertex(component[v]).color);
     }
     cout << "Used " << maxColor+1 << " colors." << endl;
 

@@ -24,6 +24,7 @@ void Assembler::exploreAssemblyGraph(
     ostream& html)
 {
 
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Get the request parameters.
     LocalAssemblyGraphRequestParameters requestParameters;
@@ -290,6 +291,7 @@ bool Assembler::LocalAssemblyGraphRequestParameters::hasMissingRequiredParameter
 
 void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream& html)
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     html << "<h2>Show information about an edge of the assembly graph</h2>";
 
 
@@ -415,6 +417,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
     const vector<string>& request,
     ostream& html)
 {
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     html << "<h2>Display read support for assembly graph edges</h2>";
 

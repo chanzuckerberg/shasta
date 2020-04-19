@@ -3,6 +3,7 @@
 import shasta
 import GetConfig
 import sys
+import ast
 
 # Read the config file.
 config = GetConfig.getConfig()
@@ -15,15 +16,21 @@ a.accessAlignmentCandidates()
 
 # Do the computation.
 a.computeAlignments(
-    alignmentMethod = int(config['Align']['alignMethodForReadGraph']
+    alignmentMethod = int(config['Align']['alignMethod']),
     maxMarkerFrequency = int(config['Align']['maxMarkerFrequency']),
     maxSkip = int(config['Align']['maxSkip']),
+    maxDrift = int(config['Align']['maxDrift']),
     minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
-    minAlignedFraction = int(config['Align']['minAlignedFraction']),
+    minAlignedFraction = float(config['Align']['minAlignedFraction']),
     maxTrim = int(config['Align']['maxTrim']),
     matchScore = int(config['Align']['matchScore']),
     mismatchScore = int(config['Align']['mismatchScore']),
-    gapScore = int(config['Align']['gapScore']))
+    gapScore = int(config['Align']['gapScore']),
+    downsamplingFactor = float(config['Align']['downsamplingFactor']),
+    bandExtend = int(config['Align']['bandExtend']),
+    suppressContainments = ast.literal_eval(config['Align']['suppressContainments']),
+    threadCount = 1
+    )
     
     
     

@@ -19,6 +19,7 @@ a.accessDirectedReadGraphReadOnly()
 a.createConflictReadGraph(
     maxOffsetSigma = 100,
     maxTrim = 100,
-    maxSkip = 100)
+    maxSkip = 100,
+    minAlignedMarkerCount = 100)
 
 

@@ -21,6 +21,8 @@ if(BUILD_DEBUG)
 else(BUILD_DEBUG)
     add_definitions(-g0)
     add_definitions(-O3)
+    # NDEBUG is required to turn off SeqAn debug code.
+    add_definitions(-DNDEBUG)
 endif(BUILD_DEBUG)
 
 # 16-byte compare and swap.
@@ -42,7 +44,6 @@ add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 # Definitions that control what components get built.
 add_definitions(-DSHASTA_HTTP_SERVER)
 add_definitions(-DSHASTA_PYTHON_API)
-add_definitions(-DSHASTA_MARGINPHASE)
 if(BUILD_FOR_GPU)
     add_definitions(-DSHASTA_BUILD_FOR_GPU)
 endif(BUILD_FOR_GPU)

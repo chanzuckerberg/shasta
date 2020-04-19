@@ -11,11 +11,12 @@ using namespace shasta;
 void InducedAlignment::writePngImage(
     uint32_t markerCount0,
     uint32_t markerCount1,
+    bool useCompressedOrdinals,
     const string& fileName) const
 {
     // Create the image, which gets initialized to black.
-    const int n0 = int(markerCount0);
-    const int n1 = int(markerCount1);
+    const int n0 = useCompressedOrdinals ? compressedMarkerCount[0]: int(markerCount0);
+    const int n1 = useCompressedOrdinals ? compressedMarkerCount[1]: int(markerCount1);
     PngImage image(n0, n1);
 
     // Write a grid.
@@ -46,7 +47,11 @@ void InducedAlignment::writePngImage(
 
     // Write the induced alignment.
     for(const InducedAlignmentData& d: data) {
-        image.setPixel(d.ordinal0, d.ordinal1, 0, 255, 0);
+        if(useCompressedOrdinals) {
+            image.setPixel(d.compressedOrdinal0, d.compressedOrdinal1, 0, 255, 0);
+        } else {
+            image.setPixel(d.ordinal0, d.ordinal1, 0, 255, 0);
+        }
     }
 
     // Write it out.
@@ -181,7 +186,8 @@ bool InducedAlignment::evaluate(
             }
             cout << "Offset sigma is too large." << endl;
         }
-        return false;
+        // return false;
+        return true;     // EXPERIMENT ****************
     }
 
     // Compute ordinal sums and sort them.
@@ -212,6 +218,7 @@ bool InducedAlignment::evaluate(
         ", deviation " << double(ordinalSum.back()) - maxOrdinalSum << endl;
     }
 
+#if 0
     if(abs(double(ordinalSum.front()) - minOrdinalSum) >
         double(2*inducedAlignmentCriteria.maxTrim)) {
         if(debug) {
@@ -226,6 +233,23 @@ bool InducedAlignment::evaluate(
         }
         return false;
     }
+#endif
+
+    // Mark the induced alignment as bad if it does not reach the boundary of the
+    // alignment matrix on both side.
+    // Alignments that reach the boundary of the alignment matrix on one side
+    // only occur in bubbles and we don't want to mark them as bad.
+    if(
+        abs(double(ordinalSum.front())-minOrdinalSum) > double(2*inducedAlignmentCriteria.maxTrim)
+        and
+        abs(double(ordinalSum.back()) -maxOrdinalSum) > double(2*inducedAlignmentCriteria.maxTrim)
+        ) {
+        if(debug) {
+            cout << "Too much trim on both sides." << endl;
+        }
+        return false;
+    }
+
 
     // Check for gaps.
     for(uint64_t i=1; i<ordinalSum.size(); i++) {
@@ -244,4 +268,39 @@ bool InducedAlignment::evaluate(
     }
     return true;
 }
+
+
+
+// Return true if, based on the specified criteria,
+// this induced alignment indicates a conflict
+// between the aligned oriented reads.
+// A conflict means that the two oriented reads
+// are likely to originate in different regions of the genome,
+// and triggers the creation of an edge in the ConflictReadGraph.
+bool InducedAlignment::indicatesConflict(const InducedAlignmentCriteria& criteria) const
+{
+    // Sanity check.
+    SHASTA_ASSERT(not data.empty());
+
+    // If the number of aligned markers is too small, this induced alignment
+    // is questionable and so does not indicate a conflict.
+    if(data.size() < criteria.minAlignedMarkerCount) {
+        return false;
+    }
+
+    // Compute trim using compressed ordinals.
+    const uint32_t leftCompressedTrim = min(
+        data.front().compressedOrdinal0,
+        data.front().compressedOrdinal1);
+    const uint32_t rightCompressedTrim = min(
+        compressedMarkerCount[0] - data.back().compressedOrdinal0,
+        compressedMarkerCount[1] - data.back().compressedOrdinal1);
+
+    // This induced alignment indicate conflicts if there is
+    // large trim on both sides.
+    return
+        leftCompressedTrim > criteria.maxTrim and
+        rightCompressedTrim > criteria.maxTrim;
+}
+
 

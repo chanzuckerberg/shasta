@@ -142,6 +142,13 @@ void Assembler::initializeKmerTable()
         }
     }
 
+
+    // Fill in hash values used for downsampling.
+    for(uint64_t kmerId=0; kmerId<kmerCount; kmerId++) {
+        const uint64_t n = kmerId + kmerTable[kmerId].reverseComplementedKmerId;
+        kmerTable[kmerId].hash = MurmurHash2(&n, sizeof(n), 13477);
+    }
+
 }
 
 
@@ -502,5 +509,311 @@ void Assembler::readKmersFromFile(uint64_t k, const string& fileName)
     }
     cout << "Flagged as markers " << usedKmerCount << " out of " << rleKmerCount <<
         " RLE k-mers of length " << k << endl;
+}
+
+
+
+// In this version, marker k-mers are selected randomly, but excluding
+// any k-mer that is over-enriched even in a single oriented read.
+void Assembler::selectKmers2(
+
+    // k-mer length.
+    size_t k,
+
+    // The desired marker density
+    double markerDensity,
+
+    // Seed for random number generator.
+    int seed,
+
+    // Exclude k-mers enriched by more than this amount,
+    // even in a single oriented read.
+    // Enrichment is the ratio of k-mer frequency in reads
+    // over what a random distribution would give.
+    double enrichmentThreshold,
+
+    size_t threadCount
+)
+{
+    // Sanity check on the value of k, then store it.
+    if(k > Kmer::capacity) {
+        throw runtime_error("K-mer capacity exceeded.");
+    }
+    assemblerInfo->k = k;
+
+    // Sanity check.
+    if(markerDensity<0. || markerDensity>1.) {
+        throw runtime_error("Invalid marker density " +
+            to_string(markerDensity) + " requested.");
+    }
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    // Fill in the fields of the k-mer table
+    // that depends only on k.
+    initializeKmerTable();
+
+    // Store the enrichmentThreshold so all threads can see it.
+    selectKmers2Data.enrichmentThreshold = enrichmentThreshold;
+
+    // For each KmerId that is an RLE k-mer, compute the
+    // global frequency (total number of occurrences in all
+    // oriented reads) and the number of reads in
+    // which the k-mer is over-enriched.
+    selectKmers2Data.globalFrequency.createNew(
+        largeDataName("tmp-SelectKmers2-GlobalFrequency"),  largeDataPageSize);
+    selectKmers2Data.overenrichedReadCount.createNew(
+        largeDataName("tmp-SelectKmers2-OverenrichedReadCount"),  largeDataPageSize);
+    selectKmers2Data.globalFrequency.resize(kmerTable.size());
+    selectKmers2Data.overenrichedReadCount.resize(kmerTable.size());
+    fill(
+        selectKmers2Data.globalFrequency.begin(),
+        selectKmers2Data.globalFrequency.end(), 0);
+    fill(
+        selectKmers2Data.overenrichedReadCount.begin(),
+        selectKmers2Data.overenrichedReadCount.end(), 0);
+    setupLoadBalancing(reads.size(), 100);
+    runThreads(&Assembler::selectKmers2ThreadFunction, threadCount);
+
+
+
+    // Compute the total number of k-mer occurrences
+    // and the number of RLE kmers.
+    uint64_t totalKmerOccurrences = 0;
+    uint64_t rleKmerCount = 0;
+    for(uint64_t kmerId=0; kmerId!=kmerTable.size(); kmerId++) {
+        totalKmerOccurrences += selectKmers2Data.globalFrequency[kmerId];
+        if(kmerTable[kmerId].isRleKmer) {
+            ++rleKmerCount;
+        }
+    }
+    const double averageOccurrenceCount =
+        double(totalKmerOccurrences) / double(rleKmerCount);
+
+
+
+    // Write out what we found.
+    ofstream csv("KmerFrequencies.csv");
+    csv << "KmerId,Kmer,ReverseComplementedKmerId,ReverseComplementedKmer,"
+        "GlobalFrequency,GlobalEnrichment,NumberOfReadsOverenriched\n";
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        const KmerInfo& info = kmerTable[kmerId];
+        const uint64_t frequency = selectKmers2Data.globalFrequency[kmerId];
+        if(!info.isRleKmer) {
+            SHASTA_ASSERT(frequency == 0);
+            continue;
+        }
+
+        const Kmer kmer(kmerId, k);
+        const Kmer reverseComplementedKmer(info.reverseComplementedKmerId, k);
+        csv << kmerId << ",";
+        kmer.write(csv, k);
+        csv << ",";
+        reverseComplementedKmer.write(csv, k);
+        csv << ",";
+        csv << info.reverseComplementedKmerId << ",";
+        csv << frequency << ",";
+        csv << double(frequency) / averageOccurrenceCount;
+        csv << ",";
+        csv << selectKmers2Data.overenrichedReadCount[kmerId];
+
+        csv << "\n";
+    }
+
+
+    // Gather k-mers that are not overenriched in any read and therefore
+    // can be used as markers..
+    vector<KmerId> candidateKmers;
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        if(kmerTable[kmerId].isRleKmer and selectKmers2Data.overenrichedReadCount[kmerId] == 0) {
+            candidateKmers.push_back(KmerId(kmerId));
+        }
+    }
+    cout << "Out of a total " << rleKmerCount << " RLE k-mers, " <<
+        rleKmerCount - candidateKmers.size() <<
+        " were found to be over-enriched by more than a factor of " <<
+        enrichmentThreshold <<
+        " in at least one read and will not be used as markers." << endl;
+    cout << "Markers will be chosen randomly from the remaining pool of " <<
+        candidateKmers.size() << " k-mers." << endl;
+    cout << "The enrichment threshold of " << enrichmentThreshold <<
+        " corresponds to one occurrence every " <<
+        double(rleKmerCount) / enrichmentThreshold <<
+        " RLE bases." << endl;
+
+
+    // Prepare to generate a random index into this vector of candidate k-mers.
+    std::mt19937 randomSource(seed);
+    std::uniform_int_distribution<uint64_t> uniformDistribution(0, candidateKmers.size()-1);
+
+    // Flag all k-mers as not markers.
+    for(uint64_t kmerId=0; kmerId<kmerTable.size(); kmerId++) {
+        kmerTable[kmerId].isMarker = false;
+    }
+
+
+
+    // Now randomly generate markers from this pool of k-mers
+    // until we have enough.
+    uint64_t kmerOccurrencesCount = 0;
+    uint64_t kmerCount = 0;
+    const uint64_t desiredKmerOccurrencesCount =
+        uint64_t(markerDensity * double(totalKmerOccurrences));
+    while(kmerOccurrencesCount < desiredKmerOccurrencesCount) {
+
+        // Generate a random index into the candidateKmers vector.
+        const uint64_t index = uniformDistribution(randomSource);
+
+        // Check that this k-mer is not already selected as a marker.
+        const KmerId kmerId = candidateKmers[index];
+        KmerInfo& info = kmerTable[kmerId];
+        if(info.isMarker) {
+            continue;
+        }
+
+        // This k-mer is not already selected as a marker.
+        // Let's add it.
+        info.isMarker = true;
+        kmerOccurrencesCount += selectKmers2Data.globalFrequency[kmerId];
+        ++kmerCount;
+
+        // If this k-mer is palindromic, we are done.
+        if(info.reverseComplementedKmerId == kmerId) {
+            continue;
+        }
+
+        // This k-mer is not palindromic, so we also add its reverse complement.
+        KmerInfo& reverseComplementedInfo = kmerTable[info.reverseComplementedKmerId];
+        SHASTA_ASSERT(!reverseComplementedInfo.isMarker);
+        SHASTA_ASSERT(reverseComplementedInfo.frequency == info.frequency);
+        reverseComplementedInfo.isMarker = true;
+        kmerOccurrencesCount += selectKmers2Data.globalFrequency[info.reverseComplementedKmerId];
+        ++kmerCount;
+    }
+    cout << "Selected " << kmerCount << " k-mers as markers." << endl;
+    cout << "These k-mers have a total " << kmerOccurrencesCount <<
+        " occurrences out of a total " << totalKmerOccurrences <<
+        " in all oriented reads." << endl;
+
+}
+
+
+
+void Assembler::selectKmers2ThreadFunction(size_t threadId)
+{
+    // Initialize globalFrequency for this thread.
+    MemoryMapped::Vector<uint64_t> globalFrequency;
+    globalFrequency.createNew(
+        largeDataName("tmp-SelectKmers2-GlobalFrequency-" + to_string(threadId)),
+        largeDataPageSize);
+    globalFrequency.resize(kmerTable.size());
+    fill(globalFrequency.begin(), globalFrequency.end(), 0);
+
+    // Initialize overenrichedReadCount for this thread.
+    MemoryMapped::Vector<ReadId> overenrichedReadCount;
+    overenrichedReadCount.createNew(
+        largeDataName("tmp-SelectKmers2-OverenrichedReadCount-" + to_string(threadId)),
+        largeDataPageSize);
+    overenrichedReadCount.resize(kmerTable.size());
+    fill(overenrichedReadCount.begin(), overenrichedReadCount.end(), 0);
+
+    // Vectors to hold KmerIds and their frequencies for a single read.
+    vector<KmerId> readKmerIds;
+    vector<uint32_t> readKmerIdFrequencies;
+
+    // Access the enrichmentThreshold.
+    const double enrichmentThreshold = selectKmers2Data.enrichmentThreshold;
+
+    // Compute the total number of RLE k-mers.
+    // It is needed below for overenrichment computations.
+    uint64_t rleKmerCount = 0;
+    for(const KmerInfo& kmerInfo: kmerTable) {
+        if(kmerInfo.isRleKmer) {
+            ++rleKmerCount;
+        }
+    }
+
+
+    // Loop over all batches assigned to this thread.
+    const size_t k = assemblerInfo->k;
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all reads assigned to this batch.
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+
+            // Access the sequence of this read.
+            const LongBaseSequenceView read = reads[readId];
+
+            // If the read is pathologically short, it has no k-mers.
+            if(read.baseCount < k) {
+                continue;
+            }
+
+            // Loop over k-mers of this read.
+            Kmer kmer;
+            for(size_t position=0; position<k; position++) {
+                kmer.set(position, read[position]);
+            }
+            readKmerIds.clear();
+            for(uint32_t position=0; /*The check is done later */; position++) {
+
+                // Get the k-mer id.
+                const KmerId kmerId = KmerId(kmer.id(k));
+                readKmerIds.push_back(kmerId);
+
+                // Increment its global frequency.
+                ++globalFrequency[kmerId];
+
+                // Also increment the frequency of the reverse complemented k-mer.
+                ++globalFrequency[kmerTable[kmerId].reverseComplementedKmerId];
+
+                // Check if we reached the end of the read.
+                if(position+k == read.baseCount) {
+                    break;
+                }
+
+                // Update the k-mer.
+                kmer.shiftLeft();
+                kmer.set(k-1, read[position+k]);
+            }
+
+            // Compute k-mer frequencies for this read.
+            deduplicateAndCount(readKmerIds, readKmerIdFrequencies);
+
+            // Compute the k-mer frequency threshold for an over-enriched k-mer
+            // in this read.
+            const uint32_t readKmerCount = uint32_t(read.baseCount + 1 - k);
+            const uint32_t frequencyThreshold =
+                uint32_t(enrichmentThreshold * double(readKmerCount) / double(rleKmerCount));
+
+            // See if any k-mers are over-enriched in this read.
+            SHASTA_ASSERT(readKmerIds.size() == readKmerIdFrequencies.size());
+            for(uint64_t i=0; i<readKmerIds.size(); i++) {
+                const KmerId kmerId = readKmerIds[i];
+                const uint32_t frequency = readKmerIdFrequencies[i];
+                if(frequency > frequencyThreshold) {
+                    ++overenrichedReadCount[kmerId];
+                    ++overenrichedReadCount[kmerTable[kmerId].reverseComplementedKmerId];
+                }
+            }
+        }
+    }
+
+
+    // Add our globalFrequency and overenrichedReadCount
+    // to the values computer by the other threads.
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        for(uint64_t kmerId=0; kmerId!=globalFrequency.size(); kmerId++) {
+            selectKmers2Data.globalFrequency[kmerId] += globalFrequency[kmerId];
+            selectKmers2Data.overenrichedReadCount[kmerId] += overenrichedReadCount[kmerId];
+        }
+    }
+    globalFrequency.remove();
+    overenrichedReadCount.remove();
 }
 

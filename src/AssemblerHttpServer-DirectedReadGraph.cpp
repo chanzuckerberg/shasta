@@ -61,11 +61,14 @@ void Assembler::exploreDirectedReadGraph(
     double edgeThicknessScalingFactor = 1.;
     getParameterValue(request, "edgeThicknessScalingFactor", edgeThicknessScalingFactor);
 
-    double edgeArrowScalingFactor = 1.;
+    double edgeArrowScalingFactor = 0.;
     getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
 
     string colorEdgeArrowsString;
     const bool colorEdgeArrows = getParameterValue(request, "colorEdgeArrows", colorEdgeArrowsString);
+
+    string dashedContainmentEdgesString;
+    const bool dashedContainmentEdges = getParameterValue(request, "dashedContainmentEdges", dashedContainmentEdgesString);
 
     string vertexColoringMethodString = "ByDistance";
     getParameterValue(request, "vertexColoringMethod", vertexColoringMethodString);
@@ -81,7 +84,7 @@ void Assembler::exploreDirectedReadGraph(
     string highlightConflicting;
     getParameterValue(request, "highlightConflicting", highlightConflicting);
 
-    string format = "png";
+    string format = "svg";
     getParameterValue(request, "format", format);
 
     double timeout= 30;
@@ -176,6 +179,12 @@ void Assembler::exploreDirectedReadGraph(
         "<td>Color edge arrows by direction"
         "<td class=centered><input type=checkbox name=colorEdgeArrows" <<
         (colorEdgeArrows ? " checked" : "") <<
+        ">"
+
+        "<tr>"
+        "<td>Draw containment edges dashed"
+        "<td class=centered><input type=checkbox name=dashedContainmentEdges" <<
+        (dashedContainmentEdges ? " checked" : "") <<
         ">"
 
         "<tr>"
@@ -295,8 +304,15 @@ void Assembler::exploreDirectedReadGraph(
                 ConflictReadGraph::getVertexId(orientedReadId);
             const ConflictReadGraphVertex& cVertex =
                 conflictReadGraph.getVertex(cVertexId);
-            vertex.clusterId = cVertex.clusterId;
-            vertex.conflictCount = conflictReadGraph.incidentEdges(cVertexId).size();
+            vertex.componentId = cVertex.componentId;
+            vertex.color = cVertex.color;
+            vertex.wasRemoved = cVertex.wasRemoved;
+            vertex.conflictCount = 0;
+            for(ConflictReadGraph::EdgeId edgeId: conflictReadGraph.incidentEdges(cVertexId)) {
+                if(not conflictReadGraph.getEdge(edgeId).wasRemoved) {
+                    ++vertex.conflictCount;
+                }
+            }
         }
 
 
@@ -345,7 +361,7 @@ void Assembler::exploreDirectedReadGraph(
                 const auto cv1 = conflictReadGraph.otherVertex(cEdgeId, cv0);
                 const OrientedReadId orientedReadId1 = ConflictReadGraph::getOrientedReadId(cv1);
                 const auto v1 = graph.getVertex(orientedReadId1);
-                if(v1 != graph.null_vertex()) {
+                if(v1 != graph.null_vertex() and not graph[v1].wasRemoved) {
                     graph[v1].isConflictingRed = true;
                 }
                             }
@@ -467,6 +483,8 @@ void Assembler::exploreDirectedReadGraph(
         edgeThicknessScalingFactor,
         edgeArrowScalingFactor,
         colorEdgeArrows,
+        dashedContainmentEdges,
+        httpServerData.assemblerOptions->alignOptions.maxTrim,
         vertexColoringMethod);
 
 

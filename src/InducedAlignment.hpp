@@ -42,6 +42,7 @@ public:
     uint32_t maxOffsetSigma;
     uint32_t maxTrim;
     uint32_t maxSkip;
+    uint32_t minAlignedMarkerCount;
 };
 
 
@@ -54,6 +55,11 @@ public:
     // The marker ordinals in the two reads.
     uint32_t ordinal0;
     uint32_t ordinal1;
+
+    // The compressed ordinals. These only count markers
+    // that are associated with a marker graph vertex.
+    uint32_t compressedOrdinal0 = std::numeric_limits<uint32_t>::max();
+    uint32_t compressedOrdinal1 = std::numeric_limits<uint32_t>::max();
 
     InducedAlignmentData(
         MarkerGraph::VertexId vertexId,
@@ -81,6 +87,11 @@ public:
     // A vector defining this induced alignment.
     vector<InducedAlignmentData> data;
 
+    // The number marker of markers associated with a
+    /// marker graph vertex, for each of the oriented reads
+    // involved in this induced alignment.
+    array<uint32_t, 2> compressedMarkerCount;
+
     void sort()
     {
         std::sort(data.begin(), data.end());
@@ -89,10 +100,12 @@ public:
     void writePngImage(
         uint32_t markerCount0,
         uint32_t markerCount1,
+        bool useCompressedOrdinals,
         const string& fileName) const;
 
     // Evaluate the quality of an induced alignment.
     // Returns true if the induced alignment satisfies the specified criteria.
+    // To be phased out in favor of indicatesConflict below.
     bool evaluate(
         uint32_t markerCount0,
         uint32_t markerCount1,
@@ -105,6 +118,14 @@ public:
         uint32_t leftTrim1,
         uint32_t rightTrim1,
         const InducedAlignmentCriteria&) const;
+
+    // Return true if, based on the specified criteria,
+    // this induced alignment indicates a conflict
+    // between the aligned oriented reads.
+    // A conflict means that the two oriented reads
+    // are likely to originate in different regions of the genome,
+    // and triggers the creation of an edge in the ConflictReadGraph.
+    bool indicatesConflict(const InducedAlignmentCriteria&) const;
 };
 
 

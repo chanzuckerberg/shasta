@@ -5,6 +5,6 @@ import shasta
 a = shasta.Assembler()
 a.accessDirectedReadGraphReadOnly()
 a.accessConflictReadGraph()
-a.colorConflictReadGraph()
+a.cleanupConflictReadGraph()
 
 

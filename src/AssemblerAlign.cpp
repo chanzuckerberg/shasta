@@ -4,6 +4,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "compressAlignment.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
 
@@ -200,7 +201,7 @@ void Assembler::alignOverlappingOrientedReads(
 // without storing details of the alignment.
 void Assembler::computeAlignments(
 
-    // Alignment method (0 or 1).
+    // Alignment method.
     int alignmentMethod,
 
     // Marker frequency threshold.
@@ -227,10 +228,20 @@ void Assembler::computeAlignments(
     // Maximum left/right trim (in bases) for an alignment to be used.
     size_t maxTrim,
 
-    // Scores used to compute method 1 alignments.
+    // Scores used to compute method 1 and 3 alignments.
     int matchScore,
     int mismatchScore,
     int gapScore,
+
+    // Parameters for alignment method 3.
+    double downsamplingFactor,
+    int bandExtend,
+
+    // If true, discard containment alignments.
+    bool suppressContainments,
+
+    // If true, store good alignments in a compressed format.
+    bool storeAlignments,
 
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
@@ -259,6 +270,10 @@ void Assembler::computeAlignments(
     data.matchScore = matchScore;
     data.mismatchScore = mismatchScore;
     data.gapScore = gapScore;
+    data.downsamplingFactor = downsamplingFactor;
+    data.bandExtend = bandExtend;
+    data.suppressContainments = suppressContainments;
+    data.storeAlignments = storeAlignments;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -277,22 +292,40 @@ void Assembler::computeAlignments(
 
     // Compute the alignments.
     data.threadAlignmentData.resize(threadCount);
+    data.threadCompressedAlignments.resize(threadCount);
+    
     cout << timestamp << "Alignment computation begins." << endl;
     setupLoadBalancing(alignmentCandidates.candidates.size(), batchSize);
     runThreads(&Assembler::computeAlignmentsThreadFunction, threadCount);
     cout << timestamp << "Alignment computation completed." << endl;
 
-
-
     // Store alignmentInfos found by each thread in the global alignmentInfos.
     cout << timestamp << "Storing the alignment info objects." << endl;
     alignmentData.createNew(largeDataName("AlignmentData"), largeDataPageSize);
+    compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
+
     for(size_t threadId=0; threadId<threadCount; threadId++) {
         const vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
         for(const AlignmentData& ad: threadAlignmentData) {
             alignmentData.push_back(ad);
         }
+
+        if (data.storeAlignments) {
+            const auto threadCompressedAlignments = data.threadCompressedAlignments[threadId];
+            const auto size = threadCompressedAlignments->size();
+            for(size_t i=0; i<size; i++) {
+                compressedAlignments.appendVector(
+                    (*threadCompressedAlignments)[i].begin(),
+                    (*threadCompressedAlignments)[i].end()
+                );
+            }
+
+            // Clean up thread storage.
+            data.threadCompressedAlignments[threadId]->remove();
+        }
     }
+
+    cout << "Found and stored " << alignmentData.size() << " good alignments." << endl;
     cout << timestamp << "Creating alignment table." << endl;
     computeAlignmentTable();
 
@@ -300,6 +333,13 @@ void Assembler::computeAlignments(
     const double tTotal = seconds(tEnd - tBegin);
     cout << timestamp << "Computation of alignments ";
     cout << "completed in " << tTotal << " s." << endl;
+
+    cout << timestamp;
+    if (data.storeAlignments) {
+        cout << "Storing compressed alignments for potential reuse." << endl;
+    } else {
+        cout << "Not storing compressed alignments." << endl;
+    }
 }
 
 
@@ -312,6 +352,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
+    string compressedAlignment;
 
     const bool debug = false;
     auto& data = computeAlignmentsData;
@@ -325,9 +366,21 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const int matchScore = data.matchScore;
     const int mismatchScore = data.mismatchScore;
     const int gapScore = data.gapScore;
+    const double downsamplingFactor = data.downsamplingFactor;
+    const int bandExtend = data.bandExtend;
+    const bool suppressContainments = data.suppressContainments;
+    const bool storeAlignments = data.storeAlignments;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
-
+    
+    shared_ptr< MemoryMapped::VectorOfVectors<char, uint64_t> > thisThreadCompressedAlignmentsPointer =
+        make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
+    data.threadCompressedAlignments[threadId] = thisThreadCompressedAlignmentsPointer;
+    auto& thisThreadCompressedAlignments = *thisThreadCompressedAlignmentsPointer;
+    thisThreadCompressedAlignments.createNew(
+        largeDataName("tmp-ThreadGlobalCompressedAlignments-" + to_string(threadId)),
+        largeDataPageSize);
+    
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         if((begin % 1000000) == 0){
@@ -344,29 +397,59 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             orientedReadIds[0] = OrientedReadId(candidate.readIds[0], 0);
             orientedReadIds[1] = OrientedReadId(candidate.readIds[1], candidate.isSameStrand ? 0 : 1);
 
-            if(alignmentMethod == 0) {
 
-                // Get the markers for the two oriented reads in this candidate.
-                for(size_t j=0; j<2; j++) {
-                    getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
-                }
 
-                // Compute the Alignment.
-                alignOrientedReads(
-                    markersSortedByKmerId,
-                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+            // Compute the alignment.
+            try {
+                if(alignmentMethod == 0) {
 
-            } else if(alignmentMethod == 1) {
+                    // Get the markers for the two oriented reads in this candidate.
+                    for(size_t j=0; j<2; j++) {
+                        getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
+                    }
+
+                    // Compute the Alignment.
+                    alignOrientedReads(
+                        markersSortedByKmerId,
+                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+
+                } else if(alignmentMethod == 1) {
 #ifdef __linux__
-                alignOrientedReads1(orientedReadIds[0], orientedReadIds[1],
-                    matchScore, mismatchScore, gapScore,
-                    alignment, alignmentInfo);
+                    alignOrientedReads1(orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        alignment, alignmentInfo);
 #else
-                throw runtime_error("Align method 1 is not supported on macOS.");
+                    throw runtime_error("Align method 1 is not supported on macOS.");
 #endif
-            } else {
-                SHASTA_ASSERT(0);
+                } else if(alignmentMethod == 2) {
+                    alignOrientedReads2(orientedReadIds[0], orientedReadIds[1],
+                        alignment, alignmentInfo);
+                } else if(alignmentMethod == 3) {
+                    alignOrientedReads3(orientedReadIds[0], orientedReadIds[1],
+                        matchScore, mismatchScore, gapScore,
+                        downsamplingFactor, bandExtend,
+                        alignment, alignmentInfo);
+                } else {
+                    SHASTA_ASSERT(0);
+                }
+            } catch (std::exception& e) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout <<
+                    "An error occurred while computing a marker alignment "
+                    " of oriented reads " << orientedReadIds[0] << " and " << orientedReadIds[1] <<
+                    ". This alignment candidate will be skipped. Error description is: " <<
+                    e.what() << endl;
+                continue;
+            } catch(...) {
+                std::lock_guard<std::mutex> lock(mutex);
+                cout <<
+                    "An error occurred while computing a marker alignment "
+                    " of oriented reads " << orientedReadIds[0] << " and " << orientedReadIds[1] <<
+                    ". This alignment candidate will be skipped. " << endl;
+                continue;
             }
+
+
 
             // If the alignment has too few markers, skip it.
             if(alignment.ordinals.size() < minAlignedMarkerCount) {
@@ -388,9 +471,35 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
                 continue;
             }
 
+            // For alignment methods other than method 0, we also need to check for
+            // maxSip and maxDrift. Method 0 does that automatically.
+            if(alignmentMethod != 0) {
+                if(alignment.maxSkip() > maxSkip) {
+                    continue;
+                }
+                if(alignment.maxDrift() > maxDrift) {
+                    continue;
+                }
+            }
+
+            // Skip containing alignments, if so requested.
+            if(suppressContainments and alignmentInfo.isContaining(uint32_t(maxTrim))) {
+                continue;
+            }
+
             // If getting here, this is a good alignment.
             // cout << orientedReadIds[0] << " " << orientedReadIds[1] << " good." << endl;
             threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
+
+            // Store the compressed alignment if so configured.
+            if (storeAlignments) {
+                shasta::compress(alignment, compressedAlignment);
+
+                thisThreadCompressedAlignments.appendVector(
+                    compressedAlignment.c_str(),
+                    compressedAlignment.c_str() + compressedAlignment.size()
+                );
+            }
         }
     }
 }

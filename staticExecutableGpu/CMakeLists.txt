@@ -18,6 +18,8 @@ if(BUILD_DEBUG)
 else(BUILD_DEBUG)
     SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g0")
     SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+    # NDEBUG is required to turn off SeqAn debug code.
+    SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
 endif(BUILD_DEBUG)
 
 # 16-byte compare and swap.

@@ -26,6 +26,8 @@ if(BUILD_DEBUG)
 else(BUILD_DEBUG)
     add_definitions(-g0)
     add_definitions(-O3)
+    # NDEBUG is required to turn off SeqAn debug code.
+    add_definitions(-DNDEBUG)
 endif(BUILD_DEBUG)
 
 # 16-byte compare and swap.
@@ -47,7 +49,6 @@ add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 # Definitions that control what components get built.
 add_definitions(-DSHASTA_HTTP_SERVER)
 add_definitions(-DSHASTA_PYTHON_API)
-add_definitions(-DSHASTA_MARGINPHASE)
 if(BUILD_FOR_GPU)
     add_definitions(-DSHASTA_BUILD_FOR_GPU)
 endif(BUILD_FOR_GPU)
@@ -84,14 +85,14 @@ if(BUILD_FOR_GPU)
     target_link_libraries(
         shastaDynamicLibrary 
         shastaGpuLibrary
-        atomic png pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
+        atomic png pthread z spoa ${SHASTA_PYTHON_LIBRARIES})
     if(BUILD_DEBUG) 
         set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=address")
     endif(BUILD_DEBUG)
 else(BUILD_FOR_GPU)
     target_link_libraries(
         shastaDynamicLibrary 
-        atomic png boost_program_options pthread z spoa MarginCore ${SHASTA_PYTHON_LIBRARIES})
+        atomic png boost_program_options pthread z spoa ${SHASTA_PYTHON_LIBRARIES})
 endif(BUILD_FOR_GPU)
 
 # Install the shared library into the bin directory.
