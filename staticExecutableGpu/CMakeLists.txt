@@ -7,7 +7,7 @@ project(shastaGpu LANGUAGES CXX CUDA)
 set(Boost_USE_STATIC_LIBS   ON)
 find_package(Boost REQUIRED COMPONENTS system program_options chrono)
 
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++11 -O4 -lineinfo -arch=sm_35") 
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O4 -lineinfo -arch=sm_35") 
 # C++ dialect.
 SET ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
