@@ -180,7 +180,7 @@ MarkerId Assembler::findReverseComplement(MarkerId markerId) const
 void Assembler::writeMarkerFrequency()
 {
     const uint64_t k = assemblerInfo->k;
-    const uint64_t kmerCount = getKmerCount(k);
+    const uint64_t kmerCount = kmer::totalCount(k);
     SHASTA_ASSERT(markers.isOpen());
     vector<uint64_t> frequency(kmerCount, 0);
 

@@ -8,7 +8,7 @@ using namespace shasta;
 void Assembler::accessKmers()
 {
     kmerTable.accessExistingReadOnly(largeDataName("Kmers"));
-    if(kmerTable.size() != getKmerCount(assemblerInfo->k)) {
+    if(kmerTable.size() != kmer::totalCount(assemblerInfo->k)) {
         throw runtime_error("Size of k-mer vector is inconsistent with stored value of k.");
     }
 }
@@ -34,7 +34,7 @@ void Assembler::randomlySelectKmers(
         throw runtime_error("K-mer capacity exceeded.");
     }
     assemblerInfo->k = k;
-    const size_t kmerCount = getKmerCount(k);
+    const size_t kmerCount = kmer::totalCount(k);
 
     // Sanity check on the requested fraction.
     // It can be 1 at most. If it is 1, all k-mers
@@ -113,7 +113,7 @@ void Assembler::initializeKmerTable()
     // Create the kmer table with the necessary size.
     kmerTable.createNew(largeDataName("Kmers"), largeDataPageSize);
     const size_t k = assemblerInfo->k;
-    const size_t kmerCount = getKmerCount(k);
+    const size_t kmerCount = kmer::totalCount(k);
     kmerTable.resize(kmerCount);
 
     // Store the reverse complement of each k-mer.
@@ -159,7 +159,7 @@ void Assembler::writeKmers(const string& fileName) const
 
     // Get the k-mer length.
     const size_t k = assemblerInfo->k;
-    const size_t kmerCount = getKmerCount(k);
+    const size_t kmerCount = kmer::totalCount(k);
     SHASTA_ASSERT(kmerTable.size() == kmerCount);
 
     // Open the output file and write the header line.

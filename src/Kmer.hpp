@@ -17,6 +17,10 @@ namespace shasta {
         "Kmer and KmerId types are inconsistent.");
 
     class KmerInfo;
+
+    namespace kmer {
+        uint64_t totalCount(uint64_t k);
+    }
 }
 
 
