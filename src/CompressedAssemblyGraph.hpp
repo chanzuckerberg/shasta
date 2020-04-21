@@ -9,6 +9,7 @@ in which each linear sequence of bubbles is compressed to a single edge.
 *******************************************************************************/
 
 #include "AssemblyGraph.hpp"
+#include <boost/bimap.hpp>
 #include <boost/graph/adjacency_list.hpp>
 
 namespace shasta {
@@ -95,8 +96,22 @@ public:
 
 
     // Create the CompressedAssemblyGraph from the AssemblyGraph.
+    CompressedAssemblyGraph(const Assembler&);
+
+    // Create a local subgraph.
+    // See createLocalSubgraph for argument explanation.
     CompressedAssemblyGraph(
-        const Assembler&);
+        const CompressedAssemblyGraph& graph,
+        const Assembler&,
+        const vector<vertex_descriptor>& startVertices,
+        uint64_t maxDistance,
+        boost::bimap<vertex_descriptor, vertex_descriptor>& vertexMap,
+        boost::bimap<edge_descriptor, edge_descriptor>& edgeMap,
+        std::map<vertex_descriptor, uint64_t>& distanceMap
+        );
+
+    // Return the edge with a given GFA id.
+    pair<edge_descriptor, bool> getEdgeFromGfaId(const string&) const;
 
     // GFA output (without sequence).
     void writeGfa(const string& fileName, double basesPerMarker) const;
@@ -141,6 +156,7 @@ private:
     // The edges that each oriented read appears in.
     // Indexed by OrientedRead::getValue().
     vector< vector<edge_descriptor> > orientedReadTable;
+    void fillOrientedReadTable(const Assembler&);
 
     // Find edges that have at least one common oriented read
     // which each edge.

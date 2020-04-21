@@ -3,6 +3,7 @@
 #include "deduplicate.hpp"
 #include "findLinearChains.hpp"
 #include "html.hpp"
+#include "subgraph.hpp"
 using namespace shasta;
 
 #include "fstream.hpp"
@@ -47,6 +48,7 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
     // Find the oriented reads that appear in marker graph vertices
     // internal to each edge of the compressed assembly graph.
     findOrientedReads(assembler);
+    fillOrientedReadTable(assembler);
 
     // Find edges that have at least one common oriented read
     // which each edge.
@@ -229,6 +231,23 @@ void CompressedAssemblyGraph::findOrientedReads(
 
 
 
+void CompressedAssemblyGraph::fillOrientedReadTable(
+    const Assembler& assembler)
+{
+    CompressedAssemblyGraph& graph = *this;
+
+    orientedReadTable.clear();
+    orientedReadTable.resize(2 * assembler.readCount());
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        for(const OrientedReadId orientedReadId: graph[e].orientedReadIds) {
+            orientedReadTable[orientedReadId.getValue()].push_back(e);
+        }
+    }
+}
+
+
+
+
 // Find the oriented reads that appear in marker graph vertices
 // internal to an edge of the compressed assembly graph.
 void CompressedAssemblyGraphEdge::findOrientedReads(
@@ -317,6 +336,22 @@ string CompressedAssemblyGraphEdge::gfaId() const
         // prefixed with "C".
         return "C" + to_string(id);
     }
+}
+
+
+
+// Return the edge with a given GFA id.
+pair<CompressedAssemblyGraph::edge_descriptor, bool>
+    CompressedAssemblyGraph::getEdgeFromGfaId(
+    const string& s) const
+{
+    const CompressedAssemblyGraph& graph = *this;
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        if(graph[e].gfaId() == s) {
+            return make_pair(e, true);
+        }
+    }
+    return make_pair(edge_descriptor(), false);
 }
 
 
@@ -533,4 +568,43 @@ void CompressedAssemblyGraphEdge::fillMarkerCounts(const AssemblyGraph& assembly
         minMarkerCount += minMarkerCountHere;
         maxMarkerCount += maxMarkerCountHere;
     }
+}
+
+
+// Create a local subgraph.
+// See createLocalSubgraph for argument explanation.
+CompressedAssemblyGraph::CompressedAssemblyGraph(
+    const CompressedAssemblyGraph& graph,
+    const Assembler& assembler,
+    const vector<vertex_descriptor>& startVertices,
+    uint64_t maxDistance,
+    boost::bimap<vertex_descriptor, vertex_descriptor>& vertexMap,
+    boost::bimap<edge_descriptor, edge_descriptor>& edgeMap,
+    std::map<vertex_descriptor, uint64_t>& distanceMap
+    )
+{
+    CompressedAssemblyGraph& subgraph = *this;
+    createLocalSubgraph(
+        graph,
+        startVertices,
+        maxDistance,
+        subgraph,
+        vertexMap,
+        edgeMap,
+        distanceMap);
+
+    // Make sure the relatedEdges of each edge contain
+    // edge descriptors in the subgraph.
+    BGL_FORALL_EDGES(e0, subgraph, CompressedAssemblyGraph) {
+        vector<edge_descriptor> relatedEdges;
+        for(const edge_descriptor e1: subgraph[e0].relatedEdges) {
+            const auto it = edgeMap.right.find(e1);
+            if(it != edgeMap.right.end()) {
+                relatedEdges.push_back(it->second);
+            }
+        }
+        subgraph[e0].relatedEdges.swap(relatedEdges);
+    }
+
+    subgraph.fillOrientedReadTable(assembler);
 }
