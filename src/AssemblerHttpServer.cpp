@@ -1386,9 +1386,12 @@ void Assembler::exploreAlignments(
     // Loop over the alignments that this oriented read is involved in, with the proper orientation.
     const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
         findOrientedAlignments(orientedReadId0);
-    html << "<p>Found " << alignments.size() << " alignments.";
-    displayAlignments(orientedReadId0, alignments, html);
-
+    if(alignments.empty()) {
+        html << "<p>No alignments found.";
+    } else {
+        html << "<p>Found " << alignments.size() << " alignments.";
+        displayAlignments(orientedReadId0, alignments, html);
+    }
 
 }
 
@@ -2390,7 +2393,11 @@ void Assembler::computeAllAlignments(
     // Now we can display the alignments.
     html << "<p>Found " << alignments.size() <<
         " alignments satisfying the given criteria.";
-    displayAlignments(orientedReadId0, alignments, html);
+    if(alignments.empty()) {
+        html << "<p>No alignments found.";
+    } else {
+        displayAlignments(orientedReadId0, alignments, html);
+    }
 }
 
 
