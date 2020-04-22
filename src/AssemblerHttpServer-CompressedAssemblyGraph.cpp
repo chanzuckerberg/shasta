@@ -83,9 +83,11 @@ void Assembler::exploreCompressedAssemblyGraph(
         vertexMap,
         edgeMap,
         distanceMap);
+    subgraph.writeGraphviz("LocalCompressedAssemblyGraph.dot", 1.e-3);
+
+#if 1
     cout << "The local subgraph has " << num_vertices(subgraph) <<
         " vertices and " << num_edges(subgraph) << " edges." << endl;
-
     cout << "Related edges:" << endl;
     BGL_FORALL_EDGES(e0, subgraph, CompressedAssemblyGraph) {
         const auto& edge0 = subgraph[e0];
@@ -95,6 +97,7 @@ void Assembler::exploreCompressedAssemblyGraph(
         }
         cout << endl;
     }
+#endif
 
 
 }

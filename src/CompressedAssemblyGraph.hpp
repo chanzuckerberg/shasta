@@ -60,6 +60,10 @@ public:
     // The minimum and maximum marker count (path length) in markers.
     uint64_t minMarkerCount;
     uint64_t maxMarkerCount;
+    double averageMarkerCount() const
+    {
+        return double(minMarkerCount + maxMarkerCount) / 2.;
+    }
     void fillMarkerCounts(const AssemblyGraph&);
 
     // Find the oriented reads that appear in marker graph vertices
@@ -116,6 +120,10 @@ public:
     // GFA output (without sequence).
     void writeGfa(const string& fileName, double basesPerMarker) const;
     void writeGfa(ostream&, double basesPerMarker) const;
+
+    // Graphviz output.
+    void writeGraphviz(const string& fileName, double edgeLengthScalingFactor) const;
+    void writeGraphviz(ostream&, double edgeLengthScalingFactor) const;
 
     // Dump everything to csv files.
     void writeCsv() const;

@@ -608,3 +608,78 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
 
     subgraph.fillOrientedReadTable(assembler);
 }
+
+
+
+// Graphviz output.
+void CompressedAssemblyGraph::writeGraphviz(
+    const string& fileName,
+    double edgeLengthScalingFactor) const
+{
+    ofstream gfa(fileName);
+    writeGraphviz(gfa, edgeLengthScalingFactor);
+}
+void CompressedAssemblyGraph::writeGraphviz(
+    ostream& s,
+    double edgeLengthScalingFactor) const
+{
+    const CompressedAssemblyGraph& graph = *this;
+
+    s << "digraph CompressedAssemblyGraph {\n"
+        "node [shape=point];\n";
+
+    // Write the vertices.
+    BGL_FORALL_VERTICES(v, graph, CompressedAssemblyGraph) {
+        s << graph[v].vertexId << ";\n";
+    }
+
+
+
+    // Write the edges.
+    // Each edge is written as a number of dummy edges,
+    // to make it look longer, proportionally to its number of markers.
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        const CompressedAssemblyGraphEdge& edge = graph[e];
+        const string gfaId = edge.gfaId();
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+
+        const uint64_t dummyEdgeCount =
+            max(uint64_t(1), uint64_t(0.5 + edgeLengthScalingFactor * edge.averageMarkerCount()));
+        for(uint64_t i=0; i<dummyEdgeCount; i++) {
+
+            // First vertex - either v0 or a dummy vertex.
+            s << "\"";
+            if(i == 0) {
+                s << graph[v0].vertexId;
+            } else {
+                s << gfaId << "-dummy" << i;
+            }
+
+            s << "\"->\"";
+
+            // Second vertex - either v1 or a dummy vertex.
+            if(i == dummyEdgeCount-1) {
+                s << graph[v1].vertexId;
+            } else {
+                s << gfaId << "-dummy" << i+1;
+            }
+            s << "\"";
+
+            s << " [";
+            if(i != dummyEdgeCount-1) {
+                s << "arrowhead=none";
+            }
+            if(i == dummyEdgeCount/2) {
+                s << " label=" << edge.gfaId();
+            }
+            s << "]";
+
+            s << ";\n";
+        }
+    }
+
+
+
+    s << "}";
+}
