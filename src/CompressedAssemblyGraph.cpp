@@ -670,9 +670,11 @@ void CompressedAssemblyGraph::writeGraphviz(
             if(i != dummyEdgeCount-1) {
                 s << "arrowhead=none";
             }
+            /*
             if(i == dummyEdgeCount/2) {
                 s << " label=" << edge.gfaId();
             }
+            */
             s << "]";
 
             s << ";\n";

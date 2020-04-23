@@ -1,9 +1,17 @@
+// Shasta.
 #include "Assembler.hpp"
 #include "CompressedAssemblyGraph.hpp"
+#include "platformDependent.hpp"
+#include "runCommandWithTimeout.hpp"
 using namespace shasta;
 
+// Boost libraries.
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
+// Standard library.
 #include <map>
 
 
@@ -83,21 +91,48 @@ void Assembler::exploreCompressedAssemblyGraph(
         vertexMap,
         edgeMap,
         distanceMap);
-    subgraph.writeGraphviz("LocalCompressedAssemblyGraph.dot", 1.e-3);
 
-#if 1
-    cout << "The local subgraph has " << num_vertices(subgraph) <<
-        " vertices and " << num_edges(subgraph) << " edges." << endl;
-    cout << "Related edges:" << endl;
-    BGL_FORALL_EDGES(e0, subgraph, CompressedAssemblyGraph) {
-        const auto& edge0 = subgraph[e0];
-        cout << edge0.gfaId() << ":";
-        for(const edge_descriptor e1: edge0.relatedEdges) {
-            cout << " " << subgraph[e1].gfaId();
-        }
-        cout << endl;
+    // Write it in Graphviz format.
+    const double edgeLengthScalingFactor = 1.e-3;
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = tmpDirectory() + uuid + ".dot";
+    subgraph.writeGraphviz(dotFileName, edgeLengthScalingFactor);
+
+
+
+    // Compute graph layout and write it in svg format.
+    const string command = "dot -O -T svg " + dotFileName;
+    const double timeout = 30.;
+    bool timeoutTriggered = false;
+    bool signalOccurred = false;
+    int returnCode;
+    runCommandWithTimeout(command, timeout,
+        timeoutTriggered, signalOccurred, returnCode);
+    if(signalOccurred) {
+        html << "<p>Unable to compute graph layout: terminated by a signal. "
+            "The failing Command was: <code>" << command << "</code>";
+        return;
     }
-#endif
+    if(timeoutTriggered) {
+        html << "<p>Timeout exceeded during graph layout computation. "
+            "Increase the timeout or decrease the maximum distance to simplify the graph";
+        return;
+    }
+    if(returnCode!=0 ) {
+        html << "<p>Unable to compute graph layout: return code " << returnCode <<
+            "The failing Command was: <code>" << command << "</code>";
+        return;
+    }
+    filesystem::remove(dotFileName);
+
+
+    // Display the graph.
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << svgFile.rdbuf();
+    svgFile.close();
+    filesystem::remove(svgFileName);
+
 
 
 }
