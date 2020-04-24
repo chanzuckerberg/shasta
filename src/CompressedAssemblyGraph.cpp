@@ -687,9 +687,19 @@ void CompressedAssemblyGraph::writeGraphviz(
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
 
-        s << graph[v0].vertexId << "->" <<
+        // To color the edge, use a hash function of the edge id,
+        // so the same edge always gets colored the same way.
+        const uint32_t hashValue = MurmurHash2(&edge.id, sizeof(edge.id), 757);
+        const double H = double(hashValue) / double(std::numeric_limits<uint32_t>::max());
+        const double S = 0.7;
+        const double V = 0.7;
+
+        s <<
+            graph[v0].vertexId << "->" <<
             graph[v1].vertexId <<
-            "[tooltip=\"" << gfaId << "\"];\n";
+            "[tooltip=\"" << gfaId << "\" "
+            "color = \"" << H << "," << S << "," << "," << V << "\"" <<
+            "];\n";
     }
 
     s << "}";
