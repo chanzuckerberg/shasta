@@ -9,8 +9,12 @@ in which each linear sequence of bubbles is compressed to a single edge.
 *******************************************************************************/
 
 #include "AssemblyGraph.hpp"
+
 #include <boost/bimap.hpp>
 #include <boost/graph/adjacency_list.hpp>
+
+#include "array.hpp"
+#include <map>
 
 namespace shasta {
     class CompressedAssemblyGraph;
@@ -122,8 +126,30 @@ public:
     void writeGfa(ostream&, double basesPerMarker) const;
 
     // Graphviz output.
-    void writeGraphviz(const string& fileName, double edgeLengthScalingFactor) const;
-    void writeGraphviz(ostream&, double edgeLengthScalingFactor) const;
+    void computeVertexLayout(
+        uint64_t sizePixels,
+        double vertexScalingFactor,
+        double edgeLengthPower,
+        double edgeLengthScalingFactor,
+        double timeout,
+        std::map<vertex_descriptor, array<double, 2 > >& vertexPositions
+    ) const;
+    void writeGraphviz(
+        const string& fileName,
+        uint64_t sizePixels,
+        double vertexScalingFactor,
+        double edgeLengthScalingFactor,
+        double edgeThicknessScalingFactor,
+        double edgeArrowScalingFactor,
+        std::map<vertex_descriptor, array<double, 2 > >& vertexPositions) const;
+    void writeGraphviz(
+        ostream&,
+        uint64_t sizePixels,
+        double vertexScalingFactor,
+        double edgeLengthScalingFactor,
+        double edgeThicknessScalingFactor,
+        double edgeArrowScalingFactor,
+        std::map<vertex_descriptor, array<double, 2 > >& vertexPositions) const;
 
     // Dump everything to csv files.
     void writeCsv() const;
@@ -173,6 +199,7 @@ private:
 
 private:
     uint64_t maxPloidy() const;
+
 };
 
 

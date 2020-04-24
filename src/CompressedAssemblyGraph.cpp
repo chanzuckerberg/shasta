@@ -1,11 +1,23 @@
+// Shasta.
 #include "CompressedAssemblyGraph.hpp"
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
 #include "findLinearChains.hpp"
 #include "html.hpp"
+#include "platformDependent.hpp"
+#include "runCommandWithTimeout.hpp"
 #include "subgraph.hpp"
 using namespace shasta;
 
+// Boost libraries.
+#include <boost/algorithm/string.hpp>
+#include <boost/graph/iteration_macros.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+// Standard library.
 #include "fstream.hpp"
 #include "vector.hpp"
 
@@ -614,19 +626,99 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
 // Graphviz output.
 void CompressedAssemblyGraph::writeGraphviz(
     const string& fileName,
-    double edgeLengthScalingFactor) const
+    uint64_t sizePixels,
+    double vertexScalingFactor,
+    double edgeLengthScalingFactor,
+    double edgeThicknessScalingFactor,
+    double edgeArrowScalingFactor,
+    std::map<vertex_descriptor, array<double, 2 > >& vertexPositions) const
 {
-    ofstream gfa(fileName);
-    writeGraphviz(gfa, edgeLengthScalingFactor);
+    ofstream s(fileName);
+    writeGraphviz(s,
+        sizePixels,
+        vertexScalingFactor,
+        edgeLengthScalingFactor,
+        edgeThicknessScalingFactor,
+        edgeArrowScalingFactor,
+        vertexPositions) ;
 }
+
 void CompressedAssemblyGraph::writeGraphviz(
     ostream& s,
-    double edgeLengthScalingFactor) const
+    uint64_t sizePixels,
+    double vertexScalingFactor,
+    double edgeLengthScalingFactor,
+    double edgeThicknessScalingFactor,
+    double edgeArrowScalingFactor,
+    std::map<vertex_descriptor, array<double, 2 > >& vertexPositions) const
 {
     const CompressedAssemblyGraph& graph = *this;
 
     s << "digraph CompressedAssemblyGraph {\n"
-        "node [shape=point];\n";
+        "layout=neato;\n"
+        "size=" << uint64_t(double(sizePixels)/72.) << ";\n"
+        "ratio=expand;\n"
+        "splines=true;\n"
+        "node [shape=point];\n"
+        "node [width=" << vertexScalingFactor << "];\n"
+        "edge [penwidth=" << edgeThicknessScalingFactor << "];\n"
+        "edge [arrowsize=" << edgeArrowScalingFactor << "];\n";
+
+
+
+    // Write the vertices.
+    BGL_FORALL_VERTICES(v, graph, CompressedAssemblyGraph) {
+        const auto it = vertexPositions.find(v);
+        SHASTA_ASSERT(it != vertexPositions.end());
+        const auto& x = it->second;
+
+        s << graph[v].vertexId <<
+            " [pos=\"" << x[0] << "," << x[1] << "\"];\n";
+    }
+
+
+
+    // Write the edges.
+    // Each edge is written as a number of dummy edges,
+    // to make it look longer, proportionally to its number of markers.
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        const CompressedAssemblyGraphEdge& edge = graph[e];
+        const string gfaId = edge.gfaId();
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+
+        s << graph[v0].vertexId << "->" <<
+            graph[v1].vertexId <<
+            "[tooltip=\"" << gfaId << "\"];\n";
+    }
+
+    s << "}";
+}
+
+
+
+#if 0
+void CompressedAssemblyGraph::writeGraphviz(
+    ostream& s,
+    uint64_t sizePixels,
+    double vertexScalingFactor,
+    double edgeLengthScalingFactor,
+    double edgeThicknessScalingFactor,
+    double edgeArrowScalingFactor,
+    std::map<vertex_descriptor, array<double, 2 > >& vertexPositions) const
+{
+    const CompressedAssemblyGraph& graph = *this;
+
+    s << "digraph CompressedAssemblyGraph {\n"
+        "layout=sfdp;\n"
+        "size=" << uint64_t(double(sizePixels)/72.) << ";\n"
+        "ratio=expand;\n"
+        "rankdir=LR;\n"
+        "node [shape=point];\n"
+        "node [width=" << vertexScalingFactor << "];\n"
+        "edge [penwidth=" << edgeThicknessScalingFactor << "];\n"
+        "edge [arrowsize=" << edgeArrowScalingFactor << "];\n"
+        "edge [arrowhead=none];\n";
 
     // Write the vertices.
     BGL_FORALL_VERTICES(v, graph, CompressedAssemblyGraph) {
@@ -646,6 +738,15 @@ void CompressedAssemblyGraph::writeGraphviz(
 
         const uint64_t dummyEdgeCount =
             max(uint64_t(1), uint64_t(0.5 + edgeLengthScalingFactor * edge.averageMarkerCount()));
+
+        // Write the dummy vertices.
+        for(uint64_t i=1; i<dummyEdgeCount; i++) {
+            s << "\"" << gfaId << "-dummy" << i << "\" [width=" <<
+                edgeThicknessScalingFactor/72 << "];\n";
+        }
+
+
+        // Write the dummy edges.
         for(uint64_t i=0; i<dummyEdgeCount; i++) {
 
             // First vertex - either v0 or a dummy vertex.
@@ -667,8 +768,8 @@ void CompressedAssemblyGraph::writeGraphviz(
             s << "\"";
 
             s << " [";
-            if(i != dummyEdgeCount-1) {
-                s << "arrowhead=none";
+            if(i == dummyEdgeCount-1) {
+                s << "style=tapered";
             }
             /*
             if(i == dummyEdgeCount/2) {
@@ -684,4 +785,167 @@ void CompressedAssemblyGraph::writeGraphviz(
 
 
     s << "}";
+}
+#endif
+
+
+// Use sfdp to compute a vertex layout.
+// But sfdp does not support edges of different length
+// (it tries to make all edges the same length).
+// Here, we expand each edge into a variable number
+// of dummy edges. Longer edges are expanded into more
+// dummy edges. Then we use sfdp to compute a layout
+// including all these dummy edges (and their vertices).
+// Finally, we extract the coordinates for the original
+// vertices only.
+void CompressedAssemblyGraph::computeVertexLayout(
+    uint64_t sizePixels,
+    double vertexScalingFactor,
+    double edgeLengthPower,
+    double edgeLengthScalingFactor,
+    double timeout,
+    std::map<vertex_descriptor, array<double, 2 > >& vertexPositions
+) const
+{
+    const CompressedAssemblyGraph& graph = *this;
+
+    // Create a dot file to contain the graph including the dummy edges.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = tmpDirectory() + uuid + ".dot";
+    ofstream graphOut(dotFileName);
+    graphOut <<
+        "digraph G{\n"
+        "layout=sfdp;\n"
+        "smoothing=triangle;\n"
+        "overlap=false;\n" <<
+        "size=" << uint64_t(double(sizePixels)/72.) << ";\n"
+        "ratio=expand;\n"
+        "node [shape=point];\n"
+        "node [width=" << vertexScalingFactor << "];\n";
+
+    // Write the vertices.
+    BGL_FORALL_VERTICES(v, graph, CompressedAssemblyGraph) {
+        graphOut << graph[v].vertexId << ";\n";
+    }
+
+
+
+    // Write the dummy edges.
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        const CompressedAssemblyGraphEdge& edge = graph[e];
+        const string gfaId = edge.gfaId();
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+
+        // Figure out the number of dummy edges, based on the number of
+        // markers on this edge.
+        const double desiredDummyEdgeCount =
+            edgeLengthScalingFactor * std::pow(edge.averageMarkerCount(), edgeLengthPower);
+        const uint64_t dummyEdgeCount = max(
+            uint64_t(1),
+            uint64_t(0.5 + desiredDummyEdgeCount));
+
+        // Write the dummy edges.
+        for(uint64_t i=0; i<dummyEdgeCount; i++) {
+
+            // First vertex - either v0 or a dummy vertex.
+            if(i == 0) {
+                graphOut << graph[v0].vertexId;
+            } else {
+                graphOut << "D" << i << "_" << gfaId;
+            }
+
+            graphOut << "->";
+
+            // Second vertex - either v1 or a dummy vertex.
+            if(i == dummyEdgeCount-1) {
+                graphOut << graph[v1].vertexId;
+            } else {
+                graphOut << "D" << i+1 << "_" << gfaId;
+            }
+
+            graphOut << ";\n";
+        }
+    }
+    graphOut << "}";
+    graphOut.close();
+
+
+
+    // Now use sfdp to compute the layout.
+    // Use plain format output described here
+    // https://www.graphviz.org/doc/info/output.html#d:plain
+    const string plainFileName = dotFileName + ".txt";
+    const string command = "sfdp -T plain " + dotFileName + " -o " + plainFileName;
+    bool timeoutTriggered = false;
+    bool signalOccurred = false;
+    int returnCode = 0;
+    runCommandWithTimeout(command, timeout,
+        timeoutTriggered, signalOccurred, returnCode);
+    if(signalOccurred) {
+        throw runtime_error("Unable to compute graph layout: terminated by a signal. "
+            "The failing command was: " + command);
+    }
+    if(timeoutTriggered) {
+        throw runtime_error("Timeout exceeded during graph layout computation. "
+            "Increase the timeout or decrease the maximum distance to simplify the graph");
+    }
+    if(returnCode!=0 ) {
+        throw runtime_error("Unable to compute graph layout: return code " +
+            to_string(returnCode) +
+            ". The failing command was: " + command);
+    }
+    filesystem::remove(dotFileName);
+
+    // Map vertex ids to vertex descriptors.
+    std::map<uint64_t, vertex_descriptor> vertexMap;
+    BGL_FORALL_VERTICES(v, graph, CompressedAssemblyGraph) {
+        vertexMap.insert(make_pair(graph[v].vertexId, v));
+    }
+
+
+
+    // Extract vertex coordinates.
+    ifstream plainFile(plainFileName);
+    string line;
+    vector<string> tokens;
+    while(true) {
+
+        // Read the next line.
+        std::getline(plainFile, line);
+        if( not plainFile) {
+            break;
+        }
+
+        // Parse it.
+        boost::algorithm::split(tokens, line, boost::algorithm::is_any_of(" "));
+        // SHASTA_ASSERT(not tokens.empty());
+
+        // If not a line describing a vertex, skip it.
+        if(tokens.front() != "node") {
+            continue;
+        }
+        SHASTA_ASSERT(tokens.size() >= 4);
+
+        // If a dummy vertex, skip it.
+        const string& vertexName = tokens[1];
+        SHASTA_ASSERT(not vertexName.empty());
+        if(vertexName[0] == 'D') {
+            continue;
+        }
+        // Get the vertex id.
+        const uint64_t vertexId = boost::lexical_cast<uint64_t>(vertexName);
+
+        // Get the corresponding vertex descriptor.
+        const auto it = vertexMap.find(vertexId);
+        const vertex_descriptor v = it->second;
+
+        // Store it in the layout.
+        array<double, 2> x;
+        x[0] = boost::lexical_cast<double>(tokens[2]);
+        x[1] = boost::lexical_cast<double>(tokens[3]);
+        vertexPositions.insert(make_pair(v, x));
+    }
+    plainFile.close();
+    filesystem::remove(plainFileName);
 }

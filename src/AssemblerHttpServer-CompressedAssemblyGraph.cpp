@@ -35,19 +35,40 @@ void Assembler::exploreCompressedAssemblyGraph(
         html << timestamp << "Done creating the compressed assembly graph.</pre>";
     }
 
-    // Get the GFA if of the start edge for the local subgraph.
+
+
+    // Get the parameters.
     string startEdgeGfaId;
     getParameterValue(request, "startEdgeGfaId", startEdgeGfaId);
 
-    // Get the maximum distance for the local subgraph.
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
+
+    uint32_t sizePixels = 600;
+    getParameterValue(request, "sizePixels", sizePixels);
+
+    double vertexScalingFactor = 0.1;
+    getParameterValue(request, "vertexScalingFactor", vertexScalingFactor);
+
+    double edgeLengthPower = 0.25;
+    getParameterValue(request, "edgeLengthPower", edgeLengthPower);
+
+    double edgeLengthScalingFactor = 1.;
+    getParameterValue(request, "edgeLengthScalingFactor", edgeLengthScalingFactor);
+
+    double edgeThicknessScalingFactor = 3.;
+    getParameterValue(request, "edgeThicknessScalingFactor", edgeThicknessScalingFactor);
+
+    double edgeArrowScalingFactor = 1.;
+    getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
+
+    double timeout= 30;
+    getParameterValue(request, "timeout", timeout);
 
 
 
     // Write the form.
     html <<
-        "<p>Select the start edge and maximum distance for the local subgraph to display."
         "<form><table>" <<
 
         "<tr><td>GFA id of the start edge"
@@ -58,13 +79,45 @@ void Assembler::exploreCompressedAssemblyGraph(
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance << "'>"
 
+        "<tr><td>Graphics size in pixels"
+        "<td><input type=text required name=sizePixels size=8 style='text-align:center'"
+        " value='" << sizePixels << "'>"
+
+        "<tr><td>Vertex scaling factor"
+        "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'"
+        " value='" << vertexScalingFactor << "'>"
+
+        "<tr><td>Edge length power"
+        "<td><input type=text required name=edgeLengthPower size=8 style='text-align:center'"
+        " value='" << edgeLengthPower << "'>"
+
+        "<tr><td>Edge length scaling factor"
+        "<td><input type=text required name=edgeLengthScalingFactor size=8 style='text-align:center'"
+        " value='" << edgeLengthScalingFactor << "'>"
+
+        "<tr><td>Edge thickness scaling factor"
+        "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'"
+        " value='" << edgeThicknessScalingFactor << "'>"
+
+        "<tr><td>Edge arrow scaling factor"
+        "<td><input type=text required name=edgeArrowScalingFactor size=8 style='text-align:center'"
+        " value='" << edgeArrowScalingFactor << "'>"
+
+        "<tr><td>Timeout for graph layout (second)"
+        "<td><input type=text required name=timeout size=8 style='text-align:center'"
+        " value='" << timeout << "'>"
+
         "</table>"
         "<br><input type=submit value='Display'>"
         "</form>";
 
 
 
+
     // Locate the start edge in the compressed graph.
+    if(startEdgeGfaId.empty()) {
+        return;
+    }
     bool edgeWasFound = false;
     edge_descriptor eStart;
     const CompressedAssemblyGraph& graph = *compressedAssemblyGraph;
@@ -92,17 +145,33 @@ void Assembler::exploreCompressedAssemblyGraph(
         edgeMap,
         distanceMap);
 
+    // Compute vertex layout.
+    std::map<CompressedAssemblyGraph::vertex_descriptor, array<double, 2 > > vertexPositions;
+    subgraph.computeVertexLayout(
+        sizePixels,
+        vertexScalingFactor,
+        edgeLengthPower,
+        edgeLengthScalingFactor,
+        timeout,
+        vertexPositions);
+
     // Write it in Graphviz format.
-    const double edgeLengthScalingFactor = 1.e-3;
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
-    subgraph.writeGraphviz(dotFileName, edgeLengthScalingFactor);
+    subgraph.writeGraphviz(
+        dotFileName,
+        sizePixels,
+        vertexScalingFactor,
+        edgeLengthScalingFactor,
+        edgeThicknessScalingFactor,
+        edgeArrowScalingFactor,
+        vertexPositions
+        );
 
 
 
     // Compute graph layout and write it in svg format.
-    const string command = "dot -O -T svg " + dotFileName;
-    const double timeout = 30.;
+    const string command = "neato -n2 -O -T svg " + dotFileName;
     bool timeoutTriggered = false;
     bool signalOccurred = false;
     int returnCode;
@@ -120,7 +189,7 @@ void Assembler::exploreCompressedAssemblyGraph(
     }
     if(returnCode!=0 ) {
         html << "<p>Unable to compute graph layout: return code " << returnCode <<
-            "The failing Command was: <code>" << command << "</code>";
+            ". The failing Command was: <code>" << command << "</code>";
         return;
     }
     filesystem::remove(dotFileName);
