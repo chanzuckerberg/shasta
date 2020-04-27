@@ -17,3 +17,10 @@ void Assembler::createCompressedAssemblyGraph()
     // Write everything in csv format.
     graph.writeCsv();
 }
+
+
+void Assembler::colorCompressedAssemblyGraph(const string& s)
+{
+    compressedAssemblyGraph->color(s,
+        "CompressedAssemblyGraphColor.csv");
+}

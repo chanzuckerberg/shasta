@@ -153,6 +153,20 @@ public:
 
     // Dump everything to csv files.
     void writeCsv() const;
+
+    // Create a csv file with coloring.
+    // If the string passed in is an oriented read,
+    // it colors all edges that have that read.
+    // If it is the gfaId of an edge, it colors that edge in red
+    // and all related edges in green.
+    // This can be loaded in Bandage to color the edges.
+    void color(
+        const string&,
+        const string& fileName) const;
+    void color(
+        const string&,
+        ostream&) const;
+
 private:
     void writeCsvEdges() const;
     void writeCsvBubbleChains() const;

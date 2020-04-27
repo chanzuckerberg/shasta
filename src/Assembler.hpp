@@ -1733,6 +1733,7 @@ public:
     // It must be created from scratch each time.
     void createCompressedAssemblyGraph();
     shared_ptr<CompressedAssemblyGraph> compressedAssemblyGraph;
+    void colorCompressedAssemblyGraph(const string&);
 
 
 public:

@@ -514,6 +514,9 @@ PYBIND11_MODULE(shasta, module)
         // CompressedAssemblyGraph.
         .def("createCompressedAssemblyGraph",
             &Assembler::createCompressedAssemblyGraph)
+        .def("colorCompressedAssemblyGraph",
+            &Assembler::colorCompressedAssemblyGraph,
+            arg("gfaId"))
 
         // Phasing.
         .def("createPhasingData",

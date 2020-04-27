@@ -11,5 +11,10 @@ a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
 a.createCompressedAssemblyGraph()
 
+while True:
+	s = input("Enter GFA segment id or oriented read id for coloring: ")
+	a.colorCompressedAssemblyGraph(s)
+	
+
 
 

@@ -959,3 +959,70 @@ void CompressedAssemblyGraph::computeVertexLayout(
     plainFile.close();
     filesystem::remove(plainFileName);
 }
+
+
+
+// Create a csv file with coloring.
+// If the string passed in is an oriented read,
+// it colors all edges that have that read.
+// If it is the gfaId of an edge, it colors that edge in red
+// and all related edges in green.
+// This can be loaded in Bandage to color the edges.
+void CompressedAssemblyGraph::color(
+    const string& s,
+    const string& fileName) const
+{
+    ofstream csv(fileName);
+    color(s, csv);
+}
+void CompressedAssemblyGraph::color(
+    const string& s,
+    ostream& csv) const
+{
+    const CompressedAssemblyGraph& graph = *this;
+    std::map<edge_descriptor, string> colorMap;
+
+
+
+    // If it is the gfaId of an edge, color that edge in red
+    // and all related edges in green.
+    edge_descriptor e0;
+    bool edgeWasFound = false;
+    tie(e0, edgeWasFound) = getEdgeFromGfaId(s);
+    if(edgeWasFound) {
+        colorMap.insert(make_pair(e0, "Red"));
+        for(const edge_descriptor e1: graph[e0].relatedEdges) {
+            colorMap.insert(make_pair(e1, "Green"));
+        }
+    }
+
+
+    // If it is an oriented read id, color in green all segments
+    // that have that oriented read.
+    else {
+        try {
+            const OrientedReadId orientedReadId = OrientedReadId(s);
+            for(const edge_descriptor e1: orientedReadTable[orientedReadId.getValue()]) {
+                colorMap.insert(make_pair(e1, "Green"));
+            }
+        } catch(...) {
+            cout << "The string to color by does not correspond to a valid "
+                "GFA id or a valid oriented read id.\n";
+        }
+    }
+
+
+
+    csv << "Segment,Color\n";
+    BGL_FORALL_EDGES(e, graph, CompressedAssemblyGraph) {
+        csv << graph[e].gfaId() << ",";
+        const auto it = colorMap.find(e);
+        if(it == colorMap.end()) {
+            csv << "Grey";
+        } else {
+            csv << it->second;
+        }
+        csv << "\n";
+    }
+
+}
