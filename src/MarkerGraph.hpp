@@ -4,6 +4,7 @@
 #include "Base.hpp"
 #include "Coverage.hpp"
 #include "MemoryMappedVectorOfVectors.hpp"
+#include "MultithreadedObject.hpp"
 #include "Uint.hpp"
 #include "cstdint.hpp"
 
@@ -23,7 +24,7 @@ namespace shasta {
 
 
 
-class shasta::MarkerGraph {
+class shasta::MarkerGraph : public MultithreadedObject<MarkerGraph> {
 public:
 
     using VertexId = MarkerId;
@@ -38,6 +39,8 @@ public:
     using CompressedVertexId = Uint40;
     static const CompressedVertexId invalidCompressedVertexId;
 
+    MarkerGraph();
+
     // The marker ids of the markers corresponding to
     // each vertex of the global marker graph.
     // Indexed by VertexId.
@@ -49,6 +52,27 @@ public:
     // For markers that don't correspond to a marker graph vertex,
     // this stores invalidCompressedVertexId.
     MemoryMapped::Vector<CompressedVertexId> vertexTable;
+
+
+
+    // Remove marker graph vertices and update vertices and vertexTable.
+    void removeVertices(
+        const MemoryMapped::Vector<VertexId>& verticesToBeKept,
+        uint64_t pageSize,
+        uint64_t threadCount);
+private:
+    class RemoveVerticesData {
+    public:
+        const MemoryMapped::Vector<VertexId>* verticesToBeKept;
+        MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> newVertices;
+    };
+    RemoveVerticesData removeVerticesData;
+    void removeVerticesThreadFunction1(size_t threadId);
+    void removeVerticesThreadFunction2(size_t threadId);
+    void removeVerticesThreadFunction3(size_t threadId);
+public:
+
+
 
     // The reverse complement of each vertex.
     // Indexed by VertexId.

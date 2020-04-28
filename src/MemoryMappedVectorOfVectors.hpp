@@ -282,6 +282,11 @@ public:
         data.rename(newName + ".data");
     }
 
+    string getName() const
+    {
+        return name;
+    }
+
 private:
     Vector<Int> toc;
     Vector<Int> count;
