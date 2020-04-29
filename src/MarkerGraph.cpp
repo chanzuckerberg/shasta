@@ -36,6 +36,29 @@ MarkerGraph::EdgeId MarkerGraph::findEdgeId(Uint40 source, Uint40 target) const
     return edgePointer - edges.begin();
 }
 
+// Compute in-degree or out-degree of a vertex,
+// counting only edges that were not removed.
+uint64_t MarkerGraph::inDegree(VertexId vertexId) const
+{
+    uint64_t degree = 0;
+    for(const EdgeId edgeId: edgesByTarget[vertexId]) {
+        if(not edges[edgeId].wasRemoved()) {
+            ++degree;
+        }
+    }
+    return degree;
+}
+uint64_t MarkerGraph::outDegree(VertexId vertexId) const
+{
+    uint64_t degree = 0;
+    for(const EdgeId edgeId: edgesBySource[vertexId]) {
+        if(not edges[edgeId].wasRemoved()) {
+            ++degree;
+        }
+    }
+    return degree;
+}
+
 
 
 // Remove marker graph vertices and update vertices and vertexTable.
@@ -79,6 +102,43 @@ void MarkerGraph::removeVertices(
     fill(vertexTable.begin(), vertexTable.end(), invalidCompressedVertexId);
     setupLoadBalancing(vertices.size(), batchCount);
     runThreads(&MarkerGraph::removeVerticesThreadFunction3, threadCount);
+
+
+
+    // Remove everything else.
+    if(reverseComplementVertex.isOpen) {
+        reverseComplementVertex.remove();
+    }
+    if(edges.isOpen) {
+        edges.remove();
+    }
+    if(edgeMarkerIntervals.isOpen()) {
+        edgeMarkerIntervals.remove();
+    }
+    if(edgesBySource.isOpen()) {
+        edgesBySource.remove();
+    }
+    if(edgesByTarget.isOpen()) {
+        edgesByTarget.remove();
+    }
+    if(reverseComplementEdge.isOpen) {
+        reverseComplementEdge.remove();
+    }
+    if(vertexRepeatCounts.isOpen) {
+        vertexRepeatCounts.remove();
+    }
+    if(edgeConsensus.isOpen()) {
+        edgeConsensus.remove();
+    }
+    if(edgeConsensusOverlappingBaseCount.isOpen) {
+        edgeConsensusOverlappingBaseCount.remove();
+    }
+    if(vertexCoverageData.isOpen()) {
+        vertexCoverageData.remove();
+    }
+    if(edgeCoverageData.isOpen()) {
+        edgeCoverageData.remove();
+    }
 }
 
 

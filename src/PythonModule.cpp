@@ -271,6 +271,8 @@ PYBIND11_MODULE(shasta, module)
             arg("maxTrim"),
             arg("threadCount") = 0)
 #endif
+        .def("accessCompressedAlignments",
+            &Assembler::accessCompressedAlignments)
         .def("accessAlignmentData",
             &Assembler::accessAlignmentData)
         .def("analyzeAlignmentMatrix",
@@ -349,7 +351,8 @@ PYBIND11_MODULE(shasta, module)
             arg("maxCoverage"),
             arg("threadCount") = 0)
         .def("accessMarkerGraphVertices",
-             &Assembler::accessMarkerGraphVertices)
+             &Assembler::accessMarkerGraphVertices,
+             arg("readWriteAccess") = false)
         .def("getGlobalMarkerGraphVertex",
             (
                 MarkerGraph::VertexId (Assembler::*)
@@ -401,6 +404,9 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::computeMarkerGraphCoverageHistogram)
         .def("analyzeMarkerGraphVertex",
             &Assembler::analyzeMarkerGraphVertex)
+        .def("refineMarkerGraph",
+            &Assembler::refineMarkerGraph,
+            arg("threadCount") = 0)
 
 
 

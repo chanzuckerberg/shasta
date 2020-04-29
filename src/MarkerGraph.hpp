@@ -56,6 +56,9 @@ public:
 
 
     // Remove marker graph vertices and update vertices and vertexTable.
+    // After this is called, the only
+    // two MarkerGraph field filled in are vertices and vertexTable.
+    // Everything else has to be recreated.
     void removeVertices(
         const MemoryMapped::Vector<VertexId>& verticesToBeKept,
         uint64_t pageSize,
@@ -152,6 +155,11 @@ public:
     // The edges that each vertex is the target of.
     // Contains indexes into the above edges vector.
     MemoryMapped::VectorOfVectors<Uint40, uint64_t> edgesByTarget;
+
+    // Compute in-degree or out-degree of a vertex,
+    // counting only edges that were not removed.
+    uint64_t inDegree(VertexId) const;
+    uint64_t outDegree(VertexId) const;
 
     // The reverse complement of each edge.
     // Indexed by EdgeId.

@@ -386,7 +386,7 @@ public:
 
     // Python-callable access functions for the global marker graph.
     // See the private section for some more not callable from Python.
-    void accessMarkerGraphVertices();
+    void accessMarkerGraphVertices(bool readWriteAccess = false);
 
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
@@ -1061,6 +1061,9 @@ private:
     MemoryMapped::VectorOfVectors<char, uint64_t> compressedAlignments;
     
     void checkAlignmentDataAreOpen();
+public:
+    void accessCompressedAlignments();
+private:
 
     // The alignment table stores the AlignmentData that each oriented read is involved in.
     // Stores, for each OrientedReadId, a vector of indexes into the alignmentData vector.
@@ -1339,6 +1342,13 @@ public:
 
     // Analyze a vertex of the Marker graph.
     void analyzeMarkerGraphVertex(MarkerGraph::VertexId) const;
+
+    // Refine the marker graph by removing vertices in tangle regions,
+    // then recreating edges. This must be called after
+    // transitive reduction. After this is called, the only
+    // two MarkerGraph field filled in are vertices and vertexTable.
+    // Everything else has to be recreated.
+    void refineMarkerGraph(size_t threadCount);
 
 private:
 

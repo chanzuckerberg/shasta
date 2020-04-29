@@ -765,13 +765,13 @@ void Assembler::createMarkerGraphVerticesThreadFunction4(size_t threadId)
 
 
 
-void Assembler::accessMarkerGraphVertices()
+void Assembler::accessMarkerGraphVertices(bool readWriteAccess)
 {
-    markerGraph.vertexTable.accessExistingReadOnly(
-        largeDataName("MarkerGraphVertexTable"));
+    markerGraph.vertexTable.accessExisting(
+        largeDataName("MarkerGraphVertexTable"), readWriteAccess);
 
-    markerGraph.vertices.accessExistingReadOnly(
-        largeDataName("MarkerGraphVertices"));
+    markerGraph.vertices.accessExisting(
+        largeDataName("MarkerGraphVertices"), readWriteAccess);
 }
 
 

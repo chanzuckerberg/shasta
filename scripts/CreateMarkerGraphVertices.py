@@ -14,6 +14,7 @@ a.accessMarkers()
 a.accessAlignmentData()
 a.accessReadGraph()
 a.accessReadFlags()
+a.accessCompressedAlignments()
 
 # Do the computation.
 a.createMarkerGraphVertices(

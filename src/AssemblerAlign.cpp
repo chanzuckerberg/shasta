@@ -506,6 +506,14 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
 
 
+void Assembler::accessCompressedAlignments()
+{
+    compressedAlignments.accessExistingReadOnly(
+        largeDataName("CompressedAlignments"));
+}
+
+
+
 // Compute alignmentTable from alignmentData.
 // This could be made multithreaded if it becomes a bottleneck.
 void Assembler::computeAlignmentTable()
