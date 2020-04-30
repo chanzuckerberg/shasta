@@ -370,6 +370,7 @@ void AssemblyPathGraph::detangle(
     const AssemblyGraph& assemblyGraph)
 {
     AssemblyPathGraph& graph = *this;
+    const bool debug = false;
 
     // Detangle iteration.
     for(int iteration=0; ; ++iteration) {
@@ -378,16 +379,19 @@ void AssemblyPathGraph::detangle(
         if(tangleId == invalidTangleId) {
             break;
         }
-        cout << "Detangle iteration " << iteration <<
-            " begins, working on tangle " << tangleId <<
-            " and its reverse complement tangle " <<
-            getReverseComplementTangle(tangleId) << endl;
 
-        // Write the graph at the beginning of this iteration.
-        graph.writeGraphviz("AssemblyPathGraph-" + to_string(iteration) + ".dot");
-        graph.writeHtml("AssemblyPathGraph-" + to_string(iteration) + ".html");
-        graph.writeGfa("AssemblyPathGraph-" + to_string(iteration) + ".gfa",
-            basesPerMarker);
+        if(debug) {
+            cout << "Detangle iteration " << iteration <<
+                " begins, working on tangle " << tangleId <<
+                " and its reverse complement tangle " <<
+                getReverseComplementTangle(tangleId) << endl;
+
+            // Write the graph at the beginning of this iteration.
+            graph.writeGraphviz("AssemblyPathGraph-" + to_string(iteration) + ".dot");
+            graph.writeHtml("AssemblyPathGraph-" + to_string(iteration) + ".html");
+            graph.writeGfa("AssemblyPathGraph-" + to_string(iteration) + ".gfa",
+                basesPerMarker);
+        }
 
         // Detangle this tangle and its reverse complement.
         vector<edge_descriptor> newEdges;
