@@ -406,6 +406,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::analyzeMarkerGraphVertex)
         .def("refineMarkerGraph",
             &Assembler::refineMarkerGraph,
+            arg("refineThreshold"),
             arg("threadCount") = 0)
 
 

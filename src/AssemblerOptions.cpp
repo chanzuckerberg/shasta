@@ -504,6 +504,12 @@ void AssemblerOptions::addConfigurableOptions()
         default_value("10,100,1000"),
         "Maximum lengths (in markers) used at each iteration of simplifyMarkerGraph.")
 
+        ("MarkerGraph.refineThreshold",
+        value<uint64_t>(&markerGraphOptions.refineThreshold)->
+        default_value(0),
+        "Experimental. Length threshold, in markers, for the marker graph refinement step, "
+        "or 0 to turn off the refinement step.")
+
         ("MarkerGraph.reverseTransitiveReduction",
         bool_switch(&markerGraphOptions.reverseTransitiveReduction)->
         default_value(false),
@@ -656,6 +662,7 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
     s << "edgeMarkerSkipThreshold = " << edgeMarkerSkipThreshold << "\n";
     s << "pruneIterationCount = " << pruneIterationCount << "\n";
     s << "simplifyMaxLength = " << simplifyMaxLength << "\n";
+    s << "refineThreshold = " << refineThreshold << "\n";
     s << "reverseTransitiveReduction = " <<
         convertBoolToPythonString(reverseTransitiveReduction) << "\n";
 }

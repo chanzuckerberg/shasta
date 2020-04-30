@@ -1348,7 +1348,9 @@ public:
     // transitive reduction. After this is called, the only
     // two MarkerGraph field filled in are vertices and vertexTable.
     // Everything else has to be recreated.
-    void refineMarkerGraph(size_t threadCount);
+    void refineMarkerGraph(
+        uint64_t refineThreshold,
+        size_t threadCount);
 
 private:
 

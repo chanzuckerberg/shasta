@@ -218,6 +218,7 @@ public:
         int edgeMarkerSkipThreshold;
         int pruneIterationCount;
         string simplifyMaxLength;
+        uint64_t refineThreshold;
         vector<size_t> simplifyMaxLengthVector;
         bool reverseTransitiveReduction;
         void parseSimplifyMaxLength();

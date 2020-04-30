@@ -8,13 +8,11 @@ using namespace shasta;
 // transitive reduction. After this is called, the only
 // two MarkerGraph field filled in are vertices and vertexTable.
 // Everything else has to be recreated.
-void Assembler::refineMarkerGraph(size_t threadCount)
+void Assembler::refineMarkerGraph(
+    uint64_t refineThreshold,
+    size_t threadCount)
 {
     cout << timestamp << "Refine marker graph begins." << endl;
-
-    // Assembly graph edges shorter than this are considered tangles.
-    // THIS SHOULD BE PASSED IN INSTEAD.
-    const uint64_t minMarkerCount = 6;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -75,7 +73,7 @@ void Assembler::refineMarkerGraph(size_t threadCount)
             assemblyGraph.edgeLists[aEdgeId];
 
         // If long enough, skip.
-        if(mEdgeIds.size() >= minMarkerCount) {
+        if(mEdgeIds.size() >= refineThreshold) {
             continue;
         }
 
@@ -84,9 +82,6 @@ void Assembler::refineMarkerGraph(size_t threadCount)
         for(uint64_t i=1; i<mEdgeIds.size(); i++) {
             const MarkerGraph::EdgeId mEdgeId = mEdgeIds[i];
             const MarkerGraph::VertexId mVertexId = markerGraph.edges[mEdgeId].source;
-            if(mVertexId >= isVertexToBeRemoved.size()) {
-                cout << "*** " << mVertexId << " " << isVertexToBeRemoved.size() << endl;
-            }
             SHASTA_ASSERT(mVertexId < isVertexToBeRemoved.size());
             isVertexToBeRemoved[mVertexId] = true;
         }

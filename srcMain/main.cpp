@@ -747,6 +747,41 @@ void shasta::main::assemble(
             assemblerOptions.markerGraphOptions.maxDistance);
     }
 
+
+
+    // If marker graph refinement was requested, do it now, then regenerate
+    // marker graph edges.
+    if(assemblerOptions.markerGraphOptions.refineThreshold > 0) {
+        assembler.refineMarkerGraph(
+            assemblerOptions.markerGraphOptions.refineThreshold,
+            threadCount);
+
+        // This destroyed everything except the vertices.
+        // Recreate the edges and redo all of the above steps.
+
+        // Find the reverse complement of each marker graph vertex.
+        assembler.findMarkerGraphReverseComplementVertices(threadCount);
+
+        // Create edges of the marker graph.
+        assembler.createMarkerGraphEdges(threadCount);
+        assembler.findMarkerGraphReverseComplementEdges(threadCount);
+
+        // Approximate transitive reduction.
+        assembler.transitiveReduction(
+            assemblerOptions.markerGraphOptions.lowCoverageThreshold,
+            assemblerOptions.markerGraphOptions.highCoverageThreshold,
+            assemblerOptions.markerGraphOptions.maxDistance,
+            assemblerOptions.markerGraphOptions.edgeMarkerSkipThreshold);
+        if(assemblerOptions.markerGraphOptions.reverseTransitiveReduction) {
+            assembler.reverseTransitiveReduction(
+                assemblerOptions.markerGraphOptions.lowCoverageThreshold,
+                assemblerOptions.markerGraphOptions.highCoverageThreshold,
+                assemblerOptions.markerGraphOptions.maxDistance);
+        }
+    }
+
+
+
     // Prune the marker graph.
     assembler.pruneMarkerGraphStrongSubgraph(
         assemblerOptions.markerGraphOptions.pruneIterationCount);
