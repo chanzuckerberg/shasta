@@ -490,7 +490,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
         AssemblyGraph::EdgeId edgeId;
         try {
             edgeId = boost::lexical_cast<AssemblyGraph::EdgeId>(edgeString);
-        } catch(boost::bad_lexical_cast) {
+        } catch(const boost::bad_lexical_cast&) {
             html << "<br>Invalid assembly graph edge id " << token;
             return;
         }

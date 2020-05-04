@@ -337,7 +337,7 @@ void Assembler::exploreDirectedReadGraph(
             try {
                 readId0 = boost::lexical_cast<ReadId>(tokens2[0]);
                 strand0 = boost::lexical_cast<ReadId>(tokens2[1]);
-            } catch(boost::bad_lexical_cast) {
+            } catch(const boost::bad_lexical_cast&) {
                 continue;
             }
             if(strand0 > 1) {

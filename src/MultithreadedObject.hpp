@@ -225,7 +225,7 @@ template<class T> inline void shasta::MultithreadedObject<T>::startThreads(
                 std::ref(t),
                 f,
                 threadId)));
-        } catch(std::exception e) {
+        } catch(const std::exception& e) {
             throw runtime_error(
                 "The following error occurred while attempting to start thread " +
                 to_string(threadId) + ":\n" + e.what() + "\n" +
