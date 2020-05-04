@@ -5,8 +5,8 @@ ___
 
 **For quick start information see [here](https://chanzuckerberg.github.io/shasta/QuickStart.html).**
 
-[This paper](https://www.biorxiv.org/content/10.1101/715722v1) 
-includes an error analysis of the Shasta assembler and more.
+See [Shafin et al, Nature Biotechnology 2020](https://www.nature.com/articles/s41587-020-0503-6)
+for an error analysis of the Shasta assembler and more.
 Reads from this paper are available 
 [here](https://s3-us-west-2.amazonaws.com/human-pangenomics/index.html).
 The assembly results are
