@@ -74,9 +74,20 @@ set_target_properties(shastaDynamicLibrary PROPERTIES DEFINE_SYMBOL "")
 # Python 3 and pybind11.
 # I was not able to get find_package to work with pybind11 as installed by pip3.
 # The code below creates include paths for both Python 3 and pybind11.
+
+# Python 3.8 requires the `--embed` flag to be passed in.
+# find_python cmake module was introduced in v3.12, which isn't available for installation
+# via `apt` on Ubuntu 18.04 LTS. So I am not using it. 
+execute_process(COMMAND /usr/bin/python3-config --embed --libs OUTPUT_VARIABLE
+SHASTA_PYTHON_LIBRARIES RESULT_VARIABLE COMMAND_RESULT)
+if(${COMMAND_RESULT} EQUAL 0)
+    # Python3 version is >= 3.8.0. So the --embed flag worked. Otherwise the command
+    # would have failed with a non-zero exit code.
+else()
+    execute_process(COMMAND /usr/bin/python3-config --libs OUTPUT_VARIABLE SHASTA_PYTHON_LIBRARIES)
+endif()
 execute_process(COMMAND python3 -m pybind11 --includes OUTPUT_VARIABLE SHASTA_PYTHON_INCLUDES)
 add_definitions(${SHASTA_PYTHON_INCLUDES})
-execute_process(COMMAND /usr/bin/python3-config --libs OUTPUT_VARIABLE SHASTA_PYTHON_LIBRARIES)
 string(STRIP ${SHASTA_PYTHON_LIBRARIES} SHASTA_PYTHON_LIBRARIES)
 SET(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS} ${SHASTA_PYTHON_LIBRARIES}")
 
