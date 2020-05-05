@@ -39,6 +39,7 @@ CompressedAssemblyGraph::CompressedAssemblyGraph(
 
     // Create an edge for each set of parallel edges of the assembly graph.
     createEdges(assemblyGraph, vertexTable);
+    removeReverseBubbles();
 
     // Merge linear chains of edges.
     mergeLinearChains();
@@ -115,6 +116,54 @@ void CompressedAssemblyGraph::createEdges(
             edge.vertices.push_back(graph[v0].vertexId);
             edge.vertices.push_back(graph[v1].vertexId);
         }
+    }
+
+}
+
+
+// Remove back edges that create reverse bubbles.
+// A reverse bubble is defined by two vertices v0 and v1 such that:
+// - Edge v0->v1 exists.
+// - Edge v1->v0 exists.
+// - Out-degree(v0) = 1
+// - In-degree(v1) = 1.
+// Under these conditions, we remove vertex v1->v0.
+void CompressedAssemblyGraph::removeReverseBubbles()
+{
+    CompressedAssemblyGraph& graph = *this;
+
+    // Vector to contain the edges that we wil remove.
+    vector<edge_descriptor> edgesToBeRemoved;
+
+    // Try all edges.
+    BGL_FORALL_EDGES(e01, graph, CompressedAssemblyGraph) {
+
+        // Check that v0 has out-degree 1.
+        const vertex_descriptor v0 = source(e01, graph);
+        if(out_degree(v0, graph) != 1) {
+            continue;
+        }
+
+        // Check that v1 has in-degree 1.
+        const vertex_descriptor v1 = target(e01, graph);
+        if(in_degree(v1, graph) != 1) {
+            continue;
+        }
+
+        // Look for edges v1->v0.
+        // Try all edges v1->v2. Fkag to be renmoved if v2=v0.
+        BGL_FORALL_OUTEDGES(v1, e12, graph, CompressedAssemblyGraph) {
+            const vertex_descriptor v2 = target(e12, graph);
+            if(v2 == v0) {
+                edgesToBeRemoved.push_back(e12);
+            }
+        }
+    }
+
+    // Remove the edges we flagged.
+    deduplicate(edgesToBeRemoved);
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, graph);
     }
 
 }

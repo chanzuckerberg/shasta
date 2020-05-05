@@ -184,6 +184,9 @@ private:
         const vector<vertex_descriptor>& vertexTable
     );
 
+    // Remove back edges that create reverse bubbles.
+    void removeReverseBubbles();
+
     // Merge linear chains of edges.
     void mergeLinearChains();
 
