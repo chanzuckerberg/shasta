@@ -1443,6 +1443,17 @@ private:
         array<vector<bool>, 2>& vertexFlags
         ) const;
 
+    // Each oriented read corresponds to a path in the marker graph.
+    // This function computes a subset of that path
+    // covering the specified range of marker ordinals for the given
+    // oriented read.
+    void computeOrientedReadMarkerGraphPath(
+        OrientedReadId,
+        uint32_t firstOrdinal,
+        uint32_t lastOrdinal,
+        vector<MarkerGraph::EdgeId>& path
+        ) const;
+
 
 
     // Compute an alignment between two oriented reads
@@ -2085,8 +2096,8 @@ private:
     void phasingWriteBipartiteGraph();
     void phasingFindSimilarForks();
 
-
-
+public:
+    void test();
 };
 
 #endif

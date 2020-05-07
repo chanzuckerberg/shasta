@@ -4790,3 +4790,124 @@ void Assembler::analyzeMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 
     graphOut << "}\n";
 }
+
+
+
+// Each oriented read corresponds to a path in the marker graph.
+// This function computes a subset of that path
+// covering the specified range of marker ordinals for the given
+// oriented read.
+void Assembler::computeOrientedReadMarkerGraphPath(
+    OrientedReadId orientedReadId,
+    uint32_t firstOrdinal,
+    uint32_t lastOrdinal,
+    vector<MarkerGraph::EdgeId>& path
+    ) const
+{
+
+    // Start with an empty path.
+    path.clear();
+
+
+
+    // Look for pairs (ordinal0, ordinal1) such that:
+    // 1. Both ordinal0 and ordinal1 are in the specified ordinal range
+    //    (>=firstOrdinal and <=lastOrdinal).
+    // 2. Both ordinal0 and ordinal1 are associated with a marker graph vertex.
+    // 3. Ordinal1 is the first ordinal greater than ordinal0
+    //    associated with a marker graph vertex.
+    // Because of 3, ordinal1>ordinal0.
+    // Therefore, because of 1:
+    //    firstOrdinal <= ordinal0 <  lastOrdinal
+    //    firstOrdinal <  ordinal1 <= lastOrdinal
+    // Once we have such a pair (ordinal0, ordinal1), we find the edge
+    // the between the corresponding marker graph vertices, and add it
+    // to the path.
+
+
+
+    // Loop over possible values of ordinal0.
+    for(uint32_t ordinal0=firstOrdinal; ordinal0<lastOrdinal; ordinal0++) {
+        cout << "ordinal0 = " << ordinal0 << endl;
+
+        // Find the associated marker.
+        const MarkerId markerId0 =  getMarkerId(orientedReadId, ordinal0);
+
+        // Find the corresponding marker graph vertex.
+        const MarkerGraph::CompressedVertexId compressedVertexId0 =
+            markerGraph.vertexTable[markerId0];
+
+        // If no associated marker graph vertex, skip.
+        if(compressedVertexId0 == MarkerGraph::invalidCompressedVertexId) {
+            cout << "No vertex for ordinal " << ordinal0 << endl;
+            continue;
+        }
+        const MarkerGraph::VertexId vertexId0 = compressedVertexId0;
+        cout << "vertexId0 = " << vertexId0 << endl;
+
+        // Loop over possible values of ordinal1.
+        for(uint32_t ordinal1=ordinal0+1; ordinal1<=lastOrdinal; ordinal1++) {
+            cout << "ordinal1 = " << ordinal1 << endl;
+
+            // Find the associated marker.
+            const MarkerId markerId1 =  getMarkerId(orientedReadId, ordinal1);
+
+            // Find the corresponding marker graph vertex.
+            const MarkerGraph::CompressedVertexId compressedVertexId1 =
+                markerGraph.vertexTable[markerId1];
+
+            // If no associated marker graph vertex, skip.
+            if(compressedVertexId1 == MarkerGraph::invalidCompressedVertexId) {
+                cout << "No vertex for ordinal " << ordinal1 << endl;
+                continue;
+            }
+            const MarkerGraph::VertexId vertexId1 = compressedVertexId1;
+            cout << "vertexId1 = " << vertexId1 << endl;
+
+            cout << "Looking for edge " << vertexId0 << " to " << vertexId1 << endl;
+
+            // Locate the edge between these two vertices
+            // and add it to the path.
+            const span<const Uint40> outEdges0 = markerGraph.edgesBySource[vertexId0];
+            bool found = false;
+            for(MarkerGraph::EdgeId edgeId: outEdges0) {
+                if(markerGraph.edges[edgeId].target == vertexId1) {
+                    path.push_back(edgeId);
+                    found = true;
+                    cout << "Found edge " << edgeId << endl;
+                    break;
+                }
+            }
+            if(not found) {
+                cout << "Did not find the edge." << endl;
+            }
+            SHASTA_ASSERT(found);
+            break;
+        }
+    }
+}
+
+
+
+void Assembler::test()
+{
+    accessAllSoft();
+
+    while(true) {
+        cout << "Enter ReadId, strand, firstOrdinal, lastOrdinal:" << endl;
+        ReadId readId;
+        Strand strand;
+        uint32_t firstOrdinal;
+        uint32_t lastOrdinal;
+        cin >> readId >> strand >> firstOrdinal >> lastOrdinal;
+
+        vector<MarkerGraph::EdgeId> path;
+        computeOrientedReadMarkerGraphPath(
+            OrientedReadId(readId, strand),
+            firstOrdinal, lastOrdinal, path);
+
+        cout << "Marker graph path: ";;
+        copy(path.begin(), path.end(), ostream_iterator<MarkerGraph::EdgeId>(cout, " "));
+        cout << endl;
+    }
+}

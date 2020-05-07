@@ -561,7 +561,10 @@ PYBIND11_MODULE(shasta, module)
             arg("edgeId1")
             )
 
-        // Definition of class_<Assembler> ends here.
+        .def("test", &Assembler::test)
+
+
+        // Definition of class_Assembler ends here.
     ;
 
 
