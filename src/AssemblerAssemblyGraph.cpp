@@ -1281,6 +1281,74 @@ void Assembler::constructCigarString(
 
 
 
+// Write a csv file that can be used to color the double-stranded GFA
+// in Bandage based on the presence of two oriented reads
+// on each assembly graph edge.
+// Red    =  only oriented read id 0 is present
+// Blue   =  only oriented read id 1 is present
+// Purple =  both oriented read id 0 and oriented read id 1 are present
+// Grey   =  neither oriented read id 0 nor oriented read id 1 are present
+void Assembler::colorGfaWithTwoReads(
+    ReadId readId0, Strand strand0,
+    ReadId readId1, Strand strand1,
+    const string& fileName
+    ) const
+{
+
+    // Create the OrientedReadId's.
+    array<OrientedReadId, 2> orientedReadIds;
+    orientedReadIds[0] = OrientedReadId(readId0, strand0);
+    orientedReadIds[1] = OrientedReadId(readId1, strand1);
+    cout << "***D" << endl;
+
+    // Find assembly graph edges for the two oriented reads.
+    vector<MarkerGraph::EdgeId> markerGraphPath;
+    array<vector<MarkerGraph::EdgeId>, 2> assemblyGraphEdges;
+    for(int i=0; i<2; i++) {
+        const OrientedReadId orientedReadId = orientedReadIds[i];
+
+        // Find marker graph edges.
+        computeOrientedReadMarkerGraphPath(
+            orientedReadId,
+            0, uint32_t(markers.size(orientedReadId.getValue())-1),
+            markerGraphPath);
+        cout << "***A " << i << endl;
+
+        // Find corresponding assembly graph edges.
+        findAssemblyGraphEdges(markerGraphPath, assemblyGraphEdges[i]);
+        cout << "***B " << i << endl;
+    }
+    cout << "***E" << endl;
+
+
+    ofstream csv(fileName);
+    csv << "EdgeId,Color\n";
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraphPointer->edges.size(); edgeId++) {
+        csv << edgeId << ",";
+        const bool contains0 = std::binary_search(
+            assemblyGraphEdges[0].begin(), assemblyGraphEdges[0].end(), edgeId);
+        const bool contains1 = std::binary_search(
+            assemblyGraphEdges[1].begin(), assemblyGraphEdges[1].end(), edgeId);
+        if(contains0) {
+            if(contains1) {
+                csv << "Purple";
+            } else {
+                csv << "Red";
+            }
+        } else {
+            if(contains1) {
+                csv << "Blue";
+            } else {
+                csv << "Grey";
+            }
+        }
+
+        csv << "\n";
+    }
+}
+
+
+
 // Extract a local assembly graph from the global assembly graph.
 // This returns false if the timeout was exceeded.
 bool Assembler::extractLocalAssemblyGraph(
@@ -1817,3 +1885,36 @@ void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass(int pass)
 
 }
 
+
+
+// Find the set of assembly graph edges encountered on a set
+// of edges in the marker graph. The given marker graph edges
+// could form a path, but don't have to.
+void Assembler::findAssemblyGraphEdges(
+    const vector<MarkerGraph::EdgeId>& markerGraphEdges,
+    vector<AssemblyGraph::EdgeId>& assemblyGraphEdges
+    ) const
+{
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    assemblyGraphEdges.clear();
+    for(const MarkerGraph::EdgeId mEdgeId: markerGraphEdges) {
+        const span<const pair<AssemblyGraph::EdgeId, uint32_t> >& v =
+            assemblyGraph.markerToAssemblyTable[mEdgeId];
+
+        // This is not compatible with detangling.
+        // When detangling is not used, there is at most one assembly graph
+        // edge for each marker graph edge.
+        SHASTA_ASSERT(v.size() <= 1);
+
+        // If there is no assembly graph edge, do nothing.
+        if(v.empty()) {
+            continue;
+        }
+
+        // Ok, there is exactly one assembly graph edge.
+        const auto& p = v.front();
+        const AssemblyGraph::EdgeId aEdgeId = p.first;
+        assemblyGraphEdges.push_back(aEdgeId);
+    }
+    deduplicate(assemblyGraphEdges);
+}

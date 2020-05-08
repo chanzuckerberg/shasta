@@ -1443,6 +1443,8 @@ private:
         array<vector<bool>, 2>& vertexFlags
         ) const;
 
+
+
     // Each oriented read corresponds to a path in the marker graph.
     // This function computes a subset of that path
     // covering the specified range of marker ordinals for the given
@@ -1745,6 +1747,17 @@ private:
 
 
 
+    // Find the set of assembly graph edges encountered on a set
+    // of edges in the marker graph. The given marker graph edges
+    // could form a path, but don't have to.
+    void findAssemblyGraphEdges(
+        const vector<MarkerGraph::EdgeId>& markerGraphEdges,
+        vector<AssemblyGraph::EdgeId>& assemblyGraphEdges
+        ) const;
+
+
+
+
     // Detangle the AssemblyGraph.
 public:
     void detangle();
@@ -1875,6 +1888,23 @@ public:
 
     // Write assembled sequences in FASTA format.
     void writeFasta(const string& fileName);
+
+
+
+
+    // Write a csv file that can be used to color the double-stranded GFA
+    // in Bandage based on the presence of two oriented reads
+    // on each assembly graph edge.
+    // Red    =  only oriented read id 0 is present
+    // Blue   =  only oriented read id 1 is present
+    // Purple =  both oriented read id 0 and oriented read id 1 are present
+    // Grey   =  neither oriented read id 0 nor oriented read id 1 are present
+    void colorGfaWithTwoReads(
+        ReadId readId0, Strand strand0,
+        ReadId readId1, Strand strand1,
+        const string& fileName
+        ) const;
+
 
 
 

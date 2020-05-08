@@ -498,6 +498,13 @@ PYBIND11_MODULE(shasta, module)
         .def("writeFasta",
             &Assembler::writeFasta,
             arg("fileName"))
+        .def("colorGfaWithTwoReads",
+            &Assembler::colorGfaWithTwoReads,
+            arg("readId0"),
+            arg("strand0"),
+            arg("readId1"),
+            arg("strand1"),
+            arg("fileName") = "Assembly-BothStrands-Color.csv")
         .def("assembleAssemblyGraphEdge",
             (
                 AssembledSegment (Assembler::*)

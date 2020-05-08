@@ -67,8 +67,23 @@ public:
         SHASTA_ASSERT(!empty());
         return *dataBegin;
     }
+    const T& front() const
+    {
+        SHASTA_ASSERT(dataBegin);
+        SHASTA_ASSERT(dataEnd);
+        SHASTA_ASSERT(!empty());
+        return *dataBegin;
+    }
 
     T& back()
+    {
+        SHASTA_ASSERT(dataBegin);
+        SHASTA_ASSERT(dataEnd);
+        SHASTA_ASSERT(!empty());
+        return *(dataEnd - 1);
+    }
+
+    const T& back() const
     {
         SHASTA_ASSERT(dataBegin);
         SHASTA_ASSERT(dataEnd);
