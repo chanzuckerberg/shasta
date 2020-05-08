@@ -651,6 +651,15 @@ This equals the maximum length of dead branches that are removed.
 Used for bubble removal.
 <a class=qm href='ComputationalMethods.html#BubbleRemoval'/>
 
+<tr id='MarkerGraph.crossEdgeCoverageThreshold'>
+<td><code>--MarkerGraph.crossEdgeCoverageThreshold</code><td class=centered><code>0.</code><td>
+Experimental. Cross edge coverage threshold. 
+If this is not zero, assembly graph cross-edges 
+with average edge coverage less than this value are removed, together with the
+corresponding marker graph edges. A cross edge is defined as an edge v0->v1 
+with out-degree(v0)>1, in-degree(v1)>1.
+
+
 <tr id='MarkerGraph.refineThreshold'>
 <td><code>--MarkerGraph.refineThreshold</code><td class=centered><code>0</code><td>
 Experimental. Length threshold, in markers, for the marker graph refinement step, 

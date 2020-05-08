@@ -504,6 +504,14 @@ void AssemblerOptions::addConfigurableOptions()
         default_value("10,100,1000"),
         "Maximum lengths (in markers) used at each iteration of simplifyMarkerGraph.")
 
+        ("MarkerGraph.crossEdgeCoverageThreshold",
+        value<double>(&markerGraphOptions.crossEdgeCoverageThreshold)->
+        default_value(0.),
+        "Experimental. Cross edge coverage threshold. If this is not zero, assembly graph cross-edges "
+        "with average edge coverage less than this value are removed, together with the "
+        "corresponding marker graph edges. A cross edge is defined as an edge v0->v1 "
+        "with out-degree(v0)>1, in-degree(v1)>1.")
+
         ("MarkerGraph.refineThreshold",
         value<uint64_t>(&markerGraphOptions.refineThreshold)->
         default_value(0),
@@ -662,6 +670,7 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
     s << "edgeMarkerSkipThreshold = " << edgeMarkerSkipThreshold << "\n";
     s << "pruneIterationCount = " << pruneIterationCount << "\n";
     s << "simplifyMaxLength = " << simplifyMaxLength << "\n";
+    s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
     s << "refineThreshold = " << refineThreshold << "\n";
     s << "reverseTransitiveReduction = " <<
         convertBoolToPythonString(reverseTransitiveReduction) << "\n";

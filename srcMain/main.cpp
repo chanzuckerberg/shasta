@@ -798,6 +798,16 @@ void shasta::main::assemble(
     assembler.createAssemblyGraphEdges();
     assembler.createAssemblyGraphVertices();
 
+    // Remove low-coverage cross-edges from the assembly graph and
+    // the corresponding marker graph edges.
+    if(assemblerOptions.markerGraphOptions.crossEdgeCoverageThreshold > 0.) {
+        assembler.removeLowCoverageCrossEdges(
+            uint32_t(assemblerOptions.markerGraphOptions.crossEdgeCoverageThreshold));
+        assembler.assemblyGraphPointer->remove();
+        assembler.createAssemblyGraphEdges();
+        assembler.createAssemblyGraphVertices();
+    }
+
     // Detangle, if requested.
     if(assemblerOptions.assemblyOptions.detangle) {
         assembler.detangle();
