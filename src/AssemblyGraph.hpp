@@ -191,9 +191,34 @@ public:
     LongBaseSequences sequences;
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t> repeatCounts;
 
+
+
     // The oriented reads internal to each assembly graph edge.
     // Indexed by EdgeId.
-    MemoryMapped::VectorOfVectors<OrientedReadId, uint64_t> orientedReadsByEdge;
+    class OrientedReadInfo {
+    public:
+        OrientedReadId orientedReadId;
+
+        // Number of marker graph  vertices  internal to the
+        // assembly graph edge and containing this oriented read.
+        uint64_t vertexCount;
+
+        // Number of marker graph  edges  internal to the
+        // assembly graph edge and containing this oriented read.
+        uint64_t edgeCount;
+
+        OrientedReadInfo() {}
+        OrientedReadInfo(
+            OrientedReadId orientedReadId,
+            uint64_t vertexCount,
+            uint64_t edgeCount) :
+            orientedReadId(orientedReadId),
+            vertexCount(vertexCount),
+            edgeCount(edgeCount) {}
+    };
+    MemoryMapped::VectorOfVectors<OrientedReadInfo, uint64_t> orientedReadsByEdge;
+
+
 
     // Close all open data.
     void close();
