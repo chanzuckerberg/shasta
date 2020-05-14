@@ -540,6 +540,13 @@ void Assembler::accessAssemblyGraphEdges()
         largeDataName("AssemblyGraphEdgesByTarget"));
 }
 
+void Assembler::accessAssemblyGraphOrientedReadsByEdge()
+{
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    assemblyGraph.orientedReadsByEdge.accessExistingReadOnly(
+        largeDataName("PhasingGraphOrientedReads"));
+}
+
 void Assembler::writeAssemblyGraph(const string& fileName) const
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
@@ -1766,6 +1773,13 @@ void Assembler::writeOrientedReadsByAssemblyGraphEdge()
             csv << info.edgeCount << "\n";
         }
     }
+}
+
+
+
+void Assembler::colorGfaBySimilarityToSegment(AssemblyGraph::EdgeId edgeId)
+{
+    assemblyGraphPointer->colorGfaBySimilarityToSegment(edgeId);
 }
 
 

@@ -1694,6 +1694,7 @@ public:
     void createAssemblyGraphEdges();
     void accessAssemblyGraphEdgeLists();
     void accessAssemblyGraphEdges();
+    void accessAssemblyGraphOrientedReadsByEdge();
     void writeAssemblyGraph(const string& fileName) const;
     void findAssemblyGraphBubbles();
 
@@ -1714,6 +1715,7 @@ private:
         double timeout,
         LocalAssemblyGraph&) const;
 public:
+    void colorGfaBySimilarityToSegment(AssemblyGraph::EdgeId);
 
 
     // Compute consensus repeat counts for each vertex of the marker graph.

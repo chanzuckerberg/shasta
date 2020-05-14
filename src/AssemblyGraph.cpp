@@ -172,6 +172,86 @@ void AssemblyGraph::writeGraphviz(const string& fileName) const
 
 
 
+// Create a csv file that can be loaded in Bandage to color assembled segments
+// by similarity (number of common oriented reads) with a given assembled segment.
+void AssemblyGraph::colorGfaBySimilarityToSegment(EdgeId edgeId0)
+{
+    // Compute the number of common oriented reads with edgeId0.
+    vector<uint64_t> commonCount(edges.size(), 0);
+    uint64_t maximumValue = 0;
+    for(EdgeId edgeId1=0; edgeId1<edges.size(); edgeId1++) {
+        commonCount[edgeId1] = commonOrientedReadCount(edgeId0, edgeId1);
+        if(edgeId1 != edgeId0) {
+            maximumValue = max(maximumValue, commonCount[edgeId1]);
+        }
+    }
+
+    ofstream csv("Assembly-BothStrands-Color.csv");
+    csv << "Id,Number of common oriented reads,Color\n";
+    for(EdgeId edgeId1=0; edgeId1<edges.size(); edgeId1++) {
+        const uint64_t n = commonCount[edgeId1];
+
+        std::ostringstream color;
+        if(edgeId1 == edgeId0) {
+            color << "blue";
+        } else if(n == 0) {
+            color << "grey";
+        } else {
+            const double ratio = double(n) /double(maximumValue);
+#if 0
+            const double angle = M_PI_2 * ratio;
+            const int red = int(255. * std::cos(angle));
+            const int green = int(255. * std::sin(angle));
+#endif
+            int red, green;
+            if(ratio < 0.5) {
+                red = 255;
+                green = int(510. * ratio);
+            } else {
+                red = int(510. * (1.-ratio));
+                green = 255;
+            }
+            const int blue = 0;
+            color.fill('0');
+            color << "#" << hex << std::setw(2) << red;
+            color << hex << std::setw(2) << green;
+            color << hex << std::setw(2) << blue;
+        }
+
+        csv << edgeId1 << ",";
+        if(n) {
+            csv << n;
+        }
+        csv << "," << color.str() << "\n";
+    }
+}
+
+
+
+// Compute the number of oriented reads in common between two segments.
+uint64_t AssemblyGraph::commonOrientedReadCount(EdgeId edgeId0, EdgeId edgeId1) const
+{
+    const span<const OrientedReadInfo> info0 = orientedReadsByEdge[edgeId0];
+    const span<const OrientedReadInfo> info1 = orientedReadsByEdge[edgeId1];
+    uint64_t n = 0;
+    auto it0 = info0.begin();
+    auto it1 = info1.begin();
+    while(it0 != info0.end() and it1 != info1.end()){
+        if(it0->orientedReadId < it1->orientedReadId) {
+            ++it0;
+        } else if(it1->orientedReadId < it0->orientedReadId) {
+            ++it1;
+        } else {
+            ++n;
+            ++it0;
+            ++it1;
+        }
+    }
+    return n;
+}
+
+
+
 // Find the out-degree or in-degree of a vertex.
 // This is not simply the same as counting edgesBySource
 // and edgesByTarget, because we have to skip edges

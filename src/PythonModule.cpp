@@ -475,6 +475,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessAssemblyGraphEdgeLists)
         .def("accessAssemblyGraphEdges",
             &Assembler::accessAssemblyGraphEdges)
+        .def("accessAssemblyGraphOrientedReadsByEdge",
+            &Assembler::accessAssemblyGraphOrientedReadsByEdge)
         .def("accessAssemblyGraphVertices",
             &Assembler::accessAssemblyGraphVertices)
         .def("findAssemblyGraphBubbles",
@@ -505,6 +507,9 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1"),
             arg("fileName") = "Assembly-BothStrands-Color.csv")
+        .def("colorGfaBySimilarityToSegment",
+            &Assembler::colorGfaBySimilarityToSegment,
+            arg("segmentId"))
         .def("assembleAssemblyGraphEdge",
             (
                 AssembledSegment (Assembler::*)
