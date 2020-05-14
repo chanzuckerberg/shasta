@@ -4839,15 +4839,12 @@ void Assembler::computeOrientedReadMarkerGraphPath(
 
         // If no associated marker graph vertex, skip.
         if(compressedVertexId0 == MarkerGraph::invalidCompressedVertexId) {
-            cout << "No vertex for ordinal " << ordinal0 << endl;
             continue;
         }
         const MarkerGraph::VertexId vertexId0 = compressedVertexId0;
-        cout << "vertexId0 = " << vertexId0 << endl;
 
         // Loop over possible values of ordinal1.
         for(uint32_t ordinal1=ordinal0+1; ordinal1<=lastOrdinal; ordinal1++) {
-            cout << "ordinal1 = " << ordinal1 << endl;
 
             // Find the associated marker.
             const MarkerId markerId1 =  getMarkerId(orientedReadId, ordinal1);
@@ -4858,13 +4855,9 @@ void Assembler::computeOrientedReadMarkerGraphPath(
 
             // If no associated marker graph vertex, skip.
             if(compressedVertexId1 == MarkerGraph::invalidCompressedVertexId) {
-                cout << "No vertex for ordinal " << ordinal1 << endl;
                 continue;
             }
             const MarkerGraph::VertexId vertexId1 = compressedVertexId1;
-            cout << "vertexId1 = " << vertexId1 << endl;
-
-            cout << "Looking for edge " << vertexId0 << " to " << vertexId1 << endl;
 
             // Locate the edge between these two vertices
             // and add it to the path.
@@ -4874,12 +4867,10 @@ void Assembler::computeOrientedReadMarkerGraphPath(
                 if(markerGraph.edges[edgeId].target == vertexId1) {
                     path.push_back(edgeId);
                     found = true;
-                    cout << "Found edge " << edgeId << endl;
                     break;
                 }
             }
             if(not found) {
-                cout << "Did not find the edge." << endl;
             }
             SHASTA_ASSERT(found);
             break;
