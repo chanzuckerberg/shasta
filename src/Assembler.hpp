@@ -2032,7 +2032,14 @@ public:
         size_t maxDrift;
         uint32_t maxMarkerFrequency;
         size_t minAlignedMarkerCount;
+        double minAlignedFraction;
         size_t maxTrim;
+        int method;
+        int matchScore;
+        int mismatchScore;
+        int gapScore;
+        double downsamplingFactor;
+        uint32_t bandExtend;
         // The alignments found by each thread.
         vector< vector< pair<OrientedReadId, AlignmentInfo> > > threadAlignments;
     };
