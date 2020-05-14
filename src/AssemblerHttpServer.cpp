@@ -1626,6 +1626,14 @@ void Assembler::exploreAlignment(
     getParameterValue(request, "maxMarkerFrequency", maxMarkerFrequency);
     int matchScore = httpServerData.assemblerOptions->alignOptions.matchScore;
     getParameterValue(request, "matchScore", matchScore);
+    
+    uint32_t minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
+    getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
+    double minAlignedFraction = httpServerData.assemblerOptions->alignOptions.minAlignedFraction;
+    getParameterValue(request, "minAlignedFraction", minAlignedFraction);
+    uint32_t maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
+    getParameterValue(request, "maxTrim", maxTrim);
+    
     int mismatchScore = httpServerData.assemblerOptions->alignOptions.mismatchScore;
     getParameterValue(request, "mismatchScore", mismatchScore);
     int gapScore = httpServerData.assemblerOptions->alignOptions.gapScore;
@@ -1712,10 +1720,28 @@ void Assembler::exploreAlignment(
         "name=bandExtend size=16 value=" <<
         bandExtend << ">"
 
+        "<tr title='Used to filter poor alignments'>"
+        "<th class=left>"
+        "Minimum number of aligned markers " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=minAlignedMarkerCount size=16 value=" <<
+        minAlignedMarkerCount << ">"
+
+        "<tr title='Used to filter poor alignments'>"
+        "<th class=left>"
+        "Minimum fraction of aligned markers " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=minAlignedFraction size=16 value=" <<
+        minAlignedFraction << ">"
+
+        "<tr title='Used to filter alignments'>"
+        "<th class=left>Maximum ordinal trim" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxTrim size=16 value=" <<
+        maxTrim << ">"
+
         "</table><p><input type=submit value='Compute marker alignment'>"
         "</form>";
-
-
 
 
     // If the readId's or strand's are missing, stop here.
@@ -1750,6 +1776,7 @@ void Assembler::exploreAlignment(
         alignOrientedReads(
             markersSortedByKmerId,
             maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+            
         if(alignment.ordinals.empty()) {
             html << "<p>The alignment is empty (it has no markers).";
             return;
@@ -1791,14 +1818,30 @@ void Assembler::exploreAlignment(
             "Alignment.png");
     }
 
-
-    if(alignment.ordinals.empty()) {
+    if (alignment.ordinals.empty()) {
         html << "<p>The computed alignment is empty.";
         return;
     }
+    if (alignment.ordinals.size() < minAlignedMarkerCount) {
+        html << "<p>Alignment has fewer than " << minAlignedMarkerCount << " markers.";
+        return;
+    }
+    if (alignmentInfo.minAlignedFraction() < minAlignedFraction) {
+        html << "<p>Min aligned fraction is smaller than " << minAlignedFraction << ".";
+        return;
+    }
 
+    // If the alignment has too much trim, skip it.
+    uint32_t leftTrim;
+    uint32_t rightTrim;
+    tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
+    if(leftTrim>maxTrim || rightTrim>maxTrim) {
+        html << "<p>Alignment has too much trim. Left trim = " << leftTrim
+            << " Right trim = " << rightTrim;
+        return;
+    }
 
-
+    
     // Write summary information for this alignment.
     html << "<h3>Alignment summary</h3>";
     displayAlignment(
@@ -2244,6 +2287,8 @@ void Assembler::computeAllAlignments(
     const bool strand0IsPresent = getParameterValue(request, "strand0", strand0);
 
     // Get alignment parameters.
+    computeAllAlignmentsData.method = httpServerData.assemblerOptions->alignOptions.alignMethod;
+    getParameterValue(request, "method", computeAllAlignmentsData.method);
     computeAllAlignmentsData.minMarkerCount = 0;
     getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
     computeAllAlignmentsData.maxSkip = httpServerData.assemblerOptions->alignOptions.maxSkip;
@@ -2254,8 +2299,20 @@ void Assembler::computeAllAlignments(
     getParameterValue(request, "maxMarkerFrequency", computeAllAlignmentsData.maxMarkerFrequency);
     computeAllAlignmentsData.minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
     getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
+    computeAllAlignmentsData.minAlignedFraction = httpServerData.assemblerOptions->alignOptions.minAlignedFraction;
+    getParameterValue(request, "minAlignedFraction", computeAllAlignmentsData.minAlignedFraction);
     computeAllAlignmentsData.maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
     getParameterValue(request, "maxTrim", computeAllAlignmentsData.maxTrim);
+    computeAllAlignmentsData.matchScore = httpServerData.assemblerOptions->alignOptions.matchScore;
+    getParameterValue(request, "matchScore", computeAllAlignmentsData.matchScore);
+    computeAllAlignmentsData.mismatchScore = httpServerData.assemblerOptions->alignOptions.mismatchScore;
+    getParameterValue(request, "mismatchScore", computeAllAlignmentsData.mismatchScore);
+    computeAllAlignmentsData.gapScore = httpServerData.assemblerOptions->alignOptions.gapScore;
+    getParameterValue(request, "gapScore", computeAllAlignmentsData.gapScore);
+    computeAllAlignmentsData.downsamplingFactor = httpServerData.assemblerOptions->alignOptions.downsamplingFactor;
+    getParameterValue(request, "downsamplingFactor", computeAllAlignmentsData.downsamplingFactor);
+    computeAllAlignmentsData.bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
+    getParameterValue(request, "bandExtend", computeAllAlignmentsData.bandExtend);
 
 
     // Write the form.
@@ -2267,28 +2324,100 @@ void Assembler::computeAllAlignments(
         " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+
     html <<
-        " against all other oriented reads with at least"
-        "<input type=text name=minMarkerCount size=8 value=" << computeAllAlignmentsData.minMarkerCount <<
-        "> markers.<br>Maximum ordinal skip allowed: " <<
-        "<input type=text name=maxSkip required size=8 value=" << computeAllAlignmentsData.maxSkip << ">"
-        "<br>Maximum marker frequency: " <<
-        "<input type=text name=maxMarkerFrequency required size=8 value=" <<
+        "<p><table>"
+
+        "<tr><th class=left>Alignment method<td>"
+        "<input type=radio name=method value=0" <<
+        (computeAllAlignmentsData.method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
+        "<input type=radio name=method value=1" <<
+        (computeAllAlignmentsData.method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
+        "<input type=radio name=method value=2" <<
+        (computeAllAlignmentsData.method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
+        "<input type=radio name=method value=3" <<
+        (computeAllAlignmentsData.method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
+
+        "<tr title='Used by alignment method 0'><th class=left>"
+        "Maximum ordinal skip<td class=centered>" <<
+        "<input type=text style='text-align:center' "
+        "name=maxSkip size=16 value=" <<
+        computeAllAlignmentsData.maxSkip << ">"
+
+        "<tr title='Used by alignment method 0'>"
+        "<th class=left>Maximum ordinal drift" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxDrift size=16 value=" <<
+        computeAllAlignmentsData.maxDrift << ">"
+
+        "<tr title='Used by alignment method 0'>"
+        "<th class=left>"
+        "Maximum k-mer frequency " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxMarkerFrequency size=16 value=" <<
         computeAllAlignmentsData.maxMarkerFrequency << ">"
-        "<br>Minimum number of aligned markers"
-        "<input type=text name=minAlignedMarkerCount required size=8 value=" <<
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Match score" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=matchScore size=16 value=" <<
+        computeAllAlignmentsData.matchScore << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Mismatch score " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=mismatchScore size=16 value=" <<
+        computeAllAlignmentsData.mismatchScore << ">"
+
+        "<tr title='Used by alignment methods 1 and 3'><th class=left>Gap score" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=gapScore size=16 value=" <<
+        computeAllAlignmentsData.gapScore << ">"
+
+        "<tr title='Used by alignment method 3'><th class=left>Downsampling ratio" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=downsamplingFactor size=16 value=" <<
+        computeAllAlignmentsData.downsamplingFactor << ">"
+
+        "<tr title='Used by alignment method 3'><th class=left>Band extend" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=bandExtend size=16 value=" <<
+        computeAllAlignmentsData.bandExtend << ">"
+
+        "<tr title='Used to filter poor alignments'>"
+        "<th class=left>"
+        "Minimum number of aligned markers " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=minAlignedMarkerCount size=16 value=" <<
         computeAllAlignmentsData.minAlignedMarkerCount << ">"
-        "<br>Maximum number of trimmed markers"
-        "<input type=text name=maxTrim required size=8 value=" <<
+
+        "<tr title='Used to filter poor alignments'>"
+        "<th class=left>"
+        "Minimum fraction of aligned markers " <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=minAlignedFraction size=16 value=" <<
+        computeAllAlignmentsData.minAlignedFraction << ">"
+
+        "<tr title='Used to filter alignments'>"
+        "<th class=left>Maximum ordinal trim" <<
+        "<td class=centered><input type=text style='text-align:center' "
+        "name=maxTrim size=16 value=" <<
         computeAllAlignmentsData.maxTrim << ">"
+
+        "</table>"
         "</form>";
 
-
-
+    
     // If the readId or strand are missing, stop here.
     if(!readId0IsPresent || !strand0IsPresent) {
         return;
     }
+ 
+#ifndef __linux__
+    if (computeAllAlignmentsData.method == 1) {
+        html << "Alignment method 1 is not supported on macOS.";
+        return;
+    }
+#endif
+ 
     const OrientedReadId orientedReadId0(readId0, strand0);
 
     // Vectors to contain markers sorted by kmerId.
@@ -2390,7 +2519,6 @@ void Assembler::computeAllAlignments(
         1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count()) << "s.";
 #endif
 
-    // Now we can display the alignments.
     html << "<p>Found " << alignments.size() <<
         " alignments satisfying the given criteria.";
     if(alignments.empty()) {
@@ -2414,8 +2542,15 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     const size_t maxSkip = computeAllAlignmentsData.maxSkip;
     const size_t maxDrift = computeAllAlignmentsData.maxDrift;
     const uint32_t maxMarkerFrequency = computeAllAlignmentsData.maxMarkerFrequency;
-    const size_t minAlignedMarkerCount =computeAllAlignmentsData.minAlignedMarkerCount;
-    const size_t maxTrim =computeAllAlignmentsData.maxTrim;
+    const size_t minAlignedMarkerCount = computeAllAlignmentsData.minAlignedMarkerCount;
+    const double minAlignedFraction = computeAllAlignmentsData.minAlignedFraction;
+    const size_t maxTrim = computeAllAlignmentsData.maxTrim;
+    const int method = computeAllAlignmentsData.method;
+    const int matchScore = computeAllAlignmentsData.matchScore;
+    const int mismatchScore = computeAllAlignmentsData.mismatchScore;
+    const int gapScore = computeAllAlignmentsData.gapScore;
+    const double downsamplingFactor = computeAllAlignmentsData.downsamplingFactor;
+    const uint32_t bandExtend = computeAllAlignmentsData.bandExtend;
 
     // Vector where this thread will store the alignments it finds.
     vector< pair<OrientedReadId, AlignmentInfo> >& alignments =
@@ -2456,13 +2591,36 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
 
                 // Compute the alignment.
-                const bool debug = false;
-                alignOrientedReads(
-                    markersSortedByKmerId,
-                    maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                if (method == 0) {
+                    const bool debug = false;
+                    alignOrientedReads(
+                        markersSortedByKmerId,
+                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                } else if (method == 1) {
+#ifdef __linux__
+                    alignOrientedReads1(
+                        orientedReadId0, orientedReadId1,
+                        matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+#else
+                    continue;
+#endif
+                } else if (method == 2) {
+                    alignOrientedReads2(
+                        orientedReadId0, orientedReadId1,
+                        alignment, alignmentInfo);
+                } else if (method == 3) {
+                    alignOrientedReads3(
+                        orientedReadId0, orientedReadId1,
+                        matchScore, mismatchScore, gapScore,
+                        downsamplingFactor, bandExtend,
+                        alignment, alignmentInfo);
+                } else {
+                    SHASTA_ASSERT(0);
+                }
 
-                // If the alignment has too few markers skip it.
-                if(alignment.ordinals.size() < minAlignedMarkerCount) {
+                // If the alignment is poor, skip it.
+                if ((alignment.ordinals.size() < minAlignedMarkerCount) ||
+                    (alignmentInfo.minAlignedFraction() < minAlignedFraction)) {
                     continue;
                 }
 
