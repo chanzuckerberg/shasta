@@ -1352,6 +1352,31 @@ void Assembler::colorGfaWithTwoReads(
 
 
 
+// Color key segments in the gfa file.
+// A segment (assembly graph edge) v0->v1 is a key segment if in-degree(v0)<2 and
+// out_degree(v)<2, that is, there is no uncertainty on what preceeds
+// and follows the segment.
+void Assembler::colorGfaKeySegments(const string& fileName) const
+{
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
+    ofstream csv(fileName);
+    csv << "EdgeId,Color\n";
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraphPointer->edges.size(); edgeId++) {
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+        const AssemblyGraph::VertexId v0 = edge.source;
+        const AssemblyGraph::VertexId v1 = edge.target;
+        const uint64_t inDegree0 = assemblyGraph.edgesByTarget.size(v0);
+        const uint64_t outDegree1 = assemblyGraph.edgesBySource.size(v1);
+        const bool isKeyEdge = (inDegree0 < 2) and (outDegree1 < 2);
+        csv << edgeId << ",";
+        csv << (isKeyEdge ? "Red" : "Grey") << "\n";
+    }
+
+}
+
+
+
 // Write a csv file describing the marker graph path corresponding to an
 // oriented read and the corresponding pseudo-path on the assembly graph.
 void Assembler::writeOrientedReadPath(

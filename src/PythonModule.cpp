@@ -507,6 +507,9 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1"),
             arg("fileName") = "Assembly-BothStrands-Color.csv")
+        .def("colorGfaKeySegments",
+            &Assembler::colorGfaKeySegments,
+            arg("fileName") = "Assembly-BothStrands-Color.csv")
         .def("writeOrientedReadPath",
             &Assembler::writeOrientedReadPath,
             arg("readId"),

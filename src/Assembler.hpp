@@ -1909,6 +1909,14 @@ public:
 
 
 
+    // Color key segments in the gfa file.
+    // A segment (assembly graph edge) v0->v1 is a key segment if in-degree(v0)<2 and
+    // out_degree(v)<2, that is, there is no uncertainty on what preceeds
+    // and follows the segment.
+    void colorGfaKeySegments(const string& fileName) const;
+
+
+
     // Write a csv file describing the marker graph path corresponding to an
     // oriented read and the corresponding pseudo-path on the assembly graph.
     void writeOrientedReadPath(ReadId, Strand, const string& fileName) const;
