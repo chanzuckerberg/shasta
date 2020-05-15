@@ -1923,6 +1923,12 @@ public:
 
 
 
+    // The segment graph is used to detangle and determine reachability
+    // in the assembly graph.
+    void createSegmentGraph();
+
+
+
 
     // Data and functions used for the http server.
     // This function puts the server into an endless loop

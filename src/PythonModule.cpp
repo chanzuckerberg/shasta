@@ -533,6 +533,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::writeOrientedReadsByAssemblyGraphEdge)
         .def("detangle",
             &Assembler::detangle)
+        .def("createSegmentGraph",
+            &Assembler::createSegmentGraph)
 
         // Consensus caller.
         .def("setupConsensusCaller",
