@@ -4828,7 +4828,6 @@ void Assembler::computeOrientedReadMarkerGraphPath(
 
     // Loop over possible values of ordinal0.
     for(uint32_t ordinal0=firstOrdinal; ordinal0<lastOrdinal; ordinal0++) {
-        cout << "ordinal0 = " << ordinal0 << endl;
 
         // Find the associated marker.
         const MarkerId markerId0 =  getMarkerId(orientedReadId, ordinal0);

@@ -1306,7 +1306,6 @@ void Assembler::colorGfaWithTwoReads(
     array<OrientedReadId, 2> orientedReadIds;
     orientedReadIds[0] = OrientedReadId(readId0, strand0);
     orientedReadIds[1] = OrientedReadId(readId1, strand1);
-    cout << "***D" << endl;
 
     // Find assembly graph edges for the two oriented reads.
     vector<MarkerGraph::EdgeId> markerGraphPath;
@@ -1319,13 +1318,10 @@ void Assembler::colorGfaWithTwoReads(
             orientedReadId,
             0, uint32_t(markers.size(orientedReadId.getValue())-1),
             markerGraphPath);
-        cout << "***A " << i << endl;
 
         // Find corresponding assembly graph edges.
         findAssemblyGraphEdges(markerGraphPath, assemblyGraphEdges[i]);
-        cout << "***B " << i << endl;
     }
-    cout << "***E" << endl;
 
 
     ofstream csv(fileName);
@@ -1351,6 +1347,50 @@ void Assembler::colorGfaWithTwoReads(
         }
 
         csv << "\n";
+    }
+}
+
+
+
+// Write a csv file describing the marker graph path corresponding to an
+// oriented read and the corresponding pseudo-path on the assembly graph.
+void Assembler::writeOrientedReadPath(
+    ReadId readId,
+    Strand strand,
+    const string& fileName) const
+{
+    // Compute the path in the marker graph.
+    const OrientedReadId orientedReadId(readId, strand);
+    vector<MarkerGraph::EdgeId> markerGraphPath;
+    computeOrientedReadMarkerGraphPath(
+        orientedReadId,
+        0, uint32_t(markers.size(orientedReadId.getValue())-1),
+        markerGraphPath);
+
+
+
+    // Write it out.
+    ofstream csv(fileName);
+    csv << "Ordinal0,Ordinal1,MarkerGraphEdgeId,AssemblyGraphEdgeId,PositionInAssemblyGraphEdge\n";
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    for(uint32_t ordinal0=0; ordinal0<markerGraphPath.size(); ordinal0++) {
+        const uint32_t ordinal1 = ordinal0 + 1;
+        const MarkerGraph::EdgeId markerGraphEdgeId = markerGraphPath[ordinal0];
+
+        // Get the corresponding assembly graph edges.
+        // If detangling was used, there can be more than one.
+        const span<const pair<AssemblyGraph::EdgeId, uint32_t> > v =
+            assemblyGraph.markerToAssemblyTable[markerGraphEdgeId];
+
+        csv << ordinal0 << ",";
+        csv << ordinal1 << ",";
+        csv << markerGraphEdgeId << ",";
+        for(const auto& p: v) {
+            csv << p.first << ",";
+            csv << p.second << ",";
+        }
+        csv << "\n";
+
     }
 }
 

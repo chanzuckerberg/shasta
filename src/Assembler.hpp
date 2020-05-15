@@ -1909,6 +1909,12 @@ public:
 
 
 
+    // Write a csv file describing the marker graph path corresponding to an
+    // oriented read and the corresponding pseudo-path on the assembly graph.
+    void writeOrientedReadPath(ReadId, Strand, const string& fileName) const;
+
+
+
 
     // Data and functions used for the http server.
     // This function puts the server into an endless loop
