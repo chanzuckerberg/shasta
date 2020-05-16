@@ -1647,101 +1647,37 @@ void Assembler::exploreAlignment(
 
     // Write the form.
     html <<
-        "<p>Compute a marker alignment of these two reads:"
         "<form>"
+        "<input type=submit value='Compute marker alignment'> &nbsp of read &nbsp"
         "<input type=text name=readId0 required size=8 " <<
         (readId0IsPresent ? "value="+to_string(readId0) : "") <<
         " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
     html <<
-         "<br><input type=text name=readId1 required size=8 " <<
-         (readId1IsPresent ? "value="+to_string(readId1) : "") <<
-         " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        "&nbsp and read <input type=text name=readId1 required size=8 " <<
+        (readId1IsPresent ? "value="+to_string(readId1) : "") <<
+        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
 
+    renderEditableAlignmentConfig(
+        method,
+        maxSkip,
+        maxDrift,
+        maxMarkerFrequency,
+        minAlignedMarkerCount,
+        minAlignedFraction,
+        maxTrim,
+        matchScore,
+        mismatchScore,
+        gapScore,
+        downsamplingFactor,
+        bandExtend,
+        html
+    );
 
-    // Write a table with the rest of the form.
-    html <<
-        "<p><table>"
-
-        "<tr><th class=left>Alignment method<td>"
-        "<input type=radio name=method value=0" <<
-        (method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
-        "<input type=radio name=method value=1" <<
-        (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
-        "<input type=radio name=method value=2" <<
-        (method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
-        "<input type=radio name=method value=3" <<
-        (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
-
-        "<tr title='Used by alignment method 0'><th class=left>"
-        "Maximum ordinal skip<td class=centered>" <<
-        "<input type=text style='text-align:center' "
-        "name=maxSkip size=16 value=" <<
-        maxSkip << ">"
-
-        "<tr title='Used by alignment method 0'>"
-        "<th class=left>Maximum ordinal drift" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=maxDrift size=16 value=" <<
-        maxDrift << ">"
-
-        "<tr title='Used by alignment method 0'>"
-        "<th class=left>"
-        "Maximum k-mer frequency " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=maxMarkerFrequency size=16 value=" <<
-        maxMarkerFrequency << ">"
-
-        "<tr title='Used by alignment methods 1 and 3'><th class=left>Match score" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=matchScore size=16 value=" <<
-        matchScore << ">"
-
-        "<tr title='Used by alignment methods 1 and 3'><th class=left>Mismatch score " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=mismatchScore size=16 value=" <<
-        mismatchScore << ">"
-
-        "<tr title='Used by alignment methods 1 and 3'><th class=left>Gap score" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=gapScore size=16 value=" <<
-        gapScore << ">"
-
-        "<tr title='Used by alignment method 3'><th class=left>Downsampling ratio" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=downsamplingFactor size=16 value=" <<
-        downsamplingFactor << ">"
-
-        "<tr title='Used by alignment method 3'><th class=left>Band extend" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=bandExtend size=16 value=" <<
-        bandExtend << ">"
-
-        "<tr title='Used to filter poor alignments'>"
-        "<th class=left>"
-        "Minimum number of aligned markers " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=minAlignedMarkerCount size=16 value=" <<
-        minAlignedMarkerCount << ">"
-
-        "<tr title='Used to filter poor alignments'>"
-        "<th class=left>"
-        "Minimum fraction of aligned markers " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=minAlignedFraction size=16 value=" <<
-        minAlignedFraction << ">"
-
-        "<tr title='Used to filter alignments'>"
-        "<th class=left>Maximum ordinal trim" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=maxTrim size=16 value=" <<
-        maxTrim << ">"
-
-        "</table><p><input type=submit value='Compute marker alignment'>"
-        "</form>";
+    html << "</form>";
 
 
     // If the readId's or strand's are missing, stop here.
@@ -2272,7 +2208,105 @@ void Assembler::displayAlignmentMatrix(
 #endif
 }
 
+void Assembler::renderEditableAlignmentConfig(
+    const int method,
+    const uint64_t maxSkip,
+    const uint64_t maxDrift,
+    const uint32_t maxMarkerFrequency,
+    const uint64_t minAlignedMarkerCount,
+    const double minAlignedFraction,
+    const uint64_t maxTrim,
+    const int matchScore,
+    const int mismatchScore,
+    const int gapScore,
+    const double downsamplingFactor,
+    const uint32_t bandExtend,
+    ostream& html
+) {
+    const auto& descriptions = httpServerData.assemblerOptions->allOptionsDescription;
 
+    html << "<p><table>";
+
+    html << "<tr><th class=left>[Align]<th class=center>Value<th class=left>Description";
+        
+    html << "<tr><th class=left>alignMethod<td>"
+        "<input type=radio computeAllAlignname=method value=0" <<
+        (method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
+        "<input type=radio name=method value=1" <<
+        (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
+        "<input type=radio name=method value=2" <<
+        (method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
+        "<input type=radio name=method value=3" <<
+        (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
+        "<td>" << descriptions.find("Align.alignMethod", false).description();
+
+    html << "<tr><th class=left>maxSkip"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=maxSkip size=16 value=" << maxSkip << ">"
+        "<td>" << descriptions.find("Align.maxSkip", false).description();
+
+    html << "<tr>"
+        "<th class=left>maxDrift"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=maxDrift size=16 value=" << maxDrift << ">"
+        "<td>" << descriptions.find("Align.maxDrift", false).description();
+
+    html << "<tr>"
+        "<th class=left>maxMarkerFrequency"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=maxMarkerFrequency size=16 value=" << maxMarkerFrequency << ">"
+        "<td>" << descriptions.find("Align.maxMarkerFrequency", false).description();
+
+    html << "<tr>"
+        "<th class=left>matchScore"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=matchScore size=16 value=" << matchScore << ">"
+        "<td>" << descriptions.find("Align.matchScore", false).description();
+
+    html << "<tr>"
+        "<th class=left>mismatchScore "
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=mismatchScore size=16 value=" << mismatchScore << ">"
+        "<td>" << descriptions.find("Align.mismatchScore", false).description();
+
+    html << "<tr>"
+        "<th class=left>gapScore"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=gapScore size=16 value=" << gapScore << ">"
+        "<td>" << descriptions.find("Align.gapScore", false).description();
+
+    html << "<tr>"
+        "<th class=left>downsamplingFactor"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=downsamplingFactor size=16 value=" << downsamplingFactor << ">"
+        "<td>" << descriptions.find("Align.downsamplingFactor", false).description();
+
+    html << "<tr>"
+        "<th class=left>bandExtend"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=bandExtend size=16 value=" << bandExtend << ">"
+        "<td>" << descriptions.find("Align.bandExtend", false).description();
+
+    html << "<tr>"
+        "<th class=left>minAlignedMarkers"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=minAlignedMarkerCount size=16 value=" << minAlignedMarkerCount << ">"
+        "<td>" << descriptions.find("Align.minAlignedMarkerCount", false).description();
+
+    html << "<tr>"
+        "<th class=left>minAlignedFraction"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=minAlignedFraction size=16 value=" << minAlignedFraction << ">"
+        "<td>" << descriptions.find("Align.minAlignedFraction", false).description();
+
+    html << "<tr>"
+        "<th class=left>maxTrim"
+        "<td class=centered>"
+            "<input type=text style='text-align:center' name=maxTrim size=16 value=" << maxTrim << ">"
+        "<td>" << descriptions.find("Align.maxTrim", false).description();
+
+    html << "</table>";
+}
 
 // Compute alignments on an oriented read against
 // all other oriented reads.
@@ -2325,85 +2359,23 @@ void Assembler::computeAllAlignments(
         " on strand ";
     writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
 
-    html <<
-        "<p><table>"
-
-        "<tr><th class=left>Alignment method<td>"
-        "<input type=radio name=method value=0" <<
-        (computeAllAlignmentsData.method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
-        "<input type=radio name=method value=1" <<
-        (computeAllAlignmentsData.method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
-        "<input type=radio name=method value=2" <<
-        (computeAllAlignmentsData.method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
-        "<input type=radio name=method value=3" <<
-        (computeAllAlignmentsData.method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
-
-        "<tr title='Used by alignment method 0'><th class=left>"
-        "Maximum ordinal skip<td class=centered>" <<
-        "<input type=text style='text-align:center' "
-        "name=maxSkip size=16 value=" <<
-        computeAllAlignmentsData.maxSkip << ">"
-
-        "<tr title='Used by alignment method 0'>"
-        "<th class=left>Maximum ordinal drift" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=maxDrift size=16 value=" <<
-        computeAllAlignmentsData.maxDrift << ">"
-
-        "<tr title='Used by alignment method 0'>"
-        "<th class=left>"
-        "Maximum k-mer frequency " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=maxMarkerFrequency size=16 value=" <<
-        computeAllAlignmentsData.maxMarkerFrequency << ">"
-
-        "<tr title='Used by alignment methods 1 and 3'><th class=left>Match score" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=matchScore size=16 value=" <<
-        computeAllAlignmentsData.matchScore << ">"
-
-        "<tr title='Used by alignment methods 1 and 3'><th class=left>Mismatch score " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=mismatchScore size=16 value=" <<
-        computeAllAlignmentsData.mismatchScore << ">"
-
-        "<tr title='Used by alignment methods 1 and 3'><th class=left>Gap score" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=gapScore size=16 value=" <<
-        computeAllAlignmentsData.gapScore << ">"
-
-        "<tr title='Used by alignment method 3'><th class=left>Downsampling ratio" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=downsamplingFactor size=16 value=" <<
-        computeAllAlignmentsData.downsamplingFactor << ">"
-
-        "<tr title='Used by alignment method 3'><th class=left>Band extend" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=bandExtend size=16 value=" <<
-        computeAllAlignmentsData.bandExtend << ">"
-
-        "<tr title='Used to filter poor alignments'>"
-        "<th class=left>"
-        "Minimum number of aligned markers " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=minAlignedMarkerCount size=16 value=" <<
-        computeAllAlignmentsData.minAlignedMarkerCount << ">"
-
-        "<tr title='Used to filter poor alignments'>"
-        "<th class=left>"
-        "Minimum fraction of aligned markers " <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=minAlignedFraction size=16 value=" <<
-        computeAllAlignmentsData.minAlignedFraction << ">"
-
-        "<tr title='Used to filter alignments'>"
-        "<th class=left>Maximum ordinal trim" <<
-        "<td class=centered><input type=text style='text-align:center' "
-        "name=maxTrim size=16 value=" <<
-        computeAllAlignmentsData.maxTrim << ">"
-
-        "</table>"
-        "</form>";
+    renderEditableAlignmentConfig(
+        computeAllAlignmentsData.method,
+        computeAllAlignmentsData.maxSkip,
+        computeAllAlignmentsData.maxDrift,
+        computeAllAlignmentsData.maxMarkerFrequency,
+        computeAllAlignmentsData.minAlignedMarkerCount,
+        computeAllAlignmentsData.minAlignedFraction,
+        computeAllAlignmentsData.maxTrim,
+        computeAllAlignmentsData.matchScore,
+        computeAllAlignmentsData.mismatchScore,
+        computeAllAlignmentsData.gapScore,
+        computeAllAlignmentsData.downsamplingFactor,
+        computeAllAlignmentsData.bandExtend,
+        html
+    );
+    
+    html << "</form>";
 
     
     // If the readId or strand are missing, stop here.
