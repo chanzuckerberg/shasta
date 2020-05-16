@@ -35,7 +35,7 @@ void Assembler::exploreRead(
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Show' style='background-color:dodgerblue;padding:4px'> " <<
+        "<input type=submit value='Show'> " <<
         "read &nbsp" <<
         "<input type=text name=readId required" <<
         (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<

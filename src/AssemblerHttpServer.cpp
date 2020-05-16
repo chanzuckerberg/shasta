@@ -152,7 +152,8 @@ void Assembler::writeStyle(ostream& html)
         border-collapse: collapse;
     }
     th, td {
-        border: 2px solid MediumSlateBlue;
+        border: 1px solid #b8b5c7d9;
+        padding: 2px;
     }
     th {
         font-weight: bold;
@@ -166,6 +167,9 @@ void Assembler::writeStyle(ostream& html)
     }
     td.right {
         text-align: right;
+    }
+    td.smaller {
+        font-size: smaller;
     }
     a {
         color: DarkSlateBlue;
@@ -216,7 +220,21 @@ void Assembler::writeStyle(ostream& html)
     
     .navigationMenuEntry:hover .navigationItems {
         display: block;
-}
+    }
+
+    input[type=submit] {
+        background-color: #89bef2;
+        padding: 4px;
+    }
+
+    input[type=button] {
+        padding: 4px;
+    }
+
+    input[type=text], input[type=radio] {
+        background-color: #ecf1f0;
+        border-width: thin;
+    }
 </style>
     )%";
 }
@@ -1648,7 +1666,8 @@ void Assembler::exploreAlignment(
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Compute marker alignment'> &nbsp of read &nbsp"
+        "<input type=submit value='Compute marker alignment'>"
+        "&nbsp of read &nbsp"
         "<input type=text name=readId0 required size=8 " <<
         (readId0IsPresent ? "value="+to_string(readId0) : "") <<
         " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
@@ -2225,7 +2244,7 @@ void Assembler::renderEditableAlignmentConfig(
 ) {
     const auto& descriptions = httpServerData.assemblerOptions->allOptionsDescription;
 
-    html << "<p><table>";
+    html << "<p><table >";
 
     html << "<tr><th class=left>[Align]<th class=center>Value<th class=left>Description";
         
@@ -2238,72 +2257,72 @@ void Assembler::renderEditableAlignmentConfig(
         (method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
         "<input type=radio name=method value=3" <<
         (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
-        "<td>" << descriptions.find("Align.alignMethod", false).description();
+        "<td class=smaller>" << descriptions.find("Align.alignMethod", false).description();
 
     html << "<tr><th class=left>maxSkip"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=maxSkip size=16 value=" << maxSkip << ">"
-        "<td>" << descriptions.find("Align.maxSkip", false).description();
+            "<input type=text style='text-align:center;border:none' name=maxSkip size=16 value=" << maxSkip << ">"
+        "<td class=smaller>" << descriptions.find("Align.maxSkip", false).description();
 
     html << "<tr>"
         "<th class=left>maxDrift"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=maxDrift size=16 value=" << maxDrift << ">"
-        "<td>" << descriptions.find("Align.maxDrift", false).description();
+            "<input type=text style='text-align:center;border:none' name=maxDrift size=16 value=" << maxDrift << ">"
+        "<td class=smaller>" << descriptions.find("Align.maxDrift", false).description();
 
     html << "<tr>"
         "<th class=left>maxMarkerFrequency"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=maxMarkerFrequency size=16 value=" << maxMarkerFrequency << ">"
-        "<td>" << descriptions.find("Align.maxMarkerFrequency", false).description();
+            "<input type=text style='text-align:center;border:none' name=maxMarkerFrequency size=16 value=" << maxMarkerFrequency << ">"
+        "<td class=smaller>" << descriptions.find("Align.maxMarkerFrequency", false).description();
 
     html << "<tr>"
         "<th class=left>matchScore"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=matchScore size=16 value=" << matchScore << ">"
-        "<td>" << descriptions.find("Align.matchScore", false).description();
+            "<input type=text style='text-align:center;border:none' name=matchScore size=16 value=" << matchScore << ">"
+        "<td class=smaller>" << descriptions.find("Align.matchScore", false).description();
 
     html << "<tr>"
         "<th class=left>mismatchScore "
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=mismatchScore size=16 value=" << mismatchScore << ">"
-        "<td>" << descriptions.find("Align.mismatchScore", false).description();
+            "<input type=text style='text-align:center;border:none' name=mismatchScore size=16 value=" << mismatchScore << ">"
+        "<td class=smaller>" << descriptions.find("Align.mismatchScore", false).description();
 
     html << "<tr>"
         "<th class=left>gapScore"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=gapScore size=16 value=" << gapScore << ">"
-        "<td>" << descriptions.find("Align.gapScore", false).description();
+            "<input type=text style='text-align:center;border:none' name=gapScore size=16 value=" << gapScore << ">"
+        "<td class=smaller>" << descriptions.find("Align.gapScore", false).description();
 
     html << "<tr>"
         "<th class=left>downsamplingFactor"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=downsamplingFactor size=16 value=" << downsamplingFactor << ">"
-        "<td>" << descriptions.find("Align.downsamplingFactor", false).description();
+            "<input type=text style='text-align:center;border:none' name=downsamplingFactor size=16 value=" << downsamplingFactor << ">"
+        "<td class=smaller>" << descriptions.find("Align.downsamplingFactor", false).description();
 
     html << "<tr>"
         "<th class=left>bandExtend"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=bandExtend size=16 value=" << bandExtend << ">"
-        "<td>" << descriptions.find("Align.bandExtend", false).description();
+            "<input type=text style='text-align:center;border:none' name=bandExtend size=16 value=" << bandExtend << ">"
+        "<td class=smaller>" << descriptions.find("Align.bandExtend", false).description();
 
     html << "<tr>"
         "<th class=left>minAlignedMarkers"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=minAlignedMarkerCount size=16 value=" << minAlignedMarkerCount << ">"
-        "<td>" << descriptions.find("Align.minAlignedMarkerCount", false).description();
+            "<input type=text style='text-align:center;border:none' name=minAlignedMarkerCount size=16 value=" << minAlignedMarkerCount << ">"
+        "<td class=smaller>" << descriptions.find("Align.minAlignedMarkerCount", false).description();
 
     html << "<tr>"
         "<th class=left>minAlignedFraction"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=minAlignedFraction size=16 value=" << minAlignedFraction << ">"
-        "<td>" << descriptions.find("Align.minAlignedFraction", false).description();
+            "<input type=text style='text-align:center;border:none' name=minAlignedFraction size=16 value=" << minAlignedFraction << ">"
+        "<td class=smaller>" << descriptions.find("Align.minAlignedFraction", false).description();
 
     html << "<tr>"
         "<th class=left>maxTrim"
         "<td class=centered>"
-            "<input type=text style='text-align:center' name=maxTrim size=16 value=" << maxTrim << ">"
-        "<td>" << descriptions.find("Align.maxTrim", false).description();
+            "<input type=text style='text-align:center;border:none' name=maxTrim size=16 value=" << maxTrim << ">"
+        "<td class=smaller>" << descriptions.find("Align.maxTrim", false).description();
 
     html << "</table>";
 }
@@ -2352,8 +2371,9 @@ void Assembler::computeAllAlignments(
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Compute marker alignments'> of oriented read"
-        " <input type=text name=readId0 required size=8 " <<
+        "<input type=submit value='Compute marker alignments'>"
+        "&nbsp of oriented read &nbsp"
+        "<input type=text name=readId0 required size=8 " <<
         (readId0IsPresent ? "value="+to_string(readId0) : "") <<
         " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
         " on strand ";
