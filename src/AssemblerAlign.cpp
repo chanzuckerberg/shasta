@@ -414,13 +414,9 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
                         maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
 
                 } else if(alignmentMethod == 1) {
-#ifdef __linux__
                     alignOrientedReads1(orientedReadIds[0], orientedReadIds[1],
                         matchScore, mismatchScore, gapScore,
                         alignment, alignmentInfo);
-#else
-                    throw runtime_error("Align method 1 is not supported on macOS.");
-#endif
                 } else if(alignmentMethod == 2) {
                     alignOrientedReads2(orientedReadIds[0], orientedReadIds[1],
                         alignment, alignmentInfo);
