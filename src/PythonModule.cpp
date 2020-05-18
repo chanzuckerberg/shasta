@@ -7,7 +7,6 @@
 #include "compressAlignment.hpp"
 #include "deduplicate.hpp"
 #include "dset64Test.hpp"
-#include "edlibTest.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
 #include "MultithreadedObject.hpp"
@@ -662,9 +661,6 @@ PYBIND11_MODULE(shasta, module)
         arg("threadCount"),
         arg("batchSize"),
         arg("seed")
-        );
-    module.def("edlibTest",
-        edlibTest
         );
     module.def("mappedCopy",
         mappedCopy

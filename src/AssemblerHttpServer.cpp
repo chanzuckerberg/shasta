@@ -1738,10 +1738,6 @@ void Assembler::exploreAlignment(
         alignOrientedReads1(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
-    } else if(method == 2) {
-        alignOrientedReads2(
-            orientedReadId0, orientedReadId1,
-            alignment, alignmentInfo);
     } else if(method == 3) {
         alignOrientedReads3(
             orientedReadId0, orientedReadId1,
@@ -2247,8 +2243,6 @@ void Assembler::renderEditableAlignmentConfig(
         "<input type=radio name=method value=1" <<
         (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
         "<input type=radio name=method value=2" <<
-        (method==2 ? " checked=checked" : "") << "> 2 (Edlib)<br>"
-        "<input type=radio name=method value=3" <<
         (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
         "<td class=smaller>" << descriptions.find("Align.alignMethod", false).description();
 
@@ -2578,10 +2572,6 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                     alignOrientedReads1(
                         orientedReadId0, orientedReadId1,
                         matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
-                } else if (method == 2) {
-                    alignOrientedReads2(
-                        orientedReadId0, orientedReadId1,
-                        alignment, alignmentInfo);
                 } else if (method == 3) {
                     alignOrientedReads3(
                         orientedReadId0, orientedReadId1,

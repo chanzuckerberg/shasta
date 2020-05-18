@@ -200,15 +200,12 @@ void shasta::main::assemble(
         }
     }
 
-    // MacOS does not support alignment method 1.
-#ifndef __linux__
-    if(assemblerOptions.alignOptions.alignMethod == 1) {
-        throw runtime_error("Align method 1 is not supported on macOS.");
+    if(assemblerOptions.alignOptions.alignMethod != 0 &&
+        assemblerOptions.alignOptions.alignMethod != 1 &&
+        assemblerOptions.alignOptions.alignMethod != 3) {
+        throw runtime_error("Align method " + to_string(assemblerOptions.alignOptions.alignMethod) + 
+            " is not valid. Valid options are 0, 1 & 3.");
     }
-
-#endif
-
-
 
     // Write a startup message.
     cout << timestamp << startupMessage << endl;

@@ -417,9 +417,6 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
                     alignOrientedReads1(orientedReadIds[0], orientedReadIds[1],
                         matchScore, mismatchScore, gapScore,
                         alignment, alignmentInfo);
-                } else if(alignmentMethod == 2) {
-                    alignOrientedReads2(orientedReadIds[0], orientedReadIds[1],
-                        alignment, alignmentInfo);
                 } else if(alignmentMethod == 3) {
                     alignOrientedReads3(orientedReadIds[0], orientedReadIds[1],
                         matchScore, mismatchScore, gapScore,

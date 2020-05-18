@@ -984,15 +984,6 @@ public:
 private:
 
 
-
-    // Alternative alignment function with 2 suffix (Edlib).
-    void alignOrientedReads2(
-        OrientedReadId,
-        OrientedReadId,
-        Alignment&,
-        AlignmentInfo&);
-
-
     // Alternative alignment function with 3 suffix (SeqAn, banded).
     void alignOrientedReads3(
         OrientedReadId,
