@@ -2035,6 +2035,21 @@ public:
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
     void exploreMarkerCoverage(const vector<string>&, ostream&);
     void exploreMarkerGraphInducedAlignment(const vector<string>&, ostream&);
+    void renderEditableAlignmentConfig(
+        const int method,
+        const uint64_t maxSkip,
+        const uint64_t maxDrift,
+        const uint32_t maxMarkerFrequency,
+        const uint64_t minAlignedMarkerCount,
+        const double minAlignedFraction,
+        const uint64_t maxTrim,
+        const int matchScore,
+        const int mismatchScore,
+        const int gapScore,
+        const double downsamplingFactor,
+        const uint32_t bandExtend,
+        ostream& html
+    );
 #endif
 
 
