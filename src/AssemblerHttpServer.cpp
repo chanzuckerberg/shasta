@@ -20,9 +20,7 @@ using namespace shasta;
 
 // Seqan
 #ifdef SHASTA_HTTP_SERVER
-#ifdef __linux__
 #include <seqan/align.h>
-#endif
 #endif
 
 
@@ -1737,14 +1735,9 @@ void Assembler::exploreAlignment(
             return;
         }
     } else if(method == 1) {
-#ifdef __linux__
         alignOrientedReads1(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
-#else
-        html << "<p>Alignment method 1 is not available on macOS.";
-        return;
-#endif
     } else if(method == 2) {
         alignOrientedReads2(
             orientedReadId0, orientedReadId1,
@@ -2403,13 +2396,6 @@ void Assembler::computeAllAlignments(
         return;
     }
  
-#ifndef __linux__
-    if (computeAllAlignmentsData.method == 1) {
-        html << "Alignment method 1 is not supported on macOS.";
-        return;
-    }
-#endif
- 
     const OrientedReadId orientedReadId0(readId0, strand0);
 
     // Vectors to contain markers sorted by kmerId.
@@ -2589,13 +2575,9 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                         markersSortedByKmerId,
                         maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
                 } else if (method == 1) {
-#ifdef __linux__
                     alignOrientedReads1(
                         orientedReadId0, orientedReadId1,
                         matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
-#else
-                    continue;
-#endif
                 } else if (method == 2) {
                     alignOrientedReads2(
                         orientedReadId0, orientedReadId1,

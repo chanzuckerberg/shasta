@@ -18,6 +18,9 @@ brew install libpng
 # Assume zlib is always available.
 # brew install zlib 
 
+# Install SeqAn 2.4.0
+brew install brewsci/bio/seqan@2
+
 # Build the spoa library (static library only).
 
 # Create a temporary directory and cd to it.

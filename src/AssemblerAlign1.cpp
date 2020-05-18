@@ -6,27 +6,7 @@ using namespace shasta;
 #include "chrono.hpp"
 
 // Seqan.
-#ifdef __linux__
 #include <seqan/align.h>
-#endif
-
-
-
-#ifndef __linux__
-
-// For macOS we don't have SeqAn, so we can't do any of this.
-void Assembler::alignOrientedReads1(
-    ReadId readId0, Strand strand0,
-    ReadId readId1, Strand strand1,
-    int matchScore,
-    int mismatchScore,
-    int gapScore)
-{
-    throw runtime_error("alignOrientedReads1 is not available on macOS.");
-}
-
-#else
-
 
 
 void Assembler::alignOrientedReads1(
@@ -239,7 +219,4 @@ void Assembler::alignOrientedReads1(
 #endif
 
 }
-
-#endif
-
 

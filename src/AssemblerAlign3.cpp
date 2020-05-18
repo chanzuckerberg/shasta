@@ -6,33 +6,9 @@ using namespace shasta;
 
 
 // Seqan.
-#ifdef __linux__
 #include <seqan/align.h>
-#endif
 
 #include <numeric>
-
-
-
-#ifndef __linux__
-
-// For macOS we don't have SeqAn, so we can't do any of this.
-void Assembler::alignOrientedReads3(
-    OrientedReadId orientedReadId0,
-    OrientedReadId orientedReadId1,
-    int matchScore,
-    int mismatchScore,
-    int gapScore,
-    double downsamplingFactor,  // The fraction of markers to keep in the first step.
-    int bandExtend,             // How much to extend the band computed in the first step.
-    Alignment& alignment,
-    AlignmentInfo& alignmentInfo)
-{
-    throw runtime_error("alignOrientedReads3 is not available on macOS.");
-}
-
-#else
-
 
 
 // Align two oriented reads using SeqAn banded alignment.
@@ -309,4 +285,3 @@ void Assembler::alignOrientedReads3(
 
 }
 
-#endif
