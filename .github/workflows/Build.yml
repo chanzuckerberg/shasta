@@ -29,7 +29,7 @@ jobs:
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-Ubuntu-18.04/bin/shasta --input tests/TinyTest.fasta
+        shasta-build/shasta-Ubuntu-18.04/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
@@ -67,7 +67,7 @@ jobs:
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shastaGpu-Ubuntu-18.04/bin/shastaGpu --input tests/TinyTest.fasta
+        shasta-build/shastaGpu-Ubuntu-18.04/bin/shastaGpu --Align.alignMethod 3 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
@@ -103,7 +103,7 @@ jobs:
       run: |
         sudo apt install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-Ubuntu-16.04/bin/shasta --input tests/TinyTest.fasta
+        shasta-build/shasta-Ubuntu-16.04/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
@@ -138,7 +138,7 @@ jobs:
       run: |
         brew install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-install/bin/shasta --input tests/TinyTest.fasta
+        shasta-build/shasta-install/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
@@ -169,7 +169,7 @@ jobs:
       run: |
         brew install gzip
         gunzip tests/TinyTest.fasta.gz
-        shasta-build/shasta-install/bin/shasta --input tests/TinyTest.fasta
+        shasta-build/shasta-install/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
