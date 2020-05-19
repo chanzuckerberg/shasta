@@ -513,11 +513,6 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                         matchScore, mismatchScore, gapScore,
                         alignment, alignmentInfo
                     );
-                } else if(alignMethod == 2) {
-                    alignOrientedReads2(
-                        orientedReadIds[0], orientedReadIds[1],
-                        alignment, alignmentInfo
-                    );
                 } else if(alignMethod == 3) {
                     alignOrientedReads3(
                         orientedReadIds[0], orientedReadIds[1],
