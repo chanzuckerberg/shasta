@@ -22,6 +22,20 @@ bool SimpleBayesianConsensusCaller::constructBuiltin(const string& constructorSt
         return true;
     }
 
+    if(constructorString == "guppy-3.4.4-a"){
+        #include "SimpleBayesianConsensusCaller-Builtin-guppy-3.4.4-a.hpp"
+        return true;
+    }
+
+    if(constructorString == "guppy-3.6.0-a"){
+        #include "SimpleBayesianConsensusCaller-Builtin-guppy-3.6.0-a.hpp"
+        return true;
+    }
+
+    if(constructorString == "r10-guppy-3.4.8-a"){
+        #include "SimpleBayesianConsensusCaller-Builtin-r10-guppy-3.4.8-a.hpp"
+        return true;
+    }
     return false;
 }
 

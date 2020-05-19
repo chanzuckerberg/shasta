@@ -145,7 +145,8 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
             const string errorMessage = constructorString + " is not the name of a built-in Bayesian model "
                 "and therefore it must be an absolute path to a configuration file. "
                 "A relative path is not accepted. "
-                "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a";
+                "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a, "
+                "guppy-3.4.4-a, guppy-3.6.0-a, r10-guppy-3.4.8-a.";
             throw runtime_error(errorMessage);
         }
         ifstream matrixFile(constructorString);
