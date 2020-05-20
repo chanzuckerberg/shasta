@@ -3774,13 +3774,15 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 
 
-    // Mark as to be kept all edges in between components.
+    // Mark as to be kept all assembly graph edges in between components
+    // or with length up to maxLength.
     vector<bool> keepAssemblyGraphEdge(assemblyGraph.edges.size(), false);
     for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
         const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
         const AssemblyGraph::VertexId v0 = edge.source;
         const AssemblyGraph::VertexId v1 = edge.target;
-        if(disjointSets.find_set(v0) != disjointSets.find_set(v1)) {
+        if((disjointSets.find_set(v0) != disjointSets.find_set(v1)) or
+            (assemblyGraph.edgeLists[edgeId].size() > maxLength)) {
             keepAssemblyGraphEdge[edgeId] = true;
         }
     }
