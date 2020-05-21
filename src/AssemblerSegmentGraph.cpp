@@ -1,37 +1,44 @@
 #include "Assembler.hpp"
+#include "SegmentGraph.hpp"
 using namespace shasta;
 
-// The segment graph is used to detangle and determine reachability
+#include <boost/graph/iteration_macros.hpp>
+
+#include <map>
+
+// The segment graph is used to detangle and analyze reachability
 // in the assembly graph.
 
+// In the segment graph, each vertex corresponds to an assembly
+// graph edge (segment). But not every assembly graph edge corresponds to
+// a segment graph vertex.
+// An edge is created between two vertices if there are one
+// or more oriented reads that encounter the two corresponding key
+// assembly graph edges consecutively and in that order.
 
 
 void Assembler::createSegmentGraph()
 {
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
-
-    // Figure out which segments are essential.
-    // A segment (assembly graph edge) v0->v1 is a key segment if in-degree(v0)<2 and
-    // out_degree(v)<2, that is, there is no uncertainty on what preceeds
-    // and follows the segment.
-    vector<bool> isKeyEdge(assemblyGraph.edges.size());
-    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
-        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
-        const AssemblyGraph::VertexId v0 = edge.source;
-        const AssemblyGraph::VertexId v1 = edge.target;
-        const uint64_t inDegree0 = assemblyGraph.edgesByTarget.size(v0);
-        const uint64_t outDegree1 = assemblyGraph.edgesBySource.size(v1);
-        isKeyEdge[edgeId] = (inDegree0 < 2) and (outDegree1 < 2);
-    }
+    cout << "The assembly graph has " << assemblyGraph.vertices.size() <<
+        " vertices and " << assemblyGraph.edges.size() << " edges." << endl;
 
 
 
-    // Loop over all oriented reads.
+
+    // Each oriented read is guaranteed to correspond to a path in the marker graph.
+    // But because of transitive reduction, that path does not necessarily correspond
+    // to a path in the assembly graph.
+    // Here we find, for each oriented read, the sequence of assembly graph edges
+    // encountered along its marker graph path.
+    // This vector is indexed by OrientedReadId::getValue().
+    vector< vector<AssemblyGraph::EdgeId> > orientedReadAssemblyGraphEdges(2*readCount());
     vector<MarkerGraph::EdgeId> markerGraphPath;
-    std::map<pair<MarkerGraph::EdgeId, MarkerGraph::EdgeId>, uint64_t> segmentGraphEdges;
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
+            vector<AssemblyGraph::EdgeId>& assemblyGraphEdges =
+                orientedReadAssemblyGraphEdges[orientedReadId.getValue()];
 
             // Find the marker graph path of this oriented read.
             computeOrientedReadMarkerGraphPath(
@@ -39,8 +46,9 @@ void Assembler::createSegmentGraph()
                 0, uint32_t(markers.size(orientedReadId.getValue())-1),
                 markerGraphPath);
 
-            // Loop over the path, looking for key assembly graph segments (edges).
-            AssemblyGraph::EdgeId previousAssemblyGraphEdgeId = std::numeric_limits<AssemblyGraph::EdgeId>::max();
+            // Loop over the path.
+            AssemblyGraph::EdgeId previousAssemblyGraphEdgeId =
+                std::numeric_limits<AssemblyGraph::EdgeId>::max();
             for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphPath) {
 
                 // Get the corresponding assembly graph edges.
@@ -56,45 +64,153 @@ void Assembler::createSegmentGraph()
                 // and we don't want this here.
                 SHASTA_ASSERT(v.size() == 1);
 
-                // Of, there is only one.
+                // There is only one assembly graph edge.
                 const AssemblyGraph::EdgeId assemblyGraphEdgeId = v.front().first;
-
-                // If not a key edge, skip.
-                if(not isKeyEdge[assemblyGraphEdgeId]) {
-                    continue;
-                }
 
                 // If same as the previous, slip.
                 if(assemblyGraphEdgeId == previousAssemblyGraphEdgeId) {
                     continue;
                 }
 
-                if(previousAssemblyGraphEdgeId != std::numeric_limits<AssemblyGraph::EdgeId>::max()) {
-                    // We found a transition between key segments.
-                    // This generates an edge in the segment graph.
-                    const auto key = make_pair(previousAssemblyGraphEdgeId, assemblyGraphEdgeId);
-                    const auto it = segmentGraphEdges.find(key);
-                    if(it == segmentGraphEdges.end()) {
-                        segmentGraphEdges.insert(
-                            make_pair(make_pair(previousAssemblyGraphEdgeId, assemblyGraphEdgeId), 1));
-                    } else {
-                        ++it->second;
+                // This is the next key assembly graph edge encountered
+                // by this oriented read along its marker graph path. Store it.
+                assemblyGraphEdges.push_back(assemblyGraphEdgeId);
+                previousAssemblyGraphEdgeId = assemblyGraphEdgeId;
+            }
+        }
+    }
+
+
+
+    // Write a csv file with the sequence of assembly graph edges
+    // for each oriented read.
+    ofstream csv("OrientedReadSegments.csv");
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            csv << orientedReadId << ",";
+
+            vector<AssemblyGraph::EdgeId>& keyAssemblyGraphEdges =
+                orientedReadAssemblyGraphEdges[orientedReadId.getValue()];
+            for(const AssemblyGraph::EdgeId edgeId: keyAssemblyGraphEdges) {
+                csv << edgeId << ",";
+            }
+            csv << "\n";
+        }
+    }
+
+
+
+    // Initially, we will generate segment graph vertices only for
+    // assembly graph edges (segments) v0->v1 such that in-degree(v0)<2 and
+    // out_degree(v)<2, that is, there is no uncertainty on what precedes
+    // and follows the segment. In some other places in the code, these
+    // are called "key" edges of the assembly graph or "key" segments.
+    vector<bool> isSegmentIncluded(assemblyGraph.edges.size());
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+        const AssemblyGraph::VertexId v0 = edge.source;
+        const AssemblyGraph::VertexId v1 = edge.target;
+        const uint64_t inDegree0 = assemblyGraph.edgesByTarget.size(v0);
+        const uint64_t outDegree1 = assemblyGraph.edgesBySource.size(v1);
+        isSegmentIncluded[edgeId] = (inDegree0 < 2) and (outDegree1 < 2);
+    }
+
+
+
+    // Main iteration. At each iteration, some vertices disappear.
+    for(uint64_t iteration=0; ; iteration++) {
+        cout << "Iteration " << iteration << " begins." << endl;
+
+        // Create SegmentGraph vertices.
+        // We generate a vertex for each assembly graph edge (segment)
+        // for which isSegmentIncluded is true.
+        SegmentGraph segmentGraph;
+        std::map<AssemblyGraph::EdgeId, SegmentGraph::vertex_descriptor> vertexMap;
+        for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+            if(isSegmentIncluded[edgeId]) {
+                SegmentGraph::vertex_descriptor v = add_vertex(SegmentGraphVertex(edgeId), segmentGraph);
+                vertexMap.insert(make_pair(edgeId, v));
+            }
+        }
+
+        // Create segment graph edges.
+        // Follow the sequence of assembly graph edges
+        // for each oriented read.
+        vector<AssemblyGraph::EdgeId> v;
+        for(ReadId readId=0; readId<readCount(); readId++) {
+            for(Strand strand=0; strand<2; strand++) {
+                const OrientedReadId orientedReadId(readId, strand);
+
+                // The sequence of assembly graph edges encountered by this oriented read.
+                vector<AssemblyGraph::EdgeId>& assemblyGraphEdges =
+                    orientedReadAssemblyGraphEdges[orientedReadId.getValue()];
+
+                // Gather into working vector v the assembly graph edges
+                // of this read for which isSegmentIncluded is true.
+                v.clear();
+                for(const AssemblyGraph::EdgeId edgeId: assemblyGraphEdges) {
+                    if(isSegmentIncluded[edgeId]) {
+                        v.push_back(edgeId);
                     }
                 }
 
-                previousAssemblyGraphEdgeId = assemblyGraphEdgeId;
+                // Now we can generate the edges.
+                for(uint64_t i=1; i<v.size(); i++) {
+                    const AssemblyGraph::EdgeId edgeId0 = v[i-1];
+                    const AssemblyGraph::EdgeId edgeId1 = v[i];
+
+                    // Find the corresponding vertices of the segment graph.
+                    const auto it0 = vertexMap.find(edgeId0);
+                    SHASTA_ASSERT(it0 != vertexMap.end());
+                    const SegmentGraph::vertex_descriptor v0 = it0->second;
+                    const auto it1 = vertexMap.find(edgeId1);
+                    SHASTA_ASSERT(it1 != vertexMap.end());
+                    const SegmentGraph::vertex_descriptor v1 = it1->second;
+
+                    // Add this segment graph edge, if we don't already have it.
+                    SegmentGraph::edge_descriptor e;
+                    bool edgeExists;
+                    tie(e, edgeExists) = edge(v0, v1, segmentGraph);
+                    if(not edgeExists) {
+                        tie(e, ignore) = add_edge(v0, v1, segmentGraph);
+                    }
+                    segmentGraph[e].coverage++;
+                }
             }
-
         }
-    }
 
-    ofstream graphOut("SegmentGraph.dot");
-    graphOut << "digraph G {\n";
-    for(const auto& p: segmentGraphEdges) {
-        if(p.second > 0) {
-            graphOut << p.first.first << "->" << p.first.second <<
-                " [penwidth=\"" << 0.2*double(p.second) << "\"];\n";
+        // Remove low coverage edges.
+        const uint64_t minCoverage = 0; // EXPOSE WHEN CODE STABILIZES. *********
+        segmentGraph.removeLowCoverageEdges(minCoverage);
+
+        // Approximate transitive reduction.
+        const uint64_t transitiveReductionMaxDistance = 4;   // EXPOSE WHEN CODE STABILIZES. *********
+        segmentGraph.transitiveReduction(transitiveReductionMaxDistance);
+
+        segmentGraph.writeGraphviz("SegmentGraph-" + to_string(iteration) + ".dot");
+        cout << "The segment graph has " << num_vertices(segmentGraph) <<
+            " vertices and " << num_edges(segmentGraph) << " edges." << endl;
+
+
+        // Keep only segments for which both in-degree and out-degree is less than 2.
+        uint64_t removedCount = 0;
+        BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
+            if((in_degree(v, segmentGraph)>1) or (out_degree(v, segmentGraph)>1)) {
+                isSegmentIncluded[segmentGraph[v].assemblyGraphEdgeId] = false;
+                removedCount++;
+            }
         }
+        cout << "Removed " << removedCount << " segments." << endl;
+        if(removedCount > 0) {
+            continue;
+        }
+
+
+        // If get here, all vertices of the segment graph have in-degree and
+        // out-degree less than 2. This means that the segment graph does not
+        // contain any branches. Therefore, each connected component
+        // of the segment graph is a linear chain, possibly circular, and
+        // possibly consisting of a single vertex.
     }
-    graphOut << "}\n";
 }
