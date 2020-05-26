@@ -48,6 +48,7 @@ namespace shasta {
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
+    class SegmentGraph;
 
 #ifdef SHASTA_HTTP_SERVER
     class LocalMarkerGraph;
@@ -1917,6 +1918,8 @@ public:
     // The segment graph is used to detangle and determine reachability
     // in the assembly graph.
     void createSegmentGraph();
+    void colorGfaBySegmentGraphChain(uint64_t chainId) const;
+    shared_ptr<SegmentGraph> segmentGraphPointer;
 
 
 

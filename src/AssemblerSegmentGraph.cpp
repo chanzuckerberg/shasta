@@ -125,7 +125,8 @@ void Assembler::createSegmentGraph()
         // Create SegmentGraph vertices.
         // We generate a vertex for each assembly graph edge (segment)
         // for which isSegmentIncluded is true.
-        SegmentGraph segmentGraph;
+        segmentGraphPointer = make_shared<SegmentGraph>();
+        SegmentGraph& segmentGraph = *segmentGraphPointer;
         std::map<AssemblyGraph::EdgeId, SegmentGraph::vertex_descriptor> vertexMap;
         for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
             if(isSegmentIncluded[edgeId]) {
@@ -181,7 +182,7 @@ void Assembler::createSegmentGraph()
         }
 
         // Remove low coverage edges.
-        const uint64_t minCoverage = 0; // EXPOSE WHEN CODE STABILIZES. *********
+        const uint64_t minCoverage = 2; // EXPOSE WHEN CODE STABILIZES. *********
         segmentGraph.removeLowCoverageEdges(minCoverage);
 
         // Approximate transitive reduction.
@@ -214,4 +215,41 @@ void Assembler::createSegmentGraph()
         segmentGraph.findChains();
         return;
     }
+}
+
+
+
+void Assembler::colorGfaBySegmentGraphChain(uint64_t chainId) const
+{
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    const SegmentGraph& segmentGraph = *segmentGraphPointer;
+
+    // Find the chain each segment belongs to, if any.
+    const uint64_t noChain = std::numeric_limits<uint64_t>::max();
+    vector<uint64_t> chainTable(assemblyGraph.edges.size(), noChain);
+    for(uint64_t chainId=0; chainId<segmentGraph.chains.size(); chainId++) {
+        const SegmentGraph::Chain& chain = segmentGraph.chains[chainId];
+        for(const SegmentGraph::vertex_descriptor v: chain.vertices) {
+            const AssemblyGraph::EdgeId edgeId = segmentGraph[v].assemblyGraphEdgeId;
+            chainTable[edgeId] = chainId;
+        }
+    }
+
+    ofstream csv("AssemblyGraph-BothStrands-Color.csv");
+    csv << "AssemblyGraphEdgeId,ChainId,Color\n";
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<chainTable.size(); edgeId++) {
+        const auto c = chainTable[edgeId];
+        csv << edgeId << ",";
+        if(c != noChain) {
+            csv << c;
+        }
+        csv << ",";
+        if(c == chainId) {
+            csv << "Blue";
+        } else {
+            csv << "Grey";
+        }
+        csv << "\n";
+    }
+
 }

@@ -534,6 +534,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::detangle)
         .def("createSegmentGraph",
             &Assembler::createSegmentGraph)
+        .def("colorGfaBySegmentGraphChain",
+            &Assembler::colorGfaBySegmentGraphChain)
 
         // Consensus caller.
         .def("setupConsensusCaller",
