@@ -56,7 +56,20 @@ public:
     // Approximate transitive reduction.
     void transitiveReduction(uint64_t maxDistance);
 
+
     void writeGraphviz(const string& fileName) const;
+
+    // Find chains in the segment graph.
+    // This assumes that no vertex has in-degree or out-degree
+    // greater than one.
+    void findChains();
+    class Chain {
+    public:
+        vector<vertex_descriptor> vertices;
+        bool isCircular;
+    };
+    vector<Chain> chains;
+
 };
 
 #endif

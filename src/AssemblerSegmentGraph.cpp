@@ -206,11 +206,12 @@ void Assembler::createSegmentGraph()
             continue;
         }
 
-
-        // If get here, all vertices of the segment graph have in-degree and
+        // When we get here, all vertices of the segment graph have in-degree and
         // out-degree less than 2. This means that the segment graph does not
         // contain any branches. Therefore, each connected component
         // of the segment graph is a linear chain, possibly circular, and
         // possibly consisting of a single vertex.
+        segmentGraph.findChains();
+        return;
     }
 }

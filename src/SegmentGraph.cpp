@@ -3,7 +3,9 @@ using namespace shasta;
 
 #include <boost/graph/iteration_macros.hpp>
 
+#include <list>
 #include <queue>
+#include <set>
 
 
 void SegmentGraph::removeLowCoverageEdges(uint64_t minCoverage)
@@ -112,3 +114,94 @@ void SegmentGraph::writeGraphviz(const string& fileName) const
     graphOut << "}\n";
 }
 
+
+
+
+// Find chains in the segment graph.
+// This assumes that no vertex has in-degree or out-degree
+// greater than one.
+void SegmentGraph::findChains()
+{
+    SegmentGraph& graph = *this;
+
+    chains.clear();
+
+    // Flag all vertices as unprocessed.
+    std::set<vertex_descriptor> unprocessedVertices;
+    BGL_FORALL_VERTICES(v, graph, SegmentGraph) {
+        SHASTA_ASSERT(in_degree(v, graph) < 2);
+        SHASTA_ASSERT(out_degree(v, graph) < 2);
+        unprocessedVertices.insert(v);
+    }
+
+
+
+    // Keep going as long as there are unprocessed vertices.
+    while(not unprocessedVertices.empty()) {
+        const vertex_descriptor v0 = *unprocessedVertices.begin();
+        unprocessedVertices.erase(v0);
+
+        std::list<vertex_descriptor> chain;
+        chain.push_back(v0);
+
+        // Follow the chain forward.
+        bool isCircular = false;
+        vertex_descriptor v = v0;
+        while(true) {
+            out_edge_iterator begin, end;
+            tie(begin, end) = out_edges(v, graph);
+            if(begin == end) {
+                break;  // Dead end
+            }
+            edge_descriptor e = *begin;
+            v = target(e, graph);
+            if(v == v0) {
+                isCircular = true;
+                break;
+            } else {
+                chain.push_back(v);
+                SHASTA_ASSERT(unprocessedVertices.find(v) != unprocessedVertices.end());
+                unprocessedVertices.erase(v);
+            }
+        }
+
+        // Follow the chain backward.
+        if(not isCircular) {
+            v = v0;
+            while(true) {
+                in_edge_iterator begin, end;
+                tie(begin, end) = in_edges(v, graph);
+                if(begin == end) {
+                    break;  // Dead end
+                }
+                edge_descriptor e = *begin;
+                v = source(e, graph);
+                SHASTA_ASSERT(v != v0);
+                chain.push_front(v);
+                SHASTA_ASSERT(unprocessedVertices.find(v) != unprocessedVertices.end());
+                unprocessedVertices.erase(v);
+            }
+        }
+
+        // Store this chain.
+        chains.push_back(Chain());
+        Chain& storedChain = chains.back();
+        storedChain.isCircular = isCircular;
+        copy(chain.begin(), chain.end(), back_inserter(storedChain.vertices));
+    }
+    cout << "Found " << chains.size() << " chains." << endl;
+
+
+
+    // Write the chains.
+    ofstream chainsCsv("Chains.csv");
+    chainsCsv << "Chain,Circular,Segment\n";
+    for(uint64_t chainId=0; chainId< chains.size(); chainId++) {
+        const Chain& chain = chains[chainId];
+        for(uint64_t i=0; i<chain.vertices.size(); i++) {
+            chainsCsv << chainId << ",";
+            chainsCsv << (chain.isCircular ? "Yes" : "No") << ",";
+            chainsCsv << graph[chain.vertices[i]].assemblyGraphEdgeId << "\n";
+        }
+    }
+}
