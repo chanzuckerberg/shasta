@@ -95,24 +95,12 @@ message(STATUS "BUILD_ID is: " ${BUILD_ID})
 
 
 
-# Option to build experimental code for GPU in src/gpu.
-# To turn this on, use -DBUILD_FOR_GPU=ON
-# when running cmake.
-option(BUILD_FOR_GPU "Build experimental code for GPU." OFF)
-message(STATUS "BUILD_FOR_GPU is " ${BUILD_FOR_GPU})
-
-
-
 # Add the subdirectories we need.
 if(BUILD_STATIC_LIBRARY)
     add_subdirectory(staticLibrary)
 endif(BUILD_STATIC_LIBRARY)
 if(BUILD_STATIC_EXECUTABLE)
-    if (BUILD_FOR_GPU)
-        add_subdirectory(staticExecutableGpu)
-    else(BUILD_FOR_GPU)
-        add_subdirectory(staticExecutable)
-    endif (BUILD_FOR_GPU)
+    add_subdirectory(staticExecutable)
 endif(BUILD_STATIC_EXECUTABLE)
 if(BUILD_DYNAMIC_LIBRARY)
     add_subdirectory(dynamicLibrary)

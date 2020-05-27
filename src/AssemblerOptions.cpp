@@ -153,13 +153,6 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         default_value(0),
         "Number of threads, or 0 to use one thread per virtual processor.")
         
-#ifdef SHASTA_BUILD_FOR_GPU
-        ("useGpu",
-        bool_switch(&commandLineOnlyOptions.useGpu)->
-        default_value(false),
-        "Use GPU acceleration.")
-#endif
-        
 #ifdef SHASTA_HTTP_SERVER
         ("exploreAccess",
         value<string>(&commandLineOnlyOptions.exploreAccess)->
@@ -186,10 +179,6 @@ void AssemblerOptions::addCommandLineOnlyOptions()
 #ifndef __linux__
     commandLineOnlyOptions.memoryMode = "filesystem";
     commandLineOnlyOptions.memoryBacking = "disk";
-#endif
-
-#ifndef SHASTA_BUILD_FOR_GPU
-    commandLineOnlyOptions.useGpu = false;
 #endif
 }
 
