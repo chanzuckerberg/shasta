@@ -72,11 +72,7 @@ message(STATUS "BUILD_APPIMAGE is " ${BUILD_APPIMAGE})
 
 
 # Option to build with -march=native.
-if(MACOS)
-    option(BUILD_NATIVE "Build with -march=native." OFF)
-else(MACOS)
-    option(BUILD_NATIVE "Build with -march=native." ON)
-endif(MACOS)
+option(BUILD_NATIVE "Build with -march=native." OFF)
 message(STATUS "BUILD_NATIVE is " ${BUILD_NATIVE})
 
 

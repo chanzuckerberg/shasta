@@ -44,7 +44,7 @@ tar -xvf spoa-v3.0.0.tar.gz
 # Build the shared library.
 mkdir build
 cd build
-cmake ../spoa-v3.0.0 -DBUILD_SHARED_LIBS=ON
+cmake ../spoa-v3.0.0 -DBUILD_SHARED_LIBS=ON -Dspoa_optimize_for_native=OFF
 make -j all
 make install
 
