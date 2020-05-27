@@ -167,43 +167,6 @@ build directory.
 
 
 
-<h3 id=Portability>Build portability</h3>
-<p>
-For best assembly performance, the build process described above
-creates binaries that use the full instruction set
-available on the build machine (via gcc option <code>-march=native</code>).
-This gives the best possible runtime performance on the build machine,
-but <b>creates a build that is not necessarily portable across machines</b>.
-If you run the build created in this way on a different machine
-with a smaller instruction set, you may get a crash with an 
-<code>Illegal instruction</code> signal.
-
-<p>
-To create a build that is portable but less performant,
-add the following to your <code>cmake</code> command:
-<pre>
--DBUILD_NATIVE=OFF
-</pre>
-<p>
-This generates a build that only uses instructions
-available on all <code>x64_86</code> machines.
-Release builds use this option for portability.
-For this reason, it is best not to use release builds
-for large runs where performance is important.
-See <a href=Performance.html>here</a>
-for other tips to improve performance.
-
-<p>
-If you want to build a more performant but non-portable version of
-a release build for your machine,
-make sure to use the following command (while in the <code>shasta</code> directory) before running
-the <code>cmake</code> command, replacing <code>0.1.0</code> with the desired release number.
-<pre>
-git checkout 0.1.0
-</pre>
-
-
-
 <h2 id="DownloadTestBuild">An alternative to building from source: downloading a test build</h2>
 <p>
 Shasta uses 

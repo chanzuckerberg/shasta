@@ -48,8 +48,6 @@
     <main>
 <h1>Creating a new release</h1>
 
-
-<h2>Current procedure</h2>
 <ul>
 <li>Make sure there are no outstanding commits or
 pull requests that should be in the new release.
@@ -92,69 +90,6 @@ change the build id to
 in 4 places for future GitHub Actions builds.
 </ul>
 
-
-<h2>Procedure used for release 0.1.0</h2>
-<ul>
-<li>Make sure there are no outstanding commits or
-pull requests that should be in the new release.
-<li>Do some testing.
-<li>Pick a release number <code>X.Y.Z</code>. 
-To stay consistent with
-<a href='https://semver.org'>Semantic Versioning</a>,
-for now stay with <code>X=0</code>.
-Increment <code>Z</code> by one if only bug fixes were made, and otherwise 
-increment <code>Y</code> by one and reset <code>Z</code> to zero.
-<li>Create the release on GitHub and write some release notes.
-
-<li>On Ubuntu 16.04, with the prerequisites installed:
-<ul>
-<li>Use the following commands to create the tar file:
-<pre>
-git clone https://github.com/chanzuckerberg/shasta.git
-mkdir shasta-build
-cd shasta-build
-cmake ../shasta -DBUILD_ID="Shasta Release X.Y.Z" -DBUILD_NATIVE=OFF
-make -j install/strip
-mv shasta-install shasta-Ubuntu-16.04-X.Y.Z
-tar -cvf shasta-Ubuntu-16.04-X.Y.Z.tar shasta-Ubuntu-16.04-X.Y.Z</pre>
-<li>Upload <code>shasta-Ubuntu-16.04-X.Y.Z.tar</code> to the GitHub page for the release.
-<li>Rename <code>shasta-install/bin/shasta</code> to <code>shasta-Linux-X.Y.Z</code>
-and upload it to the GitHub page for the release.
-</ul>
-
-
-<li>On Ubuntu 18.04, with the prerequisites installed:
-<ul>
-<li>Use the following commands to create the tar file:
-<pre>
-git clone https://github.com/chanzuckerberg/shasta.git
-mkdir shasta-build
-cd shasta-build
-cmake ../shasta -DBUILD_ID="Shasta Release X.Y.Z" -DBUILD_NATIVE=OFF
-make -j install/strip
-mv shasta-install shasta-Ubuntu-18.04-X.Y.Z
-tar -cvf shasta-Ubuntu-18.04-X.Y.Z.tar shasta-Ubuntu-18.04-X.Y.Z</pre>
-<li>Upload <code>shasta-Ubuntu-18.04-X.Y.Z.tar</code> to the GitHub page for the release.
-</ul>
-
-
-<li>On macOS, with the prerequisites installed:
-<ul>
-<li>Use the following commands to create the tar file:
-<pre>
-git clone https://github.com/chanzuckerberg/shasta.git
-mkdir shasta-build
-cd shasta-build
-cmake ../shasta -DBUILD_ID="Shasta Release X.Y.Z" -DBUILD_NATIVE=OFF
-make -j install/strip
-mv shasta-install/bin/shasta shasta-macOS-X.Y.Z
-</pre>
-<li>Upload <code>shasta-install/bin/shasta-macOS-X.Y.Z</code> to the GitHub page for the release.
-</ul>
-
-<li>Publish the release on GitHub.
-<li>After the release has been published it should not be modified or deleted.
-</ul>
 
 </main>
 </body>
