@@ -73,12 +73,21 @@ if(MACOS)
     ${Boost_LIBRARIES} /usr/local/lib/libspoa.a ${PNG_LIBRARY} z pthread)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
-    # library on Linux requires "--whole-archive". 
-    target_link_libraries(
-        shastaStaticExecutable
-        shastaStaticLibrary
-        atomic boost_system boost_program_options boost_chrono spoa png z
-        -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
+    # library on Linux requires "--whole-archive".
+    if(BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+        target_link_libraries(
+            shastaStaticExecutable
+            shastaStaticLibrary
+            atomic boost_system boost_program_options boost_chrono spoa cpu_features png z
+            -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
+    else(BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+        target_link_libraries(
+            shastaStaticExecutable
+            shastaStaticLibrary
+            atomic boost_system boost_program_options boost_chrono spoa png z
+            -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
+    endif(BUILD_USE_SPOA_WITH_CPU_DISPATCH) 
+    
 endif(MACOS)
   
 # Also request the glibc library to be linked statically. 

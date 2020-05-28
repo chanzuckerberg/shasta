@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(shasta)
 
 # This is the top level cmake file for a Shasta build. 
-# Use "cmake -d" to modify these option defined below 
+# Use "cmake -D" to modify these option defined below 
 # in each "option" line. For example, to turn off
 # building the dynamic executable use
 # cmake -DBUILD_DYNAMIC_EXECUTABLE=OFF
@@ -29,6 +29,7 @@ if(MACOS)
     option(BUILD_APPIMAGE "Build the AppImage." OFF)
 else(MACOS)
     # For Linux, build everything.
+    option(BUILD_USE_SPOA_WITH_CPU_DISPATCH "Link to SPOA library which uses cpu dispatch" ON)
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
     option(BUILD_DYNAMIC_LIBRARY "Build the shared library." ON)

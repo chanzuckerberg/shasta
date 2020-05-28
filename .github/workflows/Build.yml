@@ -80,8 +80,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.4.0"
+        cmake .. -DBUILD_USE_SPOA_WITH_CPU_DISPATCH=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
+        # cmake .. -DBUILD_USE_SPOA_WITH_CPU_DISPATCH=OFF -DBUILD_ID="Shasta Release 0.4.0"
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-16.04

@@ -28,7 +28,7 @@ rm /dev/shm/seqan-library-2.4.0.deb
 
 
 
-# The spoa library is not available in the Ubuntu repository.
+# The spoa library is not available in the stable Ubuntu repository yet.
 # Download it from GitHub, then install it.
 
 # Create a temporary directory.
@@ -37,14 +37,21 @@ echo $tmpDirectoryName
 cd $tmpDirectoryName
 
 # Get the code.
-curl -L https://github.com/rvaser/spoa/releases/download/3.0.0/spoa-v3.0.0.tar.gz \
-    -o spoa-v3.0.0.tar.gz
-tar -xvf spoa-v3.0.0.tar.gz
+curl -L https://github.com/rvaser/spoa/releases/download/3.4.0/spoa-v3.4.0.tar.gz \
+    -o spoa-v3.4.0.tar.gz
+tar -xvf spoa-v3.4.0.tar.gz
+
+ubuntuVersion=$(cat /etc/os-release | grep VERSION_ID | cut -f2 -d'=')
+spoaGenDispatchFlag="ON"
+if [ $ubuntuVersion \< "\"18.04\"" ] ; then
+    # SPOA's cpu dispatching code is tested on newer Linux versions.
+    spoaGenDispatchFlag="OFF"
+fi
 
 # Build the shared library.
 mkdir build
 cd build
-cmake ../spoa-v3.0.0 -DBUILD_SHARED_LIBS=ON -Dspoa_optimize_for_native=OFF
+cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=ON -Dspoa_generate_dispatch=$spoaGenDispatchFlag
 make -j all
 make install
 
@@ -52,12 +59,11 @@ make install
 cd ..
 mkdir build-static
 cd build-static
-cmake ../spoa-v3.0.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_optimize_for_native=OFF
+cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_generate_dispatch=$spoaGenDispatchFlag
 make -j all
 make install
 cd 
 rm -rf $tmpDirectoryName
-
 
 
 # Make sure the newly created libraries are immediately visible to the loader.
