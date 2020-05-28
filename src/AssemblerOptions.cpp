@@ -208,6 +208,11 @@ void AssemblerOptions::addConfigurableOptions()
         "This is done by specifying the O_DIRECT flag when opening "
         "input files containing reads.")
 
+        ("Reads.palindromicReads.skipFlagging",
+        bool_switch(&readsOptions.palindromicReads.skipFlagging)->
+        default_value(false),
+        "Skip flagging palindromic reads. Oxford Nanopore reads should be flagged for better results.")
+
         ("Reads.palindromicReads.maxSkip",
         value<int>(&readsOptions.palindromicReads.maxSkip)->
         default_value(100),
@@ -558,6 +563,7 @@ void AssemblerOptions::addConfigurableOptions()
 
 void AssemblerOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) const
 {
+    s << "palindromicReads.skipFlagging = " << skipFlagging << "\n";
     s << "palindromicReads.maxSkip = " << maxSkip << "\n";
     s << "palindromicReads.maxDrift = " << maxDrift << "\n";
     s << "palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";

@@ -559,17 +559,18 @@ void shasta::main::assemble(
     // Find the markers in the reads.
     assembler.findMarkers(0);
 
-    // Flag palindromic reads.
-    // These will be excluded from further processing.
-    assembler.flagPalindromicReads(
-        assemblerOptions.readsOptions.palindromicReads.maxSkip,
-        assemblerOptions.readsOptions.palindromicReads.maxDrift,
-        assemblerOptions.readsOptions.palindromicReads.maxMarkerFrequency,
-        assemblerOptions.readsOptions.palindromicReads.alignedFractionThreshold,
-        assemblerOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
-        assemblerOptions.readsOptions.palindromicReads.deltaThreshold,
-        threadCount);
-
+    if(!assemblerOptions.readsOptions.palindromicReads.skipFlagging) {
+        // Flag palindromic reads.
+        // These will be excluded from further processing.
+        assembler.flagPalindromicReads(
+            assemblerOptions.readsOptions.palindromicReads.maxSkip,
+            assemblerOptions.readsOptions.palindromicReads.maxDrift,
+            assemblerOptions.readsOptions.palindromicReads.maxMarkerFrequency,
+            assemblerOptions.readsOptions.palindromicReads.alignedFractionThreshold,
+            assemblerOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
+            assemblerOptions.readsOptions.palindromicReads.deltaThreshold,
+            threadCount);
+    }
 
 
     // Find alignment candidates.
