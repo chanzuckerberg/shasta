@@ -1831,6 +1831,11 @@ public:
 
 
 
+    // Analyze oriented read paths in the marker graph and in the assembly graph.
+    void analyzeOrientedReadPaths() const;
+
+
+
 
     // Data and functions used for the http server.
     // This function puts the server into an endless loop

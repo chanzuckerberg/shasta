@@ -526,6 +526,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::createSegmentGraph)
         .def("colorGfaBySegmentGraphChain",
             &Assembler::colorGfaBySegmentGraphChain)
+        .def("analyzeOrientedReadPaths",
+            &Assembler::analyzeOrientedReadPaths)
 
         // Consensus caller.
         .def("setupConsensusCaller",
