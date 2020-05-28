@@ -563,7 +563,7 @@ void AssemblerOptions::addConfigurableOptions()
 
 void AssemblerOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) const
 {
-    s << "palindromicReads.skipFlagging = " << skipFlagging << "\n";
+    s << "palindromicReads.skipFlagging = " << convertBoolToPythonString(skipFlagging) << "\n";
     s << "palindromicReads.maxSkip = " << maxSkip << "\n";
     s << "palindromicReads.maxDrift = " << maxDrift << "\n";
     s << "palindromicReads.maxMarkerFrequency = " << maxMarkerFrequency << "\n";
