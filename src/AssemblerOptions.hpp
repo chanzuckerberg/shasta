@@ -108,6 +108,7 @@ public:
         bool noCache;
         class PalindromicReadOptions {
         public:
+            bool skipFlagging;
             int maxSkip;
             int maxDrift;
             int maxMarkerFrequency;
