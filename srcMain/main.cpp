@@ -176,13 +176,6 @@ void shasta::main::assemble(
             "using command line option \"--input\".");
     }
 
-    // If the build does not support GPU acceleration, reject the --useGpu option.
-#ifndef SHASTA_BUILD_FOR_GPU
-    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
-        throw runtime_error("This Shasta build does not provide GPU acceleration.");
-    }
-#endif
-
     // Check assemblerOptions.minHashOptions.version.
     if( assemblerOptions.minHashOptions.version!=0 and
         assemblerOptions.minHashOptions.version!=1) {
@@ -266,9 +259,6 @@ void shasta::main::assemble(
     cout << "memoryMode = " << assemblerOptions.commandLineOnlyOptions.memoryMode << endl;
     cout << "memoryBacking = " << assemblerOptions.commandLineOnlyOptions.memoryBacking << endl;
     cout << "threadCount = " << assemblerOptions.commandLineOnlyOptions.threadCount << endl;
-    cout << "useGpu = " <<
-        AssemblerOptions::convertBoolToPythonString(assemblerOptions.commandLineOnlyOptions.useGpu)
-        << endl;
 #endif
     cout << endl;
     assemblerOptions.write(cout);
@@ -621,42 +611,22 @@ void shasta::main::assemble(
 
 
     // Compute alignments.
-    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
-#ifdef SHASTA_BUILD_FOR_GPU
-        cout << "Using GPU acceleration for alignment computation." << endl;
-        cout << "This is under development and is not ready to be used." << endl;
-        if(assemblerOptions.alignOptions.suppressContainments) {
-            throw runtime_error("Suppressing containment alignments is not supported by "
-                "the GPU code.");
-        }
-        assembler.computeAlignmentsGpu(
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.alignOptions.minAlignedMarkerCount,
-            assemblerOptions.alignOptions.maxTrim,
-            threadCount);
-#else
-        throw runtime_error("This Shasta build does not provide GPU acceleration.");
-#endif
-    } else {
-        assembler.computeAlignments(
-            assemblerOptions.alignOptions.alignMethod,
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.alignOptions.minAlignedMarkerCount,
-            assemblerOptions.alignOptions.minAlignedFraction,
-            assemblerOptions.alignOptions.maxTrim,
-            assemblerOptions.alignOptions.matchScore,
-            assemblerOptions.alignOptions.mismatchScore,
-            assemblerOptions.alignOptions.gapScore,
-            assemblerOptions.alignOptions.downsamplingFactor,
-            assemblerOptions.alignOptions.bandExtend,
-            assemblerOptions.alignOptions.suppressContainments,
-            true, // Store good alignments in a compressed format.
-            threadCount);
-    }
+	assembler.computeAlignments(
+        assemblerOptions.alignOptions.alignMethod,
+        assemblerOptions.alignOptions.maxMarkerFrequency,
+        assemblerOptions.alignOptions.maxSkip,
+        assemblerOptions.alignOptions.maxDrift,
+        assemblerOptions.alignOptions.minAlignedMarkerCount,
+        assemblerOptions.alignOptions.minAlignedFraction,
+        assemblerOptions.alignOptions.maxTrim,
+        assemblerOptions.alignOptions.matchScore,
+        assemblerOptions.alignOptions.mismatchScore,
+        assemblerOptions.alignOptions.gapScore,
+        assemblerOptions.alignOptions.downsamplingFactor,
+        assemblerOptions.alignOptions.bandExtend,
+        assemblerOptions.alignOptions.suppressContainments,
+        true, // Store good alignments in a compressed format.
+        threadCount);
 
 
 
@@ -890,47 +860,21 @@ void shasta::main::createMarkerGraphVertices(
     uint32_t threadCount
     )
 {
-    if(assemblerOptions.commandLineOnlyOptions.useGpu) {
-
-    #ifdef SHASTA_BUILD_FOR_GPU
-
-        // This only supports --ReadGraph.creationMethod 0.
-        SHASTA_ASSERT(assemblerOptions.readGraphOptions.creationMethod == 0);
-
-        // Create marker graph vertices: do it on the GPU.
-        cout << "Using GPU acceleration for creating marker graph vertices.." << endl;
-        cout << "This is under development and is not ready to be used." << endl;
-        assembler.createMarkerGraphVerticesGpu(
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.markerGraphOptions.minCoverage,
-            assemblerOptions.markerGraphOptions.maxCoverage,
-            threadCount);
-    #else
-
-        // The build does not have GPU support.
-        throw runtime_error("This Shasta build does not provide GPU acceleration.");
-
-    #endif
-    } else {
-
-        // Create marker graph vertices: mainstream code.
-        assembler.createMarkerGraphVertices(
-            assemblerOptions.alignOptions.alignMethod,
-            assemblerOptions.alignOptions.maxMarkerFrequency,
-            assemblerOptions.alignOptions.maxSkip,
-            assemblerOptions.alignOptions.maxDrift,
-            assemblerOptions.alignOptions.matchScore,
-            assemblerOptions.alignOptions.mismatchScore,
-            assemblerOptions.alignOptions.gapScore,
-            assemblerOptions.alignOptions.downsamplingFactor,
-            assemblerOptions.alignOptions.bandExtend,
-            assemblerOptions.readGraphOptions.creationMethod,
-            assemblerOptions.markerGraphOptions.minCoverage,
-            assemblerOptions.markerGraphOptions.maxCoverage,
-            threadCount);
-    }
+    // Create marker graph vertices: mainstream code.
+    assembler.createMarkerGraphVertices(
+        assemblerOptions.alignOptions.alignMethod,
+        assemblerOptions.alignOptions.maxMarkerFrequency,
+        assemblerOptions.alignOptions.maxSkip,
+        assemblerOptions.alignOptions.maxDrift,
+        assemblerOptions.alignOptions.matchScore,
+        assemblerOptions.alignOptions.mismatchScore,
+        assemblerOptions.alignOptions.gapScore,
+        assemblerOptions.alignOptions.downsamplingFactor,
+        assemblerOptions.alignOptions.bandExtend,
+        assemblerOptions.readGraphOptions.creationMethod,
+        assemblerOptions.markerGraphOptions.minCoverage,
+        assemblerOptions.markerGraphOptions.maxCoverage,
+        threadCount);
 }
 
 

@@ -1,12 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(shastaDynamicExecutable)
 
-if(BUILD_FOR_GPU)
-    find_package(CUDA 10.0 REQUIRED)
-    set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
-    project(shastaDynamicExecutable LANGUAGES C CXX CUDA)
-endif(BUILD_FOR_GPU)
-
 # C++ dialect.
 add_definitions(-std=c++14)
 
@@ -44,9 +38,6 @@ add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 # Definitions that control what components get built.
 add_definitions(-DSHASTA_HTTP_SERVER)
 add_definitions(-DSHASTA_PYTHON_API)
-if(BUILD_FOR_GPU)
-    add_definitions(-DSHASTA_BUILD_FOR_GPU)
-endif(BUILD_FOR_GPU)
 
 # Source files
 file(GLOB SOURCES ../srcMain/*.cpp)

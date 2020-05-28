@@ -42,44 +42,6 @@ jobs:
 
 
 
-  ubuntu-18-04-gpu:
-
-    runs-on: ubuntu-18.04
-
-    steps:
-    - uses: actions/checkout@master
-    - name: Install-prerequisites
-      run: |
-        sudo ./scripts/InstallPrerequisites-Ubuntu.sh
-        sudo ./scripts/InstallCuda-Ubuntu-18.04.sh
-    - name: Build-ubuntu-18.04-gpu
-      run: |
-        lsb_release -a
-        mkdir shasta-build
-        cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_FOR_GPU=ON -DBUILD_ID="Shasta unreleased test build (with GPU acceleration) newer than release 0.4.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_NATIVE=OFF -DBUILD_FOR_GPU=ON -DBUILD_ID="Shasta Release 0.4.0 (with GPU acceleration)"
-        make -j 2 all
-        make install/strip
-        mv shasta-install shastaGpu-Ubuntu-18.04
-        tar -cvf shastaGpu-Ubuntu-18.04.tar shastaGpu-Ubuntu-18.04        
-    - name: Test-ubuntu-18.04-gpu
-      run: |
-        sudo apt install gzip
-        gunzip tests/TinyTest.fasta.gz
-        shasta-build/shastaGpu-Ubuntu-18.04/bin/shastaGpu --Align.alignMethod 3 --input tests/TinyTest.fasta
-        ls -l ShastaRun/Assembly.fasta
-    - uses: actions/upload-artifact@master
-      with:
-        name: shastaGpu-Ubuntu-18.04
-        path: shasta-build/shastaGpu-Ubuntu-18.04/bin/shastaGpu
-    - uses: actions/upload-artifact@master
-      with:
-        name: shastaGpu-Ubuntu-18.04.tar
-        path: shasta-build/shastaGpu-Ubuntu-18.04.tar
-
-
-
   ubuntu-16-04:
 
     runs-on: ubuntu-16.04

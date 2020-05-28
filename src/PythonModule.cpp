@@ -260,16 +260,6 @@ PYBIND11_MODULE(shasta, module)
             arg("suppressContainments"),
             arg("storeAlignments"),
             arg("threadCount") = 0)
-#ifdef SHASTA_BUILD_FOR_GPU
-        .def("computeAlignmentsGpu",
-            &Assembler::computeAlignmentsGpu,
-            arg("maxMarkerFrequency"),
-            arg("maxSkip"),
-            arg("maxDrift"),
-            arg("minAlignedMarkerCount"),
-            arg("maxTrim"),
-            arg("threadCount") = 0)
-#endif
         .def("accessCompressedAlignments",
             &Assembler::accessCompressedAlignments)
         .def("accessAlignmentData",
