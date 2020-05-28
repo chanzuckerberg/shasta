@@ -68,32 +68,6 @@ Don't use macOS or Windows. Use a 64-bit Linux system instead.
 The Shasta executable runs on most current 64-bit Linux distributions
 and requires no set up or installation.
 
-<li>
-Do not use a release build downloaded from the 
-<a href='https://github.com/chanzuckerberg/shasta/releases'>Releases</a> page on GitHub.
-Instead build Shasta from source as 
-described <a href=BuildingFromSource.html>here</a>,
-using for the build the same machine where it will run.
-This will limit you to Ubuntu 16.04 or Ubuntu 18.04.
-The reason for this is that, 
-except for release builds, Shasta code is compiled using
-gcc option <code>-march=native</code>, which instructs
-the compiler to use the entire instruction 
-set available on the machine that does the compilation.
-This generally results in better performance on that machine. 
-However,
-the build may fail with an <code>Illegal instruction</code>
-signal if transported to a different machine with a
-less powerful instruction set. 
-To disable the <code>-march=native</code> option
-and build portable but less performing code,
-specify <code>-DBUILD_NATIVE=OFF</code> when running <code>cmake</code>
-(release builds do this).
-See <a href=BuildingFromSource.html>here</a>
-for more information on how to build from source.
-
-
-
 </ul>
 </main>
 </body>
