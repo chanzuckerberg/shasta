@@ -1832,7 +1832,7 @@ public:
 
 
     // Analyze oriented read paths in the marker graph and in the assembly graph.
-    void analyzeOrientedReadPaths() const;
+    void analyzeOrientedReadPaths(int readGraphCreationMethod) const;
 
 
 
