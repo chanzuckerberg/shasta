@@ -6,10 +6,41 @@ on:
       - '*'
 
 jobs:
+  ubuntu-20-04:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@master
+    - name: Install-prerequisites
+      run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh
+    - name: Build-ubuntu-20.04
+      run: |
+        lsb_release -a
+        mkdir shasta-build
+        cd shasta-build 
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
+        # cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta Release 0.4.0" 
+        make -j 2 all
+        make install/strip
+        mv shasta-install shasta-Ubuntu-20.04
+        tar -cvf shasta-Ubuntu-20.04.tar shasta-Ubuntu-20.04        
+    - name: Test-ubuntu-20.04
+      run: |
+        sudo apt install gzip
+        gunzip tests/TinyTest.fasta.gz
+        shasta-build/shasta-Ubuntu-20.04/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
+        ls -l ShastaRun/Assembly.fasta
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta-Linux
+        path: shasta-build/shasta-Ubuntu-20.04/bin/shasta
+    - uses: actions/upload-artifact@master
+      with:
+        name: shasta-Ubuntu-20.04.tar
+        path: shasta-build/shasta-Ubuntu-20.04.tar
+
+
   ubuntu-18-04:
-
     runs-on: ubuntu-18.04
-
     steps:
     - uses: actions/checkout@master
     - name: Install-prerequisites
@@ -43,9 +74,7 @@ jobs:
 
 
   ubuntu-16-04:
-
     runs-on: ubuntu-16.04
-
     steps:
     - uses: actions/checkout@master
     - name: Install-prerequisites
@@ -79,9 +108,7 @@ jobs:
 
        
   macOS-10-14:
-
     runs-on: macOS-10.14
-
     steps:
     - uses: actions/checkout@master
     - name: Install-prerequisites
@@ -110,9 +137,7 @@ jobs:
 
        
   macOS-10-15:
-
     runs-on: macOS-10.15
-
     steps:
     - uses: actions/checkout@master
     - name: Install-prerequisites
