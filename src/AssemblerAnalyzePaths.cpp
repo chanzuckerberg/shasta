@@ -13,7 +13,229 @@ using namespace shasta;
 #include <seqan/align.h>
 
 // Standard library.
+#include "array.hpp"
 #include <map>
+
+
+
+// An experimental De Bruijn graph used below to align pseudo-paths.
+// Each vertex stores a sequence of k segment ids that occur
+// consecutively in one or more pseudo-paths.
+// An directed edge is v0->v1 is created between vertices v0 and v1
+// if the last k-1 segments of v0 are the same as the first
+// k-1 segment of v1.
+namespace shasta {
+    namespace pseudoPaths {
+        template<int k> class DeBruijnGraph;
+        template<int k> class DeBruijnGraphVertex;
+        template<int k> class DeBruijnGraphEdge;
+        template<int k> using DeBruijnGraphBaseClass =
+            boost::adjacency_list<
+            boost::listS,
+            boost::listS,
+            boost::bidirectionalS,
+            DeBruijnGraphVertex<k>,
+            DeBruijnGraphEdge<k> >;
+    }
+}
+using namespace shasta::pseudoPaths;
+
+template<int k> class shasta::pseudoPaths::DeBruijnGraphVertex {
+public:
+
+    // The k segment ids associated with this vertex.
+    array<uint64_t, k> segmentIds;
+
+    // The oriented reads that have this sequence of segment ids
+    // on their pseudo-path, each stored with the starting position
+    // in the pseudo-path.
+    vector< pair<OrientedReadId, uint64_t > > orientedReadIds;
+
+    void writeGraphviz(ostream& s) const
+    {
+        s << "\"";
+        for(uint64_t i=0; i<k; i++) {
+            s << segmentIds[i];
+            if(i != k-1) {
+                s << "\\n";
+            }
+        }
+        s << "\"";
+    }
+    void write(ostream& s) const
+    {
+        for(uint64_t i=0; i<k; i++) {
+            s << segmentIds[i];
+            if(i != k-1) {
+                s << ",";
+            }
+        }
+    }
+};
+
+
+
+template<int k> class shasta::pseudoPaths::DeBruijnGraphEdge {
+public:
+
+    // The k-1 segment ids associated with this edge.
+    array<uint64_t, k-1> segmentIds;
+
+    // The oriented reads that have this sequence of segment ids
+    // on their pseudo-path, each stored with the starting position
+    // in the pseudo-path.
+    vector< pair<OrientedReadId, uint64_t > > orientedReadIds;
+
+    DeBruijnGraphEdge(const array<uint64_t, k-1>& segmentIds) :
+        segmentIds(segmentIds) {}
+};
+
+
+
+template<int k> class shasta::pseudoPaths::DeBruijnGraph :
+    public DeBruijnGraphBaseClass<k> {
+public:
+    using Graph = DeBruijnGraph;
+    using SegmentId = AssemblyGraph::EdgeId;
+    using BaseClass = DeBruijnGraphBaseClass<k>;
+    using vertex_descriptor = typename BaseClass::vertex_descriptor;
+    using edge_descriptor = typename BaseClass::edge_descriptor;
+
+    // The vertices, keyed by the k segment ids.
+    std::map< array<uint64_t, k>, vertex_descriptor> vertexMap;
+
+
+
+    // Add vertices for an oriented read.
+    void addOrientedReadVertices(
+        OrientedReadId orientedReadId,
+        const vector<SegmentId>& pseudoPath)
+    {
+        Graph& graph = *this;
+
+        // Loop over possible starting positions such that the k segments
+        // starting there are on the pseudo-path.
+        for(uint64_t startPosition=0; startPosition+k<=pseudoPath.size(); startPosition++) {
+
+            // Extract the k segments.
+            array<uint64_t, k> segmentIds;
+            const auto begin = pseudoPath.begin() + startPosition;
+            const auto end = begin + k;
+            copy(begin, end, segmentIds.begin());
+
+            // Get the vertex corresponding to these k segments, creating it
+            // if necessary.
+            vertex_descriptor v;
+            auto it = vertexMap.find(segmentIds);
+            if(it == vertexMap.end()) {
+                v = add_vertex(graph);
+                graph[v].segmentIds = segmentIds;
+                vertexMap.insert(make_pair(segmentIds, v));
+            } else {
+                v = it->second;
+            }
+            graph[v].orientedReadIds.push_back(make_pair(orientedReadId, startPosition));
+        }
+    }
+
+
+    void createEdges()
+    {
+        Graph& graph = *this;
+
+        // Index the vertices by their first k-1 segment ids.
+        std::map< array<uint64_t, k-1>, vector<vertex_descriptor> > vertexIndex;
+        BGL_FORALL_VERTICES_T(v, graph, Graph) {
+            const array<uint64_t, k>& segmentIds = graph[v].segmentIds;
+            array<uint64_t, k-1> firstSegmentIds;
+            const auto begin = segmentIds.begin();
+            const auto end = begin + (k-1);
+            copy(begin, end, firstSegmentIds.begin());
+            vertexIndex[firstSegmentIds].push_back(v);
+        }
+
+        // Use the index to create the edges.
+        BGL_FORALL_VERTICES_T(v0, graph, Graph) {
+            const array<uint64_t, k>& segmentIds0 = graph[v0].segmentIds;
+            array<uint64_t, k-1> lastSegmentIds0;
+            const auto begin = segmentIds0.begin() + 1;
+            const auto end = segmentIds0.end();
+            copy(begin, end, lastSegmentIds0.begin());
+
+            for(const vertex_descriptor v1: vertexIndex[lastSegmentIds0]) {
+                edge_descriptor e;
+                tie(e, ignore) = add_edge(v0, v1, DeBruijnGraphEdge<k>(lastSegmentIds0), graph);
+                findOrientedReadIds(e);
+            }
+        }
+    }
+
+
+
+    void findOrientedReadIds(edge_descriptor e)
+    {
+        Graph& graph = *this;
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const auto& orientedReadIds0 = graph[v0].orientedReadIds;
+        const auto& orientedReadIds1 = graph[v1].orientedReadIds;
+
+        // This could be done better.
+        for(const auto& p0: orientedReadIds0) {
+            auto p1 = p0;
+            ++p1.second;
+            if(binary_search(orientedReadIds1.begin(), orientedReadIds1.end(), p1)) {
+                graph[e].orientedReadIds.push_back(p0);
+            }
+        }
+    }
+
+
+    void removeLowCoverageEdges(uint64_t minCoverage)
+    {
+        Graph& graph = *this;
+        vector<edge_descriptor> edgesToBeRemoved;
+        BGL_FORALL_EDGES_T(e, graph, Graph) {
+            if(graph[e].orientedReadIds.size() < minCoverage) {
+                edgesToBeRemoved.push_back(e);
+            }
+        }
+
+        for(const edge_descriptor e: edgesToBeRemoved) {
+            remove_edge(e, graph);
+        }
+    }
+
+
+
+    void writeGraphviz() const
+    {
+        const Graph& graph = *this;
+
+        ofstream out("DeBruijnGraph.dot");
+        out << "digraph DeBruijnGraph {\n";
+        BGL_FORALL_EDGES_T(e, graph, Graph) {
+            const vertex_descriptor v0 = source(e, graph);
+            const vertex_descriptor v1 = target(e, graph);
+            const auto coverage = graph[e].orientedReadIds.size();
+            graph[v0].writeGraphviz(out);
+            out << "->";
+            graph[v1].writeGraphviz(out);
+            out << "[";
+            out << "penwidth=\"" << sqrt(double(coverage)) << "\"";
+            out << " tooltip=\"(";
+            graph[v0].write(out);
+            out << ")->(";
+            graph[v1].write(out);
+            out << ") ";
+            out << coverage << "\"";
+            out << "]";
+            out << ";\n";
+        }
+        out << "}\n";
+
+    }
+};
 
 
 
@@ -42,16 +264,21 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     // Parameters that control the process below. EXPOSE WHEN CODE STABILIZES. *********
 
     // The minimum number of markers for a segment to be used.
-    const uint64_t minMarkerCount = 6;
+    const uint64_t minMarkerCount = 0;
 
+    const uint64_t minEdgeCoverage = 2;
+
+#if 0
     // The minimum length of a pseudo-path for a read t be used.
     const uint64_t minPseudoPathLength = 3;
 
     // The minimum number of aligned meta-markers for an alignment to be used.
     const uint64_t minAlignedMetaMarkerCount = 3;
+#endif
 
 
-    // Only consider assembly graph edges that are sufficiently long.
+
+    // Only consider segments that are sufficiently long.
     vector<bool> useSegment(segmentCount);
     for(SegmentId segmentId=0; segmentId<segmentCount; segmentId++) {
         useSegment[segmentId] = assemblyGraph.edgeLists.size(segmentId) >= minMarkerCount;
@@ -137,6 +364,24 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
+    // Use these pseudo-paths to create a de Bruijn graph.
+    DeBruijnGraph<3> graph;
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const vector<SegmentId>& pseudoPath =
+                pseudoPaths[orientedReadId.getValue()];
+            graph.addOrientedReadVertices(orientedReadId, pseudoPath);
+        }
+    }
+    graph.createEdges();
+    graph.removeLowCoverageEdges(minEdgeCoverage);
+    graph.writeGraphviz();
+    cout << "The De Bruijn graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+
+
+#if 0
     // Create the pseudo-path table which contains, for each segment,
     // its occurrences in oriented read pseudo-paths.
     // For each segmentId, we store a vector of pairs (orientedReadId, index) such that
@@ -488,6 +733,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
     cout << "The MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
         num_edges(graph) << " edges." << endl;
+#endif
 
 
 
