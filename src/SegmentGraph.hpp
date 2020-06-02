@@ -1,5 +1,5 @@
-#ifndef SHASTA_READ_LOADER_HPP
-#define SHASTA_READ_LOADER_HPP
+#ifndef SHASTA_SEGMENT_GRAPH_HPP
+#define SHASTA_SEGMENT_GRAPH_HPP
 
 // The segment graph is used to detangle and analyze reachability
 // in the assembly graph.

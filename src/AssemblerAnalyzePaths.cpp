@@ -1,11 +1,13 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
+#include "MetaMarkerGraph.hpp"
 using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/iteration_macros.hpp>
+#include <boost/pending/disjoint_sets.hpp>
 
 // Seqan.
 #include <seqan/align.h>
@@ -34,6 +36,26 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     using SegmentId = AssemblyGraph::EdgeId;
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint64_t segmentCount = assemblyGraph.edges.size();
+
+
+
+    // Parameters that control the process below. EXPOSE WHEN CODE STABILIZES. *********
+
+    // The minimum number of markers for a segment to be used.
+    const uint64_t minMarkerCount = 6;
+
+    // The minimum length of a pseudo-path for a read t be used.
+    const uint64_t minPseudoPathLength = 3;
+
+    // The minimum number of aligned meta-markers for an alignment to be used.
+    const uint64_t minAlignedMetaMarkerCount = 3;
+
+
+    // Only consider assembly graph edges that are sufficiently long.
+    vector<bool> useSegment(segmentCount);
+    for(SegmentId segmentId=0; segmentId<segmentCount; segmentId++) {
+        useSegment[segmentId] = assemblyGraph.edgeLists.size(segmentId) >= minMarkerCount;
+    }
 
 
 
@@ -73,6 +95,11 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
                 // There is only one segment.
                 const SegmentId segmentId = v.front().first;
+
+                // If this segment is not being used, skip.
+                if(not useSegment[segmentId]) {
+                    continue;
+                }
 
                 // If same as the previous, slip.
                 if(segmentId == previousSegmentId) {
@@ -147,7 +174,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
-    // Gather all pairs of oriented reads that occur in non-branching segments.
+    // Gather all pairs of oriented reads that occur in non-branching segments that are in use.
     // A segment (assembly graph edge) v0->v1 is no branching
     // if in-degree(v0)<2 and out_degree(v1)<2.
     vector< pair<OrientedReadId, OrientedReadId> > orientedReadPairs;
@@ -168,27 +195,81 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         const vector< pair<OrientedReadId, uint64_t> >& v = pseudoPathTable[segmentId];
         for(uint64_t i0=0; i0<v.size(); i0++) {
             const OrientedReadId orientedReadId0 = v[i0].first;
+            if(pseudoPaths[orientedReadId0.getValue()].size() < minPseudoPathLength) {
+                continue;
+            }
             for(uint64_t i1=i0+1; i1<v.size(); i1++) {
                 const OrientedReadId orientedReadId1 = v[i1].first;
+                if(pseudoPaths[orientedReadId1.getValue()].size() < minPseudoPathLength) {
+                    continue;
+                }
                 orientedReadPairs.push_back(make_pair(orientedReadId0, orientedReadId1));
             }
         }
     }
     deduplicate(orientedReadPairs);
     cout << "Found " << orientedReadPairs.size() <<
-        " oriented read pairs in non-branching segments." << endl;
+        " oriented read pairs." << endl;
 
+
+
+    // The following process is similar to the one used to create the marker graph.
+    // The difference is that, when creating the marker graph, each read is
+    // represented by sequence of markers. But here, each read is represented
+    // by the sequence of segments it encounters - its pseudo-path.
+
+    // We use a disjoint set data structure where each entry represents one
+    // segment of a pseudo-path.
+
+    // Vector to contain, for each oriented read, the starting point of
+    // its pseudo-path in the disjoint set data structure.
+    vector<uint64_t> start(2*readCount(), std::numeric_limits<uint64_t>::max());
+    uint64_t n = 0;
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const vector<SegmentId>& pseudoPath =
+                pseudoPaths[orientedReadId.getValue()];
+            if(pseudoPath.size() < minPseudoPathLength) {
+                continue;
+            }
+            start[orientedReadId.getValue()] = n;
+            n += pseudoPath.size();
+        }
+    }
+
+
+
+    // Initialize the disjoint set data structure.
+    vector<SegmentId> rank(n);
+    vector<SegmentId> parent(n);
+    boost::disjoint_sets<SegmentId*, SegmentId*> disjointSets(&rank[0], &parent[0]);
+    for(SegmentId i=0; i<n; i++) {
+        disjointSets.make_set(i);
+    }
+    cout << "The disjoint set data structure has size " << n << endl;
 
 
     // For each such pair of oriented reads, compute an alignment between their pseudo-paths.
-    ofstream alignmentsCsv("Alignments.csv");
+    const bool writeAlignments = false;
+    ofstream alignmentsCsv;
+    if(writeAlignments) {
+        alignmentsCsv.open("Alignments.csv");
+    }
+    uint64_t alignmentsDone = 0;
     for(const auto& p: orientedReadPairs) {
+        if((alignmentsDone % 10000) == 0) {
+            cout << alignmentsDone << "/" << orientedReadPairs.size() << endl;
+        }
+        ++alignmentsDone;
         const OrientedReadId orientedReadId0 = p.first;
         const OrientedReadId orientedReadId1 = p.second;
 
         // Get the pseudo-paths of these two oriented reads.
         const vector<AssemblyGraph::EdgeId>& pseudoPath0 = pseudoPaths[orientedReadId0.getValue()];
         const vector<AssemblyGraph::EdgeId>& pseudoPath1 = pseudoPaths[orientedReadId1.getValue()];
+        SHASTA_ASSERT(pseudoPath0.size() >= minPseudoPathLength);
+        SHASTA_ASSERT(pseudoPath1.size() >= minPseudoPathLength);
 
         // Use SeqAn to compute an alignment free at both ends.
         // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
@@ -244,40 +325,169 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         const uint64_t alignmentLength = totalAlignmentLength / 2;
 
         // Write out the alignment.
-        uint64_t index = 0;
-        for(uint64_t i=0; i<2; i++) {
-            alignmentsCsv << (i==0 ? orientedReadId0 : orientedReadId1) << ",";
-            for(uint64_t j=0; j<alignmentLength; j++, index++) {
-                const uint64_t value = align[index];
-                if(value == 45) {
+        if(writeAlignments) {
+            uint64_t index = 0;
+            for(uint64_t i=0; i<2; i++) {
+                alignmentsCsv << (i==0 ? orientedReadId0 : orientedReadId1) << ",";
+                for(uint64_t j=0; j<alignmentLength; j++, index++) {
+                    const uint64_t value = align[index];
+                    if(value == 45) {
+                        alignmentsCsv << "-";
+                    } else {
+                        alignmentsCsv << value - 100;
+                    }
+                    alignmentsCsv << ",";
+                }
+                alignmentsCsv << "\n";
+            }
+            alignmentsCsv << "Alignment,";
+            for(uint64_t j=0; j<alignmentLength; j++) {
+                const uint64_t value0 = align[j];
+                const uint64_t value1 = align[j+alignmentLength];
+                if(value0==45 and value1==45) {
+                    alignmentsCsv << "?";    // This should never happen.
+                } else if(value0==45 or value1==45) {
+                    // Gap on one of the two.
                     alignmentsCsv << "-";
+                } else if(value0 == value1) {
+                    // Match.
+                    alignmentsCsv << ".";
                 } else {
-                    alignmentsCsv << value - 100;
+                    // Mismatch.
+                    alignmentsCsv << "*";
                 }
                 alignmentsCsv << ",";
             }
             alignmentsCsv << "\n";
         }
-        alignmentsCsv << "Alignment,";
+
+
+
+        // Find pairs of disjoint sets to be merged, based on this alignment.
+        vector< pair<uint64_t, uint64_t> > toBeMerged;
+        const uint64_t start0 = start[orientedReadId0.getValue()];
+        const uint64_t start1 = start[orientedReadId1.getValue()];
+        uint64_t i0 = 0;
+        uint64_t i1 = 0;
         for(uint64_t j=0; j<alignmentLength; j++) {
             const uint64_t value0 = align[j];
             const uint64_t value1 = align[j+alignmentLength];
-            if(value0==45 and value1==45) {
-                alignmentsCsv << "?";    // This should never happen.
-            } else if(value0==45 or value1==45) {
-                // Gap on one of the two.
-                alignmentsCsv << "-";
-            } else if(value0 == value1) {
-                // Match.
-                alignmentsCsv << ".";
-            } else {
-                // Mismatch.
-                alignmentsCsv << "*";
+            // cout << j << " " << i0 << " " << i1 << " " << value0 << " " << value1 << endl;
+            if(value0!=45 and value1!=45 and value0 == value1) {
+                SHASTA_ASSERT(value0 == pseudoPath0[i0] + 100);
+                SHASTA_ASSERT(value1 == pseudoPath1[i1] + 100);
+                toBeMerged.push_back(make_pair(start0+i0, start1+i1));
             }
-            alignmentsCsv << ",";
+            if(value0 != 45) {
+                ++i0;
+            }
+            if(value1 != 45) {
+                ++i1;
+            }
         }
-        alignmentsCsv << "\n";
+        SHASTA_ASSERT(i0 == pseudoPath0.size());
+        SHASTA_ASSERT(i1 == pseudoPath1.size());
+
+        // If the alignment is too short, skip it.
+        if(toBeMerged.size() < minAlignedMetaMarkerCount) {
+            continue;
+        }
+
+
+
+        // In the disjoint set data structure, merge entries corresponding to
+        // aligned segments.
+        for(const auto& p: toBeMerged) {
+            disjointSets.union_set(p.first, p.second);
+        }
     }
+
+
+
+    // Each of the disjoint data sets becomes a vertex of the MetaMarkerGraph.
+    // Store the disjoint set for each position of the pseudo-path of each oriented read.
+    vector< vector<uint64_t> > vertexTable(2*readCount());
+    vector< vector< pair<OrientedReadId, uint64_t > > > vertices(n);
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const vector<SegmentId>& pseudoPath =
+                pseudoPaths[orientedReadId.getValue()];
+            if(pseudoPath.size() < minPseudoPathLength) {
+                continue;
+            }
+            vector<uint64_t>& v = vertexTable[orientedReadId.getValue()];
+            const uint64_t firstMetaMarkerId = start[orientedReadId.getValue()];
+
+            for(uint64_t index=0; index<pseudoPath.size(); index++) {
+                const uint64_t metaMarkerId = firstMetaMarkerId + index;
+                const uint64_t disjointSetId = disjointSets.find_set(metaMarkerId);
+                v.push_back(disjointSetId);
+                vertices[disjointSetId].push_back(make_pair(orientedReadId, index));
+            }
+        }
+    }
+
+
+    vector<uint64_t> histogram;
+    for(uint64_t i=0; i<n; i++) {
+        const uint64_t size = vertices[i].size();
+        if(size) {
+            if(histogram.size() <= size) {
+                histogram.resize(size+1, 0);
+            }
+            ++histogram[size];
+        }
+    }
+    ofstream histogramCsv("Histogram.csv");
+    histogramCsv << "Size,Frequency\n";
+    for(size_t i=1; i<histogram.size(); i++) {
+        const uint64_t frequency = histogram[i];
+        if(frequency) {
+            histogramCsv << i << "," << frequency << "\n";
+        }
+    }
+
+
+
+    // Create vertices of the MetaMarkerGraph.
+    MetaMarkerGraph graph;
+    uint64_t vertexId = 0;
+    for(uint64_t i=0; i<n; i++) {
+        const vector< pair<OrientedReadId, uint64_t > >& v = vertices[i];
+        if(v.empty()) {
+            continue;
+        }
+
+        // Sanity check: they must all correspond to the same SegmentId.
+        SegmentId firstSegmentId = std::numeric_limits<SegmentId>::max();
+        for(uint64_t i=0; i<v.size(); i++) {
+            const auto& p = v[i];
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t metaOrdinal = p.second;
+            const vector<SegmentId>& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+            const SegmentId segmentId = pseudoPath[metaOrdinal];
+            if(i == 0) {
+                firstSegmentId = segmentId;
+            } else {
+                SHASTA_ASSERT(firstSegmentId == segmentId);
+            }
+        }
+
+        // Create a vertex with these oriented reads and meta ordinals.
+        add_vertex(MetaMarkerGraphVertex(
+            vertexId++,
+            firstSegmentId,
+            assemblyGraph.edgeLists.size(firstSegmentId),
+            v),
+            graph);
+    }
+    graph.createEdges();
+    graph.writeGfa("MetaMarkerGraph.gfa");
+    graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
+    graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
+    cout << "The MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
+        num_edges(graph) << " edges." << endl;
 
 
 
