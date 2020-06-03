@@ -64,10 +64,6 @@ jobs:
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
-        name: shasta-Linux
-        path: shasta-build/shasta-Ubuntu-18.04/bin/shasta
-    - uses: actions/upload-artifact@master
-      with:
         name: shasta-Ubuntu-18.04.tar
         path: shasta-build/shasta-Ubuntu-18.04.tar
 
