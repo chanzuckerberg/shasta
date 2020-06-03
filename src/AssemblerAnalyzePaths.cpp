@@ -222,13 +222,16 @@ public:
             out << "->";
             graph[v1].writeGraphviz(out);
             out << "[";
-            out << "penwidth=\"" << sqrt(double(coverage)) << "\"";
+            out << "penwidth=\"" << sqrt(double(coverage + 1)) << "\"";
             out << " tooltip=\"(";
             graph[v0].write(out);
             out << ")->(";
             graph[v1].write(out);
             out << ") ";
             out << coverage << "\"";
+            if(coverage == 0) {
+                out << " style=dotted";
+            }
             out << "]";
             out << ";\n";
         }
@@ -1063,4 +1066,101 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         graphOut << "}\n";
     }
 #endif
+}
+
+
+
+// Analyze paths of oriented reads that go through a given assembly graph edge (segment).
+void Assembler::analyzeOrientedReadPathsThroughSegment(
+    AssemblyGraph::EdgeId segmentId) const
+{
+    using SegmentId = AssemblyGraph::EdgeId;
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    const uint64_t segmentCount = assemblyGraph.edges.size();
+    SHASTA_ASSERT(segmentId < segmentCount);
+
+
+
+    // Find the oriented reads that have edges on this assembly graph edge (segment).
+    std::set<OrientedReadId> orientedReadIdsSet;
+    const span<const MarkerGraph::EdgeId> markerGraphEdges =
+        assemblyGraph.edgeLists[segmentId];
+
+    // Loop over marker graph edges on this assembly graph edge.
+    for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
+
+        // Loop over oriented read ids on this marker graph edge.
+        for(const MarkerInterval& interval: markerGraph.edgeMarkerIntervals[markerGraphEdgeId]) {
+            orientedReadIdsSet.insert(interval.orientedReadId);
+        }
+    }
+    vector<OrientedReadId> orientedReadIds(orientedReadIdsSet.size());
+    copy(orientedReadIdsSet.begin(), orientedReadIdsSet.end(), orientedReadIds.begin());
+    cout << "Found " << orientedReadIds.size() <<
+        " oriented reads on segment " << segmentId << endl;
+
+
+
+    // Compute pseudo-paths for these oriented reads.
+    vector<SegmentId> pseudoPath;
+    vector< vector<SegmentId> > pseudoPaths;
+    vector<MarkerGraph::EdgeId> markerGraphPath;
+    for(const OrientedReadId orientedReadId: orientedReadIds) {
+
+        // Find the marker graph path of this oriented read.
+        computeOrientedReadMarkerGraphPath(
+            orientedReadId,
+            0, uint32_t(markers.size(orientedReadId.getValue())-1),
+            markerGraphPath);
+
+        // Loop over the marker graph path.
+        SegmentId previousSegmentId =
+            std::numeric_limits<SegmentId>::max();
+        pseudoPath.clear();
+        for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphPath) {
+
+            // Get the corresponding segments.
+            const span<const pair<SegmentId, uint32_t> > v =
+                assemblyGraph.markerToAssemblyTable[markerGraphEdgeId];
+
+            // If no segments, skip.
+            if(v.size() == 0) {
+                continue;
+            }
+
+            // If detangling was used, there can be more than one,
+            // and we don't want this here.
+            SHASTA_ASSERT(v.size() == 1);
+
+            // There is only one segment.
+            const SegmentId segmentId = v.front().first;
+
+            // If same as the previous, slip.
+            if(segmentId == previousSegmentId) {
+                continue;
+            }
+
+            // This is the next segment edge encountered
+            // by this oriented read along its marker graph path.
+            // Add it to the pseudo-path.
+            pseudoPath.push_back(segmentId);
+            previousSegmentId = segmentId;
+        }
+        pseudoPaths.push_back(pseudoPath);
+    }
+
+
+
+    // Now create a De Bruijn graph using these pseudo-paths.
+    DeBruijnGraph<2> graph;
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        const OrientedReadId orientedReadId = orientedReadIds[i];
+        const vector<SegmentId>& pseudoPath = pseudoPaths[i];
+        graph.addOrientedReadVertices(orientedReadId, pseudoPath);
+    }
+    graph.createEdges();
+    graph.writeGraphviz();
+    cout << "The De Bruijn graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+
 }
