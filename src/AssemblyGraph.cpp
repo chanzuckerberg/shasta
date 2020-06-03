@@ -174,13 +174,16 @@ void AssemblyGraph::writeGraphviz(const string& fileName) const
 
 // Create a csv file that can be loaded in Bandage to color assembled segments
 // by similarity (number of common oriented reads) with a given assembled segment.
-void AssemblyGraph::colorGfaBySimilarityToSegment(EdgeId edgeId0)
+void AssemblyGraph::colorGfaBySimilarityToSegment(
+    EdgeId edgeId0,
+    uint64_t minVertexCount,
+    uint64_t minEdgeCount)
 {
     // Compute the number of common oriented reads with edgeId0.
     vector<uint64_t> commonCount(edges.size(), 0);
     uint64_t maximumValue = 0;
     for(EdgeId edgeId1=0; edgeId1<edges.size(); edgeId1++) {
-        commonCount[edgeId1] = commonOrientedReadCount(edgeId0, edgeId1);
+        commonCount[edgeId1] = commonOrientedReadCount(edgeId0, edgeId1, minVertexCount, minEdgeCount);
         if(edgeId1 != edgeId0) {
             maximumValue = max(maximumValue, commonCount[edgeId1]);
         }
@@ -229,7 +232,11 @@ void AssemblyGraph::colorGfaBySimilarityToSegment(EdgeId edgeId0)
 
 
 // Compute the number of oriented reads in common between two segments.
-uint64_t AssemblyGraph::commonOrientedReadCount(EdgeId edgeId0, EdgeId edgeId1) const
+uint64_t AssemblyGraph::commonOrientedReadCount(
+    EdgeId edgeId0,
+    EdgeId edgeId1,
+    uint64_t minVertexCount,
+    uint64_t minEdgeCount) const
 {
     const span<const OrientedReadInfo> info0 = orientedReadsByEdge[edgeId0];
     const span<const OrientedReadInfo> info1 = orientedReadsByEdge[edgeId1];
@@ -242,7 +249,14 @@ uint64_t AssemblyGraph::commonOrientedReadCount(EdgeId edgeId0, EdgeId edgeId1) 
         } else if(it1->orientedReadId < it0->orientedReadId) {
             ++it1;
         } else {
-            ++n;
+            // Only count it if they have common edges.
+            if(
+                it0->vertexCount >= minVertexCount and
+                it1->vertexCount >= minVertexCount and
+                it0->edgeCount   >= minEdgeCount and
+                it1->edgeCount   >= minEdgeCount) {
+                ++n;
+            }
             ++it0;
             ++it1;
         }

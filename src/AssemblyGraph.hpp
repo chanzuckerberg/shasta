@@ -219,7 +219,11 @@ public:
     MemoryMapped::VectorOfVectors<OrientedReadInfo, uint64_t> orientedReadsByEdge;
 
     // Compute the number of oriented reads in common between two segments.
-    uint64_t commonOrientedReadCount(EdgeId, EdgeId) const;
+    uint64_t commonOrientedReadCount(
+        EdgeId, EdgeId,
+        uint64_t minVertexCount,
+        uint64_t minEdgeCount) const;
+
 
 
 
@@ -234,7 +238,10 @@ public:
 
     // Create a csv file that can be loaded in Bandage to color assembled segments
     // by similarity (number of common oriented reads) with a given assembled segment.
-    void colorGfaBySimilarityToSegment(EdgeId);
+    void colorGfaBySimilarityToSegment(
+        EdgeId,
+        uint64_t minVertexCount,
+        uint64_t minEdgeCount);
 
 
 

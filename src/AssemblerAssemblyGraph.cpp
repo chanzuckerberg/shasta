@@ -1842,9 +1842,12 @@ void Assembler::writeOrientedReadsByAssemblyGraphEdge()
 
 
 
-void Assembler::colorGfaBySimilarityToSegment(AssemblyGraph::EdgeId edgeId)
+void Assembler::colorGfaBySimilarityToSegment(
+    AssemblyGraph::EdgeId edgeId,
+    uint64_t minVertexCount,
+    uint64_t minEdgeCount)
 {
-    assemblyGraphPointer->colorGfaBySimilarityToSegment(edgeId);
+    assemblyGraphPointer->colorGfaBySimilarityToSegment(edgeId, minVertexCount, minEdgeCount);
 }
 
 

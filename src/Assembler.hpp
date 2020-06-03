@@ -1615,7 +1615,11 @@ private:
         double timeout,
         LocalAssemblyGraph&) const;
 public:
-    void colorGfaBySimilarityToSegment(AssemblyGraph::EdgeId);
+    void colorGfaBySimilarityToSegment(
+        AssemblyGraph::EdgeId,
+        uint64_t minVertexCount,
+        uint64_t minEdgeCount);
+
 
 
     // Compute consensus repeat counts for each vertex of the marker graph.

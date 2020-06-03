@@ -506,7 +506,9 @@ PYBIND11_MODULE(shasta, module)
             arg("fileName") = "OrientedReadPath.csv")
         .def("colorGfaBySimilarityToSegment",
             &Assembler::colorGfaBySimilarityToSegment,
-            arg("segmentId"))
+            arg("segmentId"),
+            arg("minVertexCount"),
+            arg("minEdgeCount"))
         .def("assembleAssemblyGraphEdge",
             (
                 AssembledSegment (Assembler::*)
