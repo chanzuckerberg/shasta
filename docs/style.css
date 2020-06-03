@@ -1,5 +1,5 @@
 :root {
-  --primary: #2eccc1;
+  --primary: #373939;
   --secondary: #bfbfbf;
   --accent: hsl(355, 63%, 38%);
   --info: hsl(242, 80%, 80%);
@@ -7,18 +7,22 @@
   --warning: hsl(55, 80%, 80%);
   --error: hsl(8, 80%, 80%);
   --light: #e8e8e8;
-  --dark: #666666;
+  --dark: #0c0b0b;
 }
 
 * {
-  font-family: Verdana, Geneva, sans-serif
+  font-family: Helvetica, Arial, sans-serif
 }
 body {
   margin:0;
 }
 main {
-  max-width: 46rem;
+  max-width: 80rem;
   margin: auto;
+}
+div.goto-index {
+  padding-top: 1rem;
+  float: right;
 }
 
 .primary {
@@ -51,10 +55,11 @@ main {
 
 @media screen and (min-width: 46em) {
   main {
-    max-width: 46rem;
+    max-width: 80rem;
     padding: 1rem 6rem;
     margin: 0 auto;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    line-height: 1.2;
   }
   nav {
     flex-direction: column;
@@ -64,10 +69,11 @@ main {
   }
 }
 
-@media screen and (min-width: 42em) and (max-width: 46em) {
+@media screen and (min-width: 42em) and (max-width: 80em) {
   main {
     padding: 1rem 4rem;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    line-height: 1.2;
   }
   nav {
     flex-direction: column;
@@ -77,10 +83,10 @@ main {
   }
 }
 
-@media screen and (max-width: 42em) {
+@media screen and (max-width: 80em) {
   main {
-    padding: 2rem;
     font-size: 1rem;
+    line-height: 1.2;
   }
 
   nav {
@@ -118,29 +124,25 @@ table {
   border-collapse: collapse;
 }
 
-@media screen and (min-width: 60em) and (max-width: 76em) {
+@media screen and (min-width: 60em) and (max-width: 80em) {
   table {
     max-width: 60rem;
-    margin-left: -7rem;
-    margin-right: -7rem;
     border-collapse: collapse;
   }
   .table-legend {
-    margin-left: -7rem;
-    max-width: 46rem;
+    max-width: 50rem;
+    margin: 1rem;
   }
 }
 
-@media screen and (min-width: 76em) {
+@media screen and (min-width: 80em) {
   table {
     max-width: 76rem;
-    margin-left: -15rem;
-    margin-right: -15rem;
     
   }
   .table-legend {
-    margin-left: -15rem;
-    max-width: 46rem;
+    max-width: 50rem;
+    margin: 1rem;
   }
 }
 
@@ -169,8 +171,12 @@ td.centered {
   text-align: center;
 }
 
+ul {
+  line-height: 1.4rem;
+}
+
 a {
-  color: var(--primary, Teal);
+  color: teal;
   text-decoration: none;
 }
 
@@ -180,7 +186,7 @@ a:hover {
 
 
 a.qm {
-  color: var(--primary, Teal);
+  color: teal;
   border-style: solid;
   border-radius: 3px;
   padding: 0px 2px;
@@ -193,7 +199,6 @@ a.qm:hover {
   background-color: var(--error);
   text-decoration: none;
 }
-
 
 div.color-box {
   display: inline-block;
@@ -228,90 +233,3 @@ pre {
   white-space: pre-wrap;
 }
 
-nav {
-  display: flex;
-  margin: auto;
-  background: var(--light);
-  font-size: 1.2rem;
-  box-shadow: 0px 2px 10px var(--secondary);
-  /* align-content: flex-start; */
-  justify-content: flex-start;
-}
-
-nav ul {
-  margin: 0;
-  display: inherit;
-  background: var(--light);
-  list-style: none;
-  padding-left: 0;
-  width: 100%;
-}
-
-nav li {
-  color: var(--dark);
-  background: var(--light);
-  flex-grow: 1;
-  padding: 1rem;
-  position: relative;
-  text-decoration: none;
-  display: inherit;
-  text-align: left;
-}
-
-nav a {
-  color: var(--dark);
-  text-decoration: none;
-  flex-grow: 1;
-}
-
-
-nav a:hover,
-nav a:focus-within,
-nav li:hover,
-nav li:focus-within {
-  background: var(--primary);
-  cursor: pointer;
-  color: var(--light);
-  text-decoration: none;
-}
-
-nav a li:focus-within {
-  outline: none;
-}
-
-nav ul li ul {
-  visibility: hidden;
-  margin-bottom:20px;
-  opacity: 0;
-  min-width: 7rem;
-  position: absolute;
-  margin-top: calc(20px + 1rem);
-  left: 0;
-  display: none;
-}
-
-nav ul  a:hover > ul,
-nav ul a:focus-within > ul,
-nav ul a ul:hover,
-nav ul a ul:focus,
-nav ul  li:hover > ul,
-nav ul li:focus-within > ul,
-nav ul li ul:hover,
-nav ul li ul:focus
- {
-  visibility: visible;
-  opacity: 1;
-  display: block;
-}
-nav ul li ul a {
-  display: block;
-}
-nav a.main-nav {
-  flex-grow: 2;
-  font-weight: bold;
-}
-
-nav a.main-nav li {
-  background-color: var(--primary);
-  color: white;
-}
