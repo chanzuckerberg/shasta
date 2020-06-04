@@ -4794,12 +4794,14 @@ void Assembler::computeOrientedReadMarkerGraphPath(
     OrientedReadId orientedReadId,
     uint32_t firstOrdinal,
     uint32_t lastOrdinal,
-    vector<MarkerGraph::EdgeId>& path
+    vector<MarkerGraph::EdgeId>& path,
+    vector< pair<uint32_t, uint32_t> >& pathOrdinals
     ) const
 {
 
     // Start with an empty path.
     path.clear();
+    pathOrdinals.clear();
 
 
 
@@ -4858,6 +4860,7 @@ void Assembler::computeOrientedReadMarkerGraphPath(
             for(MarkerGraph::EdgeId edgeId: outEdges0) {
                 if(markerGraph.edges[edgeId].target == vertexId1) {
                     path.push_back(edgeId);
+                    pathOrdinals.push_back(make_pair(ordinal0, ordinal1));
                     found = true;
                     break;
                 }
@@ -4885,9 +4888,10 @@ void Assembler::test()
         cin >> readId >> strand >> firstOrdinal >> lastOrdinal;
 
         vector<MarkerGraph::EdgeId> path;
+        vector< pair<uint32_t, uint32_t> > pathOrdinals;
         computeOrientedReadMarkerGraphPath(
             OrientedReadId(readId, strand),
-            firstOrdinal, lastOrdinal, path);
+            firstOrdinal, lastOrdinal, path, pathOrdinals);
 
         cout << "Marker graph path: ";;
         copy(path.begin(), path.end(), ostream_iterator<MarkerGraph::EdgeId>(cout, " "));

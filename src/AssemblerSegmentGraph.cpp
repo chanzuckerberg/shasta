@@ -34,6 +34,7 @@ void Assembler::createSegmentGraph()
     // This vector is indexed by OrientedReadId::getValue().
     vector< vector<AssemblyGraph::EdgeId> > orientedReadAssemblyGraphEdges(2*readCount());
     vector<MarkerGraph::EdgeId> markerGraphPath;
+    vector< pair<uint32_t, uint32_t> > pathOrdinals;
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
@@ -44,7 +45,7 @@ void Assembler::createSegmentGraph()
             computeOrientedReadMarkerGraphPath(
                 orientedReadId,
                 0, uint32_t(markers.size(orientedReadId.getValue())-1),
-                markerGraphPath);
+                markerGraphPath, pathOrdinals);
 
             // Loop over the path.
             AssemblyGraph::EdgeId previousAssemblyGraphEdgeId =

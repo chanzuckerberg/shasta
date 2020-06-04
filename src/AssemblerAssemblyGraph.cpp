@@ -1309,6 +1309,7 @@ void Assembler::colorGfaWithTwoReads(
 
     // Find assembly graph edges for the two oriented reads.
     vector<MarkerGraph::EdgeId> markerGraphPath;
+    vector< pair<uint32_t, uint32_t> > pathOrdinals;
     array<vector<MarkerGraph::EdgeId>, 2> assemblyGraphEdges;
     for(int i=0; i<2; i++) {
         const OrientedReadId orientedReadId = orientedReadIds[i];
@@ -1317,7 +1318,7 @@ void Assembler::colorGfaWithTwoReads(
         computeOrientedReadMarkerGraphPath(
             orientedReadId,
             0, uint32_t(markers.size(orientedReadId.getValue())-1),
-            markerGraphPath);
+            markerGraphPath, pathOrdinals);
 
         // Find corresponding assembly graph edges.
         findAssemblyGraphEdges(markerGraphPath, assemblyGraphEdges[i]);
@@ -1387,10 +1388,11 @@ void Assembler::writeOrientedReadPath(
     // Compute the path in the marker graph.
     const OrientedReadId orientedReadId(readId, strand);
     vector<MarkerGraph::EdgeId> markerGraphPath;
+    vector< pair<uint32_t, uint32_t> > pathOrdinals;
     computeOrientedReadMarkerGraphPath(
         orientedReadId,
         0, uint32_t(markers.size(orientedReadId.getValue())-1),
-        markerGraphPath);
+        markerGraphPath, pathOrdinals);
 
 
 
@@ -1398,9 +1400,10 @@ void Assembler::writeOrientedReadPath(
     ofstream csv(fileName);
     csv << "Ordinal0,Ordinal1,MarkerGraphEdgeId,AssemblyGraphEdgeId,PositionInAssemblyGraphEdge\n";
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
-    for(uint32_t ordinal0=0; ordinal0<markerGraphPath.size(); ordinal0++) {
-        const uint32_t ordinal1 = ordinal0 + 1;
-        const MarkerGraph::EdgeId markerGraphEdgeId = markerGraphPath[ordinal0];
+    for(uint32_t i=0; i<markerGraphPath.size(); i++) {
+        const MarkerGraph::EdgeId markerGraphEdgeId = markerGraphPath[i];
+        const uint32_t ordinal0 = pathOrdinals[i].first;
+        const uint32_t ordinal1 = pathOrdinals[i].second;
 
         // Get the corresponding assembly graph edges.
         // If detangling was used, there can be more than one.

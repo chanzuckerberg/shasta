@@ -1353,7 +1353,8 @@ private:
         OrientedReadId,
         uint32_t firstOrdinal,
         uint32_t lastOrdinal,
-        vector<MarkerGraph::EdgeId>& path
+        vector<MarkerGraph::EdgeId>& path,
+        vector< pair<uint32_t, uint32_t> >& pathOrdinals
         ) const;
 
 
