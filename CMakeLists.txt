@@ -28,7 +28,7 @@ if(MACOS)
     option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." OFF)
     option(BUILD_APPIMAGE "Build the AppImage." OFF)
 else(MACOS)
-    # For Linux, build everything.
+    # SPOA's cpu dispatching code does not compile on Ubuntu versions lesser than 18.04
     execute_process(COMMAND cat /etc/os-release
         COMMAND grep VERSION_ID
         COMMAND cut -f 2 -d=
@@ -40,6 +40,8 @@ else(MACOS)
         option(BUILD_USE_SPOA_WITH_CPU_DISPATCH "Link to SPOA library which uses cpu dispatch" ON)
     endif(UBUNTU_VERSION VERSION_LESS "18.04")
     message(STATUS "BUILD_USE_SPOA_WITH_CPU_DISPATCH is " ${BUILD_USE_SPOA_WITH_CPU_DISPATCH})
+   
+    # For Linux, build everything.
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
     option(BUILD_DYNAMIC_LIBRARY "Build the shared library." ON)
