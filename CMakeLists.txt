@@ -29,7 +29,17 @@ if(MACOS)
     option(BUILD_APPIMAGE "Build the AppImage." OFF)
 else(MACOS)
     # For Linux, build everything.
-    option(BUILD_USE_SPOA_WITH_CPU_DISPATCH "Link to SPOA library which uses cpu dispatch" ON)
+    execute_process(COMMAND cat /etc/os-release
+        COMMAND grep VERSION_ID
+        COMMAND cut -f 2 -d=
+        COMMAND tr -d \"
+        OUTPUT_VARIABLE UBUNTU_VERSION)
+    if(UBUNTU_VERSION VERSION_LESS "18.04")
+        option(BUILD_USE_SPOA_WITH_CPU_DISPATCH "Link to SPOA library which uses cpu dispatch" OFF)    
+    else(UBUNTU_VERSION VERSION_LESS "18.04")
+        option(BUILD_USE_SPOA_WITH_CPU_DISPATCH "Link to SPOA library which uses cpu dispatch" ON)
+    endif(UBUNTU_VERSION VERSION_LESS "18.04")
+    message(STATUS "BUILD_USE_SPOA_WITH_CPU_DISPATCH is " ${BUILD_USE_SPOA_WITH_CPU_DISPATCH})
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
     option(BUILD_DYNAMIC_LIBRARY "Build the shared library." ON)
