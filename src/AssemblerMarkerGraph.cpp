@@ -1902,12 +1902,21 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
     // Fill in the consensus sequence for all edges.
     const uint32_t markerGraphEdgeLengthThresholdForConsensus = 1000;
+
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
+    const int8_t match = 1;
+    const int8_t mismatch = -1;
+    const int8_t gap = -1;
+    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
+    auto spoaAlignmentGraph = spoa::createGraph();
     BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         LocalMarkerGraphEdge& edge = graph[e];
         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
         computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             edge.edgeId,
             markerGraphEdgeLengthThresholdForConsensus,
+            spoaAlignmentEngine,
+            spoaAlignmentGraph,
             edge.consensusSequence,
             edge.consensusRepeatCounts,
             edge.consensusOverlappingBaseCount,
@@ -3060,6 +3069,8 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     MarkerGraph::EdgeId edgeId,
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
+    const std::unique_ptr<spoa::AlignmentEngine>& spoaAlignmentEngine,
+    const std::unique_ptr<spoa::Graph>& spoaAlignmentGraph,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount,
@@ -3395,15 +3406,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
     // We are now ready to compute the spoa alignment for the distinct sequences.
 
-    // Initialize a spoa alignment.
-    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
-    const int8_t match = 1;
-    const int8_t mismatch = -1;
-    const int8_t gap = -1;
-    auto alignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
-    auto alignmentGraph = spoa::createGraph();
-
-
+    spoaAlignmentGraph->clear();
     // Add the sequences to the alignment, in order of decreasing frequency.
     string sequenceString;
     for(const auto& p: distinctSequenceTable) {
@@ -3414,15 +3417,15 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         for(const Base base: distinctSequence) {
             sequenceString += base.character();
         }
-        auto alignment = alignmentEngine->align(sequenceString, alignmentGraph);
-        alignmentGraph->add_alignment(alignment, sequenceString);
+        auto alignment = spoaAlignmentEngine->align(sequenceString, spoaAlignmentGraph);
+        spoaAlignmentGraph->add_alignment(alignment, sequenceString);
     }
 
 
 
     // Use spoa to compute the multiple sequence alignment.
     vector<string>& msa = detail.msa;
-    alignmentGraph->generate_multiple_sequence_alignment(msa);
+    spoaAlignmentGraph->generate_multiple_sequence_alignment(msa);
 
     // The length of the alignment.
     // This includes alignment gaps.
@@ -4513,6 +4516,13 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     uint8_t overlappingBaseCount;
     vector< pair<uint32_t, CompressedCoverageData> > coverageData;
 
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
+    const int8_t match = 1;
+    const int8_t mismatch = -1;
+    const int8_t gap = -1;
+    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
+    auto spoaAlignmentGraph = spoa::createGraph();
+    
     // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
@@ -4556,6 +4566,7 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
                     ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
                     computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
                         edgeId, markerGraphEdgeLengthThresholdForConsensus,
+                        spoaAlignmentEngine, spoaAlignmentGraph,
                         sequence, repeatCounts, overlappingBaseCount,
                         detail,
                         storeCoverageData ? &coverageData : 0

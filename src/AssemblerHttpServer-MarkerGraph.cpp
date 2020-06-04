@@ -822,9 +822,19 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     vector<uint32_t> spoaRepeatCounts;
     uint8_t spoaOverlappingBaseCount;
     ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail spoaDetail;
+    
+    const spoa::AlignmentType alignmentType = spoa::AlignmentType::kNW;
+    const int8_t match = 1;
+    const int8_t mismatch = -1;
+    const int8_t gap = -1;
+    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
+    auto spoaAlignmentGraph = spoa::createGraph();
+    
     computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         edgeId,
         markerGraphEdgeLengthThresholdForConsensus,
+        spoaAlignmentEngine,
+        spoaAlignmentGraph,
         spoaSequence,
         spoaRepeatCounts,
         spoaOverlappingBaseCount,
