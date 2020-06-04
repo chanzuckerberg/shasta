@@ -504,6 +504,10 @@ PYBIND11_MODULE(shasta, module)
             arg("readId"),
             arg("strand"),
             arg("fileName") = "OrientedReadPath.csv")
+        .def("writePseudoPath",
+            &Assembler::writePseudoPath,
+            arg("readId"),
+            arg("strand"))
         .def("colorGfaBySimilarityToSegment",
             &Assembler::colorGfaBySimilarityToSegment,
             arg("segmentId"),

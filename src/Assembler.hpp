@@ -1664,9 +1664,50 @@ private:
 
 
 
+    // Pseudo-paths.
+    // An oriented read corresponds to a path (sequence of adjacent edges)
+    // in the marker graph, which
+    // can be computed via computeOrientedReadMarkerGraphPath.
+    // That path encounters a sequence of assembly graph edges,
+    // which is not necessarily a path in the assembly graph
+    // because not all marker graph edges belong to an assembly graph edge.
+    // We call this sequence the pseudo-path of an oriented read in the assembly graph.
+    class PseudoPathEntry {
+    public:
+        AssemblyGraph::EdgeId segmentId;
+
+        // The first and last ordinal on the oriented read
+        // where this assembly graph edge (segment) is encountered.
+        uint32_t firstOrdinal;
+        uint32_t lastOrdinal;
+
+        // The first and last position in the assembly graph edge
+        // (segment) where this oriented read is encountered.
+        uint32_t firstPosition;
+        uint32_t lastPosition;
+
+        // The number of marker graph edges on the oriented read
+        // where this assembly graph edge (segment) is encountered.
+        uint32_t markerGraphEdgeCount;
+    };
+    using PseudoPath = vector<PseudoPathEntry>;
+    void computePseudoPath(
+        OrientedReadId,
+
+        // The marker graph path computed using computeOrientedReadMarkerGraphPath.
+        // This is computed by this function - it does not neet to be filled in
+        // in advance.
+        vector<MarkerGraph::EdgeId>& path,
+        vector< pair<uint32_t, uint32_t> >& pathOrdinals,
+
+        // The pseudo-path computed by this function.
+        PseudoPath&) const;
+public:
+    void writePseudoPath(ReadId, Strand) const;
+
+
 
     // Detangle the AssemblyGraph.
-public:
     void detangle();
 
 
