@@ -1672,6 +1672,7 @@ private:
     // which is not necessarily a path in the assembly graph
     // because not all marker graph edges belong to an assembly graph edge.
     // We call this sequence the pseudo-path of an oriented read in the assembly graph.
+public:
     class PseudoPathEntry {
     public:
         AssemblyGraph::EdgeId segmentId;
@@ -1702,7 +1703,6 @@ private:
 
         // The pseudo-path computed by this function.
         PseudoPath&) const;
-public:
     void writePseudoPath(ReadId, Strand) const;
 
 

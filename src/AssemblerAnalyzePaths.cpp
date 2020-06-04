@@ -109,7 +109,7 @@ public:
     // Add vertices for an oriented read.
     void addOrientedReadVertices(
         OrientedReadId orientedReadId,
-        const vector<SegmentId>& pseudoPath)
+        const Assembler::PseudoPath& pseudoPath)
     {
         Graph& graph = *this;
 
@@ -117,11 +117,11 @@ public:
         // starting there are on the pseudo-path.
         for(uint64_t startPosition=0; startPosition+k<=pseudoPath.size(); startPosition++) {
 
-            // Extract the k segments.
+            // Extract the k segments from the pseudo-path
             array<uint64_t, k> segmentIds;
-            const auto begin = pseudoPath.begin() + startPosition;
-            const auto end = begin + k;
-            copy(begin, end, segmentIds.begin());
+            for(uint64_t i=0; i<k; i++) {
+                segmentIds[i] = pseudoPath[startPosition+i].segmentId;
+            }
 
             // Get the vertex corresponding to these k segments, creating it
             // if necessary.
@@ -213,7 +213,8 @@ public:
         const Graph& graph = *this;
 
         ofstream out("DeBruijnGraph.dot");
-        out << "digraph DeBruijnGraph {\n";
+        out << "digraph DeBruijnGraph {\n"
+            "node[shape=rectangle];\n";
         BGL_FORALL_EDGES_T(e, graph, Graph) {
             const vertex_descriptor v0 = source(e, graph);
             const vertex_descriptor v1 = target(e, graph);
@@ -269,7 +270,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     // The minimum number of markers for a segment to be used.
     const uint64_t minMarkerCount = 0;
 
-    const uint64_t minEdgeCoverage = 2;
+    // const uint64_t minEdgeCoverage = 2;
 
 #if 0
     // The minimum length of a pseudo-path for a read t be used.
@@ -369,6 +370,9 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
     // Use these pseudo-paths to create a de Bruijn graph.
+    SHASTA_ASSERT(0);
+    // To revive this use computePseudoPath to compute the paths above.
+#if 0
     DeBruijnGraph<3> graph;
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
@@ -383,6 +387,8 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     graph.writeGraphviz();
     cout << "The De Bruijn graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
+#endif
+
 
 
 #if 0
@@ -1075,10 +1081,12 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 void Assembler::analyzeOrientedReadPathsThroughSegment(
     AssemblyGraph::EdgeId segmentId) const
 {
-    using SegmentId = AssemblyGraph::EdgeId;
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint64_t segmentCount = assemblyGraph.edges.size();
     SHASTA_ASSERT(segmentId < segmentCount);
+
+    // ********************************* EXPOSE WHEN CODE STABILIZES.
+    const uint32_t maxOrdinalSkip = 200;
 
 
 
@@ -1103,6 +1111,15 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
     // Compute pseudo-paths for these oriented reads.
+    vector<PseudoPath> pseudoPaths(orientedReadIds.size());
+    vector<MarkerGraph::EdgeId> markerGraphPath;
+    vector< pair<uint32_t, uint32_t> > pathOrdinals;
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        computePseudoPath(orientedReadIds[i],
+            markerGraphPath, pathOrdinals, pseudoPaths[i]);
+    }
+
+#if 0
     vector<SegmentId> pseudoPath;
     vector< vector<SegmentId> > pseudoPaths;
     vector<MarkerGraph::EdgeId> markerGraphPath;
@@ -1167,14 +1184,39 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
             csv << "\n";
         }
     }
-
+#endif
 
 
     // Now create a De Bruijn graph using these pseudo-paths.
+    ofstream csv("PseudoPathsThroughSegment.csv");
     DeBruijnGraph<2> graph;
     for(uint64_t i=0; i<orientedReadIds.size(); i++) {
         const OrientedReadId orientedReadId = orientedReadIds[i];
-        const vector<SegmentId>& pseudoPath = pseudoPaths[i];
+        const PseudoPath& pseudoPath = pseudoPaths[i];
+
+        // If the pseudo-path has a large ordinal skip,
+        // disregard this read.
+        bool disregard = false;
+        for(uint64_t j=1; j<pseudoPath.size(); j++) {
+            const uint32_t ordinalSkip = pseudoPath[j].firstOrdinal - pseudoPath[j-1].lastOrdinal;
+            if(ordinalSkip > maxOrdinalSkip) {
+                disregard = true;
+                break;
+            }
+        }
+        if(disregard) {
+            cout << orientedReadId << " disregarded because of a large ordinal skip." << endl;
+            continue;
+        }
+
+        // Write a line to the csv file.
+        csv << orientedReadId << ",";
+        for(const PseudoPathEntry& pseudoPathEntry: pseudoPath) {
+            csv << pseudoPathEntry.segmentId << ",";
+        }
+        csv << "\n";
+
+        // Update the De Bruijn graph for this oriented read.
         graph.addOrientedReadVertices(orientedReadId, pseudoPath);
     }
     graph.createEdges();
