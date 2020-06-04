@@ -1151,6 +1151,23 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
 
+    // Write a csv file with the pseudo-paths we found.
+    {
+        ofstream csv("PseudoPathsThroughSegment.csv");
+        for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+            const OrientedReadId orientedReadId = orientedReadIds[i];
+            const vector<SegmentId>& pseudoPath = pseudoPaths[i];
+
+            csv << orientedReadId << ",";
+            for(const SegmentId segmentId: pseudoPath) {
+                csv << segmentId << ",";
+            }
+            csv << "\n";
+        }
+    }
+
+
+
     // Now create a De Bruijn graph using these pseudo-paths.
     DeBruijnGraph<2> graph;
     for(uint64_t i=0; i<orientedReadIds.size(); i++) {
