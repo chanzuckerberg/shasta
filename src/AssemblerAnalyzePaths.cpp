@@ -1381,10 +1381,14 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
         }
     }
     graph.createEdges();
+    cout << "Before transitive reduction, the MetaMarkerGraph has " <<
+        num_vertices(graph) << " vertices and " <<
+        num_edges(graph) << " edges." << endl;
+    graph.transitiveReduction();
     graph.writeGfa("MetaMarkerGraph.gfa");
     graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
-    cout << "The MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
+    cout << "The final MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
         num_edges(graph) << " edges." << endl;
 
 

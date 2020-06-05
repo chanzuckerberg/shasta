@@ -62,6 +62,7 @@ public:
         orientedReads(orientedReads)
     {
     }
+    MetaMarkerGraphVertex() {}
 };
 
 
@@ -80,6 +81,7 @@ public:
 class shasta::MetaMarkerGraph : public MetaMarkerGraphBaseClass {
 public:
     void createEdges();
+    void transitiveReduction();
     void writeGraphviz(const string& fileName) const;
     void writeGfa(const string& fileName) const;
     void writeVerticesCsv(const string& fileName) const;

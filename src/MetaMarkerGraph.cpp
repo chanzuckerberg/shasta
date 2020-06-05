@@ -3,6 +3,10 @@ using namespace shasta;
 
 #include <boost/graph/iteration_macros.hpp>
 
+#include <queue>
+#include <set>
+
+
 
 void MetaMarkerGraph::createEdges()
 {
@@ -75,6 +79,69 @@ void MetaMarkerGraph::createEdges()
 }
 
 
+// This does transitive reduction considering paths of arbitrary length.
+// We directly test for reachability.
+// The resulting transitive reduction is unique only if the graph
+// is acyclic. In the general case, multiple transitive reductions
+// are possible. For this reason, we process edges in order
+// of increasing coverage.
+
+// The boost graph library as an undocumented transitive reduction
+// which requires an acyclic graph (because it uses topological_sort)
+// and also does not compile for this graph type.
+// The transitive closure algorithm is documented and general, but
+// does not help here.
+void MetaMarkerGraph::transitiveReduction()
+{
+    MetaMarkerGraph& graph = *this;
+
+    // Sort edges by increasing coverage.
+    vector< pair<uint64_t, edge_descriptor> > sortedEdges;
+    BGL_FORALL_EDGES(e, graph, MetaMarkerGraph) {
+        sortedEdges.push_back(make_pair(graph[e].orientedReads.size(), e));
+    }
+    sort(sortedEdges.begin(), sortedEdges.end());
+
+
+
+    // Process all edges in order of increasing coverage.
+    for(const auto& p: sortedEdges) {
+        const edge_descriptor e01 = p.second;
+        const vertex_descriptor v0 = source(e01, graph);
+        const vertex_descriptor v1 = target(e01, graph);
+
+        // Do a BFS starting at v0, without using this edge,
+        // and stopping if we encounter v1.
+        std::queue<vertex_descriptor> q;
+        q.push(v0);
+        std::set<vertex_descriptor> verticesFound;
+        verticesFound.insert(v0);
+        bool done = false;
+        while(not q.empty()) {
+            const vertex_descriptor u0 = q.front();
+            q.pop();
+            BGL_FORALL_OUTEDGES(u0, f01, graph, MetaMarkerGraph) {
+                if(f01 == e01) {
+                    continue;
+                }
+                const vertex_descriptor u1 = target(f01, graph);
+                if(u1 == v1) {
+                    boost::remove_edge(e01, graph);
+                    done = true;
+                    break;
+                }
+                if(verticesFound.find(u1) == verticesFound.end()) {
+                    q.push(u1);
+                    verticesFound.insert(u1);
+                }
+            }
+            if(done) {
+                break;
+            }
+        }
+    }
+}
+
 
 void MetaMarkerGraph::writeGraphviz(const string& fileName) const
 {
@@ -109,7 +176,7 @@ void MetaMarkerGraph::writeGfa(const string& fileName) const
     BGL_FORALL_VERTICES(v, graph, Graph) {
         gfa <<
             "S\t" <<
-            graph[v].segmentId << "\t" <<
+            graph[v].vertexId << "\t" <<
             "*\t" <<
             "LN:i:" << graph[v].markerCount <<
             "\n";
