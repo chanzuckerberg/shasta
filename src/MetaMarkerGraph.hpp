@@ -82,7 +82,7 @@ class shasta::MetaMarkerGraph : public MetaMarkerGraphBaseClass {
 public:
     void createEdges();
     void transitiveReduction();
-    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(const string& fileName, AssemblyGraph::EdgeId startSegmentId) const;
     void writeGfa(const string& fileName) const;
     void writeVerticesCsv(const string& fileName) const;
     void writeEdgesCsv(const string& fileName) const;

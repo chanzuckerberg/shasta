@@ -143,20 +143,46 @@ void MetaMarkerGraph::transitiveReduction()
 }
 
 
-void MetaMarkerGraph::writeGraphviz(const string& fileName) const
+void MetaMarkerGraph::writeGraphviz(
+    const string& fileName,
+    AssemblyGraph::EdgeId startSegmentId) const
 {
     using Graph = MetaMarkerGraph;
     const Graph& graph = *this;
 
     ofstream graphOut(fileName);
     graphOut << "digraph MetaMarkerGraph {\n";
+
+
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        const MetaMarkerGraphVertex& vertex = graph[v];
+
+        graphOut <<
+            vertex.segmentId <<
+            " [tooltip=\"Segment " <<
+            vertex.segmentId << ", " <<
+            vertex.markerCount << " markers, coverage " <<
+            vertex.orientedReads.size() << "\"";
+
+        if(vertex.segmentId == startSegmentId) {
+            graphOut << " style=filled fillcolor=pink";
+        }
+        graphOut << "];\n";
+    }
+
+
+
     BGL_FORALL_EDGES(e, graph, Graph) {
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
-        graphOut << graph[v0].vertexId << "->" << graph[v1].vertexId <<
-            " [penwidth=" << int(0.3* double(graph[e].orientedReads.size())) << "]"
+        const auto coverage = graph[e].orientedReads.size();
+        graphOut << graph[v0].segmentId << "->" << graph[v1].segmentId <<
+            " ["
+            "tooltip=\"Coverage " << coverage << "\""
+            " penwidth=" << int(1 + 0.3* double(coverage)) << "]"
             << ";\n";
     }
+
     graphOut << "}\n";
 }
 

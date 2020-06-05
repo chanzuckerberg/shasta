@@ -1079,12 +1079,12 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 // Analyze paths of oriented reads that go through a given assembly graph edge (segment).
 void Assembler::analyzeOrientedReadPathsThroughSegment(
-    AssemblyGraph::EdgeId segmentId) const
+    AssemblyGraph::EdgeId startSegmentId) const
 {
     using SegmentId = AssemblyGraph::EdgeId;
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint64_t segmentCount = assemblyGraph.edges.size();
-    SHASTA_ASSERT(segmentId < segmentCount);
+    SHASTA_ASSERT(startSegmentId < segmentCount);
 
 
 
@@ -1104,7 +1104,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     std::set<OrientedReadId> orientedReadIdsThroughSegment;
     // Loop over the marker graph edges that are on this assembly graph edge (segment).
     const span<const MarkerGraph::EdgeId> markerGraphEdges =
-        assemblyGraph.edgeLists[segmentId];
+        assemblyGraph.edgeLists[startSegmentId];
     for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
 
         // Loop over oriented read ids on this marker graph edge.
@@ -1113,7 +1113,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
         }
     }
     cout << "Found " << orientedReadIdsThroughSegment.size() <<
-        " oriented reads on segment " << segmentId << endl;
+        " oriented reads on segment " << startSegmentId << endl;
 
 
 
@@ -1385,6 +1385,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
         num_vertices(graph) << " vertices and " <<
         num_edges(graph) << " edges." << endl;
     graph.transitiveReduction();
+    graph.writeGraphviz("MetaMarkerGraph.dot", startSegmentId);
     graph.writeGfa("MetaMarkerGraph.gfa");
     graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
