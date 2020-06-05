@@ -11,10 +11,8 @@ void MetaMarkerGraph::createEdges()
 
 
 
-    // Construct the sequence of vertices encountered by each
-    // oriented read.
-    // Indexed by [orientedReadId.getValue()][metaOrdinal].
-    vector< vector<vertex_descriptor> > pseudoPaths;
+    // Construct the sequence of vertices encountered by each oriented read.
+    std::map<OrientedReadId, vector<vertex_descriptor> > pseudoPaths;
     BGL_FORALL_VERTICES(v, graph, Graph) {
         const vector< pair<OrientedReadId, uint64_t> >& orientedReads =
             graph[v].orientedReads;
@@ -25,11 +23,8 @@ void MetaMarkerGraph::createEdges()
             const OrientedReadId orientedReadId = p.first;
             const uint64_t metaOrdinal = p.second;
 
-            // Make sure we have a pseudo-path for this oriented read.
-            if(pseudoPaths.size() <= orientedReadId.getValue()) {
-                pseudoPaths.resize(orientedReadId.getValue() + 1);
-            }
-            vector<vertex_descriptor>& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+            // Access the pseudo-path for this oriented read.
+            vector<vertex_descriptor>& pseudoPath = pseudoPaths[orientedReadId];
 
             // Make sure we have a slot for this metaOrdinal.
             if(pseudoPath.size() <= metaOrdinal) {
@@ -40,12 +35,11 @@ void MetaMarkerGraph::createEdges()
             pseudoPath[metaOrdinal] = v;
         }
     }
-    SHASTA_ASSERT((pseudoPaths.size() % 2) == 0);
-    const uint64_t readCount = pseudoPaths.size() / 2;
 
 
     // Check that the pseudo-path don't have any missing vertices.
-    for(const auto& pseudoPath: pseudoPaths) {
+    for(const auto& p: pseudoPaths) {
+        const vector<vertex_descriptor>& pseudoPath = p.second;
         for(const vertex_descriptor v: pseudoPath) {
             SHASTA_ASSERT(v != null_vertex());
         }
@@ -56,30 +50,26 @@ void MetaMarkerGraph::createEdges()
 
     // Now we can create the edges by looping over the pseudo-path
     // of each orientedRead.
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
+    for(const auto& p: pseudoPaths) {
+        const OrientedReadId orientedReadId = p.first;
+        const vector<vertex_descriptor>& pseudoPath = p.second;
 
-            // Access the pseudo-path of this oriented read.
-            const vector<vertex_descriptor>& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+        // Loop over successive vertices in the pseudo-path of this oriented read.
+        for(uint64_t metaOrdinal1=1; metaOrdinal1<pseudoPath.size(); metaOrdinal1++) {
+            const uint64_t metaOrdinal0 = metaOrdinal1 - 1;
+            const vertex_descriptor v0 = pseudoPath[metaOrdinal0];
+            const vertex_descriptor v1 = pseudoPath[metaOrdinal1];
 
-            // Loop over successive vertices in the pseudo-path of this oriented read.
-            for(uint64_t metaOrdinal1=1; metaOrdinal1<pseudoPath.size(); metaOrdinal1++) {
-                const uint64_t metaOrdinal0 = metaOrdinal1 - 1;
-                const vertex_descriptor v0 = pseudoPath[metaOrdinal0];
-                const vertex_descriptor v1 = pseudoPath[metaOrdinal1];
-
-                // Access the edge between these two vertices, creating it if necessary.
-                bool edgeExists = false;;
-                edge_descriptor e;
-                tie(e, edgeExists) = edge(v0, v1, graph);
-                if(not edgeExists) {
-                    tie(e, edgeExists) = add_edge(v0, v1, graph);
-                }
-
-                // Store this metaOrdinal in the edge.
-                graph[e].orientedReads.push_back(make_pair(orientedReadId, metaOrdinal0));
+            // Access the edge between these two vertices, creating it if necessary.
+            bool edgeExists = false;;
+            edge_descriptor e;
+            tie(e, edgeExists) = edge(v0, v1, graph);
+            if(not edgeExists) {
+                tie(e, edgeExists) = add_edge(v0, v1, graph);
             }
+
+            // Store this metaOrdinal in the edge.
+            graph[e].orientedReads.push_back(make_pair(orientedReadId, metaOrdinal0));
         }
     }
 }
@@ -119,7 +109,7 @@ void MetaMarkerGraph::writeGfa(const string& fileName) const
     BGL_FORALL_VERTICES(v, graph, Graph) {
         gfa <<
             "S\t" <<
-            graph[v].vertexId << "\t" <<
+            graph[v].segmentId << "\t" <<
             "*\t" <<
             "LN:i:" << graph[v].markerCount <<
             "\n";

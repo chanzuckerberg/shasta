@@ -1081,112 +1081,315 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 void Assembler::analyzeOrientedReadPathsThroughSegment(
     AssemblyGraph::EdgeId segmentId) const
 {
+    using SegmentId = AssemblyGraph::EdgeId;
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint64_t segmentCount = assemblyGraph.edges.size();
     SHASTA_ASSERT(segmentId < segmentCount);
 
-    // ********************************* EXPOSE WHEN CODE STABILIZES.
-    const uint32_t maxOrdinalSkip = 200;
+
+
+    // ********************************* PARAMETERS TO EXPOSE WHEN CODE STABILIZES.
+
+    // The maximum ordinal skip between adjacent segments on the
+    // pseudo-path of an oriented read. If an oriented read has a skip larger than
+    // that, it is not used.
+    const uint32_t maxOrdinalSkip = 500;
+    const int matchScore = 1;
+    const int mismatchScore = -1;
+    const int gapScore = -1;
 
 
 
     // Find the oriented reads that have edges on this assembly graph edge (segment).
-    std::set<OrientedReadId> orientedReadIdsSet;
+    std::set<OrientedReadId> orientedReadIdsThroughSegment;
+    // Loop over the marker graph edges that are on this assembly graph edge (segment).
     const span<const MarkerGraph::EdgeId> markerGraphEdges =
         assemblyGraph.edgeLists[segmentId];
-
-    // Loop over marker graph edges on this assembly graph edge.
     for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
 
         // Loop over oriented read ids on this marker graph edge.
         for(const MarkerInterval& interval: markerGraph.edgeMarkerIntervals[markerGraphEdgeId]) {
-            orientedReadIdsSet.insert(interval.orientedReadId);
+            orientedReadIdsThroughSegment.insert(interval.orientedReadId);
         }
     }
-    vector<OrientedReadId> orientedReadIds(orientedReadIdsSet.size());
-    copy(orientedReadIdsSet.begin(), orientedReadIdsSet.end(), orientedReadIds.begin());
-    cout << "Found " << orientedReadIds.size() <<
+    cout << "Found " << orientedReadIdsThroughSegment.size() <<
         " oriented reads on segment " << segmentId << endl;
 
 
 
     // Compute pseudo-paths for these oriented reads.
-    vector<PseudoPath> pseudoPaths(orientedReadIds.size());
+    // Only keep the oriented reads without a large marker skip.
+    vector<OrientedReadId> orientedReadIds;
+    vector<PseudoPath> pseudoPaths;
     vector<MarkerGraph::EdgeId> markerGraphPath;
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
-    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
-        computePseudoPath(orientedReadIds[i],
-            markerGraphPath, pathOrdinals, pseudoPaths[i]);
-    }
+    for(const OrientedReadId orientedReadId: orientedReadIdsThroughSegment) {
 
-#if 0
-    vector<SegmentId> pseudoPath;
-    vector< vector<SegmentId> > pseudoPaths;
-    vector<MarkerGraph::EdgeId> markerGraphPath;
-    vector< pair<uint32_t, uint32_t> > pathOrdinals;
-    for(const OrientedReadId orientedReadId: orientedReadIds) {
+        // Compute the pseudo-path.
+        PseudoPath pseudoPath;
+        computePseudoPath(orientedReadId, markerGraphPath, pathOrdinals, pseudoPath);
 
-        // Find the marker graph path of this oriented read.
-        computeOrientedReadMarkerGraphPath(
-            orientedReadId,
-            0, uint32_t(markers.size(orientedReadId.getValue())-1),
-            markerGraphPath, pathOrdinals);
-
-        // Loop over the marker graph path.
-        SegmentId previousSegmentId =
-            std::numeric_limits<SegmentId>::max();
-        pseudoPath.clear();
-        for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphPath) {
-
-            // Get the corresponding segments.
-            const span<const pair<SegmentId, uint32_t> > v =
-                assemblyGraph.markerToAssemblyTable[markerGraphEdgeId];
-
-            // If no segments, skip.
-            if(v.size() == 0) {
-                continue;
+        // If the pseudo-path has a large ordinal skip,
+        // disregard this oriented read.
+        bool disregard = false;
+        for(uint64_t j=1; j<pseudoPath.size(); j++) {
+            const uint32_t ordinalSkip = pseudoPath[j].firstOrdinal - pseudoPath[j-1].lastOrdinal;
+            if(ordinalSkip > maxOrdinalSkip) {
+                disregard = true;
+                break;
             }
-
-            // If detangling was used, there can be more than one,
-            // and we don't want this here.
-            SHASTA_ASSERT(v.size() == 1);
-
-            // There is only one segment.
-            const SegmentId segmentId = v.front().first;
-
-            // If same as the previous, skip.
-            if(segmentId == previousSegmentId) {
-                continue;
-            }
-
-            // This is the next segment edge encountered
-            // by this oriented read along its marker graph path.
-            // Add it to the pseudo-path.
-            pseudoPath.push_back(segmentId);
-            previousSegmentId = segmentId;
         }
+        if(disregard) {
+            cout << orientedReadId << " disregarded because of a large ordinal skip." << endl;
+            continue;
+        }
+
+        // Store this oriented read and its pseudo-path.
+        orientedReadIds.push_back(orientedReadId);
         pseudoPaths.push_back(pseudoPath);
     }
+    cout << "Continuing with " << orientedReadIds.size() <<
+        " oriented reads." << endl;
 
 
 
-    // Write a csv file with the pseudo-paths we found.
-    {
-        ofstream csv("PseudoPathsThroughSegment.csv");
-        for(uint64_t i=0; i<orientedReadIds.size(); i++) {
-            const OrientedReadId orientedReadId = orientedReadIds[i];
-            const vector<SegmentId>& pseudoPath = pseudoPaths[i];
+    // The following process is similar to the one used to create the marker graph.
+    // The difference is that, when creating the marker graph, each oriented read is
+    // represented by sequence of markers. But here, each oriented read is represented
+    // by the sequence of segments it encounters - its pseudo-path.
 
-            csv << orientedReadId << ",";
-            for(const SegmentId segmentId: pseudoPath) {
-                csv << segmentId << ",";
+    // We use a disjoint set data structure where each entry represents one
+    // segment of a pseudo-path.
+
+    // Vector to contain, for each oriented read, the starting point of
+    // its pseudo-path in the disjoint set data structure.
+    vector<uint64_t> start(orientedReadIds.size(), std::numeric_limits<uint64_t>::max());
+    uint64_t n = 0;
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        start[i] = n;
+        n += pseudoPaths[i].size();
+    }
+
+
+
+    // Initialize the disjoint set data structure.
+    vector<SegmentId> rank(n);
+    vector<SegmentId> parent(n);
+    boost::disjoint_sets<SegmentId*, SegmentId*> disjointSets(&rank[0], &parent[0]);
+    for(SegmentId segmentId=0; segmentId<n; segmentId++) {
+        disjointSets.make_set(segmentId);
+    }
+    cout << "The disjoint set data structure has size " << n << endl;
+
+
+
+    // For each pair of the oriented reads we kept, compute an alignment
+    // between their pseudo-paths.
+    const bool writeAlignments = true;
+    ofstream alignmentsCsv;
+    if(writeAlignments) {
+        alignmentsCsv.open("Alignments.csv");
+    }
+    for(uint64_t i0=0; i0<orientedReadIds.size(); i0++) {
+        const OrientedReadId orientedReadId0 = orientedReadIds[i0];
+        const PseudoPath& pseudoPath0 = pseudoPaths[i0];
+        for(uint64_t i1=i0+1; i1<orientedReadIds.size(); i1++) {
+            const OrientedReadId orientedReadId1 = orientedReadIds[i1];
+            const PseudoPath& pseudoPath1 = pseudoPaths[i1];
+
+            // Use SeqAn to compute an alignment free at both ends.
+            // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
+            using namespace seqan;
+
+            // Hide shasta::Alignment.
+            using seqan::Alignment;
+
+            // An oriented read is represented by the segment ids in its pseudo-path.
+            // We want to align a pair of such sequences.
+            using TSequence = String<SegmentId>;
+
+            // Other SeqAn types we need.
+            using TStringSet = StringSet<TSequence>;
+            using TDepStringSet = StringSet<TSequence, Dependent<> >;
+            using TAlignGraph = Graph<Alignment<TDepStringSet> >;
+
+            // Construct the sequences we want to pass to SeqAn.
+            // Add 100 to all segment ids to avoid collision with the
+            // value 45, used by SeqAn to represent gaps.
+            TSequence seq0;
+            for(const auto& pseudoPathEntry: pseudoPath0) {
+                appendValue(seq0, pseudoPathEntry.segmentId+100);
             }
-            csv << "\n";
+            TSequence seq1;
+            for(const auto& pseudoPathEntry: pseudoPath1) {
+                appendValue(seq1, pseudoPathEntry.segmentId+100);
+            }
+
+            // Store them in a SeqAn string set.
+            TStringSet sequences;
+            appendValue(sequences, seq0);
+            appendValue(sequences, seq1);
+
+            // Compute the alignment.
+            TAlignGraph graph(sequences);
+            const auto alignmentScore = globalAlignment(
+                    graph,
+                    Score<int, Simple>(matchScore, mismatchScore, gapScore),
+                    AlignConfig<true, true, true, true>(),
+                    LinearGaps());
+
+            // Extract the alignment from the graph.
+            // This creates a single sequence consisting of the two rows
+            // of the alignment, concatenated.
+            TSequence align;
+            convertAlignment(graph, align);
+            const uint64_t totalAlignmentLength = seqan::length(align);
+            SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
+            const uint64_t alignmentLength = totalAlignmentLength / 2;
+
+            // Write out the alignment.
+            if(writeAlignments) {
+                uint64_t index = 0;
+                for(uint64_t i=0; i<2; i++) {
+                    alignmentsCsv << (i==0 ? orientedReadId0 : orientedReadId1) << ",";
+                    for(uint64_t j=0; j<alignmentLength; j++, index++) {
+                        const uint64_t value = align[index];
+                        if(value == 45) {
+                            alignmentsCsv << "-";
+                        } else {
+                            alignmentsCsv << value - 100;
+                        }
+                        alignmentsCsv << ",";
+                    }
+                    alignmentsCsv << "\n";
+                }
+                alignmentsCsv << "Alignment,";
+                for(uint64_t j=0; j<alignmentLength; j++) {
+                    const uint64_t value0 = align[j];
+                    const uint64_t value1 = align[j+alignmentLength];
+                    if(value0==45 and value1==45) {
+                        alignmentsCsv << "?";    // This should never happen.
+                    } else if(value0==45 or value1==45) {
+                        // Gap on one of the two.
+                        alignmentsCsv << "-";
+                    } else if(value0 == value1) {
+                        // Match.
+                        alignmentsCsv << ".";
+                    } else {
+                        // Mismatch.
+                        alignmentsCsv << "*";
+                    }
+                    alignmentsCsv << ",";
+                }
+                alignmentsCsv << "\n";
+                alignmentsCsv << "Score," << alignmentScore << "\n\n";
+            }
+
+
+
+            // Find pairs of disjoint sets to be merged, based on this alignment.
+            vector< pair<uint64_t, uint64_t> > toBeMerged;
+            const uint64_t start0 = start[i0];
+            const uint64_t start1 = start[i1];
+            uint64_t position0 = 0;
+            uint64_t position1 = 0;
+            for(uint64_t j=0; j<alignmentLength; j++) {
+                const uint64_t value0 = align[j];
+                const uint64_t value1 = align[j+alignmentLength];
+                // cout << j << " " << i0 << " " << i1 << " " << value0 << " " << value1 << endl;
+                if(value0!=45 and value1!=45 and value0 == value1) {
+                    SHASTA_ASSERT(value0 == pseudoPath0[position0].segmentId + 100);
+                    SHASTA_ASSERT(value1 == pseudoPath1[position1].segmentId + 100);
+                    toBeMerged.push_back(make_pair(start0+position0, start1+position1));
+                }
+                if(value0 != 45) {
+                    ++position0;
+                }
+                if(value1 != 45) {
+                    ++position1;
+                }
+            }
+            SHASTA_ASSERT(position0 == pseudoPath0.size());
+            SHASTA_ASSERT(position1 == pseudoPath1.size());
+
+            // In the disjoint set data structure, merge entries corresponding to
+            // aligned segments.
+            for(const auto& p: toBeMerged) {
+                disjointSets.union_set(p.first, p.second);
+            }
         }
     }
-#endif
 
 
+
+    // Each of the disjoint data sets becomes a vertex of the MetaMarkerGraph.
+    // Store them in data structures that allow us to easily go from
+    // vertices to oriented reads and vice versa.
+    vector< vector<uint64_t> > vertexTable(orientedReadIds.size());
+    vector< vector< pair<uint64_t, uint64_t > > > vertices(n);
+    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
+        const PseudoPath& pseudoPath = pseudoPaths[i];
+
+        for(uint64_t position=0; position<pseudoPath.size(); position++) {
+            const uint64_t metaMarkerId = start[i] + position;
+            const uint64_t disjointSetId = disjointSets.find_set(metaMarkerId);
+            vertexTable[i].push_back(disjointSetId);
+            vertices[disjointSetId].push_back(make_pair(i, position));
+        }
+    }
+
+
+    vector<uint64_t> histogram;
+    for(uint64_t i=0; i<n; i++) {
+        const uint64_t size = vertices[i].size();
+        if(size) {
+            if(histogram.size() <= size) {
+                histogram.resize(size+1, 0);
+            }
+            ++histogram[size];
+        }
+    }
+    ofstream histogramCsv("Histogram.csv");
+    histogramCsv << "Size,Frequency\n";
+    for(size_t i=1; i<histogram.size(); i++) {
+        const uint64_t frequency = histogram[i];
+        if(frequency) {
+            histogramCsv << i << "," << frequency << "\n";
+        }
+    }
+
+
+
+    // Create the MetaMarkerGraph, with one vertex for each of
+    // the disjoint sets we found.
+    MetaMarkerGraph graph;
+    uint64_t vertexId = 0;
+    for(uint64_t i=0; i<n; i++) {
+        const vector< pair<uint64_t, uint64_t > >& v = vertices[i];
+        if(not v.empty()) {
+            const SegmentId segmentId = pseudoPaths[v.front().first][v.front().second].segmentId;
+            vector< pair<OrientedReadId, uint64_t> > u;
+            for(const auto& p: v) {
+                u.push_back(make_pair(orientedReadIds[p.first], p.second));
+            }
+            add_vertex(MetaMarkerGraphVertex(
+                vertexId++,
+                segmentId,
+                assemblyGraph.edgeLists.size(segmentId),
+                u),
+                graph);
+        }
+    }
+    graph.createEdges();
+    graph.writeGfa("MetaMarkerGraph.gfa");
+    graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
+    graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
+    cout << "The MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
+        num_edges(graph) << " edges." << endl;
+
+
+
+#if 0
     // Now create a De Bruijn graph using these pseudo-paths.
     ofstream csv("PseudoPathsThroughSegment.csv");
     DeBruijnGraph<2> graph;
@@ -1223,6 +1426,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     graph.writeGraphviz();
     cout << "The De Bruijn graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
+#endif
 
 }
 
