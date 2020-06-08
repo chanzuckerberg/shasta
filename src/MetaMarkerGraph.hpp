@@ -80,12 +80,19 @@ public:
 
 class shasta::MetaMarkerGraph : public MetaMarkerGraphBaseClass {
 public:
+    using SegmentId = AssemblyGraph::EdgeId;
+
     void createEdges();
     void transitiveReduction();
-    void writeGraphviz(const string& fileName, AssemblyGraph::EdgeId startSegmentId) const;
+    void writeGraphviz(const string& fileName, SegmentId startSegmentId) const;
     void writeGfa(const string& fileName) const;
     void writeVerticesCsv(const string& fileName) const;
     void writeEdgesCsv(const string& fileName) const;
+
+    // Construct the linear chain (path) that includes a given segment.
+    void findLinearChain(
+        SegmentId segmentId,
+        vector<SegmentId>& chain) const;
 };
 
 #endif

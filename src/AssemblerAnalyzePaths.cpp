@@ -1394,6 +1394,18 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
 
+
+    // We want to construct the linear chain that includes our start segment.
+    // First, locate the vertices corresponding to the start segment.
+    // If there is more than one (possible but unusual), give up.
+    vector<SegmentId> chain;
+    graph.findLinearChain(startSegmentId, chain);
+    cout << "Found a linear chain with " << chain.size() << " segments:" << endl;
+    copy(chain.begin(), chain.end(), ostream_iterator<SegmentId>(cout, " "));
+    cout << endl;
+
+
+
 #if 0
     // Now create a De Bruijn graph using these pseudo-paths.
     ofstream csv("PseudoPathsThroughSegment.csv");

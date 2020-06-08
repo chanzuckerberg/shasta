@@ -3,6 +3,7 @@ using namespace shasta;
 
 #include <boost/graph/iteration_macros.hpp>
 
+#include <list>
 #include <queue>
 #include <set>
 
@@ -143,6 +144,83 @@ void MetaMarkerGraph::transitiveReduction()
 }
 
 
+
+// Construct the linear chain (path) that includes a given segment.
+void MetaMarkerGraph::findLinearChain(
+    SegmentId segmentId0,
+    vector<SegmentId>& chain) const
+{
+    const MetaMarkerGraph& graph = *this;
+    chain.clear();
+
+    // Locate the vertices corresponding to the start segment.
+    vector<vertex_descriptor> vertices0;
+    BGL_FORALL_VERTICES(v, graph, MetaMarkerGraph) {
+        if(graph[v].segmentId == segmentId0) {
+            vertices0.push_back(v);
+        }
+    }
+
+    // If there is more than one (possible but unusual), give up
+    // and return an empty chain.
+    if(vertices0.size() != 1) {
+        return;
+    }
+    const vertex_descriptor v0 = vertices0.front();
+
+
+    // If this is a branching vertex, give up and return an empty chain..
+    if(in_degree(v0, graph)!=1 or out_degree(v0, graph)!=1) {
+        return;
+    }
+
+
+    // Construct the forward portion of the chain.
+    std::list<SegmentId> chainList;
+    chainList.push_back(segmentId0);
+    vertex_descriptor v = v0;
+    while(true) {
+        out_edge_iterator it;
+        if(out_degree(v, graph) == 0) {
+            break;
+        }
+        tie(it, ignore)= out_edges(v, graph);
+        const edge_descriptor e = *it;
+        v = target(e, graph);
+        if((in_degree(v, graph)<2) and (out_degree(v, graph)<2)) {
+            chainList.push_back(graph[v].segmentId);
+            cout << "Forward " << graph[v].segmentId  << " " <<
+                in_degree(v, graph) << " " << out_degree(v, graph)<< endl;
+        } else {
+            break;
+        }
+    }
+
+
+    // Construct the backward portion of the chain.
+    v = v0;
+    while(true) {
+        in_edge_iterator it;
+        if(in_degree(v, graph) == 0) {
+            break;
+        }
+        tie(it, ignore)= in_edges(v, graph);
+        const edge_descriptor e = *it;
+        v = source(e, graph);
+        if((in_degree(v, graph)<2) and (out_degree(v, graph)<2)) {
+            chainList.push_front(graph[v].segmentId);
+            cout << "Backward " << graph[v].segmentId << endl;
+        } else {
+            break;
+        }
+    }
+
+    chain.clear();
+    copy(chainList.begin(), chainList.end(), back_inserter(chain));
+}
+
+
+
 void MetaMarkerGraph::writeGraphviz(
     const string& fileName,
     AssemblyGraph::EdgeId startSegmentId) const
@@ -158,8 +236,8 @@ void MetaMarkerGraph::writeGraphviz(
         const MetaMarkerGraphVertex& vertex = graph[v];
 
         graphOut <<
-            vertex.segmentId <<
-            " [tooltip=\"Segment " <<
+            vertex.vertexId <<
+            " [label=\"" << vertex.segmentId << "\" tooltip=\"Segment " <<
             vertex.segmentId << ", " <<
             vertex.markerCount << " markers, coverage " <<
             vertex.orientedReads.size() << "\"";
@@ -176,7 +254,7 @@ void MetaMarkerGraph::writeGraphviz(
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         const auto coverage = graph[e].orientedReads.size();
-        graphOut << graph[v0].segmentId << "->" << graph[v1].segmentId <<
+        graphOut << graph[v0].vertexId << "->" << graph[v1].vertexId <<
             " ["
             "tooltip=\"Coverage " << coverage << "\""
             " penwidth=" << int(1 + 0.3* double(coverage)) << "]"
