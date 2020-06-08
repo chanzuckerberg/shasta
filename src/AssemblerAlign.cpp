@@ -1145,7 +1145,7 @@ void Assembler::suppressAlignmentCandidates(
     SHASTA_ASSERT(j + suppressCount == candidateCount);
     alignmentCandidates.candidates.resize(j);
     cout << "Suppressed " << suppressCount << " alignment candidates." << endl;
-    cout << "Number of alignment candidates after suppression is " << candidateCount << endl;
+    cout << "Number of alignment candidates after suppression is " << j << endl;
 
 
     // Clean up.
