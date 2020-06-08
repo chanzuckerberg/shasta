@@ -16,6 +16,7 @@ a.accessMarkerGraphEdges()
 a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
+a.accessAssemblyGraphSequences()
 a.analyzeOrientedReadPathsThroughSegment(arguments.segmentId)
 
 	

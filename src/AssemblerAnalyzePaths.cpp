@@ -15,6 +15,7 @@ using namespace shasta;
 // Standard library.
 #include "array.hpp"
 #include <map>
+#include "fstream.hpp"
 
 
 
@@ -1079,10 +1080,10 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 // Analyze paths of oriented reads that go through a given assembly graph edge (segment).
 void Assembler::analyzeOrientedReadPathsThroughSegment(
-    AssemblyGraph::EdgeId startSegmentId) const
+    AssemblyGraph::EdgeId startSegmentId)
 {
     using SegmentId = AssemblyGraph::EdgeId;
-    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint64_t segmentCount = assemblyGraph.edges.size();
     SHASTA_ASSERT(startSegmentId < segmentCount);
 
@@ -1103,7 +1104,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     // Find the oriented reads that have edges on this assembly graph edge (segment).
     std::set<OrientedReadId> orientedReadIdsThroughSegment;
     // Loop over the marker graph edges that are on this assembly graph edge (segment).
-    const span<const MarkerGraph::EdgeId> markerGraphEdges =
+    const span<MarkerGraph::EdgeId> markerGraphEdges =
         assemblyGraph.edgeLists[startSegmentId];
     for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
 
@@ -1403,6 +1404,53 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     cout << "Found a linear chain with " << chain.size() << " segments:" << endl;
     copy(chain.begin(), chain.end(), ostream_iterator<SegmentId>(cout, " "));
     cout << endl;
+
+
+
+    // Write a fasta file with the sequence of the segments in the chain.
+    ofstream fasta("Chain.fasta");
+    fasta << ">Chain\n";
+    for(uint64_t i=0; i<chain.size(); i++) {
+        const SegmentId segmentId = chain[i];
+
+        SHASTA_ASSERT(not assemblyGraph.edges[segmentId].wasRemoved());
+
+        // Get the id of the reverse complemented edge.
+        const SegmentId segmentIdRc = assemblyGraph.reverseComplementEdge[segmentId];
+
+
+        // Write the sequence.
+        if(assemblyGraph.isAssembledEdge(segmentId)) {
+
+            // This segment was assembled. We can just write the stored sequence.
+            auto sequence = assemblyGraph.sequences[segmentId];
+            auto repeatCounts = assemblyGraph.repeatCounts[segmentId];
+            SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            for(size_t i=0; i<sequence.baseCount; i++) {
+                const Base b = sequence[i];
+                const uint8_t repeatCount = repeatCounts[i];
+                for(size_t k=0; k<repeatCount; k++) {
+                    fasta << b;
+                }
+            }
+        } else {
+
+            // This segment was not assembled. We write out the reverse
+            // complemented sequence of the reverse complemented edge.
+            SHASTA_ASSERT(assemblyGraph.isAssembledEdge(segmentIdRc));
+            const auto sequence = assemblyGraph.sequences[segmentIdRc];
+            const auto repeatCounts = assemblyGraph.repeatCounts[segmentIdRc];
+            SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+            for(size_t i=0; i<sequence.baseCount; i++) {
+                const size_t j = sequence.baseCount - 1 - i;
+                const Base b = sequence[j].complement();
+                const uint8_t repeatCount = repeatCounts[j];
+                for(size_t k=0; k<repeatCount; k++) {
+                    fasta << b;
+                }
+            }
+        }
+    }
 
 
 
