@@ -1114,6 +1114,10 @@ void Assembler::writeAssemblyIndex(ostream& html) const
     <td><a href='ReadLengthHistogram.csv'>ReadLengthHistogram.csv</a>
     <td>Detailed read length distribution.
 
+    <tr>
+    <td><a href='SuppressedAlignmentCandidates.csv'>SuppressedAlignmentCandidates.csv</a>
+    <td>Details of suppressed alignment candidates.
+
     </table>
     </body>
 )ABCDE";
