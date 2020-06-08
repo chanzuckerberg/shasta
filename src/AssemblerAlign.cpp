@@ -1121,6 +1121,9 @@ void Assembler::suppressAlignmentCandidates(
     setupLoadBalancing(alignmentCandidates.candidates.size(), batchSize);
     runThreads(&Assembler::suppressAlignmentCandidatesThreadFunction, threadCount);
 
+    ofstream csv("SuppressedAlignmentCandidates.csv");
+    csv << "ReadId0,ReadId1,SameStrand,Name0,Name1,MetaData0,MetaData1" << endl;
+
     // Suppress the alignment candidates we flagged.
     cout << "Number of alignment candidates before suppression is " << candidateCount << endl;
     uint64_t j = 0;
@@ -1130,12 +1133,10 @@ void Assembler::suppressAlignmentCandidates(
             ++suppressCount;
             const ReadId readId0 = alignmentCandidates.candidates[i].readIds[0];
             const ReadId readId1 = alignmentCandidates.candidates[i].readIds[1];
-            cout << "Suppressing alignment candidate " <<
-                readId0 << " " <<
-                readId1 << " " <<
-                int(alignmentCandidates.candidates[i].isSameStrand) << endl;
-            cout << readId0 << " " << readNames[readId0] << " " << readMetaData[readId0] << endl;
-            cout << readId1 << " " << readNames[readId1] << " " << readMetaData[readId1] << endl;
+            csv << readId0 << "," << readId1 << ","
+                << (alignmentCandidates.candidates[i].isSameStrand ? "Yes" : "No") << ","
+                << readNames[readId0] << "," << readNames[readId1] << ","
+                << readMetaData[readId0] << "," << readMetaData[readId1] << endl;
         } else {
             alignmentCandidates.candidates[j++] =
                 alignmentCandidates.candidates[i];
