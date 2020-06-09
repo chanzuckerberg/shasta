@@ -1,5 +1,5 @@
 #include "MetaMarkerGraph.hpp"
-#include "bottlenecks.hpp"
+#include "chokePoints.hpp"
 using namespace shasta;
 
 #include <boost/graph/iteration_macros.hpp>
@@ -232,12 +232,12 @@ void MetaMarkerGraph::findLinearChain(
 
 
 
-void MetaMarkerGraph::findForwardBottlenecks(
+void MetaMarkerGraph::findForwardChokePoints(
     SegmentId startSegmentId,
-    vector<vertex_descriptor>& bottlenecks)
+    vector<vertex_descriptor>& chokePoints)
 {
     const MetaMarkerGraph& graph = *this;
-    bottlenecks.clear();
+    chokePoints.clear();
 
     // Locate the one and only vertex corresponding to the start segment.
     const vertex_descriptor startVertex = findVertex(startSegmentId);
@@ -245,8 +245,8 @@ void MetaMarkerGraph::findForwardBottlenecks(
         return;
     }
 
-    // Find the bottlenecks.
-    shasta::findForwardBottlenecks(graph, startVertex, bottlenecks);
+    // Find the choke forward points.
+    shasta::findForwardChokePoints(graph, startVertex, chokePoints);
 }
 
 

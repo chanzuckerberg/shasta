@@ -24,7 +24,7 @@ namespace shasta {
 
     using MetaMarkerGraphBaseClass = boost::adjacency_list<
         boost::listS,
-        boost::listS,
+        boost::vecS,
         boost::bidirectionalS,
         MetaMarkerGraphVertex,
         MetaMarkerGraphEdge
@@ -93,7 +93,7 @@ public:
         SegmentId segmentId,
         vector<SegmentId>& chain) const;
 
-    void findForwardBottlenecks(
+    void findForwardChokePoints(
         SegmentId segmentId,
         vector<vertex_descriptor>&);
 

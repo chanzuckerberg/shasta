@@ -1407,11 +1407,11 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
 
-    // Find forward bottlenecks.
-    vector<MetaMarkerGraph::vertex_descriptor> forwardBottlenecks;
-    graph.findForwardBottlenecks(startSegmentId, forwardBottlenecks);
-    cout << "Forward bottlenecks:";
-    for(const auto v: forwardBottlenecks) {
+    // Find forward choke points.
+    vector<MetaMarkerGraph::vertex_descriptor> forwardChokePoints;
+    graph.findForwardChokePoints(startSegmentId, forwardChokePoints);
+    cout << "Forward choke points:";
+    for(const auto v: forwardChokePoints) {
         cout << " " << graph[v].segmentId;
     }
     cout << endl;
