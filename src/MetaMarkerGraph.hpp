@@ -89,10 +89,19 @@ public:
     void writeVerticesCsv(const string& fileName) const;
     void writeEdgesCsv(const string& fileName) const;
 
-    // Construct the linear chain (path) that includes a given segment.
     void findLinearChain(
         SegmentId segmentId,
         vector<SegmentId>& chain) const;
+
+    void findForwardBottlenecks(
+        SegmentId segmentId,
+        vector<vertex_descriptor>&);
+
+private:
+
+    // Find the vertex corresponding to a given segment id,
+    // or null_vertex if not exactly one found.
+    vertex_descriptor findVertex(SegmentId) const;
 };
 
 #endif

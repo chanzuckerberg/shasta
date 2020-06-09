@@ -1,4 +1,5 @@
 #include "MetaMarkerGraph.hpp"
+#include "bottlenecks.hpp"
 using namespace shasta;
 
 #include <boost/graph/iteration_macros.hpp>
@@ -143,6 +144,25 @@ void MetaMarkerGraph::transitiveReduction()
     }
 }
 
+// Find the vertex corresponding to a given segment id,
+// or null_vertex if not exactly one found.
+MetaMarkerGraph::vertex_descriptor MetaMarkerGraph::findVertex(SegmentId segmentId) const
+{
+    const MetaMarkerGraph& graph = *this;
+    vertex_descriptor v = null_vertex();
+
+    BGL_FORALL_VERTICES(u, graph, MetaMarkerGraph) {
+        if(graph[u].segmentId == segmentId) {
+            if(v == null_vertex()) {
+                v = u;
+            } else {
+                // More than one found.
+                return null_vertex();
+            }
+        }
+    }
+    return v;
+}
 
 
 // Construct the linear chain (path) that includes a given segment.
@@ -153,23 +173,14 @@ void MetaMarkerGraph::findLinearChain(
     const MetaMarkerGraph& graph = *this;
     chain.clear();
 
-    // Locate the vertices corresponding to the start segment.
-    vector<vertex_descriptor> vertices0;
-    BGL_FORALL_VERTICES(v, graph, MetaMarkerGraph) {
-        if(graph[v].segmentId == segmentId0) {
-            vertices0.push_back(v);
-        }
-    }
-
-    // If there is more than one (possible but unusual), give up
-    // and return an empty chain.
-    if(vertices0.size() != 1) {
+    // Locate the one and only vertex corresponding to the start segment.
+    const vertex_descriptor v0 = findVertex(segmentId0);
+    if(v0 == null_vertex()) {
         return;
     }
-    const vertex_descriptor v0 = vertices0.front();
 
 
-    // If this is a branching vertex, give up and return an empty chain..
+    // If this is a branching vertex, give up and return an empty chain.
     if(in_degree(v0, graph)!=1 or out_degree(v0, graph)!=1) {
         return;
     }
@@ -217,6 +228,25 @@ void MetaMarkerGraph::findLinearChain(
 
     chain.clear();
     copy(chainList.begin(), chainList.end(), back_inserter(chain));
+}
+
+
+
+void MetaMarkerGraph::findForwardBottlenecks(
+    SegmentId startSegmentId,
+    vector<vertex_descriptor>& bottlenecks)
+{
+    const MetaMarkerGraph& graph = *this;
+    bottlenecks.clear();
+
+    // Locate the one and only vertex corresponding to the start segment.
+    const vertex_descriptor startVertex = findVertex(startSegmentId);
+    if(startVertex == null_vertex()) {
+        return;
+    }
+
+    // Find the bottlenecks.
+    shasta::findForwardBottlenecks(graph, startVertex, bottlenecks);
 }
 
 

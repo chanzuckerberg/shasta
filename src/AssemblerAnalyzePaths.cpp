@@ -1407,6 +1407,17 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
 
+    // Find forward bottlenecks.
+    vector<MetaMarkerGraph::vertex_descriptor> forwardBottlenecks;
+    graph.findForwardBottlenecks(startSegmentId, forwardBottlenecks);
+    cout << "Forward bottlenecks:";
+    for(const auto v: forwardBottlenecks) {
+        cout << " " << graph[v].segmentId;
+    }
+    cout << endl;
+
+
+
     // Write a fasta file with the sequence of the segments in the chain.
     ofstream fasta("Chain.fasta");
     fasta << ">Chain\n";
