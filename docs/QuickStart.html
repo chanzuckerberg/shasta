@@ -11,52 +11,47 @@
 <div class="goto-index"><a href="index.html">Table of contents</a></div>
 <h1>Quick start</h1>
 
-
-<h2>Summary</h2>
-<p>
-You can use the following commands to download the executable and run an assembly:
-<pre>
-wget https://github.com/chanzuckerberg/shasta/releases/download/0.1.0/shasta-Linux-0.1.0
-chmod ugo+x shasta-Linux-0.1.0
-./shasta-Linux-0.1.0 --input input.fasta
-</pre>
-
-
-<p>
 Note that the Shasta executable has no dependencies and requires no installation
 or set up, except for setting its execute permission.
 See below for more information, including some small changes required for macOS and Windows.
 
 
 <h2>Linux</h2>
-
-<ul>
-<li>Download the Linux static executable <code>shasta-Linux-X.Y.Z</code> for your selected release. 
-You can use your browser or the following command, replacing <code>X.Y.Z</code> with 
-the release you want to use:
+<p>
+You can use the following commands to download the executable from the latest release and run an assembly:
 <pre>
-wget https://github.com/chanzuckerberg/shasta/releases/download/X.Y.Z/shasta-Linux-X.Y.Z
+# Get the latest release version.
+TAG=$(curl -s https://api.github.com/repos/chanzuckerberg/shasta/releases/latest \
+    | grep '"tag_name":' \
+    | tr -d ' ' \
+    | cut -f4 -d '"')
+ 
+echo "Latest release is v$TAG."
+
+# Download the executable for the latest release.
+curl -O -L  https://github.com/chanzuckerberg/shasta/releases/download/$TAG/shasta-Linux-$TAG
+
+# Grant necessary permissions.
+chmod ugo+x shasta-Linux-$TAG
+
+# Run an assembly.
+./shasta-Linux-$TAG --input input.fasta
 </pre>
-<li>Use this command to set its permission bits: 
-<pre>chmod ugo+x shasta-Linux-X.Y.Z</pre>
-<li>Use this command to run your assembly, making sure to specify
-the correct path to the location where you stored the executable,
-or to add that location to your <code>PATH</code>
-environment variable:
-<pre>./shasta-Linux-X.Y.Z --input input.fasta</pre>
+
 You can specify multiple input FASTA files, if necessary.
 On a typical laptop, this will run in minutes for a bacterial genome.
 For a human size assembly, AWS instance type <code>x1.32xlarge</code>
 is recommended. It is usually available at a cost around $4/hour
 on the AWS spot market and should complete the human size assembly
 in a few hours, at coverage around 60x.
-<li>Assembly output will be created in a new directory named
+<p>
+Assembly output will be created in a new directory named
 <code>ShastaRun</code>. 
 Output includes the assembly in FASTA and GFA 1.0 formats in files:
 <ul>
 <li><code>ShastaRun/Assembly.fasta</code>
 <li><code>ShastaRun/Assembly.gfa</code>
-</ul>
+<li><code>ShastaRun/Assembly-BothStrands.gfa</code>
 </ul>
 This will work on most current 64 bit Linux distributions. 
 It was tested on at least the following Linux distributions for the 
@@ -64,11 +59,9 @@ It was tested on at least the following Linux distributions for the
 that it will run on any Linux distribution for <code>x86_64</code>
 that uses a current kernel.
 <ul>
-<li>Ubuntu 16.04 and 18.04
-<li>Linux Mint 18.3
-<li>CentOS 7.6
-<li>Debian 9
-<li>Fedora 29
+<li>Ubuntu 16.04 LTS
+<li>Ubuntu 18.04 LTS
+<li>Ubuntu 20.04 LTS
 </ul>
 
 <p>
@@ -80,14 +73,25 @@ to achieve maximum performance.
 
 
 <h2>macOS</h2>
-Use the Linux directions, but instead download the mac executable with
-<pre><code>
-curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/X.Y.Z/shasta-macOS-X.Y.Z
-</code></pre>
 
-Make sure to change the name of the executable from
-<code>shasta-Linux-X.Y.Z</code> to <code>shasta-macOS-X.Y.Z</code> in
-later steps.
+<pre>
+# Get the latest release version.
+TAG=$(curl -s https://api.github.com/repos/chanzuckerberg/shasta/releases/latest \
+    | grep '"tag_name":' \
+    | tr -d ' ' \
+    | cut -f4 -d '"')
+ 
+echo "Latest release is v$TAG."
+ 
+# Download the executable for the latest release.
+curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/$TAG/shasta-macOS-$TAG
+
+# Grant necessary permissions.
+chmod ugo+x shasta-macOS-$TAG
+
+# Run an assembly.
+./shasta-macOS-$TAG --input input.fasta
+</pre>
 
 <h2>Windows</h2>
 <ul>
@@ -98,18 +102,16 @@ Windows Subsystem for Linux (WSL)</a>.
 <li>Working in a Linux shell created using WSL, follow the directions for Linux above.
 </ul>
 
-
+<br/>
 <h2 id=demo>Quick test and demonstration</h2>
 <p>
 You can use the following commands to run a quick test and demonstration
 of the Shasta assembler:
 <pre>
-wget https://s3-us-west-2.amazonaws.com/lc2019/shasta/ecoli_test/r94_ec_rad2.181119.60x-10kb.fasta.gz
+curl -O -L https://s3-us-west-2.amazonaws.com/lc2019/shasta/ecoli_test/r94_ec_rad2.181119.60x-10kb.fasta.gz
 gunzip r94_ec_rad2.181119.60x-10kb.fasta.gz
-./shasta-Linux-0.1.0 --input r94_ec_rad2.181119.60x-10kb.fasta
+/path/to/shasta_executable --input r94_ec_rad2.181119.60x-10kb.fasta
 </pre>
-This assumes that <code>shasta-Linux-0.1.0</code> was downloaded
-to the current directory and made executable as described at the top of this page.
 The first two commands download and decompress an input fasta file 
 containing Oxford Nanopore reads for <i>E. coli</i>.
 The last command runs a Shasta assembly, which should complete in a few minutes
