@@ -46,61 +46,35 @@ To port the Shasta build to a different platform.
 
 <h3>Build platforms</h3>
 <p>
-Building from source is currently only possible on an 
-Ubuntu 16.04 or 18.04 machine.
+Building from source is currently supported for Ubuntu (16.04, 18.04 & 20.04 LTS) and macOS (10.14 & 10.15).
 Porting the build process to other Linux platforms is possible.
 If you are specifically interested in porting to a different Linux
 platorm, please file an Issue on GitHub.
 Even better, submit a Pull Request with the necessary changes.
 
-<p>
-For best performance, the build process described below
-creates binaries optimized for the build machine.
-If you plan on using the build on a different
-machine, see 
-<a href='#Portability'>Build portability</a> below.
-
-
 
 <h3>Build commands</h3>
-<p>
-If you have the necessary 
-<a href=Prerequisites.html>prerequisite packages</a> installed, 
-you can get a local copy of the latest code and build it
-using the following commands: 
+<ol>
+<li>Check out Shasta repository
 <pre>
 git clone https://github.com/chanzuckerberg/shasta.git
-mkdir shasta-build
-cd shasta-build
-cmake ../shasta
-make all
-make install
 </pre>
-
-<p>
-If you are not sure if you have the necessary prerequisite packages installed, 
-you can instead
-use the following commands
-(this assumes that you are authorized to acquire root privileges
-using the <code>sudo</code> command - depending on set up you may be asked 
-to enter your password):
+<li>Install prerequisite packages
 <pre>
-sudo apt install git
-git clone https://github.com/chanzuckerberg/shasta.git
 sudo shasta/scripts/InstallPrerequisites-Ubuntu.sh
+
+# OR
+
+sudo shasta/scripts/InstallPrerequisites-macOS.sh
+</pre>
+<li>Build
+<pre>
 mkdir shasta-build
 cd shasta-build
 cmake ../shasta
-make all
+make all -j
 make install
 </pre>
-
-<p>
-If your build system has more than one processor
-and enough memory, you can speed up the build using the <code>-j</code>
-option in the <code>make all</code> command.
-
-
 
 
 <h3>Build contents</h3>
