@@ -2246,7 +2246,7 @@ void Assembler::renderEditableAlignmentConfig(
         (method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
         "<input type=radio name=method value=1" <<
         (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
-        "<input type=radio name=method value=2" <<
+        "<input type=radio name=method value=3" <<
         (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
         "<td class=smaller>" << descriptions.find("Align.alignMethod", false).description();
 
