@@ -329,9 +329,9 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Align.alignMethod",
         value<int>(&alignOptions.alignMethod)->
-        default_value(0),
+        default_value(3),
         "The alignment method to be used to create the read graph & the marker graph. "
-        "Values other than 0 are experimental.")
+        "0 = old Shasta method, 1 = SeqAn (slow), 3 = banded SeqAn.")
 
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->
@@ -368,29 +368,29 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Align.matchScore",
         value<int>(&alignOptions.matchScore)->
-        default_value(3),
-        "Match score for marker alignments (only for experimental alignment method 1).")
+        default_value(6),
+        "Match score for marker alignments (only used for alignment methods 1 and 3).")
 
         ("Align.mismatchScore",
         value<int>(&alignOptions.mismatchScore)->
         default_value(-1),
-        "Mismatch score for marker alignments (only for experimental alignment method 1).")
+        "Mismatch score for marker alignments (only used for alignment methods 1 and 3).")
 
         ("Align.gapScore",
         value<int>(&alignOptions.gapScore)->
         default_value(-1),
-        "Gap score for marker alignments (only for experimental alignment method 1).")
+        "Gap score for marker alignments (only used for alignment methods 1 and 3).")
 
         ("Align.downsamplingFactor",
         value<double>(&alignOptions.downsamplingFactor)->
         default_value(0.1),
-        "Downsampling factor (only used for experimental alignment method 3).")
+        "Downsampling factor (only used for alignment method 3).")
 
         ("Align.bandExtend",
         value<int>(&alignOptions.bandExtend)->
         default_value(10),
         "Amount to extend the downsampled band "
-        "(only used for experimental alignment method 3).")
+        "(only used for alignment method 3).")
 
         ("Align.sameChannelReadAlignment.suppressDeltaThreshold",
         value<int>(&alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold)->
