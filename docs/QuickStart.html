@@ -21,21 +21,15 @@ See below for more information, including some small changes required for macOS 
 You can use the following commands to download the executable from the latest release and run an assembly:
 <pre>
 # Get the latest release version.
-TAG=$(curl -s https://api.github.com/repos/chanzuckerberg/shasta/releases/latest \
-    | grep '"tag_name":' \
-    | tr -d ' ' \
-    | cut -f4 -d '"')
- 
-echo "Latest release is v$TAG."
 
 # Download the executable for the latest release.
-curl -O -L  https://github.com/chanzuckerberg/shasta/releases/download/$TAG/shasta-Linux-$TAG
+curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.4.0/shasta-Linux-0.4.0
 
 # Grant necessary permissions.
-chmod ugo+x shasta-Linux-$TAG
+chmod ugo+x shasta-Linux-0.4.0
 
 # Run an assembly.
-./shasta-Linux-$TAG --input input.fasta
+./shasta-Linux-0.4.0 --input input.fasta
 </pre>
 
 You can specify multiple input FASTA files, if necessary.
@@ -75,22 +69,14 @@ to achieve maximum performance.
 <h2>macOS</h2>
 
 <pre>
-# Get the latest release version.
-TAG=$(curl -s https://api.github.com/repos/chanzuckerberg/shasta/releases/latest \
-    | grep '"tag_name":' \
-    | tr -d ' ' \
-    | cut -f4 -d '"')
- 
-echo "Latest release is v$TAG."
- 
 # Download the executable for the latest release.
-curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/$TAG/shasta-macOS-$TAG
+curl -O -L https://github.com/chanzuckerberg/shasta/releases/download/0.4.0/shasta-macOS-0.4.0
 
 # Grant necessary permissions.
-chmod ugo+x shasta-macOS-$TAG
+chmod ugo+x shasta-macOS-0.4.0
 
 # Run an assembly.
-./shasta-macOS-$TAG --input input.fasta
+./shasta-macOS-0.4.0 --input input.fasta
 </pre>
 
 <h2>Windows</h2>
