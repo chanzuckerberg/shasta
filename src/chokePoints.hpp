@@ -3,6 +3,7 @@
 
 #include <boost/graph/iteration_macros.hpp>
 #include <boost/graph/dominator_tree.hpp>
+#include <boost/graph/reverse_graph.hpp>
 
 // #include "iostream.hpp"
 #include <list>
@@ -15,6 +16,12 @@ namespace shasta {
     // find vertices (the "choke points") that are on all paths
     // starting at the start vertex.
     template<class Graph> void findForwardChokePoints(
+        const Graph&,
+        typename Graph::vertex_descriptor startVertex,
+        vector<typename Graph::vertex_descriptor>& chokePoints);
+
+    // Same, but in the opposite direction.
+    template<class Graph> void findBackwardChokePoints(
         const Graph&,
         typename Graph::vertex_descriptor startVertex,
         vector<typename Graph::vertex_descriptor>& chokePoints);
@@ -118,6 +125,16 @@ template<class Graph> void shasta::findForwardChokePoints(
 
 
 
+template<class Graph> void shasta::findBackwardChokePoints(
+    const Graph& graph,
+    typename Graph::vertex_descriptor startVertex,
+    vector<typename Graph::vertex_descriptor>& chokePoints)
+{
+    findForwardChokePoints(
+        boost::make_reverse_graph(graph),
+        startVertex,
+        chokePoints);
+}
 
 #endif
 

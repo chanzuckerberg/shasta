@@ -1407,11 +1407,18 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
 
-    // Find forward choke points.
+    // Find choke points.
     vector<MetaMarkerGraph::vertex_descriptor> forwardChokePoints;
     graph.findForwardChokePoints(startSegmentId, forwardChokePoints);
     cout << "Forward choke points:";
     for(const auto v: forwardChokePoints) {
+        cout << " " << graph[v].segmentId;
+    }
+    cout << endl;
+    vector<MetaMarkerGraph::vertex_descriptor> backwardChokePoints;
+    graph.findBackwardChokePoints(startSegmentId, backwardChokePoints);
+    cout << "Backward choke points:";
+    for(const auto v: backwardChokePoints) {
         cout << " " << graph[v].segmentId;
     }
     cout << endl;

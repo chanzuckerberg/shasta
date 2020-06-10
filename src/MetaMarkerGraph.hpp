@@ -96,6 +96,9 @@ public:
     void findForwardChokePoints(
         SegmentId segmentId,
         vector<vertex_descriptor>&);
+    void findBackwardChokePoints(
+        SegmentId segmentId,
+        vector<vertex_descriptor>&);
 
 private:
 

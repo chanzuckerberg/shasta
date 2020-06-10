@@ -245,8 +245,28 @@ void MetaMarkerGraph::findForwardChokePoints(
         return;
     }
 
-    // Find the choke forward points.
+    // Find the forward choke points.
     shasta::findForwardChokePoints(graph, startVertex, chokePoints);
+}
+
+
+
+
+void MetaMarkerGraph::findBackwardChokePoints(
+    SegmentId startSegmentId,
+    vector<vertex_descriptor>& chokePoints)
+{
+    const MetaMarkerGraph& graph = *this;
+    chokePoints.clear();
+
+    // Locate the one and only vertex corresponding to the start segment.
+    const vertex_descriptor startVertex = findVertex(startSegmentId);
+    if(startVertex == null_vertex()) {
+        return;
+    }
+
+    // Find the backward choke points.
+    shasta::findBackwardChokePoints(graph, startVertex, chokePoints);
 }
 
 
