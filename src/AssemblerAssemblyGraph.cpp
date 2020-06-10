@@ -1724,7 +1724,7 @@ void Assembler::assembleAssemblyGraphEdge(
     for(size_t i=0; i<assembledSegment.vertexCount; i++) {
 
         // Get the sequence.
-        const MarkerId firstMarkerId = markerGraph.vertices[assembledSegment.vertexIds[i]][0];
+        const MarkerId firstMarkerId = markerGraph.getVertexMarkerIds(assembledSegment.vertexIds[i])[0];
         const CompressedMarker& firstMarker = markers.begin()[firstMarkerId];
         const KmerId kmerId = firstMarker.kmerId;
         const Kmer kmer(kmerId, assemblerInfo->k);
@@ -1936,7 +1936,7 @@ void Assembler::gatherOrientedReadsByAssemblyGraphEdgePass(int pass)
                 const MarkerGraph::VertexId markerGraphVertexId = markedGraphEdge.source;
 
                 // Loop over the markers in this marker graph vertex.
-                const span<MarkerId> markerIds = markerGraph.vertices[markerGraphVertexId];
+                const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(markerGraphVertexId);
                 for (const MarkerId markerId : markerIds) {
                     OrientedReadId orientedReadId;
                     tie(orientedReadId, ignore) = findMarkerId(markerId);

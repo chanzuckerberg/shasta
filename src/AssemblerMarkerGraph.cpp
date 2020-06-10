@@ -692,7 +692,7 @@ void Assembler::checkMarkerGraphVertices(
         out1 << "VertexId,MarkerId\n";
         for(MarkerGraph::VertexId vertexId=0;
             vertexId<markerGraph.vertexCount(); vertexId++) {
-            const auto markers = markerGraph.vertices[vertexId];
+            const auto markers = markerGraph.getVertexMarkerIds(vertexId);
             for(const MarkerId markerId: markers) {
                 out2 << vertexId << "," << markerId << "\n";
             }
@@ -704,7 +704,7 @@ void Assembler::checkMarkerGraphVertices(
     for(MarkerGraph::VertexId vertexId=0;
         vertexId!=markerGraph.vertexCount(); vertexId++) {
         SHASTA_ASSERT(!isBadMarkerGraphVertex(vertexId));
-        const auto markers = markerGraph.vertices[vertexId];
+        const auto markers = markerGraph.getVertexMarkerIds(vertexId);
         SHASTA_ASSERT(markers.size() >= minCoverage);
         SHASTA_ASSERT(markers.size() <= maxCoverage);
         for(const MarkerId markerId: markers) {
@@ -838,7 +838,7 @@ void Assembler::getGlobalMarkerGraphVertexMarkers(
     vector< pair<OrientedReadId, uint32_t> >& markers) const
 {
     markers.clear();
-    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.getVertexMarkerIds(vertexId)) {
         OrientedReadId orientedReadId;
         uint32_t ordinal;
         tie(orientedReadId, ordinal) = findMarkerId(markerId);
@@ -872,7 +872,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.getVertexMarkerIds(vertexId)) {
 
         // Find the OrientedReadId and ordinal.
         OrientedReadId orientedReadId;
@@ -923,7 +923,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.getVertexMarkerIds(vertexId)) {
 
         // Find the OrientedReadId and ordinal.
         MarkerInterval info;
@@ -997,7 +997,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.getVertexMarkerIds(vertexId)) {
 
         // Find the OrientedReadId and ordinal.
         OrientedReadId orientedReadId;
@@ -1052,7 +1052,7 @@ void Assembler::getGlobalMarkerGraphVertexParents(
     }
 
     // Loop over the markers of this vertex.
-    for(const MarkerId markerId: markerGraph.vertices[vertexId]) {
+    for(const MarkerId markerId: markerGraph.getVertexMarkerIds(vertexId)) {
 
         // Find the OrientedReadId and ordinal.
         MarkerInterval info;
@@ -1161,7 +1161,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
 
             // Get the markers of this vertex.
             const span<MarkerId> vertexMarkers =
-                markerGraph.vertices[vertexId];
+                markerGraph.getVertexMarkerIds(vertexId);
             SHASTA_ASSERT(vertexMarkers.size() > 0);
 
             // Get the first marker of this vertex.
@@ -1178,7 +1178,7 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
 
             // Get the markers of the reverse complemented vertex.
             const span<MarkerId> vertexMarkersReverseComplement =
-                markerGraph.vertices[vertexIdReverseComplement];
+                markerGraph.getVertexMarkerIds(vertexIdReverseComplement);
 
             // Check that the markers are all consistent.
             // This could become expensive.
@@ -1393,8 +1393,8 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId
             SHASTA_ASSERT(v2 == v0);
             SHASTA_ASSERT(v1 != v0);
 
-            const span<MarkerId> markers0 = markerGraph.vertices[v0];
-            const span<MarkerId> markers1 = markerGraph.vertices[v1];
+            const span<MarkerId> markers0 = markerGraph.getVertexMarkerIds(v0);
+            const span<MarkerId> markers1 = markerGraph.getVertexMarkerIds(v1);
             SHASTA_ASSERT(markers0.size() == markers1.size());
             for (size_t i = 0; i < markers0.size(); i++) {
                 const MarkerId markerId0 = markers0[i];
@@ -1548,7 +1548,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
     }
 
     // Loop over markers of vertex0.
-    for(const MarkerId markerId0: markerGraph.vertices[vertexId0]) {
+    for(const MarkerId markerId0: markerGraph.getVertexMarkerIds(vertexId0)) {
         OrientedReadId orientedReadId;
         uint32_t ordinal0;
         tie(orientedReadId, ordinal0) = findMarkerId(markerId0);
@@ -1581,7 +1581,7 @@ void Assembler::getGlobalMarkerGraphEdgeInfo(
 bool Assembler::isBadMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 {
     // Get the markers of this vertex.
-    const auto& vertexMarkerIds = markerGraph.vertices[vertexId];
+    const auto& vertexMarkerIds = markerGraph.getVertexMarkerIds(vertexId);
 
     // The markers are sorted by OrientedReadId, so we can just check each
     // consecutive pairs.
@@ -1651,7 +1651,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     if(startVertexId == MarkerGraph::invalidCompressedVertexId) {
         return true;    // Because no timeout occurred.
     }
-    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, markerGraph.vertices[startVertexId]);
+    const vertex_descriptor vStart = graph.addVertex(startVertexId, 0, markerGraph.getVertexMarkerIds(startVertexId));
 
     // Some vectors used inside the BFS.
     // Define them here to reduce memory allocation activity.
@@ -1706,7 +1706,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(!vertexExists) {
                 v1 = graph.addVertex(
-                    vertexId1, distance1, markerGraph.vertices[vertexId1]);
+                    vertexId1, distance1, markerGraph.getVertexMarkerIds(vertexId1));
                 if(distance1 < distance) {
                     q.push(v1);
                 }
@@ -1766,7 +1766,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             tie(vertexExists, v1) = graph.findVertex(vertexId1);
             if(!vertexExists) {
                 v1 = graph.addVertex(
-                    vertexId1, distance1, markerGraph.vertices[vertexId1]);
+                    vertexId1, distance1, markerGraph.getVertexMarkerIds(vertexId1));
                 if(distance1 < distance) {
                     q.push(v1);
                 }
@@ -3002,7 +3002,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
 {
 
     // Access the markers of this vertex.
-    const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
+    const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
     const size_t markerCount = markerIds.size();
     SHASTA_ASSERT(markerCount > 0);
 
@@ -4295,7 +4295,7 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
         for(MarkerGraph::VertexId vertexId=begin; vertexId!=end; vertexId++) {
 
             // Access the markers of this vertex.
-            const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
+            const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
             const size_t markerCount = markerIds.size();
             SHASTA_ASSERT(markerCount > 0);
 
@@ -4715,7 +4715,7 @@ void Assembler::analyzeMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
     }
 
     // Access the markers of this vertex.
-    span<const MarkerId> markerIds = markerGraph.vertices[vertexId];
+    span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
     const size_t markerCount = markerIds.size();
     SHASTA_ASSERT(markerCount > 0);
 

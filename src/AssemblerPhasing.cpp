@@ -346,7 +346,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
 
                     // Loop over the markers in this marker graph vertex.
                     const span<MarkerId> markerIds =
-                        markerGraph.vertices[markerGraphVertexId];
+                        markerGraph.getVertexMarkerIds(markerGraphVertexId);
                     for (const MarkerId markerId : markerIds) {
                         OrientedReadId orientedReadId;
                         tie(orientedReadId, ignore) = findMarkerId(markerId);

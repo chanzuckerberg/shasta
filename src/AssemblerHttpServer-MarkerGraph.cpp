@@ -440,7 +440,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
     }
 
     // Access the markers of this vertex.
-    span<MarkerId> markerIds = markerGraph.vertices[vertexId];
+    span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
     const size_t markerCount = markerIds.size();
     SHASTA_ASSERT(markerCount > 0);
 

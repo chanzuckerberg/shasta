@@ -560,7 +560,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
         for(MarkerGraph::VertexId vertexId: v) {
 
             // Access the marker ids on this vertex.
-            const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
+            const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
 
             // Loop over these markers.
             for(const MarkerId markerId: markerIds) {
@@ -598,7 +598,7 @@ void Assembler::exploreAssemblyGraphEdgesSupport(
             const MarkerGraph::VertexId vertexId = v[iv];
 
             // Access the marker ids on this vertex.
-            const span<MarkerId> markerIds = markerGraph.vertices[vertexId];
+            const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
 
             // Loop over these markers.
             for(const MarkerId markerId: markerIds) {

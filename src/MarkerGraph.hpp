@@ -47,6 +47,8 @@ public:
     // For a given vertex, the marker ids are sorted.
     MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> vertices;
 
+
+
     // Vertices access functions.
     // Return the number of vertices.
     uint64_t vertexCount() const {
@@ -57,6 +59,15 @@ public:
     {
         return vertices.size(vertexId);
     }
+    // Return the marker ids for a given vertex.
+    span<MarkerId> getVertexMarkerIds(VertexId vertexId) {
+        return vertices[vertexId];
+    }
+    span<const MarkerId> getVertexMarkerIds(VertexId vertexId) const {
+        return vertices[vertexId];
+    }
+
+
 
     // The global marker graph vertex corresponding to each marker.
     // Indexed by MarkerId.

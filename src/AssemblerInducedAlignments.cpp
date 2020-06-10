@@ -136,7 +136,7 @@ void Assembler::computeInducedAlignments(
 
         // Loop over all markers on this vertex.
         const span<MarkerId> vertexMarkers =
-            markerGraph.vertices[compressedVertexId];
+            markerGraph.getVertexMarkerIds(compressedVertexId);
         for(const MarkerId markerId1: vertexMarkers) {
 
             // Skip the marker that we started from.
