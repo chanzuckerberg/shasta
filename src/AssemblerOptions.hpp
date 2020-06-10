@@ -240,7 +240,7 @@ public:
         bool storeCoverageData;
         int storeCoverageDataCsvLengthThreshold;
         bool writeReadsByAssembledSegment;
-        bool detangle;
+        int detangleMethod;
         void write(ostream&) const;
     };
     AssemblyOptions assemblyOptions;

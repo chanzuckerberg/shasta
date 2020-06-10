@@ -200,6 +200,14 @@ void shasta::main::assemble(
             " is not valid. Valid options are 0, 1 & 3.");
     }
 
+    // Check assemblerOptions.assemblyOptions.detangleMethod.
+    if( assemblerOptions.assemblyOptions.detangleMethod!=0 and
+        assemblerOptions.assemblyOptions.detangleMethod!=1) {
+        throw runtime_error("Invalid value " +
+            to_string(assemblerOptions.assemblyOptions.detangleMethod) +
+            " specified for --AssemblyOptions.detangleMethod. Must be 0 or 1.");
+    }
+
     // Write a startup message.
     cout << timestamp << startupMessage << endl;
 
@@ -777,7 +785,7 @@ void shasta::main::assemble(
     }
 
     // Detangle, if requested.
-    if(assemblerOptions.assemblyOptions.detangle) {
+    if(assemblerOptions.assemblyOptions.detangleMethod == 1) {
         assembler.detangle();
     }
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
