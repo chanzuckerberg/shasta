@@ -35,7 +35,7 @@ void Assembler::exploreMarkerGraph(
     html << "<h3>Display a local subgraph of the global marker graph</h3>";
     html << "<div style='clear:both; display:table;'>";
     html << "<div style='float:left;margin:10px;'>";
-    requestParameters.writeForm(html, markerGraph.vertices.size());
+    requestParameters.writeForm(html, markerGraph.vertexCount());
     html << "</div>";
     html << "<div style='float:left;margin:10px;'>";
     LocalMarkerGraph::writeColorLegend(html);
@@ -50,9 +50,9 @@ void Assembler::exploreMarkerGraph(
 
 
     // Validity checks.
-    if(requestParameters.vertexId > markerGraph.vertices.size()) {
+    if(requestParameters.vertexId > markerGraph.vertexCount()) {
         html << "<p>Invalid vertex id " << requestParameters.vertexId;
-        html << ". Must be between 0 and " << markerGraph.vertices.size()-1 << " inclusive.";
+        html << ". Must be between 0 and " << markerGraph.vertexCount()-1 << " inclusive.";
         return;
     }
 
@@ -427,15 +427,15 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         "<input type=submit value='Show details for marker graph vertex'> "
         "<input type=text name=vertexId required" <<
         (vertexIdIsPresent ? (" value=" + to_string(vertexId)) : "") <<
-        " size=8 title='Enter a vertex id between 0 and " << markerGraph.vertices.size()-1 << "'>";
+        " size=8 title='Enter a vertex id between 0 and " << markerGraph.vertexCount()-1 << "'>";
     html << "</form>";
 
     // If the vertex id missing or invalid, stop here.
     if(!vertexIdIsPresent || !vertexIdIsPresent) {
         return;
     }
-    if(vertexId >= markerGraph.vertices.size()) {
-        html << "<p>Invalid vertex id. Must be less than " << markerGraph.vertices.size() << ".";
+    if(vertexId >= markerGraph.vertexCount()) {
+        html << "<p>Invalid vertex id. Must be less than " << markerGraph.vertexCount() << ".";
         return;
     }
 
@@ -1320,7 +1320,7 @@ void Assembler::exploreMarkerCoverage(
         if(vertexId == MarkerGraph::invalidCompressedVertexId) {
             gnuplotCommands << ordinal << " " << "0\n";
         } else {
-            const uint64_t coverage = markerGraph.vertices.size(vertexId);
+            const uint64_t coverage = markerGraph.vertexCoverage(vertexId);
             gnuplotCommands << ordinal << " " << coverage << "\n";
         }
     }

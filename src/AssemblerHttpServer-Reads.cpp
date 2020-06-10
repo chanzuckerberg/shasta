@@ -591,7 +591,7 @@ void Assembler::exploreRead(
                 ", position " << marker.position <<
                 ", k-mer id " << marker.kmerId;
             if(hasMarkerGraphVertex) {
-                html << ", coverage " << markerGraph.vertices.size(vertexId);
+                html << ", coverage " << markerGraph.vertexCoverage(vertexId);
             }
             html << "' id='" << ordinal << "'";
             if(hasMarkerGraphVertex) {

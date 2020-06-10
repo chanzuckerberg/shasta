@@ -784,7 +784,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<h3>Marker graph</h3>"
         "<table>"
         "<tr><td>Total number of vertices"
-        "<td class=right>" << markerGraph.vertices.size() <<
+        "<td class=right>" << markerGraph.vertexCount() <<
         "<tr><td>Total number of edges"
         "<td class=right>" << markerGraph.edges.size() <<
         "<tr><td>Number of vertices that are not isolated after edge removal"
@@ -1014,7 +1014,7 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
         "  \"Marker graph\":\n"
         "  {\n"
-        "    \"Total number of vertices\": " << markerGraph.vertices.size() << ",\n"
+        "    \"Total number of vertices\": " << markerGraph.vertexCount() << ",\n"
         "    \"Total number of edges\": " << markerGraph.edges.size() << ",\n"
         "    \"Number of vertices that are not isolated after edge removal\": " <<
         assemblerInfo->markerGraphVerticesNotIsolatedCount << ",\n"

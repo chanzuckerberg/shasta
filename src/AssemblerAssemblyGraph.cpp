@@ -404,7 +404,7 @@ void Assembler::createAssemblyGraphVertices()
 
             if(i != 0) {
                 const MarkerGraph::EdgeId markerGraphVertexId = markerGraphEdge.source;
-                const uint32_t vertexCoverage = uint32_t(markerGraph.vertices.size(markerGraphVertexId));
+                const uint32_t vertexCoverage = uint32_t(markerGraph.vertexCoverage(markerGraphVertexId));
                 vertexCoverageSum += vertexCoverage;
                 assemblyGraphEdge.minVertexCoverage =
                     min(assemblyGraphEdge.minVertexCoverage, vertexCoverage);
@@ -1706,7 +1706,7 @@ void Assembler::assembleAssemblyGraphEdge(
     // Get vertex coverage.
     assembledSegment.vertexCoverage.resize(assembledSegment.vertexCount);
     for(size_t i=0; i<assembledSegment.vertexCount; i++) {
-        assembledSegment.vertexCoverage[i] = uint32_t(markerGraph.vertices.size(assembledSegment.vertexIds[i]));
+        assembledSegment.vertexCoverage[i] = uint32_t(markerGraph.vertexCoverage(assembledSegment.vertexIds[i]));
     }
 
     // Edge coverage.

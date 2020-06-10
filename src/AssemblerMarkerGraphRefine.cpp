@@ -25,9 +25,9 @@ void Assembler::refineMarkerGraph(
     checkMarkerGraphEdgesIsOpen();
     SHASTA_ASSERT(markerGraph.reverseComplementVertex.isOpen);
     SHASTA_ASSERT(markerGraph.reverseComplementEdge.isOpen);
-    cout << "The marker graph has " << markerGraph.vertices.size() <<
+    cout << "The marker graph has " << markerGraph.vertexCount() <<
         " vertices and " << markerGraph.edges.size() << " edges." << endl;
-    SHASTA_ASSERT(markerGraph.reverseComplementVertex.size() == markerGraph.vertices.size());
+    SHASTA_ASSERT(markerGraph.reverseComplementVertex.size() == markerGraph.vertexCount());
     SHASTA_ASSERT(markerGraph.reverseComplementEdge.size() == markerGraph.edges.size());
 
     // Create a temporary assembly graph.
@@ -42,14 +42,14 @@ void Assembler::refineMarkerGraph(
     MemoryMapped::Vector<bool> isVertexToBeRemoved;
     isVertexToBeRemoved.createNew(
         largeDataName("tmp-VerticesToBeRemoved"), largeDataPageSize);
-    isVertexToBeRemoved.resize(markerGraph.vertices.size());
+    isVertexToBeRemoved.resize(markerGraph.vertexCount());
     fill(isVertexToBeRemoved.begin(), isVertexToBeRemoved.end(), false);
 
     // Flag to be removed all marker graph vertices with out-degree
     // or in-degree greater than 1.
     uint64_t removedDueToDegreeCount = 0;
     for(MarkerGraph::VertexId vertexId=0;
-        vertexId<markerGraph.vertices.size(); vertexId++) {
+        vertexId<markerGraph.vertexCount(); vertexId++) {
         if(
             (markerGraph.outDegree(vertexId) > 1) or
             (markerGraph.inDegree(vertexId) > 1)) {
@@ -94,13 +94,13 @@ void Assembler::refineMarkerGraph(
     verticesToBeKept.createNew(
         largeDataName("tmp-VerticesToBeKept"), largeDataPageSize);
     for(MarkerGraph::VertexId vertexId=0;
-        vertexId<markerGraph.vertices.size(); vertexId++) {
+        vertexId<markerGraph.vertexCount(); vertexId++) {
         if(not isVertexToBeRemoved[vertexId]) {
             verticesToBeKept.push_back(vertexId);
         }
     }
-    const uint64_t removedCount = markerGraph.vertices.size() - verticesToBeKept.size();
-    cout << timestamp << "Out of " << markerGraph.vertices.size() <<
+    const uint64_t removedCount = markerGraph.vertexCount() - verticesToBeKept.size();
+    cout << timestamp << "Out of " << markerGraph.vertexCount() <<
         " marker graph vertices, " << removedCount <<
         " will be removed." << endl;
     markerGraph.removeVertices(verticesToBeKept, largeDataPageSize, threadCount);

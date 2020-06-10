@@ -242,7 +242,7 @@ void Assembler::detangle()
                 const MarkerGraph::EdgeId markerGraphEdgeId = path[i];
                 const MarkerGraph::Edge& markerGraphEdge = markerGraph.edges[markerGraphEdgeId];
                 const MarkerGraph::VertexId markerGraphVertexId = markerGraphEdge.source;
-                const uint32_t coverage = uint32_t(markerGraph.vertices.size(markerGraphVertexId));
+                const uint32_t coverage = uint32_t(markerGraph.vertexCoverage(markerGraphVertexId));
                 assemblyGraphEdge.minVertexCoverage = min(assemblyGraphEdge.minVertexCoverage, coverage);
                 assemblyGraphEdge.maxVertexCoverage = max(assemblyGraphEdge.maxVertexCoverage, coverage);
                 sum += coverage;

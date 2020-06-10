@@ -100,7 +100,7 @@ void MarkerGraph::removeVertices(
 
     // Update the vertexTable, in place.
     fill(vertexTable.begin(), vertexTable.end(), invalidCompressedVertexId);
-    setupLoadBalancing(vertices.size(), batchCount);
+    setupLoadBalancing(vertexCount(), batchCount);
     runThreads(&MarkerGraph::removeVerticesThreadFunction3, threadCount);
 
 
@@ -157,7 +157,7 @@ void MarkerGraph::removeVerticesThreadFunction1(size_t threadId)
         // Loop over vertices assigned to this thread.
         for(VertexId newVertexId=begin; newVertexId!=end; newVertexId++) {
             const VertexId oldVertexId = verticesToBeKept[newVertexId];
-            newVertices.incrementCount(newVertexId, vertices.size(oldVertexId));
+            newVertices.incrementCount(newVertexId, vertexCoverage(oldVertexId));
         }
     }
 }

@@ -691,7 +691,7 @@ void Assembler::checkMarkerGraphVertices(
         ofstream out2("MarkerGraphVertices.csv");
         out1 << "VertexId,MarkerId\n";
         for(MarkerGraph::VertexId vertexId=0;
-            vertexId<markerGraph.vertices.size(); vertexId++) {
+            vertexId<markerGraph.vertexCount(); vertexId++) {
             const auto markers = markerGraph.vertices[vertexId];
             for(const MarkerId markerId: markers) {
                 out2 << vertexId << "," << markerId << "\n";
@@ -702,7 +702,7 @@ void Assembler::checkMarkerGraphVertices(
 
 
     for(MarkerGraph::VertexId vertexId=0;
-        vertexId!=markerGraph.vertices.size(); vertexId++) {
+        vertexId!=markerGraph.vertexCount(); vertexId++) {
         SHASTA_ASSERT(!isBadMarkerGraphVertex(vertexId));
         const auto markers = markerGraph.vertices[vertexId];
         SHASTA_ASSERT(markers.size() >= minCoverage);
@@ -1125,7 +1125,7 @@ void Assembler::findMarkerGraphReverseComplementVertices(size_t threadCount)
 
     // Get the number of vertices in the marker graph.
     using VertexId = MarkerGraph::VertexId;
-    const VertexId vertexCount = markerGraph.vertices.size();
+    const VertexId vertexCount = markerGraph.vertexCount();
 
     // Allocate the vector to hold the reverse complemented
     // vertex id for each vertex.
@@ -1365,7 +1365,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetric(size_t threadCount)
 
     // Check the vertices.
     using VertexId = MarkerGraph::VertexId;
-    const VertexId vertexCount = markerGraph.vertices.size();
+    const VertexId vertexCount = markerGraph.vertexCount();
     setupLoadBalancing(vertexCount, 10000);
     runThreads(&Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1, threadCount);
 
@@ -1697,7 +1697,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
             SHASTA_ASSERT(edge.source == vertexId0);
-            SHASTA_ASSERT(vertexId1 < markerGraph.vertices.size());
+            SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
             SHASTA_ASSERT(!isBadMarkerGraphVertex(vertexId1));
 
             // Find the vertex corresponding to this child, creating it if necessary.
@@ -1758,7 +1758,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
             const MarkerGraph::VertexId vertexId1 = edge.source;
             SHASTA_ASSERT(edge.target == vertexId0);
-            SHASTA_ASSERT(vertexId1 < markerGraph.vertices.size());
+            SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
@@ -1832,7 +1832,7 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
 
             const MarkerGraph::VertexId vertexId1 = edge.target;
             SHASTA_ASSERT(edge.source == vertexId0);
-            SHASTA_ASSERT(vertexId1 < markerGraph.vertices.size());
+            SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
 
             // See if we have a vertex for this global vertex id.
             bool vertexExists;
@@ -1946,9 +1946,9 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     // Each thread stores the edges it finds in a separate vector.
     createMarkerGraphEdgesData.threadEdges.resize(threadCount);
     createMarkerGraphEdgesData.threadEdgeMarkerIntervals.resize(threadCount);
-    cout << timestamp << "Processing " << markerGraph.vertices.size();
+    cout << timestamp << "Processing " << markerGraph.vertexCount();
     cout << " marker graph vertices." << endl;
-    setupLoadBalancing(markerGraph.vertices.size(), 100000);
+    setupLoadBalancing(markerGraph.vertexCount(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction0, threadCount);
 
     // Combine the edges found by each thread.
@@ -1977,7 +1977,7 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     }
     SHASTA_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
     cout << timestamp << "Found " << markerGraph.edges.size();
-    cout << " edges for " << markerGraph.vertices.size() << " vertices." << endl;
+    cout << " edges for " << markerGraph.vertexCount() << " vertices." << endl;
 
 
 
@@ -1998,8 +1998,8 @@ void Assembler::createMarkerGraphEdgesBySourceAndTarget(size_t threadCount)
         largeDataPageSize);
 
     cout << timestamp << "Create marker graph edges by source and target: pass 1 begins." << endl;
-    markerGraph.edgesBySource.beginPass1(markerGraph.vertices.size());
-    markerGraph.edgesByTarget.beginPass1(markerGraph.vertices.size());
+    markerGraph.edgesBySource.beginPass1(markerGraph.vertexCount());
+    markerGraph.edgesByTarget.beginPass1(markerGraph.vertexCount());
     setupLoadBalancing(markerGraph.edges.size(), 100000);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction1, threadCount);
 
@@ -2180,7 +2180,7 @@ void Assembler::transitiveReduction(
 
     // Initial message.
     cout << timestamp << "Transitive reduction of the marker graph begins." << endl;
-    cout << "The marker graph has " << markerGraph.vertices.size() << " vertices and ";
+    cout << "The marker graph has " << markerGraph.vertexCount() << " vertices and ";
     cout << edges.size() << " edges." << endl;
 
     // Initially flag all edges as not removed by transitive reduction.
@@ -2229,7 +2229,7 @@ void Assembler::transitiveReduction(
     vertexDistances.createNew(
         largeDataName("tmp-flagMarkerGraphWeakEdges-vertexDistances"),
         largeDataPageSize);
-    vertexDistances.resize(markerGraph.vertices.size());
+    vertexDistances.resize(markerGraph.vertexCount());
     fill(vertexDistances.begin(), vertexDistances.end(), -1);
 
     // Queue to be used for all BFSs.
@@ -2382,7 +2382,7 @@ void Assembler::transitiveReduction(
     cout << "Transitive reduction removed " << weakEdgeCount << " marker graph edges out of ";
     cout << markerGraph.edges.size() << " total." << endl;
 
-    cout << "The marker graph has " << markerGraph.vertices.size() << " vertices and ";
+    cout << "The marker graph has " << markerGraph.vertexCount() << " vertices and ";
     cout << markerGraph.edges.size()-weakEdgeCount << " strong edges." << endl;
 
     cout << timestamp << "Transitive reduction of the marker graph ends." << endl;
@@ -2417,7 +2417,7 @@ void Assembler::reverseTransitiveReduction(
 
     // Initial message.
     cout << timestamp << "Reverse transitive reduction of the marker graph begins." << endl;
-    cout << "The marker graph has " << markerGraph.vertices.size() << " vertices and ";
+    cout << "The marker graph has " << markerGraph.vertexCount() << " vertices and ";
     cout << edges.size() << " edges." << endl;
 
     // Gather edges for each coverage less than highCoverageThreshold.
@@ -2454,7 +2454,7 @@ void Assembler::reverseTransitiveReduction(
     vertexDistances.createNew(
         largeDataName("tmp-flagMarkerGraphWeakEdges-vertexDistances"),
         largeDataPageSize);
-    vertexDistances.resize(markerGraph.vertices.size());
+    vertexDistances.resize(markerGraph.vertexCount());
     fill(vertexDistances.begin(), vertexDistances.end(), -1);
 
     // Queue to be used for all BFSs.
@@ -2571,7 +2571,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
     // Each of these two must be sized maxDistance.
     array<vector< vector<MarkerGraph::EdgeId> >, 2>& verticesByDistance,
 
-    // Each of these two must be sized markerGraph.vertices.size()
+    // Each of these two must be sized markerGraph.vertexCount()
     // and set to all false on entry.
     // It is left set to all false on exit, so it can be reused.
     array<vector<bool>, 2>& vertexFlags
@@ -2587,7 +2587,7 @@ bool Assembler::markerGraphEdgeDisconnectsLocalStrongSubgraph(
     // Check that the work areas are sized as expected.
     for(size_t i=0; i<2; i++) {
         SHASTA_ASSERT(verticesByDistance[i].size() == maxDistance+1);
-        SHASTA_ASSERT(vertexFlags[i].size() == markerGraph.vertices.size());
+        SHASTA_ASSERT(vertexFlags[i].size() == markerGraph.vertexCount());
     }
 
     // Find the two vertices of the starting edge.
@@ -2805,7 +2805,7 @@ void Assembler::pruneMarkerGraphStrongSubgraph(size_t iterationCount)
             ++count;
         }
     }
-    cout << "The original marker graph had " << markerGraph.vertices.size();
+    cout << "The original marker graph had " << markerGraph.vertexCount();
     cout << " vertices and " << edgeCount << " edges." << endl;
     cout << "The number of surviving edges is " << count << "." << endl;
 }
@@ -3586,7 +3586,7 @@ void Assembler::simplifyMarkerGraph(
 
     // Count the marker graph vertices that are not isolated.
     size_t markerGraphVerticesNotIsolatedCount = 0;
-    for(MarkerGraph::VertexId v=0; v!=markerGraph.vertices.size(); v++) {
+    for(MarkerGraph::VertexId v=0; v!=markerGraph.vertexCount(); v++) {
         bool isIsolated = true;
         for(const MarkerGraph::EdgeId edgeId: markerGraph.edgesBySource[v]) {
             const MarkerGraph::Edge& edge = markerGraph.edges[edgeId];
@@ -4149,11 +4149,11 @@ void Assembler::assembleMarkerGraphVertices(size_t threadCount)
     markerGraph.vertexRepeatCounts.createNew(
         largeDataName("MarkerGraphVertexRepeatCounts"),
         largeDataPageSize);
-    markerGraph.vertexRepeatCounts.resize(assemblerInfo->k * markerGraph.vertices.size());
+    markerGraph.vertexRepeatCounts.resize(assemblerInfo->k * markerGraph.vertexCount());
 
     // Do the work in parallel.
     size_t batchSize = 100000;
-    setupLoadBalancing(markerGraph.vertices.size(), batchSize);
+    setupLoadBalancing(markerGraph.vertexCount(), batchSize);
     runThreads(&Assembler::assembleMarkerGraphVerticesThreadFunction, threadCount);
 
     cout << timestamp << "assembleMarkerGraphVertices ends." << endl;
@@ -4218,7 +4218,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     computeMarkerGraphVerticesCoverageDataData.threadVertexCoverageData.resize(threadCount);
 
     // Do the computation in parallel.
-    setupLoadBalancing(markerGraph.vertices.size(), 100000);
+    setupLoadBalancing(markerGraph.vertexCount(), 100000);
     runThreads(&Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction, threadCount);
 
     // Figure out where the results for each vertex are.
@@ -4227,7 +4227,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     // in a MemoryMapped::Vector instead.
     const size_t invalidValue = std::numeric_limits<size_t>::max();
     vector< pair<size_t, size_t > > vertexTable(
-        markerGraph.vertices.size(),
+        markerGraph.vertexCount(),
         make_pair(invalidValue, invalidValue));
     for(size_t threadId=0; threadId!=threadCount; threadId++) {
         const auto& vertexIds = *computeMarkerGraphVerticesCoverageDataData.threadVertexIds[threadId];
@@ -4241,7 +4241,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
     // Gather the results computed by all the threads.
     markerGraph.vertexCoverageData.createNew(
         largeDataName("MarkerGraphVerticesCoverageData"), largeDataPageSize);
-    for(MarkerGraph::VertexId vertexId=0; vertexId!=markerGraph.vertices.size(); vertexId++) {
+    for(MarkerGraph::VertexId vertexId=0; vertexId!=markerGraph.vertexCount(); vertexId++) {
         const auto& p = vertexTable[vertexId];
         const size_t threadId = p.first;
         const size_t i = p.second;
@@ -4628,7 +4628,7 @@ void Assembler::computeMarkerGraphCoverageHistogram()
     // Vertices.
     vector<uint64_t> vertexCoverageHistogram;
     for(MarkerGraph::VertexId vertexId=0;
-        vertexId<markerGraph.vertices.size(); vertexId++) {
+        vertexId<markerGraph.vertexCount(); vertexId++) {
 
         // Check if this vertex is isolated.
         bool isIsolated = true;
@@ -4655,7 +4655,7 @@ void Assembler::computeMarkerGraphCoverageHistogram()
         }
 
         // Increment the histogram.
-        const size_t coverage = markerGraph.vertices.size(vertexId);
+        const size_t coverage = markerGraph.vertexCoverage(vertexId);
         if(coverage >= vertexCoverageHistogram.size()) {
             vertexCoverageHistogram.resize(coverage+1, 0);
         }
@@ -4708,9 +4708,9 @@ void Assembler::removeMarkerGraphVertices()
 void Assembler::analyzeMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
 {
     // Check that we have a valid vertex id.
-    if(vertexId >= markerGraph.vertices.size()) {
+    if(vertexId >= markerGraph.vertexCount()) {
         throw runtime_error("Invalid vertex id. Must be less than " +
-            to_string(markerGraph.vertices.size()) +  ".");
+            to_string(markerGraph.vertexCount()) +  ".");
         return;
     }
 
