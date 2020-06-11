@@ -570,7 +570,7 @@ void Assembler::exploreRead(
 
 
     // Markers.
-    if(markers.isOpen() and markerGraph.vertices.isOpen()) {
+    if(markers.isOpen() and markerGraph.vertices().isOpen()) {
         for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
             const CompressedMarker& marker = orientedReadMarkers[ordinal];
             if (marker.position < beginRlePosition || marker.position > endRlePosition-k) {

@@ -68,7 +68,7 @@ void MarkerGraph::removeVertices(
     uint64_t threadCount)
 {
     // Get the names of the data structures we will work with.
-    const string verticesName = vertices.getName();
+    const string verticesName = vertices().getName();
     const string vertexTableName = vertexTable.fileName;
     const string newVerticesName =
         verticesName.empty() ? "" : (verticesName + "-tmp");
@@ -77,8 +77,10 @@ void MarkerGraph::removeVertices(
 
     // Create the new vertices.
     removeVerticesData.verticesToBeKept = &verticesToBeKept;
+    removeVerticesData.newVerticesPointer =
+        make_shared<MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> >();
     MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId>& newVertices
-        = removeVerticesData.newVertices;
+        = *removeVerticesData.newVerticesPointer;
     newVertices.createNew(newVerticesName, pageSize);
     newVertices.beginPass1(verticesToBeKept.size());
     const uint64_t batchCount = 10000;
@@ -92,10 +94,11 @@ void MarkerGraph::removeVertices(
 
 
     // Replace the old vertices with the new ones.
-    vertices.remove();
+    vertices().remove();
+    destructVertices();
     newVertices.rename(verticesName);
-    newVertices.close();
-    vertices.accessExistingReadOnly(verticesName);
+    verticesPointer = removeVerticesData.newVerticesPointer;
+    removeVerticesData.newVerticesPointer = 0;
 
 
     // Update the vertexTable, in place.
@@ -148,7 +151,7 @@ void MarkerGraph::removeVerticesThreadFunction1(size_t threadId)
     const MemoryMapped::Vector<VertexId>& verticesToBeKept =
         *removeVerticesData.verticesToBeKept;
     MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId>& newVertices
-        = removeVerticesData.newVertices;
+        = *removeVerticesData.newVerticesPointer;
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -169,7 +172,7 @@ void MarkerGraph::removeVerticesThreadFunction2(size_t threadId)
     const MemoryMapped::Vector<VertexId>& verticesToBeKept =
         *removeVerticesData.verticesToBeKept;
     MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId>& newVertices
-        = removeVerticesData.newVertices;
+        = *removeVerticesData.newVerticesPointer;
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
@@ -178,7 +181,7 @@ void MarkerGraph::removeVerticesThreadFunction2(size_t threadId)
         // Loop over vertices assigned to this thread.
         for(VertexId newVertexId=begin; newVertexId!=end; newVertexId++) {
             const VertexId oldVertexId = verticesToBeKept[newVertexId];
-            copy(vertices.begin(oldVertexId), vertices.end(oldVertexId),
+            copy(vertices().begin(oldVertexId), vertices().end(oldVertexId),
                 newVertices.begin(newVertexId));
         }
     }
@@ -196,7 +199,7 @@ void MarkerGraph::removeVerticesThreadFunction3(size_t threadId)
         // Loop over vertices assigned to this thread.
         for(VertexId vertexId=begin; vertexId!=end; vertexId++) {
             const CompressedVertexId compressedVertexId = vertexId;
-            const span<MarkerId> vertexMarkerIds = vertices[vertexId];
+            const span<MarkerId> vertexMarkerIds = vertices()[vertexId];
             for(const MarkerId markerId: vertexMarkerIds) {
                 vertexTable[markerId] = compressedVertexId;
             }

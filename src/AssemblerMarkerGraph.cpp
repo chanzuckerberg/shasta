@@ -353,11 +353,12 @@ void Assembler::createMarkerGraphVertices(
 
 
 
-    // Store the disjoint sets that are not marker bad.
+    // Store the disjoint sets that are not marked bad.
     // Each corresponds to a vertex of the global marker graph.
     // This could be multithreaded.
     cout << timestamp << "Gathering the markers of each vertex of the marker graph." << endl;
-    markerGraph.vertices.createNew(
+    markerGraph.constructVertices();
+    markerGraph.vertices().createNew(
         largeDataName("MarkerGraphVertices"),
         largeDataPageSize);
     for(MarkerGraph::VertexId oldDisjointSetId=0;
@@ -365,10 +366,10 @@ void Assembler::createMarkerGraphVertices(
         if(data.isBadDisjointSet[oldDisjointSetId]) {
             continue;
         }
-        markerGraph.vertices.appendVector();
+        markerGraph.vertices().appendVector();
         const auto markers = data.disjointSetMarkers[oldDisjointSetId];
         for(const MarkerId markerId: markers) {
-            markerGraph.vertices.append(markerId);
+            markerGraph.vertices().append(markerId);
         }
     }
     data.isBadDisjointSet.remove();
@@ -761,7 +762,8 @@ void Assembler::accessMarkerGraphVertices(bool readWriteAccess)
     markerGraph.vertexTable.accessExisting(
         largeDataName("MarkerGraphVertexTable"), readWriteAccess);
 
-    markerGraph.vertices.accessExisting(
+    markerGraph.constructVertices();
+    markerGraph.vertices().accessExisting(
         largeDataName("MarkerGraphVertices"), readWriteAccess);
 }
 
@@ -769,7 +771,7 @@ void Assembler::accessMarkerGraphVertices(bool readWriteAccess)
 
 void Assembler::checkMarkerGraphVerticesAreAvailable()
 {
-    if(!markerGraph.vertices.isOpen() || !markerGraph.vertexTable.isOpen) {
+    if(!markerGraph.vertices().isOpen() || !markerGraph.vertexTable.isOpen) {
         throw runtime_error("Vertices of the marker graph are not accessible.");
     }
 }
@@ -4698,7 +4700,8 @@ void Assembler::computeMarkerGraphCoverageHistogram()
 
 void Assembler::removeMarkerGraphVertices()
 {
-    markerGraph.vertices.remove();
+    markerGraph.destructVertices();
+    markerGraph.vertices().remove();
     markerGraph.vertexTable.remove();
 }
 

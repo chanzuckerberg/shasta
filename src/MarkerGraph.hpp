@@ -6,7 +6,9 @@
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
 #include "Uint.hpp"
+
 #include "cstdint.hpp"
+#include "memory.hpp"
 
 namespace shasta {
 
@@ -45,26 +47,42 @@ public:
     // each vertex of the global marker graph.
     // Indexed by VertexId.
     // For a given vertex, the marker ids are sorted.
-    MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> vertices;
+    // Stored as a shared pointer to permit easy replacement of the vertices.
+    shared_ptr< MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> > verticesPointer;
+    void constructVertices()
+    {
+        verticesPointer = make_shared<MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> >();
+    }
+    void destructVertices() {
+        verticesPointer = 0;
+    }
 
 
 
     // Vertices access functions.
     // Return the number of vertices.
+    MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId>& vertices()
+    {
+        return *verticesPointer;
+    }
+    const MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId>& vertices() const
+    {
+        return *verticesPointer;
+    }
     uint64_t vertexCount() const {
-        return vertices.size();
+        return verticesPointer->size();
     }
     // Return the number of markers for a given vertex.
     uint64_t vertexCoverage(VertexId vertexId) const
     {
-        return vertices.size(vertexId);
+        return verticesPointer->size(vertexId);
     }
     // Return the marker ids for a given vertex.
     span<MarkerId> getVertexMarkerIds(VertexId vertexId) {
-        return vertices[vertexId];
+        return vertices()[vertexId];
     }
     span<const MarkerId> getVertexMarkerIds(VertexId vertexId) const {
-        return vertices[vertexId];
+        return vertices()[vertexId];
     }
 
 
@@ -89,7 +107,7 @@ private:
     class RemoveVerticesData {
     public:
         const MemoryMapped::Vector<VertexId>* verticesToBeKept;
-        MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> newVertices;
+        shared_ptr<MemoryMapped::VectorOfVectors<MarkerId, CompressedVertexId> > newVerticesPointer;
     };
     RemoveVerticesData removeVerticesData;
     void removeVerticesThreadFunction1(size_t threadId);
