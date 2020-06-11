@@ -278,8 +278,13 @@ public:
 
     void rename(const string& newName)
     {
-        toc.rename(newName + ".toc");
-        data.rename(newName + ".data");
+        if(name.empty()) {
+            SHASTA_ASSERT(newName.empty());
+        } else {
+            toc.rename(newName + ".toc");
+            data.rename(newName + ".data");
+            name = newName;
+        }
     }
 
     string getName() const
