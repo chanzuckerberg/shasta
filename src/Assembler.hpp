@@ -1881,10 +1881,10 @@ public:
 
 
 
-    // Analyze oriented read paths in the marker graph and in the assembly graph.
-    void analyzeOrientedReadPaths(int readGraphCreationMethod) const;
 
     // Analyze paths of oriented reads that go through a given assembly graph edge (segment).
+    void analyzeOrientedReadPaths();
+    // void analyzeOrientedReadPaths(int readGraphCreationMethod) const;
     void analyzeOrientedReadPathsThroughSegment(
         AssemblyGraph::EdgeId segmentId);
     void analyzeOrientedReadPathsThroughSegment(

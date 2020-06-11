@@ -243,7 +243,7 @@ public:
 };
 
 
-
+#if 0
 // Analyze oriented read paths in the marker graph and in the assembly graph.
 
 // An oriented read always corresponds to a path in the marker graph
@@ -1075,6 +1075,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     }
 #endif
 }
+#endif
 
 
 
@@ -1667,3 +1668,51 @@ void Assembler::writePseudoPath(ReadId readId, Strand strand) const
     }
 }
 
+
+
+void Assembler::analyzeOrientedReadPaths()
+{
+    using SegmentId = AssemblyGraph::EdgeId;
+    AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    const uint64_t segmentCount = assemblyGraph.edges.size();
+
+    ofstream csv1("ChokePoints.csv");
+    csv1 << "SegmentId,Direction\n";
+    ofstream csv2("ChokePaths.csv");
+    csv1 << "SegmentId\n";
+
+    vector<SegmentId> forwardChokePoints;
+    vector<SegmentId> backwardChokePoints;
+    for(SegmentId segmentId=0; segmentId!=segmentCount; segmentId++) {
+        analyzeOrientedReadPathsThroughSegment(
+            segmentId,
+            forwardChokePoints,
+            backwardChokePoints,
+            false);
+
+        // Reverse the backward choke points so everything
+        // is written in the forward direction.
+        reverse(backwardChokePoints.begin(), backwardChokePoints.end());
+
+        // Write to ChokePoints.csv on two lines.
+        csv1 << segmentId << ",Forward,";
+        copy(forwardChokePoints.begin(), forwardChokePoints.end(),
+            ostream_iterator<SegmentId>(csv1, ","));
+        csv1 << "\n";
+        csv1 << segmentId << ",Backward,";
+        copy(backwardChokePoints.begin(), backwardChokePoints.end(),
+            ostream_iterator<SegmentId>(csv1, ","));
+        csv1 << "\n";
+
+        // Write to ChokePaths.csv on one line.
+        csv2 << segmentId << ",";
+        copy(backwardChokePoints.begin(), backwardChokePoints.end(),
+            ostream_iterator<SegmentId>(csv2, ","));
+        csv2 << segmentId << ",";
+        copy(forwardChokePoints.begin(), forwardChokePoints.end(),
+            ostream_iterator<SegmentId>(csv2, ","));
+        csv2 << "\n";
+
+    }
+
+}
