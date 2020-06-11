@@ -536,6 +536,10 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::analyzeOrientedReadPaths,
             arg("readGraphCreationMethod"))
         .def("analyzeOrientedReadPathsThroughSegment",
+            (
+                void (Assembler::*)
+                (AssemblyGraph::EdgeId)
+            )
             &Assembler::analyzeOrientedReadPathsThroughSegment,
             arg("segmentId"))
 

@@ -1082,6 +1082,26 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 void Assembler::analyzeOrientedReadPathsThroughSegment(
     AssemblyGraph::EdgeId startSegmentId)
 {
+    vector<AssemblyGraph::EdgeId> forwardChokePoints;
+    vector<AssemblyGraph::EdgeId> backwardChokePoints;
+    const bool debug = true;
+    analyzeOrientedReadPathsThroughSegment(
+        startSegmentId,
+        forwardChokePoints,
+        backwardChokePoints,
+        debug
+        );
+}
+
+
+
+void Assembler::analyzeOrientedReadPathsThroughSegment(
+    AssemblyGraph::EdgeId startSegmentId,
+    vector<AssemblyGraph::EdgeId>& forwardChokePoints,
+    vector<AssemblyGraph::EdgeId>& backwardChokePoints,
+    bool debug)
+{
+
     using SegmentId = AssemblyGraph::EdgeId;
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     const uint64_t segmentCount = assemblyGraph.edges.size();
@@ -1113,8 +1133,10 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
             orientedReadIdsThroughSegment.insert(interval.orientedReadId);
         }
     }
-    cout << "Found " << orientedReadIdsThroughSegment.size() <<
-        " oriented reads on segment " << startSegmentId << endl;
+    if(debug) {
+        cout << "Found " << orientedReadIdsThroughSegment.size() <<
+            " oriented reads on segment " << startSegmentId << endl;
+    }
 
 
 
@@ -1141,7 +1163,9 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
             }
         }
         if(disregard) {
-            cout << orientedReadId << " disregarded because of a large ordinal skip." << endl;
+            if(debug) {
+                cout << orientedReadId << " disregarded because of a large ordinal skip." << endl;
+            }
             continue;
         }
 
@@ -1149,8 +1173,10 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
         orientedReadIds.push_back(orientedReadId);
         pseudoPaths.push_back(pseudoPath);
     }
-    cout << "Continuing with " << orientedReadIds.size() <<
-        " oriented reads." << endl;
+    if(debug) {
+        cout << "Continuing with " << orientedReadIds.size() <<
+            " oriented reads." << endl;
+    }
 
 
 
@@ -1180,13 +1206,15 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     for(SegmentId segmentId=0; segmentId<n; segmentId++) {
         disjointSets.make_set(segmentId);
     }
-    cout << "The disjoint set data structure has size " << n << endl;
+    if(debug) {
+        cout << "The disjoint set data structure has size " << n << endl;
+    }
 
 
 
     // For each pair of the oriented reads we kept, compute an alignment
     // between their pseudo-paths.
-    const bool writeAlignments = true;
+    const bool writeAlignments = debug;
     ofstream alignmentsCsv;
     if(writeAlignments) {
         alignmentsCsv.open("Alignments.csv");
@@ -1340,22 +1368,24 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     }
 
 
-    vector<uint64_t> histogram;
-    for(uint64_t i=0; i<n; i++) {
-        const uint64_t size = vertices[i].size();
-        if(size) {
-            if(histogram.size() <= size) {
-                histogram.resize(size+1, 0);
+    if(debug) {
+        vector<uint64_t> histogram;
+        for(uint64_t i=0; i<n; i++) {
+            const uint64_t size = vertices[i].size();
+            if(size) {
+                if(histogram.size() <= size) {
+                    histogram.resize(size+1, 0);
+                }
+                ++histogram[size];
             }
-            ++histogram[size];
         }
-    }
-    ofstream histogramCsv("Histogram.csv");
-    histogramCsv << "Size,Frequency\n";
-    for(size_t i=1; i<histogram.size(); i++) {
-        const uint64_t frequency = histogram[i];
-        if(frequency) {
-            histogramCsv << i << "," << frequency << "\n";
+        ofstream histogramCsv("Histogram.csv");
+        histogramCsv << "Size,Frequency\n";
+        for(size_t i=1; i<histogram.size(); i++) {
+            const uint64_t frequency = histogram[i];
+            if(frequency) {
+                histogramCsv << i << "," << frequency << "\n";
+            }
         }
     }
 
@@ -1382,20 +1412,25 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
         }
     }
     graph.createEdges();
-    cout << "Before transitive reduction, the MetaMarkerGraph has " <<
-        num_vertices(graph) << " vertices and " <<
-        num_edges(graph) << " edges." << endl;
+    if(debug) {
+        cout << "Before transitive reduction, the MetaMarkerGraph has " <<
+            num_vertices(graph) << " vertices and " <<
+            num_edges(graph) << " edges." << endl;
+    }
     graph.transitiveReduction();
-    graph.writeGraphviz("MetaMarkerGraph.dot", startSegmentId);
-    graph.writeGfa("MetaMarkerGraph.gfa");
-    graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
-    graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
-    cout << "The final MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
-        num_edges(graph) << " edges." << endl;
+
+    if(debug) {
+        graph.writeGraphviz("MetaMarkerGraph.dot", startSegmentId);
+        graph.writeGfa("MetaMarkerGraph.gfa");
+        graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
+        graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
+        cout << "The final MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
+            num_edges(graph) << " edges." << endl;
+    }
 
 
 
-
+#if 0
     // We want to construct the linear chain that includes our start segment.
     // First, locate the vertices corresponding to the start segment.
     // If there is more than one (possible but unusual), give up.
@@ -1404,72 +1439,83 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     cout << "Found a linear chain with " << chain.size() << " segments:" << endl;
     copy(chain.begin(), chain.end(), ostream_iterator<SegmentId>(cout, " "));
     cout << endl;
-
+#endif
 
 
     // Find choke points.
-    vector<MetaMarkerGraph::vertex_descriptor> forwardChokePoints;
-    graph.findForwardChokePoints(startSegmentId, forwardChokePoints);
-    cout << "Forward choke points:";
-    for(const auto v: forwardChokePoints) {
-        cout << " " << graph[v].segmentId;
+    vector<MetaMarkerGraph::vertex_descriptor> forwardChokePointVertices;
+    vector<MetaMarkerGraph::vertex_descriptor> backwardChokePointVertices;
+    graph.findForwardChokePoints(startSegmentId, forwardChokePointVertices);
+    graph.findBackwardChokePoints(startSegmentId, backwardChokePointVertices);
+    forwardChokePoints.clear();
+    backwardChokePoints.clear();
+    for(const auto v: forwardChokePointVertices) {
+        forwardChokePoints.push_back(graph[v].segmentId);
     }
-    cout << endl;
-    vector<MetaMarkerGraph::vertex_descriptor> backwardChokePoints;
-    graph.findBackwardChokePoints(startSegmentId, backwardChokePoints);
-    cout << "Backward choke points:";
-    for(const auto v: backwardChokePoints) {
-        cout << " " << graph[v].segmentId;
+    for(const auto v: backwardChokePointVertices) {
+        backwardChokePoints.push_back(graph[v].segmentId);
     }
-    cout << endl;
+
+    if(debug) {
+        cout << "Forward choke points: ";
+        copy(forwardChokePoints.begin(), forwardChokePoints.end(),
+            ostream_iterator<SegmentId>(cout, " "));
+        cout << endl;
+        cout << "Backward choke points: ";
+        copy(backwardChokePoints.begin(), backwardChokePoints.end(),
+            ostream_iterator<SegmentId>(cout, " "));
+        cout << endl;
+    }
 
 
-
+#if 0
     // Write a fasta file with the sequence of the segments in the chain.
-    ofstream fasta("Chain.fasta");
-    fasta << ">Chain\n";
-    for(uint64_t i=0; i<chain.size(); i++) {
-        const SegmentId segmentId = chain[i];
+    if(debug) {
+        ofstream fasta("Chain.fasta");
+        fasta << ">Chain\n";
+        for(uint64_t i=0; i<chain.size(); i++) {
+            const SegmentId segmentId = chain[i];
 
-        SHASTA_ASSERT(not assemblyGraph.edges[segmentId].wasRemoved());
+            SHASTA_ASSERT(not assemblyGraph.edges[segmentId].wasRemoved());
 
-        // Get the id of the reverse complemented edge.
-        const SegmentId segmentIdRc = assemblyGraph.reverseComplementEdge[segmentId];
+            // Get the id of the reverse complemented edge.
+            const SegmentId segmentIdRc = assemblyGraph.reverseComplementEdge[segmentId];
 
 
-        // Write the sequence.
-        if(assemblyGraph.isAssembledEdge(segmentId)) {
+            // Write the sequence.
+            if(assemblyGraph.isAssembledEdge(segmentId)) {
 
-            // This segment was assembled. We can just write the stored sequence.
-            auto sequence = assemblyGraph.sequences[segmentId];
-            auto repeatCounts = assemblyGraph.repeatCounts[segmentId];
-            SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
-            for(size_t i=0; i<sequence.baseCount; i++) {
-                const Base b = sequence[i];
-                const uint8_t repeatCount = repeatCounts[i];
-                for(size_t k=0; k<repeatCount; k++) {
-                    fasta << b;
+                // This segment was assembled. We can just write the stored sequence.
+                auto sequence = assemblyGraph.sequences[segmentId];
+                auto repeatCounts = assemblyGraph.repeatCounts[segmentId];
+                SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+                for(size_t i=0; i<sequence.baseCount; i++) {
+                    const Base b = sequence[i];
+                    const uint8_t repeatCount = repeatCounts[i];
+                    for(size_t k=0; k<repeatCount; k++) {
+                        fasta << b;
+                    }
                 }
-            }
-        } else {
+            } else {
 
-            // This segment was not assembled. We write out the reverse
-            // complemented sequence of the reverse complemented edge.
-            SHASTA_ASSERT(assemblyGraph.isAssembledEdge(segmentIdRc));
-            const auto sequence = assemblyGraph.sequences[segmentIdRc];
-            const auto repeatCounts = assemblyGraph.repeatCounts[segmentIdRc];
-            SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
-            for(size_t i=0; i<sequence.baseCount; i++) {
-                const size_t j = sequence.baseCount - 1 - i;
-                const Base b = sequence[j].complement();
-                const uint8_t repeatCount = repeatCounts[j];
-                for(size_t k=0; k<repeatCount; k++) {
-                    fasta << b;
+                // This segment was not assembled. We write out the reverse
+                // complemented sequence of the reverse complemented edge.
+                SHASTA_ASSERT(assemblyGraph.isAssembledEdge(segmentIdRc));
+                const auto sequence = assemblyGraph.sequences[segmentIdRc];
+                const auto repeatCounts = assemblyGraph.repeatCounts[segmentIdRc];
+                SHASTA_ASSERT(sequence.baseCount == repeatCounts.size());
+                for(size_t i=0; i<sequence.baseCount; i++) {
+                    const size_t j = sequence.baseCount - 1 - i;
+                    const Base b = sequence[j].complement();
+                    const uint8_t repeatCount = repeatCounts[j];
+                    for(size_t k=0; k<repeatCount; k++) {
+                        fasta << b;
+                    }
                 }
             }
         }
     }
-
+#endif
 
 
 #if 0
