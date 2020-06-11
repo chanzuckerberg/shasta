@@ -12,39 +12,10 @@
 <h1>Running an assembly</h1>
 
 <p>
-For quick start information, see <a href=QuickStart.html>here</a>.
-This section provides additional background information.
+Refer the <a href="QuickStart.html">quick start</a> guide to download an executable or
+<a href="BuildingFromSource.html">build</a> one from the source code.
 
-<h2 id=ShastaExecutable>The Shasta executable</h2>
-<p>
-The Shasta executable provides the most convenient way of running
-an assembly. If you downloaded it as a single file from a release on GitHub, the
-executable is named <code>shasta-Linux-X.Y.Z</code> for Linux
-or <code>shasta-macOS-X.Y.Z</code> for macOS. 
-Here, <code>X.Y.Z</code> identifies the release.
-If you build the code from source yourself, the
-executable is <code>shasta-install/bin/shasta</code>.
-
-<p>
-The Shasta executable requires no installation or set up, 
-and has no dependencies. The Linux version, which is statically linked,
-runs on most current 64-bit Linux distributions.
-
-
-<p>
-If you downloaded the executable from GitHub,
-you will have to set execute permissions before running it
-(the browser will not do that for you, for security reasons).
-This can be done as follows:
-
-<pre>
-chmod ugo+x shasta-Linux-X.Y.Z
-</pre>
-or
-<pre>
-chmod ugo+x shasta-macOS-X.Y.Z
-</pre>
-
+<h2 id=Configuration>Configuration</h2>
 <p>
 You can invoke the Shasta executable without options or with
 <code>--help</code> to get a description of the options.
@@ -97,7 +68,7 @@ this works out to around
 
 <p>
 Machine with 1 to 4 TB of memory have become available
-at reasonably prices in the last few years, and they are widely available
+at reasonable prices in the last few years, and they are widely available
 on cloud computing platforms. 
 For example, for human assemblies using Shasta, we have routinely
 been using AWS <code>x1.32xlarge</code> instances with
@@ -148,7 +119,7 @@ for more information on these options.
 <h2 id=MemoryModes>Memory modes</h2>
 
 <p>
-(This section does not apply to macOS).
+<i>(This section does not apply to macOS).</i>
 
 <p>
 For performance, the Shasta executable operates in memory,
@@ -321,7 +292,7 @@ See
 select these options.
 
 
-<h2 id=ScriptedApproaches>Scripted approaches  to running an assembly</h2>
+<h2 id=ScriptedApproaches>Scripted approaches to running an assembly</h2>
 <p>
 The Shasta assembler provides a
 <a href=Python.html>Python API</a> that can be used for scripting.
