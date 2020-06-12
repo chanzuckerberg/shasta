@@ -2242,7 +2242,7 @@ void Assembler::renderEditableAlignmentConfig(
     html << "<tr><th class=left>[Align]<th class=center>Value<th class=left>Description";
         
     html << "<tr><th class=left>alignMethod<td>"
-        "<input type=radio computeAllAlignname=method value=0" <<
+        "<input type=radio name=method value=0" <<
         (method==0 ? " checked=checked" : "") << "> 0 (Shasta)<br>"
         "<input type=radio name=method value=1" <<
         (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
