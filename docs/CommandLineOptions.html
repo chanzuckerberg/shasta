@@ -441,9 +441,14 @@ relative orientations. This should only be used for very small test
 assemblies as it can become prohibitively slow for large assemblies.
 
 <tr id='Align.alignMethod'>
-<td><code>--Align.alignMethod</code><td class=centered><code>0</code><td>
-The alignment method to be used to create the read graph and the marker graph. 
-Values other than 0 are experimental.
+<td><code>--Align.alignMethod</code><td class=centered><code>3</code><td>
+The alignment method to be used to compute marker alignments between reads:
+<ul>
+<li>0 = Old Shasta alignment method. Use this to reproduce Shasta behavior before release 0.5.0.
+<li>1 = SeqAn. This gives the best alignment results but it is slow and should only be used for testing.
+<li>3 = Banded SeqAn.
+</ul>
+
 
 <tr id='Align.maxSkip'>
 <td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
@@ -480,25 +485,25 @@ The minimum fraction of aligned markers for an alignment to be used.
 <a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='Align.matchScore'>
-<td><code>--Align.matchScore</code><td class=centered><code>3</code><td>
-Match score for marker alignments (only for experimental alignment methods 1 and 3).
+<td><code>--Align.matchScore</code><td class=centered><code>6</code><td>
+Match score for marker alignments (only for alignment methods 1 and 3).
 
 <tr id='Align.mismatchScore'>
 <td><code>--Align.mismatchScore</code><td class=centered><code>-1</code><td>
-Mismatch score for marker alignments (only for experimental alignment methods 1 and 3).
+Mismatch score for marker alignments (only for alignment methods 1 and 3).
 
 <tr id='Align.gapScore'>
 <td><code>--Align.gapScore</code><td class=centered><code>-1</code><td>
-Gap score for marker alignments (only for experimental alignment methods 1 and 3).
+Gap score for marker alignments (only for alignment methods 1 and 3).
 
 <tr id='Align.downsamplingFactor'>
 <td><code>--Align.downsamplingFactor</code><td class=centered><code>0.1</code><td>
 Downsampling factor for downsampled marker alignments 
-(only for experimental alignment method 3).
+(only for alignment method 3).
 
 <tr id='Align.bandExtend'>
 <td><code>--Align.bandExtend</code><td class=centered><code>10</code><td>
-Amount to extend the alignment band (only for experimental alignment method 3).
+Amount to extend the alignment band (only for alignment method 3).
 
 <tr id='Align.sameChannelReadAlignment.suppressDeltaThreshold'>
 <td><code>--Align.sameChannelReadAlignment.suppressDeltaThreshold</code><td class=centered><code>0</code><td>
