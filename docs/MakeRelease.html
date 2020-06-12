@@ -15,7 +15,9 @@
 <li>Make sure there are no outstanding commits or
 pull requests that should be in the new release.
 <li>Do some testing.
-<li>Pick a release number <code>X.Y.Z</code>. 
+<li>Pick a release number <code>X.Y.Z</code>
+where <code>X</code>, <code>Y</code>, and <code>Z</code>
+are numbers (no additional characters).
 To stay consistent with
 <a href='https://semver.org'>Semantic Versioning</a>,
 for now stay with <code>X=0</code>.
@@ -26,21 +28,32 @@ with the release number you picked.
 
 <li>In 
 <code>shasta/.github/workflows/Build.yml</code>,
-change the build id to <code>Shasta Release X.Y.Z</code>
-in 4 places.
+change <code>BUILD_ID</code> to <code>Shasta Release X.Y.Z</code>
+in all <code>cmake</code> commands (5 instances at the time of last update of this documentation).
 <li>Commit and push this change to trigger a new build on GitHub Actions.
 Wait for that build to complete.
 <li>Download the 7 artifacts. Unzip them and rename  them to the following:
 <ul>
 <li><code>shasta-Linux-X.Y.Z</code>
 <li><code>shasta-OldLinux-X.Y.Z</code> 
-<li><code>shasta-macOS-X.Y.Z</code>
+<li><code>shasta-macOS-10.14-X.Y.Z</code>
+<li><code>shasta-macOS-10.15-X.Y.Z</code>
 <li><code>shasta-Ubuntu-16.04-X.Y.Z.tar</code>
 <li><code>shasta-Ubuntu-18.04-X.Y.Z.tar</code>
+<li><code>shasta-Ubuntu-20.04-X.Y.Z.tar</code>
 </ul>
 
-<li>Create the release on GitHub and write some release notes.
-The release name should be just/simply <code>X.Y.Z</code>.
+<li>Create release notes in markdown format. 
+This is 
+<a href="https://markdownlivepreview.com/">a web page</a> that can be used to review  
+the release notes before posting on GitHub. 
+Just paste the markdown to the left pane.
+
+<li>Create the release on GitHub and paste the release notes.
+The release name should be just/simply <code>X.Y.Z</code>
+(no additional characters).
+The release will not be visible to users until it gets published
+two steps below.
 <li>Upload the unzipped and renamed artifacts 
 to the new release as assets.
 
@@ -48,9 +61,10 @@ to the new release as assets.
 <li>After the release has been published it should not be modified or deleted.
 <li>In 
 <code>shasta/.github/workflows/Build.yml</code>,
-change the build id to 
+change <code>BUILD_ID</code> to 
 <code>Shasta unreleased test build newer than release X.Y.Z</code>
-in 4 places for future GitHub Actions builds.
+in all <code>cmake</code> commands for future GitHub Actions builds
+(5 instances at the time of last update of this documentation).
 </ul>
 
 
