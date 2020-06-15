@@ -15,8 +15,9 @@ using namespace shasta;
 
 // Standard library.
 #include "array.hpp"
-#include <map>
 #include "fstream.hpp"
+#include <map>
+#include <set>
 
 
 
@@ -1717,18 +1718,70 @@ void Assembler::analyzeOrientedReadPaths()
         csv2 << segmentId << ",";
         copy(path.begin(), path.end(),
             ostream_iterator<SegmentId>(csv2, ","));
+        csv2 << "\n";
 
     }
 
+
+    // Find non-branching segments.
+    vector<bool> isBranchingSegment(segmentCount, false);
+    for(SegmentId segmentId=0; segmentId!=segmentCount; segmentId++) {
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[segmentId];
+        const AssemblyGraph::VertexId v0 = edge.source;
+        const AssemblyGraph::VertexId v1 = edge.target;
+        isBranchingSegment[segmentId] =
+            (assemblyGraph.edgesBySource[v1].size() >= 2) or
+            (assemblyGraph.edgesByTarget[v0].size() >= 2);
+    }
+    cout << "Found " << std::count(isBranchingSegment.begin(), isBranchingSegment.end(), false) <<
+        " non-branching segments." << endl;
 
 
     // Use the marker graph pattern to align these sequences.
     using Graph = MarkerGraph2<SegmentId, SegmentId>;
     Graph graph;
     for(SegmentId segmentId=0; segmentId!=segmentCount; segmentId++) {
-        graph.addSequence(segmentId, paths[segmentId]);
+        if(isBranchingSegment[segmentId]) {
+            continue;
+        }
+        vector<SegmentId> sequenceWithoutBranchingSegments;
+        for(const SegmentId segmentId: paths[segmentId]) {
+            if(not isBranchingSegment[segmentId]) {
+                sequenceWithoutBranchingSegments.push_back(segmentId);
+            }
+        }
+        graph.addSequence(segmentId, sequenceWithoutBranchingSegments);
     }
     const uint64_t disjointSetsSize = graph.doneAddingSequences();
     cout << "The disjoint sets data structure has size " << disjointSetsSize << endl;
+
+    // Align and merge.
+    // Just test for now.
+    std::set< pair<SegmentId, SegmentId> > pairs;
+    for(SegmentId segmentId0=0; segmentId0!=segmentCount; segmentId0++) {
+        if(isBranchingSegment[segmentId0]) {
+            continue;
+        }
+        for(const SegmentId segmentId1: paths[segmentId0]) {
+            if(isBranchingSegment[segmentId1]) {
+                continue;
+            }
+            if(segmentId1 < segmentId0) {
+                pairs.insert(make_pair(segmentId1, segmentId0));
+            } else if(segmentId0 < segmentId1) {
+                pairs.insert(make_pair(segmentId0, segmentId1));
+            }
+        }
+    }
+    cout << "Found " << pairs.size() << " pairs to align." << endl;
+    for(const auto& p: pairs) {
+        graph.alignAndMerge(p.first, p.second);
+    }
+
+    // Finish creation of the marker graph.
+    graph.doneMerging();
+    cout << "The marker graph for assembly segments has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+    graph.writeGraphviz("SegmentMarkerGraph.dot");
 
 }
