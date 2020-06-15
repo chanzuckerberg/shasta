@@ -17,8 +17,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta Release 0.4.0" 
+        # cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_NATIVE=OFF -DBUILD_ID="Shasta Release 0.5.0" 
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-20.04
@@ -50,8 +50,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.4.0" 
+        # cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_ID="Shasta Release 0.5.0" 
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-18.04
@@ -80,8 +80,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.4.0"
+        # cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.4.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_ID="Shasta Release 0.5.0"
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-16.04
@@ -113,8 +113,8 @@ jobs:
       run: |
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build for MacOS-10.14 newer than release 0.4.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.4.0 for MacOS-10.14"
+        # cmake .. -DBUILD_ID="Shasta unreleased test build for MacOS-10.14 newer than release 0.4.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_ID="Shasta Release 0.5.0 for MacOS-10.14"
         make VERBOSE=1 -j 2 all
         make install/strip
         # See what libraries the executable depends on.
@@ -142,8 +142,8 @@ jobs:
       run: |
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build for MacOS-10.15 newer than release 0.4.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.4.0 for MacOS-10.15"
+        # cmake .. -DBUILD_ID="Shasta unreleased test build for MacOS-10.15 newer than release 0.4.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_ID="Shasta Release 0.5.0 for MacOS-10.15"
         make VERBOSE=1 -j 2 all
         make install/strip
         # See what libraries the executable depends on.
