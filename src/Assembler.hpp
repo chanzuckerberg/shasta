@@ -1892,6 +1892,9 @@ public:
         vector<AssemblyGraph::EdgeId>& forwardChokePoints,
         vector<AssemblyGraph::EdgeId>& backwardChokePoints,
         bool debug);
+    void followOrientedReadPaths(
+        AssemblyGraph::EdgeId segmentId,
+        bool forward);
 
 
 

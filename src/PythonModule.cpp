@@ -541,6 +541,10 @@ PYBIND11_MODULE(shasta, module)
             )
             &Assembler::analyzeOrientedReadPathsThroughSegment,
             arg("segmentId"))
+        .def("followOrientedReadPaths",
+            &Assembler::followOrientedReadPaths,
+            arg("segmentId"),
+            arg("forward"))
 
         // Consensus caller.
         .def("setupConsensusCaller",

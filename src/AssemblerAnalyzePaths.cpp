@@ -3,6 +3,7 @@
 #include "deduplicate.hpp"
 #include "MarkerGraph2.hpp"
 #include "MetaMarkerGraph.hpp"
+#include "seqan.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -1094,6 +1095,156 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
         backwardChokePoints,
         debug
         );
+}
+
+
+
+void Assembler::followOrientedReadPaths(
+    AssemblyGraph::EdgeId startSegmentId,
+    bool forward)
+{
+    const bool debug = true;
+    using SegmentId = AssemblyGraph::EdgeId;
+
+    cout << "Starting at segment " << startSegmentId <<
+        " and moving " << (forward ? "forward" : "backward") << "." << endl;
+
+    vector<SegmentId> forwardChokePoints;
+    vector<SegmentId> backwardChokePoints;
+    analyzeOrientedReadPathsThroughSegment(
+        startSegmentId,
+        forwardChokePoints,
+        backwardChokePoints,
+        false
+        );
+
+
+    // Begin with consensus equal to the choke points of the start segment.
+    vector<SegmentId> consensus = {startSegmentId};
+    if(forward) {
+        copy(forwardChokePoints.begin(), forwardChokePoints.end(),
+            back_inserter(consensus));
+    } else {
+        copy(backwardChokePoints.begin(), backwardChokePoints.end(),
+            back_inserter(consensus));
+    }
+
+
+
+    // Main iteration loop.
+    // At each iteration we move forward (or backward) by one segment.
+    // We compute the choke points of the segment at consensus[index].
+    uint64_t index = 1;
+    while(index < consensus.size()) {
+
+        if(debug) {
+            cout << "Consensus at beginning of iteration " << index-1 << ":" << endl;
+            copy(consensus.begin(), consensus.end(), ostream_iterator<SegmentId>(cout, " "));
+            cout << endl;
+        }
+
+
+        // Compute choke points for the current segment in the consensus.
+        const SegmentId currentSegmentId = consensus[index];
+        analyzeOrientedReadPathsThroughSegment(
+            currentSegmentId,
+            forwardChokePoints,
+            backwardChokePoints,
+            false
+            );
+        const vector<SegmentId>& chokePoints = (forward ? forwardChokePoints : backwardChokePoints);
+
+        if(debug) {
+            cout << "Choke points of segment " << currentSegmentId << ":" << endl;
+            copy(chokePoints.begin(), chokePoints.end(), ostream_iterator<SegmentId>(cout, " "));
+            cout << endl;
+        }
+
+        // If there are no choke points, don't do anything.
+        if(chokePoints.empty()) {
+            if(debug) {
+                cout << "Alignment skipped because there are no choke points." << endl;
+            }
+            ++index;
+            continue;
+        }
+
+        // If this was the last segment in the consensus, just append the choke points
+        // to the consensus.
+        if(index == consensus.size() - 1) {
+            copy(chokePoints.begin(), chokePoints.end(), back_inserter(consensus));
+            if(debug) {
+                cout << "Choke points appended at the end of consensus." << endl;
+            }
+            ++index;
+            continue;
+        }
+
+
+
+        // Use SeqAn to compute an alignment of these choke points with the portion
+        // of the current consensus following the current segment.
+        const auto& constConsensus = consensus;
+        vector< pair<bool, bool> > alignment;
+        const int64_t matchScore = 1;
+        const int64_t mismatchScore = -1;
+        const int64_t gapScore = -1;
+        const int64_t score = seqanAlign(
+            constConsensus.begin() + index + 1, constConsensus.end(),
+            chokePoints.begin(), chokePoints.end(),
+            matchScore, mismatchScore, gapScore,
+            false, true,
+            alignment);
+        cout << "Alignment score is " << score << endl;
+        for(uint64_t i=0; i<alignment.size(); i++) {
+            cout << (alignment[i].first ? '.' : '-');
+        }
+        cout << endl;
+        for(uint64_t i=0; i<alignment.size(); i++) {
+            cout << (alignment[i].second ? '.' : '-');
+        }
+        cout << endl;
+
+
+
+        // Use the alignment to update the consensus.
+        vector<SegmentId> newConsensus;
+        copy(consensus.begin(), consensus.begin() + index + 1, back_inserter(newConsensus));
+        uint64_t consensusPosition = newConsensus.size();
+        uint64_t chokePointsPosition = 0;
+        for(const auto& p: alignment) {
+            if(p.first and p.second) {
+                const SegmentId oldConsensusValue = consensus[consensusPosition];
+                SHASTA_ASSERT(oldConsensusValue == chokePoints[chokePointsPosition]);
+                newConsensus.push_back(oldConsensusValue);
+                ++consensusPosition;
+                ++chokePointsPosition;
+            } else if(p.first) {
+                const SegmentId oldConsensusValue = consensus[consensusPosition];
+                newConsensus.push_back(oldConsensusValue);
+                ++consensusPosition;
+            } else if(p.second) {
+                newConsensus.push_back(chokePoints[chokePointsPosition]);
+                ++chokePointsPosition;
+            } else {
+                SHASTA_ASSERT(0);
+            }
+         }
+        consensus.swap(newConsensus);
+
+
+
+        // The next iteration will process the next segment in the current consensus,
+        // unless we reached the end of the consensus.
+        ++index;
+    }
+
+
+    if(debug) {
+        cout << "Final consensus:" << endl;
+        copy(consensus.begin(), consensus.end(), ostream_iterator<SegmentId>(cout, " "));
+        cout << endl;
+    }
 }
 
 
