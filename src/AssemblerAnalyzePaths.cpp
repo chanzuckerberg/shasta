@@ -1306,6 +1306,8 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
         PseudoPath pseudoPath;
         computePseudoPath(orientedReadId, markerGraphPath, pathOrdinals, pseudoPath);
 
+
+
         // If the pseudo-path has a large ordinal skip,
         // disregard this oriented read.
         bool disregard = false;
@@ -1316,12 +1318,25 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
                 break;
             }
         }
+        // Also check the begin and end.
+        if(not disregard) {
+            if(pseudoPath.front().firstOrdinal > maxOrdinalSkip) {
+                disregard = true;
+            }
+        }
+        if(not disregard) {
+            if(markers.size(orientedReadId.getValue()) - pseudoPath.back().lastOrdinal > maxOrdinalSkip) {
+                disregard = true;
+            }
+        }
         if(disregard) {
             if(debug) {
                 cout << orientedReadId << " disregarded because of a large ordinal skip." << endl;
             }
             continue;
         }
+
+
 
         // Store this oriented read and its pseudo-path.
         orientedReadIds.push_back(orientedReadId);
