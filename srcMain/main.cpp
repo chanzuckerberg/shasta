@@ -839,6 +839,24 @@ void shasta::main::assemble(
         assembler.writeOrientedReadsByAssemblyGraphEdge();
     }
 
+    string peakMemoryUsage;
+    ifstream procStats("/proc/self/status");
+    if (procStats) {
+        string line;
+        while (std::getline(procStats, line)) {
+            if (string::npos == line.find("VmPeak")) {
+                continue;
+            }
+            size_t pos = line.find(":");
+            while (pos < line.size() && !isdigit(line[pos])) {
+                pos++;
+            }
+            peakMemoryUsage = line.substr(pos);
+            break;
+        }
+        assembler.storePeakMemoryUsage(peakMemoryUsage);
+    }
+
     // Write the assembly summary.
     ofstream html("AssemblySummary.html");
     assembler.writeAssemblySummary(html);
@@ -856,6 +874,7 @@ void shasta::main::assemble(
         "    Elapsed minutes: " << elapsedTime/60. << "\n"
         "    Elapsed hours:   " << elapsedTime/3600. << "\n";
     cout << "Average CPU utilization: " << averageCpuUtilization << endl;
+    cout << "Peak Memory usage: " << peakMemoryUsage << endl;
 }
 
 

@@ -150,3 +150,7 @@ void Assembler::storeAssemblyTime(
     assemblerInfo->averageCpuUtilization = averageCpuUtilization;
 }
 
+void Assembler::storePeakMemoryUsage(const string& peakMemoryUsage) {
+    assemblerInfo->peakMemoryUsage = peakMemoryUsage;
+}
+
