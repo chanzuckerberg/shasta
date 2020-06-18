@@ -108,9 +108,7 @@ LowHash0::LowHash0(
     const OrientedReadId::Int orientedReadCount = OrientedReadId::Int(markers.size());
     const ReadId readCount = orientedReadCount / 2;
     cout << "There are " << readCount << " reads, " << orientedReadCount << " oriented reads." << endl;
-    SHASTA_ASSERT(orientedReadCount == 2*readCount);
-
-
+    
 
     // Set up work areas.
     buckets.createNew(
@@ -517,7 +515,7 @@ void LowHash0::merge(
         if(it0 == end0) {
             for(; it1!=end1; ++it1) {
                 if(!y.empty() && y.back() == *it1) {
-                    ++y.back().frequency = uint16_t(y.back().frequency + it1->frequency);
+                    y.back().frequency = uint16_t(y.back().frequency + it1->frequency);
                 } else {
                     y.push_back(*it1);
                 }
@@ -530,7 +528,7 @@ void LowHash0::merge(
         if(it1 == end1) {
             for(; it0!=end0; ++it0) {
                 if(!y.empty() && y.back() == *it0) {
-                    ++y.back().frequency = uint16_t(y.back().frequency + it0->frequency);
+                    y.back().frequency = uint16_t(y.back().frequency + it0->frequency);
                 } else {
                     y.push_back(*it0);
                 }
@@ -538,38 +536,25 @@ void LowHash0::merge(
             break;
         }
 
-        // If we get here, neither iterator is at its end.
-        // Both iterators can be safely dereferenced.
-        SHASTA_ASSERT(it0 != end0);
-        SHASTA_ASSERT(it1 != end1);
-
-        // If the current x1 entry is not less than the current x0 entry,
-        // process the current x0 entry.
-        if(!(*it1 < *it0)) {
+        // If the current x0 entry is less than the current x1 entry,
+        // process the x0 entry.
+        if(*it0 < *it1) {
             if(!y.empty() && y.back() == *it0) {
                 y.back().frequency  = uint16_t(y.back().frequency + it0->frequency);
             } else {
                 y.push_back(*it0);
             }
             ++it0;
-        }
-
+        } else {
         // If the current x0 entry is not less than the current x1 entry,
         // process the current x1 entry.
-        else if(!(*it0 < *it1)) {
             if(!y.empty() && y.back() == *it1) {
-                ++y.back().frequency = uint16_t(y.back().frequency + it1->frequency);
+                y.back().frequency = uint16_t(y.back().frequency + it1->frequency);
             } else {
                 y.push_back(*it1);
             }
             ++it1;
         }
-
-        // The above covers all cases.
-        else {
-            SHASTA_ASSERT(0);
-        }
-
     }
 }
 
