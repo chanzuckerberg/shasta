@@ -1269,6 +1269,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     // pseudo-path of an oriented read. If an oriented read has a skip larger than
     // that, it is not used.
     const uint32_t maxOrdinalSkip = 500;
+    const uint64_t minEdgeCount = 2;
     const int matchScore = 1;
     const int mismatchScore = -1;
     const int gapScore = -1;
@@ -1276,7 +1277,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
     // Find the oriented reads that have edges on this assembly graph edge (segment).
-    std::set<OrientedReadId> orientedReadIdsThroughSegment;
+    std::map<OrientedReadId, uint64_t> orientedReadIdsThroughSegment;
     // Loop over the marker graph edges that are on this assembly graph edge (segment).
     const span<MarkerGraph::EdgeId> markerGraphEdges =
         assemblyGraph.edgeLists[startSegmentId];
@@ -1284,7 +1285,7 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
         // Loop over oriented read ids on this marker graph edge.
         for(const MarkerInterval& interval: markerGraph.edgeMarkerIntervals[markerGraphEdgeId]) {
-            orientedReadIdsThroughSegment.insert(interval.orientedReadId);
+            ++orientedReadIdsThroughSegment[interval.orientedReadId];
         }
     }
     if(debug) {
@@ -1300,7 +1301,11 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     vector<PseudoPath> pseudoPaths;
     vector<MarkerGraph::EdgeId> markerGraphPath;
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
-    for(const OrientedReadId orientedReadId: orientedReadIdsThroughSegment) {
+    for(const auto& p: orientedReadIdsThroughSegment) {
+        if(p.second < minEdgeCount) {
+            continue;
+        }
+        const OrientedReadId orientedReadId = p.first;
 
         // Compute the pseudo-path.
         PseudoPath pseudoPath;
