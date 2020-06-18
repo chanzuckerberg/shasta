@@ -1883,7 +1883,7 @@ public:
 
 
     // Analyze paths of oriented reads that go through a given assembly graph edge (segment).
-    void analyzeOrientedReadPaths();
+    void analyzeOrientedReadPaths(int readGraphCreationMethod) const;
     // void analyzeOrientedReadPaths(int readGraphCreationMethod) const;
     void analyzeOrientedReadPathsThroughSegment(
         AssemblyGraph::EdgeId segmentId);

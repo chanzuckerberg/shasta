@@ -63,6 +63,11 @@ public:
     {
     }
     MetaMarkerGraphVertex() {}
+
+    string gfaId() const
+    {
+        return to_string(segmentId) + "-" + to_string(vertexId);
+    }
 };
 
 

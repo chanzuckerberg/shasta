@@ -15,7 +15,7 @@ a.accessMarkerGraphEdges()
 a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
-a.analyzeOrientedReadPaths()
+a.analyzeOrientedReadPaths(int(config['ReadGraph']['creationMethod']))
 
 	
 

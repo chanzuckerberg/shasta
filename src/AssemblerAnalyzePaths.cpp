@@ -246,7 +246,7 @@ public:
 };
 
 
-#if 0
+#if 1
 // Analyze oriented read paths in the marker graph and in the assembly graph.
 
 // An oriented read always corresponds to a path in the marker graph
@@ -276,13 +276,14 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
     // const uint64_t minEdgeCoverage = 2;
 
-#if 0
-    // The minimum length of a pseudo-path for a read t be used.
+    // The minimum length of a pseudo-path for a read to be used.
     const uint64_t minPseudoPathLength = 3;
 
     // The minimum number of aligned meta-markers for an alignment to be used.
     const uint64_t minAlignedMetaMarkerCount = 3;
-#endif
+
+    // The minimum score for an alignment to be used.
+    const int minScore = 3;
 
 
 
@@ -296,6 +297,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
     // Compute the pseudo-path of each oriented read.
     // This vector is indexed by OrientedReadId::getValue().
+    // USE computePseudoPath INSTEAD ****************
     vector< vector<SegmentId> > pseudoPaths(2*readCount());
     vector<MarkerGraph::EdgeId> markerGraphPath;
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
@@ -373,10 +375,10 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
+#if 0
     // Use these pseudo-paths to create a de Bruijn graph.
     SHASTA_ASSERT(0);
     // To revive this use computePseudoPath to compute the paths above.
-#if 0
     DeBruijnGraph<3> graph;
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
@@ -395,7 +397,6 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
-#if 0
     // Create the pseudo-path table which contains, for each segment,
     // its occurrences in oriented read pseudo-paths.
     // For each segmentId, we store a vector of pairs (orientedReadId, index) such that
@@ -469,7 +470,6 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     deduplicate(orientedReadPairs);
     cout << "Found " << orientedReadPairs.size() <<
         " oriented read pairs." << endl;
-
 
 
     // The following process is similar to the one used to create the marker graph.
@@ -568,11 +568,14 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         const int matchScore = 1;
         const int mismatchScore = -1;
         const int gapScore = -1;
-        globalAlignment(
+        const int score = globalAlignment(
                 graph,
                 Score<int, Simple>(matchScore, mismatchScore, gapScore),
                 AlignConfig<true, true, true, true>(),
                 LinearGaps());
+        if(score < minScore) {
+            continue;
+        }
 
         // Extract the alignment from the graph.
         // This creates a single sequence consisting of the two rows
@@ -747,7 +750,6 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
     cout << "The MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
         num_edges(graph) << " edges." << endl;
-#endif
 
 
 
@@ -1843,6 +1845,8 @@ void Assembler::writePseudoPath(ReadId readId, Strand strand) const
 
 
 
+# if 0
+// This version uses choke points.
 void Assembler::analyzeOrientedReadPaths()
 {
     using SegmentId = AssemblyGraph::EdgeId;
@@ -1956,3 +1960,5 @@ void Assembler::analyzeOrientedReadPaths()
     graph.writeGraphviz("SegmentMarkerGraph.dot");
 
 }
+#endif
+

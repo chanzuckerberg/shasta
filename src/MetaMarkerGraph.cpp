@@ -330,7 +330,7 @@ void MetaMarkerGraph::writeGfa(const string& fileName) const
     BGL_FORALL_VERTICES(v, graph, Graph) {
         gfa <<
             "S\t" <<
-            graph[v].vertexId << "\t" <<
+            graph[v].gfaId() << "\t" <<
             "*\t" <<
             "LN:i:" << graph[v].markerCount <<
             "\n";
@@ -342,9 +342,9 @@ void MetaMarkerGraph::writeGfa(const string& fileName) const
             const vertex_descriptor v1 = target(e01, graph);
             gfa <<
                 "L\t" <<
-                graph[v0].vertexId << "\t" <<
+                graph[v0].gfaId() << "\t" <<
                 "+\t" <<
-                graph[v1].vertexId << "\t" <<
+                graph[v1].gfaId() << "\t" <<
                 "+\t" <<
                 "*\n";
         }
