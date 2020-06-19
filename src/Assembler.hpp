@@ -126,7 +126,7 @@ public:
     // Performance statistics.
     double assemblyElapsedTimeSeconds = 0.;
     double averageCpuUtilization;
-    string peakMemoryUsage = "";
+    uint64_t peakMemoryUsage = 0ULL;
 
 };
 
@@ -2061,7 +2061,7 @@ public:
         double elapsedTimeSeconds,
         double averageCpuUtilization);
 
-    void storePeakMemoryUsage(const string& peakMemoryUsage);
+    void storePeakMemoryUsage(const uint64_t peakMemoryUsage);
 
     // Functions and data used by the http server
     // for display of the local assembly graph.

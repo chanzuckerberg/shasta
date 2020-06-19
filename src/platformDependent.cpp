@@ -1,6 +1,7 @@
 #include "platformDependent.hpp"
 #ifdef __linux__
 #include <stdlib.h>
+#include "fstream.hpp"
 #endif
 
 // Return the path to a usable temporary directory, including the final "/".
@@ -34,4 +35,29 @@ std::string shasta::timeoutCommand()
     
 #endif
     
+}
+
+uint64_t shasta::getPeakMemoryUsage() {
+    uint64_t peakMemoryUsage = 0ULL;
+#ifdef __linux__
+    ifstream procStats("/proc/self/status");
+    if (procStats) {
+        string line;
+        while (std::getline(procStats, line)) {
+            if (string::npos == line.find("VmPeak")) {
+                continue;
+            }
+            size_t pos = line.find(":");
+            while (pos < line.size() && !isdigit(line[pos])) {
+                pos++;
+            }
+            char* end;
+            peakMemoryUsage = std::strtoull(line.c_str() + pos, &end, 10);
+            // Convert from kB to bytes.
+            peakMemoryUsage *= 1024;
+            break;
+        }
+    }
+#endif
+    return(peakMemoryUsage);
 }

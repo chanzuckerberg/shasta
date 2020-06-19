@@ -10,6 +10,8 @@ namespace shasta {
     
     // Return the name of a timeout command or equivalent.
     string timeoutCommand();
+
+    uint64_t getPeakMemoryUsage();
 }
 
 #endif
