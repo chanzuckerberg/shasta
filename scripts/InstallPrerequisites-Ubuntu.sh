@@ -42,16 +42,16 @@ curl -L https://github.com/rvaser/spoa/releases/download/3.4.0/spoa-v3.4.0.tar.g
 tar -xvf spoa-v3.4.0.tar.gz
 
 ubuntuVersion=$(cat /etc/os-release | grep VERSION_ID | cut -f2 -d'=')
-spoaGenDispatchFlag="ON"
-if [ $ubuntuVersion \< "\"18.04\"" ] ; then
-    # SPOA's cpu dispatching code is tested on newer Linux versions.
-    spoaGenDispatchFlag="OFF"
-fi
 
 # Build the shared library.
 mkdir build
 cd build
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=ON -Dspoa_generate_dispatch=$spoaGenDispatchFlag
+if [ $ubuntuVersion \< "\"18.04\"" ] ; then
+    # SPOA's cpu dispatching code is tested on newer Linux versions.
+    cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=ON -Dspoa_generate_dispatch=OFF -Dspoa_optimize_for_portability=ON
+else
+    cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=ON -Dspoa_generate_dispatch=ON
+fi
 make -j all
 make install
 
@@ -59,7 +59,12 @@ make install
 cd ..
 mkdir build-static
 cd build-static
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_generate_dispatch=$spoaGenDispatchFlag
+if [ $ubuntuVersion \< "\"18.04\"" ] ; then
+    # SPOA's cpu dispatching code is tested on newer Linux versions.
+    cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_generate_dispatch=OFF -Dspoa_optimize_for_portability=ON
+else
+    cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_generate_dispatch=ON
+fi
 make -j all
 make install
 cd 
