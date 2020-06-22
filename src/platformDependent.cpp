@@ -59,5 +59,5 @@ uint64_t shasta::getPeakMemoryUsage() {
         }
     }
 #endif
-    return(peakMemoryUsage);
+    return peakMemoryUsage;
 }

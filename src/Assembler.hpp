@@ -128,6 +128,9 @@ public:
     double averageCpuUtilization;
     uint64_t peakMemoryUsage = 0ULL;
 
+    inline string peakMemoryUsageForSummaryStats() {
+        return peakMemoryUsage > 0 ? to_string(peakMemoryUsage) : "Not determined.";
+    }
 };
 
 
@@ -2061,7 +2064,7 @@ public:
         double elapsedTimeSeconds,
         double averageCpuUtilization);
 
-    void storePeakMemoryUsage(const uint64_t peakMemoryUsage);
+    void storePeakMemoryUsage(uint64_t peakMemoryUsage);
 
     // Functions and data used by the http server
     // for display of the local assembly graph.
