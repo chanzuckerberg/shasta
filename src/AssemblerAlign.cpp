@@ -302,8 +302,11 @@ void Assembler::computeAlignments(
     // Store alignmentInfos found by each thread in the global alignmentInfos.
     cout << timestamp << "Storing the alignment info objects." << endl;
     alignmentData.createNew(largeDataName("AlignmentData"), largeDataPageSize);
-    compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
-
+    
+    if (data.storeAlignments) {
+        compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
+    }
+    
     for(size_t threadId=0; threadId<threadCount; threadId++) {
         const vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
         for(const AlignmentData& ad: threadAlignmentData) {
@@ -377,10 +380,13 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
         make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
     data.threadCompressedAlignments[threadId] = thisThreadCompressedAlignmentsPointer;
     auto& thisThreadCompressedAlignments = *thisThreadCompressedAlignmentsPointer;
-    thisThreadCompressedAlignments.createNew(
-        largeDataName("tmp-ThreadGlobalCompressedAlignments-" + to_string(threadId)),
-        largeDataPageSize);
-    
+
+    if (storeAlignments) {
+        thisThreadCompressedAlignments.createNew(
+            largeDataName("tmp-ThreadGlobalCompressedAlignments-" + to_string(threadId)),
+            largeDataPageSize);
+    }
+
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         if((begin % 1000000) == 0){
