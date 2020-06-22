@@ -102,7 +102,8 @@ void Assembler::createReadGraph(
         readGraph.edges.push_back(edge);
     }
 
-
+    // Release unused allocated memory
+    readGraph.unreserve();
 
     // Create read graph connectivity.
     readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
@@ -118,8 +119,6 @@ void Assembler::createReadGraph(
         readGraph.connectivity.store(edge.orientedReadIds[1].getValue(), uint32_t(i));
     }
     readGraph.connectivity.endPass2();
-
-
 
     // Count the number of isolated reads and their bases.
     uint64_t isolatedReadCount = 0;

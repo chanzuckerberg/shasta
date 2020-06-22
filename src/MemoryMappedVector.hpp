@@ -358,8 +358,7 @@ template<class T> inline void shasta::MemoryMapped::Vector<T>::push_back(const T
 }
 
 
-
-// Default constructor.
+// Destructor.
 template<class T> inline shasta::MemoryMapped::Vector<T>::~Vector()
 {
     if(isOpen) {
@@ -378,7 +377,8 @@ template<class T> inline shasta::MemoryMapped::Vector<T>::~Vector()
     }
 }
 
-// Destructor.
+
+// Default constructor.
 template<class T> inline shasta::MemoryMapped::Vector<T>::Vector() :
     header(0),
     data(0),

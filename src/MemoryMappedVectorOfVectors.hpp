@@ -254,6 +254,15 @@ public:
     void storeMultithreaded(Int index, const T&);            // Called during pass 2.
     void endPass2(bool check = true, bool free=true);
 
+    // Free up unused allocated memory.
+    void unreserve() {
+        toc.unreserve();
+        data.unreserve();
+        if(count.isOpen) {
+            count.unreserve();
+        }
+    }
+
     // Touch the memory in order to cause the
     // supporting pages of virtual memory to be loaded in real memory.
     size_t touchMemory() const

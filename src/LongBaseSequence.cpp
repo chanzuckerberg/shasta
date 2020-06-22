@@ -66,6 +66,11 @@ void LongBaseSequences::clear()
     data.clear();
 }
 
+void LongBaseSequences::unreserve() {
+    baseCount.unreserve();
+    data.unreserve();
+}
+
 // Append a new sequence at the end.
 void LongBaseSequences::append(const LongBaseSequenceView& s)
 {

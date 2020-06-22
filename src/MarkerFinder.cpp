@@ -43,6 +43,7 @@ MarkerFinder::MarkerFinder(
     pass = 2;
     runThreads(&MarkerFinder::threadFunction, threadCount);
 
+    markers.unreserve();
     // Final message.
     const auto tEnd = std::chrono::steady_clock::now();
     const double tTotal = 1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tBegin)).count());

@@ -759,5 +759,10 @@ void ReadLoader::storeReads()
     threadReads.clear();
     threadReadRepeatCounts.clear();
 
+    // Free up unused allocated memory.
+    readNames.unreserve();
+    readMetaData.unreserve();
+    readRepeatCounts.unreserve();
+    reads.unreserve();
 }
 

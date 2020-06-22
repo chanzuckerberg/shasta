@@ -8,7 +8,10 @@ using namespace shasta;
 
 const uint32_t ReadGraph::infiniteDistance = std::numeric_limits<uint32_t>::max();
 
-
+void ReadGraph::unreserve() {
+    if (edges.isOpenWithWriteAccess) edges.unreserve();
+    if (connectivity.isOpenWithWriteAccess()) connectivity.unreserve();
+}
 
 // Compute a shortest path, disregarding edges flagged as cross-strand edges.
 void ReadGraph::computeShortPath(

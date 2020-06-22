@@ -89,7 +89,10 @@ public:
         vector<OrientedReadId>& reachedVertices,   // For which distance is not infiniteDistance.
         vector<uint32_t>& parentEdges  // One per vertex
 
-        );
+    );
+
+    void unreserve();
+    
     static const uint32_t infiniteDistance;
 };
 

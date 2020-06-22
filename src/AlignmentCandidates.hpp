@@ -30,6 +30,19 @@ public:
     // This has a vector for each entry in the candidates vector above
     // and is indexed in the same way.
     MemoryMapped::VectorOfVectors< array<uint32_t, 2>, uint64_t> featureOrdinals;
+
+    void unreserve() {
+        candidates.unreserve();
+        // featureOrdinals is not used by LowHash0
+        if (featureOrdinals.isOpenWithWriteAccess()) featureOrdinals.unreserve();
+    }
+
+    void clear() {
+        candidates.clear();
+        // featureOrdinals is not used by LowHash0
+        if (featureOrdinals.isOpenWithWriteAccess()) featureOrdinals.clear();
+        unreserve();
+    }
 };
 
 #endif
