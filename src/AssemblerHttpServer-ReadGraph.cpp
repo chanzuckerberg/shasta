@@ -86,7 +86,7 @@ void Assembler::exploreUndirectedReadGraph(
 
     // Write the form.
     html <<
-         "<h3>Display a local subgraph of the global read graph</a></h3>"
+         "<h3>Display a local subgraph of the <a href='docs/ReadGraph.html'>global read graph</a></h3>"
          "<form>"
          "<div style='clear:both; display:table;'>"
          "<div style='float:left;margin:10px;'>"
@@ -109,6 +109,24 @@ void Assembler::exploreUndirectedReadGraph(
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
         "'>"
+
+        "<tr title='Maximum trim (markers) used to define containment'>"
+        "<td>Maximum trim"
+        "<td><input type=text required name=maxTrim size=8 style='text-align:center'"
+        " value='" << maxTrim <<
+        "'>"
+
+        "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
+        "<td>Allow chimeric reads"
+        "<td class=centered><input type=checkbox name=allowChimericReads" <<
+        (allowChimericReads ? " checked" : "") <<
+        ">"
+
+        "<tr title='Allow edges that skip across strands.'>"
+        "<td>Allow cross-strand edges"
+        "<td class=centered><input type=checkbox name=allowCrossStrandEdges" <<
+        (allowCrossStrandEdges ? " checked" : "") <<
+        ">"
 
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
@@ -157,6 +175,12 @@ void Assembler::exploreUndirectedReadGraph(
         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
         " value='" << timeout <<
         "'>"
+
+        "<tr title='Add to each vertex tooltip summary information on the best alignment to the reference'>"
+        "<td>Add Blast annotations"
+        "<td class=centered><input type=checkbox name=addBlastAnnotations" <<
+        (addBlastAnnotations ? " checked" : "") <<
+        ">"
 
         "<tr title='Save the Graphviz dot file representing this local read graph'>"
         "<td>Save the Graphviz dot file"
