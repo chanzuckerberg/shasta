@@ -302,9 +302,7 @@ void Assembler::computeAlignments(
     // Store alignmentInfos found by each thread in the global alignmentInfos.
     cout << timestamp << "Storing the alignment info objects." << endl;
     alignmentData.createNew(largeDataName("AlignmentData"), largeDataPageSize);
-    if (storeAlignments) {
-        compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
-    }
+    compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
 
     for(size_t threadId=0; threadId<threadCount; threadId++) {
         const vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
