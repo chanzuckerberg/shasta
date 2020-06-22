@@ -59,7 +59,19 @@ void Assembler::exploreUndirectedReadGraph(
     uint32_t sizePixels = 1200;
     getParameterValue(request, "sizePixels", sizePixels);
 
-    string format = "png";
+    double vertexScalingFactor = 3.;
+    getParameterValue(request, "vertexScalingFactor", vertexScalingFactor);
+
+    double edgeThicknessScalingFactor = 6.;
+    getParameterValue(request, "edgeThicknessScalingFactor", edgeThicknessScalingFactor);
+
+    double edgeArrowScalingFactor = 1.;
+    getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
+
+    string dashedContainmentEdgesString;
+    const bool dashedContainmentEdges = getParameterValue(request, "dashedContainmentEdges", dashedContainmentEdgesString);
+
+    string format = "svg";
     getParameterValue(request, "format", format);
 
     double timeout= 30;
@@ -72,50 +84,31 @@ void Assembler::exploreUndirectedReadGraph(
     const bool saveDotFile = getParameterValue(request, "saveDotFile", saveDotFileString);
 
 
-
     // Write the form.
     html <<
-        "<h3>Display a local subgraph of the <a href='docs/ReadGraph.html'>global read graph</a></h3>"
-        "<form>"
+         "<h3>Display a local subgraph of the global read graph</a></h3>"
+         "<form>"
+         "<div style='clear:both; display:table;'>"
+         "<div style='float:left;margin:10px;'>"
+         "<table>"
 
-        "<table>"
+         "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
+                                                                  "<td>Start vertex read id"
+                                                                  "<td><input type=text required name=readId size=8 style='text-align:center'"
+         << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
+         ">";
 
-        "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
-        "<td>Read id"
-        "<td><input type=text required name=readId size=8 style='text-align:center'"
-        << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
-        ">";
-
-    html << "<tr><td>Strand<td class=centered>";
-        writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
+    html << "<tr><td>Start vertex strand<td class=centered>";
+    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
 
 
 
     html <<
-
         "<tr title='Maximum distance from start vertex (number of edges)'>"
         "<td>Maximum distance"
         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
         " value='" << maxDistance <<
         "'>"
-
-        "<tr title='Maximum trim (markers) used to define containment'>"
-        "<td>Maximum trim"
-        "<td><input type=text required name=maxTrim size=8 style='text-align:center'"
-        " value='" << maxTrim <<
-        "'>"
-
-        "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
-        "<td>Allow chimeric reads"
-        "<td class=centered><input type=checkbox name=allowChimericReads" <<
-        (allowChimericReads ? " checked" : "") <<
-        ">"
-
-        "<tr title='Allow edges that skip across strands.'>"
-        "<td>Allow cross-strand edges"
-        "<td class=centered><input type=checkbox name=allowCrossStrandEdges" <<
-        (allowCrossStrandEdges ? " checked" : "") <<
-        ">"
 
         "<tr title='Graphics size in pixels. "
         "Changing this works better than zooming. Make it larger if the graph is too crowded."
@@ -126,27 +119,44 @@ void Assembler::exploreUndirectedReadGraph(
         "'>"
 
         "<tr>"
-        "<td>Graphics format"
-        "<td class=centered>"
-        "svg <input type=radio required name=format value='svg'" <<
-        (format == "svg" ? " checked=on" : "") <<
-        ">"
-        "<td class=centered>png <input type=radio required name=format value='png'" <<
-        (format == "png" ? " checked=on" : "") <<
+        "<td>Vertex scaling factor"
+        "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+        " value='" << vertexScalingFactor <<
+        "'>"
+
+        "<tr>"
+        "<td>Edge thickness scaling factor"
+        "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+        " value='" << edgeThicknessScalingFactor <<
+        "'>"
+
+        "<tr>"
+        "<td>Edge arrow scaling factor"
+        "<td><input type=text required name=edgeArrowScalingFactor size=8 style='text-align:center'" <<
+        " value='" << edgeArrowScalingFactor <<
+        "'>"
+
+        "<tr>"
+        "<td>Draw containment edges dashed"
+        "<td class=centered><input type=checkbox name=dashedContainmentEdges" <<
+        (dashedContainmentEdges ? " checked" : "") <<
         ">"
 
+        "<tr>"
+        "<td>Graphics format"
+        "<td class=centered>"
+        "<input type=radio required name=format value='svg'" <<
+        (format == "svg" ? " checked=on" : "") <<
+        ">svg"
+        "<br><input type=radio required name=format value='png'" <<
+        (format == "png" ? " checked=on" : "") <<
+        ">png"
+
         "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
-        "<td>Timeout (seconds) for graph creation and layout"
+        "<td>Timeout (seconds) for graph layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
         " value='" << timeout <<
         "'>"
-
-        "<tr title='Add to each vertex tooltip summary information on the best alignment to the reference'>"
-        "<td>Add Blast annotations"
-        "<td class=centered><input type=checkbox name=addBlastAnnotations" <<
-        (addBlastAnnotations ? " checked" : "") <<
-        ">"
-
 
         "<tr title='Save the Graphviz dot file representing this local read graph'>"
         "<td>Save the Graphviz dot file"
@@ -154,17 +164,16 @@ void Assembler::exploreUndirectedReadGraph(
         (saveDotFile ? " checked" : "") <<
         ">"
         "</table>"
-
-        "<input type=submit value='Display'>"
+        "</div>"
+        "</div>"
+        "<br><input type=submit value='Display'>"
         "</form>";
-
 
 
     // If any necessary values are missing, stop here.
     if(! (readIdIsPresent && strandIsPresent)) {
         return;
     }
-
 
 
     // Validity checks.
@@ -284,7 +293,14 @@ void Assembler::exploreUndirectedReadGraph(
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
-    graph.write(dotFileName, maxDistance);
+
+    graph.write(dotFileName,
+                maxDistance,
+                vertexScalingFactor,
+                edgeThicknessScalingFactor,
+                edgeArrowScalingFactor,
+                dashedContainmentEdges,
+                httpServerData.assemblerOptions->alignOptions.maxTrim);
 
 
 
@@ -320,18 +336,39 @@ void Assembler::exploreUndirectedReadGraph(
 
 
 
-        // Write a title and display the graph.
+        // Write a title.
         html <<
-            "<h1 style='line-height:10px'>Read graph near read " << readId << "</h1>"
-            "Color legend: "
-            "<span style='background-color:LightGreen'>start vertex</span> "
-            "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
-            ") from the start vertex</span> "
-            "<span style='background-color:red'>chimeric vertices</span>.<br>";
+             "<h1 style='line-height:10px'>Read graph near oriented read " << readId << "</h1>"
+             "Color legend: "
+             "<span style='background-color:green'>start vertex</span> "
+             "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
+             ") from the start vertex</span> "
+             ".<br>";
+
         if(saveDotFile) {
             html << "<p>Graphviz dot file saved as " << dotFileName << "<br>";
         }
 
+        // Allow manually highlighting selected vertices.
+        html << R"stringDelimiter(
+            <script>
+            function highlight_vertex()
+            {
+                vertex = document.getElementById("highlight").value;
+                document.getElementById("highlight").value = "";
+                element = document.getElementById("Vertex-" + vertex);
+                ellipse = element.children[1].children[0].children[0];
+                ellipse.setAttribute("fill", "#ff00ff");
+                ellipse.setAttribute("stroke", "#ff00ff");
+            }
+            </script>
+            <p>
+            <input id=highlight type=text onchange="highlight_vertex()" size=10>
+            Enter an oriented read to highlight, then press Enter. The oriented read should be
+            in the form <code>readId-strand</code> where strand is 0 or 1 (for example, <code>"1345871-1</code>").
+            To highlight multiple oriented reads, enter them one at a time in the same way.
+            <p>
+            )stringDelimiter";
 
         // Display the graph.
         const string svgFileName = dotFileName + ".svg";

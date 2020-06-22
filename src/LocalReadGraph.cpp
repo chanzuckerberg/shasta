@@ -73,29 +73,63 @@ bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
 
 
 // Write the graph in Graphviz format.
-void LocalReadGraph::write(const string& fileName, uint32_t maxDistance) const
+void LocalReadGraph::write(
+        const string& fileName,
+        uint32_t maxDistance,
+        double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
+        double edgeArrowScalingFactor,
+        bool dashedContainmentEdges,
+        uint32_t maxTrim
+) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance);
+    write(outputFileStream, maxDistance, vertexScalingFactor,
+          edgeThicknessScalingFactor, edgeArrowScalingFactor,
+          dashedContainmentEdges, maxTrim);
 }
-void LocalReadGraph::write(ostream& s, uint32_t maxDistance) const
+
+void LocalReadGraph::write(
+        ostream& s,
+        uint32_t maxDistance,
+        double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
+        double edgeArrowScalingFactor,
+        bool dashedContainmentEdges,
+        uint32_t maxTrim) const
 {
-    Writer writer(*this, maxDistance);
+    Writer writer(*this, maxDistance, vertexScalingFactor,
+                  edgeThicknessScalingFactor, edgeArrowScalingFactor,
+                  dashedContainmentEdges,
+                  maxTrim);
+
+    cout << "writer.vertexScalingFactor:\t" << writer.vertexScalingFactor << '\n';
+
     boost::write_graphviz(s, *this, writer, writer, writer,
-        boost::get(&LocalReadGraphVertex::orientedReadIdValue, *this));
+                          boost::get(&LocalReadGraphVertex::orientedReadIdValue, *this));
 }
+
 
 LocalReadGraph::Writer::Writer(
-    const LocalReadGraph& graph,
-    uint32_t maxDistance) :
-    graph(graph),
-    maxDistance(maxDistance)
+        const LocalReadGraph& graph,
+        uint32_t maxDistance,
+        double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
+        double edgeArrowScalingFactor,
+        bool dashedContainmentEdges,
+        uint32_t maxTrim) :
+        graph(graph),
+        maxDistance(maxDistance),
+        vertexScalingFactor(vertexScalingFactor),
+        edgeThicknessScalingFactor(edgeThicknessScalingFactor),
+        edgeArrowScalingFactor(edgeArrowScalingFactor),
+        dashedContainmentEdges(dashedContainmentEdges),
+        maxTrim(maxTrim)
 {
 }
-
 
 
 void LocalReadGraph::Writer::operator()(std::ostream& s) const
@@ -122,7 +156,12 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) co
         " URL=\"exploreRead?readId=" << orientedReadId.getReadId() <<
         "&strand=" << orientedReadId.getStrand() <<
         "\"" <<
-        " width=" << sqrt(1.e-5 * vertex.markerCount);
+        " width=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount)) <<
+        " height=" << vertexScalingFactor * sqrt(1.e-6 * double(vertex.markerCount)) <<
+
+        // Id, so we can manipulate the vertex in javascript.
+        " id=\"Vertex-" << orientedReadId << "\"";
+
     if(vertex.distance == 0) {
         s << " color=green fillcolor=green";
     } else if(vertex.distance == maxDistance) {
@@ -143,11 +182,13 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
     const LocalReadGraphVertex& vertex0 = graph[v0];
     const LocalReadGraphVertex& vertex1 = graph[v1];
 
+
+
     s <<
         "["
         "tooltip=\"" << vertex0.orientedReadId << " " <<
-        vertex1.orientedReadId << "\"";
-
+        vertex1.orientedReadId <<
+        ", " << edge.markerCount << " aligned markers\"";
 
 
     // A containment alignment is drawn in red, at default thickness.
@@ -157,8 +198,8 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
         edge.alignmentType == AlignmentType::read1IsContained) {
         s << " color=red";
     } else {
-        const double thickness = 0.003*double(edge.markerCount);
-        s << " penwidth=" << thickness;
+        s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.markerCount) << "\"";
+        s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
     }
 
 
