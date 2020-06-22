@@ -123,8 +123,22 @@ public:
     uint32_t getDistance(OrientedReadId) const;
 
     // Write in Graphviz format.
-    void write(ostream&, uint32_t maxDistance) const;
-    void write(const string& fileName, uint32_t maxDistance) const;
+    void write(
+            ostream&,
+            uint32_t maxDistance,
+            double vertexScalingFactor,
+            double edgeThicknessScalingFactor,
+            double edgeArrowScalingFactor,
+            bool dashedContainmentEdges,
+            uint32_t maxTrim) const;
+    void write(
+            const string& fileName,
+            uint32_t maxDistance,
+            double vertexScalingFactor,
+            double edgeThicknessScalingFactor,
+            double edgeArrowScalingFactor,
+            bool dashedContainmentEdges,
+            uint32_t maxTrim) const;
 
 private:
 
@@ -134,12 +148,24 @@ private:
     // Graphviz writer.
     class Writer {
     public:
-        Writer(const LocalReadGraph&, uint32_t maxDistance);
+        Writer(
+                const LocalReadGraph&,
+                uint32_t maxDistance,
+                double vertexScalingFactor,
+                double edgeThicknessScalingFactor,
+                double edgeArrowScalingFactor,
+                bool dashedContainmentEdges,
+                uint32_t maxTrim);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalReadGraph& graph;
         uint32_t maxDistance;
+        double vertexScalingFactor;
+        double edgeThicknessScalingFactor;
+        double edgeArrowScalingFactor;
+        bool dashedContainmentEdges;
+        uint32_t maxTrim;
     };
 };
 
