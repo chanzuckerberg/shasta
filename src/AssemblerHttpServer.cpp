@@ -839,6 +839,9 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << assemblerInfo->assemblyElapsedTimeSeconds/3600. <<
         "<tr><td>Average CPU utilization"
         "<td class=right>" << assemblerInfo->averageCpuUtilization <<
+        "<tr><td>Peak Memory utilization (bytes)"
+        "<td class=right>" <<
+	assemblerInfo->peakMemoryUsageForSummaryStats() <<
         "</table>"
         ;
 }
@@ -1047,7 +1050,10 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    \"Elapsed time (seconds)\": " << assemblerInfo->assemblyElapsedTimeSeconds << ",\n"
         "    \"Elapsed time (minutes)\": " << assemblerInfo->assemblyElapsedTimeSeconds/60. << ",\n"
         "    \"Elapsed time (hours)\": " << assemblerInfo->assemblyElapsedTimeSeconds/3600. << ",\n"
-        "    \"Average CPU utilization\": " << assemblerInfo->averageCpuUtilization << "\n"
+        "    \"Average CPU utilization\": " << assemblerInfo->averageCpuUtilization << ",\n"
+        "    \"Peak Memory utilization (bytes)\": " <<
+	assemblerInfo->peakMemoryUsageForSummaryStats() <<
+	"\n"
         "  }\n"
 
 

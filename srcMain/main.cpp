@@ -10,6 +10,8 @@
 #include "buildId.hpp"
 #include "filesystem.hpp"
 #include "timestamp.hpp"
+#include "platformDependent.hpp"
+
 namespace shasta {
     namespace main {
 
@@ -839,6 +841,9 @@ void shasta::main::assemble(
         assembler.writeOrientedReadsByAssemblyGraphEdge();
     }
 
+    uint64_t peakMemoryUsage = shasta::getPeakMemoryUsage();
+    assembler.storePeakMemoryUsage(peakMemoryUsage);
+   
     // Write the assembly summary.
     ofstream html("AssemblySummary.html");
     assembler.writeAssemblySummary(html);
@@ -856,6 +861,7 @@ void shasta::main::assemble(
         "    Elapsed minutes: " << elapsedTime/60. << "\n"
         "    Elapsed hours:   " << elapsedTime/3600. << "\n";
     cout << "Average CPU utilization: " << averageCpuUtilization << endl;
+    cout << "Peak Memory usage (bytes): " << peakMemoryUsage << endl;
 }
 
 
