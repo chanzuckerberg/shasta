@@ -106,8 +106,6 @@ void LocalReadGraph::write(
                   dashedContainmentEdges,
                   maxTrim);
 
-    cout << "writer.vertexScalingFactor:\t" << writer.vertexScalingFactor << '\n';
-
     boost::write_graphviz(s, *this, writer, writer, writer,
                           boost::get(&LocalReadGraphVertex::orientedReadIdValue, *this));
 }
