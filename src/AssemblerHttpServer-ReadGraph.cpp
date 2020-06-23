@@ -31,18 +31,53 @@ void Assembler::exploreReadGraph(
 }
 
 
+bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIDs, vector<OrientedReadId>& readIds, ostream& html){
+    readIds.clear();
+    string token;
+
+    for (auto& c: commaSeparatedReadIDs){
+        if (c == ','){
+            try {
+                OrientedReadId readID(token);
+                readIds.emplace_back(readID);
+                token.clear();
+            }
+            catch(exception& e){
+                html << "<p>Invalid read id or read strand: '" << token << "'</p>";
+                html << "<p>" << e.what() << "</p>";
+                return false;
+            }
+        }
+        else{
+            token += c;
+        }
+    }
+
+    // Place final token which may not have a comma after it
+    if (not token.empty()) {
+        try {
+            OrientedReadId readID(token);
+            readIds.emplace_back(readID);
+        }
+        catch(exception& e){
+            html << "<p>Invalid read id or read strand: '" << token << "'</p>";
+            html << "<p>" << e.what() << "</p>";
+            return false;
+        }
+    }
+
+    return true;
+}
 
 
 void Assembler::exploreUndirectedReadGraph(
     const vector<string>& request,
-    ostream& html)
-{
+    ostream& html) {
     // Get the parameters.
-    ReadId readId = 0;
-    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
-
-    Strand strand = 0;
-    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+    vector<OrientedReadId> readIds;
+    string readIDsString;
+    const bool readIdsArePresent = getParameterValue(request, "readId", readIDsString);
+    const bool readStringsAreValid = parseCommaSeparatedReadIDs(readIDsString, readIds, html);
 
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
@@ -56,10 +91,13 @@ void Assembler::exploreUndirectedReadGraph(
     string allowCrossStrandEdgesString;
     const bool allowCrossStrandEdges = getParameterValue(request, "allowCrossStrandEdges", allowCrossStrandEdgesString);
 
+    string layoutMethod = "sfdp";
+    getParameterValue(request, "layoutMethod", layoutMethod);
+
     uint32_t sizePixels = 1200;
     getParameterValue(request, "sizePixels", sizePixels);
 
-    double vertexScalingFactor = 3.;
+    double vertexScalingFactor = 2.;
     getParameterValue(request, "vertexScalingFactor", vertexScalingFactor);
 
     double edgeThicknessScalingFactor = 6.;
@@ -68,13 +106,10 @@ void Assembler::exploreUndirectedReadGraph(
     double edgeArrowScalingFactor = 1.;
     getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
 
-    string dashedContainmentEdgesString;
-    const bool dashedContainmentEdges = getParameterValue(request, "dashedContainmentEdges", dashedContainmentEdgesString);
-
     string format = "svg";
     getParameterValue(request, "format", format);
 
-    double timeout= 30;
+    double timeout = 30;
     getParameterValue(request, "timeout", timeout);
 
     string addBlastAnnotationsString;
@@ -92,119 +127,132 @@ void Assembler::exploreUndirectedReadGraph(
          "<div style='float:left;margin:10px;'>"
          "<table>"
 
-         "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
-                                                                  "<td>Start vertex read id"
-                                                                  "<td><input type=text required name=readId size=8 style='text-align:center'"
-         << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
+         "<tr title='Read id between 0 and " << reads.size() - 1 << "'>"
+         "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
+         "Start vertex reads\n"
+         "The oriented read should be in the form <code>readId-strand</code>\n"
+         "where strand is 0 or 1. For example, <code>\"1345871-1</code>\".\n"
+         "To add multiple start points, use a comma separator."
+         "<td><input type=text required name=readId size=8 style='text-align:center'"
+         << (readIdsArePresent ? ("value='" + readIDsString + "'") : "") <<
          ">";
-
-    html << "<tr><td>Start vertex strand<td class=centered>";
-    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
-
 
 
     html <<
-        "<tr title='Maximum distance from start vertex (number of edges)'>"
-        "<td>Maximum distance"
-        "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
-        " value='" << maxDistance <<
-        "'>"
+         "<tr title='Maximum distance from start vertex (number of edges)'>"
+         "<td>Maximum distance"
+         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+         " value='" << maxDistance <<
+         "'>"
 
-        "<tr title='Maximum trim (markers) used to define containment'>"
-        "<td>Maximum trim"
-        "<td><input type=text required name=maxTrim size=8 style='text-align:center'"
-        " value='" << maxTrim <<
-        "'>"
+         "<tr title='Maximum trim (markers) used to define containment'>"
+         "<td>Maximum trim"
+         "<td><input type=text required name=maxTrim size=8 style='text-align:center'"
+         " value='" << maxTrim <<
+         "'>"
 
-        "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
-        "<td>Allow chimeric reads"
-        "<td class=centered><input type=checkbox name=allowChimericReads" <<
-        (allowChimericReads ? " checked" : "") <<
-        ">"
+         "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
+         "<td>Allow chimeric reads"
+         "<td class=centered><input type=checkbox name=allowChimericReads" <<
+         (allowChimericReads ? " checked" : "") <<
+         ">"
 
-        "<tr title='Allow edges that skip across strands.'>"
-        "<td>Allow cross-strand edges"
-        "<td class=centered><input type=checkbox name=allowCrossStrandEdges" <<
-        (allowCrossStrandEdges ? " checked" : "") <<
-        ">"
+         "<tr title='Allow edges that skip across strands.'>"
+         "<td>Allow cross-strand edges"
+         "<td class=centered><input type=checkbox name=allowCrossStrandEdges" <<
+         (allowCrossStrandEdges ? " checked" : "") <<
+         ">"
 
-        "<tr title='Graphics size in pixels. "
-        "Changing this works better than zooming. Make it larger if the graph is too crowded."
-        " Ok to make it much larger than screen size.'>"
-        "<td>Graphics size in pixels"
-        "<td><input type=text required name=sizePixels size=8 style='text-align:center'" <<
-        " value='" << sizePixels <<
-        "'>"
+         "<tr>"
+         "<td>Layout method"
+         "<td class=centered>"
+         "<input type=radio required name=layoutMethod value='sfdp'" <<
+         (layoutMethod == "sfdp" ? " checked=on" : "") <<
+         ">sfdp"
+         "<br><input type=radio required name=layoutMethod value='fdp'" <<
+         (layoutMethod == "fdp" ? " checked=on" : "") <<
+         ">fdp"
+         "<br><input type=radio required name=layoutMethod value='neato'" <<
+         (layoutMethod == "neato" ? " checked=on" : "") <<
+         ">neato"
 
-        "<tr>"
-        "<td>Vertex scaling factor"
-        "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
-        " value='" << vertexScalingFactor <<
-        "'>"
+         "<tr title='Graphics size in pixels. "
+         "Changing this works better than zooming. Make it larger if the graph is too crowded."
+         " Ok to make it much larger than screen size.'>"
+         "<td>Graphics size in pixels"
+         "<td><input type=text required name=sizePixels size=8 style='text-align:center'" <<
+         " value='" << sizePixels <<
+         "'>"
 
-        "<tr>"
-        "<td>Edge thickness scaling factor"
-        "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
-        " value='" << edgeThicknessScalingFactor <<
-        "'>"
+         "<tr>"
+         "<td>Vertex scaling factor"
+         "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+         " value='" << vertexScalingFactor <<
+         "'>"
 
-        "<tr>"
-        "<td>Edge arrow scaling factor"
-        "<td><input type=text required name=edgeArrowScalingFactor size=8 style='text-align:center'" <<
-        " value='" << edgeArrowScalingFactor <<
-        "'>"
+         "<tr>"
+         "<td>Edge thickness scaling factor"
+         "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+         " value='" << edgeThicknessScalingFactor <<
+         "'>"
 
-        "<tr>"
-        "<td>Draw containment edges dashed"
-        "<td class=centered><input type=checkbox name=dashedContainmentEdges" <<
-        (dashedContainmentEdges ? " checked" : "") <<
-        ">"
+         "<tr>"
+         "<td>Edge arrow scaling factor"
+         "<td><input type=text required name=edgeArrowScalingFactor size=8 style='text-align:center'" <<
+         " value='" << edgeArrowScalingFactor <<
+         "'>"
 
-        "<tr>"
-        "<td>Graphics format"
-        "<td class=centered>"
-        "<input type=radio required name=format value='svg'" <<
-        (format == "svg" ? " checked=on" : "") <<
-        ">svg"
-        "<br><input type=radio required name=format value='png'" <<
-        (format == "png" ? " checked=on" : "") <<
-        ">png"
+         "<tr>"
+         "<td>Graphics format"
+         "<td class=centered>"
+         "<input type=radio required name=format value='svg'" <<
+         (format == "svg" ? " checked=on" : "") <<
+         ">svg"
+         "<br><input type=radio required name=format value='png'" <<
+         (format == "png" ? " checked=on" : "") <<
+         ">png"
 
-        "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
-        "<td>Timeout (seconds) for graph layout"
-        "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
-        " value='" << timeout <<
-        "'>"
+         "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
+         "<td>Timeout (seconds) for graph layout"
+         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
+         " value='" << timeout <<
+         "'>"
 
-        "<tr title='Add to each vertex tooltip summary information on the best alignment to the reference'>"
-        "<td>Add Blast annotations"
-        "<td class=centered><input type=checkbox name=addBlastAnnotations" <<
-        (addBlastAnnotations ? " checked" : "") <<
-        ">"
+         "<tr title='Add to each vertex tooltip summary information on the best alignment to the reference'>"
+         "<td>Add Blast annotations"
+         "<td class=centered><input type=checkbox name=addBlastAnnotations" <<
+         (addBlastAnnotations ? " checked" : "") <<
+         ">"
 
-        "<tr title='Save the Graphviz dot file representing this local read graph'>"
-        "<td>Save the Graphviz dot file"
-        "<td class=centered><input type=checkbox name=saveDotFile" <<
-        (saveDotFile ? " checked" : "") <<
-        ">"
-        "</table>"
-        "</div>"
-        "</div>"
-        "<br><input type=submit value='Display'>"
-        "</form>";
+         "<tr title='Save the Graphviz dot file representing this local read graph'>"
+         "<td>Save the Graphviz dot file"
+         "<td class=centered><input type=checkbox name=saveDotFile" <<
+         (saveDotFile ? " checked" : "") <<
+         ">"
+         "</table>"
+         "</div>"
+         "</div>"
+         "<br><input type=submit value='Display'>"
+         "</form>";
 
 
     // If any necessary values are missing, stop here.
-    if(! (readIdIsPresent && strandIsPresent)) {
+    if (not readIdsArePresent) {
         return;
     }
 
+    // If there was a failure to parse comma separated readId-strand tokens, stop here
+    if (not readStringsAreValid) {
+        return;
+    }
 
     // Validity checks.
-    if(readId > reads.size()) {
-        html << "<p>Invalid read id " << readId;
-        html << ". Must be between 0 and " << reads.size()-1 << ".";
-        return;
+    for (auto &readId: readIds){
+        if (readId.getReadId() > reads.size()) {
+            html << "<p>Invalid read id " << readId;
+            html << ". Must be between 0 and " << reads.size() - 1 << ".";
+            return;
+        }
     }
 
 
@@ -212,7 +260,7 @@ void Assembler::exploreUndirectedReadGraph(
     // Create the local read graph.
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
-    if(!createLocalReadGraph(OrientedReadId(readId, strand),
+    if(!createLocalReadGraph(readIds,
         maxDistance, allowChimericReads, allowCrossStrandEdges, maxTrim, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
@@ -319,11 +367,11 @@ void Assembler::exploreUndirectedReadGraph(
     const string dotFileName = tmpDirectory() + uuid + ".dot";
 
     graph.write(dotFileName,
+                layoutMethod,
                 maxDistance,
                 vertexScalingFactor,
                 edgeThicknessScalingFactor,
                 edgeArrowScalingFactor,
-                dashedContainmentEdges,
                 httpServerData.assemblerOptions->alignOptions.maxTrim);
 
 
@@ -332,7 +380,7 @@ void Assembler::exploreUndirectedReadGraph(
     if(format == "svg") {
         const string command =
             timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-            " sfdp -O -T svg " + dotFileName +
+            " dot -O -T svg " + dotFileName +
             " -Gsize=" + to_string(sizePixels/72.);
         const int commandStatus = ::system(command.c_str());
         if(WIFEXITED(commandStatus)) {
@@ -362,7 +410,7 @@ void Assembler::exploreUndirectedReadGraph(
 
         // Write a title.
         html <<
-             "<h1 style='line-height:10px'>Read graph near oriented read " << readId << "</h1>"
+             "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIDsString << "</h1>"
              "Color legend: "
              "<span style='background-color:green'>start vertex</span> "
              "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
@@ -428,7 +476,7 @@ void Assembler::exploreUndirectedReadGraph(
         // https://www.graphviz.org/doc/info/output.html#d:imap
         const string command =
             timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-            " sfdp -O -T png -T cmapx " + dotFileName +
+            " dot -O -T png -T cmapx " + dotFileName +
             " -Gsize=" + to_string(sizePixels/72.);
         const int commandStatus = ::system(command.c_str());
         if(WIFEXITED(commandStatus)) {

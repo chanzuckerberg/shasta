@@ -75,11 +75,11 @@ bool LocalReadGraph::vertexExists(OrientedReadId orientedReadId) const
 // Write the graph in Graphviz format.
 void LocalReadGraph::write(
         const string& fileName,
+        const string& layoutMethod,
         uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
-        bool dashedContainmentEdges,
         uint32_t maxTrim
 ) const
 {
@@ -87,23 +87,21 @@ void LocalReadGraph::write(
     if(!outputFileStream) {
         throw runtime_error("Error opening " + fileName);
     }
-    write(outputFileStream, maxDistance, vertexScalingFactor,
-          edgeThicknessScalingFactor, edgeArrowScalingFactor,
-          dashedContainmentEdges, maxTrim);
+    write(outputFileStream, layoutMethod, maxDistance, vertexScalingFactor,
+          edgeThicknessScalingFactor, edgeArrowScalingFactor, maxTrim);
 }
 
 void LocalReadGraph::write(
         ostream& s,
+        const string& layoutMethod,
         uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
-        bool dashedContainmentEdges,
         uint32_t maxTrim) const
 {
-    Writer writer(*this, maxDistance, vertexScalingFactor,
+    Writer writer(*this, layoutMethod, maxDistance, vertexScalingFactor,
                   edgeThicknessScalingFactor, edgeArrowScalingFactor,
-                  dashedContainmentEdges,
                   maxTrim);
 
     boost::write_graphviz(s, *this, writer, writer, writer,
@@ -113,18 +111,18 @@ void LocalReadGraph::write(
 
 LocalReadGraph::Writer::Writer(
         const LocalReadGraph& graph,
+        const string& layoutMethod,
         uint32_t maxDistance,
         double vertexScalingFactor,
         double edgeThicknessScalingFactor,
         double edgeArrowScalingFactor,
-        bool dashedContainmentEdges,
         uint32_t maxTrim) :
         graph(graph),
+        layoutMethod(std::move(layoutMethod)),
         maxDistance(maxDistance),
         vertexScalingFactor(vertexScalingFactor),
         edgeThicknessScalingFactor(edgeThicknessScalingFactor),
         edgeArrowScalingFactor(edgeArrowScalingFactor),
-        dashedContainmentEdges(dashedContainmentEdges),
         maxTrim(maxTrim)
 {
 }
@@ -132,7 +130,7 @@ LocalReadGraph::Writer::Writer(
 
 void LocalReadGraph::Writer::operator()(std::ostream& s) const
 {
-    s << "layout=sfdp;\n";
+    s << "layout=" + layoutMethod + ";\n";
     s << "ratio=expand;\n";
     s << "node [shape=point];\n";
     s << "edge [penwidth=\"0.2\"];\n";

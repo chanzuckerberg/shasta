@@ -161,12 +161,38 @@ void Assembler::checkReadGraphIsOpen()
 }
 
 
+// Create a local subgraph of the global read graph,
+// starting at a given vertex and extending out to a specified
+// distance (number of edges).
+bool Assembler::createLocalReadGraph(
+        OrientedReadId start,
+        uint32_t maxDistance,           // How far to go from starting oriented read.
+        bool allowChimericReads,
+        bool allowCrossStrandEdges,
+        size_t maxTrim,                 // Used to define containment.
+        double timeout,                 // Or 0 for no timeout.
+        LocalReadGraph& graph)
+{
+    vector<OrientedReadId> starts = {start};
+    bool success = createLocalReadGraph(
+            starts,
+            maxDistance,           // How far to go from starting oriented read.
+            allowChimericReads,
+            allowCrossStrandEdges,
+            maxTrim,                 // Used to define containment.
+            timeout,                 // Or 0 for no timeout.
+            graph
+    );
+
+    return success;
+}
+
 
 // Create a local subgraph of the global read graph,
 // starting at a given vertex and extending out to a specified
 // distance (number of edges).
 bool Assembler::createLocalReadGraph(
-    OrientedReadId start,
+    vector<OrientedReadId> starts,
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
     bool allowCrossStrandEdges,
@@ -174,103 +200,103 @@ bool Assembler::createLocalReadGraph(
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
 {
-    const auto startTime = steady_clock::now();
+    for (auto& start: starts) {
+        const auto startTime = steady_clock::now();
 
-    // If the starting read is chimeric and we don't allow chimeric reads, do nothing.
-    if(!allowChimericReads && readFlags[start.getReadId()].isChimeric) {
-        return true;
-    }
-
-    // Add the starting vertex.
-    graph.addVertex(start, uint32_t(markers[start.getValue()].size()),
-        readFlags[start.getReadId()].isChimeric, 0);
-
-    // Initialize a BFS starting at the start vertex.
-    std::queue<OrientedReadId> q;
-    q.push(start);
-
-
-
-    // Do the BFS.
-    while(!q.empty()) {
-
-        // See if we exceeded the timeout.
-        if(timeout>0. && (seconds(steady_clock::now() - startTime) > timeout)) {
-            graph.clear();
-            return false;
+        // If the starting read is chimeric and we don't allow chimeric reads, do nothing.
+        if (!allowChimericReads && readFlags[start.getReadId()].isChimeric) {
+            return true;
         }
 
-        // Dequeue a vertex.
-        const OrientedReadId orientedReadId0 = q.front();
-        q.pop();
-        const uint32_t distance0 = graph.getDistance(orientedReadId0);
-        const uint32_t distance1 = distance0 + 1;
+        // Add the starting vertex.
+        graph.addVertex(start, uint32_t(markers[start.getValue()].size()),
+                        readFlags[start.getReadId()].isChimeric, 0);
 
-        // Loop over edges of the global read graph involving this vertex.
-        for(const uint64_t i: readGraph.connectivity[orientedReadId0.getValue()]) {
-            SHASTA_ASSERT(i < readGraph.edges.size());
-            const ReadGraphEdge& globalEdge = readGraph.edges[i];
+        // Initialize a BFS starting at the start vertex.
+        std::queue<OrientedReadId> q;
+        q.push(start);
 
-            if(!allowCrossStrandEdges && globalEdge.crossesStrands) {
-                continue;
+
+
+        // Do the BFS.
+        while (!q.empty()) {
+
+            // See if we exceeded the timeout.
+            if (timeout > 0. && (seconds(steady_clock::now() - startTime) > timeout)) {
+                graph.clear();
+                return false;
             }
 
-            // Get the other oriented read involved in this edge of the read graph.
-            const OrientedReadId orientedReadId1 = globalEdge.getOther(orientedReadId0);
+            // Dequeue a vertex.
+            const OrientedReadId orientedReadId0 = q.front();
+            q.pop();
+            const uint32_t distance0 = graph.getDistance(orientedReadId0);
+            const uint32_t distance1 = distance0 + 1;
 
-            // If this read is flagged chimeric and we don't allow chimeric reads, skip.
-            if(!allowChimericReads && readFlags[orientedReadId1.getReadId()].isChimeric) {
-                continue;
-            }
+            // Loop over edges of the global read graph involving this vertex.
+            for (const uint64_t i: readGraph.connectivity[orientedReadId0.getValue()]) {
+                SHASTA_ASSERT(i < readGraph.edges.size());
+                const ReadGraphEdge &globalEdge = readGraph.edges[i];
 
-            // Get alignment information.
-            const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
-            OrientedReadId alignmentOrientedReadId0(alignment.readIds[0], 0);
-            OrientedReadId alignmentOrientedReadId1(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
-            AlignmentInfo alignmentInfo = alignment.info;
-            if(alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
-                swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
-                alignmentInfo.swap();
-            }
-            if(alignmentOrientedReadId0.getStrand() != orientedReadId0.getStrand()) {
-                alignmentOrientedReadId0.flipStrand();
-                alignmentOrientedReadId1.flipStrand();
-                alignmentInfo.reverseComplement();
-            }
-            SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
-            const AlignmentType alignmentType = alignmentInfo.classify(uint32_t(maxTrim));
-            const uint32_t markerCount = alignmentInfo.markerCount;
-
-            // Update our BFS.
-            // Note that we are pushing to the queue vertices at maxDistance,
-            // so we can find all of their edges to other vertices at maxDistance.
-            if(distance0 < maxDistance) {
-                if(!graph.vertexExists(orientedReadId1)) {
-                    graph.addVertex(orientedReadId1,
-                        uint32_t(markers[orientedReadId1.getValue()].size()),
-                        readFlags[orientedReadId1.getReadId()].isChimeric, distance1);
-                    q.push(orientedReadId1);
+                if (!allowCrossStrandEdges && globalEdge.crossesStrands) {
+                    continue;
                 }
-                graph.addEdge(
-                    orientedReadId0,
-                    orientedReadId1,
-                    markerCount,
-                    alignmentType,
-                    globalEdge.crossesStrands == 1);
-            } else {
-                SHASTA_ASSERT(distance0 == maxDistance);
-                if(graph.vertexExists(orientedReadId1)) {
+
+                // Get the other oriented read involved in this edge of the read graph.
+                const OrientedReadId orientedReadId1 = globalEdge.getOther(orientedReadId0);
+
+                // If this read is flagged chimeric and we don't allow chimeric reads, skip.
+                if (!allowChimericReads && readFlags[orientedReadId1.getReadId()].isChimeric) {
+                    continue;
+                }
+
+                // Get alignment information.
+                const AlignmentData &alignment = alignmentData[globalEdge.alignmentId];
+                OrientedReadId alignmentOrientedReadId0(alignment.readIds[0], 0);
+                OrientedReadId alignmentOrientedReadId1(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
+                AlignmentInfo alignmentInfo = alignment.info;
+                if (alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
+                    swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
+                    alignmentInfo.swap();
+                }
+                if (alignmentOrientedReadId0.getStrand() != orientedReadId0.getStrand()) {
+                    alignmentOrientedReadId0.flipStrand();
+                    alignmentOrientedReadId1.flipStrand();
+                    alignmentInfo.reverseComplement();
+                }
+                SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
+                const AlignmentType alignmentType = alignmentInfo.classify(uint32_t(maxTrim));
+                const uint32_t markerCount = alignmentInfo.markerCount;
+
+                // Update our BFS.
+                // Note that we are pushing to the queue vertices at maxDistance,
+                // so we can find all of their edges to other vertices at maxDistance.
+                if (distance0 < maxDistance) {
+                    if (!graph.vertexExists(orientedReadId1)) {
+                        graph.addVertex(orientedReadId1,
+                                        uint32_t(markers[orientedReadId1.getValue()].size()),
+                                        readFlags[orientedReadId1.getReadId()].isChimeric, distance1);
+                        q.push(orientedReadId1);
+                    }
                     graph.addEdge(
-                        orientedReadId0,
-                        orientedReadId1,
-                        markerCount,
-                        alignmentType,
-                        globalEdge.crossesStrands == 1);
+                            orientedReadId0,
+                            orientedReadId1,
+                            markerCount,
+                            alignmentType,
+                            globalEdge.crossesStrands == 1);
+                } else {
+                    SHASTA_ASSERT(distance0 == maxDistance);
+                    if (graph.vertexExists(orientedReadId1)) {
+                        graph.addEdge(
+                                orientedReadId0,
+                                orientedReadId1,
+                                markerCount,
+                                alignmentType,
+                                globalEdge.crossesStrands == 1);
+                    }
                 }
             }
-
         }
-
     }
     return true;
 }

@@ -1067,12 +1067,23 @@ private:
     void flagChimericReadsThreadFunction(size_t threadId);
 
 
-
     // Create a local subgraph of the global read graph,
     // starting at a given vertex and extending out to a specified
     // distance (number of edges).
     bool createLocalReadGraph(
-        OrientedReadId start,
+            OrientedReadId start,
+            uint32_t maxDistance,   // How far to go from starting oriented read.
+            bool allowChimericReads,
+            bool allowCrossStrandEdges,
+            size_t maxTrim,         // Used to define containment.
+            double timeout,         // Or 0 for no timeout.
+            LocalReadGraph&);
+
+    // Create a local subgraph of the global read graph,
+    // starting at any number of  given vertexes and extending out to a specified
+    // distance (number of edges).
+    bool createLocalReadGraph(
+        vector<OrientedReadId> starts,
         uint32_t maxDistance,   // How far to go from starting oriented read.
         bool allowChimericReads,
         bool allowCrossStrandEdges,
