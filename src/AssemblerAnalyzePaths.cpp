@@ -246,6 +246,7 @@ public:
 };
 
 
+
 #if 1
 // Analyze oriented read paths in the marker graph and in the assembly graph.
 
@@ -281,6 +282,11 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
     // The minimum number of aligned meta-markers for an alignment to be used.
     const uint64_t minAlignedMetaMarkerCount = 3;
+
+    // Alignment scores.
+    const int matchScore = 1;
+    const int mismatchScore = -1;
+    const int gapScore = -1;
 
     // The minimum score for an alignment to be used.
     const int minScore = 3;
@@ -463,7 +469,11 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
                 if(pseudoPaths[orientedReadId1.getValue()].size() < minPseudoPathLength) {
                     continue;
                 }
-                orientedReadPairs.push_back(make_pair(orientedReadId0, orientedReadId1));
+                if(orientedReadId0 < orientedReadId1) {
+                    orientedReadPairs.push_back(make_pair(orientedReadId0, orientedReadId1));
+                } else {
+                    orientedReadPairs.push_back(make_pair(orientedReadId1, orientedReadId0));
+                }
             }
         }
     }
@@ -565,9 +575,6 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
         // Compute the alignment.
         TAlignGraph graph(sequences);
-        const int matchScore = 1;
-        const int mismatchScore = -1;
-        const int gapScore = -1;
         const int score = globalAlignment(
                 graph,
                 Score<int, Simple>(matchScore, mismatchScore, gapScore),
@@ -745,6 +752,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
             graph);
     }
     graph.createEdges();
+    graph.writeGraphviz("MetaMarkerGraph.dot");
     graph.writeGfa("MetaMarkerGraph.gfa");
     graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");

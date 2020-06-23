@@ -292,7 +292,8 @@ void MetaMarkerGraph::writeGraphviz(
             vertex.markerCount << " markers, coverage " <<
             vertex.orientedReads.size() << "\"";
 
-        if(vertex.segmentId == startSegmentId) {
+        if(startSegmentId!=std::numeric_limits<SegmentId>::max() and
+            vertex.segmentId == startSegmentId) {
             graphOut << " style=filled fillcolor=pink";
         }
         graphOut << "];\n";
