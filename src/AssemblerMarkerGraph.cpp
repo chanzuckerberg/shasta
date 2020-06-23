@@ -495,8 +495,10 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 throw runtime_error("Invalid read graph creation method " + to_string(readGraphCreationMethod));
             }
 
-            if(storedAlignments.isOpen() > 0) {
+            if(storedAlignments.isOpen() && readGraphCreationMethod == 0) {
                 // Reuse stored alignments if available.
+                // Stored alignments need to be processed for them to work with
+                // readGraphCreationMethod == 1. That's not implemented yet. 
                 span<const char> compressedAlignment = storedAlignments[alignmentId];
                 shasta::decompress(compressedAlignment, alignment);
             } else {
