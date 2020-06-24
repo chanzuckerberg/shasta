@@ -360,6 +360,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
     // Gather all pairs of oriented reads that occur in the same
     // segment at least once.
+    // Only consider reads with a sufficiently long pseudo-path.
     vector< pair<OrientedReadId, OrientedReadId> > orientedReadPairs;
     for(SegmentId segmentId=0; segmentId<segmentCount; segmentId++) {
 
@@ -377,6 +378,9 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
                 }
 
                 // Store the pair with the lowest oriented read id first.
+                if(orientedReadId0 == orientedReadId1) {
+                    continue;
+                }
                 if(orientedReadId0 < orientedReadId1) {
                     orientedReadPairs.push_back(make_pair(orientedReadId0, orientedReadId1));
                 } else {
@@ -388,6 +392,114 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     deduplicate(orientedReadPairs);
     cout << "Found " << orientedReadPairs.size() <<
         " oriented read pairs." << endl;
+
+
+
+    // For each of these pairs of oriented reads, compute an alignment
+    // of the corresponding pseudo-paths.
+    vector<int64_t> alignmentScores(orientedReadPairs.size());
+    vector< vector< pair<bool, bool> > > alignments(orientedReadPairs.size());
+    for(uint64_t i=0; i<orientedReadPairs.size(); i++) {
+        const OrientedReadId orientedReadId0 = orientedReadPairs[i].first;
+        const OrientedReadId orientedReadId1 = orientedReadPairs[i].second;
+
+        // Get the pseudo-paths of these two oriented reads.
+        vector<SegmentId> pseudoPath0;
+        vector<SegmentId> pseudoPath1;
+        getPseudoPathSegments(pseudoPaths[orientedReadId0.getValue()], pseudoPath0);
+        getPseudoPathSegments(pseudoPaths[orientedReadId1.getValue()], pseudoPath1);
+        SHASTA_ASSERT(pseudoPath0.size() >= minPseudoPathLength);
+        SHASTA_ASSERT(pseudoPath1.size() >= minPseudoPathLength);
+
+        // Align them.
+        alignmentScores[i] = shasta::seqanAlign(
+            pseudoPath0.begin(), pseudoPath0.end(),
+            pseudoPath1.begin(), pseudoPath1.end(),
+            matchScore,
+            mismatchScore,
+            gapScore,
+            true, true,
+            alignments[i]);
+    }
+
+
+
+    // We now have a set of alignments between oriented reads,
+    // but we don't want to use them all in the creation of the
+    // MetaMarkerGraph.
+    // Begin by marking as not used the ones for which the alignment
+    // does not satisfy some simple criteria.
+    vector<bool> useOrientedReadPair(orientedReadPairs.size(), true);
+    for(uint64_t i=0; i<orientedReadPairs.size(); i++) {
+
+        // If the alignment score for this pair is too small, don't use this pair.
+        const int64_t alignmentScore = alignmentScores[i];
+        if(alignmentScore < minAlignmentScore) {
+            useOrientedReadPair[i] = false;
+            continue;
+        }
+
+        // Get the oriented reads in this pair.
+        const OrientedReadId orientedReadId0 = orientedReadPairs[i].first;
+        const OrientedReadId orientedReadId1 = orientedReadPairs[i].second;
+
+        // Get the pseudo-paths of these two oriented reads.
+        vector<SegmentId> pseudoPath0;
+        vector<SegmentId> pseudoPath1;
+        getPseudoPathSegments(pseudoPaths[orientedReadId0.getValue()], pseudoPath0);
+        getPseudoPathSegments(pseudoPaths[orientedReadId1.getValue()], pseudoPath1);
+        SHASTA_ASSERT(pseudoPath0.size() >= minPseudoPathLength);
+        SHASTA_ASSERT(pseudoPath1.size() >= minPseudoPathLength);
+
+        // If the alignment contains any mismatches, don't use this pair.
+        const vector< pair<bool, bool> >& alignment = alignments[i];
+        if(containsMismatches(
+            pseudoPath0.begin(), pseudoPath0.end(),
+            pseudoPath1.begin(), pseudoPath1.end(),
+            alignment)) {
+            useOrientedReadPair[i] = false;
+            continue;
+        }
+
+
+        // Find aligned identical positions.
+        vector< pair<uint64_t, uint64_t> > alignedIdenticalPositions;
+        findAlignedIdentical(
+            pseudoPath0.begin(), pseudoPath0.end(),
+            pseudoPath1.begin(), pseudoPath1.end(),
+            alignment,
+            alignedIdenticalPositions);
+
+        // Sanity check.
+        for(const auto& p: alignedIdenticalPositions) {
+            SHASTA_ASSERT(pseudoPath0[p.first] == pseudoPath1[p.second]);
+        }
+
+        // If the alignment is too short, don't use this pair.
+        if(alignedIdenticalPositions.size() < minAlignedMetaMarkerCount) {
+            useOrientedReadPair[i] = false;
+            continue;
+        }
+    }
+
+
+
+    // The pairs we are going to keep define a "MetaReadGraph".
+    // Write it out in Graphviz format.
+    {
+        ofstream graphOut("MetaReadGraph.dot");
+        graphOut << "graph MetaReadGraph {\n";
+        for(uint64_t i=0; i<orientedReadPairs.size(); i++) {
+            if(not useOrientedReadPair[i]) {
+                continue;
+            }
+            const OrientedReadId orientedReadId0 = orientedReadPairs[i].first;
+            const OrientedReadId orientedReadId1 = orientedReadPairs[i].second;
+            graphOut << "\"" << orientedReadId0 << "\"--";
+            graphOut << "\"" << orientedReadId1 << "\";\n";
+        }
+        graphOut << "}\n";
+    }
 
 
 
@@ -428,15 +540,15 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
-    // For each such pair of oriented reads, compute an alignment between their pseudo-paths.
-    uint64_t alignmentsDone = 0;
-    for(const auto& p: orientedReadPairs) {
-        if((alignmentsDone % 10000) == 0) {
-            cout << alignmentsDone << "/" << orientedReadPairs.size() << endl;
+    // Loop over the pairs of oriented reads we decided to use and their alignments.
+    for(uint64_t i=0; i<orientedReadPairs.size(); i++) {
+        if(not useOrientedReadPair[i]) {
+            continue;
         }
-        ++alignmentsDone;
-        const OrientedReadId orientedReadId0 = p.first;
-        const OrientedReadId orientedReadId1 = p.second;
+
+        // Get the oriented reads in this pair.
+        const OrientedReadId orientedReadId0 = orientedReadPairs[i].first;
+        const OrientedReadId orientedReadId1 = orientedReadPairs[i].second;
 
         // Get the pseudo-paths of these two oriented reads.
         vector<SegmentId> pseudoPath0;
@@ -446,45 +558,17 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         SHASTA_ASSERT(pseudoPath0.size() >= minPseudoPathLength);
         SHASTA_ASSERT(pseudoPath1.size() >= minPseudoPathLength);
 
-        // Align them.
-        vector< pair<bool, bool> > alignment;
-        const int64_t alignmentScore = shasta::seqanAlign(
-            pseudoPath0.begin(), pseudoPath0.end(),
-            pseudoPath1.begin(), pseudoPath1.end(),
-            matchScore,
-            mismatchScore,
-            gapScore,
-            true, true,
-            alignment);
-        if(alignmentScore < minAlignmentScore) {
-            continue;
-        }
-
-        // If the alignment contains any mismatches, discard it.
-        if(containsMismatches(
-            pseudoPath0.begin(), pseudoPath0.end(),
-            pseudoPath1.begin(), pseudoPath1.end(),
-            alignment)) {
-            continue;
-        }
-
-
         // Find aligned identical positions.
         vector< pair<uint64_t, uint64_t> > alignedIdenticalPositions;
         findAlignedIdentical(
             pseudoPath0.begin(), pseudoPath0.end(),
             pseudoPath1.begin(), pseudoPath1.end(),
-            alignment,
+            alignments[i],
             alignedIdenticalPositions);
 
         // Sanity check.
         for(const auto& p: alignedIdenticalPositions) {
             SHASTA_ASSERT(pseudoPath0[p.first] == pseudoPath1[p.second]);
-        }
-
-        // If the alignment is too short, skip it.
-        if(alignedIdenticalPositions.size() < minAlignedMetaMarkerCount) {
-            continue;
         }
 
         // In the disjoint set data structure, merge entries corresponding to
