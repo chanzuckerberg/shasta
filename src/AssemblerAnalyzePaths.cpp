@@ -274,7 +274,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     // Parameters that control the process below. EXPOSE WHEN CODE STABILIZES. *********
 
     // The minimum length of a pseudo-path for a read to be used.
-    const uint64_t minPseudoPathLength = 3;
+    const uint64_t minPseudoPathLength = 6;
 
     // The minimum number of aligned meta-markers for an alignment to be used.
     const uint64_t minAlignedMetaMarkerCount = 3;
@@ -285,7 +285,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     const int gapScore = -2;
 
     // The minimum score for an alignment to be used.
-    const int minAlignmentScore = 3;
+    const int minAlignmentScore = 6;
 
 
 
@@ -358,22 +358,10 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
-    // Gather all pairs of oriented reads that occur in non-branching segments.
-    // A segment (assembly graph edge) v0->v1 is non-branching
-    // if in-degree(v0)<2 and out_degree(v1)<2.
+    // Gather all pairs of oriented reads that occur in the same
+    // segment at least once.
     vector< pair<OrientedReadId, OrientedReadId> > orientedReadPairs;
     for(SegmentId segmentId=0; segmentId<segmentCount; segmentId++) {
-
-        // If this is a branching segment, skip it.
-        const AssemblyGraph::Edge& segment = assemblyGraph.edges[segmentId];
-        const AssemblyGraph::VertexId v0 = segment.source;
-        if(assemblyGraph.inDegree(v0) > 1) {
-            continue;
-        }
-        const AssemblyGraph::VertexId v1 = segment.target;
-        if(assemblyGraph.outDegree(v1) > 1) {
-            continue;
-        }
 
         // Loop over pairs of  oriented reads that have this segment on their pseudo-path.
         const vector< pair<OrientedReadId, uint64_t> >& v = pseudoPathTable[segmentId];
