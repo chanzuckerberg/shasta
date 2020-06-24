@@ -248,7 +248,7 @@ public:
 
 
 
-#if 1
+
 // Analyze oriented read paths in the marker graph and in the assembly graph.
 
 // An oriented read always corresponds to a path in the marker graph
@@ -273,11 +273,6 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
     // Parameters that control the process below. EXPOSE WHEN CODE STABILIZES. *********
 
-    // The minimum number of markers for a segment to be used.
-    const uint64_t minMarkerCount = 0;
-
-    // const uint64_t minEdgeCoverage = 2;
-
     // The minimum length of a pseudo-path for a read to be used.
     const uint64_t minPseudoPathLength = 3;
 
@@ -294,69 +289,16 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
-    // Only consider segments that are sufficiently long.
-    vector<bool> useSegment(segmentCount);
-    for(SegmentId segmentId=0; segmentId<segmentCount; segmentId++) {
-        useSegment[segmentId] = assemblyGraph.edgeLists.size(segmentId) >= minMarkerCount;
-    }
-
-
-
     // Compute the pseudo-path of each oriented read.
     // This vector is indexed by OrientedReadId::getValue().
-    // USE computePseudoPath INSTEAD ****************
-    vector< vector<SegmentId> > pseudoPaths(2*readCount());
-    vector<MarkerGraph::EdgeId> markerGraphPath;
+    vector<MarkerGraph::EdgeId> path;
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
+    vector<PseudoPath> pseudoPaths(2*readCount());
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            vector<SegmentId>& pseudoPath =
-                pseudoPaths[orientedReadId.getValue()];
-
-            // Find the marker graph path of this oriented read.
-            computeOrientedReadMarkerGraphPath(
-                orientedReadId,
-                0, uint32_t(markers.size(orientedReadId.getValue())-1),
-                markerGraphPath, pathOrdinals);
-
-            // Loop over the marker graph path.
-            SegmentId previousSegmentId =
-                std::numeric_limits<SegmentId>::max();
-            for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphPath) {
-
-                // Get the corresponding segments.
-                const span<const pair<SegmentId, uint32_t> > v =
-                    assemblyGraph.markerToAssemblyTable[markerGraphEdgeId];
-
-                // If no segments, skip.
-                if(v.size() == 0) {
-                    continue;
-                }
-
-                // If detangling was used, there can be more than one,
-                // and we don't want this here.
-                SHASTA_ASSERT(v.size() == 1);
-
-                // There is only one segment.
-                const SegmentId segmentId = v.front().first;
-
-                // If this segment is not being used, skip.
-                if(not useSegment[segmentId]) {
-                    continue;
-                }
-
-                // If same as the previous, skip.
-                if(segmentId == previousSegmentId) {
-                    continue;
-                }
-
-                // This is the next segment edge encountered
-                // by this oriented read along its marker graph path.
-                // Add it to the pseudo-path.
-                pseudoPath.push_back(segmentId);
-                previousSegmentId = segmentId;
-            }
+            computePseudoPath(orientedReadId, path, pathOrdinals,
+                pseudoPaths[orientedReadId.getValue()]);
         }
     }
 
@@ -370,10 +312,9 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
                 const OrientedReadId orientedReadId(readId, strand);
                 csv << orientedReadId << ",";
 
-                vector<SegmentId>& pseudoPath =
-                    pseudoPaths[orientedReadId.getValue()];
-                for(const SegmentId segmentId: pseudoPath) {
-                    csv << segmentId << ",";
+                const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+                for(const auto& pseudoPathEntry: pseudoPath) {
+                    csv << pseudoPathEntry.segmentId << ",";
                 }
                 csv << "\n";
             }
@@ -382,42 +323,19 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
 
-#if 0
-    // Use these pseudo-paths to create a de Bruijn graph.
-    SHASTA_ASSERT(0);
-    // To revive this use computePseudoPath to compute the paths above.
-    DeBruijnGraph<3> graph;
-    for(ReadId readId=0; readId<readCount(); readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-            const vector<SegmentId>& pseudoPath =
-                pseudoPaths[orientedReadId.getValue()];
-            graph.addOrientedReadVertices(orientedReadId, pseudoPath);
-        }
-    }
-    graph.createEdges();
-    graph.removeLowCoverageEdges(minEdgeCoverage);
-    graph.writeGraphviz();
-    cout << "The De Bruijn graph has " << num_vertices(graph) <<
-        " vertices and " << num_edges(graph) << " edges." << endl;
-#endif
-
-
-
     // Create the pseudo-path table which contains, for each segment,
     // its occurrences in oriented read pseudo-paths.
-    // For each segmentId, we store a vector of pairs (orientedReadId, index) such that
-    // pseudoPaths[orientedReadId.getValue()][index] == segmentId
+    // For each segmentId, we store a vector of pairs (orientedReadId, ordinal) such that
+    // pseudoPaths[orientedReadId.getValue()][ordinal] == segmentId
     vector< vector< pair<OrientedReadId, uint64_t> > >  pseudoPathTable(segmentCount);
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            const vector<SegmentId>& pseudoPath =
-                pseudoPaths[orientedReadId.getValue()];
+            const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
 
-            for(uint64_t index=0; index<pseudoPath.size(); index++) {
-                const SegmentId segmentId = pseudoPath[index];
-                pseudoPathTable[segmentId].push_back(make_pair(orientedReadId, index));
+            for(uint64_t ordinal=0; ordinal<pseudoPath.size(); ordinal++) {
+                const SegmentId segmentId = pseudoPath[ordinal].segmentId;
+                pseudoPathTable[segmentId].push_back(make_pair(orientedReadId, ordinal));
             }
         }
     }
@@ -435,14 +353,13 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
                 csv << p.first << ",";
                 csv << p.second << "\n";
             }
-
         }
     }
 
 
 
-    // Gather all pairs of oriented reads that occur in non-branching segments that are in use.
-    // A segment (assembly graph edge) v0->v1 is no branching
+    // Gather all pairs of oriented reads that occur in non-branching segments.
+    // A segment (assembly graph edge) v0->v1 is non-branching
     // if in-degree(v0)<2 and out_degree(v1)<2.
     vector< pair<OrientedReadId, OrientedReadId> > orientedReadPairs;
     for(SegmentId segmentId=0; segmentId<segmentCount; segmentId++) {
@@ -470,6 +387,8 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
                 if(pseudoPaths[orientedReadId1.getValue()].size() < minPseudoPathLength) {
                     continue;
                 }
+
+                // Store the pair with the lowest oriented read id first.
                 if(orientedReadId0 < orientedReadId1) {
                     orientedReadPairs.push_back(make_pair(orientedReadId0, orientedReadId1));
                 } else {
@@ -481,6 +400,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     deduplicate(orientedReadPairs);
     cout << "Found " << orientedReadPairs.size() <<
         " oriented read pairs." << endl;
+
 
 
     // The following process is similar to the one used to create the marker graph.
@@ -498,8 +418,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            const vector<SegmentId>& pseudoPath =
-                pseudoPaths[orientedReadId.getValue()];
+            const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
             if(pseudoPath.size() < minPseudoPathLength) {
                 continue;
             }
@@ -520,6 +439,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     cout << "The disjoint set data structure has size " << n << endl;
 
 
+
     // For each such pair of oriented reads, compute an alignment between their pseudo-paths.
     const bool writeAlignments = false;
     ofstream alignmentsCsv;
@@ -536,8 +456,8 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         const OrientedReadId orientedReadId1 = p.second;
 
         // Get the pseudo-paths of these two oriented reads.
-        const vector<AssemblyGraph::EdgeId>& pseudoPath0 = pseudoPaths[orientedReadId0.getValue()];
-        const vector<AssemblyGraph::EdgeId>& pseudoPath1 = pseudoPaths[orientedReadId1.getValue()];
+        const PseudoPath& pseudoPath0 = pseudoPaths[orientedReadId0.getValue()];
+        const PseudoPath& pseudoPath1 = pseudoPaths[orientedReadId1.getValue()];
         SHASTA_ASSERT(pseudoPath0.size() >= minPseudoPathLength);
         SHASTA_ASSERT(pseudoPath1.size() >= minPseudoPathLength);
 
@@ -561,12 +481,12 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         // Add 100 to all segment ids to avoid collision with the
         // value 45, used by SeqAn to represent gaps.
         TSequence seq0;
-        for(const AssemblyGraph::EdgeId segmentId: pseudoPath0) {
-            appendValue(seq0, segmentId+100);
+        for(const auto& pseudoPathEntry: pseudoPath0) {
+            appendValue(seq0, pseudoPathEntry.segmentId + 100);
         }
         TSequence seq1;
-        for(const AssemblyGraph::EdgeId segmentId: pseudoPath1) {
-            appendValue(seq1, segmentId+100);
+        for(const auto& pseudoPathEntry: pseudoPath1) {
+            appendValue(seq1, pseudoPathEntry.segmentId + 100);
         }
 
         // Store them in a SeqAn string set.
@@ -657,6 +577,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         SHASTA_ASSERT(i1 == pseudoPath1.size());
 
 
+
         // Find pairs of disjoint sets to be merged, based on this alignment.
         vector< pair<uint64_t, uint64_t> > toBeMerged;
         const uint64_t start0 = start[orientedReadId0.getValue()];
@@ -668,9 +589,9 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
             const uint64_t value1 = align[j+alignmentLength];
             // cout << j << " " << i0 << " " << i1 << " " << value0 << " " << value1 << endl;
             if(value0!=45 and value1!=45 and value0 == value1) {
-                SHASTA_ASSERT(value0 == pseudoPath0[i0] + 100);
-                SHASTA_ASSERT(value1 == pseudoPath1[i1] + 100);
-                toBeMerged.push_back(make_pair(start0+i0, start1+i1));
+                SHASTA_ASSERT(value0 == pseudoPath0[i0].segmentId + 100);
+                SHASTA_ASSERT(value1 == pseudoPath1[i1].segmentId + 100);
+                toBeMerged.push_back(make_pair(start0 + i0, start1 + i1));
             }
             if(value0 != 45) {
                 ++i0;
@@ -705,8 +626,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     for(ReadId readId=0; readId<readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
-            const vector<SegmentId>& pseudoPath =
-                pseudoPaths[orientedReadId.getValue()];
+            const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
             if(pseudoPath.size() < minPseudoPathLength) {
                 continue;
             }
@@ -759,8 +679,8 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
             const auto& p = v[i];
             const OrientedReadId orientedReadId = p.first;
             const uint64_t metaOrdinal = p.second;
-            const vector<SegmentId>& pseudoPath = pseudoPaths[orientedReadId.getValue()];
-            const SegmentId segmentId = pseudoPath[metaOrdinal];
+            const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
+            const SegmentId segmentId = pseudoPath[metaOrdinal].segmentId;
             if(i == 0) {
                 firstSegmentId = segmentId;
             } else {
@@ -783,337 +703,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
     cout << "The MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
         num_edges(graph) << " edges." << endl;
-
-
-
-#if 0
-    // Loop over read graph edges and the corresponding alignments.
-    // We process read graph edges in pairs.
-    // In each pair, the second edge is the reverse complement of the first.
-    const uint64_t readGraphEdGeCount =
-        (readGraphCreationMethod==0) ? readGraph.edges.size() : directedReadGraph.edges.size();
-    for(uint64_t readGraphEdgeId=0; readGraphEdgeId!=readGraphEdGeCount; readGraphEdgeId+=2) {
-
-        // Get the oriented read ids
-        array<OrientedReadId, 2> orientedReadIds;
-        if(readGraphCreationMethod == 0) {
-
-            // We use the undirected read graph.
-            const ReadGraphEdge& readGraphEdge = readGraph.edges[readGraphEdgeId];
-
-            // Check that the next edge is the reverse complement of
-            // this edge.
-            {
-                const ReadGraphEdge& readGraphNextEdge = readGraph.edges[readGraphEdgeId + 1];
-                array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
-                nextEdgeOrientedReadIds[0].flipStrand();
-                nextEdgeOrientedReadIds[1].flipStrand();
-                SHASTA_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
-            }
-
-
-            if(readGraphEdge.crossesStrands) {
-                continue;
-            }
-            orientedReadIds = readGraphEdge.orientedReadIds;
-            SHASTA_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
-
-            // If either of the reads is flagged chimeric, skip it.
-            if( readFlags[orientedReadIds[0].getReadId()].isChimeric ||
-                readFlags[orientedReadIds[1].getReadId()].isChimeric) {
-                continue;
-            }
-        } else if(readGraphCreationMethod == 1) {
-
-            // We use the directed read graph.
-            const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(readGraphEdgeId);
-
-            // Sanity checks.
-            // Pairs of reverse complemented adges are stored consecutively.
-            SHASTA_ASSERT(edge.reverseComplementedEdgeId == readGraphEdgeId+1);
-            const DirectedReadGraphEdge& nextEdge = directedReadGraph.getEdge(readGraphEdgeId+1);
-            SHASTA_ASSERT(nextEdge.reverseComplementedEdgeId == readGraphEdgeId);
-            SHASTA_ASSERT(nextEdge.keep == edge.keep);
-            SHASTA_ASSERT(nextEdge.isConflict == edge.isConflict);
-
-            // Skip if not marked as "keep".
-            if(edge.keep == 0) {
-                continue;
-            }
-
-            // Skip if marked as "conflict".
-            if(edge.isConflict == 1) {
-                continue;
-            }
-
-
-            // Get the oriented read ids.
-            const DirectedReadGraph::VertexId v0 = directedReadGraph.source(readGraphEdgeId);
-            const DirectedReadGraph::VertexId v1 = directedReadGraph.target(readGraphEdgeId);
-            orientedReadIds[0] = OrientedReadId(OrientedReadId::Int(v0));
-            orientedReadIds[1] = OrientedReadId(OrientedReadId::Int(v1));
-
-        } else {
-            throw runtime_error("Invalid read graph creation method " + to_string(readGraphCreationMethod));
-        }
-
-
-        // Get the pseudo-paths of these two oriented reads.
-        const vector<AssemblyGraph::EdgeId>& pseudoPath0 = pseudoPaths[orientedReadIds[0].getValue()];
-        const vector<AssemblyGraph::EdgeId>& pseudoPath1 = pseudoPaths[orientedReadIds[1].getValue()];
-
-        cout << "\n";
-        cout << orientedReadIds[0];
-        for(const AssemblyGraph::EdgeId segmentId: pseudoPath0) {
-            cout << " " << segmentId;
-        }
-        cout << "\n";
-        cout << orientedReadIds[1];
-        for(const AssemblyGraph::EdgeId segmentId: pseudoPath1) {
-            cout << " " << segmentId;
-        }
-        cout << "\n";
-
-
-
-        // Use SeqAn to compute an alignment free at both ends.
-        // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
-        using namespace seqan;
-
-        // Hide shasta::Alignment.
-        using seqan::Alignment;
-
-        // An oriented read is represented by its pseudo-path.
-        // We want to align a pair of such sequences.
-        using TSequence = String<AssemblyGraph::EdgeId>;
-
-        // Other SeqAn types we need.
-        using TStringSet = StringSet<TSequence>;
-        using TDepStringSet = StringSet<TSequence, Dependent<> >;
-        using TAlignGraph = Graph<Alignment<TDepStringSet> >;
-
-        // Construct the sequences we want to pass to SeqAn.
-        // Add 100 to all segment ids to avoid collision with the
-        // value 45, used by SeqAn to represent gaps.
-        TSequence seq0;
-        for(const AssemblyGraph::EdgeId segmentId: pseudoPath0) {
-            appendValue(seq0, segmentId+100);
-        }
-        TSequence seq1;
-        for(const AssemblyGraph::EdgeId segmentId: pseudoPath1) {
-            appendValue(seq1, segmentId+100);
-        }
-
-        // Store them in a SeqAn string set.
-        TStringSet sequences;
-        appendValue(sequences, seq0);
-        appendValue(sequences, seq1);
-
-        // Compute the alignment.
-        TAlignGraph graph(sequences);
-        const int matchScore = 3;
-        const int mismatchScore = -3;
-        const int gapScore = -1;
-        globalAlignment(
-                graph,
-                Score<int, Simple>(matchScore, mismatchScore, gapScore),
-                AlignConfig<true, true, true, true>(),
-                LinearGaps());
-
-        // Extract the alignment from the graph.
-        // This creates a single sequence consisting of the two rows
-        // of the alignment, concatenated.
-        TSequence align;
-        convertAlignment(graph, align);
-        const uint64_t totalAlignmentLength = seqan::length(align);
-        SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
-        const uint64_t alignmentLength = totalAlignmentLength / 2;
-        cout << "Alignment length " << alignmentLength << endl;
-
-        // Write out the alignment.
-        uint64_t index = 0;
-        for(uint64_t i=0; i<2; i++) {
-            for(uint64_t j=0; j<alignmentLength; j++, index++) {
-                const uint64_t value = align[index];
-                if(value == 45) {
-                    cout << "-";
-                } else {
-                    cout << value - 100;
-                }
-                cout << ",";
-            }
-            cout << endl;
-        }
-        for(uint64_t j=0; j<alignmentLength; j++) {
-            const uint64_t value0 = align[j];
-            const uint64_t value1 = align[j+alignmentLength];
-            if(value0==45 and value1==45) {
-                cout << "?";    // This should never happen.
-            } else if(value0==45 or value1==45) {
-                // Gap on one of the two.
-                cout << "-";
-            } else if(value0 == value1) {
-                // Match.
-                cout << "|";
-            } else {
-                // Mismatch.
-                cout << "*";
-            }
-            cout << ",";
-        }
-        cout << endl;
-    }
-#endif
-
-
-
-#if 0
-    // Find segments that are encountered more than once in the sequence of any
-    // oriented reads.
-    vector<bool> isDuplicate(assemblyGraph.edges.size(), false);
-    vector<AssemblyGraph::EdgeId> deduplicatedSegments;
-    vector<uint64_t> frequency;
-    for(ReadId readId=0; readId<readCount(); readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-            const vector<AssemblyGraph::EdgeId>& segments =
-                orientedReadSegments[orientedReadId.getValue()];
-
-            // See if there are any duplicates.
-            deduplicatedSegments = segments;
-            deduplicateAndCount(deduplicatedSegments, frequency);
-            for(uint64_t i=0; i<deduplicatedSegments.size(); i++) {
-                if(frequency[i] > 1) {
-                    isDuplicate[deduplicatedSegments[i]] = true;
-                    //
-                    cout << "Segment " << deduplicatedSegments[i] << " encountered " <<
-                        frequency[i] << " times by oriented read " <<
-                        orientedReadId << endl;
-                    //
-                }
-            }
-        }
-    }
-    cout << "The following assembly graph edges (segments) are encountered "
-        "more than once by one or more oriented reads:" << endl;
-    uint64_t duplicateCount = 0;
-    for(AssemblyGraph::EdgeId segmentId=0; segmentId<segmentCount; segmentId++) {
-        if(isDuplicate[segmentId]) {
-            cout << segmentId << " ";
-            ++duplicateCount;
-        }
-    }
-    cout << endl;
-    cout << duplicateCount << " such segments found." << endl;
-
-
-
-    // Table to contain, for each segment, its occurrences in
-    // orientedReadSegments.
-    // For each segmentId, we store a vector of pairs (orientedReadId, index)
-    // such that
-    // orientedReadSegments[orientedReadId.getValue()][index] == segmentId
-    vector< vector< pair<OrientedReadId, uint64_t> > >
-        segmentTable(segmentCount);
-    for(ReadId readId=0; readId<readCount(); readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-            const vector<AssemblyGraph::EdgeId>& segments =
-                orientedReadSegments[orientedReadId.getValue()];
-
-            for(uint64_t index=0; index<segments.size(); index++) {
-                const AssemblyGraph::EdgeId segmentId = segments[index];
-                segmentTable[segmentId].push_back(make_pair(orientedReadId, index));
-            }
-        }
-    }
-
-
-
-    // Write out the segment table.
-    {
-        ofstream csv("SegmentTable.csv");
-        csv << "Segment,OrientedRead,Position\n";
-        for(AssemblyGraph::EdgeId segmentId=0; segmentId<segmentCount; segmentId++) {
-            const vector< pair<OrientedReadId, uint64_t> >& v = segmentTable[segmentId];
-            for(const auto& p: v) {
-                csv << segmentId << ",";
-                csv << p.first << ",";
-                csv << p.second << "\n";
-            }
-
-        }
-    }
-
-
-
-    // For each segment, analyze the paths of oriented reads that
-    // encounter that segment.
-    for(AssemblyGraph::EdgeId segmentId=0; segmentId<segmentCount; segmentId++) {
-        const vector< pair<OrientedReadId, uint64_t> >& v = segmentTable[segmentId];
-
-        if(segmentId != 1489) {
-            continue;       // For debugging.
-        }
-
-        // Create a graph in which each edge corresponds of
-        // successive segments encountered by an oriented read.
-        using boost::adjacency_list;
-        using boost::setS;  // No parallel edges.
-        using boost::vecS;
-        using boost::bidirectionalS;
-        using Graph = adjacency_list<setS, vecS, bidirectionalS, AssemblyGraph::EdgeId>;
-        Graph graph;
-        std::map<AssemblyGraph::EdgeId, Graph::vertex_descriptor> vertexMap;
-
-        for(const auto& p: v) {
-            const OrientedReadId orientedReadId = p.first;
-
-            // Access the sequence of segments encountered by this read.
-            const vector<AssemblyGraph::EdgeId>& segments =
-                orientedReadSegments[orientedReadId.getValue()];
-            for(uint64_t i=1; i<segments.size(); i++) {
-                const AssemblyGraph::EdgeId segmentId0 = segments[i-1];
-                const AssemblyGraph::EdgeId segmentId1 = segments[i];
-
-                // Locate the vertices corresponding to these segments,
-                // creating them if they don't exist.
-                auto it0 = vertexMap.find(segmentId0);
-                if(it0 == vertexMap.end()) {
-                    bool wasInserted = false;
-                    tie(it0, wasInserted) = vertexMap.insert(
-                        make_pair(segmentId0, add_vertex(segmentId0, graph)));
-                    SHASTA_ASSERT(wasInserted);
-                    SHASTA_ASSERT(it0->first == segmentId0);
-                }
-                const Graph::vertex_descriptor v0 = it0->second;
-                auto it1 = vertexMap.find(segmentId1);
-                if(it1 == vertexMap.end()) {
-                    bool wasInserted = false;
-                    tie(it1, wasInserted) = vertexMap.insert(
-                        make_pair(segmentId1, add_vertex(segmentId1, graph)));
-                    SHASTA_ASSERT(wasInserted);
-                    SHASTA_ASSERT(it1->first == segmentId1);
-                }
-                const Graph::vertex_descriptor v1 = it1->second;
-
-                // Add the edge.
-                add_edge(v0, v1, graph);
-            }
-        }
-
-        // Write out the graph.
-        ofstream graphOut("ReadPaths-" + to_string(segmentId) + ".dot");
-        graphOut << "digraph G {\n";
-        BGL_FORALL_EDGES(e, graph, Graph) {
-            graphOut << graph[source(e, graph)] << "->";
-            graphOut << graph[target(e, graph)] << ";\n";
-        }
-        graphOut << "}\n";
-    }
-#endif
 }
-#endif
 
 
 
