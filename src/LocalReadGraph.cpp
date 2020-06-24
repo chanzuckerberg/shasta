@@ -9,7 +9,6 @@ using namespace shasta;
 // Standard library.
 #include "fstream.hpp"
 #include "stdexcept.hpp"
-#include "utility.hpp"
 
 
 
@@ -118,7 +117,7 @@ LocalReadGraph::Writer::Writer(
         double edgeArrowScalingFactor,
         uint32_t maxTrim) :
         graph(graph),
-        layoutMethod(std::move(layoutMethod)),
+        layoutMethod(layoutMethod),
         maxDistance(maxDistance),
         vertexScalingFactor(vertexScalingFactor),
         edgeThicknessScalingFactor(edgeThicknessScalingFactor),
