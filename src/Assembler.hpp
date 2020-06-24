@@ -1083,7 +1083,7 @@ private:
     // starting at any number of  given vertexes and extending out to a specified
     // distance (number of edges).
     bool createLocalReadGraph(
-        vector<OrientedReadId> starts,
+        vector<OrientedReadId>& starts,
         uint32_t maxDistance,   // How far to go from starting oriented read.
         bool allowChimericReads,
         bool allowCrossStrandEdges,

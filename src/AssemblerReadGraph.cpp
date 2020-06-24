@@ -192,7 +192,7 @@ bool Assembler::createLocalReadGraph(
 // starting at a given vertex and extending out to a specified
 // distance (number of edges).
 bool Assembler::createLocalReadGraph(
-    vector<OrientedReadId> starts,
+    vector<OrientedReadId>& starts,
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
     bool allowCrossStrandEdges,
