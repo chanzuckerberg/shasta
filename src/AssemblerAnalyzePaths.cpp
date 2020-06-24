@@ -287,6 +287,9 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     // The minimum score for an alignment to be used.
     const int minAlignmentScore = 6;
 
+    // Neighbor count for the MetaReadGraph.
+    const uint64_t neighborCount = 3;
+
 
 
     // Compute the pseudo-path of each oriented read.
@@ -480,6 +483,44 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
             useOrientedReadPair[i] = false;
             continue;
         }
+    }
+
+
+
+
+    // In addition to the above filtering, we only want to use for each
+    // oriented read the best neighborCount alignments, as measured by score.
+    // The alignment table contains, for each oriented reads,
+    // pairs (index in orientedReadPairs, score).
+    // it is indexed by OrientedReadId::getValue(0.
+    vector< vector< pair<uint64_t, int64_t> > > alignmentTable(2 * readCount());
+    for(uint64_t i=0; i<orientedReadPairs.size(); i++) {
+
+        // Skip this pair if we already decided not to use it.
+        if(not useOrientedReadPair[i]) {
+            continue;
+        }
+
+        const OrientedReadId orientedReadId0 = orientedReadPairs[i].first;
+        const OrientedReadId orientedReadId1 = orientedReadPairs[i].second;
+        const int64_t alignmentScore = alignmentScores[i];
+        alignmentTable[orientedReadId0.getValue()].push_back(make_pair(i, alignmentScore));
+        alignmentTable[orientedReadId1.getValue()].push_back(make_pair(i, alignmentScore));
+    }
+
+    // For each oriented read, keep the best neighborCount scores in the alignmentTable.
+    vector<bool> isGoodNeighborPair(orientedReadPairs.size(), false);
+    for(auto& v: alignmentTable) {
+        sort(v.begin(), v.end(), OrderPairsBySecondOnlyGreater<uint64_t, int64_t>());
+        if(v.size() > neighborCount) {
+            v.resize(neighborCount);
+        }
+        for(const auto& p: v) {
+            isGoodNeighborPair[p.first] = true;
+        }
+    }
+    for(uint64_t i=0; i<orientedReadPairs.size(); i++) {
+        useOrientedReadPair[i] = useOrientedReadPair[i] and isGoodNeighborPair[i];
     }
 
 
