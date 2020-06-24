@@ -38,8 +38,8 @@ bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedRe
     for (auto& c: commaSeparatedReadIds){
         if (c == ','){
             try {
-                OrientedReadId readID(token);
-                readIds.push_back(readID);
+                OrientedReadId readId(token);
+                readIds.push_back(readId);
                 token.clear();
             }
             catch(exception& e){
@@ -56,8 +56,8 @@ bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedRe
     // Place final token which may not have a comma after it
     if (not token.empty()) {
         try {
-            OrientedReadId readID(token);
-            readIds.push_back(readID);
+            OrientedReadId readId(token);
+            readIds.push_back(readId);
         }
         catch(exception& e){
             html << "<p>Invalid read id or read strand: '" << token << "'</p>";
