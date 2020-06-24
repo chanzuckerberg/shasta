@@ -31,15 +31,15 @@ void Assembler::exploreReadGraph(
 }
 
 
-bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIDs, vector<OrientedReadId>& readIds, ostream& html){
+bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedReadId>& readIds, ostream& html){
     readIds.clear();
     string token;
 
-    for (auto& c: commaSeparatedReadIDs){
+    for (auto& c: commaSeparatedReadIds){
         if (c == ','){
             try {
                 OrientedReadId readID(token);
-                readIds.emplace_back(readID);
+                readIds.push_back(readID);
                 token.clear();
             }
             catch(exception& e){
@@ -57,7 +57,7 @@ bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIDs, vector<OrientedRe
     if (not token.empty()) {
         try {
             OrientedReadId readID(token);
-            readIds.emplace_back(readID);
+            readIds.push_back(readID);
         }
         catch(exception& e){
             html << "<p>Invalid read id or read strand: '" << token << "'</p>";
@@ -75,9 +75,9 @@ void Assembler::exploreUndirectedReadGraph(
     ostream& html) {
     // Get the parameters.
     vector<OrientedReadId> readIds;
-    string readIDsString;
-    const bool readIdsArePresent = getParameterValue(request, "readId", readIDsString);
-    const bool readStringsAreValid = parseCommaSeparatedReadIDs(readIDsString, readIds, html);
+    string readIdsString;
+    const bool readIdsArePresent = getParameterValue(request, "readId", readIdsString);
+    const bool readStringsAreValid = parseCommaSeparatedReadIDs(readIdsString, readIds, html);
 
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
@@ -134,7 +134,7 @@ void Assembler::exploreUndirectedReadGraph(
          "where strand is 0 or 1. For example, <code>\"1345871-1</code>\".\n"
          "To add multiple start points, use a comma separator."
          "<td><input type=text required name=readId size=8 style='text-align:center'"
-         << (readIdsArePresent ? ("value='" + readIDsString + "'") : "") <<
+         << (readIdsArePresent ? ("value='" + readIdsString + "'") : "") <<
          ">";
 
 
@@ -410,7 +410,7 @@ void Assembler::exploreUndirectedReadGraph(
 
         // Write a title.
         html <<
-             "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIDsString << "</h1>"
+             "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>"
              "Color legend: "
              "<span style='background-color:green'>start vertex</span> "
              "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
