@@ -1899,6 +1899,10 @@ public:
     void followOrientedReadPaths(
         AssemblyGraph::EdgeId segmentId,
         bool forward);
+    void findOrientedReadsOnAssemblyGraphEdge(
+        AssemblyGraph::EdgeId,
+        vector<OrientedReadId>&
+    ) const;
 
 
 

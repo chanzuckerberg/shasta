@@ -3,6 +3,7 @@
 #include "deduplicate.hpp"
 #include "MarkerGraph2.hpp"
 #include "MetaMarkerGraph.hpp"
+#include "orderPairs.hpp"
 #include "seqan.hpp"
 using namespace shasta;
 
@@ -286,7 +287,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     // Alignment scores.
     const int matchScore = 1;
     const int mismatchScore = -1;
-    const int gapScore = -1;
+    const int gapScore = -2;
 
     // The minimum score for an alignment to be used.
     const int minScore = 3;
@@ -630,14 +631,38 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
             alignmentsCsv << "\n";
         }
 
+        // If the alignment contains any mismatches, discard it.
+        uint64_t i0 = 0;
+        uint64_t i1 = 0;
+        bool mismatchFound =  false;
+        for(uint64_t j=0; j<alignmentLength; j++) {
+            const uint64_t value0 = align[j];
+            const uint64_t value1 = align[j+alignmentLength];
+            // cout << j << " " << i0 << " " << i1 << " " << value0 << " " << value1 << endl;
+            if(value0!=45 and value1!=45 and value0 != value1) {
+                mismatchFound = true;
+                break;
+            }
+            if(value0 != 45) {
+                ++i0;
+            }
+            if(value1 != 45) {
+                ++i1;
+            }
+        }
+        if(mismatchFound) {
+            continue;
+        }
+        SHASTA_ASSERT(i0 == pseudoPath0.size());
+        SHASTA_ASSERT(i1 == pseudoPath1.size());
 
 
         // Find pairs of disjoint sets to be merged, based on this alignment.
         vector< pair<uint64_t, uint64_t> > toBeMerged;
         const uint64_t start0 = start[orientedReadId0.getValue()];
         const uint64_t start1 = start[orientedReadId1.getValue()];
-        uint64_t i0 = 0;
-        uint64_t i1 = 0;
+        i0 = 0;
+        i1 = 0;
         for(uint64_t j=0; j<alignmentLength; j++) {
             const uint64_t value0 = align[j];
             const uint64_t value1 = align[j+alignmentLength];
@@ -1109,6 +1134,260 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
 
 
 
+void Assembler::findOrientedReadsOnAssemblyGraphEdge(
+    AssemblyGraph::EdgeId segmentId,
+    vector<OrientedReadId>& orientedReadIds
+) const
+{
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    std::set<OrientedReadId> orientedReadIdsSet;
+
+    // Find the marker graph edges that are on this assembly graph edge (segment).
+    const span< const MarkerGraph::EdgeId> markerGraphEdges =
+        assemblyGraph.edgeLists[segmentId];
+
+    // Loop over these marker graph edges.
+    for(const MarkerGraph::EdgeId markerGraphEdgeId: markerGraphEdges) {
+
+        // Loop over oriented read ids on this marker graph edge.
+        for(const MarkerInterval& interval: markerGraph.edgeMarkerIntervals[markerGraphEdgeId]) {
+            orientedReadIdsSet.insert(interval.orientedReadId);
+        }
+    }
+
+    orientedReadIds.clear();
+    copy(orientedReadIdsSet.begin(), orientedReadIdsSet.end(),
+        back_inserter(orientedReadIds));
+}
+
+
+
+void Assembler::followOrientedReadPaths(
+    AssemblyGraph::EdgeId startSegmentId,
+    bool forward)
+{
+    const bool debug = true;
+    using SegmentId = AssemblyGraph::EdgeId;
+
+    // PARAMETERS TO EXPOSE WHEN THE CODE STABILIZES.
+    const int64_t matchScore = 1;
+    const int64_t mismatchScore = -1;
+    const int64_t gapScore = -2;
+    const double scoreFraction = 0.5;
+
+    cout << "Starting at segment " << startSegmentId <<
+        " and moving " << (forward ? "forward" : "backward") << "." << endl;
+
+    // Start with consensus equal to just our start segment.
+    vector<SegmentId> consensus = {startSegmentId};
+
+    // The position in the consensus of the segment we are currently working on.
+    uint64_t consensusPosition = 0;
+
+    // A map to contain oriented reads we already encountered and their pseudo-paths.
+    std::map<OrientedReadId, PseudoPath> orientedReadIdsAlreadyFound;
+
+
+
+    // Main iteration loop.
+    for(int iteration=0; ; ++iteration) {
+        cout << "Begin iteration " << iteration <<
+            " with current consensus position " << consensusPosition << endl;
+
+        // The segment we process at this iteration.
+        const SegmentId segmentId0 = consensus[consensusPosition];
+
+        // Find all oriented reads on segmentId0.
+        vector<OrientedReadId> orientedReadIds0;
+        findOrientedReadsOnAssemblyGraphEdge(segmentId0, orientedReadIds0);
+
+
+
+        // Of the oriented reads on segmentId0, find the ones
+        // we did not already encounter.
+        // For each one compute and store the pseudo-path.
+        // The newly found oriented reads are stored with the length
+        // of their pseudo-path.
+        vector< pair<OrientedReadId, uint64_t> > newOrientedReadIds0;
+        for(const OrientedReadId orientedReadId: orientedReadIds0) {
+
+            if(orientedReadIdsAlreadyFound.find(orientedReadId) !=
+                orientedReadIdsAlreadyFound.end()) {
+                continue;
+            }
+
+            vector<MarkerGraph::EdgeId> path;
+            vector< pair<uint32_t, uint32_t> > pathOrdinals;
+            PseudoPath pseudoPath;
+            computePseudoPath(orientedReadId, path, pathOrdinals, pseudoPath);
+
+            orientedReadIdsAlreadyFound.insert(make_pair(orientedReadId, pseudoPath));
+            newOrientedReadIds0.push_back(make_pair(orientedReadId, pseudoPath.size()));
+        }
+
+        // Order them by decreasing pseudo-path length.
+        sort(newOrientedReadIds0.begin(), newOrientedReadIds0.end(),
+            OrderPairsBySecondOnlyGreater<OrientedReadId, uint64_t>());
+
+        if(debug) {
+            cout << "Found " << orientedReadIds0.size() <<
+                " oriented reads on segment " << segmentId0 <<
+                " of which " << newOrientedReadIds0.size() <<
+                " are new." << endl;
+        }
+
+
+
+        // Loop over the new oriented reads in order of decreasing pseudo-path length.
+        for(const auto& p: newOrientedReadIds0) {
+            const OrientedReadId orientedReadId = p.first;
+            if(debug) {
+                cout << "Current consensus: ";
+                copy(consensus.begin(), consensus.end(), ostream_iterator<SegmentId>(cout, " "));
+                cout << "\nCurrent consensus position: " << consensusPosition << endl;
+                cout << "Processing oriented read " << orientedReadId << endl;
+            }
+            const PseudoPath& pseudoPath = orientedReadIdsAlreadyFound[orientedReadId];
+            if(debug) {
+                cout << orientedReadId << " pseudo-path: ";
+                for(auto& pseudoPathEntry: pseudoPath) {
+                    cout << " " << pseudoPathEntry.segmentId;
+                }
+                cout << endl;
+            }
+
+            // Align this pseudo-path with the current consensus.
+            vector<SegmentId> pseudoPathSegments;
+            for(auto& pseudoPathEntry: pseudoPath) {
+                pseudoPathSegments.push_back(pseudoPathEntry.segmentId);
+            }
+            if(consensus.size()==1) {
+                consensus = pseudoPathSegments;
+                consensusPosition = std::find(consensus.begin(), consensus.end(), segmentId0) -
+                    consensus.begin();
+            } else {
+                vector< pair<bool, bool> > alignment;
+                const int64_t score = seqanAlign(
+                    consensus.begin(), consensus.end(),
+                    pseudoPathSegments.begin(), pseudoPathSegments.end(),
+                    matchScore, mismatchScore, gapScore,
+                    true, true,
+                    alignment);
+
+                if(debug) {
+                    cout << "Alignment score " << score << endl;
+                    for(const auto& p: alignment) {
+                        cout << (p.first ? '.' : '-');
+                    }
+                    cout << endl;
+                    for(const auto& p: alignment) {
+                        cout << (p.second ? '.' : '-');
+                    }
+                    cout << endl;
+                }
+
+
+                // If the alignment score is too low, ignore it.
+                // This check will need some refinement.
+                if(score < int64_t(double(pseudoPathSegments.size())*scoreFraction)) {
+                    if(debug) {
+                        cout << "Ignored due to low alignment score." << endl;
+                    }
+                    continue;
+                }
+
+                // If the alignment has any mismatches, ignore it.
+                uint64_t position0 = 0;
+                uint64_t position1 = 0;
+                bool mismatchFound = false;
+                for(const auto& p: alignment) {
+                    if(p.first and p.second) {
+                        if(consensus[position0] != pseudoPathSegments[position1]) {
+                            mismatchFound = true;
+                            break;
+                        }
+                        ++position0;
+                        ++position1;
+                    } else if(p.first) {
+                        ++position0;
+                    } else if(p.second) {
+                        ++position1;
+                    }
+                }
+                if(mismatchFound) {
+                    if(debug) {
+                        cout << "Ignored due to mismatch." << endl;
+                    }
+                    continue;
+                }
+                SHASTA_ASSERT(position0 == consensus.size());
+                SHASTA_ASSERT(position1 == pseudoPathSegments.size());
+
+
+
+                // If getting here, we know that the alignment has only
+                // matches and gaps - no mismatches.
+                // Update the consensus.
+                vector<SegmentId> newConsensus;
+                position0 = 0;
+                position1 = 0;
+                for(const auto& p: alignment) {
+                    if(p.first and p.second) {
+                        SHASTA_ASSERT(consensus[position0] == pseudoPathSegments[position1]);
+                        if(position0 == consensusPosition) {
+                            consensusPosition = newConsensus.size();
+                        }
+                        newConsensus.push_back(consensus[position0]);
+                        ++position0;
+                        ++position1;
+                    } else if(p.first) {
+                        if(position0 == consensusPosition) {
+                            consensusPosition = newConsensus.size();
+                        }
+                        newConsensus.push_back(consensus[position0]);
+                        ++position0;
+                    } else if(p.second) {
+                        newConsensus.push_back(pseudoPathSegments[position1]);
+                        ++position1;
+                    }
+                }
+                SHASTA_ASSERT(position0 == consensus.size());
+                SHASTA_ASSERT(position1 == pseudoPathSegments.size());
+                if(debug) {
+                    if(newConsensus == consensus) {
+                        cout << "No change in consensus." << endl;
+                    } else {
+                        cout << "Consensus updated." << endl;
+                    }
+                    cout << "Current consensus position is now " << consensusPosition << endl;
+                }
+                consensus = newConsensus;
+            }
+
+        }
+
+        // Update position in consensus for the next iteration.
+        if(forward) {
+            ++consensusPosition;
+            if(consensusPosition == consensus.size()) {
+                break;
+            }
+        } else {
+            if(consensusPosition == 0) {
+                break;
+            }
+            --consensusPosition;
+        }
+        if(debug) {
+            cout << "Consensus position updated to " << consensusPosition <<
+                " for next iteration." << endl;
+        }
+    }
+}
+
+
+
+#if 0
 void Assembler::followOrientedReadPaths(
     AssemblyGraph::EdgeId startSegmentId,
     bool forward)
@@ -1256,6 +1535,7 @@ void Assembler::followOrientedReadPaths(
         cout << endl;
     }
 }
+#endif
 
 
 
