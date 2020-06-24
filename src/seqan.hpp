@@ -36,6 +36,21 @@ namespace shasta {
             bool freeOnRight,
             vector< pair<bool, bool> >& alignment);
 
+    // Find out if the alignment computed by seqanAlign contains mismatches.
+    template<class Iterator>
+        bool containsMismatches(
+        Iterator begin0, Iterator end0,
+        Iterator begin1, Iterator end1,
+        const vector< pair<bool, bool> >& alignment);
+
+    // Given an alignment computed by seqanAlign, find positions in the
+    // two sequences that contain aligned identical symbols.
+    template<class Iterator>
+        void findAlignedIdentical(
+        Iterator begin0, Iterator end0,
+        Iterator begin1, Iterator end1,
+        const vector< pair<bool, bool> >& alignment,
+        vector< pair<uint64_t, uint64_t> >& alignedIdenticalPositions);
 }
 
 
@@ -140,6 +155,72 @@ template<class Iterator>
 
 
     return alignmentScore;
+}
+
+
+
+// Find out if the alignment computed by seqanAlign contains mismatches.
+template<class Iterator>
+    bool shasta::containsMismatches(
+    Iterator begin0, Iterator end0,
+    Iterator begin1, Iterator end1,
+    const vector< pair<bool, bool> >& alignment)
+{
+    Iterator it0 = begin0;
+    Iterator it1 = begin1;
+    for(const auto& p: alignment) {
+        if(p.first and p.second) {
+            if(*it0 != *it1) {
+                return true;
+            }
+            ++it0;
+            ++it1;
+        } else if(p.first) {
+            ++it0;
+        } else if(p.second) {
+            ++it1;
+        }
+    }
+    SHASTA_ASSERT(it0 == end0);
+    SHASTA_ASSERT(it1 == end1);
+    return false;
+}
+
+
+
+// Given an alignment computed by seqanAlign, find positions in the
+// two sequences that contain aligned identical symbols.
+template<class Iterator>
+    void shasta::findAlignedIdentical(
+    Iterator begin0, Iterator end0,
+    Iterator begin1, Iterator end1,
+    const vector< pair<bool, bool> >& alignment,
+    vector< pair<uint64_t, uint64_t> >& alignedIdenticalPositions)
+{
+    alignedIdenticalPositions.clear();
+    Iterator it0 = begin0;
+    Iterator it1 = begin1;
+    uint64_t position0 = 0;
+    uint64_t position1 = 0;
+    for(const auto& p: alignment) {
+        if(p.first and p.second) {
+            if(*it0 == *it1) {
+                alignedIdenticalPositions.push_back(make_pair(position0, position1));
+            }
+            ++it0;
+            ++it1;
+            ++position0;
+            ++position1;
+        } else if(p.first) {
+            ++it0;
+            ++position0;
+        } else if(p.second) {
+            ++it1;
+            ++position1;
+        }
+    }
+    SHASTA_ASSERT(it0 == end0);
+    SHASTA_ASSERT(it1 == end1);
 }
 
 #endif

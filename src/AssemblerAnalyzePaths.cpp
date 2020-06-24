@@ -285,7 +285,7 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
     const int gapScore = -2;
 
     // The minimum score for an alignment to be used.
-    const int minScore = 3;
+    const int minAlignmentScore = 3;
 
 
 
@@ -441,11 +441,6 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
 
     // For each such pair of oriented reads, compute an alignment between their pseudo-paths.
-    const bool writeAlignments = false;
-    ofstream alignmentsCsv;
-    if(writeAlignments) {
-        alignmentsCsv.open("Alignments.csv");
-    }
     uint64_t alignmentsDone = 0;
     for(const auto& p: orientedReadPairs) {
         if((alignmentsDone % 10000) == 0) {
@@ -456,164 +451,60 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         const OrientedReadId orientedReadId1 = p.second;
 
         // Get the pseudo-paths of these two oriented reads.
-        const PseudoPath& pseudoPath0 = pseudoPaths[orientedReadId0.getValue()];
-        const PseudoPath& pseudoPath1 = pseudoPaths[orientedReadId1.getValue()];
+        vector<SegmentId> pseudoPath0;
+        vector<SegmentId> pseudoPath1;
+        getPseudoPathSegments(pseudoPaths[orientedReadId0.getValue()], pseudoPath0);
+        getPseudoPathSegments(pseudoPaths[orientedReadId1.getValue()], pseudoPath1);
         SHASTA_ASSERT(pseudoPath0.size() >= minPseudoPathLength);
         SHASTA_ASSERT(pseudoPath1.size() >= minPseudoPathLength);
 
-        // Use SeqAn to compute an alignment free at both ends.
-        // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
-        using namespace seqan;
-
-        // Hide shasta::Alignment.
-        using seqan::Alignment;
-
-        // An oriented read is represented by its pseudo-path.
-        // We want to align a pair of such sequences.
-        using TSequence = String<AssemblyGraph::EdgeId>;
-
-        // Other SeqAn types we need.
-        using TStringSet = StringSet<TSequence>;
-        using TDepStringSet = StringSet<TSequence, Dependent<> >;
-        using TAlignGraph = Graph<Alignment<TDepStringSet> >;
-
-        // Construct the sequences we want to pass to SeqAn.
-        // Add 100 to all segment ids to avoid collision with the
-        // value 45, used by SeqAn to represent gaps.
-        TSequence seq0;
-        for(const auto& pseudoPathEntry: pseudoPath0) {
-            appendValue(seq0, pseudoPathEntry.segmentId + 100);
-        }
-        TSequence seq1;
-        for(const auto& pseudoPathEntry: pseudoPath1) {
-            appendValue(seq1, pseudoPathEntry.segmentId + 100);
-        }
-
-        // Store them in a SeqAn string set.
-        TStringSet sequences;
-        appendValue(sequences, seq0);
-        appendValue(sequences, seq1);
-
-        // Compute the alignment.
-        TAlignGraph graph(sequences);
-        const int score = globalAlignment(
-                graph,
-                Score<int, Simple>(matchScore, mismatchScore, gapScore),
-                AlignConfig<true, true, true, true>(),
-                LinearGaps());
-        if(score < minScore) {
+        // Align them.
+        vector< pair<bool, bool> > alignment;
+        const int64_t alignmentScore = shasta::seqanAlign(
+            pseudoPath0.begin(), pseudoPath0.end(),
+            pseudoPath1.begin(), pseudoPath1.end(),
+            matchScore,
+            mismatchScore,
+            gapScore,
+            true, true,
+            alignment);
+        if(alignmentScore < minAlignmentScore) {
             continue;
-        }
-
-        // Extract the alignment from the graph.
-        // This creates a single sequence consisting of the two rows
-        // of the alignment, concatenated.
-        TSequence align;
-        convertAlignment(graph, align);
-        const uint64_t totalAlignmentLength = seqan::length(align);
-        SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
-        const uint64_t alignmentLength = totalAlignmentLength / 2;
-
-        // Write out the alignment.
-        if(writeAlignments) {
-            uint64_t index = 0;
-            for(uint64_t i=0; i<2; i++) {
-                alignmentsCsv << (i==0 ? orientedReadId0 : orientedReadId1) << ",";
-                for(uint64_t j=0; j<alignmentLength; j++, index++) {
-                    const uint64_t value = align[index];
-                    if(value == 45) {
-                        alignmentsCsv << "-";
-                    } else {
-                        alignmentsCsv << value - 100;
-                    }
-                    alignmentsCsv << ",";
-                }
-                alignmentsCsv << "\n";
-            }
-            alignmentsCsv << "Alignment,";
-            for(uint64_t j=0; j<alignmentLength; j++) {
-                const uint64_t value0 = align[j];
-                const uint64_t value1 = align[j+alignmentLength];
-                if(value0==45 and value1==45) {
-                    alignmentsCsv << "?";    // This should never happen.
-                } else if(value0==45 or value1==45) {
-                    // Gap on one of the two.
-                    alignmentsCsv << "-";
-                } else if(value0 == value1) {
-                    // Match.
-                    alignmentsCsv << ".";
-                } else {
-                    // Mismatch.
-                    alignmentsCsv << "*";
-                }
-                alignmentsCsv << ",";
-            }
-            alignmentsCsv << "\n";
         }
 
         // If the alignment contains any mismatches, discard it.
-        uint64_t i0 = 0;
-        uint64_t i1 = 0;
-        bool mismatchFound =  false;
-        for(uint64_t j=0; j<alignmentLength; j++) {
-            const uint64_t value0 = align[j];
-            const uint64_t value1 = align[j+alignmentLength];
-            // cout << j << " " << i0 << " " << i1 << " " << value0 << " " << value1 << endl;
-            if(value0!=45 and value1!=45 and value0 != value1) {
-                mismatchFound = true;
-                break;
-            }
-            if(value0 != 45) {
-                ++i0;
-            }
-            if(value1 != 45) {
-                ++i1;
-            }
-        }
-        if(mismatchFound) {
+        if(containsMismatches(
+            pseudoPath0.begin(), pseudoPath0.end(),
+            pseudoPath1.begin(), pseudoPath1.end(),
+            alignment)) {
             continue;
         }
-        SHASTA_ASSERT(i0 == pseudoPath0.size());
-        SHASTA_ASSERT(i1 == pseudoPath1.size());
 
 
+        // Find aligned identical positions.
+        vector< pair<uint64_t, uint64_t> > alignedIdenticalPositions;
+        findAlignedIdentical(
+            pseudoPath0.begin(), pseudoPath0.end(),
+            pseudoPath1.begin(), pseudoPath1.end(),
+            alignment,
+            alignedIdenticalPositions);
 
-        // Find pairs of disjoint sets to be merged, based on this alignment.
-        vector< pair<uint64_t, uint64_t> > toBeMerged;
-        const uint64_t start0 = start[orientedReadId0.getValue()];
-        const uint64_t start1 = start[orientedReadId1.getValue()];
-        i0 = 0;
-        i1 = 0;
-        for(uint64_t j=0; j<alignmentLength; j++) {
-            const uint64_t value0 = align[j];
-            const uint64_t value1 = align[j+alignmentLength];
-            // cout << j << " " << i0 << " " << i1 << " " << value0 << " " << value1 << endl;
-            if(value0!=45 and value1!=45 and value0 == value1) {
-                SHASTA_ASSERT(value0 == pseudoPath0[i0].segmentId + 100);
-                SHASTA_ASSERT(value1 == pseudoPath1[i1].segmentId + 100);
-                toBeMerged.push_back(make_pair(start0 + i0, start1 + i1));
-            }
-            if(value0 != 45) {
-                ++i0;
-            }
-            if(value1 != 45) {
-                ++i1;
-            }
+        // Sanity check.
+        for(const auto& p: alignedIdenticalPositions) {
+            SHASTA_ASSERT(pseudoPath0[p.first] == pseudoPath1[p.second]);
         }
-        SHASTA_ASSERT(i0 == pseudoPath0.size());
-        SHASTA_ASSERT(i1 == pseudoPath1.size());
 
         // If the alignment is too short, skip it.
-        if(toBeMerged.size() < minAlignedMetaMarkerCount) {
+        if(alignedIdenticalPositions.size() < minAlignedMetaMarkerCount) {
             continue;
         }
-
-
 
         // In the disjoint set data structure, merge entries corresponding to
         // aligned segments.
-        for(const auto& p: toBeMerged) {
-            disjointSets.union_set(p.first, p.second);
+        const uint64_t start0 = start[orientedReadId0.getValue()];
+        const uint64_t start1 = start[orientedReadId1.getValue()];
+        for(const auto& p: alignedIdenticalPositions) {
+            disjointSets.union_set(start0 + p.first, start1 + p.second);
         }
     }
 
@@ -1718,6 +1609,19 @@ void Assembler::writePseudoPath(ReadId readId, Strand strand) const
         csv << pseudoPathEntry.firstPosition << ",";
         csv << pseudoPathEntry.lastPosition << ",";
         csv << pseudoPathEntry.markerGraphEdgeCount << "\n";
+    }
+}
+
+
+
+// Get the vector of segments corresponding to a PseudoPath.
+void Assembler::getPseudoPathSegments(
+    const PseudoPath& pseudoPath,
+    vector<AssemblyGraph::EdgeId>& segmentIds)
+{
+    segmentIds.clear();
+    for(const PseudoPathEntry& pseudoPathEntry: pseudoPath) {
+        segmentIds.push_back(pseudoPathEntry.segmentId);
     }
 }
 

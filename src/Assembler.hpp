@@ -1712,6 +1712,7 @@ public:
         // The pseudo-path computed by this function.
         PseudoPath&) const;
     void writePseudoPath(ReadId, Strand) const;
+    static void getPseudoPathSegments(const PseudoPath&, vector<AssemblyGraph::EdgeId>&);
 
 
 
