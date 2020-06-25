@@ -698,6 +698,8 @@ void Assembler::analyzeOrientedReadPaths() const
             v);
     }
     graph.createEdges();
+    graph.transitiveReduction();
+    graph.generateSequenceNumbers();
     graph.writeGraphviz("MetaMarkerGraph.dot");
     graph.writeGfa("MetaMarkerGraph.gfa");
     graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");

@@ -127,6 +127,7 @@ public:
 
     void createEdges();
     void transitiveReduction();
+    void generateSequenceNumbers();
     void writeGraphviz(const string& fileName,
         SegmentId startSegmentId = std::numeric_limits<SegmentId>::max()) const;
     void writeGfa(const string& fileName) const;
@@ -150,8 +151,6 @@ private:
     // or null_vertex if not exactly one found.
     vertex_descriptor findVertex(SegmentId) const;
 
-    // The number of vertices for each segmentId.
-    vector<uint64_t> vertexCountBySegmentId;
 };
 
 #endif

@@ -14,21 +14,32 @@ void MetaMarkerGraph::addVertex(
     uint64_t markerCount,
     const vector< pair<OrientedReadId, uint64_t> >& orientedReads)
 {
-    MetaMarkerGraph& graph = *this;
-
-    const vertex_descriptor v = add_vertex(
+    add_vertex(
         MetaMarkerGraphVertex(segmentId, markerCount, orientedReads),
-        graph);
-
-    // Update the number of vertices corresponding to this segment
-    // and generate the sequence number for the vertex.
-    if(segmentId >= vertexCountBySegmentId.size()) {
-        vertexCountBySegmentId.resize(segmentId + 1, 0);
-    }
-    graph[v].sequenceNumber = vertexCountBySegmentId[segmentId];
-    ++vertexCountBySegmentId[segmentId];
+        *this);
 }
 
+
+
+// Generate the sequenceNumber field for each vertex.
+void MetaMarkerGraph::generateSequenceNumbers()
+{
+    MetaMarkerGraph& graph = *this;
+    vector<uint64_t> vertexCountBySegmentId;
+
+    BGL_FORALL_VERTICES(v, graph, MetaMarkerGraph) {
+        MetaMarkerGraphVertex& vertex = graph[v];
+        const SegmentId segmentId = vertex.segmentId;
+
+        if(segmentId >= vertexCountBySegmentId.size()) {
+            vertexCountBySegmentId.resize(segmentId + 1, 0);
+        }
+
+        graph[v].sequenceNumber = vertexCountBySegmentId[segmentId];
+        ++vertexCountBySegmentId[segmentId];
+    }
+
+}
 
 
 void MetaMarkerGraph::createEdges()
