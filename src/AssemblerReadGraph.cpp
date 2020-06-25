@@ -237,7 +237,7 @@ bool Assembler::createLocalReadGraph(
         // Loop over edges of the global read graph involving this vertex.
         for (const uint64_t i: readGraph.connectivity[orientedReadId0.getValue()]) {
             SHASTA_ASSERT(i < readGraph.edges.size());
-            const ReadGraphEdge &globalEdge = readGraph.edges[i];
+            const ReadGraphEdge& globalEdge = readGraph.edges[i];
 
             if (!allowCrossStrandEdges && globalEdge.crossesStrands) {
                 continue;
@@ -252,7 +252,7 @@ bool Assembler::createLocalReadGraph(
             }
 
             // Get alignment information.
-            const AlignmentData &alignment = alignmentData[globalEdge.alignmentId];
+            const AlignmentData& alignment = alignmentData[globalEdge.alignmentId];
             OrientedReadId alignmentOrientedReadId0(alignment.readIds[0], 0);
             OrientedReadId alignmentOrientedReadId1(alignment.readIds[1], alignment.isSameStrand ? 0 : 1);
             AlignmentInfo alignmentInfo = alignment.info;
