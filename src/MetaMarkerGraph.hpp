@@ -68,6 +68,22 @@ public:
     {
         return to_string(segmentId) + "-" + to_string(vertexId);
     }
+
+    // Color the vertex by coverage.
+    string color() const
+    {
+        const auto coverage = orientedReads.size();
+        SHASTA_ASSERT(coverage > 0);
+        if(coverage == 1) {
+            return "red";
+        } else if(coverage == 2) {
+            return "orange";
+        } else if(coverage == 3) {
+            return "green";
+        } else {
+            return "black";
+        }
+    }
 };
 
 
@@ -79,6 +95,22 @@ public:
     // The meta-ordinal is the position of the source vertex of this edge
     // in the oriented read pseudo-path.
     vector< pair<OrientedReadId, uint64_t> > orientedReads;
+
+    // Color the edge by coverage.
+    string color() const
+    {
+        const auto coverage = orientedReads.size();
+        SHASTA_ASSERT(coverage > 0);
+        if(coverage == 1) {
+            return "red";
+        } else if(coverage == 2) {
+            return "orange";
+        } else if(coverage == 3) {
+            return "green";
+        } else {
+            return "black";
+        }
+    }
 };
 
 

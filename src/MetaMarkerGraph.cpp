@@ -295,7 +295,11 @@ void MetaMarkerGraph::writeGraphviz(
         if(startSegmentId!=std::numeric_limits<SegmentId>::max() and
             vertex.segmentId == startSegmentId) {
             graphOut << " style=filled fillcolor=pink";
+        } else {
+            const string color = vertex.color();
+            graphOut << " style=filled color=" << color << " fillcolor=" << color;
         }
+
         graphOut << "];\n";
     }
 
@@ -305,11 +309,12 @@ void MetaMarkerGraph::writeGraphviz(
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         const auto coverage = graph[e].orientedReads.size();
+        const auto color = graph[e].color();
         graphOut << graph[v0].vertexId << "->" << graph[v1].vertexId <<
             " ["
             "tooltip=\"Coverage " << coverage << "\""
-            " penwidth=" << int(1 + 0.3* double(coverage)) << "]"
-            << ";\n";
+            // " color=" << color << "]"
+            "];\n";
     }
 
     graphOut << "}\n";
@@ -360,14 +365,16 @@ void MetaMarkerGraph::writeVerticesCsv(const string& fileName) const
     const Graph& graph = *this;
 
     ofstream csv(fileName);
-    csv << "VertexId,Segment id,Marker count,Coverage,Segment id and coverage\n";
+    csv << "GfaId,VertexId,Segment id,Marker count,Coverage,Color,Segment id and coverage\n";
 
     BGL_FORALL_VERTICES(v, graph, Graph) {
         const MetaMarkerGraphVertex& vertex = graph[v];
+        csv << vertex.gfaId() << ",";
         csv << vertex.vertexId << ",";
         csv << vertex.segmentId << ",";
         csv << vertex.markerCount << ",";
         csv << vertex.orientedReads.size() << ",";
+        csv << vertex.color() << ",";
         csv << vertex.segmentId << "/";
         csv << vertex.orientedReads.size() << "\n";
     }
