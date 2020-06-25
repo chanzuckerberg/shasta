@@ -24,7 +24,7 @@ namespace shasta {
 
     using MetaMarkerGraphBaseClass = boost::adjacency_list<
         boost::listS,
-        boost::vecS,
+        boost::listS,
         boost::bidirectionalS,
         MetaMarkerGraphVertex,
         MetaMarkerGraphEdge
@@ -36,8 +36,6 @@ namespace shasta {
 
 class shasta::MetaMarkerGraphVertex {
 public:
-
-    uint64_t vertexId;
 
     // The id of the assembly graph edge (segment)
     // corresponding to this vertex of the MetaMarkerGraph.
@@ -68,6 +66,11 @@ public:
     string gfaId() const
     {
         return to_string(segmentId) + "_" + to_string(sequenceNumber);
+    }
+
+    uint64_t coverage() const
+    {
+        return orientedReads.size();
     }
 
     // Color the vertex by coverage.
@@ -144,6 +147,9 @@ public:
     void findBackwardChokePoints(
         SegmentId segmentId,
         vector<vertex_descriptor>&);
+
+    // Recursively prune all leafs with coverage less than minCoverage.
+    void prune(uint64_t minCoverage);
 
 private:
 

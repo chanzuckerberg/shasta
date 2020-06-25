@@ -290,6 +290,9 @@ void Assembler::analyzeOrientedReadPaths() const
     // Neighbor count for the MetaReadGraph.
     const uint64_t neighborCount = 3;
 
+    // Minimum coverage for a leaf to be left alone during pruning.
+    const uint64_t minCoverageForPruning = 2;
+
 
 
     // Compute the pseudo-path of each oriented read.
@@ -700,6 +703,7 @@ void Assembler::analyzeOrientedReadPaths() const
     graph.createEdges();
     graph.transitiveReduction();
     graph.generateSequenceNumbers();
+    graph.prune(minCoverageForPruning);
     graph.writeGraphviz("MetaMarkerGraph.dot");
     graph.writeGfa("MetaMarkerGraph.gfa");
     graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");

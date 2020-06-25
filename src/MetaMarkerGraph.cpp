@@ -7,6 +7,7 @@ using namespace shasta;
 #include <list>
 #include <queue>
 #include <set>
+#include <stack>
 
 
 void MetaMarkerGraph::addVertex(
@@ -176,6 +177,94 @@ void MetaMarkerGraph::transitiveReduction()
     }
 }
 
+
+
+// Recursively prune all leafs with coverage less than minCoverage.
+void MetaMarkerGraph::prune(uint64_t minCoverage)
+{
+    MetaMarkerGraph& graph = *this;
+    const bool debug = false;
+
+    // Gather all leafs with low coverage.
+    std::stack<vertex_descriptor> unprocessedLowCoverageLeafs;
+    BGL_FORALL_VERTICES(v, graph, MetaMarkerGraph) {
+        if(graph[v].coverage() >= minCoverage) {
+            continue;
+        }
+        const bool isLeaf = (out_degree(v, graph)==0) or (in_degree(v, graph) == 0);
+        if(not isLeaf) {
+            continue;
+        }
+        unprocessedLowCoverageLeafs.push(v);
+    }
+
+
+
+    // Main recursive pruning loop.
+    while(not unprocessedLowCoverageLeafs.empty()) {
+        const vertex_descriptor v0 = unprocessedLowCoverageLeafs.top();
+        if(debug) {
+            cout << "Found leaf " << v0 << " " << graph[v0].gfaId() << endl;
+        }
+        unprocessedLowCoverageLeafs.pop();
+        SHASTA_ASSERT(graph[v0].coverage() < minCoverage);
+        SHASTA_ASSERT((out_degree(v0, graph)==0) or (in_degree(v0, graph) == 0));
+
+        // Forward leaf. We have to check if any parents now become low coverage leafs.
+        if((out_degree(v0, graph)==0)) {
+            BGL_FORALL_INEDGES(v0, e, graph, MetaMarkerGraph) {
+                const vertex_descriptor v1 = source(e, graph);
+                if(graph[v1].coverage() >= minCoverage) {
+                    continue;   // Has high coverage. Skip.
+                }
+                if(out_degree(v1, graph) > 1) {
+                    continue;   // v1 has other children. Skip.
+                }
+                if(in_degree(v1, graph) == 0) {
+                    continue;   // v1 is already a leaf. No reason to add to the stack. Skip.
+                }
+                unprocessedLowCoverageLeafs.push(v1);
+                if(debug) {
+                    cout << "Added to stack " << v1 << " " << graph[v1].gfaId() << endl;
+                }
+            }
+        }
+
+        // Backward leaf. We have to check if any children now become low coverage leafs.
+        else if((in_degree(v0, graph)==0)) {
+            BGL_FORALL_OUTEDGES(v0, e, graph, MetaMarkerGraph) {
+                const vertex_descriptor v1 = target(e, graph);
+                if(graph[v1].coverage() >= minCoverage) {
+                    continue;   // Has high coverage. Skip.
+                }
+                if(in_degree(v1, graph) > 1) {
+                    continue;   // v1 has other parents. Skip.
+                }
+                if(out_degree(v1, graph) == 0) {
+                    continue;   // v1 is already a leaf. No reason to add to the stack. Skip.
+                }
+                unprocessedLowCoverageLeafs.push(v1);
+                if(debug) {
+                    cout << "Added to stack " << v1 << " " << graph[v1].gfaId() << endl;
+                }
+            }
+        }
+
+        else {
+            SHASTA_ASSERT(0);
+        }
+
+        if(debug) {
+            cout << "Removed " << v0 << " "  << graph[v0].gfaId() << endl;
+        }
+        clear_vertex(v0, graph);
+        remove_vertex(v0, graph);
+    }
+
+}
+
+
+
 // Find the vertex corresponding to a given segment id,
 // or null_vertex if not exactly one found.
 MetaMarkerGraph::vertex_descriptor MetaMarkerGraph::findVertex(SegmentId segmentId) const
@@ -268,6 +357,10 @@ void MetaMarkerGraph::findForwardChokePoints(
     SegmentId startSegmentId,
     vector<vertex_descriptor>& chokePoints)
 {
+    // To restore this, the second template argument must be vecS.
+    SHASTA_ASSERT(0);
+
+#if 0
     const MetaMarkerGraph& graph = *this;
     chokePoints.clear();
 
@@ -279,6 +372,7 @@ void MetaMarkerGraph::findForwardChokePoints(
 
     // Find the forward choke points.
     shasta::findForwardChokePoints(graph, startVertex, chokePoints);
+#endif
 }
 
 
@@ -288,6 +382,10 @@ void MetaMarkerGraph::findBackwardChokePoints(
     SegmentId startSegmentId,
     vector<vertex_descriptor>& chokePoints)
 {
+    // To restore this, the second template argument must be vecS.
+    SHASTA_ASSERT(0);
+
+#if 0
     const MetaMarkerGraph& graph = *this;
     chokePoints.clear();
 
@@ -299,6 +397,7 @@ void MetaMarkerGraph::findBackwardChokePoints(
 
     // Find the backward choke points.
     shasta::findBackwardChokePoints(graph, startVertex, chokePoints);
+#endif
 }
 
 
@@ -318,7 +417,7 @@ void MetaMarkerGraph::writeGraphviz(
         const MetaMarkerGraphVertex& vertex = graph[v];
 
         graphOut <<
-            vertex.vertexId <<
+            vertex.gfaId() <<
             " [label=\"" << vertex.segmentId << "\" tooltip=\"Segment " <<
             vertex.segmentId << ", " <<
             vertex.markerCount << " markers, coverage " <<
@@ -342,7 +441,7 @@ void MetaMarkerGraph::writeGraphviz(
         const vertex_descriptor v1 = target(e, graph);
         const auto coverage = graph[e].orientedReads.size();
         const auto color = graph[e].color();
-        graphOut << graph[v0].vertexId << "->" << graph[v1].vertexId <<
+        graphOut << graph[v0].gfaId() << "->" << graph[v1].gfaId() <<
             " ["
             "tooltip=\"Coverage " << coverage << "\""
             // " color=" << color << "]"
@@ -424,8 +523,8 @@ void MetaMarkerGraph::writeEdgesCsv(const string& fileName) const
     BGL_FORALL_EDGES(e, graph, Graph) {
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
-        csv << graph[v0].vertexId << ",";
-        csv << graph[v1].vertexId << ",";
+        csv << graph[v0].gfaId() << ",";
+        csv << graph[v1].gfaId() << ",";
         csv << graph[e].orientedReads.size() << "\n";
     }
 
