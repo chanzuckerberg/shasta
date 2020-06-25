@@ -61,9 +61,9 @@ namespace shasta {
 }
 
 
-// Sanity check that we are compiling on x86_64.
-#if !__x86_64__
-#error "Shasta can only be built on an x86_64 machine (64-bit Intel/AMD)"
+// Sanity check that we are compiling on x86_64 or aarch64
+#if !__x86_64__ && !__aarch64__
+#error "Shasta can only be built on an x86_64 machine (64-bit Intel/AMD) or an ARM64 machine. "
 #endif
 
 
