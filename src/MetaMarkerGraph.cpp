@@ -9,6 +9,27 @@ using namespace shasta;
 #include <set>
 
 
+void MetaMarkerGraph::addVertex(
+    SegmentId segmentId,
+    uint64_t markerCount,
+    const vector< pair<OrientedReadId, uint64_t> >& orientedReads)
+{
+    MetaMarkerGraph& graph = *this;
+
+    const vertex_descriptor v = add_vertex(
+        MetaMarkerGraphVertex(segmentId, markerCount, orientedReads),
+        graph);
+
+    // Update the number of vertices corresponding to this segment
+    // and generate the sequence number for the vertex.
+    if(segmentId >= vertexCountBySegmentId.size()) {
+        vertexCountBySegmentId.resize(segmentId + 1, 0);
+    }
+    graph[v].sequenceNumber = vertexCountBySegmentId[segmentId];
+    ++vertexCountBySegmentId[segmentId];
+}
+
+
 
 void MetaMarkerGraph::createEdges()
 {
@@ -365,18 +386,16 @@ void MetaMarkerGraph::writeVerticesCsv(const string& fileName) const
     const Graph& graph = *this;
 
     ofstream csv(fileName);
-    csv << "GfaId,VertexId,Segment id,Marker count,Coverage,Color,Segment id and coverage\n";
+    csv << "GfaId,Segment id,Sequence number,Marker count,Coverage,Color\n";
 
     BGL_FORALL_VERTICES(v, graph, Graph) {
         const MetaMarkerGraphVertex& vertex = graph[v];
         csv << vertex.gfaId() << ",";
-        csv << vertex.vertexId << ",";
         csv << vertex.segmentId << ",";
+        csv << vertex.sequenceNumber << ",";
         csv << vertex.markerCount << ",";
         csv << vertex.orientedReads.size() << ",";
-        csv << vertex.color() << ",";
-        csv << vertex.segmentId << "/";
-        csv << vertex.orientedReads.size() << "\n";
+        csv << vertex.color() << "\n";
     }
 
 }

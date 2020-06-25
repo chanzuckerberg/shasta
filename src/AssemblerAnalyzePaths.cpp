@@ -670,7 +670,6 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
 
     // Create vertices of the MetaMarkerGraph.
     MetaMarkerGraph graph;
-    uint64_t vertexId = 0;
     for(uint64_t i=0; i<n; i++) {
         const vector< pair<OrientedReadId, uint64_t > >& v = vertices[i];
         if(v.empty()) {
@@ -693,12 +692,10 @@ void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
         }
 
         // Create a vertex with these oriented reads and meta ordinals.
-        add_vertex(MetaMarkerGraphVertex(
-            vertexId++,
+        graph.addVertex(
             firstSegmentId,
             assemblyGraph.edgeLists.size(firstSegmentId),
-            v),
-            graph);
+            v);
     }
     graph.createEdges();
     graph.writeGraphviz("MetaMarkerGraph.dot");
@@ -1452,7 +1449,6 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
     // Create the MetaMarkerGraph, with one vertex for each of
     // the disjoint sets we found.
     MetaMarkerGraph graph;
-    uint64_t vertexId = 0;
     for(uint64_t i=0; i<n; i++) {
         const vector< pair<uint64_t, uint64_t > >& v = vertices[i];
         if(not v.empty()) {
@@ -1461,12 +1457,10 @@ void Assembler::analyzeOrientedReadPathsThroughSegment(
             for(const auto& p: v) {
                 u.push_back(make_pair(orientedReadIds[p.first], p.second));
             }
-            add_vertex(MetaMarkerGraphVertex(
-                vertexId++,
+            graph.addVertex(
                 segmentId,
                 assemblyGraph.edgeLists.size(segmentId),
-                u),
-                graph);
+                u);
         }
     }
     graph.createEdges();

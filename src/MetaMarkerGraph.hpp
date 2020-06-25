@@ -43,7 +43,10 @@ public:
     // corresponding to this vertex of the MetaMarkerGraph.
     AssemblyGraph::EdgeId segmentId;
 
-    // The number of markers on that segment,
+    // The sequence number among vertices corresponding to the same segmentId.
+    uint64_t sequenceNumber = std::numeric_limits<uint64_t>::max();
+
+    // The number of markers on that segment.
     uint64_t markerCount;
 
     // The OrientedReadIds and meta-ordinals.
@@ -52,11 +55,9 @@ public:
     vector< pair<OrientedReadId, uint64_t> > orientedReads;
 
     MetaMarkerGraphVertex(
-        uint64_t vertexId,
         AssemblyGraph::EdgeId segmentId,
         uint64_t markerCount,
         const vector< pair<OrientedReadId, uint64_t> >& orientedReads) :
-        vertexId(vertexId),
         segmentId(segmentId),
         markerCount(markerCount),
         orientedReads(orientedReads)
@@ -66,7 +67,7 @@ public:
 
     string gfaId() const
     {
-        return to_string(segmentId) + "-" + to_string(vertexId);
+        return to_string(segmentId) + "_" + to_string(sequenceNumber);
     }
 
     // Color the vertex by coverage.
@@ -119,6 +120,11 @@ class shasta::MetaMarkerGraph : public MetaMarkerGraphBaseClass {
 public:
     using SegmentId = AssemblyGraph::EdgeId;
 
+    void addVertex(
+        SegmentId segmentId,
+        uint64_t markerCount,
+        const vector< pair<OrientedReadId, uint64_t> >& orientedReads);
+
     void createEdges();
     void transitiveReduction();
     void writeGraphviz(const string& fileName,
@@ -143,6 +149,9 @@ private:
     // Find the vertex corresponding to a given segment id,
     // or null_vertex if not exactly one found.
     vertex_descriptor findVertex(SegmentId) const;
+
+    // The number of vertices for each segmentId.
+    vector<uint64_t> vertexCountBySegmentId;
 };
 
 #endif
