@@ -125,19 +125,19 @@ public:
     // Write in Graphviz format.
     void write(
             ostream&,
+            const string& layoutMethod,
             uint32_t maxDistance,
             double vertexScalingFactor,
             double edgeThicknessScalingFactor,
             double edgeArrowScalingFactor,
-            bool dashedContainmentEdges,
             uint32_t maxTrim) const;
     void write(
             const string& fileName,
+            const string& layoutMethod,
             uint32_t maxDistance,
             double vertexScalingFactor,
             double edgeThicknessScalingFactor,
             double edgeArrowScalingFactor,
-            bool dashedContainmentEdges,
             uint32_t maxTrim) const;
 
 private:
@@ -150,21 +150,21 @@ private:
     public:
         Writer(
                 const LocalReadGraph&,
+                const string& layoutMethod,
                 uint32_t maxDistance,
                 double vertexScalingFactor,
                 double edgeThicknessScalingFactor,
                 double edgeArrowScalingFactor,
-                bool dashedContainmentEdges,
                 uint32_t maxTrim);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
         const LocalReadGraph& graph;
+        const string& layoutMethod;
         uint32_t maxDistance;
         double vertexScalingFactor;
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
-        bool dashedContainmentEdges;
         uint32_t maxTrim;
     };
 };
