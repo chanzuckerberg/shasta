@@ -211,6 +211,9 @@ void Assembler::createAssemblyGraphEdges()
         reverseComplementedChain.clear();
     }
 
+    // Free allocated, unused space.
+    assemblyGraph.edgeLists.unreserve();
+    assemblyGraph.reverseComplementEdge.unreserve();
 
 
     // Check that only and all edges of the cleaned up marker graph
@@ -733,6 +736,8 @@ void Assembler::assembleThreadFunction(size_t threadId)
         }
     }
 
+    sequences.unreserve();
+    repeatCounts.unreserve();
 }
 
 
@@ -927,7 +932,6 @@ void Assembler::writeGfa1(const string& fileName)
     }
 
 
-
     // Write GFA links.
     // For each vertex in the assembly graph there is a link for
     // each combination of in-edges and out-edges.
@@ -998,6 +1002,7 @@ void Assembler::writeGfa1(const string& fileName)
                     cigarString << "\n";
             }
         }
+
     }
     cout << timestamp << "writeGfa1 ends" << endl;
 }
@@ -1079,8 +1084,7 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
         gfa << "\n";
     }
 
-
-
+  
     // Write GFA links.
     // For each vertex in the assembly graph there is a link for
     // each combination of in-edges and out-edges.

@@ -328,6 +328,10 @@ void Assembler::computeAlignments(
         }
     }
 
+    // Release unused allocated memory.
+    alignmentData.unreserve();
+    compressedAlignments.unreserve();
+
     cout << "Found and stored " << alignmentData.size() << " good alignments." << endl;
     cout << timestamp << "Creating alignment table." << endl;
     computeAlignmentTable();
@@ -501,6 +505,8 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             }
         }
     }
+
+    thisThreadCompressedAlignments.unreserve();
 }
 
 
@@ -575,6 +581,7 @@ void Assembler::computeAlignmentTable()
         }
     }
 
+    alignmentTable.unreserve();
 
 }
 

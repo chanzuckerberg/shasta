@@ -50,6 +50,8 @@ void Assembler::findAlignmentCandidatesLowHash0(
         readLowHashStatistics,
         largeDataFileNamePrefix,
         largeDataPageSize);
+
+    alignmentCandidates.unreserve();
 }
 
 
@@ -165,6 +167,8 @@ void Assembler::findAlignmentCandidatesLowHash1(
         alignmentCandidates,
         largeDataFileNamePrefix,
         largeDataPageSize);
+    
+    alignmentCandidates.unreserve();
 }
 
 
@@ -259,5 +263,7 @@ void Assembler::markAlignmentCandidatesAllPairs()
             alignmentCandidates.candidates.push_back(OrientedReadPair(r0, r1, false));
         }
     }
+
+    alignmentCandidates.unreserve();
     cout << "Marked all pairs of reads as alignment candidates on both orientations." << endl;
 }

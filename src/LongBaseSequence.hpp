@@ -240,6 +240,7 @@ public:
     void clear();
     void remove();
     void close();
+    void unreserve();
 
     bool isOpen() const
     {

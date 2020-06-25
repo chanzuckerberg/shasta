@@ -372,6 +372,8 @@ void Assembler::createMarkerGraphVertices(
             markerGraph.vertices().append(markerId);
         }
     }
+    markerGraph.vertices().unreserve();
+
     data.isBadDisjointSet.remove();
     data.workArea.remove();
     data.disjointSetMarkers.remove();
@@ -1979,6 +1981,10 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
         thisThreadEdges.remove();
         thisThreadEdgeMarkerIntervals.remove();
     }
+
+    markerGraph.edges.unreserve();
+    markerGraph.edgeMarkerIntervals.unreserve();
+    
     SHASTA_ASSERT(markerGraph.edges.size() == markerGraph.edgeMarkerIntervals.size());
     cout << timestamp << "Found " << markerGraph.edges.size();
     cout << " edges for " << markerGraph.vertexCount() << " vertices." << endl;
@@ -2081,6 +2087,8 @@ void Assembler::createMarkerGraphEdgesThreadFunction0(size_t threadId)
         }
     }
 
+    thisThreadEdges.unreserve();
+    thisThreadEdgeMarkerIntervals.unreserve();
 }
 
 
@@ -4255,6 +4263,8 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
         markerGraph.vertexCoverageData.appendVector(v.begin(), v.end());
     }
 
+    markerGraph.vertexCoverageData.unreserve();
+    
     // Remove the results computed by each thread.
     for(size_t threadId=0; threadId!=threadCount; threadId++) {
         computeMarkerGraphVerticesCoverageDataData.threadVertexIds[threadId]->remove();
@@ -4351,6 +4361,9 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
             }
         }
     }
+
+    threadVertexIds.unreserve();
+    threadCoverageData.unreserve();
 
 }
 
@@ -4604,6 +4617,10 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
 
         }
     }
+    
+    edgeIds.unreserve();
+    consensus.unreserve();
+    overlappingBaseCountVector.unreserve();
 }
 
 
