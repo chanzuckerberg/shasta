@@ -263,7 +263,7 @@ public:
 // In the code and comments below, "segment" is synonym for
 // "assembly graph edge".
 
-void Assembler::analyzeOrientedReadPaths(int readGraphCreationMethod) const
+void Assembler::analyzeOrientedReadPaths() const
 {
     using SegmentId = AssemblyGraph::EdgeId;
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;

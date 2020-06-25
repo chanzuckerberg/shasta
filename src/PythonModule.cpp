@@ -533,8 +533,7 @@ PYBIND11_MODULE(shasta, module)
         .def("colorGfaBySegmentGraphChain",
             &Assembler::colorGfaBySegmentGraphChain)
         .def("analyzeOrientedReadPaths",
-            &Assembler::analyzeOrientedReadPaths,
-            arg("readGraphCreationMethod"))
+            &Assembler::analyzeOrientedReadPaths)
         .def("analyzeOrientedReadPathsThroughSegment",
             (
                 void (Assembler::*)

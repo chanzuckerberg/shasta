@@ -1,10 +1,6 @@
 #!/usr/bin/python3
 
 import shasta
-import GetConfig
-
-# Read the config file.
-config = GetConfig.getConfig()
 
 a = shasta.Assembler()
 a.accessMarkers()
@@ -15,7 +11,7 @@ a.accessMarkerGraphEdges()
 a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
-a.analyzeOrientedReadPaths(int(config['ReadGraph']['creationMethod']))
+a.analyzeOrientedReadPaths()
 
 	
 
