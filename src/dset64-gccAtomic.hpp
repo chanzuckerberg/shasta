@@ -55,15 +55,15 @@
  * and results in optimal speed.
  *
  * The CMPXCHG16B instruction is available on most modern 64-bit x86 processors.
- * Some older processors that don't implement this instruction
- * will crash with an "Illegal instruction" error
- * upon attempting to run this code.
+ * If it is not available, and compilation is done without -mcx16, then gcc
+ * generates slower code. Use of the gcc primitive __sync_bool_compare_and_swap
+ * ensures that the code will execute on both x86_64 and aarch64.
  *
  */
 
-// Sanity check that we are compiling on x86_64.
-#if !__x86_64__
-#error "Shasta can only be built on an x86_64 machine (64-bit Intel/AMD)"
+// Sanity check that we are compiling on x86_64 or aarch64
+#if !__x86_64__ && !__aarch64__
+#error "Shasta can only be built on an x86_64 machine (64-bit Intel/AMD) or an ARM64 machine. "
 #endif
 
 

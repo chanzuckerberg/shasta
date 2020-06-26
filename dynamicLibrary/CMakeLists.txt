@@ -21,8 +21,11 @@ else(BUILD_DEBUG)
 endif(BUILD_DEBUG)
 
 # 16-byte compare and swap.
-# This is required by dset64.hpp/dset64-gccAtomic.hpp".
-add_definitions(-mcx16)
+# This is recommended for dset64.hpp/dset64-gccAtomic.hpp".
+# It's available only on x86 architectures.
+if(X86_64)
+  add_definitions(-mcx16)
+endif(X86_64)
 
 # Native build.
 if(BUILD_NATIVE)

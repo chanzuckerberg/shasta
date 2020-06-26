@@ -21,8 +21,11 @@ else(BUILD_DEBUG)
 endif(BUILD_DEBUG)
 
 # 16-byte compare and swap.
-# This is required by dset64.hpp/dset64-gccAtomic.hpp".
-add_definitions(-mcx16)
+# This is recommended for dset64.hpp/dset64-gccAtomic.hpp".
+# It's available only on x86 architectures.
+if(X86_64)
+    add_definitions(-mcx16)
+endif(X86_64)
 
 # Native build.
 if(BUILD_NATIVE)
@@ -74,19 +77,19 @@ if(MACOS)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive".
-    if(BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+    if(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH)
         target_link_libraries(
             shastaStaticExecutable
             shastaStaticLibrary
             atomic boost_system boost_program_options boost_chrono spoa cpu_features png z
             -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    else(BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+    else(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH)
         target_link_libraries(
             shastaStaticExecutable
             shastaStaticLibrary
             atomic boost_system boost_program_options boost_chrono spoa png z
             -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    endif(BUILD_USE_SPOA_WITH_CPU_DISPATCH) 
+    endif(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH) 
     
 endif(MACOS)
   

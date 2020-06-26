@@ -7,16 +7,20 @@ project(shasta)
 # building the dynamic executable use
 # cmake -DBUILD_DYNAMIC_EXECUTABLE=OFF
 
-
+set(X86_64 OFF)
+if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
+    set(X86_64 ON)
+endif()
 
 # Figure out if we are on macOS.
 set(MACOS OFF)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOS ON)
 endif()
+
+message(STATUS "Processor architecture is " ${CMAKE_HOST_SYSTEM_PROCESSOR})
 message(STATUS "CMAKE_SYSTEM_NAME is " ${CMAKE_SYSTEM_NAME})
 message(STATUS "MACOS is " ${MACOS})
-
 
 
 # Decide what we want to build.
