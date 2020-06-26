@@ -1109,6 +1109,10 @@ void Assembler::writeAssemblyIndex(ostream& html) const
     <td>MinHash bucket population histogram.
 
     <tr>
+    <td><a href='DisjointSetsHistogram.csv'>DisjointSetsHistogram.csv</a>
+    <td>Coverage histogram for all disjoint sets.
+
+    <tr>
     <td><a href='MarkerGraphVertexCoverageHistogram.csv'>MarkerGraphVertexCoverageHistogram.csv</a>
     <td>Coverage histogram for marker graph vertices.
 

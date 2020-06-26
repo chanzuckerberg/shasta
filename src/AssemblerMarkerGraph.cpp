@@ -197,6 +197,31 @@ void Assembler::createMarkerGraphVertices(
 
     // At this point, data.workArea contains the number of oriented markers in
     // each disjoint set.
+    // Compute a histogram of this distribution and write it to a csv file.
+    {
+        vector<uint64_t> histogram;
+        for(MarkerGraph::VertexId i=0; i<data.orientedMarkerCount; i++) {
+            const MarkerGraph::VertexId markerCount = data.workArea[i];
+            if(markerCount >= histogram.size()) {
+                histogram.resize(markerCount+1, 0);
+            }
+            ++histogram[markerCount];
+        }
+
+        ofstream csv("DisjointSetsHistogram.csv");
+        csv << "Coverage,Frequency\n";
+        for(uint64_t coverage=0; coverage<histogram.size(); coverage++) {
+            const uint64_t frequency = histogram[coverage];
+            if(frequency) {
+                csv << coverage << "," << frequency << "\n";
+            }
+        }
+    }
+
+
+
+    // At this point, data.workArea contains the number of oriented markers in
+    // each disjoint set.
     // Replace it with a new numbering, counting only disjoint sets
     // with size not less than minCoverage and not greater than maxCoverage.
     // Note that this numbering is not yet the final vertex numbering,
