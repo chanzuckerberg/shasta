@@ -314,6 +314,10 @@ public:
         // of the marker graph to be kept.
         size_t maxCoverage,
 
+        // Minimum coverage per strand (number of markers required
+        // on each strand) for a vertex of the marker graph to be kept.
+        uint64_t minCoveragePerStrand,
+
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
         size_t threadCount
@@ -1149,6 +1153,7 @@ private:
     public:
 
         // Parameters.
+        uint64_t minCoveragePerStrand;
         int alignMethod;
         size_t maxSkip;
         size_t maxDrift;

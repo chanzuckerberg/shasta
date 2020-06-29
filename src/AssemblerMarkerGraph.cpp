@@ -66,6 +66,10 @@ void Assembler::createMarkerGraphVertices(
     // of the marker graph to be kept.
     size_t maxCoverage,
 
+    // Minimum coverage per strand (number of markers required
+    // on each strand) for a vertex of the marker graph to be kept.
+    uint64_t minCoveragePerStrand,
+
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
     size_t threadCount
@@ -98,6 +102,7 @@ void Assembler::createMarkerGraphVertices(
 
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
+    data.minCoveragePerStrand = minCoveragePerStrand;
     data.alignMethod = alignMethod;
     data.maxSkip = maxSkip;
     data.maxDrift = maxDrift;
@@ -313,7 +318,12 @@ void Assembler::createMarkerGraphVertices(
 
 
 
-    // Flag disjoint sets that contain more than one marker on the same read.
+    // Flag "bad" disjoint sets for which we don't want to
+    // create marker graph vertices. A disjoint set can be flagged
+    // as bad for one of two reasons:
+    // - It contains more than one marker on the same oriented read.
+    // - It does not contain at least minCoveragePerStrand supporting
+    //   oriented reads on each strand.
     data.isBadDisjointSet.createNew(
         largeDataName("tmp-IsBadDisjointSet"),
         largeDataPageSize);
@@ -323,8 +333,10 @@ void Assembler::createMarkerGraphVertices(
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction7, threadCount);
     const size_t badDisjointSetCount = std::count(
         data.isBadDisjointSet.begin(), data.isBadDisjointSet.end(), true);
-    cout << "Found " << badDisjointSetCount << " bad disjoint sets "
-        "with more than one marker on a single read." << endl;
+    cout << "Found " << badDisjointSetCount << " disjoint sets "
+        "with more than one marker on a single oriented read "
+        "or with less than " << minCoveragePerStrand <<
+        " supporting oriented reads on each strand." << endl;
 
 
 
@@ -642,10 +654,17 @@ void Assembler::createMarkerGraphVerticesThreadFunction6(size_t threadId)
 
 
 
+// Flag "bad" disjoint sets for which we don't want to
+// create marker graph vertices. A disjoint set can be flagged
+// as bad for one of two reasons:
+// - It contains more than one marker on the same oriented read.
+// - It does not contain at least minCoveragePerStrand supporting
+//   oriented reads on each strand.
 void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
 {
     const auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
     auto& isBadDisjointSet = createMarkerGraphVerticesData.isBadDisjointSet;
+    const auto minCoveragePerStrand = createMarkerGraphVerticesData.minCoveragePerStrand;
 
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
@@ -655,19 +674,35 @@ void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
             SHASTA_ASSERT(markerCount > 0);
             isBadDisjointSet[disjointSetId] = false;
             if(markerCount == 1) {
+                if(1 < minCoveragePerStrand) {
+                    isBadDisjointSet[disjointSetId] = true;
+                }
                 continue;
             }
-            for(size_t j=1; j<markerCount; j++) {
-                const MarkerId& previousMarkerId = markers[j-1];
+            array<uint64_t, 2> countByStrand = {0, 0};
+            for(size_t j=0; j<markerCount; j++) {
                 const MarkerId& markerId = markers[j];
-                OrientedReadId previousOrientedReadId;
                 OrientedReadId orientedReadId;
-                tie(previousOrientedReadId, ignore) = findMarkerId(previousMarkerId);
                 tie(orientedReadId, ignore) = findMarkerId(markerId);
-                if(orientedReadId.getReadId() == previousOrientedReadId.getReadId()) {
-                    isBadDisjointSet[disjointSetId] = true;
-                    break;
+                ++countByStrand[orientedReadId.getStrand()];
+
+                if(j > 0) {
+                    const MarkerId& previousMarkerId = markers[j-1];
+                    OrientedReadId previousOrientedReadId;
+                    tie(previousOrientedReadId, ignore) = findMarkerId(previousMarkerId);
+                    if(orientedReadId.getReadId() == previousOrientedReadId.getReadId()) {
+                        isBadDisjointSet[disjointSetId] = true;
+                        break;
+                    }
                 }
+            }
+
+            // If we did not flag it above due to more than one marker on the
+            // same oriented read, check it for sufficient coverage on each strand.
+            if(not isBadDisjointSet[disjointSetId]) {
+                isBadDisjointSet[disjointSetId] =
+                    (countByStrand[0] < minCoveragePerStrand) or
+                    (countByStrand[1] < minCoveragePerStrand);
             }
         }
     }

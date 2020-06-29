@@ -212,6 +212,7 @@ public:
     public:
         int minCoverage;
         int maxCoverage;
+        int minCoveragePerStrand;
         int lowCoverageThreshold;
         int highCoverageThreshold;
         int maxDistance;

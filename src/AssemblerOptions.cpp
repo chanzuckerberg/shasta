@@ -459,12 +459,20 @@ void AssemblerOptions::addConfigurableOptions()
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
-        "Minimum number of markers for a marker graph vertex.")
+        "Minimum coverage (number of supporting oriented reads) "
+        "for a marker graph vertex.")
 
         ("MarkerGraph.maxCoverage",
         value<int>(&markerGraphOptions.maxCoverage)->
         default_value(100),
-        "Maximum number of markers for a marker graph vertex.")
+        "Maximum coverage (number of supporting oriented reads) "
+        "for a marker graph vertex.")
+
+        ("MarkerGraph.minCoveragePerStrand",
+        value<int>(&markerGraphOptions.minCoveragePerStrand)->
+        default_value(0),
+        "Minimum coverage (number of supporting oriented reads) "
+        "for each strand for a marker graph vertex.")
 
         ("MarkerGraph.lowCoverageThreshold",
         value<int>(&markerGraphOptions.lowCoverageThreshold)->
@@ -659,6 +667,7 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
     s << "[MarkerGraph]\n";
     s << "minCoverage = " << minCoverage << "\n";
     s << "maxCoverage = " << maxCoverage << "\n";
+    s << "minCoveragePerStrand = " << minCoveragePerStrand << "\n";
     s << "lowCoverageThreshold = " << lowCoverageThreshold << "\n";
     s << "highCoverageThreshold = " << highCoverageThreshold << "\n";
     s << "maxDistance = " << maxDistance << "\n";

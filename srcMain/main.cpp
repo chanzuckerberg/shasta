@@ -889,6 +889,7 @@ void shasta::main::createMarkerGraphVertices(
         assemblerOptions.readGraphOptions.creationMethod,
         assemblerOptions.markerGraphOptions.minCoverage,
         assemblerOptions.markerGraphOptions.maxCoverage,
+        assemblerOptions.markerGraphOptions.minCoveragePerStrand,
         threadCount);
 }
 
