@@ -282,13 +282,13 @@ void Assembler::analyzeOrientedReadPaths() const
     // Alignment scores.
     const int matchScore = 1;
     const int mismatchScore = -1;
-    const int gapScore = -2;
+    const int gapScore = -1;
 
     // The minimum score for an alignment to be used.
     const int minAlignmentScore = 6;
 
     // Neighbor count for the MetaReadGraph.
-    const uint64_t neighborCount = 3;
+    const uint64_t neighborCount = 1000000;
 
     // Minimum coverage for a leaf to be left alone during pruning.
     const uint64_t minCoverageForPruning = 2;
@@ -707,6 +707,7 @@ void Assembler::analyzeOrientedReadPaths() const
     graph.writeGraphviz("MetaMarkerGraph.dot");
     graph.writeGfa("MetaMarkerGraph.gfa");
     graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
+    graph.writeVerticesDetailCsv("MetaMarkerGraphVerticesDetail.csv");
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
     cout << "The MetaMarkerGraph has " << num_vertices(graph) << " vertices and " <<
         num_edges(graph) << " edges." << endl;

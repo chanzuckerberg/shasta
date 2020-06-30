@@ -135,6 +135,7 @@ public:
         SegmentId startSegmentId = std::numeric_limits<SegmentId>::max()) const;
     void writeGfa(const string& fileName) const;
     void writeVerticesCsv(const string& fileName) const;
+    void writeVerticesDetailCsv(const string& fileName) const;
     void writeEdgesCsv(const string& fileName) const;
 
     void findLinearChain(

@@ -512,6 +512,31 @@ void MetaMarkerGraph::writeVerticesCsv(const string& fileName) const
 
 
 
+void MetaMarkerGraph::writeVerticesDetailCsv(const string& fileName) const
+{
+    using Graph = MetaMarkerGraph;
+    const Graph& graph = *this;
+
+    ofstream csv(fileName);
+    csv << "GfaId,Segment id,Sequence number,Oriented read id,Position in pseudo-path\n";
+
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        const MetaMarkerGraphVertex& vertex = graph[v];
+        for(const auto& p: vertex.orientedReads) {
+            const OrientedReadId orientedReadId = p.first;
+            const uint64_t positionInPseudoPath = p.second;
+            csv << vertex.gfaId() << ",";
+            csv << vertex.segmentId << ",";
+            csv << vertex.sequenceNumber << ",";
+            csv << orientedReadId << ",";
+            csv << positionInPseudoPath << "\n";
+        }
+    }
+
+}
+
+
+
 void MetaMarkerGraph::writeEdgesCsv(const string& fileName) const
 {
     using Graph = MetaMarkerGraph;
