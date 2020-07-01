@@ -207,7 +207,7 @@ void Assembler::createMarkerGraphVertices(
         vector<uint64_t> histogram;
         for(MarkerGraph::VertexId i=0; i<data.orientedMarkerCount; i++) {
             const MarkerGraph::VertexId markerCount = data.workArea[i];
-            if(markerCount = 0) {
+            if(markerCount == 0) {
                 continue;
             }
             if(markerCount >= histogram.size()) {
