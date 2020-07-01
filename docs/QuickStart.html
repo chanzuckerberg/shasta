@@ -30,6 +30,13 @@ chmod ugo+x shasta-Linux-0.5.1
 ./shasta-Linux-0.5.1 --input input.fasta
 </pre>
 
+If the above command fails with <code>FATAL: kernel too old</code>, then you should retry
+with <code>shasta-OldLinux-0.5.1</code>, which is a version of Shasta built for older kernels.
+You can find out the kernel version on your system by running <code>uname -a</code>.
+Compare it with the minimum required kernel version for the Shasta executable by running
+<code>file shasta-Linux-0.5.1</code> or <code>file shasta-OldLinux-0.5.1</code>.
+
+<p>
 You can specify multiple input FASTA files, if necessary.
 On a typical laptop, this will run in minutes for a bacterial genome.
 For a human size assembly, AWS instance type <code>x1.32xlarge</code>
