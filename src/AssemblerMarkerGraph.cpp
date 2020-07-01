@@ -3,6 +3,7 @@
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
 #include "compressAlignment.hpp"
+#include "PeakFinder.hpp"
 #ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
 #endif
@@ -223,6 +224,12 @@ void Assembler::createMarkerGraphVertices(
             if(frequency) {
                 csv << coverage << "," << frequency << "\n";
             }
+        }
+
+        if (minCoverage == 0) {
+            shasta::PeakFinder p;
+            p.findPeaks(histogram);
+            minCoverage = p.findXCutoff(histogram);
         }
     }
 
