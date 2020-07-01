@@ -9,13 +9,24 @@
 
 namespace shasta {
 
+    // Find linear chains of edges (paths).
     template<class Graph> void findLinearChains(
         const Graph&,
         vector< std::list<typename Graph::edge_descriptor> >&);
 
+
+    // Find linear chains of vertices.
+    template<class Graph> void findLinearVertexChains(
+        const Graph&,
+        vector< std::list<typename Graph::vertex_descriptor> >&);
+    template<class Graph> void findLinearVertexChains(
+        const Graph&,
+        vector< vector<typename Graph::vertex_descriptor> >&);
 }
 
 
+
+// Find linear chains of edges (paths).
 template<class Graph> inline void shasta::findLinearChains(
     const Graph& graph,
     vector< std::list<typename Graph::edge_descriptor> >& chains)
@@ -99,6 +110,104 @@ template<class Graph> inline void shasta::findLinearChains(
     SHASTA_ASSERT(edgesFound.size() == num_edges(graph));
 }
 
+
+
+// Find linear chains of vertices.
+template<class Graph> void shasta::findLinearVertexChains(
+    const Graph& graph,
+    vector< std::list<typename Graph::vertex_descriptor> >& chains)
+{
+    using vertex_descriptor = typename Graph::vertex_descriptor;
+
+    // The vertices we have already encountered.
+    std::set<vertex_descriptor> verticesFound;
+
+    chains.clear();
+
+    // Consider all possible start vertices for the chain.
+    BGL_FORALL_VERTICES_T(vStart, graph, Graph) {
+
+        // If we already assigned this vertex to a chain, skip it.
+        if(verticesFound.find(vStart) != verticesFound.end()) {
+            continue;
+        }
+
+        // Add a new chain consisting of the start vertex.
+        chains.resize(chains.size() + 1);
+        std::list<vertex_descriptor>& chain = chains.back();
+        chain.push_back(vStart);
+        verticesFound.insert(vStart);
+
+        // Extend forward.
+        bool isCircular = false;
+        vertex_descriptor v = vStart;
+        while(true) {
+            if(out_degree(v, graph) != 1) {
+                break;
+            }
+            BGL_FORALL_OUTEDGES_T(v, e, graph, Graph) {
+                v = target(e, graph);
+                break;
+            }
+            if(v == vStart) {
+                isCircular = true;
+                break;
+            }
+            if(in_degree(v, graph) != 1) {
+                break;
+            }
+            chain.push_back(v);
+            SHASTA_ASSERT(verticesFound.find(v) == verticesFound.end());
+            verticesFound.insert(v);
+        }
+
+        // Extend backward.
+        if(not isCircular) {
+            vertex_descriptor v = vStart;
+            while(true) {
+                if(in_degree(v, graph) != 1) {
+                    break;
+                }
+                BGL_FORALL_INEDGES_T(v, e, graph, Graph) {
+                    v = source(e, graph);
+                    break;
+                }
+                if(out_degree(v, graph) != 1) {
+                    break;
+                }
+                chain.push_front(v);
+                SHASTA_ASSERT(verticesFound.find(v) == verticesFound.end());
+                verticesFound.insert(v);
+            }
+        }
+    }
+
+
+
+    // Check that all vertices were found.
+    SHASTA_ASSERT(verticesFound.size() == num_vertices(graph));
+}
+
+
+
+template<class Graph> void shasta::findLinearVertexChains(
+    const Graph& graph,
+    vector< vector<typename Graph::vertex_descriptor> >& chains)
+{
+    using vertex_descriptor = typename Graph::vertex_descriptor;
+
+    // Find the chains.
+    vector< std::list<typename Graph::vertex_descriptor> > chainLists;
+    findLinearVertexChains(graph, chainLists);
+
+    // Copy lists to vectors.
+    chains.clear();
+    chains.reserve(chainLists.size());
+    for(const auto& chain: chainLists) {
+        chains.push_back(vector<vertex_descriptor>());
+        copy(chain.begin(), chain.end(), back_inserter(chains.back()));
+    }
+}
 
 
 #endif

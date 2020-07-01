@@ -85,7 +85,7 @@ public:
         } else if(coverage == 3) {
             return "green";
         } else {
-            return "black";
+            return "grey";
         }
     }
 };
@@ -134,6 +134,7 @@ public:
     void writeGraphviz(const string& fileName,
         SegmentId startSegmentId = std::numeric_limits<SegmentId>::max()) const;
     void writeGfa(const string& fileName) const;
+    void writeChainsGfa(const string& fileNamePrefix) const;
     void writeVerticesCsv(const string& fileName) const;
     void writeVerticesDetailCsv(const string& fileName) const;
     void writeEdgesCsv(const string& fileName) const;

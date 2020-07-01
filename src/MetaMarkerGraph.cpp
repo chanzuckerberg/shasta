@@ -1,5 +1,6 @@
 #include "MetaMarkerGraph.hpp"
 #include "chokePoints.hpp"
+#include "findLinearChains.hpp"
 using namespace shasta;
 
 #include <boost/graph/iteration_macros.hpp>
@@ -484,6 +485,85 @@ void MetaMarkerGraph::writeGfa(const string& fileName) const
                 graph[v1].gfaId() << "\t" <<
                 "+\t" <<
                 "*\n";
+        }
+    }
+}
+
+
+
+// This version writes a GFA segment for each linear chain in the graph.
+void MetaMarkerGraph::writeChainsGfa(const string& fileNamePrefix) const
+{
+    using Graph = MetaMarkerGraph;
+    const Graph& graph = *this;
+
+    // Find the linear chains of vertices.
+    vector< vector<vertex_descriptor> > chains;
+    findLinearVertexChains(graph, chains);
+    cout << "Found " << chains.size() << " chains." << endl;
+
+
+    // Open the csv file and write the header.
+    ofstream csv(fileNamePrefix + ".csv");
+    csv << "Chain GFA Id,Position,GFA Id,Segment id,Sequence Number\n";
+
+    // Open the gfa file and write the header.
+    ofstream gfa(fileNamePrefix + ".gfa");
+    gfa << "H\tVN:Z:1.0\n";
+
+
+
+    // Loop over all chains.
+    // For each chain write information for that chain
+    // to the csv file and a segment to the gfa file.
+    for(uint64_t chainId=0; chainId!=chains.size(); chainId++) {
+        const auto& chain = chains[chainId];
+
+
+        // Write information on this chain to the csv file.
+        // Also compute the total length of this chain.
+        uint64_t markerCount = 0;
+        for(uint64_t position=0; position<chain.size(); position++) {
+            const vertex_descriptor v = chain[position];
+            const MetaMarkerGraphVertex& vertex = graph[v];
+            markerCount += vertex.markerCount;
+            csv << "C" << chainId << ",";
+            csv << position << ",";
+            csv << vertex.gfaId() << ",";
+            csv << vertex.segmentId << ",";
+            csv << vertex.sequenceNumber << "\n";
+        }
+
+        // Write a GFA segment for this chain
+        gfa <<
+            "S\tC" << chainId << "\t" <<
+            "*\t" <<
+            "LN:i:" << markerCount <<
+            "\n";
+
+    }
+
+
+
+    // Create an index of chains by their first vertex.
+    std::map<vertex_descriptor, vector<uint64_t> > chainMap;
+    for(uint64_t chainId=0; chainId!=chains.size(); chainId++) {
+        const auto& chain = chains[chainId];
+        chainMap[chain.front()].push_back(chainId);
+    }
+
+
+
+    // Write link records.
+    for(uint64_t chainId0=0; chainId0!=chains.size(); chainId0++) {
+        const auto& chain0 = chains[chainId0];
+        const vertex_descriptor v0 = chain0.back();
+        BGL_FORALL_OUTEDGES(v0, e, graph, MetaMarkerGraph) {
+            const vertex_descriptor v1 = target(e, graph);
+            const vector<uint64_t>& chains1 = chainMap[v1];
+            for(const uint64_t chainId1: chains1) {
+                gfa << "L\tC" << chainId0 << "\t+\tC" << chainId1 <<"\t+\t*\n";
+            }
         }
     }
 }

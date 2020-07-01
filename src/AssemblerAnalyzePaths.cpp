@@ -706,6 +706,7 @@ void Assembler::analyzeOrientedReadPaths() const
     graph.generateSequenceNumbers();
     graph.writeGraphviz("MetaMarkerGraph.dot");
     graph.writeGfa("MetaMarkerGraph.gfa");
+    graph.writeChainsGfa("MetaMarkerGraphChains");
     graph.writeVerticesCsv("MetaMarkerGraphVertices.csv");
     graph.writeVerticesDetailCsv("MetaMarkerGraphVerticesDetail.csv");
     graph.writeEdgesCsv("MetaMarkerGraphEdges.csv");
