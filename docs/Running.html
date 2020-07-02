@@ -491,6 +491,19 @@ into workflows and computational pipelines.
 See
 <a href="Docker.html">here</a> for more information.
 
+<h2 id=Errors>Dealing with errors</h2>
+<ul>
+<li> <code>FATAL: kernel too old</code> : If you get this error when using
+<code>shasta-Linux-0.5.1</code>, then you should retry with <code>shasta-OldLinux-0.5.1</code>, which is a version of Shasta built for older kernels.
+You can find out the kernel version on your system by running <code>uname -a</code>.
+Compare it with the minimum required kernel version for the Shasta executable by running
+<code>file shasta-Linux-0.5.1</code> or <code>file shasta-OldLinux-0.5.1</code>.
+
+<li> <code>sh: 1: cannot create /sys/kernel/mm/hugepages/hugepages-2048kB/nr_overcommit_hugepages: Read-only file system</code>: Shasta needs root privilege to use the `hugetlbfs` filesystem. If you're running this in a Docker container, you need to
+use the Docker option <code>--privileged</code>.  	
+</ul>
+
+
 <div class="goto-index"><a href="index.html">Table of contents</a></div>
 </main>
 </body>
