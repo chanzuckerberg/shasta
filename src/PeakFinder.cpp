@@ -16,7 +16,7 @@ shasta::Peak::Peak(uint64_t start):
 {}
 
 
-void PeakFinder::findPeaks(vector<uint64_t>& y){
+void PeakFinder::findPeaks(const vector<uint64_t>& y){
     size_t xSize = y.size();
 
     // Create a vector of values, in which each value can be used to fetch the parent peak for that position in the
@@ -140,7 +140,7 @@ void PeakFinder::sortByPersistence(){
 }
 
 
-uint64_t PeakFinder::calculateArea(vector<uint64_t>& y, uint64_t x_min, uint64_t x_max){
+uint64_t PeakFinder::calculateArea(const vector<uint64_t>& y, uint64_t x_min, uint64_t x_max){
     uint64_t total = 0;
 
     for (size_t i=x_min; i<=x_max; i++){
@@ -151,7 +151,7 @@ uint64_t PeakFinder::calculateArea(vector<uint64_t>& y, uint64_t x_min, uint64_t
 }
 
 
-uint64_t PeakFinder::findXCutoff(vector<uint64_t>& y){
+uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     sortByPersistence();
 
     // find the total AUC
