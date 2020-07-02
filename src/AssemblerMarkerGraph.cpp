@@ -230,6 +230,7 @@ void Assembler::createMarkerGraphVertices(
             shasta::PeakFinder p;
             p.findPeaks(histogram);
             minCoverage = p.findXCutoff(histogram);
+            cout << "Marker.minCoverage inferred during run time: " << minCoverage << '\n';
         }
     }
 
