@@ -1,15 +1,12 @@
-#ifndef SHASTA_PEAKFINDER_HPP
-#define SHASTA_PEAKFINDER_HPP
+#ifndef SHASTA_PEAK_FINDER_HPP
+#define SHASTA_PEAK_FINDER_HPP
 
 
-#include <experimental/filesystem>
-#include <stdexcept>
-#include <iostream>
-#include <utility>
-#include <vector>
+#include "stdexcept.hpp"
+#include "iostream.hpp"
+#include "utility.hpp"
+#include "vector.hpp"
 
-using std::experimental::filesystem::create_directories;
-using std::experimental::filesystem::path;
 using std::runtime_error;
 using std::ostream;
 using std::pair;
@@ -83,4 +80,4 @@ public:
 
 
 
-#endif //SHASTA_PEAKFINDER_HPP
+#endif //SHASTA_PEAK_FINDER_HPP
