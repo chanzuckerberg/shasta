@@ -6,7 +6,7 @@ using std::sort;
 using std::cerr;
 
 
-shasta::Peak::Peak(uint64_t start):
+PeakFinder::Peak::Peak(uint64_t start):
         start(start),
         stop(0),
         left(start),
@@ -140,10 +140,10 @@ void PeakFinder::sortByPersistence(){
 }
 
 
-uint64_t PeakFinder::calculateArea(const vector<uint64_t>& y, uint64_t x_min, uint64_t x_max){
+uint64_t PeakFinder::calculateArea(const vector<uint64_t>& y, uint64_t xMin, uint64_t xMax){
     uint64_t total = 0;
 
-    for (size_t i=x_min; i<=x_max; i++){
+    for (size_t i=xMin; i <= xMax; i++){
         total += y[i];
     }
 
@@ -155,7 +155,7 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     sortByPersistence();
 
     // find the total AUC
-    uint64_t total_area = calculateArea(y, 1, y.size() - 1);
+    uint64_t totalArea = calculateArea(y, 1, y.size() - 1);
 
     // Second most prominent peak
     Peak& p = peaks[1];
@@ -163,18 +163,18 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     // Find the AUC inside the bounds of the peak (from y=0 and up)
     uint64_t peakArea = calculateArea(y, p.left, p.right);
 
-    double percentArea = 100 * (double(peakArea) / double(total_area));
+    double percentArea = 100 * (double(peakArea) / double(totalArea));
 
-    uint64_t x_cutoff;
+    uint64_t xCutoff;
 
     // Check if second most prominent peak is reasonable size (not a false peak)
     if (percentArea > 1){   //TODO: readjust this proportion for histograms with 0=0 frequency
-        x_cutoff = p.left;
+        xCutoff = p.left;
     }
     else{
         throw runtime_error("ERROR: No significant cutoff found in marker frequency histogram");
     }
 
-    return x_cutoff;
+    return xCutoff;
 }
 
