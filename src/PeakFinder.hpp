@@ -19,6 +19,7 @@ namespace shasta {
     class PeakFinder;
 }
 
+
 class shasta::Peak {
 public:
     /// Attributes ///
@@ -48,15 +49,6 @@ ostream& operator<<(ostream& o, shasta::Peak& peak){
     o << peak.start << ',' << peak.stop << ',' << peak.isMerged << ',' << peak.left << ',' << peak.right << ',' << peak.persistence;
 
     return o;
-}
-
-
-shasta::Peak::Peak(uint64_t start){
-    this->left = start;
-    this->right = start;
-    this->start = start;
-    this->stop = 0;
-    this->isMerged = false;
 }
 
 

@@ -6,6 +6,16 @@ using std::sort;
 using std::cerr;
 
 
+shasta::Peak::Peak(uint64_t start):
+        start(start),
+        stop(0),
+        left(start),
+        right(start),
+        isMerged(false),
+        persistence(0)
+{}
+
+
 void PeakFinder::findPeaks(vector<uint64_t>& y){
     size_t xSize = y.size();
 
