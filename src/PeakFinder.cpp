@@ -153,6 +153,11 @@ uint64_t PeakFinder::calculateArea(const vector<uint64_t>& y, uint64_t xMin, uin
 
 
 uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
+    // First check that there is at least one peak (beyond the expected error peak at x=1)
+    if (peaks.size() < 2) {
+        throw PeakFinderException();
+    }
+
     sortByPersistence();
 
     // find the total AUC
