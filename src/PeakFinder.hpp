@@ -64,7 +64,11 @@ using std::cout;
 
 namespace shasta {
     class PeakFinder;
+    class PeakFinderException;
 }
+
+
+class shasta::PeakFinderException{};
 
 
 class shasta::PeakFinder {

@@ -227,10 +227,15 @@ void Assembler::createMarkerGraphVertices(
         }
 
         if (minCoverage == 0) {
-            shasta::PeakFinder p;
-            p.findPeaks(histogram);
-            minCoverage = p.findXCutoff(histogram);
-            cout << "Marker.minCoverage inferred during run time: " << minCoverage << '\n';
+            try {
+                shasta::PeakFinder p;
+                p.findPeaks(histogram);
+                minCoverage = p.findXCutoff(histogram);
+                cout << "MarkerGraph.minCoverage inferred during run time: " << minCoverage << '\n';
+            }
+            catch (PeakFinderException){
+                throw runtime_error("ERROR: No significant cutoff found in distribution");
+            }
         }
     }
 

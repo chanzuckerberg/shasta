@@ -16,6 +16,7 @@ PeakFinder::Peak::Peak(uint64_t start):
 {}
 
 
+
 void PeakFinder::findPeaks(const vector<uint64_t>& y){
     size_t xSize = y.size();
 
@@ -168,11 +169,11 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     uint64_t xCutoff;
 
     // Check if second most prominent peak is reasonable size (not a false peak)
-    if (percentArea > 1){   //TODO: readjust this proportion for histograms with 0=0 frequency
+    if (percentArea > 1){
         xCutoff = p.left;
     }
     else{
-        throw runtime_error("ERROR: No significant cutoff found in marker frequency histogram");
+        throw PeakFinderException();
     }
 
     return xCutoff;
