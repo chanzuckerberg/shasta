@@ -2,8 +2,6 @@
 #include <algorithm>
 
 using namespace shasta;
-using std::sort;
-using std::cerr;
 
 
 PeakFinder::Peak::Peak(uint64_t start):

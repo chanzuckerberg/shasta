@@ -55,12 +55,6 @@
 #include "utility.hpp"
 #include "vector.hpp"
 
-using std::runtime_error;
-using std::ostream;
-using std::pair;
-using std::vector;
-using std::string;
-using std::cout;
 
 namespace shasta {
     class PeakFinder;
