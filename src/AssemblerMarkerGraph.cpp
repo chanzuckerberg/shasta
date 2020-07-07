@@ -3,6 +3,7 @@
 #include "AlignmentGraph.hpp"
 #include "ConsensusCaller.hpp"
 #include "compressAlignment.hpp"
+#include "PeakFinder.hpp"
 #ifdef SHASTA_HTTP_SERVER
 #include "LocalMarkerGraph.hpp"
 #endif
@@ -222,6 +223,18 @@ void Assembler::createMarkerGraphVertices(
             const uint64_t frequency = histogram[coverage];
             if(frequency) {
                 csv << coverage << "," << frequency << "\n";
+            }
+        }
+
+        if (minCoverage == 0) {
+            try {
+                shasta::PeakFinder p;
+                p.findPeaks(histogram);
+                minCoverage = p.findXCutoff(histogram);
+                cout << "MarkerGraph.minCoverage inferred during run time: " << minCoverage << '\n';
+            }
+            catch (PeakFinderException){
+                throw runtime_error("ERROR: No significant cutoff found in distribution");
             }
         }
     }
