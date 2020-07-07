@@ -460,7 +460,9 @@ void AssemblerOptions::addConfigurableOptions()
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
         "Minimum coverage (number of supporting oriented reads) "
-        "for a marker graph vertex.")
+        "for a marker graph vertex to be created."
+        "Specifying 0 causes a suitable value of this parameter "
+        "to be selected automatically.")
 
         ("MarkerGraph.maxCoverage",
         value<int>(&markerGraphOptions.maxCoverage)->

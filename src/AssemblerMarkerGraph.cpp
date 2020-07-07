@@ -231,10 +231,14 @@ void Assembler::createMarkerGraphVertices(
                 shasta::PeakFinder p;
                 p.findPeaks(histogram);
                 minCoverage = p.findXCutoff(histogram);
-                cout << "MarkerGraph.minCoverage inferred during run time: " << minCoverage << '\n';
+                cout << "Automatically selected value of MarkerGraph.minCoverage "
+                    "is " << minCoverage << endl;
             }
             catch (PeakFinderException){
-                throw runtime_error("ERROR: No significant cutoff found in distribution");
+                throw runtime_error(
+                    "Unable to automatically select MarkerGraph.minCoverage. "
+                    "No significant cutoff found in disjoint sets size distribution. "
+                    "See DisjointSetsHistogram.csv.");
             }
         }
     }
