@@ -150,6 +150,9 @@ public:
         SegmentId segmentId,
         vector<vertex_descriptor>&);
 
+    // Remove vertices with coverage less than minCoverage
+    void removeLowCoverageVertices(uint64_t minCoverage);
+
     // Recursively prune all leafs with coverage less than minCoverage.
     void prune(uint64_t minCoverage);
 

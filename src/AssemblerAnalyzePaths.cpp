@@ -290,6 +290,9 @@ void Assembler::analyzeOrientedReadPaths() const
     // Neighbor count for the MetaReadGraph.
     const uint64_t neighborCount = 1000000;
 
+    // Minimum coverage for a marker graph vertex to be kept.
+    const uint64_t minCoverage = 2;
+
     // Minimum coverage for a leaf to be left alone during pruning.
     const uint64_t minCoverageForPruning = 2;
 
@@ -702,6 +705,7 @@ void Assembler::analyzeOrientedReadPaths() const
     }
     graph.createEdges();
     graph.transitiveReduction();
+    graph.removeLowCoverageVertices(minCoverage);
     graph.prune(minCoverageForPruning);
     graph.generateSequenceNumbers();
     graph.writeGraphviz("MetaMarkerGraph.dot");

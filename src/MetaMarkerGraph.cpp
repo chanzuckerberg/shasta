@@ -266,6 +266,27 @@ void MetaMarkerGraph::prune(uint64_t minCoverage)
 
 
 
+// Remove vertices with coverage less than minCoverage
+void MetaMarkerGraph::removeLowCoverageVertices(uint64_t minCoverage)
+{
+    MetaMarkerGraph& graph = *this;
+
+    vector<vertex_descriptor> verticesToBeRemoved;
+    BGL_FORALL_VERTICES(v, graph, MetaMarkerGraph) {
+        if(graph[v].coverage() < minCoverage) {
+            verticesToBeRemoved.push_back(v);
+        }
+    }
+
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        clear_vertex(v, graph);
+        remove_vertex(v, graph);
+    }
+
+}
+
+
+
 // Find the vertex corresponding to a given segment id,
 // or null_vertex if not exactly one found.
 MetaMarkerGraph::vertex_descriptor MetaMarkerGraph::findVertex(SegmentId segmentId) const
