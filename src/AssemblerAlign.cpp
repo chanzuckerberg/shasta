@@ -595,7 +595,7 @@ void Assembler::accessAlignmentData()
 
 
 
-void Assembler::checkAlignmentDataAreOpen()
+void Assembler::checkAlignmentDataAreOpen() const
 {
     if(!alignmentData.isOpen || !alignmentTable.isOpen()) {
         throw runtime_error("Alignment data are not accessible.");

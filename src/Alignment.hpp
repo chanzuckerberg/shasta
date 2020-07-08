@@ -42,6 +42,11 @@ public:
     uint32_t maxSkip() const;
     uint32_t maxDrift() const;
 
+    void swap();
+    void reverseComplement(uint32_t markerCount0, uint32_t markerCount1);
+
+    void checkStrictlyIncreasing() const;
+
 };
 
 

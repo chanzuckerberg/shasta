@@ -27,3 +27,37 @@ uint32_t Alignment::maxDrift() const
     }
     return returnValue;
 }
+
+
+
+void Alignment::swap()
+{
+    for(auto& o: ordinals) {
+        std::swap(o[0], o[1]);
+    }
+}
+
+
+
+void Alignment::reverseComplement(
+    uint32_t markerCount0,
+    uint32_t markerCount1)
+{
+    for(auto& o: ordinals) {
+        o[0] = markerCount0 - 1 - o[0];
+        o[1] = markerCount1 - 1 - o[1];
+    }
+    reverse(ordinals.begin(), ordinals.end());
+}
+
+
+
+void Alignment::checkStrictlyIncreasing() const
+{
+    for(uint64_t i=1; i<ordinals.size(); i++) {
+        const auto& previous = ordinals[i-1];
+        const auto& current = ordinals[i];
+        SHASTA_ASSERT(previous[0] < current[0]);
+        SHASTA_ASSERT(previous[1] < current[1]);
+    }
+}

@@ -270,6 +270,10 @@ PYBIND11_MODULE(shasta, module)
             arg("strand0"),
             arg("readId1"),
             arg("strand1"))
+        .def("analyzeAlignments",
+            &Assembler::analyzeAlignments,
+            arg("readId"),
+            arg("strand"))
 
 
 

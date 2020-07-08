@@ -986,10 +986,20 @@ private:
     MemoryMapped::Vector<AlignmentData> alignmentData;
     MemoryMapped::VectorOfVectors<char, uint64_t> compressedAlignments;
     
-    void checkAlignmentDataAreOpen();
+    void checkAlignmentDataAreOpen() const;
 public:
     void accessCompressedAlignments();
 private:
+
+    // Get the stored compressed alignments involving a given oriented read.
+    // This performs swaps and reverse complementing as necessary,
+    // To return alignments in which the first oriented read is
+    // the one specified as the argument.
+    void getStoredAlignments(
+        OrientedReadId,
+        vector< pair<OrientedReadId, Alignment> >&) const;
+
+
 
     // The alignment table stores the AlignmentData that each oriented read is involved in.
     // Stores, for each OrientedReadId, a vector of indexes into the alignmentData vector.
@@ -1037,6 +1047,12 @@ private:
     vector< pair<OrientedReadId, AlignmentInfo> >
         findOrientedAlignments(OrientedReadId) const;
 
+
+
+    // Analyze the stored alignments involving a given oriented read.
+public:
+    void analyzeAlignments(ReadId, Strand) const;
+private:
 
 
     // Read graph and related functions and data.
