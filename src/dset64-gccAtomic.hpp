@@ -90,26 +90,48 @@ public:
 
     // For memory allocation flexibility, the memory is allocated
     // and owned by the caller.
-    DisjointSets(Aint* mData, Uint size) : mData(mData), n(size) {
+    DisjointSets(Aint* mData, Uint size) : mData(mData), n(size), parentUpdated(0) {
         for (Uint i=0; i<size; ++i)
             mData[i] = Aint(i);
     }
 
-    Uint find(Uint id) const {
+
+    // `find` is guaranteed to return the correct set representative. It is not guaranteed
+    // that the parent information (lower 64 bits) will have the set representative stored in it.
+    // This is because the `__sync_bool_compare_and_swap` could fail because of race conditions.
+    // When `trackParentUpdated` is set to True, we bump a counter that tracks the number
+    // of entries that don't have the set representative populated in their lower 64 bits.
+    //
+    // In a highly parallel environment, where N threads are calling `find` on different
+    // entries in DisjointSets, it is very likely that several entries won't have the
+    // set representative populated as the parent, at the end of the pass.
+    //
+    // If we do multiple such passes over all entries, then within a few iterations, the parent
+    // information in all entries (lower 64 bits) will have the correct set representative.
+    // `this->parentUpdated` can be used to track this convergence. 
+    Uint find(Uint id, bool trackParentUpdated = false) {
+        uint64_t parentUpdatedCount = 0;
         while (id != parent(id)) {
             Aint value = mData[id];
             Uint new_parent = parent((Uint) value);
             Aint new_value =
                 (value & rankMask) | new_parent;
             /* Try to update parent (may fail, that's ok) */
-            if (value != new_value)
-                __sync_bool_compare_and_swap(&mData[id], value, new_value);
+            if (value != new_value) {
+                bool swapped = __sync_bool_compare_and_swap(&mData[id], value, new_value);
+                if (trackParentUpdated && swapped)
+                    parentUpdatedCount++;
+            }
             id = new_parent;
         }
+        if (trackParentUpdated && parentUpdatedCount > 0) {
+            __sync_fetch_and_add(&parentUpdated, parentUpdatedCount);
+        }
+
         return id;
     }
 
-    bool same(Uint id1, Uint id2) const {
+    bool same(Uint id1, Uint id2) {
         for (;;) {
             id1 = find(id1);
             id2 = find(id2);
@@ -167,6 +189,8 @@ public:
     // This provides more flexibility in allocating the memory.
     Aint* mData;
     Uint n;
+
+    uint64_t parentUpdated; // See comment on `find` method for an explanation.
 };
 
 #endif /* __DSET64_HPP */
