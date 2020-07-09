@@ -158,6 +158,20 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
 
     sortByPersistence();
 
+    uint64_t leftBound;
+    uint64_t rightBound;
+
+    // Find the second peak's left bound, in case the error peak is not actually the most persistent
+    if (peaks[1].start < peaks[0].start){
+        leftBound = peaks[1].right;
+        rightBound = peaks[0].right;
+    }
+    else{
+        leftBound = peaks[0].left;
+        rightBound = peaks[0].right;
+    }
+
+
     // find the total AUC
     uint64_t totalArea = calculateArea(y, 1, y.size() - 1);
 
@@ -165,7 +179,7 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     Peak& p = peaks[1];
 
     // Find the AUC inside the bounds of the peak (from y=0 and up)
-    uint64_t peakArea = calculateArea(y, p.left, p.right);
+    uint64_t peakArea = calculateArea(y, leftBound, rightBound);
 
     double percentArea = 100 * (double(peakArea) / double(totalArea));
 
@@ -173,7 +187,7 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
 
     // Check if second most prominent peak is reasonable size (not a false peak)
     if (percentArea > 1){
-        xCutoff = p.left;
+        xCutoff = leftBound;
     }
     else{
         throw PeakFinderException();
