@@ -72,7 +72,8 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
     // Create the csv file and write the header.
     ofstream csv("Alignments.csv");
     csv << "Ordinal0,Coverage,Same strand coverage,Opposite strand coverage,"
-        "Range coverage,Same strand range coverage,Opposite strand range coverage,";
+        "Range coverage,Same strand range coverage,Opposite strand range coverage,"
+        "Coverage ratio,Same strand coverage ratio,Opposite strand coverage ratio,";
     for(const auto& p: alignments) {
         csv << p.first << ",";
     }
@@ -82,20 +83,108 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
 
     // Write the ordinal table to the csv file.
     for(uint32_t ordinal0=0; ordinal0<markerCount0; ordinal0++) {
+        const uint64_t cSameStrand = coverage[ordinal0][0];
+        const uint64_t cOppositeStrand = coverage[ordinal0][1];
+        const uint64_t c = cSameStrand + cOppositeStrand;
+        const uint64_t rcSameStrand = rangeCoverage[ordinal0][0];
+        const uint64_t rcOppositeStrand = rangeCoverage[ordinal0][1];
+        const uint64_t rc = rcSameStrand + rcOppositeStrand;
+        const double rSameStrand  = double(cSameStrand) / double(rcSameStrand);
+        const double rOppositeStrand  = double(cOppositeStrand) / double(rcOppositeStrand);
+        const double r = double(c) / double(rc);
+
         csv << ordinal0 << ",";
-        csv << coverage[ordinal0][0]+coverage[ordinal0][1] << ",";
-        csv << coverage[ordinal0][0] << ",";
-        csv << coverage[ordinal0][1] << ",";
-        csv << rangeCoverage[ordinal0][0]+rangeCoverage[ordinal0][1] << ",";
-        csv << rangeCoverage[ordinal0][0] << ",";
-        csv << rangeCoverage[ordinal0][1] << ",";
-        for(const uint32_t ordinal1: ordinalTable[ordinal0]) {
+        csv << c << ",";
+        csv << cSameStrand << ",";
+        csv << cOppositeStrand << ",";
+        csv << rc << ",";
+        csv << rcSameStrand << ",";
+        csv << rcOppositeStrand << ",";
+        csv << r << ",";
+        csv << rSameStrand << ",";
+        csv << rOppositeStrand << ",";
+        for(uint64_t i=0; i<alignments.size(); i++) {
+            const uint32_t ordinal1 = ordinalTable[ordinal0][i];
             if(ordinal1 != invalidOrdinal) {
                 csv << ordinal1;
+            } else {
+                const Alignment& alignment = alignments[i].second;
+                const uint32_t alignmentBegin0 = alignment.ordinals.front()[0];
+                const uint32_t alignmentEnd0 = alignment.ordinals.back()[0];
+                if((ordinal0 >= alignmentBegin0) and (ordinal0 <= alignmentEnd0)) {
+                    csv << "No";
+                }
             }
             csv << ",";
         }
         csv << "\n";
+    }
+
+
+
+    // Compute coverage histograms and write them out.
+    // 0 = coverage
+    // 1 = same strand coverage
+    // 2 = opposite strand coverage.
+    // 3 = range coverage
+    // 4 = same strand range coverage
+    // 5 = opposite strand range coverage.
+    // Ratio histogram:
+    // 0 = coverage ratio (binned).
+    // 1 = same strand coverage ratio (binned).
+    // 2 = opposite strand coverage ratio (binned).
+    vector< array<uint64_t, 6> > histogram;
+    const uint64_t binCount = 10;
+    const double binSize = 1. / double(binCount);
+    vector< array<uint64_t, 3> > ratioHistogram(binCount + 1, {0,0,0});
+    for(uint32_t ordinal0=0; ordinal0<markerCount0; ordinal0++) {
+        const uint64_t cSameStrand = coverage[ordinal0][0];
+        const uint64_t cOppositeStrand = coverage[ordinal0][1];
+        const uint64_t c = cSameStrand + cOppositeStrand;
+        const uint64_t rcSameStrand = rangeCoverage[ordinal0][0];
+        const uint64_t rcOppositeStrand = rangeCoverage[ordinal0][1];
+        const uint64_t rc = rcSameStrand + rcOppositeStrand;
+        const double rSameStrand  = (rcSameStrand==0 ? 0. : double(cSameStrand) / double(rcSameStrand));
+        const double rOppositeStrand  = (rcOppositeStrand==0 ? 0. : double(cOppositeStrand) / double(rcOppositeStrand));
+        const double r = (rc==0 ? 0. : double(c) / double(rc));
+        const uint64_t irSameStrand = uint64_t(rSameStrand/binSize);
+        const uint64_t irOppositeStrand = uint64_t(rOppositeStrand/binSize);
+        const uint64_t ir = uint64_t(r/binSize);
+
+        SHASTA_ASSERT(cSameStrand <= rcSameStrand);
+        SHASTA_ASSERT(cOppositeStrand <= rcOppositeStrand);
+
+        if(histogram.size() <= rc) {
+            histogram.resize(rc + 1, {0,0,0,0,0,0,});
+        }
+        ++histogram[c][0];
+        ++histogram[cSameStrand][1];
+        ++histogram[cOppositeStrand][2];
+        ++histogram[rc][3];
+        ++histogram[rcSameStrand][4];
+        ++histogram[rcOppositeStrand][5];
+        ++ratioHistogram[ir][0];
+        ++ratioHistogram[irSameStrand][1];
+        ++ratioHistogram[irOppositeStrand][2];
+    }
+    ofstream csv2("AlignmentCoverageHistogram.csv");
+    csv2 << "Coverage value,Total,Same strand,Opposite strand,"
+        "Range total, Range same strand, Range opposite strand\n";
+    for(uint64_t c=0; c<histogram.size(); c++) {
+        csv2 << c << ",";
+        for(uint64_t i=0; i<6; i++) {
+            csv2 << histogram[c][i] << ",";
+        }
+        csv2 << "\n";
+    }
+    ofstream csv3("AlignmentCoverageRatioHistogram.csv");
+    csv3 << "Coverage ratio,Total,Same strand,Opposite strand\n";
+    for(uint64_t c=0; c<ratioHistogram.size(); c++) {
+        csv3 << double(c)*binSize << ",";
+        for(uint64_t i=0; i<3; i++) {
+            csv3 << ratioHistogram[c][i] << ",";
+        }
+        csv3 << "\n";
     }
 }
 
