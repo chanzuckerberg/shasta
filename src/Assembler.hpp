@@ -1062,6 +1062,7 @@ public:
     void createReadGraph(
         uint32_t maxAlignmentCount,
         uint32_t maxTrim);
+    void createReadGraph2();    // Used with ReadGraph.creationMethod 2.
     void accessReadGraph();
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
@@ -1077,6 +1078,8 @@ private:
     };
     FlagCrossStrandReadGraphEdgesData flagCrossStrandReadGraphEdgesData;
 
+    // This is called for ReadGraph.creationMethod 0 and 2.
+    void createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignment);
 
 
 public:

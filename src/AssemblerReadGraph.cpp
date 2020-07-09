@@ -76,6 +76,15 @@ void Assembler::createReadGraph(
     const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
     cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
 
+    // Create the read graph using the alignments we selected.
+    createReadGraphUsingSelectedAlignments(keepAlignment);
+}
+
+
+
+// This is called for ReadGraph.creationMethod 0 and 2.
+void Assembler::createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignment)
+{
 
 
     // Now we can create the read graph.
@@ -107,7 +116,7 @@ void Assembler::createReadGraph(
 
     // Create read graph connectivity.
     readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
-    readGraph.connectivity.beginPass1(orientedReadCount);
+    readGraph.connectivity.beginPass1(2 * readCount());
     for(const ReadGraphEdge& edge: readGraph.edges) {
         readGraph.connectivity.incrementCount(edge.orientedReadIds[0].getValue());
         readGraph.connectivity.incrementCount(edge.orientedReadIds[1].getValue());
@@ -123,7 +132,7 @@ void Assembler::createReadGraph(
     // Count the number of isolated reads and their bases.
     uint64_t isolatedReadCount = 0;
     uint64_t isolatedReadBaseCount = 0;
-    for(ReadId readId=0; readId<readCount; readId++) {
+    for(ReadId readId=0; readId<readCount(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
         const uint64_t neighborCount = readGraph.connectivity.size(orientedReadId.getValue());
         if(neighborCount > 0) {
