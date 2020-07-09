@@ -13,13 +13,13 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
     // Get the alignments involving this oriented read.
     // This returns a vector alignments with swaps and/or
     // reverse complementing already done, as necessary.
-    vector< pair<OrientedReadId, Alignment> > alignments;
+    vector<StoredAlignmentInformation> alignments;
     getStoredAlignments(orientedReadId0, alignments);
     cout << "Found " << alignments.size() << " alignments." << endl;
 
     // Check that all alignments are strictly increasing.
     for(const auto& p: alignments) {
-        p.second.checkStrictlyIncreasing();
+        p.alignment.checkStrictlyIncreasing();
     }
 
 
@@ -32,7 +32,7 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
     vector< vector<uint32_t> > ordinalTable(
         markerCount0, vector<uint32_t>(alignments.size(), invalidOrdinal));
     for(uint64_t i=0; i<alignments.size(); i++) {
-        const Alignment& alignment = alignments[i].second;
+        const Alignment& alignment = alignments[i].alignment;
         for(const auto& o: alignment.ordinals) {
             const uint32_t ordinal0 = o[0];
             const uint32_t ordinal1 = o[1];
@@ -49,8 +49,8 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
     vector< array<uint32_t, 2> > coverage(markerCount0, {0, 0});
     vector< array<uint32_t, 2> > rangeCoverage(markerCount0, {0, 0});
     for(uint64_t i=0; i<alignments.size(); i++) {
-        const OrientedReadId orientedReadId1 = alignments[i].first;
-        const Alignment& alignment = alignments[i].second;
+        const OrientedReadId orientedReadId1 = alignments[i].orientedReadId;
+        const Alignment& alignment = alignments[i].alignment;
         const auto strandIndex = (orientedReadId0.getStrand() == orientedReadId1.getStrand()) ? 0 : 1;
 
         // Update coverage for this alignment.
@@ -75,7 +75,7 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
         "Range coverage,Same strand range coverage,Opposite strand range coverage,"
         "Coverage ratio,Same strand coverage ratio,Opposite strand coverage ratio,";
     for(const auto& p: alignments) {
-        csv << p.first << ",";
+        csv << p.orientedReadId << ",";
     }
     csv << "\n";
 
@@ -108,7 +108,7 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
             if(ordinal1 != invalidOrdinal) {
                 csv << ordinal1;
             } else {
-                const Alignment& alignment = alignments[i].second;
+                const Alignment& alignment = alignments[i].alignment;
                 const uint32_t alignmentBegin0 = alignment.ordinals.front()[0];
                 const uint32_t alignmentEnd0 = alignment.ordinals.back()[0];
                 if((ordinal0 >= alignmentBegin0) and (ordinal0 <= alignmentEnd0)) {
@@ -196,7 +196,7 @@ void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
 // the one specified as the argument.
 void Assembler::getStoredAlignments(
     OrientedReadId orientedReadId0,
-    vector< pair<OrientedReadId, Alignment> > & alignments) const
+    vector<StoredAlignmentInformation> & alignments) const
 {
     // Check that we have what we need.
     checkMarkersAreOpen();
@@ -225,8 +225,9 @@ void Assembler::getStoredAlignments(
 
         // Decompress the alignment.
         alignments.resize(alignments.size() + 1);
-        Alignment& alignment = alignments.back().second;
-        OrientedReadId& orientedReadId1 = alignments.back().first;
+        Alignment& alignment = alignments.back().alignment;
+        OrientedReadId& orientedReadId1 = alignments.back().orientedReadId;
+        alignments.back().alignmentId = alignmentIndex;
         decompress(compressedAlignment, alignment);
         SHASTA_ASSERT(alignment.ordinals.size() == alignmentData.info.markerCount);
 

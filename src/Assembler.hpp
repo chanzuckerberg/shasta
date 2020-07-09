@@ -991,13 +991,21 @@ public:
     void accessCompressedAlignments();
 private:
 
-    // Get the stored compressed alignments involving a given oriented read.
+
+
+    // Get the stored alignments involving a given oriented read.
     // This performs swaps and reverse complementing as necessary,
-    // To return alignments in which the first oriented read is
+    // to return alignments in which the first oriented read is
     // the one specified as the argument.
+    class StoredAlignmentInformation {
+    public:
+        uint64_t alignmentId;
+        OrientedReadId orientedReadId;
+        Alignment alignment;
+    };
     void getStoredAlignments(
         OrientedReadId,
-        vector< pair<OrientedReadId, Alignment> >&) const;
+        vector<StoredAlignmentInformation>&) const;
 
 
 
