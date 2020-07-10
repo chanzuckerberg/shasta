@@ -1,11 +1,36 @@
 #include "Assembler.hpp"
+#include "DeBruijnGraph.hpp"
 #include "compressAlignment.hpp"
 using namespace shasta;
+
+namespace shasta {
+    class AnalyzeAlignments2Graph;
+
+}
+
+
+
+class shasta::AnalyzeAlignments2Graph :
+    public DeBruijnGraph<KmerId, 3, uint64_t> {
+public:
+    void writeGraphviz(
+        const string& fileName,
+        const vector<OrientedReadId>&,
+        const vector<uint32_t>& firstOrdinal) const;
+};
 
 
 
 // Analyze the stored alignments involving a given oriented read.
-void Assembler::analyzeAlignments(ReadId readId0, Strand strand0) const
+void Assembler::analyzeAlignments(ReadId readId, Strand strand) const
+{
+    analyzeAlignments2(readId, strand);
+}
+
+
+
+// This version analyzes alignment coverage.
+void Assembler::analyzeAlignments1(ReadId readId0, Strand strand0) const
 {
     const OrientedReadId orientedReadId0(readId0, strand0);
     cout << "Analyzing stored alignments for " << orientedReadId0 << endl;
@@ -254,4 +279,122 @@ void Assembler::getStoredAlignments(
         SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
         orientedReadId1 = alignmentOrientedReadId1;
     }
+}
+
+
+
+// This version uses a De Bruijn graph to do a mini-assembly
+// using only this oriented read and the aligned portions
+// of oriented reads for which we have an alignment with this one.
+void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
+{
+    // Parameters controlling this function.
+    // Expose when code stabilizes.
+    const uint64_t minCoverage = 3;
+
+    // Get the alignments of this oriented read, with the proper orientation,
+    // and with this oriented read as the first oriented read in the alignment.
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
+        findOrientedAlignments(orientedReadId0);
+    cout << "Found " << alignments.size() << " alignments." << endl;
+
+
+
+    // We will do a small assembly for the marker sequence of this oriented read
+    // plus the aligned portions of the marker sequences of aligned reads.
+    // Gather these sequences.
+    // The marker sequence for this oriented read is stored
+    // at the last position of this vector.
+    using Sequence = vector<KmerId>;
+    using SequenceId = uint64_t;
+    vector<Sequence> sequences(alignments.size() + 1);
+    vector<OrientedReadId> orientedReadIds(sequences.size());
+    vector<uint32_t> firstOrdinals(sequences.size());
+    for(SequenceId sequenceId=0; sequenceId<alignments.size(); sequenceId++) {
+        Sequence& sequence = sequences[sequenceId];
+        const OrientedReadId orientedReadId1 = alignments[sequenceId].first;
+        orientedReadIds[sequenceId] = orientedReadId1;
+        const span<const CompressedMarker> markers1 = markers[orientedReadId1.getValue()];
+        const AlignmentInfo& alignmentInfo = alignments[sequenceId].second;
+        const uint32_t first1 = alignmentInfo.data[1].firstOrdinal;
+        firstOrdinals[sequenceId] = first1;
+        const uint32_t last1 = alignmentInfo.data[1].lastOrdinal;
+        sequence.resize(last1 + 1 - first1);
+        for(uint64_t i=0; i<sequence.size(); i++) {
+            sequence[i] = markers1[first1 + i].kmerId;
+        }
+    }
+    Sequence& sequence0 = sequences.back();
+    orientedReadIds.back() = orientedReadId0;
+    firstOrdinals.back() = 0;
+    const span<const CompressedMarker> markers0 = markers[orientedReadId0.getValue()];
+    const uint64_t markerCount0 = markers0.size();
+    sequence0.resize(markerCount0);
+    for(uint32_t ordinal=0; ordinal!=markerCount0; ordinal++) {
+        sequence0[ordinal] = markers0[ordinal].kmerId;
+    }
+    cout << orientedReadId0 << " has " << markerCount0 << " markers." << endl;
+
+
+    // Create the De Bruijn graph.
+    // Use as SequenceId the index into the above vector of sequences.
+    using Graph = AnalyzeAlignments2Graph;
+    Graph graph;
+    for(SequenceId sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
+        graph.addSequence(sequenceId, sequences[sequenceId]);
+    }
+    graph.removeLowCoverageVertices(minCoverage);
+    graph.createEdges();
+    cout << "The De Bruijn graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+    graph.writeGraphviz("DeBruijnGraph.dot", orientedReadIds, firstOrdinals);
+}
+
+
+
+void AnalyzeAlignments2Graph::writeGraphviz(
+    const string& fileName,
+    const vector<OrientedReadId>& orientedReadIds,
+    const vector<uint32_t>& firstOrdinals) const
+{
+    const Graph& graph = *this;
+    ofstream s(fileName);
+
+    s << "digraph DeBruijnGraph {\n";
+
+
+
+    BGL_FORALL_VERTICES_T(v, graph, Graph) {
+        s << graph[v].vertexId << "[";
+
+        // Label.
+        s << "label=\""  <<
+            graph[v].occurrences.size();
+        for(const auto& occurrence: graph[v].occurrences) {
+            const uint64_t sequenceId = occurrence.first;
+            const uint64_t ordinal = occurrence.second;
+            s << "\\n" << orientedReadIds[sequenceId] << ":" <<
+                firstOrdinals[sequenceId] + ordinal;
+        }
+        s << "\"";
+
+        if(graph[v].occurrences.back().first == orientedReadIds.size()-1) {
+            s << "style=filled fillcolor=pink";
+        }
+
+        s << "];\n";
+    }
+
+
+
+    BGL_FORALL_EDGES_T(e, graph, Graph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        s << graph[v0].vertexId << "->";
+        s << graph[v1].vertexId << ";\n";
+    }
+
+    s << "}\n";
+
 }
