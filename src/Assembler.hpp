@@ -1170,6 +1170,7 @@ public:
 private:
     void createMarkerGraphVerticesThreadFunction1(size_t threadId);
     void createMarkerGraphVerticesThreadFunction2(size_t threadId);
+    void createMarkerGraphVerticesThreadFunction21(size_t threadId);
     void createMarkerGraphVerticesThreadFunction3(size_t threadId);
     void createMarkerGraphVerticesThreadFunction4(size_t threadId);
     void createMarkerGraphVerticesThreadFunction5(size_t threadId);
@@ -1197,8 +1198,6 @@ private:
         uint64_t orientedMarkerCount;
 
         // Disjoint sets data structures.
-        // MemoryMapped::Vector< std::atomic<DisjointSets::Aint> > disjointSetsData;
-        MemoryMapped::Vector<DisjointSets::Aint> disjointSetsData;
         shared_ptr<DisjointSets> disjointSetsPointer;
 
         // The disjoint set that each oriented marker was assigned to.

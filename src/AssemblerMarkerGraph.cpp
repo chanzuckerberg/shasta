@@ -122,14 +122,24 @@ void Assembler::createMarkerGraphVertices(
 
     // Initialize computation of the global marker graph.
     data.orientedMarkerCount = markers.totalSize();
-    data.disjointSetsData.createNew(
-        largeDataName("tmp-DisjointSetData"),
+
+    data.disjointSetTable.createNew(
+        largeDataName("tmp-DisjointSetTable"),
         largeDataPageSize);
-    data.disjointSetsData.reserveAndResize(data.orientedMarkerCount);
+    // DisjointSets data structure needs an additional 64 bits per entry, in order to implement
+    // a lock-free, union-find operation. You can find more information in dset64-gccatomic.hpp.
+    // Once the set representatives have been found, we have no need for these extra 64 bits per entry.
+    //
+    // We allocate twice as much space in data.disjointSetTable so that the underlying memory
+    // can be used as an array of 128 bit integers of size data.orientedMarkerCount. This allows
+    // us to compact the data in-place, there by reducing memory usage.
+    data.disjointSetTable.reserveAndResize(data.orientedMarkerCount * 2);
+    
+    // Have DisjointSets use the memory allocated in and managed by data.disjointSetTable. 
     data.disjointSetsPointer = std::make_shared<DisjointSets>(
-        data.disjointSetsData.begin(),
+        reinterpret_cast<DisjointSets::Aint*>(data.disjointSetTable.begin()),
         data.orientedMarkerCount
-        );
+    );
 
 
 
@@ -146,19 +156,47 @@ void Assembler::createMarkerGraphVertices(
 
 
     // Find the disjoint set that each oriented marker was assigned to.
+    // Iterate till each marker has its set representative populated in the parent (lower 64 bits)
     cout << timestamp << "Finding the disjoint set that each oriented marker was assigned to." << endl;
-    data.disjointSetTable.createNew(
-        largeDataName("tmp-DisjointSetTable"),
-        largeDataPageSize);
-    data.disjointSetTable.reserveAndResize(data.orientedMarkerCount);
-    batchSize = 1000000;
-    cout << "Processing " << data.orientedMarkerCount << " oriented markers." << endl;
-    setupLoadBalancing(data.orientedMarkerCount, batchSize);
-    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction2, threadCount);
+    uint64_t pass = 1;
+    do {
+        (data.disjointSetsPointer)->parentUpdated = 0;
+        cout << "    " << timestamp << " Iteration  " << pass << endl;
+        setupLoadBalancing(data.orientedMarkerCount, batchSize);
+        runThreads(&Assembler::createMarkerGraphVerticesThreadFunction2, threadCount);
+        cout << "    " << timestamp << " Updated parent of - " << (data.disjointSetsPointer)->parentUpdated << " entries." << endl;
+        pass++;
+    } while ((data.disjointSetsPointer)->parentUpdated > 0 && pass <= 10);
 
-    // Free the disjoint set data structure.
+    if (pass > 10) {
+        // This should never happen. Even in a highly parallel environment (128 threads), convergence happens
+        // in 2 or 3 passes. It's definitely worth investigating if this ever happens.
+        string errorMsg = "DisjointSets parent information did not converge in " + to_string(pass) + " iterations.";
+        throw runtime_error(errorMsg);
+    }
+    
+
+    cout << timestamp << "Verifying convergence of parent information." << endl;
+    setupLoadBalancing(data.orientedMarkerCount, batchSize);
+    runThreads(&Assembler::createMarkerGraphVerticesThreadFunction21, threadCount);
+    cout << timestamp << "Done verifying convergence of parent information." << endl;
+
+
+    // data.disjointSetTable now has the correct set representative for entry N at location 2*N.
+    // That's because DisjointSets stores parent information in the lower 64 bits of the 128 bits
+    // it uses for each entry. Since we only care about these bits, we can compact data.disjointSetTable
+    // and free up half the memory.
+    // This bit seems tricky to parallelize. It's not worth the effort as this is pretty fast as is.
+    cout << timestamp << "Compacting the Disjoint Set data-structure." << endl;
+    for(uint64_t i=0; i<data.orientedMarkerCount; i++) {
+        data.disjointSetTable[i] = data.disjointSetTable[2*i];
+    }
+    data.disjointSetTable.resize(data.orientedMarkerCount);
+    data.disjointSetTable.unreserve();
+    cout << timestamp << "Done compacting the Disjoint Set data-structure." << endl;
+
+    // Don't need the DisjointSets data-structure any more.
     data.disjointSetsPointer = 0;
-    data.disjointSetsData.remove();
 
 
     // Debug output.
@@ -176,8 +214,8 @@ void Assembler::createMarkerGraphVertices(
     // and store it in data.workArea.
     // We don't want to combine this with the previous block
     // because it would significantly increase the peak memory usage.
-    // This way, we allocate data.workArea only after freeing the
-    // disjoint set data structure.
+    // This way, we allocate data.workArea only after compacting 
+    // data.disjointSetTable.
     cout << timestamp << "Counting the number of markers in each disjoint set." << endl;
     data.workArea.createNew(
         largeDataName("tmp-WorkArea"),
@@ -408,6 +446,8 @@ void Assembler::createMarkerGraphVertices(
         }
     }
 
+    data.workArea.remove();
+    data.disjointSetTable.remove();
 
 
     // Store the disjoint sets that are not marked bad.
@@ -432,10 +472,8 @@ void Assembler::createMarkerGraphVertices(
     markerGraph.vertices().unreserve();
 
     data.isBadDisjointSet.remove();
-    data.workArea.remove();
     data.disjointSetMarkers.remove();
-    data.disjointSetTable.remove();
-
+    
 
     // Check that the data structures we created are consistent with each other.
     // This could be expensive. Remove when we know this code works.
@@ -614,17 +652,32 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 void Assembler::createMarkerGraphVerticesThreadFunction2(size_t threadId)
 {
     DisjointSets& disjointSets = *createMarkerGraphVerticesData.disjointSetsPointer;
-    auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
-
+    
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
         for(MarkerId i=begin; i!=end; ++i) {
-            const uint64_t disjointSetId = disjointSets.find(i);
-            disjointSetTable[i] = disjointSetId;
+            // Update parent information.
+            disjointSets.find(i, true);
         }
     }
 }
 
+void Assembler::createMarkerGraphVerticesThreadFunction21(size_t threadId)
+{
+    DisjointSets& disjointSets = *createMarkerGraphVerticesData.disjointSetsPointer;
+    const auto& disjointSetTable = createMarkerGraphVerticesData.disjointSetTable;
+
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+        for(MarkerId i=begin; i!=end; ++i) {
+            // Verify that parent has been populated (I.e convergence happened after some iterations of
+            // createMarkerGraphVerticesThreadFunction2)
+            SHASTA_ASSERT(disjointSets.parent(i) == disjointSets.find(i));
+            // Verify that reinterpreting DisjointSets data as a vector of uint64_t will work as expected.
+            SHASTA_ASSERT(disjointSets.parent(i) == disjointSetTable[2*i]);
+        }
+    }
+}
 
 
 void Assembler::createMarkerGraphVerticesThreadFunction3(size_t threadId)

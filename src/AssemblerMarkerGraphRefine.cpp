@@ -87,8 +87,9 @@ void Assembler::refineMarkerGraph(
         }
     }
 
-
-
+    // Clean up.
+    assemblyGraph.remove();
+    
     // Remove the marker graph vertices we flagged.
     MemoryMapped::Vector<MarkerGraph::VertexId> verticesToBeKept;
     verticesToBeKept.createNew(
@@ -109,7 +110,6 @@ void Assembler::refineMarkerGraph(
 
 
     // Clean up.
-    assemblyGraph.remove();
     isVertexToBeRemoved.remove();
     verticesToBeKept.remove();
 
