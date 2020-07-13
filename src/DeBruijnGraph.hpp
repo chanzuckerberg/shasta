@@ -15,6 +15,7 @@
 
 // Standard library.
 #include "fstream.hpp"
+#include <set>
 #include "string.hpp"
 #include "utility.hpp"
 #include "vector.hpp"
@@ -155,6 +156,39 @@ public:
 
 
 
+    // This remove vertices with more than one occurrences of the same sequence.
+    void removeAmbiguousVertices()
+    {
+        Graph& graph = *this;
+
+        vector<vertex_descriptor> verticesTobeRemoved;
+        vector<SequenceId> sequenceIds;
+        BGL_FORALL_VERTICES_T(v, graph, Graph) {
+            const auto& occurrences = graph[v].occurrences;
+            sequenceIds.clear();
+            for(const auto& p: occurrences) {
+                sequenceIds.push_back(p.first);
+            }
+            sort(sequenceIds.begin(), sequenceIds.end());
+            for(uint64_t i=1; i<sequenceIds.size(); i++) {
+                if(sequenceIds[i-1] == sequenceIds[i]) {
+                    verticesTobeRemoved.push_back(v);
+                    break;
+                }
+            }
+        }
+
+
+
+        for(const vertex_descriptor v: verticesTobeRemoved) {
+            clear_vertex(v, graph);
+            remove_vertex(v, graph);
+        }
+
+    }
+
+
+
     // Create the edges of the De Bruijn graph.
     // This should be called after all sequences are added.
     void createEdges()
@@ -188,6 +222,58 @@ public:
     }
 
 
+
+    // Find sets of incompatible vertices.
+    // In a set of incompatible vertices, at least one of the following is true:
+    // - All vertices in the set have in-degree 1, and the same parent.
+    // - OR: All vertices in the set have out-degree 1, and the same child.
+    void findIncompatibleVertexSets(
+        std::set< std::set<vertex_descriptor> >& incompatibleSets) const
+    {
+        const Graph& graph = *this;
+
+        BGL_FORALL_VERTICES_T(v0, graph, Graph) {
+
+            // Check the children.
+            std::set<vertex_descriptor> children;
+            if(out_degree(v0, graph) > 1) {
+                bool ok = true;
+                BGL_FORALL_OUTEDGES_T(v0, e, graph, Graph) {
+                    const vertex_descriptor v1 = target(e, graph);
+                    if(in_degree(v1, graph) != 1) {
+                        ok = false;
+                        break;
+                    }
+                    children.insert(v1);
+                }
+                if(ok) {
+                    incompatibleSets.insert(children);
+                }
+            }
+
+            // Check the parents.
+            std::set<vertex_descriptor> parents;
+            if(in_degree(v0, graph) > 1) {
+                bool ok = true;
+                BGL_FORALL_INEDGES_T(v0, e, graph, Graph) {
+                    const vertex_descriptor v1 = source(e, graph);
+                    if(out_degree(v1, graph) != 1) {
+                        ok = false;
+                        break;
+                    }
+                    parents.insert(v1);
+                }
+                if(ok) {
+                    incompatibleSets.insert(parents);
+                }
+            }
+
+        }
+
+    }
+
+
+
     void writeGraphviz(const string& fileName) const
     {
         const Graph& graph = *this;
@@ -210,6 +296,22 @@ public:
         }
 
         s << "}\n";
+
+    }
+
+
+    void createVertexCoverageHistogram(vector<uint64_t>& histogram) const
+    {
+        const Graph& graph = *this;
+
+        histogram.clear();
+        BGL_FORALL_VERTICES_T(v, graph, Graph) {
+            const uint64_t coverage = graph[v].occurrences.size();
+            if(coverage >= histogram.size()) {
+                histogram.resize(coverage + 1, 0);
+            }
+            ++histogram[coverage];
+        }
 
     }
 };

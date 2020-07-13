@@ -13,6 +13,17 @@ namespace shasta {
 class shasta::AnalyzeAlignments2Graph :
     public DeBruijnGraph<KmerId, 3, uint64_t> {
 public:
+    using SequenceId = uint64_t;
+    void createVertexCoverageHistograms(
+        vector<OrientedReadId>&,
+        vector<uint64_t>& totalCoverageHistogram,
+        vector<uint64_t>& sameStrandCoverageHistogram,
+        vector<uint64_t>& oppositeStrandCoverageHistogram) const;
+    void removeLowCoverageVertices(
+        uint64_t minTotalCoverage,
+        uint64_t minSameStrandCoverage,
+        uint64_t minOppositeStrandCoverage,
+        const vector<OrientedReadId>&);
     void writeGraphviz(
         const string& fileName,
         const vector<OrientedReadId>&,
@@ -290,7 +301,9 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
 {
     // Parameters controlling this function.
     // Expose when code stabilizes.
-    const uint64_t minCoverage = 3;
+    const uint64_t minTotalCoverage = 5;
+    const uint64_t minSameStrandCoverage = 2;
+    const uint64_t minOppositeStrandCoverage = 2;
 
     // Get the alignments of this oriented read, with the proper orientation,
     // and with this oriented read as the first oriented read in the alignment.
@@ -337,6 +350,7 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
     cout << orientedReadId0 << " has " << markerCount0 << " markers." << endl;
 
 
+
     // Create the De Bruijn graph.
     // Use as SequenceId the index into the above vector of sequences.
     using Graph = AnalyzeAlignments2Graph;
@@ -344,13 +358,222 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
     for(SequenceId sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
         graph.addSequence(sequenceId, sequences[sequenceId]);
     }
-    graph.removeLowCoverageVertices(minCoverage);
+    graph.removeAmbiguousVertices();
+
+    // Before removing vertices based on coverage, create a coverage histogram and write it out.
+    vector<uint64_t> totalCoverageHistogram;
+    vector<uint64_t> sameStrandCoverageHistogram;
+    vector<uint64_t> oppositeStrandCoverageHistogram;
+    graph.createVertexCoverageHistograms(
+        orientedReadIds,
+        totalCoverageHistogram,
+        sameStrandCoverageHistogram,
+        oppositeStrandCoverageHistogram);
+    {
+        ofstream csv("DeBruijnGraphCoverageHistogram.csv");
+        csv << "Coverage,Total coverage frequency,"
+            "Same strand coverage frequency,Opposite strand coverage frequency\n";
+        const uint64_t maxCoverage = max(totalCoverageHistogram.size(),
+            max(sameStrandCoverageHistogram.size(),
+            oppositeStrandCoverageHistogram.size()));
+        for(uint64_t coverage=0; coverage<maxCoverage; coverage++) {
+            csv << coverage << ",";
+
+            if(coverage < totalCoverageHistogram.size()) {
+                csv << totalCoverageHistogram[coverage];
+            } else {
+                csv << "0";
+            }
+            csv << ",";
+
+            if(coverage < sameStrandCoverageHistogram.size()) {
+                csv << sameStrandCoverageHistogram[coverage];
+            } else {
+                csv << "0";
+            }
+            csv << ",";
+
+            if(coverage < oppositeStrandCoverageHistogram.size()) {
+                csv << oppositeStrandCoverageHistogram[coverage];
+            } else {
+                csv << "0";
+            }
+            csv << "\n";
+        }
+    }
+
+    // Finish creation of the De Bruijn graph.
+    graph.removeLowCoverageVertices(
+        minTotalCoverage,
+        minSameStrandCoverage,
+        minOppositeStrandCoverage,
+        orientedReadIds);
     graph.createEdges();
     cout << "The De Bruijn graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
     graph.writeGraphviz("DeBruijnGraph.dot", orientedReadIds, firstOrdinals);
+
+
+    // Find sets of incompatible vertices.
+    std::set< std::set<Graph::vertex_descriptor> > incompatibleVertexSets;
+    graph.findIncompatibleVertexSets(incompatibleVertexSets);
+    cout << "Found " << incompatibleVertexSets.size() << " incompatible vertex sets." << endl;
+
+
+
+    // Summarize sets of incompatible vertices.
+    for(const auto& incompatibleVertexSet: incompatibleVertexSets) {
+
+        /*
+        cout << "Incompatible vertex set with " <<
+            incompatibleVertexSet.size() << " vertices:" << endl;
+        for(const Graph::vertex_descriptor v: incompatibleVertexSet) {
+
+            cout << "Vertex " << graph[v].vertexId << endl;
+            for(const auto& p: graph[v].occurrences) {
+                const SequenceId sequenceId = p.first;
+                const uint64_t ordinal = firstOrdinals[sequenceId] + p.second;
+                cout << sequenceId << " " << orientedReadIds[sequenceId] << " " << ordinal << endl;
+            }
+        }
+        */
+
+        // Copy the set to a vector for ease in manipulating.
+        vector<Graph::vertex_descriptor> incompatibleVertexVector(incompatibleVertexSet.size());
+        copy(incompatibleVertexSet.begin(), incompatibleVertexSet.end(), incompatibleVertexVector.begin());
+
+        // Find out in which branch each sequence appears.
+        // -1 = does not appear.
+        // -2 = appears in multiple branches.
+        vector<int64_t> v(sequences.size(), -1);
+        for(uint64_t branch=0; branch<incompatibleVertexVector.size(); branch++) {
+            for(const auto& p: graph[incompatibleVertexVector[branch]].occurrences) {
+                const SequenceId sequenceId = p.first;
+                const int64_t oldValue = v[sequenceId];
+                if(oldValue == -2) {
+                    // Do nothing.
+                } else if(oldValue == -1) {
+                    v[sequenceId] = branch; // This is the first time we see it.
+                } else {
+                    v[sequenceId] = -2;     // We have already seen it.
+                }
+            }
+        }
+        for(const int64_t branch: v) {
+            if(branch == -2) {
+                cout << "?";
+            } else if(branch == -1) {
+                cout << ".";
+            } else {
+                cout << branch;
+            }
+        }
+        cout << endl;
+
+    }
+
 }
 
+
+void AnalyzeAlignments2Graph::createVertexCoverageHistograms(
+    vector<OrientedReadId> & orientedReadIds,
+    vector<uint64_t>& totalCoverageHistogram,
+    vector<uint64_t>& sameStrandCoverageHistogram,
+    vector<uint64_t>& oppositeStrandCoverageHistogram
+    ) const
+{
+    const Graph& graph = *this;
+
+    const Strand strand0 = orientedReadIds.back().getStrand();
+
+    totalCoverageHistogram.clear();
+    sameStrandCoverageHistogram.clear();
+    oppositeStrandCoverageHistogram.clear();
+    BGL_FORALL_VERTICES_T(v, graph, Graph) {
+
+        // Total coverage.
+        const uint64_t totalCoverage = graph[v].occurrences.size();
+        if(totalCoverage >= totalCoverageHistogram.size()) {
+            totalCoverageHistogram.resize(totalCoverage + 1, 0);
+        }
+        ++totalCoverageHistogram[totalCoverage];
+
+        // Compute per strand coverage.
+        array<uint64_t, 2>coveragePerStrand = {0, 0};
+        for(const auto& p: graph[v].occurrences) {
+            const SequenceId sequenceId = p.first;
+            const OrientedReadId orientedReadId = orientedReadIds[sequenceId];
+            ++coveragePerStrand[orientedReadId.getStrand()];
+        }
+        SHASTA_ASSERT(coveragePerStrand[0] + coveragePerStrand[1] == totalCoverage);
+
+        // Same strand coverage
+        uint64_t c = coveragePerStrand[strand0];
+        if(c >= sameStrandCoverageHistogram.size()) {
+            sameStrandCoverageHistogram.resize(c + 1, 0);
+        }
+        ++sameStrandCoverageHistogram[c];
+
+        // Opposite strand coverage
+        c = coveragePerStrand[1-strand0];
+        if(c >= oppositeStrandCoverageHistogram.size()) {
+            oppositeStrandCoverageHistogram.resize(c + 1, 0);
+        }
+        ++oppositeStrandCoverageHistogram[c];
+
+    }
+
+}
+
+
+
+void AnalyzeAlignments2Graph::removeLowCoverageVertices(
+    uint64_t minTotalCoverage,
+    uint64_t minSameStrandCoverage,
+    uint64_t minOppositeStrandCoverage,
+    const vector<OrientedReadId>& orientedReadIds)
+{
+    Graph& graph = *this;
+    using SequenceId = uint64_t;
+
+    const Strand strand0 = orientedReadIds.back().getStrand();
+
+
+    // Gather the vertices to be removed.
+    vector<vertex_descriptor> verticesTobeRemoved;
+    BGL_FORALL_VERTICES_T(v, graph, Graph) {
+
+        if(graph[v].occurrences.size() < minTotalCoverage) {
+
+            // Total coverage is too low.
+            verticesTobeRemoved.push_back(v);
+
+        } else {
+
+            // Total coverage is sufficient. Check coverage per strand.
+            array<uint64_t, 2>coveragePerStrand = {0, 0};
+            for(const auto& p: graph[v].occurrences) {
+                const SequenceId sequenceId = p.first;
+                const OrientedReadId orientedReadId = orientedReadIds[sequenceId];
+                ++coveragePerStrand[orientedReadId.getStrand()];
+            }
+
+            if(
+                (coveragePerStrand[strand0] < minSameStrandCoverage) or
+                (coveragePerStrand[1 - strand0] < minOppositeStrandCoverage)) {
+                verticesTobeRemoved.push_back(v);
+            }
+        }
+    }
+
+
+
+    for(const vertex_descriptor v: verticesTobeRemoved) {
+        clear_vertex(v, graph);
+        remove_vertex(v, graph);
+    }
+
+}
 
 
 void AnalyzeAlignments2Graph::writeGraphviz(
@@ -369,8 +592,7 @@ void AnalyzeAlignments2Graph::writeGraphviz(
         s << graph[v].vertexId << "[";
 
         // Label.
-        s << "label=\""  <<
-            graph[v].occurrences.size();
+        s << "label=\""  << graph[v].vertexId;
         for(const auto& occurrence: graph[v].occurrences) {
             const uint64_t sequenceId = occurrence.first;
             const uint64_t ordinal = occurrence.second;
