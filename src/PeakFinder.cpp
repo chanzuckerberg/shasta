@@ -175,9 +175,6 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     // find the total AUC
     uint64_t totalArea = calculateArea(y, 1, y.size() - 1);
 
-    // Second most prominent peak
-    Peak& p = peaks[1];
-
     // Find the AUC inside the bounds of the peak (from y=0 and up)
     uint64_t peakArea = calculateArea(y, leftBound, rightBound);
 
