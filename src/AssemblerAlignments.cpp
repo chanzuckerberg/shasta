@@ -304,6 +304,7 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
     const uint64_t minTotalCoverage = 5;
     const uint64_t minSameStrandCoverage = 2;
     const uint64_t minOppositeStrandCoverage = 2;
+    const double similarityThreshold = 0.25;
 
     // Get the alignments of this oriented read, with the proper orientation,
     // and with this oriented read as the first oriented read in the alignment.
@@ -421,8 +422,17 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
 
 
 
-    // Summarize sets of incompatible vertices.
-    for(const auto& incompatibleVertexSet: incompatibleVertexSets) {
+    // For each set of incompatible vertices,
+    // construct a signature vector that tells us which of the incompatible vertices
+    // each reads appears in, if any.
+    // >=0: Gives the index of the vertex (in the incompatible set) in which the read appears.
+    // -1 = Read does not appear in the incompatible vertex set.
+    // -2 = Read appears more than once in the incompatible vertex set.
+    vector< vector<int64_t> > signatures(
+        incompatibleVertexSets.size(), vector<int64_t>(sequences.size(), -1));
+
+    uint64_t i = 0;
+    for(const auto& incompatibleVertexSet : incompatibleVertexSets) {
 
         /*
         cout << "Incompatible vertex set with " <<
@@ -445,21 +455,22 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
         // Find out in which branch each sequence appears.
         // -1 = does not appear.
         // -2 = appears in multiple branches.
-        vector<int64_t> v(sequences.size(), -1);
+        vector<int64_t>& signature = signatures[i];
         for(uint64_t branch=0; branch<incompatibleVertexVector.size(); branch++) {
             for(const auto& p: graph[incompatibleVertexVector[branch]].occurrences) {
                 const SequenceId sequenceId = p.first;
-                const int64_t oldValue = v[sequenceId];
+                const int64_t oldValue = signature[sequenceId];
                 if(oldValue == -2) {
                     // Do nothing.
                 } else if(oldValue == -1) {
-                    v[sequenceId] = branch; // This is the first time we see it.
+                    signature[sequenceId] = branch; // This is the first time we see it.
                 } else {
-                    v[sequenceId] = -2;     // We have already seen it.
+                    signature[sequenceId] = -2;     // We have already seen it.
                 }
             }
         }
-        for(const int64_t branch: v) {
+
+        for(const int64_t branch: signature) {
             if(branch == -2) {
                 cout << "?";
             } else if(branch == -1) {
@@ -470,6 +481,45 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
         }
         cout << endl;
 
+        ++i;
+    }
+
+
+
+    // Write a read similarity graph.
+    {
+        ofstream out("MiniAssembly-ReadSimilarityGraph.dot");
+        out << "graph G{\n";
+        for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
+            for(SequenceId sequenceId1=sequenceId0+1; sequenceId1<sequences.size(); sequenceId1++) {
+                uint64_t sameBubbleCount = 0;
+                uint64_t sameBranchCount = 0;
+                for(const auto& signature: signatures) {
+                    const int64_t s0 = signature[sequenceId0];
+                    const int64_t s1 = signature[sequenceId1];
+                    if(s0<0 or s1<0) {
+                        continue;
+                    }
+                    ++sameBubbleCount;
+                    if(s0 == s1) {
+                        ++sameBranchCount;
+                    }
+                }
+                if(sameBubbleCount == 0) {
+                    continue;
+                }
+                const double similarity = double(sameBranchCount) / double(sameBubbleCount);
+                if(similarity > similarityThreshold) {
+                    out << sequenceId0 << "--" << sequenceId1;
+                    out << " [";
+                    out << " penwidth=" << 0.2*double(sameBubbleCount);
+                    out << " color=\"" << similarity/3. << " 1. 1.\"";
+                    out << "]";
+                    out << ";\n";
+                }
+            }
+        }
+        out << "}\n";
     }
 
 }
