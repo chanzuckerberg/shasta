@@ -304,7 +304,8 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
     const uint64_t minTotalCoverage = 5;
     const uint64_t minSameStrandCoverage = 2;
     const uint64_t minOppositeStrandCoverage = 2;
-    const double similarityThreshold = 0.25;
+    const double similarityThreshold = 0.0;
+    // const uint64_t sameBranchCountThreshold = 1;
 
     // Get the alignments of this oriented read, with the proper orientation,
     // and with this oriented read as the first oriented read in the alignment.
@@ -466,6 +467,7 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
                     signature[sequenceId] = branch; // This is the first time we see it.
                 } else {
                     signature[sequenceId] = -2;     // We have already seen it.
+                    SHASTA_ASSERT(0);   // findIncompatibleVertexSets should never generate this.
                 }
             }
         }
@@ -486,9 +488,12 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
 
 
 
-    // Write a read similarity graph.
+    // Write a read similarity graph- version 1.
+    // This only draw edges with similarity greater than similarityThreshold.
+    // Edge color codes similarity (0=red, green=1).
+    // Edge thickness codes the number of contributing bubbles.
     {
-        ofstream out("MiniAssembly-ReadSimilarityGraph.dot");
+        ofstream out("MiniAssembly-ReadSimilarityGraph1.dot");
         out << "graph G{\n";
         for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
             for(SequenceId sequenceId1=sequenceId0+1; sequenceId1<sequences.size(); sequenceId1++) {
@@ -522,6 +527,123 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
         out << "}\n";
     }
 
+
+
+    // Write a read similarity graph - version 2.
+    // This draws all edges for which sameBranchCount > differentBranchCount.
+    // Edge color codes similarity (0=red, green=1).
+    // Edge thickness codes the difference between
+    // the number of bubbles with the two reads on the same branch and
+    // the number of bubbles with the two reads on different branches.
+    {
+        ofstream out("MiniAssembly-ReadSimilarityGraph2.dot");
+        out << "graph G{\n";
+        for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
+            for(SequenceId sequenceId1=sequenceId0+1; sequenceId1<sequences.size(); sequenceId1++) {
+                uint64_t sameBubbleCount = 0;
+                uint64_t sameBranchCount = 0;
+                for(const auto& signature: signatures) {
+                    const int64_t s0 = signature[sequenceId0];
+                    const int64_t s1 = signature[sequenceId1];
+                    if(s0<0 or s1<0) {
+                        continue;
+                    }
+                    ++sameBubbleCount;
+                    if(s0 == s1) {
+                        ++sameBranchCount;
+                    }
+                }
+                if(sameBubbleCount == 0) {
+                    continue;
+                }
+                const double similarity = double(sameBranchCount) / double(sameBubbleCount);
+                const uint64_t differentBranchCount = sameBubbleCount - sameBranchCount;
+                if(sameBranchCount > differentBranchCount) {
+                    out << sequenceId0 << "--" << sequenceId1;
+                    out << " [";
+                    out << " penwidth=" << 0.2*(double(sameBranchCount) - double(differentBranchCount));
+                    out << " color=\"" << similarity/3. << " 1. 1.\"";
+                    out << "]";
+                    out << ";\n";
+                }
+            }
+        }
+        out << "}\n";
+    }
+
+
+
+    // Write a read similarity graph - version 3.
+    // This draws all edges for which sameBranchCount > 0.
+    // Edges are drawn black.
+    // Edge thickness codes sameBranchCount.
+    // This is the best description of the similarity matrix compute below,
+    // which stores sameBranchCount.
+    {
+        ofstream out("MiniAssembly-ReadSimilarityGraph3.dot");
+        out << "graph G{\n";
+        for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
+            for(SequenceId sequenceId1=sequenceId0+1; sequenceId1<sequences.size(); sequenceId1++) {
+                uint64_t sameBubbleCount = 0;
+                uint64_t sameBranchCount = 0;
+                for(const auto& signature: signatures) {
+                    const int64_t s0 = signature[sequenceId0];
+                    const int64_t s1 = signature[sequenceId1];
+                    if(s0<0 or s1<0) {
+                        continue;
+                    }
+                    ++sameBubbleCount;
+                    if(s0 == s1) {
+                        ++sameBranchCount;
+                    }
+                }
+                if(sameBubbleCount == 0) {
+                    continue;
+                }
+                const double similarity = double(sameBranchCount) / double(sameBubbleCount);
+                if(sameBranchCount > 0) {
+                    out << sequenceId0 << "--" << sequenceId1;
+                    out << " [";
+                    out << " penwidth=" << 0.2*double(sameBranchCount);
+                    // out << " color=\"" << similarity/3. << " 1. 1.\"";
+                    out << "]";
+                    out << ";\n";
+                }
+            }
+        }
+        out << "}\n";
+    }
+
+
+
+    // Use the signatures to compute a similarity matrix containing the
+    // number of times each pair appears on the same branch of a bubble,
+    // with a zero diagonal.
+    vector< vector<double> > similarityMatrix(sequences.size(), vector<double>(sequences.size()));
+    for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
+        for(SequenceId sequenceId1=sequenceId0+1; sequenceId1<sequences.size(); sequenceId1++) {
+            if(sequenceId0 == sequenceId1) {
+                similarityMatrix[sequenceId0][sequenceId1] = 0.;
+                continue;
+            }
+            // uint64_t sameBubbleCount = 0;
+            uint64_t sameBranchCount = 0;
+            for(const auto& signature: signatures) {
+                const int64_t s0 = signature[sequenceId0];
+                const int64_t s1 = signature[sequenceId1];
+                if(s0<0 or s1<0) {
+                    continue;
+                }
+                // ++sameBubbleCount;
+                if(s0 == s1) {
+                    ++sameBranchCount;
+                }
+            }
+
+            similarityMatrix[sequenceId0][sequenceId1] = double(sameBranchCount);
+            similarityMatrix[sequenceId1][sequenceId0] = double(sameBranchCount);
+        }
+    }
 }
 
 

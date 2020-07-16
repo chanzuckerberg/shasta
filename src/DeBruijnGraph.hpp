@@ -224,6 +224,8 @@ public:
 
 
     // Find sets of incompatible vertices.
+    // A set of incompatible vertex can be described as the vertices
+    // immediately preceding or following a branch in the graph.
     // In a set of incompatible vertices, at least one of the following is true:
     // - All vertices in the set have in-degree 1, and the same parent.
     // - OR: All vertices in the set have out-degree 1, and the same child.
@@ -246,7 +248,7 @@ public:
                     }
                     children.insert(v1);
                 }
-                if(ok) {
+                if(ok and not isAmbiguous(children)) {
                     incompatibleSets.insert(children);
                 }
             }
@@ -263,13 +265,40 @@ public:
                     }
                     parents.insert(v1);
                 }
-                if(ok) {
+                if(ok and not isAmbiguous(parents)) {
                     incompatibleSets.insert(parents);
                 }
             }
 
         }
 
+    }
+
+
+
+    // Remove true if a vertex set is ambiguous -
+    // that is, if the same SequenceId appears more than once in
+    // the vertices in the set.
+    bool isAmbiguous(std::set<vertex_descriptor>& vertexSet) const
+    {
+        const Graph& graph = *this;
+
+        std::set<SequenceId> alreadyEncountered;
+        for(const vertex_descriptor v: vertexSet) {
+            for(const auto& p: graph[v].occurrences) {
+                const SequenceId sequenceId = p.first;
+                if(alreadyEncountered.find(sequenceId) == alreadyEncountered.end()) {
+                    alreadyEncountered.insert(sequenceId);
+                } else {
+
+                    // We already encountered this sequence.
+                    return true;
+                }
+            }
+        }
+
+        // If we get here, we never encountered a SequenceId more than once.
+        return false;
     }
 
 
