@@ -167,8 +167,8 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
         rightBound = peaks[0].right;
     }
     else{
-        leftBound = peaks[0].left;
-        rightBound = peaks[0].right;
+        leftBound = peaks[1].left;
+        rightBound = peaks[1].right;
     }
 
 
