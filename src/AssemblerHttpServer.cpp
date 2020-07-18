@@ -31,6 +31,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(computeAllAlignments);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAlignmentGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(displayAlignmentMatrix);
+    SHASTA_ADD_TO_FUNCTION_TABLE(assessAlignments);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreReadGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphVertex);
@@ -306,6 +307,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Align one read with all", "computeAllAlignments"},
         {"Alignment graph", "exploreAlignmentGraph"},
         {"Alignment matrix", "displayAlignmentMatrix"},
+        {"Assess alignments", "assessAlignments"},
         });
     writeNavigation(html, "Read graph", {
         {"Read graph", "exploreReadGraph"},

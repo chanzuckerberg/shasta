@@ -2087,6 +2087,7 @@ public:
     );
 #endif
 
+    void assessAlignments(const vector<string>& request, ostream& html);
 
 
     // Compute all alignments for a given read.
