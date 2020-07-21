@@ -2,167 +2,244 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "DeBruijnGraph.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
 
-void Assembler::createReadGraph2()
+void Assembler::createReadGraph2(size_t threadCount)
 {
     // Parameters that control this function.
     // expose when code stabilizes.
+
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    // Mark all alignments as to be kept.
+    createReadGraph2Data.keepAlignment.resize(alignmentData.size());
+    fill(
+        createReadGraph2Data.keepAlignment.begin(),
+        createReadGraph2Data.keepAlignment.end(),
+        true);
+
+    // Parallel loop over reads. For each read, flag the alignments we want to discard.
+    const uint64_t batchSize = 100;
+    setupLoadBalancing(readCount(), batchSize);
+    runThreads(&Assembler::createReadGraph2ThreadFunction, threadCount);;
+
+    // Create the read graph using the alignments we selected.
+    const size_t keepCount =
+        count(
+            createReadGraph2Data.keepAlignment.begin(),
+            createReadGraph2Data.keepAlignment.end(),
+            true);
+    cout << "Keeping " << keepCount << " alignments of " << createReadGraph2Data.keepAlignment.size() << endl;
+    createReadGraphUsingSelectedAlignments(createReadGraph2Data.keepAlignment);
+
+}
+
+
+
+void Assembler::createReadGraph2ThreadFunction(size_t threadId)
+{
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all reads assigned to this batch.
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            createReadGraph2LowLevel(readId);
+        }
+
+    }
+}
+
+
+
+// For one read readId0, flag the alignments we want to discard.
+// Like in analyzeAlignments2 (see AssemblerAlignments.cpp),
+// we do a mini-assembly startting from readId0 on strand 0, that is
+// orientedReadId0 = OrientedReadRead(readId0, 0).
+// The mini-assembly uses orientedReadId0 plus
+// the aligned portions of oriented reads for which
+// we have an alignment with orientedReadId0.
+// We then suppress alignments with oriented reads that tend to end up
+// in different bubble branches from orientedReadId0.
+void Assembler::createReadGraph2LowLevel(ReadId readId0)
+{
+    // Parameters controlling this function.
+    // Expose when code stabilizes.
+    const uint64_t minTotalCoverage = 5;
     const uint64_t minSameStrandCoverage = 2;
     const uint64_t minOppositeStrandCoverage = 2;
-    const uint64_t sampling = 100;
-    const uint64_t maxAlignmentCount = 4;
-
-    // Mark all alignments as not to be kept.
-    vector<bool> keepAlignment(alignmentData.size(), false);
+    const uint64_t minDifferentBranchCount = 2;
 
 
 
-    // Loop over reads. For each read, flag the alignments we want to keep.
-    for(ReadId readId0=0; readId0<readCount(); readId0++) {
+    // Get the alignments of this oriented read, with the proper orientation,
+    // and with this oriented read as the first oriented read in the alignment.
+    const Strand strand0 = 0;
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
+        findOrientedAlignments(orientedReadId0);
 
-        // Work with this read on strand 0.
-        const OrientedReadId orientedReadId0(readId0, 0);
-        const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
 
-        // Get the alignments involving this oriented read.
-        // This returns a vector of alignments with swaps and/or
-        // reverse complementing already done, as necessary.
-        vector<StoredAlignmentInformation> alignments;
-        getStoredAlignments(orientedReadId0, alignments);
 
-        // For each marker ordinal in orientedReadId0:
-        // - Same strand alignment coverage is the number of alignments
-        //   that marker is involved in, with other oriented reads
-        //   on the same strand as orientedReadId0.
-        // - Opposite strand alignment coverage is the number of alignments
-        //   that marker is involved in, with other oriented reads
-        //   on the opposite strand as orientedReadId0.
-        // - Range coverage is the number of alignments such that
-        //   that ordinal is internal to the alignment range.
-        vector<uint64_t> sameStrandCoverage(markerCount0, 0);
-        vector<uint64_t> oppositeStrandCoverage(markerCount0, 0);
-        vector<uint64_t> rangeCoverage(markerCount0, 0);
-        for(const StoredAlignmentInformation& s: alignments) {
-            const OrientedReadId orientedReadId1 = s.orientedReadId;
-            for(const auto& ordinals: s.alignment.ordinals) {
-                const uint32_t ordinal0 = ordinals[0];
-                SHASTA_ASSERT(ordinal0 < markerCount0);
-                if(orientedReadId1.getStrand() == orientedReadId0.getStrand()) {
-                    ++sameStrandCoverage[ordinal0];
-                } else {
-                    ++oppositeStrandCoverage[ordinal0];
-                }
-            }
-            for(uint32_t ordinal0 = s.alignment.ordinals.front()[0];
-                ordinal0 != s.alignment.ordinals.back()[0]; ordinal0++) {
-                ++rangeCoverage[ordinal0];
-            }
+    // We will do a small assembly for the marker sequence of this oriented read
+    // plus the aligned portions of the marker sequences of aligned reads.
+    // Gather these sequences.
+    // The marker sequence for this oriented read is stored
+    // at the last position of this vector.
+    using Sequence = vector<KmerId>;
+    using SequenceId = uint64_t;
+    vector<Sequence> sequences(alignments.size() + 1);
+    vector<OrientedReadId> orientedReadIds(sequences.size());
+    vector<uint32_t> firstOrdinals(sequences.size());
+    for(SequenceId sequenceId=0; sequenceId<alignments.size(); sequenceId++) {
+        Sequence& sequence = sequences[sequenceId];
+        const OrientedReadId orientedReadId1 = alignments[sequenceId].first;
+        orientedReadIds[sequenceId] = orientedReadId1;
+        const span<CompressedMarker> markers1 = markers[orientedReadId1.getValue()];
+        const AlignmentInfo& alignmentInfo = alignments[sequenceId].second;
+        const uint32_t first1 = alignmentInfo.data[1].firstOrdinal;
+        firstOrdinals[sequenceId] = first1;
+        const uint32_t last1 = alignmentInfo.data[1].lastOrdinal;
+        sequence.resize(last1 + 1 - first1);
+        for(uint64_t i=0; i<sequence.size(); i++) {
+            sequence[i] = markers1[first1 + i].kmerId;
         }
-
-
-
-        // Gather sampling marker ordinals such that:
-        // - Same strand coverage >= minSameStrandCoverage.
-        // - Opposite strand coverage >= minOppositeStrandCoverage.
-        // The ordinals are stored in pairs with
-        // coverage ratio (ratio of total coverage over range coverage).
-        vector<pair<uint32_t, double> > samplingOrdinals;
-        for(uint32_t ordinal0=0; ordinal0<markerCount0; ordinal0++) {
-            if(sameStrandCoverage[ordinal0] < minSameStrandCoverage) {
-                continue;
-            }
-            if(oppositeStrandCoverage[ordinal0] < minOppositeStrandCoverage) {
-                continue;
-            }
-            const double coverageRatio =
-                double(sameStrandCoverage[ordinal0] + oppositeStrandCoverage[ordinal0]) /
-                double(rangeCoverage[ordinal0]);
-            samplingOrdinals.push_back(make_pair(ordinal0, coverageRatio));
-        }
-
-        // Sort them in order of increasing coverage ratio.
-        sort(samplingOrdinals.begin(), samplingOrdinals.end(), OrderPairsBySecondOnly<uint32_t, double>());
-
-        // Keep only one every sampling markers.
-        const uint64_t keepCount = markerCount0 / sampling;
-        if(samplingOrdinals.size() > keepCount) {
-            samplingOrdinals.resize(keepCount);
-        }
-        cout << readId0 << ": using " << samplingOrdinals.size() << " sampling ordinals." << endl;
-
-
-
-        // Create an ordinal table which contains, for each ordinal
-        // of orientedReadId0, aligned ordinals for each of the aligned
-        // oriented reads.
-        const uint32_t invalidOrdinal = std::numeric_limits<uint32_t>::max();
-        vector< vector<uint32_t> > ordinalTable(
-            markerCount0, vector<uint32_t>(alignments.size(), invalidOrdinal));
-        for(uint64_t i=0; i<alignments.size(); i++) {
-            const Alignment& alignment = alignments[i].alignment;
-            for(const auto& o: alignment.ordinals) {
-                const uint32_t ordinal0 = o[0];
-                const uint32_t ordinal1 = o[1];
-                SHASTA_ASSERT(ordinal0 < markerCount0);
-                ordinalTable[ordinal0][i] = ordinal1;
-            }
-        }
-
-
-        // For each aligned read, count the number of times each
-        // of the sampling ordinals is:
-        // - Part of the alignment.
-        // - Inside the alignment range.
-        vector< pair<uint64_t, uint64_t> > countTable;  // pair(i, alignedCount).
-        for(uint64_t i=0; i<alignments.size(); i++) {
-            const Alignment& alignment = alignments[i].alignment;
-            const uint32_t firstAligned0 = alignment.ordinals.front()[0];
-            const uint32_t lastAligned0 = alignment.ordinals.back()[0];
-            uint64_t alignedCount = 0;
-            uint64_t inRangeCount = 0;
-            for(const auto& p: samplingOrdinals) {
-                const uint32_t ordinal0 = p.first;
-                if(ordinal0 < firstAligned0) {
-                    continue;
-                }
-                if(ordinal0 > lastAligned0) {
-                    continue;
-                }
-                ++inRangeCount;
-                if(ordinalTable[ordinal0][i] != invalidOrdinal) {
-                    ++alignedCount;
-                }
-            }
-            countTable.push_back(make_pair(i, alignedCount));
-        }
-
-        // Only keep up to maxAlignmentCount.
-        sort(countTable.begin(), countTable.end(),
-            OrderPairsBySecondOnlyGreater<uint64_t, uint64_t>());
-        if(countTable.size() > maxAlignmentCount) {
-            countTable.resize(maxAlignmentCount);
-        }
-
-        cout << "*** " << readId0 << endl;
-        for(const auto& p: countTable) {
-            cout << p.first << " " << p.second << " " <<
-                alignments[p.first].orientedReadId << " " << alignments[p.first].alignmentId << endl;
-        }
-
-        // Mark the alignments with the best aligned counts.
-        for(const auto& p: countTable) {
-            keepAlignment[alignments[p.first].alignmentId] = true;
-        }
+    }
+    Sequence& sequence0 = sequences.back();
+    orientedReadIds.back() = orientedReadId0;
+    firstOrdinals.back() = 0;
+    const span<CompressedMarker> markers0 = markers[orientedReadId0.getValue()];
+    const uint64_t markerCount0 = markers0.size();
+    sequence0.resize(markerCount0);
+    for(uint32_t ordinal=0; ordinal!=markerCount0; ordinal++) {
+        sequence0[ordinal] = markers0[ordinal].kmerId;
     }
 
 
 
-    // Create the read graph using the alignments we selected.
-    const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
-    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
-    createReadGraphUsingSelectedAlignments(keepAlignment);
+    // Create the De Bruijn graph.
+    // Use as SequenceId the index into the above vector of sequences.
+    using Graph = DeBruijnGraph<KmerId, 3, uint64_t>;
+    using vertex_descriptor = Graph::vertex_descriptor;
+    Graph graph;
+    for(SequenceId sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
+        graph.addSequence(sequenceId, sequences[sequenceId]);
+    }
+    graph.removeAmbiguousVertices();
+
+
+
+    // Remove low coverage vertices.
+    vector<vertex_descriptor> verticesTobeRemoved;
+    BGL_FORALL_VERTICES_T(v, graph, Graph) {
+
+        if(graph[v].occurrences.size() < minTotalCoverage) {
+
+            // Total coverage is too low.
+            verticesTobeRemoved.push_back(v);
+
+        } else {
+
+            // Total coverage is sufficient. Check coverage per strand.
+            array<uint64_t, 2>coveragePerStrand = {0, 0};
+            for(const auto& p: graph[v].occurrences) {
+                const SequenceId sequenceId = p.first;
+                const OrientedReadId orientedReadId = orientedReadIds[sequenceId];
+                ++coveragePerStrand[orientedReadId.getStrand()];
+            }
+
+            if(
+                (coveragePerStrand[strand0] < minSameStrandCoverage) or
+                (coveragePerStrand[1 - strand0] < minOppositeStrandCoverage)) {
+                verticesTobeRemoved.push_back(v);
+            }
+        }
+    }
+    for(const vertex_descriptor v: verticesTobeRemoved) {
+        clear_vertex(v, graph);
+        remove_vertex(v, graph);
+    }
+
+
+
+    // Create edges of the De Bruijn graph.
+    graph.createEdges();
+
+    // Find sets of incompatible vertices.
+    std::set< std::set<Graph::vertex_descriptor> > incompatibleVertexSets;
+    graph.findIncompatibleVertexSets(incompatibleVertexSets);
+
+
+
+    // For each set of incompatible vertices,
+    // construct a signature vector that tells us which of the incompatible vertices
+    // each reads appears in, if any.
+    // >=0: Gives the index of the vertex (in the incompatible set) in which the read appears.
+    // -1 = Read does not appear in the incompatible vertex set.
+    vector< vector<int64_t> > signatures(
+        incompatibleVertexSets.size(), vector<int64_t>(sequences.size(), -1));
+
+    uint64_t i = 0;
+    for(const auto& incompatibleVertexSet : incompatibleVertexSets) {
+
+        // Copy the set to a vector for ease in manipulating.
+        vector<Graph::vertex_descriptor> incompatibleVertexVector(incompatibleVertexSet.size());
+        copy(incompatibleVertexSet.begin(), incompatibleVertexSet.end(), incompatibleVertexVector.begin());
+
+        // Find out in which branch each sequence appears.
+        // -1 = does not appear.
+        vector<int64_t>& signature = signatures[i];
+        for(uint64_t branch=0; branch<incompatibleVertexVector.size(); branch++) {
+            for(const auto& p: graph[incompatibleVertexVector[branch]].occurrences) {
+                const SequenceId sequenceId = p.first;
+                const int64_t oldValue = signature[sequenceId];
+                if(oldValue == -1) {
+                    signature[sequenceId] = branch; // This is the first time we see it.
+                } else {
+                    // We have already seen it.
+                    SHASTA_ASSERT(0);   // findIncompatibleVertexSets should never generate this.
+                }
+            }
+        }
+
+        ++i;
+    }
+
+
+
+    // For each of the aligned reads, count how many times it appears
+    // on a different branch than our orientedReadId0.
+    const auto alignmentTable0 = alignmentTable[orientedReadId0.getValue()];
+    for(SequenceId sequenceId=0; sequenceId<sequences.size()-1; sequenceId++) {
+        uint64_t differentBranchCount = 0;
+        for(const vector<int64_t>& signature: signatures) {
+            const int64_t signature0 = signature.back();
+            if(signature0 == -1) {
+                continue;
+            }
+            const int64_t signature1 = signature[sequenceId];
+            if(signature1 == -1) {
+                continue;
+            }
+            if(signature0 != signature1) {
+                ++differentBranchCount;
+            }
+        }
+
+        // If on different branches enough times, discard the alignment
+        // between orientedReadId0 and this oriented read.
+        if(differentBranchCount >= minDifferentBranchCount) {
+            const uint64_t alignmentId = alignmentTable0[sequenceId];
+            createReadGraph2Data.keepAlignment[alignmentId] = false;
+        }
+    }
 
 }
+
+

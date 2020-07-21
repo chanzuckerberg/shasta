@@ -1072,10 +1072,24 @@ public:
     void createReadGraph(
         uint32_t maxAlignmentCount,
         uint32_t maxTrim);
-    void createReadGraph2();    // Used with ReadGraph.creationMethod 2.
     void accessReadGraph();
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
+
+
+
+    // Functions and data used with ReadGraph.creationMethod 2.
+    void createReadGraph2(size_t threadCount);
+private:
+    void createReadGraph2ThreadFunction(size_t threadId);
+    void createReadGraph2LowLevel(ReadId);
+    class CreateReadGraph2Data {
+    public:
+        vector<bool> keepAlignment;
+    };
+    CreateReadGraph2Data createReadGraph2Data;
+public:
+
 
 
     void flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCount);

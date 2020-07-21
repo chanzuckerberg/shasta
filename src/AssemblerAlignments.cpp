@@ -600,7 +600,7 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
                 if(sameBubbleCount == 0) {
                     continue;
                 }
-                const double similarity = double(sameBranchCount) / double(sameBubbleCount);
+                // const double similarity = double(sameBranchCount) / double(sameBubbleCount);
                 if(sameBranchCount > 0) {
                     out << sequenceId0 << "--" << sequenceId1;
                     out << " [";
