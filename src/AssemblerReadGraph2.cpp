@@ -74,7 +74,7 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
     const uint64_t minTotalCoverage = 5;
     const uint64_t minSameStrandCoverage = 2;
     const uint64_t minOppositeStrandCoverage = 2;
-    const uint64_t minDifferentBranchCount = 2;
+    const uint64_t minDifferentBranchCount = 1;
 
 
 
