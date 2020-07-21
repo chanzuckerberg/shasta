@@ -186,16 +186,15 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
         ", " << edge.markerCount << " aligned markers\"";
 
 
-    // A containment alignment is drawn in red, at default thickness.
-    // A non-containment alignment is drawn in black,
-    // with thickness determined by the number of aligned markers.
+    // A containment alignment is drawn in red.
     if( edge.alignmentType == AlignmentType::read0IsContained ||
         edge.alignmentType == AlignmentType::read1IsContained) {
         s << " color=red";
-    } else {
-        s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.markerCount) << "\"";
-        s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
     }
+
+    // Edge thickness is determined by the number of aligned markers.
+    s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.markerCount) << "\"";
+    s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
 
 
     // An edge that crosses strands is drawn dashed.
