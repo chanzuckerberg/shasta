@@ -93,7 +93,7 @@ void Assembler::createMarkerGraphVertices(
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentDataAreOpen();
-    if(readGraphCreationMethod == 0) {
+    if(readGraphCreationMethod == 0 or readGraphCreationMethod == 2) {
         checkReadGraphIsOpen();
     } else if(readGraphCreationMethod == 1) {
         SHASTA_ASSERT(directedReadGraph.isOpen());
@@ -148,7 +148,8 @@ void Assembler::createMarkerGraphVertices(
     cout << timestamp << "Disjoint set computation begins." << endl;
     size_t batchSize = 10000;
     setupLoadBalancing(
-        readGraphCreationMethod==0 ? readGraph.edges.size() : directedReadGraph.edges.size(),
+        (readGraphCreationMethod==0 or readGraphCreationMethod==2) ?
+        readGraph.edges.size() : directedReadGraph.edges.size(),
         batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1, threadCount);
     cout << timestamp << "Disjoint set computation completed." << endl;
@@ -529,7 +530,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
             // Get the oriented read ids we want to align.
             array<OrientedReadId, 2> orientedReadIds;
-            if(readGraphCreationMethod == 0) {
+            if(readGraphCreationMethod == 0 or readGraphCreationMethod == 2) {
 
                 // We use the undirected read graph.
                 const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
@@ -592,7 +593,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 throw runtime_error("Invalid read graph creation method " + to_string(readGraphCreationMethod));
             }
 
-            if(storedAlignments.isOpen() && readGraphCreationMethod == 0) {
+            if(storedAlignments.isOpen() && (readGraphCreationMethod == 0 or readGraphCreationMethod == 2)) {
                 // Reuse stored alignments if available.
                 // Stored alignments need to be processed for them to work with
                 // readGraphCreationMethod == 1. That's not implemented yet. 
