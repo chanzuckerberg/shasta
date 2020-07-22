@@ -8,6 +8,7 @@
 #include "LocalAlignmentGraph.hpp"
 #include "platformDependent.hpp"
 #include "ReadId.hpp"
+#include "Histogram.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -1181,15 +1182,63 @@ void Assembler::computeAllAlignments(
     }
 }
 
+
+void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n){
+    sample.clear();
+
+    while (sample.size() < n) {
+        // Randomly select a read in the read set
+        uint16_t readId = uint16_t(rand() % reads.size());
+
+        // Randomly select an orientation
+        uint16_t strand = uint16_t(rand() % 2);
+
+        const OrientedReadId orientedReadId0(readId, strand);
+    }
+}
+
+
+void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t minLength, uint64_t maxLength){
+    sample.clear();
+
+    while (sample.size() < n) {
+        // Randomly select a read in the read set
+        uint16_t readId = uint16_t(rand() % reads.size());
+
+        // Randomly select an orientation
+        uint16_t strand = uint16_t(rand() % 2);
+
+        const OrientedReadId r(readId, strand);
+
+        // Number of raw bases.
+        const auto repeatCounts = readRepeatCounts[readId];
+        uint64_t length = 0;
+        for(const auto repeatCount: repeatCounts) {
+            length += repeatCount;
+        }
+
+        // Only update the sample of reads if this read passes the length criteria
+        if(length >= minLength and length <= maxLength) {
+            sample.push_back(r);
+        }
+    }
+}
+
+
 // Compute alignments on an oriented read against
-// all other oriented reads.
+// all other oriented reads, using a sampling of reads.
+// Display some useful stats for these alignments.
 void Assembler::assessAlignments(
         const vector<string>& request,
         ostream& html)
 {
     // Get the read id and strand from the request.
     uint64_t samples = 0;
+    uint64_t minLength = 0;
+    uint64_t maxLength = std::numeric_limits<uint64_t>::max();
     const bool samplesIsPresent = getParameterValue(request, "samples", samples);
+    const bool minLengthIsPresent = getParameterValue(request, "minLength", minLength);
+    const bool maxLengthIsPresent = getParameterValue(request, "maxLength", maxLength);
 
     // Get alignment parameters.
     computeAllAlignmentsData.method = httpServerData.assemblerOptions->alignOptions.alignMethod;
@@ -1222,12 +1271,23 @@ void Assembler::assessAlignments(
 
     // Write the form.
     html <<
-         "<form>"
-         "<input type=submit value='Compute marker alignments'>"
-         "&nbsp of oriented read &nbsp"
-         "<input type=text name=samples required size=8 " <<
-         (samplesIsPresent ? "value="+to_string(samples) : "") <<
-         " title='Enter any number'>";
+        "<form>"
+        "<input type=submit value='Compute marker alignments'>"
+        "<br>"
+        "Number of reads to sample: "
+        "<input type=text name=samples required size=8 " <<
+        (samplesIsPresent ? "value="+to_string(samples) : "") <<
+        " title='Enter any number'>"
+        "<br>"
+        "Minimum length (default=0): "
+        "<input type=text name=minLength required size=8 " <<
+        (minLengthIsPresent ? "value="+to_string(minLength) : "") <<
+        " title='Enter any number'>"
+        "<br>"
+        "Maximum length (default=inf): "
+        "<input type=text name=maxLength required size=8 " <<
+        (maxLengthIsPresent ? "value="+to_string(maxLength) : "") <<
+        " title='Enter any number'>";
 
     renderEditableAlignmentConfig(
             computeAllAlignmentsData.method,
@@ -1247,40 +1307,37 @@ void Assembler::assessAlignments(
 
     html << "</form>";
 
+    vector<OrientedReadId> sampledReads;
 
     // If the user input is missing, stop here.
-    if(!samplesIsPresent) {
+    if(not samplesIsPresent) {
         return;
     }
 
-    double alignedFractionStepSize = 0.05;
-    double alignedFractionMax = 1;
-    size_t alignedFractionNBins = size_t(round(alignedFractionMax/alignedFractionStepSize)) + 1;
-    vector<uint64_t> alignedFractionHistogram(alignedFractionNBins, 0);
+    // If the user doesn't care about filtering length, sample uniformly
+    if(not minLengthIsPresent and not maxLengthIsPresent) {
+        sampleReads(sampledReads, samples);
+    }
+    // Or else use any provided filters (defaults are used if only one is set)
+    else{
+        sampleReads(sampledReads, samples, minLength, maxLength);
+    }
 
-    double markerCountStepSize = 50;
-    double markerCountMax = 3000;
-    size_t markerCountNBins = size_t(round(markerCountMax/markerCountStepSize)) + 1;
-    vector<uint64_t> markerCountHistogram(markerCountNBins, 0);
+    // Initialize histograms
+    IterativeHistogram alignedFractionHistogram(0,1,20);
+    IterativeHistogram markerCountHistogram(0,3000,100);
+    IterativeHistogram nAlignmentsHistogram(0,200,20);
 
     vector<pair<OrientedReadId, AlignmentInfo> > allAlignments;
 
-    for (uint64_t i=0; i<samples; i++) {
-        // Randomly select a read in the read set
-        uint16_t readId0 = uint16_t(rand() % reads.size());
-
-        // Randomly select an orientation
-        uint16_t strand0 = uint16_t(rand() % 2);
-
-        const OrientedReadId orientedReadId0(readId0, strand0);
-
+    for (auto& orientedReadId: sampledReads) {
         // Vectors to contain markers sorted by kmerId.
         vector<MarkerWithOrdinal> markers0SortedByKmerId;
         vector<MarkerWithOrdinal> markers1SortedByKmerId;
-        getMarkersSortedByKmerId(orientedReadId0, markers0SortedByKmerId);
+        getMarkersSortedByKmerId(orientedReadId, markers0SortedByKmerId);
 
         // Compute the alignments in parallel.
-        computeAllAlignmentsData.orientedReadId0 = orientedReadId0;
+        computeAllAlignmentsData.orientedReadId0 = orientedReadId;
         const size_t threadCount = std::thread::hardware_concurrency();
         computeAllAlignmentsData.threadAlignments.resize(threadCount);
         const size_t batchSize = 1000;
@@ -1307,62 +1364,30 @@ void Assembler::assessAlignments(
         if (alignments.empty()) {
             html << "<p>No alignments found.";
         } else {
-            displayAlignments(orientedReadId0, alignments, html);
+            displayAlignments(orientedReadId, alignments, html);
         }
 
         for (auto& a: alignments){
             allAlignments.push_back(a);
         }
-
+        nAlignmentsHistogram.update(double(alignments.size()));
     }
 
     for (auto& item: allAlignments){
         auto alignment = item.second;
 
-        // Compute the histogram index and increment the proper bin
-        size_t markerCountIndex = size_t(floor(double(alignment.markerCount)/markerCountStepSize));
-
-        cout << "alignment.ordinals.size(): " << alignment.markerCount << '\n';
-        cout << "markerCountStepSize: " << markerCountStepSize << '\n';
-        cout << "markerCountIndex: " << markerCountIndex << '\n';
-
-        markerCountHistogram[markerCountIndex]++;
-
-        size_t alignedFractionIndex = size_t(floor(double(alignment.minAlignedFraction())/alignedFractionStepSize));
-        alignedFractionHistogram[alignedFractionIndex]++;
-
-        cout << "alignment.minAlignedFraction(): " << alignment.minAlignedFraction() << '\n';
-        cout << "alignedFractionStepSize: " << alignedFractionStepSize << '\n';
-        cout << "alignedFractionIndex: " << alignedFractionIndex << '\n';
-
+        // Increment histograms
+        markerCountHistogram.update(alignment.markerCount);
+        alignedFractionHistogram.update(alignment.minAlignedFraction());
     }
 
-    html << "<table>";
 
-    for (size_t i=0; i<alignedFractionHistogram.size(); i++){
-        html <<
-        "<tr>"
-        "<td class=centered>" << i*size_t(alignedFractionStepSize) <<
-        "<td class=centered>" << alignedFractionHistogram[i] <<
-        "<td>"
-        "<div class=sketch title='alignedFractionHistogram' style='display:inline-block;margin:0px;padding:0px;"
-        "background-color:blue;height:6px;width:" << double(alignedFractionHistogram[i])/alignedFractionMax*2 << "px;'></div>";
-    }
-    html << "</table>";
-    html << "<table>";
+    // Pixel width of histogram display
+    uint64_t histogramSize = 500;
 
-    for (size_t i=0; i<markerCountHistogram.size(); i++){
-        html <<
-        "<tr>"
-        "<td class=centered>" << i*size_t(markerCountStepSize) <<
-        "<td class=centered>" << markerCountHistogram[i] <<
-        "<td>"
-        "<div class=sketch title='markerCountHistogram' style='display:inline-block;margin:0px;padding:0px;"
-        "background-color:blue;height:6px;width:" << double(markerCountHistogram[i])/markerCountMax*3000 << "px;'></div>";
-    }
-    html << "</table>";
-
-
+    markerCountHistogram.writeToHtml(html, histogramSize);
+    alignedFractionHistogram.writeToHtml(html, histogramSize);
+    nAlignmentsHistogram.writeToHtml(html, histogramSize);
 }
 
 
