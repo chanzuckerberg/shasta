@@ -1,5 +1,6 @@
 #include "Histogram.hpp"
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 
 using namespace shasta;
@@ -84,19 +85,18 @@ void shasta::IterativeHistogram::writeToHtml(ostream& html, uint64_t sizePx){
 
     double scale = double(sizePx)/double(max);
 
-    html << "<table style='margin-top: 2em; margin-bottom: 2em'>";
+    html << "<table style='margin-top: 1em; margin-bottom: 1em'>";
 
     for (size_t i=0; i<histogram.size(); i++){
         html <<
              "<tr>"
-             "<td class=centered>" << std::fixed << double(i)*(binSize) <<
+             "<td class=centered>" << std::fixed << std::setprecision(2) << double(i)*(binSize) <<
              "<td class=centered>" << histogram[i] <<
              "<td>"
              "<div class=sketch title='alignedFractionHistogram' style='display:inline-block;margin:0px;padding:0px;"
              "background-color:blue;height:6px;width:" << double(histogram[i])*scale << "px;'></div>";
     }
     html << "</table>";
-    html << "<table style='margin-top: 2em; margin-bottom: 2em'>";
 
 }
 

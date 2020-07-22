@@ -1193,7 +1193,9 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n){
         // Randomly select an orientation
         uint16_t strand = uint16_t(rand() % 2);
 
-        const OrientedReadId orientedReadId0(readId, strand);
+        const OrientedReadId r(readId, strand);
+
+        sample.push_back(r);
     }
 }
 
@@ -1236,9 +1238,12 @@ void Assembler::assessAlignments(
     uint64_t samples = 0;
     uint64_t minLength = 0;
     uint64_t maxLength = std::numeric_limits<uint64_t>::max();
+    bool showAlignmentResults = false;
+    string showAlignmentResultsString;
     const bool samplesIsPresent = getParameterValue(request, "samples", samples);
     const bool minLengthIsPresent = getParameterValue(request, "minLength", minLength);
     const bool maxLengthIsPresent = getParameterValue(request, "maxLength", maxLength);
+    showAlignmentResults = getParameterValue(request, "showAlignmentResults", showAlignmentResultsString);
 
     // Get alignment parameters.
     computeAllAlignmentsData.method = httpServerData.assemblerOptions->alignOptions.alignMethod;
@@ -1273,21 +1278,29 @@ void Assembler::assessAlignments(
     html <<
         "<form>"
         "<input type=submit value='Compute marker alignments'>"
-        "<br>"
-        "Number of reads to sample: "
-        "<input type=text name=samples required size=8 " <<
+        "<br><br>"
+        "<table>"
+        "<tr>"
+        "<td>Number of reads to sample: "
+        "<td><input type=text name=samples required size=8 " <<
         (samplesIsPresent ? "value="+to_string(samples) : "") <<
         " title='Enter any number'>"
-        "<br>"
-        "Minimum length (default=0): "
-        "<input type=text name=minLength required size=8 " <<
+        "<tr>"
+        "<td>Minimum length (default=0): "
+        "<td><input type=text name=minLength size=8 " <<
         (minLengthIsPresent ? "value="+to_string(minLength) : "") <<
         " title='Enter any number'>"
-        "<br>"
-        "Maximum length (default=inf): "
-        "<input type=text name=maxLength required size=8 " <<
+        "<tr>"
+        "<td>Maximum length (default=inf): "
+        "<td><input type=text name=maxLength size=8 " <<
         (maxLengthIsPresent ? "value="+to_string(maxLength) : "") <<
-        " title='Enter any number'>";
+        " title='Enter any number'>"
+        "<tr>"
+        "<td>Show alignment results "
+        "<td><input type=checkbox name=showAlignmentResults"
+        << (showAlignmentResults ? " checked=checked" : "") <<
+        ">"
+        "</table>";
 
     renderEditableAlignmentConfig(
             computeAllAlignmentsData.method,
@@ -1329,6 +1342,7 @@ void Assembler::assessAlignments(
     IterativeHistogram nAlignmentsHistogram(0,200,20);
 
     vector<pair<OrientedReadId, AlignmentInfo> > allAlignments;
+    vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignments;
 
     for (auto& orientedReadId: sampledReads) {
         // Vectors to contain markers sorted by kmerId.
@@ -1359,12 +1373,34 @@ void Assembler::assessAlignments(
         sort(alignments.begin(), alignments.end(),
              OrderPairsByFirstOnly<OrientedReadId, AlignmentInfo>());
 
-        html << "<p>Found " << alignments.size() <<
-             " alignments satisfying the given criteria.";
-        if (alignments.empty()) {
-            html << "<p>No alignments found.";
+        // Loop over the STORED alignments that this oriented read is involved in, with the proper orientation.
+        const vector< pair<OrientedReadId, AlignmentInfo> > storedAlignments =
+                findOrientedAlignments(orientedReadId);
+
+        html << "<p><strong>Assessing alignments for read " << orientedReadId << "</strong>";
+
+        // Print info about STORED alignments
+        if(storedAlignments.empty()) {
+            html << "<p>No stored alignments found.";
         } else {
-            displayAlignments(orientedReadId, alignments, html);
+            html << "<p>Found " << storedAlignments.size() << " stored alignments.";
+        }
+
+        // Print info about FOUND alignments
+        if (alignments.empty()) {
+            html << "<p>No alignments found satisfying the given criteria.";
+        }
+        else {
+            html << "<p>Found " << alignments.size() << " alignments satisfying the given criteria.";
+
+            // Only do verbose output if the user wants to
+            if (showAlignmentResults) {
+                displayAlignments(orientedReadId, alignments, html);
+            }
+        }
+
+        for (auto& a: storedAlignments){
+            allStoredAlignments.push_back(a);
         }
 
         for (auto& a: alignments){
@@ -1381,13 +1417,19 @@ void Assembler::assessAlignments(
         alignedFractionHistogram.update(alignment.minAlignedFraction());
     }
 
-
     // Pixel width of histogram display
     uint64_t histogramSize = 500;
 
+    html << "<br><br>";
+    html << "<br><strong>Marker Count Distribution</strong>";
     markerCountHistogram.writeToHtml(html, histogramSize);
+    html << "<br><strong>Aligned Fraction Distribution</strong>";
     alignedFractionHistogram.writeToHtml(html, histogramSize);
+    html << "<br><strong>Alignment Quantity Distribution</strong>";
     nAlignmentsHistogram.writeToHtml(html, histogramSize);
+    html << "<br><strong>Ratio of stored to found alignments</strong>";
+    html << "<br>" << double(allStoredAlignments.size())/double(allAlignments.size());
+    html << "<br";
 }
 
 
