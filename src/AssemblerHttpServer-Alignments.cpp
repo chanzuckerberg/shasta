@@ -1188,14 +1188,12 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n){
 
     while (sample.size() < n) {
         // Randomly select a read in the read set
-        uint16_t readId = uint16_t(rand() % reads.size());
+        const ReadId readId = uint32_t(rand() % reads.size());
 
         // Randomly select an orientation
-        uint16_t strand = uint16_t(rand() % 2);
+        const Strand strand = uint32_t(rand() % 2);
 
-        const OrientedReadId r(readId, strand);
-
-        sample.push_back(r);
+        sample.push_back(OrientedReadId(readId, strand));
     }
 }
 
@@ -1205,10 +1203,10 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t
 
     while (sample.size() < n) {
         // Randomly select a read in the read set
-        uint16_t readId = uint16_t(rand() % reads.size());
+        const ReadId readId = uint32_t(rand() % reads.size());
 
         // Randomly select an orientation
-        uint16_t strand = uint16_t(rand() % 2);
+        const Strand strand = uint32_t(rand() % 2);
 
         const OrientedReadId r(readId, strand);
 
