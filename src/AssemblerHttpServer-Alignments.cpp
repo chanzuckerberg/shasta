@@ -1271,6 +1271,10 @@ void Assembler::assessAlignments(
     computeAllAlignmentsData.bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
     getParameterValue(request, "bandExtend", computeAllAlignmentsData.bandExtend);
 
+    html << "<h1>Alignment statistics</h1>";
+    html << "<p>This page enables sampling from the pool of reads and computing alignments for each read in the"
+            "sample. Once alignment finishes, stats can be generated and used to evaluate Shasta parameters."
+            "<br>";
 
     // Write the form.
     html <<
@@ -1284,12 +1288,12 @@ void Assembler::assessAlignments(
         (samplesIsPresent ? "value="+to_string(samples) : "") <<
         " title='Enter any number'>"
         "<tr>"
-        "<td>Minimum length (default=0): "
+        "<td>Minimum number of raw bases in read (default=0): "
         "<td><input type=text name=minLength size=8 " <<
         (minLengthIsPresent ? "value="+to_string(minLength) : "") <<
         " title='Enter any number'>"
         "<tr>"
-        "<td>Maximum length (default=inf): "
+        "<td>Maximum number of raw bases in read (default=inf): "
         "<td><input type=text name=maxLength size=8 " <<
         (maxLengthIsPresent ? "value="+to_string(maxLength) : "") <<
         " title='Enter any number'>"
