@@ -1,6 +1,7 @@
 #include "Assembler.hpp"
 #include "DeBruijnGraph.hpp"
 #include "compressAlignment.hpp"
+// #include "spectralClustering.hpp"
 using namespace shasta;
 
 namespace shasta {
@@ -304,7 +305,8 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
     const uint64_t minTotalCoverage = 5;
     const uint64_t minSameStrandCoverage = 2;
     const uint64_t minOppositeStrandCoverage = 2;
-    const double similarityThreshold = 0.2;
+    // const double similarityThreshold = 0.75;
+    const uint64_t neighborCount = 3;
 
     // Get the alignments of this oriented read, with the proper orientation,
     // and with this oriented read as the first oriented read in the alignment.
@@ -536,6 +538,27 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
 
 
 
+    // To decide which edges to draw, sort matrix entries by delta=sameBranchCount-differentBranchCount
+    // and keep the best neighborCount*sequences.size() / 2.
+    // Store pair(delta, pair(sequenceId0, sequenceId1)).
+    vector< pair<int64_t, pair<uint64_t, uint64_t> > > edgeTable;
+    for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
+        for(SequenceId sequenceId1=sequenceId0+1; sequenceId1<sequences.size(); sequenceId1++) {
+            const uint64_t sameBranchCount = sameBranchMatrix[sequenceId0][sequenceId1];
+            const uint64_t differentBranchCount = differentBranchMatrix[sequenceId0][sequenceId1];
+            const int64_t delta = int64_t(sameBranchCount) -int64_t(differentBranchCount);
+            edgeTable.push_back(make_pair(delta, make_pair(sequenceId0, sequenceId1)));
+        }
+    }
+    sort(edgeTable.begin(), edgeTable.end(),
+        std::greater< pair<int64_t, pair<uint64_t, uint64_t> > >());
+    const uint64_t keepCount = neighborCount * sequences.size() / 2;
+    if(edgeTable.size() > keepCount) {
+        edgeTable.resize(keepCount);
+    }
+
+
+
     // Write a read similarity graph to represent the above matrices.
     {
         ofstream out("MiniAssembly-ReadSimilarityGraph.dot");
@@ -560,10 +583,10 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
             if(sequenceId0 == sequences.size()-1) {
                 out << " color=cyan";
             } else {
-                if(differentBranchCount == 1) {
-                    out << " color=orange";
-                } else if(differentBranchCount >= 2) {
+                if(differentBranchCount > sameBranchCount) {
                     out << " color=red";
+                } else if(differentBranchCount == sameBranchCount) {
+                    out << " color=orange";
                 }
             }
             out << "]\n";
@@ -572,36 +595,47 @@ void Assembler::analyzeAlignments2(ReadId readId0, Strand strand0) const
 
 
         // Draw edges.
-        for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
-            for(SequenceId sequenceId1=sequenceId0+1; sequenceId1<sequences.size(); sequenceId1++) {
-                const uint64_t sameBranchCount = sameBranchMatrix[sequenceId0][sequenceId1];
-                const uint64_t differentBranchCount = differentBranchMatrix[sequenceId0][sequenceId1];
-                const uint64_t totalCount = sameBranchCount + differentBranchCount;
-                if(totalCount == 0) {
-                    continue;
-                }
-                const double similarity = double(sameBranchCount) / double(totalCount);
-                if(similarity < similarityThreshold) {
-                    continue;
-                }
-                out << sequenceId0 << "--" << sequenceId1;
-                out << " [";
+        for(const auto& p: edgeTable) {
+            const SequenceId sequenceId0 = p.second.first;
+            const SequenceId sequenceId1 = p.second.second;
+            // const uint64_t sameBranchCount = sameBranchMatrix[sequenceId0][sequenceId1];
+            // const uint64_t differentBranchCount = differentBranchMatrix[sequenceId0][sequenceId1];
+            // const uint64_t totalCount = sameBranchCount + differentBranchCount;
+            // const double similarity = double(sameBranchCount) / double(totalCount);
+            out << sequenceId0 << "--" << sequenceId1;
+            out << " [";
 
-                // Edge thickness.
-                out << " penwidth=" << 0.1*double(totalCount);
+            // Edge thickness.
+            // out << " penwidth=" << 0.2*double(sameBranchCount - differentBranchCount);
 
-                // Edge color.
-                out << " color=\"" << similarity/3. << " 1. 1.\"";
+            // Edge color.
+            // out << " color=\"" << (similarity-0.5)/1.5 << " 1. 1.\"";
 
-                out << "]";
-                out << ";\n";
-            }
+            out << "]";
+            out << ";\n";
         }
 
         out << "}\n";
     }
 
 
+#if 0
+    // Spectral drawing using as similarity the difference sameBranchCount-differentBranchCount.
+    SimilarityMatrix similarityMatrix(sequences.size());
+    for(SequenceId sequenceId0=0; sequenceId0<sequences.size(); sequenceId0++) {
+        for(SequenceId sequenceId1=0; sequenceId1<sequences.size(); sequenceId1++) {
+            const int64_t sameBranchCount = sameBranchMatrix[sequenceId0][sequenceId1];
+            const int64_t differentBranchCount = differentBranchMatrix[sequenceId0][sequenceId1];
+            if(sequenceId0 ==sequenceId1) {
+                similarityMatrix[sequenceId0][sequenceId1]= 0.;
+            } else {
+                similarityMatrix[sequenceId0][sequenceId1] = double(sameBranchCount - differentBranchCount);
+            }
+        }
+    }
+    SpectralDrawingResults spectralDrawingResults;
+    similarityMatrix.draw(2, spectralDrawingResults);
+#endif
 
 }
 
