@@ -1340,7 +1340,7 @@ void Assembler::assessAlignments(
 
     // Initialize histograms
     IterativeHistogram alignedFractionHistogram(0,1,20);
-    IterativeHistogram markerCountHistogram(0,3000,100);
+    IterativeHistogram markerCountHistogram(0,3000,120);
     IterativeHistogram nAlignmentsHistogram(0,200,20);
 
     vector<pair<OrientedReadId, AlignmentInfo> > allAlignments;

@@ -76,28 +76,50 @@ void shasta::IterativeHistogram::getNormalizedHistogram(vector<double>& normaliz
 
 
 void shasta::IterativeHistogram::writeToHtml(ostream& html, uint64_t sizePx){
-    uint64_t max = 0;
+    uint64_t yMax = 0;
     for (auto& e: histogram){
-        if (e > max){
-            max = e;
+        if (e > yMax){
+            yMax = e;
         }
     }
 
-    double scale = double(sizePx)/double(max);
+    double scale = double(sizePx)/double(yMax);
 
     html << "<table style='margin-top: 1em; margin-bottom: 1em'>";
+    html << "<tr>"
+            "<th class='centered'>Left bound"
+            "<th class='centered'>Right bound"
+            "<th class='centered'>Count"
+            "<th class='centered'>Plot";
+
+    int32_t precision;
 
     for (size_t i=0; i<histogram.size(); i++){
-        html <<
+        const double leftBound = double(i)*(binSize);
+        const double rightBound = double(i+1)*(binSize);
+        const auto y = histogram[i];
+
+        // Check if the bin bounds have any trailing decimals
+        if (std::fmod(leftBound,1) == 0 and std::fmod(rightBound,1) == 0){
+            precision = 0;
+        }
+        else{
+            precision = 2;
+        }
+
+        html << std::fixed << std::setprecision(precision) <<
              "<tr>"
-             "<td class=centered>" << std::fixed << std::setprecision(2) << double(i)*(binSize) <<
-             "<td class=centered>" << histogram[i] <<
+             "<td class=centered>" << leftBound <<
+             "<td class=centered>" << rightBound <<
+             "<td class=centered>" << y <<
              "<td>"
              "<div class=sketch title='alignedFractionHistogram' style='display:inline-block;margin:0px;padding:0px;"
-             "background-color:blue;height:6px;width:" << double(histogram[i])*scale << "px;'></div>";
+             "background-color:blue;height:6px;width:" << double(y)*scale << "px;'></div>";
     }
     html << "</table>";
 
+    // Remove precision settings that were specified above
+    html.unsetf(std::ios_base::floatfield);
 }
 
 
