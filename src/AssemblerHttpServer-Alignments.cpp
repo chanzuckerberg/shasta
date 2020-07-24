@@ -15,8 +15,6 @@ using namespace shasta;
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics.hpp>
 
 // Seqan
 #ifdef SHASTA_HTTP_SERVER
@@ -25,17 +23,6 @@ using namespace shasta;
 
 #ifdef SHASTA_HTTP_SERVER
 
-using namespace boost::accumulators;
-
-
-typedef boost::iterator_range< std::vector <std::pair <double, double> >::iterator> densityIterator;
-
-typedef accumulator_set <double, features
-        <tag::density,
-        tag::count,
-        tag::min,
-        tag::max> >
-        densityAccumulator;
 
 
 void Assembler::exploreAlignments(
@@ -1238,45 +1225,6 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t
 }
 
 
-void writeDensityAccumulatorToHtml(ostream& html, densityAccumulator& accumulator, uint64_t sizePx){
-    html << "<table style='margin-top: 1em; margin-bottom: 1em'>";
-    html << "<tr>"
-            "<th class='centered'>Left edge"
-            "<th class='centered'>Right edge"
-            "<th class='centered'>Count"
-            "<th class='centered'>Density"
-            "<th class='centered'>Plot";
-
-    double maxCount = boost::accumulators::max(accumulator);
-
-    // Determine the scaling factor for the histogram bars
-    double scale = double(sizePx)/double(maxCount);
-
-    // Initialize an iterator for the "density" portion of the accumulator
-    densityIterator histogram = density(accumulator);
-
-    // Find out the bin size from the first 2 entries
-    double binSize = histogram[1].first - histogram[0].first;
-
-    for (size_t i=0; i<histogram.size(); i++){
-        const double leftBound = histogram[i].first;
-        const double rightBound = leftBound + binSize;
-        const double y = histogram[i].second;
-
-        html << std::fixed << std::setprecision(2) <<
-            "<tr>"
-            "<td class=centered>" << leftBound <<
-            "<td class=centered>" << rightBound <<
-            "<td class=centered>" << y*maxCount <<
-            "<td class=centered>" << y <<
-            "<td>"
-            "<div class=sketch title='alignedFractionHistogram' style='display:inline-block;margin:0px;padding:0px;"
-            "background-color:blue;height:6px;width:" << double(y)*maxCount*scale << "px;'></div>";
-    }
-    html << "</table>";
-}
-
-
 // Compute alignments on an oriented read against
 // all other oriented reads, using a sampling of reads.
 // Display some useful stats for these alignments.
@@ -1391,22 +1339,9 @@ void Assembler::assessAlignments(
     }
 
     // Initialize histograms
-//    IterativeHistogram alignedFractionHistogram(0,1,20);
-//    IterativeHistogram markerCountHistogram(0,3000,100);
-//    IterativeHistogram nAlignmentsHistogram(0,200,20);
-
-    densityAccumulator alignedFractionAccumulator(
-            tag::density::cache_size=100,
-            tag::density::num_bins=100);
-
-    densityAccumulator markerCountAccumulator(
-            tag::density::cache_size=100,
-            tag::density::num_bins=100);
-
-    densityAccumulator nAlignmentsAccumulator(
-            tag::density::cache_size=100,
-            tag::density::num_bins=100);
-
+    IterativeHistogram alignedFractionHistogram(0,1,20);
+    IterativeHistogram markerCountHistogram(0,3000,100);
+    IterativeHistogram nAlignmentsHistogram(0,200,20);
 
     vector<pair<OrientedReadId, AlignmentInfo> > allAlignments;
     vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignments;
@@ -1473,18 +1408,15 @@ void Assembler::assessAlignments(
         for (auto& a: alignments){
             allAlignments.push_back(a);
         }
-//        nAlignmentsHistogram.update(double(alignments.size()));
-        alignedFractionAccumulator(double(alignments.size()));
+        nAlignmentsHistogram.update(double(alignments.size()));
     }
 
     for (auto& item: allAlignments){
         auto alignment = item.second;
 
         // Increment histograms
-//        markerCountHistogram.update(alignment.markerCount);
-        markerCountAccumulator(alignment.markerCount);
-//        alignedFractionHistogram.update(alignment.minAlignedFraction());
-        nAlignmentsAccumulator(alignment.minAlignedFraction());
+        markerCountHistogram.update(alignment.markerCount);
+        alignedFractionHistogram.update(alignment.minAlignedFraction());
     }
 
     // Pixel width of histogram display
@@ -1492,14 +1424,11 @@ void Assembler::assessAlignments(
 
     html << "<br><br>";
     html << "<br><strong>Marker Count Distribution</strong>";
-//    markerCountHistogram.writeToHtml(html, histogramSize);
-    writeDensityAccumulatorToHtml(html, markerCountAccumulator, histogramSize);
+    markerCountHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Aligned Fraction Distribution</strong>";
-//    alignedFractionHistogram.writeToHtml(html, histogramSize);
-    writeDensityAccumulatorToHtml(html, alignedFractionAccumulator, histogramSize);
+    alignedFractionHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Alignment Quantity Distribution</strong>";
-//    nAlignmentsHistogram.writeToHtml(html, histogramSize);
-    writeDensityAccumulatorToHtml(html, nAlignmentsAccumulator, histogramSize);
+    nAlignmentsHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Ratio of stored to found alignments</strong>";
     html << "<br>" << double(allStoredAlignments.size())/double(allAlignments.size());
     html << "<br";
