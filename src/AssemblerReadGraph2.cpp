@@ -17,12 +17,12 @@ void Assembler::createReadGraph2(size_t threadCount)
         threadCount = std::thread::hardware_concurrency();
     }
 
-    // Mark all alignments as to be kept.
+    // Mark all alignments as not to be kept.
     createReadGraph2Data.keepAlignment.resize(alignmentData.size());
     fill(
         createReadGraph2Data.keepAlignment.begin(),
         createReadGraph2Data.keepAlignment.end(),
-        true);
+        false);
 
     // Parallel loop over reads. For each read, flag the alignments we want to discard.
     const uint64_t batchSize = 100;
@@ -74,7 +74,7 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
     const uint64_t minTotalCoverage = 5;
     const uint64_t minSameStrandCoverage = 2;
     const uint64_t minOppositeStrandCoverage = 2;
-    const uint64_t minDifferentBranchCount = 2;
+    const uint64_t neighborCount = 8;
 
 
 
@@ -213,10 +213,11 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
 
 
 
-    // For each of the aligned reads, count how many times it appears
-    // on a different branch than our orientedReadId0.
-    const auto alignmentTable0 = alignmentTable[orientedReadId0.getValue()];
+    // For each of the aligned reads, compute delta = sameBranchCount-differentBranchCount.
+    // Store it with its SequenceId.
+    vector< pair<SequenceId, int64_t> > deltaTable;
     for(SequenceId sequenceId=0; sequenceId<sequences.size()-1; sequenceId++) {
+        uint64_t sameBranchCount = 0;
         uint64_t differentBranchCount = 0;
         for(const vector<int64_t>& signature: signatures) {
             const int64_t signature0 = signature.back();
@@ -227,19 +228,30 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
             if(signature1 == -1) {
                 continue;
             }
-            if(signature0 != signature1) {
+            if(signature0 == signature1) {
+                ++sameBranchCount;
+            } else {
                 ++differentBranchCount;
             }
         }
-
-        // If on different branches enough times, discard the alignment
-        // between orientedReadId0 and this oriented read.
-        if(differentBranchCount >= minDifferentBranchCount) {
-            const uint64_t alignmentId = alignmentTable0[sequenceId];
-            createReadGraph2Data.keepAlignment[alignmentId] = false;
-        }
+        const int64_t delta = int64_t(sameBranchCount) -int64_t(differentBranchCount);
+        deltaTable.push_back(make_pair(sequenceId, delta));
     }
 
+    // Sort by decreasing delta and keep the best neighborCount.
+    sort(deltaTable.begin(), deltaTable.end(), OrderPairsBySecondOnlyGreater<SequenceId, int64_t>());
+    if(deltaTable.size() > neighborCount) {
+        deltaTable.resize(neighborCount);
+    }
+
+
+    // Mark the alignments with those best neighbors as to be kept.
+    const auto alignmentTable0 = alignmentTable[orientedReadId0.getValue()];
+    for(const auto& p: deltaTable) {
+        const SequenceId sequenceId = p.first;
+        const uint64_t alignmentId = alignmentTable0[sequenceId];
+        createReadGraph2Data.keepAlignment[alignmentId] = true;
+    }
 }
 
 
