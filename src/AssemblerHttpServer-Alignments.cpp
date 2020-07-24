@@ -1427,7 +1427,7 @@ void Assembler::assessAlignments(
     markerCountHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Aligned Fraction Distribution</strong>";
     alignedFractionHistogram.writeToHtml(html, histogramSize);
-    html << "<br><strong>Alignment Quantity Distribution</strong>";
+    html << "<br><strong>Number of Alignments Found per Read</strong>";
     nAlignmentsHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Ratio of stored to found alignments</strong>";
     html << "<br>" << double(allStoredAlignments.size())/double(allAlignments.size());
