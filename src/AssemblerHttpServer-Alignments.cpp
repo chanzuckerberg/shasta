@@ -1412,7 +1412,7 @@ void Assembler::assessAlignments(
     }
 
     for (auto& item: allAlignments){
-        auto alignment = item.second;
+        const auto alignment = item.second;
 
         // Increment histograms
         markerCountHistogram.update(alignment.markerCount);
@@ -1420,7 +1420,7 @@ void Assembler::assessAlignments(
     }
 
     // Pixel width of histogram display
-    uint64_t histogramSize = 500;
+    const uint64_t histogramSize = 500;
 
     html << "<br><br>";
     html << "<br><strong>Marker Count Distribution</strong>";
