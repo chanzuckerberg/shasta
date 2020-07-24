@@ -1424,13 +1424,18 @@ void Assembler::assessAlignments(
 
     html << "<br><br>";
     html << "<br><strong>Marker Count Distribution</strong>";
+    html << "<br>Histogram of the number of aligned markers observed per alignment";
     markerCountHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Aligned Fraction Distribution</strong>";
+    html << "<br>Histogram of 'aligned fraction' per alignment. Aligned fraction is the portion of matching markers"
+            " used in the alignment, within the overlapping region between reads";
     alignedFractionHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Number of Alignments Found per Read</strong>";
+    html << "<br>For each query read, how many passing alignments were found in one-to-all alignment";
     nAlignmentsHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Ratio of stored to found alignments</strong>";
-    html << "<br>" << double(allStoredAlignments.size())/double(allAlignments.size());
+    html << "<br>" << std::fixed << std::setprecision(3) <<
+    double(allStoredAlignments.size())/double(allAlignments.size());
     html << "<br";
 }
 
