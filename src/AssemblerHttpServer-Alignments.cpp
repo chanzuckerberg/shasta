@@ -1272,8 +1272,9 @@ void Assembler::assessAlignments(
     getParameterValue(request, "bandExtend", computeAllAlignmentsData.bandExtend);
 
     html << "<h1>Alignment statistics</h1>";
-    html << "<p>This page enables sampling from the pool of reads and computing alignments for each read in the"
-            "sample. Once alignment finishes, stats can be generated and used to evaluate Shasta parameters."
+    html << "<p>This page enables sampling from the pool of reads and computing alignments for each read in the sample "
+            "against all other reads in this assembly. This can be slow. Once alignment finishes, stats can be "
+            "generated and used to evaluate Shasta parameters."
             "<br>";
 
     // Write the form.
@@ -1339,18 +1340,21 @@ void Assembler::assessAlignments(
     }
 
     // Initialize histograms
-    IterativeHistogram alignedFractionHistogram(0,1,20);
-    IterativeHistogram markerCountHistogram(0,3000,120);
-    IterativeHistogram nAlignmentsHistogram(0,200,20);
+    Histogram2 alignedFractionHistogram(0, 1, 20);
+    Histogram2 markerCountHistogram(0, 3000, 120);
+    Histogram2 nAlignmentsHistogram(0, 200, 20);
 
     vector<pair<OrientedReadId, AlignmentInfo> > allAlignments;
     vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignments;
 
     for (auto& orientedReadId: sampledReads) {
-        // Vectors to contain markers sorted by kmerId.
-        vector<MarkerWithOrdinal> markers0SortedByKmerId;
-        vector<MarkerWithOrdinal> markers1SortedByKmerId;
-        getMarkersSortedByKmerId(orientedReadId, markers0SortedByKmerId);
+
+        if (computeAllAlignmentsData.method == 0) {
+            // Vectors to contain markers sorted by kmerId. (only needed for align method 0)
+            vector<MarkerWithOrdinal> markers0SortedByKmerId;
+            vector<MarkerWithOrdinal> markers1SortedByKmerId;
+            getMarkersSortedByKmerId(orientedReadId, markers0SortedByKmerId);
+        }
 
         // Compute the alignments in parallel.
         computeAllAlignmentsData.orientedReadId0 = orientedReadId;

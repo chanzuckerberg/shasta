@@ -9,7 +9,7 @@
 
 namespace shasta {
     class Histogram;
-    class IterativeHistogram;
+    class Histogram2;
     void testIterativeHistogram();
 }
 
@@ -49,22 +49,22 @@ public:
 
 
 // A histogram class that calculates bin size and finds the appropriate bin to increment given an x value
-class shasta::IterativeHistogram{
+class shasta::Histogram2{
 public:
     /// Attributes ///
     const double start;
     const double stop;
-    const size_t nBins;
+    const size_t binCount;
     const double binSize;
     vector<uint64_t> histogram;
     bool unboundedLeft;
     bool unboundedRight;
 
     /// Methods ///
-    IterativeHistogram(
+    Histogram2(
             double start,
             double stop,
-            size_t nBins,
+            size_t binCount,
             bool unboundedLeft=false,
             bool unboundedRight=false);
 

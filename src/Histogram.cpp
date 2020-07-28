@@ -5,23 +5,23 @@
 
 using namespace shasta;
 
-shasta::IterativeHistogram::IterativeHistogram(
+shasta::Histogram2::Histogram2(
         double start,
         double stop,
-        size_t nBins,
+        size_t binCount,
         bool unboundedLeft,
         bool unboundedRight):
-    start(start),
-    stop(stop),
-    nBins(nBins),
-    binSize((stop-start)/double(nBins)),
-    histogram(nBins,0),
-    unboundedLeft(unboundedLeft),
-    unboundedRight(unboundedRight)
+        start(start),
+        stop(stop),
+        binCount(binCount),
+        binSize((stop-start)/double(binCount)),
+        histogram(binCount, 0),
+        unboundedLeft(unboundedLeft),
+        unboundedRight(unboundedRight)
 {}
 
 
-int64_t shasta::IterativeHistogram::findIndex(double x){
+int64_t shasta::Histogram2::findIndex(double x){
     /// Find index of bin by normalizing the value w.r.t. bin edges.
     /// If the value does not fit in the range of the histogram, this function returns -1
     /// If the user wants to accumulate values outside the bounds defined, then any value out of bounds will result in
@@ -39,7 +39,7 @@ int64_t shasta::IterativeHistogram::findIndex(double x){
 
     if (x >= stop) {
         if (unboundedRight) {
-            index = int64_t(nBins) - 1;
+            index = int64_t(binCount) - 1;
         }
         else{
             index = -1;
@@ -50,7 +50,7 @@ int64_t shasta::IterativeHistogram::findIndex(double x){
 }
 
 
-void shasta::IterativeHistogram::update(double x) {
+void shasta::Histogram2::update(double x) {
     auto index = findIndex(x);
 
     if (index >= 0) {
@@ -63,7 +63,7 @@ void shasta::IterativeHistogram::update(double x) {
 }
 
 
-void shasta::IterativeHistogram::getNormalizedHistogram(vector<double>& normalizedHistogram){
+void shasta::Histogram2::getNormalizedHistogram(vector<double>& normalizedHistogram){
     uint64_t sum = 0;
     for (auto& e: histogram){
         sum += e;
@@ -75,7 +75,7 @@ void shasta::IterativeHistogram::getNormalizedHistogram(vector<double>& normaliz
 }
 
 
-void shasta::IterativeHistogram::writeToHtml(ostream& html, uint64_t sizePx){
+void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx){
     uint64_t yMax = 0;
     for (auto& e: histogram){
         if (e > yMax){
@@ -126,9 +126,9 @@ void shasta::IterativeHistogram::writeToHtml(ostream& html, uint64_t sizePx){
 void shasta::testIterativeHistogram(){
     /// Test the iterative histogram
 
-    std::cout << "\nTESTING IterativeHistogram case 1\n";
+    std::cout << "\nTESTING Histogram2 case 1\n";
 
-    IterativeHistogram h0(0, 10, 10);
+    Histogram2 h0(0, 10, 10);
     h0.update(0);        // 1
     h0.update(-1);       // None
     h0.update(10);       // None
@@ -146,9 +146,9 @@ void shasta::testIterativeHistogram(){
     }
     std::cout << '\n';
 
-    std::cout << "\nTESTING IterativeHistogram case 2\n";
+    std::cout << "\nTESTING Histogram2 case 2\n";
 
-    IterativeHistogram h1(0, 1.0, 10);
+    Histogram2 h1(0, 1.0, 10);
     h1.update(0);         // 1
     h1.update(-0.1);      // None
     h1.update(1.0);       // None
@@ -166,9 +166,9 @@ void shasta::testIterativeHistogram(){
     }
     std::cout << '\n';
 
-    std::cout << "\nTESTING IterativeHistogram case 3\n";
+    std::cout << "\nTESTING Histogram2 case 3\n";
 
-    IterativeHistogram h2(1, 2.0, 10);
+    Histogram2 h2(1, 2.0, 10);
     h2.update(1 + 0);         // 1
     h2.update(1 + -0.1);      // None
     h2.update(1 + 1.0);       // None
@@ -186,9 +186,9 @@ void shasta::testIterativeHistogram(){
     }
     std::cout << '\n';
 
-    std::cout << "\nTESTING IterativeHistogram case 4\n";
+    std::cout << "\nTESTING Histogram2 case 4\n";
 
-    IterativeHistogram h3(-0.5, 0.5, 10);
+    Histogram2 h3(-0.5, 0.5, 10);
     h3.update(-0.5 + 0);         // 1
     h3.update(-0.5 + -0.1);      // None
     h3.update(-0.5 + 1.0);       // None right edge
@@ -217,9 +217,9 @@ void shasta::testIterativeHistogram(){
     std::cout << '\n';
     std::cout << sum3 << '\n';
 
-    std::cout << "\nTESTING IterativeHistogram case 5\n";
+    std::cout << "\nTESTING Histogram2 case 5\n";
 
-    IterativeHistogram h4(0, 1.0, 10, true, true);
+    Histogram2 h4(0, 1.0, 10, true, true);
     h4.update(0);         // 1
     h4.update(-0.1);      // 1
     h4.update(1.0);       // 10
