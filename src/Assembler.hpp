@@ -1063,6 +1063,7 @@ public:
 private:
     void analyzeAlignments1(ReadId, Strand) const;
     void analyzeAlignments2(ReadId, Strand) const;
+    void analyzeAlignments3(ReadId, Strand) const;
 
 
     // Read graph and related functions and data.

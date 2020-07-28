@@ -55,6 +55,10 @@ public:
     // For each, we store the id of the sequence in which
     // the marker appeared and the position in that sequence.
     vector< pair<SequenceId, uint64_t> > markers;
+    uint64_t coverage() const
+    {
+        return markers.size();
+    }
 
     MarkerGraph2Vertex(uint64_t vertexId) :
         vertexId(vertexId)
@@ -64,6 +68,16 @@ public:
     MarkerGraph2Vertex()
     {
         SHASTA_ASSERT(0);
+    }
+
+    bool contains(SequenceId sequenceId) const
+    {
+        for(const auto& p: markers) {
+            if(p.first == sequenceId) {
+                return true;
+            }
+        }
+        return false;
     }
 
 };
@@ -77,6 +91,19 @@ public:
     // For each one we store the SequenceId and a pair
     // containing positions in the source and target vertex.
     vector< pair<SequenceId, pair<uint64_t, uint64_t> > > markers;
+    uint64_t coverage() const
+    {
+        return markers.size();
+    }
+    bool contains(SequenceId sequenceId) const
+    {
+        for(const auto& p: markers) {
+            if(p.first == sequenceId) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 
@@ -97,6 +124,9 @@ public:
 
     // Align two sequences, then merge pairs of aligned markers.
     void alignAndMerge(SequenceId, SequenceId);
+
+    // Same as above, but with the alignment passed in instead of being computed.
+    void merge(SequenceId, SequenceId, vector< pair<uint64_t, uint64_t> >& alignment);
 
     // Call this to indicate that we are done calling alignAndMerge.
     // This creates vertices and edges.
@@ -249,6 +279,27 @@ template<class Symbol, class SequenceId>
     }
     */
 
+    // Merge pairs of aligned markers.
+    auto& disjointSets = *disjointSetsPointer;
+    const uint64_t start0 = start[idMap[sequenceId0]];
+    const uint64_t start1 = start[idMap[sequenceId1]];
+    for(const auto& p: alignment) {
+        const uint64_t i0 = p.first;
+        const uint64_t i1 = p.second;
+        disjointSets.union_set(start0 + i0, start1 + i1);
+    }
+
+}
+
+
+
+// Same as above, but with the alignment passed in instead of being computed.
+template<class Symbol, class SequenceId>
+    void shasta::MarkerGraph2<Symbol, SequenceId>::merge(
+    SequenceId sequenceId0,
+    SequenceId sequenceId1,
+    vector< pair<uint64_t, uint64_t> >& alignment)
+{
     // Merge pairs of aligned markers.
     auto& disjointSets = *disjointSetsPointer;
     const uint64_t start0 = start[idMap[sequenceId0]];

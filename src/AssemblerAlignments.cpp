@@ -1,7 +1,7 @@
 #include "Assembler.hpp"
 #include "DeBruijnGraph.hpp"
 #include "compressAlignment.hpp"
-// #include "spectralClustering.hpp"
+#include "MarkerGraph2.hpp"
 using namespace shasta;
 
 namespace shasta {
@@ -36,7 +36,7 @@ public:
 // Analyze the stored alignments involving a given oriented read.
 void Assembler::analyzeAlignments(ReadId readId, Strand strand) const
 {
-    analyzeAlignments2(readId, strand);
+    analyzeAlignments3(readId, strand);
 }
 
 
@@ -783,5 +783,163 @@ void AnalyzeAlignments2Graph::writeGraphviz(
     }
 
     s << "}\n";
+
+}
+
+
+
+// This version uses a marker graph graph to do a mini-assembly
+// using only this oriented read and the aligned portions
+// of oriented reads for which we have an alignment with this one.
+// Like analyzeAlignments2, but using a marker graph instead of a
+// De Bruijn graph.
+void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
+{
+    // Parameters controlling this function.
+    // Expose when code stabilizes.
+    // const uint64_t minTotalCoverage = 5;
+    // const uint64_t minSameStrandCoverage = 2;
+    // const uint64_t minOppositeStrandCoverage = 2;
+    // const double similarityThreshold = 0.75;
+    // const uint64_t neighborCount = 3;
+
+
+
+
+    // Get the alignments involving this oriented read.
+    // This returns a vector alignments with swaps and/or
+    // reverse complementing already done, as necessary.
+    vector<StoredAlignmentInformation> alignments;
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    getStoredAlignments(orientedReadId0, alignments);
+
+    // Check that all alignments are strictly increasing.
+    for(const auto& p: alignments) {
+        p.alignment.checkStrictlyIncreasing();
+    }
+
+
+
+    // We will do a small assembly for the marker sequence of this oriented read
+    // plus the aligned portions of the marker sequences of aligned reads.
+    // Gather these sequences.
+    // The marker sequence for this oriented read is stored
+    // at the last position of this vector.
+    using Sequence = vector<KmerId>;
+    using SequenceId = uint64_t;
+    vector<Sequence> sequences(alignments.size() + 1);
+    vector<OrientedReadId> orientedReadIds(sequences.size());
+    vector<uint32_t> firstOrdinals(sequences.size());
+    vector<uint32_t> lastOrdinals(sequences.size());
+    for(SequenceId sequenceId=0; sequenceId<alignments.size(); sequenceId++) {
+        Sequence& sequence = sequences[sequenceId];
+        const OrientedReadId orientedReadId1 = alignments[sequenceId].orientedReadId;
+        orientedReadIds[sequenceId] = orientedReadId1;
+        const span<const CompressedMarker> markers1 = markers[orientedReadId1.getValue()];
+        const Alignment& alignment = alignments[sequenceId].alignment;
+        const uint32_t first1 = alignment.ordinals.front()[1];
+        firstOrdinals[sequenceId] = first1;
+        const uint32_t last1 = alignment.ordinals.back()[1];
+        lastOrdinals[sequenceId] = last1;
+        sequence.resize(last1 + 1 - first1);
+        for(uint64_t i=0; i<sequence.size(); i++) {
+            sequence[i] = markers1[first1 + i].kmerId;
+        }
+    }
+
+    // Add the sequence of the oriented read we started from.
+    Sequence& sequence0 = sequences.back();
+    const SequenceId sequenceId0 = sequences.size() - 1;
+    orientedReadIds.back() = orientedReadId0;
+    const span<const CompressedMarker> markers0 = markers[orientedReadId0.getValue()];
+    const uint64_t markerCount0 = markers0.size();
+    firstOrdinals.back() = 0;
+    lastOrdinals.back() = uint32_t(markers0.size() - 1);
+    sequence0.resize(markerCount0);
+    for(uint32_t ordinal=0; ordinal!=markerCount0; ordinal++) {
+        sequence0[ordinal] = markers0[ordinal].kmerId;
+    }
+    cout << orientedReadId0 << " has " << markerCount0 << " markers, " <<
+        alignments.size() << " stored alignments." << endl;
+
+
+
+    // Create a marker graph of these sequences.
+    // Use as SequenceId the index into the sequences vector.
+    using Graph = MarkerGraph2<KmerId, SequenceId>;
+    using vertex_descriptor = Graph::vertex_descriptor;
+    // using edge_descriptor = Graph::edge_descriptor;
+    Graph graph;
+    for(SequenceId sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
+        graph.addSequence(sequenceId, sequences[sequenceId]);
+    }
+    const uint64_t disjointSetsSize = graph.doneAddingSequences();
+    cout << "The disjoint set data structure has size " << disjointSetsSize << endl;
+
+
+
+    // Merge pairs of aligned markers.
+    vector< pair<uint64_t, uint64_t> > v;
+    for(SequenceId sequenceId1=0; sequenceId1<alignments.size(); sequenceId1++) {
+        const Alignment& alignment = alignments[sequenceId1].alignment;
+        v.clear();
+        for(const auto& ordinals: alignment.ordinals) {
+            // Merge ordinals relative to the start of the portion of
+            // each sequence used in the mini-assembly.
+            v.push_back({
+                ordinals[0] - firstOrdinals[sequenceId0],
+                ordinals[1] - firstOrdinals[sequenceId1]});
+        }
+        graph.merge(sequenceId0, sequenceId1, v);
+    }
+
+
+
+    // We also need to use alignments between the oriented reads aligned with orientedReadId0.
+
+
+
+    // Finish creation of the marker graph.
+    graph.doneMerging();
+    cout << "The marker graph for the mini-assembly has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+
+
+
+    // Write out the marker graph in Graphviz format.
+    ofstream graphOut("MiniAssembly-MarkerGraph.dot");
+    graphOut <<
+        "digraph MarkerGraph {\n"
+        "tooltip = \" \";\n";
+
+    // Vertices.
+    BGL_FORALL_VERTICES_T(v, graph, Graph) {
+        const auto& vertex = graph[v];
+        const uint64_t coverage = vertex.coverage();
+        graphOut << graph[v].vertexId << "[";
+        graphOut << "width=" << 0.05 * sqrt(double(coverage));
+        if(vertex.contains(sequenceId0)) {
+            graphOut << " color=blue";
+        }
+        graphOut << " tooltip=\"" << coverage << "\"";
+        graphOut << "];\n";
+    }
+
+    // Edges.
+    BGL_FORALL_EDGES_T(e, graph, Graph) {
+        const auto& edge = graph[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const uint64_t coverage = edge.coverage();
+        graphOut << graph[v0].vertexId << "->" <<
+            graph[v1].vertexId << "[";
+        graphOut << "penwidth=" << 1. * double(coverage);
+        if(edge.contains(sequenceId0)) {
+            graphOut << " color=blue";
+        }
+        graphOut << " tooltip=\"" << coverage << "\"";
+        graphOut << "];\n";
+    }
+    graphOut << "}\n";
 
 }
