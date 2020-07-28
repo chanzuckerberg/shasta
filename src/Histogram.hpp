@@ -2,13 +2,18 @@
 #define SHASTA_HISTOGRAM_HPP
 
 #include "algorithm.hpp"
-#include <numeric>
 #include "vector.hpp"
+#include <numeric>
+#include <cstdint>
+#include <fstream>
 
 namespace shasta {
     class Histogram;
+    class Histogram2;
+    void testIterativeHistogram();
 }
 
+using std::ostream;
 
 
 // A simple histogram class that stores the histogram in a vector.
@@ -40,6 +45,36 @@ public:
     {
         return *std::max_element(begin(), end());
     }
+};
+
+
+// A histogram class that calculates bin size and finds the appropriate bin to increment given an x value
+class shasta::Histogram2{
+public:
+    /// Attributes ///
+    const double start;
+    const double stop;
+    const size_t binCount;
+    const double binSize;
+    vector<uint64_t> histogram;
+    bool unboundedLeft;
+    bool unboundedRight;
+
+    /// Methods ///
+    Histogram2(
+            double start,
+            double stop,
+            size_t binCount,
+            bool unboundedLeft=false,
+            bool unboundedRight=false);
+
+    void update(double x);
+    void getNormalizedHistogram(vector<double>& normalizedHistogram);
+    void writeToHtml(ostream& html, uint64_t sizePx);
+
+private:
+    /// Methods ///
+    int64_t findIndex(double x);
 };
 
 

@@ -2087,6 +2087,10 @@ public:
     );
 #endif
 
+    // Do bulk sampling of reads and accumulate stats about their alignments
+    void assessAlignments(const vector<string>& request, ostream& html);
+    void sampleReads(vector<OrientedReadId>& sample, uint64_t n);
+    void sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t minLength, uint64_t maxLength);
 
 
     // Compute all alignments for a given read.

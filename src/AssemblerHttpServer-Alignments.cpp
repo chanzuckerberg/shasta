@@ -8,6 +8,7 @@
 #include "LocalAlignmentGraph.hpp"
 #include "platformDependent.hpp"
 #include "ReadId.hpp"
+#include "Histogram.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -1181,6 +1182,266 @@ void Assembler::computeAllAlignments(
     }
 }
 
+
+void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n){
+    sample.clear();
+
+    while (sample.size() < n) {
+        // Randomly select a read in the read set
+        const ReadId readId = uint32_t(rand() % reads.size());
+
+        // Randomly select an orientation
+        const Strand strand = uint32_t(rand() % 2);
+
+        sample.push_back(OrientedReadId(readId, strand));
+    }
+}
+
+
+void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t minLength, uint64_t maxLength){
+    sample.clear();
+
+    while (sample.size() < n) {
+        // Randomly select a read in the read set
+        const ReadId readId = uint32_t(rand() % reads.size());
+
+        // Randomly select an orientation
+        const Strand strand = uint32_t(rand() % 2);
+
+        const OrientedReadId r(readId, strand);
+
+        // Number of raw bases.
+        const auto repeatCounts = readRepeatCounts[readId];
+        uint64_t length = 0;
+        for(const auto repeatCount: repeatCounts) {
+            length += repeatCount;
+        }
+
+        // Only update the sample of reads if this read passes the length criteria
+        if(length >= minLength and length <= maxLength) {
+            sample.push_back(r);
+        }
+    }
+}
+
+
+// Compute alignments on an oriented read against
+// all other oriented reads, using a sampling of reads.
+// Display some useful stats for these alignments.
+void Assembler::assessAlignments(
+        const vector<string>& request,
+        ostream& html)
+{
+    // Get the read id and strand from the request.
+    uint64_t samples = 0;
+    uint64_t minLength = 0;
+    uint64_t maxLength = std::numeric_limits<uint64_t>::max();
+    bool showAlignmentResults = false;
+    string showAlignmentResultsString;
+    const bool samplesIsPresent = getParameterValue(request, "samples", samples);
+    const bool minLengthIsPresent = getParameterValue(request, "minLength", minLength);
+    const bool maxLengthIsPresent = getParameterValue(request, "maxLength", maxLength);
+    showAlignmentResults = getParameterValue(request, "showAlignmentResults", showAlignmentResultsString);
+
+    // Get alignment parameters.
+    computeAllAlignmentsData.method = httpServerData.assemblerOptions->alignOptions.alignMethod;
+    getParameterValue(request, "method", computeAllAlignmentsData.method);
+    computeAllAlignmentsData.minMarkerCount = 0;
+    getParameterValue(request, "minMarkerCount", computeAllAlignmentsData.minMarkerCount);
+    computeAllAlignmentsData.maxSkip = httpServerData.assemblerOptions->alignOptions.maxSkip;
+    getParameterValue(request, "maxSkip", computeAllAlignmentsData.maxSkip);
+    computeAllAlignmentsData.maxDrift = httpServerData.assemblerOptions->alignOptions.maxDrift;
+    getParameterValue(request, "maxDrift", computeAllAlignmentsData.maxDrift);
+    computeAllAlignmentsData.maxMarkerFrequency = httpServerData.assemblerOptions->alignOptions.maxMarkerFrequency;
+    getParameterValue(request, "maxMarkerFrequency", computeAllAlignmentsData.maxMarkerFrequency);
+    computeAllAlignmentsData.minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
+    getParameterValue(request, "minAlignedMarkerCount", computeAllAlignmentsData.minAlignedMarkerCount);
+    computeAllAlignmentsData.minAlignedFraction = httpServerData.assemblerOptions->alignOptions.minAlignedFraction;
+    getParameterValue(request, "minAlignedFraction", computeAllAlignmentsData.minAlignedFraction);
+    computeAllAlignmentsData.maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
+    getParameterValue(request, "maxTrim", computeAllAlignmentsData.maxTrim);
+    computeAllAlignmentsData.matchScore = httpServerData.assemblerOptions->alignOptions.matchScore;
+    getParameterValue(request, "matchScore", computeAllAlignmentsData.matchScore);
+    computeAllAlignmentsData.mismatchScore = httpServerData.assemblerOptions->alignOptions.mismatchScore;
+    getParameterValue(request, "mismatchScore", computeAllAlignmentsData.mismatchScore);
+    computeAllAlignmentsData.gapScore = httpServerData.assemblerOptions->alignOptions.gapScore;
+    getParameterValue(request, "gapScore", computeAllAlignmentsData.gapScore);
+    computeAllAlignmentsData.downsamplingFactor = httpServerData.assemblerOptions->alignOptions.downsamplingFactor;
+    getParameterValue(request, "downsamplingFactor", computeAllAlignmentsData.downsamplingFactor);
+    computeAllAlignmentsData.bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
+    getParameterValue(request, "bandExtend", computeAllAlignmentsData.bandExtend);
+
+    html << "<h1>Alignment statistics</h1>";
+    html << "<p>This page enables sampling from the pool of reads and computing alignments for each read in the sample "
+            "against all other reads in this assembly. This can be slow. Once alignment finishes, stats can be "
+            "generated and used to evaluate Shasta parameters."
+            "<br>";
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Compute marker alignments'>"
+        "<br><br>"
+        "<table>"
+        "<tr>"
+        "<td>Number of reads to sample: "
+        "<td><input type=text name=samples required size=8 " <<
+        (samplesIsPresent ? "value="+to_string(samples) : "") <<
+        " title='Enter any number'>"
+        "<tr>"
+        "<td>Minimum number of raw bases in read (default=0): "
+        "<td><input type=text name=minLength size=8 " <<
+        (minLengthIsPresent ? "value="+to_string(minLength) : "") <<
+        " title='Enter any number'>"
+        "<tr>"
+        "<td>Maximum number of raw bases in read (default=inf): "
+        "<td><input type=text name=maxLength size=8 " <<
+        (maxLengthIsPresent ? "value="+to_string(maxLength) : "") <<
+        " title='Enter any number'>"
+        "<tr>"
+        "<td>Show alignment results "
+        "<td><input type=checkbox name=showAlignmentResults"
+        << (showAlignmentResults ? " checked=checked" : "") <<
+        ">"
+        "</table>";
+
+    renderEditableAlignmentConfig(
+            computeAllAlignmentsData.method,
+            computeAllAlignmentsData.maxSkip,
+            computeAllAlignmentsData.maxDrift,
+            computeAllAlignmentsData.maxMarkerFrequency,
+            computeAllAlignmentsData.minAlignedMarkerCount,
+            computeAllAlignmentsData.minAlignedFraction,
+            computeAllAlignmentsData.maxTrim,
+            computeAllAlignmentsData.matchScore,
+            computeAllAlignmentsData.mismatchScore,
+            computeAllAlignmentsData.gapScore,
+            computeAllAlignmentsData.downsamplingFactor,
+            computeAllAlignmentsData.bandExtend,
+            html
+    );
+
+    html << "</form>";
+
+    vector<OrientedReadId> sampledReads;
+
+    // If the user input is missing, stop here.
+    if(not samplesIsPresent) {
+        return;
+    }
+
+    // If the user doesn't care about filtering length, sample uniformly
+    if(not minLengthIsPresent and not maxLengthIsPresent) {
+        sampleReads(sampledReads, samples);
+    }
+    // Or else use any provided filters (defaults are used if only one is set)
+    else{
+        sampleReads(sampledReads, samples, minLength, maxLength);
+    }
+
+    // Initialize histograms
+    Histogram2 alignedFractionHistogram(0, 1, 20);
+    Histogram2 markerCountHistogram(0, 3000, 120);
+    Histogram2 nAlignmentsHistogram(0, 200, 20);
+
+    vector<pair<OrientedReadId, AlignmentInfo> > allAlignments;
+    vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignments;
+
+    for (auto& orientedReadId: sampledReads) {
+
+        if (computeAllAlignmentsData.method == 0) {
+            // Vectors to contain markers sorted by kmerId. (only needed for align method 0)
+            vector<MarkerWithOrdinal> markers0SortedByKmerId;
+            vector<MarkerWithOrdinal> markers1SortedByKmerId;
+            getMarkersSortedByKmerId(orientedReadId, markers0SortedByKmerId);
+        }
+
+        // Compute the alignments in parallel.
+        computeAllAlignmentsData.orientedReadId0 = orientedReadId;
+        const size_t threadCount = std::thread::hardware_concurrency();
+        computeAllAlignmentsData.threadAlignments.resize(threadCount);
+        const size_t batchSize = 1;
+        setupLoadBalancing(reads.size(), batchSize);
+        const auto t0 = std::chrono::steady_clock::now();
+        runThreads(&Assembler::computeAllAlignmentsThreadFunction, threadCount);
+        const auto t1 = std::chrono::steady_clock::now();
+        html << "<p>Alignment computation using " << threadCount << " threads took " <<
+             1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count()) << "s.";
+
+        // Gather the alignments found by each thread.
+        vector<pair<OrientedReadId, AlignmentInfo> > alignments;
+        for (size_t threadId = 0; threadId < threadCount; threadId++) {
+            const vector<pair<OrientedReadId, AlignmentInfo> >& threadAlignments =
+                    computeAllAlignmentsData.threadAlignments[threadId];
+            copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignments));
+        }
+        computeAllAlignmentsData.threadAlignments.clear();
+        sort(alignments.begin(), alignments.end(),
+             OrderPairsByFirstOnly<OrientedReadId, AlignmentInfo>());
+
+        // Loop over the STORED alignments that this oriented read is involved in, with the proper orientation.
+        const vector< pair<OrientedReadId, AlignmentInfo> > storedAlignments =
+                findOrientedAlignments(orientedReadId);
+
+        html << "<p><strong>Assessing alignments for read " << orientedReadId << "</strong>";
+
+        // Print info about STORED alignments
+        if(storedAlignments.empty()) {
+            html << "<p>No stored alignments found.";
+        } else {
+            html << "<p>Found " << storedAlignments.size() << " stored alignments.";
+        }
+
+        // Print info about FOUND alignments
+        if (alignments.empty()) {
+            html << "<p>No alignments found satisfying the given criteria.";
+        }
+        else {
+            html << "<p>Found " << alignments.size() << " alignments satisfying the given criteria.";
+
+            // Only do verbose output if the user wants to
+            if (showAlignmentResults) {
+                displayAlignments(orientedReadId, alignments, html);
+            }
+        }
+
+        for (auto& a: storedAlignments){
+            allStoredAlignments.push_back(a);
+        }
+
+        for (auto& a: alignments){
+            allAlignments.push_back(a);
+        }
+        nAlignmentsHistogram.update(double(alignments.size()));
+    }
+
+    for (auto& item: allAlignments){
+        const auto alignment = item.second;
+
+        // Increment histograms
+        markerCountHistogram.update(alignment.markerCount);
+        alignedFractionHistogram.update(alignment.minAlignedFraction());
+    }
+
+    // Pixel width of histogram display
+    const uint64_t histogramSize = 500;
+
+    html << "<br><br>";
+    html << "<br><strong>Marker Count Distribution</strong>";
+    html << "<br>Histogram of the number of aligned markers observed per alignment";
+    markerCountHistogram.writeToHtml(html, histogramSize);
+    html << "<br><strong>Aligned Fraction Distribution</strong>";
+    html << "<br>Histogram of 'aligned fraction' per alignment. Aligned fraction is the portion of matching markers"
+            " used in the alignment, within the overlapping region between reads";
+    alignedFractionHistogram.writeToHtml(html, histogramSize);
+    html << "<br><strong>Number of Alignments Found per Read</strong>";
+    html << "<br>For each query read, how many passing alignments were found in one-to-all alignment";
+    nAlignmentsHistogram.writeToHtml(html, histogramSize);
+    html << "<br><strong>Ratio of stored to found alignments</strong>";
+    html << "<br>" << std::fixed << std::setprecision(3) <<
+    double(allStoredAlignments.size())/double(allAlignments.size());
+    html << "<br";
+}
 
 
 void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
