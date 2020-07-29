@@ -6,7 +6,7 @@ using namespace shasta;
 
 namespace shasta {
     class AnalyzeAlignments2Graph;
-
+    class AnalyzeAlignments3Graph;
 }
 
 
@@ -874,6 +874,98 @@ void AnalyzeAlignments2Graph::writeGraphviz(
 
 
 
+// A graph class used by Assembler::analyzeAlignments3.
+class shasta::AnalyzeAlignments3Graph : public MarkerGraph2<KmerId, uint64_t> {
+public:
+    using Graph = AnalyzeAlignments3Graph;
+    AnalyzeAlignments3Graph(const vector<OrientedReadId>& orientedReadIds) :
+        orientedReadIds(orientedReadIds) {}
+    void removeSelfEdges();
+    void removeLowCoverageEdges(
+        uint64_t minCoverage,
+        uint64_t minPerStrandEdgeCoverage);
+    void removeIsolatedVertices();
+
+    vector<OrientedReadId> orientedReadIds;
+};
+
+
+
+void shasta::AnalyzeAlignments3Graph::removeSelfEdges()
+{
+    Graph& graph = *this;
+
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        if(source(e,graph) == target(e, graph)) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, graph);
+    }
+
+}
+
+
+
+void shasta::AnalyzeAlignments3Graph::removeIsolatedVertices()
+{
+    Graph& graph = *this;
+
+    vector<vertex_descriptor> verticesToBeRemoved;
+    BGL_FORALL_VERTICES(v, graph, Graph)
+    {
+        if(in_degree(v, graph)==0 and out_degree(v, graph)==0) {
+            verticesToBeRemoved.push_back(v);
+        }
+    }
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        remove_vertex(v, graph);
+    }
+
+}
+
+
+
+void shasta::AnalyzeAlignments3Graph::removeLowCoverageEdges(
+    uint64_t minTotalEdgeCoverage,
+    uint64_t minPerStrandEdgeCoverage)
+{
+    Graph& graph = *this;
+
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, graph, Graph) {
+
+        // Check total coverage.
+        if(graph[e].coverage() < minTotalEdgeCoverage) {
+            edgesToBeRemoved.push_back(e);
+            continue;
+        }
+
+        // Check coverage per strand.
+        array<uint64_t, 2> perStrandCoverage = {0, 0};
+        for(const auto& marker: graph[e].markers) {
+            const auto sequenceId = marker.first;
+            const OrientedReadId orientedReadId = orientedReadIds[sequenceId];
+            const Strand strand = orientedReadId.getStrand();
+            ++perStrandCoverage[strand];
+        }
+        if(perStrandCoverage[0]<minPerStrandEdgeCoverage or
+           perStrandCoverage[1]<minPerStrandEdgeCoverage) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+
+    // Remove the edges we flagged.
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, graph);
+    }
+
+}
+
+
+
 // This version uses a marker graph graph to do a mini-assembly
 // using only this oriented read and the aligned portions
 // of oriented reads for which we have an alignment with this one.
@@ -883,11 +975,8 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
 {
     // Parameters controlling this function.
     // Expose when code stabilizes.
-    // const uint64_t minTotalCoverage = 5;
-    // const uint64_t minSameStrandCoverage = 2;
-    // const uint64_t minOppositeStrandCoverage = 2;
-    // const double similarityThreshold = 0.75;
-    // const uint64_t neighborCount = 3;
+    const uint64_t minTotalEdgeCoverage = 5;
+    const uint64_t minPerStrandEdgeCoverage = 2;
 
 
 
@@ -952,10 +1041,10 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
 
     // Create a marker graph of these sequences.
     // Use as SequenceId the index into the sequences vector.
-    using Graph = MarkerGraph2<KmerId, SequenceId>;
+    using Graph = AnalyzeAlignments3Graph;
     using vertex_descriptor = Graph::vertex_descriptor;
-    using edge_descriptor = Graph::edge_descriptor;
-    Graph graph;
+    // using edge_descriptor = Graph::edge_descriptor;
+    Graph graph(orientedReadIds);
     for(SequenceId sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
         graph.addSequence(sequenceId, sequences[sequenceId]);
     }
@@ -1041,48 +1130,12 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
 
     // Finish creation of the marker graph.
     graph.doneMerging();
+    graph.removeSelfEdges();
+    graph.removeLowCoverageEdges(minTotalEdgeCoverage, minPerStrandEdgeCoverage);
+    graph.removeIsolatedVertices();
     cout << "The marker graph for the mini-assembly has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
 
-
-    // Remove self-edges.
-    vector<edge_descriptor> edgesToBeRemoved;
-    BGL_FORALL_EDGES(e, graph, Graph) {
-        if(source(e,graph) == target(e, graph)) {
-            edgesToBeRemoved.push_back(e);
-        }
-    }
-    for(const edge_descriptor e: edgesToBeRemoved) {
-        remove_edge(e, graph);
-    }
-
-
-
-#if 1
-    // Just to make it easier to display the graph, remove all edges
-    // with coverage 1, then all isolated vertices.
-    edgesToBeRemoved.clear();
-    BGL_FORALL_EDGES(e, graph, Graph) {
-        if(graph[e].coverage() == 1) {
-            edgesToBeRemoved.push_back(e);
-        }
-    }
-    for(const edge_descriptor e: edgesToBeRemoved) {
-        remove_edge(e, graph);
-    }
-    vector<vertex_descriptor> verticesToBeRemoved;
-    BGL_FORALL_VERTICES(v, graph, Graph)
-    {
-        if(in_degree(v, graph)==0 and out_degree(v, graph)==0) {
-            verticesToBeRemoved.push_back(v);
-        }
-    }
-    for(const vertex_descriptor v: verticesToBeRemoved) {
-        remove_vertex(v, graph);
-    }
-    cout << "After clean up, the marker graph for the mini-assembly has " << num_vertices(graph) <<
-        " vertices and " << num_edges(graph) << " edges." << endl;
-#endif
 
 
 
