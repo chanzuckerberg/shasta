@@ -1,6 +1,7 @@
 #include "Assembler.hpp"
 #include "DeBruijnGraph.hpp"
 #include "compressAlignment.hpp"
+#include "findLinearChains.hpp"
 #include "MarkerGraph2.hpp"
 using namespace shasta;
 
@@ -887,6 +888,20 @@ public:
     void removeIsolatedVertices();
 
     vector<OrientedReadId> orientedReadIds;
+
+    // A path is a sequence of consecutive edges.
+    using Path = vector<edge_descriptor>;
+
+    // A bubble is a set of linear paths that have the same
+    // start and end vertex.
+    class Bubble {
+    public:
+        vertex_descriptor v0;
+        vertex_descriptor v1;
+        vector<Path> branches;
+    };
+    vector<Bubble> bubbles;
+    void findBubbles();
 };
 
 
@@ -962,6 +977,48 @@ void shasta::AnalyzeAlignments3Graph::removeLowCoverageEdges(
         boost::remove_edge(e, graph);
     }
 
+}
+
+
+
+void shasta::AnalyzeAlignments3Graph::findBubbles()
+{
+    Graph& graph = *this;
+
+    // Find linear chains.
+    using Chain = std::list<edge_descriptor>;
+    vector<Chain> chains;
+    findLinearChains(graph, chains);
+
+    // Store keyed by start/end vertex.
+    std::map< pair<vertex_descriptor, vertex_descriptor>, vector<Chain> > chainMap;
+    for(const Chain& chain: chains) {
+        SHASTA_ASSERT(not chain.empty());
+        const vertex_descriptor v0 = source(chain.front(), graph);
+        const vertex_descriptor v1 = target(chain.back(), graph);
+        chainMap[make_pair(v0, v1)].push_back(chain);
+    }
+
+    // Each non-trivial set of chains with the same start/end vertices
+    // generates a bubble.
+    bubbles.clear();
+    for(const auto& p: chainMap) {
+        const vector<Chain>& chains = p.second;
+        if(chains.size() < 2) {
+            continue;
+        }
+        bubbles.resize(bubbles.size() + 1);
+        Bubble& bubble = bubbles.back();
+        bubble.v0 = p.first.first;
+        bubble.v1 = p.first.second;
+
+        // Each chain with these start/end vertices generates
+        // a branch in the bubble.
+        for(const Chain& chain: chains) {
+            bubble.branches.resize(bubble.branches.size() + 1);
+            copy(chain.begin(), chain.end(), back_inserter(bubble.branches.back()));
+        }
+    }
 }
 
 
@@ -1133,8 +1190,10 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
     graph.removeSelfEdges();
     graph.removeLowCoverageEdges(minTotalEdgeCoverage, minPerStrandEdgeCoverage);
     graph.removeIsolatedVertices();
+    graph.findBubbles();
     cout << "The marker graph for the mini-assembly has " << num_vertices(graph) <<
-        " vertices and " << num_edges(graph) << " edges." << endl;
+        " vertices, " << num_edges(graph) << " edges, and " <<
+        graph.bubbles.size() << " bubbles." << endl;
 
 
 
