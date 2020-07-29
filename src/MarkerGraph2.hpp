@@ -36,7 +36,7 @@ namespace shasta {
     template<class Symbol, class SequenceId> using MarkerGraph2BaseClass =
         boost::adjacency_list<
         boost::listS,
-        boost::vecS,
+        boost::listS,
         boost::bidirectionalS,
         MarkerGraph2Vertex<Symbol, SequenceId>,
         MarkerGraph2Edge<Symbol, SequenceId>

@@ -295,6 +295,92 @@ void Assembler::getStoredAlignments(
 
 
 
+// This version of getStoredAlignments only returns alignments in which
+// the second oriented read is present in a given vector orientedReadIds1,
+// which is required to be sorted.
+void Assembler::getStoredAlignments(
+    OrientedReadId orientedReadId0,
+    const vector<OrientedReadId>& orientedReadIds1,
+    vector<StoredAlignmentInformation>& alignments) const
+{
+    // Check that orientedReadIds1 is sorted.
+    for(uint64_t i=1; i<orientedReadIds1.size(); i++) {
+        SHASTA_ASSERT(orientedReadIds1[i-1] < orientedReadIds1[i]);
+    }
+
+    // Check that we have what we need.
+    checkMarkersAreOpen();
+    checkAlignmentDataAreOpen();
+    SHASTA_ASSERT(compressedAlignments.isOpen());
+
+    // Access the alignment table portion for this oriented read.
+    // It contains indexes into alignmentData and compressedAlignments
+    // for alignments involving this oriented read.
+    const span<const uint32_t> alignmentIds = alignmentTable[orientedReadId0.getValue()];
+
+
+
+    // Loop over alignments involving this oriented read.
+    alignments.clear();
+    for(const uint32_t alignmentId: alignmentIds) {
+        AlignmentData alignmentData = this->alignmentData[alignmentId];
+
+        // The alignment is stored with its first read on strand 0.
+        OrientedReadId alignmentOrientedReadId0(alignmentData.readIds[0], 0);
+        OrientedReadId alignmentOrientedReadId1(alignmentData.readIds[1],
+            alignmentData.isSameStrand ? 0 : 1);
+
+        // Tweak the alignment to make sure its first oriented read is orientedReadId0.
+        // This may require a swap and/or reverse complement.
+
+        // Do a swap, if needed.
+        bool doSwap = false;
+        if(alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
+            doSwap = true;
+            swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
+        }
+        SHASTA_ASSERT(alignmentOrientedReadId0.getReadId() == orientedReadId0.getReadId());
+
+        // Reverse complement, if needed.
+        bool doReverseComplement = false;
+        if(alignmentOrientedReadId0.getStrand() != orientedReadId0.getStrand()) {
+            doReverseComplement = true;
+            alignmentOrientedReadId0.flipStrand();
+            alignmentOrientedReadId1.flipStrand();
+        }
+
+        SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
+        const OrientedReadId orientedReadId1 = alignmentOrientedReadId1;
+
+        // If orientedReadId1 is not one of the oriented reads we are interested in, skip.
+        if(not binary_search(orientedReadIds1.begin(), orientedReadIds1.end(), orientedReadId1)) {
+            continue;
+        }
+
+        // Decompress the alignment.
+        alignments.resize(alignments.size() + 1);
+        StoredAlignmentInformation& storedAlignmentInformation = alignments.back();
+        storedAlignmentInformation.alignmentId = alignmentId;
+        storedAlignmentInformation.orientedReadId = orientedReadId1;
+        const span<const char> compressedAlignment = compressedAlignments[alignmentId];
+        Alignment& alignment = alignments.back().alignment;
+        decompress(compressedAlignment, alignment);
+        SHASTA_ASSERT(alignment.ordinals.size() == alignmentData.info.markerCount);
+
+        // Tweak the alignment consistently with what we did above.
+        if(doSwap) {
+            alignment.swap();
+        }
+        if(doReverseComplement) {
+            alignment.reverseComplement(
+                uint32_t(markers.size(alignmentOrientedReadId0.getValue())),
+                uint32_t(markers.size(alignmentOrientedReadId1.getValue())));
+        }
+    }
+}
+
+
+
 // This version uses a De Bruijn graph to do a mini-assembly
 // using only this oriented read and the aligned portions
 // of oriented reads for which we have an alignment with this one.
@@ -868,7 +954,7 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
     // Use as SequenceId the index into the sequences vector.
     using Graph = MarkerGraph2<KmerId, SequenceId>;
     using vertex_descriptor = Graph::vertex_descriptor;
-    // using edge_descriptor = Graph::edge_descriptor;
+    using edge_descriptor = Graph::edge_descriptor;
     Graph graph;
     for(SequenceId sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
         graph.addSequence(sequenceId, sequences[sequenceId]);
@@ -889,13 +975,67 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
             v.push_back({
                 ordinals[0] - firstOrdinals[sequenceId0],
                 ordinals[1] - firstOrdinals[sequenceId1]});
+            SHASTA_ASSERT(
+                markers[orientedReadIds[sequenceId0].getValue()][ordinals[0]].kmerId ==
+                markers[orientedReadIds[sequenceId1].getValue()][ordinals[1]].kmerId
+                );
         }
         graph.merge(sequenceId0, sequenceId1, v);
     }
 
 
 
-    // We also need to use alignments between the oriented reads aligned with orientedReadId0.
+    // We also need to merge vertices using alignments between the oriented reads
+    // aligned with orientedReadId0.
+    // Just for this portion of the code, take orientedReadId0 out of the orientedReadIds
+    // vector.
+    orientedReadIds.resize(alignments.size());
+    for(SequenceId sequenceId1=0; sequenceId1<alignments.size(); sequenceId1++) {
+        const OrientedReadId orientedReadId1 = orientedReadIds[sequenceId1];
+
+        // Get alignments between orientedReadId1 and the other oriented reads in
+        // orientedReadIds.
+        getStoredAlignments(orientedReadId1, orientedReadIds, alignments);
+
+        // Loop over the alignments we got.
+        for(const auto& storedAlignment: alignments) {
+            const OrientedReadId orientedReadId2 = storedAlignment.orientedReadId;
+
+            // Look up the corresponding SequenceId.
+            const auto it = std::lower_bound(orientedReadIds.begin(), orientedReadIds.end(),
+                orientedReadId2);
+            SHASTA_ASSERT(it != orientedReadIds.end());
+            const SequenceId sequenceId2 = it - orientedReadIds.begin();
+
+            // Merge vertices.
+            const Alignment& alignment = storedAlignment.alignment;
+            v.clear();
+            for(const auto& ordinals: alignment.ordinals) {
+                if(ordinals[0] < firstOrdinals[sequenceId1]) {
+                    continue;
+                }
+                if(ordinals[1] < firstOrdinals[sequenceId2]) {
+                    continue;
+                }
+                if(ordinals[0] > lastOrdinals[sequenceId1]) {
+                    continue;
+                }
+                if(ordinals[1] > lastOrdinals[sequenceId2]) {
+                    continue;
+                }
+                v.push_back({
+                    ordinals[0] - firstOrdinals[sequenceId1],
+                    ordinals[1] - firstOrdinals[sequenceId2]});
+                SHASTA_ASSERT(
+                    markers[orientedReadIds[sequenceId1].getValue()][ordinals[0]].kmerId ==
+                    markers[orientedReadIds[sequenceId2].getValue()][ordinals[1]].kmerId
+                    );
+            }
+            graph.merge(sequenceId1, sequenceId2, v);
+        }
+    }
+    // Add orientedReadId0 back to our list.
+    orientedReadIds.push_back(orientedReadId0);
 
 
 
@@ -903,6 +1043,46 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
     graph.doneMerging();
     cout << "The marker graph for the mini-assembly has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
+
+
+    // Remove self-edges.
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        if(source(e,graph) == target(e, graph)) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        remove_edge(e, graph);
+    }
+
+
+
+#if 1
+    // Just to make it easier to display the graph, remove all edges
+    // with coverage 1, then all isolated vertices.
+    edgesToBeRemoved.clear();
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        if(graph[e].coverage() == 1) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        remove_edge(e, graph);
+    }
+    vector<vertex_descriptor> verticesToBeRemoved;
+    BGL_FORALL_VERTICES(v, graph, Graph)
+    {
+        if(in_degree(v, graph)==0 and out_degree(v, graph)==0) {
+            verticesToBeRemoved.push_back(v);
+        }
+    }
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        remove_vertex(v, graph);
+    }
+    cout << "After clean up, the marker graph for the mini-assembly has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+#endif
 
 
 
@@ -933,7 +1113,7 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
         const uint64_t coverage = edge.coverage();
         graphOut << graph[v0].vertexId << "->" <<
             graph[v1].vertexId << "[";
-        graphOut << "penwidth=" << 1. * double(coverage);
+        graphOut << "penwidth=" << 1. * sqrt(double(coverage));
         if(edge.contains(sequenceId0)) {
             graphOut << " color=blue";
         }

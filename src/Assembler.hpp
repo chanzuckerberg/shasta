@@ -1006,6 +1006,10 @@ private:
     void getStoredAlignments(
         OrientedReadId,
         vector<StoredAlignmentInformation>&) const;
+    void getStoredAlignments(
+        OrientedReadId,
+        const vector<OrientedReadId>&,
+        vector<StoredAlignmentInformation>&) const;
 
 
 
