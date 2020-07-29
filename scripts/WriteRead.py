@@ -15,5 +15,5 @@ readId = int(sys.argv[1])
 fileName = str(readId) + '.fasta'
 
 a = shasta.Assembler()
-a.writeRead(readId=readId, fileName=fileName)
+a.getReads().writeRead(readId=readId, fileName=fileName)
 

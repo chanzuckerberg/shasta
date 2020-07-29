@@ -23,6 +23,7 @@
 #include "ReadGraph.hpp"
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
+#include "Reads.hpp"
 
 // Standard library.
 #include "memory.hpp"
@@ -47,6 +48,7 @@ namespace shasta {
     class LocalAlignmentGraph;
     class LocalReadGraph;
     class SegmentGraph;
+    class Reads;
 
 #ifdef SHASTA_HTTP_SERVER
     class LocalMarkerGraph;
@@ -168,20 +170,14 @@ public:
     // The reads in the specified file are added to those already previously present.
     void addReads(
         const string& fileName,
-        size_t minReadLength,
+        uint64_t minReadLength,
         bool noCache,
         size_t threadCount);
 
     // Create a histogram of read lengths.
     void histogramReadLength(const string& fileName);
 
-    // Function to write one or all reads in Fasta format.
-    void writeReads(const string& fileName);
-    void writeRead(ReadId, const string& fileName);
-    void writeOrientedRead(ReadId, Strand, const string& fileName);
-
-
-
+ 
     // Functions related to markers.
     // See the beginning of Marker.hpp for more information.
     void findMarkers(size_t threadCount);
@@ -455,182 +451,19 @@ private:
     // See class AssemblerInfo for more information.
     MemoryMapped::Object<AssemblerInfo> assemblerInfo;
 
-
-
-    /***************************************************************************
-
-    The reads used for this assembly.
-    Indexed by ReadId.
-
-    We use a run-length representation
-    (https://en.wikipedia.org/wiki/Run-length_encoding)
-    for reads: all repeated bases are removed, and
-    for each base we store a repeat base count that says how many
-    times that base was repeated in the original read.
-    Many assembly phases use only the run-length representation
-    (without using the base repeat count).
-    This includes the generation of markers, the computation of
-    alignments, and the creation of the marker graph.
-
-    For example, suppose we have the following read sequence:
-
-    TAATCATTTTGATGTAAGTCTAAAAATTTCACCTTAATACTTATTTTTCC
-
-    The read is stored like this:
-
-    TATCATGATGTAGTCTATCACTATACTATC
-    121114111112111153112221112152
-
-    The first line is stored in reads[readId] and the second line
-    is stored in readRepeatCount[readId]. Note that base caller errors
-    in the number of times a base is repeated (a g. AAAA versus AAAAA)
-    leave the first line unchanged.
-
-    In this representation the sequence never has any repeated bases.
-    However, repeats with period 2 or longer are possible, for example TATA
-    above.
-
-    In the run-length representation, the read sequence, which has all
-    repeated bases removed, is insensitive to base caller errors
-    in the number of repetitions of individual bases, which is the
-    most common type of error in nanopore sequencing.
-    Therefore, it is hoped that the run-length representation results
-    in better resilience to base caller errors.
-
-    The base repeat count is stored in one byte per base and so
-    it can store base repeat lengths up to 255.
-    If a read contains bases repeated 256 or more times,
-    it cannot be stored and is discarded on input.
-    The stored base repeat count is never zero, and is one
-    for most bases.
-
-    The run-length representation is typically around 25% shorter than
-    the raw representation, due to the removal of repeated bases.
-    This gives some performance benefits for assembly phases that
-    don't use the base repeat counts. However, the need to store
-    repeat base counts (8 bits per base) increases the memory
-    requirement from 2 to 10 bits per base. So overall the
-    run-length representation requires more memory for the reads
-    than the raw representation.
-
-    Run-length representations that are more economic in memory are possible,
-    at the price of additional code complexity and performance cost
-    in assembly phases that use the base repeat counts.
-
-    ***************************************************************************/
-
-    LongBaseSequences reads;
-    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCounts;
+    // Reads in RLE representation.
+    Reads reads;
 public:
-    ReadId readCount() const
-    {
-        return ReadId(reads.size());
-    }
-private:
-    void checkReadsAreOpen() const;
-    void checkReadNamesAreOpen() const;
-    void checkReadMetaDataAreOpen() const;
-    void checkReadId(ReadId) const;
-
-
-
-    // Return a base of an oriented read.
-    Base getOrientedReadBase(
-        OrientedReadId orientedReadId,
-        uint32_t position)
-    {
-        const auto& read = reads[orientedReadId.getReadId()];
-        if(orientedReadId.getStrand() == 0) {
-            return read[position];
-        } else {
-            return read[read.baseCount-1-position].complement();
-        }
+    const Reads& getReads() const {
+        return reads;
     }
 
-
-
-    // Same as above, but also returns the repeat count.
-    pair<Base, uint8_t> getOrientedReadBaseAndRepeatCount(
-        OrientedReadId orientedReadId,
-        uint32_t position)
-    {
-
-        // Extract the read id and strand.
-        const ReadId readId = orientedReadId.getReadId();
-        const Strand strand = orientedReadId.getStrand();
-
-        // Access the bases and repeat counts for this read.
-        const auto& read = reads[readId];
-        const auto& counts = readRepeatCounts[readId];
-
-        // Compute the position as stored, depending on strand.
-        uint32_t orientedPosition = position;
-        if(strand == 1) {
-            orientedPosition = uint32_t(read.baseCount) - 1 - orientedPosition;
-        }
-
-        // Extract the base and repeat count at this position.
-        pair<Base, uint8_t> p = make_pair(read[orientedPosition], counts[orientedPosition]);
-
-        // Complement the base, if necessary.
-        if(strand == 1) {
-            p.first = p.first.complement();
-        }
-
-        return p;
-    }
-
-
-
-    // Return a vector containing the raw sequence of an oriented read.
-    vector<Base> getOrientedReadRawSequence(OrientedReadId);
-
-    // Return the length of the raw sequence of a read.
-    // If using the run-length representation of reads, this counts each
-    // base a number of times equal to its repeat count.
-    size_t getReadRawSequenceLength(ReadId);
-
-    // Get a vector of the raw read positions
-    // corresponding to each position in the run-length
-    // representation of an oriented read.
-    vector<uint32_t> getRawPositions(OrientedReadId) const;
-
-    // The names of the reads from the input fasta or fastq files.
-    // Indexed by ReadId.
-    // Note that we don't enforce uniqueness of read names.
-    // We don't use read names to identify reads.
-    // These names are only used as an aid in tracing each read
-    // back to its origin.
-    MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
-
-    // Read meta data. This is the information following the read name
-    // in the header line for fasta and fastq files.
-    // Indexed by ReadId.
-    MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
-
-    // Return a meta data field for a read, or an empty string
-    // if that field is missing. This treats the meta data
-    // as a space separated sequence of Key=Value,
-    // without embedded spaces in each Key=Value pair.
-    span<char> getMetaData(ReadId, const string& key);
-
-    // Function to write a read in Fasta format.
-    void writeRead(ReadId, ostream&);
-    void writeOrientedRead(OrientedReadId, ostream&);
-    void writeOrientedRead(OrientedReadId, const string& fileName);
-
+    
     // Write a csv file with summary information for each read.
 public:
     void writeReadsSummary();
 
 
-
-    // Read flags.
-private:
-    MemoryMapped::Vector<ReadFlags> readFlags;
-public:
-    void initializeReadFlags();
-    void accessReadFlags(bool readWriteAccess);
 private:
 
 

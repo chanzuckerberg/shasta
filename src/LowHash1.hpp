@@ -6,7 +6,7 @@
 #include "MemoryMappedVectorOfVectors.hpp"
 #include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
-#include "ReadFlags.hpp"
+#include "Reads.hpp"
 
 // Standard library.
 #include "memory.hpp"
@@ -37,7 +37,7 @@ public:
         size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
         size_t threadCount,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
-        const MemoryMapped::Vector<ReadFlags>& readFlags,
+        const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>&,
         AlignmentCandidates& candidates,
         const string& largeDataFileNamePrefix,
@@ -54,7 +54,7 @@ private:
     size_t minFrequency;            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCount;
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
-    const MemoryMapped::Vector<ReadFlags>& readFlags;
+    const Reads& reads;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     AlignmentCandidates& candidates;
     const string& largeDataFileNamePrefix;

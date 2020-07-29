@@ -31,7 +31,7 @@ bool Assembler::createLocalAlignmentGraph(
 
     // Add the starting vertex.
     graph.addVertex(orientedReadIdStart,
-        uint32_t(reads[orientedReadIdStart.getReadId()].baseCount), 0);
+        uint32_t(reads.getRead(orientedReadIdStart.getReadId()).baseCount), 0);
 
     // Initialize a BFS starting at the start vertex.
     std::queue<OrientedReadId> q;
@@ -87,7 +87,7 @@ bool Assembler::createLocalAlignmentGraph(
             if(distance0 < maxDistance) {
                 if(!graph.vertexExists(orientedReadId1)) {
                     graph.addVertex(orientedReadId1,
-                        uint32_t(reads[orientedReadId1.getReadId()].baseCount), distance1);
+                        uint32_t(reads.getRead(orientedReadId1.getReadId()).baseCount), distance1);
                     q.push(orientedReadId1);
                 }
                 graph.addEdge(orientedReadId0, orientedReadId1,
@@ -109,7 +109,7 @@ bool Assembler::createLocalAlignmentGraph(
             // we already reached the maximum distance.
             if(!graph.vertexExists(orientedReadId1)) {
                 graph.addVertex(orientedReadId1,
-                    uint32_t(reads[orientedReadId1.getReadId()].baseCount), distance1);
+                    uint32_t(reads.getRead(orientedReadId1.getReadId()).baseCount), distance1);
                 if(distance1 < maxDistance) {
                     q.push(orientedReadId1);
                     // cout << "Enqueued " << orientedReadId1 << endl;

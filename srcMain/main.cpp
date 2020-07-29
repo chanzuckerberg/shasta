@@ -469,17 +469,13 @@ void shasta::main::assemble(
             assemblerOptions.readsOptions.noCache,
             threadCount);
     }
-    if(assembler.readCount() == 0) {
+    if(assembler.getReads().readCount() == 0) {
         throw runtime_error("There are no input reads.");
     }
     const auto t1 = steady_clock::now();
     cout << timestamp << "Done loading reads from " << inputFileNames.size() << " files." << endl;
     cout << "Read loading took " << seconds(t1-t0) << "s." << endl;
 
-
-
-    // Initialize read flags.
-    assembler.initializeReadFlags();
 
     // Create a histogram of read lengths.
     assembler.histogramReadLength("ReadLengthHistogram.csv");

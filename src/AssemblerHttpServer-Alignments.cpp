@@ -41,7 +41,7 @@ void Assembler::exploreAlignments(
         "<input type=submit value='Show alignments involving read'> "
         "<input type=text name=readId required" <<
         (readId0IsPresent ? (" value=" + to_string(readId0)) : "") <<
-        " size=8 title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " size=8 title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
     html << "</form>";
@@ -350,13 +350,13 @@ void Assembler::exploreAlignment(
         "&nbsp of read &nbsp"
         "<input type=text name=readId0 required size=8 " <<
         (readId0IsPresent ? "value="+to_string(readId0) : "") <<
-        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
     html <<
         "&nbsp and read <input type=text name=readId1 required size=8 " <<
         (readId1IsPresent ? "value="+to_string(readId1) : "") <<
-        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
 
@@ -1044,7 +1044,7 @@ void Assembler::computeAllAlignments(
         "&nbsp of oriented read &nbsp"
         "<input type=text name=readId0 required size=8 " <<
         (readId0IsPresent ? "value="+to_string(readId0) : "") <<
-        " title='Enter a read id between 0 and " << reads.size()-1 << "'>"
+        " title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
 
@@ -1085,7 +1085,7 @@ void Assembler::computeAllAlignments(
     const size_t threadCount =std::thread::hardware_concurrency();
     computeAllAlignmentsData.threadAlignments.resize(threadCount);
     const size_t batchSize = 1000;
-    setupLoadBalancing(reads.size(), batchSize);
+    setupLoadBalancing(reads.readCount(), batchSize);
     const auto t0 = std::chrono::steady_clock::now();
     runThreads(&Assembler::computeAllAlignmentsThreadFunction, threadCount);
     const auto t1 = std::chrono::steady_clock::now();
@@ -1114,9 +1114,9 @@ void Assembler::computeAllAlignments(
     // it for large assemblies.
     size_t computedAlignmentCount = 0;
     const auto t0 = std::chrono::steady_clock::now();
-    for(ReadId readId1=0; readId1<reads.size(); readId1++) {
+    for(ReadId readId1=0; readId1<reads.readCount(); readId1++) {
         if((readId1 % 10000) == 0) {
-            cout << timestamp << readId1 << "/" << reads.size() << " " << alignments.size() << endl;
+            cout << timestamp << readId1 << "/" << reads.readCount() << " " << alignments.size() << endl;
         }
         for(Strand strand1=0; strand1<2; strand1++) {
 
@@ -1188,7 +1188,7 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n){
 
     while (sample.size() < n) {
         // Randomly select a read in the read set
-        const ReadId readId = uint32_t(rand() % reads.size());
+        const ReadId readId = uint32_t(rand() % reads.readCount());
 
         // Randomly select an orientation
         const Strand strand = uint32_t(rand() % 2);
@@ -1203,7 +1203,7 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t
 
     while (sample.size() < n) {
         // Randomly select a read in the read set
-        const ReadId readId = uint32_t(rand() % reads.size());
+        const ReadId readId = uint32_t(rand() % reads.readCount());
 
         // Randomly select an orientation
         const Strand strand = uint32_t(rand() % 2);
@@ -1211,7 +1211,7 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t
         const OrientedReadId r(readId, strand);
 
         // Number of raw bases.
-        const auto repeatCounts = readRepeatCounts[readId];
+        const auto repeatCounts = reads.getReadRepeatCounts(readId);
         uint64_t length = 0;
         for(const auto repeatCount: repeatCounts) {
             length += repeatCount;
@@ -1361,7 +1361,7 @@ void Assembler::assessAlignments(
         const size_t threadCount = std::thread::hardware_concurrency();
         computeAllAlignmentsData.threadAlignments.resize(threadCount);
         const size_t batchSize = 1;
-        setupLoadBalancing(reads.size(), batchSize);
+        setupLoadBalancing(reads.readCount(), batchSize);
         const auto t0 = std::chrono::steady_clock::now();
         runThreads(&Assembler::computeAllAlignmentsThreadFunction, threadCount);
         const auto t1 = std::chrono::steady_clock::now();
@@ -1580,7 +1580,7 @@ void Assembler::exploreAlignmentGraph(
 
         "<table>"
 
-        "<tr title='Read id between 0 and " << reads.size()-1 << "'>"
+        "<tr title='Read id between 0 and " << reads.readCount()-1 << "'>"
         "<td>Read id"
         "<td><input type=text required name=readId size=8 style='text-align:center'"
         << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
@@ -1642,9 +1642,9 @@ void Assembler::exploreAlignmentGraph(
 
 
     // Validity checks.
-    if(readId > reads.size()) {
+    if(readId > reads.readCount()) {
         html << "<p>Invalid read id " << readId;
-        html << ". Must be between 0 and " << reads.size()-1 << ".";
+        html << ". Must be between 0 and " << reads.readCount()-1 << ".";
         return;
     }
     if(strand>1) {

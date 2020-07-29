@@ -14,16 +14,13 @@ using namespace shasta;
 // Load reads from a fastq or fasta file.
 ReadLoader::ReadLoader(
     const string& fileName,
-    size_t minReadLength,
+    uint64_t minReadLength,
     bool noCache,
     size_t threadCount,
     const string& dataNamePrefix,
     size_t pageSize,
-    LongBaseSequences& reads,
-    MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
-    MemoryMapped::VectorOfVectors<char, uint64_t>& readMetaData,
-    MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts) :
-
+    Reads& reads):
+    
     MultithreadedObject(*this),
     fileName(fileName),
     minReadLength(minReadLength),
@@ -31,10 +28,7 @@ ReadLoader::ReadLoader(
     threadCount(threadCount),
     dataNamePrefix(dataNamePrefix),
     pageSize(pageSize),
-    reads(reads),
-    readNames(readNames),
-    readMetaData(readMetaData),
-    readRepeatCounts(readRepeatCounts)
+    reads(reads)
 {
     cout << timestamp << "Loading reads from " << fileName << endl;
 
@@ -650,14 +644,14 @@ void ReadLoader::processCompressedRunnieFile()
 
     // Use single-threaded code to create the space.
     readIdTable.resize(readCountInFile);
-    ReadId readId = ReadId(reads.size());
+    ReadId readId = ReadId(reads.readCount());
     for(uint64_t i=0; i!=readCountInFile; i++) {
         const uint64_t baseCount = reader.getLength(i);
         if(baseCount >= minReadLength) {
-            readNames.appendVector(reader.getReadName(i).size());
-            readMetaData.appendVector(0);   // Empty meta data.
-            reads.append(baseCount);
-            readRepeatCounts.appendVector(baseCount);
+            reads.readNames.appendVector(reader.getReadName(i).size());
+            reads.readMetaData.appendVector(0);   // Empty meta data.
+            reads.reads.append(baseCount);
+            reads.readRepeatCounts.appendVector(baseCount);
             readIdTable[i] = readId++;
         } else {
             discardedShortReadReadCount++;
@@ -694,12 +688,12 @@ void ReadLoader::processCompressedRunnieFileThreadFunction(size_t threadId)
                 continue;
             }
             reader.getSequenceData(read, i);
-            copy(read.name.begin(), read.name.end(), readNames.begin(readId));
-            LongBaseSequenceView storedSequence = reads[readId];
+            copy(read.name.begin(), read.name.end(), reads.readNames.begin(readId));
+            LongBaseSequenceView storedSequence = reads.reads[readId];
             for(uint64_t j=0; j<read.sequence.size(); j++) {
                 storedSequence.set(j, Base::fromCharacter(read.sequence[j]));
             }
-            copy(read.encoding.begin(), read.encoding.end(), readRepeatCounts.begin(readId));
+            copy(read.encoding.begin(), read.encoding.end(), reads.readRepeatCounts.begin(readId));
         }
     }
 
@@ -735,15 +729,15 @@ void ReadLoader::storeReads()
 
         // Store the reads.
         for(size_t i=0; i<n; i++) {
-            readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
-            readMetaData.appendVector(thisThreadReadMetaData.begin(i), thisThreadReadMetaData.end(i));
-            reads.append(thisThreadReads[i]);
-            const size_t j = readRepeatCounts.size();
-            readRepeatCounts.appendVector(thisThreadReadRepeatCounts.size(i));
+            reads.readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
+            reads.readMetaData.appendVector(thisThreadReadMetaData.begin(i), thisThreadReadMetaData.end(i));
+            reads.reads.append(thisThreadReads[i]);
+            const size_t j = reads.readRepeatCounts.size();
+            reads.readRepeatCounts.appendVector(thisThreadReadRepeatCounts.size(i));
             copy(
                 thisThreadReadRepeatCounts.begin(i),
                 thisThreadReadRepeatCounts.end(i),
-                readRepeatCounts.begin(j));
+                reads.readRepeatCounts.begin(j));
         }
 
         // Remove the data structures used by this thread.
@@ -760,9 +754,12 @@ void ReadLoader::storeReads()
     threadReadRepeatCounts.clear();
 
     // Free up unused allocated memory.
-    readNames.unreserve();
-    readMetaData.unreserve();
-    readRepeatCounts.unreserve();
-    reads.unreserve();
+    reads.readNames.unreserve();
+    reads.readMetaData.unreserve();
+    reads.readRepeatCounts.unreserve();
+    reads.reads.unreserve();
+
+    // Allocate enough space for readFlags which are populated later.
+    reads.readFlags.resize(reads.readCount());
 }
 

@@ -570,7 +570,7 @@ void Assembler::assemble(
 
     // Check that we have what we need.
     checkKmersAreOpen();
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();

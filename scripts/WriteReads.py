@@ -7,5 +7,5 @@ import sys
 
 
 a = shasta.Assembler()
-a.writeReads(fileName='Reads.fasta')
+a.getReads().writeReads(fileName='Reads.fasta')
 
