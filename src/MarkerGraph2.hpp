@@ -21,7 +21,9 @@
 // Standard library.
 #include "fstream.hpp"
 #include <map>
-#include "string"
+#include "memory.hpp"
+#include "string.hpp"
+#include "tuple.hpp"
 #include "utility.hpp"
 #include "vector.hpp"
 
