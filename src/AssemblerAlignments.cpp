@@ -892,6 +892,8 @@ public:
     // A path is a sequence of consecutive edges.
     using Path = vector<edge_descriptor>;
 
+
+
     // A bubble is a set of linear paths that have the same
     // start and end vertex.
     class Bubble {
@@ -899,9 +901,22 @@ public:
         vertex_descriptor v0;
         vertex_descriptor v1;
         vector<Path> branches;
-    };
+
+        // Which oriented reads are represented in each branch:
+        // Indexed by [sequenceId][branch], where seuquenceId
+        // identifies an oriented read by its index into orientedReadIds.
+        // contains[sequenceId][branch] is present internally to that branch.
+        vector< vector<bool> > contains;
+
+        // Vector that tells us whic branch each oriented read appears in, or:
+        // -1 if the oriented read appears in no branch.
+        // -2 if the oriented read appears in more than one branch.
+        // Indexes by seuenceid (index into orientedReadIds vector).
+        vector<int64_t> branchTable;
+     };
     vector<Bubble> bubbles;
     void findBubbles();
+    void fillBubbleContainment(Bubble&);
 };
 
 
@@ -980,6 +995,54 @@ void shasta::AnalyzeAlignments3Graph::removeLowCoverageEdges(
 }
 
 
+void shasta::AnalyzeAlignments3Graph::fillBubbleContainment(Bubble& bubble)
+{
+    Graph& graph = *this;
+
+    // The contains vector is indexed by [sequenceId][branchId].
+    bubble.contains.resize(orientedReadIds.size(),
+        vector<bool>(bubble.branches.size(), false));
+
+    // Loop over all branches.
+    for(uint64_t branchId=0; branchId<bubble.branches.size(); branchId++) {
+        const vector<edge_descriptor>& branch = bubble.branches[branchId];
+
+        // Loop over edges of this branch.
+        for(const edge_descriptor e: branch) {
+            const auto& markers = graph[e].markers;
+
+            // Loop over markers of this edge.
+            for(const auto marker: markers) {
+                const uint64_t sequenceId = marker.first;
+                SHASTA_ASSERT(sequenceId < bubble.contains.size());
+                bubble.contains[sequenceId][branchId] = true;
+            }
+        }
+
+    }
+
+
+    // Now we can create the branch table.
+    bubble.branchTable.resize(orientedReadIds.size(), -1);
+    for(uint64_t sequenceId=0; sequenceId<orientedReadIds.size(); sequenceId++) {
+        for(uint64_t branchId=0; branchId<bubble.branches.size(); branchId++) {
+            if(bubble.contains[sequenceId][branchId]) {
+                int64_t& value = bubble.branchTable[sequenceId];
+                if(value == -1) {
+                    // This is the first time.
+                    value = branchId;
+                } else if(value == -2) {
+                    // Do nothing.
+                } else {
+                    // This is the second time.
+                    value = -2;
+                }
+            }
+        }
+    }
+}
+
+
 
 void shasta::AnalyzeAlignments3Graph::findBubbles()
 {
@@ -1018,6 +1081,7 @@ void shasta::AnalyzeAlignments3Graph::findBubbles()
             bubble.branches.resize(bubble.branches.size() + 1);
             copy(chain.begin(), chain.end(), back_inserter(bubble.branches.back()));
         }
+        fillBubbleContainment(bubble);
     }
 }
 
@@ -1194,6 +1258,68 @@ void Assembler::analyzeAlignments3(ReadId readId0, Strand strand0) const
     cout << "The marker graph for the mini-assembly has " << num_vertices(graph) <<
         " vertices, " << num_edges(graph) << " edges, and " <<
         graph.bubbles.size() << " bubbles." << endl;
+
+
+    // Write out bubble branch tables.
+    cout << "Branch tables for " << graph.bubbles.size() << " bubbles:" << endl;
+    for(const Graph::Bubble& bubble: graph.bubbles) {
+        /*
+        cout << "Bubble with " << bubble.branches.size() << " branches." << endl;
+        for(uint64_t branchId=0; branchId<bubble.branches.size(); branchId++) {
+            for(SequenceId sequenceId=0; sequenceId<orientedReadIds.size(); sequenceId++) {
+                cout << (bubble.contains[sequenceId][branchId] ? '*' : '.');
+            }
+            cout << endl;
+        }
+        */
+        for(SequenceId sequenceId=0; sequenceId<orientedReadIds.size(); sequenceId++) {
+            const int64_t value = bubble.branchTable[sequenceId];
+            SHASTA_ASSERT(value < 10);
+            if(value < 0) {
+                cout << '.';
+            } else {
+                cout << value;
+            }
+        }
+        cout << " " << bubble.branches.size() << endl;
+    }
+
+
+
+    // Count how many time each oriented read appears in the same
+    // or different bubble as orientedReadId0.
+    ofstream bubbleCsv("BubbleSummary.csv");
+    bubbleCsv << "SequenceId,OrientedReadId,"
+        "SameBubbleCount,DifferentBubbleCount,TotalCount,"
+        "SameBubbleRatio,DifferentBubbleRatio\n";
+    for(SequenceId sequenceId1=0; sequenceId1<orientedReadIds.size()-1; sequenceId1++) {
+        uint64_t sameCount = 0;
+        uint64_t differentCount = 0;
+        for(const Graph::Bubble& bubble: graph.bubbles) {
+            const int64_t branchId0 = bubble.branchTable[sequenceId0];
+            if(branchId0 < 0) {
+                continue;
+            }
+            const int64_t branchId1 = bubble.branchTable[sequenceId1];
+            if(branchId1 < 0) {
+                continue;
+            }
+            if(branchId0 == branchId1) {
+                ++sameCount;
+            } else {
+                ++differentCount;
+            }
+        }
+        const uint64_t totalCount = sameCount + differentCount;
+        bubbleCsv <<
+            sequenceId1 << "," <<
+            orientedReadIds[sequenceId1] << "," <<
+            sameCount << "," <<
+            differentCount << "," <<
+            totalCount << "," <<
+            double(sameCount)/double(totalCount) << "," <<
+            double(differentCount)/double(totalCount) << "\n";
+    }
 
 
 
