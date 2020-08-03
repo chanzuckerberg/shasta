@@ -29,6 +29,7 @@ a.computeAlignments(
     downsamplingFactor = float(config['Align']['downsamplingFactor']),
     bandExtend = int(config['Align']['bandExtend']),
     suppressContainments = ast.literal_eval(config['Align']['suppressContainments']),
+    storeAlignments = True,
     threadCount = 1
     )
     
