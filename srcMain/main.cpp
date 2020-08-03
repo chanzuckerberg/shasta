@@ -228,8 +228,8 @@ void shasta::main::assemble(
 
 
 
-    // Create the run the output directory. If it exists and is not empty then stop.
-    bool dirExists = filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    // Create the run output directory. If it exists and is not empty then stop.
+    bool dirExists = filesystem::isDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     if (dirExists) {
         bool isEmpty = filesystem::directoryContents(assemblerOptions.commandLineOnlyOptions.assemblyDirectory).empty();
         if (!isEmpty) {
