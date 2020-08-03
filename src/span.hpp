@@ -14,16 +14,16 @@
 namespace shasta {
     template<class T> class span;
 
-    // Output a span<char> as a string.
-    inline ostream& operator<<(ostream&, const span<char>&);
+    // Output a span<const char> as a string.
+    inline ostream& operator<<(ostream&, const span<const char>&);
 
-    // Convert a span<char> to an integer.
+    // Convert a span<const char> to an integer.
     // This cannot be done using std::atol because the
-    // span<char> is not null terminated.
-    uint64_t atoul(const span<char>&);
+    // span<const char> is not null terminated.
+    uint64_t atoul(const span<const char>&);
 
-    // Convert a span<char> to an std::string.
-    string convertToString(const span<char>&);
+    // Convert a span<const char> to an std::string.
+    string convertToString(const span<const char>&);
 }
 
 
@@ -110,21 +110,21 @@ private:
 
 
 
-// Output a span<char> as a string.
+// Output a span<const char> as a string.
 inline std::ostream& shasta::operator<<(
     std::ostream& s,
-    const shasta::span<char>&  m)
+    const shasta::span<const char>&  m)
 {
     copy(m.begin(), m.end(), ostream_iterator<char>(s));
     return s;
 }
 
 
-// Convert a span<char> to an integer.
+// Convert a span<const char> to an integer.
 // This cannot be done using std::atol because the
-// span<char> is not null terminated.
+// span<const char> is not null terminated.
 // The string can only contain numeric characters.
-inline uint64_t shasta::atoul(const span<char>& s)
+inline uint64_t shasta::atoul(const span<const char>& s)
 {
     uint64_t n = 0;
     for(uint64_t i=0; ; i++) {
@@ -145,8 +145,8 @@ inline uint64_t shasta::atoul(const span<char>& s)
 
 
 
-// Convert a span<char> to an std::string.
-inline std::string shasta::convertToString(const span<char>& m)
+// Convert a span<const char> to an std::string.
+inline std::string shasta::convertToString(const span<const char>& m)
 {
     return string(m.begin(), m.size());
 }

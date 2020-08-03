@@ -14,15 +14,13 @@ using namespace shasta;
 
 LocalMarkerGraph::LocalMarkerGraph(
     uint32_t k,
-    LongBaseSequences& reads,
-    const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
+    const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
     const ConsensusCaller& consensusCaller
     ) :
     k(k),
     reads(reads),
-    readRepeatCounts(readRepeatCounts),
     markers(markers),
     globalMarkerGraphVertex(globalMarkerGraphVertex),
     consensusCaller(consensusCaller)
@@ -109,7 +107,7 @@ vector<uint8_t> LocalMarkerGraph::getRepeatCounts(
     const Strand strand = orientedReadId.getStrand();
     const CompressedMarker& marker = markers.begin()[markerInfo.markerId];
 
-    const auto& counts = readRepeatCounts[readId];
+    const auto& counts = reads.getReadRepeatCounts(readId);
 
     vector<uint8_t> v(k);
     for(size_t i=0; i<k; i++) {
@@ -187,7 +185,7 @@ void LocalMarkerGraph::storeEdgeInfo(
         MarkerIntervalWithRepeatCounts intervalWithRepeatCounts(interval);
         if(marker1.position <= marker0.position + k) {
             sequence.overlappingBaseCount = uint8_t(marker0.position + k - marker1.position);
-            const auto& repeatCounts = readRepeatCounts[interval.orientedReadId.getReadId()];
+            const auto& repeatCounts = reads.getReadRepeatCounts(interval.orientedReadId.getReadId());
             for(uint32_t i=0; i<sequence.overlappingBaseCount; i++) {
                 uint32_t position = marker1.position + i;
                 uint8_t repeatCount = 0;
@@ -200,7 +198,7 @@ void LocalMarkerGraph::storeEdgeInfo(
             }
         } else {
             sequence.overlappingBaseCount = 0;
-            const auto read = reads[interval.orientedReadId.getReadId()];
+            const auto read = reads.getRead(interval.orientedReadId.getReadId());
             const uint32_t readLength = uint32_t(read.baseCount);
             for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
                 Base base;
@@ -212,7 +210,7 @@ void LocalMarkerGraph::storeEdgeInfo(
                 }
                 sequence.sequence.push_back(base);
             }
-            const auto repeatCounts = readRepeatCounts[interval.orientedReadId.getReadId()];
+            const auto repeatCounts = reads.getReadRepeatCounts(interval.orientedReadId.getReadId());
             for(uint32_t position=marker0.position+k;  position!=marker1.position; position++) {
                 uint8_t repeatCount;
                 if(interval.orientedReadId.getStrand() == 0) {

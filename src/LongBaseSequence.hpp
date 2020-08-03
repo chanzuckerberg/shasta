@@ -43,15 +43,22 @@ class shasta::LongBaseSequenceView {
 public:
     uint64_t* begin;
     uint64_t baseCount;
+    bool readOnly;
 
     LongBaseSequenceView(
         uint64_t* begin,
         uint64_t baseCount) :
-        begin(begin), baseCount(baseCount)
+        begin(begin), baseCount(baseCount), readOnly(false)
     {}
 
-    LongBaseSequenceView() :
-        begin(0), baseCount(0)
+    LongBaseSequenceView(
+        const uint64_t* begin,
+        const uint64_t baseCount) :
+        begin(const_cast<uint64_t*>(begin)), baseCount(baseCount), readOnly(true)
+    {}
+
+    LongBaseSequenceView(bool readOnly = true) :
+        begin(0), baseCount(0), readOnly(readOnly)
     {}
 
     // Return the base at a given position.
@@ -74,6 +81,7 @@ public:
 
     // Set the base at a given position.
     void set(uint64_t i, Base base) {
+        SHASTA_ASSERT(!readOnly);
         const uint64_t word0Index = (i >> 6ULL) << 1ULL;  // Because there are two words for each block of 64 bases.
         const uint64_t bitIndex = 63ULL - (i & 63ULL);
         const uint64_t mask = 1ULL << bitIndex;
@@ -103,6 +111,8 @@ public:
     // In-place reverse complement.
     void reverseComplement()
     {
+        SHASTA_ASSERT(!readOnly);
+
         for(uint64_t i=0; i<baseCount/2; i++) {
             const uint64_t j = baseCount - 1 - i;
             const Base b = get(i);
@@ -175,7 +185,7 @@ inline std::ostream& shasta::operator<<(
 // to represent a sequence of bases as a LongBaseSequence.
 class shasta::LongBaseSequence : public  LongBaseSequenceView {
 public:
-    LongBaseSequence(uint64_t baseCountArgument = 0)
+    LongBaseSequence(uint64_t baseCountArgument = 0): LongBaseSequenceView(false)
     {
         initialize(baseCountArgument);
     }
@@ -187,7 +197,7 @@ public:
         begin = data.data();
     }
 
-    LongBaseSequence(const vector<Base>& s)
+    LongBaseSequence(const vector<Base>& s): LongBaseSequenceView(false)
     {
         baseCount = s.size();
         data.resize(wordCount(baseCount));
@@ -204,6 +214,7 @@ public:
         data.resize(dataWordCount);
         begin = data.data();
         copy(view.begin, view.begin+dataWordCount, begin);
+        readOnly = view.readOnly;
     }
 
     LongBaseSequence(const LongBaseSequence& that) :
@@ -211,6 +222,7 @@ public:
     {
         baseCount = that.baseCount;
         begin = data.data();
+        readOnly = that.readOnly;
     }
 
     LongBaseSequence& operator=(const LongBaseSequence& that)
@@ -218,6 +230,7 @@ public:
         data = that.data;
         baseCount = that.baseCount;
         begin = data.data();
+        readOnly = that.readOnly;
         return *this;
     }
 
@@ -253,6 +266,11 @@ public:
 
     // Return a LongBaseSequenceView representing the i-th sequence stored.
     LongBaseSequenceView operator[](uint64_t i)
+    {
+        SHASTA_ASSERT(i < data.size());
+        return LongBaseSequenceView(data[i].begin(), baseCount[i]);
+    }
+    LongBaseSequenceView operator[](uint64_t i) const
     {
         SHASTA_ASSERT(i < data.size());
         return LongBaseSequenceView(data[i].begin(), baseCount[i]);

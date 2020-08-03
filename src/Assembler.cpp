@@ -24,11 +24,14 @@ Assembler::Assembler(
         assemblerInfo->largeDataPageSize = largeDataPageSizeArgument;
         largeDataPageSize = largeDataPageSizeArgument;
 
-        reads.reads.createNew(largeDataName("Reads"), largeDataPageSize);
-        reads.readNames.createNew(largeDataName("ReadNames"), largeDataPageSize);
-        reads.readMetaData.createNew(largeDataName("ReadMetaData"), largeDataPageSize);
-        reads.readRepeatCounts.createNew(largeDataName("ReadRepeatCounts"), largeDataPageSize);
-        reads.readFlags.createNew(largeDataName("ReadFlags"), largeDataPageSize);
+        reads.createNew(
+            largeDataName("Reads"),
+            largeDataName("ReadNames"),
+            largeDataName("ReadMetaData"),
+            largeDataName("ReadRepeatCounts"),
+            largeDataName("ReadFlags"),
+            largeDataPageSize
+        );
         // cout << "Created a new assembly with page size " << largeDataPageSize << endl;
 
     } else {
@@ -37,11 +40,13 @@ Assembler::Assembler(
         assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
         largeDataPageSize = assemblerInfo->largeDataPageSize;
 
-        reads.reads.accessExistingReadWrite(largeDataName("Reads"));
-        reads.readNames.accessExistingReadWrite(largeDataName("ReadNames"));
-        reads.readMetaData.accessExistingReadWrite(largeDataName("ReadMetaData"));
-        reads.readRepeatCounts.accessExistingReadWrite(largeDataName("ReadRepeatCounts"));
-        reads.readFlags.accessExistingReadWrite(largeDataName("ReadFlags"));
+        reads.access(
+            largeDataName("Reads"),
+            largeDataName("ReadNames"),
+            largeDataName("ReadMetaData"),
+            largeDataName("ReadRepeatCounts"),
+            largeDataName("ReadFlags")
+        );
         // cout << "Accessed an existing assembly with page size " << largeDataPageSize << endl;
 
     }

@@ -78,46 +78,44 @@ in assembly phases that use the base repeat counts.
 
 class shasta::Reads {
 public:
-
-    LongBaseSequences reads;
-    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCounts;
-
-    // The names of the reads from the input fasta or fastq files.
-    // Indexed by ReadId.
-    // Note that we don't enforce uniqueness of read names.
-    // We don't use read names to identify reads.
-    // These names are only used as an aid in tracing each read
-    // back to its origin.
-    MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
-
-    // Read meta data. This is the information following the read name
-    // in the header line for fasta and fastq files.
-    // Indexed by ReadId.
-    MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
-
-    MemoryMapped::Vector<ReadFlags> readFlags;
-
-    
+  
     // Default Constructor
     Reads(): totalBaseCount(0), n50(0) {};
+
+    void createNew(
+        const string& readsDataName,
+        const string& readNamesDataName,
+        const string& readMetaDataDataName,
+        const string& readRepeatCountsDataName,
+        const string& readFlagsDataName,
+        uint64_t largeDataPageSize
+    );
+
+    void access(
+        const string& readsDataName,
+        const string& readNamesDataName,
+        const string& readMetaDataDataName,
+        const string& readRepeatCountsDataName,
+        const string& readFlagsDataName
+    );
 
     inline ReadId readCount() const {
         return ReadId(reads.size());
     }
 
-    inline LongBaseSequenceView getRead(ReadId readId) {
+    inline LongBaseSequenceView getRead(ReadId readId) const {
         return reads[readId];
     }
 
-    inline span<uint8_t> getReadRepeatCounts(ReadId readId) {
+    inline span<const uint8_t> getReadRepeatCounts(ReadId readId) const {
         return readRepeatCounts[readId];
     }
 
-    inline span<char> getReadName(ReadId readId) {
+    inline span<const char> getReadName(ReadId readId) const {
         return readNames[readId];
     }
 
-    inline span<char> getReadMetaData(ReadId readId) {
+    inline span<const char> getReadMetaData(ReadId readId) const {
         return readMetaData[readId];
     }
 
@@ -129,20 +127,20 @@ public:
     Base getOrientedReadBase(
         OrientedReadId orientedReadId,
         uint32_t position
-    );
+    ) const;
 
     pair<Base, uint8_t> getOrientedReadBaseAndRepeatCount(
         OrientedReadId orientedReadId,
         uint32_t position
-    );
+    ) const;
 
     // Return a vector containing the raw sequence of an oriented read.
-    vector<Base> getOrientedReadRawSequence(OrientedReadId);
+    vector<Base> getOrientedReadRawSequence(OrientedReadId) const;
 
     // Return the length of the raw sequence of a read.
     // If using the run-length representation of reads, this counts each
     // base a number of times equal to its repeat count.
-    size_t getReadRawSequenceLength(ReadId);
+    size_t getReadRawSequenceLength(ReadId) const;
 
     // Get a vector of the raw read positions
     // corresponding to each position in the run-length
@@ -153,7 +151,7 @@ public:
     // if that field is missing. This treats the meta data
     // as a space separated sequence of Key=Value,
     // without embedded spaces in each Key=Value pair.
-    span<char> getMetaData(ReadId, const string& key);
+    span<const char> getMetaData(ReadId, const string& key) const;
 
 
     // Setters for readFlags.
@@ -240,15 +238,37 @@ public:
         return n50;
     }
 
+    inline uint64_t getRepeatCountsTotalSize() const {
+        return readRepeatCounts.totalSize();
+    }
 
 private:
+    LongBaseSequences reads;
+    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCounts;
 
+    // The names of the reads from the input fasta or fastq files.
+    // Indexed by ReadId.
+    // Note that we don't enforce uniqueness of read names.
+    // We don't use read names to identify reads.
+    // These names are only used as an aid in tracing each read
+    // back to its origin.
+    MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
+
+    // Read meta data. This is the information following the read name
+    // in the header line for fasta and fastq files.
+    // Indexed by ReadId.
+    MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
+
+    MemoryMapped::Vector<ReadFlags> readFlags;
+
+    
     // Read statistics.
     vector<uint64_t> histogram;
     vector< pair<uint64_t, uint64_t> > binnedHistogram;
     uint64_t totalBaseCount;
     uint64_t n50;    
 
+    friend class ReadLoader;
 };
 
 #endif

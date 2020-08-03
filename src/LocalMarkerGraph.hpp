@@ -19,6 +19,7 @@ a group of aligned markers.
 #include "AssemblyGraph.hpp"
 #include "Kmer.hpp"
 #include "MarkerGraph.hpp"
+#include "Reads.hpp"
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
@@ -188,8 +189,7 @@ public:
 
     LocalMarkerGraph(
         uint32_t k,
-        LongBaseSequences& reads,
-        const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts,
+        const Reads& reads,
         const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         const MemoryMapped::Vector<MarkerGraph::CompressedVertexId>& globalMarkerGraphVertex,
         const ConsensusCaller&
@@ -263,8 +263,7 @@ private:
 
     // Reference to the global data structure containing all reads and markers
     // (not just those in this local marker graph).
-    LongBaseSequences& reads;
-    const MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
+    const Reads& reads;
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
 
     // A reference to the vector containing the global marker graph vertex id

@@ -6,6 +6,37 @@
 
 using namespace shasta;
 
+
+void Reads::createNew(
+    const string& readsDataName,
+    const string& readNamesDataName,
+    const string& readMetaDataDataName,
+    const string& readRepeatCountsDataName,
+    const string& readFlagsDataName,
+    uint64_t largeDataPageSize)
+{
+    reads.createNew(readsDataName, largeDataPageSize);
+    readNames.createNew(readNamesDataName, largeDataPageSize);
+    readMetaData.createNew(readMetaDataDataName, largeDataPageSize);
+    readRepeatCounts.createNew(readRepeatCountsDataName, largeDataPageSize);
+    readFlags.createNew(readFlagsDataName, largeDataPageSize);
+}
+
+void Reads::access(
+    const string& readsDataName,
+    const string& readNamesDataName,
+    const string& readMetaDataDataName,
+    const string& readRepeatCountsDataName,
+    const string& readFlagsDataName)
+{
+    reads.accessExistingReadWrite(readsDataName);
+    readNames.accessExistingReadWrite(readNamesDataName);
+    readMetaData.accessExistingReadWrite(readMetaDataDataName);
+    readRepeatCounts.accessExistingReadWrite(readRepeatCountsDataName);
+    readFlags.accessExistingReadWrite(readFlagsDataName);
+}
+
+
 void Reads::checkIfAChimericIsAlsoInSmallComponent() const {
     for (const ReadFlags& flags: readFlags) {
         if (flags.isChimeric) {
@@ -18,7 +49,7 @@ void Reads::checkIfAChimericIsAlsoInSmallComponent() const {
 // Return a base of an oriented read.
 Base Reads::getOrientedReadBase(
     OrientedReadId orientedReadId,
-    uint32_t position)
+    uint32_t position) const
 {
     const auto& read = reads[orientedReadId.getReadId()];
     if(orientedReadId.getStrand() == 0) {
@@ -31,7 +62,7 @@ Base Reads::getOrientedReadBase(
 // Same as above, but also returns the repeat count.
 pair<Base, uint8_t> Reads::getOrientedReadBaseAndRepeatCount(
     OrientedReadId orientedReadId,
-    uint32_t position)
+    uint32_t position) const
 {
 
     // Extract the read id and strand.
@@ -60,7 +91,7 @@ pair<Base, uint8_t> Reads::getOrientedReadBaseAndRepeatCount(
 }
 
 // Return a vector containing the raw sequence of an oriented read.
-vector<Base> Reads::getOrientedReadRawSequence(OrientedReadId orientedReadId)
+vector<Base> Reads::getOrientedReadRawSequence(OrientedReadId orientedReadId) const
 {
     // The sequence we will return;
     vector<Base> sequence;
@@ -86,7 +117,7 @@ vector<Base> Reads::getOrientedReadRawSequence(OrientedReadId orientedReadId)
 // Return the length of the raw sequence of a read.
 // If using the run-length representation of reads, this counts each
 // base a number of times equal to its repeat count.
-size_t Reads::getReadRawSequenceLength(ReadId readId)
+size_t Reads::getReadRawSequenceLength(ReadId readId) const
 {
     // We are using the run-length representation.
     // The number of raw bases equals the sum of all
@@ -135,21 +166,21 @@ vector<uint32_t> Reads::getRawPositions(OrientedReadId orientedReadId) const
 // if that field is missing. This treats the meta data
 // as a space separated sequence of Key=Value,
 // without embedded spaces in each Key=Value pair.
-span<char> Reads::getMetaData(ReadId readId, const string& key)
+span<const char> Reads::getMetaData(ReadId readId, const string& key) const
 {
     SHASTA_ASSERT(readId < readMetaData.size());
     const uint64_t keySize = key.size();
     char* keyBegin = const_cast<char*>(&key[0]);
     char* keyEnd = keyBegin + keySize;
-    char* begin = readMetaData.begin(readId);
-    char* end = readMetaData.end(readId);
+    const char* begin = readMetaData.begin(readId);
+    const char* end = readMetaData.end(readId);
 
 
-    char* p = begin;
+    const char* p = begin;
     while(p != end) {
 
         // Look for the next space or line end.
-        char*q = p;
+        const char* q = p;
         while(q != end and not isspace(*q)) {
             ++q;
         }
@@ -163,9 +194,9 @@ span<char> Reads::getMetaData(ReadId readId, const string& key)
         if(q > p + keySize + 1) {
             if(std::equal(keyBegin, keyEnd, p)) {
                 if(p[keySize] == '=') {
-                    char* valueBegin = p + keySize + 1;
-                    char* valueEnd = q;
-                    return span<char>(valueBegin, valueEnd);
+                    const char* valueBegin = p + keySize + 1;
+                    const char* valueEnd = q;
+                    return span<const char>(valueBegin, valueEnd);
                 }
             }
         }
@@ -184,7 +215,7 @@ span<char> Reads::getMetaData(ReadId readId, const string& key)
 
     // If getting here, we didn't find this keyword.
     // Return an empty string.
-    return span<char>();
+    return span<const char>();
 }
 
 
