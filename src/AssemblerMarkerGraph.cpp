@@ -54,6 +54,7 @@ void Assembler::createMarkerGraphVertices(
     // Parameters for method 3 alignments.
     double downsamplingFactor,
     int bandExtend,
+    int maxBand,
 
     // The method used to create the read graph.
     // This affects which alignments are used to create the marker graph.
@@ -113,6 +114,7 @@ void Assembler::createMarkerGraphVertices(
     data.gapScore = gapScore;
     data.downsamplingFactor = downsamplingFactor;
     data.bandExtend = bandExtend;
+    data.maxBand = maxBand;
     data.readGraphCreationMethod = readGraphCreationMethod;
 
     // Adjust the numbers of threads, if necessary.
@@ -510,6 +512,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     const int gapScore = data.gapScore;
     const double downsamplingFactor = data.downsamplingFactor;
     const int bandExtend = data.bandExtend;
+    const int maxBand = data.maxBand;
     const int readGraphCreationMethod = data.readGraphCreationMethod;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
 
@@ -618,7 +621,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                     alignOrientedReads3(
                         orientedReadIds[0], orientedReadIds[1],
                         matchScore, mismatchScore, gapScore,
-                        downsamplingFactor, bandExtend,
+                        downsamplingFactor, bandExtend, maxBand,
                         alignment, alignmentInfo
                     );
                 } else {

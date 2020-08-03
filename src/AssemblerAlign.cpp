@@ -236,6 +236,7 @@ void Assembler::computeAlignments(
     // Parameters for alignment method 3.
     double downsamplingFactor,
     int bandExtend,
+    int maxBand,
 
     // If true, discard containment alignments.
     bool suppressContainments,
@@ -272,6 +273,7 @@ void Assembler::computeAlignments(
     data.gapScore = gapScore;
     data.downsamplingFactor = downsamplingFactor;
     data.bandExtend = bandExtend;
+    data.maxBand = maxBand;
     data.suppressContainments = suppressContainments;
     data.storeAlignments = storeAlignments;
 
@@ -375,6 +377,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const int gapScore = data.gapScore;
     const double downsamplingFactor = data.downsamplingFactor;
     const int bandExtend = data.bandExtend;
+    const int maxBand = data.maxBand;
     const bool suppressContainments = data.suppressContainments;
     const bool storeAlignments = data.storeAlignments;
 
@@ -430,7 +433,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
                 } else if(alignmentMethod == 3) {
                     alignOrientedReads3(orientedReadIds[0], orientedReadIds[1],
                         matchScore, mismatchScore, gapScore,
-                        downsamplingFactor, bandExtend,
+                        downsamplingFactor, bandExtend, maxBand,
                         alignment, alignmentInfo);
                 } else {
                     SHASTA_ASSERT(0);

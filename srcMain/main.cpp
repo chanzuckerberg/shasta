@@ -643,6 +643,7 @@ void shasta::main::assemble(
         assemblerOptions.alignOptions.gapScore,
         assemblerOptions.alignOptions.downsamplingFactor,
         assemblerOptions.alignOptions.bandExtend,
+        assemblerOptions.alignOptions.maxBand,
         assemblerOptions.alignOptions.suppressContainments,
         true, // Store good alignments in a compressed format.
         threadCount);
@@ -896,6 +897,7 @@ void shasta::main::createMarkerGraphVertices(
         assemblerOptions.alignOptions.gapScore,
         assemblerOptions.alignOptions.downsamplingFactor,
         assemblerOptions.alignOptions.bandExtend,
+        assemblerOptions.alignOptions.maxBand,
         assemblerOptions.readGraphOptions.creationMethod,
         assemblerOptions.markerGraphOptions.minCoverage,
         assemblerOptions.markerGraphOptions.maxCoverage,

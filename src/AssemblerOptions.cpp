@@ -392,6 +392,12 @@ void AssemblerOptions::addConfigurableOptions()
         "Amount to extend the downsampled band "
         "(only used for alignment method 3).")
 
+        ("Align.maxBand",
+        value<int>(&alignOptions.maxBand)->
+        default_value(1000),
+        "Maximum alignment band "
+        "(only used for alignment method 3).")
+
         ("Align.sameChannelReadAlignment.suppressDeltaThreshold",
         value<int>(&alignOptions.sameChannelReadAlignmentSuppressDeltaThreshold)->
         default_value(0),
@@ -639,6 +645,7 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
     s << "gapScore = " << gapScore << "\n";
     s << "downsamplingFactor = " << downsamplingFactor << "\n";
     s << "bandExtend = " << bandExtend << "\n";
+    s << "maxBand = " << maxBand << "\n";
     s << "sameChannelReadAlignment.suppressDeltaThreshold = " <<
         sameChannelReadAlignmentSuppressDeltaThreshold << "\n";
     s << "suppressContainments = " <<

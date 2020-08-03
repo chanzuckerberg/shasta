@@ -26,6 +26,7 @@ void Assembler::alignOrientedReads3(
     int gapScore,
     double downsamplingFactor,  // The fraction of markers to keep in the first step.
     int bandExtend,             // How much to extend the band computed in the first step.
+    int maxBand,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo)
 {
@@ -210,10 +211,20 @@ void Assembler::alignOrientedReads3(
     const int32_t bandMin = offsetMin - bandExtend;
     const int32_t bandMax = offsetMax + bandExtend;
     // Note that the above band could end up outside the alignment matrix.
-    // This is not a prolem as SeqAn adjusts it accordingly.
+    // This is not a problem as SeqAn adjusts it accordingly.
     if(debug) {
         cout << "Offset range " << offsetMin << " " << offsetMax << endl;
         cout << "Banded alignment will use band " << bandMin << " " << bandMax << endl;
+    }
+
+
+
+    // If the band is too wide, just return an empty alignment.
+    if((bandMax - bandMin) > maxBand) {
+        alignment.clear();
+        alignmentInfo.create(
+            alignment, uint32_t(allMarkers[0].size()), uint32_t(allMarkers[1].size()));
+        return;
     }
 
 

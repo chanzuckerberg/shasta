@@ -251,6 +251,7 @@ PYBIND11_MODULE(shasta, module)
             arg("gapScore"),
             arg("downsamplingFactor"),
             arg("bandExtend"),
+            arg("maxBand"),
             arg("suppressContainments"),
             arg("storeAlignments"),
             arg("threadCount") = 0)
@@ -340,6 +341,7 @@ PYBIND11_MODULE(shasta, module)
             arg("gapScore"),
             arg("downsamplingFactor"),
             arg("bandExtend"),
+            arg("maxBand"),
             arg("readGraphCreationMethod"),
             arg("minCoverage"),
             arg("maxCoverage"),

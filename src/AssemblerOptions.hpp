@@ -178,6 +178,7 @@ public:
         int gapScore;
         double downsamplingFactor;
         int bandExtend;
+        int maxBand;
         int sameChannelReadAlignmentSuppressDeltaThreshold;
         bool suppressContainments;
         void write(ostream&) const;

@@ -252,6 +252,7 @@ public:
         // Parameters for alignment method 3.
         double downsamplingFactor,
         int bandExtend,
+        int maxBand,
 
         // If true, discard containment alignments.
         bool suppressContainments,
@@ -297,6 +298,7 @@ public:
         // Parameters for method 3 alignments.
         double downsamplingFactor,
         int bandExtend,
+        int maxBand,
 
         // The method used to create the read graph.
         // This affects which alignments are used to create the marker graph.
@@ -761,6 +763,7 @@ private:
         int gapScore,
         double downsamplingFactor,
         int bandExtend,
+        int maxBand,
         Alignment&,
         AlignmentInfo&);
 
@@ -872,6 +875,7 @@ private:
         int gapScore;
         double downsamplingFactor;
         int bandExtend;
+        int maxBand;
         bool suppressContainments;
         bool storeAlignments;
 
@@ -1044,6 +1048,7 @@ private:
         int gapScore;
         double downsamplingFactor;
         int bandExtend;
+        int maxBand;
         int readGraphCreationMethod;
         uint32_t maxMarkerFrequency;
 
@@ -1920,7 +1925,8 @@ public:
         const int mismatchScore,
         const int gapScore,
         const double downsamplingFactor,
-        const uint32_t bandExtend,
+        int bandExtend,
+        int maxBand,
         ostream& html
     );
 #endif
@@ -1951,7 +1957,8 @@ public:
         int mismatchScore;
         int gapScore;
         double downsamplingFactor;
-        uint32_t bandExtend;
+        int bandExtend;
+        int maxBand;
         // The alignments found by each thread.
         vector< vector< pair<OrientedReadId, AlignmentInfo> > > threadAlignments;
     };

@@ -28,6 +28,7 @@ a.computeAlignments(
     gapScore = int(config['Align']['gapScore']),
     downsamplingFactor = float(config['Align']['downsamplingFactor']),
     bandExtend = int(config['Align']['bandExtend']),
+    maxBand = int(config['Align']['maxBand']),
     suppressContainments = ast.literal_eval(config['Align']['suppressContainments']),
     storeAlignments = True,
     threadCount = 1

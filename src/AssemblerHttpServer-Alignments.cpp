@@ -340,6 +340,8 @@ void Assembler::exploreAlignment(
     getParameterValue(request, "downsamplingFactor", downsamplingFactor);
     int bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
     getParameterValue(request, "bandExtend", bandExtend);
+    int maxBand = httpServerData.assemblerOptions->alignOptions.maxBand;
+    getParameterValue(request, "maxBand", maxBand);
 
 
 
@@ -373,6 +375,7 @@ void Assembler::exploreAlignment(
         gapScore,
         downsamplingFactor,
         bandExtend,
+        maxBand,
         html
     );
 
@@ -424,7 +427,7 @@ void Assembler::exploreAlignment(
         alignOrientedReads3(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore,
-            downsamplingFactor, bandExtend,
+            downsamplingFactor, bandExtend, maxBand,
             alignment, alignmentInfo);
     } else {
         SHASTA_ASSERT(0);
@@ -910,7 +913,8 @@ void Assembler::renderEditableAlignmentConfig(
     const int mismatchScore,
     const int gapScore,
     const double downsamplingFactor,
-    const uint32_t bandExtend,
+    int bandExtend,
+    int maxBand,
     ostream& html
 ) {
     const auto& descriptions = httpServerData.assemblerOptions->allOptionsDescription;
@@ -976,6 +980,12 @@ void Assembler::renderEditableAlignmentConfig(
         "<td class=smaller>" << descriptions.find("Align.bandExtend", false).description();
 
     html << "<tr>"
+        "<th class=left>maxBand"
+        "<td class=centered>"
+            "<input type=text style='text-align:center;border:none' name=maxBand size=16 value=" << maxBand << ">"
+        "<td class=smaller>" << descriptions.find("Align.maxBand", false).description();
+
+    html << "<tr>"
         "<th class=left>minAlignedMarkers"
         "<td class=centered>"
             "<input type=text style='text-align:center;border:none' name=minAlignedMarkerCount size=16 value=" << minAlignedMarkerCount << ">"
@@ -1035,6 +1045,8 @@ void Assembler::computeAllAlignments(
     getParameterValue(request, "downsamplingFactor", computeAllAlignmentsData.downsamplingFactor);
     computeAllAlignmentsData.bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
     getParameterValue(request, "bandExtend", computeAllAlignmentsData.bandExtend);
+    computeAllAlignmentsData.maxBand = httpServerData.assemblerOptions->alignOptions.maxBand;
+    getParameterValue(request, "maxBand", computeAllAlignmentsData.maxBand);
 
 
     // Write the form.
@@ -1061,6 +1073,7 @@ void Assembler::computeAllAlignments(
         computeAllAlignmentsData.gapScore,
         computeAllAlignmentsData.downsamplingFactor,
         computeAllAlignmentsData.bandExtend,
+        computeAllAlignmentsData.maxBand,
         html
     );
 
@@ -1318,6 +1331,7 @@ void Assembler::assessAlignments(
             computeAllAlignmentsData.gapScore,
             computeAllAlignmentsData.downsamplingFactor,
             computeAllAlignmentsData.bandExtend,
+            computeAllAlignmentsData.maxBand,
             html
     );
 
@@ -1464,7 +1478,8 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     const int mismatchScore = computeAllAlignmentsData.mismatchScore;
     const int gapScore = computeAllAlignmentsData.gapScore;
     const double downsamplingFactor = computeAllAlignmentsData.downsamplingFactor;
-    const uint32_t bandExtend = computeAllAlignmentsData.bandExtend;
+    const int bandExtend = computeAllAlignmentsData.bandExtend;
+    const int maxBand = computeAllAlignmentsData.maxBand;
 
     // Vector where this thread will store the alignments it finds.
     vector< pair<OrientedReadId, AlignmentInfo> >& alignments =
@@ -1518,7 +1533,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                     alignOrientedReads3(
                         orientedReadId0, orientedReadId1,
                         matchScore, mismatchScore, gapScore,
-                        downsamplingFactor, bandExtend,
+                        downsamplingFactor, bandExtend, maxBand,
                         alignment, alignmentInfo);
                 } else {
                     SHASTA_ASSERT(0);
