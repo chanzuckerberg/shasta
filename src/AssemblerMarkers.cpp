@@ -8,14 +8,14 @@ using namespace shasta;
 
 void Assembler::findMarkers(size_t threadCount)
 {
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkKmersAreOpen();
 
     markers.createNew(largeDataName("Markers"), largeDataPageSize);
     MarkerFinder markerFinder(
         assemblerInfo->k,
         kmerTable,
-        reads,
+        reads.reads,
         markers,
         threadCount);
 
@@ -40,9 +40,9 @@ void Assembler::writeMarkers(ReadId readId, Strand strand, const string& fileNam
 {
     // Check that we have what we need.
     checkKmersAreOpen();
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkMarkersAreOpen();
-    checkReadId(readId);
+    reads.checkReadId(readId);
 
     // Get the markers.
     const OrientedReadId orientedReadId(readId, strand);

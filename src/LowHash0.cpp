@@ -30,7 +30,7 @@ LowHash0::LowHash0(
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
-    const MemoryMapped::Vector<ReadFlags>& readFlags,
+    const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     MemoryMapped::Vector<OrientedReadPair>& candidateAlignments,
     MemoryMapped::Vector< array<uint64_t, 3> >& readLowHashStatistics,
@@ -45,7 +45,7 @@ LowHash0::LowHash0(
     minFrequency(minFrequency),
     threadCount(threadCountArgument),
     kmerTable(kmerTable),
-    readFlags(readFlags),
+    reads(reads),
     markers(markers),
     readLowHashStatistics(readLowHashStatistics),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
@@ -223,7 +223,7 @@ LowHash0::LowHash0(
         const uint64_t featureCount = markers.size(OrientedReadId(readId, 0).getValue()) - (m-1);
         const double featureSampling = double(total) / double(featureCount);
         csv << readId << ",";
-        csv << (readFlags[readId].isPalindromic ? "Yes," : "No,");
+        csv << (reads.getFlags(readId).isPalindromic ? "Yes," : "No,");
         csv << featureCount << ",";
         csv << counters[0] << ",";
         csv << counters[1] << ",";
@@ -319,7 +319,7 @@ void LowHash0::pass1ThreadFunction(size_t threadId)
 
         // Loop over oriented reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            if(readFlags[readId].isPalindromic) {
+            if(reads.getFlags(readId).isPalindromic) {
                 continue;
             }
             for(Strand strand=0; strand<2; strand++) {
@@ -368,7 +368,7 @@ void LowHash0::pass2ThreadFunction(size_t threadId)
 
         // Loop over oriented reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            if(readFlags[readId].isPalindromic) {
+            if(reads.getFlags(readId).isPalindromic) {
                 continue;
             }
             for(Strand strand=0; strand<2; strand++) {

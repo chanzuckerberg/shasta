@@ -88,8 +88,8 @@ void Assembler::createMarkerGraphVertices(
     cout << timestamp << "Begin computing marker graph vertices." << endl;
 
     // Check that we have what we need.
-    checkReadsAreOpen();
-    SHASTA_ASSERT(readFlags.isOpen);
+    reads.checkReadsAreOpen();
+    reads.checkReadFlagsAreOpen();
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentDataAreOpen();
@@ -554,8 +554,8 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 SHASTA_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
 
                 // If either of the reads is flagged chimeric, skip it.
-                if( readFlags[orientedReadIds[0].getReadId()].isChimeric ||
-                    readFlags[orientedReadIds[1].getReadId()].isChimeric) {
+                if( reads.getFlags(orientedReadIds[0].getReadId()).isChimeric ||
+                    reads.getFlags(orientedReadIds[1].getReadId()).isChimeric) {
                     continue;
                 }
             } else if(readGraphCreationMethod == 1) {
@@ -1657,7 +1657,7 @@ vector<Assembler::GlobalMarkerGraphEdgeInformation> Assembler::getGlobalMarkerGr
                 // The markers don't overlap.
                 info.overlappingBaseCount = 0;
                 for(uint32_t position=info.position0+k; position!=info.position1; position++) {
-                    const Base base = getOrientedReadBase(childInfo.orientedReadId, position);
+                    const Base base = reads.getOrientedReadBase(childInfo.orientedReadId, position);
                     info.sequence.push_back(base.character());
                 }
             }
@@ -3182,7 +3182,7 @@ void Assembler::computeMarkerGraphVertexConsensusSequence(
             const uint32_t markerPosition = markerPositions[i];
             Base base;
             uint8_t repeatCount;
-            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
+            tie(base, repeatCount) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
 
             // Add it to the Coverage object.
             coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), size_t(repeatCount));
@@ -3289,7 +3289,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
             for(uint32_t position=position0+k; position!=position1; position++) {
                 Base base;
                 uint32_t repeatCount;
-                tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+                tie(base, repeatCount) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, position);
                 sequence.push_back(base);
                 repeatCounts.push_back(repeatCount);
                 if(coverageData) {
@@ -3465,8 +3465,8 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         for(uint32_t position=begin; position!=end; position++) {
             Base base;
             uint8_t repeatCount;
-            tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, position);
-            interveningSequence.push_back(getOrientedReadBase(orientedReadId, position));
+            tie(base, repeatCount) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            interveningSequence.push_back(reads.getOrientedReadBase(orientedReadId, position));
             interveningRepeatCounts[i].push_back(repeatCount);
         }
 
@@ -4282,7 +4282,7 @@ void Assembler::assembleMarkerGraphVertices(size_t threadCount)
 
     // Check that we have what we need.
     checkKmersAreOpen();
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
 
@@ -4350,7 +4350,7 @@ void Assembler::computeMarkerGraphVerticesCoverageData(size_t threadCount)
 
     // Check that we have what we need.
     checkKmersAreOpen();
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
 
@@ -4473,7 +4473,7 @@ void Assembler::computeMarkerGraphVerticesCoverageDataThreadFunction(size_t thre
                     const uint32_t markerPosition = markerPositions[i];
                     Base base;
                     uint8_t repeatCount;
-                    tie(base, repeatCount) = getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
+                    tie(base, repeatCount) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, markerPosition + position);
 
                     // Add it to the Coverage object.
                     coverage.addRead(AlignedBase(base), orientedReadId.getStrand(), size_t(repeatCount));
@@ -4518,7 +4518,7 @@ void Assembler::assembleMarkerGraphEdges(
 
     // Check that we have what we need.
     checkKmersAreOpen();
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkMarkersAreOpen();
     checkMarkerGraphVerticesAreAvailable();
     checkMarkerGraphEdgesIsOpen();

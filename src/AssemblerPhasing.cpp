@@ -386,7 +386,7 @@ void Assembler::phasingGatherOrientedReadsPass(int pass)
 void Assembler::phasingGatherAssemblyGraphEdges(size_t threadCount)
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
-    const uint64_t orientedReadCount = 2 * reads.size();
+    const uint64_t orientedReadCount = 2 * reads.readCount();
 
     phasingData.assemblyGraphEdges.createNew(
         largeDataName("PhasingGraphAssemblyGraphEdges"), largeDataPageSize);
@@ -445,7 +445,7 @@ void Assembler::phasingGatherAssemblyGraphEdgesPass(int pass)
 
 void Assembler::phasingSortAssemblyGraphEdges(size_t threadCount)
 {
-    const uint64_t orientedReadCount = 2 * reads.size();
+    const uint64_t orientedReadCount = 2 * reads.readCount();
     setupLoadBalancing(orientedReadCount, 1000);
     runThreads(&Assembler::phasingSortAssemblyGraphEdgesThreadFunction,
         threadCount);

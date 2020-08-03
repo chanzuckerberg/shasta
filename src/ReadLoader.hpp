@@ -5,6 +5,7 @@
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultithreadedObject.hpp"
+#include "Reads.hpp"
 
 // Standard library.
 #include "memory.hpp"
@@ -25,15 +26,12 @@ public:
     // The constructor does all the work.
     ReadLoader(
         const string& fileName,
-        size_t minReadLength,
+        uint64_t minReadLength,
         bool noCache,
         size_t threadCount,
         const string& dataNamePrefix,
         size_t pageSize,
-        LongBaseSequences& reads,
-        MemoryMapped::VectorOfVectors<char, uint64_t>& readNames,
-        MemoryMapped::VectorOfVectors<char, uint64_t>& readMetaData,
-        MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts);
+        Reads& reads);
 
     // The number of reads and raw bases discarded because the read
     // contained invalid bases.
@@ -56,7 +54,7 @@ private:
     const string& fileName;
 
     // The minimum read length. Shorter reads are not stored.
-    const size_t minReadLength;
+    const uint64_t minReadLength;
 
     // If set, use the O_DIRECT flag when opening input files (Linux only).
     bool noCache;
@@ -73,11 +71,8 @@ private:
     const size_t pageSize;
 
     // The data structure that the reads will be added to.
-    LongBaseSequences& reads;
-    MemoryMapped::VectorOfVectors<char, uint64_t>& readNames;
-    MemoryMapped::VectorOfVectors<char, uint64_t>& readMetaData;
-    MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& readRepeatCounts;
-
+    Reads& reads;
+    
     // Create the name to be used for a MemoryMapped object.
     string dataName(
         const string& dataName) const;

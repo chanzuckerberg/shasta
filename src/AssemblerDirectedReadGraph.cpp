@@ -9,11 +9,11 @@ void Assembler::createDirectedReadGraph(
 {
     // Initialize the directed read graph.
     directedReadGraph.createNew(largeDataName("DirectedReadGraph"), largeDataPageSize);
-    directedReadGraph.createVertices(readCount());
+    directedReadGraph.createVertices(reads.readCount());
 
     // Store the number of bases in each oriented read.
-    for(ReadId readId=0; readId<readCount(); readId++) {
-        const uint32_t baseCount = uint32_t(getReadRawSequenceLength(readId));
+    for(ReadId readId=0; readId<reads.readCount(); readId++) {
+        const uint32_t baseCount = uint32_t(reads.getReadRawSequenceLength(readId));
         const uint32_t markerCount = uint32_t(markers.size(OrientedReadId(readId, 0).getValue()));
         DirectedReadGraphVertex& vertex0 = directedReadGraph.getVertex(OrientedReadId(readId, 0).getValue());
         DirectedReadGraphVertex& vertex1 = directedReadGraph.getVertex(OrientedReadId(readId, 1).getValue());
@@ -40,14 +40,14 @@ void Assembler::createDirectedReadGraph(
     // Count the number of isolated reads and their bases.
     uint64_t isolatedReadCount = 0;
     uint64_t isolatedReadBaseCount = 0;
-    for(ReadId readId=0; readId<readCount(); readId++) {
+    for(ReadId readId=0; readId<reads.readCount(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
         const DirectedReadGraph::VertexId vertexId = orientedReadId.getValue();
         if(directedReadGraph.totalDegree(vertexId) > 0) {
             continue;
         }
         ++isolatedReadCount;
-        isolatedReadBaseCount += getReadRawSequenceLength(readId);
+        isolatedReadBaseCount += reads.getReadRawSequenceLength(readId);
     }
     assemblerInfo->isolatedReadCount = isolatedReadCount;
     assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;

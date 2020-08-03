@@ -20,7 +20,7 @@ LowHash1::LowHash1(
     size_t minFrequency,            // Minimum number of minHash hits for a pair to be considered a candidate.
     size_t threadCountArgument,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
-    const MemoryMapped::Vector<ReadFlags>& readFlags,
+    const Reads& reads,
     const MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     AlignmentCandidates& candidates,
     const string& largeDataFileNamePrefix,
@@ -34,7 +34,7 @@ LowHash1::LowHash1(
     minFrequency(minFrequency),
     threadCount(threadCountArgument),
     kmerTable(kmerTable),
-    readFlags(readFlags),
+    reads(reads),
     markers(markers),
     candidates(candidates),
     largeDataFileNamePrefix(largeDataFileNamePrefix),
@@ -239,7 +239,7 @@ void LowHash1::computeHashesThreadFunction(size_t threadId)
 
         // Loop over oriented reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            if(readFlags[readId].isPalindromic) {
+            if(reads.getFlags(readId).isPalindromic) {
                 continue;
             }
             for(Strand strand=0; strand<2; strand++) {
@@ -287,7 +287,7 @@ void LowHash1::fillBucketsThreadFunction(size_t threadId)
 
         // Loop over oriented reads assigned to this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
-            if(readFlags[readId].isPalindromic) {
+            if(reads.getFlags(readId).isPalindromic) {
                 continue;
             }
             for(Strand strand=0; strand<2; strand++) {

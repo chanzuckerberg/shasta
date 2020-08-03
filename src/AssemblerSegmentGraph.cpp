@@ -32,10 +32,10 @@ void Assembler::createSegmentGraph()
     // Here we find, for each oriented read, the sequence of assembly graph edges
     // encountered along its marker graph path.
     // This vector is indexed by OrientedReadId::getValue().
-    vector< vector<AssemblyGraph::EdgeId> > orientedReadAssemblyGraphEdges(2*readCount());
+    vector< vector<AssemblyGraph::EdgeId> > orientedReadAssemblyGraphEdges(2*reads.readCount());
     vector<MarkerGraph::EdgeId> markerGraphPath;
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
-    for(ReadId readId=0; readId<readCount(); readId++) {
+    for(ReadId readId=0; readId<reads.readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             vector<AssemblyGraph::EdgeId>& assemblyGraphEdges =
@@ -86,7 +86,7 @@ void Assembler::createSegmentGraph()
     // Write a csv file with the sequence of assembly graph edges
     // for each oriented read.
     ofstream csv("OrientedReadSegments.csv");
-    for(ReadId readId=0; readId<readCount(); readId++) {
+    for(ReadId readId=0; readId<reads.readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             csv << orientedReadId << ",";
@@ -140,7 +140,7 @@ void Assembler::createSegmentGraph()
         // Follow the sequence of assembly graph edges
         // for each oriented read.
         vector<AssemblyGraph::EdgeId> v;
-        for(ReadId readId=0; readId<readCount(); readId++) {
+        for(ReadId readId=0; readId<reads.readCount(); readId++) {
             for(Strand strand=0; strand<2; strand++) {
                 const OrientedReadId orientedReadId(readId, strand);
 

@@ -127,7 +127,7 @@ void Assembler::exploreUndirectedReadGraph(
          "<div style='float:left;margin:10px;'>"
          "<table>"
 
-         "<tr title='Read id between 0 and " << reads.size() - 1 << "'>"
+         "<tr title='Read id between 0 and " << reads.readCount() - 1 << "'>"
          "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
          "Start vertex reads\n"
          "The oriented read should be in the form <code>readId-strand</code>\n"
@@ -248,9 +248,9 @@ void Assembler::exploreUndirectedReadGraph(
 
     // Validity checks.
     for (auto &readId: readIds){
-        if (readId.getReadId() > reads.size()) {
+        if (readId.getReadId() > reads.readCount()) {
             html << "<p>Invalid read id " << readId;
-            html << ". Must be between 0 and " << reads.size() - 1 << ".";
+            html << ". Must be between 0 and " << reads.readCount() - 1 << ".";
             return;
         }
     }
@@ -281,8 +281,8 @@ void Assembler::exploreUndirectedReadGraph(
         ofstream fastaFile(fastaFileName);
         BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
             const LocalReadGraphVertex& vertex = graph[v];
-            const vector<Base> sequence = getOrientedReadRawSequence(vertex.orientedReadId);
-            const auto readName = readNames[vertex.orientedReadId.getReadId()];
+            const vector<Base> sequence = reads.getOrientedReadRawSequence(vertex.orientedReadId);
+            const auto readName = reads.getReadName(vertex.orientedReadId.getReadId());
             fastaFile << ">" << vertex.orientedReadId << " ";
             copy(readName.begin(), readName.end(), ostream_iterator<char>(fastaFile));
             fastaFile << "\n";

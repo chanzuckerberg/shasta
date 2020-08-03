@@ -38,8 +38,8 @@ void Assembler::alignOrientedReads(
     uint32_t maxMarkerFrequency
 )
 {
-    checkReadsAreOpen();
-    checkReadNamesAreOpen();
+    reads.checkReadsAreOpen();
+    reads.checkReadNamesAreOpen();
     checkMarkersAreOpen();
 
 
@@ -62,9 +62,9 @@ void Assembler::alignOrientedReads(
     uint32_t leftTrim;
     uint32_t rightTrim;
     tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
-    cout << orientedReadId0 << " has " << reads[orientedReadId0.getReadId()].baseCount;
+    cout << orientedReadId0 << " has " << reads.getRead(orientedReadId0.getReadId()).baseCount;
     cout << " bases and " << markersSortedByKmerId[0].size() << " markers." << endl;
-    cout << orientedReadId1 << " has " << reads[orientedReadId1.getReadId()].baseCount;
+    cout << orientedReadId1 << " has " << reads.getRead(orientedReadId1.getReadId()).baseCount;
     cout << " bases and " << markersSortedByKmerId[1].size() << " markers." << endl;
     cout << "The alignment has " << alignmentInfo.markerCount;
     cout << " markers. Left trim " << leftTrim;
@@ -146,7 +146,7 @@ void Assembler::alignOverlappingOrientedReads(
 )
 {
     // Check that we have what we need.
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkMarkersAreOpen();
     checkAlignmentCandidatesAreOpen();
 
@@ -253,7 +253,7 @@ void Assembler::computeAlignments(
     cout << alignmentCandidates.candidates.size() << " alignment candidates." << endl;
 
     // Check that we have what we need.
-    checkReadsAreOpen();
+    reads.checkReadsAreOpen();
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentCandidatesAreOpen();
@@ -524,7 +524,7 @@ void Assembler::accessCompressedAlignments()
 void Assembler::computeAlignmentTable()
 {
     alignmentTable.createNew(largeDataName("AlignmentTable"), largeDataPageSize);
-    alignmentTable.beginPass1(ReadId(2 * reads.size()));
+    alignmentTable.beginPass1(ReadId(2 * reads.readCount()));
     for(const AlignmentData& ad: alignmentData) {
         const auto& readIds = ad.readIds;
         OrientedReadId orientedReadId0(readIds[0], 0);
@@ -555,7 +555,7 @@ void Assembler::computeAlignmentTable()
 
     // Sort each section of the alignment table by OrientedReadId.
     vector< pair<OrientedReadId, uint32_t> > v;
-    for(ReadId readId0=0; readId0<reads.size(); readId0++) {
+    for(ReadId readId0=0; readId0<reads.readCount(); readId0++) {
         for(Strand strand0=0; strand0<2; strand0++) {
             const OrientedReadId orientedReadId0(readId0, strand0);
 
@@ -676,9 +676,10 @@ void Assembler::flagPalindromicReads(
     flagPalindromicReadsData.deltaThreshold = deltaThreshold;
 
     // Reset all palindromic flags.
-    const ReadId readCount = ReadId(readFlags.size());
+    reads.assertReadsAndFlagsOfSameSize();
+    const ReadId readCount = reads.readCount();
     for(ReadId readId=0; readId<readCount; readId++) {
-        readFlags[readId].isPalindromic = 0;
+        reads.setPalindromicFlag(readId, false);
     }
 
     // Do it in parallel.
@@ -688,7 +689,7 @@ void Assembler::flagPalindromicReads(
     // Count the reads flagged as palindromic.
     size_t palindromicReadCount = 0;
     for(ReadId readId=0; readId<readCount; readId++) {
-        if(readFlags[readId].isPalindromic) {
+        if(reads.getFlags(readId).isPalindromic) {
             ++palindromicReadCount;
         }
     }
@@ -704,7 +705,7 @@ void Assembler::flagPalindromicReads(
     // palindromic reads is around 1e-4.
     ofstream csvOut("PalindromicReads.csv");
     for(ReadId readId=0; readId<readCount; readId++) {
-        if(readFlags[readId].isPalindromic) {
+        if(reads.getFlags(readId).isPalindromic) {
             csvOut << readId << "\n";
         }
     }
@@ -733,10 +734,13 @@ void Assembler::flagPalindromicReadsThreadFunction(size_t threadId)
 
     // Loop over all batches assigned to this thread.
     uint64_t begin, end;
+    reads.assertReadsAndFlagsOfSameSize();
+    ReadId readCount = reads.readCount();
+
     while(getNextBatch(begin, end)) {
         if((begin%1000000) == 0) {
             std::lock_guard<std::mutex> lock(mutex);
-            cout << timestamp << begin << "/" << readFlags.size() << endl;
+            cout << timestamp << begin << "/" << readCount << endl;
         }
 
         // Loop over all reads in this batch.
@@ -776,7 +780,7 @@ void Assembler::flagPalindromicReadsThreadFunction(size_t threadId)
             }
 
             // If we got here, mark the read as palindromic.
-            readFlags[readId].isPalindromic = 1;
+            reads.setPalindromicFlag(readId, true);
 
         }
     }
@@ -1035,11 +1039,11 @@ bool Assembler::suppressAlignment(
     // don't suppress the alignment.
     // Check the channel first for efficiency,
     // so we can return faster in most cases.
-    const auto ch0 = getMetaData(readId0, "ch");
+    const auto ch0 = reads.getMetaData(readId0, "ch");
     if(ch0.empty()) {
         return false;
     }
-    const auto ch1 = getMetaData(readId1, "ch");
+    const auto ch1 = reads.getMetaData(readId1, "ch");
     if(ch1.empty()) {
         return false;
     }
@@ -1051,11 +1055,11 @@ bool Assembler::suppressAlignment(
 
     // If the sampleid meta data fields of the two reads are missing or different,
     // don't suppress the alignment.
-    const auto sampleid0 = getMetaData(readId0, "sampleid");
+    const auto sampleid0 = reads.getMetaData(readId0, "sampleid");
     if(sampleid0.empty()) {
         return false;
     }
-    const auto sampleid1 = getMetaData(readId1, "sampleid");
+    const auto sampleid1 = reads.getMetaData(readId1, "sampleid");
     if(sampleid1.empty()) {
         return false;
     }
@@ -1067,11 +1071,11 @@ bool Assembler::suppressAlignment(
 
     // If the runid meta data fields of the two reads are missing or different,
     // don't suppress the alignment.
-    const auto runid0 = getMetaData(readId0, "runid");
+    const auto runid0 = reads.getMetaData(readId0, "runid");
     if(runid0.empty()) {
         return false;
     }
-    const auto runid1 = getMetaData(readId1, "runid");
+    const auto runid1 = reads.getMetaData(readId1, "runid");
     if(runid1.empty()) {
         return false;
     }
@@ -1084,11 +1088,11 @@ bool Assembler::suppressAlignment(
 
     // If the read meta data fields of the two reads are missing,
     // don't suppress the alignment.
-    const auto read0 = getMetaData(readId0, "read");
+    const auto read0 = reads.getMetaData(readId0, "read");
     if(read0.empty()) {
         return false;
     }
-    const auto read1 = getMetaData(readId1, "read");
+    const auto read1 = reads.getMetaData(readId1, "read");
     if(read1.empty()) {
         return false;
     }
@@ -1148,8 +1152,8 @@ void Assembler::suppressAlignmentCandidates(
             const ReadId readId1 = alignmentCandidates.candidates[i].readIds[1];
             csv << readId0 << "," << readId1 << ","
                 << (alignmentCandidates.candidates[i].isSameStrand ? "Yes" : "No") << ","
-                << readNames[readId0] << "," << readNames[readId1] << ","
-                << readMetaData[readId0] << "," << readMetaData[readId1] << endl;
+                << reads.getReadName(readId0) << "," << reads.getReadName(readId1) << ","
+                << reads.getReadMetaData(readId0) << "," << reads.getReadMetaData(readId1) << endl;
         } else {
             alignmentCandidates.candidates[j++] =
                 alignmentCandidates.candidates[i];

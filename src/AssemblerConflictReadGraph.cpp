@@ -46,7 +46,7 @@ void Assembler::createConflictReadGraph(
 
     // Initialize the conflict read graph.
     conflictReadGraph.createNew(largeDataName("ConflictReadGraph"), largeDataPageSize);
-    conflictReadGraph.createVertices(readCount());
+    conflictReadGraph.createVertices(reads.readCount());
 
 #if 0
     // Compute leftTrim, rightTrim, longestGap for each vertex.
@@ -67,8 +67,8 @@ void Assembler::createConflictReadGraph(
     }
 
     // Add edges.
-    conflictReadGraph.edges.reserve(10 * readCount());
-    setupLoadBalancing(readCount(), 1);
+    conflictReadGraph.edges.reserve(10 * reads.readCount());
+    setupLoadBalancing(reads.readCount(), 1);
     runThreads(&Assembler::createConflictReadGraphThreadFunction2, threadCount);
     conflictReadGraph.edges.unreserve();
     conflictReadGraph.computeConnectivity();

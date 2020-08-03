@@ -116,7 +116,7 @@ void Assembler::createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignme
 
     // Create read graph connectivity.
     readGraph.connectivity.createNew(largeDataName("ReadGraphConnectivity"), largeDataPageSize);
-    readGraph.connectivity.beginPass1(2 * readCount());
+    readGraph.connectivity.beginPass1(2 * reads.readCount());
     for(const ReadGraphEdge& edge: readGraph.edges) {
         readGraph.connectivity.incrementCount(edge.orientedReadIds[0].getValue());
         readGraph.connectivity.incrementCount(edge.orientedReadIds[1].getValue());
@@ -132,14 +132,14 @@ void Assembler::createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignme
     // Count the number of isolated reads and their bases.
     uint64_t isolatedReadCount = 0;
     uint64_t isolatedReadBaseCount = 0;
-    for(ReadId readId=0; readId<readCount(); readId++) {
+    for(ReadId readId=0; readId<reads.readCount(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
         const uint64_t neighborCount = readGraph.connectivity.size(orientedReadId.getValue());
         if(neighborCount > 0) {
             continue;
         }
         ++isolatedReadCount;
-        isolatedReadBaseCount += getReadRawSequenceLength(readId);
+        isolatedReadBaseCount += reads.getReadRawSequenceLength(readId);
     }
     assemblerInfo->isolatedReadCount = isolatedReadCount;
     assemblerInfo->isolatedReadBaseCount = isolatedReadBaseCount;
@@ -215,13 +215,13 @@ bool Assembler::createLocalReadGraph(
 
     for (auto& start: starts) {
         // If the starting read is chimeric and we don't allow chimeric reads, do nothing.
-        if (!allowChimericReads && readFlags[start.getReadId()].isChimeric) {
+        if (!allowChimericReads && reads.getFlags(start.getReadId()).isChimeric) {
             continue;
         }
 
         // Add the starting vertex.
         graph.addVertex(start, uint32_t(markers[start.getValue()].size()),
-                        readFlags[start.getReadId()].isChimeric, 0);
+                        reads.getFlags(start.getReadId()).isChimeric, 0);
 
         // Add each starting vertex to the BFS queue
         q.push(start);
@@ -255,7 +255,7 @@ bool Assembler::createLocalReadGraph(
             const OrientedReadId orientedReadId1 = globalEdge.getOther(orientedReadId0);
 
             // If this read is flagged chimeric and we don't allow chimeric reads, skip.
-            if (!allowChimericReads && readFlags[orientedReadId1.getReadId()].isChimeric) {
+            if (!allowChimericReads && reads.getFlags(orientedReadId1.getReadId()).isChimeric) {
                 continue;
             }
 
@@ -284,7 +284,7 @@ bool Assembler::createLocalReadGraph(
                 if (!graph.vertexExists(orientedReadId1)) {
                     graph.addVertex(orientedReadId1,
                                     uint32_t(markers[orientedReadId1.getValue()].size()),
-                                    readFlags[orientedReadId1.getReadId()].isChimeric, distance1);
+                                    reads.getFlags(orientedReadId1.getReadId()).isChimeric, distance1);
                     q.push(orientedReadId1);
                 }
                 graph.addEdge(
@@ -333,7 +333,7 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
     // If maxDistance is zero, just flag all reads as not chimeric.
     if(maxDistance == 0) {
         for(ReadId readId=0; readId<readCount; readId++) {
-            readFlags[readId].isChimeric = 0;
+            reads.setChimericFlag(readId, false);
         }
         return;
     }
@@ -356,7 +356,7 @@ void Assembler::flagChimericReads(size_t maxDistance, size_t threadCount)
 
     size_t chimericReadCount = 0;
     for(ReadId readId=0; readId!=readCount; readId++) {
-        if(readFlags[readId].isChimeric) {
+        if(reads.getFlags(readId).isChimeric) {
             ++chimericReadCount;
         }
     }
@@ -411,7 +411,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
             SHASTA_ASSERT(q.empty());
 
             // Begin by flagging this read as not chimeric.
-            readFlags[startReadId].isChimeric = 0;
+            reads.setChimericFlag(startReadId, false);
 
 
 
@@ -523,7 +523,7 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                     component = uComponent;
                 } else {
                     if(uComponent != component) {
-                        readFlags[startReadId].isChimeric = 1;
+                        reads.setChimericFlag(startReadId, true);
                         break;
                     }
                 }
@@ -558,9 +558,9 @@ void Assembler::computeReadGraphConnectedComponents(
     )
 {
     // Check that we have what we need.
-    SHASTA_ASSERT(readFlags.isOpenWithWriteAccess);
+    reads.checkReadFlagsAreOpenForWriting();
     checkReadGraphIsOpen();
-    const size_t readCount = reads.size();
+    const size_t readCount = reads.readCount();
     const size_t orientedReadCount = 2*readCount;
     SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
@@ -586,10 +586,10 @@ void Assembler::computeReadGraphConnectedComponents(
         const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
         const ReadId readId0 = orientedReadId0.getReadId();
         const ReadId readId1 = orientedReadId1.getReadId();
-        if(readFlags[readId0].isChimeric) {
+        if(reads.getFlags(readId0).isChimeric) {
             continue;
         }
-        if(readFlags[readId1].isChimeric) {
+        if(reads.getFlags(readId1).isChimeric) {
             continue;
         }
         disjointSets.union_set(orientedReadId0.getValue(), orientedReadId1.getValue());
@@ -662,11 +662,8 @@ void Assembler::computeReadGraphConnectedComponents(
 
     // Clear the read flags that will be set below.
     // Note that we are not changing the isChimeric flags.
-    for(ReadFlags& f: readFlags) {
-        f.isInSmallComponent = 0;
-        f.strand = 0;
-    }
-
+    reads.setIsInSmallComponentFlagForAll(false);
+    reads.setStrandFlagForAll(Strand(0));
 
 
     // Strand separation. Process the connected components one at a time.
@@ -678,7 +675,7 @@ void Assembler::computeReadGraphConnectedComponents(
         if(component.size() < minComponentSize) {
             for(const OrientedReadId orientedReadId: component) {
                 const ReadId readId = orientedReadId.getReadId();
-                readFlags[readId].isInSmallComponent = 1;
+                reads.setIsInSmallComponentFlag(readId, true);
             }
             continue;
         }
@@ -700,7 +697,7 @@ void Assembler::computeReadGraphConnectedComponents(
                 for(const OrientedReadId orientedReadId: component) {
                     const ReadId readId = orientedReadId.getReadId();
                     const Strand strand = orientedReadId.getStrand();
-                    readFlags[readId].strand = strand & 1;
+                    reads.setStrandFlag(readId, strand);
                 }
             } else {
                 // No need to set any strand flags here.
@@ -720,11 +717,7 @@ void Assembler::computeReadGraphConnectedComponents(
 
 
     // Check that any read flagged isChimeric is also flagged isInSmallComponent.
-    for(const ReadFlags& flags: readFlags) {
-        if(flags.isChimeric) {
-            SHASTA_ASSERT(flags.isInSmallComponent);
-        }
-    }
+    reads.checkIfAChimericIsAlsoInSmallComponent();
 }
 
 
@@ -763,10 +756,10 @@ void Assembler::writeLocalReadGraphReads(
     for(const ReadId readId: readsSet) {
 
         // Write the header line with the read name.
-        const auto readName = readNames[readId];
+        const auto readName = reads.getReadName(readId);
         fasta << ">" << readId << " ";
         copy(readName.begin(), readName.end(), ostream_iterator<char>(fasta));
-        const auto metaData = readMetaData[readId];
+        const auto metaData = reads.getReadMetaData(readId);
         if(metaData.size() > 0) {
             fasta << " ";
             copy(metaData.begin(), metaData.end(), ostream_iterator<char>(fasta));
@@ -774,8 +767,8 @@ void Assembler::writeLocalReadGraphReads(
         fasta << "\n";
 
         // Write the sequence.
-        const auto& sequence = reads[readId];
-        const auto& counts = readRepeatCounts[readId];
+        const auto& sequence = reads.getRead(readId);
+        const auto& counts = reads.getReadRepeatCounts(readId);
         const size_t n = sequence.baseCount;
         SHASTA_ASSERT(counts.size() == n);
         for(size_t i=0; i<n; i++) {
@@ -803,7 +796,7 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
 
     // Check that we have what we need.
     checkReadGraphIsOpen();
-    const size_t readCount = reads.size();
+    const size_t readCount = reads.readCount();
     const size_t orientedReadCount = 2*readCount;
     SHASTA_ASSERT(readGraph.connectivity.size() == orientedReadCount);
     checkAlignmentDataAreOpen();
@@ -1032,7 +1025,7 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
 
 void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
 {
-    const size_t readCount = reads.size();
+    const size_t readCount = reads.readCount();
     const size_t maxDistance = flagCrossStrandReadGraphEdgesData.maxDistance;
     auto& isNearStrandJump = flagCrossStrandReadGraphEdgesData.isNearStrandJump;
     vector<uint32_t> distance(2*readCount, ReadGraph::infiniteDistance);

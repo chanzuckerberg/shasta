@@ -51,7 +51,33 @@ PYBIND11_MODULE(shasta, module)
         .def_readonly("isSameStrand", &OrientedReadPair::isSameStrand)
         ;
 
-
+    // Expose class Reads to Python
+    class_<Reads>(module, "Reads")
+        .def("readCount", &Reads::readCount, "Get the number of reads.")
+        .def("writeReads",
+            &Reads::writeReads,
+            "Write all reads to a file in fasta format.",
+            arg("fileName"))
+        .def("writeRead",
+            (
+                void (Reads::*)
+                (ReadId, const string&)
+            )
+            &Reads::writeRead,
+            "Write one read to a file in fasta format.",
+            arg("readId"),
+            arg("fileName"))
+        .def("writeOrientedRead",
+            (
+                void (Reads::*)
+                (ReadId, Strand, const string&)
+            )
+            &Reads::writeOrientedRead,
+            "Write one oriented read to a file in fasta format.",
+            arg("readId"),
+            arg("strand"),
+            arg("fileName"))
+        ;
 
     // Expose class Assembler to Python.
     class_<Assembler>(module, "Assembler")
@@ -66,43 +92,11 @@ PYBIND11_MODULE(shasta, module)
 
 
         // Reads
-        .def("readCount",
-            &Assembler::readCount,
-            "Get the number of reads.")
+        .def("getReads", &Assembler::getReads, return_value_policy::reference)
         .def("histogramReadLength",
             &Assembler::histogramReadLength,
             "Create a histogram of read length and write it to a csv file.",
             arg("fileName") = "ReadLengthHistogram.csv")
-        .def("writeReads",
-            &Assembler::writeReads,
-            "Write all reads to a file in fasta format.",
-            arg("fileName"))
-        .def("writeRead",
-            (
-                void (Assembler::*)
-                (ReadId, const string&)
-            )
-            &Assembler::writeRead,
-            "Write one read to a file in fasta format.",
-            arg("readId"),
-            arg("fileName"))
-        .def("writeOrientedRead",
-            (
-                void (Assembler::*)
-                (ReadId, Strand, const string&)
-            )
-            &Assembler::writeOrientedRead,
-            "Write one oriented read to a file in fasta format.",
-            arg("readId"),
-            arg("strand"),
-            arg("fileName"))
-        .def("initializeReadFlags",
-            &Assembler::initializeReadFlags)
-        .def("accessReadFlags",
-            &Assembler::accessReadFlags,
-            arg("readWriteAccess") = false)
-
-
 
         // K-mers.
         .def("accessKmers",
