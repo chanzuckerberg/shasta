@@ -228,16 +228,28 @@ void shasta::main::assemble(
 
 
 
-    // Create the run the output directory. If it exists, stop.
-    if(filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory)) {
-        throw runtime_error(
-            "Assembly directory " +
-            assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
-            " already exists.\n"
-            "Remove it or use --assemblyDirectory to specify a different assembly directory.");
+    // Create the run output directory. If it exists and is not empty then stop.
+    bool exists = filesystem::exists(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    bool isDir = filesystem::isDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
+    if (exists) {
+        if (!isDir) {
+            throw runtime_error(
+                assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
+                " already exists and is not a directory.\n"
+                "Use --assemblyDirectory to specify a different assembly directory."
+            );
+        }
+        bool isEmpty = filesystem::directoryContents(assemblerOptions.commandLineOnlyOptions.assemblyDirectory).empty();
+        if (!isEmpty) {
+            throw runtime_error(
+                "Assembly directory " +
+                assemblerOptions.commandLineOnlyOptions.assemblyDirectory +
+                " exists and is not empty.\n"
+                "Empty it for reuse or use --assemblyDirectory to specify a different assembly directory.");
+        }
+    } else {
+        filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     }
-    filesystem::createDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
-
     // Make the output directory current.
     filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
 
