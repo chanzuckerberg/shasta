@@ -13,7 +13,7 @@ using namespace shasta;
 MarkerFinder::MarkerFinder(
     size_t k,
     const MemoryMapped::Vector<KmerInfo>& kmerTable,
-    LongBaseSequences& reads,
+    const Reads& reads,
     MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
     size_t threadCountArgument) :
     MultithreadedObject(*this),
@@ -24,7 +24,7 @@ MarkerFinder::MarkerFinder(
     threadCount(threadCountArgument)
 {
     // Initial message.
-    cout << timestamp << "Finding markers in " << reads.size() << " reads." << endl;
+    cout << timestamp << "Finding markers in " << reads.readCount() << " reads." << endl;
     const auto tBegin = std::chrono::steady_clock::now();
 
     // Adjust the numbers of threads, if necessary.
@@ -33,13 +33,13 @@ MarkerFinder::MarkerFinder(
     }
 
     const size_t batchSize = 100;
-    markers.beginPass1(2 * reads.size());
-    setupLoadBalancing(reads.size(), batchSize);
+    markers.beginPass1(2 * reads.readCount());
+    setupLoadBalancing(reads.readCount(), batchSize);
     pass = 1;
     runThreads(&MarkerFinder::threadFunction, threadCount);
     markers.beginPass2();
     markers.endPass2(false);
-    setupLoadBalancing(reads.size(), batchSize);
+    setupLoadBalancing(reads.readCount(), batchSize);
     pass = 2;
     runThreads(&MarkerFinder::threadFunction, threadCount);
 
@@ -62,7 +62,7 @@ void MarkerFinder::threadFunction(size_t threadId)
         // Loop over reads of this batch.
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
 
-            const LongBaseSequenceView read = reads[readId];
+            const LongBaseSequenceView read = reads.getRead(readId);
             size_t markerCount = 0; // For this read.
             CompressedMarker* markerPointerStrand0 = 0;
             CompressedMarker* markerPointerStrand1 = 0;

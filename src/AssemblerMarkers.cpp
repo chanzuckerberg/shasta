@@ -15,7 +15,7 @@ void Assembler::findMarkers(size_t threadCount)
     MarkerFinder markerFinder(
         assemblerInfo->k,
         kmerTable,
-        reads.reads,
+        reads,
         markers,
         threadCount);
 

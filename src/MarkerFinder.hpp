@@ -3,6 +3,7 @@
 
 #include "Marker.hpp"
 #include "MultithreadedObject.hpp"
+#include "Reads.hpp"
 
 namespace shasta {
     class MarkerFinder;
@@ -24,7 +25,7 @@ public:
     MarkerFinder(
         size_t k,
         const MemoryMapped::Vector<KmerInfo>& kmerTable,
-        LongBaseSequences& reads,
+        const Reads& reads,
         MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers,
         size_t threadCount);
 
@@ -33,7 +34,7 @@ private:
     // The arguments passed to the constructor.
     size_t k;
     const MemoryMapped::Vector<KmerInfo>& kmerTable;
-    LongBaseSequences& reads;
+    const Reads& reads;
     MemoryMapped::VectorOfVectors<CompressedMarker, uint64_t>& markers;
     size_t threadCount;
 

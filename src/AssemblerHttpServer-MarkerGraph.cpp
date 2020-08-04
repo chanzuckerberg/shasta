@@ -61,8 +61,7 @@ void Assembler::exploreMarkerGraph(
     // Create the local marker graph.
     LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
-        reads.reads,
-        reads.readRepeatCounts,
+        reads,
         markers,
         markerGraph.vertexTable,
         *consensusCaller);
