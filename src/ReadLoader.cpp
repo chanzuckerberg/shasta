@@ -8,6 +8,7 @@ using namespace shasta;
 // Standard library.
 #include "chrono.hpp"
 #include "iterator.hpp"
+#include "algorithm.hpp"
 
 
 
@@ -15,6 +16,7 @@ using namespace shasta;
 ReadLoader::ReadLoader(
     const string& fileName,
     uint64_t minReadLength,
+    uint64_t desiredCoverage,
     bool noCache,
     size_t threadCount,
     const string& dataNamePrefix,
@@ -24,6 +26,7 @@ ReadLoader::ReadLoader(
     MultithreadedObject(*this),
     fileName(fileName),
     minReadLength(minReadLength),
+    desiredCoverage(desiredCoverage),
     noCache(noCache),
     threadCount(threadCount),
     dataNamePrefix(dataNamePrefix),
@@ -46,24 +49,36 @@ ReadLoader::ReadLoader(
     // Fasta file. ReadLoader is more forgiving than OldFastaReadLoader.
     if(extension=="fasta" || extension=="fa" || extension=="FASTA" || extension=="FA") {
         processFastaFile();
-        return;
     }
 
     // Fastq file.
-    if(extension=="fastq" || extension=="fq" || extension=="FASTQ" || extension=="FQ") {
+    else if(extension=="fastq" || extension=="fq" || extension=="FASTQ" || extension=="FQ") {
         processFastqFile();
-        return;
     }
 
     // Runnie compressed file.
-    if(extension=="rq" || extension=="RQ") {
+    else if(extension=="rq" || extension=="RQ") {
         processCompressedRunnieFile();
-        return;
     }
 
-    // If getting here, the file extension is not supported.
-    throw runtime_error("File extension " + extension + " is not supported. "
-        "Supported file extensions are .fasta, .fa, .FASTA, .FA.");
+    else {
+        // If getting here, the file extension is not supported.
+        throw runtime_error("File extension " + extension + " is not supported. "
+            "Supported file extensions are .fasta, .fa, .FASTA, .FA.");
+    }
+
+    // Compute stats that are necessary for the next step.
+    reads.computeReadLengthHistogram();
+
+    if (desiredCoverage > 0) {
+        adjustForDesiredCoverage();
+    
+        // Compute final stats that will logged in csv files.
+        reads.computeReadLengthHistogram();
+    }
+
+    // Allocate enough space for readFlags which are populated later.
+    reads.readFlags->resize(reads.readCount());
 }
 
 void ReadLoader::adjustThreadCount()
@@ -648,10 +663,10 @@ void ReadLoader::processCompressedRunnieFile()
     for(uint64_t i=0; i!=readCountInFile; i++) {
         const uint64_t baseCount = reader.getLength(i);
         if(baseCount >= minReadLength) {
-            reads.readNames.appendVector(reader.getReadName(i).size());
-            reads.readMetaData.appendVector(0);   // Empty meta data.
-            reads.reads.append(baseCount);
-            reads.readRepeatCounts.appendVector(baseCount);
+            reads.readNames->appendVector(reader.getReadName(i).size());
+            reads.readMetaData->appendVector(0);   // Empty meta data.
+            reads.reads->append(baseCount);
+            reads.readRepeatCounts->appendVector(baseCount);
             readIdTable[i] = readId++;
         } else {
             discardedShortReadReadCount++;
@@ -688,12 +703,12 @@ void ReadLoader::processCompressedRunnieFileThreadFunction(size_t threadId)
                 continue;
             }
             reader.getSequenceData(read, i);
-            copy(read.name.begin(), read.name.end(), reads.readNames.begin(readId));
-            LongBaseSequenceView storedSequence = reads.reads[readId];
+            copy(read.name.begin(), read.name.end(), reads.readNames->begin(readId));
+            LongBaseSequenceView storedSequence = (*(reads.reads))[readId];
             for(uint64_t j=0; j<read.sequence.size(); j++) {
                 storedSequence.set(j, Base::fromCharacter(read.sequence[j]));
             }
-            copy(read.encoding.begin(), read.encoding.end(), reads.readRepeatCounts.begin(readId));
+            copy(read.encoding.begin(), read.encoding.end(), reads.readRepeatCounts->begin(readId));
         }
     }
 
@@ -709,11 +724,11 @@ void ReadLoader::storeReads()
     for(size_t threadId=0; threadId<threadCount; threadId++) {
 
         // Access the names.
-        MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadNames =
+        Reads::ReadNamesType& thisThreadReadNames =
             *(threadReadNames[threadId]);
 
         // Access the meta data.
-        MemoryMapped::VectorOfVectors<char, uint64_t>& thisThreadReadMetaData =
+        Reads::ReadMetaDataType& thisThreadReadMetaData =
             *(threadReadMetaData[threadId]);
 
         // Access the reads.
@@ -723,21 +738,21 @@ void ReadLoader::storeReads()
         SHASTA_ASSERT(thisThreadReadMetaData.size() == n);
 
         // Access the repeat counts.
-        MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
+        Reads::ReadRepeatCountsType& thisThreadReadRepeatCounts =
             *threadReadRepeatCounts[threadId];
         SHASTA_ASSERT(thisThreadReadRepeatCounts.size() == n);
 
         // Store the reads.
         for(size_t i=0; i<n; i++) {
-            reads.readNames.appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
-            reads.readMetaData.appendVector(thisThreadReadMetaData.begin(i), thisThreadReadMetaData.end(i));
-            reads.reads.append(thisThreadReads[i]);
-            const size_t j = reads.readRepeatCounts.size();
-            reads.readRepeatCounts.appendVector(thisThreadReadRepeatCounts.size(i));
+            reads.readNames->appendVector(thisThreadReadNames.begin(i), thisThreadReadNames.end(i));
+            reads.readMetaData->appendVector(thisThreadReadMetaData.begin(i), thisThreadReadMetaData.end(i));
+            reads.reads->append(thisThreadReads[i]);
+            const size_t j = reads.readRepeatCounts->size();
+            reads.readRepeatCounts->appendVector(thisThreadReadRepeatCounts.size(i));
             copy(
                 thisThreadReadRepeatCounts.begin(i),
                 thisThreadReadRepeatCounts.end(i),
-                reads.readRepeatCounts.begin(j));
+                reads.readRepeatCounts->begin(j));
         }
 
         // Remove the data structures used by this thread.
@@ -754,12 +769,116 @@ void ReadLoader::storeReads()
     threadReadRepeatCounts.clear();
 
     // Free up unused allocated memory.
-    reads.readNames.unreserve();
-    reads.readMetaData.unreserve();
-    reads.readRepeatCounts.unreserve();
-    reads.reads.unreserve();
+    reads.readNames->unreserve();
+    reads.readMetaData->unreserve();
+    reads.readRepeatCounts->unreserve();
+    reads.reads->unreserve();
+}
 
-    // Allocate enough space for readFlags which are populated later.
-    reads.readFlags.resize(reads.readCount());
+
+void ReadLoader::adjustForDesiredCoverage() {
+    cout << timestamp << "Adjusting for desired coverage." << endl;
+    cout << "Desired Coverage: " << desiredCoverage << endl;
+    uint64_t cumulativeBaseCount = reads.totalBaseCount;
+
+    if (desiredCoverage > cumulativeBaseCount) {
+        throw runtime_error(
+            "With a Reads.minReadLength of " + to_string(minReadLength) + ","
+            "the total available coverage (" + to_string(cumulativeBaseCount) +
+            ") is lesser than the desired coverage (" + to_string(desiredCoverage) +
+            "). Try reducing Reads.minReadLength if appropriate or get more data."
+        );
+    }
+
+    uint64_t newMinReadLength = 0;
+
+    for (uint64_t bin = 0; bin < reads.binnedHistogram.size(); bin++) {
+        const auto& histogramBin = reads.binnedHistogram[bin];
+        const uint64_t baseCount = histogramBin.second;
+
+        if (cumulativeBaseCount > desiredCoverage) {
+            cumulativeBaseCount -= baseCount;
+            continue;
+        }
+        
+        newMinReadLength = max(uint64_t(0), bin - 1) * 1000;
+        break;
+    }
+
+    SHASTA_ASSERT(newMinReadLength >= minReadLength);
+
+    cout << "Setting minReadLength to " + to_string(newMinReadLength) + 
+        " to get desired coverage." << endl;
+
+    // Allocate new data structures.
+    unique_ptr<LongBaseSequences> newReads = make_unique<LongBaseSequences>();
+    unique_ptr<Reads::ReadRepeatCountsType> newReadRepeatCounts =
+        make_unique<Reads::ReadRepeatCountsType>();
+    unique_ptr<Reads::ReadNamesType> newReadNames = make_unique<Reads::ReadNamesType>();
+    unique_ptr<Reads::ReadMetaDataType> newReadMetaData = make_unique<Reads::ReadMetaDataType>();
+    
+    string readsDataName = reads.reads->getName();
+    string readNamesDataName = reads.readNames->getName();
+    string readMetaDataDataName = reads.readMetaData->getName();
+    string readRepeatCountsDataName = reads.readRepeatCounts->getName();
+
+    string newNameSuffix = "-2";
+    newReads->createNew(readsDataName + newNameSuffix, reads.largeDataPageSize);
+    newReadRepeatCounts->createNew(
+        readRepeatCountsDataName + newNameSuffix,
+        reads.largeDataPageSize
+    );
+    newReadNames->createNew(
+        readNamesDataName + newNameSuffix,
+        reads.largeDataPageSize
+    );
+    newReadMetaData->createNew(
+        readMetaDataDataName + newNameSuffix,
+        reads.largeDataPageSize
+    );
+
+    // Populate new data structures.
+    for(ReadId id = 0; id < reads.readCount(); id++) {
+        const auto len = reads.getReadRawSequenceLength(id);
+        if (len > newMinReadLength) {
+            // Copy over stuff.
+            newReadNames->appendVector(reads.readNames->begin(id), reads.readNames->end(id));
+            newReadMetaData->appendVector(reads.readMetaData->begin(id), reads.readMetaData->end(id));
+            newReads->append((*reads.reads)[id]);
+            const uint64_t j = newReadRepeatCounts->size();
+            newReadRepeatCounts->appendVector(reads.readRepeatCounts->size(id));
+            copy(
+                reads.readRepeatCounts->begin(id),
+                reads.readRepeatCounts->end(id),
+                newReadRepeatCounts->begin(j)
+            );
+        }
+    }
+    newReads->unreserve();
+    newReadRepeatCounts->unreserve();
+    newReadNames->unreserve();
+    newReadMetaData->unreserve();
+
+    
+    // Delete previous data structures.
+    reads.reads->remove();
+    reads.readRepeatCounts->remove();
+    reads.readNames->remove();
+    reads.readMetaData->remove();
+
+    // Rename & move new data in place of old one.
+    newReads->rename(readsDataName);
+    reads.reads = std::move(newReads);
+
+    newReadRepeatCounts->rename(readRepeatCountsDataName);
+    reads.readRepeatCounts = std::move(newReadRepeatCounts);
+    
+    newReadNames->rename(readNamesDataName);
+    reads.readNames = std::move(newReadNames);
+
+    newReadMetaData->rename(readMetaDataDataName);
+    reads.readMetaData = std::move(newReadMetaData);
+
+    cout << timestamp << "Done adjusting for desired coverage." << endl;
 }
 

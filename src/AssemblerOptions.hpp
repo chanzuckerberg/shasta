@@ -106,6 +106,7 @@ public:
     public:
         int minReadLength;
         bool noCache;
+        uint64_t desiredCoverage;
         class PalindromicReadOptions {
         public:
             bool skipFlagging;

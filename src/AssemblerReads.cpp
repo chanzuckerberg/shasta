@@ -13,6 +13,7 @@ using namespace shasta;
 void Assembler::addReads(
     const string& fileName,
     uint64_t minReadLength,
+    uint64_t desiredCoverage,
     bool noCache,
     const size_t threadCount)
 {
@@ -22,6 +23,7 @@ void Assembler::addReads(
     ReadLoader readLoader(
         fileName,
         minReadLength,
+        desiredCoverage,
         noCache,
         threadCount,
         largeDataFileNamePrefix,
@@ -57,7 +59,7 @@ void Assembler::addReads(
 // in run-length representation.
 void Assembler::histogramReadLength(const string& fileName)
 {
-    reads.computeAndWriteReadLengthHistogram(fileName);
+    reads.writeReadLengthHistogram(fileName);
 
     cout << "Discarded read statistics for all input files:" << endl;;
     cout << "    Discarded " << assemblerInfo->discardedInvalidBaseReadCount <<

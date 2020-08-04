@@ -171,6 +171,7 @@ public:
     void addReads(
         const string& fileName,
         uint64_t minReadLength,
+        uint64_t desiredCoverage,
         bool noCache,
         size_t threadCount);
 

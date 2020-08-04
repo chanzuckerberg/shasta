@@ -286,6 +286,12 @@ public:
         return baseCount.size() == 0;
     }
 
+    string getName() const {
+        return name;
+    }
+
+    void rename(const string& name);
+
     // Append a new sequence at the end.
     void append(const LongBaseSequenceView&);
     void append(const vector<Base>&);
@@ -298,6 +304,8 @@ private:
 
     // The data for all the sequences.
     MemoryMapped::VectorOfVectors<uint64_t, uint64_t> data;
+
+    string name;
 
 };
 

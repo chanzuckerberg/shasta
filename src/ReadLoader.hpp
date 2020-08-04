@@ -27,6 +27,7 @@ public:
     ReadLoader(
         const string& fileName,
         uint64_t minReadLength,
+        uint64_t desiredCoverage,
         bool noCache,
         size_t threadCount,
         const string& dataNamePrefix,
@@ -55,6 +56,9 @@ private:
 
     // The minimum read length. Shorter reads are not stored.
     const uint64_t minReadLength;
+
+    // Desired coverage as a number of bases. Reads are dropped if necessary to arrive at this number.
+    const uint64_t desiredCoverage;
 
     // If set, use the O_DIRECT flag when opening input files (Linux only).
     bool noCache;
@@ -87,16 +91,20 @@ private:
 
     // Vectors where each thread stores the reads it found.
     // Indexed by threadId.
-    vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadNames;
-    vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadMetaData;
+    vector< shared_ptr<Reads::ReadNamesType> > threadReadNames;
+    vector< shared_ptr<Reads::ReadMetaDataType> > threadReadMetaData;
     vector< shared_ptr<LongBaseSequences> > threadReads;
-    vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
+    vector< shared_ptr<Reads::ReadRepeatCountsType> > threadReadRepeatCounts;
+    
     void allocatePerThreadDataStructures();
     void allocatePerThreadDataStructures(size_t threadId);
 
     // Store the reads computed by each thread and free
     // the per-thread data structures.
     void storeReads();
+
+    // Remove reads if necessary to adjust to desired coverage.
+    void adjustForDesiredCoverage();
 
     // Functions used for fasta files.
     void processFastaFile();

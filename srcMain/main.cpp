@@ -478,6 +478,7 @@ void shasta::main::assemble(
         assembler.addReads(
             inputFileName,
             assemblerOptions.readsOptions.minReadLength,
+            assemblerOptions.readsOptions.desiredCoverage,
             assemblerOptions.readsOptions.noCache,
             threadCount);
     }
@@ -488,13 +489,10 @@ void shasta::main::assemble(
     cout << timestamp << "Done loading reads from " << inputFileNames.size() << " files." << endl;
     cout << "Read loading took " << seconds(t1-t0) << "s." << endl;
 
-
-    // Create a histogram of read lengths.
+    // Log the read length histogram.
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
-
-
-    // Select the k-mers that will be used as markers.
+        // Select the k-mers that will be used as markers.
     switch(assemblerOptions.kmersOptions.generationMethod) {
     case 0:
         assembler.randomlySelectKmers(

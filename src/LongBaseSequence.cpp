@@ -16,6 +16,14 @@ void LongBaseSequences::createNew(
         baseCount.createNew(name + "-BaseCount", pageSize);
         data.createNew(name + "-Bases", pageSize);
     }
+    this->name = name;
+}
+
+void LongBaseSequences::rename(const string& name) {
+    if (!name.empty()) {
+        baseCount.rename(name + "-BaseCount");
+        data.rename(name + "-Bases");
+    }
 }
 
 

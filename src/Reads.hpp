@@ -7,6 +7,7 @@
 #include "ReadId.hpp"
 #include "Base.hpp"
 #include "span.hpp"
+#include "memory.hpp"
 #include "ReadFlags.hpp"
 #include "SHASTA_ASSERT.hpp"
 
@@ -80,7 +81,7 @@ class shasta::Reads {
 public:
   
     // Default Constructor
-    Reads(): totalBaseCount(0), n50(0) {};
+    Reads(): largeDataPageSize(0), totalBaseCount(0), n50(0) {};
 
     void createNew(
         const string& readsDataName,
@@ -100,27 +101,38 @@ public:
     );
 
     inline ReadId readCount() const {
-        return ReadId(reads.size());
+        SHASTA_ASSERT(reads);
+        return ReadId(reads->size());
     }
 
     inline LongBaseSequenceView getRead(ReadId readId) const {
-        return reads[readId];
+        SHASTA_ASSERT(reads);
+        auto constPtr = const_cast<const LongBaseSequences*>(reads.get());
+        return (*constPtr)[readId];
     }
 
     inline span<const uint8_t> getReadRepeatCounts(ReadId readId) const {
-        return readRepeatCounts[readId];
+        SHASTA_ASSERT(readRepeatCounts);
+        auto constPtr = const_cast<const ReadRepeatCountsType*>(readRepeatCounts.get());
+        return (*constPtr)[readId];
     }
 
     inline span<const char> getReadName(ReadId readId) const {
-        return readNames[readId];
+        SHASTA_ASSERT(readNames);
+        auto constPtr = const_cast<const ReadNamesType*>(readNames.get());
+        return (*constPtr)[readId];
     }
 
     inline span<const char> getReadMetaData(ReadId readId) const {
-        return readMetaData[readId];
+        SHASTA_ASSERT(readMetaData);
+        auto constPtr = const_cast<const ReadMetaDataType*>(readMetaData.get());
+        return (*constPtr)[readId];
     }
 
     inline const ReadFlags& getFlags(ReadId readId) const {
-        return readFlags[readId];
+        SHASTA_ASSERT(readFlags);
+        auto constPtr = const_cast<const ReadFlagsType*>(readFlags.get());
+        return (*constPtr)[readId];
     }
 
     
@@ -140,7 +152,7 @@ public:
     // Return the length of the raw sequence of a read.
     // If using the run-length representation of reads, this counts each
     // base a number of times equal to its repeat count.
-    size_t getReadRawSequenceLength(ReadId) const;
+    uint64_t getReadRawSequenceLength(ReadId) const;
 
     // Get a vector of the raw read positions
     // corresponding to each position in the run-length
@@ -156,24 +168,28 @@ public:
 
     // Setters for readFlags.
     inline void setPalindromicFlag(ReadId readId, bool value) {
-        readFlags[readId].isPalindromic = value;
+        SHASTA_ASSERT(readFlags);
+        (*readFlags)[readId].isPalindromic = value;
     }
     inline void setChimericFlag(ReadId readId, bool value) {
-        readFlags[readId].isChimeric = value;
+        SHASTA_ASSERT(readFlags);
+        (*readFlags)[readId].isChimeric = value;
     }
     inline void setIsInSmallComponentFlag(ReadId readId, bool value) {
-        readFlags[readId].isInSmallComponent = value;
+        SHASTA_ASSERT(readFlags);
+        (*readFlags)[readId].isInSmallComponent = value;
     }
     inline void setIsInSmallComponentFlagForAll(bool value) {
-        for (ReadId i = 0; i < readFlags.size(); i++) {
+        for (ReadId i = 0; i < readFlags->size(); i++) {
             setIsInSmallComponentFlag(i, value);
         }
     }
     inline void setStrandFlag(ReadId readId, Strand strand) {
-        readFlags[readId].strand = strand & 1;
+        SHASTA_ASSERT(readFlags);
+        (*readFlags)[readId].strand = strand & 1;
     }
     inline void setStrandFlagForAll(Strand strand) {
-        for (ReadId i = 0; i < readFlags.size(); i++) {
+        for (ReadId i = 0; i < readFlags->size(); i++) {
             setStrandFlag(i, strand & 1);
         }
     }
@@ -190,35 +206,35 @@ public:
 
     // Assertions for data integrity.
     inline void checkSanity() const {
-        SHASTA_ASSERT(readNames.size() == reads.size());
-        SHASTA_ASSERT(readMetaData.size() == reads.size());
+        SHASTA_ASSERT(readNames->size() == reads->size());
+        SHASTA_ASSERT(readMetaData->size() == reads->size());
     }
 
     inline void checkReadsAreOpen() const {
-        SHASTA_ASSERT(reads.isOpen());
-        SHASTA_ASSERT(readRepeatCounts.isOpen());
+        SHASTA_ASSERT(reads->isOpen());
+        SHASTA_ASSERT(readRepeatCounts->isOpen());
     }
 
     inline void checkReadNamesAreOpen() const {
-        SHASTA_ASSERT(readNames.isOpen());
+        SHASTA_ASSERT(readNames->isOpen());
     }
 
     inline void checkReadMetaDataAreOpen() const {
-        SHASTA_ASSERT(readMetaData.isOpen());
+        SHASTA_ASSERT(readMetaData->isOpen());
     }
 
     inline void checkReadFlagsAreOpen() const {
-        SHASTA_ASSERT(readFlags.isOpen);
+        SHASTA_ASSERT(readFlags->isOpen);
     }
 
     inline void checkReadFlagsAreOpenForWriting() const {
-        SHASTA_ASSERT(readFlags.isOpenWithWriteAccess);
+        SHASTA_ASSERT(readFlags->isOpenWithWriteAccess);
     }
 
     inline void checkReadId(ReadId readId) const {
-        if (readId >= reads.size()) {
+        if (readId >= reads->size()) {
             throw runtime_error("Read id " + to_string(readId) +
-                " is not valid. Must be between 0 and " + to_string(reads.size()) +
+                " is not valid. Must be between 0 and " + to_string(reads->size()) +
                 " inclusive.");
         }
     }
@@ -226,10 +242,12 @@ public:
     void checkIfAChimericIsAlsoInSmallComponent() const;
 
     inline void assertReadsAndFlagsOfSameSize() const {
-        SHASTA_ASSERT(reads.size() == readFlags.size());
+        SHASTA_ASSERT(reads->size() == readFlags->size());
     }
+    
+    void computeReadLengthHistogram();
 
-    void computeAndWriteReadLengthHistogram(const string& fileName);
+    void writeReadLengthHistogram(const string& fileName);
     
     inline uint64_t getTotalBaseCount() const {
         return totalBaseCount;
@@ -239,12 +257,18 @@ public:
     }
 
     inline uint64_t getRepeatCountsTotalSize() const {
-        return readRepeatCounts.totalSize();
+        return readRepeatCounts->totalSize();
     }
 
+
+    using ReadRepeatCountsType = MemoryMapped::VectorOfVectors<uint8_t, uint64_t>;
+    using ReadNamesType = MemoryMapped::VectorOfVectors<char, uint64_t>;
+    using ReadMetaDataType = MemoryMapped::VectorOfVectors<char, uint64_t>;
+    using ReadFlagsType = MemoryMapped::Vector<ReadFlags>;
+
 private:
-    LongBaseSequences reads;
-    MemoryMapped::VectorOfVectors<uint8_t, uint64_t> readRepeatCounts;
+    unique_ptr<LongBaseSequences> reads;
+    unique_ptr<ReadRepeatCountsType> readRepeatCounts;
 
     // The names of the reads from the input fasta or fastq files.
     // Indexed by ReadId.
@@ -252,22 +276,23 @@ private:
     // We don't use read names to identify reads.
     // These names are only used as an aid in tracing each read
     // back to its origin.
-    MemoryMapped::VectorOfVectors<char, uint64_t> readNames;
+    unique_ptr<ReadNamesType> readNames;
 
     // Read meta data. This is the information following the read name
     // in the header line for fasta and fastq files.
     // Indexed by ReadId.
-    MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
+    unique_ptr<ReadMetaDataType> readMetaData;
 
-    MemoryMapped::Vector<ReadFlags> readFlags;
+    unique_ptr<ReadFlagsType> readFlags;
 
+    uint64_t largeDataPageSize;
     
     // Read statistics.
-    vector<uint64_t> histogram;
-    vector< pair<uint64_t, uint64_t> > binnedHistogram;
     uint64_t totalBaseCount;
     uint64_t n50;    
-
+    vector<uint64_t> histogram;
+    vector< pair<uint64_t, uint64_t> > binnedHistogram;
+    
     friend class ReadLoader;
 };
 

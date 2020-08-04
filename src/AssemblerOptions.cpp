@@ -201,6 +201,11 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(10000),
         "Read length cutoff. Shorter reads are discarded.")
 
+        ("Reads.desiredCoverage",
+        value<uint64_t>(&readsOptions.desiredCoverage)->
+        default_value(0),
+        "Desired coverage as a number of bases. Coverage will be reduced to this if necessary.")
+
         ("Reads.noCache",
         bool_switch(&readsOptions.noCache)->
         default_value(false),
@@ -594,6 +599,7 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
     s << "minReadLength = " << minReadLength << "\n";
+    s << "desiredCoverage = " << desiredCoverage << "\n";
     s << "noCache = " <<
         convertBoolToPythonString(noCache) << "\n";
     palindromicReads.write(s);
