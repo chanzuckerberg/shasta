@@ -5,7 +5,6 @@ import shasta
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessReadGraph()
-a.accessReadFlags()
 a.accessMarkerGraphVertices()
 a.accessMarkerGraphEdges()
 a.accessAssemblyGraphVertices()

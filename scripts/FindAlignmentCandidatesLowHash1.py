@@ -19,7 +19,6 @@ config = GetConfig.getConfig()
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
 a.accessKmers()
-a.accessReadFlags()
 a.accessMarkers()
 
 # Do the computation.

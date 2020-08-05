@@ -9,7 +9,6 @@ config = GetConfig.getConfig()
 
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
-a.accessReadFlags()
 a.accessKmers()
 a.accessMarkers()
 a.accessAlignmentData()
