@@ -9,6 +9,7 @@
 #include "platformDependent.hpp"
 #include "ReadId.hpp"
 #include "Histogram.hpp"
+
 using namespace shasta;
 
 // Boost libraries.
@@ -1234,6 +1235,58 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t
         if(length >= minLength and length <= maxLength) {
             sample.push_back(r);
         }
+    }
+}
+
+
+void Assembler::sampleReadsFromDeadEnds(vector<OrientedReadId>& sample, uint64_t n){
+    sample.clear();
+
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
+    while (sample.size() < n) {
+        // Randomly select an edge in the assembly graph
+        const MarkerGraph::EdgeId edgeId = uint32_t(rand() % assemblyGraph.edges.size());
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+
+        // Only consider edges that were actually assembled
+        if (not assemblyGraph.isAssembledEdge(edgeId)){
+            continue;
+        }
+
+        // Randomly select an end of the segment
+        const bool side = bool(rand() % 2);
+
+        MarkerGraph::VertexId vertexId;
+
+        // Depending on the choice, check different markers to see if they are dead ends
+        if (side){
+            vertexId = edge.source;
+            if (assemblyGraph.inDegree(vertexId) > 0) {
+                continue;
+            }
+        }
+        else{
+            vertexId = edge.target;
+            if (assemblyGraph.outDegree(vertexId) > 0) {
+                continue;
+            }
+        }
+
+        // Convert vertexId to its corresponding MarkerGraph vertex ID (not the same as assemblyGraph vertex ID)
+        vertexId = assemblyGraph.vertices[vertexId];
+
+        // Get all the markers for each read in this vertex
+        span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+
+        // Randomly select a read markerID from the terminal marker vertex
+        MarkerId index = uint64_t(rand() % markerIds.size());
+        MarkerId markerId = markerIds[index];
+
+        // Get the Read ID
+        const OrientedReadId r = findMarkerId(markerId).first;
+
+        sample.push_back(r);
     }
 }
 

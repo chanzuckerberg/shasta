@@ -1957,6 +1957,7 @@ public:
     void assessAlignments(const vector<string>& request, ostream& html);
     void sampleReads(vector<OrientedReadId>& sample, uint64_t n);
     void sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t minLength, uint64_t maxLength);
+    void sampleReadsFromDeadEnds(vector<OrientedReadId>& sample, uint64_t n);
 
 
     // Compute all alignments for a given read.
