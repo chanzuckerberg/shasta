@@ -1804,6 +1804,7 @@ public:
         AssemblyGraph::EdgeId,
         vector<OrientedReadId>&
     ) const;
+    void alignPseudoPaths(ReadId, Strand, ReadId, Strand);
 
 
 

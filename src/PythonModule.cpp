@@ -553,8 +553,13 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::followOrientedReadPaths,
             arg("segmentId"),
             arg("forward"))
+        .def("alignPseudoPaths",
+            &Assembler::alignPseudoPaths)
 
-        // Consensus caller.
+
+
+
+            // Consensus caller.
         .def("setupConsensusCaller",
             &Assembler::setupConsensusCaller)
 

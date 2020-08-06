@@ -1863,3 +1863,111 @@ void Assembler::analyzeOrientedReadPaths()
 }
 #endif
 
+
+
+void Assembler::alignPseudoPaths(
+    ReadId readId0, Strand strand0,
+    ReadId readId1, Strand strand1)
+{
+    using SegmentId = AssemblyGraph::EdgeId;
+
+    // Parameters that control the process below. EXPOSE WHEN CODE STABILIZES. *********
+    const int matchScore = 1;
+    const int mismatchScore = -1;
+    const int gapScore = -1;
+
+    // Gather the oriented read ids.
+    const array<OrientedReadId, 2> orientedReadIds =
+        {OrientedReadId(readId0, strand0), OrientedReadId(readId1, strand1)};
+    cout << "Aligning pseudo-paths of " << orientedReadIds[0] <<
+        " and " << orientedReadIds[1] << endl;
+
+
+    // Compute the two pseudo-paths.
+    vector<MarkerGraph::EdgeId> path;
+    vector< pair<uint32_t, uint32_t> > pathOrdinals;
+    PseudoPath pseudoPath;
+    array<vector<SegmentId>, 2> pseudoPathSegments;
+    for(uint64_t i=0; i<2; i++) {
+            computePseudoPath(orientedReadIds[i], path, pathOrdinals,
+                pseudoPath);
+            getPseudoPathSegments(pseudoPath, pseudoPathSegments[i]);
+        cout << "The pseudo-path of " << orientedReadIds[i] <<
+            " has " << pseudoPathSegments[i].size() << " segments." << endl;
+    }
+
+    // Align them.
+    vector< pair<bool, bool> > alignment;
+    const uint64_t alignmentScore = shasta::seqanAlign(
+        pseudoPathSegments[0].begin(), pseudoPathSegments[0].end(),
+        pseudoPathSegments[1].begin(), pseudoPathSegments[1].end(),
+        matchScore,
+        mismatchScore,
+        gapScore,
+        true, true,
+        alignment);
+    cout << "Alignment score " << alignmentScore << endl;
+    cout << "Alignment length " << alignment.size() << endl;
+
+
+
+    // Write out the alignment.
+    uint64_t position0 = 0;
+    uint64_t position1 = 0;
+    uint64_t matchCount =0;;
+    uint64_t mismatchCount =0;;
+    uint64_t gapCount =0;;
+    uint64_t leftUnalignedCount =0;;
+    uint64_t rightUnalignedCount =0;;
+    ofstream csv("PseudoPathsAlignment.csv");
+    for(const auto& p: alignment) {
+        if(p.first) {
+            const SegmentId segment0 = pseudoPathSegments[0][position0];
+            csv << segment0;
+            }
+        csv << ",";
+        if(p.second) {
+            const SegmentId segment1 = pseudoPathSegments[1][position1];
+            csv << segment1;
+            }
+        csv << ",";
+
+        // Write an annotation column.
+        if(p.first and p.second) {
+            if(pseudoPathSegments[0][position0] != pseudoPathSegments[1][position1]) {
+                csv << "Mismatch";
+                ++mismatchCount;
+            } else {
+                ++matchCount;
+            }
+        } else if(position0 == 0 or position1==0) {
+            csv << "Left unaligned portion";
+            ++leftUnalignedCount;
+        } else if(
+            position0 == pseudoPathSegments[0].size() or
+            position1 == pseudoPathSegments[1].size()) {
+            csv << "Right unaligned portion";
+            ++rightUnalignedCount;
+        } else if(not (p.first and p.second)) {
+            csv << "Gap";
+            ++gapCount;
+        }
+        csv << "\n";
+
+        if(p.first) {
+            ++position0;
+        }
+        if(p.second) {
+            ++position1;
+        }
+    }
+    SHASTA_ASSERT(position0 == pseudoPathSegments[0].size());
+    SHASTA_ASSERT(position1 == pseudoPathSegments[1].size());
+
+    cout << "Match "<< matchCount << endl;
+    cout << "Mismatch "<< mismatchCount << endl;
+    cout << "Gap "<< gapCount << endl;
+    cout << "Left unaligned "<< leftUnalignedCount << endl;
+    cout << "Right unaligned "<< rightUnalignedCount << endl;
+    cout << "Mismatch/match ratio " << double(mismatchCount)/double(matchCount) << endl;
+}
