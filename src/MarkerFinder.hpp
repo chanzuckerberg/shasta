@@ -41,7 +41,7 @@ private:
     void threadFunction(size_t threadId);
 
     // In pass 1, we count the number of markers for each
-    // read and call reads.incrementCountMultithreaded.
+    // read and call reads->incrementCountMultithreaded.
     // In pass 2, we store the markers.
     size_t pass;
 

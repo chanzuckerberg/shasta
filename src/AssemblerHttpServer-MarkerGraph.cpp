@@ -61,7 +61,7 @@ void Assembler::exploreMarkerGraph(
     // Create the local marker graph.
     LocalMarkerGraph graph(
         uint32_t(assemblerInfo->k),
-        reads,
+        getReads(),
         markers,
         markerGraph.vertexTable,
         *consensusCaller);
@@ -463,7 +463,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         for(size_t i=0; i<k; i++) {
             Base base;
             tie(base, repeatCounts[j][i]) =
-                reads.getOrientedReadBaseAndRepeatCount(orientedReadIds[j], uint32_t(marker.position+i));
+                reads->getOrientedReadBaseAndRepeatCount(orientedReadIds[j], uint32_t(marker.position+i));
             SHASTA_ASSERT(base == kmer[i]);
         }
     }
@@ -802,7 +802,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
         for(uint32_t position=positionBegin; position!=positionEnd; ++position) {
             Base base;
             uint8_t repeatCount;
-            tie(base, repeatCount) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, position);
+            tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, position);
             sequences[j].push_back(base);
             repeatCounts[j].push_back(repeatCount);
         }
@@ -1166,13 +1166,13 @@ void Assembler::exploreMarkerGraphInducedAlignment(
         "<form>"
         "<input type=text name=readId0 required size=8 " <<
         (readId0IsPresent ? "value="+to_string(readId0) : "") <<
-        " title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
+        " title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand0", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
     html <<
         "<br><input type=text name=readId1 required size=8 " <<
         (readId1IsPresent ? "value="+to_string(readId1) : "") <<
-        " title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
+        " title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand1", strand1IsPresent && strand1==0, strand1IsPresent && strand1==1);
 
@@ -1285,7 +1285,7 @@ void Assembler::exploreMarkerCoverage(
         "<tr><td>Read id<td class=centered>"
         "<input type=text name=readId required style='text-align:center'" <<
         (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
-        " size=8 title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
+        " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
         "<tr><td>Strand<td class=centered>";
     writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
     html <<

@@ -91,6 +91,8 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
     // Parse MarkerGraph.simplifyMaxLength.
     markerGraphOptions.parseSimplifyMaxLength();
 
+    // Parse ReadOptions.desiredCoverageString into its numeric value.
+    readsOptions.parseDesiredCoverageString();
 }
 
 
@@ -200,6 +202,11 @@ void AssemblerOptions::addConfigurableOptions()
         value<int>(&readsOptions.minReadLength)->
         default_value(10000),
         "Read length cutoff. Shorter reads are discarded.")
+
+        ("Reads.desiredCoverage",
+        value<string>(&readsOptions.desiredCoverageString)->
+        default_value("0"),
+        "Desired coverage as a number of bases. Coverage will be reduced to this if necessary.")
 
         ("Reads.noCache",
         bool_switch(&readsOptions.noCache)->
@@ -594,6 +601,7 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
     s << "minReadLength = " << minReadLength << "\n";
+    s << "desiredCoverage = " << desiredCoverage << "\n";
     s << "noCache = " <<
         convertBoolToPythonString(noCache) << "\n";
     palindromicReads.write(s);
@@ -753,7 +761,30 @@ void AssemblerOptions::MarkerGraphOptions::parseSimplifyMaxLength()
 
 }
 
+void AssemblerOptions::ReadsOptions::parseDesiredCoverageString() {
+    desiredCoverage = std::stoull(desiredCoverageString);
 
+    size_t pos = desiredCoverageString.find_last_of("0123456789");
+    if (pos == desiredCoverageString.size() - 1) {
+        // Raw number of bases specified.
+        return;
+    }
+    pos++;
+    
+    while (isspace(desiredCoverageString[pos])) {
+        pos++;
+    }
+    string suffix = desiredCoverageString.substr(pos);
+    if (suffix == "Gbp" or suffix == "Gb" or suffix == "G") {
+        desiredCoverage *= 1000 * 1000 * 1000;
+    } else if (suffix == "Mbp" or suffix == "Mb" or suffix == "M") {
+        desiredCoverage *= 1000 * 1000;
+    } else if (suffix == "Kbp" or suffix == "Kb" or suffix == "K") {
+        desiredCoverage *= 1000;
+    } else {
+        throw runtime_error("Unsupported units used for specifying desiredCoverage.");
+    }
+}
 
 // Function to convert a bool to True or False for better
 // compatibility with Python scripts.

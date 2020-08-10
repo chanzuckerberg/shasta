@@ -24,7 +24,8 @@ Assembler::Assembler(
         assemblerInfo->largeDataPageSize = largeDataPageSizeArgument;
         largeDataPageSize = largeDataPageSizeArgument;
 
-        reads.createNew(
+        reads = make_unique<Reads>();
+        reads->createNew(
             largeDataName("Reads"),
             largeDataName("ReadNames"),
             largeDataName("ReadMetaData"),
@@ -40,7 +41,8 @@ Assembler::Assembler(
         assemblerInfo.accessExistingReadWrite(largeDataName("Info"));
         largeDataPageSize = assemblerInfo->largeDataPageSize;
 
-        reads.access(
+        reads = make_unique<Reads>();
+        reads->access(
             largeDataName("Reads"),
             largeDataName("ReadNames"),
             largeDataName("ReadMetaData"),

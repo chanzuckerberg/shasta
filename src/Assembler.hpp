@@ -454,13 +454,18 @@ private:
     MemoryMapped::Object<AssemblerInfo> assemblerInfo;
 
     // Reads in RLE representation.
-    Reads reads;
+    unique_ptr<Reads> reads;
 public:
     const Reads& getReads() const {
-        return reads;
+        SHASTA_ASSERT(reads);
+        return *reads;
     }
 
-    
+    void adjustCoverage(
+        uint64_t minReadLength,
+        uint64_t desiredCoverage
+    );
+
     // Write a csv file with summary information for each read.
 public:
     void writeReadsSummary();

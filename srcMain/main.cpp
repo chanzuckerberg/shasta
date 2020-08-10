@@ -481,6 +481,12 @@ void shasta::main::assemble(
             assemblerOptions.readsOptions.noCache,
             threadCount);
     }
+
+    assembler.adjustCoverage(
+        assemblerOptions.readsOptions.minReadLength,
+        assemblerOptions.readsOptions.desiredCoverage
+    );
+
     if(assembler.getReads().readCount() == 0) {
         throw runtime_error("There are no input reads.");
     }

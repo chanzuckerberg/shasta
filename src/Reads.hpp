@@ -140,7 +140,7 @@ public:
     // Return the length of the raw sequence of a read.
     // If using the run-length representation of reads, this counts each
     // base a number of times equal to its repeat count.
-    size_t getReadRawSequenceLength(ReadId) const;
+    uint64_t getReadRawSequenceLength(ReadId) const;
 
     // Get a vector of the raw read positions
     // corresponding to each position in the run-length
@@ -229,7 +229,8 @@ public:
         SHASTA_ASSERT(reads.size() == readFlags.size());
     }
 
-    void computeAndWriteReadLengthHistogram(const string& fileName);
+    void computeReadLengthHistogram();
+    void writeReadLengthHistogram(const string& fileName);
     
     inline uint64_t getTotalBaseCount() const {
         return totalBaseCount;
@@ -241,6 +242,16 @@ public:
     inline uint64_t getRepeatCountsTotalSize() const {
         return readRepeatCounts.totalSize();
     }
+
+    inline const vector< pair<uint64_t, uint64_t> > getBinnedHistogram() const {
+        return binnedHistogram;
+    }
+
+    void renameWithSuffix(const string& suffix);
+
+    void copyDataForReadsLongerThan(const Reads& rhs, uint64_t newMinReadLength);
+
+    void remove();
 
 private:
     LongBaseSequences reads;

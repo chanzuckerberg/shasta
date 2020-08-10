@@ -66,6 +66,8 @@ ReadLoader::ReadLoader(
         "Supported file extensions are .fasta, .fa, .FASTA, .FA.");
 }
 
+
+
 void ReadLoader::adjustThreadCount()
 {
     if(threadCount == 0) {

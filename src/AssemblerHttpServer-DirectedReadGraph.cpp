@@ -106,7 +106,7 @@ void Assembler::exploreDirectedReadGraph(
         "<div style='float:left;margin:10px;'>"
         "<table>"
 
-        "<tr title='Read id between 0 and " << reads.readCount()-1 << "'>"
+        "<tr title='Read id between 0 and " << reads->readCount()-1 << "'>"
         "<td>Start vertex read id"
         "<td><input type=text required name=readId size=8 style='text-align:center'"
         << (readIdIsPresent ? ("value='"+to_string(readId)+"'") : "") <<
@@ -267,9 +267,9 @@ void Assembler::exploreDirectedReadGraph(
     }
 
     // Validity checks.
-    if(readId > reads.readCount()) {
+    if(readId > reads->readCount()) {
         html << "<p>Invalid read id " << readId;
-        html << ". Must be between 0 and " << reads.readCount()-1 << ".";
+        html << ". Must be between 0 and " << reads->readCount()-1 << ".";
         return;
     }
 
@@ -387,8 +387,8 @@ void Assembler::exploreDirectedReadGraph(
             if(MurmurHash2(&orientedReadId, sizeof(orientedReadId), 117) > hashThreshold) {
                 continue;
             }
-            const vector<Base> sequence = reads.getOrientedReadRawSequence(vertex.orientedReadId);
-            const auto readName = reads.getReadName(vertex.orientedReadId.getReadId());
+            const vector<Base> sequence = reads->getOrientedReadRawSequence(vertex.orientedReadId);
+            const auto readName = reads->getReadName(vertex.orientedReadId.getReadId());
             fastaFile << ">" << vertex.orientedReadId << " ";
             copy(readName.begin(), readName.end(), ostream_iterator<char>(fastaFile));
             fastaFile << "\n";

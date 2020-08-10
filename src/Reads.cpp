@@ -37,6 +37,55 @@ void Reads::access(
 }
 
 
+void Reads::renameWithSuffix(const string& suffix) {
+    const string readsDataName = reads.getName();
+    const string readNamesDataName = readNames.getName();
+    const string readMetaDataDataName = readMetaData.getName();
+    const string readRepeatCountsDataName = readRepeatCounts.getName();
+    const string readFlagsDataName = readFlags.fileName;
+
+    reads.rename(readsDataName + suffix);
+    readNames.rename(readNamesDataName + suffix);
+    readMetaData.rename(readMetaDataDataName + suffix);
+    readRepeatCounts.rename(readRepeatCountsDataName + suffix);
+    readFlags.rename(readFlagsDataName + suffix);
+}
+
+
+void Reads::copyDataForReadsLongerThan(const Reads& rhs, uint64_t newMinReadLength) {
+    for(ReadId id = 0; id < rhs.readCount(); id++) {
+        const auto len = rhs.getReadRawSequenceLength(id);
+        if (len > newMinReadLength) {
+            // Copy over stuff.
+            readNames.appendVector(rhs.readNames.begin(id), rhs.readNames.end(id));
+            readMetaData.appendVector(rhs.readMetaData.begin(id), rhs.readMetaData.end(id));
+            reads.append(rhs.reads[id]);
+            const uint64_t j = readRepeatCounts.size();
+            readRepeatCounts.appendVector(rhs.readRepeatCounts.size(id));
+            copy(
+                rhs.readRepeatCounts.begin(id),
+                rhs.readRepeatCounts.end(id),
+                readRepeatCounts.begin(j)
+            );
+        }
+    }
+
+    reads.unreserve();
+    readRepeatCounts.unreserve();
+    readNames.unreserve();
+    readMetaData.unreserve();
+    readFlags.reserveAndResize(reads.size());
+}
+
+
+void Reads::remove() {
+    reads.remove();
+    readRepeatCounts.remove();
+    readNames.remove();
+    readMetaData.remove();
+    readFlags.remove();
+}
+
 void Reads::checkIfAChimericIsAlsoInSmallComponent() const {
     for (const ReadFlags& flags: readFlags) {
         if (flags.isChimeric) {
@@ -117,7 +166,7 @@ vector<Base> Reads::getOrientedReadRawSequence(OrientedReadId orientedReadId) co
 // Return the length of the raw sequence of a read.
 // If using the run-length representation of reads, this counts each
 // base a number of times equal to its repeat count.
-size_t Reads::getReadRawSequenceLength(ReadId readId) const
+uint64_t Reads::getReadRawSequenceLength(ReadId readId) const
 {
     // We are using the run-length representation.
     // The number of raw bases equals the sum of all
@@ -125,7 +174,7 @@ size_t Reads::getReadRawSequenceLength(ReadId readId) const
     // Don't use std::accumulate to compute the sum,
     // otherwise the sum is computed using uint8_t!
     const auto& counts = readRepeatCounts[readId];
-    size_t sum = 0;;
+    uint64_t sum = 0;;
     for(uint8_t count: counts) {
         sum += count;
     }
@@ -142,12 +191,12 @@ vector<uint32_t> Reads::getRawPositions(OrientedReadId orientedReadId) const
     const ReadId readId = orientedReadId.getReadId();
     const ReadId strand = orientedReadId.getStrand();
     const auto repeatCounts = readRepeatCounts[readId];
-    const size_t n = repeatCounts.size();
+    const uint64_t n = repeatCounts.size();
 
     vector<uint32_t> v;
 
     uint32_t position = 0;
-    for(size_t i=0; i<n; i++) {
+    for(uint64_t i=0; i<n; i++) {
         v.push_back(position);
         uint8_t count;
         if(strand == 0) {
@@ -295,8 +344,10 @@ void Reads::writeOrientedRead(OrientedReadId orientedReadId, ostream& file)
 // All lengths here are raw sequence lengths
 // (length of the original read), not lengths
 // in run-length representation.
-void Reads::computeAndWriteReadLengthHistogram(const string& fileName) {
+void Reads::computeReadLengthHistogram() {
     checkReadsAreOpen();
+    histogram.clear();
+
     // Create the histogram.
     // It contains the number of reads of each length.
     // Indexed by the length.
@@ -304,7 +355,7 @@ void Reads::computeAndWriteReadLengthHistogram(const string& fileName) {
     totalBaseCount = 0;
     
     for(ReadId readId=0; readId<totalReadCount; readId++) {
-        const size_t length = getReadRawSequenceLength(readId);
+        const uint64_t length = getReadRawSequenceLength(readId);
         totalBaseCount += length;
         if(histogram.size() <= length) {
             histogram.resize(length+1, 0);
@@ -312,17 +363,37 @@ void Reads::computeAndWriteReadLengthHistogram(const string& fileName) {
         ++(histogram[length]);
     }
 
+    // Binned histogram
+    binnedHistogram.clear();
+    const uint64_t binWidth = 1000;
+    for(uint64_t length=0; length<histogram.size(); length++) {
+        const uint64_t readCount = histogram[length];
+        if(readCount) {
+            const uint64_t bin = length / binWidth;
+            if(binnedHistogram.size() <= bin) {
+                binnedHistogram.resize(bin+1, make_pair(0, 0));
+            }
+            binnedHistogram[bin].first += readCount;
+            binnedHistogram[bin].second += readCount * length;
+        }
+    }
+}
+
+void Reads::writeReadLengthHistogram(const string& fileName) {
+    checkReadsAreOpen();
+    const ReadId totalReadCount = readCount();
+    
     n50 = 0;
     {
         ofstream csv(fileName);
         csv << "Length,Reads,Bases,CumulativeReads,CumulativeBases,"
             "FractionalCumulativeReads,FractionalCumulativeBases,\n";
-        size_t cumulativeReadCount = totalReadCount;
-        size_t cumulativeBaseCount = totalBaseCount;
-        for(size_t length=0; length<histogram.size(); length++) {
-            const size_t frequency = histogram[length];
+        uint64_t cumulativeReadCount = totalReadCount;
+        uint64_t cumulativeBaseCount = totalBaseCount;
+        for(uint64_t length=0; length<histogram.size(); length++) {
+            const uint64_t frequency = histogram[length];
             if(frequency) {
-                const  size_t baseCount = frequency * length;
+                const  uint64_t baseCount = frequency * length;
                 const double cumulativeReadFraction =
                     double(cumulativeReadCount)/double(totalReadCount);
                 const double comulativeBaseFraction =
@@ -345,28 +416,16 @@ void Reads::computeAndWriteReadLengthHistogram(const string& fileName) {
 
     // Binned Histogram.
     {
-        const uint64_t binWidth = 1000;
-        for(size_t length=0; length<histogram.size(); length++) {
-            const size_t readCount = histogram[length];
-            if(readCount) {
-                const size_t bin = length / binWidth;
-                if(binnedHistogram.size() <= bin) {
-                    binnedHistogram.resize(bin+1, make_pair(0, 0));
-                }
-                binnedHistogram[bin].first += readCount;
-                binnedHistogram[bin].second += readCount * length;
-            }
-        }
-
+        const int binWidth = 1000;
         ofstream csv("Binned-" + fileName);
         csv << "LengthBegin,LengthEnd,Reads,Bases,CumulativeReads,CumulativeBases,"
             "FractionalCumulativeReads,FractionalCumulativeBases,\n";
-        size_t cumulativeReadCount = totalReadCount;
-        size_t cumulativeBaseCount = totalBaseCount;
-        for(size_t bin=0; bin<binnedHistogram.size(); bin++) {
+        uint64_t cumulativeReadCount = totalReadCount;
+        uint64_t cumulativeBaseCount = totalBaseCount;
+        for(uint64_t bin=0; bin<binnedHistogram.size(); bin++) {
             const auto& histogramBin = binnedHistogram[bin];
-            const size_t readCount = histogramBin.first;
-            const size_t baseCount = histogramBin.second;
+            const uint64_t readCount = histogramBin.first;
+            const uint64_t baseCount = histogramBin.second;
             const double cumulativeReadFraction =
                 double(cumulativeReadCount)/double(totalReadCount);
             const double comulativeBaseFraction =
