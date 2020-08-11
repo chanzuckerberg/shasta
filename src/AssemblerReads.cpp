@@ -218,7 +218,7 @@ void Assembler::adjustCoverage(uint64_t minReadLength, uint64_t desiredCoverage)
         );
     }
 
-    uint64_t newMinReadLength = 0;
+    uint64_t newMinReadLength = std::numeric_limits<uint64_t>::max();
 
     const auto& binnedHistogram = reads->getBinnedHistogram();
     for (uint64_t bin = 0; bin < binnedHistogram.size(); bin++) {
@@ -232,6 +232,13 @@ void Assembler::adjustCoverage(uint64_t minReadLength, uint64_t desiredCoverage)
 
         newMinReadLength = max(uint64_t(0), bin - 1) * 1000;
         break;
+    }
+
+    if (newMinReadLength == std::numeric_limits<uint64_t>::max()) {
+        throw runtime_error(
+            "Reads.desiredCoverage is set to " + to_string(desiredCoverage) +
+            " which is very low. Please check the value again."
+        );
     }
 
     SHASTA_ASSERT(newMinReadLength >= minReadLength);
