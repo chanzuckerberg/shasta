@@ -67,6 +67,10 @@ ReadLoader::ReadLoader(
 }
 
 
+// This is required because unique_ptr has a type completeness requirement
+// during destruction.
+ReadLoader::~ReadLoader() = default;
+
 
 void ReadLoader::adjustThreadCount()
 {
@@ -615,16 +619,16 @@ void ReadLoader::allocatePerThreadDataStructures()
 }
 void ReadLoader::allocatePerThreadDataStructures(size_t threadId)
 {
-    threadReadNames[threadId] = make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
+    threadReadNames[threadId] = make_unique< MemoryMapped::VectorOfVectors<char, uint64_t> >();
     threadReadNames[threadId]->createNew(
         threadDataName(threadId, "ReadNames"), pageSize);
-    threadReadMetaData[threadId] = make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
+    threadReadMetaData[threadId] = make_unique< MemoryMapped::VectorOfVectors<char, uint64_t> >();
     threadReadMetaData[threadId]->createNew(
         threadDataName(threadId, "ReadMetaData"), pageSize);
-    threadReads[threadId] = make_shared<LongBaseSequences>();
+    threadReads[threadId] = make_unique<LongBaseSequences>();
     threadReads[threadId]->createNew(
         threadDataName(threadId, "Reads"), pageSize);
-    threadReadRepeatCounts[threadId] = make_shared< MemoryMapped::VectorOfVectors<uint8_t, uint64_t> >();
+    threadReadRepeatCounts[threadId] = make_unique< MemoryMapped::VectorOfVectors<uint8_t, uint64_t> >();
     threadReadRepeatCounts[threadId]->createNew(
         threadDataName(threadId, "ReadRepeatCounts"), pageSize);
 }
@@ -639,7 +643,7 @@ void ReadLoader::processCompressedRunnieFile()
     const auto t0 = std::chrono::steady_clock::now();
 
     // Create the CompressedRunnieReader.
-    compressedRunnieReader = make_shared<CompressedRunnieReader>(fileName);
+    compressedRunnieReader = make_unique<CompressedRunnieReader>(fileName);
     CompressedRunnieReader& reader = *compressedRunnieReader;
     const uint64_t readCountInFile = reader.getReadCount();
     cout << "Input file contains " << readCountInFile << " reads." << endl;
@@ -665,7 +669,7 @@ void ReadLoader::processCompressedRunnieFile()
     // Use multithreaded code to store the reads.
     setupLoadBalancing(readIdTable.size(), 1000);
     runThreads(&ReadLoader::processCompressedRunnieFileThreadFunction, threadCount);
-    compressedRunnieReader = 0;
+    // compressedRunnieReader = 0;
 
     const auto t1 = std::chrono::steady_clock::now();
     cout << "Input file read and processed in " <<

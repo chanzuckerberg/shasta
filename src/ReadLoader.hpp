@@ -33,6 +33,8 @@ public:
         size_t pageSize,
         Reads& reads);
 
+    ~ReadLoader();
+    
     // The number of reads and raw bases discarded because the read
     // contained invalid bases.
     uint64_t discardedInvalidBaseReadCount = 0;
@@ -87,10 +89,10 @@ private:
 
     // Vectors where each thread stores the reads it found.
     // Indexed by threadId.
-    vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadNames;
-    vector< shared_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadMetaData;
-    vector< shared_ptr<LongBaseSequences> > threadReads;
-    vector< shared_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
+    vector< unique_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadNames;
+    vector< unique_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadMetaData;
+    vector< unique_ptr<LongBaseSequences> > threadReads;
+    vector< unique_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
     void allocatePerThreadDataStructures();
     void allocatePerThreadDataStructures(size_t threadId);
 
@@ -119,7 +121,7 @@ private:
     // Functions and data used for compressed runnie files.
     void processCompressedRunnieFile();
     void processCompressedRunnieFileThreadFunction(size_t threadId);
-    shared_ptr<CompressedRunnieReader> compressedRunnieReader;
+    unique_ptr<CompressedRunnieReader> compressedRunnieReader;
 
     // The ReadId corresponding to each index in the Runnie file.
     vector<ReadId> readIdTable;
