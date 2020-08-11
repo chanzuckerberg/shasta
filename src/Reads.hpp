@@ -243,11 +243,11 @@ public:
         return readRepeatCounts.totalSize();
     }
 
-    inline const vector< pair<uint64_t, uint64_t> > getBinnedHistogram() const {
-        return binnedHistogram;
+    inline const vector<uint64_t>& getReadLengthHistogram() const {
+        return histogram;
     }
 
-    void renameWithSuffix(const string& suffix);
+    void rename();
 
     void copyDataForReadsLongerThan(const Reads& rhs, uint64_t newMinReadLength);
 

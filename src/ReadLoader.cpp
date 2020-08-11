@@ -669,7 +669,7 @@ void ReadLoader::processCompressedRunnieFile()
     // Use multithreaded code to store the reads.
     setupLoadBalancing(readIdTable.size(), 1000);
     runThreads(&ReadLoader::processCompressedRunnieFileThreadFunction, threadCount);
-    // compressedRunnieReader = 0;
+    compressedRunnieReader.reset();
 
     const auto t1 = std::chrono::steady_clock::now();
     cout << "Input file read and processed in " <<

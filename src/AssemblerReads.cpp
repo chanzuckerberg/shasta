@@ -29,6 +29,7 @@ void Assembler::addReads(
         *reads);
     
     reads->checkSanity();
+    reads->computeReadLengthHistogram();
 
     cout << "Discarded read statistics for file " << fileName << ":" << endl;
     cout << "    Discarded " << readLoader.discardedInvalidBaseReadCount <<
@@ -48,6 +49,7 @@ void Assembler::addReads(
     assemblerInfo->discardedShortReadBaseCount += readLoader.discardedShortReadBaseCount;
     assemblerInfo->discardedBadRepeatCountReadCount += readLoader.discardedBadRepeatCountReadCount;
     assemblerInfo->discardedBadRepeatCountBaseCount += readLoader.discardedBadRepeatCountBaseCount;
+    assemblerInfo->minReadLength = minReadLength;
 }
 
 
@@ -196,58 +198,42 @@ void Assembler::writeReadsSummary()
 }
 
 
-void Assembler::adjustCoverage(uint64_t minReadLength, uint64_t desiredCoverage) {
-    if (desiredCoverage == 0) {
-        // Not specified. Skip.
-        return;
-    }
-
-    // Need to compute histograms to adjust coverage.
-    reads->computeReadLengthHistogram();
-
+uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverage) {
     cout << timestamp << "Adjusting for desired coverage." << endl;
     cout << "Desired Coverage: " << desiredCoverage << endl;
     uint64_t cumulativeBaseCount = reads->getTotalBaseCount();
 
     if (desiredCoverage > cumulativeBaseCount) {
-        throw runtime_error(
-            "With a Reads.minReadLength of " + to_string(minReadLength) + ","
-            "the total available coverage (" + to_string(cumulativeBaseCount) +
-            ") is lesser than the desired coverage (" + to_string(desiredCoverage) +
-            "). Try reducing Reads.minReadLength if appropriate or get more coverage."
-        );
+        assemblerInfo->minReadLength = 0ULL;
+        return assemblerInfo->minReadLength;
     }
 
-    uint64_t newMinReadLength = std::numeric_limits<uint64_t>::max();
+    assemblerInfo->minReadLength = std::numeric_limits<uint64_t>::max();
 
-    const auto& binnedHistogram = reads->getBinnedHistogram();
-    for (uint64_t bin = 0; bin < binnedHistogram.size(); bin++) {
-        const auto& histogramBin = binnedHistogram[bin];
-        const uint64_t baseCount = histogramBin.second;
+    const auto& histogram = reads->getReadLengthHistogram();
+    for (uint64_t length = 0; length < histogram.size(); length++) {
+        const uint64_t frequency = histogram[length];
+        if (frequency) {
+            const uint64_t baseCount = frequency * length;
+            if (cumulativeBaseCount > desiredCoverage) {
+                cumulativeBaseCount -= baseCount;
+                continue;
+            }
 
-        if (cumulativeBaseCount > desiredCoverage) {
-            cumulativeBaseCount -= baseCount;
-            continue;
+            assemblerInfo->minReadLength = length;
+            break;
         }
-
-        newMinReadLength = max(uint64_t(0), bin - 1) * 1000;
-        break;
     }
 
-    if (newMinReadLength == std::numeric_limits<uint64_t>::max()) {
-        throw runtime_error(
-            "Reads.desiredCoverage is set to " + to_string(desiredCoverage) +
-            " which is very low. Please check the value again."
-        );
+    if (assemblerInfo->minReadLength == std::numeric_limits<uint64_t>::max()) {
+        return assemblerInfo->minReadLength;
     }
 
-    SHASTA_ASSERT(newMinReadLength >= minReadLength);
-
-    cout << "Setting minReadLength to " + to_string(newMinReadLength) + 
+    cout << "Setting minReadLength to " + to_string(assemblerInfo->minReadLength) + 
         " to get desired coverage." << endl;
 
     // Rename existing memory mapped files to avoid overwriting data.
-    reads->renameWithSuffix("-OLD");
+    reads->rename();
 
     unique_ptr<Reads> newReads = make_unique<Reads>();
     newReads->createNew(
@@ -261,13 +247,18 @@ void Assembler::adjustCoverage(uint64_t minReadLength, uint64_t desiredCoverage)
 
     newReads->copyDataForReadsLongerThan(
         getReads(),
-        newMinReadLength
+        assemblerInfo->minReadLength
     );
 
     reads->remove();
     
-    reads.swap(newReads);
+    reads = std::move(newReads);
+
+    // Re-compute the histogram.
+    reads->computeReadLengthHistogram();
 
     cout << timestamp << "Done adjusting for desired coverage." << endl;
+    
+    return assemblerInfo->minReadLength;
 }
 

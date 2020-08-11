@@ -37,18 +37,30 @@ void Reads::access(
 }
 
 
-void Reads::renameWithSuffix(const string& suffix) {
+void Reads::rename() {
+    const string suffix = "_old";
     const string readsDataName = reads.getName();
     const string readNamesDataName = readNames.getName();
     const string readMetaDataDataName = readMetaData.getName();
     const string readRepeatCountsDataName = readRepeatCounts.getName();
     const string readFlagsDataName = readFlags.fileName;
 
-    reads.rename(readsDataName + suffix);
-    readNames.rename(readNamesDataName + suffix);
-    readMetaData.rename(readMetaDataDataName + suffix);
-    readRepeatCounts.rename(readRepeatCountsDataName + suffix);
-    readFlags.rename(readFlagsDataName + suffix);
+    // No need to rename if anonymous memory mode is used.
+    if (!readsDataName.empty()) {
+        reads.rename(readsDataName + suffix);
+    }
+    if (!readNamesDataName.empty()) {
+        readNames.rename(readNamesDataName + suffix);
+    }
+    if (!readMetaDataDataName.empty()) {
+        readMetaData.rename(readMetaDataDataName + suffix);
+    }
+    if (!readRepeatCountsDataName.empty()) {
+        readRepeatCounts.rename(readRepeatCountsDataName + suffix);
+    }
+    if (!readFlagsDataName.empty()) {
+        readFlags.rename(readFlagsDataName + suffix);
+    }
 }
 
 

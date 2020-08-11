@@ -762,18 +762,14 @@ void AssemblerOptions::MarkerGraphOptions::parseSimplifyMaxLength()
 }
 
 void AssemblerOptions::ReadsOptions::parseDesiredCoverageString() {
-    desiredCoverage = std::stoull(desiredCoverageString);
-
-    size_t pos = desiredCoverageString.find_last_of("0123456789");
-    if (pos == desiredCoverageString.size() - 1) {
+    size_t pos = 0;
+    desiredCoverage = std::stoull(desiredCoverageString, &pos);
+    
+    if (pos == desiredCoverageString.size()) {
         // Raw number of bases specified.
         return;
     }
-    pos++;
     
-    while (isspace(desiredCoverageString[pos])) {
-        pos++;
-    }
     string suffix = desiredCoverageString.substr(pos);
     if (suffix == "Gbp" or suffix == "Gb" or suffix == "G") {
         desiredCoverage *= 1000 * 1000 * 1000;

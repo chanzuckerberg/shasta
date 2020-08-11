@@ -610,6 +610,8 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
         "<h3>Reads used in this assembly</h3>"
         "<table>"
+        "<tr><td>Minimum read length"
+        "<td class=right>" << assemblerInfo->minReadLength <<
         "<tr><td>Number of reads"
         "<td class=right>" << assemblerInfo->readCount <<
         "<tr><td>Number of raw sequence bases"
@@ -862,6 +864,7 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
         "  \"Reads used in this assembly\":\n"
         "  {\n"
+        "    \"Minimum read length\": " << assemblerInfo->minReadLength << ",\n"
         "    \"Number of reads\": " << assemblerInfo->readCount << ",\n"
         "    \"Number of raw sequence bases\": " << assemblerInfo->baseCount << ",\n"
         "    \"Average read length (for raw read sequence)\": " <<

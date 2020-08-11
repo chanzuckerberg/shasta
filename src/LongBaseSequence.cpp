@@ -23,6 +23,9 @@ void LongBaseSequences::rename(const string& name) {
     if (!name.empty()) {
         baseCount.rename(name + "-BaseCount");
         data.rename(name + "-Bases");
+    } else {
+        SHASTA_ASSERT(baseCount.fileName.empty());
+        SHASTA_ASSERT(data.getName().empty());
     }
 }
 

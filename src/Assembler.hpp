@@ -108,6 +108,7 @@ public:
     size_t readCount = 0;
     size_t baseCount = 0;
     size_t readN50 = 0;
+    uint64_t minReadLength = 0;
 
     // Other read statistics.
     size_t palindromicReadCount = 0;
@@ -461,10 +462,7 @@ public:
         return *reads;
     }
 
-    void adjustCoverage(
-        uint64_t minReadLength,
-        uint64_t desiredCoverage
-    );
+    uint64_t adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverage);
 
     // Write a csv file with summary information for each read.
 public:
