@@ -4,9 +4,14 @@
 #include "Assembler.hpp"
 #include "MiniAssemblyMarkerGraph.hpp"
 #include "orderPairs.hpp"
+#include "seqan.hpp"
 using namespace shasta;
 
 
+# if 0
+// Version that uses mini-assemblies to select alignments
+// to be included in the read graph
+// (see analyzeAlignments3 in AssemblerAlignments.cpp).
 void Assembler::createReadGraph2(size_t threadCount)
 {
     // Parameters that control this function.
@@ -283,5 +288,229 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
 
 
 }
+#endif
 
 
+// This versions use PseudoPaths to decide which alignments
+// should be included in the read graph.
+// See Assembler::alignPseudoPaths in AssemblerAnalyzePaths.cpp.
+// This is a quick and dirty single threaded implementation for testing.
+// If successful, a multithreaded version will be needed.
+void Assembler::createReadGraph2(size_t threadCount)
+{
+
+    // Parameters that control this function.
+    // Expose when code stabilizes.
+    const int matchScore = 1;
+    const int mismatchScore = -1;
+    const int gapScore = -1;
+    const uint64_t minAlignedSegmentCount = 6;
+    const double maxSegmentMismatchRatio = 0.12;
+    const uint32_t maxAlignmentCount = 6;
+
+
+
+    // Compute the pseudo-path of each oriented read.
+    // This vector is indexed by OrientedReadId::getValue().
+    vector<MarkerGraph::EdgeId> path;
+    vector< pair<uint32_t, uint32_t> > pathOrdinals;
+    PseudoPath pseudoPath;
+    using SegmentId = AssemblyGraph::EdgeId;
+    const uint64_t readCount = reads.readCount();
+    vector< vector<SegmentId> > pseudoPathSegments(2*readCount);
+    cout << timestamp << "Computing pseudo-paths for " << readCount << " reads." << endl;
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            computePseudoPath(orientedReadId,
+                path, pathOrdinals, pseudoPath);
+            getPseudoPathSegments(pseudoPath,
+                pseudoPathSegments[orientedReadId.getValue()]);
+        }
+    }
+
+
+
+    // Vector of tuples containing the following for each alignment:
+    // 0: Number of aligned markers.
+    // 1: Number of matches in the alignment of the pseudo-paths.
+    // 2: Number of mismatches in the alignment of the pseudo-paths.
+    // Indexed by the alignmentId.
+    using Info = tuple<uint64_t, uint64_t, uint64_t>;
+    vector<Info> infos(alignmentData.size());
+
+
+
+    // For each alignment we have, align the pseudo-paths
+    // of the two oriented reads, putting the first read on strand 0.
+    vector< pair<bool, bool> > alignment;
+    cout << timestamp << "Computing pseudo-path alignments for " <<
+        alignmentData.size() << " alignments." << endl;
+    for(uint64_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
+        const AlignmentData& ad = alignmentData[alignmentId];
+
+        // Gather the two oriented reads.
+        const Strand strand0 = 0;
+        const Strand strand1 = ad.isSameStrand ? 0 : 1;
+        const OrientedReadId orientedReadId0(ad.readIds[0], strand0);
+        const OrientedReadId orientedReadId1(ad.readIds[1], strand1);
+
+        // Find the corresponding pseudo-paths.
+        const vector<SegmentId>& pseudoPathSegments0 =
+            pseudoPathSegments[orientedReadId0.getValue()];
+        const vector<SegmentId>& pseudoPathSegments1 =
+            pseudoPathSegments[orientedReadId1.getValue()];
+
+        // Skip pathological case.
+        if(pseudoPathSegments0.empty() or pseudoPathSegments1.empty()) {
+            continue;
+        }
+
+        // Align them.
+        /* const uint64_t alignmentScore =*/ shasta::seqanAlign(
+            pseudoPathSegments0.begin(), pseudoPathSegments0.end(),
+            pseudoPathSegments1.begin(), pseudoPathSegments1.end(),
+            matchScore,
+            mismatchScore,
+            gapScore,
+            true, true,
+            alignment);
+
+        // Analyze the alignment of the two pseudo-paths.
+        uint64_t position0 = 0;
+        uint64_t position1 = 0;
+        uint64_t matchCount =0;
+        uint64_t mismatchCount =0;
+        uint64_t gapCount =0;
+        uint64_t leftUnalignedCount =0;
+        uint64_t rightUnalignedCount =0;
+        for(const auto& p: alignment) {
+            if(p.first and p.second) {
+                if(pseudoPathSegments0[position0] != pseudoPathSegments1[position1]) {
+                    ++mismatchCount;
+                } else {
+                    ++matchCount;
+                }
+            } else if(position0 == 0 or position1==0) {
+                ++leftUnalignedCount;
+            } else if(
+                position0 == pseudoPathSegments0.size() or
+                position1 == pseudoPathSegments1.size()) {
+                ++rightUnalignedCount;
+            } else {
+                ++gapCount;
+            }
+
+            if(p.first) {
+                ++position0;
+            }
+            if(p.second) {
+                ++position1;
+            }
+        }
+        SHASTA_ASSERT(position0 == pseudoPathSegments0.size());
+        SHASTA_ASSERT(position1 == pseudoPathSegments1.size());
+        SHASTA_ASSERT(
+            matchCount + mismatchCount + gapCount + leftUnalignedCount + rightUnalignedCount ==
+                alignment.size());
+
+        // Store the Info for this alignment.
+        Info& info = infos[alignmentId];
+        get<0>(info) = ad.info.markerCount;
+        get<1>(info) = matchCount;
+        get<2>(info) = mismatchCount;
+    }
+
+
+
+    // Write out this information, by read.
+    ofstream csv("CreateReadGraph2.csv");
+    csv << "ReadId,MarherAlignedCount,SegmentMatchCount,SegmentMismatchCount,"
+        "SegmentAlignedCount,SegmentMismatchRatio\n";
+    for(ReadId readId=0; readId<readCount; readId++) {
+
+        // Put it on strand 0.
+        const OrientedReadId orientedReadId(readId, 0);
+
+        // Get the alignments it is involved in.
+        const span<uint32_t> alignmentIds = alignmentTable[orientedReadId.getValue()];
+
+        // Loop over those alignments.
+        for(const uint32_t alignmentId: alignmentIds) {
+            const Info& info = infos[alignmentId];
+            const uint64_t markerAlignedCount = get<0>(info);
+            const uint64_t segmentMatchCount = get<1>(info);
+            const uint64_t segmentMismatchCount = get<2>(info);
+            const uint64_t segmentAlignedCount = segmentMatchCount + segmentMismatchCount;
+            const double segmentMismatchRatio =
+                segmentAlignedCount == 0 ? std::numeric_limits<double>::max() :
+                double(segmentMismatchCount) / double(segmentAlignedCount);
+            csv << readId << ",";
+            csv << markerAlignedCount << ",";
+            csv << segmentMatchCount << ",";
+            csv << segmentMismatchCount << ",";
+            csv << segmentAlignedCount << ",";
+            csv << segmentMismatchRatio << "\n";
+        }
+
+
+    }
+
+
+
+    // For each read, flag the alignments we want to keep.
+    vector<bool> keepAlignment(alignmentData.size(), false);
+    uint64_t tooFewCount = 0;
+    for(ReadId readId=0; readId<readCount; readId++) {
+
+        // Put it on strand 0.
+        const OrientedReadId orientedReadId(readId, 0);
+
+        // Get the alignments it is involved in.
+        const span<uint32_t> alignmentIds = alignmentTable[orientedReadId.getValue()];
+
+        // Gather the ones with:
+        // segmentAlignedCount >= minAlignedSegmentCount
+        // segmentMismatchRatio <= maxSegmentMismatchRatio
+        vector< pair<uint32_t, uint32_t> > good; // pair(markerAlignedCount, alignmentId)
+        for(const uint32_t alignmentId: alignmentIds) {
+            const Info& info = infos[alignmentId];
+            const uint64_t markerAlignedCount = get<0>(info);
+            const uint64_t segmentMatchCount = get<1>(info);
+            const uint64_t segmentMismatchCount = get<2>(info);
+            const uint64_t segmentAlignedCount = segmentMatchCount + segmentMismatchCount;
+            const double segmentMismatchRatio =
+                segmentAlignedCount == 0 ? std::numeric_limits<double>::max() :
+                double(segmentMismatchCount) / double(segmentAlignedCount);
+            if(segmentAlignedCount>=minAlignedSegmentCount and
+                segmentMismatchRatio <= maxSegmentMismatchRatio) {
+                good.push_back(make_pair(markerAlignedCount, alignmentId));
+            }
+        }
+
+        // Sort them by decreasing number of aligned markers.
+        sort(good.begin(), good.end(), OrderPairsByFirstOnlyGreater<uint32_t, uint32_t>());
+
+        // Keep the best maxAlignmentCount.
+        if(good.size() > maxAlignmentCount) {
+            good.resize(maxAlignmentCount);
+        }
+
+        if(good.size() < maxAlignmentCount) {
+            ++tooFewCount;
+        }
+
+        // Mark them to keep.
+        for(const auto& p: good) {
+            keepAlignment[p.second] = true;
+        }
+    }
+    cout << "Too few: " << tooFewCount << endl;
+
+
+
+    // Create the read graph using the alignments we selected.
+    const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
+    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+    createReadGraphUsingSelectedAlignments(keepAlignment);
+}

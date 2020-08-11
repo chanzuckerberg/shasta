@@ -922,6 +922,9 @@ public:
 
     // Functions and data used with ReadGraph.creationMethod 2.
     void createReadGraph2(size_t threadCount);
+
+#if 0
+    // Functions and data for the version that uses mini-assemblies.
 private:
     void createReadGraph2ThreadFunction(size_t threadId);
     void createReadGraph2LowLevel(ReadId);
@@ -931,6 +934,7 @@ private:
     };
     CreateReadGraph2Data createReadGraph2Data;
 public:
+#endif
 
 
 

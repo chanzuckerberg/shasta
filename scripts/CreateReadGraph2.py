@@ -11,7 +11,11 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessAlignmentData()
-a.accessCompressedAlignments()
+a.accessMarkerGraphVertices()
+a.accessMarkerGraphEdges()
+a.accessAssemblyGraphVertices()
+a.accessAssemblyGraphEdges()
+a.accessAssemblyGraphEdgeLists()
 
 # Create the global read graph using creation method 2.
 a.createReadGraph2()
