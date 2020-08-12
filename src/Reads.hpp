@@ -249,7 +249,12 @@ public:
 
     void rename();
 
-    void copyDataForReadsLongerThan(const Reads& rhs, uint64_t newMinReadLength);
+    void copyDataForReadsLongerThan(
+        const Reads& rhs,
+        uint64_t newMinReadLength,
+        uint64_t& discardedShortReadCount,
+        uint64_t& discardedShortReadBases
+    );
 
     void remove();
 
