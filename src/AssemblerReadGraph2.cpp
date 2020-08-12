@@ -316,7 +316,7 @@ void Assembler::createReadGraph2(size_t threadCount)
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
     PseudoPath pseudoPath;
     using SegmentId = AssemblyGraph::EdgeId;
-    const uint64_t readCount = reads.readCount();
+    const uint64_t readCount = reads->readCount();
     vector< vector<SegmentId> > pseudoPathSegments(2*readCount);
     cout << timestamp << "Computing pseudo-paths for " << readCount << " reads." << endl;
     for(ReadId readId=0; readId<readCount; readId++) {
