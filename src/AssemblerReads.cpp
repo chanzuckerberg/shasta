@@ -16,8 +16,8 @@ void Assembler::addReads(
     bool noCache,
     const size_t threadCount)
 {
-    reads.checkReadsAreOpen();
-    reads.checkReadNamesAreOpen();
+    reads->checkReadsAreOpen();
+    reads->checkReadNamesAreOpen();
 
     ReadLoader readLoader(
         fileName,
@@ -26,9 +26,10 @@ void Assembler::addReads(
         threadCount,
         largeDataFileNamePrefix,
         largeDataPageSize,
-        reads);
-
-    reads.checkSanity();
+        *reads);
+    
+    reads->checkSanity();
+    reads->computeReadLengthHistogram();
 
     cout << "Discarded read statistics for file " << fileName << ":" << endl;
     cout << "    Discarded " << readLoader.discardedInvalidBaseReadCount <<
@@ -48,6 +49,7 @@ void Assembler::addReads(
     assemblerInfo->discardedShortReadBaseCount += readLoader.discardedShortReadBaseCount;
     assemblerInfo->discardedBadRepeatCountReadCount += readLoader.discardedBadRepeatCountReadCount;
     assemblerInfo->discardedBadRepeatCountBaseCount += readLoader.discardedBadRepeatCountBaseCount;
+    assemblerInfo->minReadLength = minReadLength;
 }
 
 
@@ -57,7 +59,8 @@ void Assembler::addReads(
 // in run-length representation.
 void Assembler::histogramReadLength(const string& fileName)
 {
-    reads.computeAndWriteReadLengthHistogram(fileName);
+    reads->computeReadLengthHistogram();
+    reads->writeReadLengthHistogram(fileName);
 
     cout << "Discarded read statistics for all input files:" << endl;;
     cout << "    Discarded " << assemblerInfo->discardedInvalidBaseReadCount <<
@@ -71,31 +74,31 @@ void Assembler::histogramReadLength(const string& fileName)
         " for a total " << assemblerInfo->discardedBadRepeatCountBaseCount << " bases." << endl;
 
     cout << "Read statistics for reads that will be used in this assembly:" << endl;
-    cout << "    Total number of reads is " << reads.readCount() << "." << endl;
-    cout << "    Total number of raw bases is " << reads.getTotalBaseCount() << "." << endl;
-    cout << "    Average read length is " << double(reads.getTotalBaseCount()) / double(reads.readCount());
+    cout << "    Total number of reads is " << reads->readCount() << "." << endl;
+    cout << "    Total number of raw bases is " << reads->getTotalBaseCount() << "." << endl;
+    cout << "    Average read length is " << double(reads->getTotalBaseCount()) / double(reads->readCount());
     cout << " bases." << endl;
-    cout << "    N50 for read length is " << reads.getN50() << " bases." << endl;
+    cout << "    N50 for read length is " << reads->getN50() << " bases." << endl;
     cout << "    The above statistics only include reads that will be used in this assembly." << endl;
     cout << "    Read discarded because they contained invalid bases, were too short or contained repeat counts 256"
         " or more are not counted." << endl;
 
     // Store read statistics in AssemblerInfo.
-    assemblerInfo->readCount = reads.readCount();
-    assemblerInfo->baseCount = reads.getTotalBaseCount();
-    assemblerInfo->readN50 = reads.getN50();
+    assemblerInfo->readCount = reads->readCount();
+    assemblerInfo->baseCount = reads->getTotalBaseCount();
+    assemblerInfo->readN50 = reads->getN50();
 }
 
 
 // Write a csv file with summary information for each read.
 void Assembler::writeReadsSummary()
 {
-    reads.checkReadsAreOpen();
-    reads.checkReadNamesAreOpen();
+    reads->checkReadsAreOpen();
+    reads->checkReadNamesAreOpen();
     SHASTA_ASSERT(markers.isOpen());
 
     // Count the number of alignment candidates for each read.
-    vector<uint64_t> alignmentCandidatesCount(reads.readCount(), 0);
+    vector<uint64_t> alignmentCandidatesCount(reads->readCount(), 0);
     for(const OrientedReadPair& p: alignmentCandidates.candidates) {
         ++alignmentCandidatesCount[p.readIds[0]];
         ++alignmentCandidatesCount[p.readIds[1]];
@@ -108,19 +111,19 @@ void Assembler::writeReadsSummary()
         "Palindromic,Chimeric,"
         "AlignmentCandidates,ReadGraphNeighbors,"
         "VertexCount,VertexDensity,runid,sampleid,read,ch,start_time,\n";
-    for(ReadId readId=0; readId!=reads.readCount(); readId++) {
+    for(ReadId readId=0; readId!=reads->readCount(); readId++) {
         const OrientedReadId orientedReadId(readId, 0);
 
         // Read id.
         csv << readId << ",";
 
         // Read name.
-        const auto readName = reads.getReadName(readId);
+        const auto readName = reads->getReadName(readId);
         copy(readName.begin(), readName.end(), ostream_iterator<char>(csv));
         csv << ",";
 
         // Number of raw bases.
-        const auto repeatCounts = reads.getReadRepeatCounts(readId);
+        const auto repeatCounts = reads->getReadRepeatCounts(readId);
         uint64_t rawBaseCount = 0;
         for(const auto repeatCount: repeatCounts) {
             rawBaseCount += repeatCount;
@@ -128,7 +131,7 @@ void Assembler::writeReadsSummary()
         csv << rawBaseCount << ",";
 
         // Number of RLE bases.
-        const uint64_t rleBaseCount = reads.getRead(readId).baseCount;
+        const uint64_t rleBaseCount = reads->getRead(readId).baseCount;
         csv << rleBaseCount << ",";
 
         // Ratio of raw over RLE base count.
@@ -155,10 +158,10 @@ void Assembler::writeReadsSummary()
         csv << maximumMarkerOffset << ",";
 
         // Palindromic flag.
-        csv << (reads.getFlags(readId).isPalindromic ? "Yes" : "No") << ",";
+        csv << (reads->getFlags(readId).isPalindromic ? "Yes" : "No") << ",";
 
         // Chimeric flag.
-        csv << (reads.getFlags(readId).isChimeric ? "Yes" : "No") << ",";
+        csv << (reads->getFlags(readId).isChimeric ? "Yes" : "No") << ",";
 
         // Alignment candidates
         csv << alignmentCandidatesCount[readId] << ",";
@@ -183,14 +186,79 @@ void Assembler::writeReadsSummary()
         csv << double(vertexCount) / double(markerCount) << ",";
 
         // Oxford Nanopore standard metadata.
-        csv << reads.getMetaData(readId, "runid") << ",";
-        csv << reads.getMetaData(readId, "sampleid") << ",";
-        csv << reads.getMetaData(readId, "read") << ",";
-        csv << reads.getMetaData(readId, "ch") << ",";
-        csv << reads.getMetaData(readId, "start_time") << ",";
+        csv << reads->getMetaData(readId, "runid") << ",";
+        csv << reads->getMetaData(readId, "sampleid") << ",";
+        csv << reads->getMetaData(readId, "read") << ",";
+        csv << reads->getMetaData(readId, "ch") << ",";
+        csv << reads->getMetaData(readId, "start_time") << ",";
 
         // End of the line for this read.
         csv << "\n";
-     }
+    }
+}
+
+
+uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverage) {
+    cout << timestamp << "Adjusting for desired coverage." << endl;
+    cout << "Desired Coverage: " << desiredCoverage << endl;
+    uint64_t cumulativeBaseCount = reads->getTotalBaseCount();
+
+    if (desiredCoverage > cumulativeBaseCount) {
+        assemblerInfo->minReadLength = 0ULL;
+        return assemblerInfo->minReadLength;
+    }
+
+    assemblerInfo->minReadLength = std::numeric_limits<uint64_t>::max();
+
+    const auto& histogram = reads->getReadLengthHistogram();
+    for (uint64_t length = 0; length < histogram.size(); length++) {
+        const uint64_t frequency = histogram[length];
+        if (frequency) {
+            const uint64_t baseCount = frequency * length;
+            if (cumulativeBaseCount > desiredCoverage) {
+                cumulativeBaseCount -= baseCount;
+                continue;
+            }
+
+            assemblerInfo->minReadLength = length;
+            break;
+        }
+    }
+
+    if (assemblerInfo->minReadLength == std::numeric_limits<uint64_t>::max()) {
+        return assemblerInfo->minReadLength;
+    }
+
+    cout << "Setting minReadLength to " + to_string(assemblerInfo->minReadLength) + 
+        " to get desired coverage." << endl;
+
+    // Rename existing memory mapped files to avoid overwriting data.
+    reads->rename();
+
+    unique_ptr<Reads> newReads = make_unique<Reads>();
+    newReads->createNew(
+        largeDataName("Reads"),
+        largeDataName("ReadNames"),
+        largeDataName("ReadMetaData"),
+        largeDataName("ReadRepeatCounts"),
+        largeDataName("ReadFlags"),
+        largeDataPageSize
+    );
+
+    newReads->copyDataForReadsLongerThan(
+        getReads(),
+        assemblerInfo->minReadLength
+    );
+
+    reads->remove();
+    
+    reads = std::move(newReads);
+
+    // Re-compute the histogram.
+    reads->computeReadLengthHistogram();
+
+    cout << timestamp << "Done adjusting for desired coverage." << endl;
+    
+    return assemblerInfo->minReadLength;
 }
 

@@ -302,8 +302,8 @@ void Assembler::analyzeOrientedReadPaths() const
     // This vector is indexed by OrientedReadId::getValue().
     vector<MarkerGraph::EdgeId> path;
     vector< pair<uint32_t, uint32_t> > pathOrdinals;
-    vector<PseudoPath> pseudoPaths(2*reads.readCount());
-    for(ReadId readId=0; readId<reads.readCount(); readId++) {
+    vector<PseudoPath> pseudoPaths(2*reads->readCount());
+    for(ReadId readId=0; readId<reads->readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             computePseudoPath(orientedReadId, path, pathOrdinals,
@@ -316,7 +316,7 @@ void Assembler::analyzeOrientedReadPaths() const
     // Write a csv file with the pseudo-path of each oriented read.
     {
         ofstream csv("PseudoPaths.csv");
-        for(ReadId readId=0; readId<reads.readCount(); readId++) {
+        for(ReadId readId=0; readId<reads->readCount(); readId++) {
             for(Strand strand=0; strand<2; strand++) {
                 const OrientedReadId orientedReadId(readId, strand);
                 csv << orientedReadId << ",";
@@ -337,7 +337,7 @@ void Assembler::analyzeOrientedReadPaths() const
     // For each segmentId, we store a vector of pairs (orientedReadId, ordinal) such that
     // pseudoPaths[orientedReadId.getValue()][ordinal] == segmentId
     vector< vector< pair<OrientedReadId, uint64_t> > >  pseudoPathTable(segmentCount);
-    for(ReadId readId=0; readId<reads.readCount(); readId++) {
+    for(ReadId readId=0; readId<reads->readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
@@ -499,7 +499,7 @@ void Assembler::analyzeOrientedReadPaths() const
     // The alignment table contains, for each oriented reads,
     // pairs (index in orientedReadPairs, score).
     // it is indexed by OrientedReadId::getValue(0.
-    vector< vector< pair<uint64_t, int64_t> > > alignmentTable(2 * reads.readCount());
+    vector< vector< pair<uint64_t, int64_t> > > alignmentTable(2 * reads->readCount());
     for(uint64_t i=0; i<orientedReadPairs.size(); i++) {
 
         // Skip this pair if we already decided not to use it.
@@ -560,9 +560,9 @@ void Assembler::analyzeOrientedReadPaths() const
 
     // Vector to contain, for each oriented read, the starting point of
     // its pseudo-path in the disjoint set data structure.
-    vector<uint64_t> start(2*reads.readCount(), std::numeric_limits<uint64_t>::max());
+    vector<uint64_t> start(2*reads->readCount(), std::numeric_limits<uint64_t>::max());
     uint64_t n = 0;
-    for(ReadId readId=0; readId<reads.readCount(); readId++) {
+    for(ReadId readId=0; readId<reads->readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];
@@ -631,9 +631,9 @@ void Assembler::analyzeOrientedReadPaths() const
 
     // Each of the disjoint data sets becomes a vertex of the MetaMarkerGraph.
     // Store the disjoint set for each position of the pseudo-path of each oriented read.
-    vector< vector<uint64_t> > vertexTable(2*reads.readCount());
+    vector< vector<uint64_t> > vertexTable(2*reads->readCount());
     vector< vector< pair<OrientedReadId, uint64_t > > > vertices(n);
-    for(ReadId readId=0; readId<reads.readCount(); readId++) {
+    for(ReadId readId=0; readId<reads->readCount(); readId++) {
         for(Strand strand=0; strand<2; strand++) {
             const OrientedReadId orientedReadId(readId, strand);
             const PseudoPath& pseudoPath = pseudoPaths[orientedReadId.getValue()];

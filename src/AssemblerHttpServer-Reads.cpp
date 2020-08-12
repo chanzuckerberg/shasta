@@ -39,7 +39,7 @@ void Assembler::exploreRead(
         "read &nbsp" <<
         "<input type=text name=readId required" <<
         (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
-        " size=8 title='Enter a read id between 0 and " << reads.readCount()-1 << "'>"
+        " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
     
@@ -74,7 +74,7 @@ void Assembler::exploreRead(
     }
 
     // Access the read.
-    if(readId >= reads.readCount()) {
+    if(readId >= reads->readCount()) {
         html << "<p>Invalid read id.";
         return;
     }
@@ -83,10 +83,10 @@ void Assembler::exploreRead(
         return;
     }
     const OrientedReadId orientedReadId(readId, strand);
-    const vector<Base> rawOrientedReadSequence = reads.getOrientedReadRawSequence(orientedReadId);
-    const auto readStoredSequence = reads.getRead(readId);
-    const auto readName = reads.getReadName(readId);
-    const auto metaData = reads.getReadMetaData(readId);
+    const vector<Base> rawOrientedReadSequence = reads->getOrientedReadRawSequence(orientedReadId);
+    const auto readStoredSequence = reads->getRead(readId);
+    const auto readName = reads->getReadName(readId);
+    const auto metaData = reads->getReadMetaData(readId);
     const auto orientedReadMarkers = markers[orientedReadId.getValue()];
     if(!beginPositionIsPresent) {
         beginPosition = 0;
@@ -281,7 +281,7 @@ void Assembler::exploreRead(
             html << "<pre style='font-family:monospace;margin:0'";
             html << " title='Position in run-length read sequence'>";
 
-            const vector<uint32_t> rawPositions = reads.getRawPositions(orientedReadId);
+            const vector<uint32_t> rawPositions = reads->getRawPositions(orientedReadId);
 
             // Scale.
             bool firstTime = true;
@@ -429,7 +429,7 @@ void Assembler::exploreRead(
     // element for each character).
     // Note that here we display the entire read, regardless of beginPosition and endPosition.
     size_t beginRlePosition, endRlePosition;
-    const vector<uint32_t> rawPositions = reads.getRawPositions(orientedReadId);
+    const vector<uint32_t> rawPositions = reads->getRawPositions(orientedReadId);
     
     if (beginPositionIsPresent) {
         beginRlePosition = std::lower_bound(rawPositions.begin(), rawPositions.end(), beginPosition) - rawPositions.begin();
@@ -512,7 +512,7 @@ void Assembler::exploreRead(
     for(size_t position=beginRlePosition; position!=endRlePosition; position++) {
         Base base;
         uint8_t repeatCount;
-        tie(base, repeatCount) = reads.getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
+        tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
         
         html <<
             "<text class='mono'" <<
@@ -547,7 +547,7 @@ void Assembler::exploreRead(
             " y='" << readSequenceLine*verticalSpacing << "'"
             " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
         for(size_t position=beginRlePosition+blockBegin; position<beginRlePosition+blockEnd; position++) {
-            html << reads.getOrientedReadBase(orientedReadId, uint32_t(position));
+            html << reads->getOrientedReadBase(orientedReadId, uint32_t(position));
         }
         html << "</text>";
     }

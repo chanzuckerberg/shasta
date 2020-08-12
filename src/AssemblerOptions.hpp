@@ -106,6 +106,8 @@ public:
     public:
         int minReadLength;
         bool noCache;
+        string desiredCoverageString;
+        uint64_t desiredCoverage;
         class PalindromicReadOptions {
         public:
             bool skipFlagging;
@@ -120,6 +122,8 @@ public:
         PalindromicReadOptions palindromicReads;
 
         void write(ostream&) const;
+
+        void parseDesiredCoverageString();
     };
     ReadsOptions readsOptions;
 

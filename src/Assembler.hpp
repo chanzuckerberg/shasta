@@ -108,6 +108,7 @@ public:
     size_t readCount = 0;
     size_t baseCount = 0;
     size_t readN50 = 0;
+    uint64_t minReadLength = 0;
 
     // Other read statistics.
     size_t palindromicReadCount = 0;
@@ -454,13 +455,15 @@ private:
     MemoryMapped::Object<AssemblerInfo> assemblerInfo;
 
     // Reads in RLE representation.
-    Reads reads;
+    unique_ptr<Reads> reads;
 public:
     const Reads& getReads() const {
-        return reads;
+        SHASTA_ASSERT(reads);
+        return *reads;
     }
 
-    
+    uint64_t adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverage);
+
     // Write a csv file with summary information for each read.
 public:
     void writeReadsSummary();

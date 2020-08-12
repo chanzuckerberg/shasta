@@ -44,7 +44,7 @@ void Assembler::findAlignmentCandidatesLowHash0(
         minFrequency,
         threadCount,
         kmerTable,
-        reads,
+        getReads(),
         markers,
         alignmentCandidates.candidates,
         readLowHashStatistics,
@@ -95,7 +95,7 @@ void Assembler::writeOverlappingReads(
     const string& fileName)
 {
     // Check that we have what we need.
-    reads.checkReadsAreOpen();
+    reads->checkReadsAreOpen();
     checkAlignmentCandidatesAreOpen();
 
 
@@ -103,9 +103,9 @@ void Assembler::writeOverlappingReads(
     // Open the output file and write the oriented read we were given.
     ofstream file(fileName);
     const OrientedReadId orientedReadId0(readId0, strand0);
-    reads.writeOrientedRead(orientedReadId0, file);
+    reads->writeOrientedRead(orientedReadId0, file);
 
-    const uint64_t length0 = reads.getRead(orientedReadId0.getReadId()).baseCount;
+    const uint64_t length0 = reads->getRead(orientedReadId0.getReadId()).baseCount;
     cout << "Reads overlapping " << orientedReadId0 << " length " << length0 << endl;
 
     // Loop over all overlaps involving this oriented read.
@@ -116,9 +116,9 @@ void Assembler::writeOverlappingReads(
         const OrientedReadId orientedReadId1 = ad.getOther(orientedReadId0);
 
         // Write it out.
-        const uint64_t length1 = reads.getRead(orientedReadId1.getReadId()).baseCount;
+        const uint64_t length1 = reads->getRead(orientedReadId1.getReadId()).baseCount;
         cout << orientedReadId1 << " length " << length1 << endl;
-        reads.writeOrientedRead(orientedReadId1, file);
+        reads->writeOrientedRead(orientedReadId1, file);
     }
     cout << "Found " << alignmentTable[orientedReadId0.getValue()].size();
     cout << " overlapping oriented reads." << endl;
@@ -162,7 +162,7 @@ void Assembler::findAlignmentCandidatesLowHash1(
         minFrequency,
         threadCount,
         kmerTable,
-        reads,
+        getReads(),
         markers,
         alignmentCandidates,
         largeDataFileNamePrefix,
@@ -256,7 +256,7 @@ void Assembler::markAlignmentCandidatesAllPairs()
     alignmentCandidates.candidates.createNew(largeDataName("AlignmentCandidates"), largeDataPageSize);
 
     // Add all pairs on both orientations.
-    const ReadId n = reads.readCount();
+    const ReadId n = reads->readCount();
     for(ReadId r0=0; r0<n-1; r0++) {
         for(ReadId r1=r0+1; r1<n; r1++) {
             alignmentCandidates.candidates.push_back(OrientedReadPair(r0, r1, true));

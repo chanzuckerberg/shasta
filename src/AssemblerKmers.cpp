@@ -222,7 +222,7 @@ void Assembler::selectKmersBasedOnFrequency(
     initializeKmerTable();
 
     // Compute the frequency of all k-mers in oriented reads.
-    setupLoadBalancing(reads.readCount(), 1000);
+    setupLoadBalancing(reads->readCount(), 1000);
     runThreads(&Assembler::computeKmerFrequency, threadCount);
 
     // Compute the total number of k-mer occurrences
@@ -378,7 +378,7 @@ void Assembler::computeKmerFrequency(size_t threadId)
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
 
             // Access the sequence of this read.
-            const LongBaseSequenceView read = reads.getRead(readId);
+            const LongBaseSequenceView read = reads->getRead(readId);
 
             // If the read is pathologically short, it has no k-mers.
             if(read.baseCount < k) {
@@ -575,7 +575,7 @@ void Assembler::selectKmers2(
     fill(
         selectKmers2Data.overenrichedReadCount.begin(),
         selectKmers2Data.overenrichedReadCount.end(), 0);
-    setupLoadBalancing(reads.readCount(), 100);
+    setupLoadBalancing(reads->readCount(), 100);
     runThreads(&Assembler::selectKmers2ThreadFunction, threadCount);
 
 
@@ -746,7 +746,7 @@ void Assembler::selectKmers2ThreadFunction(size_t threadId)
         for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
 
             // Access the sequence of this read.
-            const LongBaseSequenceView read = reads.getRead(readId);
+            const LongBaseSequenceView read = reads->getRead(readId);
 
             // If the read is pathologically short, it has no k-mers.
             if(read.baseCount < k) {

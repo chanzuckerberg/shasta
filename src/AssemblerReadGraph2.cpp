@@ -31,7 +31,7 @@ void Assembler::createReadGraph2(size_t threadCount)
 
     // Parallel loop over reads. For each read, flag the alignments we want to discard.
     const uint64_t batchSize = 100;
-    setupLoadBalancing(reads.readCount(), batchSize);
+    setupLoadBalancing(reads->readCount(), batchSize);
     runThreads(&Assembler::createReadGraph2ThreadFunction, threadCount);;
 
     // Create the read graph using the alignments we selected.

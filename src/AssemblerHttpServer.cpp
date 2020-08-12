@@ -610,6 +610,8 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
         "<h3>Reads used in this assembly</h3>"
         "<table>"
+        "<tr><td>Minimum read length"
+        "<td class=right>" << assemblerInfo->minReadLength <<
         "<tr><td>Number of reads"
         "<td class=right>" << assemblerInfo->readCount <<
         "<tr><td>Number of raw sequence bases"
@@ -619,9 +621,9 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Read N50 (for raw read sequence)"
         "<td class=right>" << assemblerInfo->readN50 <<
         "<tr><td>Number of run-length encoded bases"
-        "<td class=right>" << reads.getRepeatCountsTotalSize() <<
+        "<td class=right>" << reads->getRepeatCountsTotalSize() <<
         "<tr><td>Average length ratio of run-length encoded sequence over raw sequence"
-        "<td class=right>" << setprecision(4) << double(reads.getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) <<
+        "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) <<
         "<tr><td>Number of reads flagged as palindromic"
         "<td class=right>" << assemblerInfo->palindromicReadCount <<
         "<tr><td>Number of reads flagged as chimeric"
@@ -691,14 +693,14 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Average number of markers per raw base"
         "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) <<
         "<tr><td>Average number of markers per run-length encoded base"
-        "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(reads.getRepeatCountsTotalSize()) <<
+        "<td class=right>" << setprecision(4) << double(markers.totalSize()/2)/double(reads->getRepeatCountsTotalSize()) <<
         "<tr><td>Average base offset between markers in raw sequence"
         "<td class=right>" << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) <<
         "<tr><td>Average base offset between markers in run-length encoded sequence"
-        "<td class=right>" << setprecision(4) << double(reads.getRepeatCountsTotalSize())/double(markers.totalSize()/2) <<
+        "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) <<
         "<tr><td>Average base gap between markers in run-length encoded sequence"
         "<td class=right>" << setprecision(4) <<
-        double(reads.getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) <<
+        double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) <<
         "</table>"
         "<ul><li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
         "as opposed to run-length encoded sequence.</ul>"
@@ -862,14 +864,15 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
         "  \"Reads used in this assembly\":\n"
         "  {\n"
+        "    \"Minimum read length\": " << assemblerInfo->minReadLength << ",\n"
         "    \"Number of reads\": " << assemblerInfo->readCount << ",\n"
         "    \"Number of raw sequence bases\": " << assemblerInfo->baseCount << ",\n"
         "    \"Average read length (for raw read sequence)\": " <<
         assemblerInfo->baseCount / assemblerInfo->readCount << ",\n"
         "    \"Read N50 (for raw read sequence)\": " << assemblerInfo->readN50 << ",\n"
-        "    \"Number of run-length encoded bases\": " << reads.getRepeatCountsTotalSize() << ",\n"
+        "    \"Number of run-length encoded bases\": " << reads->getRepeatCountsTotalSize() << ",\n"
         "    \"Average length ratio of run-length encoded sequence over raw sequence\": " <<
-        setprecision(4) << double(reads.getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) << ",\n"
+        setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) << ",\n"
         "    \"Number of reads flagged as palindromic\": " << assemblerInfo->palindromicReadCount << ",\n"
         "    \"Number of reads flagged as chimeric\": " << assemblerInfo->chimericReadCount << "\n"
         "  },\n"
@@ -933,14 +936,14 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    \"Average number of markers per raw base\": "
         << setprecision(4) << double(markers.totalSize()/2)/double(assemblerInfo->baseCount) << ",\n"
         "    \"Average number of markers per run-length encoded base\": "
-        << setprecision(4) << double(markers.totalSize()/2)/double(reads.getRepeatCountsTotalSize()) << ",\n"
+        << setprecision(4) << double(markers.totalSize()/2)/double(reads->getRepeatCountsTotalSize()) << ",\n"
         "    \"Average base offset between markers in raw sequence\": "
         << setprecision(4) << double(assemblerInfo->baseCount)/double(markers.totalSize()/2) << ",\n"
         "    \"Average base offset between markers in run-length encoded sequence\": "
-        << setprecision(4) << double(reads.getRepeatCountsTotalSize())/double(markers.totalSize()/2) << ",\n"
+        << setprecision(4) << double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) << ",\n"
         "    \"Average base gap between markers in run-length encoded sequence\": "
         << setprecision(4) <<
-        double(reads.getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) << "\n"
+        double(reads->getRepeatCountsTotalSize())/double(markers.totalSize()/2) - double(assemblerInfo->k) << "\n"
         "  },\n"
 
 
@@ -1159,7 +1162,7 @@ void Assembler::blastRead(
 
 
     // Access the read.
-    if(readId >= reads.readCount()) {
+    if(readId >= reads->readCount()) {
         html << "<p>Invalid read id.";
         return;
     }
@@ -1168,7 +1171,7 @@ void Assembler::blastRead(
         return;
     }
     const OrientedReadId orientedReadId(readId, strand);
-    const vector<Base> rawOrientedReadSequence = reads.getOrientedReadRawSequence(orientedReadId);
+    const vector<Base> rawOrientedReadSequence = reads->getOrientedReadRawSequence(orientedReadId);
     if(!endPositionIsPresent) {
         endPosition = uint32_t(rawOrientedReadSequence.size());
     }
