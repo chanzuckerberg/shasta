@@ -601,7 +601,7 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
     s << "minReadLength = " << minReadLength << "\n";
-    s << "desiredCoverage = " << desiredCoverage << "\n";
+    s << "desiredCoverage = " << desiredCoverageString << "\n";
     s << "noCache = " <<
         convertBoolToPythonString(noCache) << "\n";
     palindromicReads.write(s);

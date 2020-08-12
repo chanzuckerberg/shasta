@@ -493,7 +493,7 @@ void shasta::main::assemble(
         const auto newMinReadLength = assembler.adjustCoverageAndGetNewMinReadLength(
             assemblerOptions.readsOptions.desiredCoverage);
 
-        const auto oldMinReadLength = assemblerOptions.readsOptions.minReadLength;
+        const auto oldMinReadLength = uint64_t(assemblerOptions.readsOptions.minReadLength);
 
         if (newMinReadLength == 0ULL) {
             throw runtime_error(
@@ -503,13 +503,8 @@ void shasta::main::assemble(
             ); 
         }
 
-        if (newMinReadLength == std::numeric_limits<uint64_t>::max()) {
-            throw runtime_error(
-                "Reads.desiredCoverage is set to " +
-                to_string(assemblerOptions.readsOptions.desiredCoverage) +
-                " which is very low. Please check the value again."
-            );
-        }
+        // Adjusting coverage should only ever reduce coverage if necessary.
+        SHASTA_ASSERT(newMinReadLength >= oldMinReadLength);
     }
     
     assembler.histogramReadLength("ReadLengthHistogram.csv");

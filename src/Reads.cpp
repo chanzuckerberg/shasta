@@ -64,10 +64,15 @@ void Reads::rename() {
 }
 
 
-void Reads::copyDataForReadsLongerThan(const Reads& rhs, uint64_t newMinReadLength) {
+void Reads::copyDataForReadsLongerThan(
+    const Reads& rhs,
+    uint64_t newMinReadLength,
+    uint64_t& discardedShortReadCount,
+    uint64_t& discardedShortReadBases
+) {
     for(ReadId id = 0; id < rhs.readCount(); id++) {
         const auto len = rhs.getReadRawSequenceLength(id);
-        if (len > newMinReadLength) {
+        if (len >= newMinReadLength) {
             // Copy over stuff.
             readNames.appendVector(rhs.readNames.begin(id), rhs.readNames.end(id));
             readMetaData.appendVector(rhs.readMetaData.begin(id), rhs.readMetaData.end(id));
@@ -79,6 +84,9 @@ void Reads::copyDataForReadsLongerThan(const Reads& rhs, uint64_t newMinReadLeng
                 rhs.readRepeatCounts.end(id),
                 readRepeatCounts.begin(j)
             );
+        } else {
+            discardedShortReadCount++;
+            discardedShortReadBases += len;
         }
     }
 

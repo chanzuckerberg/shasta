@@ -203,30 +203,28 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
     cout << "Desired Coverage: " << desiredCoverage << endl;
     uint64_t cumulativeBaseCount = reads->getTotalBaseCount();
 
+    assemblerInfo->minReadLength = 0ULL;
+        
     if (desiredCoverage > cumulativeBaseCount) {
-        assemblerInfo->minReadLength = 0ULL;
         return assemblerInfo->minReadLength;
     }
 
-    assemblerInfo->minReadLength = std::numeric_limits<uint64_t>::max();
-
     const auto& histogram = reads->getReadLengthHistogram();
+    uint64_t lastLength = 0;
+
     for (uint64_t length = 0; length < histogram.size(); length++) {
         const uint64_t frequency = histogram[length];
         if (frequency) {
             const uint64_t baseCount = frequency * length;
             if (cumulativeBaseCount > desiredCoverage) {
                 cumulativeBaseCount -= baseCount;
+                lastLength = length;
                 continue;
             }
 
-            assemblerInfo->minReadLength = length;
+            assemblerInfo->minReadLength = lastLength;
             break;
         }
-    }
-
-    if (assemblerInfo->minReadLength == std::numeric_limits<uint64_t>::max()) {
-        return assemblerInfo->minReadLength;
     }
 
     cout << "Setting minReadLength to " + to_string(assemblerInfo->minReadLength) + 
@@ -247,7 +245,9 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
 
     newReads->copyDataForReadsLongerThan(
         getReads(),
-        assemblerInfo->minReadLength
+        assemblerInfo->minReadLength,
+        assemblerInfo->discardedShortReadReadCount,
+        assemblerInfo->discardedShortReadBaseCount
     );
 
     reads->remove();
