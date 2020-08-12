@@ -425,7 +425,7 @@ void Assembler::createReadGraph2(size_t threadCount)
 
     // Write out this information, by read.
     ofstream csv("CreateReadGraph2.csv");
-    csv << "ReadId,MarherAlignedCount,SegmentMatchCount,SegmentMismatchCount,"
+    csv << "ReadId,AlignmentId,ReadId0,ReadId1,SameStrand,MarkerAlignedCount,SegmentMatchCount,SegmentMismatchCount,"
         "SegmentAlignedCount,SegmentMismatchRatio\n";
     for(ReadId readId=0; readId<readCount; readId++) {
 
@@ -437,6 +437,7 @@ void Assembler::createReadGraph2(size_t threadCount)
 
         // Loop over those alignments.
         for(const uint32_t alignmentId: alignmentIds) {
+            const AlignmentData& ad = alignmentData[alignmentId];
             const Info& info = infos[alignmentId];
             const uint64_t markerAlignedCount = get<0>(info);
             const uint64_t segmentMatchCount = get<1>(info);
@@ -446,6 +447,10 @@ void Assembler::createReadGraph2(size_t threadCount)
                 segmentAlignedCount == 0 ? std::numeric_limits<double>::max() :
                 double(segmentMismatchCount) / double(segmentAlignedCount);
             csv << readId << ",";
+            csv << alignmentId << ",";
+            csv << ad.readIds[0] << ",";
+            csv << ad.readIds[1] << ",";
+            csv << (ad.isSameStrand ? "Yes" : "No") << ",";
             csv << markerAlignedCount << ",";
             csv << segmentMatchCount << ",";
             csv << segmentMismatchCount << ",";
