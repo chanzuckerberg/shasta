@@ -166,6 +166,8 @@ private:
         const vector<string>& request,
         std::iostream&);
 
+    void setRequestTimeout(int, boost::asio::ip::tcp::iostream&);
+
     // Return true if the connection is a local connection
     // originating from a process owned by the same
     // user running the server.
