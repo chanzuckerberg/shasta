@@ -1073,9 +1073,11 @@ void shasta::main::cleanupBinaryData(
 
 
 // Implementation of --command explore.
-void shasta::main:: explore(
+void shasta::main::explore(
     const AssemblerOptions& assemblerOptions)
 {
+    string executablePath = filesystem::executablePath();
+
     // Go to the assembly directory.
     filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     
@@ -1103,7 +1105,15 @@ void shasta::main:: explore(
         assemblerOptions.assemblyOptions.consensusCaller << endl;
     assembler.setupConsensusCaller(assemblerOptions.assemblyOptions.consensusCaller);
 
- 
+    string executableParentPath = filesystem::getParentDirectoryPath(executablePath);
+    string docsPath = filesystem::getParentDirectoryPath(executableParentPath) + "/docs";
+    if (filesystem::isDirectory(docsPath)) {
+        cout << "Docs found at the expected location." << endl;
+        assembler.httpServerData.docsDirectory = docsPath;
+    } else {
+        assembler.httpServerData.docsDirectory = "";
+    }
+
     // Start the http server.
     assembler.httpServerData.assemblerOptions = &assemblerOptions;
     bool localOnly;

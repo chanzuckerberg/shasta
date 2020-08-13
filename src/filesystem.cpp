@@ -256,3 +256,33 @@ string shasta::filesystem::getAbsolutePath(const string& path)
     ::realpath(path.c_str(), buffer.data());
     return string(buffer.data());
 }
+
+
+string shasta::filesystem::executablePath() {
+    string path;
+    vector<char> buf(1024, 0);
+#ifdef __linux__
+    size_t bufSize = buf.size();
+    ssize_t bytesRead = readlink("/proc/self/exe", &buf[0], bufSize);
+    if (bytesRead < 0) {
+        throw runtime_error("Could not read path of executable.");
+    }
+    path = string(&buf[0], bytesRead);
+#else
+// _NSGetExecutablePath() does not compile. Including <mach-o/dyld.h> causes
+// compilation errors. Keeping the code around, in case we want to make this work on macOS
+// at a later time.
+// #include <mach-o/dyld.h>
+//     uint32_t size = static_cast<uint32_t>(buf.size());
+//     int result = _NSGetExecutablePath(&buf[0], &size);
+//     if (result < 0) {
+//         throw runtime_error("Could not read path of executable.");
+//     }
+//     path = string(&buf[0], size);
+#endif
+    return path;
+}
+
+string shasta::filesystem::getParentDirectoryPath(const string& path) {
+    return path.substr(0, path.find_last_of('/'));
+}
