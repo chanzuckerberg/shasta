@@ -304,8 +304,9 @@ void Assembler::createReadGraph2(size_t threadCount)
     const int matchScore = 1;
     const int mismatchScore = -1;
     const int gapScore = -1;
-    const uint64_t minAlignedSegmentCount = 6;
-    const double maxSegmentMismatchRatio = 0.12;
+    // const uint64_t minAlignedSegmentCount = 6;
+    // const double maxSegmentMismatchRatio = 0.12;
+    const double mismatchSquareFactor = 3.;
     const uint32_t maxAlignmentCount = 6;
 
 
@@ -474,39 +475,38 @@ void Assembler::createReadGraph2(size_t threadCount)
         // Get the alignments it is involved in.
         const span<uint32_t> alignmentIds = alignmentTable[orientedReadId.getValue()];
 
-        // Gather the ones with:
-        // segmentAlignedCount >= minAlignedSegmentCount
-        // segmentMismatchRatio <= maxSegmentMismatchRatio
-        vector< pair<uint32_t, uint32_t> > good; // pair(markerAlignedCount, alignmentId)
+        // Sort them by merit = segmentMatchCount - mismatchSquareFactor * segmentMismatchCount^2
+        vector< pair<double, uint32_t> > table; // pair(merit, alignmentId)
         for(const uint32_t alignmentId: alignmentIds) {
             const Info& info = infos[alignmentId];
-            const uint64_t markerAlignedCount = get<0>(info);
+            // const uint64_t markerAlignedCount = get<0>(info);
             const uint64_t segmentMatchCount = get<1>(info);
             const uint64_t segmentMismatchCount = get<2>(info);
+            /*
             const uint64_t segmentAlignedCount = segmentMatchCount + segmentMismatchCount;
             const double segmentMismatchRatio =
                 segmentAlignedCount == 0 ? std::numeric_limits<double>::max() :
                 double(segmentMismatchCount) / double(segmentAlignedCount);
-            if(segmentAlignedCount>=minAlignedSegmentCount and
-                segmentMismatchRatio <= maxSegmentMismatchRatio) {
-                good.push_back(make_pair(markerAlignedCount, alignmentId));
+            */
+            const double merit = double(segmentMatchCount) -
+                mismatchSquareFactor * double(segmentMismatchCount*segmentMismatchCount);
+            if(merit > 0.) {
+                table.push_back(make_pair(merit, alignmentId));
             }
         }
-
-        // Sort them by decreasing number of aligned markers.
-        sort(good.begin(), good.end(), OrderPairsByFirstOnlyGreater<uint32_t, uint32_t>());
+        sort(table.begin(), table.end(), OrderPairsByFirstOnlyGreater<double, uint32_t>());
 
         // Keep the best maxAlignmentCount.
-        if(good.size() > maxAlignmentCount) {
-            good.resize(maxAlignmentCount);
+        if(table.size() > maxAlignmentCount) {
+            table.resize(maxAlignmentCount);
         }
 
-        if(good.size() < maxAlignmentCount) {
+        if(table.size() < maxAlignmentCount) {
             ++tooFewCount;
         }
 
         // Mark them to keep.
-        for(const auto& p: good) {
+        for(const auto& p: table) {
             keepAlignment[p.second] = true;
         }
     }
