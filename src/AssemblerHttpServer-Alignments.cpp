@@ -1239,7 +1239,11 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t
 }
 
 
-void Assembler::sampleReadsFromDeadEnds(vector<OrientedReadId>& sample, uint64_t n){
+void Assembler::sampleReadsFromDeadEnds(
+        vector<OrientedReadId>& sample,
+        vector<bool>& isLeftEnd,
+        uint64_t n){
+
     sample.clear();
 
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
@@ -1286,7 +1290,109 @@ void Assembler::sampleReadsFromDeadEnds(vector<OrientedReadId>& sample, uint64_t
         // Get the Read ID
         const OrientedReadId r = findMarkerId(markerId).first;
 
+        cerr << "Sampling read " << r << " from marker vertex " <<  vertexId << " on edge " << edgeId << '\n';
+
         sample.push_back(r);
+        isLeftEnd.push_back(side);
+    }
+}
+
+
+void Assembler::sampleReadsFromDeadEnds(
+        vector<OrientedReadId>& sample,
+        vector<bool>& isLeftEnd,
+        uint64_t n,
+        uint64_t minLength,
+        uint64_t maxLength){
+
+    sample.clear();
+
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
+    while (sample.size() < n) {
+        // Randomly select an edge in the assembly graph
+        const MarkerGraph::EdgeId edgeId = uint32_t(rand() % assemblyGraph.edges.size());
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+
+        // Only consider edges that were actually assembled
+        if (not assemblyGraph.isAssembledEdge(edgeId)){
+            continue;
+        }
+
+        // Randomly select an end of the segment
+        const bool side = bool(rand() % 2);
+
+        MarkerGraph::VertexId vertexId;
+
+        // Depending on the choice, check different markers to see if they are dead ends
+        if (side){
+            vertexId = edge.source;
+            if (assemblyGraph.inDegree(vertexId) > 0) {
+                continue;
+            }
+        }
+        else{
+            vertexId = edge.target;
+            if (assemblyGraph.outDegree(vertexId) > 0) {
+                continue;
+            }
+        }
+
+        // Convert vertexId to its corresponding MarkerGraph vertex ID (not the same as assemblyGraph vertex ID)
+        vertexId = assemblyGraph.vertices[vertexId];
+
+        // Get all the markers for each read in this vertex
+        span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+
+        // Randomly select a read markerID from the terminal marker vertex
+        MarkerId index = uint64_t(rand() % markerIds.size());
+        MarkerId markerId = markerIds[index];
+
+        // Get the Read ID
+        const OrientedReadId r = findMarkerId(markerId).first;
+
+        // Number of raw bases.
+        const auto repeatCounts = reads.getReadRepeatCounts(r.getReadId());
+        uint64_t length = 0;
+        for(const auto repeatCount: repeatCounts) {
+            length += repeatCount;
+        }
+
+        // Only update the sample of reads if this read passes the length criteria
+        if(length >= minLength and length <= maxLength) {
+            sample.push_back(r);
+            cerr << "Sampling read " << r << " from marker vertex " <<  vertexId << " on edge " << edgeId << '\n';
+
+            // Keep track of which end of the segment these reads came from
+            isLeftEnd.push_back(side);
+        }
+    }
+}
+
+
+void Assembler::countDeadEndOverhangs(
+        const vector<pair<OrientedReadId, AlignmentInfo> >& allAlignmentInfo,
+        const vector<bool>& isLeftEnd,
+        Histogram2& overhangLengths,
+        uint32_t minOverhang){
+
+    for (size_t i=0; i < allAlignmentInfo.size(); i++){
+        const auto& alignment = allAlignmentInfo[i].second;
+
+        if (isLeftEnd[i]){
+            const auto overhangLength = alignment.leftTrim(1);
+
+            if (overhangLength > minOverhang) {
+                overhangLengths.update(overhangLength);
+            }
+        }
+        else{
+            const auto overhangLength = alignment.rightTrim(1);
+
+            if (overhangLength > minOverhang) {
+                overhangLengths.update(overhangLength);
+            }
+        }
     }
 }
 
@@ -1299,15 +1405,18 @@ void Assembler::assessAlignments(
         ostream& html)
 {
     // Get the read id and strand from the request.
-    uint64_t samples = 0;
+    uint64_t sampleCount = 0;
     uint64_t minLength = 0;
     uint64_t maxLength = std::numeric_limits<uint64_t>::max();
     bool showAlignmentResults = false;
+    bool useDeadEnds = false;
     string showAlignmentResultsString;
-    const bool samplesIsPresent = getParameterValue(request, "samples", samples);
+    string useDeadEndsString;
+    const bool sampleCountIsPresent = getParameterValue(request, "sampleCount", sampleCount);
     const bool minLengthIsPresent = getParameterValue(request, "minLength", minLength);
     const bool maxLengthIsPresent = getParameterValue(request, "maxLength", maxLength);
     showAlignmentResults = getParameterValue(request, "showAlignmentResults", showAlignmentResultsString);
+    useDeadEnds = getParameterValue(request, "useDeadEnds", useDeadEndsString);
 
     // Get alignment parameters.
     computeAllAlignmentsData.method = httpServerData.assemblerOptions->alignOptions.alignMethod;
@@ -1351,8 +1460,8 @@ void Assembler::assessAlignments(
         "<table>"
         "<tr>"
         "<td>Number of reads to sample: "
-        "<td><input type=text name=samples required size=8 " <<
-        (samplesIsPresent ? "value="+to_string(samples) : "") <<
+        "<td><input type=text name=sampleCount required size=8 " <<
+        (sampleCountIsPresent ? "value="+to_string(sampleCount) : "") <<
         " title='Enter any number'>"
         "<tr>"
         "<td>Minimum number of raw bases in read (default=0): "
@@ -1368,6 +1477,11 @@ void Assembler::assessAlignments(
         "<td>Show alignment results "
         "<td><input type=checkbox name=showAlignmentResults"
         << (showAlignmentResults ? " checked=checked" : "") <<
+        ">"
+        "<tr>"
+        "<td>Sample from segment dead ends only"
+        "<td><input type=checkbox name=useDeadEnds"
+        << (useDeadEnds ? " checked=checked" : "") <<
         ">"
         "</table>";
 
@@ -1393,28 +1507,48 @@ void Assembler::assessAlignments(
     vector<OrientedReadId> sampledReads;
 
     // If the user input is missing, stop here.
-    if(not samplesIsPresent) {
+    if(not sampleCountIsPresent) {
         return;
     }
 
-    // If the user doesn't care about filtering length, sample uniformly
-    if(not minLengthIsPresent and not maxLengthIsPresent) {
-        sampleReads(sampledReads, samples);
+    vector<bool> isLeftEnd;
+    if (useDeadEnds){
+        // If the user doesn't care about filtering length, sample uniformly
+        if (not minLengthIsPresent and not maxLengthIsPresent) {
+            sampleReadsFromDeadEnds(sampledReads, isLeftEnd, sampleCount);
+        }
+        // Or else use any provided filters (defaults are used if only one is set)
+        else {
+            sampleReadsFromDeadEnds(sampledReads, isLeftEnd, sampleCount, minLength, maxLength);
+        }
     }
-    // Or else use any provided filters (defaults are used if only one is set)
-    else{
-        sampleReads(sampledReads, samples, minLength, maxLength);
+    else {
+        // If the user doesn't care about filtering length, sample uniformly
+        if (not minLengthIsPresent and not maxLengthIsPresent) {
+            sampleReads(sampledReads, sampleCount);
+        }
+        // Or else use any provided filters (defaults are used if only one is set)
+        else {
+            sampleReads(sampledReads, sampleCount, minLength, maxLength);
+        }
     }
 
     // Initialize histograms
     Histogram2 alignedFractionHistogram(0, 1, 20);
     Histogram2 markerCountHistogram(0, 3000, 120);
-    Histogram2 nAlignmentsHistogram(0, 200, 20);
+    Histogram2 alignmentCountHistogram(0, 200, 20);
 
-    vector<pair<OrientedReadId, AlignmentInfo> > allAlignments;
-    vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignments;
+    // Only used if user specified to sample dead ends
+    vector<bool> allIsLeftEnd;
+    vector<bool> allStoredIsLeftEnd;
 
-    for (auto& orientedReadId: sampledReads) {
+    vector<pair<OrientedReadId, AlignmentInfo> > allAlignmentInfo;
+    vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignmentInfo;
+    vector<pair<OrientedReadId, SupplementaryAlignmentInfo> > allSupplementaryAlignmentInfo;
+    vector<pair<OrientedReadId, SupplementaryAlignmentInfo> > allStoredSupplementaryAlignmentInfo;
+
+    for (size_t i=0; i<sampledReads.size(); i++) {
+        const OrientedReadId orientedReadId = sampledReads[i];
 
         if (computeAllAlignmentsData.method == 0) {
             // Vectors to contain markers sorted by kmerId. (only needed for align method 0)
@@ -1427,6 +1561,7 @@ void Assembler::assessAlignments(
         computeAllAlignmentsData.orientedReadId0 = orientedReadId;
         const size_t threadCount = std::thread::hardware_concurrency();
         computeAllAlignmentsData.threadAlignments.resize(threadCount);
+        computeAllAlignmentsData.threadSupplementaryAlignmentInfo.resize(threadCount);
         const size_t batchSize = 1;
         setupLoadBalancing(reads->readCount(), batchSize);
         const auto t0 = std::chrono::steady_clock::now();
@@ -1436,19 +1571,28 @@ void Assembler::assessAlignments(
              1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count()) << "s.";
 
         // Gather the alignments found by each thread.
-        vector<pair<OrientedReadId, AlignmentInfo> > alignments;
+        vector<pair<OrientedReadId, AlignmentInfo> > alignmentInfo;
+        vector<pair<OrientedReadId, SupplementaryAlignmentInfo> > supplementaryInfo;
         for (size_t threadId = 0; threadId < threadCount; threadId++) {
             const vector<pair<OrientedReadId, AlignmentInfo> >& threadAlignments =
                     computeAllAlignmentsData.threadAlignments[threadId];
-            copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignments));
+            const vector<pair<OrientedReadId, SupplementaryAlignmentInfo> >& threadSupplementaryInfo =
+                    computeAllAlignmentsData.threadSupplementaryAlignmentInfo[threadId];
+            copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignmentInfo));
+            copy(threadSupplementaryInfo.begin(), threadSupplementaryInfo.end(), back_inserter(supplementaryInfo));
         }
         computeAllAlignmentsData.threadAlignments.clear();
-        sort(alignments.begin(), alignments.end(),
+        computeAllAlignmentsData.threadSupplementaryAlignmentInfo.clear();
+        sort(alignmentInfo.begin(), alignmentInfo.end(),
              OrderPairsByFirstOnly<OrientedReadId, AlignmentInfo>());
+        sort(supplementaryInfo.begin(), supplementaryInfo.end(),
+             OrderPairsByFirstOnly<OrientedReadId, SupplementaryAlignmentInfo>());
 
         // Loop over the STORED alignments that this oriented read is involved in, with the proper orientation.
-        const vector< pair<OrientedReadId, AlignmentInfo> > storedAlignments =
-                findOrientedAlignments(orientedReadId);
+        vector<StoredAlignmentInformation> storedAlignments;
+
+        cout << "fetching stored alignments for read " << orientedReadId << '\n';
+        getStoredAlignments(orientedReadId, storedAlignments);
 
         html << "<p><strong>Assessing alignments for read " << orientedReadId << "</strong>";
 
@@ -1460,29 +1604,49 @@ void Assembler::assessAlignments(
         }
 
         // Print info about FOUND alignments
-        if (alignments.empty()) {
+        if (alignmentInfo.empty()) {
             html << "<p>No alignments found satisfying the given criteria.";
         }
         else {
-            html << "<p>Found " << alignments.size() << " alignments satisfying the given criteria.";
+            html << "<p>Found " << alignmentInfo.size() << " alignments satisfying the given criteria.";
 
             // Only do verbose output if the user wants to
             if (showAlignmentResults) {
-                displayAlignments(orientedReadId, alignments, html);
+                displayAlignments(orientedReadId, alignmentInfo, html);
             }
         }
 
+        // Munge the stored alignment data to look like the computed alignment data
         for (auto& a: storedAlignments){
-            allStoredAlignments.push_back(a);
+            const auto orientedReadId1 = a.orientedReadId;
+            const auto markerCount0 = uint32_t(markers.size(orientedReadId.getValue()));
+            const auto markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
+            const auto info1 = AlignmentInfo(a.alignment, markerCount0, markerCount1);
+            allStoredAlignmentInfo.push_back({orientedReadId, info1});
+
+            const auto maxSkip = a.alignment.maxSkip();
+            const auto maxDrift = a.alignment.maxDrift();
+            const auto info2 = SupplementaryAlignmentInfo(maxSkip, maxDrift);
+            allStoredSupplementaryAlignmentInfo.push_back({orientedReadId, info2});
         }
 
-        for (auto& a: alignments){
-            allAlignments.push_back(a);
+        for (auto& a: alignmentInfo){
+            allAlignmentInfo.push_back(a);
         }
-        nAlignmentsHistogram.update(double(alignments.size()));
+
+        if (useDeadEnds){
+            for (size_t n=0; n<alignmentInfo.size(); n++) {
+                allIsLeftEnd.push_back(isLeftEnd[i]);
+            }
+            for (size_t n=0; n<storedAlignments.size(); n++) {
+                allStoredIsLeftEnd.push_back(isLeftEnd[i]);
+            }
+        }
+
+        alignmentCountHistogram.update(double(alignmentInfo.size()));
     }
 
-    for (auto& item: allAlignments){
+    for (auto& item: allAlignmentInfo){
         const auto alignment = item.second;
 
         // Increment histograms
@@ -1503,11 +1667,26 @@ void Assembler::assessAlignments(
     alignedFractionHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Number of Alignments Found per Read</strong>";
     html << "<br>For each query read, how many passing alignments were found in one-to-all alignment";
-    nAlignmentsHistogram.writeToHtml(html, histogramSize);
+    alignmentCountHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Ratio of stored to found alignments</strong>";
     html << "<br>" << std::fixed << std::setprecision(3) <<
-    double(allStoredAlignments.size())/double(allAlignments.size());
-    html << "<br";
+         double(allStoredAlignmentInfo.size()) / double(allAlignmentInfo.size());
+    html << "<br>";
+
+    if (useDeadEnds){
+        Histogram2 overhangLengths(0,1000,40,false,true);
+        Histogram2 storedOverhangLengths(0,1000,40,false,true);
+
+        auto minOverhang = uint32_t(httpServerData.assemblerOptions->markerGraphOptions.pruneIterationCount);
+
+        countDeadEndOverhangs(allAlignmentInfo, allIsLeftEnd, overhangLengths, minOverhang);
+        countDeadEndOverhangs(allStoredAlignmentInfo, allStoredIsLeftEnd, storedOverhangLengths, minOverhang);
+
+        html << "<br><strong>Dead end overhang lengths observed in recomputed alignments</strong>";
+        overhangLengths.writeToHtml(html, histogramSize);
+        html << "<br><strong>Dead end overhang lengths observed in stored alignments</strong>";
+        storedOverhangLengths.writeToHtml(html, histogramSize);
+    }
 }
 
 
@@ -1537,6 +1716,10 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     // Vector where this thread will store the alignments it finds.
     vector< pair<OrientedReadId, AlignmentInfo> >& alignments =
         computeAllAlignmentsData.threadAlignments[threadId];
+
+    // Vector to store the maxSkip and maxDrift that is observed in each alignment
+    vector <pair <OrientedReadId, SupplementaryAlignmentInfo> >& supplementaryInfo =
+            computeAllAlignmentsData.threadSupplementaryAlignmentInfo[threadId];
 
     // Reusable data structures for alignOrientedReads.
     AlignmentGraph graph;
@@ -1616,7 +1799,13 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 if(leftTrim>maxTrim || rightTrim>maxTrim) {
                     continue;
                 }
-                alignments.push_back(make_pair(orientedReadId1, alignmentInfo));
+
+                // Fill in a storage object with data about maxDrift and maxSkip
+                auto s = SupplementaryAlignmentInfo(uint32_t(maxSkip), uint32_t(maxDrift));
+
+                // Update the storage vectors
+                supplementaryInfo.push_back({orientedReadId1, s});
+                alignments.push_back({orientedReadId1, alignmentInfo});
             }
         }
     }

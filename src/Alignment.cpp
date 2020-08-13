@@ -119,3 +119,4 @@ void AlignmentInfo::create(
 {
     create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
 }
+

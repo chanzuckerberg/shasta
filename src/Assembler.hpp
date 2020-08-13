@@ -10,6 +10,7 @@
 #include "Coverage.hpp"
 #include "DirectedReadGraph.hpp"
 #include "dset64-gccAtomic.hpp"
+#include "Histogram.hpp"
 #include "HttpServer.hpp"
 #include "InducedAlignment.hpp"
 #include "Kmer.hpp"
@@ -1957,8 +1958,23 @@ public:
     void assessAlignments(const vector<string>& request, ostream& html);
     void sampleReads(vector<OrientedReadId>& sample, uint64_t n);
     void sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t minLength, uint64_t maxLength);
-    void sampleReadsFromDeadEnds(vector<OrientedReadId>& sample, uint64_t n);
+    void sampleReadsFromDeadEnds(
+            vector<OrientedReadId>& sample,
+            vector<bool>& isLeftEnd,
+            uint64_t n);
 
+    void sampleReadsFromDeadEnds(
+            vector<OrientedReadId>& sample,
+            vector<bool>& isLeftEnd,
+            uint64_t n,
+            uint64_t minLength,
+            uint64_t maxLength);
+
+    void countDeadEndOverhangs(
+            const vector<pair<OrientedReadId, AlignmentInfo> >& allAlignmentInfo,
+            const vector<bool>& isLeftEnd,
+            Histogram2& overhangLengths,
+            uint32_t minOverhang);
 
     // Compute all alignments for a given read.
     // This can be slow for large assemblies,
@@ -1984,6 +2000,7 @@ public:
         int maxBand;
         // The alignments found by each thread.
         vector< vector< pair<OrientedReadId, AlignmentInfo> > > threadAlignments;
+        vector< vector< pair<OrientedReadId, SupplementaryAlignmentInfo> > > threadSupplementaryAlignmentInfo;
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
 

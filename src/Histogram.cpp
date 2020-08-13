@@ -4,6 +4,8 @@
 #include <cmath>
 
 using namespace shasta;
+using std::string;
+using std::to_string;
 
 shasta::Histogram2::Histogram2(
         double start,
@@ -107,10 +109,33 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx){
             precision = 2;
         }
 
+        string leftBoundString;
+        string rightBoundString;
+
+        if (unboundedLeft and i==0){
+            leftBoundString = "-inf";
+        }
+        else {
+            leftBoundString = to_string(leftBound);
+            const size_t decimalPosition = leftBoundString.find('.');
+            leftBoundString = leftBoundString.substr(0,decimalPosition+3);
+        }
+
+        if (unboundedRight and i == binCount-1){
+            rightBoundString = "inf";
+        }
+        else{
+            rightBoundString = to_string(rightBound);
+            const size_t decimalPosition = rightBoundString.find('.');
+            rightBoundString = rightBoundString.substr(0,decimalPosition+3);
+
+        }
+
+
         html << std::fixed << std::setprecision(precision) <<
              "<tr>"
-             "<td class=centered>" << leftBound <<
-             "<td class=centered>" << rightBound <<
+             "<td class=centered>" << leftBoundString <<
+             "<td class=centered>" << rightBoundString <<
              "<td class=centered>" << y <<
              "<td>"
              "<div class=sketch title='alignedFractionHistogram' style='display:inline-block;margin:0px;padding:0px;"
