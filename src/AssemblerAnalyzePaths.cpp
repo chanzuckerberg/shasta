@@ -1870,6 +1870,7 @@ void Assembler::alignPseudoPaths(
     ReadId readId1, Strand strand1)
 {
     using SegmentId = AssemblyGraph::EdgeId;
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Parameters that control the process below. EXPOSE WHEN CODE STABILIZES. *********
     const int matchScore = 1;
@@ -1914,11 +1915,12 @@ void Assembler::alignPseudoPaths(
     // Write out the alignment.
     uint64_t position0 = 0;
     uint64_t position1 = 0;
-    uint64_t matchCount =0;;
-    uint64_t mismatchCount =0;;
-    uint64_t gapCount =0;;
-    uint64_t leftUnalignedCount =0;;
-    uint64_t rightUnalignedCount =0;;
+    uint64_t weakMatchCount =0;
+    uint64_t strongMatchCount =0;
+    uint64_t mismatchCount =0;
+    uint64_t gapCount =0;
+    uint64_t leftUnalignedCount =0;
+    uint64_t rightUnalignedCount =0;
     ofstream csv("PseudoPathsAlignment.csv");
     for(const auto& p: alignment) {
         if(p.first) {
@@ -1938,7 +1940,21 @@ void Assembler::alignPseudoPaths(
                 csv << "Mismatch";
                 ++mismatchCount;
             } else {
-                ++matchCount;
+                // Match.
+                // Decide if it is a strong or weak match.
+                const SegmentId segmentId = pseudoPathSegments[0][position0];
+                const AssemblyGraph::Edge& edge = assemblyGraph.edges[segmentId];
+                const AssemblyGraph::VertexId v0 = edge.source;
+                const AssemblyGraph::VertexId v1 = edge.target;
+                const auto out0 = assemblyGraph.outDegree(v0);
+                const auto in1 = assemblyGraph.inDegree(v1);
+                if(out0==1 and in1==1) {
+                    csv << "Weak match";
+                    ++weakMatchCount;
+                } else {
+                    csv << "Strong match";
+                    ++strongMatchCount;
+                }
             }
         } else if(position0 == 0 or position1==0) {
             csv << "Left unaligned portion";
@@ -1964,7 +1980,10 @@ void Assembler::alignPseudoPaths(
     SHASTA_ASSERT(position0 == pseudoPathSegments[0].size());
     SHASTA_ASSERT(position1 == pseudoPathSegments[1].size());
 
-    cout << "Match "<< matchCount << endl;
+    const uint64_t matchCount = weakMatchCount + strongMatchCount;
+    cout << "Total match "<< matchCount << endl;
+    cout << "Strong match "<< strongMatchCount << endl;
+    cout << "Weak match "<< weakMatchCount << endl;
     cout << "Mismatch "<< mismatchCount << endl;
     cout << "Gap "<< gapCount << endl;
     cout << "Left unaligned "<< leftUnalignedCount << endl;
