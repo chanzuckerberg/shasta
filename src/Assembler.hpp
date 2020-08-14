@@ -925,6 +925,17 @@ public:
 
     // Functions and data used with ReadGraph.creationMethod 2.
     void createReadGraph2(size_t threadCount);
+    class CreateReadGraph2AlignmentData {
+    public:
+        uint64_t alignedMarkerCount = 0;
+
+        // Pseudo-path alignment information.
+        uint64_t weakMatchCount = 0;
+        uint64_t strongMatchCount = 0;
+        uint64_t mismatchCount = 0;
+    };
+
+
 
 #if 0
     // Functions and data for the version that uses mini-assemblies.

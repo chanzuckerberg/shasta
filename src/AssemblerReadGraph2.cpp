@@ -298,16 +298,15 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
 // If successful, a multithreaded version will be needed.
 void Assembler::createReadGraph2(size_t threadCount)
 {
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // Parameters that control this function.
     // Expose when code stabilizes.
     const int matchScore = 1;
     const int mismatchScore = -1;
     const int gapScore = -1;
-    // const uint64_t minAlignedSegmentCount = 6;
-    // const double maxSegmentMismatchRatio = 0.12;
     const double mismatchSquareFactor = 3.;
-    const uint32_t maxAlignmentCount = 6;
+    const uint32_t maxAlignmentCount = 4;
 
 
 
@@ -332,13 +331,8 @@ void Assembler::createReadGraph2(size_t threadCount)
 
 
 
-    // Vector of tuples containing the following for each alignment:
-    // 0: Number of aligned markers.
-    // 1: Number of matches in the alignment of the pseudo-paths.
-    // 2: Number of mismatches in the alignment of the pseudo-paths.
-    // Indexed by the alignmentId.
-    using Info = tuple<uint64_t, uint64_t, uint64_t>;
-    vector<Info> infos(alignmentData.size());
+    // Vector to store the information we need for each alignment.
+    vector<CreateReadGraph2AlignmentData> infos(alignmentData.size());
 
 
 
@@ -380,7 +374,8 @@ void Assembler::createReadGraph2(size_t threadCount)
         // Analyze the alignment of the two pseudo-paths.
         uint64_t position0 = 0;
         uint64_t position1 = 0;
-        uint64_t matchCount =0;
+        uint64_t weakMatchCount =0;
+        uint64_t strongMatchCount =0;
         uint64_t mismatchCount =0;
         uint64_t gapCount =0;
         uint64_t leftUnalignedCount =0;
@@ -390,7 +385,18 @@ void Assembler::createReadGraph2(size_t threadCount)
                 if(pseudoPathSegments0[position0] != pseudoPathSegments1[position1]) {
                     ++mismatchCount;
                 } else {
-                    ++matchCount;
+                    // Match. Figure out if it is a weak or strong match.
+                    const SegmentId segmentId = pseudoPathSegments0[position0];
+                    const AssemblyGraph::Edge& edge = assemblyGraph.edges[segmentId];
+                    const AssemblyGraph::VertexId v0 = edge.source;
+                    const AssemblyGraph::VertexId v1 = edge.target;
+                    const auto out0 = assemblyGraph.outDegree(v0);
+                    const auto in1 = assemblyGraph.inDegree(v1);
+                    if(out0==1 and in1==1) {    // CONSIDER DOING OR INSTEAD?
+                        ++weakMatchCount;
+                    } else {
+                        ++strongMatchCount;
+                    }
                 }
             } else if(position0 == 0 or position1==0) {
                 ++leftUnalignedCount;
@@ -412,22 +418,24 @@ void Assembler::createReadGraph2(size_t threadCount)
         SHASTA_ASSERT(position0 == pseudoPathSegments0.size());
         SHASTA_ASSERT(position1 == pseudoPathSegments1.size());
         SHASTA_ASSERT(
-            matchCount + mismatchCount + gapCount + leftUnalignedCount + rightUnalignedCount ==
-                alignment.size());
+            weakMatchCount + strongMatchCount + mismatchCount +
+            gapCount + leftUnalignedCount + rightUnalignedCount ==
+            alignment.size());
 
-        // Store the Info for this alignment.
-        Info& info = infos[alignmentId];
-        get<0>(info) = ad.info.markerCount;
-        get<1>(info) = matchCount;
-        get<2>(info) = mismatchCount;
+        // Store the information for this alignment.
+        auto& info = infos[alignmentId];
+        info.alignedMarkerCount = ad.info.markerCount;
+        info.weakMatchCount = weakMatchCount;
+        info.strongMatchCount = strongMatchCount;
+        info.mismatchCount = mismatchCount;
     }
 
 
 
     // Write out this information, by read.
     ofstream csv("CreateReadGraph2.csv");
-    csv << "ReadId,AlignmentId,ReadId0,ReadId1,SameStrand,MarkerAlignedCount,SegmentMatchCount,SegmentMismatchCount,"
-        "SegmentAlignedCount,SegmentMismatchRatio\n";
+    csv << "ReadId,AlignmentId,ReadId0,ReadId1,SameStrand,AlignedMarkerCount,"
+        "WeakMatchCount,StrongMatchCount,MismatchCount\n";
     for(ReadId readId=0; readId<readCount; readId++) {
 
         // Put it on strand 0.
@@ -439,27 +447,17 @@ void Assembler::createReadGraph2(size_t threadCount)
         // Loop over those alignments.
         for(const uint32_t alignmentId: alignmentIds) {
             const AlignmentData& ad = alignmentData[alignmentId];
-            const Info& info = infos[alignmentId];
-            const uint64_t markerAlignedCount = get<0>(info);
-            const uint64_t segmentMatchCount = get<1>(info);
-            const uint64_t segmentMismatchCount = get<2>(info);
-            const uint64_t segmentAlignedCount = segmentMatchCount + segmentMismatchCount;
-            const double segmentMismatchRatio =
-                segmentAlignedCount == 0 ? std::numeric_limits<double>::max() :
-                double(segmentMismatchCount) / double(segmentAlignedCount);
+            const auto& info = infos[alignmentId];
             csv << readId << ",";
             csv << alignmentId << ",";
             csv << ad.readIds[0] << ",";
             csv << ad.readIds[1] << ",";
             csv << (ad.isSameStrand ? "Yes" : "No") << ",";
-            csv << markerAlignedCount << ",";
-            csv << segmentMatchCount << ",";
-            csv << segmentMismatchCount << ",";
-            csv << segmentAlignedCount << ",";
-            csv << segmentMismatchRatio << "\n";
+            csv << ad.info.markerCount << ",";
+            csv << info.weakMatchCount << ",";
+            csv << info.strongMatchCount << ",";
+            csv << info.mismatchCount << "\n";
         }
-
-
     }
 
 
@@ -478,18 +476,9 @@ void Assembler::createReadGraph2(size_t threadCount)
         // Sort them by merit = segmentMatchCount - mismatchSquareFactor * segmentMismatchCount^2
         vector< pair<double, uint32_t> > table; // pair(merit, alignmentId)
         for(const uint32_t alignmentId: alignmentIds) {
-            const Info& info = infos[alignmentId];
-            // const uint64_t markerAlignedCount = get<0>(info);
-            const uint64_t segmentMatchCount = get<1>(info);
-            const uint64_t segmentMismatchCount = get<2>(info);
-            /*
-            const uint64_t segmentAlignedCount = segmentMatchCount + segmentMismatchCount;
-            const double segmentMismatchRatio =
-                segmentAlignedCount == 0 ? std::numeric_limits<double>::max() :
-                double(segmentMismatchCount) / double(segmentAlignedCount);
-            */
-            const double merit = double(segmentMatchCount) -
-                mismatchSquareFactor * double(segmentMismatchCount*segmentMismatchCount);
+            const auto& info = infos[alignmentId];
+            const double merit = double(info.strongMatchCount) -
+                mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
             if(merit > 0.) {
                 table.push_back(make_pair(merit, alignmentId));
             }
@@ -511,7 +500,6 @@ void Assembler::createReadGraph2(size_t threadCount)
         }
     }
     cout << "Too few: " << tooFewCount << endl;
-
 
 
     // Create the read graph using the alignments we selected.
