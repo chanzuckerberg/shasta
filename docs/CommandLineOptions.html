@@ -318,6 +318,27 @@ on input and not used in the assembly.
 <a class=qm href='Running.html#InputFiles'></a>   
 <a class=qm href='ComputationalMethods.html#InitialAssemblySteps'></a>
 
+<tr id='Reads.desiredCoverage'>
+<td><code>--Reads.desiredCoverage</code><td class=centered><code>0</code><td>
+Specifies a desired value for total coverage, in bases.
+If not zero, the read length cutoff specified via
+<code>--Reads.minReadLength</code> is increased to reduce coverage
+to the specified value.
+This value can be specified as a number of bases,
+or using power of 10 multipliers immediately following the numeric value.
+The powers of ten can be abbreviated as
+<code>G</code>, <code>Gb</code>, or <code>Gbp</code> for 10<sup>9</sup> bases,
+<code>M</code>, <code>Mb</code>, or <code>Mbp</code> for 10<sup>6</sup> bases,
+<code>K</code>, <code>Kb</code>, or <code>Kbp</code> for 10<sup>3</sup> bases.
+For example, a desired coverage of 10<sup>9</sup> bases
+can be requested specifying
+<code>120G</code>, <code>120Gb</code>, <code>120Gbp</code>, or <code>120000000000</code>.
+If coverage available using only reads longer than <code>Reads.minReadLength</code>
+is less than the value specified for <code>--Reads.desiredCoverage</code>,
+the assembly terminates with an error message.
+<a class=qm href='Running.html#InputFiles'></a>
+<a class=qm href='ComputationalMethods.html#InitialAssemblySteps'></a>
+
 <tr><td><code>--Reads.noCache</code><td class=centered><code>False</code><td>
 This is a 
 <a href="#BooleanSwitches">Boolean switch</a>.

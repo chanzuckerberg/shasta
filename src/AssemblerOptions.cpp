@@ -206,7 +206,12 @@ void AssemblerOptions::addConfigurableOptions()
         ("Reads.desiredCoverage",
         value<string>(&readsOptions.desiredCoverageString)->
         default_value("0"),
-        "Desired coverage as a number of bases. Coverage will be reduced to this if necessary.")
+        "Reduce coverage to desired value. "
+        "If not zero, specifies desired coverage (number of bases). "
+        "The read length cutoff specified via --Reads.minReadLength "
+        "is increased to reduce coverage to the specified value. "
+        "Power of 10 multipliers can be used, for example 120Gb to "
+        "request 120 Gb of coverage.")
 
         ("Reads.noCache",
         bool_switch(&readsOptions.noCache)->
