@@ -486,6 +486,10 @@ void shasta::main::assemble(
         throw runtime_error("There are no input reads.");
     }
     
+
+
+    // If requested, increase the read length cutoff
+    // to reduce coverage to the specified amount.
     if (assemblerOptions.readsOptions.desiredCoverage > 0) {
         // Write out the read length histogram using provided minReadLength.
         assembler.histogramReadLength("ExtendedReadLengthHistogram.csv");
@@ -497,9 +501,13 @@ void shasta::main::assemble(
 
         if (newMinReadLength == 0ULL) {
             throw runtime_error(
-                "With a Reads.minReadLength of " + to_string(oldMinReadLength) + ","
-                " the total available coverage is lesser than the desired coverage. " +
-                "Try reducing Reads.minReadLength if appropriate or get more coverage."
+                "With Reads.minReadLength " +
+                to_string(assemblerOptions.readsOptions.minReadLength) +
+                ", total available coverage is " +
+                to_string(assembler.getReads().getTotalBaseCount()) +
+                ", less than desired coverage " +
+                to_string(assemblerOptions.readsOptions.desiredCoverage) +
+                ". Try reducing Reads.minReadLength if appropriate or get more coverage."
             ); 
         }
 
@@ -509,7 +517,6 @@ void shasta::main::assemble(
     
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
-   
     const auto t1 = steady_clock::now();
     cout << timestamp << "Done loading reads from " << inputFileNames.size() << " files." << endl;
     cout << "Read loading took " << seconds(t1-t0) << "s." << endl;
