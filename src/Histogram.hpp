@@ -7,13 +7,15 @@
 #include <cstdint>
 #include <fstream>
 
+using std::ostream;
+
+
 namespace shasta {
     class Histogram;
     class Histogram2;
     void testIterativeHistogram();
+    void writeHistogramsToHtml(ostream& html, Histogram2& histogramA, Histogram2& histogramB, uint64_t sizePx);
 }
-
-using std::ostream;
 
 
 // A simple histogram class that stores the histogram in a vector.
@@ -71,6 +73,7 @@ public:
     void update(double x);
     void getNormalizedHistogram(vector<double>& normalizedHistogram);
     void writeToHtml(ostream& html, uint64_t sizePx);
+    uint64_t getSum();
 
 private:
     /// Methods ///

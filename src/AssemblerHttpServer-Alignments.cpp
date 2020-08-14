@@ -1682,10 +1682,23 @@ void Assembler::assessAlignments(
         countDeadEndOverhangs(allAlignmentInfo, allIsLeftEnd, overhangLengths, minOverhang);
         countDeadEndOverhangs(allStoredAlignmentInfo, allStoredIsLeftEnd, storedOverhangLengths, minOverhang);
 
-        html << "<br><strong>Dead end overhang lengths observed in recomputed alignments</strong>";
-        overhangLengths.writeToHtml(html, histogramSize);
-        html << "<br><strong>Dead end overhang lengths observed in stored alignments</strong>";
-        storedOverhangLengths.writeToHtml(html, histogramSize);
+        html << "<br><strong>Overhang lengths observed in recomputed vs stored alignments</strong>";
+        html << "<br>For each dead end read in the sample, how long were the overhangs that extend beyond that end?";
+        html << "<br>Overhangs less than " << minOverhang << " markers were excluded from all analyses.";
+        html << "<br>Recomputed alignments = A = red";
+        html << "<br>Stored alignments = B = blue";
+        writeHistogramsToHtml(html, overhangLengths, storedOverhangLengths, histogramSize);
+        html << "<br>";
+        html << "<strong>Total overhangs observed in recomputed alignments</strong>";
+        html << "<br>";
+        html << overhangLengths.getSum();
+        html << "<br>";
+        html << "<strong>Total overhangs observed in stored alignments</strong>";
+        html << "<br>";
+        html << storedOverhangLengths.getSum();
+        html << "<br>";
+        html << "<br>";
+        html << "<br>";
     }
 }
 

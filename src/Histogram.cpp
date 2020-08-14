@@ -1,11 +1,15 @@
 #include "Histogram.hpp"
+#include <unordered_set>
+#include <stdexcept>
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 
 using namespace shasta;
-using std::string;
+using std::unordered_set;
+using std::runtime_error;
 using std::to_string;
+using std::string;
 
 shasta::Histogram2::Histogram2(
         double start,
@@ -66,14 +70,20 @@ void shasta::Histogram2::update(double x) {
 
 
 void shasta::Histogram2::getNormalizedHistogram(vector<double>& normalizedHistogram){
-    uint64_t sum = 0;
-    for (auto& e: histogram){
-        sum += e;
-    }
+    uint64_t sum = getSum();
 
     for (auto& e: histogram){
         normalizedHistogram.push_back(double(e)/double(sum));
     }
+}
+
+
+uint64_t Histogram2::getSum(){
+    uint64_t sum = 0;
+    for (auto& item: histogram){
+        sum += item;
+    }
+    return sum;
 }
 
 
@@ -140,6 +150,107 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx){
              "<td>"
              "<div class=sketch title='alignedFractionHistogram' style='display:inline-block;margin:0px;padding:0px;"
              "background-color:blue;height:6px;width:" << double(y)*scale << "px;'></div>";
+    }
+    html << "</table>";
+
+    // Remove precision settings that were specified above
+    html.unsetf(std::ios_base::floatfield);
+}
+
+
+void shasta::writeHistogramsToHtml(ostream& html, Histogram2& histogramA, Histogram2& histogramB, uint64_t sizePx){
+    // First verify that histograms are compatible
+    bool compatible = true;
+    if (histogramA.start != histogramB.start){
+        compatible = false;
+    }
+    if (histogramA.stop != histogramB.stop){
+        compatible = false;
+    }
+    if (histogramA.binCount != histogramB.binCount){
+        compatible = false;
+    }
+    if (histogramA.unboundedLeft != histogramB.unboundedLeft){
+        compatible = false;
+    }
+    if (histogramA.unboundedRight != histogramB.unboundedRight){
+        compatible = false;
+    }
+
+    if (not compatible){
+        throw runtime_error("ERROR: histograms with differing bins cannot be plotted together");
+    }
+
+    // Find max frequency, for plot scaling purposes
+    uint64_t yMax = 0;
+    for (size_t i=0; i<histogramA.histogram.size(); i++){
+        if (histogramA.histogram[i] > yMax) {
+            yMax = histogramA.histogram[i];
+        }
+        if (histogramB.histogram[i] > yMax) {
+            yMax = histogramB.histogram[i];
+        }
+    }
+
+    double scale = double(sizePx)/double(yMax);
+
+    html << "<table style='margin-top: 1em; margin-bottom: 1em'>";
+    html << "<tr>"
+            "<th class='centered'>Left bound"
+            "<th class='centered'>Right bound"
+            "<th class='centered'>Count A"
+            "<th class='centered'>Count B"
+            "<th class='centered'>Plot";
+
+    int32_t precision;
+
+    for (size_t i=0; i<histogramA.histogram.size(); i++){
+        const double leftBound = double(i)*(histogramA.binSize);
+        const double rightBound = double(i+1)*(histogramA.binSize);
+
+        // Check if the bin bounds have any trailing decimals
+        if (std::fmod(leftBound,1) == 0 and std::fmod(rightBound,1) == 0){
+            precision = 0;
+        }
+        else{
+            precision = 2;
+        }
+
+        string leftBoundString;
+        string rightBoundString;
+
+        if (histogramA.unboundedLeft and i==0){
+            leftBoundString = "-inf";
+        }
+        else {
+            leftBoundString = to_string(leftBound);
+            const size_t decimalPosition = leftBoundString.find('.');
+            leftBoundString = leftBoundString.substr(0,decimalPosition+3);
+        }
+
+        if (histogramA.unboundedRight and i == histogramA.binCount-1){
+            rightBoundString = "inf";
+        }
+        else{
+            rightBoundString = to_string(rightBound);
+            const size_t decimalPosition = rightBoundString.find('.');
+            rightBoundString = rightBoundString.substr(0,decimalPosition+3);
+
+        }
+
+        html << std::fixed << std::setprecision(precision) <<
+            "<tr>"
+            "<td class=centered>" << leftBoundString <<
+            "<td class=centered>" << rightBoundString <<
+            "<td class=centered>" << histogramA.histogram[i] <<
+            "<td class=centered>" << histogramB.histogram[i] <<
+            "<td style='line-height:8px;white-space:nowrap'>" <<
+            "<div class=sketch title='alignedFractionHistogram' "
+            "style='display:inline-block;margin:0px;padding:0px;background-color:red;height:6px;width:" <<
+            double(histogramA.histogram[i]) * scale << "px;'></div><br>" <<
+            "<div class=sketch title='alignedFractionHistogram' "
+            "style='display:inline-block;margin:0px;padding:0px;background-color:blue;height:6px;width:" <<
+            double(histogramB.histogram[i]) * scale << "px;'></div>";
     }
     html << "</table>";
 
