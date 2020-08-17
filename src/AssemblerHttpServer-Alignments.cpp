@@ -1520,24 +1520,35 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
 
                 // Compute the alignment.
-                if (method == 0) {
-                    const bool debug = false;
-                    alignOrientedReads(
-                        markersSortedByKmerId,
-                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
-                } else if (method == 1) {
-                    alignOrientedReads1(
-                        orientedReadId0, orientedReadId1,
-                        matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
-                } else if (method == 3) {
-                    alignOrientedReads3(
-                        orientedReadId0, orientedReadId1,
-                        matchScore, mismatchScore, gapScore,
-                        downsamplingFactor, bandExtend, maxBand,
-                        alignment, alignmentInfo);
-                } else {
-                    SHASTA_ASSERT(0);
+                try {
+                    if (method == 0) {
+                        const bool debug = false;
+                        alignOrientedReads(
+                            markersSortedByKmerId,
+                            maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
+                    } else if (method == 1) {
+                        alignOrientedReads1(
+                            orientedReadId0, orientedReadId1,
+                            matchScore, mismatchScore, gapScore, alignment, alignmentInfo);
+                    } else if (method == 3) {
+                        alignOrientedReads3(
+                            orientedReadId0, orientedReadId1,
+                            matchScore, mismatchScore, gapScore,
+                            downsamplingFactor, bandExtend, maxBand,
+                            alignment, alignmentInfo);
+                    } else {
+                        SHASTA_ASSERT(0);
+                    }
+                } catch (const std::exception& e) {
+                    cout << e.what() << " for reads " << orientedReadId0 << " and " << orientedReadId1 << endl;
+                    continue;
+                } catch (...) {
+                    cout << "An error occurred while computing a marker alignment "
+                        " of oriented reads " << orientedReadId0 << " and " << orientedReadId1 <<
+                        ". This alignment candidate will be skipped. " << endl;
+                    continue;
                 }
+    
 
                 // If the alignment is poor, skip it.
                 if ((alignment.ordinals.size() < minAlignedMarkerCount) ||
