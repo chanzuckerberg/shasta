@@ -306,7 +306,8 @@ void Assembler::createReadGraph2(size_t threadCount)
     const int mismatchScore = -1;
     const int gapScore = -1;
     const double mismatchSquareFactor = 3.;
-    const uint32_t maxAlignmentCount = 4;
+    const double minScore = 0.;
+    const uint32_t maxAlignmentCount = 6;
 
 
 
@@ -435,7 +436,7 @@ void Assembler::createReadGraph2(size_t threadCount)
     // Write out this information, by read.
     ofstream csv("CreateReadGraph2.csv");
     csv << "ReadId,AlignmentId,ReadId0,ReadId1,SameStrand,AlignedMarkerCount,"
-        "WeakMatchCount,StrongMatchCount,MismatchCount\n";
+        "WeakMatchCount,StrongMatchCount,MismatchCount,Score\n";
     for(ReadId readId=0; readId<readCount; readId++) {
 
         // Put it on strand 0.
@@ -448,6 +449,8 @@ void Assembler::createReadGraph2(size_t threadCount)
         for(const uint32_t alignmentId: alignmentIds) {
             const AlignmentData& ad = alignmentData[alignmentId];
             const auto& info = infos[alignmentId];
+            const double score = double(info.strongMatchCount) -
+                mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
             csv << readId << ",";
             csv << alignmentId << ",";
             csv << ad.readIds[0] << ",";
@@ -456,7 +459,8 @@ void Assembler::createReadGraph2(size_t threadCount)
             csv << ad.info.markerCount << ",";
             csv << info.weakMatchCount << ",";
             csv << info.strongMatchCount << ",";
-            csv << info.mismatchCount << "\n";
+            csv << info.mismatchCount << ",";
+            csv << score << "\n";
         }
     }
 
@@ -473,14 +477,14 @@ void Assembler::createReadGraph2(size_t threadCount)
         // Get the alignments it is involved in.
         const span<uint32_t> alignmentIds = alignmentTable[orientedReadId.getValue()];
 
-        // Sort them by merit = segmentMatchCount - mismatchSquareFactor * segmentMismatchCount^2
-        vector< pair<double, uint32_t> > table; // pair(merit, alignmentId)
+        // Sort them by score = segmentMatchCount - mismatchSquareFactor * segmentMismatchCount^2
+        vector< pair<double, uint32_t> > table; // pair(score, alignmentId)
         for(const uint32_t alignmentId: alignmentIds) {
             const auto& info = infos[alignmentId];
-            const double merit = double(info.strongMatchCount) -
+            const double score = double(info.strongMatchCount) -
                 mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
-            if(merit > 0.) {
-                table.push_back(make_pair(merit, alignmentId));
+            if(score > minScore) {
+                table.push_back(make_pair(score, alignmentId));
             }
         }
         sort(table.begin(), table.end(), OrderPairsByFirstOnlyGreater<double, uint32_t>());
