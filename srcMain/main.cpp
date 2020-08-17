@@ -698,6 +698,19 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.maxTrim,
             assemblerOptions.readGraphOptions.containedNeighborCount,
             assemblerOptions.readGraphOptions.uncontainedNeighborCountPerDirection);
+    } else if(assemblerOptions.readGraphOptions.creationMethod == 2) {
+        assembler.createReadGraph2(
+            assemblerOptions.readGraphOptions.maxAlignmentCount,
+            assemblerOptions.alignOptions.maxTrim);
+
+        // Flag read graph edges that cross strands.
+        assembler.flagCrossStrandReadGraphEdges(
+            assemblerOptions.readGraphOptions.crossStrandMaxDistance,
+            threadCount);
+
+        // Flag chimeric reads.
+        assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
+        assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
     } else {
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }
