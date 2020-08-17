@@ -17,7 +17,7 @@ a.accessAssemblyGraphVertices()
 a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
 
-# Create the global read graph using creation method 2.
-a.createReadGraph2()
+# Create the read graph.
+a.createReadGraphUsingPseudoPaths()
 
 

@@ -698,8 +698,6 @@ void shasta::main::assemble(
             assemblerOptions.alignOptions.maxTrim,
             assemblerOptions.readGraphOptions.containedNeighborCount,
             assemblerOptions.readGraphOptions.uncontainedNeighborCountPerDirection);
-    } else if(assemblerOptions.readGraphOptions.creationMethod == 2) {
-        assembler.createReadGraph2(threadCount);
     } else {
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
     }

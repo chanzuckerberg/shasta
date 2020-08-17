@@ -1,4 +1,3 @@
-// This file contains code for ReadGraph.creationMethod 2.
 
 // Shasta.
 #include "Assembler.hpp"
@@ -296,7 +295,7 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
 // See Assembler::alignPseudoPaths in AssemblerAnalyzePaths.cpp.
 // This is a quick and dirty single threaded implementation for testing.
 // If successful, a multithreaded version will be needed.
-void Assembler::createReadGraph2(size_t threadCount)
+void Assembler::createReadGraphUsingPseudoPaths(size_t threadCount)
 {
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
@@ -333,7 +332,7 @@ void Assembler::createReadGraph2(size_t threadCount)
 
 
     // Vector to store the information we need for each alignment.
-    vector<CreateReadGraph2AlignmentData> infos(alignmentData.size());
+    vector<CreateReadGraphsingPseudoPathsAlignmentData> infos(alignmentData.size());
 
 
 

@@ -924,8 +924,8 @@ public:
 
 
     // Functions and data used with ReadGraph.creationMethod 2.
-    void createReadGraph2(size_t threadCount);
-    class CreateReadGraph2AlignmentData {
+    void createReadGraphUsingPseudoPaths(size_t threadCount);
+    class CreateReadGraphsingPseudoPathsAlignmentData {
     public:
         uint64_t alignedMarkerCount = 0;
 
