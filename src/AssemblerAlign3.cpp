@@ -95,8 +95,7 @@ void Assembler::alignOrientedReads3(
 
     }
 
-    if ((downsampledSequences[0].data_begin == downsampledSequences[0].data_end) or
-        (downsampledSequences[1].data_begin == downsampledSequences[1].data_end)) {
+    if (downsampledMarkers[0].empty() or downsampledMarkers[1].empty()) {
         // One of the downsampled sequences is empty. Return an empty alignment.
         alignment.clear();
         alignmentInfo.create(
