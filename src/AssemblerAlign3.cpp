@@ -95,7 +95,14 @@ void Assembler::alignOrientedReads3(
 
     }
 
-
+    if ((downsampledSequences[0].data_begin == downsampledSequences[0].data_end) or
+        (downsampledSequences[1].data_begin == downsampledSequences[1].data_end)) {
+        // One of the downsampled sequences is empty. Return an empty alignment.
+        alignment.clear();
+        alignmentInfo.create(
+            alignment, uint32_t(allMarkers[0].size()), uint32_t(allMarkers[1].size()));
+        return; 
+    }
 
     // Use SeqAn to compute an alignment of the downsampled markers, free at both ends.
     // https://seqan.readthedocs.io/en/master/Tutorial/Algorithms/Alignment/PairwiseSequenceAlignment.html
@@ -116,6 +123,10 @@ void Assembler::alignOrientedReads3(
         cout << "Downsampled alignment score is " << downsampledScore << endl;
     }
 
+    if (downsampledScore == seqan::MinValue<int>::VALUE) {
+        throw runtime_error("SeqAn banded alignment computation failed for downsampled sequences.");
+    }
+
     // Extract the alignment from the graph.
     // This creates a single sequence consisting of the two rows
     // of the alignment, concatenated.
@@ -127,7 +138,6 @@ void Assembler::alignOrientedReads3(
     if(debug) {
         cout << "Downsampled alignment length " << downsampledAlignmentLength << endl;
     }
-
 
 
     // Write the downsampled alignment on its alignment matrix.
