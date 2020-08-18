@@ -61,3 +61,61 @@ void Alignment::checkStrictlyIncreasing() const
         SHASTA_ASSERT(previous[1] < current[1]);
     }
 }
+
+
+
+void AlignmentInfo::create(
+    const Alignment& alignment,
+    const array<uint32_t, 2>& markerCounts)
+{
+    // Store the number of markers in the alignment.
+    markerCount = uint32_t(alignment.ordinals.size());
+
+    // Store alignment information for each of the two oriented reads.
+    for(size_t i=0; i<2; i++) {
+        data[i] = Data(
+            markerCounts[i],
+            (markerCount == 0) ? 0 : alignment.ordinals.front()[i],
+            (markerCount == 0) ? 0 : alignment.ordinals.back()[i]);
+        data[i].check();
+    }
+
+
+
+    // Compute minimum, maximum, and average ordinal offset.
+    // Also compute maxSkip and maxDrift.
+    minOrdinalOffset = std::numeric_limits<int32_t>::max();
+    maxOrdinalOffset = std::numeric_limits<int32_t>::min();
+    maxSkip = 0;
+    maxDrift = 0;
+    double sum = 0.;
+    for(uint64_t i=0; i<alignment.ordinals.size(); i++) {
+        auto& ordinals = alignment.ordinals[i];
+        const int32_t offset =
+            int32_t(ordinals[0]) - int32_t(ordinals[1]);
+        minOrdinalOffset = min(minOrdinalOffset, offset);
+        maxOrdinalOffset = max(maxOrdinalOffset, offset);
+        sum += double(offset);
+
+        if(i != 0) {
+            auto& previousOrdinals = alignment.ordinals[i-1];
+            maxSkip = max(maxSkip, uint32_t(abs(ordinals[0]-previousOrdinals[0])));
+            maxSkip = max(maxSkip, uint32_t(abs(ordinals[1]-previousOrdinals[1])));
+            maxDrift = max(maxDrift, uint32_t(abs(
+                (int32_t(ordinals[0]) - int32_t(ordinals[1])) -
+                (int32_t(previousOrdinals[0]) - int32_t(previousOrdinals[1]))
+                )));
+        }
+    }
+    averageOrdinalOffset = int32_t(std::round(sum / double(markerCount)));
+}
+
+
+
+void AlignmentInfo::create(
+    const Alignment& alignment,
+    uint32_t markerCount0,
+    uint32_t markerCount1)
+{
+    create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
+}

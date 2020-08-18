@@ -180,6 +180,16 @@ public:
     int32_t maxOrdinalOffset;
     int32_t averageOrdinalOffset;
 
+    // The maximum ordinal skip between successive aligned markers.
+    uint32_t maxSkip;
+
+    // Maximum drift is the maximum absolute value of diagonal shift
+    // between successive aligned markers.
+    // That, is the maximum absolute value of
+    // (ordinals[i][0]-ordinals[i][1]) - (ordinals[i-1][0]-ordinals[i-1][1])
+    // over the ordinals of the alignment.
+    uint32_t maxDrift;
+
 
 
     // Constructors.
@@ -197,41 +207,12 @@ public:
         create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
     }
     void create(
-        const Alignment& alignment,
-        const array<uint32_t, 2>& markerCounts)
-    {
-        // Store the number of markers in the alignment.
-        markerCount = uint32_t(alignment.ordinals.size());
-
-        // Store alignment information for each of the two oriented reads.
-        for(size_t i=0; i<2; i++) {
-            data[i] = Data(
-                markerCounts[i],
-                (markerCount == 0) ? 0 : alignment.ordinals.front()[i],
-                (markerCount == 0) ? 0 : alignment.ordinals.back()[i]);
-            data[i].check();
-        }
-
-        // Compute minimum, maximum, and average ordinal offset.
-        minOrdinalOffset = std::numeric_limits<int32_t>::max();
-        maxOrdinalOffset = std::numeric_limits<int32_t>::min();
-        double sum = 0.;
-        for(const auto& ordinals : alignment.ordinals) {
-            const int32_t offset =
-                int32_t(ordinals[0]) - int32_t(ordinals[1]);
-            minOrdinalOffset = min(minOrdinalOffset, offset);
-            maxOrdinalOffset = max(maxOrdinalOffset, offset);
-            sum += double(offset);
-        }
-        averageOrdinalOffset = int32_t(std::round(sum / double(markerCount)));
-    }
+        const Alignment&,
+        const array<uint32_t, 2>& markerCounts);
     void create(
-        const Alignment& alignment,
+        const Alignment&,
         uint32_t markerCount0,
-        uint32_t markerCount1)
-    {
-        create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
-    }
+        uint32_t markerCount1);
     AlignmentInfo() : markerCount(0) {}
 
 
