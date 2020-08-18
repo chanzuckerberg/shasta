@@ -1449,6 +1449,8 @@ void Assembler::assessAlignments(
     getParameterValue(request, "downsamplingFactor", computeAllAlignmentsData.downsamplingFactor);
     computeAllAlignmentsData.bandExtend = httpServerData.assemblerOptions->alignOptions.bandExtend;
     getParameterValue(request, "bandExtend", computeAllAlignmentsData.bandExtend);
+    computeAllAlignmentsData.maxBand = httpServerData.assemblerOptions->alignOptions.maxBand;
+    getParameterValue(request, "maxBand", computeAllAlignmentsData.maxBand);
 
     html << "<h1>Alignment statistics</h1>";
     html << "<p>This page enables sampling from the pool of reads and computing alignments for each read in the sample "
