@@ -181,7 +181,6 @@ void Assembler::displayAlignments(
         "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
         "<th rowspan=2 title='The maximum amount of alignment skip (# of markers).'><br>Max skip"
         "<th rowspan=2 title='The maximum amount of alignment drift (# of markers).'><br>Max drift"
-        "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
         "<th colspan=3>Ordinal offset"
         "<th rowspan=2 title='The marker offset of the centers of the two oriented reads.'>Center<br>offset"
         "<th colspan=5>Markers on oriented read " << orientedReadId0;
