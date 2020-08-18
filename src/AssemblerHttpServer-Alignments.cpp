@@ -1537,6 +1537,8 @@ void Assembler::assessAlignments(
     Histogram2 alignedFractionHistogram(0, 1, 20);
     Histogram2 markerCountHistogram(0, 3000, 120);
     Histogram2 alignmentCountHistogram(0, 200, 20);
+    Histogram2 maxDriftHistogram(0, 60, 20);
+    Histogram2 maxSkipHistogram(0, 60, 20);
 
     // Only used if user specified to sample dead ends
     vector<bool> allIsLeftEnd;
@@ -1544,8 +1546,6 @@ void Assembler::assessAlignments(
 
     vector<pair<OrientedReadId, AlignmentInfo> > allAlignmentInfo;
     vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignmentInfo;
-    vector<pair<OrientedReadId, SupplementaryAlignmentInfo> > allSupplementaryAlignmentInfo;
-    vector<pair<OrientedReadId, SupplementaryAlignmentInfo> > allStoredSupplementaryAlignmentInfo;
 
     for (size_t i=0; i<sampledReads.size(); i++) {
         const OrientedReadId orientedReadId = sampledReads[i];
@@ -1561,7 +1561,6 @@ void Assembler::assessAlignments(
         computeAllAlignmentsData.orientedReadId0 = orientedReadId;
         const size_t threadCount = std::thread::hardware_concurrency();
         computeAllAlignmentsData.threadAlignments.resize(threadCount);
-        computeAllAlignmentsData.threadSupplementaryAlignmentInfo.resize(threadCount);
         const size_t batchSize = 1;
         setupLoadBalancing(reads->readCount(), batchSize);
         const auto t0 = std::chrono::steady_clock::now();
@@ -1572,21 +1571,14 @@ void Assembler::assessAlignments(
 
         // Gather the alignments found by each thread.
         vector<pair<OrientedReadId, AlignmentInfo> > alignmentInfo;
-        vector<pair<OrientedReadId, SupplementaryAlignmentInfo> > supplementaryInfo;
         for (size_t threadId = 0; threadId < threadCount; threadId++) {
             const vector<pair<OrientedReadId, AlignmentInfo> >& threadAlignments =
                     computeAllAlignmentsData.threadAlignments[threadId];
-            const vector<pair<OrientedReadId, SupplementaryAlignmentInfo> >& threadSupplementaryInfo =
-                    computeAllAlignmentsData.threadSupplementaryAlignmentInfo[threadId];
             copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignmentInfo));
-            copy(threadSupplementaryInfo.begin(), threadSupplementaryInfo.end(), back_inserter(supplementaryInfo));
         }
         computeAllAlignmentsData.threadAlignments.clear();
-        computeAllAlignmentsData.threadSupplementaryAlignmentInfo.clear();
         sort(alignmentInfo.begin(), alignmentInfo.end(),
              OrderPairsByFirstOnly<OrientedReadId, AlignmentInfo>());
-        sort(supplementaryInfo.begin(), supplementaryInfo.end(),
-             OrderPairsByFirstOnly<OrientedReadId, SupplementaryAlignmentInfo>());
 
         // Loop over the STORED alignments that this oriented read is involved in, with the proper orientation.
         vector<StoredAlignmentInformation> storedAlignments;
@@ -1626,8 +1618,6 @@ void Assembler::assessAlignments(
 
             const auto maxSkip = a.alignment.maxSkip();
             const auto maxDrift = a.alignment.maxDrift();
-            const auto info2 = SupplementaryAlignmentInfo(maxSkip, maxDrift);
-            allStoredSupplementaryAlignmentInfo.push_back({orientedReadId, info2});
         }
 
         for (auto& a: alignmentInfo){
@@ -1646,32 +1636,52 @@ void Assembler::assessAlignments(
         alignmentCountHistogram.update(double(alignmentInfo.size()));
     }
 
-    for (auto& item: allAlignmentInfo){
-        const auto alignment = item.second;
+    for (const auto& item: allAlignmentInfo){
+        const auto& info = item.second;
 
         // Increment histograms
-        markerCountHistogram.update(alignment.markerCount);
-        alignedFractionHistogram.update(alignment.minAlignedFraction());
+        markerCountHistogram.update(info.markerCount);
+        alignedFractionHistogram.update(info.minAlignedFraction());
     }
+
+//    for (const auto& item: allSupplementaryAlignmentInfo){
+//        const auto& info = item.second;
+//
+//        // Increment histograms
+//        maxDriftHistogram.update(info.maxDrift);
+//        maxSkipHistogram.update(info.maxSkip);
+//    }
 
     // Pixel width of histogram display
     const uint64_t histogramSize = 500;
 
-    html << "<br><br>";
-    html << "<br><strong>Marker Count Distribution</strong>";
-    html << "<br>Histogram of the number of aligned markers observed per alignment";
-    markerCountHistogram.writeToHtml(html, histogramSize);
-    html << "<br><strong>Aligned Fraction Distribution</strong>";
-    html << "<br>Histogram of 'aligned fraction' per alignment. Aligned fraction is the portion of matching markers"
-            " used in the alignment, within the overlapping region between reads";
-    alignedFractionHistogram.writeToHtml(html, histogramSize);
-    html << "<br><strong>Number of Alignments Found per Read</strong>";
-    html << "<br>For each query read, how many passing alignments were found in one-to-all alignment";
-    alignmentCountHistogram.writeToHtml(html, histogramSize);
     html << "<br><strong>Ratio of stored to found alignments</strong>";
     html << "<br>" << std::fixed << std::setprecision(3) <<
          double(allStoredAlignmentInfo.size()) / double(allAlignmentInfo.size());
     html << "<br>";
+
+    html << "<br><strong>Number of Alignments Found per Read</strong>";
+    html << "<br>For each query read, how many passing alignments were found in one-to-all alignment";
+    alignmentCountHistogram.writeToHtml(html, histogramSize);
+
+    html << "<br><strong>Aligned Fraction Distribution</strong>";
+    html << "<br>Histogram of 'aligned fraction' per alignment. Aligned fraction is the portion of matching markers"
+            " used in the alignment, within the overlapping region between reads";
+    alignedFractionHistogram.writeToHtml(html, histogramSize);
+
+    html << "<br><strong>Marker Count Distribution</strong>";
+    html << "<br>Histogram of the number of aligned markers observed per alignment";
+    markerCountHistogram.writeToHtml(html, histogramSize);
+
+//    html << "<br><strong>Max Drift Distribution</strong>";
+//    html << "<br>Histogram of the maximum amount of 'drift' observed in the alignment, measured in markers";
+//    maxDriftHistogram.writeToHtml(html, histogramSize);
+//
+//    html << "<br><strong>Max Skip Distribution</strong>";
+//    html << "<br>Histogram of the maximum amount of 'skip' observed in the alignment, measured in markers";
+//    maxSkipHistogram.writeToHtml(html, histogramSize);
+
+    html << "<br><br>";
 
     if (useDeadEnds){
         Histogram2 overhangLengths(0,1000,40,false,true);
@@ -1729,10 +1739,6 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     // Vector where this thread will store the alignments it finds.
     vector< pair<OrientedReadId, AlignmentInfo> >& alignments =
         computeAllAlignmentsData.threadAlignments[threadId];
-
-    // Vector to store the maxSkip and maxDrift that is observed in each alignment
-    vector <pair <OrientedReadId, SupplementaryAlignmentInfo> >& supplementaryInfo =
-            computeAllAlignmentsData.threadSupplementaryAlignmentInfo[threadId];
 
     // Reusable data structures for alignOrientedReads.
     AlignmentGraph graph;
@@ -1813,11 +1819,6 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                     continue;
                 }
 
-                // Fill in a storage object with data about maxDrift and maxSkip
-                auto s = SupplementaryAlignmentInfo(uint32_t(maxSkip), uint32_t(maxDrift));
-
-                // Update the storage vectors
-                supplementaryInfo.push_back({orientedReadId1, s});
                 alignments.push_back({orientedReadId1, alignmentInfo});
             }
         }

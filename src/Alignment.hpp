@@ -16,7 +16,6 @@ namespace shasta {
     class Alignment;
     class AlignmentData;
     class AlignmentInfo;
-    class SupplementaryAlignmentInfo;
     enum class AlignmentType;
     void reverse(AlignmentType&);
 
@@ -402,14 +401,6 @@ public:
     }
 };
 
-
-class shasta::SupplementaryAlignmentInfo{
-public:
-    uint32_t maxSkip;
-    uint32_t maxDrift;
-
-    SupplementaryAlignmentInfo(uint32_t maxSkip, uint32_t maxDrift);
-};
 
 
 class shasta::AlignmentData :

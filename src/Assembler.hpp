@@ -2000,7 +2000,6 @@ public:
         int maxBand;
         // The alignments found by each thread.
         vector< vector< pair<OrientedReadId, AlignmentInfo> > > threadAlignments;
-        vector< vector< pair<OrientedReadId, SupplementaryAlignmentInfo> > > threadSupplementaryAlignmentInfo;
     };
     ComputeAllAlignmentsData computeAllAlignmentsData;
 
