@@ -87,7 +87,7 @@ uint64_t Histogram2::getSum(){
 }
 
 
-void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx){
+void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx, int32_t precision){
     uint64_t yMax = 0;
     for (auto& e: histogram){
         if (e > yMax){
@@ -104,20 +104,10 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx){
             "<th class='centered'>Count"
             "<th class='centered'>Plot";
 
-    int32_t precision;
-
     for (size_t i=0; i<histogram.size(); i++){
         const double leftBound = double(i)*(binSize);
         const double rightBound = double(i+1)*(binSize);
         const auto y = histogram[i];
-
-        // Check if the bin bounds have any trailing decimals
-        if (std::fmod(leftBound,1) == 0 and std::fmod(rightBound,1) == 0){
-            precision = 0;
-        }
-        else{
-            precision = 2;
-        }
 
         string leftBoundString;
         string rightBoundString;
@@ -128,17 +118,29 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx){
         else {
             leftBoundString = to_string(leftBound);
             const size_t decimalPosition = leftBoundString.find('.');
-            leftBoundString = leftBoundString.substr(0,decimalPosition+3);
+
+            if (precision == 0) {
+                leftBoundString = leftBoundString.substr(0,decimalPosition);
+            }
+            else {
+                leftBoundString = leftBoundString.substr(0, decimalPosition + precision + 1);
+            }
         }
 
         if (unboundedRight and i == binCount-1){
             rightBoundString = "inf";
         }
         else{
-            rightBoundString = to_string(rightBound);
-            const size_t decimalPosition = rightBoundString.find('.');
-            rightBoundString = rightBoundString.substr(0,decimalPosition+3);
-
+            if (precision == 0) {
+                rightBoundString = to_string(rightBound - 1);
+                const size_t decimalPosition = rightBoundString.find('.');
+                rightBoundString = rightBoundString.substr(0,decimalPosition);
+            }
+            else {
+                rightBoundString = to_string(rightBound);
+                const size_t decimalPosition = rightBoundString.find('.');
+                rightBoundString = rightBoundString.substr(0, decimalPosition + precision + 1);
+            }
         }
 
 
@@ -158,7 +160,13 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx){
 }
 
 
-void shasta::writeHistogramsToHtml(ostream& html, Histogram2& histogramA, Histogram2& histogramB, uint64_t sizePx){
+void shasta::writeHistogramsToHtml(
+        ostream& html,
+        Histogram2& histogramA,
+        Histogram2& histogramB,
+        uint64_t sizePx,
+        int32_t precision){
+
     // First verify that histograms are compatible
     bool compatible = true;
     if (histogramA.start != histogramB.start){
@@ -202,8 +210,6 @@ void shasta::writeHistogramsToHtml(ostream& html, Histogram2& histogramA, Histog
             "<th class='centered'>Count B"
             "<th class='centered'>Plot";
 
-    int32_t precision;
-
     for (size_t i=0; i<histogramA.histogram.size(); i++){
         const double leftBound = double(i)*(histogramA.binSize);
         const double rightBound = double(i+1)*(histogramA.binSize);
@@ -225,17 +231,29 @@ void shasta::writeHistogramsToHtml(ostream& html, Histogram2& histogramA, Histog
         else {
             leftBoundString = to_string(leftBound);
             const size_t decimalPosition = leftBoundString.find('.');
-            leftBoundString = leftBoundString.substr(0,decimalPosition+3);
+
+            if (precision == 0) {
+                leftBoundString = leftBoundString.substr(0,decimalPosition);
+            }
+            else {
+                leftBoundString = leftBoundString.substr(0, decimalPosition + precision + 1);
+            }
         }
 
         if (histogramA.unboundedRight and i == histogramA.binCount-1){
             rightBoundString = "inf";
         }
         else{
-            rightBoundString = to_string(rightBound);
-            const size_t decimalPosition = rightBoundString.find('.');
-            rightBoundString = rightBoundString.substr(0,decimalPosition+3);
-
+            if (precision == 0) {
+                rightBoundString = to_string(rightBound - 1);
+                const size_t decimalPosition = rightBoundString.find('.');
+                rightBoundString = rightBoundString.substr(0,decimalPosition);
+            }
+            else {
+                rightBoundString = to_string(rightBound);
+                const size_t decimalPosition = rightBoundString.find('.');
+                rightBoundString = rightBoundString.substr(0, decimalPosition + precision + 1);
+            }
         }
 
         html << std::fixed << std::setprecision(precision) <<

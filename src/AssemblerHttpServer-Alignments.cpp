@@ -179,6 +179,9 @@ void Assembler::displayAlignments(
         "<th rowspan=2>Index"
         "<th rowspan=2>Other<br>oriented<br>read"
         "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
+        "<th rowspan=2 title='The maximum amount of alignment skip (# of markers).'><br>Max skip"
+        "<th rowspan=2 title='The maximum amount of alignment drift (# of markers).'><br>Max drift"
+        "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
         "<th colspan=3>Ordinal offset"
         "<th rowspan=2 title='The marker offset of the centers of the two oriented reads.'>Center<br>offset"
         "<th colspan=5>Markers on oriented read " << orientedReadId0;
@@ -232,6 +235,8 @@ void Assembler::displayAlignments(
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
             "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
+            "<td>" << alignmentInfo.maxSkip <<
+            "<td>" << alignmentInfo.maxDrift <<
             "<td>" << alignmentInfo.minOrdinalOffset <<
             "<td>" << alignmentInfo.maxOrdinalOffset <<
             "<td>" << alignmentInfo.averageOrdinalOffset <<
@@ -1352,7 +1357,7 @@ void Assembler::sampleReadsFromDeadEnds(
         const OrientedReadId r = findMarkerId(markerId).first;
 
         // Number of raw bases.
-        const auto repeatCounts = reads.getReadRepeatCounts(r.getReadId());
+        const auto repeatCounts = reads->getReadRepeatCounts(r.getReadId());
         uint64_t length = 0;
         for(const auto repeatCount: repeatCounts) {
             length += repeatCount;
@@ -1537,8 +1542,8 @@ void Assembler::assessAlignments(
     Histogram2 alignedFractionHistogram(0, 1, 20);
     Histogram2 markerCountHistogram(0, 3000, 120);
     Histogram2 alignmentCountHistogram(0, 200, 20);
-    Histogram2 maxDriftHistogram(0, 60, 20);
-    Histogram2 maxSkipHistogram(0, 60, 20);
+    Histogram2 maxDriftHistogram(0, 60, 30);
+    Histogram2 maxSkipHistogram(0, 60, 30);
 
     // Only used if user specified to sample dead ends
     vector<bool> allIsLeftEnd;
@@ -1582,8 +1587,6 @@ void Assembler::assessAlignments(
 
         // Loop over the STORED alignments that this oriented read is involved in, with the proper orientation.
         vector<StoredAlignmentInformation> storedAlignments;
-
-        cout << "fetching stored alignments for read " << orientedReadId << '\n';
         getStoredAlignments(orientedReadId, storedAlignments);
 
         html << "<p><strong>Assessing alignments for read " << orientedReadId << "</strong>";
@@ -1613,11 +1616,8 @@ void Assembler::assessAlignments(
             const auto orientedReadId1 = a.orientedReadId;
             const auto markerCount0 = uint32_t(markers.size(orientedReadId.getValue()));
             const auto markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
-            const auto info1 = AlignmentInfo(a.alignment, markerCount0, markerCount1);
-            allStoredAlignmentInfo.push_back({orientedReadId, info1});
-
-            const auto maxSkip = a.alignment.maxSkip();
-            const auto maxDrift = a.alignment.maxDrift();
+            const auto info = AlignmentInfo(a.alignment, markerCount0, markerCount1);
+            allStoredAlignmentInfo.push_back({orientedReadId, info});
         }
 
         for (auto& a: alignmentInfo){
@@ -1642,15 +1642,9 @@ void Assembler::assessAlignments(
         // Increment histograms
         markerCountHistogram.update(info.markerCount);
         alignedFractionHistogram.update(info.minAlignedFraction());
+        maxDriftHistogram.update(info.maxDrift);
+        maxSkipHistogram.update(info.maxSkip);
     }
-
-//    for (const auto& item: allSupplementaryAlignmentInfo){
-//        const auto& info = item.second;
-//
-//        // Increment histograms
-//        maxDriftHistogram.update(info.maxDrift);
-//        maxSkipHistogram.update(info.maxSkip);
-//    }
 
     // Pixel width of histogram display
     const uint64_t histogramSize = 500;
@@ -1662,24 +1656,24 @@ void Assembler::assessAlignments(
 
     html << "<br><strong>Number of Alignments Found per Read</strong>";
     html << "<br>For each query read, how many passing alignments were found in one-to-all alignment";
-    alignmentCountHistogram.writeToHtml(html, histogramSize);
+    alignmentCountHistogram.writeToHtml(html, histogramSize, 0);
 
     html << "<br><strong>Aligned Fraction Distribution</strong>";
     html << "<br>Histogram of 'aligned fraction' per alignment. Aligned fraction is the portion of matching markers"
             " used in the alignment, within the overlapping region between reads";
-    alignedFractionHistogram.writeToHtml(html, histogramSize);
+    alignedFractionHistogram.writeToHtml(html, histogramSize, 2);
 
     html << "<br><strong>Marker Count Distribution</strong>";
     html << "<br>Histogram of the number of aligned markers observed per alignment";
-    markerCountHistogram.writeToHtml(html, histogramSize);
+    markerCountHistogram.writeToHtml(html, histogramSize, 0);
 
-//    html << "<br><strong>Max Drift Distribution</strong>";
-//    html << "<br>Histogram of the maximum amount of 'drift' observed in the alignment, measured in markers";
-//    maxDriftHistogram.writeToHtml(html, histogramSize);
-//
-//    html << "<br><strong>Max Skip Distribution</strong>";
-//    html << "<br>Histogram of the maximum amount of 'skip' observed in the alignment, measured in markers";
-//    maxSkipHistogram.writeToHtml(html, histogramSize);
+    html << "<br><strong>Max Drift Distribution</strong>";
+    html << "<br>Histogram of the maximum amount of 'drift' observed in the alignment, measured in markers";
+    maxDriftHistogram.writeToHtml(html, histogramSize, 0);
+
+    html << "<br><strong>Max Skip Distribution</strong>";
+    html << "<br>Histogram of the maximum amount of 'skip' observed in the alignment, measured in markers";
+    maxSkipHistogram.writeToHtml(html, histogramSize, 0);
 
     html << "<br><br>";
 
@@ -1697,7 +1691,7 @@ void Assembler::assessAlignments(
         html << "<br>Overhangs less than " << minOverhang << " markers were excluded from all analyses.";
         html << "<br>Recomputed alignments = A = red";
         html << "<br>Stored alignments = B = blue";
-        writeHistogramsToHtml(html, overhangLengths, storedOverhangLengths, histogramSize);
+        writeHistogramsToHtml(html, overhangLengths, storedOverhangLengths, histogramSize, 0);
         html << "<br>";
         html << "<strong>Total overhangs observed in recomputed alignments</strong>";
         html << "<br>";
@@ -1816,6 +1810,11 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 uint32_t rightTrim;
                 tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
                 if(leftTrim>maxTrim || rightTrim>maxTrim) {
+                    continue;
+                }
+
+                // Dont store alignments that exceeded the max number of markers for drift and skip
+                if (alignmentInfo.maxDrift > maxDrift or alignmentInfo.maxSkip > maxSkip){
                     continue;
                 }
 
