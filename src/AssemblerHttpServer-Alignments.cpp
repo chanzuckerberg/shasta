@@ -234,8 +234,8 @@ void Assembler::displayAlignments(
             "?readId0=" << readId0 << "&strand0=" << strand0 <<
             "&readId1=" << readId1 << "&strand1=" << strand1 <<
             "' title='Click to see the alignment'>" << alignmentInfo.markerCount << "</a>"
-            "<td>" << alignmentInfo.maxSkip <<
-            "<td>" << alignmentInfo.maxDrift <<
+            "<td class=centered>" << alignmentInfo.maxSkip <<
+            "<td class=centered>" << alignmentInfo.maxDrift <<
             "<td>" << alignmentInfo.minOrdinalOffset <<
             "<td>" << alignmentInfo.maxOrdinalOffset <<
             "<td>" << alignmentInfo.averageOrdinalOffset <<
