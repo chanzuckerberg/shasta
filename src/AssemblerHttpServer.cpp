@@ -546,6 +546,13 @@ void Assembler::accessAllSoft()
         // allDataAreAvailable = false;
     }
 
+    try {
+        accessCompressedAlignments();
+    } catch(const exception& e) {
+        cout << "Alignments are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
     if(!allDataAreAvailable) {
         cout << "Not all assembly data are accessible." << endl;
         cout << "Some functionality is not available." << endl;
