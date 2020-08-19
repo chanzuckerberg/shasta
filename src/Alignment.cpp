@@ -99,8 +99,10 @@ void AlignmentInfo::create(
 
         if(i != 0) {
             auto& previousOrdinals = alignment.ordinals[i-1];
-            maxSkip = max(maxSkip, uint32_t(abs(ordinals[0]-previousOrdinals[0])));
-            maxSkip = max(maxSkip, uint32_t(abs(ordinals[1]-previousOrdinals[1])));
+            maxSkip = max(maxSkip, uint32_t(abs(
+                int32_t(ordinals[0]) - int32_t(previousOrdinals[0]))));
+            maxSkip = max(maxSkip, uint32_t(abs(
+                int32_t(ordinals[1]) - int32_t(previousOrdinals[1]))));
             maxDrift = max(maxDrift, uint32_t(abs(
                 (int32_t(ordinals[0]) - int32_t(ordinals[1])) -
                 (int32_t(previousOrdinals[0]) - int32_t(previousOrdinals[1]))
