@@ -260,7 +260,7 @@ string shasta::filesystem::getAbsolutePath(const string& path)
 
 string shasta::filesystem::executablePath() {
     string path;
-    vector<char> buf(1024, 0);
+    vector<char> buf(PATH_MAX, 0);
 #ifdef __linux__
     size_t bufSize = buf.size();
     ssize_t bytesRead = readlink("/proc/self/exe", &buf[0], bufSize);
