@@ -94,6 +94,13 @@ public:
     void unreserve();
     
     static const uint32_t infiniteDistance;
+
+    // Find "bridges" from the read graph.
+    // Takes as input a vector<bool> that says, for each alignmentId,
+    // whether that alignment is used in the read graph.
+    // Updates that vector to set to false the entries corresponding
+    // to read graph "bridges".
+    void findBridges(vector<bool>& keepAlignment);
 };
 
 

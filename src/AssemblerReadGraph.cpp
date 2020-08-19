@@ -1056,3 +1056,34 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
 }
 
 
+
+void Assembler::removeReadGraphBridges()
+{
+    // Check that we have what we need.
+    SHASTA_ASSERT(alignmentData.isOpen);
+    SHASTA_ASSERT(readGraph.edges.isOpen);
+    SHASTA_ASSERT(readGraph.connectivity.isOpen());
+
+    // Flag alignments that are currently in the read graph.
+    vector<bool> keepAlignment(alignmentData.size(), false);
+    for(const ReadGraphEdge& edge: readGraph.edges) {
+        keepAlignment[edge.alignmentId] = true;
+    }
+
+    cout << timestamp << "Finding bridges in the read graph." << endl;
+    cout << "The read graph uses " <<
+        count(keepAlignment.begin(), keepAlignment.end(), true) <<
+        " alignments out of " << alignmentData.size() << endl;
+
+    // Unflag alignments corresponding to read graph bridges.
+    readGraph.findBridges(keepAlignment);
+
+    // Recreate the read graph using the surviving alignments.
+    readGraph.edges.remove();
+    readGraph.connectivity.remove();
+    createReadGraphUsingSelectedAlignments(keepAlignment);
+
+    cout << timestamp << "After removing bridges, the read graph uses " <<
+        count(keepAlignment.begin(), keepAlignment.end(), true) <<
+        " alignments out of " << alignmentData.size() << endl;
+}

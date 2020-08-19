@@ -310,6 +310,8 @@ PYBIND11_MODULE(shasta, module)
             arg("maxDistance"),
             arg("allowChimericReads"),
             arg("allowCrossStrandEdges"))
+        .def("removeReadGraphBridges",
+             &Assembler::removeReadGraphBridges)
 
 
 
