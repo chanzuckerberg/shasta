@@ -283,6 +283,3 @@ string shasta::filesystem::executablePath() {
     return path;
 }
 
-string shasta::filesystem::getParentDirectoryPath(const string& path) {
-    return path.substr(0, path.find_last_of('/'));
-}

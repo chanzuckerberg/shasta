@@ -69,7 +69,6 @@ namespace shasta {
         // Find the absolute path of the executable. Works only for Linux.
         string executablePath();
 
-        string getParentDirectoryPath(const string& path);
     }
 }
 
