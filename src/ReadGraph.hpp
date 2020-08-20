@@ -95,6 +95,8 @@ public:
     
     static const uint32_t infiniteDistance;
 
+    void findNeighbors(OrientedReadId, vector<OrientedReadId>&) const;
+
     // Find "bridges" from the read graph.
     // Takes as input a vector<bool> that says, for each alignmentId,
     // whether that alignment is used in the read graph.

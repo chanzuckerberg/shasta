@@ -117,6 +117,21 @@ void ReadGraph::computeShortPath(
 
 
 
+void ReadGraph::findNeighbors(
+    OrientedReadId orientedReadId0,
+    vector<OrientedReadId>& neighbors) const
+{
+    neighbors.clear();
+    for(const uint32_t edgeId: connectivity[orientedReadId0.getValue()]) {
+        const ReadGraphEdge& edge = edges[edgeId];
+        const OrientedReadId orientedReadId1 = edge.getOther(orientedReadId0);
+        neighbors.push_back(orientedReadId1);
+    }
+    sort(neighbors.begin(), neighbors.end());
+}
+
+
+
 // Find "bridges" from the read graph.
 // Takes as input a vector<bool> that says, for each alignmentId,
 // whether that alignment is used in the read graph.

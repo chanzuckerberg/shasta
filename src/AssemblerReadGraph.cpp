@@ -1087,3 +1087,85 @@ void Assembler::removeReadGraphBridges()
         count(keepAlignment.begin(), keepAlignment.end(), true) <<
         " alignments out of " << alignmentData.size() << endl;
 }
+
+
+
+void Assembler::analyzeReadGraph()
+{
+    // Check that we have what we need.
+    SHASTA_ASSERT(readGraph.edges.isOpen);
+    SHASTA_ASSERT(readGraph.connectivity.isOpen());
+
+    ofstream csv("AnalyzeReadGraph.csv");
+    csv <<
+        "OrientedReadId0,OrientedReadId1,"
+        "Neighbors0,Neighbors1,"
+        "ExclusiveNeighbors0,ExclusiveNeighbors1,"
+        "CommonNeighbors,"
+        "ExclusiveEdges,"
+        "\n";
+
+
+    // Loop over read graph edges.
+    for(uint64_t edgeId=0; edgeId<readGraph.edges.size(); edgeId++) {
+        const ReadGraphEdge& edge = readGraph.edges[edgeId];
+
+        // Find neighbors of the two vertices of this edge.
+        array<vector<OrientedReadId>, 2> neighbors;
+        for(uint64_t i=0; i<2; i++) {
+            const OrientedReadId orientedReadId = edge.orientedReadIds[i];
+            readGraph.findNeighbors(orientedReadId, neighbors[i]);
+        }
+
+        // For each of the two vertex, find neighbors that are not:
+        // - The other vertex.
+        // - A neighbor of the other vertex.
+        array<vector<OrientedReadId>, 2> exclusiveNeighbors;
+        for(uint64_t i=0; i<2; i++) {
+            const vector<OrientedReadId>& x = neighbors[i];
+            const vector<OrientedReadId>& y = neighbors[1-i];
+            for(const OrientedReadId orientedReadId: x) {
+                if(orientedReadId != edge.orientedReadIds[1-i] and
+                    not binary_search(y.begin(), y.end(), orientedReadId)) {
+                    exclusiveNeighbors[i].push_back(orientedReadId);
+                }
+            }
+        }
+
+        // Find common neighbors.
+        vector<OrientedReadId> commonNeighbors;
+        set_intersection(
+            neighbors[0].begin(), neighbors[0].end(),
+            neighbors[1].begin(), neighbors[1].end(),
+            back_inserter(commonNeighbors));
+
+
+        // Count edges between exclusive neighbors.
+        uint64_t exclusiveEdgeCount = 0;
+        for(const OrientedReadId orientedReadId0: exclusiveNeighbors[0]) {
+            for(const uint32_t edgeId: readGraph.connectivity[orientedReadId0.getValue()]) {
+                const ReadGraphEdge& edge = readGraph.edges[edgeId];
+                const OrientedReadId orientedReadId1 = edge.getOther(orientedReadId0);
+                if(binary_search(exclusiveNeighbors[1].begin(), exclusiveNeighbors[1].end(), orientedReadId1)) {
+                    ++exclusiveEdgeCount;
+                }
+            }
+        }
+
+
+
+        for(uint64_t i=0; i<2; i++) {
+            csv << edge.orientedReadIds[i] << ",";
+        }
+        for(uint64_t i=0; i<2; i++) {
+            csv << neighbors[i].size()-1 << ",";
+        }
+        for(uint64_t i=0; i<2; i++) {
+            csv << exclusiveNeighbors[i].size() << ",";
+        }
+        csv << commonNeighbors.size() << ",";
+        csv << exclusiveEdgeCount << ",";
+        csv << "\n";
+    }
+
+}

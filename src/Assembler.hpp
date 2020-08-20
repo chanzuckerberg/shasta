@@ -925,6 +925,7 @@ public:
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
     void removeReadGraphBridges();
+    void analyzeReadGraph();
 
 
 

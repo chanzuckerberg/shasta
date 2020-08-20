@@ -312,6 +312,8 @@ PYBIND11_MODULE(shasta, module)
             arg("allowCrossStrandEdges"))
         .def("removeReadGraphBridges",
              &Assembler::removeReadGraphBridges)
+        .def("analyzeReadGraph",
+             &Assembler::analyzeReadGraph)
 
 
 
