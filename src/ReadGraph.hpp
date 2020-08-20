@@ -103,6 +103,8 @@ public:
     // Updates that vector to set to false the entries corresponding
     // to read graph "bridges".
     void findBridges(vector<bool>& keepAlignment);
+
+    void clustering() const;
 };
 
 

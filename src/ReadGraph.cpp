@@ -1,5 +1,6 @@
 // Shasta.
 #include "ReadGraph.hpp"
+#include "deduplicate.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
 
@@ -9,6 +10,7 @@ using namespace shasta;
 // Standard library.
 #include "fstream.hpp"
 #include <queue>
+#include <random>
 
 const uint32_t ReadGraph::infiniteDistance = std::numeric_limits<uint32_t>::max();
 
@@ -276,4 +278,152 @@ void ReadGraph::findBridges(vector<bool>& keepAlignment)
         }
     }
 
+}
+
+
+
+// Quick and dirty label propagation, without attempting to keep the clustering
+// invariant under reverse complementing.
+void ReadGraph::clustering() const
+{
+    // Initialize each vertex to its own cluster.
+    const ReadId vertexCount = ReadId(connectivity.size());
+    vector<ReadId> cluster(vertexCount);
+    for(ReadId i=0; i<vertexCount; i++) {
+        cluster[i] = i;
+    }
+
+    // Random number generator.
+    const uint32_t seed = 231;
+    std::mt19937 randomSource(seed);
+    std::uniform_int_distribution<ReadId> uniformDistribution(0, vertexCount-1);
+
+    // Iterate.
+    const uint64_t sweepCount = 100;
+    const uint64_t iterationCount = sweepCount * vertexCount;
+    vector<ReadId> neighborLabels;
+    vector<ReadId> labelFrequencies;
+    for(uint64_t iteration=0; iteration<iterationCount; iteration++) {
+
+        // Randomly pick a vertex to update.
+        const ReadId vertexId0 = uniformDistribution(randomSource);
+        const OrientedReadId orientedReadId0 = OrientedReadId(vertexId0);
+
+        // Get the clusters of its neighbors.
+        neighborLabels.clear();
+        for(const uint32_t edgeId: connectivity[vertexId0]) {
+            const ReadGraphEdge& edge = edges[edgeId];
+            const OrientedReadId orientedReadId1 = edge.getOther(orientedReadId0);
+            const ReadId vertexId1 = orientedReadId1.getValue();
+            const ReadId label1 = cluster[vertexId1];
+            neighborLabels.push_back(label1);
+        }
+
+        if(neighborLabels.empty()) {
+            continue;
+        }
+
+        // Count the occurrences of each label.
+        deduplicateAndCount(neighborLabels, labelFrequencies);
+
+        // Find the most frequent label.
+        ReadId bestLabel = neighborLabels.front();
+        ReadId bestLabelFrequency = labelFrequencies.front();
+        for(uint64_t i=1; i<neighborLabels.size(); i++) {
+            if(labelFrequencies[i] > bestLabelFrequency) {
+                bestLabel = neighborLabels[i];
+                bestLabelFrequency = labelFrequencies[i];
+            }
+        }
+
+        // Assign to this vertex the most frequent cluster in its neighbors.
+        cluster[vertexId0] = bestLabel;
+
+    }
+
+
+
+    // Summarize the clusters.
+    std::map<ReadId, ReadId> clusterMap;    // (cluster, number of vertices)
+    for(ReadId vertexId=0; vertexId<vertexCount; vertexId++) {
+        const ReadId vertexCluster = cluster[vertexId];
+        const auto it = clusterMap.find(vertexCluster);
+        if(it == clusterMap.end()) {
+            clusterMap.insert(make_pair(vertexCluster, 1));
+        } else {
+            ++(it->second);
+        }
+    }
+
+    {
+        ofstream csv("Clusters.csv");
+        csv << "Cluster,Size\n";
+        for(const auto& p: clusterMap) {
+            csv << p.first << ",";
+            csv << p.second << "\n";
+        }
+    }
+
+
+
+    // Summarize edges by cluster.
+    // Key: pair(cluster0, cluster1) with cluster0<=cluster1;
+    // Value: number of edges.
+    std::map< pair<ReadId, ReadId>, ReadId> edgeTable;
+    for(const ReadGraphEdge& edge: edges) {
+        const ReadId vertexId0 = edge.orientedReadIds[0].getValue();
+        const ReadId vertexId1 = edge.orientedReadIds[1].getValue();
+        ReadId cluster0 = cluster[vertexId0];
+        ReadId cluster1 = cluster[vertexId1];
+        if(cluster1 < cluster0) {
+            swap(cluster0, cluster1);
+        }
+        const auto it = edgeTable.find(make_pair(cluster0, cluster1));
+        if(it == edgeTable.end()) {
+            edgeTable.insert(make_pair(make_pair(cluster0, cluster1), 1));
+        } else {
+            ++(it->second);
+        }
+    }
+
+    {
+        ofstream csv("EdgeByClusters.csv");
+        csv << "Cluster0,Cluster1,Size0,Size1,Edges\n";
+        for(const auto& p: edgeTable) {
+            const ReadId cluster0 = p.first.first;
+            const ReadId cluster1 = p.first.second;
+            csv << cluster0 << ",";
+            csv << cluster1 << ",";
+            csv << clusterMap[cluster0] << ",";
+            csv << clusterMap[cluster1] << ",";
+            csv << p.second << "\n";
+        }
+    }
+
+
+    ofstream graphOut("ReadGraph.dot");
+    graphOut << "graph ReadGraph {\n"
+        "tooltip=\" \"";
+    for(ReadId vertexId=0; vertexId<vertexCount; vertexId++) {
+        const OrientedReadId orientedReadId = OrientedReadId(vertexId);
+        const ReadId vertexLabel = cluster[vertexId];
+        graphOut << "\"" << orientedReadId << "\"[" <<
+            " tooltip=\"" << orientedReadId << " " << vertexLabel << "\""
+            " color = \"" << 0.05 * (vertexLabel%20) << " 1 1\"];\n";
+    }
+    for(const ReadGraphEdge& edge: edges) {
+        graphOut << "\"" << edge.orientedReadIds[0] << "\"--\"" <<
+            edge.orientedReadIds[1] << "\"";
+        /*
+        const ReadId vertexId0 = edge.orientedReadIds[0].getValue();
+        const ReadId vertexId1 = edge.orientedReadIds[1].getValue();
+        const ReadId cluster0 = cluster[vertexId0];
+        const ReadId cluster1 = cluster[vertexId1];
+        if(cluster0 != cluster1) {
+            graphOut << " [color=red]";
+        }
+        */
+        graphOut << ";\n";
+    }
+    graphOut << "}\n";
 }

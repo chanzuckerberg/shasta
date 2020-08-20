@@ -1169,3 +1169,13 @@ void Assembler::analyzeReadGraph()
     }
 
 }
+
+
+
+void Assembler::readGraphClustering()
+{
+    SHASTA_ASSERT(readGraph.edges.isOpen);
+    SHASTA_ASSERT(readGraph.connectivity.isOpen());
+    readGraph.clustering();
+}
+

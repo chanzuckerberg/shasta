@@ -926,6 +926,7 @@ public:
     void checkReadGraphIsOpen();
     void removeReadGraphBridges();
     void analyzeReadGraph();
+    void readGraphClustering();
 
 
 

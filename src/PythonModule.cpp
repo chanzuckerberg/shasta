@@ -314,6 +314,8 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::removeReadGraphBridges)
         .def("analyzeReadGraph",
              &Assembler::analyzeReadGraph)
+        .def("readGraphClustering",
+             &Assembler::readGraphClustering)
 
 
 
