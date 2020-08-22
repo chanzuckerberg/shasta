@@ -6,8 +6,10 @@
 #include <numeric>
 #include <cstdint>
 #include <fstream>
+#include <utility>
 
 using std::ostream;
+using std::pair;
 
 
 namespace shasta {
@@ -78,6 +80,7 @@ public:
     void update(double x);
     void getNormalizedHistogram(vector<double>& normalizedHistogram);
     void writeToHtml(ostream& html, uint64_t sizePx, int32_t precision);
+    double thresholdByCumulativeProportion(double fraction);
     uint64_t getSum();
 
 private:

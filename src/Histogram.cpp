@@ -11,6 +11,7 @@ using std::runtime_error;
 using std::to_string;
 using std::string;
 
+
 shasta::Histogram2::Histogram2(
         double start,
         double stop,
@@ -87,6 +88,29 @@ uint64_t Histogram2::getSum(){
 }
 
 
+double Histogram2::thresholdByCumulativeProportion(double fraction){
+    const uint64_t total = getSum();
+
+    double cumulativeSum = 0;
+    double cumulativeFraction;
+    size_t i;
+
+    for (i=0; i<histogram.size(); i++){
+        cumulativeSum += double(histogram[i]);
+        cumulativeFraction = double(cumulativeSum)/double(total);
+
+        std::cout << i << " " << cumulativeSum << " " << cumulativeFraction << '\n';
+
+        if (cumulativeFraction >= fraction) {
+            break;
+        }
+    }
+
+    // Return the middle of the bin which exceeded the threshold
+    return start + binSize*double(i) + binSize/2;
+}
+
+
 void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx, int32_t precision){
     uint64_t yMax = 0;
     for (auto& e: histogram){
@@ -105,8 +129,8 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx, int32_t pre
             "<th class='centered'>Plot";
 
     for (size_t i=0; i<histogram.size(); i++){
-        const double leftBound = double(i)*(binSize);
-        const double rightBound = double(i+1)*(binSize);
+        const double leftBound = start + double(i)*(binSize);
+        const double rightBound = start + double(i+1)*(binSize);
         const auto y = histogram[i];
 
         string leftBoundString;
@@ -211,8 +235,8 @@ void shasta::writeHistogramsToHtml(
             "<th class='centered'>Plot";
 
     for (size_t i=0; i<histogramA.histogram.size(); i++){
-        const double leftBound = double(i)*(histogramA.binSize);
-        const double rightBound = double(i+1)*(histogramA.binSize);
+        const double leftBound = histogramA.start + double(i)*(histogramA.binSize);
+        const double rightBound = histogramA.start + double(i+1)*(histogramA.binSize);
 
         // Check if the bin bounds have any trailing decimals
         if (std::fmod(leftBound,1) == 0 and std::fmod(rightBound,1) == 0){
