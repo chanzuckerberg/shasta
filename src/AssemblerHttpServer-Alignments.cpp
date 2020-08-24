@@ -1853,11 +1853,16 @@ void Assembler::exploreAlignmentGraph(
     double timeout= 30;
     getParameterValue(request, "timeout", timeout);
 
-
+    string readGraphHeading;
+    if (httpServerData.docsDirectory.empty()) {
+        readGraphHeading = "<h3>Display a local subgraph of the global alignment graph</h3>";
+    } else {
+        readGraphHeading =
+            "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>global alignment graph</a></h3>";
+    }
 
     // Write the form.
-    html <<
-        "<h3>Display a local subgraph of the <a href='docs/ReadGraph.html'>global alignment graph</a></h3>"
+    html << readGraphHeading <<
         "<form>"
 
         "<table>"

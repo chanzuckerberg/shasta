@@ -55,6 +55,7 @@ void Assembler::processRequest(
 {
     // Process a documentation request.
     const string& keyword = request.front();
+    
     if(keyword.size()>6 && keyword.substr(0, 6)=="/docs/") {
 
         // Extract the file name.
@@ -226,7 +227,6 @@ void Assembler::writeHtmlBegin(ostream& html, bool navigation) const
         "<!DOCTYPE html>"
         "<html>"
         "<head>"
-        "<link rel=icon href=docs/CZI-new-logo.png />"
         "<meta charset='UTF-8'>"
         "<title>Shasta assembler</title>";
     writeStyle(html);
@@ -325,9 +325,12 @@ void Assembler::writeNavigation(ostream& html) const
         {"Assembly graph edges support", "exploreAssemblyGraphEdgesSupport"},
         {"Compressed assembly graph", "exploreCompressedAssemblyGraph"},
         });
-    writeNavigation(html, "Help", {
-        {"Documentation", "docs/index.html"},
-        });
+    
+    if (!httpServerData.docsDirectory.empty()) {
+        writeNavigation(html, "Help", {
+            {"Documentation", "docs/index.html"},
+            });
+    }
 
     html << "</ul>";
 }

@@ -1073,7 +1073,7 @@ void shasta::main::cleanupBinaryData(
 
 
 // Implementation of --command explore.
-void shasta::main:: explore(
+void shasta::main::explore(
     const AssemblerOptions& assemblerOptions)
 {
     // Go to the assembly directory.
@@ -1103,7 +1103,20 @@ void shasta::main:: explore(
         assemblerOptions.assemblyOptions.consensusCaller << endl;
     assembler.setupConsensusCaller(assemblerOptions.assemblyOptions.consensusCaller);
 
- 
+    string executablePath = filesystem::executablePath();
+    // On Linux it will be something like - `/path/to/install_root/bin/shasta`
+
+    string executableBinPath = executablePath.substr(0, executablePath.find_last_of('/'));
+    string installRootPath = executableBinPath.substr(0, executableBinPath.find_last_of('/'));
+    string docsPath = installRootPath + "/docs";
+
+    if (filesystem::isDirectory(docsPath)) {
+        cout << "Docs found at the expected location." << endl;
+        assembler.httpServerData.docsDirectory = docsPath;
+    } else {
+        assembler.httpServerData.docsDirectory = "";
+    }
+
     // Start the http server.
     assembler.httpServerData.assemblerOptions = &assemblerOptions;
     bool localOnly;
