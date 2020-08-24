@@ -179,6 +179,7 @@ private:
     void computeBucketHistogram();
     void computeBucketHistogramThreadFunction(size_t threadId);
     vector< vector<uint64_t> > threadBucketHistogram;
+    vector<uint64_t> bucketHistogram;
     ofstream histogramCsv;
 
 
@@ -194,6 +195,8 @@ private:
 
     // Pass 3: inspect the buckets to find candidates.
     void pass3ThreadFunction(size_t threadId);
+
+    void computeBucketSizesIfNotProvided();
 
 };
 
