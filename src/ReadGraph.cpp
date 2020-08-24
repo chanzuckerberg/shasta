@@ -9,6 +9,7 @@ using namespace shasta;
 
 // Standard library.
 #include "fstream.hpp"
+#include <map>
 #include <queue>
 #include <random>
 
@@ -119,6 +120,8 @@ void ReadGraph::computeShortPath(
 
 
 
+// Find neighbors to distance 1.
+// The neighbors are returned sorted and do not include orientedReadId0.
 void ReadGraph::findNeighbors(
     OrientedReadId orientedReadId0,
     vector<OrientedReadId>& neighbors) const
@@ -134,6 +137,59 @@ void ReadGraph::findNeighbors(
 
 
 
+// Find neighbors to specified maximum distance.
+// The neighbors are returned sorted and do not include orientedReadId0.
+void ReadGraph::findNeighbors(
+    OrientedReadId orientedReadId,
+    uint64_t maxDistance,
+    vector<OrientedReadId>& neighbors) const
+{
+    // Initialize the BFS.
+    std::queue<OrientedReadId> q;
+    q.push(orientedReadId);
+    std::map<OrientedReadId, uint64_t> distanceMap;
+    distanceMap.insert(make_pair(orientedReadId, 0));
+
+
+
+    // Do the BFS to the specified maximum distance.
+    neighbors.clear();
+    while(not q.empty()) {
+
+        // Dequeue a vertex.
+        const OrientedReadId orientedReadId0 = q.front();
+        q.pop();
+        const auto it0 = distanceMap.find(orientedReadId0);
+        SHASTA_ASSERT(it0 != distanceMap.end());
+        const uint64_t distance0 = it0->second;
+        const uint64_t distance1 = distance0 + 1;
+        SHASTA_ASSERT(distance1 <= maxDistance);
+
+        // Loop over its neighbors.
+        const span<const uint32_t> adjacentEdges = connectivity[orientedReadId0.getValue()];
+        for(const uint32_t edgeId: adjacentEdges) {
+            const ReadGraphEdge& edge = edges[edgeId];
+            const OrientedReadId orientedReadId1 = edge.getOther(orientedReadId0);
+            if(distanceMap.find(orientedReadId1) != distanceMap.end()) {
+                // We already found orientedReadId1.
+                continue;
+            }
+            neighbors.push_back(orientedReadId1);
+            distanceMap.insert(make_pair(orientedReadId1, distance1));
+            if(distance1 < maxDistance) {
+                q.push(orientedReadId1);
+            }
+        }
+    }
+
+
+
+    // Sort the neighbors.
+    sort(neighbors.begin(), neighbors.end());
+}
+
+
+
 // Find "bridges" from the read graph.
 // Takes as input a vector<bool> that says, for each alignmentId,
 // whether that alignment is used in the read graph.
@@ -141,6 +197,7 @@ void ReadGraph::findNeighbors(
 // to read graph "bridges".
 void ReadGraph::findBridges(vector<bool>& keepAlignment)
 {
+    const uint64_t maxDistance = 2;
 
     // Vector to flag edges that will be removed.
     vector<bool> isToBeRemoved(edges.size(), false);
@@ -163,16 +220,8 @@ void ReadGraph::findBridges(vector<bool>& keepAlignment)
         const OrientedReadId orientedReadId0(readId0, 0);
         // cout << "Working on " << orientedReadId0 << endl;
 
-        // Gather the neighbors.
-        neighbors.clear();
-        neighborEdges.clear();
-        for(const uint32_t edgeId01: connectivity[orientedReadId0.getValue()]) {
-            const ReadGraphEdge& edge01 = edges[edgeId01];
-            const OrientedReadId orientedReadId1 = edge01.getOther(orientedReadId0);
-            SHASTA_ASSERT(orientedReadId1 != orientedReadId0);
-            neighbors.push_back(orientedReadId1);
-        }
-        sort(neighbors.begin(), neighbors.end());
+        // Find neighbors within the specified distance.
+        findNeighbors(orientedReadId0, maxDistance, neighbors);
         const uint64_t n = neighbors.size();
         if(n == 0) {
             continue;
