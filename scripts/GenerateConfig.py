@@ -43,8 +43,11 @@ def generateConfig(
     config.optionxform = lambda option: option
     config['Reads'] = {
         'minReadLength': str(minReadLength),
-        'desiredCoverage': str(genomeSize * 60 * 1000 * 1000), # 60X coverage
+        'desiredCoverage': str(genomeSize * 60), # 60X coverage
         'noCache': 'True',
+    }
+    config['Kmers'] = {
+        'k': '14'
     }
     config['MinHash'] = {
         'minHashIterationCount': '10',
@@ -64,20 +67,21 @@ def generateConfig(
         'simplifyMaxLength': '10,100,1000,10000,100000',
         'refineThreshold': '6',
         'crossEdgeCoverageThreshold': '3',
-    }
-    config['Kmers'] = {
-        'k': '14'
+        'minCoverage': '0', # Auto select
     }
     config['Assembly'] = {
         'consensusCaller': 'Bayesian:guppy-3.6.0-a'    
     }
 
-    if baseCallerId == 2:
+    if baseCallerId == 2 or baseCallerId == 3:
         # Guppy version less than 3.6.0
-        config['Reads']['desiredCoverage'] = str(genomeSize * 80 * 1000 * 1000) # 80X coverage
+        config['Reads']['desiredCoverage'] = str(genomeSize * 80) # 80X coverage
         config['Kmers']['k'] = '10'
         config['Align']['minAlignedFraction'] = '0.4'
-        config['Assembly']['consensusCaller'] = 'Bayesian:guppy-3.0.5-a'
+        if baseCallerId == 2:
+            config['Assembly']['consensusCaller'] = 'Bayesian:guppy-3.0.5-a'
+        else:
+            config['Assembly']['consensusCaller'] = 'Modal'
     
     if enableDetangling:
         config['Assembly']['detangleMethod'] = '1'
@@ -86,30 +90,56 @@ def generateConfig(
 
 
 def main(argv):
-    genomeSize = int(input('Approximate genome size in megabasis (Mbp): '))
+    genomeSizeMessage = """
+What is the approximate genome size in megabases (Mbp)?
+    Examples:
+        3000 (for a 3 Gbp genome)
+        0.4  (for a 400 Kbp genome)
+    """
+    print(genomeSizeMessage)
+    genomeSize = float(input('Approximate genome size in megabasis (Mbp): '))
 
+    techMessage = """
+What technology was used to generate the reads?
+    Enter 1 for Oxford Nanopore (ONT) (default)
+    Enter 2 for Pac Bio
+    """
+    print(techMessage)
+    techStr = input('Technology : ')
+    if techStr == '':
+        techId = 1
+    else:
+        techId = int(techStr)
+    
     baseCallerMessage = """
 Which basecaller was used to generate reads?
     Enter 1 for Guppy version >= 3.6.0 (default)
-    Enter 2 for Guppy version < 3.6.0 
+    Enter 2 for Guppy version < 3.6.0
+    Enter 3 if something other than Guppy was used 
     """
-    print(baseCallerMessage)
-    baseCallerIdStr = input('Basecaller : ')
-    if baseCallerIdStr == '':
-        baseCallerId = 1
+
+    if techId == 1: # Only applies to ONT reads.
+        print(baseCallerMessage)
+        baseCallerIdStr = input('Basecaller : ')
+        if baseCallerIdStr == '':
+            baseCallerId = 1
+        else:
+            baseCallerId = int(baseCallerIdStr)
     else:
-        baseCallerId = int(baseCallerIdStr)
-    
+        baseCallerId = 3
+
     print()
 
     areUltraLongReads = input('Using Ultra-long reads? [Y/n - default n] : ')
     areUltraLongReads = (areUltraLongReads == 'Y' or areUltraLongReads == 'y')
 
+    print()
+
     enableDetangling = input('Enable detangling? [Y/n - default Y] : ')
     enableDetangling = (enableDetangling == 'Y' or enableDetangling == 'y' or enableDetangling == '')
 
     config = generateConfig(
-        genomeSize,
+        int(genomeSize * 1000 * 1000),
         baseCallerId,
         enableDetangling,
         areUltraLongReads,
