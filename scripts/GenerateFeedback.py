@@ -52,14 +52,14 @@ def analyze(assemblyDirPath, genomeSize):
     segmentsN50 = assembledSegments['Assembled segments N50']
 
     print()
-    print('Number of reads used = {:,}'.format(numberOfReads))
-    print('Isolated reads fraction = {:,.2f}'.format(isolatedReadsFraction))
-    print('Number of alignment candidates = {:,}'.format(numberOfAlignmentCandidates))
-    print('Number of good alignments = {:,}'.format(numberOfGoodAlignments))
+    print('Number of reads used = {}'.format(numberOfReads))
+    print('Isolated reads fraction = {:.2f}'.format(isolatedReadsFraction))
+    print('Number of alignment candidates = {}'.format(numberOfAlignmentCandidates))
+    print('Number of good alignments = {}'.format(numberOfGoodAlignments))
     print()
-    print('Genome fraction assembled = {:,.2f} %'.format(totalAssembledLength * 100 / (genomeSize * 1024 * 1024)))
-    print('Longest assembled segment length = {:,}'.format(longestSegmentLength))
-    print('Assembled segments N50 = {:,}'.format(segmentsN50))
+    print('Genome fraction assembled = {:.2f} %'.format(totalAssembledLength * 100 / genomeSize))
+    print('Longest assembled segment length = {}'.format(longestSegmentLength))
+    print('Assembled segments N50 = {}'.format(segmentsN50))
     print()
 
     avgCandidatesPerRead = numberOfAlignmentCandidates / numberOfReads
@@ -117,8 +117,20 @@ def main(argv):
         exit(2)
 
     print()
-    genomeSize = int(input('Approximate genome size in megabasis (Mbp): '))
+
+    genomeSizeMessage = """
+What is the approximate genome size in megabases (Mbp)?
+    Examples:
+        3000 (for a 3 Gbp genome)
+        0.4  (for a 400 Kbp genome)
+    """
+    print(genomeSizeMessage)
+    genomeSize = float(input('Approximate genome size in megabasis (Mbp): '))
+
+    genomeSize = int(genomeSize * 1000 * 1000)
     analyze(assemblyDirPath, genomeSize)
+    
+    print()
     return
 
 if __name__ == '__main__':
