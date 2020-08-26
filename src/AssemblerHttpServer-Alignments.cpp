@@ -25,6 +25,9 @@ using namespace shasta;
 #ifdef SHASTA_HTTP_SERVER
 
 
+using std::random_device;
+using std::uniform_int_distribution;
+
 
 void Assembler::exploreAlignments(
     const vector<string>& request,
@@ -1204,9 +1207,12 @@ void Assembler::computeAllAlignments(
 void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n){
     sample.clear();
 
+    random_device rd;
+    uniform_int_distribution<uint32_t> distribution(0, reads->readCount() - 1);
+
     while (sample.size() < n) {
         // Randomly select a read in the read set
-        const ReadId readId = uint32_t(rand() % reads->readCount());
+        const ReadId readId = distribution(rd);
 
         // Randomly select an orientation
         const Strand strand = uint32_t(rand() % 2);
@@ -1218,10 +1224,12 @@ void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n){
 
 void Assembler::sampleReads(vector<OrientedReadId>& sample, uint64_t n, uint64_t minLength, uint64_t maxLength){
     sample.clear();
+    random_device rd;
+    uniform_int_distribution<uint32_t> distribution(0, reads->readCount() - 1);
 
     while (sample.size() < n) {
         // Randomly select a read in the read set
-        const ReadId readId = uint32_t(rand() % reads->readCount());
+        const ReadId readId = distribution(rd);
 
         // Randomly select an orientation
         const Strand strand = uint32_t(rand() % 2);
@@ -1252,9 +1260,12 @@ void Assembler::sampleReadsFromDeadEnds(
 
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
+    random_device rd;
+    uniform_int_distribution<uint32_t> distribution(0, uint32_t(assemblyGraph.edges.size() - 1));
+
     while (sample.size() < n) {
         // Randomly select an edge in the assembly graph
-        const MarkerGraph::EdgeId edgeId = uint32_t(rand() % assemblyGraph.edges.size());
+        const MarkerGraph::EdgeId edgeId = distribution(rd);
         const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
 
         // Only consider edges that were actually assembled
@@ -1287,8 +1298,10 @@ void Assembler::sampleReadsFromDeadEnds(
         // Get all the markers for each read in this vertex
         span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
 
+        uniform_int_distribution<uint64_t> markerDistribution(0, markerIds.size() - 1);
+
         // Randomly select a read markerID from the terminal marker vertex
-        MarkerId index = uint64_t(rand() % markerIds.size());
+        MarkerId index = markerDistribution(rd);
         MarkerId markerId = markerIds[index];
 
         // Get the Read ID
@@ -1313,6 +1326,9 @@ void Assembler::sampleReadsFromDeadEnds(
 
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
+    random_device rd;
+    uniform_int_distribution<uint32_t> distribution(0, uint32_t(assemblyGraph.edges.size() - 1));
+
     while (sample.size() < n) {
         // Randomly select an edge in the assembly graph
         const MarkerGraph::EdgeId edgeId = uint32_t(rand() % assemblyGraph.edges.size());
@@ -1348,8 +1364,10 @@ void Assembler::sampleReadsFromDeadEnds(
         // Get all the markers for each read in this vertex
         span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
 
+        uniform_int_distribution<uint64_t> markerDistribution(0, markerIds.size() - 1);
+
         // Randomly select a read markerID from the terminal marker vertex
-        MarkerId index = uint64_t(rand() % markerIds.size());
+        MarkerId index = markerDistribution(rd);
         MarkerId markerId = markerIds[index];
 
         // Get the Read ID
@@ -1470,17 +1488,17 @@ void Assembler::assessAlignments(
         (sampleCountIsPresent ? "value="+to_string(sampleCount) : "") <<
         " title='Enter any number'>"
         "<tr>"
-        "<td>Minimum number of raw bases in read (default=0): "
+        "<td>Minimum number of raw bases in read (leave empty for no limit): "
         "<td><input type=text name=minLength size=8 " <<
         (minLengthIsPresent ? "value="+to_string(minLength) : "") <<
         " title='Enter any number'>"
         "<tr>"
-        "<td>Maximum number of raw bases in read (default=inf): "
+        "<td>Maximum number of raw bases in read (leave empty for no limit): "
         "<td><input type=text name=maxLength size=8 " <<
         (maxLengthIsPresent ? "value="+to_string(maxLength) : "") <<
         " title='Enter any number'>"
         "<tr>"
-        "<td>Show alignment results "
+        "<td>Show verbose alignment results "
         "<td><input type=checkbox name=showAlignmentResults"
         << (showAlignmentResults ? " checked=checked" : "") <<
         ">"
@@ -1553,6 +1571,22 @@ void Assembler::assessAlignments(
     vector<pair<OrientedReadId, AlignmentInfo> > allAlignmentInfo;
     vector<pair<OrientedReadId, AlignmentInfo> > allStoredAlignmentInfo;
 
+    const size_t threadCount = std::thread::hardware_concurrency();
+
+    html << "<br>";
+    html << "<p>Computing alignments using " << threadCount << " threads";
+    html << "<br>";
+    html << "<table style='margin-top: 1em; margin-bottom: 1em'>";
+    html << "<tr>"
+            "<th class='centered'>Read ID"
+            "<th class='centered'> # of Stored Alignments"
+            "<th class='centered'> # of Computed Alignments"
+            "<th class='centered'>Duration (s)";
+
+    if (showAlignmentResults){
+        html << "<th class='centered'>Alignment Info";
+    }
+
     for (size_t i=0; i<sampledReads.size(); i++) {
         const OrientedReadId orientedReadId = sampledReads[i];
 
@@ -1565,15 +1599,12 @@ void Assembler::assessAlignments(
 
         // Compute the alignments in parallel.
         computeAllAlignmentsData.orientedReadId0 = orientedReadId;
-        const size_t threadCount = std::thread::hardware_concurrency();
         computeAllAlignmentsData.threadAlignments.resize(threadCount);
         const size_t batchSize = 1;
         setupLoadBalancing(reads->readCount(), batchSize);
         const auto t0 = std::chrono::steady_clock::now();
         runThreads(&Assembler::computeAllAlignmentsThreadFunction, threadCount);
         const auto t1 = std::chrono::steady_clock::now();
-        html << "<p>Alignment computation using " << threadCount << " threads took " <<
-             1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count()) << "s.";
 
         // Gather the alignments found by each thread.
         vector<pair<OrientedReadId, AlignmentInfo> > alignmentInfo;
@@ -1590,25 +1621,24 @@ void Assembler::assessAlignments(
         vector<StoredAlignmentInformation> storedAlignments;
         getStoredAlignments(orientedReadId, storedAlignments);
 
-        html << "<p><strong>Assessing alignments for read " << orientedReadId << "</strong>";
-
-        // Print info about STORED alignments
-        if(storedAlignments.empty()) {
-            html << "<p>No stored alignments found.";
-        } else {
-            html << "<p>Found " << storedAlignments.size() << " stored alignments.";
+        html <<
+             "<tr>"
+             "<td class=centered>" << orientedReadId <<
+             "<td class=centered>" << storedAlignments.size() <<
+             "<td class=centered>" << alignmentInfo.size() <<
+             "<td class=centered>" <<
+                1.e-9 * double((std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0)).count());
+        if (showAlignmentResults){
+            html << "<td class=centered>";
         }
 
         // Print info about FOUND alignments
-        if (alignmentInfo.empty()) {
-            html << "<p>No alignments found satisfying the given criteria.";
-        }
-        else {
-            html << "<p>Found " << alignmentInfo.size() << " alignments satisfying the given criteria.";
-
-            // Only do verbose output if the user wants to
-            if (showAlignmentResults) {
+        if (showAlignmentResults) {
+            if (not alignmentInfo.empty()) {
                 displayAlignments(orientedReadId, alignmentInfo, html);
+            }
+            else{
+                html << "No alignments found";
             }
         }
 
@@ -1646,6 +1676,7 @@ void Assembler::assessAlignments(
         maxDriftHistogram.update(info.maxDrift);
         maxSkipHistogram.update(info.maxSkip);
     }
+    html << "</table>";
 
     // Pixel width of histogram display
     const uint64_t histogramSize = 500;
