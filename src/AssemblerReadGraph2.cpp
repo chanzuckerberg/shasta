@@ -7,9 +7,7 @@ void Assembler::createReadGraph2(
     uint32_t maxAlignmentCount,
     uint32_t maxTrim)
 {
-    // This boilerplate code creates the read graph using
-    // all available alignments.
-    vector<bool> keepAlignment(alignmentData.size(), true);
+    vector<bool> keepAlignment(alignmentData.size(), false);
 
     double candidateSampleFraction = 0.3;
     if (candidateSampleFraction > 1.0){
@@ -34,12 +32,15 @@ void Assembler::createReadGraph2(
         }
     }
 
-    // Evaluate thresholds by finding the 5th percentile
-    double cumulativeProportion = 0.05;
+    // Evaluate thresholds by finding the 12th percentile
+    double cumulativeProportion = 0.12;
 
     // Minimums
     double alignedFractionThreshold = alignedFractionHistogram.thresholdByCumulativeProportion(cumulativeProportion);
-    double markerCountThreshold = markerCountHistogram.thresholdByCumulativeProportion(cumulativeProportion);
+
+    // MarkerCount is not at all gaussian, so it needs a different percentile.
+    // This may be difficult to automate for varying length read sets.
+    double markerCountThreshold = markerCountHistogram.thresholdByCumulativeProportion(0.015);
 
     // Maximums use (1 - percentile)
     double maxDriftThreshold = maxDriftHistogram.thresholdByCumulativeProportion(1 - cumulativeProportion);
@@ -51,23 +52,60 @@ void Assembler::createReadGraph2(
          << "maxDrift:\t\t" << maxDriftThreshold << "\n\t"
          << "maxSkip:\t\t" << maxSkipThreshold << "\n";
 
-    // Flag failing alignments
-    for (size_t i=0; i<alignmentData.size(); i++) {
-        const auto info = alignmentData[i].info;
+    // Find the number of reads and oriented reads.
+    const ReadId orientedReadCount = uint32_t(markers.size());
+    SHASTA_ASSERT((orientedReadCount % 2) == 0);
+    const ReadId readCount = orientedReadCount / 2;
 
-        if (info.minAlignedFraction() < alignedFractionThreshold){
-            keepAlignment[i] = false;
+    // Vector to keep the alignments for each read,
+    // with their number of markers.
+    // Contains pairs(marker count, alignment id).
+    vector< pair<uint32_t, uint32_t> > readAlignments;
+
+    // Loop over reads.
+    for(ReadId readId=0; readId<readCount; readId++) {
+
+        // Gather the alignments for this read, each with its number of markers.
+        readAlignments.clear();
+        for(const uint32_t alignmentId: alignmentTable[OrientedReadId(readId, 0).getValue()]) {
+            const AlignmentInfo& info = alignmentData[alignmentId].info;
+
+            // If this alignment didnt pass the thresholding step, skip it
+            if (info.minAlignedFraction() < alignedFractionThreshold){
+                continue;
+            }
+            if (info.markerCount < markerCountThreshold){
+                continue;
+            }
+            if (info.maxDrift > maxDriftThreshold){
+                continue;
+            }
+            if (info.maxSkip > maxSkipThreshold){
+                continue;
+            }
+
+            // Otherwise add it to the list of candidate alignments for this read (to be ranked)
+            readAlignments.push_back(make_pair(info.markerCount, alignmentId));
         }
-        if (info.markerCount < markerCountThreshold){
-            keepAlignment[i] = false;
+
+        // Keep the best maxAlignmentCount.
+        if(readAlignments.size() > maxAlignmentCount) {
+            std::nth_element(
+                    readAlignments.begin(),
+                    readAlignments.begin() + maxAlignmentCount,
+                    readAlignments.end(),
+                    std::greater< pair<uint32_t, uint32_t> >());
+            readAlignments.resize(maxAlignmentCount);
         }
-        if (info.maxDrift > maxDriftThreshold){
-            keepAlignment[i] = false;
-        }
-        if (info.maxSkip > maxSkipThreshold){
-            keepAlignment[i] = false;
+
+        // Mark the surviving alignments as to be kept.
+        for(const auto& p: readAlignments) {
+            const uint32_t alignmentId = p.second;
+            keepAlignment[alignmentId] = true;
         }
     }
+    const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
+    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
 
     createReadGraphUsingSelectedAlignments(keepAlignment);
 }

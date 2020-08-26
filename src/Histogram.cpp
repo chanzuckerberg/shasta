@@ -99,7 +99,8 @@ double Histogram2::thresholdByCumulativeProportion(double fraction){
         cumulativeSum += double(histogram[i]);
         cumulativeFraction = double(cumulativeSum)/double(total);
 
-        std::cout << i << " " << cumulativeSum << " " << cumulativeFraction << '\n';
+        // TODO: remove this print statement
+        std::cout << i << " " << cumulativeSum << " " << cumulativeFraction << " " << start + binSize*double(i) + binSize/2 << '\n';
 
         if (cumulativeFraction >= fraction) {
             break;
