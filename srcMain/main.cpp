@@ -204,10 +204,11 @@ void shasta::main::assemble(
 
     // Check assemblerOptions.assemblyOptions.detangleMethod.
     if( assemblerOptions.assemblyOptions.detangleMethod!=0 and
-        assemblerOptions.assemblyOptions.detangleMethod!=1) {
+        assemblerOptions.assemblyOptions.detangleMethod!=1 and
+        assemblerOptions.assemblyOptions.detangleMethod!=2) {
         throw runtime_error("Invalid value " +
             to_string(assemblerOptions.assemblyOptions.detangleMethod) +
-            " specified for --AssemblyOptions.detangleMethod. Must be 0 or 1.");
+            " specified for --AssemblyOptions.detangleMethod. Must be 0, 1, or 2.");
     }
 
     // Write a startup message.
@@ -840,6 +841,8 @@ void shasta::main::assemble(
     // Detangle, if requested.
     if(assemblerOptions.assemblyOptions.detangleMethod == 1) {
         assembler.detangle();
+    } else if(assemblerOptions.assemblyOptions.detangleMethod == 2) {
+        throw runtime_error("Detangle method 2 is not yet implemented.");
     }
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 

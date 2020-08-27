@@ -588,8 +588,27 @@ void AssemblerOptions::addConfigurableOptions()
         ("Assembly.detangleMethod",
         value<int>(&assemblyOptions.detangleMethod)->
         default_value(0),
-        "Experimental. Specify the method used to detangle the assembly graph. "
-        "0 = no detangling, 1 = basic detangling.")
+        "Specify the method used to detangle the assembly graph. "
+        "0 = no detangling, 1 = strict detangling, "
+        "2 = less strict detangling, controlled by Assembly.detangle.* options (experimental).")
+
+        ("Assembly.detangle.diagonalReadCountMin",
+        value<uint64_t>(&assemblyOptions.detangleDiagonalReadCountMin)->
+        default_value(4),
+        "Minimum number of reads on detangle matrix diagonal elements "
+        "required for detangling.")
+
+        ("Assembly.detangle.offDiagonalReadCountMax",
+        value<uint64_t>(&assemblyOptions.detangleOffDiagonalReadCountMax)->
+        default_value(2),
+        "Maximum number of reads on detangle matrix off-diagonal elements "
+        "allowed for detangling.")
+
+        ("Assembly.detangle.offDiagonalRatio",
+        value<double>(&assemblyOptions.detangleOffDiagonalRatio)->
+        default_value(0.3),
+        "Maximum ratio of total off-diagonal elements over diagonal element "
+        "allowed for detangling.")
         ;
 }
 
@@ -725,6 +744,9 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
     s << "writeReadsByAssembledSegment = " <<
         convertBoolToPythonString(writeReadsByAssembledSegment) << "\n";
     s << "detangleMethod = " << detangleMethod << "\n";
+    s << "detangle.diagonalReadCountMin = " << detangleDiagonalReadCountMin << "\n";
+    s << "detangle.offDiagonalReadCountMax = " << detangleOffDiagonalReadCountMax << "\n";
+    s << "detangle.offDiagonalRatio = " << detangleOffDiagonalRatio << "\n";
 }
 
 

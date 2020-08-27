@@ -696,8 +696,26 @@ to assemble each segment).
 Experimental. Method used to detangle the assembly graph. Valid values:
 <ul>
 <li>0 = no detangling.
-<li>1 = basic detangling.
+<li>1 = strict detangling.
+<li>2 = less strict detangling, controlled by 
+<code>Assembly.detangle.* options</code>.
 </ul>
+
+<tr id='Assembly.detangle.diagonalReadCountMin'>
+<td><code>--Assembly.detangle.diagonalReadCountMin</code><td class=centered><code>4</code><td>
+Experimental. Minimum number of reads on detangle matrix diagonal elements required for detangling. Only used with
+<code>--Assembly.detangleMethod 2</code>.
+
+<tr id='Assembly.detangle.offDiagonalReadCountMax'>
+<td><code>--Assembly.detangle.offDiagonalReadCountMax</code><td class=centered><code>2</code><td>
+Experimental. Maximum number of reads on detangle matrix off-diagonal elements allowed for detangling. Only used with
+<code>--Assembly.detangleMethod 2</code>.
+
+<tr id='Assembly.detangle.offDiagonalRatio'>
+<td><code>--Assembly.detangle.offDiagonalRatio</code><td class=centered><code>0.3</code><td>
+Experimental. Maximum ratio of total off-diagonal elements over diagonal element allowed for detangling. Only used with
+<code>--Assembly.detangleMethod 2</code>.
+
 </table>
 
 <div class="goto-index"><a href="index.html">Table of contents</a></div>

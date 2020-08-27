@@ -248,6 +248,9 @@ public:
         int storeCoverageDataCsvLengthThreshold;
         bool writeReadsByAssembledSegment;
         int detangleMethod;
+        uint64_t detangleDiagonalReadCountMin;
+        uint64_t detangleOffDiagonalReadCountMax;
+        double detangleOffDiagonalRatio;
         void write(ostream&) const;
 
         // If a relative path is provided for a Bayesian consensus caller
