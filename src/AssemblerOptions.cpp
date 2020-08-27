@@ -1,5 +1,7 @@
 #include "AssemblerOptions.hpp"
+#include "SimpleBayesianConsensusCaller.hpp"
 #include "buildId.hpp"
+#include "filesystem.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -93,6 +95,10 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
 
     // Parse ReadOptions.desiredCoverageString into its numeric value.
     readsOptions.parseDesiredCoverageString();
+
+    // Unpack the consensuscaller and replace relative path with the absolute
+    // one if necessary.
+    assemblyOptions.parseConsensusCallerString();
 }
 
 
@@ -557,7 +563,7 @@ void AssemblerOptions::addConfigurableOptions()
         "Controls assembly of long marker graph edges.")
 
         ("Assembly.consensusCaller",
-        value<string>(&assemblyOptions.consensusCaller)->
+        value<string>(&assemblyOptions.consensusCallerString)->
         default_value("Bayesian:guppy-2.3.5-a"),
         "Selects the consensus caller for repeat counts. "
         "See the documentation for available choices.")
@@ -785,6 +791,37 @@ void AssemblerOptions::ReadsOptions::parseDesiredCoverageString() {
     } else {
         throw runtime_error("Unsupported units used for specifying desiredCoverage.");
     }
+}
+
+void AssemblerOptions::AssemblyOptions::parseConsensusCallerString() {
+    const size_t colonPos = consensusCallerString.find_first_of(':');
+    if (string::npos == colonPos) {
+        consensusCaller = consensusCallerString;
+        return;
+    }
+    string typeString = consensusCallerString.substr(0, colonPos);
+    string constructorString = consensusCallerString.substr(colonPos + 1);
+    if (constructorString.size() == 0) {
+        consensusCaller = consensusCallerString;
+        return;
+    }
+
+    // It's Bayesian.
+    if (SimpleBayesianConsensusCaller::isBuiltIn(constructorString)) {
+        consensusCaller = consensusCallerString;
+        return;
+    }
+
+    // File path is provided.
+    if (constructorString[0] == '/') {
+        // Absolute path provided. Nothing to do.
+        consensusCaller = consensusCallerString;
+        return;
+    }
+
+    constructorString = filesystem::getAbsolutePath(constructorString);
+    consensusCaller = typeString + ":" + constructorString;
+    return;
 }
 
 // Function to convert a bool to True or False for better

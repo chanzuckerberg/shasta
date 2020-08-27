@@ -153,7 +153,8 @@ SimpleBayesianConsensusCaller::SimpleBayesianConsensusCaller(
         if (not matrixFile.good()) {
             const string errorMessage = constructorString + " is not a built-in Bayesian model "
                 "and could not be open as a configuration file. "
-                "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a";
+                "Valid built-in choices are: guppy-2.3.1-a, guppy-2.3.5-a, guppy-3.0.5-a, "
+                "guppy-3.4.4-a, guppy-3.6.0-a, r10-guppy-3.4.8-a.";
             throw runtime_error(errorMessage);
         }
         validate_text_file(constructorString);
