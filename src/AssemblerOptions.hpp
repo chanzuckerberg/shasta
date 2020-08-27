@@ -242,12 +242,17 @@ public:
     public:
         int crossEdgeCoverageThreshold;
         int markerGraphEdgeLengthThresholdForConsensus;
+        string consensusCallerString;
         string consensusCaller;
         bool storeCoverageData;
         int storeCoverageDataCsvLengthThreshold;
         bool writeReadsByAssembledSegment;
         int detangleMethod;
         void write(ostream&) const;
+
+        // If a relative path is provided for a Bayesian consensus caller
+        // replace it with its absolute path.
+        void parseConsensusCallerString();
     };
     AssemblyOptions assemblyOptions;
 

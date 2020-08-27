@@ -65,6 +65,8 @@ public:
     // run length of the aligned bases at a position
     virtual Consensus operator()(const Coverage&) const;
 
+    static bool isBuiltIn(const string&);
+
 private:
 
     /// ---- Attributes ---- ///
