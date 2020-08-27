@@ -1434,9 +1434,39 @@ void Assembler::assessAlignments(
     bool useDeadEnds = false;
     string showAlignmentResultsString;
     string useDeadEndsString;
+
+    double alignedFractionMax = 1;
+    double markerCountMax = 3000;
+    double alignmentCountMax = 200;
+    double maxDriftMax = 60;
+    double maxSkipMax = 60;
+    double overhangLengthsMax = 1000;
+
+    size_t alignedFractionBinCount = 20;
+    size_t markerCountBinCount = 120;
+    size_t alignmentCountBinCount = 20;
+    size_t maxDriftBinCount = 30;
+    size_t maxSkipBinCount = 30;
+    size_t overhangLengthsBinCount = 40;
+
     const bool sampleCountIsPresent = getParameterValue(request, "sampleCount", sampleCount);
     const bool minLengthIsPresent = getParameterValue(request, "minLength", minLength);
     const bool maxLengthIsPresent = getParameterValue(request, "maxLength", maxLength);
+
+    getParameterValue(request, "alignedFractionMax", alignedFractionMax);
+    getParameterValue(request, "markerCountMax", markerCountMax);
+    getParameterValue(request, "alignmentCountMax", alignmentCountMax);
+    getParameterValue(request, "maxDriftMax", maxDriftMax);
+    getParameterValue(request, "maxSkipMax", maxSkipMax);
+    getParameterValue(request, "overhangLengthsMax", overhangLengthsMax);
+
+    getParameterValue(request, "alignedFractionBinCount", alignedFractionBinCount);
+    getParameterValue(request, "markerCountBinCount", markerCountBinCount);
+    getParameterValue(request, "alignmentCountBinCount", alignmentCountBinCount);
+    getParameterValue(request, "maxDriftBinCount", maxDriftBinCount);
+    getParameterValue(request, "maxSkipBinCount", maxSkipBinCount);
+    getParameterValue(request, "overhangLengthsBinCount", overhangLengthsBinCount);
+
     showAlignmentResults = getParameterValue(request, "showAlignmentResults", showAlignmentResultsString);
     useDeadEnds = getParameterValue(request, "useDeadEnds", useDeadEndsString);
 
@@ -1526,7 +1556,56 @@ void Assembler::assessAlignments(
             html
     );
 
+
+    html << "<br>";
+    html << "<p><strong>Histogram options</strong>";
+    html << "<br>";
+    html << "<table style='margin-top: 1em; margin-bottom: 1em'>";
+
+    html << "<tr>"
+            "<th class='centered'>Histogram"
+            "<th class='centered'>Max"
+            "<th class='centered'>Bin count";
+    html << "<tr>";
+    html << "<td class=centered>alignedFraction" <<
+            "<td class=centered><input type=text name=alignedFractionMax size=8 style='text-align:center;border:none'" <<
+            "value="+to_string(alignedFractionMax) << ">" <<
+            "<td class=centered><input type=text name=alignedFractionBinCount size=8 style='text-align:center;border:none'" <<
+            "value="+to_string(alignedFractionBinCount) << ">";
+    html << "<tr>";
+    html << "<td class=centered>markerCount" <<
+             "<td class=centered><input type=text name=markerCountMax size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(uint64_t(markerCountMax)) << ">" <<
+             "<td class=centered><input type=text name=markerCountBinCount size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(markerCountBinCount) << ">";
+    html << "<tr>";
+    html << "<td class=centered>alignmentCount" <<
+             "<td class=centered><input type=text name=alignmentCountMax size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(uint64_t(alignmentCountMax)) << ">" <<
+             "<td class=centered><input type=text name=alignmentCountBinCount size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(alignmentCountBinCount) << ">";
+    html << "<tr>";
+    html << "<td class=centered>maxDrift" <<
+             "<td class=centered><input type=text name=maxDriftMax size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(uint64_t(maxDriftMax)) << ">" <<
+             "<td class=centered><input type=text name=maxDriftBinCount size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(maxDriftBinCount) << ">";
+    html << "<tr>";
+    html << "<td class=centered>maxSkip" <<
+             "<td class=centered><input type=text name=maxSkipMax size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(uint64_t(maxSkipMax)) << ">" <<
+             "<td class=centered><input type=text name=maxSkipBinCount size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(maxSkipBinCount) << ">";
+    html << "<tr>";
+    html << "<td class=centered>overhangLengths" <<
+             "<td class=centered><input type=text name=overhangLengthsMax size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(uint64_t(overhangLengthsMax)) << ">" <<
+             "<td class=centered><input type=text name=overhangLengthsBinCount size=8 style='text-align:center;border:none'" <<
+             "value="+to_string(overhangLengthsBinCount) << ">";
+
+    html << "</table>";
     html << "</form>";
+    html << "<br>";
 
     vector<OrientedReadId> sampledReads;
 
@@ -1558,11 +1637,11 @@ void Assembler::assessAlignments(
     }
 
     // Initialize histograms
-    Histogram2 alignedFractionHistogram(0, 1, 20);
-    Histogram2 markerCountHistogram(0, 3000, 120);
-    Histogram2 alignmentCountHistogram(0, 200, 20);
-    Histogram2 maxDriftHistogram(0, 60, 30);
-    Histogram2 maxSkipHistogram(0, 60, 30);
+    Histogram2 alignedFractionHistogram(0, alignedFractionMax, alignedFractionBinCount);
+    Histogram2 markerCountHistogram(0, markerCountMax, markerCountBinCount);
+    Histogram2 alignmentCountHistogram(0, alignmentCountMax, alignmentCountBinCount);
+    Histogram2 maxDriftHistogram(0, maxDriftMax, maxDriftBinCount);
+    Histogram2 maxSkipHistogram(0, maxSkipMax, maxSkipBinCount);
 
     // Only used if user specified to sample dead ends
     vector<bool> allIsLeftEnd;
@@ -1710,8 +1789,8 @@ void Assembler::assessAlignments(
     html << "<br><br>";
 
     if (useDeadEnds){
-        Histogram2 overhangLengths(0,1000,40,false,true);
-        Histogram2 storedOverhangLengths(0,1000,40,false,true);
+        Histogram2 overhangLengths(0, overhangLengthsMax,overhangLengthsBinCount,false,true);
+        Histogram2 storedOverhangLengths(0,overhangLengthsMax,overhangLengthsBinCount,false,true);
 
         auto minOverhang = uint32_t(httpServerData.assemblerOptions->markerGraphOptions.pruneIterationCount);
 
