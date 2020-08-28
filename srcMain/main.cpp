@@ -842,7 +842,11 @@ void shasta::main::assemble(
     if(assemblerOptions.assemblyOptions.detangleMethod == 1) {
         assembler.detangle();
     } else if(assemblerOptions.assemblyOptions.detangleMethod == 2) {
-        throw runtime_error("Detangle method 2 is not yet implemented.");
+        assembler.detangle2(
+            assemblerOptions.assemblyOptions.detangleDiagonalReadCountMin,
+            assemblerOptions.assemblyOptions.detangleOffDiagonalReadCountMax,
+            assemblerOptions.assemblyOptions.detangleOffDiagonalRatio
+            );
     }
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 

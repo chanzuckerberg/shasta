@@ -546,6 +546,11 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::writeOrientedReadsByAssemblyGraphEdge)
         .def("detangle",
             &Assembler::detangle)
+        .def("detangle2",
+            &Assembler::detangle2,
+            arg("diagonalReadCountMin"),
+            arg("offDiagonalReadCountMax"),
+            arg("offDiagonalRatio"))
         .def("createSegmentGraph",
             &Assembler::createSegmentGraph)
         .def("colorGfaBySegmentGraphChain",

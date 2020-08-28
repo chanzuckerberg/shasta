@@ -1643,7 +1643,12 @@ public:
 
 
     // Detangle the AssemblyGraph.
-    void detangle();
+    void detangle();    // detangleMethod 1
+    void detangle2(     // detangleMethod 2
+        uint64_t diagonalReadCountMin,
+        uint64_t offDiagonalReadCountMax,
+        double detangleOffDiagonalRatio
+         );
 
 
 
