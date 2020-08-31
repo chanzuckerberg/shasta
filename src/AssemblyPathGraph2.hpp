@@ -228,10 +228,26 @@ public:
     vector<edge_descriptor> inEdges;
     vector<edge_descriptor> outEdges;
 
-    // Flag that indicates if thsi tangle is solvable by the criteria
+    // Flag that indicates if this tangle is solvable by the criteria
     // used in the current implementation.
     bool isSolvable = false;
-    void findIfSolvable();
+    void findIfSolvable(
+        uint64_t diagonalReadCountMin,
+        uint64_t offDiagonalReadCountMax,
+        double detangleOffDiagonalRatio);
+
+    // If the tangle is solvable, each in-edge is matched
+    // with exactly one out-edge,
+    // and each out-edge is matched with exactly one in-edge.
+    // This defines a permutation. We store the permutation
+    // vector and its inverse:
+    // - For an in-edge index i, match[i] gives
+    //   the corresponding out-edge index.
+    // - For an out-edge index j, inverseMatch[j] gives
+    //   the corresponding in-edge index.
+    // These vectors are only stored if isSolvable is true.
+    vector<uint64_t> match;
+    vector<uint64_t> inverseMatch;
 
     uint64_t inDegree() const
     {
@@ -265,7 +281,16 @@ public:
 
     // The constructor does not fill in the oriented read ids for each edge.
     // This must be done separately (see Assembler::detangle2).
-    AssemblyPathGraph2(const AssemblyGraph&);
+    AssemblyPathGraph2(
+        const AssemblyGraph&,
+        uint64_t diagonalReadCountMin,
+        uint64_t offDiagonalReadCountMax,
+        double detangleOffDiagonalRatio);
+
+    // Parameters controlling detangling.
+    uint64_t diagonalReadCountMin;
+    uint64_t offDiagonalReadCountMax;
+    double detangleOffDiagonalRatio;
 
     // The tangles currently present in the graph, keyed by their ids.
     Tangle2Id nextTangleId = 0;

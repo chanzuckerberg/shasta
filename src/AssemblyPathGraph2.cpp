@@ -14,7 +14,14 @@ using namespace shasta;
 
 
 
-AssemblyPathGraph2::AssemblyPathGraph2(const AssemblyGraph& assemblyGraph)
+AssemblyPathGraph2::AssemblyPathGraph2(
+    const AssemblyGraph& assemblyGraph,
+    uint64_t diagonalReadCountMin,
+    uint64_t offDiagonalReadCountMax,
+    double detangleOffDiagonalRatio) :
+    diagonalReadCountMin(diagonalReadCountMin),
+    offDiagonalReadCountMax(offDiagonalReadCountMax),
+    detangleOffDiagonalRatio(detangleOffDiagonalRatio)
 {
     AssemblyPathGraph2& graph = *this;
 
@@ -285,7 +292,10 @@ bool AssemblyPathGraph2::createTangleAtEdge(edge_descriptor e01)
 
     // Now that the tangle matrix is available we can find out if this tangle
     // is solvable, and if it is we can compute its priority.
-    tangle.findIfSolvable();
+    tangle.findIfSolvable(
+        diagonalReadCountMin,
+        offDiagonalReadCountMax,
+        detangleOffDiagonalRatio);
     tangle.computePriority();
 
     tangle.tangleId = nextTangleId;
@@ -465,49 +475,41 @@ void AssemblyPathGraph2::detangle(
 {
     cout << "Detangling tangle " << tangleId << endl;
     AssemblyPathGraph2& graph = *this;
-
-    // If the tangle matrix does not have any zeros, we cannot detangle.
     Tangle2& tangle = getTangle(tangleId);
     SHASTA_ASSERT(tangle.isSolvable);
 
 
 
     // Create the new edges.
-    // We loop over all pairs of in-edges and out-edges that have read support
-    // (that is, a non-zero element in the tangle matrix).
+    // We loop over all pairs of matching in-edges and out-edges.
     const AssemblyPathGraph2Edge& tangleEdge = graph[tangle.edge];
     for(uint64_t i=0; i<tangle.inEdges.size(); i++) {
         const edge_descriptor eIn = tangle.inEdges[i];
         const AssemblyPathGraph2Edge& inEdge = graph[eIn];
         const vertex_descriptor vA = source(eIn, graph);
+        const uint64_t j = tangle.match[i];
 
-        for(uint64_t j=0; j<tangle.outEdges.size(); j++) {
-            const edge_descriptor eOut = tangle.outEdges[j];
-            const AssemblyPathGraph2Edge& outEdge = graph[eOut];
-            const vertex_descriptor vB = target(eOut, graph);
+        const edge_descriptor eOut = tangle.outEdges[j];
+        const AssemblyPathGraph2Edge& outEdge = graph[eOut];
+        const vertex_descriptor vB = target(eOut, graph);
 
-            if(tangle.matrix[i][j] == 0) {
-                continue;
-            }
-
-            // Add the new edge and fill in what we can now.
-            edge_descriptor eNew;
-            tie(eNew, ignore) = add_edge(vA, vB, graph);
-            newEdges.push_back(eNew);
-            AssemblyPathGraph2Edge& newEdge = graph[eNew];
-            newEdge.pathLength =
-                inEdge.pathLength + tangleEdge.pathLength + outEdge.pathLength;
-            // Don't include the reads of the tangle edge in the new edge!
-            newEdge.mergeOrientedReadIds(
-                inEdge.orientedReadIds,
-                outEdge.orientedReadIds
-            );
-            newEdge.path = inEdge.path;
-            copy(tangleEdge.path.begin(), tangleEdge.path.end(),
-                back_inserter(newEdge.path));
-            copy(outEdge.path.begin(), outEdge.path.end(),
-                back_inserter(newEdge.path));
-        }
+        // Add the new edge and fill in what we can now.
+        edge_descriptor eNew;
+        tie(eNew, ignore) = add_edge(vA, vB, graph);
+        newEdges.push_back(eNew);
+        AssemblyPathGraph2Edge& newEdge = graph[eNew];
+        newEdge.pathLength =
+            inEdge.pathLength + tangleEdge.pathLength + outEdge.pathLength;
+        // Don't include the reads of the tangle edge in the new edge!
+        newEdge.mergeOrientedReadIds(
+            inEdge.orientedReadIds,
+            outEdge.orientedReadIds
+        );
+        newEdge.path = inEdge.path;
+        copy(tangleEdge.path.begin(), tangleEdge.path.end(),
+            back_inserter(newEdge.path));
+        copy(outEdge.path.begin(), outEdge.path.end(),
+            back_inserter(newEdge.path));
     }
 
 
@@ -604,6 +606,8 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     Tangle2Id tangleIdA,
     vector<edge_descriptor>& newEdges)
 {
+    SHASTA_ASSERT(0);
+#if 0
     AssemblyPathGraph2& graph = *this;
 
     // For now, call A the tangle passed in as an argument and B
@@ -815,6 +819,7 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     // Finally we can remove these two tangles.
     tangles.erase(tangleId0);
     tangles.erase(tangleId1);
+#endif
 }
 
 
@@ -940,53 +945,159 @@ uint64_t Tangle2::countNonZeroElementsInColumn(uint64_t j) const
 }
 
 
-// We currently only process tangles where the in-degree and out-degree
-// are equal, and each row and each column of the tangle matrix
-// has exactly one non-zero element. This establishes a
-// biunivocal correspondence between the in-edges and out-edges,
-// which is used in detangling.
-void Tangle2::findIfSolvable()
+
+// Inspect the tangle matrix to find out if the
+// tangle is solvable.
+// If it is, also create the match vector,
+// which describes how in-edges should be matched with out-edges.
+void Tangle2::findIfSolvable(
+    uint64_t diagonalReadCountMin,
+    uint64_t offDiagonalReadCountMax,
+    double detangleOffDiagonalRatio)
 {
-    if(inDegree() != outDegree()) {
+    // If the in-degree and out-degree are not the same,
+    // mark it as not solvable.
+    const uint64_t n = inDegree();
+    if(outDegree() != n) {
         isSolvable = false;
         return;
     }
 
-    for(uint64_t i=0; i<inDegree(); i++) {
-        if(countNonZeroElementsInRow(i) != 1) {
-            isSolvable = false;
-            return;
+
+    // Inspect the tangle matrix, one in-edge at a time.
+    for(uint64_t i=0; i<n; i++) {
+
+        // Find the out-edge with the largest tangle matrix element
+        // (number of supporting reads) for this in-edge.
+        const vector<uint64_t>& v = matrix[i];
+        const uint64_t j = std::max_element(v.begin(), v.end()) - v.begin();
+
+        // Check that this is also the largest tangle matrix element
+        // for this out-edge.
+        for(uint64_t ii=0; ii<n; ii++) {
+            if(ii == j) {
+                continue;
+            }
+            if(matrix[ii][j] > matrix[i][j]) {
+                // It is not. Mark this tangle as non-solvable.
+                isSolvable = false;
+                match.clear();
+                return;
+            }
+
+            // Match this in-edge with this out-edge.
+            match.push_back(j);
         }
     }
-    for(uint64_t j=0; j<outDegree(); j++) {
-        if(countNonZeroElementsInColumn(j) != 1) {
+
+
+
+    // Verify that the match vector is a permutation
+    // (each out-edge must appear once and only once).
+    SHASTA_ASSERT(match.size() == n);
+    vector<uint64_t> matchCountCheck(n, 0);
+    for(const uint64_t j: match) {
+        ++matchCountCheck[j];
+    }
+    for(const uint64_t count: matchCountCheck) {
+        if(count != 1) {
             isSolvable = false;
+            match.clear();
             return;
         }
     }
 
+
+
+    // Construct the inverse permutation.
+    inverseMatch.resize(n);
+    for(uint64_t i=0; i<n; i++) {
+        const uint64_t j = match[i];
+        inverseMatch[j] = i;
+    }
+
+
+
+    // Now check that the tangle matrix elements satisfy our requirements
+    // We call element ij of the tangle matrix "diagonal"
+    // if match[i]=j. Otherwise we call it "off-diagonal".
+    // For the tangle to be marked solvable, we require the following:
+    // - All diagonal elements must be >= diagonalReadCountMin.
+    // - All off-diagonal elements must be satisfy ONE OF THE TWO
+    //   following conditions:
+    //   * They are <= offDiagonalReadCountMax.
+    //   * Their ratios to the two corresponding diagonal elements
+    //     are less than detangleOffDiagonalRatio.
+    // In other words, we require off-diagonal matrix elements to
+    // be "small" either in absolute terms of relative to the corresponding
+    // diagonal elements.
+    for(uint64_t i=0; i<n; i++) {
+        for(uint64_t j=0; j<n; j++) {
+            bool ok = true;
+            if(j == match[i]) {
+
+                // Diagonal element.
+                if(matrix[i][j] < diagonalReadCountMin) {
+                    ok = false;
+                }
+
+            } else {
+
+                // Off-diagonal element.
+                if(matrix[i][j] > offDiagonalReadCountMax) {
+                    // This element did not pass the absolute criterion,
+                    // so we have to check the relative criterion.
+                    if(double(matrix[i][j]) / double(matrix[i][match[i]]) >
+                        detangleOffDiagonalRatio) {
+                        ok = false;
+                    } else {
+                        // It was ok in relative terms versus the diagonal element with the same i.
+                        // Now we have to check against the diagonal element with the same j.
+                        if(double(matrix[i][j]) / double(matrix[inverseMatch[j]][j]) >
+                            detangleOffDiagonalRatio) {
+                            ok = false;
+                        }
+                    }
+
+                }
+
+            }
+
+            if(not ok) {
+                isSolvable = false;
+                match.clear();
+                return;
+            }
+        }
+    }
+
+
+
+
+
+    // If we get here, all is good, the tangle is solvable,
+    // and the match and inverseMatch vectors tell us how to match
+    // out-edges with in-edges.
     isSolvable = true;
 }
 
 
 
-// The tangle priority is the lowest non-zero element of the tangle
+// The tangle priority is the lowest diagonal element of the tangle
 // matrix. Solvable tangles are processed in order of decreasing priority.
 void Tangle2::computePriority()
 {
     if(isSolvable) {
         priority = std::numeric_limits<uint64_t>::max();
-        for(const auto& v: matrix) {
-            for(const auto x: v) {
-                if(x != 0) {
-                    priority = min(priority, x);
-                }
-            }
+        for(uint64_t i=0; i<match.size(); i++) {
+            const uint64_t j = match[i];
+            priority = min(priority, matrix[i][j]);
         }
     } else {
         priority = 0;
     }
 }
+
 
 
 // Return the next tangle to work on.
@@ -1106,7 +1217,7 @@ void AssemblyPathGraph2::writeEdgesHtml(ostream& html) const
         "<th>Target<br>vertex"
         "<th>Path<br>length<br>(markers)"
         "<th>In-tangle"
-        "<th>Tangle2"
+        "<th>Tangle"
         "<th>Out-tangle";
 
 
@@ -1152,7 +1263,7 @@ void AssemblyPathGraph2::writeTanglesHtml(ostream& html) const
 {
     const AssemblyPathGraph2& graph = *this;
 
-    html << "<h2>Tangle2</h2>"
+    html << "<h2>Tangles</h2>"
         "A tangle is generated by each edge v<sub>0</sub>&rarr;v<sub>1</sub> "
         "for which the source vertex v<sub>0</sub> has in-degree greater than 1 "
         "and the target vertex v<sub>1</sub> has out-degree "
@@ -1160,9 +1271,9 @@ void AssemblyPathGraph2::writeTanglesHtml(ostream& html) const
         "<p><table><tr>"
         "<th>Id"
         "<th>In-edges"
-        "<th>Tangle2<br>edge"
+        "<th>Tangle<br>edge"
         "<th>Out-edges"
-        "<th>Tangle2<br>matrix"
+        "<th>Tangle<br>matrix"
         "<th>Solvable?";
 
     for(const auto& p: tangles) {

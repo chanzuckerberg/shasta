@@ -11,7 +11,7 @@ using namespace shasta;
 
 
 
-// detangleMethod 1
+// Detangle method 1
 void Assembler::detangle()
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
@@ -304,8 +304,8 @@ void Assembler::detangle()
 
 
 
-// detangleMethod 2
-void Assembler::detangle2(     // detangleMethod 2
+// Detangle method 2
+void Assembler::detangle2(
     uint64_t diagonalReadCountMin,
     uint64_t offDiagonalReadCountMax,
     double detangleOffDiagonalRatio
@@ -330,7 +330,11 @@ void Assembler::detangle2(     // detangleMethod 2
 
     // Create the AssemblyPathGraph2.
     // Initially, it is a faithful copy of the assembly graph.
-    AssemblyPathGraph2 graph(assemblyGraph);
+    AssemblyPathGraph2 graph(
+        assemblyGraph,
+        diagonalReadCountMin,
+        offDiagonalReadCountMax,
+        detangleOffDiagonalRatio);
 
 
 
