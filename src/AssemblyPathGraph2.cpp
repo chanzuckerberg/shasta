@@ -972,21 +972,37 @@ void Tangle2::findIfSolvable(
         const vector<uint64_t>& v = matrix[i];
         const uint64_t j = std::max_element(v.begin(), v.end()) - v.begin();
 
-        // Check that this is also the largest tangle matrix element
-        // for this out-edge.
-        for(uint64_t ii=0; ii<n; ii++) {
-            if(ii == j) {
-                continue;
-            }
-            if(matrix[ii][j] > matrix[i][j]) {
-                // It is not. Mark this tangle as non-solvable.
-                isSolvable = false;
-                match.clear();
-                return;
-            }
+        // Tentatively match this in-edge with this out-edge,
+        // subject to additional checks below.
+        match.push_back(j);
+    }
 
-            // Match this in-edge with this out-edge.
-            match.push_back(j);
+
+
+
+    // Check that diagonal matrix elements defined by the
+    // match vector are greater than all other elements in the same row and column.
+    for(uint64_t i=0; i<n; i++) {
+        const uint64_t j = match[i];
+        bool ok = true;
+        for(uint64_t ii=0; ii<n; ii++) {
+            if(ii != i) {
+                if(matrix[i][j] <= matrix[ii][j]) {
+                    ok =false;
+                }
+            }
+        }
+        for(uint64_t jj=0; jj<n; jj++) {
+            if(jj != j) {
+                if(matrix[i][j] <= matrix[i][jj]) {
+                    ok =false;
+                }
+            }
+        }
+        if(not ok) {
+            isSolvable = false;
+            match.clear();
+            return;
         }
     }
 
