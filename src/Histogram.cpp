@@ -112,6 +112,48 @@ double Histogram2::thresholdByCumulativeProportion(double fraction){
 }
 
 
+pair<string,string> shasta::Histogram2::getBoundStrings(size_t binIndex, int32_t precision){
+    const double leftBound = start + double(binIndex)*(binSize);
+    const double rightBound = start + double(binIndex+1)*(binSize);
+
+    string leftBoundString;
+    string rightBoundString;
+
+    if (unboundedLeft and binIndex==0){
+        leftBoundString = "-inf";
+    }
+    else {
+        leftBoundString = to_string(leftBound);
+        const size_t decimalPosition = leftBoundString.find('.');
+
+        if (precision == 0) {
+            leftBoundString = leftBoundString.substr(0,decimalPosition);
+        }
+        else {
+            leftBoundString = leftBoundString.substr(0, decimalPosition + precision + 1);
+        }
+    }
+
+    if (unboundedRight and binIndex == binCount-1){
+        rightBoundString = "inf";
+    }
+    else{
+        if (precision == 0) {
+            rightBoundString = to_string(rightBound - 1);
+            const size_t decimalPosition = rightBoundString.find('.');
+            rightBoundString = rightBoundString.substr(0,decimalPosition);
+        }
+        else {
+            rightBoundString = to_string(rightBound);
+            const size_t decimalPosition = rightBoundString.find('.');
+            rightBoundString = rightBoundString.substr(0, decimalPosition + precision + 1);
+        }
+    }
+
+    return {leftBoundString, rightBoundString};
+}
+
+
 void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx, int32_t precision){
     uint64_t yMax = 0;
     for (auto& e: histogram){
@@ -130,44 +172,12 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx, int32_t pre
             "<th class='centered'>Plot";
 
     for (size_t i=0; i<histogram.size(); i++){
-        const double leftBound = start + double(i)*(binSize);
-        const double rightBound = start + double(i+1)*(binSize);
         const auto y = histogram[i];
 
         string leftBoundString;
         string rightBoundString;
 
-        if (unboundedLeft and i==0){
-            leftBoundString = "-inf";
-        }
-        else {
-            leftBoundString = to_string(leftBound);
-            const size_t decimalPosition = leftBoundString.find('.');
-
-            if (precision == 0) {
-                leftBoundString = leftBoundString.substr(0,decimalPosition);
-            }
-            else {
-                leftBoundString = leftBoundString.substr(0, decimalPosition + precision + 1);
-            }
-        }
-
-        if (unboundedRight and i == binCount-1){
-            rightBoundString = "inf";
-        }
-        else{
-            if (precision == 0) {
-                rightBoundString = to_string(rightBound - 1);
-                const size_t decimalPosition = rightBoundString.find('.');
-                rightBoundString = rightBoundString.substr(0,decimalPosition);
-            }
-            else {
-                rightBoundString = to_string(rightBound);
-                const size_t decimalPosition = rightBoundString.find('.');
-                rightBoundString = rightBoundString.substr(0, decimalPosition + precision + 1);
-            }
-        }
-
+        tie(leftBoundString, rightBoundString) = getBoundStrings(i, precision);
 
         html << std::fixed << std::setprecision(precision) <<
              "<tr>"
@@ -236,50 +246,10 @@ void shasta::writeHistogramsToHtml(
             "<th class='centered'>Plot";
 
     for (size_t i=0; i<histogramA.histogram.size(); i++){
-        const double leftBound = histogramA.start + double(i)*(histogramA.binSize);
-        const double rightBound = histogramA.start + double(i+1)*(histogramA.binSize);
-
-        // Check if the bin bounds have any trailing decimals
-        if (std::fmod(leftBound,1) == 0 and std::fmod(rightBound,1) == 0){
-            precision = 0;
-        }
-        else{
-            precision = 2;
-        }
-
         string leftBoundString;
         string rightBoundString;
 
-        if (histogramA.unboundedLeft and i==0){
-            leftBoundString = "-inf";
-        }
-        else {
-            leftBoundString = to_string(leftBound);
-            const size_t decimalPosition = leftBoundString.find('.');
-
-            if (precision == 0) {
-                leftBoundString = leftBoundString.substr(0,decimalPosition);
-            }
-            else {
-                leftBoundString = leftBoundString.substr(0, decimalPosition + precision + 1);
-            }
-        }
-
-        if (histogramA.unboundedRight and i == histogramA.binCount-1){
-            rightBoundString = "inf";
-        }
-        else{
-            if (precision == 0) {
-                rightBoundString = to_string(rightBound - 1);
-                const size_t decimalPosition = rightBoundString.find('.');
-                rightBoundString = rightBoundString.substr(0,decimalPosition);
-            }
-            else {
-                rightBoundString = to_string(rightBound);
-                const size_t decimalPosition = rightBoundString.find('.');
-                rightBoundString = rightBoundString.substr(0, decimalPosition + precision + 1);
-            }
-        }
+        tie(leftBoundString, rightBoundString) = histogramA.getBoundStrings(i, precision);
 
         html << std::fixed << std::setprecision(precision) <<
             "<tr>"
@@ -299,6 +269,20 @@ void shasta::writeHistogramsToHtml(
 
     // Remove precision settings that were specified above
     html.unsetf(std::ios_base::floatfield);
+}
+
+
+void shasta::Histogram2::writeToCsv(ostream& csv, int32_t precision){
+    csv << "LeftBound" << ',' << "RightBound" << ',' << "Frequency" << '\n';
+
+    for (size_t i = 0; i < histogram.size(); i++) {
+        string leftBoundString;
+        string rightBoundString;
+
+        tie(leftBoundString, rightBoundString) = getBoundStrings(i, precision);
+
+        csv << leftBoundString << ',' << rightBoundString << ',' << histogram[i] << '\n';
+    }
 }
 
 

@@ -918,9 +918,7 @@ public:
     void createReadGraph(
         uint32_t maxAlignmentCount,
         uint32_t maxTrim);
-    void createReadGraph2(
-        uint32_t maxAlignmentCount,
-        uint32_t maxTrim);
+    void createReadGraph2(uint32_t maxAlignmentCount);
     void accessReadGraph();
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();

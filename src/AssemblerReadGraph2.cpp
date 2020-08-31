@@ -4,31 +4,52 @@ using namespace shasta;
 
 
 void Assembler::createReadGraph2(
-    uint32_t maxAlignmentCount,
-    uint32_t maxTrim)
+    uint32_t maxAlignmentCount)
 {
     vector<bool> keepAlignment(alignmentData.size(), false);
 
-    double candidateSampleFraction = 0.3;
+    // Choose a (somewhat arbitrary) fraction of alignments to sample for building histograms. Consider using 100%?
+    double candidateSampleFraction = 1.0;
     if (candidateSampleFraction > 1.0){
         throw runtime_error("ERROR: sample fraction must be <= 1.0");
     }
 
     // Initialize histograms for measuring alignedFraction, markerCount, maxDrift, and maxSkip distributions
-    Histogram2 alignedFractionHistogram(0, 1, 50);
-    Histogram2 markerCountHistogram(0, 3000, 240);
+    Histogram2 alignedFractionHistogram(0, 1, 100);
+    Histogram2 markerCountHistogram(0, 3000, 300);
     Histogram2 maxDriftHistogram(0, 100, 100);
     Histogram2 maxSkipHistogram(0, 100, 100);
+    Histogram2 maxTrimHistogram(0, 100, 100);
+
+    ofstream alignmentInfoCsv("alignmentInfo.csv");
+    alignmentInfoCsv << "readId0" << ','
+                     << "readId1" << ','
+                     << "minAlignedFraction" << ','
+                     << "markerCount" << ','
+                     << "maxDrift" << ','
+                     << "maxSkip" << ','
+                     << "trim" << '\n';
 
     // Sample read pairs by discarding. Not ideal for large number of pairs AND small fractions
     for (size_t i=0; i<alignmentData.size(); i++){
         if (i % 101 <= size_t(round(candidateSampleFraction * 101))){
             const auto info = alignmentData[i].info;
+            const auto trims = info.computeTrim();
+            const auto trim = max(trims.first, trims.second);
 
             alignedFractionHistogram.update(info.minAlignedFraction());
             markerCountHistogram.update(info.markerCount);
             maxDriftHistogram.update(info.maxDrift);
             maxSkipHistogram.update(info.maxSkip);
+            maxTrimHistogram.update(trim);
+
+            alignmentInfoCsv << alignmentData[i].readIds[0] << ','
+                    << alignmentData[i].readIds[1] << ','
+                    << info.minAlignedFraction() << ','
+                    << info.markerCount << ','
+                    << info.maxDrift << ','
+                    << info.maxSkip << ','
+                    << trim << '\n';
         }
     }
 
@@ -45,12 +66,14 @@ void Assembler::createReadGraph2(
     // Maximums use (1 - percentile)
     double maxDriftThreshold = maxDriftHistogram.thresholdByCumulativeProportion(1 - cumulativeProportion);
     double maxSkipThreshold = maxSkipHistogram.thresholdByCumulativeProportion(1 - cumulativeProportion);
+    double maxTrimThreshold = maxTrimHistogram.thresholdByCumulativeProportion(1 - 0.015);
 
     cout << "Selected thresholds automatically for the following parameters:\n\t"
          << "alignedFraction:\t" << alignedFractionThreshold << "\n\t"
          << "markerCount:\t\t" << markerCountThreshold << "\n\t"
          << "maxDrift:\t\t" << maxDriftThreshold << "\n\t"
-         << "maxSkip:\t\t" << maxSkipThreshold << "\n";
+         << "maxSkip:\t\t" << maxSkipThreshold << "\n\t"
+         << "maxTrim:\t\t" << maxTrimThreshold << "\n";
 
     // Find the number of reads and oriented reads.
     const ReadId orientedReadCount = uint32_t(markers.size());
@@ -69,6 +92,8 @@ void Assembler::createReadGraph2(
         readAlignments.clear();
         for(const uint32_t alignmentId: alignmentTable[OrientedReadId(readId, 0).getValue()]) {
             const AlignmentInfo& info = alignmentData[alignmentId].info;
+            const auto trims = info.computeTrim();
+            const auto trim = max(trims.first, trims.second);
 
             // If this alignment didnt pass the thresholding step, skip it
             if (info.minAlignedFraction() < alignedFractionThreshold){
@@ -81,6 +106,9 @@ void Assembler::createReadGraph2(
                 continue;
             }
             if (info.maxSkip > maxSkipThreshold){
+                continue;
+            }
+            if (trim > maxTrimThreshold){
                 continue;
             }
 
@@ -106,6 +134,18 @@ void Assembler::createReadGraph2(
     }
     const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
     cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+
+    ofstream alignedFractionHistogramCsv("AlignedFractionHistogram.csv");
+    ofstream markerCountHistogramCsv("AlignmentMarkerCountHistogram.csv");
+    ofstream maxDriftHistogramCsv("AlignmentDriftHistogram.csv");
+    ofstream maxSkipHistogramCsv("AlignmentSkipHistogram.csv");
+    ofstream maxTrimHistogramCsv("AlignmentTrimHistogram.csv");
+
+    alignedFractionHistogram.writeToCsv(alignedFractionHistogramCsv, 3);
+    markerCountHistogram.writeToCsv(markerCountHistogramCsv, 0);
+    maxDriftHistogram.writeToCsv(maxDriftHistogramCsv, 0);
+    maxSkipHistogram.writeToCsv(maxSkipHistogramCsv, 0);
+    maxTrimHistogram.writeToCsv(maxTrimHistogramCsv, 0);
 
     createReadGraphUsingSelectedAlignments(keepAlignment);
 }

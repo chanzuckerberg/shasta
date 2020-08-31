@@ -9,6 +9,7 @@
 #include <utility>
 
 using std::ostream;
+using std::string;
 using std::pair;
 
 
@@ -80,7 +81,9 @@ public:
     void update(double x);
     void getNormalizedHistogram(vector<double>& normalizedHistogram);
     void writeToHtml(ostream& html, uint64_t sizePx, int32_t precision);
+    void writeToCsv(ostream& csv, int32_t precision);
     double thresholdByCumulativeProportion(double fraction);
+    pair<string,string> getBoundStrings(size_t binIndex, int32_t precision);
     uint64_t getSum();
 
 private:
