@@ -6,13 +6,11 @@ using namespace shasta;
 void Assembler::createReadGraph2(
     uint32_t maxAlignmentCount)
 {
-    vector<bool> keepAlignment(alignmentData.size(), false);
+    // Percentile cutoffs for automated parameters
+    double largePercentile = 0.12;
+    double smallPercentile = 0.015;
 
-    // Choose a (somewhat arbitrary) fraction of alignments to sample for building histograms. Consider using 100%?
-    double candidateSampleFraction = 1.0;
-    if (candidateSampleFraction > 1.0){
-        throw runtime_error("ERROR: sample fraction must be <= 1.0");
-    }
+    vector<bool> keepAlignment(alignmentData.size(), false);
 
     // Initialize histograms for measuring alignedFraction, markerCount, maxDrift, and maxSkip distributions
     Histogram2 alignedFractionHistogram(0, 1, 100);
@@ -32,41 +30,38 @@ void Assembler::createReadGraph2(
 
     // Sample read pairs by discarding. Not ideal for large number of pairs AND small fractions
     for (size_t i=0; i<alignmentData.size(); i++){
-        if (i % 101 <= size_t(round(candidateSampleFraction * 101))){
-            const auto info = alignmentData[i].info;
-            const auto trims = info.computeTrim();
-            const auto trim = max(trims.first, trims.second);
+        const auto info = alignmentData[i].info;
+        const auto trims = info.computeTrim();
+        const auto trim = max(trims.first, trims.second);
 
-            alignedFractionHistogram.update(info.minAlignedFraction());
-            markerCountHistogram.update(info.markerCount);
-            maxDriftHistogram.update(info.maxDrift);
-            maxSkipHistogram.update(info.maxSkip);
-            maxTrimHistogram.update(trim);
+        alignedFractionHistogram.update(info.minAlignedFraction());
+        markerCountHistogram.update(info.markerCount);
+        maxDriftHistogram.update(info.maxDrift);
+        maxSkipHistogram.update(info.maxSkip);
+        maxTrimHistogram.update(trim);
 
-            alignmentInfoCsv << alignmentData[i].readIds[0] << ','
-                    << alignmentData[i].readIds[1] << ','
-                    << info.minAlignedFraction() << ','
-                    << info.markerCount << ','
-                    << info.maxDrift << ','
-                    << info.maxSkip << ','
-                    << trim << '\n';
-        }
+        alignmentInfoCsv << alignmentData[i].readIds[0] << ','
+                << alignmentData[i].readIds[1] << ','
+                << info.minAlignedFraction() << ','
+                << info.markerCount << ','
+                << info.maxDrift << ','
+                << info.maxSkip << ','
+                << trim << '\n';
     }
 
-    // Evaluate thresholds by finding the 12th percentile
-    double cumulativeProportion = 0.12;
-
     // Minimums
-    double alignedFractionThreshold = alignedFractionHistogram.thresholdByCumulativeProportion(cumulativeProportion);
+    double alignedFractionThreshold = alignedFractionHistogram.thresholdByCumulativeProportion(largePercentile);
 
     // MarkerCount is not at all gaussian, so it needs a different percentile.
     // This may be difficult to automate for varying length read sets.
-    double markerCountThreshold = markerCountHistogram.thresholdByCumulativeProportion(0.015);
+    double markerCountThreshold = markerCountHistogram.thresholdByCumulativeProportion(smallPercentile);
 
     // Maximums use (1 - percentile)
-    double maxDriftThreshold = maxDriftHistogram.thresholdByCumulativeProportion(1 - cumulativeProportion);
-    double maxSkipThreshold = maxSkipHistogram.thresholdByCumulativeProportion(1 - cumulativeProportion);
-    double maxTrimThreshold = maxTrimHistogram.thresholdByCumulativeProportion(1 - 0.015);
+    double maxDriftThreshold = maxDriftHistogram.thresholdByCumulativeProportion(1 - largePercentile);
+    double maxSkipThreshold = maxSkipHistogram.thresholdByCumulativeProportion(1 - largePercentile);
+
+    // MaxTrim also uses a small percentile because the default manual configuration was very permissive
+    double maxTrimThreshold = maxTrimHistogram.thresholdByCumulativeProportion(1 - smallPercentile);
 
     cout << "Selected thresholds automatically for the following parameters:\n\t"
          << "alignedFraction:\t" << alignedFractionThreshold << "\n\t"
