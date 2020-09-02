@@ -441,9 +441,16 @@ that each read is involved in reaches this value.
 If <code>--MinHash.minHashIterationCount</code> is not 0, this is not used.
 <a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
+<tr id='MinHash.minBucketSize'>
+<td><code>--MinHash.minBucketSize</code><td class=centered><code>1</code><td>
+The minimum size for a bucket to be used by the MinHash/LowHash algoritm.
+If set to 0, an experimental algorithm is used to select the value automatically.
+<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+
 <tr id='MinHash.maxBucketSize'>
 <td><code>--MinHash.maxBucketSize</code><td class=centered><code>10</code><td>
 The maximum size for a bucket to be used by the MinHash/LowHash algoritm.
+If set to 0, an experimental algorithm is used to select the value automatically.
 <a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
 
 <tr id='MinHash.minFrequency'>
