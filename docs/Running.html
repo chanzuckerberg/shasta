@@ -15,26 +15,16 @@
 Refer the <a href="QuickStart.html">quick start</a> guide to download an executable or
 <a href="BuildingFromSource.html">build</a> one from the source code.
 
-<h2 id=Configuration>Configuration</h2>
+<h2 id=Configuration>Selecting assembly options</h2>
 <p>
 You can invoke the Shasta executable without options or with
 <code>--help</code> to get a description of the options.
-A list of options can also be found 
+A list of available options can also be found 
 <a href=CommandLineOptions.html>here</a>.
-Most options control assembly parameters whose default
-value works well for an assembly with typical coverage
-around 60x, and don't need to be changed in many cases.
-
-<p>
-Keep in mind that these default parameter values
-include a read length cutoff of 10 Kb, which means 
-all reads shorter than that are discarded on input.
-On current data from sequencing runs at UCSC, this result
-in a very small loss in coverage.
 
 <p>
 The only mandatory options is <code>--input</code> 
-which must be used to specify the input FASTA files
+which must be used to specify the input FASTA or FASTQ files
 containing reads to be used for the assembly.
 If there is more than one file, the names
 should be specified separated by white space,
@@ -43,6 +33,40 @@ entering <code>--input</code> only once, like this:
 <pre>
 --input a.fasta b.fasta c.fasta
 </pre>
+
+<p>
+The Shasta assembly process is controlled by many
+parameters whose values can be specified by 
+using <a href=CommandLineOptions.html>command line options</a> 
+or a <a href=CommandLineOptions.html#ConfigFile>configuration file</a>.
+Configuration files for some common situations are
+provided in <code>shasta/conf</code> 
+or <code>shasta-install/conf</code>
+(download a <code>tar</code> file from a Shasta release 
+if you don't have access to these directories). 
+Creating options for a new type of data or genome can require
+some work, experimentation, and some knowledge of Shasta 
+computational methods. 
+If you are unable to get a satisfactory assembly for
+your data, feel free to 
+<a href="https://github.com/chanzuckerberg/shasta/issues">file an issue</a> 
+in the Shasta GitHub repository and we will help.
+You can also use an experimental script, 
+<code>GenerateConfig.py</code>,
+that will help you create a starting configuration file. 
+This script is available in 
+<code>shasta/scripts</code> 
+or <code>shasta-install/bin</code>
+(download a <code>tar</code> file from a Shasta release 
+if you don't have access to these directories).
+
+<p>
+There is also another experimental script,
+<code>GenerateFeedback.py</code>,
+that can be used after an assembly is complete
+to assess some (limited) aspects of assembly quality.
+If you decide to file an issue on the Shasta GitHub repository,
+including the output of this script would be helpful.
 
 
 
