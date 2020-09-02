@@ -1095,9 +1095,11 @@ requests a Bayesian algorithm to determine the most likely repeat count.
     <li><code>r10-guppy-3.4.8-a</code> to use a Bayesian model optimized for
         r10 reads and the Guppy 3.4.8 base caller.
   </ul>
-  <li>The absolute path of a configuration file
-describing the Bayesian model to be used.
-A relative path is not accepted.
+  <li>The name of a configuration file
+describing the Bayesian model to be used,
+which can be specified as a relative or absolute path.
+Earlier versions of Shasta required an absolute path, but this
+is no longer the case.
 Sample configuration files are available in <code>shasta/conf</code> or 
 <code>shasta-install/conf</code>.
 They are named <code>SimpleBayesianConsensusCaller-*.csv</code>.
