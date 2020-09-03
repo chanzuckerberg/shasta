@@ -1666,7 +1666,7 @@ void Assembler::assessAlignments(
         html << "<th class='centered'>Alignment Info";
     }
 
-    for (size_t i=0; i<sampledReads.size(); i++) {
+    for (uint64_t i=0; i<sampledReads.size(); i++) {
         const OrientedReadId orientedReadId = sampledReads[i];
 
         if (computeAllAlignmentsData.method == 0) {
