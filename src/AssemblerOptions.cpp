@@ -801,15 +801,15 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
     s << "detangle.offDiagonalRatio = " << detangleOffDiagonalRatio << "\n";
     s << "iterative = " <<
         convertBoolToPythonString(iterative) << "\n";
-    s << "iterative.iterationCount" << iterativeIterationCount << "\n";
-    s << "iterative.pseudoPathAlignMatchScore" << iterativePseudoPathAlignMatchScore << "\n";
-    s << "iterative.pseudoPathAlignMismatchScore" << iterativePseudoPathAlignMismatchScore << "\n";
-    s << "iterative.pseudoPathAlignGapScore" << iterativePseudoPathAlignGapScore << "\n";
-    s << "iterative.mismatchSquareFactor" << iterativeMismatchSquareFactor << "\n";
-    s << "iterative.minScore" << iterativeMinScore << "\n";
-    s << "iterative.maxAlignmentCount" << iterativeMaxAlignmentCount << "\n";
-    s << "iterative.bridgeRemovalIterationCount" << iterativeBridgeRemovalIterationCount << "\n";
-    s << "iterative.bridgeRemovalMaxDistance" << iterativeBridgeRemovalMaxDistance << "\n";
+    s << "iterative.iterationCount = " << iterativeIterationCount << "\n";
+    s << "iterative.pseudoPathAlignMatchScore = " << iterativePseudoPathAlignMatchScore << "\n";
+    s << "iterative.pseudoPathAlignMismatchScore = " << iterativePseudoPathAlignMismatchScore << "\n";
+    s << "iterative.pseudoPathAlignGapScore = " << iterativePseudoPathAlignGapScore << "\n";
+    s << "iterative.mismatchSquareFactor = " << iterativeMismatchSquareFactor << "\n";
+    s << "iterative.minScore = " << iterativeMinScore << "\n";
+    s << "iterative.maxAlignmentCount = " << iterativeMaxAlignmentCount << "\n";
+    s << "iterative.bridgeRemovalIterationCount = " << iterativeBridgeRemovalIterationCount << "\n";
+    s << "iterative.bridgeRemovalMaxDistance = " << iterativeBridgeRemovalMaxDistance << "\n";
 }
 
 
