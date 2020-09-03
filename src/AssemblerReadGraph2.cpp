@@ -6,9 +6,19 @@ using namespace shasta;
 void Assembler::createReadGraph2(
     uint32_t maxAlignmentCount)
 {
+    const bool debug = false;
+
     // Percentile cutoffs for automated parameters
-    double largePercentile = 0.12;
-    double smallPercentile = 0.015;
+    double alignedFractionPercentile = 0.12;
+    double maxDriftPercentile = 0.12;
+    double maxSkipPercentile = 0.12;
+
+    // MarkerCount is not at all gaussian, so it needs a different percentile.
+    // This may be difficult to automate for varying length read sets.
+    double markerCountPercentile = 0.015;
+
+    // MaxTrim also uses a small percentile because the default manual configuration was very permissive
+    double maxTrimPercentile = 0.015;
 
     vector<bool> keepAlignment(alignmentData.size(), false);
 
@@ -19,16 +29,19 @@ void Assembler::createReadGraph2(
     Histogram2 maxSkipHistogram(0, 100, 100);
     Histogram2 maxTrimHistogram(0, 100, 100);
 
-    ofstream alignmentInfoCsv("alignmentInfo.csv");
-    alignmentInfoCsv << "readId0" << ','
-                     << "readId1" << ','
-                     << "minAlignedFraction" << ','
-                     << "markerCount" << ','
-                     << "maxDrift" << ','
-                     << "maxSkip" << ','
-                     << "trim" << '\n';
+    ofstream alignmentInfoCsv("AlignmentInfo.csv");
 
-    // Sample read pairs by discarding. Not ideal for large number of pairs AND small fractions
+    if (debug) {
+        alignmentInfoCsv << "readId0" << ','
+                         << "readId1" << ','
+                         << "minAlignedFraction" << ','
+                         << "markerCount" << ','
+                         << "maxDrift" << ','
+                         << "maxSkip" << ','
+                         << "trim" << '\n';
+    }
+
+    // Sample all available alignments that pass the initial permissive criteria
     for (size_t i=0; i<alignmentData.size(); i++){
         const auto info = alignmentData[i].info;
         const auto trims = info.computeTrim();
@@ -40,28 +53,25 @@ void Assembler::createReadGraph2(
         maxSkipHistogram.update(info.maxSkip);
         maxTrimHistogram.update(trim);
 
-        alignmentInfoCsv << alignmentData[i].readIds[0] << ','
-                << alignmentData[i].readIds[1] << ','
-                << info.minAlignedFraction() << ','
-                << info.markerCount << ','
-                << info.maxDrift << ','
-                << info.maxSkip << ','
-                << trim << '\n';
+        if (debug) {
+            alignmentInfoCsv << alignmentData[i].readIds[0] << ','
+                             << alignmentData[i].readIds[1] << ','
+                             << info.minAlignedFraction() << ','
+                             << info.markerCount << ','
+                             << info.maxDrift << ','
+                             << info.maxSkip << ','
+                             << trim << '\n';
+        }
     }
 
     // Minimums
-    double alignedFractionThreshold = alignedFractionHistogram.thresholdByCumulativeProportion(largePercentile);
-
-    // MarkerCount is not at all gaussian, so it needs a different percentile.
-    // This may be difficult to automate for varying length read sets.
-    double markerCountThreshold = markerCountHistogram.thresholdByCumulativeProportion(smallPercentile);
+    double alignedFractionThreshold = alignedFractionHistogram.thresholdByCumulativeProportion(alignedFractionPercentile);
+    double markerCountThreshold = markerCountHistogram.thresholdByCumulativeProportion(markerCountPercentile);
 
     // Maximums use (1 - percentile)
-    double maxDriftThreshold = maxDriftHistogram.thresholdByCumulativeProportion(1 - largePercentile);
-    double maxSkipThreshold = maxSkipHistogram.thresholdByCumulativeProportion(1 - largePercentile);
-
-    // MaxTrim also uses a small percentile because the default manual configuration was very permissive
-    double maxTrimThreshold = maxTrimHistogram.thresholdByCumulativeProportion(1 - smallPercentile);
+    double maxDriftThreshold = maxDriftHistogram.thresholdByCumulativeProportion(1 - maxDriftPercentile);
+    double maxSkipThreshold = maxSkipHistogram.thresholdByCumulativeProportion(1 - maxSkipPercentile);
+    double maxTrimThreshold = maxTrimHistogram.thresholdByCumulativeProportion(1 - maxTrimPercentile);
 
     cout << "Selected thresholds automatically for the following parameters:\n\t"
          << "alignedFraction:\t" << alignedFractionThreshold << "\n\t"
@@ -90,7 +100,7 @@ void Assembler::createReadGraph2(
             const auto trims = info.computeTrim();
             const auto trim = max(trims.first, trims.second);
 
-            // If this alignment didnt pass the thresholding step, skip it
+            // If this alignment doesn't pass the thresholds, skip it
             if (info.minAlignedFraction() < alignedFractionThreshold){
                 continue;
             }
