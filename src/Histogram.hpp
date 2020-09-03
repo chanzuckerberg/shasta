@@ -6,8 +6,13 @@
 #include <numeric>
 #include <cstdint>
 #include <fstream>
+#include <utility>
+#include <deque>
 
 using std::ostream;
+using std::string;
+using std::deque;
+using std::pair;
 
 
 namespace shasta {
@@ -55,17 +60,24 @@ public:
 };
 
 
-// A histogram class that calculates bin size and finds the appropriate bin to increment given an x value
+// A histogram class that calculates bin size and finds the appropriate bin to increment given an x value.
+// When "dynamicBounds" is set to true, no input value is considered out of bounds, because the histogram will
+// dynamically resize to reach new values, in both directions on the number line. However, this means that
+// "unboundedLeft" and "unboundedRight" are ignored. Otherwise, "unbounded..." params will modify the edge behavior
+// of the first or last bin so that any out of range item will be funneled into the terminal bin.
+// There is currently no initialization parameter to directly specify binSize, so when using dynamicBounds,
+// start, stop, and binCount must be specified as a means of indirectly specifying binSize.
 class shasta::Histogram2{
 public:
     /// Attributes ///
-    const double start;
-    const double stop;
-    const size_t binCount;
+    double start;
+    double stop;
+    uint64_t binCount;
     const double binSize;
-    vector<uint64_t> histogram;
+    deque<uint64_t> histogram;
     bool unboundedLeft;
     bool unboundedRight;
+    bool dynamicBounds;
 
     /// Methods ///
     Histogram2(
@@ -73,15 +85,16 @@ public:
             double stop,
             size_t binCount,
             bool unboundedLeft=false,
-            bool unboundedRight=false);
+            bool unboundedRight=false,
+            bool dynamicBounds=false);
 
     void update(double x);
     void getNormalizedHistogram(vector<double>& normalizedHistogram);
     void writeToHtml(ostream& html, uint64_t sizePx, int32_t precision);
+    void writeToCsv(ostream& csv, int32_t precision);
+    double thresholdByCumulativeProportion(double fraction);
+    pair<string,string> getBoundStrings(size_t binIndex, int32_t precision);
     uint64_t getSum();
-
-private:
-    /// Methods ///
     int64_t findIndex(double x);
 };
 

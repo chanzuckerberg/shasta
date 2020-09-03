@@ -1398,7 +1398,7 @@ void Assembler::countDeadEndOverhangs(
         Histogram2& overhangLengths,
         uint32_t minOverhang){
 
-    for (size_t i=0; i < allAlignmentInfo.size(); i++){
+    for (uint64_t i=0; i < allAlignmentInfo.size(); i++){
         const auto& alignment = allAlignmentInfo[i].second;
 
         if (isLeftEnd[i]){
@@ -1666,7 +1666,7 @@ void Assembler::assessAlignments(
         html << "<th class='centered'>Alignment Info";
     }
 
-    for (size_t i=0; i<sampledReads.size(); i++) {
+    for (uint64_t i=0; i<sampledReads.size(); i++) {
         const OrientedReadId orientedReadId = sampledReads[i];
 
         if (computeAllAlignmentsData.method == 0) {
@@ -1678,8 +1678,9 @@ void Assembler::assessAlignments(
 
         // Compute the alignments in parallel.
         computeAllAlignmentsData.orientedReadId0 = orientedReadId;
+        const uint64_t threadCount = std::thread::hardware_concurrency();
         computeAllAlignmentsData.threadAlignments.resize(threadCount);
-        const size_t batchSize = 1;
+        const uint64_t batchSize = 1;
         setupLoadBalancing(reads->readCount(), batchSize);
         const auto t0 = std::chrono::steady_clock::now();
         runThreads(&Assembler::computeAllAlignmentsThreadFunction, threadCount);
@@ -1687,7 +1688,7 @@ void Assembler::assessAlignments(
 
         // Gather the alignments found by each thread.
         vector<pair<OrientedReadId, AlignmentInfo> > alignmentInfo;
-        for (size_t threadId = 0; threadId < threadCount; threadId++) {
+        for (uint64_t threadId = 0; threadId < threadCount; threadId++) {
             const vector<pair<OrientedReadId, AlignmentInfo> >& threadAlignments =
                     computeAllAlignmentsData.threadAlignments[threadId];
             copy(threadAlignments.begin(), threadAlignments.end(), back_inserter(alignmentInfo));
@@ -1735,10 +1736,10 @@ void Assembler::assessAlignments(
         }
 
         if (useDeadEnds){
-            for (size_t n=0; n<alignmentInfo.size(); n++) {
+            for (uint64_t n=0; n<alignmentInfo.size(); n++) {
                 allIsLeftEnd.push_back(isLeftEnd[i]);
             }
-            for (size_t n=0; n<storedAlignments.size(); n++) {
+            for (uint64_t n=0; n<storedAlignments.size(); n++) {
                 allStoredIsLeftEnd.push_back(isLeftEnd[i]);
             }
         }
@@ -1908,7 +1909,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                         ". This alignment candidate will be skipped. " << endl;
                     continue;
                 }
-    
+
 
                 // If the alignment is poor, skip it.
                 if ((alignment.ordinals.size() < minAlignedMarkerCount) ||
@@ -1948,10 +1949,10 @@ void Assembler::exploreAlignmentGraph(
     Strand strand = 0;
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
 
-    size_t minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
+    uint64_t minAlignedMarkerCount = httpServerData.assemblerOptions->alignOptions.minAlignedMarkerCount;
     getParameterValue(request, "minAlignedMarkerCount", minAlignedMarkerCount);
 
-    size_t maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
+    uint64_t maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
     getParameterValue(request, "maxTrim", maxTrim);
 
     uint32_t maxDistance = 2;

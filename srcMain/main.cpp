@@ -701,8 +701,7 @@ void shasta::main::assemble(
             assemblerOptions.readGraphOptions.uncontainedNeighborCountPerDirection);
     } else if(assemblerOptions.readGraphOptions.creationMethod == 2) {
         assembler.createReadGraph2(
-            assemblerOptions.readGraphOptions.maxAlignmentCount,
-            assemblerOptions.alignOptions.maxTrim);
+                assemblerOptions.readGraphOptions.maxAlignmentCount);
 
         // Flag read graph edges that cross strands.
         assembler.flagCrossStrandReadGraphEdges(
