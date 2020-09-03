@@ -247,10 +247,25 @@ public:
         bool storeCoverageData;
         int storeCoverageDataCsvLengthThreshold;
         bool writeReadsByAssembledSegment;
+
+        // Options that control detangling.
         int detangleMethod;
         uint64_t detangleDiagonalReadCountMin;
         uint64_t detangleOffDiagonalReadCountMax;
         double detangleOffDiagonalRatio;
+
+        // Options that control iterative assembly.
+        bool iterative;
+        uint64_t iterativeIterationCount;
+        int64_t iterativePseudoPathAlignMatchScore;
+        int64_t iterativePseudoPathAlignMismatchScore;
+        int64_t iterativePseudoPathAlignGapScore;
+        double iterativeMismatchSquareFactor;
+        double iterativeMinScore;
+        uint64_t iterativeMaxAlignmentCount;
+        uint64_t iterativeBridgeRemovalIterationCount;
+        uint64_t iterativeBridgeRemovalMaxDistance;
+
         void write(ostream&) const;
 
         // If a relative path is provided for a Bayesian consensus caller

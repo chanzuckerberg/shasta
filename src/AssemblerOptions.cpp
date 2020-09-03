@@ -611,6 +611,56 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(0.3),
         "Maximum ratio of total off-diagonal elements over diagonal element "
         "allowed for detangling.")
+
+        ("Assembly.iterative",
+        bool_switch(&assemblyOptions.iterative)->
+        default_value(false),
+        "Used to request iterative assembly (experimental).")
+
+        ("Assembly.iterative.iterationCount",
+        value<uint64_t>(&assemblyOptions.iterativeIterationCount)->
+        default_value(3),
+        "Number of iterations for iterative assembly (experimental).")
+
+        ("Assembly.iterative.pseudoPathAlignMatchScore",
+        value<int64_t>(&assemblyOptions.iterativePseudoPathAlignMatchScore)->
+        default_value(1),
+        "Pseudopath alignment match score for iterative assembly (experimental).")
+
+        ("Assembly.iterative.pseudoPathAlignMismatchScore",
+        value<int64_t>(&assemblyOptions.iterativePseudoPathAlignMismatchScore)->
+        default_value(-1),
+        "Pseudopath alignment mismatch score for iterative assembly (experimental).")
+
+        ("Assembly.iterative.pseudoPathAlignGapScore",
+        value<int64_t>(&assemblyOptions.iterativePseudoPathAlignGapScore)->
+        default_value(-1),
+        "Pseudopath alignment gap score for iterative assembly (experimental).")
+
+        ("Assembly.iterative.mismatchSquareFactor",
+        value<double>(&assemblyOptions.iterativeMismatchSquareFactor)->
+        default_value(3.),
+        "Mismatch square factor for iterative assembly (experimental).")
+
+        ("Assembly.iterative.minScore",
+        value<double>(&assemblyOptions.iterativeMinScore)->
+        default_value(0.),
+        "Minimum pseudo-alignment score for iterative assembly (experimental).")
+
+        ("Assembly.iterative.maxAlignmentCount",
+        value<uint64_t>(&assemblyOptions.iterativeMaxAlignmentCount)->
+        default_value(6),
+        "Maximum number of read graph neighbors for iterative assembly (experimental).")
+
+        ("Assembly.iterative.bridgeRemovalIterationCount",
+        value<uint64_t>(&assemblyOptions.iterativeBridgeRemovalIterationCount)->
+        default_value(3),
+        "Number of read graph bridge removal iterations for iterative assembly (experimental).")
+
+        ("Assembly.iterative.bridgeRemovalMaxDistance",
+        value<uint64_t>(&assemblyOptions.iterativeBridgeRemovalMaxDistance)->
+        default_value(2),
+        "Maximum distance for read graph bridge removal for iterative assembly (experimental).")
         ;
 }
 
@@ -749,6 +799,17 @@ void AssemblerOptions::AssemblyOptions::write(ostream& s) const
     s << "detangle.diagonalReadCountMin = " << detangleDiagonalReadCountMin << "\n";
     s << "detangle.offDiagonalReadCountMax = " << detangleOffDiagonalReadCountMax << "\n";
     s << "detangle.offDiagonalRatio = " << detangleOffDiagonalRatio << "\n";
+    s << "iterative = " <<
+        convertBoolToPythonString(iterative) << "\n";
+    s << "iterative.iterationCount" << iterativeIterationCount << "\n";
+    s << "iterative.pseudoPathAlignMatchScore" << iterativePseudoPathAlignMatchScore << "\n";
+    s << "iterative.pseudoPathAlignMismatchScore" << iterativePseudoPathAlignMismatchScore << "\n";
+    s << "iterative.pseudoPathAlignGapScore" << iterativePseudoPathAlignGapScore << "\n";
+    s << "iterative.mismatchSquareFactor" << iterativeMismatchSquareFactor << "\n";
+    s << "iterative.minScore" << iterativeMinScore << "\n";
+    s << "iterative.maxAlignmentCount" << iterativeMaxAlignmentCount << "\n";
+    s << "iterative.bridgeRemovalIterationCount" << iterativeBridgeRemovalIterationCount << "\n";
+    s << "iterative.bridgeRemovalMaxDistance" << iterativeBridgeRemovalMaxDistance << "\n";
 }
 
 
