@@ -93,7 +93,7 @@ public:
     void writeToHtml(ostream& html, uint64_t sizePx, int32_t precision);
     void writeToCsv(ostream& csv, int32_t precision);
     double thresholdByCumulativeProportion(double fraction);
-    pair<string,string> getBoundStrings(size_t binIndex, int32_t precision);
+    pair<string,string> getBoundStrings(uint64_t binIndex, int32_t precision);
     uint64_t getSum();
     int64_t findIndex(double x);
 };
