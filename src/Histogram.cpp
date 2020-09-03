@@ -17,15 +17,21 @@ shasta::Histogram2::Histogram2(
         double stop,
         size_t binCount,
         bool unboundedLeft,
-        bool unboundedRight):
+        bool unboundedRight,
+        bool dynamicBounds):
         start(start),
         stop(stop),
         binCount(binCount),
         binSize((stop-start)/double(binCount)),
         histogram(binCount, 0),
         unboundedLeft(unboundedLeft),
-        unboundedRight(unboundedRight)
-{}
+        unboundedRight(unboundedRight),
+        dynamicBounds(dynamicBounds)
+{
+    if ((unboundedLeft and dynamicBounds) or (unboundedRight and dynamicBounds)){
+        std::cerr << "Warning: Histogram with dynamic bounds ignores the unboundedLeft and unboundedRight parameters\n";
+    }
+}
 
 
 int64_t shasta::Histogram2::findIndex(double x){
@@ -35,11 +41,16 @@ int64_t shasta::Histogram2::findIndex(double x){
     /// the boundary bins being incremented
     auto index = int64_t(floor((x - start) / binSize));
 
+    // Don't bother checking bounds if the user specified dynamic bounds, as they will be expanded to fit
+    if (dynamicBounds) {
+        return index;
+    }
+
+    // If out of bounds return a -1
     if (x < start){
-        if(unboundedLeft) {
+        if (unboundedLeft) {
             index = 0;
-        }
-        else{
+        } else {
             index = -1;
         }
     }
@@ -60,12 +71,33 @@ int64_t shasta::Histogram2::findIndex(double x){
 void shasta::Histogram2::update(double x) {
     auto index = findIndex(x);
 
-    if (index >= 0) {
+    if (dynamicBounds){
+        // If the found index is too large, extend the end of the deque
+        if (index > histogram.size()){
+            size_t newBins = size_t(index)-histogram.size();
+            stop += binSize*double(newBins);
+            binCount += newBins;
+
+            while(histogram.size() < binCount){
+                histogram.push_back(0);
+            }
+        }
+        // If the found index is too low, extend the front of the deque
+        if (index < 0){
+            size_t newBins = size_t(-index);
+            stop += binSize*double(newBins);
+            binCount += newBins;
+
+            while(histogram.size() < binCount){
+                histogram.push_front(0);
+            }
+        }
+
         histogram[size_t(index)]++;
     }
-    else {
-        // Do nothing. Print warning?
-//        std::cerr << "Value " << x << " ignored because index is " << index << ". Size: " << histogram.size() << '\n';
+
+    else if (index >= 0) {
+        histogram[size_t(index)]++;
     }
 }
 
@@ -199,22 +231,30 @@ void shasta::writeHistogramsToHtml(
         uint64_t sizePx,
         int32_t precision){
 
-    // First verify that histograms are compatible
     bool compatible = true;
-    if (histogramA.start != histogramB.start){
-        compatible = false;
+
+    // First verify that histograms are compatible
+    if (histogramA.dynamicBounds and histogramB.dynamicBounds){
+        if (histogramA.binSize != histogramB.binSize){
+            compatible = false;
+        }
     }
-    if (histogramA.stop != histogramB.stop){
-        compatible = false;
-    }
-    if (histogramA.binCount != histogramB.binCount){
-        compatible = false;
-    }
-    if (histogramA.unboundedLeft != histogramB.unboundedLeft){
-        compatible = false;
-    }
-    if (histogramA.unboundedRight != histogramB.unboundedRight){
-        compatible = false;
+    else {
+        if (histogramA.start != histogramB.start) {
+            compatible = false;
+        }
+        if (histogramA.stop != histogramB.stop) {
+            compatible = false;
+        }
+        if (histogramA.binCount != histogramB.binCount) {
+            compatible = false;
+        }
+        if (histogramA.unboundedLeft != histogramB.unboundedLeft) {
+            compatible = false;
+        }
+        if (histogramA.unboundedRight != histogramB.unboundedRight) {
+            compatible = false;
+        }
     }
 
     if (not compatible){
@@ -233,6 +273,11 @@ void shasta::writeHistogramsToHtml(
     }
 
     double scale = double(sizePx)/double(yMax);
+    size_t maxIndex = max(histogramA.histogram.size(), histogramB.histogram.size());
+    double maxStop = max(histogramA.stop, histogramB.stop);
+    double minStart = min(histogramA.start, histogramB.start);
+    int64_t indexOffsetA = histogramA.findIndex(minStart+(histogramA.binSize/2));
+    int64_t indexOffsetB = histogramB.findIndex(minStart+(histogramB.binSize/2));
 
     html << "<table style='margin-top: 1em; margin-bottom: 1em'>";
     html << "<tr>"
@@ -242,18 +287,30 @@ void shasta::writeHistogramsToHtml(
             "<th class='centered'>Count B"
             "<th class='centered'>Plot";
 
-    for (size_t i=0; i<histogramA.histogram.size(); i++){
+    for (size_t i=0; i<maxIndex; i++){
         string leftBoundString;
         string rightBoundString;
 
-        tie(leftBoundString, rightBoundString) = histogramA.getBoundStrings(i, precision);
+        uint64_t frequencyA = 0;
+        uint64_t frequencyB = 0;
+        int64_t indexA = int64_t(i) + indexOffsetA;
+        int64_t indexB = int64_t(i) + indexOffsetB;
+
+        tie(leftBoundString, rightBoundString) = histogramA.getBoundStrings(size_t(indexA), precision);
+
+        if (size_t(indexA) < histogramA.histogram.size() and indexA > 0){
+            frequencyA = histogramA.histogram[size_t(indexA)];
+        }
+        if (size_t(indexB) < histogramB.histogram.size() and indexB > 0){
+            frequencyB = histogramB.histogram[size_t(indexB)];
+        }
 
         html << std::fixed << std::setprecision(precision) <<
             "<tr>"
             "<td class=centered>" << leftBoundString <<
             "<td class=centered>" << rightBoundString <<
-            "<td class=centered>" << histogramA.histogram[i] <<
-            "<td class=centered>" << histogramB.histogram[i] <<
+            "<td class=centered>" << frequencyA <<
+            "<td class=centered>" << frequencyB <<
             "<td style='line-height:8px;white-space:nowrap'>" <<
             "<div class=sketch title='alignedFractionHistogram' "
             "style='display:inline-block;margin:0px;padding:0px;background-color:red;height:6px;width:" <<

@@ -23,11 +23,11 @@ void Assembler::createReadGraph2(
     vector<bool> keepAlignment(alignmentData.size(), false);
 
     // Initialize histograms for measuring alignedFraction, markerCount, maxDrift, and maxSkip distributions
-    Histogram2 alignedFractionHistogram(0, 1, 100);
-    Histogram2 markerCountHistogram(0, 3000, 300);
-    Histogram2 maxDriftHistogram(0, 100, 100);
-    Histogram2 maxSkipHistogram(0, 100, 100);
-    Histogram2 maxTrimHistogram(0, 100, 100);
+    Histogram2 alignedFractionHistogram(0, 1, 100, false, false, true);
+    Histogram2 markerCountHistogram(0, 3000, 300, false, false, true);
+    Histogram2 maxDriftHistogram(0, 100, 100, false, false, true);
+    Histogram2 maxSkipHistogram(0, 100, 100, false, false, true);
+    Histogram2 maxTrimHistogram(0, 100, 100, false, false, true);
 
     ofstream alignmentInfoCsv("AlignmentInfo.csv");
 

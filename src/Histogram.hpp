@@ -7,9 +7,11 @@
 #include <cstdint>
 #include <fstream>
 #include <utility>
+#include <deque>
 
 using std::ostream;
 using std::string;
+using std::deque;
 using std::pair;
 
 
@@ -62,13 +64,14 @@ public:
 class shasta::Histogram2{
 public:
     /// Attributes ///
-    const double start;
-    const double stop;
-    const size_t binCount;
+    double start;
+    double stop;
+    size_t binCount;
     const double binSize;
-    vector<uint64_t> histogram;
+    deque<uint64_t> histogram;
     bool unboundedLeft;
     bool unboundedRight;
+    bool dynamicBounds;
 
     /// Methods ///
     Histogram2(
@@ -76,7 +79,8 @@ public:
             double stop,
             size_t binCount,
             bool unboundedLeft=false,
-            bool unboundedRight=false);
+            bool unboundedRight=false,
+            bool dynamicBounds=false);
 
     void update(double x);
     void getNormalizedHistogram(vector<double>& normalizedHistogram);
@@ -85,9 +89,6 @@ public:
     double thresholdByCumulativeProportion(double fraction);
     pair<string,string> getBoundStrings(size_t binIndex, int32_t precision);
     uint64_t getSum();
-
-private:
-    /// Methods ///
     int64_t findIndex(double x);
 };
 
