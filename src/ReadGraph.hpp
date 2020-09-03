@@ -92,6 +92,7 @@ public:
     );
 
     void unreserve();
+    void remove();
     
     static const uint32_t infiniteDistance;
 

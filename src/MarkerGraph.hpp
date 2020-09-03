@@ -85,7 +85,7 @@ public:
         return vertices()[vertexId];
     }
 
-
+    void remove();
 
     // The global marker graph vertex corresponding to each marker.
     // Indexed by MarkerId.

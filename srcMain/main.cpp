@@ -751,6 +751,50 @@ void shasta::main::assemble(
 
 
 
+    // Iterative assembly, if requested (experimental).
+    if(assemblerOptions.assemblyOptions.iterative) {
+        for(uint64_t iteration=0;
+            iteration<assemblerOptions.assemblyOptions.iterativeIterationCount;
+            iteration++) {
+            cout << timestamp << "Iterative assembly iteration " << iteration << " begins." << endl;
+
+            // Do an assembly with the current read graph, without marker graph
+            // simplification or detangling.
+            createMarkerGraphVertices(assembler, assemblerOptions, threadCount);
+            assembler.findMarkerGraphReverseComplementVertices(threadCount);
+            assembler.createMarkerGraphEdges(threadCount);
+            assembler.findMarkerGraphReverseComplementEdges(threadCount);
+            assembler.transitiveReduction(
+                assemblerOptions.markerGraphOptions.lowCoverageThreshold,
+                assemblerOptions.markerGraphOptions.highCoverageThreshold,
+                assemblerOptions.markerGraphOptions.maxDistance,
+                assemblerOptions.markerGraphOptions.edgeMarkerSkipThreshold);
+            assembler.pruneMarkerGraphStrongSubgraph(
+                assemblerOptions.markerGraphOptions.pruneIterationCount);
+            assembler.createAssemblyGraphEdges();
+            assembler.createAssemblyGraphVertices();
+
+            // Recreate the read graph using pseudo-paths from this assembly.
+            assembler.createReadGraphUsingPseudoPaths(threadCount);
+            for(uint64_t bridgeRemovalIteration=0;
+                bridgeRemovalIteration<assemblerOptions.assemblyOptions.iterativeBridgeRemovalIterationCount;
+                bridgeRemovalIteration++) {
+                assembler.removeReadGraphBridges();
+            }
+
+            // Remove the marker graph and assembly graph we created in the process.
+            assembler.markerGraph.remove();
+            assembler.assemblyGraphPointer.reset();
+
+        }
+
+        // Now we have a new read graph with some amount of separation
+        // between copies of long repeats and/or haplotypes.
+        // The rest of the assembly continues normally.
+    }
+
+
+
     // Create marker graph vertices.
     // This uses a disjoint sets data structure to merge markers
     // that are aligned based on an alignment present in the read graph.

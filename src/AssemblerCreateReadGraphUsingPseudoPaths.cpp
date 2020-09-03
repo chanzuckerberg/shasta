@@ -508,5 +508,6 @@ void Assembler::createReadGraphUsingPseudoPaths(size_t threadCount)
     // Create the read graph using the alignments we selected.
     const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
     cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+    readGraph.remove();
     createReadGraphUsingSelectedAlignments(keepAlignment);
 }

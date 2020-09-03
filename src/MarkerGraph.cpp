@@ -14,6 +14,49 @@ MarkerGraph::MarkerGraph() :
 
 
 
+void MarkerGraph::remove()
+{
+    destructVertices();
+    if(vertexTable.isOpen) {
+        vertexTable.remove();
+    }
+    if(reverseComplementVertex.isOpen) {
+        reverseComplementVertex.remove();
+    }
+    if(edges.isOpen) {
+        edges.remove();
+    }
+    if(reverseComplementEdge.isOpen) {
+        reverseComplementEdge.remove();
+    }
+    if(edgeMarkerIntervals.isOpen()) {
+        edgeMarkerIntervals.remove();
+    }
+    if(edgesBySource.isOpen()) {
+        edgesBySource.remove();
+    }
+    if(edgesByTarget.isOpen()) {
+        edgesByTarget.remove();
+    }
+    if(vertexRepeatCounts.isOpen) {
+        vertexRepeatCounts.remove();
+    }
+    if(edgeConsensus.isOpen()) {
+        edgeConsensus.remove();
+    }
+    if(edgeConsensusOverlappingBaseCount.isOpen) {
+        edgeConsensusOverlappingBaseCount.remove();
+    }
+    if(vertexCoverageData.isOpen()) {
+        vertexCoverageData.remove();
+    }
+    if(edgeCoverageData.isOpen()) {
+        edgeCoverageData.remove();
+    }
+}
+
+
+
 // Locate the edge given the vertices.
 const MarkerGraph::Edge*
     MarkerGraph::findEdge(Uint40 source, Uint40 target) const
