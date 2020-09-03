@@ -596,7 +596,7 @@ void AssemblerOptions::addConfigurableOptions()
 
         ("Assembly.detangle.diagonalReadCountMin",
         value<uint64_t>(&assemblyOptions.detangleDiagonalReadCountMin)->
-        default_value(4),
+        default_value(1),
         "Minimum number of reads on detangle matrix diagonal elements "
         "required for detangling.")
 
