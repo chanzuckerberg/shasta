@@ -83,7 +83,7 @@ public:
     Histogram2(
             double start,
             double stop,
-            size_t binCount,
+            uint64_t binCount,
             bool unboundedLeft=false,
             bool unboundedRight=false,
             bool dynamicBounds=false);
