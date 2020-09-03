@@ -15,7 +15,7 @@ using std::string;
 shasta::Histogram2::Histogram2(
         double start,
         double stop,
-        size_t binCount,
+        uint64_t binCount,
         bool unboundedLeft,
         bool unboundedRight,
         bool dynamicBounds):
@@ -74,7 +74,7 @@ void shasta::Histogram2::update(double x) {
     if (dynamicBounds){
         // If the found index is too large, extend the end of the deque
         if (index > histogram.size()){
-            size_t newBins = size_t(index)-histogram.size();
+            uint64_t newBins = uint64_t(index)-histogram.size();
             stop += binSize*double(newBins);
             binCount += newBins;
 
@@ -84,7 +84,7 @@ void shasta::Histogram2::update(double x) {
         }
         // If the found index is too low, extend the front of the deque
         if (index < 0){
-            size_t newBins = size_t(-index);
+            uint64_t newBins = uint64_t(-index);
             stop += binSize*double(newBins);
             binCount += newBins;
 
@@ -93,11 +93,11 @@ void shasta::Histogram2::update(double x) {
             }
         }
 
-        histogram[size_t(index)]++;
+        histogram[uint64_t(index)]++;
     }
 
     else if (index >= 0) {
-        histogram[size_t(index)]++;
+        histogram[uint64_t(index)]++;
     }
 }
 
@@ -125,7 +125,7 @@ double Histogram2::thresholdByCumulativeProportion(double fraction){
 
     double cumulativeSum = 0;
     double cumulativeFraction;
-    size_t i;
+    uint64_t i;
 
     for (i=0; i<histogram.size(); i++){
         cumulativeSum += double(histogram[i]);
@@ -141,7 +141,7 @@ double Histogram2::thresholdByCumulativeProportion(double fraction){
 }
 
 
-pair<string,string> shasta::Histogram2::getBoundStrings(size_t binIndex, int32_t precision){
+pair<string,string> shasta::Histogram2::getBoundStrings(uint64_t binIndex, int32_t precision){
     const double leftBound = start + double(binIndex)*(binSize);
     const double rightBound = start + double(binIndex+1)*(binSize);
 
@@ -153,7 +153,7 @@ pair<string,string> shasta::Histogram2::getBoundStrings(size_t binIndex, int32_t
     }
     else {
         leftBoundString = to_string(leftBound);
-        const size_t decimalPosition = leftBoundString.find('.');
+        const uint64_t decimalPosition = leftBoundString.find('.');
 
         if (precision == 0) {
             leftBoundString = leftBoundString.substr(0,decimalPosition);
@@ -169,12 +169,12 @@ pair<string,string> shasta::Histogram2::getBoundStrings(size_t binIndex, int32_t
     else{
         if (precision == 0) {
             rightBoundString = to_string(rightBound - 1);
-            const size_t decimalPosition = rightBoundString.find('.');
+            const uint64_t decimalPosition = rightBoundString.find('.');
             rightBoundString = rightBoundString.substr(0,decimalPosition);
         }
         else {
             rightBoundString = to_string(rightBound);
-            const size_t decimalPosition = rightBoundString.find('.');
+            const uint64_t decimalPosition = rightBoundString.find('.');
             rightBoundString = rightBoundString.substr(0, decimalPosition + precision + 1);
         }
     }
@@ -200,7 +200,7 @@ void shasta::Histogram2::writeToHtml(ostream& html, uint64_t sizePx, int32_t pre
             "<th class='centered'>Count"
             "<th class='centered'>Plot";
 
-    for (size_t i=0; i<histogram.size(); i++){
+    for (uint64_t i=0; i<histogram.size(); i++){
         const auto y = histogram[i];
 
         string leftBoundString;
@@ -263,7 +263,7 @@ void shasta::writeHistogramsToHtml(
 
     // Find max frequency, for plot scaling purposes
     uint64_t yMax = 0;
-    for (size_t i=0; i<histogramA.histogram.size(); i++){
+    for (uint64_t i=0; i<histogramA.histogram.size(); i++){
         if (histogramA.histogram[i] > yMax) {
             yMax = histogramA.histogram[i];
         }
@@ -273,8 +273,7 @@ void shasta::writeHistogramsToHtml(
     }
 
     double scale = double(sizePx)/double(yMax);
-    size_t maxIndex = max(histogramA.histogram.size(), histogramB.histogram.size());
-    double maxStop = max(histogramA.stop, histogramB.stop);
+    uint64_t maxIndex = max(histogramA.histogram.size(), histogramB.histogram.size());
     double minStart = min(histogramA.start, histogramB.start);
     int64_t indexOffsetA = histogramA.findIndex(minStart+(histogramA.binSize/2));
     int64_t indexOffsetB = histogramB.findIndex(minStart+(histogramB.binSize/2));
@@ -287,7 +286,7 @@ void shasta::writeHistogramsToHtml(
             "<th class='centered'>Count B"
             "<th class='centered'>Plot";
 
-    for (size_t i=0; i<maxIndex; i++){
+    for (uint64_t i=0; i<maxIndex; i++){
         string leftBoundString;
         string rightBoundString;
 
@@ -296,13 +295,13 @@ void shasta::writeHistogramsToHtml(
         int64_t indexA = int64_t(i) + indexOffsetA;
         int64_t indexB = int64_t(i) + indexOffsetB;
 
-        tie(leftBoundString, rightBoundString) = histogramA.getBoundStrings(size_t(indexA), precision);
+        tie(leftBoundString, rightBoundString) = histogramA.getBoundStrings(uint64_t(indexA), precision);
 
-        if (size_t(indexA) < histogramA.histogram.size() and indexA > 0){
-            frequencyA = histogramA.histogram[size_t(indexA)];
+        if (uint64_t(indexA) < histogramA.histogram.size() and indexA > 0){
+            frequencyA = histogramA.histogram[uint64_t(indexA)];
         }
-        if (size_t(indexB) < histogramB.histogram.size() and indexB > 0){
-            frequencyB = histogramB.histogram[size_t(indexB)];
+        if (uint64_t(indexB) < histogramB.histogram.size() and indexB > 0){
+            frequencyB = histogramB.histogram[uint64_t(indexB)];
         }
 
         html << std::fixed << std::setprecision(precision) <<
@@ -329,7 +328,7 @@ void shasta::writeHistogramsToHtml(
 void shasta::Histogram2::writeToCsv(ostream& csv, int32_t precision){
     csv << "LeftBound" << ',' << "RightBound" << ',' << "Frequency" << '\n';
 
-    for (size_t i = 0; i < histogram.size(); i++) {
+    for (uint64_t i = 0; i < histogram.size(); i++) {
         string leftBoundString;
         string rightBoundString;
 
