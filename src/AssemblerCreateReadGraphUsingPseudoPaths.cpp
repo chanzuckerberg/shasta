@@ -480,7 +480,7 @@ void Assembler::createReadGraphUsingPseudoPaths(
             const auto& info = infos[alignmentId];
             const double score = double(info.strongMatchCount) -
                 mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
-            if(score >= minScore) {
+            if(score > minScore) {
                 table.push_back(make_pair(score, alignmentId));
             }
         }
