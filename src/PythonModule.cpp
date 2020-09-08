@@ -281,12 +281,15 @@ PYBIND11_MODULE(shasta, module)
              &Assembler::createReadGraph2,
             arg("maxAlignmentCount"))
         .def("createReadGraphUsingPseudoPaths",
-            (
-                void (Assembler::*)
-                (size_t)
-            )
              &Assembler::createReadGraphUsingPseudoPaths,
-             arg("threadCount") = 0)
+             arg("matchScore"),
+             arg("mismatchScore"),
+             arg("gapScore"),
+             arg("mismatchSquareFactor"),
+             arg("minScore"),
+             arg("maxAlignmentCount"),
+             arg("threadCount") = 1
+             )
         .def("accessReadGraph",
             &Assembler::accessReadGraph)
         .def("accessReadGraphReadWrite",

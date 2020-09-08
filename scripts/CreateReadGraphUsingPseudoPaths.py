@@ -18,6 +18,11 @@ a.accessAssemblyGraphEdges()
 a.accessAssemblyGraphEdgeLists()
 
 # Create the read graph.
-a.createReadGraphUsingPseudoPaths()
-
+a.createReadGraphUsingPseudoPaths(
+     matchScore = int(config['Assembly']['iterative.pseudoPathAlignMatchScore']),
+     mismatchScore = int(config['Assembly']['iterative.pseudoPathAlignMismatchScore']),
+     gapScore = int(config['Assembly']['iterative.pseudoPathAlignGapScore']),
+     mismatchSquareFactor = int(config['Assembly']['iterative.mismatchSquareFactor']),
+     minScore = int(config['Assembly']['iterative.minScore']),
+     maxAlignmentCount = int(config['Assembly']['iterative.maxAlignmentCount']))
 

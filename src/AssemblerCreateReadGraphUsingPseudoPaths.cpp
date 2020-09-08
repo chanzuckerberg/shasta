@@ -295,18 +295,16 @@ void Assembler::createReadGraph2LowLevel(ReadId readId0)
 // See Assembler::alignPseudoPaths in AssemblerAnalyzePaths.cpp.
 // This is a quick and dirty single threaded implementation for testing.
 // If successful, a multithreaded version will be needed.
-void Assembler::createReadGraphUsingPseudoPaths(size_t threadCount)
+void Assembler::createReadGraphUsingPseudoPaths(
+    int64_t matchScore,
+    int64_t mismatchScore,
+    int64_t gapScore,
+    double mismatchSquareFactor,
+    double minScore,
+    uint64_t maxAlignmentCount,
+    size_t threadCount)
 {
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
-
-    // Parameters that control this function.
-    // Expose when code stabilizes.
-    const int matchScore = 1;
-    const int mismatchScore = -1;
-    const int gapScore = -1;
-    const double mismatchSquareFactor = 3.;
-    const double minScore = 0.;
-    const uint32_t maxAlignmentCount = 6;
 
 
 

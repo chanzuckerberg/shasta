@@ -775,7 +775,14 @@ void shasta::main::assemble(
             assembler.createAssemblyGraphVertices();
 
             // Recreate the read graph using pseudo-paths from this assembly.
-            assembler.createReadGraphUsingPseudoPaths(threadCount);
+            assembler.createReadGraphUsingPseudoPaths(
+                assemblerOptions.assemblyOptions.iterativePseudoPathAlignMatchScore,
+                assemblerOptions.assemblyOptions.iterativePseudoPathAlignMismatchScore,
+                assemblerOptions.assemblyOptions.iterativePseudoPathAlignGapScore,
+                assemblerOptions.assemblyOptions.iterativeMismatchSquareFactor,
+                assemblerOptions.assemblyOptions.iterativeMinScore,
+                assemblerOptions.assemblyOptions.iterativeMaxAlignmentCount,
+                threadCount);
             for(uint64_t bridgeRemovalIteration=0;
                 bridgeRemovalIteration<assemblerOptions.assemblyOptions.iterativeBridgeRemovalIterationCount;
                 bridgeRemovalIteration++) {

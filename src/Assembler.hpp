@@ -928,8 +928,15 @@ public:
 
 
 
-    // Functions and data used with ReadGraph.creationMethod 2.
-    void createReadGraphUsingPseudoPaths(size_t threadCount);
+    // Functions and data used with read creation for iterative assembly.
+    void createReadGraphUsingPseudoPaths(
+        int64_t matchScore,
+        int64_t mismatchScore,
+        int64_t gapScore,
+        double mismatchSquareFactor,
+        double minScore,
+        uint64_t maxAlignmentCount,
+        size_t threadCount);
     class CreateReadGraphsingPseudoPathsAlignmentData {
     public:
         uint64_t alignedMarkerCount = 0;
