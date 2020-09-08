@@ -214,9 +214,8 @@ void ReadGraph::findNeighbors(
 // whether that alignment is used in the read graph.
 // Updates that vector to set to false the entries corresponding
 // to read graph "bridges".
-void ReadGraph::findBridges(vector<bool>& keepAlignment)
+void ReadGraph::findBridges(vector<bool>& keepAlignment, uint64_t maxDistance)
 {
-    const uint64_t maxDistance = 2;
 
     // Vector to flag edges that will be removed.
     vector<bool> isToBeRemoved(edges.size(), false);

@@ -104,7 +104,7 @@ public:
     // whether that alignment is used in the read graph.
     // Updates that vector to set to false the entries corresponding
     // to read graph "bridges".
-    void findBridges(vector<bool>& keepAlignment);
+    void findBridges(vector<bool>& keepAlignment, uint64_t maxDistance);
 
     void clustering() const;
 };

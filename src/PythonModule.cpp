@@ -313,7 +313,8 @@ PYBIND11_MODULE(shasta, module)
             arg("allowChimericReads"),
             arg("allowCrossStrandEdges"))
         .def("removeReadGraphBridges",
-             &Assembler::removeReadGraphBridges)
+             &Assembler::removeReadGraphBridges,
+             arg("maxDistance"))
         .def("analyzeReadGraph",
              &Assembler::analyzeReadGraph)
         .def("readGraphClustering",

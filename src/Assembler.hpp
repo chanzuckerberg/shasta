@@ -922,7 +922,7 @@ public:
     void accessReadGraph();
     void accessReadGraphReadWrite();
     void checkReadGraphIsOpen();
-    void removeReadGraphBridges();
+    void removeReadGraphBridges(uint64_t maxDistance);
     void analyzeReadGraph();
     void readGraphClustering();
 

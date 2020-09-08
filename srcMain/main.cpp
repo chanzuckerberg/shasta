@@ -786,7 +786,8 @@ void shasta::main::assemble(
             for(uint64_t bridgeRemovalIteration=0;
                 bridgeRemovalIteration<assemblerOptions.assemblyOptions.iterativeBridgeRemovalIterationCount;
                 bridgeRemovalIteration++) {
-                assembler.removeReadGraphBridges();
+                assembler.removeReadGraphBridges(
+                    assemblerOptions.assemblyOptions.iterativeBridgeRemovalMaxDistance);
             }
 
             // Remove the marker graph and assembly graph we created in the process.

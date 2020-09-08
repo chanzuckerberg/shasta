@@ -1057,7 +1057,7 @@ void Assembler::flagCrossStrandReadGraphEdgesThreadFunction(size_t threadId)
 
 
 
-void Assembler::removeReadGraphBridges()
+void Assembler::removeReadGraphBridges(uint64_t maxDistance)
 {
     // Check that we have what we need.
     SHASTA_ASSERT(alignmentData.isOpen);
@@ -1076,7 +1076,7 @@ void Assembler::removeReadGraphBridges()
         " alignments out of " << alignmentData.size() << endl;
 
     // Unflag alignments corresponding to read graph bridges.
-    readGraph.findBridges(keepAlignment);
+    readGraph.findBridges(keepAlignment, maxDistance);
 
     // Recreate the read graph using the surviving alignments.
     readGraph.edges.remove();
