@@ -11,7 +11,6 @@ using namespace shasta;
 #include "fstream.hpp"
 #include <map>
 #include <queue>
-#include <random>
 
 const uint32_t ReadGraph::infiniteDistance = std::numeric_limits<uint32_t>::max();
 
@@ -351,18 +350,21 @@ void ReadGraph::findBridges(vector<bool>& keepAlignment, uint64_t maxDistance)
 
 // Quick and dirty label propagation, without attempting to keep the clustering
 // invariant under reverse complementing.
-void ReadGraph::clustering() const
+void ReadGraph::clustering(
+    std::mt19937& randomSource,
+    // The cluster that each vertex is assigned to.
+    // Indexed by OrientedReadId::getValue().
+    vector<ReadId>& cluster,
+    bool debug) const
 {
     // Initialize each vertex to its own cluster.
     const ReadId vertexCount = ReadId(connectivity.size());
-    vector<ReadId> cluster(vertexCount);
+    cluster.resize(vertexCount);
     for(ReadId i=0; i<vertexCount; i++) {
         cluster[i] = i;
     }
 
     // Random number generator.
-    const uint32_t seed = 231;
-    std::mt19937 randomSource(seed);
     std::uniform_int_distribution<ReadId> uniformDistribution(0, vertexCount-1);
 
     // Iterate.
@@ -406,6 +408,12 @@ void ReadGraph::clustering() const
         // Assign to this vertex the most frequent cluster in its neighbors.
         cluster[vertexId0] = bestLabel;
 
+    }
+
+
+
+    if(not debug) {
+        return;
     }
 
 

@@ -1171,11 +1171,100 @@ void Assembler::analyzeReadGraph()
 }
 
 
-
+#if 0
+// This version runs the clustering once.
 void Assembler::readGraphClustering()
 {
     SHASTA_ASSERT(readGraph.edges.isOpen);
     SHASTA_ASSERT(readGraph.connectivity.isOpen());
-    readGraph.clustering();
+
+    const uint32_t seed = 231;
+    std::mt19937 randomSource(seed);
+
+    vector<ReadId> cluster;
+    const bool debug = true;
+    readGraph.clustering(randomSource, cluster, debug);
+}
+#endif
+
+
+// This version runs the clustering many times.
+void Assembler::readGraphClustering()
+{
+    SHASTA_ASSERT(readGraph.edges.isOpen);
+    SHASTA_ASSERT(readGraph.connectivity.isOpen());
+
+    const uint32_t seed = 231;
+    std::mt19937 randomSource(seed);
+
+    vector<ReadId> cluster;
+    const bool debug = false;
+
+    // Vector to count, for each edge, how many times
+    // the two vertices belong to the same cluster.
+    vector<uint64_t> isSameClusterEdge(readGraph.edges.size(), 0);
+
+    // Do the clustering many times.
+    const uint64_t iterationCount = 1000;
+    for(uint64_t iteration=0; iteration<iterationCount; iteration++) {
+        readGraph.clustering(randomSource, cluster, debug);
+
+        // Increment isSameClusterEdge counters for each edge.
+        for(uint64_t edgeId=0; edgeId<readGraph.edges.size(); edgeId++) {
+            const ReadGraphEdge& edge = readGraph.edges[edgeId];
+            const OrientedReadId orientedReadId0 = edge.orientedReadIds[0];
+            const OrientedReadId orientedReadId1 = edge.orientedReadIds[1];
+            const ReadId cluster0 = cluster[orientedReadId0.getValue()];
+            const ReadId cluster1 = cluster[orientedReadId1.getValue()];
+            if(cluster0 == cluster1) {
+                ++isSameClusterEdge[edgeId];
+            }
+        }
+    }
+
+
+    // Histogram isSameClusterEdge.
+    vector<uint64_t> histogram(iterationCount, 0);
+    for(uint64_t edgeId=0; edgeId<readGraph.edges.size(); edgeId++) {
+        histogram[isSameClusterEdge[edgeId]]++;
+    }
+    ofstream csv("Histogram.csv");
+    for(uint64_t i=0; i<histogram.size(); i++) {
+        csv << i << "," << histogram[i] << "\n";
+    }
+
+
+
+    // Write the read graph in graphviz format, with edge thickness
+    // proportional to isSameClusterEdge.
+    ofstream graphOut("ReadGraph.dot");
+    graphOut << "graph ReadGraph {\n"
+        "tooltip=\" \"";
+    const ReadId vertexCount = ReadId(readGraph.connectivity.size());
+    for(ReadId vertexId=0; vertexId<vertexCount; vertexId++) {
+        const OrientedReadId orientedReadId = OrientedReadId(vertexId);
+        graphOut << "\"" << orientedReadId << "\"[" <<
+            " tooltip=\"" << orientedReadId << "\""
+            "];\n";
+    }
+    for(uint64_t edgeId=0; edgeId<readGraph.edges.size(); edgeId++) {
+        const ReadGraphEdge& edge = readGraph.edges[edgeId];
+        graphOut << "\"" << edge.orientedReadIds[0] << "\"--\"" <<
+            edge.orientedReadIds[1] << "\"";
+        /*
+        const ReadId vertexId0 = edge.orientedReadIds[0].getValue();
+        const ReadId vertexId1 = edge.orientedReadIds[1].getValue();
+        const ReadId cluster0 = cluster[vertexId0];
+        const ReadId cluster1 = cluster[vertexId1];
+        if(cluster0 != cluster1) {
+            graphOut << " [color=red]";
+        }
+        */
+        if(isSameClusterEdge[edgeId] < uint64_t(0.1 * double(iterationCount))) {
+            graphOut << "[color=red]";
+        }
+        graphOut << ";\n";
+    }
+    graphOut << "}\n";
 }
 

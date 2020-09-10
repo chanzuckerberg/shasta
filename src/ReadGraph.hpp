@@ -24,6 +24,8 @@ but read-only form using MemoryMapped data structures.
 // Standard library.
 #include "cstdint.hpp"
 #include <limits>
+#include <random>
+
 
 namespace shasta {
     class ReadGraph;
@@ -106,7 +108,10 @@ public:
     // to read graph "bridges".
     void findBridges(vector<bool>& keepAlignment, uint64_t maxDistance);
 
-    void clustering() const;
+    void clustering(
+        std::mt19937& randomSource,
+        vector<ReadId>& cluster,
+        bool debug) const;
 };
 
 
