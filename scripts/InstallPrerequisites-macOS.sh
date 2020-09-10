@@ -44,3 +44,11 @@ cd
 # Remove the temporary directory.
 rm -rf $tmpDirectoryName
 
+echo "==================================="
+echo " Relevant software versions"
+echo "==================================="
+echo "$(brew list --versions cmake boost libpng seqan@2)"
+echo "$(c++ --version | head -n 1)"
+echo "==================================="
+
+
