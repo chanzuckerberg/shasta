@@ -305,6 +305,7 @@ void Assembler::createReadGraphUsingPseudoPaths(
     size_t threadCount)
 {
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    const bool debug = false;
 
 
 
@@ -324,6 +325,25 @@ void Assembler::createReadGraphUsingPseudoPaths(
                 path, pathOrdinals, pseudoPath);
             getPseudoPathSegments(pseudoPath,
                 pseudoPathSegments[orientedReadId.getValue()]);
+        }
+    }
+
+
+
+    // Write a csv file with the pseudo-path of each oriented read.
+    if(debug) {
+        ofstream csv("PseudoPaths.csv");
+        for(ReadId readId=0; readId<reads->readCount(); readId++) {
+            for(Strand strand=0; strand<2; strand++) {
+                const OrientedReadId orientedReadId(readId, strand);
+                csv << orientedReadId << ",";
+
+                const vector<SegmentId>& segments = pseudoPathSegments[orientedReadId.getValue()];
+                for(const SegmentId segment: segments) {
+                    csv << segment << ",";
+                }
+                csv << "\n";
+            }
         }
     }
 
@@ -431,33 +451,35 @@ void Assembler::createReadGraphUsingPseudoPaths(
 
 
     // Write out this information, by read.
-    ofstream csv("CreateReadGraph2.csv");
-    csv << "ReadId,AlignmentId,ReadId0,ReadId1,SameStrand,AlignedMarkerCount,"
-        "WeakMatchCount,StrongMatchCount,MismatchCount,Score\n";
-    for(ReadId readId=0; readId<readCount; readId++) {
+    if(debug) {
+        ofstream csv("CreateReadGraph2.csv");
+        csv << "ReadId,AlignmentId,ReadId0,ReadId1,SameStrand,AlignedMarkerCount,"
+            "WeakMatchCount,StrongMatchCount,MismatchCount,Score\n";
+        for(ReadId readId=0; readId<readCount; readId++) {
 
-        // Put it on strand 0.
-        const OrientedReadId orientedReadId(readId, 0);
+            // Put it on strand 0.
+            const OrientedReadId orientedReadId(readId, 0);
 
-        // Get the alignments it is involved in.
-        const span<uint32_t> alignmentIds = alignmentTable[orientedReadId.getValue()];
+            // Get the alignments it is involved in.
+            const span<uint32_t> alignmentIds = alignmentTable[orientedReadId.getValue()];
 
-        // Loop over those alignments.
-        for(const uint32_t alignmentId: alignmentIds) {
-            const AlignmentData& ad = alignmentData[alignmentId];
-            const auto& info = infos[alignmentId];
-            const double score = double(info.strongMatchCount) -
-                mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
-            csv << readId << ",";
-            csv << alignmentId << ",";
-            csv << ad.readIds[0] << ",";
-            csv << ad.readIds[1] << ",";
-            csv << (ad.isSameStrand ? "Yes" : "No") << ",";
-            csv << ad.info.markerCount << ",";
-            csv << info.weakMatchCount << ",";
-            csv << info.strongMatchCount << ",";
-            csv << info.mismatchCount << ",";
-            csv << score << "\n";
+            // Loop over those alignments.
+            for(const uint32_t alignmentId: alignmentIds) {
+                const AlignmentData& ad = alignmentData[alignmentId];
+                const auto& info = infos[alignmentId];
+                const double score = double(info.strongMatchCount) -
+                    mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
+                csv << readId << ",";
+                csv << alignmentId << ",";
+                csv << ad.readIds[0] << ",";
+                csv << ad.readIds[1] << ",";
+                csv << (ad.isSameStrand ? "Yes" : "No") << ",";
+                csv << ad.info.markerCount << ",";
+                csv << info.weakMatchCount << ",";
+                csv << info.strongMatchCount << ",";
+                csv << info.mismatchCount << ",";
+                csv << score << "\n";
+            }
         }
     }
 
