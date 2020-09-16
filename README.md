@@ -37,7 +37,7 @@ subset of short k-mers (k ≈ 10).
 
 As currently implemented, Shasta can run an assembly 
 of a human genome at coverage around 60x
-in about 5 hours using a single, large machine (AWS instance type
+in about 3 hours using a single, large machine (AWS instance type
 `x1.32xlarge`, with 128 virtual processors and 1952 GB of memory).
 The compute cost of such an assembly is around $20 at AWS spot market or reserved prices.
 
@@ -45,6 +45,11 @@ Shasta assembly quality is comparable or better
 than assembly quality achieved by other long read assemblers -
 see [this paper](https://www.biorxiv.org/content/10.1101/715722v1)
 for an extensive analysis.
+However,
+**adjustments of assembly parameters are generally necessary** to 
+achieve optimal assembly results. 
+A set of sample configuration files is provided (in the `conf` directory)
+to assist with this process.
 
 
 
