@@ -40,6 +40,7 @@ apt-get update
 apt install -y git
 apt install -y g++
 apt install -y cmake
+apt install -y curl
 apt install -y libboost-all-dev
 apt install -y libpng-dev
 apt install -y graphviz
@@ -103,7 +104,7 @@ rm -rf $tmpDirectoryName
 echo "=============================="
 echo " Relevant software versions"
 echo "=============================="
-echo "$(apt list git g++ cmake libseqan2-dev libboost-all-dev libpng-dev graphviz gnuplot ncbi-blast+ python3 python3-pip 2>/dev/null)"
+echo "$(apt list git g++ cmake curl libseqan2-dev libboost-all-dev libpng-dev graphviz gnuplot ncbi-blast+ python3 python3-pip 2>/dev/null)"
 echo "=============================="
 
 # Make sure the newly created libraries are immediately visible to the loader.
