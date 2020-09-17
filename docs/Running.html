@@ -73,19 +73,23 @@ including the output of this script would be helpful.
 <h2 id=MemoryRequirements>Memory requirements</h2>
 
 <p>
-For performance, the Shasta assembler uses a single large
+For best performance, the Shasta assembler uses a single large
 machine rather than a cluster of smaller machines, 
 and operates in memory,
 with no access to data on disk except during
 initial input of the reads, final output of the assembly,
 and for small output files containing summary assembly information.
-As a result, it has higher memory requirements than
+As a result, for optimal performance, Shasta memory requirements
+are higher than
 comparable tools that keep some or most of their data on disk.
 
 <p>
-Memory requirements are roughly proportional
+Memory requirements for optimal performance are roughly proportional
 to genome size and coverage, and 
-are around 5 to 8 bytes per input base.
+are around 4 to 6 bytes per input base.
+This only counts input bases that are used in the assembly -
+that is, excluding reads that were discarded
+because they were too short or for other reasons.
 For a human size genome (&#8776;3 Gb) at coverage 60x,
 this works out to around 
 1 TB of memory. 
@@ -100,32 +104,40 @@ been using AWS <code>x1.32xlarge</code> instances with
 (64 cores with hyperthreading). 
 These machines are available at around $13/hour as on demand
 instances and they complete a typical human assembly at coverage
-60x in about 6 hours, at a compute cost around $80 per assembly,
+60x in about 4 hours, at a compute cost around $50 per assembly,
 much lower than current sequencing costs to produce the input reads. 
 Much lower prices (2x to 3x lower) are also available for
 reserved instances and on the AWS spot market,
 which means that a production facility could achieve
-a compute cost around $30 per genome.
+a compute cost around $20 per genome.
+
+<h2 id=LowMemory>Running with less than optimal memory</h2>
 
 <p>
 Shasta also supports a mode of operation
-with data structures physically on disk,
+with data structures physically on disk
+or other storage system,
 mapped to virtual memory.
 In this mode of operation, the operating system
 dynamically moves pages to disk from memory and back as needed,
 which can result in a huge performance penalty.
 For this reason, this mode of operation is not suggested,
-except in a couple of conditions:
+except in the following conditions:
 
 <ul>
 <li>For very small genomes.
 <li>If the amount of memory available is not much smaller
-than the amount required.
+than the amount required for optimal performance.
+<li>If your machine has 
+<a href="https://en.wikipedia.org/wiki/Solid-state_drive">SSD</a>
+or, better, 
+<a href="https://en.wikipedia.org/wiki/NVM_Express">NVMe</a> storage.
+<a href="https://en.wikipedia.org/wiki/Hard_disk_drive">HDD storage (hard disk)</a>
+is not suitable because of its high latency for random access.
 </ul>
 
 <p>
-Under these conditions, and if a substantial performance
-penalty is tolerable, this mode of operation can be
+Under these conditions, this mode of operation can be
 selected using the following Shasta command line options:
 <br>
 <code>
@@ -137,6 +149,121 @@ See
 <a href=#MemoryModes>the next section</a>
 for more information on these options.
 
+<p>
+To illustrate the effect of using less than optimal memory,
+the table below summarizes benchmark results for a
+human assembly at coverage 45x. 
+This assembly requires about 650 GB 
+to run in memory - see the first row in the table.
+The remaining rows show alternative scenarios
+on machines with less memory. 
+These data show that Shasta still runs in reasonable
+amounts of time with less than optimal memory,
+as long as NVMe or SSD storage is available.
+Note the competitive assembly time and AWS cost of the ARM Graviton2 
+assembly.
+
+Some notes on the table:
+<ul>
+<li>The benchmarks were run on AWS EC2 - details are provided
+in the right section of the table.
+<li>All assemblies ran with the default number of threads,
+equal to the number of virtual processors.
+<li>Costs are shown as on demand AWS prices in the AWS us-west-2
+region (Oregon).
+<li>For Intel
+machines there is one core for each two virtual processors,
+while for ARM processors
+there is one core for each virtual processor.
+<li>A Shasta executable for ARM is currenly not available
+with any Shasta release but can be built from source.
+It will be first available with Shasta Release 0.6.0.
+</ul>
+
+<table>
+
+<tr>
+<th rowspan=2>Architecture
+<th rowspan=2>Virtual<br>processors
+<th rowspan=2>Memory<br>
+(<a href="https://en.wikipedia.org/wiki/Gibibyte">GiB</a>)
+<th rowspan=2>Data location
+<th rowspan=2>Elapsed<br>Time<br>(h)
+<th colspan=4>AWS benchmark information
+
+<tr>
+<th>Instance<br>type
+<th>Data location
+<th>Hourly<br>cost ($)
+<th>Assembly<br>cost ($)
+
+<tr>
+<td>Intel Skylake-SP
+<td class=centered>96
+<td class=centered>768
+<td>Memory (2 MB pages)
+<td class=centered>2.5
+<td>r5.24xlarge
+<td>Memory (2 MB pages)
+<td class=centered>6.05
+<td class=centered>15.12
+
+<tr>
+<td>Intel Skylake-SP
+<td class=centered>96
+<td class=centered>384
+<td>NVMe
+<td class=centered>4.5
+<td>m5d.24xlarge
+<td>Local NVMe volume
+<td class=centered>5.42
+<td class=centered>24.51
+
+<tr>
+<td>Intel Skylake-SP
+<td class=centered>96
+<td class=centered>384
+<td>SSD
+<td class=centered>8.0
+<td>m5.24xlarge
+<td>EBS gp2 volume
+<td class=centered>4.61
+<td class=centered>36.82
+
+<tr>
+<td>Intel Skylake-SP
+<td class=centered>96
+<td class=centered>384
+<td>Disk
+<td class=centered>Too slow
+<td>m5.24xlarge
+<td>EBS st1 volume
+<td class=centered>
+<td class=centered>
+
+<tr>
+<td>Intel Skylake-SP
+<td class=centered>48
+<td class=centered>192
+<td>NVMe
+<td class=centered>6.6
+<td>m5d.12xlarge
+<td>Local NVMe volume
+<td class=centered>2.71
+<td class=centered>18.00
+
+<tr>
+<td>ARM Graviton2
+<td class=centered>48
+<td class=centered>384
+<td>NVMe
+<td class=centered>4.1
+<td>r6gd.12xlarge
+<td>Local NVMe volume
+<td class=centered>2.76
+<td class=centered>11.39
+
+</table>
 
 
 
