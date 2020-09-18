@@ -2,13 +2,13 @@
 using namespace shasta;
 
 
+/*******************************************************************************
 
-void Assembler::createReadGraph2(
-    uint32_t maxAlignmentCount)
-{
-    const bool debug = false;
+	The original code had the following definitions and comments.
+	These defaults are now set in AssemblerOptions.cpp and
+	can be modified by the user using command line options
+	in the [ReadGraph] section.
 
-    // Percentile cutoffs for automated parameters
     double alignedFractionPercentile = 0.12;
     double maxDriftPercentile = 0.12;
     double maxSkipPercentile = 0.12;
@@ -20,6 +20,20 @@ void Assembler::createReadGraph2(
     // MaxTrim also uses a small percentile because the default manual configuration was very permissive
     double maxTrimPercentile = 0.015;
 
+*******************************************************************************/
+
+
+
+void Assembler::createReadGraph2(
+    uint32_t maxAlignmentCount,
+    double markerCountPercentile,
+    double alignedFractionPercentile,
+    double maxSkipPercentile,
+    double maxDriftPercentile,
+    double maxTrimPercentile)
+{
+    const bool debug = false;
+
     vector<bool> keepAlignment(alignmentData.size(), false);
 
     // Initialize histograms for measuring alignedFraction, markerCount, maxDrift, and maxSkip distributions
@@ -29,16 +43,17 @@ void Assembler::createReadGraph2(
     Histogram2 maxSkipHistogram(0, 100, 100, false, false, true);
     Histogram2 maxTrimHistogram(0, 100, 100, false, false, true);
 
-    ofstream alignmentInfoCsv("AlignmentInfo.csv");
-
+    ofstream alignmentInfoCsv;
     if (debug) {
-        alignmentInfoCsv << "readId0" << ','
-                         << "readId1" << ','
-                         << "minAlignedFraction" << ','
-                         << "markerCount" << ','
-                         << "maxDrift" << ','
-                         << "maxSkip" << ','
-                         << "trim" << '\n';
+        alignmentInfoCsv.open("AlignmentInfo.csv");
+        alignmentInfoCsv
+            << "readId0" << ','
+            << "readId1" << ','
+            << "minAlignedFraction" << ','
+            << "markerCount" << ','
+            << "maxDrift" << ','
+            << "maxSkip" << ','
+            << "trim" << '\n';
     }
 
     // Sample all available alignments that pass the initial permissive criteria

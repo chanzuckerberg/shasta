@@ -482,6 +482,31 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(false),
         "Remove conflicts from the read graph. Experimental - do not use.")
 
+        ("ReadGraph.markerCountPercentile",
+        value<double>(&readGraphOptions.markerCountPercentile)->
+        default_value(0.015, "0.015"),
+        "Percentile for markerCount (only used when creationMethod is 2).")
+
+        ("ReadGraph.alignedFractionPercentile",
+        value<double>(&readGraphOptions.alignedFractionPercentile)->
+        default_value(0.12, "0.12"),
+        "Percentile for alignedFraction (only used when creationMethod is 2).")
+
+        ("ReadGraph.maxSkipPercentile",
+        value<double>(&readGraphOptions.maxSkipPercentile)->
+        default_value(0.12, "0.12"),
+        "Percentile for maxSkip (only used when creationMethod is 2).")
+
+        ("ReadGraph.maxDriftPercentile",
+        value<double>(&readGraphOptions.maxDriftPercentile)->
+        default_value(0.12, "0.12"),
+        "Percentile for maxDrift (only used when creationMethod is 2).")
+
+        ("ReadGraph.maxTrimPercentile",
+        value<double>(&readGraphOptions.maxTrimPercentile)->
+        default_value(0.015, "0.015"),
+        "Percentile for maxTrim (only used when creationMethod is 2).")
+
         ("MarkerGraph.minCoverage",
         value<int>(&markerGraphOptions.minCoverage)->
         default_value(10),
@@ -756,7 +781,11 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
     s << "uncontainedNeighborCountPerDirection = " << uncontainedNeighborCountPerDirection << "\n";
     s << "removeConflicts = " <<
         convertBoolToPythonString(removeConflicts) << "\n";
-
+    s << "markerCountPercentile = " << markerCountPercentile << "\n";
+    s << "alignedFractionPercentile = " << alignedFractionPercentile << "\n";
+    s << "maxSkipPercentile = " << maxSkipPercentile << "\n";
+    s << "maxDriftPercentile = " << maxDriftPercentile << "\n";
+    s << "maxTrimPercentile = " << maxTrimPercentile << "\n";
 }
 
 

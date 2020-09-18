@@ -14,6 +14,11 @@ a.accessAlignmentData()
 
 # Create the global read graph.
 a.createReadGraph2(
-    maxAlignmentCount = int(config['ReadGraph']['maxAlignmentCount']))
+    maxAlignmentCount = int(config['ReadGraph']['maxAlignmentCount']),
+    markerCountPercentile = float(config['ReadGraph']['markerCountPercentile']),
+    alignedFractionPercentile = float(config['ReadGraph']['alignedFractionPercentile']),
+    maxSkipPercentile = float(config['ReadGraph']['maxSkipPercentile']),
+    maxDriftPercentile = float(config['ReadGraph']['maxDriftPercentile']),
+    maxTrimPercentile = float(config['ReadGraph']['maxTrimPercentile']))
 
 

@@ -279,7 +279,12 @@ PYBIND11_MODULE(shasta, module)
             arg("maxTrim"))
         .def("createReadGraph2",
              &Assembler::createReadGraph2,
-            arg("maxAlignmentCount"))
+            arg("maxAlignmentCount"),
+            arg("markerCountPercentile"),
+            arg("alignedFractionPercentile"),
+            arg("maxSkipPercentile"),
+            arg("maxDriftPercentile"),
+            arg("maxTrimPercentile"))
         .def("createReadGraphUsingPseudoPaths",
              &Assembler::createReadGraphUsingPseudoPaths,
              arg("matchScore"),

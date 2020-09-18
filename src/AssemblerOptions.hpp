@@ -204,6 +204,11 @@ public:
         int containedNeighborCount;
         int uncontainedNeighborCountPerDirection;
         bool removeConflicts;
+        double markerCountPercentile;
+        double alignedFractionPercentile;
+        double maxSkipPercentile;
+        double maxDriftPercentile;
+        double maxTrimPercentile;
         void write(ostream& ) const;
     };
     ReadGraphOptions readGraphOptions;
