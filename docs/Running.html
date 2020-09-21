@@ -148,6 +148,17 @@ selected using the following Shasta command line options:
 See 
 <a href=#MemoryModes>the next section</a>
 for more information on these options.
+In addition to specifying these options, make sure the assembly directory
+(command line option <code>--assemblyDirectory</code>)
+is on a filesystem backed by the storage type 
+(SSD or NVMe) you want to use. 
+If you are using a local or departmental machine,
+it is likely that a filesystem is already mounted on that storage.
+If you are using an AWS instance, you can used the directions
+<a href='https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-using-volumes.html'>here</a>
+and 
+<a href='https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/nvme-ebs-volumes.html'>here</a>
+to make your SSD or NVMe storage accessible.
 
 <p>
 To illustrate the effect of using less than optimal memory,
