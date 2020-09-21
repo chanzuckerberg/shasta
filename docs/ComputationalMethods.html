@@ -31,8 +31,8 @@ These reads can be characterized as follows:
 <ul>
 <li>Typical length around 50 Kb, with just a few percent of coverage
 in reads below 10 Kb and 10% or more of coverage in reads longer than 100 Kb.
-<li>High error rate of raw reads, with sequence identity around 90%
-or, equivalently, a raw read error rate around 10%.
+<li>High error rate of raw reads, with sequence identity around 95%
+or, equivalently, a raw read error rate around 5%.
 <li>The dominant error mode consists of errors in the length of homopolymer runs
 at all lengths. Errors in short homopolymer runs (lengths 1-5)
 are particularly deleterious due to the high frequency 
@@ -64,7 +64,7 @@ than the inverse of the error rate.
 <p>
 For many sequencing technolgies the above conditions 
 are satisfied for k around 30.
-But for our target reads, with an error rate around 10%,
+But for our target reads, with an error rate around 5%,
 most 30-mers contains errors, and therefore 
 assembly algorithms based on using such k-mers become unfeasible.
 
@@ -244,7 +244,15 @@ we can summarize the sequence of this read portion as follows:
 
 This is the marker representation of the read portion above.
 It just includes the sequence of markers occurring in the read,
-not their positions.
+not their positions. 
+
+<p id=MarkerOrdinal>
+In Shasta documentation and code,
+the zero-based sequence number of a marker in the marker representation
+of an oriented read is called the <i>marker ordinal</i>
+or simply <i>ordinal</i>. 
+The first marker in an oriented read has ordinal 0,
+the second one has ordinal 1, and so on.
 
 <p>
 Note that the marker representation loses information,
@@ -291,7 +299,7 @@ and its markers, as displayed by the Shasta http server.
 <h2 id=MarkerAlignments>Marker alignments</h2>
 
 
-<h5 id=MarkerRepresentation>The marker representation is a sequence</h5>
+<h3 id=MarkerRepresentation>The marker representation is a sequence</h3>
 
 The marker representation of a read is a sequence 
 in an alphabet consisting of the marker ids.
@@ -321,7 +329,7 @@ These advantages are illustrated below using alignment
 matrices.
 
 
-<h5 id=AlignmentMatrix>Alignment matrix</h5>
+<h3 id=AlignmentMatrix>Alignment matrix</h5>
 <p>
 Consider two sequences on any alphabet, 
 sequence x with n<sub>x</sub> symbols x<sub>i</sub> (i=0,...n<sub>x</sub>-1)
@@ -345,7 +353,7 @@ Most of the remaining elements will be 0,
 but many can be 1 just because the same symbol appears
 at two unrelated locations in the two sequences.
 
-<h5 id=AlignmentMagtrixRaw>Alignment matrix in raw base representation</h5>
+<h3 id=AlignmentMagtrixRaw>Alignment matrix in raw base representation</h5>
 <p>
 The picture below shows a portion of a typical
 alignment matrix of two reads in their representation
@@ -399,12 +407,16 @@ these blocks would all collapse to a single matrix element.
 
 
 
-<h5 id=AlignmentMatrixMarkers>Alignment matrix in marker representation</h5>
+<h3 id=AlignmentMatrixMarkers>Alignment matrix in marker representation</h5>
 
 <p>
 For comparison, the picture below shows a portion of the alignment matrix
 of two reads, in marker representation, as displayed by the Shasta
 http server. 
+In this alignment matrix, the 
+<a href='#MarkerOrdinal'>marker ordinal</a> on the first read
+is on the horizontal axis (increasing towards the right) and the marker ordinal
+for the second read (increasing towards the bottom) is on the vertical axis.
 Here, matrix elements that are 1 are displayed in green or red.
 The ones in green are the ones that are part of the optimal alignment
 computed by the Shasta assembler - see below for more information.
@@ -433,12 +445,50 @@ representation when computing read
 alignments.
 
 
-<h5 id=OptimalAlignments>Computing optimal alignments in marker representation</h5>
+<h3 id=OptimalAlignments>Computing optimal alignments in marker representation</h3>
 <p>
-To compute the optimal alignment highlighted in green,
-the Shasta assembler uses a simple alignment algorithm
+To compute the optimal alignment highlighted in green in the above figure,
+one of the folowing methods is used,
+under control of command line option
+<code>--Align.alignMethod</code>:
+<ul>
+<li><code>--Align.alignMethod 0</code> selects the 
+legacy Shasta algorithm.
+Do not use for production assemblies.
+See <a href='#AlignMethod0'>here</a> for details.
+<li><code>--Align.alignMethod 1</code> computes marker alignments using 
+<a href='https://www.seqan.de/'>SeqAn</a>.
+Do not use for production assemblies.
+See <a href='#AlignMethod1'>here</a> for details.
+<li><code>--Align.alignMethod 3</code> (<b>default</b>) uses a faster two-step
+algorithm that also uses SeqAn and achieves better performance
+using a combination of downsampling and banded alignments.
+See <a href='#AlignMethod3'>here</a> for details.
+</ul>
+
+<p>
+The computation of marker alignments for all alignment candidates
+found by the 
+<a href='#FindingOverlappingReads'>LowHash algorithm</a>
+is one of the most expensive
+phases of an assembly, and typically takes around half of 
+total elapsed time. 
+For this reason, it is recommended that only
+the default <code>--Align.alignMethod 3</code>
+be used for production assemblies.
+
+
+
+<h3 id=AlignMethod0>--Align.alignMethod 0</h3>
+<p>
+This selects
+a simple alignment algorithm
 on the marker representations of the two reads to be aligned.
-It effectively constructs an optimal path in the alignment matrix,
+Do not use this method for production assemblies,
+as the default alignment method selected by
+<code>--Align.alignMethod 3</code> provides better performance and accuracy.
+
+This algorithm effectively constructs an optimal path in the alignment matrix,
 but using some heuristics to speed up the computation:
 <ul>
 <li>The maximum number of markers that an alignment 
@@ -468,21 +518,47 @@ although a relative criterion (occurrences per Kb) may be more appropriate.
 The current absolute frequency threshold is under control of assembly parameter
 <code><a href='CommandLineOptions.html#Align.maxMarkerFrequency'>Align.maxMarkerFrequency</a></code>
 (default 10 occurrences).
-
-
 </ul>
-Using these techniques and with the default
-assembly parameters, the time to compute
-an optimal alignment is &#8776;10<sup>-3</sup>-10<sup>-2</sup> seconds
-in the Shasta implementation as of release 0.1.0 (April 2019).
-A typical human assembly needs to compute &#8776;10<sup>8</sup> read
-alignments which results in a total compute time &#8776;10<sup>5</sup>-10<sup>6</sup> seconds, or
-&#8776;10<sup>3</sup>-10<sup>4</sup> seconds of elapsed time (&#8776; 1-3 hours) 
-on a machine with 128 virtual processors.
-This is one of the most computationally expensive portions of a Shasta assembly.
-Some additional optimizations are possible in the code
-that implement this computation,
-and may be implemented in future releases.
+
+
+
+<h4 id=AlignMethod1>--Align.alignMethod 1</h3>
+<p>
+This causes marker alignments to be computed using 
+<a href='https://seqan.readthedocs.io/en/seqan-v2.0.2/Tutorial/PairwiseSequenceAlignment.html#overlap-alignments'>
+SeqAn overlap alignments</a>.
+This guarantees an optimal alignment, but is computationally very expensive,
+with cost proportional to the size of the alignment matrix,
+therefore <i>O(N<sup>2</sup>)</i> in the number of markers
+in the two reads being aligned.
+Do not use this method for production assemblies,
+as the default alignment method selected by
+<code>--Align.alignMethod 3</code> provides much better performance
+with minimal degradation in accuracy.
+
+
+
+<h4 id=AlignMethod3>--Align.alignMethod 3</h3>
+<p>
+This is the default alignment method used by Shasta
+and provides a good combination of performance and accuracy.
+It uses the 
+<a href='https://www.seqan.de/'>SeqAn</a> in a two-step process:
+<ul>
+<li>In a first step, SeqAn is used to compute an
+<a href='https://seqan.readthedocs.io/en/seqan-v2.0.2/Tutorial/PairwiseSequenceAlignment.html#overlap-alignments'>
+overlap alignment</a> between two downsampled versions
+of the marker sequences of the reads to be aligned.
+This is <i>O(N<sup>2</sup>)</i> 
+in the number of markers
+in the two reads being aligned, but still reasonably fast because
+od downsampling.
+<li>
+In a second step, SeqAn is used to compute a banded alignment
+of the markerrepresentation of the two reads.
+The position and width of the band is obtained from 
+the downsampled alignment computed in the first step.
+</ul>
 
 
 
@@ -676,10 +752,10 @@ and when they occur they are of suspicious quality.
 <li>Occurrences of those marker k-mers in all oriented reads are found.
 <li>The LowHash algorithm finds candidate pairs of overlapping oriented reads.
 <li>A marker alignment is computed for each candidate pair of oriented reads.
-If the marker alignment contains a minimum number of aligned markers,
-the pair is stored as an aligned pair. The minimum number
-of aligned markers is controlled by assembly parameter
-<code><a href='CommandLineOptions.html#Align.minAlignedMarkerCount'>Align.minAlignedMarkerCount</a></code>.
+If the marker alignment satisfies a number of criteria,
+defined by command line options in the 
+<a href='CommandLineOptions.html'><code>[Align]</code></a> section,
+the alignment is stored for possible later use in the assembly. 
 </ul>
 
 
@@ -693,60 +769,38 @@ How to use this type of information for assembly is a classical problem
 with a standard solution
 <a href='https://doi.org/10.1093/bioinformatics/bti1114'>(Myers, 2005)</a>,
 the <i>string graph</i>.
-
-<p>
 However, the prescriptions in the Myers paper cannot be directly used here,
-the main reason being that the process used to find pairs
-of overlapping reads is probabilistic and does not guarantee
-that all overlapping pairs will be found. 
-Direct application of the Myers approach in this context results
-in unnecessary breakages in continuity.
+mostly due to the marker representation. 
 
 <p>
-The approach currently used in the Shasta assembler is very simple, perhaps simplistic,
-and does not extract all the available information. 
-As a result, contiguity of assembled sequence is not 
-the best that can be achieved from the data. 
-Improvements are certainly possible here
-and will hopefully be made in future releases.
-Despite this shortcoming, the current
-implementation is still a useful tool for <i>de novo</i>
-assembly of Oxford Nanopore reads.
+Shasta proceeds by creating a <i>Read Graph</i>, an undirected
+graph in which each vertex corresponds to an oriented read. 
+A subset of the available alignments is selected using one of two
+methods described below, under control of command line option 
+<a href="CommandLineOptions.html#ReadGraph.creationMethod"><code>--ReadGraph.creationMethod</code></a>.
+For each selected alignment, an undirected edge is created in the read
+graph between the vertices corresponding to the oriented reads 
+in the selected alignment.
 
 <p>
-In the current simple approach, the Shasta assembler creates
-an undirected graph, the <i>Read Graph</i>, in which
-each vertex represents an oriented read
-(that is, a read in either original orientation or reverse
-complemented), and an undirected edge
-between two vertices is created if we have found an alignment
-between the corresponding oriented reads.
+If we used all of the available alignments to create read graph edges,
+the resulting read graph would suffers
+from high connectivity in repeat regions, due to spurious
+alignments between oriented reads originating in different
+but similar regions of the genome.
+Therefore it is important to select alignments to be used
+in a way that minimizes these spurious alignments
+while keeping true ones as much as possible.
 
 <p>
-However, the read graph as constructed in this way suffers
-from high connectivity in repeat regions.
-Therefore, the Shasta assembler only keeps a
-<i>k</i>-Nearest-Neighbor subset of the edges.
-That is, for each vertex (oriented read)
-we only keep the <i>k</i> edges with the best alignments
-(greatest number of aligned markers). 
-The number of edges kept
-for each vertex is controlled by assembly parameter
-<code><a href='CommandLineOptions.html#ReadGraph.maxAlignmentCount'>ReadGraph.maxAlignmentCount</a></code>,
-with a default value of 6.
-Note that, despite the <i>k</i>-Nearest-Neighbor subset,
-it remains possible for a vertex to have degree
-more than <i>k</i>.
-
-<p>
-Note that each read contributes two vertice to the read graph,
+Note that each read contributes two vertices to the read graph,
 one in its original orientation, and one in reverse
 complemented orientation. 
 Therefore the read graph contains two strands,
 each strand at full coverage. 
 This makes it easy to investigate and potentially detect
 erroneous strand jumps that would be much less obvious
-if using approaches with one vertex per read.
+if using alternative approaches with one vertex per read.
 
 <p>
 An example of a portion of the read graph, as displayed
@@ -777,13 +831,109 @@ typically for high similarity segment duplications:
 <img class="fit-in-main" src=ReadGraph2.png>
 
 <p>
-The current Shasta implementation does not attempt
-to remove the obviously incorrect connections.
-This results in unnecessary breaks in assembly contiguity.
-Despite this, Shasta assembly contiguity is  adequate
-and comparable to what other, less performant long read assemblers achieve.
-It is hoped that future Shasta releases will do a better
-job at handling these situations.
+The obviously incorrect connections can destroy the linear structure
+of assembled sequence. This is dealt with later in the assembly process.
+
+
+
+<h3 id=ReadGraphCreationMethod0>Read graph creation method 0</h3>
+
+<p>
+When <code>--ReadGraph.creationMethod 0</code>
+(the default) is selected, the Shasta assembler uses a very simple method to select
+alignments: it only keeps a
+<a href='https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm'>
+<i>k</i>-Nearest-Neighbor</a> 
+subset of the alignments.
+That is, for each vertex (oriented read)
+it only keeps the best <i>k</i> alignments,
+as measured by the number of aligned markers.
+The number of edges <i>k</i> kept
+for each vertex is controlled by assembly option
+<a href='CommandLineOptions.html#ReadGraph.maxAlignmentCount'><code>--ReadGraph.maxAlignmentCount</code></a>,
+with a default value of 6.
+Note that, despite the <i>k</i>-Nearest-Neighbor subset,
+it remains possible for a vertex to have degree
+more than <i>k</i>.
+
+
+<h3 id=ReadGraphCreationMethod2>Read graph creation method 2</h3>
+
+<p>
+When <code>--ReadGraph.creationMethod 2</code>
+is selected, a more sophisticated approach,
+developed by Ryan Lorig-Roach at U. C. Santa Cruz,
+is used. 
+Shasta first inspects all stored alignments to compute 
+statistical distributions (histograms) for the five alignment
+metrics in the table below. 
+Alignments for which one of these metrics is worse than a set percentile
+are discarded. The threshold percentiles are controlled by
+the command line options shown in the table.
+
+<table style='margin-left:auto;margin-right:auto;'>
+
+<tr>
+<th>Alignment metric
+<th>Percentile option
+<th>Default value
+
+<tr>
+<td>Number of aligned markers
+<td><code>--ReadGraph.markerCountPercentile</code>
+<td class=centered>0.015
+
+<tr>
+<td>Aligned marker fraction
+<td><code>--ReadGraph.alignedFractionPercentile</code>
+<td class=centered>0.12
+
+<tr>
+<td>Maximum number of markers skipped
+<td><code>--ReadGraph.maxSkipPercentile</code>
+<td class=centered>0.12
+
+<tr>
+<td>Maximum diagonal drift
+<td><code>--ReadGraph.maxDriftPercentile</code>
+<td class=centered>0.12
+
+<tr>
+<td>Number of markers trimmed
+<td><code>--ReadGraph.maxTrimPercentile</code>
+<td class=centered>0.015
+
+</table>
+
+<p>
+The process than continues with the same 
+k-Nearest-Neighbor procedure used with 
+<code>--ReadGraph.creationMethod 0</code>,
+but only considering alignments that were not ruled
+out by above percentile criteria.
+
+<p>
+Because of its adaptiveness to alignment characteristics,
+this method is more robust and less sensitive 
+to the choice of alignment criteria,
+and results in more accurate and more contiguous assemblies.
+However, when using <code>--ReadGraph.creationMethod 2</code>
+it is important to use very liberal choices for the 
+options that control alignment quality, because
+bad alignments will be discarded anyway using the
+percentile criteria. 
+An example of assembly options with <code>--ReadGraph.creationMethod 2</code>
+is provided in Shasta configuration files 
+<code>Nanopore.Sep2020.conf</code> and
+<code>Nanopore-UL.Sep2020.conf</code>.
+These files apply to Oxford Nanopore reads created 
+with base caller Guppy version 3.6.0 or newer 
+(standard and ultra-long version, respectively).
+They are available in the
+<code>conf</code> directory in the source code tree
+or in a Shasta build.
+
+
 
 
 <h2 id=MarkerGraph>Marker graph</h2>
