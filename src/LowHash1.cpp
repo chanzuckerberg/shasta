@@ -288,7 +288,10 @@ void LowHash1::computeHashesThreadFunction(size_t threadId)
 
 
 void LowHash1::computeBucketSizesIfNotProvided() {
-uint64_t cumulativeFeatureCount = 0;
+    const double minBucketCutOff = 0.65;
+    const double maxBucketCutOff = 0.9;
+    
+    uint64_t cumulativeFeatureCount = 0;
     vector<uint64_t> histogram(bucketHistogram.size(), 0);
     
     for (uint64_t bucketSize = 0; bucketSize < bucketHistogram.size(); bucketSize++) {
@@ -299,23 +302,14 @@ uint64_t cumulativeFeatureCount = 0;
 
     uint64_t runningTotal = 0;
     if (minBucketSize == 0) {
-        try {
-            shasta::PeakFinder p;
-            p.findPeaks(histogram);
-            minBucketSize = p.findXCutoff(histogram);
-            cout << "PeakFinder computed minBucketSize = " << minBucketSize << endl;
-        } catch (PeakFinderException) {
-            const double minBucketCutOff = 0.65;
-            
-            for (uint64_t bucketSize = 0; bucketSize < histogram.size(); bucketSize++) {
-                runningTotal += histogram[bucketSize];
-                double fraction = double(runningTotal) / double(cumulativeFeatureCount);
-                if (fraction < minBucketCutOff) {
-                    continue;
-                }
-                minBucketSize = bucketSize;
-                break;
+        for (uint64_t bucketSize = 0; bucketSize < histogram.size(); bucketSize++) {
+            runningTotal += histogram[bucketSize];
+            double fraction = double(runningTotal) / double(cumulativeFeatureCount);
+            if (fraction < minBucketCutOff) {
+                continue;
             }
+            minBucketSize = bucketSize;
+            break;
         }
         minBucketSize = max(size_t(2), minBucketSize);
         cout << "Computed minBucketSize = " << minBucketSize << endl;
@@ -323,8 +317,6 @@ uint64_t cumulativeFeatureCount = 0;
 
     runningTotal = 0;
     if (maxBucketSize == 0) {
-        const double maxBucketCutOff = 0.9;
-   
         for (uint64_t bucketSize = 0; bucketSize < histogram.size(); bucketSize++) {
             runningTotal += histogram[bucketSize];
             double fraction = double(runningTotal) / double(cumulativeFeatureCount);
