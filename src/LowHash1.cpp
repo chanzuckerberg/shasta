@@ -2,7 +2,6 @@
 #include "LowHash1.hpp"
 #include "AlignmentCandidates.hpp"
 #include "Marker.hpp"
-#include "PeakFinder.hpp"
 using namespace shasta;
 
 // Standad library.
@@ -130,12 +129,6 @@ LowHash1::LowHash1(
             double(buckets.totalSize()) / double(buckets.size()) << endl;
         computeBucketHistogram();
 
-        const size_t providedMinBucketSize = this->minBucketSize;
-        const size_t providedMaxBucketSize = this->maxBucketSize;
-        if (providedMinBucketSize == 0 || providedMaxBucketSize == 0) {
-            computeBucketSizesIfNotProvided();
-        }
-
         // Scan the buckets to find common features.
         // Each thread stores the common features it finds in its own vector.
         const uint64_t oldCommonFeatureCount = countTotalThreadCommonFeatures();
@@ -145,10 +138,6 @@ LowHash1::LowHash1(
         const uint64_t newCommonFeatureCount = countTotalThreadCommonFeatures();
         cout << "Stored " << newCommonFeatureCount-oldCommonFeatureCount <<
             " common features at this iteration." << endl;
-    
-        // Restore original bucket sizes.
-        this->minBucketSize = providedMinBucketSize;
-        this->maxBucketSize = providedMaxBucketSize;
     }
 
     // Gather together all the common features found by all threads.
@@ -287,50 +276,6 @@ void LowHash1::computeHashesThreadFunction(size_t threadId)
 }
 
 
-void LowHash1::computeBucketSizesIfNotProvided() {
-    const double minBucketCutOff = 0.65;
-    const double maxBucketCutOff = 0.9;
-    
-    uint64_t cumulativeFeatureCount = 0;
-    vector<uint64_t> histogram(bucketHistogram.size(), 0);
-    
-    for (uint64_t bucketSize = 0; bucketSize < bucketHistogram.size(); bucketSize++) {
-        const auto frequency = bucketHistogram[bucketSize];
-        histogram[bucketSize] = bucketSize * frequency;
-        cumulativeFeatureCount += histogram[bucketSize];
-    }
-
-    uint64_t runningTotal = 0;
-    if (minBucketSize == 0) {
-        for (uint64_t bucketSize = 0; bucketSize < histogram.size(); bucketSize++) {
-            runningTotal += histogram[bucketSize];
-            double fraction = double(runningTotal) / double(cumulativeFeatureCount);
-            if (fraction < minBucketCutOff) {
-                continue;
-            }
-            minBucketSize = bucketSize;
-            break;
-        }
-        minBucketSize = max(size_t(2), minBucketSize);
-        cout << "Computed minBucketSize = " << minBucketSize << endl;
-    }
-
-    runningTotal = 0;
-    if (maxBucketSize == 0) {
-        for (uint64_t bucketSize = 0; bucketSize < histogram.size(); bucketSize++) {
-            runningTotal += histogram[bucketSize];
-            double fraction = double(runningTotal) / double(cumulativeFeatureCount);
-            if (fraction < maxBucketCutOff) {
-                continue;
-            }
-            maxBucketSize = bucketSize;
-            break;
-        }
-        maxBucketSize = max(size_t(10), maxBucketSize);
-        cout << "Computed maxBucketSize = " << maxBucketSize << endl;
-    }
-}
-
 
 // Thread function to fill the buckets.
 void LowHash1::fillBucketsThreadFunction(size_t threadId)
@@ -375,10 +320,7 @@ void LowHash1::computeBucketHistogram()
     for(const vector<uint64_t>& histogram: threadBucketHistogram) {
         largestBucketSize = max(largestBucketSize, uint64_t(histogram.size()));
     }
-
-    bucketHistogram.resize(largestBucketSize);
-    fill(bucketHistogram.begin(), bucketHistogram.end(), uint64_t(0));
-    
+    vector<uint64_t> bucketHistogram(largestBucketSize, 0);
     for(const vector<uint64_t>& histogram: threadBucketHistogram) {
         for(uint64_t bucketSize=0; bucketSize<histogram.size(); bucketSize++) {
             bucketHistogram[bucketSize] += histogram[bucketSize];

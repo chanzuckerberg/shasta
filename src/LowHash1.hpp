@@ -108,10 +108,9 @@ private:
     void computeBucketHistogram();
     void computeBucketHistogramThreadFunction(size_t threadId);
     vector< vector<uint64_t> > threadBucketHistogram;
-    vector<uint64_t> bucketHistogram;
     ofstream histogramCsv;
 
-    void computeBucketSizesIfNotProvided();
+
 
     // When two oriented reads appear in the same bucket, we
     // check if that happens by chance or because we found a
