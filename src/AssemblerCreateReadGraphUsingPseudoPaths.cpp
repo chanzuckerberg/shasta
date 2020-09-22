@@ -20,7 +20,6 @@ void Assembler::createReadGraphUsingPseudoPaths(
     uint64_t maxAlignmentCount,
     size_t threadCount)
 {
-    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using SegmentId = AssemblyGraph::EdgeId;
     const bool debug = false;
 
@@ -28,9 +27,6 @@ void Assembler::createReadGraphUsingPseudoPaths(
     createReadGraphUsingPseudoPathsData.matchScore = matchScore;
     createReadGraphUsingPseudoPathsData.mismatchScore = mismatchScore;
     createReadGraphUsingPseudoPathsData.gapScore = gapScore;
-    createReadGraphUsingPseudoPathsData.mismatchSquareFactor = mismatchSquareFactor;
-    createReadGraphUsingPseudoPathsData.minScore = minScore;
-    createReadGraphUsingPseudoPathsData.maxAlignmentCount = maxAlignmentCount;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -43,6 +39,7 @@ void Assembler::createReadGraphUsingPseudoPaths(
     auto& pseudoPathSegments = createReadGraphUsingPseudoPathsData.pseudoPaths;
     pseudoPathSegments.resize(2*readCount);
     size_t batchSize = 1000;
+    cout << timestamp << "Computing pseudopaths for " << readCount << " reads." << endl;
     setupLoadBalancing(readCount, batchSize);
     runThreads(&Assembler::createReadGraphUsingPseudoPathsThreadFunction1, threadCount);
 
@@ -67,105 +64,14 @@ void Assembler::createReadGraphUsingPseudoPaths(
 
 
 
-    // Vector to store the information we need for each alignment.
-    vector<CreateReadGraphsingPseudoPathsAlignmentData> infos(alignmentData.size());
-
-
 
     // For each alignment we have, align the pseudo-paths
     // of the two oriented reads, putting the first read on strand 0.
-    vector< pair<bool, bool> > alignment;
-    cout << timestamp << "Computing pseudo-path alignments for " <<
+    cout << timestamp << "Computing pseudopath alignments for " <<
         alignmentData.size() << " alignments." << endl;
-    for(uint64_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
-        const AlignmentData& ad = alignmentData[alignmentId];
-
-        // Gather the two oriented reads.
-        const Strand strand0 = 0;
-        const Strand strand1 = ad.isSameStrand ? 0 : 1;
-        const OrientedReadId orientedReadId0(ad.readIds[0], strand0);
-        const OrientedReadId orientedReadId1(ad.readIds[1], strand1);
-
-        // Find the corresponding pseudo-paths.
-        const vector<SegmentId>& pseudoPathSegments0 =
-            pseudoPathSegments[orientedReadId0.getValue()];
-        const vector<SegmentId>& pseudoPathSegments1 =
-            pseudoPathSegments[orientedReadId1.getValue()];
-
-        // Skip pathological case.
-        if(pseudoPathSegments0.empty() or pseudoPathSegments1.empty()) {
-            continue;
-        }
-
-        // Align them.
-        /* const uint64_t alignmentScore =*/ shasta::seqanAlign(
-            pseudoPathSegments0.begin(), pseudoPathSegments0.end(),
-            pseudoPathSegments1.begin(), pseudoPathSegments1.end(),
-            matchScore,
-            mismatchScore,
-            gapScore,
-            true, true,
-            alignment);
-
-        // Analyze the alignment of the two pseudo-paths.
-        uint64_t position0 = 0;
-        uint64_t position1 = 0;
-        uint64_t weakMatchCount =0;
-        uint64_t strongMatchCount =0;
-        uint64_t mismatchCount =0;
-        uint64_t gapCount =0;
-        uint64_t leftUnalignedCount =0;
-        uint64_t rightUnalignedCount =0;
-        for(const auto& p: alignment) {
-            if(p.first and p.second) {
-                if(pseudoPathSegments0[position0] != pseudoPathSegments1[position1]) {
-                    ++mismatchCount;
-                } else {
-                    // Match. Figure out if it is a weak or strong match.
-                    const SegmentId segmentId = pseudoPathSegments0[position0];
-                    const AssemblyGraph::Edge& edge = assemblyGraph.edges[segmentId];
-                    const AssemblyGraph::VertexId v0 = edge.source;
-                    const AssemblyGraph::VertexId v1 = edge.target;
-                    const auto out0 = assemblyGraph.outDegree(v0);
-                    const auto in1 = assemblyGraph.inDegree(v1);
-                    if(out0==1 and in1==1) {    // CONSIDER DOING OR INSTEAD?
-                        ++weakMatchCount;
-                    } else {
-                        ++strongMatchCount;
-                    }
-                }
-            } else if(position0 == 0 or position1==0) {
-                ++leftUnalignedCount;
-            } else if(
-                position0 == pseudoPathSegments0.size() or
-                position1 == pseudoPathSegments1.size()) {
-                ++rightUnalignedCount;
-            } else {
-                ++gapCount;
-            }
-
-            if(p.first) {
-                ++position0;
-            }
-            if(p.second) {
-                ++position1;
-            }
-        }
-        SHASTA_ASSERT(position0 == pseudoPathSegments0.size());
-        SHASTA_ASSERT(position1 == pseudoPathSegments1.size());
-        SHASTA_ASSERT(
-            weakMatchCount + strongMatchCount + mismatchCount +
-            gapCount + leftUnalignedCount + rightUnalignedCount ==
-            alignment.size());
-
-        // Store the information for this alignment.
-        auto& info = infos[alignmentId];
-        info.alignedMarkerCount = ad.info.markerCount;
-        info.weakMatchCount = weakMatchCount;
-        info.strongMatchCount = strongMatchCount;
-        info.mismatchCount = mismatchCount;
-    }
-
+    createReadGraphUsingPseudoPathsData.alignmentInfos.resize(alignmentData.size());
+    setupLoadBalancing(alignmentData.size(), batchSize);
+    runThreads(&Assembler::createReadGraphUsingPseudoPathsThreadFunction2, threadCount);
 
 
     // Write out this information, by read.
@@ -184,7 +90,7 @@ void Assembler::createReadGraphUsingPseudoPaths(
             // Loop over those alignments.
             for(const uint32_t alignmentId: alignmentIds) {
                 const AlignmentData& ad = alignmentData[alignmentId];
-                const auto& info = infos[alignmentId];
+                const auto& info = createReadGraphUsingPseudoPathsData.alignmentInfos[alignmentId];
                 const double score = double(info.strongMatchCount) -
                     mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
                 csv << readId << ",";
@@ -217,7 +123,7 @@ void Assembler::createReadGraphUsingPseudoPaths(
         // Sort them by score = segmentMatchCount - mismatchSquareFactor * segmentMismatchCount^2
         vector< pair<double, uint32_t> > table; // pair(score, alignmentId)
         for(const uint32_t alignmentId: alignmentIds) {
-            const auto& info = infos[alignmentId];
+            const auto& info = createReadGraphUsingPseudoPathsData.alignmentInfos[alignmentId];
             const double score = double(info.strongMatchCount) -
                 mismatchSquareFactor * double(info.mismatchCount*info.mismatchCount);
             if(score > minScore) {
@@ -245,7 +151,7 @@ void Assembler::createReadGraphUsingPseudoPaths(
 
     // Create the read graph using the alignments we selected.
     const size_t keepCount = count(keepAlignment.begin(), keepAlignment.end(), true);
-    cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
+    cout << timestamp << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
     readGraph.remove();
     createReadGraphUsingSelectedAlignments(keepAlignment);
 }
@@ -282,5 +188,118 @@ void Assembler::createReadGraphUsingPseudoPathsThreadFunction1(size_t threadId)
 // Thread functions used to align pseudopaths.
 void Assembler::createReadGraphUsingPseudoPathsThreadFunction2(size_t threadId)
 {
-    SHASTA_ASSERT(0);
+
+    // Extract parameters.
+    const auto matchScore = createReadGraphUsingPseudoPathsData.matchScore;
+    const auto mismatchScore = createReadGraphUsingPseudoPathsData.mismatchScore;
+    const auto gapScore = createReadGraphUsingPseudoPathsData.gapScore;
+
+    // Access global objects.
+    const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    using SegmentId = AssemblyGraph::EdgeId;
+    const vector< vector<SegmentId> >& pseudoPathSegments =
+        createReadGraphUsingPseudoPathsData.pseudoPaths;
+    auto& infos = createReadGraphUsingPseudoPathsData.alignmentInfos;
+
+    vector< pair<bool, bool> > alignment;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all alignments in this batch.
+        for(uint64_t alignmentId=begin; alignmentId!=end; alignmentId++) {
+            const AlignmentData& ad = alignmentData[alignmentId];
+            auto& info = infos[alignmentId];
+
+            // Gather the two oriented reads.
+            // Put the first one on strand 0.
+            const Strand strand0 = 0;
+            const Strand strand1 = ad.isSameStrand ? 0 : 1;
+            const OrientedReadId orientedReadId0(ad.readIds[0], strand0);
+            const OrientedReadId orientedReadId1(ad.readIds[1], strand1);
+
+            // Find the corresponding pseudo-paths.
+            const vector<SegmentId>& pseudoPathSegments0 =
+                pseudoPathSegments[orientedReadId0.getValue()];
+            const vector<SegmentId>& pseudoPathSegments1 =
+                pseudoPathSegments[orientedReadId1.getValue()];
+
+            // Skip pathological case.
+            if(pseudoPathSegments0.empty() or pseudoPathSegments1.empty()) {
+                info.alignedMarkerCount = ad.info.markerCount;
+                info.weakMatchCount = 0;
+                info.strongMatchCount = 0;
+                info.mismatchCount = 0;
+                continue;
+            }
+
+            // Align them.
+            shasta::seqanAlign(
+                pseudoPathSegments0.begin(), pseudoPathSegments0.end(),
+                pseudoPathSegments1.begin(), pseudoPathSegments1.end(),
+                matchScore,
+                mismatchScore,
+                gapScore,
+                true, true,
+                alignment);
+
+            // Analyze the alignment of the two pseudo-paths.
+            uint64_t position0 = 0;
+            uint64_t position1 = 0;
+            uint64_t weakMatchCount =0;
+            uint64_t strongMatchCount =0;
+            uint64_t mismatchCount =0;
+            uint64_t gapCount =0;
+            uint64_t leftUnalignedCount =0;
+            uint64_t rightUnalignedCount =0;
+            for(const auto& p: alignment) {
+                if(p.first and p.second) {
+                    if(pseudoPathSegments0[position0] != pseudoPathSegments1[position1]) {
+                        ++mismatchCount;
+                    } else {
+                        // Match. Figure out if it is a weak or strong match.
+                        const SegmentId segmentId = pseudoPathSegments0[position0];
+                        const AssemblyGraph::Edge& edge = assemblyGraph.edges[segmentId];
+                        const AssemblyGraph::VertexId v0 = edge.source;
+                        const AssemblyGraph::VertexId v1 = edge.target;
+                        const auto out0 = assemblyGraph.outDegree(v0);
+                        const auto in1 = assemblyGraph.inDegree(v1);
+                        if(out0==1 and in1==1) {    // CONSIDER DOING OR INSTEAD?
+                            ++weakMatchCount;
+                        } else {
+                            ++strongMatchCount;
+                        }
+                    }
+                } else if(position0 == 0 or position1==0) {
+                    ++leftUnalignedCount;
+                } else if(
+                    position0 == pseudoPathSegments0.size() or
+                    position1 == pseudoPathSegments1.size()) {
+                    ++rightUnalignedCount;
+                } else {
+                    ++gapCount;
+                }
+
+                if(p.first) {
+                    ++position0;
+                }
+                if(p.second) {
+                    ++position1;
+                }
+            }
+            SHASTA_ASSERT(position0 == pseudoPathSegments0.size());
+            SHASTA_ASSERT(position1 == pseudoPathSegments1.size());
+            SHASTA_ASSERT(
+                weakMatchCount + strongMatchCount + mismatchCount +
+                gapCount + leftUnalignedCount + rightUnalignedCount ==
+                alignment.size());
+
+            // Store the information for this alignment.
+            info.alignedMarkerCount = ad.info.markerCount;
+            info.weakMatchCount = weakMatchCount;
+            info.strongMatchCount = strongMatchCount;
+            info.mismatchCount = mismatchCount;
+        }
+    }
 }

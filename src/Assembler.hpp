@@ -957,13 +957,13 @@ public:
         int64_t matchScore;
         int64_t mismatchScore;
         int64_t gapScore;
-        double mismatchSquareFactor;
-        double minScore;
-        uint64_t maxAlignmentCount;
 
         // The pseudopaths of all oriented reads.
         // Indexed by OrientedReadId::getValue().
         vector< vector<AssemblyGraph::EdgeId> > pseudoPaths;
+
+        // Vector to store information about each alignment.
+        vector<CreateReadGraphsingPseudoPathsAlignmentData> alignmentInfos;
     };
     CreateReadGraphUsingPseudoPathsData createReadGraphUsingPseudoPathsData;
 
