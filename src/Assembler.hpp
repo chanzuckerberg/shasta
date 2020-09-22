@@ -952,6 +952,25 @@ public:
         uint64_t strongMatchCount = 0;
         uint64_t mismatchCount = 0;
     };
+    class CreateReadGraphUsingPseudoPathsData {
+    public:
+        int64_t matchScore;
+        int64_t mismatchScore;
+        int64_t gapScore;
+        double mismatchSquareFactor;
+        double minScore;
+        uint64_t maxAlignmentCount;
+
+        // The pseudopaths of all oriented reads.
+        // Indexed by OrientedReadId::getValue().
+        vector< vector<AssemblyGraph::EdgeId> > pseudoPaths;
+    };
+    CreateReadGraphUsingPseudoPathsData createReadGraphUsingPseudoPathsData;
+
+    // Thread function used to compute pseudoPaths.
+    void createReadGraphUsingPseudoPathsThreadFunction1(size_t threadId);
+    // Thread functions used to align pseudopaths.
+    void createReadGraphUsingPseudoPathsThreadFunction2(size_t threadId);
 
 
 

@@ -11,8 +11,6 @@ using namespace shasta;
 // This use PseudoPaths to decide which alignments
 // should be included in the read graph.
 // See Assembler::alignPseudoPaths in AssemblerAnalyzePaths.cpp.
-// This is a quick and dirty single threaded implementation for testing.
-// If successful, a multithreaded version will be needed.
 void Assembler::createReadGraphUsingPseudoPaths(
     int64_t matchScore,
     int64_t mismatchScore,
@@ -23,28 +21,30 @@ void Assembler::createReadGraphUsingPseudoPaths(
     size_t threadCount)
 {
     const AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    using SegmentId = AssemblyGraph::EdgeId;
     const bool debug = false;
 
+    // Store the parameters so all threads can see them.
+    createReadGraphUsingPseudoPathsData.matchScore = matchScore;
+    createReadGraphUsingPseudoPathsData.mismatchScore = mismatchScore;
+    createReadGraphUsingPseudoPathsData.gapScore = gapScore;
+    createReadGraphUsingPseudoPathsData.mismatchSquareFactor = mismatchSquareFactor;
+    createReadGraphUsingPseudoPathsData.minScore = minScore;
+    createReadGraphUsingPseudoPathsData.maxAlignmentCount = maxAlignmentCount;
 
+    // Adjust the numbers of threads, if necessary.
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
 
     // Compute the pseudo-path of each oriented read.
     // This vector is indexed by OrientedReadId::getValue().
-    vector<MarkerGraph::EdgeId> path;
-    vector< pair<uint32_t, uint32_t> > pathOrdinals;
-    PseudoPath pseudoPath;
-    using SegmentId = AssemblyGraph::EdgeId;
     const uint64_t readCount = reads->readCount();
-    vector< vector<SegmentId> > pseudoPathSegments(2*readCount);
-    cout << timestamp << "Computing pseudo-paths for " << readCount << " reads." << endl;
-    for(ReadId readId=0; readId<readCount; readId++) {
-        for(Strand strand=0; strand<2; strand++) {
-            const OrientedReadId orientedReadId(readId, strand);
-            computePseudoPath(orientedReadId,
-                path, pathOrdinals, pseudoPath);
-            getPseudoPathSegments(pseudoPath,
-                pseudoPathSegments[orientedReadId.getValue()]);
-        }
-    }
+    auto& pseudoPathSegments = createReadGraphUsingPseudoPathsData.pseudoPaths;
+    pseudoPathSegments.resize(2*readCount);
+    size_t batchSize = 1000;
+    setupLoadBalancing(readCount, batchSize);
+    runThreads(&Assembler::createReadGraphUsingPseudoPathsThreadFunction1, threadCount);
 
 
 
@@ -248,4 +248,39 @@ void Assembler::createReadGraphUsingPseudoPaths(
     cout << "Keeping " << keepCount << " alignments of " << keepAlignment.size() << endl;
     readGraph.remove();
     createReadGraphUsingSelectedAlignments(keepAlignment);
+}
+
+
+
+// Thread function used to compute pseudoPaths.
+void Assembler::createReadGraphUsingPseudoPathsThreadFunction1(size_t threadId)
+{
+    vector<MarkerGraph::EdgeId> path;
+    vector< pair<uint32_t, uint32_t> > pathOrdinals;
+    PseudoPath pseudoPath;
+    using SegmentId = AssemblyGraph::EdgeId;
+    vector< vector<SegmentId> >& pseudoPaths =
+        createReadGraphUsingPseudoPathsData.pseudoPaths;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over all reads in this batch.
+        for(ReadId readId=ReadId(begin); readId!=ReadId(end); readId++) {
+            for(Strand strand=0; strand<2; strand++) {
+                const OrientedReadId orientedReadId(readId, strand);
+                computePseudoPath(orientedReadId, path, pathOrdinals, pseudoPath);
+                getPseudoPathSegments(pseudoPath, pseudoPaths[orientedReadId.getValue()]);
+            }
+        }
+    }
+}
+
+
+
+// Thread functions used to align pseudopaths.
+void Assembler::createReadGraphUsingPseudoPathsThreadFunction2(size_t threadId)
+{
+    SHASTA_ASSERT(0);
 }
