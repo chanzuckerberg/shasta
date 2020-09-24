@@ -4,9 +4,9 @@
 using namespace shasta;
 
 
-shasta::PeakFinderException::PeakFinderException(double minPercentArea, double observedPercentArea):
-        minPercentArea(minPercentArea),
-        observedPercentArea(observedPercentArea)
+shasta::PeakFinderException::PeakFinderException(double minAreaFraction, double observedAreaFraction):
+        minPercentArea(minAreaFraction),
+        observedPercentArea(observedAreaFraction)
 {}
 
 
@@ -155,10 +155,10 @@ uint64_t PeakFinder::calculateArea(const vector<uint64_t>& y, uint64_t xMin, uin
 }
 
 
-uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y, double minPercentArea, uint64_t percentAreaStartIndex){
+uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y, double minAreaFraction, uint64_t areaFractionStartIndex){
     // First check that there is at least one peak (beyond the expected error peak at x=1)
     if (peaks.size() < 2) {
-        throw PeakFinderException(minPercentArea, 0);
+        throw PeakFinderException(minAreaFraction, 0);
     }
 
     sortByPersistence();
@@ -177,21 +177,21 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y, double minPercentAre
     }
 
     // find the total AUC
-    uint64_t totalArea = calculateArea(y, percentAreaStartIndex, y.size() - 1);
+    uint64_t totalArea = calculateArea(y, areaFractionStartIndex, y.size() - 1);
 
     // Find the AUC inside the bounds of the peak (from y=0 and up)
     uint64_t peakArea = calculateArea(y, leftBound, rightBound);
 
-    double percentArea = 100 * (double(peakArea) / double(totalArea));
+    double areaFraction = (double(peakArea) / double(totalArea));
 
     uint64_t xCutoff;
 
     // Check if second most prominent peak is reasonable size (not a false peak)
-    if (percentArea > minPercentArea){
+    if (areaFraction > minAreaFraction){
         xCutoff = leftBound;
     }
     else{
-        throw PeakFinderException(minPercentArea, percentArea);
+        throw PeakFinderException(minAreaFraction, areaFraction);
     }
 
     return xCutoff;

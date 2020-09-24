@@ -270,10 +270,10 @@ void Assembler::createMarkerGraphVertices(
         if (minCoverage == 0) {
             try {
                 shasta::PeakFinder p;
-                double minPercentArea = 8;
+                double minAreaFraction = 0.08;
                 uint64_t areaStartIndex = 2;
                 p.findPeaks(histogram);
-                minCoverage = p.findXCutoff(histogram, minPercentArea, areaStartIndex);
+                minCoverage = p.findXCutoff(histogram, minAreaFraction, areaStartIndex);
                 cout << "Automatically selected value of MarkerGraph.minCoverage "
                     "is " << minCoverage << endl;
             }
