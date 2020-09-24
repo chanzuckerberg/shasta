@@ -62,7 +62,13 @@ namespace shasta {
 }
 
 
-class shasta::PeakFinderException{};
+class shasta::PeakFinderException{
+public:
+    const double minPercentArea;
+    const double observedPercentArea;
+
+    PeakFinderException(double minAreaFraction, double observedAreaFraction);
+};
 
 
 class shasta::PeakFinder {
@@ -105,7 +111,7 @@ public:
     void findPeaks(const vector<uint64_t>& y);
 
     void sortByPersistence();
-    uint64_t findXCutoff(const vector<uint64_t>& y);
+    uint64_t findXCutoff(const vector<uint64_t>& y, double minAreaFraction=0.08, uint64_t areaFractionStartIndex=2);
     uint64_t calculateArea(const vector<uint64_t>& y, uint64_t xMin, uint64_t xMax);
 
 };
