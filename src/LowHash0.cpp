@@ -2,7 +2,6 @@
 #include "LowHash0.hpp"
 #include "ReadFlags.hpp"
 #include "timestamp.hpp"
-#include "PeakFinder.hpp"
 using namespace shasta;
 
 // Standard library.
@@ -174,20 +173,10 @@ LowHash0::LowHash0(
         buckets.endPass2(false, false);
         computeBucketHistogram();
 
-        const size_t providedMinBucketSize = this->minBucketSize;
-        const size_t providedMaxBucketSize = this->maxBucketSize;
-        if (providedMinBucketSize == 0 || providedMaxBucketSize == 0) {
-            computeBucketSizesIfNotProvided();
-        }
-
         // Pass 3: inspect the buckets to find candidates.
         batchSize = 10000;
         setupLoadBalancing(readCount, batchSize);
         runThreads(&LowHash0::pass3ThreadFunction, threadCount);
-
-        // Restore original bucket sizes.
-        this->minBucketSize = providedMinBucketSize;
-        this->maxBucketSize = providedMaxBucketSize;
 
         // Write a summary for this iteration.
         highFrequency = 0;
@@ -367,57 +356,6 @@ void LowHash0::pass1ThreadFunction(size_t threadId)
 
 }
 
-void LowHash0::computeBucketSizesIfNotProvided() {
-    uint64_t cumulativeFeatureCount = 0;
-    vector<uint64_t> histogram(bucketHistogram.size(), 0);
-    
-    for (uint64_t bucketSize = 0; bucketSize < bucketHistogram.size(); bucketSize++) {
-        const auto frequency = bucketHistogram[bucketSize];
-        histogram[bucketSize] = bucketSize * frequency;
-        cumulativeFeatureCount += histogram[bucketSize];
-    }
-
-    uint64_t runningTotal = 0;
-    if (minBucketSize == 0) {
-        try {
-            shasta::PeakFinder p;
-            p.findPeaks(histogram);
-            minBucketSize = p.findXCutoff(histogram);
-            cout << "PeakFinder computed minBucketSize = " << minBucketSize << endl;
-        } catch (PeakFinderException) {
-            const double minBucketCutOff = 0.65;
-            
-            for (uint64_t bucketSize = 0; bucketSize < histogram.size(); bucketSize++) {
-                runningTotal += histogram[bucketSize];
-                double fraction = double(runningTotal) / double(cumulativeFeatureCount);
-                if (fraction < minBucketCutOff) {
-                    continue;
-                }
-                minBucketSize = bucketSize;
-                break;
-            }
-        }
-        minBucketSize = max(size_t(2), minBucketSize);
-        cout << "Computed minBucketSize = " << minBucketSize << endl;
-    }
-
-    runningTotal = 0;
-    if (maxBucketSize == 0) {
-        const double maxBucketCutOff = 0.9;
-   
-        for (uint64_t bucketSize = 0; bucketSize < histogram.size(); bucketSize++) {
-            runningTotal += histogram[bucketSize];
-            double fraction = double(runningTotal) / double(cumulativeFeatureCount);
-            if (fraction < maxBucketCutOff) {
-                continue;
-            }
-            maxBucketSize = bucketSize;
-            break;
-        }
-        maxBucketSize = max(size_t(10), maxBucketSize);
-        cout << "Computed maxBucketSize = " << maxBucketSize << endl;
-    }
-}
 
 
 // Pass 2: fill the buckets.
@@ -440,6 +378,16 @@ void LowHash0::pass2ThreadFunction(size_t threadId)
                 for(const uint64_t hash: orientedReadLowHashes) {
                     const uint64_t bucketId = hash & mask;
                     buckets.storeMultithreaded(bucketId, BucketEntry(orientedReadId, hash));
+
+                    // Update statistics for this read.
+                    const uint64_t bucketSize = buckets.size(bucketId);
+                    if(bucketSize < minBucketSize) {
+                        ++readLowHashStatistics[readId][0];
+                    } else if(bucketSize > maxBucketSize) {
+                        ++readLowHashStatistics[readId][2];
+                    } else {
+                        ++readLowHashStatistics[readId][1];
+                    }
                 }
             }
         }
@@ -483,16 +431,11 @@ void LowHash0::pass3ThreadFunction(size_t threadId)
                     const uint64_t bucketId = hash & mask;
                     const span<BucketEntry> bucket = buckets[bucketId];
                     if(bucket.size() < max(size_t(2), minBucketSize)) {
-                        ++readLowHashStatistics[readId0][0];
                         continue;
                     }
                     if(bucket.size() > maxBucketSize) {
-                        ++readLowHashStatistics[readId0][2];
                         continue;   // The bucket is too big. Skip it.
                     }
-
-                    ++readLowHashStatistics[readId0][1];
-                    
                     for(const BucketEntry& bucketEntry: bucket) {
                         if(bucketEntry.hashHighBits != hashHighBits) {
                             continue;   // Collision.
@@ -630,10 +573,7 @@ void LowHash0::computeBucketHistogram()
     for(const vector<uint64_t>& histogram: threadBucketHistogram) {
         largestBucketSize = max(largestBucketSize, uint64_t(histogram.size()));
     }
-    
-    bucketHistogram.resize(largestBucketSize);
-    fill(bucketHistogram.begin(), bucketHistogram.end(), uint64_t(0));
-
+    vector<uint64_t> bucketHistogram(largestBucketSize, 0);
     for(const vector<uint64_t>& histogram: threadBucketHistogram) {
         for(uint64_t bucketSize=0; bucketSize<histogram.size(); bucketSize++) {
             bucketHistogram[bucketSize] += histogram[bucketSize];
@@ -650,9 +590,9 @@ void LowHash0::computeBucketHistogram()
                 bucketSize*frequency << "\n";
         }
     }
+
+
 }
-
-
 void LowHash0::computeBucketHistogramThreadFunction(size_t threadId)
 {
     vector<uint64_t>& histogram = threadBucketHistogram[threadId];
