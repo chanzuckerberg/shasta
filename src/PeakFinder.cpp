@@ -4,6 +4,12 @@
 using namespace shasta;
 
 
+shasta::PeakFinderException::PeakFinderException(double minPercentArea, double observedPercentArea):
+        minPercentArea(minPercentArea),
+        observedPercentArea(observedPercentArea)
+{}
+
+
 PeakFinder::Peak::Peak(uint64_t start):
         start(start),
         stop(0),
@@ -12,7 +18,6 @@ PeakFinder::Peak::Peak(uint64_t start):
         isMerged(false),
         persistence(0)
 {}
-
 
 
 void PeakFinder::findPeaks(const vector<uint64_t>& y){
@@ -150,10 +155,10 @@ uint64_t PeakFinder::calculateArea(const vector<uint64_t>& y, uint64_t xMin, uin
 }
 
 
-uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
+uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y, double minPercentArea, uint64_t percentAreaStartIndex){
     // First check that there is at least one peak (beyond the expected error peak at x=1)
     if (peaks.size() < 2) {
-        throw PeakFinderException();
+        throw PeakFinderException(minPercentArea, 0);
     }
 
     sortByPersistence();
@@ -161,7 +166,7 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     uint64_t leftBound;
     uint64_t rightBound;
 
-    // Find the second peak's left bound, in case the error peak is not actually the most persistent
+    // Find the second peak
     if (peaks[1].start < peaks[0].start){
         leftBound = peaks[1].right;
         rightBound = peaks[0].right;
@@ -171,9 +176,8 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
         rightBound = peaks[1].right;
     }
 
-
     // find the total AUC
-    uint64_t totalArea = calculateArea(y, 1, y.size() - 1);
+    uint64_t totalArea = calculateArea(y, percentAreaStartIndex, y.size() - 1);
 
     // Find the AUC inside the bounds of the peak (from y=0 and up)
     uint64_t peakArea = calculateArea(y, leftBound, rightBound);
@@ -183,11 +187,11 @@ uint64_t PeakFinder::findXCutoff(const vector<uint64_t>& y){
     uint64_t xCutoff;
 
     // Check if second most prominent peak is reasonable size (not a false peak)
-    if (percentArea > 1){
+    if (percentArea > minPercentArea){
         xCutoff = leftBound;
     }
     else{
-        throw PeakFinderException();
+        throw PeakFinderException(minPercentArea, percentArea);
     }
 
     return xCutoff;

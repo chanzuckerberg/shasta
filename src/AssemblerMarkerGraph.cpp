@@ -270,16 +270,22 @@ void Assembler::createMarkerGraphVertices(
         if (minCoverage == 0) {
             try {
                 shasta::PeakFinder p;
+                double minPercentArea = 8;
+                uint64_t areaStartIndex = 2;
                 p.findPeaks(histogram);
-                minCoverage = p.findXCutoff(histogram);
+                minCoverage = p.findXCutoff(histogram, minPercentArea, areaStartIndex);
                 cout << "Automatically selected value of MarkerGraph.minCoverage "
                     "is " << minCoverage << endl;
             }
-            catch (PeakFinderException){
-                throw runtime_error(
+            catch (PeakFinderException& e){
+                minCoverage = 5;
+                cout <<
                     "Unable to automatically select MarkerGraph.minCoverage. "
                     "No significant cutoff found in disjoint sets size distribution. "
-                    "See DisjointSetsHistogram.csv.");
+                    "Observed peak has percent total area of " << e.observedPercentArea << endl <<
+                    "minPercentArea is " << e.minPercentArea << endl <<
+                    "See DisjointSetsHistogram.csv."
+                    "Using MarkerGraph.minCoverage = " << minCoverage << endl;
             }
         }
     }
