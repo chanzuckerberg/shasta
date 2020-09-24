@@ -68,7 +68,6 @@ jobs:
         path: shasta-build/shasta-Ubuntu-18.04.tar
 
 
-
   ubuntu-16-04:
     runs-on: ubuntu-16.04
     steps:
@@ -125,11 +124,6 @@ jobs:
         gunzip tests/TinyTest.fasta.gz
         shasta-build/shasta-install/bin/shasta --Align.alignMethod 3 --input tests/TinyTest.fasta
         ls -l ShastaRun/Assembly.fasta
-    - uses: actions/upload-artifact@master
-      with:
-        name: shasta-macOS-10.14
-        path: shasta-build/shasta-install/bin/shasta
-
 
        
   macOS-10-15:
@@ -156,7 +150,7 @@ jobs:
         ls -l ShastaRun/Assembly.fasta
     - uses: actions/upload-artifact@master
       with:
-        name: shasta-macOS-10.15
+        name: shasta-macOS
         path: shasta-build/shasta-install/bin/shasta
 
 

@@ -32,16 +32,27 @@ change <code>BUILD_ID</code> to <code>Shasta Release X.Y.Z</code>
 in all <code>cmake</code> commands (5 instances at the time of last update of this documentation).
 <li>Commit and push this change to trigger a new build on GitHub Actions.
 Wait for that build to complete.
-<li>Download the 7 artifacts. Unzip them and rename  them to the following:
+<li>Download the 6 artifacts. Unzip them and rename them to the following:
 <ul>
 <li><code>shasta-Linux-X.Y.Z</code>
 <li><code>shasta-OldLinux-X.Y.Z</code> 
-<li><code>shasta-macOS-10.14-X.Y.Z</code>
-<li><code>shasta-macOS-10.15-X.Y.Z</code>
-<li><code>shasta-Ubuntu-16.04-X.Y.Z.tar</code>
-<li><code>shasta-Ubuntu-18.04-X.Y.Z.tar</code>
+<li><code>shasta-macOS-X.Y.Z</code>
 <li><code>shasta-Ubuntu-20.04-X.Y.Z.tar</code>
+<li><code>shasta-Ubuntu-18.04-X.Y.Z.tar</code>
+<li><code>shasta-Ubuntu-16.04-X.Y.Z.tar</code>
 </ul>
+<li> Build Shasta for 64-bit ARM (<code>aarch64</code>). Github Actions currently don't support <code>aarch64</code> containers. So the easiest way to do this is on a Graviton2 ec2 instance in AWS. On an <code>aarch64</code> instance running Ubuntu 20.04 LTS, do the following:
+<ul>
+<li><code>git clone git@github.com:chanzuckerberg/shasta.git
+sudo ./shasta/scripts/InstallPrerequisites-Ubuntu.sh
+mkdir -p shasta-build
+cd shasta-build
+cmake ../shasta
+make install -j
+</code></li>
+<li>Download the <code>aarch64</code> Shasta binary (using <code>scp</code>) and rename it to <code>shasta-Linux-aarch64-X.Y.Z</code>. This is the seventh artifact for the release.</li>
+</ul>
+</li>
 
 <li>Create release notes in markdown format. 
 This is 
@@ -58,8 +69,7 @@ The release name should be just/simply <code>X.Y.Z</code>
 (no additional characters).
 The release will not be visible to users until it gets published
 two steps below.
-<li>Upload the unzipped and renamed artifacts 
-to the new release as assets.
+<li>Upload the unzipped and renamed artifacts (seven) to the new release as assets.
 
 <li>Publish the release on GitHub.
 <li>After the release has been published it should not be modified or deleted.
