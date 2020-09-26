@@ -417,7 +417,7 @@ void Reads::writeReadLengthHistogram(const string& fileName) {
                 const double cumulativeReadFraction =
                     double(cumulativeReadCount)/double(totalReadCount);
                 const double comulativeBaseFraction =
-                    double(cumulativeBaseCount)/double(baseCount);
+                    double(cumulativeBaseCount)/double(totalBaseCount);
                 csv << length << "," << frequency << "," << baseCount << ",";
                 csv << cumulativeReadCount << "," << cumulativeBaseCount << ",";
                 csv << cumulativeReadFraction << ",";
