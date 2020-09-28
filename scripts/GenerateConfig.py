@@ -34,10 +34,19 @@ def generateConfig(
     areUltraLongReads,
 ):
     minReadLength = 10000
-    minAlignedMarkerCount = 400
     if areUltraLongReads:
         minReadLength = 40000
-        minAlignedMarkerCount = 600
+    
+    # The following Align parameters are set to very permissive values to allow the majority of alignments
+    # to be assessed during the initial stage of automatic alignment parameter selection
+    maxSkip = 100
+    maxDrift = 100
+    maxTrim = 100
+    minAlignedMarkerCount = 10
+    minAlignedFraction = 0.1
+    # This method uses the observed distribution of alignment stats to choose a cutoff for
+    # maxSkip, maxDrift, maxTrim, minAlignedMarkerCount, and minAlignedFraction
+    readGraphCreationMethod = 2
 
     config = configparser.ConfigParser()
     config.optionxform = lambda option: option
@@ -47,21 +56,27 @@ def generateConfig(
         'noCache': 'True',
     }
     config['Kmers'] = {
-        'k': '14'
+        'k': '10'
     }
     config['MinHash'] = {
         'minHashIterationCount': '10',
-        'minBucketSize': '0', # Auto select
-        'maxBucketSize': '0', # Auto select
+        'minBucketSize': '5',
+        'maxBucketSize': '30',
         'minFrequency': '5',
     }
     config['Align'] = {
         'alignMethod': '3',
         'downsamplingFactor': '0.05',
         'matchScore': '6',
-        'minAlignedFraction': '0.55',
+        'maxSkip': str(maxSkip),
+        'maxDrift': str(maxDrift),
+        'maxTrim': str(maxTrim),
+        'minAlignedFraction': str(minAlignedFraction),
         'minAlignedMarkerCount': str(minAlignedMarkerCount),
         'sameChannelReadAlignment.suppressDeltaThreshold': '30',
+    }
+    config['ReadGraph'] = {
+        'creationMethod': str(readGraphCreationMethod),
     }
     config['MarkerGraph'] = {
         'simplifyMaxLength': '10,100,1000,10000,100000',
@@ -76,15 +91,13 @@ def generateConfig(
     if baseCallerId == 2 or baseCallerId == 3:
         # Guppy version less than 3.6.0
         config['Reads']['desiredCoverage'] = str(genomeSize * 80) # 80X coverage
-        config['Kmers']['k'] = '10'
-        config['Align']['minAlignedFraction'] = '0.4'
         if baseCallerId == 2:
             config['Assembly']['consensusCaller'] = 'Bayesian:guppy-3.0.5-a'
         else:
             config['Assembly']['consensusCaller'] = 'Modal'
     
     if enableDetangling:
-        config['Assembly']['detangleMethod'] = '1'
+        config['Assembly']['detangleMethod'] = '2'
     
     return config
 
