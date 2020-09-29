@@ -606,9 +606,6 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     Tangle2Id tangleIdA,
     vector<edge_descriptor>& newEdges)
 {
-    SHASTA_ASSERT(0);
-#if 0
-    AssemblyPathGraph2& graph = *this;
 
     // For now, call A the tangle passed in as an argument and B
     // its reverse complement.
@@ -618,6 +615,9 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
 
     cout << "Detangling colliding pair of reverse complement tangles " <<
         tangleIdA << " " << tangleIdB << endl;
+    SHASTA_ASSERT(tangleA.isSolvable);
+    SHASTA_ASSERT(tangleB.isSolvable);
+    AssemblyPathGraph2& graph = *this;
 
     // Gather in-edges and out-edges and sort them.
     auto inEdgesA  = tangleA.inEdges;
@@ -628,7 +628,6 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     sort(inEdgesB.begin(), inEdgesB.end());
     sort(outEdgesA.begin(), outEdgesA.end());
     sort(outEdgesB.begin(), outEdgesB.end());
-
 
     // Figure out which of the two tangles follows the other.
     const bool BFollowsA = (inEdgesB == outEdgesA);
@@ -647,8 +646,6 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
         return;
     }
 
-
-
     // Arrange the two tangles in the pair as tangle0 and tangle1,
     // such that the out-edges of tangle0 are the same as the in-edges of tangle1
     // (possibly in different order).
@@ -665,7 +662,6 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     const Tangle2& tangle1 = getTangle(tangleId1);
 
 
-
     // At this point, we know that tangle 1 follows tangle0.
     // Use this nomenclature:
     // inEdges: the in-edges of tangle0;
@@ -674,74 +670,67 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     // outEdges: the out-edges of tangle1.
 
 
+    // Create the new edges.
+    // We loop over triplets of matching (inEdge, middleEdge, outEdge).
+    const AssemblyPathGraph2Edge& tangleEdge0 = graph[tangle0.edge];
+    const AssemblyPathGraph2Edge& tangleEdge1 = graph[tangle1.edge];
+    for(uint64_t i=0; i<tangle0.inEdges.size(); i++) {
 
-    // Loop over triplets (inEdge, middleEdge, outEdge) corresponding to
-    // non-zero matrix elements in both tangles.
+        // Find the inEdge.
+        const edge_descriptor eIn = tangle0.inEdges[i];
+        const AssemblyPathGraph2Edge& inEdge = graph[eIn];
+        const vertex_descriptor vA = source(eIn, graph);
 
-    // Loop over inEdge.
-    for(uint64_t i0=0; i0<tangle0.inEdges.size(); i0++) {
-        const edge_descriptor inEdge = tangle0.inEdges[i0];
-        const vertex_descriptor v0 = source(inEdge, graph);
+        // Find the matching middleEdge.
+        const uint64_t j0 = tangle0.match[i];
+        const edge_descriptor eMiddle = tangle0.outEdges[j0];
+        const AssemblyPathGraph2Edge& middleEdge = graph[eMiddle];
 
-        // Loop over middleEdge.
-        for(uint64_t j0=0; j0<tangle0.outEdges.size(); j0++) {
+        // Locate this middleEdge in the in-edges of the second tangle.
+        const auto it = find(tangle1.inEdges.begin(), tangle1.inEdges.end(), eMiddle);
+        SHASTA_ASSERT(it != tangle1.inEdges.end());
+        const uint64_t j1 = it - tangle1.inEdges.begin();
 
-            // If matrix element is zero, skip.
-            if(tangle0.matrix[i0][j0] == 0) {
-                continue;
-            }
-            const edge_descriptor middleEdge = tangle0.outEdges[j0];
+        // Find the matching outEdge.
+        const uint64_t k = tangle1.match[j1];
+        const edge_descriptor eOut = tangle1.outEdges[k];
+        const AssemblyPathGraph2Edge& outEdge = graph[eOut];
+        const vertex_descriptor vB = target(eOut, graph);
 
-            // Locate the middle edge in the in-edges of tangle1.
-            const auto it = find(tangle1.inEdges.begin(), tangle1.inEdges.end(), middleEdge);
-            SHASTA_ASSERT(it != tangle1.inEdges.end());
-            const uint64_t i1 = it - tangle1.inEdges.begin();
+        // Create a new edge by combining the following:
+        // (inEdge, tangleEdge0, middleEdge, tangleEdge1, outEdge).
+        // Add the new edge.
+        edge_descriptor eNew;
+        tie(eNew, ignore) = add_edge(vA, vB, graph);
+        newEdges.push_back(eNew);
+        AssemblyPathGraph2Edge& newEdge = graph[eNew];
 
-            // Loop over outEdge.
-            for(uint64_t j1=0; j1<tangle1.outEdges.size(); j1++) {
+        // Fill in the path length.
+        newEdge.pathLength =
+            inEdge.pathLength +
+            tangleEdge0.pathLength +
+            middleEdge.pathLength +
+            tangleEdge1.pathLength +
+            outEdge.pathLength;
 
-                // If matrix element is zero, skip.
-                if(tangle1.matrix[i1][j1] == 0) {
-                    continue;
-                }
-                const edge_descriptor outEdge = tangle1.outEdges[j1];
-                const vertex_descriptor v1 = target(outEdge, graph);
+        // Fill in the reads.
+        // Don't include the reads of the tangle edges in the new edge!
+        newEdge.mergeOrientedReadIds(
+            inEdge.orientedReadIds,
+            middleEdge.orientedReadIds,
+            outEdge.orientedReadIds
+        );
 
-                // If getting here, we generate a new detangled edge.
-
-                // Add the new edge and fill in what we can now.
-                edge_descriptor eNew;
-                tie(eNew, ignore) = add_edge(v0, v1, graph);
-                newEdges.push_back(eNew);
-                AssemblyPathGraph2Edge& newEdge = graph[eNew];
-
-                // Path length (number of markers).
-                newEdge.pathLength =
-                    graph[inEdge].pathLength +
-                    graph[tangle0.edge].pathLength +
-                    graph[middleEdge].pathLength +
-                    graph[tangle1.edge].pathLength +
-                    graph[outEdge].pathLength;
-
-                // Oriented read ids (excluding the ones from the tangle edges).
-                newEdge.mergeOrientedReadIds(
-                    graph[inEdge].orientedReadIds,
-                    graph[middleEdge].orientedReadIds,
-                    graph[outEdge].orientedReadIds);
-
-                // Path in the assembly graph.
-                newEdge.path = graph[inEdge].path;
-                copy(graph[tangle0.edge].path.begin(), graph[tangle0.edge].path.end(),
-                    back_inserter(newEdge.path));
-                copy(graph[middleEdge].path.begin(), graph[middleEdge].path.end(),
-                    back_inserter(newEdge.path));
-                copy(graph[tangle1.edge].path.begin(), graph[tangle1.edge].path.end(),
-                    back_inserter(newEdge.path));
-                copy(graph[outEdge].path.begin(), graph[outEdge].path.end(),
-                    back_inserter(newEdge.path));
-                cout << "Created " << newEdge << endl;
-            }
-        }
+        // Fill in the path.
+        newEdge.path = inEdge.path;
+        copy(tangleEdge0.path.begin(), tangleEdge0.path.end(),
+            back_inserter(newEdge.path));
+        copy(middleEdge.path.begin(), middleEdge.path.end(),
+            back_inserter(newEdge.path));
+        copy(tangleEdge1.path.begin(), tangleEdge1.path.end(),
+            back_inserter(newEdge.path));
+        copy(outEdge.path.begin(), outEdge.path.end(),
+            back_inserter(newEdge.path));
     }
 
 
@@ -819,7 +808,6 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     // Finally we can remove these two tangles.
     tangles.erase(tangleId0);
     tangles.erase(tangleId1);
-#endif
 }
 
 
