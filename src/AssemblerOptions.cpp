@@ -576,6 +576,18 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(false),
         "Perform approximate reverse transitive reduction of the marker graph.")
 
+        ("MarkerGraph.peakFinder.minAreaFraction",
+        value<double>(&markerGraphOptions.peakFinderMinAreaFraction)->
+        default_value(0.08),
+        "Used in the automatic selection of --MarkerGraph.minCoverage when "
+        "--MarkerGraph.minCoverage is set to 0.")
+
+        ("MarkerGraph.peakFinder.areaStartIndex",
+        value<uint64_t>(&markerGraphOptions.peakFinderAreaStartIndex)->
+        default_value(2),
+        "Used in the automatic selection of --MarkerGraph.minCoverage when "
+        "--MarkerGraph.minCoverage is set to 0.")
+
         ("Assembly.crossEdgeCoverageThreshold",
         value<int>(&assemblyOptions.crossEdgeCoverageThreshold)->
         default_value(3),
@@ -804,6 +816,8 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
     s << "refineThreshold = " << refineThreshold << "\n";
     s << "reverseTransitiveReduction = " <<
         convertBoolToPythonString(reverseTransitiveReduction) << "\n";
+    s << "peakFinder.minAreaFraction = " << peakFinderMinAreaFraction << "\n";
+    s << "peakFinder.areaStartIndex = " << peakFinderAreaStartIndex << "\n";
 }
 
 

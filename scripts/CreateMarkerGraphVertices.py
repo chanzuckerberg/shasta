@@ -30,6 +30,8 @@ a.createMarkerGraphVertices(
     readGraphCreationMethod = int(config['ReadGraph']['creationMethod']),
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']),
-    minCoveragePerStrand = int(config['MarkerGraph']['minCoveragePerStrand']))
+    minCoveragePerStrand = int(config['MarkerGraph']['minCoveragePerStrand']),
+    peakFinderMinAreaFraction = float(config['MarkerGraph']['peakFinder.minAreaFraction']),
+    peakFinderAreaStartIndex = int(config['MarkerGraph']['peakFinder.areaStartIndex']))
     
 

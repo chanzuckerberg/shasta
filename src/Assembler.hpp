@@ -318,6 +318,11 @@ public:
         // on each strand) for a vertex of the marker graph to be kept.
         uint64_t minCoveragePerStrand,
 
+        // These two are used by PeakFinder in the automatic selection
+        // of minCoverage when minCoverage is set to 0.
+        double peakFinderMinAreaFraction,
+        uint64_t peakFinderAreaStartIndex,
+
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
         size_t threadCount

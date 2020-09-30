@@ -233,6 +233,8 @@ public:
         uint64_t refineThreshold;
         vector<size_t> simplifyMaxLengthVector;
         bool reverseTransitiveReduction;
+        double peakFinderMinAreaFraction;
+        uint64_t peakFinderAreaStartIndex;
         void parseSimplifyMaxLength();
         void write(ostream&) const;
     };

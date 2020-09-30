@@ -364,6 +364,8 @@ PYBIND11_MODULE(shasta, module)
             arg("minCoverage"),
             arg("maxCoverage"),
             arg("minCoveragePerStrand"),
+            arg("peakFinderMinAreaFraction"),
+            arg("peakFinderAreaStartIndex"),
             arg("threadCount") = 0)
         .def("accessMarkerGraphVertices",
              &Assembler::accessMarkerGraphVertices,
