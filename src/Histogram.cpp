@@ -73,7 +73,7 @@ void shasta::Histogram2::update(double x) {
 
     if (dynamicBounds){
         // If the found index is too large, extend the end of the deque
-        if (index > histogram.size()){
+        if (uint64_t(index) > histogram.size()){
             uint64_t newBins = uint64_t(index)-histogram.size();
             stop += binSize*double(newBins);
             binCount += newBins;
