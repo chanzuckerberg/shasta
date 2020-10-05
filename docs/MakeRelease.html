@@ -47,10 +47,10 @@ Wait for that build to complete.
 sudo ./shasta/scripts/InstallPrerequisites-Ubuntu.sh
 mkdir -p shasta-build
 cd shasta-build
-cmake ../shasta
+cmake ../shasta -DBUILD_ID="Shasta Release X.Y.Z for 64 bit ARM"
 make install -j
 </code></li>
-<li>Download the <code>aarch64</code> Shasta binary (using <code>scp</code>) and rename it to <code>shasta-Linux-aarch64-X.Y.Z</code>. This is the seventh artifact for the release.</li>
+<li>Download the <code>aarch64</code> Shasta binary (using <code>scp</code>) and rename it to <code>shasta-Linux-ARM-X.Y.Z</code>. This is the seventh artifact for the release.</li>
 </ul>
 </li>
 
