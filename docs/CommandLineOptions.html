@@ -476,24 +476,25 @@ The alignment method to be used to compute marker alignments between reads:
 <li>1 = SeqAn. This gives the best alignment results but it is slow and should only be used for testing.
 <li>3 = Banded SeqAn.
 </ul>
+<a class=qm href='ComputationalMethods.html#OptimalAlignments'/>
 
 
 <tr id='Align.maxSkip'>
 <td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
 The maximum number of markers that an alignment is allowed to skip.
-<a class=qm href='ComputationalMethods.html#MarkerAlignments'/>
+<a class=qm href='ComputationalMethods.html#AlignmentMetrics'/>
 
 <tr id='Align.maxDrift'>
 <td><code>--Align.maxSkip</code><td class=centered><code>30</code><td>
 The maximum amount of marker drift that an alignment is allowed to tolerate 
 between successive markers.
-<a class=qm href='ComputationalMethods.html#MarkerAlignments'/>
+<a class=qm href='ComputationalMethods.html#AlignmentMetrics'/>
 
 <tr id='Align.maxTrim'>
 <td><code>--Align.maxTrim</code><td class=centered><code>30</code><td>
 The maximum number of skipped markers tolerated in an alignment 
 at the beginning and end of a read.
-<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+<a class=qm href='ComputationalMethods.html#AlignmentMetrics'/>
 
 <tr id='Align.maxMarkerFrequency'>
 <td><code>--Align.maxMarkerFrequency</code><td class=centered><code>10</code><td>
@@ -505,12 +506,12 @@ in either ot the two reads to be aligned are ignored.
 <tr id='Align.minAlignedMarkerCount'>
 <td><code>--Align.minAlignedMarkerCount</code><td class=centered><code>100</code><td>
 The minimum number of aligned markers for an alignment to be used.
-<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+<a class=qm href='ComputationalMethods.html#AlignmentMetrics'/>
 
 <tr id='Align.minAlignedFraction'>
 <td><code>--Align.minAlignedFraction</code><td class=centered><code>0</code><td>
 The minimum fraction of aligned markers for an alignment to be used.
-<a class=qm href='ComputationalMethods.html#FindingOverlappingReads'/>
+<a class=qm href='ComputationalMethods.html#AlignmentMetrics'/>
 
 <tr id='Align.matchScore'>
 <td><code>--Align.matchScore</code><td class=centered><code>6</code><td>
@@ -519,24 +520,29 @@ Match score for marker alignments (only for alignment methods 1 and 3).
 <tr id='Align.mismatchScore'>
 <td><code>--Align.mismatchScore</code><td class=centered><code>-1</code><td>
 Mismatch score for marker alignments (only for alignment methods 1 and 3).
+<a class=qm href='ComputationalMethods.html#OptimalAlignments'/>
 
 <tr id='Align.gapScore'>
 <td><code>--Align.gapScore</code><td class=centered><code>-1</code><td>
 Gap score for marker alignments (only for alignment methods 1 and 3).
+<a class=qm href='ComputationalMethods.html#OptimalAlignments'/>
 
 <tr id='Align.downsamplingFactor'>
 <td><code>--Align.downsamplingFactor</code><td class=centered><code>0.1</code><td>
 Downsampling factor for downsampled marker alignments 
 (only for alignment method 3).
+<a class=qm href='ComputationalMethods.html#OptimalAlignments'/>
 
 <tr id='Align.bandExtend'>
 <td><code>--Align.bandExtend</code><td class=centered><code>10</code><td>
 Amount to extend the alignment band, in markers (only used for alignment method 3).
+<a class=qm href='ComputationalMethods.html#OptimalAlignments'/>
 
 <tr id='Align.maxBand'>
 <td><code>--Align.maxBand</code><td class=centered><code>1000</code><td>
 Maximum band width, in markers, 
 for banded marker alignments (only used for alignment method 3).
+<a class=qm href='ComputationalMethods.html#OptimalAlignments'/>
 
 <tr id='Align.sameChannelReadAlignment.suppressDeltaThreshold'>
 <td><code>--Align.sameChannelReadAlignment.suppressDeltaThreshold</code><td class=centered><code>0</code><td>
@@ -561,8 +567,8 @@ except possibly for up to <a href="#Align.maxTrim">maxTrim</a> markers at the be
 
 <tr id='ReadGraph.creationMethod'>
 <td><code>--ReadGraph.creationMethod</code><td class=centered><code>0</code><td>
-The method used to create the read graph (0 = default, 1 or 2 = 
-experimental).
+The method used to create the read graph (0 or 2).
+<a class=qm href='ComputationalMethods.html#ReadGraph'/>
 
 <tr id='ReadGraph.maxAlignmentCount'>
 <td><code>--ReadGraph.maxAlignmentCount</code><td class=centered><code>6</code><td>
@@ -717,51 +723,62 @@ Experimental. Method used to detangle the assembly graph. Valid values:
 <li>2 = less strict detangling, controlled by 
 <code>Assembly.detangle.* options</code>.
 </ul>
+<a class=qm href='ComputationalMethods.html#Detangle'/>
 
 <tr id='Assembly.detangle.diagonalReadCountMin'>
 <td><code>--Assembly.detangle.diagonalReadCountMin</code><td class=centered><code>1</code><td>
 Experimental. Minimum number of reads on detangle matrix diagonal elements required for detangling. Only used with
 <code>--Assembly.detangleMethod 2</code>.
+<a class=qm href='ComputationalMethods.html#Detangle'/>
 
 <tr id='Assembly.detangle.offDiagonalReadCountMax'>
 <td><code>--Assembly.detangle.offDiagonalReadCountMax</code><td class=centered><code>2</code><td>
 Experimental. Maximum number of reads on detangle matrix off-diagonal elements allowed for detangling. Only used with
 <code>--Assembly.detangleMethod 2</code>.
+<a class=qm href='ComputationalMethods.html#Detangle'/>
 
 <tr id='Assembly.detangle.offDiagonalRatio'>
 <td><code>--Assembly.detangle.offDiagonalRatio</code><td class=centered><code>0.3</code><td>
 Experimental. Maximum ratio of total off-diagonal elements over diagonal element allowed for detangling. Only used with
 <code>--Assembly.detangleMethod 2</code>.
+<a class=qm href='ComputationalMethods.html#Detangle'/>
 
 <tr id='Assembly.iterative'>
 <td><code>--Assembly.iterative</code><td class=centered><code>False</code><td>
 This is a
 <a href="#BooleanSwitches">Boolean switch</a>
 used to request iterative assembly (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.iterationCount'>
 <td><code>--Assembly.iterative.iterationCount</code><td class=centered><code>3</code><td>
 Number of iterations for iterative assembly (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.pseudoPathAlignMatchScore'>
 <td><code>--Assembly.iterative.pseudoPathAlignMatchScore</code><td class=centered><code>1</code><td>
 Pseudopath alignment match score for iterative assembly (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.pseudoPathAlignMismatchScore'>
 <td><code>--Assembly.iterative.pseudoPathAlignMismatchScore</code><td class=centered><code>-1</code><td>
 Pseudopath alignment mismatch score for iterative assembly (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.pseudoPathAlignGapScore'>
 <td><code>--Assembly.iterative.pseudoPathAlignGapScore</code><td class=centered><code>-1</code><td>
 Pseudopath alignment gap score for iterative assembly (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.mismatchSquareFactor'>
 <td><code>--Assembly.iterative.mismatchSquareFactor</code><td class=centered><code>3.</code><td>
 Mismatch square factor for iterative assembly (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.minScore'>
 <td><code>--Assembly.iterative.minScore</code><td class=centered><code>0.</code><td>
 Minimum pseudo-alignment score for iterative assembly (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.maxAlignmentCount'>
 <td><code>--Assembly.iterative.maxAlignmentCount</code><td class=centered><code>6</code><td>
@@ -771,11 +788,13 @@ Maximum number of read graph neighbors for iterative assembly (experimental).
 <td><code>--Assembly.iterative.bridgeRemovalIterationCount</code><td class=centered><code>3</code><td>
 Number of read graph bridge removal iterations for iterative assembly
 (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 <tr id='Assembly.iterative.bridgeRemovalMaxDistance'>
 <td><code>--Assembly.iterative.bridgeRemovalMaxDistance</code><td class=centered><code>2</code><td>
 Maximum distance for read graph bridge removal for iterative assembly
 (experimental).
+<a class=qm href='ComputationalMethods.html#IterativeAssembly'/>
 
 </table>
 
