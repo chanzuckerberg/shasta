@@ -40,7 +40,9 @@ add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
 add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 
 # Definitions that control what components get built.
-add_definitions(-DSHASTA_HTTP_SERVER)
+if(BUILD_WITH_HTTP_SERVER)
+    add_definitions(-DSHASTA_HTTP_SERVER)
+endif(BUILD_WITH_HTTP_SERVER)
 
 # Source files
 file(GLOB SOURCES ../srcMain/*.cpp)

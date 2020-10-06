@@ -1,3 +1,5 @@
+#ifdef SHASTA_HTTP_SERVER
+
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
@@ -14,7 +16,6 @@ using namespace shasta;
 // Standard library.
 #include "chrono.hpp"
 #include "iterator.hpp"
-
 
 void Assembler::exploreReadGraph(
     const vector<string>& request,
@@ -546,3 +547,5 @@ void Assembler::exploreUndirectedReadGraph(
         filesystem::remove(dotFileName);
     }
 }
+
+#endif

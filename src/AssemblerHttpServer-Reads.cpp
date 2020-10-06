@@ -1,8 +1,9 @@
+#ifdef SHASTA_HTTP_SERVER
+
 // Shasta.
 #include "Assembler.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
-
 
 void Assembler::exploreRead(
     const vector<string>& request,
@@ -694,3 +695,5 @@ void Assembler::exploreRead(
     }
 
 }
+
+#endif

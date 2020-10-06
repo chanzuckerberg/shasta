@@ -1877,18 +1877,23 @@ public:
     // Data and functions used for the http server.
     // This function puts the server into an endless loop
     // of processing requests.
-    void writeHtmlBegin(ostream&, bool navigation=true) const;
+    void writeHtmlBegin(ostream&) const;
     void writeHtmlEnd(ostream&) const;
     void writeAssemblySummary(ostream&);
     void writeAssemblySummaryBody(ostream&);
     void writeAssemblySummaryJson(ostream&);
     void writeAssemblyIndex(ostream&) const;
+    static void writeStyle(ostream& html);
+    
+    
+#ifdef SHASTA_HTTP_SERVER
+
     void writeNavigation(ostream&) const;
     void writeNavigation(
         ostream& html,
         const string& title,
         const vector<pair <string, string> >&) const;
-    static void writeStyle(ostream& html);
+    
     static void writePngToHtml(
         ostream& html,
         const string& pngFileName,
@@ -1899,8 +1904,6 @@ public:
         int width,
         int height,
         const string& gnuplotCommands);
-
-#ifdef SHASTA_HTTP_SERVER
 
     void fillServerFunctionTable();
     void processRequest(
