@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.16)
 project(shasta)
 
 # This is the top level cmake file for a Shasta build. 
@@ -32,19 +32,6 @@ if(MACOS)
     option(BUILD_DYNAMIC_EXECUTABLE "Build the dynamic executable." OFF)
     option(BUILD_APPIMAGE "Build the AppImage." OFF)
 else(MACOS)
-    # SPOA's cpu dispatching code does not compile on Ubuntu versions lesser than 18.04
-    execute_process(COMMAND cat /etc/os-release
-        COMMAND grep VERSION_ID
-        COMMAND cut -f 2 -d=
-        COMMAND tr -d \"
-        OUTPUT_VARIABLE UBUNTU_VERSION)
-    if(UBUNTU_VERSION VERSION_LESS "18.04")
-        option(BUILD_USE_SPOA_WITH_CPU_DISPATCH "Link to SPOA library which uses cpu dispatch" OFF)    
-    else(UBUNTU_VERSION VERSION_LESS "18.04")
-        option(BUILD_USE_SPOA_WITH_CPU_DISPATCH "Link to SPOA library which uses cpu dispatch" ON)
-    endif(UBUNTU_VERSION VERSION_LESS "18.04")
-    message(STATUS "BUILD_USE_SPOA_WITH_CPU_DISPATCH is " ${BUILD_USE_SPOA_WITH_CPU_DISPATCH})
-   
     # For Linux, build everything.
     option(BUILD_STATIC_LIBRARY "Build the static library." ON)
     option(BUILD_STATIC_EXECUTABLE "Build the static executable." ON)
