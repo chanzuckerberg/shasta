@@ -42,9 +42,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@master
-    - name: Install-prerequisites
+    - name: Install-prerequisites (minimal)
       run: sudo ./scripts/InstallPrerequisites-Ubuntu.sh --minimal
-    - name: Build-ubuntu-20.04
+    - name: Build-ubuntu-20.04 (minimal)
       run: |
         lsb_release -a
         mkdir shasta-build

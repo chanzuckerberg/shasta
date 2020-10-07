@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.0)
 project(shasta)
 
 # This is the top level cmake file for a Shasta build. 
