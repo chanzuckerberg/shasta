@@ -40,7 +40,9 @@ add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
 add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 
 # Definitions that control what components get built.
-add_definitions(-DSHASTA_HTTP_SERVER)
+if(BUILD_WITH_HTTP_SERVER)
+    add_definitions(-DSHASTA_HTTP_SERVER)
+endif(BUILD_WITH_HTTP_SERVER)
 
 # Source files
 file(GLOB SOURCES ../srcMain/*.cpp)
@@ -77,19 +79,19 @@ if(MACOS)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive".
-    if(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+    if(X86_64)
         target_link_libraries(
             shastaStaticExecutable
             shastaStaticLibrary
             atomic boost_system boost_program_options boost_chrono spoa cpu_features png z
             -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    else(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+    else(X86_64)
         target_link_libraries(
             shastaStaticExecutable
             shastaStaticLibrary
             atomic boost_system boost_program_options boost_chrono spoa png z
             -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    endif(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH) 
+    endif(X86_64) 
     
 endif(MACOS)
   

@@ -10,6 +10,8 @@ using namespace shasta;
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+
+
 #ifdef SHASTA_HTTP_SERVER
 
 #define SHASTA_ADD_TO_FUNCTION_TABLE(name) httpServerData.functionTable[string("/") + #name ] = &Assembler::name
@@ -64,6 +66,7 @@ void Assembler::processRequest(
         // If it contains "/", reject it.
         if(name.find('/') != string::npos) {
             writeHtmlBegin(html);
+            writeNavigation(html);
             html << "Unknown documentation file " << name;
             writeHtmlEnd(html);
             return;
@@ -74,6 +77,7 @@ void Assembler::processRequest(
         ifstream file(fileName);
         if(!file) {
             writeHtmlBegin(html);
+            writeNavigation(html);
             html << "Could not open " << fileName;
             writeHtmlEnd(html);
         }
@@ -90,6 +94,7 @@ void Assembler::processRequest(
     const auto it = httpServerData.functionTable.find(keyword);
     if(it == httpServerData.functionTable.end()) {
         writeHtmlBegin(html);
+        writeNavigation(html);
         html << "Unsupported keyword " << keyword;
         writeHtmlEnd(html);
         return;
@@ -99,6 +104,7 @@ void Assembler::processRequest(
     // We found the keyword. Call the function that processes this keyword.
     // The processing function is only responsible for writing the html body.
     writeHtmlBegin(html);
+    writeNavigation(html);
     try {
         const auto function = it->second;
         (this->*function)(request, html);
@@ -107,150 +113,9 @@ void Assembler::processRequest(
     }
     writeHtmlEnd(html);
 }
-#endif
 
 
 
-void Assembler::writeStyle(ostream& html)
-{
-    html << R"%(
-<style>
-    body {
-        font-family: Arial;
-    }
-    pre {
-        font-family: courier;
-    }
-    p, input {
-        font-size: 16px;
-    }
-    h1, h2, h3 {
-        color: DarkSlateBlue;
-    }
-    table {
-        border-collapse: collapse;
-    }
-    th, td {
-        border: 1px solid #b8b5c7d9;
-        padding: 2px;
-    }
-    th {
-        font-weight: bold;
-        text-align: center;
-    }
-    th.left {
-        text-align: left;
-    }
-    td.centered {
-        text-align: center;
-    }
-    td.right {
-        text-align: right;
-    }
-    td.smaller {
-        font-size: smaller;
-    }
-    a {
-        color: DarkSlateBlue;
-    }
-    ul.navigationMenu {
-        list-style-type: none;
-        margin: 0px 0px 12px 0px;
-        padding: 0;
-        overflow: hidden;
-        background-color: #404040;
-    }
-    
-    div.navigationButton {
-        display: inline-block;
-        color: white;
-        text-align: center;
-        padding: 14px 16px;
-        text-decoration: none;
-        // min-width: 120px;
-    }
-    
-    .navigationMenuEntry:hover .navigationButton {
-        background-color: black;
-    }
-    
-    li.navigationMenuEntry {
-        display: inline-block;
-    }
-    
-    .navigationItems {
-        display: none;
-        position: absolute;
-        background-color: DodgerBlue;
-        // min-width: 120px;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-        z-index: 1;
-    }
-    
-    a.navigationItem {
-        color: black;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-        text-align: left;
-    }
-    
-    .navigationItems a:hover {background-color: SteelBlue}
-    
-    .navigationMenuEntry:hover .navigationItems {
-        display: block;
-    }
-
-    input[type=submit] {
-        background-color: #89bef2;
-        padding: 4px;
-    }
-
-    input[type=button] {
-        padding: 4px;
-    }
-
-    input[type=text], input[type=radio] {
-        background-color: #ecf1f0;
-        border-width: thin;
-    }
-</style>
-    )%";
-}
-
-
-
-void Assembler::writeHtmlBegin(ostream& html, bool navigation) const
-{
-    html <<
-        "\r\n"
-        "<!DOCTYPE html>"
-        "<html>"
-        "<head>"
-        "<meta charset='UTF-8'>"
-        "<title>Shasta assembler</title>";
-    writeStyle(html);
-    // writeMakeAllTablesSelectable(html);
-    html <<
-        "</head>"
-        ;// "<body onload='makeAllTablesSelectableByDoubleClick()'>";
-
-    if(navigation) {
-        writeNavigation(html);
-    }
-}
-
-
-
-void Assembler::writeHtmlEnd(ostream& html) const
-{
-    html << "</body>";
-    html << "</html>";
-}
-
-
-
-#ifdef SHASTA_HTTP_SERVER
 void Assembler::writeMakeAllTablesSelectable(ostream& html) const
 {
     html << R"###(
@@ -287,7 +152,7 @@ function makeAllTablesSelectableByDoubleClick()
 </script>
     )###";
 }
-#endif
+
 
 
 
@@ -425,7 +290,16 @@ void Assembler::writeGnuPlotPngToHtml(
 }
 
 
-#ifdef SHASTA_HTTP_SERVER
+
+void Assembler::exploreSummary(
+    const vector<string>& request,
+    ostream& html)
+{
+    writeAssemblySummaryBody(html);
+}
+
+#endif
+
 
 // Access all available assembly data, without throwing exceptions
 void Assembler::accessAllSoft()
@@ -564,21 +438,146 @@ void Assembler::accessAllSoft()
 
 
 
-void Assembler::exploreSummary(
-    const vector<string>& request,
-    ostream& html)
+
+void Assembler::writeStyle(ostream& html)
 {
-    writeAssemblySummaryBody(html);
+    html << R"%(
+<style>
+    body {
+        font-family: Arial;
+    }
+    pre {
+        font-family: courier;
+    }
+    p, input {
+        font-size: 16px;
+    }
+    h1, h2, h3 {
+        color: DarkSlateBlue;
+    }
+    table {
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #b8b5c7d9;
+        padding: 2px;
+    }
+    th {
+        font-weight: bold;
+        text-align: center;
+    }
+    th.left {
+        text-align: left;
+    }
+    td.centered {
+        text-align: center;
+    }
+    td.right {
+        text-align: right;
+    }
+    td.smaller {
+        font-size: smaller;
+    }
+    a {
+        color: DarkSlateBlue;
+    }
+    ul.navigationMenu {
+        list-style-type: none;
+        margin: 0px 0px 12px 0px;
+        padding: 0;
+        overflow: hidden;
+        background-color: #404040;
+    }
+    
+    div.navigationButton {
+        display: inline-block;
+        color: white;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        // min-width: 120px;
+    }
+    
+    .navigationMenuEntry:hover .navigationButton {
+        background-color: black;
+    }
+    
+    li.navigationMenuEntry {
+        display: inline-block;
+    }
+    
+    .navigationItems {
+        display: none;
+        position: absolute;
+        background-color: DodgerBlue;
+        // min-width: 120px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+    }
+    
+    a.navigationItem {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        text-align: left;
+    }
+    
+    .navigationItems a:hover {background-color: SteelBlue}
+    
+    .navigationMenuEntry:hover .navigationItems {
+        display: block;
+    }
+
+    input[type=submit] {
+        background-color: #89bef2;
+        padding: 4px;
+    }
+
+    input[type=button] {
+        padding: 4px;
+    }
+
+    input[type=text], input[type=radio] {
+        background-color: #ecf1f0;
+        border-width: thin;
+    }
+</style>
+    )%";
 }
 
-#endif
+
+void Assembler::writeHtmlBegin(ostream& html) const
+{
+    html <<
+        "\r\n"
+        "<!DOCTYPE html>"
+        "<html>"
+        "<head>"
+        "<meta charset='UTF-8'>"
+        "<title>Shasta assembler</title>";
+    writeStyle(html);
+    // writeMakeAllTablesSelectable(html);
+    html <<
+        "</head>"
+        ;// "<body onload='makeAllTablesSelectableByDoubleClick()'>";
+}
+
+
+
+void Assembler::writeHtmlEnd(ostream& html) const
+{
+    html << "</body>";
+    html << "</html>";
+}
+
 
 
 
 
 void Assembler::writeAssemblySummary(ostream& html)
 {
-    writeHtmlBegin(html, false);
+    writeHtmlBegin(html);
     writeAssemblySummaryBody(html);
     writeHtmlEnd(html);
 }
@@ -1051,7 +1050,7 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
 
 void Assembler::writeAssemblyIndex(ostream& html) const
 {
-    writeHtmlBegin(html, false);
+    writeHtmlBegin(html);
 
     const string s = R"ABCDE(
     <body>

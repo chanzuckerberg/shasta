@@ -1,3 +1,5 @@
+#ifdef SHASTA_HTTP_SERVER
+
 // Shasta.
 #include "Assembler.hpp"
 #include "CompressedAssemblyGraph.hpp"
@@ -13,8 +15,6 @@ using namespace shasta;
 
 // Standard library.
 #include <map>
-
-
 
 void Assembler::exploreCompressedAssemblyGraph(
     const vector<string>& request,
@@ -202,6 +202,6 @@ void Assembler::exploreCompressedAssemblyGraph(
     svgFile.close();
     filesystem::remove(svgFileName);
 
-
-
 }
+
+#endif

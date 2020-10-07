@@ -41,9 +41,11 @@ namespace shasta {
         void assemble(const AssemblerOptions&);
         void saveBinaryData(const AssemblerOptions&);
         void cleanupBinaryData(const AssemblerOptions&);
-        void explore(const AssemblerOptions&);
         void createBashCompletionScript(const AssemblerOptions&);
 
+#ifdef SHASTA_HTTP_SERVER
+        void explore(const AssemblerOptions&);
+#endif
     }
 }
 using namespace shasta;
@@ -132,7 +134,11 @@ void shasta::main::main(int argumentCount, const char** arguments)
         saveBinaryData(assemblerOptions);
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "explore") {
+#ifdef SHASTA_HTTP_SERVER
         explore(assemblerOptions);
+#else
+        throw runtime_error("Shasta was not built with HTTP server support.");
+#endif
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "createBashCompletionScript") {
         createBashCompletionScript(assemblerOptions);
@@ -1136,7 +1142,7 @@ void shasta::main::cleanupBinaryData(
 
 }
 
-
+#ifdef SHASTA_HTTP_SERVER
 // Implementation of --command explore.
 void shasta::main::explore(
     const AssemblerOptions& assemblerOptions)
@@ -1206,6 +1212,7 @@ void shasta::main::explore(
         sameUserOnly);
 }
 
+#endif
 
 
 // This creates a bash completion script for the Shasta executable,

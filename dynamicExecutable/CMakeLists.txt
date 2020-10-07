@@ -39,7 +39,10 @@ add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
 add_definitions(-DBOOST_ERROR_CODE_HEADER_ONLY)
 
 # Definitions that control what components get built.
-add_definitions(-DSHASTA_HTTP_SERVER)
+if(BUILD_WITH_HTTP_SERVER)
+    add_definitions(-DSHASTA_HTTP_SERVER)
+endif(BUILD_WITH_HTTP_SERVER)
+
 add_definitions(-DSHASTA_PYTHON_API)
 
 # Source files
@@ -57,17 +60,17 @@ set_target_properties(shastaDynamicExecutable PROPERTIES OUTPUT_NAME "shastaDyna
 set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN")
 
 # Libraries to link with.
-if(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+if(X86_64)
     target_link_libraries(
         shastaDynamicExecutable
         shastaDynamicLibrary
         atomic boost_system boost_program_options boost_chrono spoa cpu_features png z pthread)
-else(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+else(X86_64)
     target_link_libraries(
         shastaDynamicExecutable
         shastaDynamicLibrary
         atomic boost_system boost_program_options boost_chrono spoa png z pthread)
-endif(X86_64 AND BUILD_USE_SPOA_WITH_CPU_DISPATCH)
+endif(X86_64)
 
 if(BUILD_DEBUG) 
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
