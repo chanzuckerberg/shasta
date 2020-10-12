@@ -56,10 +56,6 @@ void Assembler::createMarkerGraphVertices(
     int bandExtend,
     int maxBand,
 
-    // The method used to create the read graph.
-    // This affects which alignments are used to create the marker graph.
-    int readGraphCreationMethod,
-
     // Minimum coverage (number of markers) for a vertex
     // of the marker graph to be kept.
     size_t minCoverage,
@@ -99,13 +95,6 @@ void Assembler::createMarkerGraphVertices(
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentDataAreOpen();
-    if(readGraphCreationMethod == 0 or readGraphCreationMethod == 2) {
-        checkReadGraphIsOpen();
-    } else if(readGraphCreationMethod == 1) {
-        SHASTA_ASSERT(directedReadGraph.isOpen());
-    } else {
-        throw runtime_error("Invalid read graph creation method " + to_string(readGraphCreationMethod));
-    }
 
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
@@ -120,7 +109,6 @@ void Assembler::createMarkerGraphVertices(
     data.downsamplingFactor = downsamplingFactor;
     data.bandExtend = bandExtend;
     data.maxBand = maxBand;
-    data.readGraphCreationMethod = readGraphCreationMethod;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -154,10 +142,7 @@ void Assembler::createMarkerGraphVertices(
     // in the read graph.
     cout << timestamp << "Disjoint set computation begins." << endl;
     size_t batchSize = 10000;
-    setupLoadBalancing(
-        (readGraphCreationMethod==0 or readGraphCreationMethod==2) ?
-        readGraph.edges.size() : directedReadGraph.edges.size(),
-        batchSize);
+    setupLoadBalancing(readGraph.edges.size(), batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction1, threadCount);
     cout << timestamp << "Disjoint set computation completed." << endl;
 
@@ -510,7 +495,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
-    
+
     const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
     const int alignMethod = data.alignMethod;
@@ -522,7 +507,6 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     const double downsamplingFactor = data.downsamplingFactor;
     const int bandExtend = data.bandExtend;
     const int maxBand = data.maxBand;
-    const int readGraphCreationMethod = data.readGraphCreationMethod;
     const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
 
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
@@ -542,73 +526,38 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
 
             // Get the oriented read ids we want to align.
             array<OrientedReadId, 2> orientedReadIds;
-            if(readGraphCreationMethod == 0 or readGraphCreationMethod == 2) {
+            const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
+            alignmentId = readGraphEdge.alignmentId;
 
-                // We use the undirected read graph.
-                const ReadGraphEdge& readGraphEdge = readGraph.edges[i];
-                alignmentId = readGraphEdge.alignmentId;
-
-                // Check that the next edge is the reverse complement of
-                // this edge.
-                {
-                    const ReadGraphEdge& readGraphNextEdge = readGraph.edges[i + 1];
-                    array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
-                    nextEdgeOrientedReadIds[0].flipStrand();
-                    nextEdgeOrientedReadIds[1].flipStrand();
-                    SHASTA_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
-                }
-
-
-                if(readGraphEdge.crossesStrands) {
-                    continue;
-                }
-                orientedReadIds = readGraphEdge.orientedReadIds;
-                SHASTA_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
-
-                // If either of the reads is flagged chimeric, skip it.
-                if( reads->getFlags(orientedReadIds[0].getReadId()).isChimeric ||
-                    reads->getFlags(orientedReadIds[1].getReadId()).isChimeric) {
-                    continue;
-                }
-            } else if(readGraphCreationMethod == 1) {
-
-                // We use the directed read graph.
-                const DirectedReadGraphEdge& edge = directedReadGraph.getEdge(i);
-                alignmentId = edge.alignmentId;
-
-                // Sanity checks.
-                // Pairs of reverse complemented adges are stored consecutively.
-                SHASTA_ASSERT(edge.reverseComplementedEdgeId == i+1);
-                const DirectedReadGraphEdge& nextEdge = directedReadGraph.getEdge(i+1);
-                SHASTA_ASSERT(nextEdge.reverseComplementedEdgeId == i);
-                SHASTA_ASSERT(nextEdge.keep == edge.keep);
-                SHASTA_ASSERT(nextEdge.isConflict == edge.isConflict);
-
-                // Skip if not marked as "keep".
-                if(edge.keep == 0) {
-                    continue;
-                }
-
-                // Skip if marked as "conflict".
-                if(edge.isConflict == 1) {
-                    continue;
-                }
-
-
-                // Get the oriented read ids.
-                const DirectedReadGraph::VertexId v0 = directedReadGraph.source(i);
-                const DirectedReadGraph::VertexId v1 = directedReadGraph.target(i);
-                orientedReadIds[0] = OrientedReadId(OrientedReadId::Int(v0));
-                orientedReadIds[1] = OrientedReadId(OrientedReadId::Int(v1));
-
-            } else {
-                throw runtime_error("Invalid read graph creation method " + to_string(readGraphCreationMethod));
+            // Check that the next edge is the reverse complement of
+            // this edge.
+            {
+                const ReadGraphEdge& readGraphNextEdge = readGraph.edges[i + 1];
+                array<OrientedReadId, 2> nextEdgeOrientedReadIds = readGraphNextEdge.orientedReadIds;
+                nextEdgeOrientedReadIds[0].flipStrand();
+                nextEdgeOrientedReadIds[1].flipStrand();
+                SHASTA_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
             }
 
-            if(storedAlignments.isOpen() && (readGraphCreationMethod == 0 or readGraphCreationMethod == 2)) {
+            // If the edge is flagged as crossing strands, skipt it.
+            if(readGraphEdge.crossesStrands) {
+                continue;
+            }
+            orientedReadIds = readGraphEdge.orientedReadIds;
+            SHASTA_ASSERT(orientedReadIds[0] < orientedReadIds[1]);
+
+            // If either of the reads is flagged chimeric, skip it.
+            if( reads->getFlags(orientedReadIds[0].getReadId()).isChimeric ||
+                reads->getFlags(orientedReadIds[1].getReadId()).isChimeric) {
+                continue;
+            }
+
+
+
+            // If we stored the alignments, decompress this alignment.
+            // Otherwise, compute it.
+            if(storedAlignments.isOpen()) {
                 // Reuse stored alignments if available.
-                // Stored alignments need to be processed for them to work with
-                // readGraphCreationMethod == 1. That's not implemented yet. 
                 span<const char> compressedAlignment = storedAlignments[alignmentId];
                 shasta::decompress(compressedAlignment, alignment);
             } else {
@@ -638,6 +587,8 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 }
             }
 
+
+
             // In the global marker graph, merge pairs
             // of aligned markers.
             for(const auto& p: alignment.ordinals) {
@@ -652,8 +603,8 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 // This guarantees that the marker graph remains invariant
                 // under strand swap.
                 disjointSetsPointer->unite(
-                	findReverseComplement(markerId0),
-					findReverseComplement(markerId1));
+                    findReverseComplement(markerId0),
+                    findReverseComplement(markerId1));
             }
         }
     }
@@ -4868,99 +4819,6 @@ void Assembler::removeMarkerGraphVertices()
     markerGraph.destructVertices();
     markerGraph.vertices().remove();
     markerGraph.vertexTable.remove();
-}
-
-
-
-// Analyze a vertex of the Marker graph.
-void Assembler::analyzeMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
-{
-    // Check that we have a valid vertex id.
-    if(vertexId >= markerGraph.vertexCount()) {
-        throw runtime_error("Invalid vertex id. Must be less than " +
-            to_string(markerGraph.vertexCount()) +  ".");
-        return;
-    }
-
-    // Access the markers of this vertex.
-    span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
-    const size_t markerCount = markerIds.size();
-    SHASTA_ASSERT(markerCount > 0);
-
-    // Get the marker sequence.
-    const KmerId kmerId = markers.begin()[markerIds[0]].kmerId;
-    const size_t k = assemblerInfo->k;
-    const Kmer kmer(kmerId, k);
-
-    // Initial message.
-    cout << "Marker graph vertex " << vertexId << " ";
-    kmer.write(cout, k);
-    cout << " has coverage " << markerCount << endl;
-
-    // Get the oriented read ids and corresponding components and colors in
-    // the conflict read graph.
-    vector<OrientedReadId> orientedReadIds;
-    vector<uint32_t> componentIds;
-    vector<uint32_t> colors;
-    for(const MarkerId markerId: markerIds) {
-        OrientedReadId orientedReadId;
-        tie(orientedReadId, ignore) = findMarkerId(markerId);
-
-        const auto cVertexId = ConflictReadGraph::getVertexId(orientedReadId);
-        const auto& cVertex = conflictReadGraph.getVertex(cVertexId);
-
-        orientedReadIds.push_back(orientedReadId);
-        componentIds.push_back(cVertex.componentId);
-        colors.push_back(cVertex.color);
-
-        cout << orientedReadId;
-        if(cVertex.componentId != ConflictReadGraphVertex::invalid) {
-            cout << " " << cVertex.componentId << " " << cVertex.color;
-        }
-        cout << endl;
-    }
-
-
-
-    // Write out the subgraph of the read graph induced by these oriented reads.
-    ofstream graphOut("Subgraph.dot");
-    graphOut << "digraph G {\n";
-
-    // Vertices.
-    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
-        const OrientedReadId orientedReadId = orientedReadIds[i];
-        const uint32_t componentId = componentIds[i];
-        const uint32_t color = colors[i];
-
-        graphOut << "\"" << orientedReadId << "\"";
-        if(componentId != ConflictReadGraphVertex::invalid) {
-            graphOut << "[style=filled fillcolor=\"/set18/" << (color % 8) + 1 << "\"]";
-        }
-        graphOut << ";\n";
-    }
-
-    // Edges.
-    for(uint64_t i=0; i<orientedReadIds.size(); i++) {
-        const OrientedReadId orientedReadId0 = orientedReadIds[i];
-        const DirectedReadGraph::VertexId v0 = ConflictReadGraph::getVertexId(orientedReadId0);
-        for(const DirectedReadGraph::EdgeId e01: directedReadGraph.outEdges(v0)) {
-            const DirectedReadGraphEdge& edge01 = directedReadGraph.getEdge(e01);
-            if(edge01.keep == 0) {
-                continue;
-            }
-            if(edge01.isConflict == 1) {
-                continue;
-            }
-            const DirectedReadGraph::VertexId v1 = directedReadGraph.target(e01);
-            const OrientedReadId orientedReadId1 = ConflictReadGraph::getOrientedReadId(v1);
-            if(binary_search(orientedReadIds.begin(), orientedReadIds.end(), orientedReadId1)) {
-                graphOut << "\"" << orientedReadId0 << "\"->\"" <<
-                    orientedReadId1 << "\";\n";
-            }
-        }
-    }
-
-    graphOut << "}\n";
 }
 
 

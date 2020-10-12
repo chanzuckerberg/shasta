@@ -349,19 +349,8 @@ void Assembler::accessAllSoft()
     try {
         accessReadGraph();
     } catch(const exception& e) {
-
-        // We don't have the undirected read graph. Try the directed one.
-        try {
-            accessDirectedReadGraphReadOnly();
-        } catch(const exception& e) {
-            cout << "The read graph is not accessible." << endl;
-            allDataAreAvailable = false;
-        }
-
-        try {
-            accessConflictReadGraph();
-        } catch(const exception& e) {
-        }
+        cout << "The read graph is not accessible." << endl;
+        allDataAreAvailable = false;
     }
 
 
@@ -723,9 +712,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Number of good alignments"
         "<td class=right>" << alignmentData.size() <<
         "<tr><td>Number of good alignments kept in the read graph"
-        "<td class=right>" << (directedReadGraph.isOpen() ?
-            directedReadGraph.edges.size()/2 :
-            readGraph.edges.size()/2) <<
+        "<td class=right>" << readGraph.edges.size()/2 <<
         "</table>"
 
 
@@ -733,13 +720,9 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<h3>Read graph</h3>"
         "<table>"
         "<tr><td>Number of vertices"
-        "<td class=right>" << (directedReadGraph.isOpen() ?
-            directedReadGraph.vertices.size() :
-            readGraph.connectivity.size()) <<
+        "<td class=right>" << readGraph.connectivity.size() <<
         "<tr><td>Number of edges"
-        "<td class=right>" << (directedReadGraph.isOpen() ?
-            directedReadGraph.edges.size() :
-            readGraph.edges.size()) <<
+        "<td class=right>" << readGraph.edges.size() <<
         "</table>"
         "<ul>"
         "<li>The read graph contains both strands. Each read generates two vertices."
@@ -961,21 +944,15 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    \"Number of alignment candidates found by the LowHash algorithm\": " <<
         alignmentCandidates.candidates.size() << ",\n"
         "    \"Number of good alignments\": " << alignmentData.size() << ",\n"
-        "    \"Number of good alignments kept in the read graph\": " << (directedReadGraph.isOpen() ?
-            directedReadGraph.edges.size()/2 :
-            readGraph.edges.size()/2) << "\n"
+        "    \"Number of good alignments kept in the read graph\": " << readGraph.edges.size()/2 << "\n"
         "  },\n"
 
 
 
         "  \"Read graph\":\n"
         "  {\n"
-        "    \"Number of vertices\": " << (directedReadGraph.isOpen() ?
-            directedReadGraph.vertices.size() :
-            readGraph.connectivity.size()) << ",\n"
-        "    \"Number of edges\": " << (directedReadGraph.isOpen() ?
-            directedReadGraph.edges.size() :
-            readGraph.edges.size()) << ",\n"
+        "    \"Number of vertices\": " << readGraph.connectivity.size() << ",\n"
+        "    \"Number of edges\": " << readGraph.edges.size() << ",\n"
         "    \"Isolated reads\":\n"
         "    {\n"
         "      \"Reads\": " << assemblerInfo->isolatedReadCount << ",\n"

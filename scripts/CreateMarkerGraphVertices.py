@@ -27,7 +27,6 @@ a.createMarkerGraphVertices(
     downsamplingFactor = float(config['Align']['downsamplingFactor']),
     bandExtend = int(config['Align']['bandExtend']),
     maxBand = int(config['Align']['maxBand']),
-    readGraphCreationMethod = int(config['ReadGraph']['creationMethod']),
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']),
     minCoveragePerStrand = int(config['MarkerGraph']['minCoveragePerStrand']),

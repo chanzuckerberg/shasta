@@ -6,9 +6,7 @@
 #include "AlignmentCandidates.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
-#include "ConflictReadGraph.hpp"
 #include "Coverage.hpp"
-#include "DirectedReadGraph.hpp"
 #include "dset64-gccAtomic.hpp"
 #include "Histogram.hpp"
 #include "HttpServer.hpp"
@@ -301,10 +299,6 @@ public:
         double downsamplingFactor,
         int bandExtend,
         int maxBand,
-
-        // The method used to create the read graph.
-        // This affects which alignments are used to create the marker graph.
-        int readGraphCreationMethod,
 
         // Minimum coverage (number of markers) for a vertex
         // of the marker graph to be kept.
@@ -1048,23 +1042,6 @@ public:
 
 
 
-    // Directed version of the read graph.
-    // This is only used if--ReadGraph.creationMethod is 1
-    // If --ReadGraph.creationMethod is 0, this is not used
-    // and instead we use the undirected read graph defined above.
-    DirectedReadGraph directedReadGraph;
-    void createDirectedReadGraph(
-        uint64_t maxTrim,
-        uint64_t containedNeighborCount,
-        uint64_t uncontainedNeighborCountPerDirection);
-    void accessDirectedReadGraphReadOnly();
-    void accessDirectedReadGraphReadWrite();
-    void markDirectedReadGraphConflictEdges1();
-    void markDirectedReadGraphConflictEdges2(int radius);
-    void markDirectedReadGraphConflictEdges3(int radius);
-
-
-
     // Write a FASTA file containing all reads that appear in
     // the local read graph.
     void writeLocalReadGraphReads(
@@ -1109,7 +1086,6 @@ private:
         double downsamplingFactor;
         int bandExtend;
         int maxBand;
-        int readGraphCreationMethod;
         uint32_t maxMarkerFrequency;
 
 
@@ -1206,9 +1182,6 @@ public:
 
     // Prune leaves from the strong subgraph of the global marker graph.
     void pruneMarkerGraphStrongSubgraph(size_t iterationCount);
-
-    // Analyze a vertex of the Marker graph.
-    void analyzeMarkerGraphVertex(MarkerGraph::VertexId) const;
 
     // Refine the marker graph by removing vertices in tangle regions,
     // then recreating edges. This must be called after
@@ -1357,82 +1330,6 @@ private:
         const InducedAlignment&,
         const InducedAlignmentCriteria&,
         vector<uint64_t>& work);
-
-
-
-    // Conflict read graph.
-    // See ConflictReadGraph.hpp for more information.
-public:
-    void createConflictReadGraph(
-        uint64_t threadCount,
-        uint32_t maxOffsetSigma,
-        uint32_t maxTrim,
-        uint32_t maxSkip,
-        uint32_t minAlignedMarkerCount);
-    void accessConflictReadGraph();
-    // void colorConflictReadGraph();
-    void cleanupConflictReadGraph();
-private:
-    // void createConflictReadGraphThreadFunction1(size_t threadId);
-    void createConflictReadGraphThreadFunction2(size_t threadId);
-    void addConflictGraphEdges(
-        ReadId,
-        const InducedAlignmentCriteria&,
-        // Work areas.
-        vector<OrientedReadId>&,
-        vector<OrientedReadId>&,
-        vector<InducedAlignment>&,
-        vector<uint64_t>&
-        );
-    class CreateConflictReadGraphData {
-    public:
-        InducedAlignmentCriteria inducedAlignmentCriteria;
-    };
-    CreateConflictReadGraphData createConflictReadGraphData;
-    ConflictReadGraph conflictReadGraph;
-
-
-
-    // Class used by colorConflictReadGraph.
-    // It creates a priority_queue containing this type.
-    class ColorConflictReadGraphData {
-    public:
-        DirectedReadGraph::VertexId vertexId;
-        uint64_t conflictReadGraphDegree;
-        uint64_t directedReadGraphKeptDegree;
-
-        ColorConflictReadGraphData(
-            DirectedReadGraph::VertexId,
-            const DirectedReadGraph&,
-            const ConflictReadGraph&);
-
-        // Used for sorting, so values with low conflict degree come first.
-        bool operator <(const ColorConflictReadGraphData& that) const
-        {
-            return
-                conflictReadGraphDegree < that.conflictReadGraphDegree
-                or
-                (
-                    conflictReadGraphDegree == that.conflictReadGraphDegree
-                    and
-                    directedReadGraphKeptDegree > that.directedReadGraphKeptDegree
-                );
-        }
-
-        // Used for sorting, so values with low conflict degree
-        // are at the top of the queue.
-        bool operator>(const ColorConflictReadGraphData& that) const
-        {
-            return
-                conflictReadGraphDegree > that.conflictReadGraphDegree
-                or
-                (
-                    conflictReadGraphDegree == that.conflictReadGraphDegree
-                    and
-                    directedReadGraphKeptDegree < that.directedReadGraphKeptDegree
-                );
-        }
-    };
 
 
 

@@ -700,11 +700,6 @@ void shasta::main::assemble(
         // Flag chimeric reads.
         assembler.flagChimericReads(assemblerOptions.readGraphOptions.maxChimericReadDistance, threadCount);
         assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
-    } else if(assemblerOptions.readGraphOptions.creationMethod == 1) {
-        assembler.createDirectedReadGraph(
-            assemblerOptions.alignOptions.maxTrim,
-            assemblerOptions.readGraphOptions.containedNeighborCount,
-            assemblerOptions.readGraphOptions.uncontainedNeighborCountPerDirection);
     } else if(assemblerOptions.readGraphOptions.creationMethod == 2) {
         assembler.createReadGraph2(
             assemblerOptions.readGraphOptions.maxAlignmentCount,
@@ -724,40 +719,6 @@ void shasta::main::assemble(
         assembler.computeReadGraphConnectedComponents(assemblerOptions.readGraphOptions.minComponentSize);
     } else {
         throw runtime_error("Invalid value for --ReadGraph.creationMethod.");
-    }
-
-
-
-    // Optional removal of conflicts from the read graph (experimental).
-    if(assemblerOptions.readGraphOptions.removeConflicts) {
-
-        // This only works when using the directed read graph.
-        SHASTA_ASSERT(assembler.directedReadGraph.isOpen());
-
-        // Preliminary creation of marker graph vertices,
-        // necessary to be able to create the conflict read graph.
-        AssemblerOptions tmpOptions = assemblerOptions;
-        tmpOptions.markerGraphOptions.minCoverage = 3;  //  ************ EXPOSE WHEN CODE STABILIZES
-        createMarkerGraphVertices(assembler, tmpOptions, threadCount);
-
-        // Create the conflict read graph.
-        // TURN THESE PARAMETERS INTO COMMAND LINE OPTIONS WHEN CODE STABILIZES. ****************
-        const uint32_t maxOffsetSigma = 100;
-        const uint32_t maxTrim = 100;
-        const uint32_t maxSkip = 100;
-        const uint32_t minAlignedMarkerCount = 100;
-        assembler.createConflictReadGraph(
-            threadCount, maxOffsetSigma, maxTrim, maxSkip,minAlignedMarkerCount);
-        assembler.cleanupConflictReadGraph();
-
-        // Mark conflict edges in the read graph.
-        // TURN THIS PARAMETER INTO A COMMAND LINE OPTION WHEN CODE STABILIZES. ****************
-        const uint32_t radius = 12;
-        assembler.markDirectedReadGraphConflictEdges3(radius);
-
-        // Remove the preliminary marker graph vertices we created.
-        assembler.removeMarkerGraphVertices();
-
     }
 
 
@@ -1007,7 +968,6 @@ void shasta::main::createMarkerGraphVertices(
         assemblerOptions.alignOptions.downsamplingFactor,
         assemblerOptions.alignOptions.bandExtend,
         assemblerOptions.alignOptions.maxBand,
-        assemblerOptions.readGraphOptions.creationMethod,
         assemblerOptions.markerGraphOptions.minCoverage,
         assemblerOptions.markerGraphOptions.maxCoverage,
         assemblerOptions.markerGraphOptions.minCoveragePerStrand,

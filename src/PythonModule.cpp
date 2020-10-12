@@ -327,26 +327,6 @@ PYBIND11_MODULE(shasta, module)
 
 
 
-        // Directed read graph.
-        .def("createDirectedReadGraph",
-            &Assembler::createDirectedReadGraph,
-            arg("maxTrim"),
-            arg("containedNeighborCount"),
-            arg("uncontainedNeighborCountPerDirection"))
-        .def("accessDirectedReadGraphReadOnly",
-            &Assembler::accessDirectedReadGraphReadOnly)
-        .def("accessDirectedReadGraphReadWrite",
-            &Assembler::accessDirectedReadGraphReadWrite)
-        .def("markDirectedReadGraphConflictEdges1",
-            &Assembler::markDirectedReadGraphConflictEdges1)
-        .def("markDirectedReadGraphConflictEdges2",
-            &Assembler::markDirectedReadGraphConflictEdges2,
-            arg("radius"))
-        .def("markDirectedReadGraphConflictEdges3",
-            &Assembler::markDirectedReadGraphConflictEdges3,
-            arg("radius"))
-
-
         // Global marker graph.
         .def("createMarkerGraphVertices",
             &Assembler::createMarkerGraphVertices,
@@ -360,7 +340,6 @@ PYBIND11_MODULE(shasta, module)
             arg("downsamplingFactor"),
             arg("bandExtend"),
             arg("maxBand"),
-            arg("readGraphCreationMethod"),
             arg("minCoverage"),
             arg("maxCoverage"),
             arg("minCoveragePerStrand"),
@@ -419,8 +398,6 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("computeMarkerGraphCoverageHistogram",
             &Assembler::computeMarkerGraphCoverageHistogram)
-        .def("analyzeMarkerGraphVertex",
-            &Assembler::analyzeMarkerGraphVertex)
         .def("refineMarkerGraph",
             &Assembler::refineMarkerGraph,
             arg("refineThreshold"),
@@ -470,17 +447,7 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessMarkerGraphConsensus)
         .def("accessMarkerGraphCoverageData",
             &Assembler::accessMarkerGraphCoverageData)
-        .def("createConflictReadGraph",
-            &Assembler::createConflictReadGraph,
-            arg("threadCount") = 0,
-            arg("maxOffsetSigma"),
-            arg("maxTrim"),
-            arg("maxSkip"),
-            arg("minAlignedMarkerCount"))
-        .def("accessConflictReadGraph",
-            &Assembler::accessConflictReadGraph)
-        .def("cleanupConflictReadGraph",
-            &Assembler::cleanupConflictReadGraph)
+
 
 
         // Assembly graph.

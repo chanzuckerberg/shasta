@@ -23,8 +23,6 @@ void Assembler::exploreReadGraph(
 {
     if(readGraph.edges.isOpen && readGraph.connectivity.isOpen()) {
         exploreUndirectedReadGraph(request, html);
-    } else if(directedReadGraph.isOpen()) {
-        exploreDirectedReadGraph(request, html);
     } else {
         html << "The read graph is not available." << endl;
     }

@@ -167,11 +167,7 @@ void Assembler::writeReadsSummary()
         csv << alignmentCandidatesCount[readId] << ",";
 
         // Number of read graph neighbors.
-        if(directedReadGraph.isOpen()) {
-            csv << directedReadGraph.totalDegree(orientedReadId.getValue()) << ",";
-        } else {
-            csv << readGraph.connectivity.size(orientedReadId.getValue()) << ",";
-        }
+        csv << readGraph.connectivity.size(orientedReadId.getValue()) << ",";
 
         // Number and fraction of markers associated with a marker graph vertex.
         uint64_t vertexCount = 0;

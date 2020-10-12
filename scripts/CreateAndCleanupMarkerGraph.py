@@ -26,21 +26,24 @@ a.createMarkerGraphVertices(
     downsamplingFactor = float(config['Align']['downsamplingFactor']),
     bandExtend = int(config['Align']['bandExtend']),
     maxBand = int(config['Align']['maxBand']),
-    readGraphCreationMethod = int(config['ReadGraph']['creationMethod']),
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']),
     minCoveragePerStrand = int(config['MarkerGraph']['minCoveragePerStrand']),
     peakFinderMinAreaFraction = float(config['MarkerGraph']['peakFinder.minAreaFraction']),
     peakFinderAreaStartIndex = int(config['MarkerGraph']['peakFinder.areaStartIndex']))
+a.findMarkerGraphReverseComplementVertices()
+
 
 # Create edges of the marker graph.
 a.createMarkerGraphEdges()
+a.findMarkerGraphReverseComplementEdges()
 
 # Approximate transitive reduction.
 a.transitiveReduction(
     lowCoverageThreshold = int(config['MarkerGraph']['lowCoverageThreshold']),
     highCoverageThreshold = int(config['MarkerGraph']['highCoverageThreshold']),
     maxDistance = int(config['MarkerGraph']['maxDistance']),
+    edgeMarkerSkipThreshold = int(config['MarkerGraph']['edgeMarkerSkipThreshold']),
 )
 
 # Prune the strong subgraph of the marker graph.
