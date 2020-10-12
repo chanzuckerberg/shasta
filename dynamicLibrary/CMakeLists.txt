@@ -12,7 +12,10 @@ add_definitions(-Wall -Wconversion -Wno-unused-result)
 if(BUILD_DEBUG)
     add_definitions(-ggdb3)
     add_definitions(-O0)
-    add_definitions(-fsanitize=address)
+    # Address sanitizer does not work well with the Python API,
+    # so it is commented out here. But it could be useful
+    # to debug the dynamic executable. 
+    # add_definitions(-fsanitize=address)
 else(BUILD_DEBUG)
     add_definitions(-g0)
     add_definitions(-O3)
