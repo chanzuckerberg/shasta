@@ -55,11 +55,11 @@ apt install -y curl
 apt install -y libboost-system-dev
 apt install -y libboost-program-options-dev
 apt install -y libboost-chrono-dev
+apt install -y libpng-dev
 
 if [ "$minimalInstall" == false ]; then
     # Install packages required for the HTTP server and Python-C++ bindings.
     apt install -y libboost-graph-dev
-    apt install -y libpng-dev
     apt install -y ncbi-blast+
     apt install -y graphviz
     apt install -y gnuplot
