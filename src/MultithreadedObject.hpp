@@ -90,9 +90,10 @@ protected:
     }
 
     // General purpose mutex, used when exclusive access is needed.
-    // it is better to use atomic memort primitive for synchronizationinstead,
+    // It is better to use atomic memory primitives for synchronization instead,
     // whenever possible.
-    std::mutex mutex;
+    // Make it mutable so it can also be used by const functions.
+    mutable std::mutex mutex;
 
 private:
     T& t;
