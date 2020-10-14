@@ -4,8 +4,13 @@
 
 // Wrappers to simplify SeqAn calls.
 
+// Shasta.
 #include "SHASTA_ASSERT.hpp"
 
+// Seqan.
+#include <seqan/align.h>
+
+// Standard library.
 #include "utility.hpp"
 #include "vector.hpp"
 

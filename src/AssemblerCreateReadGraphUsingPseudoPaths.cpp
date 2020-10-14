@@ -1,7 +1,6 @@
 
 // Shasta.
 #include "Assembler.hpp"
-#include "MiniAssemblyMarkerGraph.hpp"
 #include "orderPairs.hpp"
 #include "seqan.hpp"
 using namespace shasta;
