@@ -1737,14 +1737,6 @@ public:
 
 
     // Analyze paths and pseudo-paths of oriented reads.
-    void analyzeOrientedReadPaths() const;
-    void analyzeOrientedReadPathsThroughSegment(
-        AssemblyGraph::EdgeId segmentId);
-    void analyzeOrientedReadPathsThroughSegment(
-        AssemblyGraph::EdgeId segmentId,
-        vector<AssemblyGraph::EdgeId>& forwardChokePoints,
-        vector<AssemblyGraph::EdgeId>& backwardChokePoints,
-        bool debug);
     void followOrientedReadPaths(
         AssemblyGraph::EdgeId segmentId,
         bool forward);
