@@ -524,13 +524,8 @@ PYBIND11_MODULE(shasta, module)
             arg("diagonalReadCountMin"),
             arg("offDiagonalReadCountMax"),
             arg("offDiagonalRatio"))
-        .def("followOrientedReadPaths",
-            &Assembler::followOrientedReadPaths,
-            arg("segmentId"),
-            arg("forward"))
         .def("alignPseudoPaths",
             &Assembler::alignPseudoPaths)
-
 
 
 

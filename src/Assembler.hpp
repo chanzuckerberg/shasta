@@ -1736,16 +1736,8 @@ public:
 
 
 
-    // Analyze paths and pseudo-paths of oriented reads.
-    void followOrientedReadPaths(
-        AssemblyGraph::EdgeId segmentId,
-        bool forward);
-    void findOrientedReadsOnAssemblyGraphEdge(
-        AssemblyGraph::EdgeId,
-        vector<OrientedReadId>&
-    ) const;
+    // Analyze pseudo-paths of oriented reads.
     void alignPseudoPaths(ReadId, Strand, ReadId, Strand);
-
 
 
 
@@ -1759,8 +1751,8 @@ public:
     void writeAssemblySummaryJson(ostream&);
     void writeAssemblyIndex(ostream&) const;
     static void writeStyle(ostream& html);
-    
-    
+
+
 #ifdef SHASTA_HTTP_SERVER
 
     void writeNavigation(ostream&) const;
@@ -1768,7 +1760,7 @@ public:
         ostream& html,
         const string& title,
         const vector<pair <string, string> >&) const;
-    
+
     static void writePngToHtml(
         ostream& html,
         const string& pngFileName,
