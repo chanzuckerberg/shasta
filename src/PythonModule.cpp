@@ -528,10 +528,6 @@ PYBIND11_MODULE(shasta, module)
             arg("diagonalReadCountMin"),
             arg("offDiagonalReadCountMax"),
             arg("offDiagonalRatio"))
-        .def("createSegmentGraph",
-            &Assembler::createSegmentGraph)
-        .def("colorGfaBySegmentGraphChain",
-            &Assembler::colorGfaBySegmentGraphChain)
         .def("analyzeOrientedReadPaths",
             &Assembler::analyzeOrientedReadPaths)
         .def("analyzeOrientedReadPathsThroughSegment",

@@ -46,7 +46,6 @@ namespace shasta {
     class LocalAssemblyGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
-    class SegmentGraph;
     class Reads;
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1738,15 +1737,6 @@ public:
     // Write a csv file describing the marker graph path corresponding to an
     // oriented read and the corresponding pseudo-path on the assembly graph.
     void writeOrientedReadPath(ReadId, Strand, const string& fileName) const;
-
-
-
-    // The segment graph is used to detangle and determine reachability
-    // in the assembly graph.
-    void createSegmentGraph();
-    void colorGfaBySegmentGraphChain(uint64_t chainId) const;
-    shared_ptr<SegmentGraph> segmentGraphPointer;
-
 
 
 
