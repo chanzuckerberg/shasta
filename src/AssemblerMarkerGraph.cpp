@@ -4835,10 +4835,19 @@ void Assembler::computeOrientedReadMarkerGraphPath(
     vector< pair<uint32_t, uint32_t> >& pathOrdinals
     ) const
 {
+    const uint64_t markerCount = markers.size(orientedReadId.getValue());
+    SHASTA_ASSERT(lastOrdinal >= firstOrdinal);
+    SHASTA_ASSERT(firstOrdinal < markerCount);
+    SHASTA_ASSERT(lastOrdinal < markerCount);
 
     // Start with an empty path.
     path.clear();
     pathOrdinals.clear();
+
+    // If too short, return an empty path.
+    if(lastOrdinal == firstOrdinal) {
+        return;
+    }
 
 
 
@@ -4907,6 +4916,7 @@ void Assembler::computeOrientedReadMarkerGraphPath(
                 // Write some details to facilitate debugging.
                 std::lock_guard<std::mutex> lock(mutex);
                 cout << "Could not locate marker graph edge for " << orientedReadId << endl;
+                cout << "Number of markers on this read " << markerCount << endl;
                 cout << "Between ordinals " << ordinal0 << " and " << ordinal1 << endl;
                 cout << "vertexId0 " << vertexId0 << endl;
                 cout << "vertexId1 " << vertexId1 << endl;
@@ -4921,6 +4931,8 @@ void Assembler::computeOrientedReadMarkerGraphPath(
                     const MarkerGraph::EdgeId edgeId = e;
                     cout << "EdgeId " << edgeId << ", source vertex " << markerGraph.edges[edgeId].source << endl;
                 }
+                cout << "firstOrdinal " << firstOrdinal << endl;
+                cout << "lastOrdinal " << lastOrdinal << endl;
                 SHASTA_ASSERT(0);
             }
             break;

@@ -263,11 +263,17 @@ void Assembler::computePseudoPath(
     using SegmentId = AssemblyGraph::EdgeId;
 
     // Compute the marker graph path.
-    computeOrientedReadMarkerGraphPath(
-        orientedReadId,
-        0, uint32_t(markers.size(orientedReadId.getValue()) - 1),
-        path, pathOrdinals);
-    SHASTA_ASSERT(path.size() == pathOrdinals.size());
+    const uint64_t markerCount = markers.size(orientedReadId.getValue());
+    if(markerCount < 2) {
+        pathOrdinals.clear();
+        path.clear();
+    } else {
+        computeOrientedReadMarkerGraphPath(
+            orientedReadId,
+            0, uint32_t(markerCount - 1),
+            path, pathOrdinals);
+        SHASTA_ASSERT(path.size() == pathOrdinals.size());
+    }
 
 
 
