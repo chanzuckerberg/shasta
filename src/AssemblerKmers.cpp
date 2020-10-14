@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "deduplicate.hpp"
 using namespace shasta;
 
 #include <random>

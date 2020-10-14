@@ -1,3 +1,6 @@
+#if 0
+// This is currently not used but we may decide to start using it at some point.
+
 #ifndef SHASTA_MEMORY_MAPPED_DIRECTED_GRAPH_HPP
 #define SHASTA_MEMORY_MAPPED_DIRECTED_GRAPH_HPP
 
@@ -490,3 +493,4 @@ private:
 #endif
 
 
+#endif

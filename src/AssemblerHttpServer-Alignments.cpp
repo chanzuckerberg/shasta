@@ -1,15 +1,15 @@
-// PngImage.hpp must be included first because of png issues on Ubuntu 16.04.
-#include "PngImage.hpp"
+#ifdef SHASTA_HTTP_SERVER
+
 
 // Shasta.
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
 #include "AlignmentGraph.hpp"
+#include "Histogram.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "platformDependent.hpp"
+#include "PngImage.hpp"
 #include "ReadId.hpp"
-#include "Histogram.hpp"
-
 using namespace shasta;
 
 // Boost libraries.
@@ -18,15 +18,13 @@ using namespace shasta;
 #include <boost/uuid/uuid_io.hpp>
 
 // Seqan
-#ifdef SHASTA_HTTP_SERVER
 #include <seqan/align.h>
-#endif
 
-#ifdef SHASTA_HTTP_SERVER
-
-
+// Standard library.
+#include "chrono.hpp"
 using std::random_device;
 using std::uniform_int_distribution;
+
 
 
 void Assembler::exploreAlignments(

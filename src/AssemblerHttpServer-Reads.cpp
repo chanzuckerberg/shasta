@@ -2,8 +2,11 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "deduplicate.hpp"
 #include "orderPairs.hpp"
 using namespace shasta;
+
+
 
 void Assembler::exploreRead(
     const vector<string>& request,

@@ -1,6 +1,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AssembledSegment.hpp"
+#include "deduplicate.hpp"
 #include "LocalAssemblyGraph.hpp"
 #include "orderPairs.hpp"
 #include "timestamp.hpp"
