@@ -4903,8 +4903,26 @@ void Assembler::computeOrientedReadMarkerGraphPath(
                 }
             }
             if(not found) {
+                // This is not good. We will assert below.
+                // Write some details to facilitate debugging.
+                std::lock_guard<std::mutex> lock(mutex);
+                cout << "Could not locate marker graph edge for " << orientedReadId << endl;
+                cout << "Between ordinals " << ordinal0 << " and " << ordinal1 << endl;
+                cout << "vertexId0 " << vertexId0 << endl;
+                cout << "vertexId1 " << vertexId1 << endl;
+                cout << "Out-edges of vertexId0:" << endl;
+                for(const Uint40 e: outEdges0) {
+                    const MarkerGraph::EdgeId edgeId = e;
+                    cout << "EdgeId " << edgeId << ", target vertex " << markerGraph.edges[edgeId].target << endl;
+                }
+                const span<const Uint40> inEdges1 = markerGraph.edgesByTarget[vertexId1];
+                cout << "In-edges of vertexId1:" << endl;
+                for(const Uint40 e: inEdges1) {
+                    const MarkerGraph::EdgeId edgeId = e;
+                    cout << "EdgeId " << edgeId << ", source vertex " << markerGraph.edges[edgeId].source << endl;
+                }
+                SHASTA_ASSERT(0);
             }
-            SHASTA_ASSERT(found);
             break;
         }
     }
