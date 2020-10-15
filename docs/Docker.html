@@ -10,75 +10,15 @@
 <main>
 <div class="goto-index"><a href="index.html">Table of contents</a></div>
 
-    <h1>Running Shasta using Docker</h1>
+<h1>Running Shasta using Docker</h1>
 
-    <a href="https://www.docker.com/">Docker</a> is a tool that allows users to run software on a variety
-    of operating systems without installing dependencies or compiling the software.
-    It uses operating-system-level virtualization to run pre-compiled images in
-    self-contained packages called containers.
-
-    Running Shasta via this method has the advantage of portability, but <a href="BuildingFromSource.html">building</a>
-    the executable from source on the host machine is still the most performant method of running Shasta.
-
-
-    <h3>Getting Started</h3>
-
-    To run Shasta via the Docker image, the Docker software must be <a href="https://docs.docker.com/install/">installed</a>
-    on the host OS.  Hardware and data requirements for <a href=Running.html>running</a> Shasta still apply.
-
-    The command to run the image includes configuration to
-    mount the current working directory to the <code>data/</code>
-    directory inside the container.  The read data
-    (<code>input.fasta</code> in this example)
-    must be present in the current directory,
-    and all the output will be there after execution.
-    The image name and version tag must be specified, followed by
-    any arguments that would be passed to the Shasta executable:
-
-    <pre>docker run -v `pwd`:/data kishwars/shasta:latest --input input.fasta</pre>
-
-    When Shasta is run via this method, the Docker image is set up to save the command, all output logged to the console,
-    and the time and maximum memory usage to a file called <code>shasta.log</code>.  This log will be present in the
-    current working directory, alongside all output from Shasta.  The Docker image will be automatically downloaded
-    the first time it is used; subsequent runs will use a cached version.
-
-    <h3>Memory Mode</h3>
-
-    To run Shasta in the <code>filesystem</code> memory mode (for better <a href=Performance.html>performance</a>),
-    the Docker container needs to set up underlying infrastructure in the OS.
-    By default, a Docker container is not allowed to take the actions necessary for this,
-    so it must be given elevated privileges.
-    To do this the <code>--privileged</code> flag must be set when invoking Docker:
-
-    <pre>docker run --privileged -v `pwd`:/data kishwars/shasta:latest --input input.fasta --memoryMode filesystem --memoryBacking 2M</pre>
-
-    When running Shasta in this mode, the <code>cleanupBinaryData</code> command is not required,
-    and the binary data is not available for use with the http server or the Python API.
-
-
-    <h3>Compiling Docker Image</h3>
-
-    The Shasta image is currently published to the <code>kishwars/shasta</code> repository on
-    <a href="https://hub.docker.com/r/kishwars/shasta">Docker Hub</a> and does not need to be compiled locally.
-    For advanced users, an image can be compiled using the Makefile in the
-    <code>docker/</code> folder in the Shasta repository.
-
-    <pre>cd docker/
-make</pre>
-
-    By default, the build script will find the current git commit in the repository
-    where it is being run, create an image with the code from that commit
-    (the commit must be pushed to github), then tag the image with the
-    current Shasta version and the commit hash.
-
-    To create an image from a specific git commit,
-    the <code>make</code> command can be run with this option:
-
-    <pre>make -e git_commit=&lt;your_git_commit&gt;</pre>
-
-    In addition to <code>git_commit</code>, the specifications for <code>image_name=kishwars/shasta</code>,
-    <code>shasta_version=0.1.0</code>, and <code>tag=${version}--${git_commit}</code> can be changed in the same way.
-
+Shasta Docker images are available for the x86_64 (amd64) & arm64v8 (aarch64) platforms. Information about how to use these images is available at the following links.
+<br />
+<br />
+<ul>
+	<li><a href=https://github.com/orgs/chanzuckerberg/packages/container/package/shasta>Docker image for x86_64 (amd64) platform</a></li>
+	<li><a href=https://github.com/orgs/chanzuckerberg/packages/container/package/shasta-arm64v8>Docker image for arm64v8 (aarch64) platform</a></li>
+</ul>
 <div class="goto-index"><a href="index.html">Table of contents</a></div>
 
 </main>
