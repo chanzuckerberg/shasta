@@ -1,3 +1,6 @@
+#if 0
+// This is currently not used but left here in case it becomes useful.
+
 #ifndef SHASTA_DEBRUIJN_GRAPH_HPP
 #define SHASTA_DEBRUIJN_GRAPH_HPP
 
@@ -344,5 +347,7 @@ public:
 
     }
 };
+
+#endif
 
 #endif
