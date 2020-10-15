@@ -31,8 +31,7 @@ void Assembler::exploreAssemblyGraph(
     getLocalAssemblyGraphRequestParameters(request, requestParameters);
 
     // Write the form.
-    const bool allowHighlighting = phasingData.assemblyGraphEdges.isOpen();
-    requestParameters.writeForm(html, assemblyGraph.edges.size(), allowHighlighting);
+    requestParameters.writeForm(html, assemblyGraph.edges.size());
 
     // If any required values are missing, stop here.
     if(requestParameters.hasMissingRequiredParameters()) {
@@ -69,36 +68,6 @@ void Assembler::exploreAssemblyGraph(
         return;
     }
 
-
-#if 0
-    // Highlight edges containing the specified oriented read.
-    if(allowHighlighting && requestParameters.highlightedReadIdIsPresent) {
-
-        // Create a map of local edges, keyed by global edge id.
-        std::map<AssemblyGraph::EdgeId, LocalAssemblyGraph::edge_descriptor> edgeMap;
-        BGL_FORALL_EDGES(e, graph, LocalAssemblyGraph) {
-            edgeMap.insert(make_pair(graph[e].edgeId, e));
-        }
-
-        // Get the edges we need to highlight.
-        const OrientedReadId orientedReadId(
-            requestParameters.highlightedReadId,
-            requestParameters.highlightedStrand);
-        const span<AssemblyGraph::EdgeId> highlightedEdges =
-            phasingGraph.assemblyGraphEdges[orientedReadId.getValue()];
-
-        // Highlight those edges, if present in the local assembly graph.
-        for(const AssemblyGraph::EdgeId edgeId: highlightedEdges) {
-            const auto it = edgeMap.find(edgeId);
-            if(it == edgeMap.end()) {
-                continue;
-            }
-            const LocalAssemblyGraph::edge_descriptor e = it->second;
-            graph[e].isHighlighted = true;
-        }
-
-    }
-#endif
 
 
     // Write it out in graphviz format.
@@ -188,20 +157,13 @@ void Assembler::getLocalAssemblyGraphRequestParameters(
     parameters.timeoutIsPresent = getParameterValue(
         request, "timeout", parameters.timeout);
 
-    parameters.highlightedReadIdIsPresent = getParameterValue(
-        request, "highlightedReadId", parameters.highlightedReadId);
-
-    parameters.highlightedStrand = 0;
-    getParameterValue(request, "highlightedStrand", parameters.highlightedStrand);
-
 }
 
 
 
 void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
     ostream& html,
-    AssemblyGraph::EdgeId edgeCount,
-    bool allowHighlighting) const
+    AssemblyGraph::EdgeId edgeCount) const
 {
     html <<
         "<h3>Display a local subgraph of the global assembly graph</h3>"
@@ -251,26 +213,7 @@ void Assembler::LocalAssemblyGraphRequestParameters::writeForm(
         "<td>Timeout (seconds) for graph creation and layout"
         "<td><input type=text required name=timeout size=8 style='text-align:center'"
         << (timeoutIsPresent ? (" value='" + to_string(timeout)+"'") : " value='30'") <<
-        ">";
-
-    if(allowHighlighting) {
-        html <<
-            "<tr>"
-            "<td>Oriented read to be highlighted"
-            "<td><input type=text name=highlightedReadId size=8 style='text-align:center'";
-
-        if(highlightedReadIdIsPresent) {
-            html << " value='" << highlightedReadId << "'";
-        }
-        html << ">";
-
-        html << "<tr><td>Strand of oriented read to be highlighted><td class=centered>";
-        writeStrandSelection(html, "highlightedStrand", highlightedStrand==0, highlightedStrand==1);
-
-
-    }
-
-    html <<
+        ">"
         "</table>"
 
         "<br><input type=submit value='Display'>"
@@ -357,20 +300,6 @@ void Assembler::exploreAssemblyGraphEdge(const vector<string>& request, ostream&
             assemblyGraph.edges.size()-1 << " inclusive." << endl;
         return;
     }
-
-
-
-    // Phasing information.
-    if (phasingData.orientedReads.isOpen()) {
-        const span<OrientedReadId> orientedReadIds =
-            phasingData.orientedReads[edgeId];
-        html << "<p>The following oriented reads are internal to the this "
-            "assembly graph edge:<br>";
-        for(const OrientedReadId orientedReadId: orientedReadIds) {
-            html << orientedReadId << " ";
-        }
-    }
-
 
 
 

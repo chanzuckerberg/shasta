@@ -1946,10 +1946,7 @@ private:
         bool sizePixelsIsPresent;
         double timeout;
         bool timeoutIsPresent;
-        bool highlightedReadIdIsPresent;
-        ReadId highlightedReadId;
-        Strand highlightedStrand;
-        void writeForm(ostream&, AssemblyGraph::EdgeId edgeCount, bool allowHighlighting) const;
+        void writeForm(ostream&, AssemblyGraph::EdgeId edgeCount) const;
         bool hasMissingRequiredParameters() const;
     };
     void getLocalAssemblyGraphRequestParameters(
