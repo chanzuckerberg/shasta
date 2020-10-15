@@ -130,9 +130,6 @@ install(DIRECTORY conf DESTINATION shasta-install USE_SOURCE_PERMISSIONS)
 # Install the docs directory.
 install(DIRECTORY docs DESTINATION shasta-install)
 
-# Install the docker directory.
-install(DIRECTORY docker DESTINATION shasta-install)
-
 # The targets built in each subdirectory are
 # installed by the cmake file of each subdirectory.
 
