@@ -540,44 +540,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::colorCompressedAssemblyGraph,
             arg("gfaId"))
 
-        // Phasing.
-        .def("createPhasingData",
-            &Assembler::createPhasingData,
-            arg("threadCount") = 0,
-            arg("phasingSimilarityThreshold"),
-            arg("maxNeighborCount"))
-        .def("accessPhasingData",
-            &Assembler::accessPhasingData)
-#if 0
-        .def("computePhasingSimilarity",
-            (
-                double (Assembler::*)
-                (ReadId, Strand, ReadId, Strand)
-            )
-            &Assembler::computePhasingSimilarity,
-            arg("readId0"),
-            arg("strand0"),
-            arg("readId1"),
-            arg("strand1")
-            )
-#endif
-        .def("computePhasingSimilarity",
-            (
-                double (Assembler::*)
-                (AssemblyGraph::EdgeId, AssemblyGraph::EdgeId)
-            )
-            &Assembler::computePhasingSimilarity,
-            arg("edgeId0"),
-            arg("edgeId1")
-            )
-        .def("countCommonInternalOrientedReads",
-            &Assembler::countCommonInternalOrientedReads,
-            arg("edgeId0"),
-            arg("edgeId1")
-            )
 
         .def("test", &Assembler::test)
-
 
         // Definition of class_Assembler ends here.
     ;

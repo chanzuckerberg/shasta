@@ -405,14 +405,6 @@ void Assembler::accessAllSoft()
     }
 
     try {
-        accessPhasingData();
-    } catch(const exception& e) {
-    	// Don't threat it as missing because this does not get created in all cases.
-        // cout << "Assembly graph sequences are not accessible." << endl;
-        // allDataAreAvailable = false;
-    }
-
-    try {
         accessCompressedAlignments();
     } catch(const exception& e) {
         cout << "Alignments are not accessible." << endl;

@@ -18,7 +18,6 @@
 #include "MemoryMappedObject.hpp"
 #include "MultithreadedObject.hpp"
 #include "OrientedReadPair.hpp"
-#include "PhasingData.hpp"
 #include "ReadGraph.hpp"
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
@@ -1976,32 +1975,6 @@ private:
     shared_ptr<ConsensusCaller> consensusCaller;
 
 
-
-    // Functions and data structures used for phasing.
-public:
-    void createPhasingData(
-        size_t threadCount,
-        double phasingSimilarityThreshold,
-        int maxNeighborCount);
-    void accessPhasingData();
-    // double computePhasingSimilarity(OrientedReadId, OrientedReadId);
-    // double computePhasingSimilarity(ReadId, Strand, ReadId, Strand);
-    double computePhasingSimilarity(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
-    uint64_t countCommonInternalOrientedReads(AssemblyGraph::EdgeId, AssemblyGraph::EdgeId);
-private:
-    PhasingData phasingData;
-    void phasingGatherOrientedReads(size_t threadCount);
-    void phasingGatherOrientedReadsPass1(size_t threadId);
-    void phasingGatherOrientedReadsPass2(size_t threadId);
-    void phasingGatherOrientedReadsPass(int pass);
-    void phasingGatherAssemblyGraphEdges(size_t threadCount);
-    void phasingGatherAssemblyGraphEdgesPass1(size_t threadId);
-    void phasingGatherAssemblyGraphEdgesPass2(size_t threadId);
-    void phasingGatherAssemblyGraphEdgesPass(int pass);
-    void phasingSortAssemblyGraphEdges(size_t threadCount);
-    void phasingSortAssemblyGraphEdgesThreadFunction(size_t threadId);
-    void phasingWriteBipartiteGraph();
-    void phasingFindSimilarForks();
 
 public:
     void test();

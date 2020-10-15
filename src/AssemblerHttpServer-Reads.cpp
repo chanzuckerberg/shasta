@@ -686,16 +686,6 @@ void Assembler::exploreRead(
     html << "<table>";
 
 
-    // Phasing information.
-    if (phasingData.assemblyGraphEdges.isOpen()) {
-        const span<AssemblyGraph::EdgeId> edges =
-            phasingData.assemblyGraphEdges[orientedReadId.getValue()];
-        html << "<p>This oriented read is internal to the following "
-            "assembly graph edges:<br>";
-        for(const AssemblyGraph::EdgeId edge: edges) {
-            html << edge << " ";
-        }
-    }
 
 }
 
