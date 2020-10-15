@@ -1,5 +1,4 @@
 #include "Assembler.hpp"
-#include "DeBruijnGraph.hpp"
 #include "compressAlignment.hpp"
 #include "findLinearChains.hpp"
 using namespace shasta;

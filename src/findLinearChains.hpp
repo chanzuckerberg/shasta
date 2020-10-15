@@ -3,6 +3,8 @@
 
 // Find linear chains in a directed graph
 
+// Boost libraries.
+#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/iteration_macros.hpp>
 #include <list>
 #include "vector.hpp"
