@@ -861,6 +861,11 @@ void shasta::main::assemble(
         assembler.createAssemblyGraphVertices();
     }
 
+    // Prune the assembly graph, if requested.
+    if(assemblerOptions.assemblyOptions.pruneLength > 0) {
+        assembler.pruneAssemblyGraph(assemblerOptions.assemblyOptions.pruneLength);
+    }
+
     // Detangle, if requested.
     if(assemblerOptions.assemblyOptions.detangleMethod == 1) {
         assembler.detangle();

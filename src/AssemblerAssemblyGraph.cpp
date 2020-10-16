@@ -454,6 +454,7 @@ void Assembler::createAssemblyGraphVertices()
 // is <= crossEdgeCoverageThreshold.
 void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
 {
+    SHASTA_ASSERT(assemblyGraphPointer);
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
 
     // We want to process edges in order of increasing coverage.
@@ -510,6 +511,68 @@ void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
         << " low coverage cross edges of the assembly graph and " <<
         removedMarkerGraphEdgeCount <<
         " corresponding marker graph edges." << endl;
+}
+
+
+
+void Assembler::pruneAssemblyGraph(uint64_t pruneLength)
+{
+    cout << timestamp << "Begin pruning assembly graph with prune length " << pruneLength << endl;
+
+
+
+    // Iterate as long as anything was pruned.
+    for(uint64_t iteration=0; ; ++iteration) {
+
+        // Access the assembly graph at this iteration.
+        SHASTA_ASSERT(assemblyGraphPointer);
+        AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+
+        // Loop over all edges of the assembly graph.
+        uint64_t removedAssemblyGraphEdgeCount = 0;
+        uint64_t removedMarkerGraphEdgeCount = 0;
+        for(AssemblyGraph::EdgeId edgeId=0; edgeId!=assemblyGraph.edges.size(); edgeId++) {
+            AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+            const AssemblyGraph::VertexId v0 = edge.source;
+            const AssemblyGraph::VertexId v1 = edge.target;
+
+            // If this edge is too long, skip it.
+            if(assemblyGraph.edgeLists.size(edgeId) >= pruneLength) {
+                continue;
+            }
+
+            // If this edge is not a leaf, skip it.
+            if(assemblyGraph.inDegree(v0) > 0 and assemblyGraph.outDegree(v1) > 0) {
+                continue;
+            }
+
+            // Mark this edge as pruned.
+            edge.removalReason = AssemblyGraph::Edge::RemovalReason::LowCoverageCrossEdge;
+            ++removedAssemblyGraphEdgeCount;
+
+            // Mark the corresponding marker graph edges.
+            for(const MarkerGraph::EdgeId markerGraphEdgeId: assemblyGraph.edgeLists[edgeId]) {
+                markerGraph.edges[markerGraphEdgeId].wasPruned = 1;
+                ++removedMarkerGraphEdgeCount;
+            }
+
+        }
+        cout << timestamp << "Assembly graph prune iteration " << iteration << " removed " <<
+            removedAssemblyGraphEdgeCount << " assembly graph edges and " <<
+            removedMarkerGraphEdgeCount << " marker graph edges." <<  endl;
+
+        // Recreate the assembly graph.
+        assemblyGraphPointer->remove();
+        createAssemblyGraphEdges();
+        createAssemblyGraphVertices();
+
+        // If we did not prune anything, we are done.
+        if(removedAssemblyGraphEdgeCount == 0) {
+            break;
+        }
+    }
+
+    cout << timestamp << "End pruning assembly graph." << endl;
 }
 
 

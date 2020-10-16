@@ -75,7 +75,8 @@ public:
         // Reason for removal.
         enum class RemovalReason : uint8_t {
             NotRemoved = 0,
-            LowCoverageCrossEdge = 1
+            LowCoverageCrossEdge = 1,
+            Pruned
         };
         RemovalReason removalReason;
         bool wasRemoved() const
