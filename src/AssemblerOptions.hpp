@@ -254,6 +254,7 @@ public:
         bool storeCoverageData;
         int storeCoverageDataCsvLengthThreshold;
         bool writeReadsByAssembledSegment;
+        uint64_t pruneLength;
 
         // Options that control detangling.
         int detangleMethod;

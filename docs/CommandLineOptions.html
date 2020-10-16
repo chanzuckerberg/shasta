@@ -714,6 +714,13 @@ This is a
 used to request writing a csv file containing all the reads that were used
 to assemble each segment).
 
+<tr id='Assembly.pruneLength'>
+<td><code>--Assembly.pruneLength</code><td class=centered><code>0</code><td>
+Prune length (in markers) for pruning of the assembly graph. 
+Assembly graph leaves shorter than this number of markers are iteratively pruned.
+Set to zero to suppress pruning of the assembly graph. 
+Assembly graph pruning takes place separately and in addition to marker graph pruning.
+
 <tr id='Assembly.detangleMethod'>
 <td><code>--Assembly.detangleMethod</code><td class=centered><code>0</code><td>
 Experimental. Method used to detangle the assembly graph. Valid values:

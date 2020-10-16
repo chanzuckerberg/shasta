@@ -622,6 +622,14 @@ void AssemblerOptions::addConfigurableOptions()
         default_value(false),
         "Used to request writing the reads that contributed to assembling each segment.")
 
+        ("Assembly.pruneLength",
+        value<uint64_t>(&assemblyOptions.pruneLength)->
+        default_value(0),
+        "Prune length (in markers) for pruning of the assembly graph. "
+        "Assembly graph leaves shorter than this number of markers are iteratively pruned. "
+        "Set to zero to suppress pruning of the assembly graph. "
+        "Assembly graph pruning takes place separately and in addition to marker graph pruning.")
+
         ("Assembly.detangleMethod",
         value<int>(&assemblyOptions.detangleMethod)->
         default_value(0),
