@@ -1,7 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
-#include "MarkerGraph2.hpp"
 #include "orderPairs.hpp"
 // Shasta.
 #include "seqan.hpp"
