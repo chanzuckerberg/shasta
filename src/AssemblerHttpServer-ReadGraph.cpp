@@ -42,8 +42,9 @@ bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedRe
                 token.clear();
             }
             catch(exception& e){
-                html << "<p>Invalid read id or read strand: '" << token << "'</p>";
-                html << "<p>" << e.what() << "</p>";
+                html << "<p>Invalid oriented read id: '" << token << "'</p>";
+                html << "<p>Specify one or more comma separated oriented read ids of the form ReadId-strand "
+                    "where strand is 0 or 1. For example: 757-1,1048-0";
                 return false;
             }
         }
@@ -59,8 +60,9 @@ bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedRe
             readIds.push_back(readId);
         }
         catch(exception& e){
-            html << "<p>Invalid read id or read strand: '" << token << "'</p>";
-            html << "<p>" << e.what() << "</p>";
+            html << "<p>Invalid oriented read id: '" << token << "'</p>";
+            html << "<p>Specify one or more comma separated oriented read ids of the form ReadId-strand "
+                "where strand is 0 or 1. For example: 757-1,1048-0";
             return false;
         }
     }
