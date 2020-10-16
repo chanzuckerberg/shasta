@@ -83,7 +83,7 @@ AssemblerOptions::AssemblerOptions(int argumentCount, const char** arguments) :
     if(!commandLineOnlyOptions.configFileName.empty()) {
         ifstream configFile(commandLineOnlyOptions.configFileName);
         if (!configFile) {
-            throw runtime_error("Unable to open open config file " +
+            throw runtime_error("Unable to open config file " +
                 commandLineOnlyOptions.configFileName);
         }
         store(parse_config_file(configFile, configurableOptionsDescription), variablesMap);
