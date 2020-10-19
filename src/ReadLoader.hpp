@@ -126,7 +126,9 @@ private:
     // The ReadId corresponding to each index in the Runnie file.
     vector<ReadId> readIdTable;
 
-
+#ifdef __linux__
+    int tryDirectIO(const string& fileName);
+#endif
 };
 
 

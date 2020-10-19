@@ -10,7 +10,6 @@ using namespace shasta;
 #include "iterator.hpp"
 
 
-
 // Load reads from a fastq or fasta file.
 ReadLoader::ReadLoader(
     const string& fileName,
@@ -488,7 +487,28 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
     }
 }
 
+#ifdef __linux__
+int ReadLoader::tryDirectIO(const string& fileName) {
+    auto fd = ::open(fileName.c_str(), O_RDONLY | O_DIRECT);
+    if (fd == -1) {
+        // This could happen for a variety of reasons. If the file is readable and it still cannot
+        // be opened, it is likely that the volume/file-system does not support the O_DIRECT flag.
+        return O_RDONLY;
+    }
+    
+    // Verify that the O_DIRECT flag is actually supported. Sometimes the error shows up in the read call.
+    MemoryMapped::Vector<char> tempBuffer;
+    tempBuffer.createNew("tmp-odirectReadTestBuffer", pageSize, pageSize);
+    auto bytesRead = ::read(fd, &tempBuffer[0], pageSize);
+    ::close(fd);
+    if (bytesRead == -1) {
+        return O_RDONLY;
+    }
 
+    // File can be opened and read using Direct IO.
+    return O_RDONLY | O_DIRECT;
+}
+#endif
 
 // Read an entire file into a buffer,
 // using threadCountForReading threads.
@@ -507,7 +527,12 @@ void ReadLoader::readFile()
     int flags = O_RDONLY;
 #ifdef __linux__
     if(noCache) {
-        flags |= O_DIRECT;
+        flags = tryDirectIO(fileName);
+        if (flags == (O_RDONLY | O_DIRECT)) {
+            cout << "O_DIRECT flag supported by the file system." << endl;
+        } else {
+            cout << "O_DIRECT flag not supported by file system." << endl;
+        }
     }
 #endif
     const int fileDescriptor = ::open(fileName.c_str(), flags);
