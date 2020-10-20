@@ -528,10 +528,9 @@ void ReadLoader::readFile()
 #ifdef __linux__
     if(noCache) {
         flags = tryDirectIO(fileName);
-        if (flags == (O_RDONLY | O_DIRECT)) {
-            cout << "O_DIRECT flag supported by the file system." << endl;
-        } else {
-            cout << "O_DIRECT flag not supported by file system." << endl;
+        if (flags != (O_RDONLY | O_DIRECT)) {
+            cout << "--Reads.noCache was turned off for " << fileName
+                << " because it is not supported by the filesystem." << endl;
         }
     }
 #endif
