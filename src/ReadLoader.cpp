@@ -1,6 +1,5 @@
 // Shasta.
 #include "ReadLoader.hpp"
-#include "CompressedRunnieReader.hpp"
 #include "computeRunLengthRepresentation.hpp"
 #include "splitRange.hpp"
 using namespace shasta;
@@ -54,15 +53,9 @@ ReadLoader::ReadLoader(
         return;
     }
 
-    // Runnie compressed file.
-    if(extension=="rq" || extension=="RQ") {
-        processCompressedRunnieFile();
-        return;
-    }
-
     // If getting here, the file extension is not supported.
     throw runtime_error("File extension " + extension + " is not supported. "
-        "Supported file extensions are .fasta, .fa, .FASTA, .FA.");
+        "Supported file extensions are .fasta, .fa, .FASTA, .FA, .fastq, .fq, .FASTQ, .FQ.");
 }
 
 
@@ -655,78 +648,6 @@ void ReadLoader::allocatePerThreadDataStructures(size_t threadId)
     threadReadRepeatCounts[threadId] = make_unique< MemoryMapped::VectorOfVectors<uint8_t, uint64_t> >();
     threadReadRepeatCounts[threadId]->createNew(
         threadDataName(threadId, "ReadRepeatCounts"), pageSize);
-}
-
-
-
-// Compressed runnie file, via class CompressedRunnieReader.
-// For now this is sequential but it could be made faster
-// using CompressedRunnieReader functionality.
-void ReadLoader::processCompressedRunnieFile()
-{
-    const auto t0 = std::chrono::steady_clock::now();
-
-    // Create the CompressedRunnieReader.
-    compressedRunnieReader = make_unique<CompressedRunnieReader>(fileName);
-    CompressedRunnieReader& reader = *compressedRunnieReader;
-    const uint64_t readCountInFile = reader.getReadCount();
-    cout << "Input file contains " << readCountInFile << " reads." << endl;
-
-    // Use single-threaded code to create the space.
-    readIdTable.resize(readCountInFile);
-    ReadId readId = ReadId(reads.readCount());
-    for(uint64_t i=0; i!=readCountInFile; i++) {
-        const uint64_t baseCount = reader.getLength(i);
-        if(baseCount >= minReadLength) {
-            reads.readNames.appendVector(reader.getReadName(i).size());
-            reads.readMetaData.appendVector(0);   // Empty meta data.
-            reads.reads.append(baseCount);
-            reads.readRepeatCounts.appendVector(baseCount);
-            readIdTable[i] = readId++;
-        } else {
-            discardedShortReadReadCount++;
-            discardedShortReadBaseCount += baseCount;
-            readIdTable[i] = invalidReadId;
-        }
-    }
-
-    // Use multithreaded code to store the reads.
-    setupLoadBalancing(readIdTable.size(), 1000);
-    runThreads(&ReadLoader::processCompressedRunnieFileThreadFunction, threadCount);
-    compressedRunnieReader.reset();
-
-    const auto t1 = std::chrono::steady_clock::now();
-    cout << "Input file read and processed in " <<
-        seconds(t1-t0) << " s." << endl;
-}
-
-
-
-void ReadLoader::processCompressedRunnieFileThreadFunction(size_t threadId)
-{
-    CompressedRunnieReader& reader = *compressedRunnieReader;
-
-    // Loop over all batches assigned to this thread.
-    uint64_t begin, end;
-    NamedCompressedRunnieSequence read;
-    while(getNextBatch(begin, end)) {
-
-        // Loop over all reads in this batch.
-        for(uint64_t i=begin; i!=end; i++) {
-            const ReadId readId = readIdTable[i];
-            if(readId == invalidReadId) {
-                continue;
-            }
-            reader.getSequenceData(read, i);
-            copy(read.name.begin(), read.name.end(), reads.readNames.begin(readId));
-            LongBaseSequenceView storedSequence = reads.reads[readId];
-            for(uint64_t j=0; j<read.sequence.size(); j++) {
-                storedSequence.set(j, Base::fromCharacter(read.sequence[j]));
-            }
-            copy(read.encoding.begin(), read.encoding.end(), reads.readRepeatCounts.begin(readId));
-        }
-    }
-
 }
 
 

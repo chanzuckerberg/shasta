@@ -14,7 +14,6 @@
 namespace shasta {
     class ReadLoader;
 }
-class CompressedRunnieReader;
 
 
 
@@ -116,15 +115,6 @@ private:
     void findLineEndsThreadFunction(size_t threadId);
     vector< vector<uint64_t> > threadLineEnds;
     vector<uint64_t> lineEnds;
-
-
-    // Functions and data used for compressed runnie files.
-    void processCompressedRunnieFile();
-    void processCompressedRunnieFileThreadFunction(size_t threadId);
-    unique_ptr<CompressedRunnieReader> compressedRunnieReader;
-
-    // The ReadId corresponding to each index in the Runnie file.
-    vector<ReadId> readIdTable;
 
 #ifdef __linux__
     int tryDirectIO(const string& fileName);

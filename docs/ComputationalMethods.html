@@ -1411,24 +1411,6 @@ Testing also showed that
 
 
 
-<p>
-It is also possible that the quality of assembled sequence
-could be improved using a future base caller that also produces
-run-length encoded read sequence,
-plus a probability distribution of the repeat counts
-at each position. 
-The base caller is in a unique position to do this
-thanks to its access to signal information.
-Such information could be used to implement in the Shasta assembler
-a Bayesian model for repeat counts that does not require
-calibration and directly uses signal duration
-information available to the base caller.
-Some work in this direction is in progress,
-including a new experimental run-length base caller under development
-at Oxford Nanopore, <i>Runnie</i>.
-
-
-
 <h2 id=SelectingAssemblyPaths>Selecting assembly paths</h2>
 <p>
 The sequence assembly procedure described in the previous section
