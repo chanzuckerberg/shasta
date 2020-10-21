@@ -95,13 +95,13 @@ void Assembler::exploreUndirectedReadGraph(
     string layoutMethod = "sfdp";
     getParameterValue(request, "layoutMethod", layoutMethod);
 
-    uint32_t sizePixels = 1200;
+    uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
 
-    double vertexScalingFactor = 2.;
+    double vertexScalingFactor = 1.;
     getParameterValue(request, "vertexScalingFactor", vertexScalingFactor);
 
-    double edgeThicknessScalingFactor = 6.;
+    double edgeThicknessScalingFactor = 1.;
     getParameterValue(request, "edgeThicknessScalingFactor", edgeThicknessScalingFactor);
 
     double edgeArrowScalingFactor = 1.;
@@ -387,8 +387,7 @@ void Assembler::exploreUndirectedReadGraph(
     if(format == "svg") {
         const string command =
             timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-            " dot -O -T svg " + dotFileName +
-            " -Gsize=" + to_string(sizePixels/72.);
+            " dot -O -T svg " + dotFileName;
         const int commandStatus = ::system(command.c_str());
         if(WIFEXITED(commandStatus)) {
             const int exitStatus = WEXITSTATUS(commandStatus);
@@ -455,7 +454,13 @@ void Assembler::exploreUndirectedReadGraph(
         html << svgFile.rdbuf();
         svgFile.close();
 
-
+        // Scale to desired size.
+        html <<
+            "<script>"
+            "var svgElement = document.getElementsByTagName('svg')[0];"
+            "svgElement.setAttribute('width', " << sizePixels << ");"
+            "svgElement.setAttribute('height', " << sizePixels << ");"
+            "</script>";
 
         // Add to each vertex a cursor that shows you can click on it.
         html <<
@@ -483,8 +488,7 @@ void Assembler::exploreUndirectedReadGraph(
         // https://www.graphviz.org/doc/info/output.html#d:imap
         const string command =
             timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-            " dot -O -T png -T cmapx " + dotFileName +
-            " -Gsize=" + to_string(sizePixels/72.);
+            " dot -O -T png -T cmapx " + dotFileName;
         const int commandStatus = ::system(command.c_str());
         if(WIFEXITED(commandStatus)) {
             const int exitStatus = WEXITSTATUS(commandStatus);
@@ -531,6 +535,15 @@ void Assembler::exploreUndirectedReadGraph(
         html << "\"/>";
         ifstream cmapx(cmapxFileName);
         html << cmapx.rdbuf();
+
+        // Scale to desired size.
+        html <<
+            "<script>"
+            "var imgElement = document.getElementsByTagName('img')[0];"
+            "imgElement.width = " << sizePixels << ";"
+            // To keep the aspect ratio, only scale the width.
+            // "imgElement.height = " << sizePixels << ";"
+            "</script>";
 
         // Remove the files we created.
         filesystem::remove(pngFileName);

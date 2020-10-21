@@ -130,7 +130,6 @@ LocalReadGraph::Writer::Writer(
 void LocalReadGraph::Writer::operator()(std::ostream& s) const
 {
     s << "layout=" + layoutMethod + ";\n";
-    s << "ratio=expand;\n";
     s << "node [shape=point];\n";
     s << "edge [penwidth=\"0.2\"];\n";
 
