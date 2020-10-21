@@ -1016,24 +1016,51 @@ void Assembler::writeGfa1(const string& fileName)
             if(assemblyGraph.edges[edge0].wasRemoved()) {
                 continue;
             }
-            const span<uint8_t> repeatCounts0 = assemblyGraph.repeatCounts[edge0];
+            const EdgeId edge0Rc = assemblyGraph.reverseComplementEdge[edge0];
+
+            // Get the last k repeat counts of edge0.
+            vector<uint8_t> lastRepeatCounts0(k);
+            if(assemblyGraph.isAssembledEdge(edge0)) {
+                const span<uint8_t> storedRepeatCounts0 = assemblyGraph.repeatCounts[edge0];
+                const auto end0 = storedRepeatCounts0.end();
+                copy(end0-k, end0, lastRepeatCounts0.begin());
+            } else {
+                SHASTA_ASSERT(assemblyGraph.isAssembledEdge(edge0Rc));
+                const span<uint8_t> storedRepeatCounts0Rc = assemblyGraph.repeatCounts[edge0Rc];
+                const auto begin0Rc = storedRepeatCounts0Rc.begin();
+                copy(begin0Rc, begin0Rc+k, lastRepeatCounts0.begin());
+                std::reverse(lastRepeatCounts0.begin(), lastRepeatCounts0.end());
+            }
+
             for(const EdgeId edge1: edges1) {
                 if(assemblyGraph.edges[edge1].wasRemoved()) {
                     continue;
                 }
-                const span<uint8_t> repeatCounts1 = assemblyGraph.repeatCounts[edge1];
+                const EdgeId edge1Rc = assemblyGraph.reverseComplementEdge[edge1];
 
-                // Locate the last k repeat counts of v0 and the first k of v1.
-                const span<uint8_t> lastRepeatCounts0(
-                    repeatCounts0.begin() + repeatCounts0.size() - k,
-                    repeatCounts0.end());
-                const span<uint8_t> firstRepeatCounts1(
-                    repeatCounts1.begin(),
-                    repeatCounts1.begin() + k);
-
+                // Get the first k repeat counts of edge1.
+                vector<uint8_t> firstRepeatCounts1(k);
+                if(assemblyGraph.isAssembledEdge(edge1)) {
+                    const span<uint8_t> storedRepeatCounts1 = assemblyGraph.repeatCounts[edge1];
+                    const auto begin1 = storedRepeatCounts1.begin();
+                    copy(begin1, begin1+k, firstRepeatCounts1.begin());
+                } else {
+                    SHASTA_ASSERT(assemblyGraph.isAssembledEdge(edge1Rc));
+                    const span<uint8_t> storedRepeatCounts1Rc = assemblyGraph.repeatCounts[edge1Rc];
+                    const auto end1Rc = storedRepeatCounts1Rc.end();
+                    copy(end1Rc-k, end1Rc, firstRepeatCounts1.begin());
+                    std::reverse(firstRepeatCounts1.begin(), firstRepeatCounts1.end());
+                }
 
                 // Construct the cigar string.
-                constructCigarString(lastRepeatCounts0, firstRepeatCounts1, cigarString);
+                constructCigarString(
+                    span<uint8_t>(
+                        lastRepeatCounts0.data(),
+                        lastRepeatCounts0.data() + lastRepeatCounts0.size()),
+                    span<uint8_t>(
+                        firstRepeatCounts1.data(),
+                        firstRepeatCounts1.data() + firstRepeatCounts1.size()),
+                    cigarString);
 
                 // Keep track of which edges are actually assembled and output.
                 EdgeId edge0Out = edge0;
