@@ -126,7 +126,7 @@ void Assembler::exploreUndirectedReadGraph(
         readGraphHeading = "<h3>Display a local subgraph of the global alignment graph</h3>";
     } else {
         readGraphHeading =
-            "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>global alignment graph</a></h3>";
+            "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>read graph</a></h3>";
     }
     html << readGraphHeading << 
          "<form>"
