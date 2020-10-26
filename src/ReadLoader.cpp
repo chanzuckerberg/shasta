@@ -494,6 +494,7 @@ int ReadLoader::tryDirectIO(const string& fileName) {
     tempBuffer.createNew("tmp-odirectReadTestBuffer", pageSize, pageSize);
     auto bytesRead = ::read(fd, &tempBuffer[0], pageSize);
     ::close(fd);
+    tempBuffer.remove();
     if (bytesRead == -1) {
         return O_RDONLY;
     }
