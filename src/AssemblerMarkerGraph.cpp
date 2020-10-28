@@ -2051,7 +2051,7 @@ void Assembler::createMarkerGraphEdges(size_t threadCount)
     createMarkerGraphEdgesData.threadEdgeMarkerIntervals.resize(threadCount);
     cout << timestamp << "Processing " << markerGraph.vertexCount();
     cout << " marker graph vertices." << endl;
-    setupLoadBalancing(markerGraph.vertexCount(), 100000);
+    setupLoadBalancing(markerGraph.vertexCount(), 100);
     runThreads(&Assembler::createMarkerGraphEdgesThreadFunction0, threadCount);
 
     // Combine the edges found by each thread.
