@@ -15,12 +15,14 @@ more information on the global read graph.
 *******************************************************************************/
 
 // Shasta.
+#include "computeSfdpLayout.hpp"
 #include "ReadId.hpp"
 
 // Boost libraries.
 #include <boost/graph/adjacency_list.hpp>
 
 // Standard libraries.
+#include "array.hpp"
 #include <map>
 
 namespace shasta {
@@ -70,6 +72,10 @@ public:
         isChimeric(isChimeric),
         distance(distance)
         {}
+
+    // The position of this vertex in the layout for display,
+    //  as computed by computeSfdpLayout.
+    array<double, 2> position;
 
 };
 
@@ -121,6 +127,10 @@ public:
 
     // Get the distance of an existing vertex from the start vertex.
     uint32_t getDistance(OrientedReadId) const;
+
+    // Compute sfdp layout using graphviz and store the results
+    // in the vertex positions.
+    ComputeSfdpLayoutReturnCode computeSfdpLayout(double timeout);
 
     // Write in Graphviz format.
     void write(

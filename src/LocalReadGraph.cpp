@@ -229,3 +229,27 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
     s << "]";
 }
 
+
+
+// Compute sfdp layout using graphviz and store the results
+// in the vertex positions.
+ComputeSfdpLayoutReturnCode LocalReadGraph::computeSfdpLayout(double timeout)
+{
+    LocalReadGraph& graph = *this;
+
+    // Compute the sfdp layout.
+    std::map<vertex_descriptor, array<double, 2> > positionMap;
+    const ComputeSfdpLayoutReturnCode returnCode =
+        shasta::computeSfdpLayout(graph, timeout, positionMap);
+    if(returnCode != ComputeSfdpLayoutReturnCode::Success) {
+        return returnCode;
+    }
+
+    // Store it in the vertices.
+    BGL_FORALL_VERTICES(v, graph, LocalReadGraph) {
+        const auto it = positionMap.find(v);
+        SHASTA_ASSERT(it != positionMap.end());
+        graph[v].position = it->second;
+    }
+    return ComputeSfdpLayoutReturnCode::Success;
+}
