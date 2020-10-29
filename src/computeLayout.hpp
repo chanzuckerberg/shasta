@@ -25,16 +25,17 @@
 
 namespace shasta {
 
-    enum class ComputeSfdpLayoutReturnCode {
+    enum class ComputeLayoutReturnCode {
         Success,
-        SfdpError,
+        Error,
         Timeout,
         Signal
     };
 
     // Use Graphviz to compute the sfdp layout of a Boost graph.
-    template<class Graph> ComputeSfdpLayoutReturnCode computeSfdpLayout(
+    template<class Graph> ComputeLayoutReturnCode computeLayout(
         const Graph&,
+        const string& layoutMethod,
         double timeout,
         std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap);
 
@@ -42,8 +43,9 @@ namespace shasta {
 
 
 
-template<class Graph> shasta::ComputeSfdpLayoutReturnCode shasta::computeSfdpLayout(
+template<class Graph> shasta::ComputeLayoutReturnCode shasta::computeLayout(
     const Graph& graph,
+    const string& layoutMethod,
     double timeout,
     std::map<typename Graph::vertex_descriptor, array<double, 2> >& positionMap)
 {
@@ -66,7 +68,7 @@ template<class Graph> shasta::ComputeSfdpLayoutReturnCode shasta::computeSfdpLay
     ofstream dotFile(dotFileName);
     dotFile <<
         "graph G {\n"
-        "layout=sfdp;\n"
+        "layout=" << layoutMethod << ";\n"
         "smoothing=triangle;\n"
         "node [shape=point];\n";
 
@@ -98,13 +100,13 @@ template<class Graph> shasta::ComputeSfdpLayoutReturnCode shasta::computeSfdpLay
     runCommandWithTimeout(command, timeout, timeoutTriggered, signalOccurred, returnCode);
     filesystem::remove(dotFileName);
     if(signalOccurred) {
-        return ComputeSfdpLayoutReturnCode::Signal;
+        return ComputeLayoutReturnCode::Signal;
     }
     if(timeoutTriggered) {
-        return ComputeSfdpLayoutReturnCode::Timeout;
+        return ComputeLayoutReturnCode::Timeout;
     }
     if(returnCode!=0 ) {
-        return ComputeSfdpLayoutReturnCode::SfdpError;
+        return ComputeLayoutReturnCode::Error;
     }
 
 
@@ -149,7 +151,7 @@ template<class Graph> shasta::ComputeSfdpLayoutReturnCode shasta::computeSfdpLay
     plainFile.close();
     filesystem::remove(plainFileName);
 
-    return ComputeSfdpLayoutReturnCode::Success;
+    return ComputeLayoutReturnCode::Success;
 
 }
 

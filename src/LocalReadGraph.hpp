@@ -15,7 +15,7 @@ more information on the global read graph.
 *******************************************************************************/
 
 // Shasta.
-#include "computeSfdpLayout.hpp"
+#include <computeLayout.hpp>
 #include "ReadId.hpp"
 
 // Boost libraries.
@@ -125,7 +125,9 @@ public:
 
     // Compute sfdp layout using graphviz and store the results
     // in the vertex positions.
-    ComputeSfdpLayoutReturnCode computeSfdpLayout(double timeout);
+    ComputeLayoutReturnCode computeLayout(
+        const string& layoutMethod,
+        double timeout);
 
     // Write directly to svg, without using Graphviz rendering.
     // This assumes that the layout was already computed

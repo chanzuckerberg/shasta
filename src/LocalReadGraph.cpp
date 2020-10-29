@@ -188,15 +188,17 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
 
 // Compute sfdp layout using graphviz and store the results
 // in the vertex positions.
-ComputeSfdpLayoutReturnCode LocalReadGraph::computeSfdpLayout(double timeout)
+ComputeLayoutReturnCode LocalReadGraph::computeLayout(
+    const string& layoutMethod,
+    double timeout)
 {
     LocalReadGraph& graph = *this;
 
-    // Compute the sfdp layout.
+    // Compute the layout.
     std::map<vertex_descriptor, array<double, 2> > positionMap;
-    const ComputeSfdpLayoutReturnCode returnCode =
-        shasta::computeSfdpLayout(graph, timeout, positionMap);
-    if(returnCode != ComputeSfdpLayoutReturnCode::Success) {
+    const ComputeLayoutReturnCode returnCode =
+        shasta::computeLayout(graph, layoutMethod, timeout, positionMap);
+    if(returnCode != ComputeLayoutReturnCode::Success) {
         return returnCode;
     }
 
@@ -206,7 +208,7 @@ ComputeSfdpLayoutReturnCode LocalReadGraph::computeSfdpLayout(double timeout)
         SHASTA_ASSERT(it != positionMap.end());
         graph[v].position = it->second;
     }
-    return ComputeSfdpLayoutReturnCode::Success;
+    return ComputeLayoutReturnCode::Success;
 }
 
 

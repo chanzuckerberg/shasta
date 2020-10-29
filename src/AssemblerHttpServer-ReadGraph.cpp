@@ -335,7 +335,7 @@ void Assembler::exploreUndirectedReadGraph(
     // Graphviz rendering.
 #if 0
     {
-        graph.computeSfdpLayout(timeout);
+        graph.computeLayout(layoutMethod, timeout);
         ofstream htmlTest("Test.html");
         htmlTest << "<!DOCTYPE html><html>\n";
         graph.writeSvg("svg", sizePixels, sizePixels,
