@@ -1,6 +1,7 @@
 // Shasta.
 #include "LocalReadGraph.hpp"
 #include "Alignment.hpp"
+#include "writeGraph.hpp"
 using namespace shasta;
 
 // Boost libraries.
@@ -252,4 +253,79 @@ ComputeSfdpLayoutReturnCode LocalReadGraph::computeSfdpLayout(double timeout)
         graph[v].position = it->second;
     }
     return ComputeSfdpLayoutReturnCode::Success;
+}
+
+
+
+// Write directly to svg, without using Graphviz rendering.
+// This assumes that the layout was already computed
+// and stored in the vertices.
+void LocalReadGraph::writeSvg(
+    const string& svgId,
+    uint64_t width,
+    uint64_t height,
+    double vertexScalingFactor,
+    double edgeThicknessScalingFactor,
+    uint64_t maxDistance,
+    ostream& svg) const
+{
+    using Graph = LocalReadGraph;
+    using VertexAttributes = WriteGraph::VertexAttributes;
+    using EdgeAttributes = WriteGraph::EdgeAttributes;
+    const Graph& graph = *this;
+
+
+
+    // Fill in vertex attributes.
+    std::map<vertex_descriptor, VertexAttributes> vertexAttributes;
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        const auto& vertex = graph[v];
+        const OrientedReadId orientedReadId = vertex.orientedReadId;
+        VertexAttributes attributes;
+
+        attributes.radius = vertexScalingFactor * sqrt(3.e-7 * double(vertex.markerCount));
+
+        if(vertex.distance == 0) {
+            attributes.color = "lime";
+        } else if(vertex.distance == maxDistance) {
+            attributes.color = "cyan";
+        } else if(vertex.isChimeric) {
+            attributes.color = "red";
+        }
+
+        attributes.tooltip = "Read " + orientedReadId.getString() + ", " + to_string(vertex.markerCount) +
+            " markers, distance " + to_string(vertex.distance) + vertex.additionalToolTipText;
+
+        attributes.url = "exploreRead?readId=" + to_string(orientedReadId.getReadId()) +
+            "&strand=" + to_string(orientedReadId.getStrand());
+
+        vertexAttributes.insert(make_pair(v, attributes));
+    }
+
+
+
+    // Fill in edge attributes.
+    std::map<edge_descriptor, EdgeAttributes> edgeAttributes;
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        const auto& edge = graph[e];
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const auto& vertex0 = graph[v0];
+        const auto& vertex1 = graph[v1];
+
+        EdgeAttributes attributes;
+
+        attributes.thickness = edgeThicknessScalingFactor * 1.e-6 * double(edge.markerCount);
+        attributes.color = "midnightblue";
+
+        attributes.tooltip = vertex0.orientedReadId.getString() + " " +
+            vertex1.orientedReadId.getString() +
+            ", " + to_string(edge.markerCount) + " aligned markers";
+
+        edgeAttributes.insert(make_pair(e, attributes));
+    }
+
+    // Write to svg.
+    WriteGraph::writeSvg(graph, svgId, width, height,
+        vertexAttributes, edgeAttributes, svg);
 }

@@ -132,6 +132,18 @@ public:
     // in the vertex positions.
     ComputeSfdpLayoutReturnCode computeSfdpLayout(double timeout);
 
+    // Write directly to svg, without using Graphviz rendering.
+    // This assumes that the layout was already computed
+    // and stored in the vertices.
+    void writeSvg(
+        const string& svgId,
+        uint64_t width,
+        uint64_t height,
+        double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
+        uint64_t maxDistance,
+        ostream& svg) const;
+
     // Write in Graphviz format.
     void write(
             ostream&,

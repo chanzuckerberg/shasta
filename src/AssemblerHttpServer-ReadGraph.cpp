@@ -369,6 +369,22 @@ void Assembler::exploreUndirectedReadGraph(
     }
 
 
+
+    // Test the code to write the graph to svg directly, without using
+    // Graphviz rendering.
+#if 0
+    {
+        graph.computeSfdpLayout(timeout);
+        ofstream htmlTest("Test.html");
+        htmlTest << "<!DOCTYPE html><html>\n";
+        graph.writeSvg("svg", sizePixels, sizePixels,
+            vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, htmlTest);
+        htmlTest << "</html>\n";
+    }
+#endif
+
+
+
     // Write it out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
