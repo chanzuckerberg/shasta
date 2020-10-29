@@ -107,9 +107,6 @@ void Assembler::exploreUndirectedReadGraph(
     double edgeArrowScalingFactor = 1.;
     getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
 
-    string format = "svg";
-    getParameterValue(request, "format", format);
-
     double timeout = 30;
     getParameterValue(request, "timeout", timeout);
 
@@ -208,16 +205,6 @@ void Assembler::exploreUndirectedReadGraph(
          "<td><input type=text required name=edgeArrowScalingFactor size=8 style='text-align:center'" <<
          " value='" << edgeArrowScalingFactor <<
          "'>"
-
-         "<tr>"
-         "<td>Graphics format"
-         "<td class=centered>"
-         "<input type=radio required name=format value='svg'" <<
-         (format == "svg" ? " checked=on" : "") <<
-         ">svg"
-         "<br><input type=radio required name=format value='png'" <<
-         (format == "png" ? " checked=on" : "") <<
-         ">png"
 
          "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
          "<td>Timeout (seconds) for graph layout"
@@ -400,203 +387,120 @@ void Assembler::exploreUndirectedReadGraph(
 
 
     // Display the graph in svg format.
-    if(format == "svg") {
-        const string command =
-            timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-            " dot -O -T svg " + dotFileName;
-        const int commandStatus = ::system(command.c_str());
-        if(WIFEXITED(commandStatus)) {
-            const int exitStatus = WEXITSTATUS(commandStatus);
-            if(exitStatus == 124) {
-                html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-                filesystem::remove(dotFileName);
-                return;
-            }
-            else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-                filesystem::remove(dotFileName);
-                throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
-            }
-        } else if(WIFSIGNALED(commandStatus)) {
-            const int signalNumber = WTERMSIG(commandStatus);
-            throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
-        } else {
-            throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
-
-        }
-        // Remove the .dot file.
-        if(!saveDotFile) {
+    const string command =
+        timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
+        " dot -O -T svg " + dotFileName;
+    const int commandStatus = ::system(command.c_str());
+    if(WIFEXITED(commandStatus)) {
+        const int exitStatus = WEXITSTATUS(commandStatus);
+        if(exitStatus == 124) {
+            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             filesystem::remove(dotFileName);
+            return;
         }
-
-
-
-        // Write a title.
-        html <<
-             "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>"
-             "Color legend: "
-             "<span style='background-color:green'>start vertex</span> "
-             "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
-             ") from the start vertex</span> "
-             ".<br>";
-
-        if(saveDotFile) {
-            html << "<p>Graphviz dot file saved as " << dotFileName << "<br>";
+        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
+            filesystem::remove(dotFileName);
+            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
         }
+    } else if(WIFSIGNALED(commandStatus)) {
+        const int signalNumber = WTERMSIG(commandStatus);
+        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+    } else {
+        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
 
-        // Allow manually highlighting selected vertices.
-        html << R"stringDelimiter(
-            <script>
-            function highlight_vertex()
-            {
-                vertex = document.getElementById("highlight").value;
-                document.getElementById("highlight").value = "";
-                element = document.getElementById("Vertex-" + vertex);
-                ellipse = element.children[1].children[0].children[0];
-                ellipse.setAttribute("fill", "#ff00ff");
-                ellipse.setAttribute("stroke", "#ff00ff");
-            }
-            </script>
-            <p>
-            <input id=highlight type=text onchange="highlight_vertex()" size=10>
-            Enter an oriented read to highlight, then press Enter. The oriented read should be
-            in the form <code>readId-strand</code> where strand is 0 or 1 (for example, <code>"1345871-1</code>").
-            To highlight multiple oriented reads, enter them one at a time in the same way.
-            <p>
-            )stringDelimiter";
-
-        // Buttons to resize the svg locally.
-        html << R"stringDelimiter(
-            <script>
-            function svgLarger()
-            {
-                var element = document.getElementsByTagName("svg")[0];
-                element.setAttribute("width", 1.25*element.getAttribute("width"));
-                element.setAttribute("height", 1.25*element.getAttribute("height"));
-            }
-            function svgSmaller()
-            {
-                var element = document.getElementsByTagName("svg")[0];
-                element.setAttribute("width", 0.8*element.getAttribute("width"));
-                element.setAttribute("height", 0.8*element.getAttribute("height"));
-            }
-            </script>
-            <button type="button" onclick='svgLarger()'>Larger</button>
-            &nbsp;
-            <button type="button" onclick='svgSmaller()'>Smaller</button>
-            <br>
-        )stringDelimiter";
-
-        // Display the graph.
-        const string svgFileName = dotFileName + ".svg";
-        ifstream svgFile(svgFileName);
-        html << svgFile.rdbuf();
-        svgFile.close();
-
-        // Scale to desired size.
-        html <<
-            "<script>"
-            "var svgElement = document.getElementsByTagName('svg')[0];"
-            "svgElement.setAttribute('width', " << sizePixels << ");"
-            "svgElement.setAttribute('height', " << sizePixels << ");"
-            "</script>";
-
-        // Add to each vertex a cursor that shows you can click on it.
-        html <<
-            "<script>"
-            "var vertices = document.getElementsByClassName('node');"
-            "for (var i=0;i<vertices.length; i++) {"
-            "    vertices[i].style.cursor = 'pointer';"
-            "}"
-            "</script>";
-
-
-
-        // Remove the .svg file.
-        filesystem::remove(svgFileName);
     }
-
-
-
-    // Display the graph in png format.
-    else if(format == "png") {
-
-        // Run graphviz to create the png file and the cmapx file.
-        // The cmapx file is used to create links on the image.
-        // See here for more information:
-        // https://www.graphviz.org/doc/info/output.html#d:imap
-        const string command =
-            timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-            " dot -O -T png -T cmapx " + dotFileName;
-        const int commandStatus = ::system(command.c_str());
-        if(WIFEXITED(commandStatus)) {
-            const int exitStatus = WEXITSTATUS(commandStatus);
-            if(exitStatus == 124) {
-                html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-                filesystem::remove(dotFileName);
-                return;
-            }
-            else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-                filesystem::remove(dotFileName);
-                throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
-            }
-        } else if(WIFSIGNALED(commandStatus)) {
-            const int signalNumber = WTERMSIG(commandStatus);
-            filesystem::remove(dotFileName);
-            throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
-        } else {
-            filesystem::remove(dotFileName);
-            throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
-
-        }
-        // Remove the .dot file.
-        if(!saveDotFile) {
-            filesystem::remove(dotFileName);
-        } else {
-            html << "<p>Graphviz dot file saved as " << dotFileName;
-        }
-
-        // Get the names of the files we created.
-        const string pngFileName = dotFileName + ".png";
-        const string cmapxFileName = dotFileName + ".cmapx";
-
-        // Create a base64 version of the png file.
-        const string base64FileName = pngFileName + ".base64";
-        const string base64Command = "base64 " + pngFileName + " > " +
-            base64FileName;
-        ::system(base64Command.c_str());
-
-
-        // Write out the png image.
-        html << "<p><img usemap='#G' src=\"data:image/png;base64,";
-        ifstream png(base64FileName);
-        html << png.rdbuf();
-        html << "\"/>";
-        ifstream cmapx(cmapxFileName);
-        html << cmapx.rdbuf();
-
-        // Scale to desired size.
-        html <<
-            "<script>"
-            "var imgElement = document.getElementsByTagName('img')[0];"
-            "imgElement.width = " << sizePixels << ";"
-            // To keep the aspect ratio, only scale the width.
-            // "imgElement.height = " << sizePixels << ";"
-            "</script>";
-
-        // Remove the files we created.
-        filesystem::remove(pngFileName);
-        filesystem::remove(cmapxFileName);
-        filesystem::remove(base64FileName);
-    }
-
-
-
-    // If got here, the format string is not one of the ones
-    // we support.
-    else {
-        html << "Invalid format " << format << " specified";
+    // Remove the .dot file.
+    if(!saveDotFile) {
         filesystem::remove(dotFileName);
     }
+
+
+
+    // Write a title.
+    html <<
+         "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>"
+         "Color legend: "
+         "<span style='background-color:green'>start vertex</span> "
+         "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
+         ") from the start vertex</span> "
+         ".<br>";
+
+    if(saveDotFile) {
+        html << "<p>Graphviz dot file saved as " << dotFileName << "<br>";
+    }
+
+    // Allow manually highlighting selected vertices.
+    html << R"stringDelimiter(
+        <script>
+        function highlight_vertex()
+        {
+            vertex = document.getElementById("highlight").value;
+            document.getElementById("highlight").value = "";
+            element = document.getElementById("Vertex-" + vertex);
+            ellipse = element.children[1].children[0].children[0];
+            ellipse.setAttribute("fill", "#ff00ff");
+            ellipse.setAttribute("stroke", "#ff00ff");
+        }
+        </script>
+        <p>
+        <input id=highlight type=text onchange="highlight_vertex()" size=10>
+        Enter an oriented read to highlight, then press Enter. The oriented read should be
+        in the form <code>readId-strand</code> where strand is 0 or 1 (for example, <code>"1345871-1</code>").
+        To highlight multiple oriented reads, enter them one at a time in the same way.
+        <p>
+        )stringDelimiter";
+
+    // Buttons to resize the svg locally.
+    html << R"stringDelimiter(
+        <script>
+        function svgLarger()
+        {
+            var element = document.getElementsByTagName("svg")[0];
+            element.setAttribute("width", 1.25*element.getAttribute("width"));
+            element.setAttribute("height", 1.25*element.getAttribute("height"));
+        }
+        function svgSmaller()
+        {
+            var element = document.getElementsByTagName("svg")[0];
+            element.setAttribute("width", 0.8*element.getAttribute("width"));
+            element.setAttribute("height", 0.8*element.getAttribute("height"));
+        }
+        </script>
+        <button type="button" onclick='svgLarger()'>Larger</button>
+        &nbsp;
+        <button type="button" onclick='svgSmaller()'>Smaller</button>
+        <br>
+    )stringDelimiter";
+
+    // Display the graph.
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << svgFile.rdbuf();
+    svgFile.close();
+
+    // Scale to desired size.
+    html <<
+        "<script>"
+        "var svgElement = document.getElementsByTagName('svg')[0];"
+        "svgElement.setAttribute('width', " << sizePixels << ");"
+        "svgElement.setAttribute('height', " << sizePixels << ");"
+        "</script>";
+
+    // Add to each vertex a cursor that shows you can click on it.
+    html <<
+        "<script>"
+        "var vertices = document.getElementsByClassName('node');"
+        "for (var i=0;i<vertices.length; i++) {"
+        "    vertices[i].style.cursor = 'pointer';"
+        "}"
+        "</script>";
+
+
+
+    // Remove the .svg file.
+    filesystem::remove(svgFileName);
+
+
 }
 
 #endif
