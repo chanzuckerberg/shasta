@@ -88,17 +88,13 @@ public:
     // that created this edge.
     uint32_t markerCount;
 
-    AlignmentType alignmentType;
-
     // Flag that indicates this edge jumps across strands.
     bool crossesStrands;
 
     LocalReadGraphEdge(
         uint32_t markerCount,
-        AlignmentType alignmentType,
         bool crossesStrands) :
         markerCount(markerCount),
-        alignmentType(alignmentType),
         crossesStrands(crossesStrands)
         {}
 };
@@ -119,7 +115,6 @@ public:
         OrientedReadId,
         OrientedReadId,
         uint32_t markerCount,
-        AlignmentType alignmentType,
         bool crossesStrands);
 
     // Find out if a vertex with a given OrientedReadId exists.
@@ -150,17 +145,13 @@ public:
             const string& layoutMethod,
             uint32_t maxDistance,
             double vertexScalingFactor,
-            double edgeThicknessScalingFactor,
-            double edgeArrowScalingFactor,
-            uint32_t maxTrim) const;
+            double edgeThicknessScalingFactor) const;
     void write(
             const string& fileName,
             const string& layoutMethod,
             uint32_t maxDistance,
             double vertexScalingFactor,
-            double edgeThicknessScalingFactor,
-            double edgeArrowScalingFactor,
-            uint32_t maxTrim) const;
+            double edgeThicknessScalingFactor) const;
 
 private:
 
@@ -175,9 +166,7 @@ private:
                 const string& layoutMethod,
                 uint32_t maxDistance,
                 double vertexScalingFactor,
-                double edgeThicknessScalingFactor,
-                double edgeArrowScalingFactor,
-                uint32_t maxTrim);
+                double edgeThicknessScalingFactor);
         void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
         void operator()(ostream&, edge_descriptor) const;
@@ -187,7 +176,6 @@ private:
         double vertexScalingFactor;
         double edgeThicknessScalingFactor;
         double edgeArrowScalingFactor;
-        uint32_t maxTrim;
     };
 };
 

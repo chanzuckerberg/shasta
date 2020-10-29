@@ -36,7 +36,6 @@ void LocalReadGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     uint32_t markerCount,
-    AlignmentType alignmentType,
     bool crossesStrands)
 {
     // Find the vertices corresponding to these two OrientedReadId.
@@ -49,7 +48,7 @@ void LocalReadGraph::addEdge(
 
     // Add the edge.
     add_edge(v0, v1,
-        LocalReadGraphEdge(markerCount, alignmentType, crossesStrands),
+        LocalReadGraphEdge(markerCount, crossesStrands),
         *this);
 }
 
@@ -78,9 +77,7 @@ void LocalReadGraph::write(
         const string& layoutMethod,
         uint32_t maxDistance,
         double vertexScalingFactor,
-        double edgeThicknessScalingFactor,
-        double edgeArrowScalingFactor,
-        uint32_t maxTrim
+        double edgeThicknessScalingFactor
 ) const
 {
     ofstream outputFileStream(fileName);
@@ -88,7 +85,7 @@ void LocalReadGraph::write(
         throw runtime_error("Error opening " + fileName);
     }
     write(outputFileStream, layoutMethod, maxDistance, vertexScalingFactor,
-          edgeThicknessScalingFactor, edgeArrowScalingFactor, maxTrim);
+          edgeThicknessScalingFactor);
 }
 
 void LocalReadGraph::write(
@@ -96,13 +93,10 @@ void LocalReadGraph::write(
         const string& layoutMethod,
         uint32_t maxDistance,
         double vertexScalingFactor,
-        double edgeThicknessScalingFactor,
-        double edgeArrowScalingFactor,
-        uint32_t maxTrim) const
+        double edgeThicknessScalingFactor) const
 {
     Writer writer(*this, layoutMethod, maxDistance, vertexScalingFactor,
-                  edgeThicknessScalingFactor, edgeArrowScalingFactor,
-                  maxTrim);
+                  edgeThicknessScalingFactor);
 
     boost::write_graphviz(s, *this, writer, writer, writer,
                           boost::get(&LocalReadGraphVertex::orientedReadIdValue, *this));
@@ -114,16 +108,12 @@ LocalReadGraph::Writer::Writer(
         const string& layoutMethod,
         uint32_t maxDistance,
         double vertexScalingFactor,
-        double edgeThicknessScalingFactor,
-        double edgeArrowScalingFactor,
-        uint32_t maxTrim) :
+        double edgeThicknessScalingFactor) :
         graph(graph),
         layoutMethod(layoutMethod),
         maxDistance(maxDistance),
         vertexScalingFactor(vertexScalingFactor),
-        edgeThicknessScalingFactor(edgeThicknessScalingFactor),
-        edgeArrowScalingFactor(edgeArrowScalingFactor),
-        maxTrim(maxTrim)
+        edgeThicknessScalingFactor(edgeThicknessScalingFactor)
 {
 }
 
@@ -177,55 +167,19 @@ void LocalReadGraph::Writer::operator()(std::ostream& s, edge_descriptor e) cons
     const LocalReadGraphVertex& vertex0 = graph[v0];
     const LocalReadGraphVertex& vertex1 = graph[v1];
 
-
-
     s <<
         "["
         "tooltip=\"" << vertex0.orientedReadId << " " <<
         vertex1.orientedReadId <<
         ", " << edge.markerCount << " aligned markers\"";
 
-
-    // A containment alignment is drawn in red.
-    if( edge.alignmentType == AlignmentType::read0IsContained ||
-        edge.alignmentType == AlignmentType::read1IsContained) {
-        s << " color=red";
-    }
-
     // Edge thickness is determined by the number of aligned markers.
     s << " penwidth=\"" << edgeThicknessScalingFactor * (1.e-4 * edge.markerCount) << "\"";
-    s << " arrowsize=\"" << edgeArrowScalingFactor * 0.3 << "\"";
-
 
     // An edge that crosses strands is drawn dashed.
     if(edge.crossesStrands) {
         s << " style=dashed";
     }
-
-
-#if 1
-    // The AlignmentType determines the edge endings.
-    // Note that the Graphviz convention for undirected graphs
-    // is that the head is the second vertex and the tail is the first vertex.
-    s << " dir=both ";
-    switch(edge.alignmentType) {
-    case AlignmentType::read0IsContained:
-        s << "arrowhead=none arrowtail=none";
-        break;
-    case AlignmentType::read1IsContained:
-        s << "arrowhead=none arrowtail=none";
-        break;
-    case AlignmentType::read0IsBackward:
-        s << "arrowhead=normal arrowtail=none";
-        break;
-    case AlignmentType::read1IsBackward:
-        s << "arrowhead=none arrowtail=normal";
-        break;
-    case AlignmentType::ambiguous:
-    default:
-        s << "arrowhead=diamond arrowtail=diamond";
-    }
-#endif
 
     s << "]";
 }

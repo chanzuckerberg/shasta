@@ -177,7 +177,6 @@ bool Assembler::createLocalReadGraph(
         uint32_t maxDistance,           // How far to go from starting oriented read.
         bool allowChimericReads,
         bool allowCrossStrandEdges,
-        size_t maxTrim,                 // Used to define containment.
         double timeout,                 // Or 0 for no timeout.
         LocalReadGraph& graph)
 {
@@ -187,7 +186,6 @@ bool Assembler::createLocalReadGraph(
             maxDistance,           // How far to go from starting oriented read.
             allowChimericReads,
             allowCrossStrandEdges,
-            maxTrim,                 // Used to define containment.
             timeout,                 // Or 0 for no timeout.
             graph
     );
@@ -204,7 +202,6 @@ bool Assembler::createLocalReadGraph(
     uint32_t maxDistance,           // How far to go from starting oriented read.
     bool allowChimericReads,
     bool allowCrossStrandEdges,
-    size_t maxTrim,                 // Used to define containment.
     double timeout,                 // Or 0 for no timeout.
     LocalReadGraph& graph)
 {
@@ -274,7 +271,6 @@ bool Assembler::createLocalReadGraph(
                 alignmentInfo.reverseComplement();
             }
             SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
-            const AlignmentType alignmentType = alignmentInfo.classify(uint32_t(maxTrim));
             const uint32_t markerCount = alignmentInfo.markerCount;
 
             // Update our BFS.
@@ -291,7 +287,6 @@ bool Assembler::createLocalReadGraph(
                         orientedReadId0,
                         orientedReadId1,
                         markerCount,
-                        alignmentType,
                         globalEdge.crossesStrands == 1);
             } else {
                 SHASTA_ASSERT(distance0 == maxDistance);
@@ -300,7 +295,6 @@ bool Assembler::createLocalReadGraph(
                             orientedReadId0,
                             orientedReadId1,
                             markerCount,
-                            alignmentType,
                             globalEdge.crossesStrands == 1);
                 }
             }
@@ -738,7 +732,6 @@ void Assembler::writeLocalReadGraphReads(
         maxDistance,
         allowChimericReads,
         allowCrossStrandEdges,
-        std::numeric_limits<size_t>::max(),
         0.,
         localReadGraph));
 

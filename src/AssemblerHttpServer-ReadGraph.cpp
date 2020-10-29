@@ -83,9 +83,6 @@ void Assembler::exploreUndirectedReadGraph(
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
-    uint32_t maxTrim = httpServerData.assemblerOptions->alignOptions.maxTrim;
-    getParameterValue(request, "maxTrim", maxTrim);
-
     string allowChimericReadsString;
     const bool allowChimericReads = getParameterValue(request, "allowChimericReads", allowChimericReadsString);
 
@@ -104,17 +101,11 @@ void Assembler::exploreUndirectedReadGraph(
     double edgeThicknessScalingFactor = 1.;
     getParameterValue(request, "edgeThicknessScalingFactor", edgeThicknessScalingFactor);
 
-    double edgeArrowScalingFactor = 1.;
-    getParameterValue(request, "edgeArrowScalingFactor", edgeArrowScalingFactor);
-
     double timeout = 30;
     getParameterValue(request, "timeout", timeout);
 
     string addBlastAnnotationsString;
     const bool addBlastAnnotations = getParameterValue(request, "addBlastAnnotations", addBlastAnnotationsString);
-
-    string saveDotFileString;
-    const bool saveDotFile = getParameterValue(request, "saveDotFile", saveDotFileString);
 
 
     // Write the form.
@@ -147,12 +138,6 @@ void Assembler::exploreUndirectedReadGraph(
          "<td>Maximum distance"
          "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
          " value='" << maxDistance <<
-         "'>"
-
-         "<tr title='Maximum trim (markers) used to define containment'>"
-         "<td>Maximum trim"
-         "<td><input type=text required name=maxTrim size=8 style='text-align:center'"
-         " value='" << maxTrim <<
          "'>"
 
          "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
@@ -200,12 +185,6 @@ void Assembler::exploreUndirectedReadGraph(
          " value='" << edgeThicknessScalingFactor <<
          "'>"
 
-         "<tr>"
-         "<td>Edge arrow scaling factor"
-         "<td><input type=text required name=edgeArrowScalingFactor size=8 style='text-align:center'" <<
-         " value='" << edgeArrowScalingFactor <<
-         "'>"
-
          "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
          "<td>Timeout (seconds) for graph layout"
          "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
@@ -218,11 +197,6 @@ void Assembler::exploreUndirectedReadGraph(
          (addBlastAnnotations ? " checked" : "") <<
          ">"
 
-         "<tr title='Save the Graphviz dot file representing this local read graph'>"
-         "<td>Save the Graphviz dot file"
-         "<td class=centered><input type=checkbox name=saveDotFile" <<
-         (saveDotFile ? " checked" : "") <<
-         ">"
          "</table>"
          "</div>"
          "</div>"
@@ -255,7 +229,7 @@ void Assembler::exploreUndirectedReadGraph(
     LocalReadGraph graph;
     const auto createStartTime = steady_clock::now();
     if(!createLocalReadGraph(readIds,
-        maxDistance, allowChimericReads, allowCrossStrandEdges, maxTrim, timeout, graph)) {
+        maxDistance, allowChimericReads, allowCrossStrandEdges, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
@@ -380,9 +354,7 @@ void Assembler::exploreUndirectedReadGraph(
                 layoutMethod,
                 maxDistance,
                 vertexScalingFactor,
-                edgeThicknessScalingFactor,
-                edgeArrowScalingFactor,
-                httpServerData.assemblerOptions->alignOptions.maxTrim);
+                edgeThicknessScalingFactor);
 
 
 
@@ -410,9 +382,7 @@ void Assembler::exploreUndirectedReadGraph(
 
     }
     // Remove the .dot file.
-    if(!saveDotFile) {
-        filesystem::remove(dotFileName);
-    }
+    filesystem::remove(dotFileName);
 
 
 
@@ -425,9 +395,6 @@ void Assembler::exploreUndirectedReadGraph(
          ") from the start vertex</span> "
          ".<br>";
 
-    if(saveDotFile) {
-        html << "<p>Graphviz dot file saved as " << dotFileName << "<br>";
-    }
 
     // Allow manually highlighting selected vertices.
     html << R"stringDelimiter(
