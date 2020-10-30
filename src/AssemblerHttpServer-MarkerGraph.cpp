@@ -134,7 +134,7 @@ void Assembler::exploreMarkerGraph(
 
     }
     // Remove the .dot file.
-    // filesystem::remove(dotFileName);
+    filesystem::remove(dotFileName);
 
 
 
@@ -142,6 +142,9 @@ void Assembler::exploreMarkerGraph(
     html <<
         "<h2>Marker graph near marker graph vertex " << requestParameters.vertexId <<
         "</h2>";
+
+    // Buttons to resize the svg locally.
+    addScaleSvgButtons(html);
 
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);

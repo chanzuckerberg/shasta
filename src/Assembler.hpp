@@ -1787,6 +1787,7 @@ public:
     void exploreUndirectedReadGraph(const vector<string>&, ostream&);
     void exploreDirectedReadGraph(const vector<string>&, ostream&);
     void exploreCompressedAssemblyGraph(const vector<string>&, ostream&);
+    static void addScaleSvgButtons(ostream&);
     class HttpServerData {
     public:
 

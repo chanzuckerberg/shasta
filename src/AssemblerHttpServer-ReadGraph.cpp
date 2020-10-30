@@ -71,6 +71,35 @@ bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedRe
 }
 
 
+
+// Write to html buttons to resize the svg locally (in the browser).
+// This assumes that the page contains a single svg object.
+void Assembler::addScaleSvgButtons(ostream& html)
+{
+    html << R"stringDelimiter(
+        <script>
+        function svgLarger()
+        {
+            var element = document.getElementsByTagName("svg")[0];
+            element.setAttribute("width", 1.25*element.getAttribute("width"));
+            element.setAttribute("height", 1.25*element.getAttribute("height"));
+        }
+        function svgSmaller()
+        {
+            var element = document.getElementsByTagName("svg")[0];
+            element.setAttribute("width", 0.8*element.getAttribute("width"));
+            element.setAttribute("height", 0.8*element.getAttribute("height"));
+        }
+        </script>
+        <button type="button" onclick='svgLarger()'>Larger</button>
+        &nbsp;
+        <button type="button" onclick='svgSmaller()'>Smaller</button>
+        <br>
+    )stringDelimiter";    
+}
+
+
+
 void Assembler::exploreUndirectedReadGraph(
     const vector<string>& request,
     ostream& html) {
@@ -418,26 +447,7 @@ void Assembler::exploreUndirectedReadGraph(
         )stringDelimiter";
 
     // Buttons to resize the svg locally.
-    html << R"stringDelimiter(
-        <script>
-        function svgLarger()
-        {
-            var element = document.getElementsByTagName("svg")[0];
-            element.setAttribute("width", 1.25*element.getAttribute("width"));
-            element.setAttribute("height", 1.25*element.getAttribute("height"));
-        }
-        function svgSmaller()
-        {
-            var element = document.getElementsByTagName("svg")[0];
-            element.setAttribute("width", 0.8*element.getAttribute("width"));
-            element.setAttribute("height", 0.8*element.getAttribute("height"));
-        }
-        </script>
-        <button type="button" onclick='svgLarger()'>Larger</button>
-        &nbsp;
-        <button type="button" onclick='svgSmaller()'>Smaller</button>
-        <br>
-    )stringDelimiter";
+    addScaleSvgButtons(html);
 
     // Display the graph.
     const string svgFileName = dotFileName + ".svg";
