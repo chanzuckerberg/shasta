@@ -113,8 +113,7 @@ void Assembler::exploreMarkerGraph(
     // Compute layout in svg format.
     const string command =
         timeoutCommand() + " " + to_string(requestParameters.timeout - int(seconds(createFinishTime - createStartTime))) +
-        " dot -O -T svg " + dotFileName +
-        " -Gsize=" + to_string(requestParameters.sizePixels/72.);
+        " dot -O -T svg " + dotFileName;
     const int commandStatus = ::system(command.c_str());
     if(WIFEXITED(commandStatus)) {
         const int exitStatus = WEXITSTATUS(commandStatus);
@@ -151,6 +150,14 @@ void Assembler::exploreMarkerGraph(
 
     // Remove the .svg file.
     filesystem::remove(svgFileName);
+
+    // Scale to desired size.
+    html <<
+        "<script>"
+        "var svgElement = document.getElementsByTagName('svg')[0];"
+        "svgElement.setAttribute('width', " << requestParameters.sizePixels << ");"
+        "svgElement.setAttribute('height', " << requestParameters.sizePixels << ");"
+        "</script>";
 
 
 

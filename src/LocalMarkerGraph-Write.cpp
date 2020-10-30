@@ -166,8 +166,6 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s) const
     // This turns off the tooltip on the graph and the edges.
     s << "tooltip = \" \";\n";
 
-    s << "ratio=expand;\n";
-
     if(addLabels) {
         s << "overlap = false;\n";
         s << "node [fontname = \"Courier New\" shape=rectangle];\n";
