@@ -83,17 +83,19 @@ void Assembler::addScaleSvgButtons(ostream& html)
             var element = document.getElementsByTagName("svg")[0];
             element.setAttribute("width", 1.25*element.getAttribute("width"));
             element.setAttribute("height", 1.25*element.getAttribute("height"));
+            document.getElementById("largerButton").focus();
         }
         function svgSmaller()
         {
             var element = document.getElementsByTagName("svg")[0];
             element.setAttribute("width", 0.8*element.getAttribute("width"));
             element.setAttribute("height", 0.8*element.getAttribute("height"));
+            document.getElementById("smallerButton").focus();
         }
         </script>
-        <button type="button" onclick='svgLarger()'>Larger</button>
+        <button type="button" id=largerButton onclick='svgLarger()'>Larger</button>
         &nbsp;
-        <button type="button" onclick='svgSmaller()'>Smaller</button>
+        <button type="button" id=smallerButton onclick='svgSmaller()'>Smaller</button>
         <br>
     )stringDelimiter";    
 }
@@ -256,7 +258,6 @@ void Assembler::exploreUndirectedReadGraph(
 
     // Create the local read graph.
     LocalReadGraph graph;
-    const auto createStartTime = steady_clock::now();
     if(!createLocalReadGraph(readIds,
         maxDistance, allowChimericReads, allowCrossStrandEdges, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
@@ -264,7 +265,6 @@ void Assembler::exploreUndirectedReadGraph(
     }
     html << "<p>The local read graph has " << num_vertices(graph);
     html << " vertices and " << num_edges(graph) << " edges.";
-    const auto createFinishTime = steady_clock::now();
 
 
 
@@ -360,61 +360,6 @@ void Assembler::exploreUndirectedReadGraph(
 
 
 
-    // Test the code to write the graph to svg directly, without using
-    // Graphviz rendering.
-#if 0
-    {
-        graph.computeLayout(layoutMethod, timeout);
-        ofstream htmlTest("Test.html");
-        htmlTest << "<!DOCTYPE html><html>\n";
-        graph.writeSvg("svg", sizePixels, sizePixels,
-            vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, htmlTest);
-        htmlTest << "</html>\n";
-    }
-#endif
-
-
-
-    // Write it out in graphviz format.
-    const string uuid = to_string(boost::uuids::random_generator()());
-    const string dotFileName = tmpDirectory() + uuid + ".dot";
-
-    graph.write(dotFileName,
-                layoutMethod,
-                maxDistance,
-                vertexScalingFactor,
-                edgeThicknessScalingFactor);
-
-
-
-    // Display the graph in svg format.
-    const string command =
-        timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-        " dot -O -T svg " + dotFileName;
-    const int commandStatus = ::system(command.c_str());
-    if(WIFEXITED(commandStatus)) {
-        const int exitStatus = WEXITSTATUS(commandStatus);
-        if(exitStatus == 124) {
-            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            filesystem::remove(dotFileName);
-            return;
-        }
-        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-            filesystem::remove(dotFileName);
-            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
-        }
-    } else if(WIFSIGNALED(commandStatus)) {
-        const int signalNumber = WTERMSIG(commandStatus);
-        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
-    } else {
-        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
-
-    }
-    // Remove the .dot file.
-    filesystem::remove(dotFileName);
-
-
-
     // Write a title.
     html <<
          "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>"
@@ -433,9 +378,7 @@ void Assembler::exploreUndirectedReadGraph(
             vertex = document.getElementById("highlight").value;
             document.getElementById("highlight").value = "";
             element = document.getElementById("Vertex-" + vertex);
-            ellipse = element.children[1].children[0].children[0];
-            ellipse.setAttribute("fill", "#ff00ff");
-            ellipse.setAttribute("stroke", "#ff00ff");
+            element.setAttribute("fill", "#ff00ff");
         }
         </script>
         <p>
@@ -449,33 +392,10 @@ void Assembler::exploreUndirectedReadGraph(
     // Buttons to resize the svg locally.
     addScaleSvgButtons(html);
 
-    // Display the graph.
-    const string svgFileName = dotFileName + ".svg";
-    ifstream svgFile(svgFileName);
-    html << svgFile.rdbuf();
-    svgFile.close();
-
-    // Scale to desired size.
-    html <<
-        "<script>"
-        "var svgElement = document.getElementsByTagName('svg')[0];"
-        "svgElement.setAttribute('width', " << sizePixels << ");"
-        "svgElement.setAttribute('height', " << sizePixels << ");"
-        "</script>";
-
-    // Add to each vertex a cursor that shows you can click on it.
-    html <<
-        "<script>"
-        "var vertices = document.getElementsByClassName('node');"
-        "for (var i=0;i<vertices.length; i++) {"
-        "    vertices[i].style.cursor = 'pointer';"
-        "}"
-        "</script>";
-
-
-
-    // Remove the .svg file.
-    filesystem::remove(svgFileName);
+    // Write the graph to svg directly, without using Graphviz rendering.
+    graph.computeLayout(layoutMethod, timeout);
+    graph.writeSvg("svg", sizePixels, sizePixels,
+        vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, html);
 
 
 }
