@@ -241,6 +241,8 @@ void LocalReadGraph::writeSvg(
 
         attributes.radius = vertexScalingFactor * sqrt(3.e-7 * double(vertex.markerCount));
 
+        attributes.id = "Vertex-" + orientedReadId.getString();
+
         if(vertex.distance == 0) {
             attributes.color = "lime";
         } else if(vertex.distance == maxDistance) {

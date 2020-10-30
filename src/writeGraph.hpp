@@ -20,6 +20,7 @@ namespace shasta {
         class VertexAttributes {
         public:
             double radius = 1.;
+            string id;
             string color = "black";
             string tooltip;
             string url;
@@ -28,6 +29,7 @@ namespace shasta {
         class EdgeAttributes {
         public:
             double thickness = 1.;
+            string id;
             string color = "black";
             string tooltip;
             string url;
@@ -89,6 +91,7 @@ template<class Graph> void shasta::WriteGraph::writeSvg(
 
 
     // Write the edges first, so they don't cover the vertices.
+    svg << "<g id='" << svgId << "-edges'>\n";
     BGL_FORALL_EDGES_T(e, graph, Graph) {
 
         // Get the attributes for this vertex.
@@ -105,8 +108,13 @@ template<class Graph> void shasta::WriteGraph::writeSvg(
         const auto& position2 = graph[v2].position;
 
         svg << "<line x1='" << position1[0] << "' y1='" << position1[1] <<
-            "' x2='" << position2[0] << "' y2='" << position2[1] <<
-            "' stroke='" << attributes.color <<
+            "' x2='" << position2[0] << "' y2='" << position2[1];
+
+        if(not attributes.id.empty()) {
+            svg << " id='" << attributes.id << "'";
+        }
+
+        svg << "' stroke='" << attributes.color <<
             "' stroke-width='" << attributes.thickness <<
             "'>";
 
@@ -116,10 +124,12 @@ template<class Graph> void shasta::WriteGraph::writeSvg(
 
         svg << "</line>\n";
     }
+    svg << "</g>\n";
 
 
 
     // Write the vertices.
+    svg << "<g id='" << svgId << "-vertices' stroke='none'>\n";
     BGL_FORALL_VERTICES_T(v, graph, Graph) {
         VertexAttributes attributes;
         auto it = vertexAttributes.find(v);
@@ -133,19 +143,26 @@ template<class Graph> void shasta::WriteGraph::writeSvg(
         }
 
         svg << "<circle cx='" << position[0] << "' cy='" << position[1] <<
-            "' r='" << attributes.radius <<
-            "' stroke='none' fill='" << attributes.color << "'>";
+            "' r='" << attributes.radius << "'";
+
+        if(not attributes.id.empty()) {
+            svg << " id='" << attributes.id << "'";
+        }
+
+        svg << " fill='" << attributes.color << "'>";
 
         if(not attributes.tooltip.empty()) {
             svg << "<title>" << attributes.tooltip << "</title>";
         }
 
-        svg << "</circle>\n";
+        svg << "</circle>";
 
         if(not attributes.url.empty()) {
             svg << "</a>";
         }
+        svg << "\n";
     }
+    svg << "</g>\n";
 
 
 
