@@ -145,18 +145,20 @@ void Assembler::exploreMarkerGraph(
 
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
+    html << "<div id=svgDiv style='display:none'>"; // Make it invisible until after we scale it.
     html << svgFile.rdbuf();
     svgFile.close();
 
     // Remove the .svg file.
     filesystem::remove(svgFileName);
 
-    // Scale to desired size.
+    // Scale to desired size, then make it visible.
     html <<
+        "</div>"
         "<script>"
         "var svgElement = document.getElementsByTagName('svg')[0];"
         "svgElement.setAttribute('width', " << requestParameters.sizePixels << ");"
-        "svgElement.setAttribute('height', " << requestParameters.sizePixels << ");"
+        "document.getElementById('svgDiv').setAttribute('style', 'display:block');"
         "</script>";
 
 
