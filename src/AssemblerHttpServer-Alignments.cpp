@@ -1956,7 +1956,7 @@ void Assembler::exploreAlignmentGraph(
     uint32_t maxDistance = 2;
     getParameterValue(request, "maxDistance", maxDistance);
 
-    uint32_t sizePixels = 1200;
+    uint32_t sizePixels = 600;
     getParameterValue(request, "sizePixels", sizePixels);
 
     double timeout= 30;
@@ -2054,89 +2054,32 @@ void Assembler::exploreAlignmentGraph(
 
     // Create the local alignment graph.
     LocalAlignmentGraph graph;
-    const auto createStartTime = steady_clock::now();
     if(!createLocalAlignmentGraph(orientedReadId,
         minAlignedMarkerCount, maxTrim, maxDistance, timeout, graph)) {
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
-    const auto createFinishTime = steady_clock::now();
-
-    // Write it out in graphviz format.
-    const string uuid = to_string(boost::uuids::random_generator()());
-    const string dotFileName = tmpDirectory() + uuid + ".dot";
-    graph.write(dotFileName, maxDistance);
-
-    // Compute layout in svg format.
-    const string command =
-        timeoutCommand() + " " + to_string(timeout - seconds(createFinishTime - createStartTime)) +
-        " sfdp -O -T svg " + dotFileName +
-        " -Gsize=" + to_string(sizePixels/72.);
-    const auto layoutStartTime = steady_clock::now();
-    const int commandStatus = ::system(command.c_str());
-    const auto layoutFinishTime = steady_clock::now();
-    if(WIFEXITED(commandStatus)) {
-        const int exitStatus = WEXITSTATUS(commandStatus);
-        if(exitStatus == 124) {
-            html << "<p>Timeout for graph layout exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-            filesystem::remove(dotFileName);
-            return;
-        }
-        else if(exitStatus!=0 && exitStatus!=1) {    // sfdp returns 1 all the time just because of the message about missing triangulation.
-            filesystem::remove(dotFileName);
-            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
-        }
-    } else if(WIFSIGNALED(commandStatus)) {
-        const int signalNumber = WTERMSIG(commandStatus);
-        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
-    } else {
-        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
-
-    }
-    // Remove the .dot file.
-    filesystem::remove(dotFileName);
 
 
 
-    // Write a title and display the graph.
+    // Write a title.
     html <<
-        "<h1 style='line-height:10px'>Alignment graph near oriented read " << orientedReadId << "</h1>"
-        "Color legend: "
-        "<span style='background-color:LightGreen'>start vertex</span> "
-        "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
-        ") from the start vertex</span>.";
-
-
-    // Display the graph.
-    const string svgFileName = dotFileName + ".svg";
-    ifstream svgFile(svgFileName);
-    html << svgFile.rdbuf();
-    svgFile.close();
-
-
-
-    // Add to each vertex a cursor that shows you can click on it.
-    html <<
-        "<script>"
-        "var vertices = document.getElementsByClassName('node');"
-        "for (var i=0;i<vertices.length; i++) {"
-        "    vertices[i].style.cursor = 'pointer';"
-        "}"
-        "</script>";
-
-
-
-    // Remove the .svg file.
-    filesystem::remove(svgFileName);
+        "<h1 style='line-height:10px'>Alignment graph near oriented read " << orientedReadId << "</h1>";
 
     // Write additional graph information.
     html <<
         "<br>This portion of the alignment graph has " << num_vertices(graph) <<
-        " vertices and " << num_edges(graph) << " edges." <<
-        "<br>Graph creation took " <<
-        std::setprecision(2) << seconds(createFinishTime-createStartTime) <<
-        " s.<br>Graph layout took " <<
-        std::setprecision(2) << seconds(layoutFinishTime-layoutStartTime) << " s.";
+        " vertices and " << num_edges(graph) << " edges.<br>";
+
+    // Buttons to resize the svg locally.
+    addScaleSvgButtons(html);
+
+    // Write the graph to svg directly, without using Graphviz rendering.
+    graph.computeLayout("sfdp", timeout);
+    const double vertexScalingFactor = 1.;
+    const double edgeThicknessScalingFactor = 1.;
+    graph.writeSvg("svg", sizePixels, sizePixels,
+        vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, html);
 
     // Write a histogram of the number of vertices by distance.
     vector<int> histogram(maxDistance+1, 0);

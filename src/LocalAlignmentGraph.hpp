@@ -18,6 +18,7 @@ The alignment graph is being phased out in favor of the read graph
 
 // Shasta.
 #include "Alignment.hpp"
+#include "computeLayout.hpp"
 #include "OrientedReadPair.hpp"
 
 // Boost libraries.
@@ -52,6 +53,9 @@ public:
 
     // The number of bases in this read.
     uint32_t baseCount;
+
+    // Layout position of this vertex, for display.
+    array<double, 2> position;
 
     // The distance of this vertex from the starting vertex.
     uint32_t distance;
@@ -102,6 +106,24 @@ public:
 
     // Get the distance of an existing vertex from the start vertex.
     uint32_t getDistance(OrientedReadId) const;
+
+    // Compute sfdp layout using graphviz and store the results
+    // in the vertex positions.
+    ComputeLayoutReturnCode computeLayout(
+        const string& layoutMethod,
+        double timeout);
+
+    // Write directly to svg, without using Graphviz rendering.
+    // This assumes that the layout was already computed
+    // and stored in the vertices.
+    void writeSvg(
+        const string& svgId,
+        uint64_t width,
+        uint64_t height,
+        double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
+        uint64_t maxDistance,
+        ostream& svg) const;
 
     // Write in Graphviz format.
     void write(ostream&, uint32_t maxDistance) const;
