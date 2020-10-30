@@ -362,12 +362,7 @@ void Assembler::exploreUndirectedReadGraph(
 
     // Write a title.
     html <<
-         "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>"
-         "Color legend: "
-         "<span style='background-color:green'>start vertex</span> "
-         "<span style='background-color:cyan'>vertices at maximum distance (" << maxDistance <<
-         ") from the start vertex</span> "
-         ".<br>";
+         "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>";
 
 
     // Allow manually highlighting selected vertices.
