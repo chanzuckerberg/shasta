@@ -513,6 +513,8 @@ void Assembler::writeStyle(ostream& html)
     input[type=submit] {
         background-color: #89bef2;
         padding: 4px;
+        margin: 2px;
+        border-radius: 8px;
     }
 
     input[type=button] {
@@ -523,6 +525,14 @@ void Assembler::writeStyle(ostream& html)
         background-color: #ecf1f0;
         border-width: thin;
     }
+
+    button {
+        background-color: #89bef2;
+        padding: 4px;
+        margin: 2px;
+        border-radius: 8px;
+    }
+
 </style>
     )%";
 }
