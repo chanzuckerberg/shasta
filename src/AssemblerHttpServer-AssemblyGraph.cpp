@@ -82,11 +82,10 @@ void Assembler::exploreAssemblyGraph(
 
 
 
-    // Compute graph layout in svg format.
+    // Compute graph layout.
     const string command =
         timeoutCommand() + " " + to_string(requestParameters.timeout - seconds(createFinishTime - createStartTime)) +
-        " dot -O -T svg " + dotFileName +
-        " -Gsize=" + to_string(requestParameters.sizePixels/72.);
+        " dot -O -T svg " + dotFileName;
     const int commandStatus = ::system(command.c_str());
     if(WIFEXITED(commandStatus)) {
         const int exitStatus = WEXITSTATUS(commandStatus);
@@ -108,17 +107,30 @@ void Assembler::exploreAssemblyGraph(
     }
 
     // Remove the .dot file.
-    // filesystem::remove(dotFileName);
+    filesystem::remove(dotFileName);
+
+    // Buttons to resize the svg locally.
+    html << "<br>";
+    addScaleSvgButtons(html);
 
     // Copy the svg to html.
     const string svgFileName = dotFileName + ".svg";
     ifstream svgFile(svgFileName);
+    html << "<div id=svgDiv style='display:none'>"; // Make it invisible until after we scale it.
     html << "<br>" << svgFile.rdbuf();
     svgFile.close();
 
     // Remove the .svg file.
     filesystem::remove(svgFileName);
 
+    // Scale to desired size, then make it visible.
+    html <<
+        "</div>"
+        "<script>"
+        "var svgElement = document.getElementsByTagName('svg')[0];"
+        "svgElement.setAttribute('width', " << requestParameters.sizePixels << ");"
+        "document.getElementById('svgDiv').setAttribute('style', 'display:block');"
+        "</script>";
 }
 
 

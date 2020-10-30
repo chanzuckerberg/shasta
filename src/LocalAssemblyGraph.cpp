@@ -179,9 +179,6 @@ void LocalAssemblyGraph::Writer::operator()(std::ostream& s) const
     // Turn off the tooltip on the graph.
     s << "tooltip = \" \";\n";
 
-    // Define how to use extra space.
-    s << "ratio=expand;\n";
-
     // Graph layout.
     if(useDotLayout) {
         s << "layout=dot;\n";
