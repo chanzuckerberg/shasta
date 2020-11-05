@@ -844,14 +844,14 @@ void Assembler::displayAlignmentMatrix(
         html << "<br>Sequence lengths: " << n0 << " " << n1 <<
             "<br>Optimal alignment has length " << alignmentLength <<
             ", score " << score <<
-            ":<div style='font-family:monospace'>";
+            "<pre style='font-family:monospace'>";
         for(size_t i=0; i<2; i++) {
-            html << "<br>";
             for(int j=0; j<alignmentLength; j++) {
                 html << alignment[i][j];
             }
+            html << "\n";
         }
-        html << "</div>";
+        html << "</pre>";
 
 
         int i0 = 0;
