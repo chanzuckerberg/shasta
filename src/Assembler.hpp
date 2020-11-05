@@ -1833,6 +1833,9 @@ public:
         double vertexScalingFactor;
         bool vertexScalingFactorIsPresent;
         string vertexScalingFactorString() const;
+        double edgeThicknessScalingFactor;
+        bool edgeThicknessScalingFactorIsPresent;
+        string edgeThicknessScalingFactorString() const;
         double arrowScalingFactor;
         bool arrowScalingFactorIsPresent;
         string arrowScalingFactorString() const;

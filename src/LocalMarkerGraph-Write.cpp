@@ -22,6 +22,7 @@ void LocalMarkerGraph::write(
     bool addLabels,
     bool useDotLayout,
     double vertexScalingFactor,
+    double edgeThicknessScalingFactor,
     double arrowScalingFactor) const
 {
     ofstream outputFileStream(fileName);
@@ -29,7 +30,7 @@ void LocalMarkerGraph::write(
         throw runtime_error("Error opening " + fileName);
     }
     write(outputFileStream, maxDistance, addLabels, useDotLayout,
-        vertexScalingFactor, arrowScalingFactor);
+        vertexScalingFactor, edgeThicknessScalingFactor, arrowScalingFactor);
 }
 void LocalMarkerGraph::write(
     ostream& s,
@@ -37,10 +38,11 @@ void LocalMarkerGraph::write(
     bool addLabels,
     bool useDotLayout,
     double vertexScalingFactor,
+    double edgeThicknessScalingFactor,
     double arrowScalingFactor) const
 {
     Writer writer(*this, maxDistance, addLabels, useDotLayout,
-        vertexScalingFactor, arrowScalingFactor);
+        vertexScalingFactor, edgeThicknessScalingFactor, arrowScalingFactor);
     boost::write_graphviz(s, *this, writer, writer, writer,
         boost::get(&LocalMarkerGraphVertex::vertexId, *this));
 }
@@ -51,12 +53,14 @@ LocalMarkerGraph::Writer::Writer(
     bool addLabels,
     bool useDotLayout,
     double vertexScalingFactor,
+    double edgeThicknessScalingFactor,
     double arrowScalingFactor) :
     graph(graph),
     maxDistance(maxDistance),
     addLabels(addLabels),
     useDotLayout(useDotLayout),
     vertexScalingFactor(vertexScalingFactor),
+    edgeThicknessScalingFactor(edgeThicknessScalingFactor),
     arrowScalingFactor(arrowScalingFactor)
 {
 }
@@ -290,12 +294,12 @@ void LocalMarkerGraph::Writer::operator()(std::ostream& s, edge_descriptor e) co
     s << " URL=\"#a\"";   // Hack to convince graphviz to not ignore the labeltooltip.
 
     // Thickness and weight are determined by coverage.
-    const double thickness = 0.2 * double(coverage==0 ? 1 : coverage);
-    s << " penwidth=";
+    const double thickness = 0.2 * edgeThicknessScalingFactor * double(coverage==0 ? 1 : coverage);
+    s << " penwidth=\"";
     const auto oldPrecision = s.precision(4);
     s <<  thickness;
     s.precision(oldPrecision);
-    s << " weight=" << coverage;
+    s << "\" weight=" << coverage;
 
     // Arrow size.
     s << " arrowsize=\"" << arrowScalingFactor << "\"";

@@ -108,6 +108,7 @@ void Assembler::exploreMarkerGraph(
         requestParameters.addLabels,
         requestParameters.useDotLayout,
         requestParameters.vertexScalingFactor,
+        requestParameters.edgeThicknessScalingFactor,
         requestParameters.arrowScalingFactor);
 
     // Compute layout in svg format.
@@ -286,6 +287,10 @@ void Assembler::getLocalMarkerGraphRequestParameters(
     parameters.vertexScalingFactorIsPresent = getParameterValue(
         request, "vertexScalingFactor", parameters.vertexScalingFactor);
 
+    parameters.edgeThicknessScalingFactor = 1;
+    parameters.edgeThicknessScalingFactorIsPresent = getParameterValue(
+        request, "edgeThicknessScalingFactor", parameters.edgeThicknessScalingFactor);
+
     parameters.arrowScalingFactor = 1;
     parameters.arrowScalingFactorIsPresent = getParameterValue(
         request, "arrowScalingFactor", parameters.arrowScalingFactor);
@@ -370,10 +375,14 @@ void Assembler::LocalMarkerGraphRequestParameters::writeForm(
         " value='" + vertexScalingFactorString() + "'>" <<
 
         "<tr>"
+        "<td>Edge thickness scaling factor"
+        "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+        " value='" + edgeThicknessScalingFactorString() + "'>" <<
+
+        "<tr>"
         "<td>Edge arrow scaling factor"
         "<td><input type=text required name=arrowScalingFactor size=8 style='text-align:center'" <<
         " value='" + arrowScalingFactorString() + "'>" <<
-
 
         "<tr title='Maximum time allowed (seconds) for graph creation and layout, or 0 if unlimited'>"
         "<td>Timeout (seconds) for graph creation and layout"
@@ -418,6 +427,19 @@ string Assembler::LocalMarkerGraphRequestParameters::arrowScalingFactorString() 
     if(arrowScalingFactorIsPresent) {
         std::ostringstream s;
         s << arrowScalingFactor;
+        return s.str();
+    } else {
+        return "1";
+    }
+}
+
+
+
+string Assembler::LocalMarkerGraphRequestParameters::edgeThicknessScalingFactorString() const
+{
+    if(edgeThicknessScalingFactorIsPresent) {
+        std::ostringstream s;
+        s << edgeThicknessScalingFactor;
         return s.str();
     } else {
         return "1";

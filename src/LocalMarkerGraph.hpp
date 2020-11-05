@@ -235,6 +235,7 @@ public:
         bool addLabels,
         bool useDotLayout,
         double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
         double arrowScalingFactor) const;
     void write(
         const string& fileName,
@@ -242,6 +243,7 @@ public:
         bool addLabels,
         bool useDotLayout,
         double vertexScalingFactor,
+        double edgeThicknessScalingFactor,
         double arrowScalingFactor) const;
 
 
@@ -285,6 +287,7 @@ private:
             bool addLabels,
             bool useDotLayout,
             double vertexScalingFactor,
+            double edgeThicknessScalingFactor,
             double arrowScalingFactor);
             void operator()(ostream&) const;
         void operator()(ostream&, vertex_descriptor) const;
@@ -294,6 +297,7 @@ private:
         bool addLabels;
         bool useDotLayout;
         double vertexScalingFactor;
+        double edgeThicknessScalingFactor;
         double arrowScalingFactor;
 
         // Vertex and edge colors.
