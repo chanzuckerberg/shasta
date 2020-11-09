@@ -14,6 +14,9 @@ using namespace shasta;
 #include "spoa/spoa.hpp"
 
 // Boost libraries.
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/dijkstra_shortest_paths_no_color_map.hpp>
+#include <boost/graph/iteration_macros.hpp>
 #include <boost/pending/disjoint_sets.hpp>
 
 // Standard library.
@@ -3901,6 +3904,8 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 
     // Gather the vertices in each connected component.
+    // Note that, because of the way this is done, the vertex ids
+    // in each component are sorted.
     vector< vector<AssemblyGraph::VertexId> > componentTable(n);
     for(AssemblyGraph::VertexId vertexId=0; vertexId<n; vertexId++) {
         componentTable[disjointSets.find_set(vertexId)].push_back(vertexId);
@@ -3985,10 +3990,15 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     }
 
 
+
+#if 0
     // Work areas used below.
     // Allocate them here to reduce memory allocation activity.
     vector<AssemblyGraph::EdgeId> predecessorEdge(n);
     vector<uint8_t> color(n);
+#endif
+
+
 
 
     // Process one connected component at a time.
@@ -4039,10 +4049,13 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             continue;
         }
 
-        // This componet is not self complementary.
-        // We want ro handle each pair of components in the same way.
+        // This component is not self complementary.
+        // We want to handle each pair of components in the same way.
         // Only process one of the two in each pair.
         if(rcComponentTable[componentId] < componentId) {
+            if(debug) {
+                debugOut << "Skipped - reverse complement component will be processed." << endl;
+            }
             continue;
         }
 
@@ -4094,34 +4107,115 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         }
 
 
+        // The code below relies on the vertex ids in the component vector to be sorted.
+        // Check for that.
+        SHASTA_ASSERT(std::is_sorted(component.begin(), component.end()));
+
+
+
+        // Create a Boost graph to represent this component.
+        // Vertex descriptors of this graph are indexes into the component vector.
+        // This graph will be used below to compute shortest path,
+        // with edge length defined as the inverse of average edge coverage.
+        using boost::adjacency_list;
+        using boost::listS;
+        using boost::vecS;
+        using boost::directedS;
+        using boost::property;
+        using boost::no_property;
+        using boost::edge_weight_t;
+
+        using Graph = adjacency_list<listS, vecS, directedS, no_property, property<edge_weight_t, double> >;
+        using vertex_descriptor = Graph::vertex_descriptor;
+        using edge_descriptor = Graph::edge_descriptor;
+
+        Graph graph(component.size());
+        auto weightMap = boost::get(boost::edge_weight, graph);
+        for(uint64_t v0=0; v0<component.size(); v0++) {
+            const AssemblyGraph::VertexId vertexId0 = component[v0];
+            const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[vertexId0];
+            for(const AssemblyGraph::EdgeId edgeId: outEdges) {
+                const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+                if(edge.wasRemoved()) {
+                    continue;
+                }
+                const AssemblyGraph::VertexId vertexId1 = edge.target;
+
+                // Look up vertexId1 in the component vector.
+                // This gives us the vertex descriptor for the target vertex.
+                const auto it = std::lower_bound(component.begin(), component.end(), vertexId1);
+                if(*it != vertexId1) {
+                    // This edge goes outside this component.
+                    continue;
+                }
+                const vertex_descriptor v1 = it - component.begin();
+
+                // Add the edge and set its weight.
+                edge_descriptor e;
+                tie(e, ignore) = add_edge(v0, v1, graph);
+                weightMap[e] = 1. / double(edge.averageEdgeCoverage);
+            }
+        }
+        if(debug) {
+            BGL_FORALL_EDGES(e, graph, Graph) {
+                const auto v0 = source(e, graph);
+                const auto v1 = target(e, graph);
+                debugOut << v0 << "->" << v1 << " " <<
+                    component[v0] << "->" << component[v1] << " " <<
+                    weightMap[e] << endl;
+            }
+        }
+
+
+#if 0
         // Work areas used for shortest path computation.
         std::priority_queue<
             pair<float, AssemblyGraph::VertexId>,
             vector<pair<float, AssemblyGraph::VertexId> >,
             OrderPairsByFirstOnlyGreater<size_t, AssemblyGraph::VertexId> > q;
         vector< pair<float, AssemblyGraph::EdgeId> > sortedOutEdges;
-
+#endif
 
 
         // Loop over entry/exit pairs.
         // We already checked that there is at least one entry
         // and one exit, so the inner body of this loop
         // gets executed at least once.
-        for(const AssemblyGraph::VertexId entryId: component) {
+        for(uint64_t entryIndex=0; entryIndex<component.size(); entryIndex++) {
+            const AssemblyGraph::VertexId entryId = component[entryIndex];
             if(!isEntry[entryId]) {
                 continue;
             }
 
+            if(debug) {
+                debugOut << "Computing shortest paths starting at " <<
+                    entryId << "/" << assemblyGraph.vertices[entryId] << "\n";
+            }
 
+            // Compute shortest paths
+            // from this vertex to all other vertices in this component.
+            using boost::make_iterator_property_map;
+            using boost::get;
+            using boost::vertex_index;
+            using boost::dijkstra_shortest_paths_no_color_map;
+            using boost::predecessor_map;
+            vector< vertex_descriptor > predecessor(component.size());
+            auto predecessorMap = make_iterator_property_map(predecessor.begin(), get(vertex_index, graph));
+            dijkstra_shortest_paths_no_color_map(graph, entryIndex, predecessor_map(predecessorMap));
+            if(debug) {
+                debugOut << "Predecessor map:" << endl;
+                for(vertex_descriptor v=0; v<component.size(); v++) {
+                    debugOut << component[v] << " predecessor is " <<
+                        component[predecessor[v]] << endl;
+                }
+            }
+
+#if 0
 
             // Compute shortest paths
             // from this vertex to all other vertices in this component.
             // Use as edge weight the inverse of average coverage,
             // so the path prefers high coverage.
-            if(debug) {
-                debugOut << "Computing shortest paths starting at " <<
-                    entryId << "/" << assemblyGraph.vertices[entryId] << "\n";
-            }
             SHASTA_ASSERT(q.empty());
             q.push(make_pair(0., entryId));
             for(const AssemblyGraph::VertexId v: component) {
@@ -4173,17 +4267,20 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                     }
                 }
             }
+#endif
 
 
-
-            for(const AssemblyGraph::VertexId exitId: component) {
+            // Loop over all exits.
+            for(uint64_t exitIndex=0; exitIndex<component.size(); exitIndex++) {
+                const AssemblyGraph::VertexId exitId = component[exitIndex];
                 if(!isExit[exitId]) {
                     continue;
                 }
                 if(exitId == entryId) {
                     continue;
                 }
-                if(predecessorEdge[exitId] == AssemblyGraph::invalidEdgeId) {
+
+                if(predecessor[exitIndex] == exitIndex) {
                     continue;   // This exit is not reachable from this entry.
                 }
 
@@ -4194,6 +4291,65 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                         " and exit " << exitId << "/" << assemblyGraph.vertices[exitId] << "\n";
                 }
 
+
+
+                // Mark all the edges on the shortest path from this entry to this exit.
+                // Walk the path backward using the predecessor tree.
+                Graph::vertex_descriptor v1 = exitIndex;
+                while(true) {
+                    const Graph::vertex_descriptor v0 = predecessor[v1];
+
+                    // Find the shortest edge v0->v1.
+                    if(debug) {
+                        debugOut << "Looking for best edge " << component[v0] << "->" << component[v1] << endl;
+                    }
+                    double bestCoverage = 0.;
+                    AssemblyGraph::EdgeId bestEdgeId = std::numeric_limits<AssemblyGraph::EdgeId>::max();
+                    const AssemblyGraph::VertexId vertexId0 = component[v0];
+                    const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[vertexId0];
+                    for(const AssemblyGraph::EdgeId edgeId: outEdges) {
+                        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+                        if(edge.wasRemoved()) {
+                            continue;
+                        }
+                        const AssemblyGraph::VertexId vertexId1 = edge.target;
+                        if(vertexId1 != component[v1]) {
+                            continue;
+                        }
+
+                        if(edge.averageEdgeCoverage > bestCoverage) {
+                            bestCoverage = edge.averageEdgeCoverage;
+                            bestEdgeId = edgeId;
+                        }
+                    }
+                    SHASTA_ASSERT(bestCoverage != 0);
+                    if(debug) {
+                        const AssemblyGraph::Edge& bestEdge = assemblyGraph.edges[bestEdgeId];
+                        debugOut << "Best edge found " << bestEdge.source << "->" << bestEdge.target << endl;
+                    }
+
+                    // Mark the best edge and its reverse complement.
+                    keepAssemblyGraphEdge[bestEdgeId] = true;
+                    const AssemblyGraph::EdgeId bestEdgeIdReverseComplement =
+                        assemblyGraph.reverseComplementEdge[bestEdgeId];
+                    keepAssemblyGraphEdge[bestEdgeIdReverseComplement] = true;
+                    if(debug) {
+                        const AssemblyGraph::Edge& bestEdge = assemblyGraph.edges[bestEdgeId];
+                        const AssemblyGraph::Edge& bestEdgeReverseComplement = assemblyGraph.edges[bestEdgeIdReverseComplement];
+                        debugOut << "Marking " << bestEdge.source << "->" << bestEdge.target << " and ";
+                        debugOut << bestEdgeReverseComplement.source << "->" << bestEdgeReverseComplement.target << endl;
+                    }
+
+                    // See if we reached the entry.
+                    if(component[v0] == entryId) {
+                        break;
+                    }
+
+                    // Go one edge back in the path.
+                    v1 = v0;
+                }
+
+#if 0
                 AssemblyGraph::VertexId v = exitId;
                 while(true) {
                     AssemblyGraph::EdgeId e = predecessorEdge[v];
@@ -4212,6 +4368,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                 if(debug) {
                     debugOut << "\n";
                 }
+#endif
             }
         }
     }
