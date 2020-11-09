@@ -163,7 +163,8 @@ void AssemblyGraph::writeGraphviz(const string& fileName) const
         graphOut <<
             edge.source << "->" << edge.target <<
             " [label=\"" << edgeId << "\\n" <<
-            edgeLists.size(edgeId) <<
+            edgeLists.size(edgeId) << "\\n" <<
+            edge.averageEdgeCoverage <<
             "\"];\n";
     }
 
