@@ -41,6 +41,8 @@ void Assembler::exploreRead(
     const bool showMarkers = getParameterValue( request, "showMarkers", showMarkersString);
     string showMarkerTableString;
     const bool showMarkerTable = getParameterValue( request, "showMarkerTable", showMarkerTableString);
+    string showPositionTableString;
+    const bool showPositionTable = getParameterValue( request, "showPositionTable", showPositionTableString);
     string showMarkerFrequencyTableString;
     const bool showMarkerFrequencyTable = getParameterValue( request, "showMarkerFrequencyTable", showMarkerFrequencyTableString);
 
@@ -91,6 +93,9 @@ void Assembler::exploreRead(
         "<br>&nbsp;<input type=checkbox name=showMarkerTable" <<
         (showMarkerTable ? " checked=checked" : "") <<
         "> Marker table."
+        "<br>&nbsp;<input type=checkbox name=showPositionTable" <<
+        (showPositionTable ? " checked=checked" : "") <<
+        "> Position table."
         "<br>&nbsp;<input type=checkbox name=showMarkerFrequencyTable" <<
         (showMarkerFrequencyTable ? " checked=checked" : "") <<
         "> Marker frequency table."
@@ -684,7 +689,28 @@ void Assembler::exploreRead(
 
 
 
-    // Display details of markers.
+    // Position table.
+    // It can be used to convert RLE positions to raw positions.
+    if(showPositionTable) {
+        html << "<h3>Position table</h3>"
+            "<table><tr><th>RLE<br>position<th>Raw<br>position\n";
+        for(uint32_t rlePosition=0; rlePosition<rawPositions.size(); rlePosition++) {
+            const uint32_t rawPosition = rawPositions[rlePosition];
+            if(beginPositionIsPresent and rawPosition<beginPosition) {
+                continue;
+            }
+            if(endPositionIsPresent and rawPosition>endPosition) {
+                continue;
+            }
+            html << "<tr><td class=centered>" << rlePosition <<
+                "<td class=centered>" << rawPositions[rlePosition] << "\n";
+        }
+        html << "</table>\n";
+    }
+
+
+
+    // Details of markers.
     if(showMarkerTable) {
         if (beginPositionIsPresent || endPositionIsPresent) {
             html << "<h3>Detail of markers on this portion of this oriented read</h3>";
