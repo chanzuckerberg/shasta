@@ -36,10 +36,20 @@ void Assembler::exploreRead(
         }
     }
 
+    // Get the arguments to select what to display.
+    string showMarkersString;
+    const bool showMarkers = getParameterValue( request, "showMarkers", showMarkersString);
+    string showMarkerTableString;
+    const bool showMarkerTable = getParameterValue( request, "showMarkerTable", showMarkerTableString);
+    string showMarkerFrequencyTableString;
+    const bool showMarkerFrequencyTable = getParameterValue( request, "showMarkerFrequencyTable", showMarkerFrequencyTableString);
+
+
+
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Show'> " <<
+        "<input type=submit value='Display'> " <<
         "read &nbsp" <<
         "<input type=text name=readId required" <<
         (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
@@ -70,7 +80,23 @@ void Assembler::exploreRead(
     html << "> highlighted.";
     html << "</font>";
     
-    html << "</form>";
+
+
+    // Checkboxes to choose what we want to display.
+    html <<
+        "<p>Display the following:"
+        "<br>&nbsp;<input type=checkbox name=showMarkers" <<
+        (showMarkers ? " checked=checked" : "") <<
+        "> RLE sequence and markers."
+        "<br>&nbsp;<input type=checkbox name=showMarkerTable" <<
+        (showMarkerTable ? " checked=checked" : "") <<
+        "> Marker table."
+        "<br>&nbsp;<input type=checkbox name=showMarkerFrequencyTable" <<
+        (showMarkerFrequencyTable ? " checked=checked" : "") <<
+        "> Marker frequency table."
+        "</form>";
+
+
 
     // If the readId or strand are missing, stop here.
     if(!readIdIsPresent || !strandIsPresent) {
@@ -388,53 +414,10 @@ void Assembler::exploreRead(
 
 
 
-    // Decide on which row each marker gets displayed
-    // (first row of markers is row 0).
-    const size_t k = assemblerInfo->k;
-    vector<int> markerRow(orientedReadMarkers.size(), -1);
-    vector<uint32_t> nextAvailableCharacterPosition(k, 0);
-    for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
-        const uint32_t position = orientedReadMarkers[ordinal].position;
-        for(int row=0; row<int(k); row++) {
-            if(position >= nextAvailableCharacterPosition[row]) {
-                markerRow[ordinal] = row;
-                // Require one character space to next marker.
-                nextAvailableCharacterPosition[row] = position + uint32_t(k) + 1;
-                // cout << "Marker " << ordinal << " at position " << position << " placed on row " << row << endl;
-                break;
-            }
-        }
-        /*
-        if(markerRow[ordinal] == -1) {
-            cout << "Marker " << ordinal << " at position " << position << " could not be placed." << endl;
-            cout << "nextAvailableCharacterPosition: ";
-            for(const auto rowNext: nextAvailableCharacterPosition) {
-                cout << " " << rowNext;
-            }
-            cout << endl;
-        }
-        */
-        SHASTA_ASSERT(markerRow[ordinal] != -1);
-    }
-    const int markerRowCount = *std::max_element(markerRow.begin(), markerRow.end());
-
-
-    // Title for the next portion of the display, which shows the markers.
-    if (beginPositionIsPresent || endPositionIsPresent) {
-        html << "<h3>Selected portion of run-length representation of oriented read sequence and its markers</h3>";
-    } else {
-        html << "<h3>Run-length representation of oriented read sequence and its markers</h3>";
-    }
-
-    // Use an svg object to display the read sequence as stored and the markers.
-    // To ensure correct positioning and alignment, we use
-    // a textLength attribute on every <text> element.
-    // (The older code, ifdef'ed out, uses a separate <text>
-    // element for each character).
-    // Note that here we display the entire read, regardless of beginPosition and endPosition.
+    // Compute begin/end in RLE coordinates.
     size_t beginRlePosition, endRlePosition;
     const vector<uint32_t> rawPositions = reads->getRawPositions(orientedReadId);
-    
+
     if (beginPositionIsPresent) {
         beginRlePosition = std::lower_bound(rawPositions.begin(), rawPositions.end(), beginPosition) - rawPositions.begin();
         while(beginRlePosition > 0 && beginRlePosition % 10 != 0) {
@@ -451,240 +434,343 @@ void Assembler::exploreRead(
         endRlePosition = size_t(readStoredSequence.baseCount);
     }
 
-    const int monospaceFontSize = 12;
-    const int horizontalSpacing = 7;
-    const int verticalSpacing = 13;
-    const size_t charactersPerLine = endRlePosition - beginRlePosition + 10; // Add space for labels
-    int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
-    svgLineCount++;     // Add a line with the repeat counts.
-    const size_t svgWidth = horizontalSpacing * charactersPerLine;
-    const size_t svgHeight = verticalSpacing * svgLineCount;
-    const int highlightedMarkerVerticalOffset = 2;
-    html <<
-        "<p><svg width=" << svgWidth << " height=" << svgHeight << ">"
-        "<style>"
-        ".mono{font-family:monospace; font-size:" << monospaceFontSize << "px;}"
-        ".blueMono{font-family:monospace; font-size:" << monospaceFontSize << "px; fill:blue;}"
-        "</style>";
 
 
-    // Labels for position scale.
-    for(size_t position=beginRlePosition; position<endRlePosition; position+=10) {
-        const string label = to_string(position);
+    // Display RLE sequence and markers.
+    const size_t k = assemblerInfo->k;
+    if(showMarkers) {
 
-        // Use a single <text> element with a textLength attribute for exact alignment.
+        // Decide on which row each marker gets displayed
+        // (first row of markers is row 0).
+        vector<int> markerRow(orientedReadMarkers.size(), -1);
+        vector<uint32_t> nextAvailableCharacterPosition(k, 0);
+        for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
+            const uint32_t position = orientedReadMarkers[ordinal].position;
+            for(int row=0; row<int(k); row++) {
+                if(position >= nextAvailableCharacterPosition[row]) {
+                    markerRow[ordinal] = row;
+                    // Require one character space to next marker.
+                    nextAvailableCharacterPosition[row] = position + uint32_t(k) + 1;
+                    // cout << "Marker " << ordinal << " at position " << position << " placed on row " << row << endl;
+                    break;
+                }
+            }
+            /*
+            if(markerRow[ordinal] == -1) {
+                cout << "Marker " << ordinal << " at position " << position << " could not be placed." << endl;
+                cout << "nextAvailableCharacterPosition: ";
+                for(const auto rowNext: nextAvailableCharacterPosition) {
+                    cout << " " << rowNext;
+                }
+                cout << endl;
+            }
+            */
+            SHASTA_ASSERT(markerRow[ordinal] != -1);
+        }
+        const int markerRowCount = *std::max_element(markerRow.begin(), markerRow.end());
+
+
+        // Title for the next portion of the display, which shows the markers.
+        if (beginPositionIsPresent || endPositionIsPresent) {
+            html << "<h3>Selected portion of run-length representation of oriented read sequence and its markers</h3>";
+        } else {
+            html << "<h3>Run-length representation of oriented read sequence and its markers</h3>";
+        }
+
+        // Use an svg object to display the read sequence as stored and the markers.
+        // To ensure correct positioning and alignment, we use
+        // a textLength attribute on every <text> element.
+        // (The older code, ifdef'ed out, uses a separate <text>
+        // element for each character).
+
+        const int monospaceFontSize = 12;
+        const int horizontalSpacing = 7;
+        const int verticalSpacing = 13;
+        const size_t charactersPerLine = endRlePosition - beginRlePosition + 10; // Add space for labels
+        int svgLineCount = int(3 + markerRowCount); // Labels, scale, sequence, markers.
+        svgLineCount++;     // Add a line with the repeat counts.
+        const size_t svgWidth = horizontalSpacing * charactersPerLine;
+        const size_t svgHeight = verticalSpacing * svgLineCount;
+        const int highlightedMarkerVerticalOffset = 2;
         html <<
-            "<text class='mono'" <<
-            " x='" << (position-beginRlePosition) * horizontalSpacing << "'" <<
-            " y='" << verticalSpacing << "'" <<
-            " textLength='" << label.size() * horizontalSpacing << "px'>" <<
-            label << "</text>";
-    }
+            "<p><svg width=" << svgWidth << " height=" << svgHeight << ">"
+            "<style>"
+            ".mono{font-family:monospace; font-size:" << monospaceFontSize << "px;}"
+            ".blueMono{font-family:monospace; font-size:" << monospaceFontSize << "px; fill:blue;}"
+            "</style>";
 
 
-    // Position scale.
-    // This code uses one <text> element for every blockSize characters.
-    // This way you can select sequence text without getting a
-    // new line after each character, while still achieving good
-    // alignment.
-    const uint64_t blockSize = 100;
-    for(uint64_t blockBegin=0; blockBegin<(endRlePosition-beginRlePosition); blockBegin+=blockSize) {
-        const uint64_t blockEnd = min(
-            uint64_t(blockBegin+blockSize),
-            uint64_t(endRlePosition-beginRlePosition)
-        );
-        html <<
-            "<text class='mono'" <<
-            " x='" << blockBegin*horizontalSpacing << "'" <<
-            " y='" << 2*verticalSpacing << "'"
-            " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
-        for(size_t position=blockBegin; position!=blockEnd; position++) {
-            if((position%10)==0) {
-                html << "|";
-            } else if((position%5)==0) {
-                html << "+";
+        // Labels for position scale.
+        for(size_t position=beginRlePosition; position<endRlePosition; position+=10) {
+            const string label = to_string(position);
+
+            // Use a single <text> element with a textLength attribute for exact alignment.
+            html <<
+                "<text class='mono'" <<
+                " x='" << (position-beginRlePosition) * horizontalSpacing << "'" <<
+                " y='" << verticalSpacing << "'" <<
+                " textLength='" << label.size() * horizontalSpacing << "px'>" <<
+                label << "</text>";
+        }
+
+
+        // Position scale.
+        // This code uses one <text> element for every blockSize characters.
+        // This way you can select sequence text without getting a
+        // new line after each character, while still achieving good
+        // alignment.
+        const uint64_t blockSize = 100;
+        for(uint64_t blockBegin=0; blockBegin<(endRlePosition-beginRlePosition); blockBegin+=blockSize) {
+            const uint64_t blockEnd = min(
+                uint64_t(blockBegin+blockSize),
+                uint64_t(endRlePosition-beginRlePosition)
+            );
+            html <<
+                "<text class='mono'" <<
+                " x='" << blockBegin*horizontalSpacing << "'" <<
+                " y='" << 2*verticalSpacing << "'"
+                " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
+            for(size_t position=blockBegin; position!=blockEnd; position++) {
+                if((position%10)==0) {
+                    html << "|";
+                } else if((position%5)==0) {
+                    html << "+";
+                } else {
+                    html << ".";
+                }
+            }
+            html << "</text>";
+        }
+
+
+
+        // Repeat counts.
+        for(size_t position=beginRlePosition; position!=endRlePosition; position++) {
+            Base base;
+            uint8_t repeatCount;
+            tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
+
+            html <<
+                "<text class='mono'" <<
+                " x='" << (position-beginRlePosition)*horizontalSpacing << "'" <<
+                " y='" << 3*verticalSpacing << "'"
+                " textLength='" << horizontalSpacing<< "'>";
+            if(repeatCount < 10) {
+                html << int(repeatCount);
             } else {
-                html << ".";
+                html << "*";
+            }
+            html << "<title>" << base << " at run-length position " << position <<
+                " is repeated " << int(repeatCount) << " times</title>";
+            html << "</text>";
+        }
+
+        
+        // Read sequence in run length encoding.
+        // This code uses one <text> element for every blockSize characters.
+        // This way you can select sequence text without getting a
+        // new line after each character, while still achieving good
+        // alignment.
+        const uint32_t readSequenceLine = 4;
+        for(uint64_t blockBegin=0; blockBegin<(endRlePosition-beginRlePosition); blockBegin+=blockSize) {
+            const uint64_t blockEnd = min(
+                uint64_t(blockBegin+blockSize),
+                uint64_t(endRlePosition-beginRlePosition)
+            );
+            html <<
+                "<text class='mono'" <<
+                " x='" << blockBegin*horizontalSpacing << "'" <<
+                " y='" << readSequenceLine*verticalSpacing << "'"
+                " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
+            for(size_t position=beginRlePosition+blockBegin; position<beginRlePosition+blockEnd; position++) {
+                html << reads->getOrientedReadBase(orientedReadId, uint32_t(position));
+            }
+            html << "</text>";
+        }
+    
+
+
+        // Draw a rectangle for each highlighted marker.
+        for(const uint32_t ordinal: highlightedMarkers) {
+            const CompressedMarker& marker = orientedReadMarkers[ordinal];
+            html <<
+                "<rect" <<
+                " x='" << (marker.position-beginRlePosition)*horizontalSpacing << "'"
+                " y='" << (readSequenceLine + markerRow[ordinal])*verticalSpacing + highlightedMarkerVerticalOffset << "'"
+                " height='" << verticalSpacing << "'"
+                " width='" << k * horizontalSpacing << "'"
+                " style='fill:pink; stroke:none;'"
+                "/>";
+        }
+
+
+
+        // Markers.
+        if(markers.isOpen() and markerGraph.vertices().isOpen()) {
+            for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
+                const CompressedMarker& marker = orientedReadMarkers[ordinal];
+                if (marker.position < beginRlePosition || marker.position > endRlePosition-k) {
+                    continue;
+                }
+
+                // See if this marker is contained in a vertex of the marker graph.
+                const MarkerGraph::VertexId vertexId =
+                    getGlobalMarkerGraphVertex(orientedReadId, ordinal);
+                const bool hasMarkerGraphVertex =
+                    (vertexId != MarkerGraph::invalidCompressedVertexId);
+
+
+
+                // Write the k-mer of this marker.
+                const Kmer kmer(marker.kmerId, k);
+                html << "<a xlink:title='Marker " << ordinal <<
+                    ", position " << marker.position <<
+                    ", k-mer id " << marker.kmerId;
+                if(hasMarkerGraphVertex) {
+                    html << ", coverage " << markerGraph.vertexCoverage(vertexId);
+                }
+                html << "' id='" << ordinal << "'";
+                if(hasMarkerGraphVertex) {
+                    // Add a hyperlink to the marker graph vertex
+                    // that contains this marker.
+                    const string url = "exploreMarkerGraph?vertexId=" + to_string(vertexId) +
+                        "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=320&timeout=30";
+                    html << " xlink:href='" << url << "' style='cursor:pointer'";
+                }
+                html << ">";
+
+                // This code uses one <text> element per character.
+                for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
+                    html << "<text class='";
+                    if(hasMarkerGraphVertex) {
+                        html << "blueMono";
+                    } else {
+                        html << "mono";
+                    }
+                    html << "'" <<
+                        " x='" << (marker.position-beginRlePosition+positionInMarker)*horizontalSpacing << "'" <<
+                        " y='" << (readSequenceLine+1+markerRow[ordinal])*verticalSpacing << "'>";
+                    html << kmer[positionInMarker];
+                    html << "</text>";
+                }
+                html << "</a>";
+
             }
         }
-        html << "</text>";
+
+
+        // Finish the svg object.
+        html << "</svg>";
+
+        // Scroll to the first highlighted marker.
+        if(!highlightedMarkers.empty()) {
+            const uint32_t ordinal = *highlightedMarkers.begin();
+            html <<
+                "<script>"
+                "var element = document.getElementById('" << ordinal << "');"
+                "var rectangle = element.getBoundingClientRect();"
+                "window.scroll(rectangle.left-100, rectangle.top-100);"
+                "</script>";
+        }
+
+
+
+        html <<
+            "<p>You can click on a blue marker above "
+            "to see the global marker graph around that marker. "
+            "Black markers correspond to a vertex of the marker graph "
+            "that was removed because of low coverage.";
     }
 
 
 
-    // Repeat counts.
-    for(size_t position=beginRlePosition; position!=endRlePosition; position++) {
-        Base base;
-        uint8_t repeatCount;
-        tie(base, repeatCount) = reads->getOrientedReadBaseAndRepeatCount(orientedReadId, uint32_t(position));
-        
-        html <<
-            "<text class='mono'" <<
-            " x='" << (position-beginRlePosition)*horizontalSpacing << "'" <<
-            " y='" << 3*verticalSpacing << "'"
-            " textLength='" << horizontalSpacing<< "'>";
-        if(repeatCount < 10) {
-            html << int(repeatCount);
+    // Display details of markers.
+    if(showMarkerTable) {
+        if (beginPositionIsPresent || endPositionIsPresent) {
+            html << "<h3>Detail of markers on this portion of this oriented read</h3>";
         } else {
-            html << "*";
+            html << "<h3>Detail of markers on this oriented read</h3>";
         }
-        html << "<title>" << base << " at run-length position " << position <<
-            " is repeated " << int(repeatCount) << " times</title>";
-        html << "</text>";
-    }
+        html << "<table><tr><th>Marker<br>ordinal<th>k-mer"
+            "<th>RLE<br>position<th>Raw<br>position"
+            "<th>Marker<br>graph<br>vertex"
+            "<th>Marker<br>graph<br>vertex<br>coverage";
 
-    
-    // Read sequence in run length encoding.
-    // This code uses one <text> element for every blockSize characters.
-    // This way you can select sequence text without getting a
-    // new line after each character, while still achieving good
-    // alignment.
-    const uint32_t readSequenceLine = 4;
-    for(uint64_t blockBegin=0; blockBegin<(endRlePosition-beginRlePosition); blockBegin+=blockSize) {
-        const uint64_t blockEnd = min(
-            uint64_t(blockBegin+blockSize),
-            uint64_t(endRlePosition-beginRlePosition)
-        );
-        html <<
-            "<text class='mono'" <<
-            " x='" << blockBegin*horizontalSpacing << "'" <<
-            " y='" << readSequenceLine*verticalSpacing << "'"
-            " textLength='" << (blockEnd-blockBegin) * horizontalSpacing<< "'>";
-        for(size_t position=beginRlePosition+blockBegin; position<beginRlePosition+blockEnd; position++) {
-            html << reads->getOrientedReadBase(orientedReadId, uint32_t(position));
-        }
-        html << "</text>";
-    }
-
-
-
-    // Draw a rectangle for each highlighted marker.
-    for(const uint32_t ordinal: highlightedMarkers) {
-        const CompressedMarker& marker = orientedReadMarkers[ordinal];
-        html <<
-            "<rect" <<
-            " x='" << (marker.position-beginRlePosition)*horizontalSpacing << "'"
-            " y='" << (readSequenceLine + markerRow[ordinal])*verticalSpacing + highlightedMarkerVerticalOffset << "'"
-            " height='" << verticalSpacing << "'"
-            " width='" << k * horizontalSpacing << "'"
-            " style='fill:pink; stroke:none;'"
-            "/>";
-    }
-
-
-
-    // Markers.
-    if(markers.isOpen() and markerGraph.vertices().isOpen()) {
-        for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
+        // Loop over all markers on this oriented read.
+        for(uint32_t ordinal=0; ordinal<orientedReadMarkers.size(); ordinal++) {
             const CompressedMarker& marker = orientedReadMarkers[ordinal];
-            if (marker.position < beginRlePosition || marker.position > endRlePosition-k) {
+            const Kmer kmer(marker.kmerId, k);
+            const uint32_t rlePosition = marker.position;
+            const uint32_t rawPosition = rawPositions[rlePosition];
+
+            if(beginPositionIsPresent and rawPosition<beginPosition) {
+                continue;
+            }
+            if(endPositionIsPresent and rawPosition>endPosition) {
                 continue;
             }
 
-            // See if this marker is contained in a vertex of the marker graph.
             const MarkerGraph::VertexId vertexId =
                 getGlobalMarkerGraphVertex(orientedReadId, ordinal);
             const bool hasMarkerGraphVertex =
                 (vertexId != MarkerGraph::invalidCompressedVertexId);
 
+            html << "<tr><td class=centered>"<< ordinal << "<td class=centered><code>";
+            kmer.write(html, k);
+            html << "</code><td class=centered>" << rlePosition << "<td class=centered>" << rawPosition;
 
-
-            // Write the k-mer of this marker.
-            const Kmer kmer(marker.kmerId, k);
-            html << "<a xlink:title='Marker " << ordinal <<
-                ", position " << marker.position <<
-                ", k-mer id " << marker.kmerId;
             if(hasMarkerGraphVertex) {
-                html << ", coverage " << markerGraph.vertexCoverage(vertexId);
-            }
-            html << "' id='" << ordinal << "'";
-            if(hasMarkerGraphVertex) {
-                // Add a hyperlink to the marker graph vertex
-                // that contains this marker.
                 const string url = "exploreMarkerGraph?vertexId=" + to_string(vertexId) +
                     "&maxDistance=2&detailed=on&minCoverage=3&minConsensus=3&sizePixels=320&timeout=30";
-                html << " xlink:href='" << url << "' style='cursor:pointer'";
+                html << "<td class=centered><a href='" << url << "'>" << vertexId << "</a>"
+                    "<td class=centered>" << markerGraph.vertexCoverage(vertexId);
+            } else {
+                html << "<td><td>";
             }
-            html << ">";
 
-            // This code uses one <text> element per character.
-            for(size_t positionInMarker=0; positionInMarker<k; positionInMarker++) {
-                html << "<text class='";
-                if(hasMarkerGraphVertex) {
-                    html << "blueMono";
-                } else {
-                    html << "mono";
-                }
-                html << "'" <<
-                    " x='" << (marker.position-beginRlePosition+positionInMarker)*horizontalSpacing << "'" <<
-                    " y='" << (readSequenceLine+1+markerRow[ordinal])*verticalSpacing << "'>";
-                html << kmer[positionInMarker];
-                html << "</text>";
-            }
-            html << "</a>";
 
+            html << "\n";
         }
+
+        html << "</table>";
     }
-
-
-    // Finish the svg object.
-    html << "</svg>";
-
-    // Scroll to the first highlighted marker.
-    if(!highlightedMarkers.empty()) {
-        const uint32_t ordinal = *highlightedMarkers.begin();
-        html <<
-            "<script>"
-            "var element = document.getElementById('" << ordinal << "');"
-            "var rectangle = element.getBoundingClientRect();"
-            "window.scroll(rectangle.left-100, rectangle.top-100);"
-            "</script>";
-    }
-
-
-
-    html <<
-        "<p>You can click on a blue marker above "
-        "to see the global marker graph around that marker. "
-        "Black markers correspond to a vertex of the marker graph "
-        "that was removed because of low coverage.";
-
 
 
 
     // Frequency of markers on this oriented read.
-    vector<KmerId> kmers;
-    for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
-        const CompressedMarker& marker = orientedReadMarkers[ordinal];
-        if (marker.position >= beginRlePosition && marker.position <= endRlePosition - k) {
-            kmers.push_back(marker.kmerId);
+    if(showMarkerFrequencyTable) {
+        vector<KmerId> kmers;
+        for(uint32_t ordinal=0; ordinal<uint32_t(orientedReadMarkers.size()); ordinal++) {
+            const CompressedMarker& marker = orientedReadMarkers[ordinal];
+            if (marker.position >= beginRlePosition && marker.position <= endRlePosition - k) {
+                kmers.push_back(marker.kmerId);
+            }
         }
-    }
-    vector<uint32_t> kmerFrequency;
-    deduplicateAndCount(kmers, kmerFrequency);
-    vector< pair<KmerId, uint32_t> > markerFrequencyTable;
-    for(uint32_t i=0; i<kmers.size(); i++) {
-        markerFrequencyTable.push_back(make_pair(kmers[i], kmerFrequency[i]));
-    }
-    sort(markerFrequencyTable.begin(), markerFrequencyTable.end(),
-        OrderPairsBySecondOnlyGreater<KmerId, uint32_t>());
+        vector<uint32_t> kmerFrequency;
+        deduplicateAndCount(kmers, kmerFrequency);
+        vector< pair<KmerId, uint32_t> > markerFrequencyTable;
+        for(uint32_t i=0; i<kmers.size(); i++) {
+            markerFrequencyTable.push_back(make_pair(kmers[i], kmerFrequency[i]));
+        }
+        sort(markerFrequencyTable.begin(), markerFrequencyTable.end(),
+            OrderPairsBySecondOnlyGreater<KmerId, uint32_t>());
 
-    if(beginPositionIsPresent || endPositionIsPresent) {
-        html << "<h2>Frequency of markers in the selected portion in this oriented read</h2>";
-    } else {
-        html << "<h2>Frequency of markers in this oriented read</h2>";
+        if(beginPositionIsPresent || endPositionIsPresent) {
+            html << "<h2>Frequency of markers in the selected portion in this oriented read</h2>";
+        } else {
+            html << "<h2>Frequency of markers in this oriented read</h2>";
+        }
+        html << "<table><tr><th>Marker<th>Frequency";
+        for(const auto& p: markerFrequencyTable) {
+            const KmerId kmerId = p.first;
+            const uint32_t frequency = p.second;
+            const Kmer kmer(kmerId, k);
+            html << "<tr><td>";
+            kmer.write(html, k);
+            html << "<td>" << frequency;
+        }
+        html << "<table>";
     }
-    html << "<table><tr><th>KmerId<th>Marker<th>Frequency";
-    for(const auto& p: markerFrequencyTable) {
-        const KmerId kmerId = p.first;
-        const uint32_t frequency = p.second;
-        const Kmer kmer(kmerId, k);
-        html << "<tr><td>" << kmerId << "<td>";
-        kmer.write(html, k);
-        html << "<td>" << frequency;
-    }
-    html << "<table>";
-
 
 
 }
