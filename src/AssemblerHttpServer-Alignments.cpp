@@ -525,52 +525,87 @@ void Assembler::exploreAlignment(
 
     // Write out details of the alignment.
     if(displayDetails) {
+
+        // To make sure cut and paste to a spreadsheet works,
+        // keep the header simple (no colspan, rowspan).
         html <<
             "<h3>Alignment details</h3>"
             "<table>"
 
             "<tr>"
-            "<th rowspan=2>K-mer"
-            "<th colspan=3>Ordinals"
-            "<th colspan=2>Positions<br>(RLE)"
+            "<th>K-mer"
+            "<th style='background-color:AliceBlue' title='Marker ordinal on " <<
+            orientedReadId0 << "'>Ord<br>" << orientedReadId0 <<
+            "<th style='background-color:AliceBlue' title='Marker ordinal on " <<
+            orientedReadId1 << "'>Ord<br>" << orientedReadId1 <<
+            "<th style='background-color:AliceBlue' title='Marker ordinal offset'>Ord<br>Offset"
+            "<th style='background-color:CornSilk' title='RLE position on " <<
+            orientedReadId0 << "'>RLE<br>" << orientedReadId0 <<
+            "<th style='background-color:CornSilk' title='RLE position on " <<
+            orientedReadId1 << "'>RLE<br>" << orientedReadId1 <<
+            "<th style='background-color:CornSilk' title='RLE position offset'>RLE<br>Offset"
+            "<th style='background-color:LavenderBlush' title='Raw position on " <<
+            orientedReadId0 << "'>Raw<br>" << orientedReadId0 <<
+            "<th style='background-color:LavenderBlush' title='Raw position on " <<
+            orientedReadId1 << "'>Raw<br>" << orientedReadId1 <<
+            "<th style='background-color:LavenderBlush' title='Raw position offset'>Raw<br>Offset";
 
-            "<tr>"
-            "<th>" << orientedReadId0 <<
-            "<th>" << orientedReadId1 <<
-            "<th>Offset"
-            "<th>" << orientedReadId0 <<
-            "<th>" << orientedReadId1;
-
+        // Access the markers for the two oriented reads.
         const auto markers0 = markers[orientedReadId0.getValue()];
         const auto markers1 = markers[orientedReadId1.getValue()];
+
+        // Compute the raw position corresponding to each RLE position.
+        const vector<uint32_t> rawPositions0 = reads->getRawPositions(orientedReadId0);
+        const vector<uint32_t> rawPositions1 = reads->getRawPositions(orientedReadId1);
+
+        // Loop over all markers.
         for(const auto& ordinals: alignment.ordinals) {
             const auto ordinal0 = ordinals[0];
             const auto ordinal1 = ordinals[1];
+
             const auto& marker0 = markers0[ordinal0];
             const auto& marker1 = markers1[ordinal1];
+
             const auto kmerId = marker0.kmerId;
             SHASTA_ASSERT(marker1.kmerId == kmerId);
             const Kmer kmer(kmerId, assemblerInfo->k);
+
+            const uint32_t rlePosition0 = marker0.position;
+            const uint32_t rlePosition1 = marker1.position;
+
+            const uint32_t rawPosition0 = rawPositions0[rlePosition0];
+            const uint32_t rawPosition1 = rawPositions1[rlePosition1];
 
             html << "<tr><td style='font-family:monospace'>";
             kmer.write(html, assemblerInfo->k);
             html <<
 
-                "<td class=centered>"
+                // Ordinal0.
+                "<td class=centered style='background-color:AliceBlue'>"
                 "<a href=\"exploreRead?readId=" << orientedReadId0.getReadId() <<
                 "&amp;strand=" << orientedReadId0.getStrand() <<
                 "&amp;highlightMarker=" << ordinal0 <<
                 "#" << ordinal0 << "\">" << ordinal0 << "</a>"
 
-                "<td class=centered>"
+                // Ordinal1.
+                "<td class=centered style='background-color:AliceBlue'>"
                 "<a href=\"exploreRead?readId=" << orientedReadId1.getReadId() <<
                 "&amp;strand=" << orientedReadId1.getStrand() <<
                 "&amp;highlightMarker=" << ordinal1 <<
                 "#" << ordinal1 << "\">" << ordinal1 << "</a>"
 
-                "<td class=centered>" << int32_t(ordinal0) - int32_t(ordinal1) <<
-                "<td class=centered>" << marker0.position <<
-                "<td class=centered>" << marker1.position;
+                // Ordinal offset.
+                "<td class=centered style='background-color:AliceBlue'>" << int32_t(ordinal0) - int32_t(ordinal1) <<
+
+                // RLE positions and their offset.
+                "<td class=centered style='background-color:CornSilk'>" << rlePosition0 <<
+                "<td class=centered style='background-color:CornSilk'>" << rlePosition1 <<
+                "<td class=centered style='background-color:CornSilk'>" << int32_t(rlePosition0) - int32_t(rlePosition1) <<
+
+                // Raw positions and their offset.
+                "<td class=centered style='background-color:LavenderBlush'>" << rawPosition0 <<
+                "<td class=centered style='background-color:LavenderBlush'>" << rawPosition1 <<
+                "<td class=centered style='background-color:LavenderBlush'>" << int32_t(rawPosition0) - int32_t(rawPosition1);
 
         }
 
