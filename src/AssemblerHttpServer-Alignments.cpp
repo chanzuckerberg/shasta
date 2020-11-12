@@ -349,6 +349,10 @@ void Assembler::exploreAlignment(
     int maxBand = httpServerData.assemblerOptions->alignOptions.maxBand;
     getParameterValue(request, "maxBand", maxBand);
 
+    string displayMatrixString;
+    bool displayMatrix = getParameterValue(request, "displayMatrix", displayMatrixString);
+    string displayDetailsString;
+    bool displayDetails = getParameterValue(request, "displayDetails", displayDetailsString);
 
 
     // Write the form.
@@ -385,7 +389,12 @@ void Assembler::exploreAlignment(
         html
     );
 
-    html << "</form>";
+    html <<
+        "<p><input type=checkbox name=displayMatrix" << (displayMatrix ? " checked=checked" : "") <<
+        "> Display alignment matrix"
+        "<p><input type=checkbox name=displayDetails" << (displayDetails ? " checked=checked" : "") <<
+        "> Display alignment details"
+        "</form>";
 
 
     // If the readId's or strand's are missing, stop here.
@@ -416,7 +425,7 @@ void Assembler::exploreAlignment(
         getMarkersSortedByKmerId(orientedReadId0, markersSortedByKmerId[0]);
         getMarkersSortedByKmerId(orientedReadId1, markersSortedByKmerId[1]);
         AlignmentGraph graph;
-        const bool debug = true;
+        const bool debug = false;
         alignOrientedReads(
             markersSortedByKmerId,
             maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
@@ -440,18 +449,6 @@ void Assembler::exploreAlignment(
     }
 
 
-    // Make sure we have Alignment.png to display.
-    if(method != 0) {
-        vector<MarkerWithOrdinal> sortedMarkers0;
-        vector<MarkerWithOrdinal> sortedMarkers1;
-        getMarkersSortedByKmerId(orientedReadId0, sortedMarkers0);
-        getMarkersSortedByKmerId(orientedReadId1, sortedMarkers1);
-        AlignmentGraph::writeImage(
-            sortedMarkers0,
-            sortedMarkers1,
-            alignment,
-            "Alignment.png");
-    }
 
     if (alignment.ordinals.empty()) {
         html << "<p>The computed alignment is empty.";
@@ -466,15 +463,6 @@ void Assembler::exploreAlignment(
         return;
     }
 
-    // If the alignment has too much trim, skip it.
-    uint32_t leftTrim;
-    uint32_t rightTrim;
-    tie(leftTrim, rightTrim) = alignmentInfo.computeTrim();
-    if(leftTrim>maxTrim || rightTrim>maxTrim) {
-        html << "<p>Alignment has too much trim. Left trim = " << leftTrim
-            << " Right trim = " << rightTrim;
-        return;
-    }
 
 
     // Write summary information for this alignment.
@@ -484,93 +472,110 @@ void Assembler::exploreAlignment(
         orientedReadId1,
         alignmentInfo,
         html);
-    html << "<br>See below for alignment details.";
 
 
-    // Create a base64 version of the png file.
-    const string command = "base64 Alignment.png > Alignment.png.base64";
-    ::system(command.c_str());
 
+    if(displayMatrix) {
 
-    // Write out the picture with the alignment.
-    html <<
-        "<h3>Alignment matrix</h3>"
-        "<p>In the picture, horizontal positions correspond to marker ordinals on " <<
-        orientedReadId0 << " (marker 0 is on left) "
-        "and vertical positions correspond to marker ordinals on " <<
-        orientedReadId1 << " (marker 0 is on top). "
-        "Each faint line corresponds to 10 markers."
-        "<p><img id=\"alignmentMatrix\" onmousemove=\"updateTitle(event)\" "
-        "src=\"data:image/png;base64,";
-    ifstream png("Alignment.png.base64");
-    html << png.rdbuf();
-    html << "\"/>"
-        "<script>"
-        "function updateTitle(e)"
-        "{"
-        "    var element = document.getElementById(\"alignmentMatrix\");"
-        "    var rectangle = element.getBoundingClientRect();"
-        "    var x = e.clientX - Math.round(rectangle.left);"
-        "    var y = e.clientY - Math.round(rectangle.top);"
-        "    element.title = " <<
-        "\"" << orientedReadId0 << " marker \" + x + \", \" + "
-        "\"" << orientedReadId1 << " marker \" + y;"
-        "}"
-        "</script>";
+        // Create an image of the alignment matrix in Alignment.png.
+            vector<MarkerWithOrdinal> sortedMarkers0;
+            vector<MarkerWithOrdinal> sortedMarkers1;
+            getMarkersSortedByKmerId(orientedReadId0, sortedMarkers0);
+            getMarkersSortedByKmerId(orientedReadId1, sortedMarkers1);
+            AlignmentGraph::writeImage(
+                sortedMarkers0,
+                sortedMarkers1,
+                alignment,
+                "Alignment.png");
+
+        // Create a base64 version of the png file.
+        const string command = "base64 Alignment.png > Alignment.png.base64";
+        ::system(command.c_str());
+
+        // Write out the picture with the alignment.
+        html <<
+            "<h3>Alignment matrix</h3>"
+            "<p>In the picture, horizontal positions correspond to marker ordinals on " <<
+            orientedReadId0 << " (marker 0 is on left) "
+            "and vertical positions correspond to marker ordinals on " <<
+            orientedReadId1 << " (marker 0 is on top). "
+            "Each faint line corresponds to 10 markers."
+            "<p><img id=\"alignmentMatrix\" onmousemove=\"updateTitle(event)\" "
+            "src=\"data:image/png;base64,";
+        ifstream png("Alignment.png.base64");
+        html << png.rdbuf();
+
+        // Adjust the tooltip dynamically to follow the mouse.
+        html << "\"/>"
+            "<script>"
+            "function updateTitle(e)"
+            "{"
+            "    var element = document.getElementById(\"alignmentMatrix\");"
+            "    var rectangle = element.getBoundingClientRect();"
+            "    var x = e.clientX - Math.round(rectangle.left);"
+            "    var y = e.clientY - Math.round(rectangle.top);"
+            "    element.title = " <<
+            "\"" << orientedReadId0 << " marker \" + x + \", \" + "
+            "\"" << orientedReadId1 << " marker \" + y;"
+            "}"
+            "</script>";
+    }
 
 
 
     // Write out details of the alignment.
-    html <<
-        "<h3>Alignment details</h3>"
-        "<table>"
-
-        "<tr>"
-        "<th rowspan=2>K-mer"
-        "<th colspan=3>Ordinals"
-        "<th colspan=2>Positions<br>(RLE)"
-
-        "<tr>"
-        "<th>" << orientedReadId0 <<
-        "<th>" << orientedReadId1 <<
-        "<th>Offset"
-        "<th>" << orientedReadId0 <<
-        "<th>" << orientedReadId1;
-
-    const auto markers0 = markers[orientedReadId0.getValue()];
-    const auto markers1 = markers[orientedReadId1.getValue()];
-    for(const auto& ordinals: alignment.ordinals) {
-        const auto ordinal0 = ordinals[0];
-        const auto ordinal1 = ordinals[1];
-        const auto& marker0 = markers0[ordinal0];
-        const auto& marker1 = markers1[ordinal1];
-        const auto kmerId = marker0.kmerId;
-        SHASTA_ASSERT(marker1.kmerId == kmerId);
-        const Kmer kmer(kmerId, assemblerInfo->k);
-
-        html << "<tr><td style='font-family:monospace'>";
-        kmer.write(html, assemblerInfo->k);
+    if(displayDetails) {
         html <<
+            "<h3>Alignment details</h3>"
+            "<table>"
 
-            "<td class=centered>"
-            "<a href=\"exploreRead?readId=" << orientedReadId0.getReadId() <<
-            "&amp;strand=" << orientedReadId0.getStrand() <<
-            "&amp;highlightMarker=" << ordinal0 <<
-            "#" << ordinal0 << "\">" << ordinal0 << "</a>"
+            "<tr>"
+            "<th rowspan=2>K-mer"
+            "<th colspan=3>Ordinals"
+            "<th colspan=2>Positions<br>(RLE)"
 
-            "<td class=centered>"
-            "<a href=\"exploreRead?readId=" << orientedReadId1.getReadId() <<
-            "&amp;strand=" << orientedReadId1.getStrand() <<
-            "&amp;highlightMarker=" << ordinal1 <<
-            "#" << ordinal1 << "\">" << ordinal1 << "</a>"
+            "<tr>"
+            "<th>" << orientedReadId0 <<
+            "<th>" << orientedReadId1 <<
+            "<th>Offset"
+            "<th>" << orientedReadId0 <<
+            "<th>" << orientedReadId1;
 
-            "<td class=centered>" << int32_t(ordinal0) - int32_t(ordinal1) <<
-            "<td class=centered>" << marker0.position <<
-            "<td class=centered>" << marker1.position;
+        const auto markers0 = markers[orientedReadId0.getValue()];
+        const auto markers1 = markers[orientedReadId1.getValue()];
+        for(const auto& ordinals: alignment.ordinals) {
+            const auto ordinal0 = ordinals[0];
+            const auto ordinal1 = ordinals[1];
+            const auto& marker0 = markers0[ordinal0];
+            const auto& marker1 = markers1[ordinal1];
+            const auto kmerId = marker0.kmerId;
+            SHASTA_ASSERT(marker1.kmerId == kmerId);
+            const Kmer kmer(kmerId, assemblerInfo->k);
 
+            html << "<tr><td style='font-family:monospace'>";
+            kmer.write(html, assemblerInfo->k);
+            html <<
+
+                "<td class=centered>"
+                "<a href=\"exploreRead?readId=" << orientedReadId0.getReadId() <<
+                "&amp;strand=" << orientedReadId0.getStrand() <<
+                "&amp;highlightMarker=" << ordinal0 <<
+                "#" << ordinal0 << "\">" << ordinal0 << "</a>"
+
+                "<td class=centered>"
+                "<a href=\"exploreRead?readId=" << orientedReadId1.getReadId() <<
+                "&amp;strand=" << orientedReadId1.getStrand() <<
+                "&amp;highlightMarker=" << ordinal1 <<
+                "#" << ordinal1 << "\">" << ordinal1 << "</a>"
+
+                "<td class=centered>" << int32_t(ordinal0) - int32_t(ordinal1) <<
+                "<td class=centered>" << marker0.position <<
+                "<td class=centered>" << marker1.position;
+
+        }
+
+        html << "</table>";
     }
-
-    html << "</table>";
 }
 
 
