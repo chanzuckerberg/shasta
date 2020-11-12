@@ -113,6 +113,7 @@ void Assembler::processRequest(
     }
     writeHtmlEnd(html);
 }
+#endif
 
 
 
@@ -201,6 +202,8 @@ function makeAllTablesSelectableByDoubleClick()
 }
 
 
+
+#ifdef SHASTA_HTTP_SERVER
 
 
 void Assembler::writeNavigation(ostream& html) const
