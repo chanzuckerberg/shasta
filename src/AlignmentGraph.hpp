@@ -168,6 +168,7 @@ public:
         const vector<MarkerWithOrdinal>&,
         const vector<MarkerWithOrdinal>&,
         const Alignment&,
+        uint64_t markersPerPixel,
         const string& fileName);
 private:
 

@@ -351,6 +351,8 @@ void Assembler::exploreAlignment(
 
     string displayMatrixString;
     bool displayMatrix = getParameterValue(request, "displayMatrix", displayMatrixString);
+    int64_t markersPerPixel = 1;
+    getParameterValue(request, "markersPerPixel", markersPerPixel);
     string displayDetailsString;
     bool displayDetails = getParameterValue(request, "displayDetails", displayDetailsString);
 
@@ -391,8 +393,10 @@ void Assembler::exploreAlignment(
 
     html <<
         "<p><input type=checkbox name=displayMatrix" << (displayMatrix ? " checked=checked" : "") <<
-        "> Display alignment matrix"
-        "<p><input type=checkbox name=displayDetails" << (displayDetails ? " checked=checked" : "") <<
+        "> Display alignment matrix at "
+        "<input type=text name=markersPerPixel size=6 value=" << markersPerPixel <<
+        "> markers per pixel."
+        "<br><input type=checkbox name=displayDetails" << (displayDetails ? " checked=checked" : "") <<
         "> Display alignment details"
         "</form>";
 
@@ -486,6 +490,7 @@ void Assembler::exploreAlignment(
                 sortedMarkers0,
                 sortedMarkers1,
                 alignment,
+                markersPerPixel,
                 "Alignment.png");
 
         // Create a base64 version of the png file.
@@ -512,8 +517,8 @@ void Assembler::exploreAlignment(
             "{"
             "    var element = document.getElementById(\"alignmentMatrix\");"
             "    var rectangle = element.getBoundingClientRect();"
-            "    var x = e.clientX - Math.round(rectangle.left);"
-            "    var y = e.clientY - Math.round(rectangle.top);"
+            "    var x = " << markersPerPixel << " * (e.clientX - Math.round(rectangle.left));"
+            "    var y = " << markersPerPixel << " * (e.clientY - Math.round(rectangle.top));"
             "    element.title = " <<
             "\"" << orientedReadId0 << " marker \" + x + \", \" + "
             "\"" << orientedReadId1 << " marker \" + y;"

@@ -132,7 +132,7 @@ void AlignmentGraph::create(
 
 #ifdef SHASTA_HTTP_SERVER
     if(debug) {
-        writeImage(markers[0], markers[1], alignment, "Alignment.png");
+        writeImage(markers[0], markers[1], alignment, 1, "Alignment.png");
     }
 #endif
 }
@@ -503,13 +503,16 @@ void AlignmentGraph::writeImage(
     const vector<MarkerWithOrdinal>& markers0,
     const vector<MarkerWithOrdinal>& markers1,
     const Alignment& alignment,
+    uint64_t markersPerPixel,
     const string& fileName)
 {
 
     // Create the image, which gets initialized to black.
     const int n0 = int(markers0.size());
     const int n1 = int(markers1.size());
-    PngImage image(n0, n1);
+    const int m0 = (n0 - 1) / int(markersPerPixel) + 1;
+    const int m1 = (n1 - 1) / int(markersPerPixel) + 1;
+    PngImage image(m0, m1);
 
 
 
@@ -526,15 +529,21 @@ void AlignmentGraph::writeImage(
     gridSpacing.push_back(50000); gridRgb.push_back({255, 255, 120});  // Yellow
     for(size_t i=0; i<gridSpacing.size(); i++) {
         const int spacing = gridSpacing[i];
+
+        // If the spacing is too low for our resolution, skip it.
+        if(spacing < 10 * int(markersPerPixel)) {
+            continue;
+        }
+
         const array<int, 3>& rgb = gridRgb[i];
         for(int i0=0; i0<n0; i0+=spacing) {
-            for(int i1=0; i1<n1; i1++) {
-                image.setPixel(i0, i1, rgb[0], rgb[1], rgb[2]);
+            for(int i1=0; i1<n1; i1+=int(markersPerPixel)) {
+                image.setPixel(i0/int(markersPerPixel), i1/int(markersPerPixel), rgb[0], rgb[1], rgb[2]);
             }
         }
         for(int i1=0; i1<n1; i1+=spacing) {
-            for(int i0=0; i0<n0; i0++) {
-                image.setPixel(i0, i1, rgb[0], rgb[1], rgb[2]);
+            for(int i0=0; i0<n0; i0+=int(markersPerPixel)) {
+                image.setPixel(i0/int(markersPerPixel), i1/int(markersPerPixel), rgb[0], rgb[1], rgb[2]);
             }
         }
     }
@@ -547,14 +556,14 @@ void AlignmentGraph::writeImage(
         for(int i1=0; i1<n1; i1++) {
             const MarkerWithOrdinal& marker1 = markers1[i1];
             if(marker0.kmerId == marker1.kmerId) {
-                image.setPixel(marker0.ordinal, marker1.ordinal, 255, 0, 0);
+                image.setPixel(marker0.ordinal/int(markersPerPixel), int(marker1.ordinal/markersPerPixel), 255, 0, 0);
             }
         }
     }
 
     // Write the alignment.
     for(const auto& p: alignment.ordinals) {
-        image.setPixel(p[0], p[1], 0, 255, 0);
+        image.setPixel(p[0]/int(markersPerPixel), p[1]/int(markersPerPixel), 0, 255, 0);
     }
 
     // Write it out.
