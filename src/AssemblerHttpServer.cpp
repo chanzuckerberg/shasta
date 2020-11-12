@@ -116,8 +116,54 @@ void Assembler::processRequest(
 
 
 
-void Assembler::writeMakeAllTablesSelectable(ostream& html) const
+void Assembler::writeMakeAllTablesCopyable(ostream& html) const
 {
+    html << R"###(
+    <script>
+
+    // Copy to the clipboard the table that generated the event.
+    function copyToClipboard(event)
+    {
+        // Turn off the standard context menu.
+        event.preventDefault();
+        
+        // Get the table element.
+        var element = event.currentTarget;
+         
+        // Remove any previous selection.
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        
+        // Select the table.
+        var range = document.createRange();
+        range.selectNodeContents(element);
+        selection.addRange(range);
+        
+        // Copy it to the clipboard.
+        document.execCommand("copy");
+    }
+
+    // Make a table copyable by right click.
+    function makeCopyable(element)
+    {
+        element.addEventListener('contextmenu', copyToClipboard);
+        element.title = 'Right click anywhere on the table to copy the entire table to the clipboard';
+    }
+
+    // Make all tables copyable by right click.
+    function makeAllTablesCopyable()
+    {
+        var tables = document.getElementsByTagName('table');
+        var i;
+        for(i=0; i<tables.length; i++) {
+            makeCopyable(tables[i]);
+        }
+    }
+    </script>
+    )###";
+
+
+#if 0
     html << R"###(
 <script>
 
@@ -151,6 +197,7 @@ function makeAllTablesSelectableByDoubleClick()
 }
 </script>
     )###";
+#endif
 }
 
 
@@ -548,10 +595,10 @@ void Assembler::writeHtmlBegin(ostream& html) const
         "<meta charset='UTF-8'>"
         "<title>Shasta assembler</title>";
     writeStyle(html);
-    // writeMakeAllTablesSelectable(html);
+    writeMakeAllTablesCopyable(html);
     html <<
         "</head>"
-        ;// "<body onload='makeAllTablesSelectableByDoubleClick()'>";
+        "<body onload='makeAllTablesCopyable()'>";
 }
 
 

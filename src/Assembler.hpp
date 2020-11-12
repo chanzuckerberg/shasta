@@ -1775,7 +1775,7 @@ public:
         const vector<string>& request,
         ostream&,
         const BrowserInformation&) override;
-    void writeMakeAllTablesSelectable(ostream&) const;
+    void writeMakeAllTablesCopyable(ostream&) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
     void blastRead(const vector<string>&, ostream&);
