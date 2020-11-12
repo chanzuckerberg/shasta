@@ -1775,7 +1775,6 @@ public:
         const vector<string>& request,
         ostream&,
         const BrowserInformation&) override;
-    void writeMakeAllTablesCopyable(ostream&) const;
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
     void blastRead(const vector<string>&, ostream&);
@@ -1868,6 +1867,7 @@ public:
         ostream& html
     );
 #endif
+    void writeMakeAllTablesCopyable(ostream&) const;
 
     // Do bulk sampling of reads and accumulate stats about their alignments
     void assessAlignments(const vector<string>& request, ostream& html);
