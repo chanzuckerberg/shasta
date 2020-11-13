@@ -440,7 +440,6 @@ void Assembler::exploreAlignment(
 
         if(alignment.ordinals.empty()) {
             html << "<p>The alignment is empty (it has no markers).";
-            return;
         }
     } else if(method == 1) {
         alignOrientedReads1(
@@ -460,15 +459,12 @@ void Assembler::exploreAlignment(
 
     if (alignment.ordinals.empty()) {
         html << "<p>The computed alignment is empty.";
-        return;
     }
     if (alignment.ordinals.size() < minAlignedMarkerCount) {
         html << "<p>Alignment has fewer than " << minAlignedMarkerCount << " markers.";
-        return;
     }
     if (alignmentInfo.minAlignedFraction() < minAlignedFraction) {
         html << "<p>Min aligned fraction is smaller than " << minAlignedFraction << ".";
-        return;
     }
 
 
