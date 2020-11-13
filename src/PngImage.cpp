@@ -1,5 +1,3 @@
-#if 1
-//#ifdef __linux__
 #include "PngImage.hpp"
 using namespace shasta;
 
@@ -73,5 +71,47 @@ void PngImage::write(const std::string& fileName) const
     ::png_destroy_write_struct(&pngPointer, &infoPointer);
     std::fclose (fp);
 }
-#endif
+
+
+
+
+// Construct a magnified version of another PngImage.
+PngImage::PngImage(const PngImage& that, int magnifyFactor) :
+    width(magnifyFactor * that.width),
+    height(magnifyFactor * that.height),
+    data(3 * width * height)
+{
+    for(int y=0; y<that.height; y++) {
+        for(int dy=0; dy<magnifyFactor; dy++) {
+            const int Y = magnifyFactor * y + dy;
+            for(int x=0; x<that.width; x++) {
+                const auto pixel = that.data.begin() + 3* (that.width * y + x);
+                for(int dx=0; dx<magnifyFactor; dx++) {
+                    const int X = magnifyFactor * x + dx;
+                    setPixel(X, Y, pixel[0], pixel[1], pixel[2]);
+                }
+            }
+        }
+    }
+
+}
+
+
+
+// Magnify this image.
+void PngImage::magnify(int magnifyFactor)
+{
+    PngImage magnified(*this, magnifyFactor);
+    swap(magnified);
+}
+
+
+
+// Swap the content of this image with the content of another.
+void PngImage::swap(PngImage& that)
+{
+    std::swap(width, that.width);
+    std::swap(height, that.height);
+    data.swap(that.data);
+}
 

@@ -353,6 +353,8 @@ void Assembler::exploreAlignment(
     bool displayMatrix = getParameterValue(request, "displayMatrix", displayMatrixString);
     int64_t markersPerPixel = 1;
     getParameterValue(request, "markersPerPixel", markersPerPixel);
+    uint64_t magnifyFactor = 1;
+    getParameterValue(request, "magnifyFactor", magnifyFactor);
     string displayDetailsString;
     bool displayDetails = getParameterValue(request, "displayDetails", displayDetailsString);
 
@@ -395,7 +397,9 @@ void Assembler::exploreAlignment(
         "<p><input type=checkbox name=displayMatrix" << (displayMatrix ? " checked=checked" : "") <<
         "> Display alignment matrix at "
         "<input type=text name=markersPerPixel size=6 value=" << markersPerPixel <<
-        "> markers per pixel."
+        "> markers per pixel and with each pixel magnified "
+        " <input type=text name=magnifyFactor size=6 value=" << magnifyFactor <<
+        "> times."
         "<br><input type=checkbox name=displayDetails" << (displayDetails ? " checked=checked" : "") <<
         "> Display alignment details"
         "</form>";
@@ -482,16 +486,17 @@ void Assembler::exploreAlignment(
     if(displayMatrix) {
 
         // Create an image of the alignment matrix in Alignment.png.
-            vector<MarkerWithOrdinal> sortedMarkers0;
-            vector<MarkerWithOrdinal> sortedMarkers1;
-            getMarkersSortedByKmerId(orientedReadId0, sortedMarkers0);
-            getMarkersSortedByKmerId(orientedReadId1, sortedMarkers1);
-            AlignmentGraph::writeImage(
-                sortedMarkers0,
-                sortedMarkers1,
-                alignment,
-                markersPerPixel,
-                "Alignment.png");
+        vector<MarkerWithOrdinal> sortedMarkers0;
+        vector<MarkerWithOrdinal> sortedMarkers1;
+        getMarkersSortedByKmerId(orientedReadId0, sortedMarkers0);
+        getMarkersSortedByKmerId(orientedReadId1, sortedMarkers1);
+        AlignmentGraph::writeImage(
+            sortedMarkers0,
+            sortedMarkers1,
+            alignment,
+            markersPerPixel,
+            magnifyFactor,
+            "Alignment.png");
 
         // Create a base64 version of the png file.
         const string command = "base64 Alignment.png > Alignment.png.base64";
@@ -517,8 +522,8 @@ void Assembler::exploreAlignment(
             "{"
             "    var element = document.getElementById(\"alignmentMatrix\");"
             "    var rectangle = element.getBoundingClientRect();"
-            "    var x = " << markersPerPixel << " * (e.clientX - Math.round(rectangle.left));"
-            "    var y = " << markersPerPixel << " * (e.clientY - Math.round(rectangle.top));"
+            "    var x = Math.round((" << markersPerPixel << " * (e.clientX - Math.round(rectangle.left))) / " << magnifyFactor << ");"
+            "    var y = Math.round((" << markersPerPixel << " * (e.clientY - Math.round(rectangle.top))) / " << magnifyFactor << ");"
             "    element.title = " <<
             "\"" << orientedReadId0 << " marker \" + x + \", \" + "
             "\"" << orientedReadId1 << " marker \" + y;"

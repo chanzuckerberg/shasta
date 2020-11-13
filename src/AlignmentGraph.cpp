@@ -132,7 +132,7 @@ void AlignmentGraph::create(
 
 #ifdef SHASTA_HTTP_SERVER
     if(debug) {
-        writeImage(markers[0], markers[1], alignment, 1, "Alignment.png");
+        writeImage(markers[0], markers[1], alignment, 1, 1, "Alignment.png");
     }
 #endif
 }
@@ -504,6 +504,7 @@ void AlignmentGraph::writeImage(
     const vector<MarkerWithOrdinal>& markers1,
     const Alignment& alignment,
     uint64_t markersPerPixel,
+    uint64_t magnifyFactor,
     const string& fileName)
 {
 
@@ -564,6 +565,10 @@ void AlignmentGraph::writeImage(
     // Write the alignment.
     for(const auto& p: alignment.ordinals) {
         image.setPixel(p[0]/int(markersPerPixel), p[1]/int(markersPerPixel), 0, 255, 0);
+    }
+
+    if(magnifyFactor != 1) {
+        image.magnify(int(magnifyFactor));
     }
 
     // Write it out.

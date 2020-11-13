@@ -18,6 +18,15 @@ public:
     PngImage(int width, int height);
     void setPixel(int x, int y, int r, int g, int b);
     void write(const string& fileName) const;
+
+    // Construct a magnified version of another PngImage.
+    PngImage(const PngImage&, int magnifyFactor);
+
+    // Magnify this image.
+    void magnify(int magnifyFactor);
+
+    // Swap the content of this image with the content of another.
+    void swap(PngImage&);
 private:
     int width;
     int height;
