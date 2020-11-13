@@ -620,8 +620,7 @@ void Assembler::exploreAlignment(
 
 
 
-// Display a base-by-base alignment matrix between two given sequences.
-void Assembler::displayAlignmentMatrix(
+void Assembler::alignSequencesInBaseRepresentation(
     const vector<string>& request,
     ostream& html)
 {
@@ -657,11 +656,9 @@ void Assembler::displayAlignmentMatrix(
     const bool showGrid = (showGridString == "on");
 
 
-    // Get the zoom factor.
-
     // Write the form.
     html <<
-        "<p>Display a base-by-base alignment of these two sequences:"
+        "<p>Align these two sequences in base representation:"
         "<form>"
         "<input style='font-family:monospace' type=text name=sequence0 required size=64 value='" << sequenceString0 << "'>"
         "<br><input style='font-family:monospace' type=text name=sequence1 required size=64 value='" << sequenceString1 << "'>"
@@ -670,7 +667,7 @@ void Assembler::displayAlignmentMatrix(
         "<br><input type=checkbox name=showAlignment" << (showAlignment ? " checked" : "") << "> Show the alignment and highlight it in the alignment matrix."
         "<br><input type=checkbox name=showGrid" << (showGrid ? " checked" : "") << "> Show a grid on the alignment matrix."
         "<br>Zoom factor: <input type=text name=zoom required value=" << zoom << ">"
-        "<br><input type=submit value='Display'>"
+        "<br><input type=submit value='Align'>"
         "</form>";
 
     // If either sequence is empty, do nothing.
@@ -951,6 +948,22 @@ void Assembler::displayAlignmentMatrix(
 
 #endif
 }
+
+
+void Assembler::alignSequencesInMarkerRepresentation(
+    const vector<string>& request,
+    ostream& html)
+{
+    html <<
+        "<h1>Align two sequences in marker representation</h1>"
+        "<form method=post enctype='multipart/form-data'>"
+        "<input style='font-family:monospace' type=text name=sequence0 required size=64>"
+        "<input style='font-family:monospace' type=text name=sequence1 required size=64>"
+        "<br><input type=submit value='Align'>"
+        "</form>";
+}
+
+
 
 void Assembler::renderEditableAlignmentConfig(
     const int method,

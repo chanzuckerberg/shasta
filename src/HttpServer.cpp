@@ -529,7 +529,7 @@ void PostData::readContent(istream& s)
     s.read(&content.front(), content.size());
 
     // cout << "POST content:" << endl;
-    // cout << content;
+    // cout << content << endl;
 }
 
 
@@ -537,6 +537,8 @@ void PostData::readContent(istream& s)
 // Get the content boundary defined in the Content-Type header.
 // The actual boundary used to separate form data in the content
 // is this, prepended with two dashes.
+// We are only prepared to handle requests submitted with
+// <form method=post enctype='multipart/form-data'>
 string PostData::getBoundary() const
 {
     // Locate the data in the "Content-Type" header.
@@ -549,7 +551,7 @@ string PostData::getBoundary() const
     const string target = "boundary=";
     size_t begin = contentTypeData.find(target);
     if(begin == string::npos) {
-        throw runtime_error("POST request without boundary in connent type header is not supported.");
+        throw runtime_error("POST request without boundary in content type header is not supported.");
     }
     begin += target.size();
     size_t end = contentTypeData.find_first_of(' ', begin);
