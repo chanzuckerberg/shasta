@@ -1062,12 +1062,6 @@ void shasta::main::saveBinaryData(
             " running command:\n" + command);
     }
     cout << "Binary data successfully saved." << endl;
-
-    cout << "Data are not guaranteed to be physically on disk until a sync command completes. "
-        "To guarantee that all data are physically on disk, use a sync command "
-        "and wait for it to complete, "
-        "or stop the system using a clean shutdown procedure (shutdown command), "
-        "which includes a sync." << endl;
 }
 
 
