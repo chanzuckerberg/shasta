@@ -1162,7 +1162,7 @@ void Assembler::computeAllAlignments(
     computeAllAlignmentsData.orientedReadId0 = orientedReadId0;
     const size_t threadCount =std::thread::hardware_concurrency();
     computeAllAlignmentsData.threadAlignments.resize(threadCount);
-    const size_t batchSize = 1000;
+    const size_t batchSize = 1;
     setupLoadBalancing(reads->readCount(), batchSize);
     const auto t0 = std::chrono::steady_clock::now();
     runThreads(&Assembler::computeAllAlignmentsThreadFunction, threadCount);
