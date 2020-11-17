@@ -791,7 +791,7 @@ public:
     void alignOrientedReads4(
         OrientedReadId,
         OrientedReadId,
-        const AlignmentGraph4::Options&,
+        const AlignmentGraph4Options&,
         Alignment&,
         AlignmentInfo&,
         bool debug,

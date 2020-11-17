@@ -13,7 +13,7 @@ void Assembler::alignOrientedReads4(
     int64_t mismatchScore,
     int64_t gapScore) const
 {
-    AlignmentGraph4::Options options;
+    AlignmentGraph4Options options;
     options.m = m;
     options.maxSkip = maxSkip;
     options.maxDrift = maxDrift;
@@ -41,7 +41,7 @@ void Assembler::alignOrientedReads4(
 void Assembler::alignOrientedReads4(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    const AlignmentGraph4::Options& options,
+    const AlignmentGraph4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug,
@@ -50,8 +50,7 @@ void Assembler::alignOrientedReads4(
     const auto markers0 = markers[orientedReadId0.getValue()];
     const auto markers1 = markers[orientedReadId1.getValue()];
 
-    AlignmentGraph4::align(
-        markers0, markers1,
+    align4(markers0, markers1,
         options, alignment, alignmentInfo, debug, html);
 }
 
