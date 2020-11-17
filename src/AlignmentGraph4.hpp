@@ -37,6 +37,20 @@ public:
         AlignmentInfo&,
         bool debug,
         ostream& html);
+
+private:
+
+    // Version templatized on m, the number of markers that define
+    // a "feature" used in the alignment.
+    template<uint64_t m> static void align(
+        const span<const CompressedMarker>&,
+        const span<const CompressedMarker>&,
+        const AlignmentGraph4::Options&,
+        Alignment&,
+        AlignmentInfo&,
+        bool debug,
+        ostream& html);
+
 };
 
 
