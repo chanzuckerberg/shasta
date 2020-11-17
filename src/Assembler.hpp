@@ -4,6 +4,7 @@
 // Shasta.
 #include "Alignment.hpp"
 #include "AlignmentCandidates.hpp"
+#include "AlignmentGraph4.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
@@ -767,6 +768,36 @@ private:
         int maxBand,
         Alignment&,
         AlignmentInfo&);
+
+
+
+    // Member functions that use alignment algorithm 4.
+public:
+
+    // Python-callable version.
+    void alignOrientedReads4(
+        ReadId, Strand,
+        ReadId, Strand,
+        uint64_t m,
+        uint64_t maxSkip,
+        uint64_t maxDrift,
+        int64_t matchScore,
+        int64_t mismatchScore,
+        int64_t gapScore) const;
+
+    // Align two reads using alignment method 4.
+    // If debug is true, detailed output to html is produced.
+    // Otherwise, html is not used.
+    void alignOrientedReads4(
+        OrientedReadId,
+        OrientedReadId,
+        const AlignmentGraph4::Options&,
+        Alignment&,
+        AlignmentInfo&,
+        bool debug,
+        ostream& html) const;
+
+private:
 
 
     // Create a local alignment graph starting from a given oriented read
