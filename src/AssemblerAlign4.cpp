@@ -13,7 +13,7 @@ void Assembler::alignOrientedReads4(
     int64_t mismatchScore,
     int64_t gapScore) const
 {
-    AlignmentGraph4Options options;
+    Align4Options options;
     options.m = m;
     options.deltaX = deltaX;
     options.deltaY = deltaY;
@@ -41,7 +41,7 @@ void Assembler::alignOrientedReads4(
 void Assembler::alignOrientedReads4(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    const AlignmentGraph4Options& options,
+    const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug,

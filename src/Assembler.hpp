@@ -4,7 +4,7 @@
 // Shasta.
 #include "Alignment.hpp"
 #include "AlignmentCandidates.hpp"
-#include "AlignmentGraph4.hpp"
+#include "Align4.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
@@ -791,7 +791,7 @@ public:
     void alignOrientedReads4(
         OrientedReadId,
         OrientedReadId,
-        const AlignmentGraph4Options&,
+        const Align4Options&,
         Alignment&,
         AlignmentInfo&,
         bool debug,

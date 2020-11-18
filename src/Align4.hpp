@@ -1,7 +1,6 @@
-#ifndef SHASTA_ALIGNMENT_GRAPH4_HPP
-#define SHASTA_ALIGNMENT_GRAPH4_HPP
+#ifndef SHASTA_ALIGN4_HPP
+#define SHASTA_ALIGN4_HPP
 
-// Class AlignmentGraph4 is used to implement alignment method 4.
 
 #include "hashArray.hpp"
 #include "Marker.hpp"
@@ -14,15 +13,15 @@
 
 
 namespace shasta {
-    template<uint64_t m> class AlignmentGraph4;
-    class AlignmentGraph4Options;
+    template<uint64_t m> class Align4;
+    class Align4Options;
     class Alignment;
     class AlignmentInfo;
 
     void align4(
         const span<const CompressedMarker>&,
         const span<const CompressedMarker>&,
-        const AlignmentGraph4Options&,
+        const Align4Options&,
         Alignment&,
         AlignmentInfo&,
         bool debug,
@@ -31,7 +30,7 @@ namespace shasta {
     template<uint64_t m> void align4(
         const span<const CompressedMarker>&,
         const span<const CompressedMarker>&,
-        const AlignmentGraph4Options&,
+        const Align4Options&,
         Alignment&,
         AlignmentInfo&,
         bool debug,
@@ -40,7 +39,7 @@ namespace shasta {
 
 
 
-class shasta::AlignmentGraph4Options {
+class shasta::Align4Options {
 public:
     uint64_t m;
     uint64_t deltaX;
@@ -52,16 +51,16 @@ public:
 
 
 
-template<uint64_t m> class shasta::AlignmentGraph4 {
+template<uint64_t m> class shasta::Align4 {
 public:
 
     using Sequence = span<const CompressedMarker>;
 
     // The constructor does all the work.
-    AlignmentGraph4(
+    Align4(
         const Sequence&,
         const Sequence&,
-        const AlignmentGraph4Options&,
+        const Align4Options&,
         Alignment&,
         AlignmentInfo&,
         bool debug,

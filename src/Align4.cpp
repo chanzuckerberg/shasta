@@ -1,4 +1,4 @@
-#include "AlignmentGraph4.hpp"
+#include "Align4.hpp"
 #include "html.hpp"
 using namespace shasta;
 
@@ -12,7 +12,7 @@ using namespace shasta;
 void shasta::align4(
     const span<const CompressedMarker>& markers0,
     const span<const CompressedMarker>& markers1,
-    const AlignmentGraph4Options& options,
+    const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug,
@@ -43,23 +43,23 @@ void shasta::align4(
 template<uint64_t m> void shasta::align4(
     const span<const CompressedMarker>& markers0,
     const span<const CompressedMarker>& markers1,
-    const AlignmentGraph4Options& options,
+    const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug,
     ostream& html)
 {
-    AlignmentGraph4<m> graph(markers0, markers1,
+    Align4<m> graph(markers0, markers1,
         options, alignment, alignmentInfo,
         debug, html);
 }
 
 
 
-template<uint64_t m> shasta::AlignmentGraph4<m>::AlignmentGraph4(
+template<uint64_t m> shasta::Align4<m>::Align4(
     const Sequence& sequence0,
     const Sequence& sequence1,
-    const AlignmentGraph4Options& options,
+    const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug,
@@ -103,7 +103,7 @@ template<uint64_t m> shasta::AlignmentGraph4<m>::AlignmentGraph4(
 }
 
 
-template<uint64_t m> void shasta::AlignmentGraph4<m>::fillFeatureMap(
+template<uint64_t m> void shasta::Align4<m>::fillFeatureMap(
     const Sequence& sequence,
     FeatureMap& featureMap)
 {
@@ -146,7 +146,7 @@ template<uint64_t m> void shasta::AlignmentGraph4<m>::fillFeatureMap(
 
 
 
-template<uint64_t m> void shasta::AlignmentGraph4<m>::fillAlignmentMatrix(
+template<uint64_t m> void shasta::Align4<m>::fillAlignmentMatrix(
     const FeatureMap& featureMap0,
     const Sequence& sequence1,
     uint64_t nx,
@@ -189,7 +189,7 @@ template<uint64_t m> void shasta::AlignmentGraph4<m>::fillAlignmentMatrix(
 }
 
 
-template<uint64_t m> void shasta::AlignmentGraph4<m>::write(
+template<uint64_t m> void shasta::Align4<m>::write(
     const AlignmentMatrix& alignmentMatrix, ostream& html)
 {
     html << "<table>\n"
