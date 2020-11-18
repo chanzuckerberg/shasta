@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "html.hpp"
 using namespace shasta;
 
 
@@ -24,13 +25,25 @@ void Assembler::alignOrientedReads4(
     Alignment alignment;
     AlignmentInfo alignmentInfo;
 
+    // Debug output in html format.
     const bool debug = true;
     ofstream html("Align4.html");
+    shasta::writeHtmlBegin(html, "Align4");
+    writeMakeAllTablesCopyable(html);
+    html << "<body onload='makeAllTablesCopyable()'>\n"
+        "<h1>Alignment method 4 for oriented reads " <<
+        OrientedReadId(readId0, strand0) << " and " <<
+        OrientedReadId(readId1, strand1) << "</h1>\n";
 
+    // Compute the alignment.
     alignOrientedReads4(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
         options, alignment, alignmentInfo, debug, html);
+
+    // Finish the html.
+    html << "</body>\n";
+    writeHtmlEnd(html);
 }
 
 

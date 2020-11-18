@@ -70,9 +70,6 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     SHASTA_ASSERT(options.m == m);
 
     if(debug) {
-        writeHtmlBegin(html, "");
-        writeStyle(html);
-        html << "<body>";
         html << "<p>Computing a marker alignment of two sequences with " <<
             sequence0.size() << " and " << sequence1.size() << " markers." << endl;
     }
@@ -90,17 +87,12 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     fillAlignmentMatrix(featureMap0, sequence1,
         sequence0.size(), cellSizeX, cellSizeY, alignmentMatrix);
     if(debug) {
-        html << "<p>The alignment matrix has " << alignmentMatrix.size() << " entries." << endl;
+        html << "<h2>Alignment matrix</h2>"
+            "<p>The alignment matrix has " << alignmentMatrix.size() << " entries." << endl;
         write(alignmentMatrix, html);
     }
-
-    if(debug) {
-        html << "</pre>";
-        html << "</body>";
-        writeHtmlEnd(html);
-    }
-
 }
+
 
 
 template<uint64_t m> void shasta::Align4<m>::fillFeatureMap(
