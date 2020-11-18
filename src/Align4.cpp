@@ -97,7 +97,7 @@ template<uint64_t m> shasta::Align4<m>::Align4(
         html << "<h2>Alignment matrix</h2>"
             "<p>The alignment matrix has " << alignmentMatrix.size() << " entries.\n" <<
             "<br>The number of occupied cells is " << cells.size() << ".\n";
-        write(alignmentMatrix, html);
+        // write(alignmentMatrix, html);
         html << "<br>\n";
         writeSvg(cells, sequence0.size(), sequence1.size(), cellSizeX, cellSizeY, html);
     }
@@ -239,11 +239,22 @@ template<uint64_t m> void shasta::Align4<m>::writeSvg(
     for(const Cell& cell: cells) {
         const uint64_t iX = cell.first;
         const uint64_t iY = cell.second;
-        html << "<rect x='" << iX * cellSizeX <<
-            "' y='" << iY * cellSizeY <<
+        const uint64_t X = iX * cellSizeX;
+        const uint64_t Y = iY * cellSizeY;
+        const int64_t centerX = X + cellSizeX / 2;
+        const int64_t centerY = Y + cellSizeY / 2;
+        const int64_t centerx = (centerX - centerY + int64_t(nx) - 1) / 2;
+        const int64_t centery = (centerX + centerY - int64_t(nx) + 1) / 2;
+        html << "<rect x='" << X <<
+            "' y='" << Y <<
             "' width='" << cellSizeX <<
             "' height='" << cellSizeY <<
-            "' fill='Grey'/>\n";
+            "' fill='Grey'><title>"
+            "Cell (iX,iY)=(" << iX << "," << iY <<
+            ") centered at (X,Y)=(" << centerX <<
+            "," << centerY <<
+            "), (x,y)=(" << centerx << "," << centery << ")"
+            "</title></rect>\n";
     }
 
 
