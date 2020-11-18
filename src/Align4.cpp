@@ -86,10 +86,20 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     const uint64_t cellSizeY = options.deltaY;
     fillAlignmentMatrix(featureMap0, sequence1,
         sequence0.size(), cellSizeX, cellSizeY, alignmentMatrix);
+
+    // Find occupied cells.
+    std::set<Cell> cells;
+    for(const auto& p: alignmentMatrix) {
+        cells.insert(p.first);
+    }
+
     if(debug) {
         html << "<h2>Alignment matrix</h2>"
-            "<p>The alignment matrix has " << alignmentMatrix.size() << " entries." << endl;
+            "<p>The alignment matrix has " << alignmentMatrix.size() << " entries.\n" <<
+            "<br>The number of occupied cells is " << cells.size() << ".\n";
         write(alignmentMatrix, html);
+        html << "<br>\n";
+        writeSvg(cells, sequence0.size(), sequence1.size(), cellSizeX, cellSizeY, html);
     }
 }
 
@@ -201,5 +211,43 @@ template<uint64_t m> void shasta::Align4<m>::write(
 
     html << "</table>\n";
 
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::writeSvg(
+    const std::set<Cell>& cells,
+    uint64_t nx,
+    uint64_t ny,
+    uint64_t cellSizeX,
+    uint64_t cellSizeY,
+    ostream& html)
+{
+    const uint64_t svgSizePixels = 800;
+    const int64_t squareSize = nx + ny -2;
+    const int64_t borderSize = 2;
+
+    html << "<svg width='" << svgSizePixels << "' height='" << svgSizePixels <<
+        "' viewbox='" << -borderSize <<
+        " " << -borderSize <<
+        " " << squareSize + borderSize <<
+        " " << squareSize + borderSize <<
+        "' style='background-color:Beige'>\n";
+
+
+
+    for(const Cell& cell: cells) {
+        const uint64_t iX = cell.first;
+        const uint64_t iY = cell.second;
+        html << "<rect x='" << iX * cellSizeX <<
+            "' y='" << iY * cellSizeY <<
+            "' width='" << cellSizeX <<
+            "' height='" << cellSizeY <<
+            "' fill='Grey'/>\n";
+    }
+
+
+
+    html << "</svg>\n";
 }
 
