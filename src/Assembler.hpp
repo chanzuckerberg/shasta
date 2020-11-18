@@ -779,8 +779,8 @@ public:
         ReadId, Strand,
         ReadId, Strand,
         uint64_t m,
-        uint64_t maxSkip,
-        uint64_t maxDrift,
+        uint64_t deltaX,
+        uint64_t deltaY,
         int64_t matchScore,
         int64_t mismatchScore,
         int64_t gapScore) const;

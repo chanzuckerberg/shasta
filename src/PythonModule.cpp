@@ -232,8 +232,8 @@ PYBIND11_MODULE(shasta, module)
             arg("readId1"),
             arg("strand1"),
             arg("m"),
-            arg("maxSkip"),
-            arg("maxDrift"),
+            arg("deltaX"),
+            arg("deltaY"),
             arg("matchScore"),
             arg("mismatchScore"),
             arg("gapScore"))

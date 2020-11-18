@@ -7,16 +7,16 @@ void Assembler::alignOrientedReads4(
     ReadId readId0, Strand strand0,
     ReadId readId1, Strand strand1,
     uint64_t m,
-    uint64_t maxSkip,
-    uint64_t maxDrift,
+    uint64_t deltaX,
+    uint64_t deltaY,
     int64_t matchScore,
     int64_t mismatchScore,
     int64_t gapScore) const
 {
     AlignmentGraph4Options options;
     options.m = m;
-    options.maxSkip = maxSkip;
-    options.maxDrift = maxDrift;
+    options.deltaX = deltaX;
+    options.deltaY = deltaY;
     options.matchScore = matchScore;
     options.mismatchScore = mismatchScore;
     options.gapScore = gapScore;

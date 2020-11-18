@@ -81,15 +81,12 @@ template<uint64_t m> shasta::AlignmentGraph4<m>::AlignmentGraph4(
     const uint64_t inverseLoadFactor = 2;
     FeatureMap featureMap0(inverseLoadFactor * sequence0.size());
     fillFeatureMap(sequence0, featureMap0);
-    if(debug) {
-        html << "<p>Feature map has size " << featureMap0.size() << "." << endl;
-    }
 
     // Create the alignment matrix.
     AlignmentMatrix alignmentMatrix(2*max(sequence0.size(), sequence1.size()));
     alignmentMatrix.max_load_factor(4);
-    const uint64_t cellSizeX = 2 * options.maxSkip;
-    const uint64_t cellSizeY = options.maxDrift;
+    const uint64_t cellSizeX = options.deltaX;
+    const uint64_t cellSizeY = options.deltaY;
     fillAlignmentMatrix(featureMap0, sequence1,
         sequence0.size(), cellSizeX, cellSizeY, alignmentMatrix);
     if(debug) {
