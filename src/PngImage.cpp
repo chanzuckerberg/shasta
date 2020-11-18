@@ -6,7 +6,7 @@ using namespace shasta;
 PngImage::PngImage(int width, int height) :
     width(width),
     height(height),
-    data(3*width*height, 0)
+    data(3ULL*uint64_t(width)*uint64_t(height), 0)
 {
 }
 
@@ -14,7 +14,7 @@ PngImage::PngImage(int width, int height) :
 
 void PngImage::setPixel(int x, int y, int r, int g, int b)
 {
-    ::png_byte* pointer = data.data() + 3* (width*y + x);
+    ::png_byte* pointer = data.data() + 3* (width*uint64_t(y) + x);
     *pointer++ = png_byte(r);
     *pointer++ = png_byte(g);
     *pointer++ = png_byte(b);
@@ -59,7 +59,7 @@ void PngImage::write(const std::string& fileName) const
     // Create pointers to rows
     vector<png_byte*> rowPointers(height);
     for (int y=0; y<height; y++) {
-        rowPointers[y] = const_cast<png_byte*>(&data[0] + 3*width*y);
+        rowPointers[y] = const_cast<png_byte*>(&data[0] + 3*width*uint64_t(y));
     }
     
     // Write.
