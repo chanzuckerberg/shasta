@@ -81,9 +81,25 @@ containing (x0,y0), to locate all possible (x1,y1) we must
 only look in the same cell (iX, iY) plus all of its 8
 immediate neighbors (including diagonal neighbors).
 
-
 The AlignmentMatrix is stored as an unordered_multimap with key (iX, iY)
 and values consisting of Feature's.
+
+To construct candidate alignments, we consider each element
+in the alignment matrix as a vertex in a directed graph.
+There is an edge between the vertices at positions (x0,y0) and (x1,y1)
+if x1>=x0 and y1>=y0 and the above conditions on deltaX, deltaY
+are satisfied.
+
+Each candidate alignment must have at least one vertex near the top or left
+and one vertex near the bottom or right of the alignment matrix.
+
+To avoid doing a BFS on the entire alignment matrix, we do a BFS
+starting only with vertices near the top or left.
+We only keep connected components that also contain at
+least one vertex neat the bottom or right.
+
+For performance, we don't explicitly construct edges of the graph.
+We find neighbors as needed.
 
 *******************************************************************************/
 
@@ -98,6 +114,7 @@ and values consisting of Feature's.
 #include <set>
 #include "string.hpp"
 #include "utility.hpp"
+#include "vector.hpp"
 
 
 
@@ -182,6 +199,13 @@ private:
 
         // Set if ny-1-y < deltaX.
         uint8_t isNearBottom : 1;
+
+        // Flag used during the BFS.
+        bool wasDiscovered = false;
+
+        bool isNeighbor(
+            const AlignmentMatrixEntry& entry1,
+            int32_t deltaX, int32_t deltaY) const;
     };
 
 
@@ -196,6 +220,21 @@ private:
         int32_t deltaX,
         int32_t deltaY);
     static void writeMatrixCsv(const AlignmentMatrix&, const string& fileName);
+
+    // Do a BFS to find candidate alignments.
+    // See comments at the top of this file for details.
+    void findCandidateAlignments(
+        int32_t deltaX,
+        int32_t deltaY);
+
+    // Find neighbors and flag them as discovered.
+    void findAndFlagUndiscoveredNeighbors(
+        typename AlignmentMatrix::iterator,
+        int32_t deltaX,
+        int32_t deltaY,
+        vector<typename AlignmentMatrix::iterator>&
+    );
+
 };
 
 

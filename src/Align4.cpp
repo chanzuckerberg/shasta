@@ -4,6 +4,7 @@ using namespace shasta;
 
 #include "algorithm.hpp"
 #include "fstream.hpp"
+#include <queue>
 
 
 
@@ -86,6 +87,9 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     if(debug) {
         writeMatrixCsv(alignmentMatrix, "Align4-Matrix.csv");
     }
+
+    // Find alignment candidates.
+    findCandidateAlignments(int32_t(options.deltaX), int32_t(options.deltaY));
 }
 
 
@@ -212,4 +216,130 @@ template<uint64_t m> void shasta::Align4<m>::writeMatrixCsv(
 }
 
 
+
+// Do a BFS to find candidate alignments.
+// See comments at the top of Align4.hpp for details.
+template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
+    int32_t deltaX,
+    int32_t deltaY)
+{
+    using iterator = typename AlignmentMatrix::iterator;
+    std::queue<iterator> q;
+    vector<iterator> neighbors;
+    vector<iterator> candidateAlignment;
+
+    // Loop over possible starting vertices for the BFS.
+    for(auto itStart=alignmentMatrix.begin(); itStart!=alignmentMatrix.end(); itStart++) {
+        const AlignmentMatrixEntry& start = itStart->second;
+
+        // If already discovered,skip.
+        if(start.wasDiscovered) {
+            continue;
+        }
+
+        // If not near the top of left, skip.
+        if(not(start.isNearLeft or start.isNearTop)) {
+            continue;
+        }
+
+        // The candidate alignment we find starting here is only
+        // usable if it reaches at least one vertex near the
+        // right or bottom of the alignment matrix.
+        bool isUsable = false;
+        candidateAlignment.clear();
+
+        // Do a BFS starting here.
+        SHASTA_ASSERT(q.empty());
+        q.push(itStart);
+        candidateAlignment.push_back(itStart);
+        while(not q.empty()) {
+
+            // Dequeue a vertex.
+            auto it0 = q.front();
+            q.pop();
+
+            // Find its neighbors.
+            findAndFlagUndiscoveredNeighbors(it0, deltaX, deltaY, neighbors);
+
+            // Queue them.
+            for(const auto& it1: neighbors) {
+                q.push(it1);
+                candidateAlignment.push_back(it1);
+                const AlignmentMatrixEntry& entry1 = it1->second;
+                if(entry1.isNearRight or entry1.isNearBottom) {
+                    isUsable = true;
+                }
+            }
+        }
+
+        cout << "Start at " << start.xy.first << " " << start.xy.second << ": " <<
+            candidateAlignment.size() << " " << (isUsable ? "usable" : "unusable") << endl;
+    }
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredNeighbors(
+    typename AlignmentMatrix::iterator it0,
+    int32_t deltaX,
+    int32_t deltaY,
+    vector<typename AlignmentMatrix::iterator>& neighbors)
+{
+    using iterator = typename AlignmentMatrix::iterator;
+    neighbors.clear();
+
+    const AlignmentMatrixEntry& entry0 = it0->second;
+    const Coordinates& iXY0 = it0->first;
+    const int32_t iX0 = iXY0.first;
+    const int32_t iY0 = iXY0.second;
+
+    // Loop over the 9 cells centered here.
+    for(int32_t diX=-1; diX<=1; diX++) {
+        const int iX1 = iX0 + diX;
+        for(int32_t diY=-1; diY<=1; diY++) {
+            const int iY1 = iY0 + diY;
+
+            // Loop over all alignment matrix entries in this cell.
+            iterator begin, end;
+            tie(begin, end) = alignmentMatrix.equal_range(Coordinates(iX1, iY1));
+            for(iterator it1=begin; it1!=end; ++it1) {
+                if(it1 == it0) {
+                    continue;
+                }
+                AlignmentMatrixEntry& entry1 = it1->second;
+                if(entry1.wasDiscovered) {
+                    continue;
+                }
+                if(not entry0.isNeighbor(entry1, deltaX, deltaY)) {
+                    continue;
+                }
+                entry1.wasDiscovered = true;
+                neighbors.push_back(it1);
+            }
+        }
+    }
+}
+
+
+
+
+template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isNeighbor(
+    const AlignmentMatrixEntry& entry1,
+    int32_t deltaX, int32_t deltaY) const
+{
+    const AlignmentMatrixEntry& entry0 = *this;
+    const Coordinates& XY0 = entry0.XY;
+    const Coordinates& XY1 = entry1.XY;
+    const int32_t X0 = XY0.first;
+    const int32_t X1 = XY1.first;
+    if(abs(X0-X1) > deltaX) {
+        return false;
+    }
+    const int32_t Y0 = XY0.second;
+    const int32_t Y1 = XY1.second;
+    if(abs(Y0-Y1) > deltaY) {
+        return false;
+    }
+    return true;
+}
 
