@@ -85,11 +85,14 @@ template<uint64_t m> shasta::Align4<m>::Align4(
         uint32_t(options.deltaX), uint32_t(options.deltaY));
 
     if(debug) {
-        writeMatrixCsv(alignmentMatrix, "Align4-Matrix.csv");
+        writeMatrixCsv("Align4-Matrix.csv");
     }
 
     // Find alignment candidates.
-    findCandidateAlignments(int32_t(options.deltaX), int32_t(options.deltaY));
+    findCandidateAlignments(int32_t(options.deltaX), int32_t(options.deltaY), debug);
+    if(debug) {
+        writeCandidateAlignmentsCsv("Align4-CandidateAlignments.csv");
+    }
 }
 
 
@@ -192,7 +195,6 @@ template<uint64_t m> void shasta::Align4<m>::fillAlignmentMatrix(
 
 
 template<uint64_t m> void shasta::Align4<m>::writeMatrixCsv(
-    const AlignmentMatrix& alignmentMatrix,
     const string& fileName)
 {
     ofstream csv(fileName);
@@ -221,7 +223,8 @@ template<uint64_t m> void shasta::Align4<m>::writeMatrixCsv(
 // See comments at the top of Align4.hpp for details.
 template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
     int32_t deltaX,
-    int32_t deltaY)
+    int32_t deltaY,
+    bool debug)
 {
     using iterator = typename AlignmentMatrix::iterator;
     std::queue<iterator> q;
@@ -251,6 +254,7 @@ template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
         // Do a BFS starting here.
         SHASTA_ASSERT(q.empty());
         q.push(itStart);
+        itStart->second.wasDiscovered = true;
         candidateAlignment.push_back(itStart);
         while(not q.empty()) {
 
@@ -272,8 +276,29 @@ template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
             }
         }
 
-        cout << "Start at " << start.xy.first << " " << start.xy.second << ": " <<
-            candidateAlignment.size() << " " << (isUsable ? "usable" : "unusable") << endl;
+        // If not usable, skip it.
+        if(not isUsable) {
+            continue;
+        }
+
+
+        // Store it.
+        sort(candidateAlignment.begin(), candidateAlignment.end(), OrderByIncreasingXThenY());
+        const iterator itFirst = candidateAlignment.front();
+        const AlignmentMatrixEntry& firstEntry = itFirst->second;
+        if(debug) {
+        cout << "Candidate alignment " << candidateAlignments.size() << " start at " <<
+            firstEntry.xy.first << " " <<
+            firstEntry.xy.second << ", " <<
+            candidateAlignment.size() << " alignment matrix entries." << endl;
+        }
+
+        candidateAlignments.resize(candidateAlignments.size() + 1);
+        candidateAlignment.swap(candidateAlignments.back());
+    }
+
+    if(debug) {
+        cout << "Found " << candidateAlignments.size() << " candidate alignments." << endl;
     }
 }
 
@@ -320,6 +345,26 @@ template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredNeighbors(
     }
 }
 
+
+
+template<uint64_t m> void shasta::Align4<m>::writeCandidateAlignmentsCsv(
+    const string& fileName)
+{
+    ofstream csv(fileName);
+    csv << "Candidate,x,y,X,Y\n";
+    for(uint64_t i=0; i<candidateAlignments.size(); i++) {
+        const auto& candidateAlignment = candidateAlignments[i];
+        for(const typename AlignmentMatrix::const_iterator it: candidateAlignment) {
+            const AlignmentMatrixEntry& entry = it->second;
+            csv <<
+                i << "," <<
+                entry.xy.first << "," <<
+                entry.xy.second << "," <<
+                entry.XY.first << "," <<
+                entry.XY.second << "\n";
+        }
+    }
+}
 
 
 

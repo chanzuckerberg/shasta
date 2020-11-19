@@ -219,13 +219,16 @@ private:
         int32_t ny,
         int32_t deltaX,
         int32_t deltaY);
-    static void writeMatrixCsv(const AlignmentMatrix&, const string& fileName);
+    void writeMatrixCsv(const string& fileName);
 
     // Do a BFS to find candidate alignments.
     // See comments at the top of this file for details.
     void findCandidateAlignments(
         int32_t deltaX,
-        int32_t deltaY);
+        int32_t deltaY,
+        bool debug);
+    vector< vector<typename AlignmentMatrix::iterator> > candidateAlignments;
+    void writeCandidateAlignmentsCsv(const string& fileName);
 
     // Find neighbors and flag them as discovered.
     void findAndFlagUndiscoveredNeighbors(
@@ -234,6 +237,19 @@ private:
         int32_t deltaY,
         vector<typename AlignmentMatrix::iterator>&
     );
+
+    // Order AlignmentMatrix iterators by increasing X, then Y.
+    class OrderByIncreasingXThenY {
+    public:
+        bool operator() (
+            const typename AlignmentMatrix::iterator& it0,
+            const typename AlignmentMatrix::iterator& it1) const
+        {
+            const AlignmentMatrixEntry& entry0 = it0->second;
+            const AlignmentMatrixEntry& entry1 = it1->second;
+            return entry0.XY < entry1.XY;
+        }
+    };
 
 };
 
