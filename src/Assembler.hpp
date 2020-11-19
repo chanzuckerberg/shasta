@@ -794,8 +794,7 @@ public:
         const Align4Options&,
         Alignment&,
         AlignmentInfo&,
-        bool debug,
-        ostream& html) const;
+        bool debug) const;
 
 private:
 

@@ -3,6 +3,7 @@
 using namespace shasta;
 
 #include "algorithm.hpp"
+#include "fstream.hpp"
 
 
 
@@ -15,21 +16,20 @@ void shasta::align4(
     const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
-    bool debug,
-    ostream& html)
+    bool debug)
 {
     switch(options.m) {
     case 1:
-        align4<1>(markers0, markers1, options, alignment, alignmentInfo, debug, html);
+        align4<1>(markers0, markers1, options, alignment, alignmentInfo, debug);
         return;
     case 2:
-        align4<2>(markers0, markers1, options, alignment, alignmentInfo, debug, html);
+        align4<2>(markers0, markers1, options, alignment, alignmentInfo, debug);
         return;
     case 3:
-        align4<3>(markers0, markers1, options, alignment, alignmentInfo, debug, html);
+        align4<3>(markers0, markers1, options, alignment, alignmentInfo, debug);
         return;
     case 4:
-        align4<4>(markers0, markers1, options, alignment, alignmentInfo, debug, html);
+        align4<4>(markers0, markers1, options, alignment, alignmentInfo, debug);
         return;
     default:
         SHASTA_ASSERT(0);
@@ -46,12 +46,11 @@ template<uint64_t m> void shasta::align4(
     const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
-    bool debug,
-    ostream& html)
+    bool debug)
 {
     Align4<m> graph(markers0, markers1,
         options, alignment, alignmentInfo,
-        debug, html);
+        debug);
 }
 
 
@@ -62,15 +61,14 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
-    bool debug,
-    ostream& html)
+    bool debug)
 {
     // Check that we are in the templated version consistent with
     /// the options.
     SHASTA_ASSERT(options.m == m);
 
     if(debug) {
-        html << "<p>Computing a marker alignment of two sequences with " <<
+        cout << "Computing a marker alignment of two sequences with " <<
             sequence0.size() << " and " << sequence1.size() << " markers." << endl;
     }
 
@@ -80,26 +78,13 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     fillFeatureMap(sequence0, featureMap0);
 
     // Create the alignment matrix.
-    AlignmentMatrix alignmentMatrix(2*max(sequence0.size(), sequence1.size()));
-    alignmentMatrix.max_load_factor(4);
-    const uint64_t cellSizeX = options.deltaX;
-    const uint64_t cellSizeY = options.deltaY;
     fillAlignmentMatrix(featureMap0, sequence1,
-        sequence0.size(), cellSizeX, cellSizeY, alignmentMatrix);
-
-    // Find occupied cells.
-    std::set<Cell> cells;
-    for(const auto& p: alignmentMatrix) {
-        cells.insert(p.first);
-    }
+        uint32_t(sequence0.size()-(m-1)),
+        uint32_t(sequence1.size()-(m-1)),
+        uint32_t(options.deltaX), uint32_t(options.deltaY));
 
     if(debug) {
-        html << "<h2>Alignment matrix</h2>"
-            "<p>The alignment matrix has " << alignmentMatrix.size() << " entries.\n" <<
-            "<br>The number of occupied cells is " << cells.size() << ".\n";
-        // write(alignmentMatrix, html);
-        html << "<br>\n";
-        writeSvg(cells, sequence0.size(), sequence1.size(), cellSizeX, cellSizeY, html);
+        writeMatrixCsv(alignmentMatrix, "Align4-Matrix.csv");
     }
 }
 
@@ -151,11 +136,10 @@ template<uint64_t m> void shasta::Align4<m>::fillFeatureMap(
 template<uint64_t m> void shasta::Align4<m>::fillAlignmentMatrix(
     const FeatureMap& featureMap0,
     const Sequence& sequence1,
-    uint64_t nx,
-    uint64_t cellSizeX,
-    uint64_t cellSizeY,
-    AlignmentMatrix& alignmentMatrix
-)
+    int32_t nx,
+    int32_t ny,
+    int32_t deltaX,
+    int32_t deltaY)
 {
     // Start with the first m kmerIds.
     Feature feature;
@@ -165,16 +149,28 @@ template<uint64_t m> void shasta::Align4<m>::fillAlignmentMatrix(
     }
 
     // Add the features.
-    for(uint32_t ordinal1=0; ; ordinal1++) {
+    for(int32_t y=0; ; y++) {
 
         // Look up this feature in the feature map for sequence 0.
         typename FeatureMap::const_iterator begin, end;
         tie(begin, end) = featureMap0.equal_range(feature);
+
+        // Loop over all the hits. Each hit generates an
+        // entry in the alignment matrix.
         for(auto it=begin; it!=end; ++it) {
-            const uint32_t ordinal0 = it->second;
-            const uint64_t X = (ordinal0 + ordinal1) / cellSizeX;
-            const uint64_t Y = (ordinal1 + nx - 1 - ordinal0) / cellSizeY;
-            alignmentMatrix.insert(make_pair(Cell(X, Y), OrdinalPair(ordinal0, ordinal1)));
+            const int32_t x = it->second;
+            const int32_t X = x + y;
+            const int32_t Y = y + nx - 1 - x;
+            const int32_t iX = X / deltaX;
+            const int32_t iY = Y / deltaY;
+            AlignmentMatrixEntry alignmentMatrixEntry;
+            alignmentMatrixEntry.xy = make_pair(x, y);
+            alignmentMatrixEntry.XY = make_pair(X, Y);
+            alignmentMatrixEntry.isNearLeft = (x < deltaX) ? 1 : 0;
+            alignmentMatrixEntry.isNearTop  = (y < deltaX) ? 1 : 0;
+            alignmentMatrixEntry.isNearRight = (nx-1-x < deltaX) ? 1 : 0;
+            alignmentMatrixEntry.isNearBottom = (ny-1-y < deltaX) ? 1 : 0;
+            alignmentMatrix.insert(make_pair(Coordinates(iX, iY), alignmentMatrixEntry));
         }
 
         // Check if done.
@@ -191,74 +187,29 @@ template<uint64_t m> void shasta::Align4<m>::fillAlignmentMatrix(
 }
 
 
-template<uint64_t m> void shasta::Align4<m>::write(
-    const AlignmentMatrix& alignmentMatrix, ostream& html)
+template<uint64_t m> void shasta::Align4<m>::writeMatrixCsv(
+    const AlignmentMatrix& alignmentMatrix,
+    const string& fileName)
 {
-    html << "<table>\n"
-        "<tr><th>iX<th>iY<th>Ordinal0<th>Ordinal1\n";
-
+    ofstream csv(fileName);
+    csv << "x,y,X,Y,iX,iY,Near left,Near top,Near right,Near bottom\n";
 
     for(const auto& p: alignmentMatrix) {
-        const Cell& cell = p.first;
-        const OrdinalPair& ordinalPair = p.second;
-        html <<
-            "<tr>"
-            "<td class=centered>" << cell.first <<
-            "<td class=centered>" << cell.second <<
-            "<td class=centered>" << ordinalPair.first <<
-            "<td class=centered>" << ordinalPair.second << "\n";
+        const Coordinates& iXY = p.first;
+        const AlignmentMatrixEntry& alignmentMatrixEntry = p.second;
+        csv <<
+            alignmentMatrixEntry.xy.first << "," <<
+            alignmentMatrixEntry.xy.second << "," <<
+            alignmentMatrixEntry.XY.first << "," <<
+            alignmentMatrixEntry.XY.second << "," <<
+            iXY.first << "," <<
+            iXY.second << "," <<
+            int(alignmentMatrixEntry.isNearLeft) << "," <<
+            int(alignmentMatrixEntry.isNearTop) << "," <<
+            int(alignmentMatrixEntry.isNearRight) << "," <<
+            int(alignmentMatrixEntry.isNearBottom) << "\n";
     }
-
-    html << "</table>\n";
-
 }
 
 
-
-template<uint64_t m> void shasta::Align4<m>::writeSvg(
-    const std::set<Cell>& cells,
-    uint64_t nx,
-    uint64_t ny,
-    uint64_t cellSizeX,
-    uint64_t cellSizeY,
-    ostream& html)
-{
-    const uint64_t svgSizePixels = 800;
-    const int64_t squareSize = nx + ny -2;
-    const int64_t borderSize = 2;
-
-    html << "<svg width='" << svgSizePixels << "' height='" << svgSizePixels <<
-        "' viewbox='" << -borderSize <<
-        " " << -borderSize <<
-        " " << squareSize + borderSize <<
-        " " << squareSize + borderSize <<
-        "' style='background-color:Beige'>\n";
-
-
-
-    for(const Cell& cell: cells) {
-        const uint64_t iX = cell.first;
-        const uint64_t iY = cell.second;
-        const uint64_t X = iX * cellSizeX;
-        const uint64_t Y = iY * cellSizeY;
-        const int64_t centerX = X + cellSizeX / 2;
-        const int64_t centerY = Y + cellSizeY / 2;
-        const int64_t centerx = (centerX - centerY + int64_t(nx) - 1) / 2;
-        const int64_t centery = (centerX + centerY - int64_t(nx) + 1) / 2;
-        html << "<rect x='" << X <<
-            "' y='" << Y <<
-            "' width='" << cellSizeX <<
-            "' height='" << cellSizeY <<
-            "' fill='Grey'><title>"
-            "Cell (iX,iY)=(" << iX << "," << iY <<
-            ") centered at (X,Y)=(" << centerX <<
-            "," << centerY <<
-            "), (x,y)=(" << centerx << "," << centery << ")"
-            "</title></rect>\n";
-    }
-
-
-
-    html << "</svg>\n";
-}
 

@@ -1,6 +1,93 @@
 #ifndef SHASTA_ALIGN4_HPP
 #define SHASTA_ALIGN4_HPP
 
+/*******************************************************************************
+
+Marker alignment of two sequences, each defined as a sequence of
+marker KmerId's.
+
+We work with Feature's defined as a sequence of m markers,
+where m is the template parameter of class Align4.
+
+Each of the two input marker sequences sequence0 and sequence1
+is treated as a sequence of Features's.
+So for example consider an input sequence
+consisting of the following marker KmerId's:
+45 58 106 17
+If m=2, the sequence of Feature's representing this sequence is
+(45,58) (58,106), (106,17).
+
+We call x the index or position in the first sequence sequence0
+and y the index or position in the second sequence sequence1.
+sequence[x] is the Feature at position x of sequence0
+and sequence1[y] is the feature at position y of sequence1.
+In other Shasta code, x and y are often called ordinals or marker
+ordinals - but here they refer to Feature's, not markers.
+The number of features in sequence0 is nx
+and the number of features in sequence1 is ny.
+For any two positions x and y the following hold:
+0 <= x <= nx-1
+0 <= y <= ny-1
+
+Note that the sequences of Feature's are shorter (by m-1)
+than the original marker sequences.
+
+The alignment matrix in feature space is sparse because of the
+large alphabet. For example, with default options there are
+about 8000 marker KmerId's and therefore about 64000000
+distinct features.
+
+The coordinates in the alignment matrix are x and y, with x
+represented along the horizontal axis and increasing toward the right,
+and y represented along the vertical axis and increasing toward
+the bottom. The alignment matrix element at position (x,y)
+exists if sequence0[x]=sequence1[y].
+
+We also use coordinates X and Y defined as:
+X = x + y
+Y = y + (nx - 1 - x)
+
+It can be verified that:
+0 <= X <= nx + ny - 2
+0 <= Y <= nx + ny - 2
+
+X is a coordinate along the diagonal of the alignment matrix,
+and Y is orthogonal to it and identifies the diagonal.
+In (X,Y) coordinates the alignment matrix is a subset of
+the square of size nx + ny -1. The alignment matrix is
+rotated by 45 degrees relative to this square.
+
+Consider two successive points (x0,y0) and (x1, y1) in
+a hypothetical alignment, and corresponding (X0,Y0) and (X1,Y1).
+For a good alignment, the "skip" along the diagonal, |X1-X0|,
+must be sufficiently small, and the "diagonal drift",
+|Y1-Y0| must also be sufficiently small.
+We require
+|X1-X0| <= deltaX
+|Y1-Y0| <= deltaY
+Note that deltaX is similar in spirit to Shasta maxSkip
+when working in marker space (9as opposed to Feature space).
+Similarly, deltaY is similaro to Shasta maxDrift.
+
+We construct a sparse representation of this sparse
+alignment matrix with a special structure that, given an
+alignment matrix entry at (x0,y0), allows efficient
+look up of entries (x1,y1) which satisfy the
+deltaX and deltaY criteria.
+
+To achieve this, we use rectangular cells in (X,Y) space of size
+(deltaX, deltaY). If (iX,iY) are the indices of a cell
+containing (x0,y0), to locate all possible (x1,y1) we must
+only look in the same cell (iX, iY) plus all of its 8
+immediate neighbors (including diagonal neighbors).
+
+
+The AlignmentMatrix is stored as an unordered_multimap with key (iX, iY)
+and values consisting of Feature's.
+
+*******************************************************************************/
+
+
 
 #include "hashArray.hpp"
 #include "Marker.hpp"
@@ -9,6 +96,7 @@
 #include "array.hpp"
 #include <unordered_map>
 #include <set>
+#include "string.hpp"
 #include "utility.hpp"
 
 
@@ -25,8 +113,7 @@ namespace shasta {
         const Align4Options&,
         Alignment&,
         AlignmentInfo&,
-        bool debug,
-        ostream& html);
+        bool debug);
 
     template<uint64_t m> void align4(
         const span<const CompressedMarker>&,
@@ -34,8 +121,7 @@ namespace shasta {
         const Align4Options&,
         Alignment&,
         AlignmentInfo&,
-        bool debug,
-        ostream& html);
+        bool debug);
 }
 
 
@@ -64,62 +150,52 @@ public:
         const Align4Options&,
         Alignment&,
         AlignmentInfo&,
-        bool debug,
-        ostream& html);
+        bool debug);
 
 private:
 
     // A Feature is a sequence of m markers.
     using Feature = array<KmerId, m>;
 
-    // A FeatureMap gives the ordinals where each Feature occurs in one of the
+    // A FeatureMap gives the x (or y) where each Feature occurs in one of the
     // sequences being aligned.
     using FeatureMap = std::unordered_multimap<Feature, uint32_t, HashTuple<Feature> >;
     static void fillFeatureMap(const Sequence&, FeatureMap&);
 
+    // An entry of the alignment matrix.
+    using Coordinates = pair<int32_t, int32_t>;
+    class AlignmentMatrixEntry {
+    public:
+        Coordinates xy;
+        Coordinates XY;
+
+        // Flags for elements near the boundary of the alignment matrix.
+
+        // Set if x < deltaX.
+        uint8_t isNearLeft : 1;
+
+        // Set if y < deltaX.
+        uint8_t isNearTop : 1;
+
+        // Set if nx-1-x < deltaX.
+        uint8_t isNearRight : 1;
+
+        // Set if ny-1-y < deltaX.
+        uint8_t isNearBottom : 1;
+    };
 
 
-    // The alignment matrix stores pairs (ordinal0, ordinal1) giving
-    // starting ordinals for each common feature between the two sequences.
-    // For efficient look ups, these pairs of ordinals are stored
-    // in rectangular cells in diagonal coordinates (X, Y)
-    // x = ordinal in sequence 0 (nx values starting at 0).
-    // y = ordinal in sequence 1 (ny values starting at 0).
-    // X = x + y
-    // Y = y + (nx - 1 - x)
-    // Note that with these definitions:
-    // 0 <= X <= nx + ny - 2
-    // 0 <= Y <= nx + ny - 2
-    // So, in X, Y coordinates the alignment matrix is entirely contained in
-    // a square of size nx + ny -2 (nx + ny -1 points in each direction).
-    // The alignment matrix occupies only a subset of this square.
-    // In addition, only positions where X and Y have the same parity can
-    // correspond to actual points of the alignment matrix:
-    // (X%2) = (Y%2)
-    // The cell sizes in the X and directions are deltaX and deltaY.
-    // When looking for successors of an alignment matrix element
-    // in cell (iX,iY), we only look in 5 cells:
-    // (iX, iY-1), (iX, iY+1), (iX+1, iY-1), (iX+1, iY, iX+1, iY+1).
-    // The AlignmentMatrix is keyed by (iX, iY).
-    using OrdinalPair = pair<uint32_t, uint32_t>;
-    using Cell = pair<uint32_t, uint32_t>;
-    using AlignmentMatrix = std::unordered_multimap<Cell, OrdinalPair, HashTuple<Cell> >;
-    static void fillAlignmentMatrix(
+    // In the alignment matrix, the key has the (iX,iY) cell coordinates.
+    using AlignmentMatrix = std::unordered_multimap<Coordinates, AlignmentMatrixEntry, HashTuple<Coordinates> >;
+    AlignmentMatrix alignmentMatrix;
+    void fillAlignmentMatrix(
         const FeatureMap& featureMap0,
         const Sequence& sequence1,
-        uint64_t nx,
-        uint64_t cellSizeX,
-        uint64_t cellSizeY,
-        AlignmentMatrix&
-    );
-    static void write(const AlignmentMatrix&, ostream& html);
-    static void writeSvg(
-        const std::set<Cell>&,
-        uint64_t nx,
-        uint64_t ny,
-        uint64_t cellSizeX,
-        uint64_t cellSizeY,
-        ostream& html);
+        int32_t nx,
+        int32_t ny,
+        int32_t deltaX,
+        int32_t deltaY);
+    static void writeMatrixCsv(const AlignmentMatrix&, const string& fileName);
 };
 
 

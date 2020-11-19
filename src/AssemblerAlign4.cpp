@@ -25,25 +25,13 @@ void Assembler::alignOrientedReads4(
     Alignment alignment;
     AlignmentInfo alignmentInfo;
 
-    // Debug output in html format.
     const bool debug = true;
-    ofstream html("Align4.html");
-    shasta::writeHtmlBegin(html, "Align4");
-    writeMakeAllTablesCopyable(html);
-    html << "<body onload='makeAllTablesCopyable()'>\n"
-        "<h1>Alignment method 4 for oriented reads " <<
-        OrientedReadId(readId0, strand0) << " and " <<
-        OrientedReadId(readId1, strand1) << "</h1>\n";
 
     // Compute the alignment.
     alignOrientedReads4(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
-        options, alignment, alignmentInfo, debug, html);
-
-    // Finish the html.
-    html << "</body>\n";
-    writeHtmlEnd(html);
+        options, alignment, alignmentInfo, debug);
 }
 
 
@@ -57,14 +45,13 @@ void Assembler::alignOrientedReads4(
     const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
-    bool debug,
-    ostream& html) const
+    bool debug) const
 {
     const auto markers0 = markers[orientedReadId0.getValue()];
     const auto markers1 = markers[orientedReadId1.getValue()];
 
     align4(markers0, markers1,
-        options, alignment, alignmentInfo, debug, html);
+        options, alignment, alignmentInfo, debug);
 }
 
 
