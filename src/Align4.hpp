@@ -220,6 +220,9 @@ private:
         int32_t deltaX,
         int32_t deltaY);
     void writeMatrixCsv(const string& fileName);
+    void writeMatrixPng(
+        uint32_t nx, uint32_t ny,
+        const string& fileName);
 
     // Do a BFS to find candidate alignments.
     // See comments at the top of this file for details.

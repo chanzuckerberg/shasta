@@ -1,5 +1,6 @@
 #include "Align4.hpp"
 #include "html.hpp"
+#include "PngImage.hpp"
 using namespace shasta;
 
 #include "algorithm.hpp"
@@ -79,13 +80,15 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     fillFeatureMap(sequence0, featureMap0);
 
     // Create the alignment matrix.
+    const uint32_t nx = uint32_t(sequence0.size()-(m-1));
+    const uint32_t ny = uint32_t(sequence1.size()-(m-1));
     fillAlignmentMatrix(featureMap0, sequence1,
-        uint32_t(sequence0.size()-(m-1)),
-        uint32_t(sequence1.size()-(m-1)),
+        nx, ny,
         uint32_t(options.deltaX), uint32_t(options.deltaY));
 
     if(debug) {
         writeMatrixCsv("Align4-Matrix.csv");
+        writeMatrixPng(nx, ny, "Align4-Matrix.png");
     }
 
     // Find alignment candidates.
@@ -215,6 +218,52 @@ template<uint64_t m> void shasta::Align4<m>::writeMatrixCsv(
             int(alignmentMatrixEntry.isNearRight) << "," <<
             int(alignmentMatrixEntry.isNearBottom) << "\n";
     }
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::writeMatrixPng(
+    uint32_t nx, uint32_t ny,
+    const string& fileName)
+{
+    // Create the image, which gets initialized to black.
+    PngImage image(nx, ny);
+
+    // Write a grid.
+    vector<int> gridSpacing;
+    vector< array<int, 3> > gridRgb;
+    gridSpacing.push_back(   10); gridRgb.push_back({ 15,  15,  15});  // Grey
+    gridSpacing.push_back(   50); gridRgb.push_back({ 30,  30,  30});  // Grey
+    gridSpacing.push_back(  100); gridRgb.push_back({ 90,  90,  90});  // Grey
+    gridSpacing.push_back(  500); gridRgb.push_back({160, 160, 160});  // Grey
+    gridSpacing.push_back( 1000); gridRgb.push_back({255, 255, 255});  // White
+    gridSpacing.push_back( 5000); gridRgb.push_back({255, 120, 255});  // Purple
+    gridSpacing.push_back(10000); gridRgb.push_back({255, 255,  60});  // Yellow
+    gridSpacing.push_back(50000); gridRgb.push_back({255, 255, 120});  // Yellow
+    for(size_t i=0; i<gridSpacing.size(); i++) {
+        const int spacing = gridSpacing[i];
+
+        const array<int, 3>& rgb = gridRgb[i];
+        for(uint32_t x=0; x<nx; x+=spacing) {
+            for(uint32_t y=0; y<ny; y++) {
+                image.setPixel(x, y, rgb[0], rgb[1], rgb[2]);
+            }
+        }
+        for(uint32_t y=0; y<ny; y+=spacing) {
+            for(uint32_t x=0; x<nx; x++) {
+                image.setPixel(x, y, rgb[0], rgb[1], rgb[2]);
+            }
+        }
+    }
+
+    // Write the alignment matrix.
+    for(const auto& p: alignmentMatrix) {
+        const Coordinates& coordinates = p.second.xy;
+        image.setPixel(coordinates.first, coordinates.second, 0, 255, 0);
+    }
+
+    // Write it out.
+    image.write(fileName);
 }
 
 
