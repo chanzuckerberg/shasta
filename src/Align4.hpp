@@ -200,11 +200,29 @@ private:
         // Set if ny-1-y < deltaX.
         uint8_t isNearBottom : 1;
 
+        // Set if there is a forward path to this feature starting
+        // near the top or left of the alignment matrix.
+        uint8_t isForwardReachableFromTopOrLeft : 1;
+
+        // Set if there is a backward path to this feature starting
+        // near the bottom or right of the alignment matrix.
+        uint8_t isBackwardReachableFromBottomOrRight : 1;
+
         // Flag used during the BFS.
         bool wasDiscovered = false;
 
         bool isNeighbor(
             const AlignmentMatrixEntry& entry1,
+            int32_t deltaX, int32_t deltaY) const;
+
+        // Return true if (*this) is a child of that.
+        bool isChild(
+            const AlignmentMatrixEntry& that,
+            int32_t deltaX, int32_t deltaY) const;
+
+        // Return true if (*this) is a parent of that.
+        bool isParent(
+            const AlignmentMatrixEntry& that,
             int32_t deltaX, int32_t deltaY) const;
     };
 
@@ -223,6 +241,15 @@ private:
     void writeMatrixPng(
         uint32_t nx, uint32_t ny,
         const string& fileName);
+    void clearDiscoveredFlags();
+
+    // Compute the reachability flags in the alignment matrix.
+    void computeReachability(
+        int32_t deltaX,
+        int32_t deltaY);
+
+    // Remove alignment matrix entries that are not reachable in both directions.
+    void removeUnreachable();
 
     // Do a BFS to find candidate alignments.
     // See comments at the top of this file for details.
@@ -235,6 +262,18 @@ private:
 
     // Find neighbors and flag them as discovered.
     void findAndFlagUndiscoveredNeighbors(
+        typename AlignmentMatrix::iterator,
+        int32_t deltaX,
+        int32_t deltaY,
+        vector<typename AlignmentMatrix::iterator>&
+    );
+    void findAndFlagUndiscoveredChildren(
+        typename AlignmentMatrix::iterator,
+        int32_t deltaX,
+        int32_t deltaY,
+        vector<typename AlignmentMatrix::iterator>&
+    );
+    void findAndFlagUndiscoveredParents(
         typename AlignmentMatrix::iterator,
         int32_t deltaX,
         int32_t deltaY,

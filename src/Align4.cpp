@@ -85,6 +85,16 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     fillAlignmentMatrix(featureMap0, sequence1,
         nx, ny,
         uint32_t(options.deltaX), uint32_t(options.deltaY));
+    computeReachability(int32_t(options.deltaX), int32_t(options.deltaY));
+    if(debug) {
+        cout << "Before removing unreachable entries, the alignment matrix has " <<
+            alignmentMatrix.size() << " entries." << endl;
+    }
+    removeUnreachable();
+    if(debug) {
+        cout << "After removing unreachable entries, the alignment matrix has " <<
+            alignmentMatrix.size() << " entries." << endl;
+    }
 
     if(debug) {
         writeMatrixCsv("Align4-Matrix.csv");
@@ -180,6 +190,8 @@ template<uint64_t m> void shasta::Align4<m>::fillAlignmentMatrix(
             alignmentMatrixEntry.isNearTop  = (y < deltaX) ? 1 : 0;
             alignmentMatrixEntry.isNearRight = (nx-1-x < deltaX) ? 1 : 0;
             alignmentMatrixEntry.isNearBottom = (ny-1-y < deltaX) ? 1 : 0;
+            alignmentMatrixEntry.isForwardReachableFromTopOrLeft = 0;
+            alignmentMatrixEntry.isBackwardReachableFromBottomOrRight = 0;
             alignmentMatrix.insert(make_pair(Coordinates(iX, iY), alignmentMatrixEntry));
         }
 
@@ -258,12 +270,108 @@ template<uint64_t m> void shasta::Align4<m>::writeMatrixPng(
 
     // Write the alignment matrix.
     for(const auto& p: alignmentMatrix) {
-        const Coordinates& coordinates = p.second.xy;
-        image.setPixel(coordinates.first, coordinates.second, 0, 255, 0);
+        const AlignmentMatrixEntry& entry = p.second;
+        const Coordinates& coordinates = entry.xy;
+        if(entry.isForwardReachableFromTopOrLeft and entry.isBackwardReachableFromBottomOrRight) {
+            image.setPixel(coordinates.first, coordinates.second, 0, 255, 0);
+        } else {
+            image.setPixel(coordinates.first, coordinates.second, 255, 0, 0);
+        }
     }
 
     // Write it out.
     image.write(fileName);
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::clearDiscoveredFlags()
+{
+    for(auto& p: alignmentMatrix) {
+        p.second.wasDiscovered = 0;
+    }
+}
+
+
+
+// Compute the reachability flags in the alignment matrix
+template<uint64_t m> void shasta::Align4<m>::computeReachability(
+    int32_t deltaX,
+    int32_t deltaY)
+{
+    using iterator = typename AlignmentMatrix::iterator;
+    std::queue<iterator> q;
+    vector<iterator> neighbors;
+
+
+
+    // Do a forward BFS starting from all matrix entries near the
+    // top or left of the alignment matrix.
+    clearDiscoveredFlags();
+    for(iterator it=alignmentMatrix.begin(); it!=alignmentMatrix.end(); ++it) {
+        AlignmentMatrixEntry& entry = it->second;
+        if(entry.isNearTop or entry.isNearLeft) {
+            q.push(it);
+            entry.wasDiscovered = 1;
+            entry.isForwardReachableFromTopOrLeft = 1;
+        }
+    }
+    while(not q.empty()) {
+        auto it0 = q.front();
+        q.pop();
+        findAndFlagUndiscoveredChildren(it0, deltaX, deltaY, neighbors);
+        for(const auto& it1: neighbors) {
+            q.push(it1);
+            AlignmentMatrixEntry& entry1 = it1->second;
+            entry1.isForwardReachableFromTopOrLeft = 1;
+        }
+    }
+
+
+
+    // Do a backward BFS starting from all matrix entries near the
+    // top or left of the alignment matrix.
+    SHASTA_ASSERT(q.empty());
+    clearDiscoveredFlags();
+    for(iterator it=alignmentMatrix.begin(); it!=alignmentMatrix.end(); ++it) {
+        AlignmentMatrixEntry& entry = it->second;
+        if(entry.isNearBottom or entry.isNearRight) {
+            q.push(it);
+            entry.wasDiscovered = 1;
+            entry.isBackwardReachableFromBottomOrRight = 1;
+        }
+    }
+    while(not q.empty()) {
+        auto it0 = q.front();
+        q.pop();
+        findAndFlagUndiscoveredParents(it0, deltaX, deltaY, neighbors);
+        for(const auto& it1: neighbors) {
+            q.push(it1);
+            AlignmentMatrixEntry& entry1 = it1->second;
+            entry1.isBackwardReachableFromBottomOrRight = 1;
+        }
+    }
+
+}
+
+
+
+// Remove alignment matrix entries that are not reachable in both directions.
+template<uint64_t m> void shasta::Align4<m>:: removeUnreachable()
+{
+    // The loop must be done with care to avoid using invalid iterators
+    // pointing to removed elements.
+    for(auto it=alignmentMatrix.begin(); it!=alignmentMatrix.end();) {
+
+        const AlignmentMatrixEntry& entry = it->second;
+        if(not(entry.isForwardReachableFromTopOrLeft and entry.isBackwardReachableFromBottomOrRight)) {
+            auto jt = it;
+            ++it;
+            alignmentMatrix.erase(jt);
+        } else {
+            ++it;
+        }
+    }
 }
 
 
@@ -279,6 +387,7 @@ template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
     std::queue<iterator> q;
     vector<iterator> neighbors;
     vector<iterator> candidateAlignment;
+    clearDiscoveredFlags();
 
     // Loop over possible starting vertices for the BFS.
     for(auto itStart=alignmentMatrix.begin(); itStart!=alignmentMatrix.end(); itStart++) {
@@ -396,6 +505,92 @@ template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredNeighbors(
 
 
 
+template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredChildren(
+    typename AlignmentMatrix::iterator it0,
+    int32_t deltaX,
+    int32_t deltaY,
+    vector<typename AlignmentMatrix::iterator>& neighbors)
+{
+    using iterator = typename AlignmentMatrix::iterator;
+    neighbors.clear();
+
+    const AlignmentMatrixEntry& entry0 = it0->second;
+    const Coordinates& iXY0 = it0->first;
+    const int32_t iX0 = iXY0.first;
+    const int32_t iY0 = iXY0.second;
+
+    // Loop over the 6 cells that could contain children.
+    for(int32_t diX=0; diX<=1; diX++) {
+        const int iX1 = iX0 + diX;
+        for(int32_t diY=-1; diY<=1; diY++) {
+            const int iY1 = iY0 + diY;
+
+            // Loop over all alignment matrix entries in this cell.
+            iterator begin, end;
+            tie(begin, end) = alignmentMatrix.equal_range(Coordinates(iX1, iY1));
+            for(iterator it1=begin; it1!=end; ++it1) {
+                if(it1 == it0) {
+                    continue;
+                }
+                AlignmentMatrixEntry& entry1 = it1->second;
+                if(entry1.wasDiscovered) {
+                    continue;
+                }
+                if(not entry1.isChild(entry0, deltaX, deltaY)) {
+                    continue;
+                }
+                entry1.wasDiscovered = true;
+                neighbors.push_back(it1);
+            }
+        }
+    }
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredParents(
+    typename AlignmentMatrix::iterator it0,
+    int32_t deltaX,
+    int32_t deltaY,
+    vector<typename AlignmentMatrix::iterator>& neighbors)
+{
+    using iterator = typename AlignmentMatrix::iterator;
+    neighbors.clear();
+
+    const AlignmentMatrixEntry& entry0 = it0->second;
+    const Coordinates& iXY0 = it0->first;
+    const int32_t iX0 = iXY0.first;
+    const int32_t iY0 = iXY0.second;
+
+    // Loop over the 6 cells that could contain parents.
+    for(int32_t diX=-1; diX<=0; diX++) {
+        const int iX1 = iX0 + diX;
+        for(int32_t diY=-1; diY<=1; diY++) {
+            const int iY1 = iY0 + diY;
+
+            // Loop over all alignment matrix entries in this cell.
+            iterator begin, end;
+            tie(begin, end) = alignmentMatrix.equal_range(Coordinates(iX1, iY1));
+            for(iterator it1=begin; it1!=end; ++it1) {
+                if(it1 == it0) {
+                    continue;
+                }
+                AlignmentMatrixEntry& entry1 = it1->second;
+                if(entry1.wasDiscovered) {
+                    continue;
+                }
+                if(not entry1.isParent(entry0, deltaX, deltaY)) {
+                    continue;
+                }
+                entry1.wasDiscovered = true;
+                neighbors.push_back(it1);
+            }
+        }
+    }
+}
+
+
+
 template<uint64_t m> void shasta::Align4<m>::writeCandidateAlignmentsCsv(
     const string& fileName)
 {
@@ -434,6 +629,68 @@ template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isNeighbor(
     if(abs(Y0-Y1) > deltaY) {
         return false;
     }
+    return true;
+}
+
+
+
+// Return true if (*this) is a child of that.
+template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isChild(
+    const AlignmentMatrixEntry& that,
+    int32_t deltaX, int32_t deltaY) const
+{
+    const Coordinates& thisXY = XY;
+    const Coordinates& thatXY = that.XY;
+
+    const int32_t thisX = thisXY.first;
+    const int32_t thatX = thatXY.first;
+    if(thisX <= thatX) {
+        return false;
+    }
+    if(thisX >= thatX + deltaX) {
+        return false;
+    }
+
+    const int32_t thisY = thisXY.second;
+    const int32_t thatY = thatXY.second;
+    if(thisY <= thatY - deltaY) {
+        return false;
+    }
+    if(thisY >= thatY + deltaY) {
+        return false;
+    }
+
+    return true;
+}
+
+
+
+// Return true if (*this) is a parent of that.
+template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isParent(
+    const AlignmentMatrixEntry& that,
+    int32_t deltaX, int32_t deltaY) const
+{
+    const Coordinates& thisXY = XY;
+    const Coordinates& thatXY = that.XY;
+
+    const int32_t thisX = thisXY.first;
+    const int32_t thatX = thatXY.first;
+    if(thisX > thatX) {
+        return false;
+    }
+    if(thisX <= thatX - deltaX) {
+        return false;
+    }
+
+    const int32_t thisY = thisXY.second;
+    const int32_t thatY = thatXY.second;
+    if(thisY <= thatY - deltaY) {
+        return false;
+    }
+    if(thisY >= thatY + deltaY) {
+        return false;
+    }
+
     return true;
 }
 
