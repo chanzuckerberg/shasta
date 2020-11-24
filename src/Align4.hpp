@@ -306,13 +306,14 @@ private:
     using Graph = boost::adjacency_list<
         boost::vecS,
         boost::vecS,
-        boost::directedS,
+        boost::bidirectionalS,
         typename AlignmentMatrix::iterator,
         boost::property<boost::edge_weight_t, uint64_t> >;
     using vertex_descriptor = typename Graph::vertex_descriptor;
     using edge_descriptor = typename Graph::edge_descriptor;
     Graph graph;
     void createGraph();
+    void findShortestPaths(bool debug);
 };
 
 

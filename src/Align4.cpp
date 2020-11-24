@@ -5,6 +5,7 @@
 #include "timestamp.hpp"
 using namespace shasta;
 
+#include <boost/graph/dijkstra_shortest_paths_no_color_map.hpp>
 #include <boost/graph/iteration_macros.hpp>
 
 #include "algorithm.hpp"
@@ -105,7 +106,7 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     computeReachability();
 
     // Debug output including unreachable entries.
-    if(debug) {
+    if(false) {
         cout << timestamp << "Writing csv output." << endl;
         writeMatrixCsv("Align4-Matrix-Initial.csv");
         cout << timestamp << "Writing png output." << endl;
@@ -127,7 +128,7 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     }
 
     // Debug output without unreachable entries.
-    if(debug) {
+    if(false) {
         cout << timestamp << "Writing csv output." << endl;
         writeMatrixCsv("Align4-Matrix.csv");
         cout << timestamp << "Writing png output." << endl;
@@ -142,7 +143,9 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     if(debug) {
         cout << "The graph has " << boost::num_vertices(graph) <<
             " vertices and " << boost::num_edges(graph) << " edges." << endl;
+        cout << timestamp << "Finding shortest paths." << endl;
     }
+    findShortestPaths(debug);
 
     if(debug) {
         cout << timestamp << "Done." << endl;
@@ -689,3 +692,47 @@ template<uint64_t m> void shasta::Align4<m>::createGraph()
 
 
 
+template<uint64_t m> void shasta::Align4<m>::findShortestPaths(bool debug)
+{
+    using boost::make_iterator_property_map;
+    using boost::get;
+    using boost::vertex_index;
+    using boost::dijkstra_shortest_paths_no_color_map;
+    using boost::predecessor_map;
+
+    // Find all possible begin/end points.
+    vector<vertex_descriptor> beginPoints;
+    vector<vertex_descriptor> endPoints;
+    BGL_FORALL_VERTICES_T(v, graph, Graph) {
+        if(boost::in_degree(v, graph) == 0) {
+            beginPoints.push_back(v);
+        }
+        if(boost::out_degree(v, graph) == 0) {
+            endPoints.push_back(v);
+        }
+    }
+
+    vector< vertex_descriptor > predecessor(num_vertices(graph));
+    for(const vertex_descriptor beginPoint: beginPoints) {
+        const Coordinates& xyBegin = graph[beginPoint]->second.xy;
+        if(debug) {
+            cout << timestamp << "Looking for shortest paths starting at " <<
+                xyBegin.first << " " << xyBegin.second << endl;
+        }
+        auto predecessorMap = make_iterator_property_map(predecessor.begin(), get(vertex_index, graph));
+        dijkstra_shortest_paths_no_color_map(graph, beginPoint, predecessor_map(predecessorMap));
+
+        for(const vertex_descriptor endPoint: endPoints) {
+            if(predecessorMap[endPoint] != endPoint) {
+                const Coordinates& xyEnd = graph[endPoint]->second.xy;
+                if(debug) {
+                    cout << "Found a path beginning at " <<
+                        xyBegin.first << " " << xyBegin.second <<
+                        " and ending at " <<
+                        xyEnd.first << " " << xyEnd.second << endl;
+                }
+            }
+        }
+    }
+
+}
