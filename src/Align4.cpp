@@ -10,6 +10,7 @@ using namespace shasta;
 #include "algorithm.hpp"
 #include "fstream.hpp"
 #include <queue>
+#include "tuple.hpp"
 
 
 
@@ -710,10 +711,11 @@ template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isChild(
 {
     SHASTA_ASSERT(xy != that.xy);
 
-    if(xy.first < that.xy.first) {
+    // x and y must be strictly increasing.
+    if(xy.first <= that.xy.first) {
         return false;
     }
-    if(xy.second < that.xy.second) {
+    if(xy.second <= that.xy.second) {
         return false;
     }
 
@@ -766,6 +768,7 @@ template<uint64_t m> void shasta::Align4<m>::createGraph()
         entry.v = boost::add_vertex(it, graph);
     }
 
+
     // Create the edges.
     using iterator = typename AlignmentMatrix::iterator;
     vector<iterator> children;
@@ -781,7 +784,16 @@ template<uint64_t m> void shasta::Align4<m>::createGraph()
             SHASTA_ASSERT(entry1.hasValidVertex());
             const vertex_descriptor v1 = entry1.v;
 
-            boost::add_edge(v0, v1, graph);
+            const int32_t dx = entry1.xy.first - entry0.xy.first;
+            SHASTA_ASSERT(dx > 0);
+            const int32_t dy = entry1.xy.second - entry0.xy.second;
+            SHASTA_ASSERT(dy > 0);
+            const int32_t weight = dx + dy - 2;
+            SHASTA_ASSERT(weight >= 0);
+
+            edge_descriptor e;
+            tie(e, ignore) = boost::add_edge(v0, v1, uint64_t(weight), graph);
+            SHASTA_ASSERT(boost::get(boost::edge_weight, graph)[e] == uint64_t(weight));
 
         }
     }
