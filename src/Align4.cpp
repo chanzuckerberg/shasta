@@ -144,14 +144,7 @@ template<uint64_t m> shasta::Align4<m>::Align4(
             " vertices and " << boost::num_edges(graph) << " edges." << endl;
     }
 
-    // Find alignment candidates.
     if(debug) {
-        cout << timestamp << "Finding alignment candidates." << endl;
-    }
-    findCandidateAlignments(debug);
-    if(debug) {
-        cout << timestamp << "Writing alignment candidates." << endl;
-        writeCandidateAlignmentsCsv("Align4-CandidateAlignments.csv");
         cout << timestamp << "Done." << endl;
     }
 }
@@ -420,90 +413,6 @@ template<uint64_t m> void shasta::Align4<m>:: removeUnreachable()
 
 
 
-// Do a BFS to find candidate alignments.
-// See comments at the top of Align4.hpp for details.
-template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
-    bool debug)
-{
-    using iterator = typename AlignmentMatrix::iterator;
-    std::queue<iterator> q;
-    vector<iterator> neighbors;
-    vector<iterator> candidateAlignment;
-    clearDiscoveredFlags();
-
-    // Loop over possible starting vertices for the BFS.
-    for(auto itStart=alignmentMatrix.begin(); itStart!=alignmentMatrix.end(); itStart++) {
-        const AlignmentMatrixEntry& start = itStart->second;
-
-        // If already discovered,skip.
-        if(start.wasDiscovered) {
-            continue;
-        }
-
-        // If not near the top of left, skip.
-        if(not(start.isNearLeft or start.isNearTop)) {
-            continue;
-        }
-
-        // The candidate alignment we find starting here is only
-        // usable if it reaches at least one vertex near the
-        // right or bottom of the alignment matrix.
-        bool isUsable = false;
-        candidateAlignment.clear();
-
-        // Do a BFS starting here.
-        SHASTA_ASSERT(q.empty());
-        q.push(itStart);
-        itStart->second.wasDiscovered = true;
-        candidateAlignment.push_back(itStart);
-        while(not q.empty()) {
-
-            // Dequeue a vertex.
-            auto it0 = q.front();
-            q.pop();
-
-            // Find its neighbors.
-            findAndFlagUndiscoveredNeighbors(it0, neighbors);
-
-            // Queue them.
-            for(const auto& it1: neighbors) {
-                q.push(it1);
-                candidateAlignment.push_back(it1);
-                const AlignmentMatrixEntry& entry1 = it1->second;
-                if(entry1.isNearRight or entry1.isNearBottom) {
-                    isUsable = true;
-                }
-            }
-        }
-
-        // If not usable, skip it.
-        if(not isUsable) {
-            continue;
-        }
-
-
-        // Store it.
-        sort(candidateAlignment.begin(), candidateAlignment.end(), OrderByIncreasingXThenY());
-        const iterator itFirst = candidateAlignment.front();
-        const AlignmentMatrixEntry& firstEntry = itFirst->second;
-        if(debug) {
-        cout << "Candidate alignment " << candidateAlignments.size() << " start at " <<
-            firstEntry.xy.first << " " <<
-            firstEntry.xy.second << ", " <<
-            candidateAlignment.size() << " alignment matrix entries." << endl;
-        }
-
-        candidateAlignments.resize(candidateAlignments.size() + 1);
-        candidateAlignment.swap(candidateAlignments.back());
-    }
-
-    if(debug) {
-        cout << "Found " << candidateAlignments.size() << " candidate alignments." << endl;
-    }
-}
-
-
-
 template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredNeighbors(
     typename AlignmentMatrix::iterator it0,
     vector<typename AlignmentMatrix::iterator>& neighbors)
@@ -659,27 +568,6 @@ template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredParents(
                 entry1.wasDiscovered = true;
                 neighbors.push_back(it1);
             }
-        }
-    }
-}
-
-
-
-template<uint64_t m> void shasta::Align4<m>::writeCandidateAlignmentsCsv(
-    const string& fileName)
-{
-    ofstream csv(fileName);
-    csv << "Candidate,x,y,X,Y\n";
-    for(uint64_t i=0; i<candidateAlignments.size(); i++) {
-        const auto& candidateAlignment = candidateAlignments[i];
-        for(const typename AlignmentMatrix::const_iterator it: candidateAlignment) {
-            const AlignmentMatrixEntry& entry = it->second;
-            csv <<
-                i << "," <<
-                entry.xy.first << "," <<
-                entry.xy.second << "," <<
-                entry.XY.first << "," <<
-                entry.XY.second << "\n";
         }
     }
 }

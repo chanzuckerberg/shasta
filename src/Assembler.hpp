@@ -4,7 +4,6 @@
 // Shasta.
 #include "Alignment.hpp"
 #include "AlignmentCandidates.hpp"
-#include "Align4.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
@@ -39,6 +38,7 @@ namespace shasta {
     class Alignment;
     class AlignmentGraph;
     class AlignmentInfo;
+    class Align4Options;
     class AssemblerOptions;
     class AssembledSegment;
     class CompressedAssemblyGraph;

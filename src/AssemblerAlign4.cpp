@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "Align4.hpp"
 #include "html.hpp"
 using namespace shasta;
 

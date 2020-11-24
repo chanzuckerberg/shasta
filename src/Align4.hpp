@@ -266,12 +266,6 @@ private:
     // Remove alignment matrix entries that are not reachable in both directions.
     void removeUnreachable();
 
-    // Do a BFS to find candidate alignments.
-    // See comments at the top of this file for details.
-    void findCandidateAlignments(bool debug);
-    vector< vector<typename AlignmentMatrix::iterator> > candidateAlignments;
-    void writeCandidateAlignmentsCsv(const string& fileName);
-
     // Find neighbors and flag them as discovered.
     void findAndFlagUndiscoveredNeighbors(
         typename AlignmentMatrix::iterator,
