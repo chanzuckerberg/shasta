@@ -109,6 +109,8 @@ We find neighbors as needed.
 #include "Marker.hpp"
 #include "span.hpp"
 
+#include <boost/graph/adjacency_list.hpp>
+
 #include "array.hpp"
 #include <unordered_map>
 #include <set>
@@ -179,10 +181,25 @@ private:
     using FeatureMap = std::unordered_multimap<Feature, uint32_t, HashTuple<Feature> >;
     static void fillFeatureMap(const Sequence&, FeatureMap&);
 
+    // Cell sizes in the X and Y direction.
+    int32_t deltaX;
+    int32_t deltaY;
+
+
+
     // An entry of the alignment matrix.
     using Coordinates = pair<int32_t, int32_t>;
     class AlignmentMatrixEntry {
     public:
+
+        // The vertex_descriptor in the Graph defined below.
+        // This is only valid after createGraph was called.
+        // This happens after unreachable vertices are removed.
+        uint64_t v = std::numeric_limits<uint64_t>::max();
+        bool hasValidVertex() const {
+            return v != std::numeric_limits<uint64_t>::max();
+        }
+
         Coordinates xy;
         Coordinates XY;
 
@@ -211,19 +228,21 @@ private:
         // Flag used during the BFS.
         bool wasDiscovered = false;
 
-        bool isNeighbor(
-            const AlignmentMatrixEntry& entry1,
-            int32_t deltaX, int32_t deltaY) const;
+        bool isNeighbor(const AlignmentMatrixEntry&,
+            int32_t deltaX,
+            int32_t deltaY) const;
 
         // Return true if (*this) is a child of that.
         bool isChild(
             const AlignmentMatrixEntry& that,
-            int32_t deltaX, int32_t deltaY) const;
+            int32_t deltaX,
+            int32_t deltaY) const;
 
         // Return true if (*this) is a parent of that.
         bool isParent(
             const AlignmentMatrixEntry& that,
-            int32_t deltaX, int32_t deltaY) const;
+            int32_t deltaX,
+            int32_t deltaY) const;
     };
 
 
@@ -234,9 +253,7 @@ private:
         const FeatureMap& featureMap0,
         const Sequence& sequence1,
         int32_t nx,
-        int32_t ny,
-        int32_t deltaX,
-        int32_t deltaY);
+        int32_t ny);
     void writeMatrixCsv(const string& fileName);
     void writeMatrixPng(
         uint32_t nx, uint32_t ny,
@@ -244,39 +261,32 @@ private:
     void clearDiscoveredFlags();
 
     // Compute the reachability flags in the alignment matrix.
-    void computeReachability(
-        int32_t deltaX,
-        int32_t deltaY);
+    void computeReachability();
 
     // Remove alignment matrix entries that are not reachable in both directions.
     void removeUnreachable();
 
     // Do a BFS to find candidate alignments.
     // See comments at the top of this file for details.
-    void findCandidateAlignments(
-        int32_t deltaX,
-        int32_t deltaY,
-        bool debug);
+    void findCandidateAlignments(bool debug);
     vector< vector<typename AlignmentMatrix::iterator> > candidateAlignments;
     void writeCandidateAlignmentsCsv(const string& fileName);
 
     // Find neighbors and flag them as discovered.
     void findAndFlagUndiscoveredNeighbors(
         typename AlignmentMatrix::iterator,
-        int32_t deltaX,
-        int32_t deltaY,
+        vector<typename AlignmentMatrix::iterator>&
+    );
+    void findChildren(
+        typename AlignmentMatrix::iterator,
         vector<typename AlignmentMatrix::iterator>&
     );
     void findAndFlagUndiscoveredChildren(
         typename AlignmentMatrix::iterator,
-        int32_t deltaX,
-        int32_t deltaY,
         vector<typename AlignmentMatrix::iterator>&
     );
     void findAndFlagUndiscoveredParents(
         typename AlignmentMatrix::iterator,
-        int32_t deltaX,
-        int32_t deltaY,
         vector<typename AlignmentMatrix::iterator>&
     );
 
@@ -293,6 +303,22 @@ private:
         }
     };
 
+
+
+    // After unreachable vertices are removed from the alignment matrix,
+    // we create the equivalent Boost graph.
+    // Each vertex contains an AlignmentMatrixEntry.
+    class AlignmentMatrixEntry;
+    using Graph = boost::adjacency_list<
+        boost::vecS,
+        boost::vecS,
+        boost::directedS,
+        typename AlignmentMatrix::iterator,
+        boost::property<boost::edge_weight_t, uint64_t> >;
+    using vertex_descriptor = typename Graph::vertex_descriptor;
+    using edge_descriptor = typename Graph::edge_descriptor;
+    Graph graph;
+    void createGraph();
 };
 
 

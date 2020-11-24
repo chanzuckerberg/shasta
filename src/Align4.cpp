@@ -1,7 +1,11 @@
 #include "Align4.hpp"
 #include "html.hpp"
+#include "orderPairs.hpp"
 #include "PngImage.hpp"
+#include "timestamp.hpp"
 using namespace shasta;
+
+#include <boost/graph/iteration_macros.hpp>
 
 #include "algorithm.hpp"
 #include "fstream.hpp"
@@ -63,32 +67,57 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     const Align4Options& options,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
-    bool debug)
+    bool debug) :
+    deltaX(int32_t(options.deltaX)),
+    deltaY(int32_t(options.deltaY))
 {
     // Check that we are in the templated version consistent with
     /// the options.
     SHASTA_ASSERT(options.m == m);
 
     if(debug) {
-        cout << "Computing a marker alignment of two sequences with " <<
+        cout << timestamp << "Computing a marker alignment of two sequences with " <<
             sequence0.size() << " and " << sequence1.size() << " markers." << endl;
     }
 
     // Create the FeatureMap for sequence0.
+    // It is needed to create the alignment matrix.
     const uint64_t inverseLoadFactor = 2;
     FeatureMap featureMap0(inverseLoadFactor * sequence0.size());
+    if(debug) {
+        cout << timestamp << "Creating the feature map." << endl;
+    }
     fillFeatureMap(sequence0, featureMap0);
 
     // Create the alignment matrix.
+    if(debug) {
+        cout << timestamp << "Creating the alignment matrix." << endl;
+    }
     const uint32_t nx = uint32_t(sequence0.size()-(m-1));
     const uint32_t ny = uint32_t(sequence1.size()-(m-1));
-    fillAlignmentMatrix(featureMap0, sequence1,
-        nx, ny,
-        uint32_t(options.deltaX), uint32_t(options.deltaY));
-    computeReachability(int32_t(options.deltaX), int32_t(options.deltaY));
+    fillAlignmentMatrix(featureMap0, sequence1, nx, ny);
+
+    // Compute reachability flags.
+    if(debug) {
+        cout << timestamp << "Computing reachability flags." << endl;
+    }
+    computeReachability();
+
+    // Debug output including unreachable entries.
+    if(debug) {
+        cout << timestamp << "Writing csv output." << endl;
+        writeMatrixCsv("Align4-Matrix-Initial.csv");
+        cout << timestamp << "Writing png output." << endl;
+        writeMatrixPng(nx, ny, "Align4-Matrix-Initial.png");
+    }
+
+    // Remove unreachable entries.
     if(debug) {
         cout << "Before removing unreachable entries, the alignment matrix has " <<
             alignmentMatrix.size() << " entries." << endl;
+    }
+    if(debug) {
+        cout << timestamp << "Removing unreachable entries." << endl;
     }
     removeUnreachable();
     if(debug) {
@@ -96,15 +125,33 @@ template<uint64_t m> shasta::Align4<m>::Align4(
             alignmentMatrix.size() << " entries." << endl;
     }
 
+    // Debug output without unreachable entries.
     if(debug) {
+        cout << timestamp << "Writing csv output." << endl;
         writeMatrixCsv("Align4-Matrix.csv");
+        cout << timestamp << "Writing png output." << endl;
         writeMatrixPng(nx, ny, "Align4-Matrix.png");
     }
 
-    // Find alignment candidates.
-    findCandidateAlignments(int32_t(options.deltaX), int32_t(options.deltaY), debug);
+    // Create the Boost graph, keeping only the surviving vertices.
     if(debug) {
+        cout << timestamp << "Creating the graph." << endl;
+    }
+    createGraph();
+    if(debug) {
+        cout << "The graph has " << boost::num_vertices(graph) <<
+            " vertices and " << boost::num_edges(graph) << " edges." << endl;
+    }
+
+    // Find alignment candidates.
+    if(debug) {
+        cout << timestamp << "Finding alignment candidates." << endl;
+    }
+    findCandidateAlignments(debug);
+    if(debug) {
+        cout << timestamp << "Writing alignment candidates." << endl;
         writeCandidateAlignmentsCsv("Align4-CandidateAlignments.csv");
+        cout << timestamp << "Done." << endl;
     }
 }
 
@@ -157,9 +204,7 @@ template<uint64_t m> void shasta::Align4<m>::fillAlignmentMatrix(
     const FeatureMap& featureMap0,
     const Sequence& sequence1,
     int32_t nx,
-    int32_t ny,
-    int32_t deltaX,
-    int32_t deltaY)
+    int32_t ny)
 {
     // Start with the first m kmerIds.
     Feature feature;
@@ -295,9 +340,7 @@ template<uint64_t m> void shasta::Align4<m>::clearDiscoveredFlags()
 
 
 // Compute the reachability flags in the alignment matrix
-template<uint64_t m> void shasta::Align4<m>::computeReachability(
-    int32_t deltaX,
-    int32_t deltaY)
+template<uint64_t m> void shasta::Align4<m>::computeReachability()
 {
     using iterator = typename AlignmentMatrix::iterator;
     std::queue<iterator> q;
@@ -319,7 +362,7 @@ template<uint64_t m> void shasta::Align4<m>::computeReachability(
     while(not q.empty()) {
         auto it0 = q.front();
         q.pop();
-        findAndFlagUndiscoveredChildren(it0, deltaX, deltaY, neighbors);
+        findAndFlagUndiscoveredChildren(it0, neighbors);
         for(const auto& it1: neighbors) {
             q.push(it1);
             AlignmentMatrixEntry& entry1 = it1->second;
@@ -344,7 +387,7 @@ template<uint64_t m> void shasta::Align4<m>::computeReachability(
     while(not q.empty()) {
         auto it0 = q.front();
         q.pop();
-        findAndFlagUndiscoveredParents(it0, deltaX, deltaY, neighbors);
+        findAndFlagUndiscoveredParents(it0, neighbors);
         for(const auto& it1: neighbors) {
             q.push(it1);
             AlignmentMatrixEntry& entry1 = it1->second;
@@ -379,8 +422,6 @@ template<uint64_t m> void shasta::Align4<m>:: removeUnreachable()
 // Do a BFS to find candidate alignments.
 // See comments at the top of Align4.hpp for details.
 template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
-    int32_t deltaX,
-    int32_t deltaY,
     bool debug)
 {
     using iterator = typename AlignmentMatrix::iterator;
@@ -421,7 +462,7 @@ template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
             q.pop();
 
             // Find its neighbors.
-            findAndFlagUndiscoveredNeighbors(it0, deltaX, deltaY, neighbors);
+            findAndFlagUndiscoveredNeighbors(it0, neighbors);
 
             // Queue them.
             for(const auto& it1: neighbors) {
@@ -464,8 +505,6 @@ template<uint64_t m> void shasta::Align4<m>::findCandidateAlignments(
 
 template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredNeighbors(
     typename AlignmentMatrix::iterator it0,
-    int32_t deltaX,
-    int32_t deltaY,
     vector<typename AlignmentMatrix::iterator>& neighbors)
 {
     using iterator = typename AlignmentMatrix::iterator;
@@ -505,10 +544,46 @@ template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredNeighbors(
 
 
 
+template<uint64_t m> void shasta::Align4<m>::findChildren(
+    typename AlignmentMatrix::iterator it0,
+    vector<typename AlignmentMatrix::iterator>& neighbors)
+{
+    using iterator = typename AlignmentMatrix::iterator;
+    neighbors.clear();
+
+    const AlignmentMatrixEntry& entry0 = it0->second;
+    const Coordinates& iXY0 = it0->first;
+    const int32_t iX0 = iXY0.first;
+    const int32_t iY0 = iXY0.second;
+
+    // Loop over the 6 cells that could contain children.
+    for(int32_t diX=0; diX<=1; diX++) {
+        const int iX1 = iX0 + diX;
+        for(int32_t diY=-1; diY<=1; diY++) {
+            const int iY1 = iY0 + diY;
+
+            // Loop over all alignment matrix entries in this cell.
+            iterator begin, end;
+            tie(begin, end) = alignmentMatrix.equal_range(Coordinates(iX1, iY1));
+            for(iterator it1=begin; it1!=end; ++it1) {
+                if(it1 == it0) {
+                    continue;
+                }
+                AlignmentMatrixEntry& entry1 = it1->second;
+                if(not entry1.isChild(entry0, deltaX, deltaY)) {
+                    continue;
+                }
+                neighbors.push_back(it1);
+            }
+        }
+    }
+}
+
+
+
+
 template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredChildren(
     typename AlignmentMatrix::iterator it0,
-    int32_t deltaX,
-    int32_t deltaY,
     vector<typename AlignmentMatrix::iterator>& neighbors)
 {
     using iterator = typename AlignmentMatrix::iterator;
@@ -550,8 +625,6 @@ template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredChildren(
 
 template<uint64_t m> void shasta::Align4<m>::findAndFlagUndiscoveredParents(
     typename AlignmentMatrix::iterator it0,
-    int32_t deltaX,
-    int32_t deltaY,
     vector<typename AlignmentMatrix::iterator>& neighbors)
 {
     using iterator = typename AlignmentMatrix::iterator;
@@ -613,23 +686,18 @@ template<uint64_t m> void shasta::Align4<m>::writeCandidateAlignmentsCsv(
 
 
 template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isNeighbor(
-    const AlignmentMatrixEntry& entry1,
-    int32_t deltaX, int32_t deltaY) const
+    const AlignmentMatrixEntry& that,
+    int32_t deltaX,
+    int32_t deltaY) const
 {
-    const AlignmentMatrixEntry& entry0 = *this;
-    const Coordinates& XY0 = entry0.XY;
-    const Coordinates& XY1 = entry1.XY;
-    const int32_t X0 = XY0.first;
-    const int32_t X1 = XY1.first;
-    if(abs(X0-X1) > deltaX) {
-        return false;
+
+    if(isChild(that, deltaX, deltaY)) {
+        return true;
     }
-    const int32_t Y0 = XY0.second;
-    const int32_t Y1 = XY1.second;
-    if(abs(Y0-Y1) > deltaY) {
-        return false;
+    if(that.isChild(*this, deltaX, deltaY)) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 
@@ -637,8 +705,18 @@ template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isNeighbor(
 // Return true if (*this) is a child of that.
 template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isChild(
     const AlignmentMatrixEntry& that,
-    int32_t deltaX, int32_t deltaY) const
+    int32_t deltaX,
+    int32_t deltaY) const
 {
+    SHASTA_ASSERT(xy != that.xy);
+
+    if(xy.first < that.xy.first) {
+        return false;
+    }
+    if(xy.second < that.xy.second) {
+        return false;
+    }
+
     const Coordinates& thisXY = XY;
     const Coordinates& thatXY = that.XY;
 
@@ -668,29 +746,46 @@ template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isChild(
 // Return true if (*this) is a parent of that.
 template<uint64_t m> bool shasta::Align4<m>::AlignmentMatrixEntry::isParent(
     const AlignmentMatrixEntry& that,
-    int32_t deltaX, int32_t deltaY) const
+    int32_t deltaX,
+    int32_t deltaY) const
 {
-    const Coordinates& thisXY = XY;
-    const Coordinates& thatXY = that.XY;
-
-    const int32_t thisX = thisXY.first;
-    const int32_t thatX = thatXY.first;
-    if(thisX > thatX) {
-        return false;
-    }
-    if(thisX <= thatX - deltaX) {
-        return false;
-    }
-
-    const int32_t thisY = thisXY.second;
-    const int32_t thatY = thatXY.second;
-    if(thisY <= thatY - deltaY) {
-        return false;
-    }
-    if(thisY >= thatY + deltaY) {
-        return false;
-    }
-
-    return true;
+    return that.isChild(*this, deltaX, deltaY);
 }
+
+
+
+// After unreachable vertices are removed from the alignment matrix,
+// we create the equivalent Boost graph.
+// Each vertex contains an AlignmentMatrixEntry.
+template<uint64_t m> void shasta::Align4<m>::createGraph()
+{
+    // Create the vertices.
+    graph.m_vertices.reserve(alignmentMatrix.size());
+    for(auto it=alignmentMatrix.begin(); it!=alignmentMatrix.end(); ++it) {
+        AlignmentMatrixEntry& entry = it->second;
+        entry.v = boost::add_vertex(it, graph);
+    }
+
+    // Create the edges.
+    using iterator = typename AlignmentMatrix::iterator;
+    vector<iterator> children;
+    BGL_FORALL_VERTICES_T(v0, graph, Graph) {
+        const iterator it0 = graph[v0];
+        const AlignmentMatrixEntry& entry0 = it0->second;
+        SHASTA_ASSERT(entry0.hasValidVertex());
+        SHASTA_ASSERT(entry0.v == v0);
+        findChildren(it0, children);
+
+        for(const iterator it1: children) {
+            const AlignmentMatrixEntry& entry1 = it1->second;
+            SHASTA_ASSERT(entry1.hasValidVertex());
+            const vertex_descriptor v1 = entry1.v;
+
+            boost::add_edge(v0, v1, graph);
+
+        }
+    }
+}
+
+
 
