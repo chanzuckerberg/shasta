@@ -146,6 +146,9 @@ template<uint64_t m> shasta::Align4<m>::Align4(
         cout << timestamp << "Finding shortest paths." << endl;
     }
     findShortestPaths(debug);
+    if(debug) {
+        writePaths("Align4-Paths.csv");
+    }
 
     if(debug) {
         cout << timestamp << "Done." << endl;
@@ -713,8 +716,6 @@ template<uint64_t m> void shasta::Align4<m>::findShortestPaths(bool debug)
     }
 
     vector<vertex_descriptor> predecessor(num_vertices(graph));
-    using Path = vector<vertex_descriptor>;
-    vector<Path> paths;
     for(const vertex_descriptor beginPoint: beginPoints) {
         const Coordinates& xyBegin = graph[beginPoint]->second.xy;
         auto predecessorMap = make_iterator_property_map(predecessor.begin(), get(vertex_index, graph));
@@ -739,9 +740,9 @@ template<uint64_t m> void shasta::Align4<m>::findShortestPaths(bool debug)
                 std::reverse(path.begin(), path.end());
 
                 if(debug) {
-                    cout << "Found a path with " << path.size() << " features beginning at " <<
+                    cout << "Path " << paths.size()-1 << " with " << path.size() << " features begins at " <<
                         xyBegin.first << " " << xyBegin.second <<
-                        " and ending at " <<
+                        " and ends at " <<
                         xyEnd.first << " " << xyEnd.second << endl;
                 }
             }
@@ -749,3 +750,26 @@ template<uint64_t m> void shasta::Align4<m>::findShortestPaths(bool debug)
     }
 
 }
+
+
+
+template<uint64_t m> void shasta::Align4<m>::writePaths(const string& fileName) const
+{
+    ofstream csv(fileName);
+    csv << "PathId,Index,x,y,X,Y\n";
+    for(uint64_t pathId=0; pathId<paths.size(); pathId++) {
+        const Path& path = paths[pathId];
+        for(uint64_t i=0; i<path.size(); i++) {
+            const vertex_descriptor v = path[i];
+            const AlignmentMatrixEntry& entry = graph[v]->second;
+
+            csv << pathId << ",";
+            csv << i << ",";
+            csv << entry.xy.first << ",";
+            csv << entry.xy.second << ",";
+            csv << entry.XY.first << ",";
+            csv << entry.XY.second << "\n";
+        }
+    }
+}
+

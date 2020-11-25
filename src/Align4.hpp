@@ -313,7 +313,11 @@ private:
     using edge_descriptor = typename Graph::edge_descriptor;
     Graph graph;
     void createGraph();
+
+    using Path = vector<vertex_descriptor>;
+    vector<Path> paths;
     void findShortestPaths(bool debug);
+    void writePaths(const string& fileName) const;
 };
 
 
