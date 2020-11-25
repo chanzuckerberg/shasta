@@ -128,7 +128,7 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     }
 
     // Debug output without unreachable entries.
-    if(false) {
+    if(debug) {
         cout << timestamp << "Writing csv output." << endl;
         writeMatrixCsv("Align4-Matrix.csv");
         cout << timestamp << "Writing png output." << endl;
@@ -712,21 +712,34 @@ template<uint64_t m> void shasta::Align4<m>::findShortestPaths(bool debug)
         }
     }
 
-    vector< vertex_descriptor > predecessor(num_vertices(graph));
+    vector<vertex_descriptor> predecessor(num_vertices(graph));
+    using Path = vector<vertex_descriptor>;
+    vector<Path> paths;
     for(const vertex_descriptor beginPoint: beginPoints) {
         const Coordinates& xyBegin = graph[beginPoint]->second.xy;
-        if(debug) {
-            cout << timestamp << "Looking for shortest paths starting at " <<
-                xyBegin.first << " " << xyBegin.second << endl;
-        }
         auto predecessorMap = make_iterator_property_map(predecessor.begin(), get(vertex_index, graph));
         dijkstra_shortest_paths_no_color_map(graph, beginPoint, predecessor_map(predecessorMap));
 
         for(const vertex_descriptor endPoint: endPoints) {
             if(predecessorMap[endPoint] != endPoint) {
                 const Coordinates& xyEnd = graph[endPoint]->second.xy;
+
+                // Walk back the predecessor map to create the path.
+                paths.resize(paths.size() + 1);
+                Path& path = paths.back();
+                vertex_descriptor v = endPoint;
+                while(true) {
+                    path.push_back(v);
+                    const vertex_descriptor p = predecessorMap[v];
+                    if(p == v) {
+                        break;
+                    }
+                    v = p;
+                }
+                std::reverse(path.begin(), path.end());
+
                 if(debug) {
-                    cout << "Found a path beginning at " <<
+                    cout << "Found a path with " << path.size() << " features beginning at " <<
                         xyBegin.first << " " << xyBegin.second <<
                         " and ending at " <<
                         xyEnd.first << " " << xyEnd.second << endl;
