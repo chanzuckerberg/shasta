@@ -106,7 +106,7 @@ template<uint64_t m> shasta::Align4<m>::Align4(
     computeReachability();
 
     // Debug output including unreachable entries.
-    if(false) {
+    if(debug) {
         cout << timestamp << "Writing csv output." << endl;
         writeMatrixCsv("Align4-Matrix-Initial.csv");
         cout << timestamp << "Writing png output." << endl;
@@ -146,8 +146,10 @@ template<uint64_t m> shasta::Align4<m>::Align4(
         cout << timestamp << "Finding shortest paths." << endl;
     }
     findShortestPaths(debug);
+    computePathInfos();
     if(debug) {
         writePaths("Align4-Paths.csv");
+        writePathInfos("Align4-PathInfos.csv");
     }
 
     if(debug) {
@@ -717,13 +719,11 @@ template<uint64_t m> void shasta::Align4<m>::findShortestPaths(bool debug)
 
     vector<vertex_descriptor> predecessor(num_vertices(graph));
     for(const vertex_descriptor beginPoint: beginPoints) {
-        const Coordinates& xyBegin = graph[beginPoint]->second.xy;
         auto predecessorMap = make_iterator_property_map(predecessor.begin(), get(vertex_index, graph));
         dijkstra_shortest_paths_no_color_map(graph, beginPoint, predecessor_map(predecessorMap));
 
         for(const vertex_descriptor endPoint: endPoints) {
             if(predecessorMap[endPoint] != endPoint) {
-                const Coordinates& xyEnd = graph[endPoint]->second.xy;
 
                 // Walk back the predecessor map to create the path.
                 paths.resize(paths.size() + 1);
@@ -738,13 +738,6 @@ template<uint64_t m> void shasta::Align4<m>::findShortestPaths(bool debug)
                     v = p;
                 }
                 std::reverse(path.begin(), path.end());
-
-                if(debug) {
-                    cout << "Path " << paths.size()-1 << " with " << path.size() << " features begins at " <<
-                        xyBegin.first << " " << xyBegin.second <<
-                        " and ends at " <<
-                        xyEnd.first << " " << xyEnd.second << endl;
-                }
             }
         }
     }
@@ -770,6 +763,78 @@ template<uint64_t m> void shasta::Align4<m>::writePaths(const string& fileName) 
             csv << entry.XY.first << ",";
             csv << entry.XY.second << "\n";
         }
+    }
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::computePathInfo(
+    const Path& path,
+    PathInfo& pathInfo)
+{
+    pathInfo.featureCount = path.size();
+    const uint32_t firstX = graph[path.front()]->second.XY.first;
+    const uint32_t lastX = graph[path.back()]->second.XY.first;
+    pathInfo.alignedFraction = double(path.size()-1) / (0.5 * double(lastX - firstX));
+
+    pathInfo.dX = 0.;
+    pathInfo.dY = 0.;
+    for(uint64_t i=1; i<path.size(); i++) {
+        const AlignmentMatrixEntry& entry = graph[path[i]]->second;
+        const AlignmentMatrixEntry& previousEntry = graph[path[i-1]]->second;
+        const double dX = double(entry.XY.first - previousEntry.XY.first);
+        const double dY = double(entry.XY.second - previousEntry.XY.second);
+        pathInfo.dX += dX * dX;
+        pathInfo.dY += dY * dY;
+    }
+    pathInfo.dX = sqrt(pathInfo.dX / double(path.size()-1));
+    pathInfo.dY = sqrt(pathInfo.dY / double(path.size()-1));
+
+    pathInfo.minY = std::numeric_limits<int32_t>::max();
+    pathInfo.maxY = std::numeric_limits<int32_t>::min();
+    for(const vertex_descriptor v: path) {
+        const AlignmentMatrixEntry& entry = graph[v]->second;
+        const int32_t Y = entry.XY.second;
+        pathInfo.minY = min(pathInfo.minY, Y);
+        pathInfo.maxY = max(pathInfo.maxY, Y);
+    }
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::computePathInfos()
+{
+    pathInfos.resize(paths.size());
+    for(uint64_t i=0; i<paths.size(); i++) {
+        computePathInfo(paths[i], pathInfos[i]);
+    }
+}
+
+
+
+template<uint64_t m> void shasta::Align4<m>::writePathInfos(
+    const string& fileName)
+{
+    ofstream csv(fileName);
+    csv << "PathId,xFirst,yFirst,xLast,yLast,FeatureCount,AlignedFraction,dX,dY,minY,maxY,Bandwidth\n";
+    for(uint64_t i=0; i<paths.size(); i++) {
+        const Path& path = paths[i];
+        const PathInfo& pathInfo = pathInfos[i];
+        const AlignmentMatrixEntry& firstEntry = graph[path.front()]->second;
+        const AlignmentMatrixEntry& lastEntry = graph[path.back()]->second;
+
+        csv << i << ",";
+        csv << firstEntry.xy.first << ",";
+        csv << firstEntry.xy.second << ",";
+        csv << lastEntry.xy.first << ",";
+        csv << lastEntry.xy.second << ",";
+        csv << pathInfo.featureCount << ",";
+        csv << pathInfo.alignedFraction << ",";
+        csv << pathInfo.dX << ",";
+        csv << pathInfo.dY << ",";
+        csv << pathInfo.minY << ",";
+        csv << pathInfo.maxY << ",";
+        csv << pathInfo.bandWidth() << "\n";
     }
 }
 

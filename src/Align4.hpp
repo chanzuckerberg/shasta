@@ -314,10 +314,44 @@ private:
     Graph graph;
     void createGraph();
 
+    // The optimal paths in the graph.
     using Path = vector<vertex_descriptor>;
     vector<Path> paths;
     void findShortestPaths(bool debug);
     void writePaths(const string& fileName) const;
+
+
+
+    // Information for each path we found.
+    class PathInfo {
+    public:
+
+        // The number of features in the path.
+        uint64_t featureCount;
+
+        // Aligned fraction is number of features over half the total X span
+        // (which equals the average span in x and y).
+        double alignedFraction;
+
+        // The mean square X skip.
+        double dX;
+
+        // The mean square Y skip.
+        double dY;
+
+        // The minimum and maximum Y values. They define the band
+        // containing the alignment (in feature space).
+        int32_t minY;
+        int32_t maxY;
+        int32_t bandWidth() const {
+            return maxY - minY;
+        }
+
+    };
+    vector<PathInfo> pathInfos;
+    void computePathInfo(const Path&, PathInfo&);
+    void computePathInfos();
+    void writePathInfos(const string& fileName);
 };
 
 
