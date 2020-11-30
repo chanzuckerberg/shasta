@@ -632,7 +632,20 @@ void AssemblyPathGraph2::detangleCollidingComplementaryPair(
     // Figure out which of the two tangles follows the other.
     const bool BFollowsA = (inEdgesB == outEdgesA);
     const bool AFollowsB = (inEdgesA == outEdgesB);
-    SHASTA_ASSERT(BFollowsA or AFollowsB);  // By construction.
+    if(not(BFollowsA or AFollowsB)) {
+        // At first sight it seems that this is not possible,
+        // but it can actually happen in tangles with in-degree/out-degree
+        // greater than 2.
+        // Just mark both of them as unsolvable.
+        tangleA.isSolvable = false;
+        tangleB.isSolvable = false;
+        tangleA.priority = 0;
+        tangleB.priority = 0;
+        cout << "Unusual arrangement of colliding pair of reverse complement tangles " <<
+            tangleIdA << " " << tangleIdB <<
+            "  was marked as unsolvable." << endl;
+        return;
+    }
     if(BFollowsA and AFollowsB) {
         // This is a horrible mess where the two tangles follow each other.
         // Just mark both of them as unsolvable.
