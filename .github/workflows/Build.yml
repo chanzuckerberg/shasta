@@ -17,8 +17,8 @@ jobs:
         lsb_release -a
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.6.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.6.0" 
+        # cmake .. -DBUILD_ID="Shasta unreleased test build newer than release 0.7.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_ID="Shasta Release 0.7.0" 
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-20.04
@@ -50,8 +50,8 @@ jobs:
         mkdir shasta-build
         cd shasta-build 
         cmake .. -DBUILD_DYNAMIC_EXECUTABLE=OFF -DBUILD_DYNAMIC_LIBRARY=OFF -DBUILD_WITH_HTTP_SERVER=OFF \
-          -DBUILD_ID="Shasta unreleased test build newer than release 0.6.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.6.0" 
+          -DBUILD_ID="Shasta unreleased test build newer than release 0.7.0 at commit "$GITHUB_SHA
+        # cmake .. -DBUILD_ID="Shasta Release 0.7.0" 
         make -j 2 all
         make install/strip
         mv shasta-install shasta-Ubuntu-20.04
@@ -74,8 +74,8 @@ jobs:
       run: |
         mkdir shasta-build
         cd shasta-build 
-        cmake .. -DBUILD_ID="Shasta unreleased test build for MacOS-10.15 newer than release 0.6.0 at commit "$GITHUB_SHA
-        # cmake .. -DBUILD_ID="Shasta Release 0.6.0 for MacOS"
+        # cmake .. -DBUILD_ID="Shasta unreleased test build for MacOS-10.15 newer than release 0.7.0 at commit "$GITHUB_SHA
+        cmake .. -DBUILD_ID="Shasta Release 0.7.0 for MacOS"
         make VERBOSE=1 -j 2 all
         make install/strip
         # See what libraries the executable depends on.
