@@ -29,17 +29,14 @@ with the release number you picked.
 <li>In 
 <code>shasta/.github/workflows/Build.yml</code>,
 change <code>BUILD_ID</code> to <code>Shasta Release X.Y.Z</code>
-in all <code>cmake</code> commands (5 instances at the time of last update of this documentation).
+in all <code>cmake</code> commands (3 instances at the time of last update of this documentation).
 <li>Commit and push this change to trigger a new build on GitHub Actions.
 Wait for that build to complete.
-<li>Download the 6 artifacts. Unzip them and rename them to the following:
+<li>Download the 3 artifacts. Unzip them and rename them to the following:
 <ul>
 <li><code>shasta-Linux-X.Y.Z</code>
-<li><code>shasta-OldLinux-X.Y.Z</code> 
 <li><code>shasta-macOS-X.Y.Z</code>
 <li><code>shasta-Ubuntu-20.04-X.Y.Z.tar</code>
-<li><code>shasta-Ubuntu-18.04-X.Y.Z.tar</code>
-<li><code>shasta-Ubuntu-16.04-X.Y.Z.tar</code>
 </ul>
 <li> Build Shasta for 64-bit ARM (<code>aarch64</code>). Github Actions currently don't support <code>aarch64</code> containers. So the easiest way to do this is on a Graviton2 ec2 instance in AWS. On an <code>aarch64</code> instance running Ubuntu 20.04 LTS, do the following:
 <ul>
@@ -78,7 +75,7 @@ two steps below.
 change <code>BUILD_ID</code> to 
 <code>Shasta unreleased test build newer than release X.Y.Z</code>
 in all <code>cmake</code> commands for future GitHub Actions builds
-(5 instances at the time of last update of this documentation).
+(3 instances at the time of last update of this documentation).
 </ul>
 
 
