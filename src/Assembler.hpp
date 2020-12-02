@@ -58,6 +58,10 @@ namespace shasta {
         const string& name,     // The selection name.
         bool select0,           // Whether strand 0 is selected.
         bool select1);          // Whether strand 1 is selected.
+
+    namespace Align5 {
+        class Options;
+    }
 }
 
 
@@ -792,6 +796,35 @@ public:
         OrientedReadId,
         OrientedReadId,
         const Align4Options&,
+        Alignment&,
+        AlignmentInfo&,
+        bool debug) const;
+
+private:
+
+
+
+    // Member functions that use alignment algorithm 5.
+public:
+
+    // Python-callable version.
+    void alignOrientedReads5(
+        ReadId, Strand,
+        ReadId, Strand,
+        uint64_t m,
+        uint64_t deltaX,
+        uint64_t deltaY,
+        int64_t matchScore,
+        int64_t mismatchScore,
+        int64_t gapScore) const;
+
+    // Align two reads using alignment method 4.
+    // If debug is true, detailed output to html is produced.
+    // Otherwise, html is not used.
+    void alignOrientedReads5(
+        OrientedReadId,
+        OrientedReadId,
+        const Align5::Options&,
         Alignment&,
         AlignmentInfo&,
         bool debug) const;

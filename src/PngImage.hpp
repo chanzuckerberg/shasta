@@ -22,6 +22,9 @@ public:
     // Construct a magnified version of another PngImage.
     PngImage(const PngImage&, int magnifyFactor);
 
+    // Write a square grid.
+    void writeGrid(int spacing, int red, int green, int blue);
+
     // Magnify this image.
     void magnify(int magnifyFactor);
 

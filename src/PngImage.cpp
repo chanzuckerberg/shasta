@@ -115,3 +115,18 @@ void PngImage::swap(PngImage& that)
     data.swap(that.data);
 }
 
+
+// Write a square grid.
+void PngImage::writeGrid(int spacing, int red, int green, int blue)
+{
+    for(int x=0; x<width; x+=spacing) {
+        for(int y=0; y<height; y++) {
+            setPixel(x, y, red, green, blue);
+        }
+    }
+    for(int x=0; x<width; x++) {
+        for(int y=0; y<height; y+=spacing) {
+            setPixel(x, y, red, green, blue);
+        }
+    }
+}
