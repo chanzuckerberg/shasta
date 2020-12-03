@@ -56,6 +56,7 @@ Y = y + (nx - 1 - x)
 It can be verified that:
 0 <= X <= nx + ny - 2
 0 <= Y <= nx + ny - 2
+So the total number of disntict values of X and Y is nx + ny - 1.
 
 X is a coordinate along the diagonal of the alignment matrix,
 and Y is orthogonal to it and identifies the diagonal.
@@ -96,12 +97,14 @@ be in in the 6 cells
 #include "span.hpp"
 
 #include "array.hpp"
+#include <limits>
 #include "utility.hpp"
 #include "vector.hpp"
 
 namespace shasta {
     class Alignment;
     class AlignmentInfo;
+    class PngImage;
 
     namespace Align5 {
         template<uint64_t m> class Aligner;
@@ -186,11 +189,18 @@ private:
     // to a png image.
     void writeAlignmentMatrixInMarkerSpace(const string& fileName) const;
     void writeAlignmentMatrixInFeatureSpace(const string& fileName) const;
+    void writeCheckerboard(PngImage&) const;
+
+
 
     // Cells in (X,Y) space.
     class Cell {
     public:
         uint64_t featureCount = 0;
+        uint32_t minX = std::numeric_limits<uint32_t>::max();
+        uint32_t maxX = std::numeric_limits<uint32_t>::min();
+        uint32_t minY = std::numeric_limits<uint32_t>::max();
+        uint32_t maxY = std::numeric_limits<uint32_t>::min();
     };
     vector<Cell> cells;
     uint32_t cellCountX;    // Number of cells in X direction.
@@ -204,6 +214,10 @@ private:
         return cells[iX + cellCountX * iY];
     }
     void createCells();
+    void writeCells(const string& fileName) const;
+
+    // Given ordinals x, y, return coordinates iX, iY of the containing cell.
+    pair<uint32_t, uint32_t> getCellIndexes(uint32_t x, uint32_t y) const;
 };
 
 
