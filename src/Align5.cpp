@@ -89,16 +89,15 @@ template<uint64_t m> shasta::Align5::Aligner<m>::Aligner(
         cout << timestamp << "Creating cells." << endl;
     }
     createCells();
-    if(debug) {
-        cout << timestamp << "Writing cells." << endl;
-        writeCells("Align5-Cells.png");
-    }
 
     if(debug) {
         cout << timestamp << "Writing alignment matrix in feature space." << endl;
         writeAlignmentMatrixInFeatureSpace("Align5-AlignmentMatrixInFeatureSpace.png");
     }
 
+#if 0
+    // Currently I am leaning towards m=1 (with k=12 ore more),
+    // so feature space and marker space are the same.
     // Create markers sorted by KmerId.
     if(debug) {
         cout << timestamp << "Creating sorted markers." << endl;
@@ -110,6 +109,7 @@ template<uint64_t m> shasta::Align5::Aligner<m>::Aligner(
         cout << timestamp << "Writing alignment matrix in marker space." << endl;
         writeAlignmentMatrixInMarkerSpace("Align5-AlignmentMatrixInMarkerSpace.png");
     }
+#endif
 
     if(debug) {
         cout << timestamp << "Align5 ends." << endl;
@@ -327,10 +327,17 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::
 template<uint64_t m> void
     shasta::Align5::Aligner<m>::writeCheckerboard(PngImage& image) const
 {
-    for(int32_t y=0; y<ny; y++) {
-        for(int32_t x=0; x<nx; x++) {
-            uint32_t iX, iY;
-            tie(iX, iY) = getCellIndexes(x, y);
+    Coordinates xy;
+    uint32_t& x = xy.first;
+    uint32_t& y = xy.second;
+
+    Coordinates iXY;
+    uint32_t& iX = iXY.first;
+    uint32_t& iY = iXY.second;
+
+    for(y=0; y<ny; y++) {
+        for(x=0; x<nx; x++) {
+            iXY = getCellIndexesFromxy(xy);
             if(((iX + iY) %2) == 0) {
                 image.setPixel(x, y, 0, 48, 0);
             }
@@ -340,16 +347,37 @@ template<uint64_t m> void
 
 
 
-// Given ordinals x, y, return coordinates iX, iY of the containing cell.
-template<uint64_t m> pair<uint32_t, uint32_t>
-    shasta::Align5::Aligner<m>::getCellIndexes(uint32_t x, uint32_t y) const
+// Return (X,Y) given (x,y).
+template<uint64_t m> shasta::Align5::Coordinates
+    shasta::Align5::Aligner<m>::getXY(Coordinates xy) const
 {
-    const uint32_t X = x + y;
-    const uint32_t Y = nx + y - x - 1;
-    const uint32_t iX = X / deltaX;
-    const uint32_t iY = Y / deltaY;
-    return make_pair(iX, iY);
+    return Coordinates(
+        xy.first + xy.second,
+        nx + xy.second - xy.first - 1
+        );
 }
+
+
+
+// Return (iX,iY) given (X,Y).
+template<uint64_t m> shasta::Align5::Coordinates
+    shasta::Align5::Aligner<m>::getCellIndexesFromXY(Coordinates XY) const
+{
+    return Coordinates(
+        XY.first  / deltaX,
+        XY.second / deltaY
+        );
+}
+
+
+// Return (iX,iY) given (x,y).
+template<uint64_t m> shasta::Align5::Coordinates
+    shasta::Align5::Aligner<m>::getCellIndexesFromxy(Coordinates xy) const
+{
+    const Coordinates XY = getXY(xy);
+    return getCellIndexesFromXY(XY);
+}
+
 
 
 template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
@@ -393,9 +421,8 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
                 for(auto jt1=it1Begin; jt1!=it1End; ++jt1) {
                     const uint32_t x = jt0->second;
                     const uint32_t y = jt1->second;
-                    const Coordinates iXY = getCellIndexes(x, y);
-                    cells[iXY].alignmentMatrixEntries.push_back(
-                        AlignmentMatrixEntry(Coordinates(x, y)));
+                    const Coordinates iXY = getCellIndexesFromxy(Coordinates(x, y));
+                    cells[iXY].matrixEntries.push_back(MatrixEntry(Coordinates(x, y)));
                 }
             }
 
@@ -408,49 +435,3 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
 
 }
 
-
-
-template<uint64_t m> void shasta::Align5::Aligner<m>::writeCells(const string& fileName) const
-{
-#if 0
-    const uint32_t markersPerPixel = 4;
-    const uint32_t n = nx + ny - 1;
-    PngImage image(n/markersPerPixel, n/markersPerPixel);
-    // cout << "Cells image size " << n/markersPerPixel << endl;
-
-    for(uint32_t iX=0; iX<cellCountX; iX++) {
-        for(uint32_t iY=0; iY<cellCountY; iY++) {
-            const Cell& cell = getCell(iX, iY);
-
-            // If the cell is empty, skip it.
-            if(cell.featureCount == 0) {
-                continue;
-            }
-
-            // Display the bounding box.
-            const uint32_t minX = cell.minX / markersPerPixel;
-            const uint32_t maxX = cell.maxX / markersPerPixel;
-            const uint32_t minY = cell.minY / markersPerPixel;
-            const uint32_t maxY = cell.maxY / markersPerPixel;
-            /*
-            cout <<
-                iX << " " <<
-                iY << " " <<
-                minX << " " <<
-                maxX << " " <<
-                minY << " " <<
-                maxY << " " <<
-                endl;
-            */
-            for(uint32_t i=minX; i<=maxX; i++) {
-                for(uint32_t j=minY; j<=maxY; j++) {
-                    image.setPixel(i, j, 255, 255, 255);
-                }
-            }
-        }
-
-    }
-
-    image.write(fileName);
-#endif
-}

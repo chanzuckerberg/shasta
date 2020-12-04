@@ -110,8 +110,11 @@ namespace shasta {
 
     namespace Align5 {
         template<uint64_t m> class Aligner;
+        class MatrixEntry;
         class Options;
 
+        // This is used to store (x,y), (X,Y), or (iX, iY).
+        using Coordinates = pair<uint32_t, uint32_t>;
     }
 
     void align5(
@@ -146,6 +149,14 @@ public:
 
 
 
+class shasta::Align5::MatrixEntry {
+public:
+    Coordinates xy;
+    MatrixEntry(const Coordinates& xy) : xy(xy) {}
+};
+
+
+
 template<uint64_t m> class shasta::Align5::Aligner {
 public:
 
@@ -162,13 +173,13 @@ public:
 
 private:
 
-    // Number of markers (not features in the two sequences being aligned.
-    int32_t nx;
-    int32_t ny;
+    // Number of markers (not features) in the two sequences being aligned.
+    uint32_t nx;
+    uint32_t ny;
 
     // Cell sizes in the X and Y direction.
-    int32_t deltaX;
-    int32_t deltaY;
+    uint32_t deltaX;
+    uint32_t deltaY;
 
     // For each sequence, vectors of pairs (Feature, ordinal)
     // sorted by feature.
@@ -193,27 +204,28 @@ private:
     void writeAlignmentMatrixInFeatureSpace(const string& fileName) const;
     void writeCheckerboard(PngImage&) const;
 
-    // This is used to store (x,y), (X,Y), or (iX, iY).
-    using Coordinates = pair<uint32_t, uint32_t>;
-
-    // An element of the alignment matrix in feature space.
-    class AlignmentMatrixEntry {
-    public:
-        Coordinates xy;
-        AlignmentMatrixEntry(const Coordinates& xy) : xy(xy) {}
-    };
 
     // Cells in (X,Y) space.
     class Cell {
     public:
-        vector<AlignmentMatrixEntry> alignmentMatrixEntries;
+        vector<MatrixEntry> matrixEntries;
     };
     std::unordered_map<Coordinates, Cell, HashTuple<Coordinates> > cells;
     void createCells();
-    void writeCells(const string& fileName) const;
 
-    // Given ordinals x, y, return coordinates iX, iY of the containing cell.
-    pair<uint32_t, uint32_t> getCellIndexes(uint32_t x, uint32_t y) const;
+
+
+    // Coordinate transformations.
+
+    // Return (X,Y) given (x,y).
+    Coordinates getXY(Coordinates xy) const;
+
+    // Return (iX,iY) given (X,Y).
+    Coordinates getCellIndexesFromXY(Coordinates XY) const;
+
+    // Return (iX,iY) given (xy).
+    Coordinates getCellIndexesFromxy(Coordinates xy) const;
+
 };
 
 
