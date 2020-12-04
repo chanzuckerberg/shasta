@@ -93,11 +93,13 @@ be in in the 6 cells
 
 *******************************************************************************/
 
+#include "hashArray.hpp"
 #include "Marker.hpp"
 #include "span.hpp"
 
 #include "array.hpp"
 #include <limits>
+#include <unordered_map>
 #include "utility.hpp"
 #include "vector.hpp"
 
@@ -191,28 +193,22 @@ private:
     void writeAlignmentMatrixInFeatureSpace(const string& fileName) const;
     void writeCheckerboard(PngImage&) const;
 
+    // This is used to store (x,y), (X,Y), or (iX, iY).
+    using Coordinates = pair<uint32_t, uint32_t>;
 
+    // An element of the alignment matrix in feature space.
+    class AlignmentMatrixEntry {
+    public:
+        Coordinates xy;
+        AlignmentMatrixEntry(const Coordinates& xy) : xy(xy) {}
+    };
 
     // Cells in (X,Y) space.
     class Cell {
     public:
-        uint64_t featureCount = 0;
-        uint32_t minX = std::numeric_limits<uint32_t>::max();
-        uint32_t maxX = std::numeric_limits<uint32_t>::min();
-        uint32_t minY = std::numeric_limits<uint32_t>::max();
-        uint32_t maxY = std::numeric_limits<uint32_t>::min();
+        vector<AlignmentMatrixEntry> alignmentMatrixEntries;
     };
-    vector<Cell> cells;
-    uint32_t cellCountX;    // Number of cells in X direction.
-    uint32_t cellCountY;    // Number of cells in Y direction.
-    Cell& getCell(uint32_t iX, uint32_t iY)
-    {
-        return cells[iX + cellCountX * iY];
-    }
-    const Cell& getCell(uint32_t iX, uint32_t iY) const
-    {
-        return cells[iX + cellCountX * iY];
-    }
+    std::unordered_map<Coordinates, Cell, HashTuple<Coordinates> > cells;
     void createCells();
     void writeCells(const string& fileName) const;
 

@@ -90,15 +90,6 @@ template<uint64_t m> shasta::Align5::Aligner<m>::Aligner(
     }
     createCells();
     if(debug) {
-        cout << timestamp << "Counting occupied cells." << endl;
-        uint64_t occupiedCellCount = 0;
-        for(const Cell& cell: cells) {
-            if(cell.featureCount > 0) {
-                ++occupiedCellCount;
-            }
-        }
-        cout << timestamp << "Found " << occupiedCellCount <<
-            " occupied cells out of " << cellCountX * cellCountY << " total." << endl;
         cout << timestamp << "Writing cells." << endl;
         writeCells("Align5-Cells.png");
     }
@@ -202,6 +193,7 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::
 
 
     // Joint loop over the markers, looking for common k-mer ids.
+    uint64_t n = 0;
     auto begin0 = sortedMarkers0.begin();
     auto begin1 = sortedMarkers1.begin();
     auto end0 = sortedMarkers0.end();
@@ -239,6 +231,7 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::
                     const uint32_t x = jt0->second;
                     const uint32_t y = jt1->second;
                     image.setPixel(x, y, 255, 0, 0);
+                    ++n;
                 }
             }
 
@@ -251,6 +244,8 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::
 
 
     image.write(fileName);
+    cout << "The alignment matrix in marker space contains " <<
+        n << " entries." << endl;
 }
 
 
@@ -272,6 +267,7 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::
 
 
     // Joint loop over the features, looking for common k-mer ids.
+    uint64_t n = 0;
     auto begin0 = sortedFeatures0.begin();
     auto begin1 = sortedFeatures1.begin();
     auto end0 = sortedFeatures0.end();
@@ -309,6 +305,7 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::
                     const uint32_t x = jt0->second;
                     const uint32_t y = jt1->second;
                     image.setPixel(x, y, 255, 0, 0);
+                    ++n;
                 }
             }
 
@@ -321,6 +318,8 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::
 
 
     image.write(fileName);
+    cout << "The alignment matrix in feature space contains " <<
+        n << " entries." << endl;
 }
 
 
@@ -349,31 +348,15 @@ template<uint64_t m> pair<uint32_t, uint32_t>
     const uint32_t Y = nx + y - x - 1;
     const uint32_t iX = X / deltaX;
     const uint32_t iY = Y / deltaY;
-    if(iX >= cellCountX) {
-        cout << x << " " << y << " " << X << " " << Y << " " << iX << " " << iY << endl;
-    }
-    SHASTA_ASSERT(iX < cellCountX);
-    SHASTA_ASSERT(iY < cellCountY);
     return make_pair(iX, iY);
 }
 
 
 template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
 {
-    // Number of X and Y values.
-    const uint32_t n = nx + ny - 1;
-
-    // Number of cells in X and Y direction.
-    cellCountX = (n-1) / deltaX + 1;
-    cellCountY = (n-1) / deltaY + 1;
-
-    // Resize the cell vector.
     cells.clear();
-    cells.resize(cellCountX * cellCountY);
 
-    // Count the number of matrix elements of in each cell
-    // (for the alignment matrix in feature space).
-    // Joint loop over the features, looking for common k-mer ids.
+    // Joint loop over the sorted features, looking for common features.
     auto begin0 = sortedFeatures0.begin();
     auto begin1 = sortedFeatures1.begin();
     auto end0 = sortedFeatures0.end();
@@ -410,16 +393,9 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
                 for(auto jt1=it1Begin; jt1!=it1End; ++jt1) {
                     const uint32_t x = jt0->second;
                     const uint32_t y = jt1->second;
-                    const uint32_t X = x + y;
-                    const uint32_t Y = nx + y - x - 1;
-                    const uint32_t iX = X / deltaX;
-                    const uint32_t iY = Y / deltaY;
-                    Cell& cell = getCell(iX, iY);
-                    cell.featureCount++;
-                    cell.minX = min(cell.minX, X);
-                    cell.maxX = max(cell.maxX, X);
-                    cell.minY = min(cell.minY, Y);
-                    cell.maxY = max(cell.maxY, Y);
+                    const Coordinates iXY = getCellIndexes(x, y);
+                    cells[iXY].alignmentMatrixEntries.push_back(
+                        AlignmentMatrixEntry(Coordinates(x, y)));
                 }
             }
 
@@ -436,10 +412,11 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
 
 template<uint64_t m> void shasta::Align5::Aligner<m>::writeCells(const string& fileName) const
 {
+#if 0
     const uint32_t markersPerPixel = 4;
     const uint32_t n = nx + ny - 1;
     PngImage image(n/markersPerPixel, n/markersPerPixel);
-    //  cout << "Cells image size " << n/markersPerPixel << endl;
+    // cout << "Cells image size " << n/markersPerPixel << endl;
 
     for(uint32_t iX=0; iX<cellCountX; iX++) {
         for(uint32_t iY=0; iY<cellCountY; iY++) {
@@ -475,4 +452,5 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::writeCells(const string& f
     }
 
     image.write(fileName);
+#endif
 }
