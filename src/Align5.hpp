@@ -95,6 +95,7 @@ be in in the 6 cells
 
 #include "hashArray.hpp"
 #include "Marker.hpp"
+#include "MemoryMappedVectorOfVectors.hpp"
 #include "span.hpp"
 
 #include "array.hpp"
@@ -121,6 +122,7 @@ namespace shasta {
         const span<const CompressedMarker>&,
         const span<const CompressedMarker>&,
         const Align5::Options&,
+        MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>&, // Used as work area.
         Alignment&,
         AlignmentInfo&,
         bool debug);
@@ -129,6 +131,7 @@ namespace shasta {
         const span<const CompressedMarker>&,
         const span<const CompressedMarker>&,
         const Align5::Options&,
+        MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>&, // Used as work area.
         Alignment&,
         AlignmentInfo&,
         bool debug);
@@ -152,6 +155,7 @@ public:
 class shasta::Align5::MatrixEntry {
 public:
     Coordinates xy;
+    MatrixEntry() {}
     MatrixEntry(const Coordinates& xy) : xy(xy) {}
 };
 
@@ -167,6 +171,7 @@ public:
         const MarkerSequence&,
         const MarkerSequence&,
         const Options&,
+        MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>& matrix, // Used as work area.
         Alignment&,
         AlignmentInfo&,
         bool debug);
@@ -205,13 +210,19 @@ private:
     void writeCheckerboard(PngImage&) const;
 
 
+
     // Cells in (X,Y) space.
     class Cell {
     public:
-        vector<MatrixEntry> matrixEntries;
+        uint64_t matrixEntriesCount = 0;
+
+        // matrix[cellId] will contain the matrix entries in this cell.
+        uint64_t cellId;
     };
     std::unordered_map<Coordinates, Cell, HashTuple<Coordinates> > cells;
+    MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>& matrix;
     void createCells();
+    void createCellsPass(uint64_t pass);
 
 
 

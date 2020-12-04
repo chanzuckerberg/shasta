@@ -60,6 +60,7 @@ namespace shasta {
         bool select1);          // Whether strand 1 is selected.
 
     namespace Align5 {
+        class MatrixEntry;
         class Options;
     }
 }
@@ -825,6 +826,7 @@ public:
         OrientedReadId,
         OrientedReadId,
         const Align5::Options&,
+        MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>& matrix,
         Alignment&,
         AlignmentInfo&,
         bool debug) const;

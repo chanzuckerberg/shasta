@@ -14,22 +14,23 @@ void shasta::align5(
     const span<const CompressedMarker>& markers0,
     const span<const CompressedMarker>& markers1,
     const Options& options,
+    MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>& matrix, // Used as work area.
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug)
 {
     switch(options.m) {
     case 1:
-        align5<1>(markers0, markers1, options, alignment, alignmentInfo, debug);
+        align5<1>(markers0, markers1, options, matrix, alignment, alignmentInfo, debug);
         return;
     case 2:
-        align5<2>(markers0, markers1, options, alignment, alignmentInfo, debug);
+        align5<2>(markers0, markers1, options, matrix, alignment, alignmentInfo, debug);
         return;
     case 3:
-        align5<3>(markers0, markers1, options, alignment, alignmentInfo, debug);
+        align5<3>(markers0, markers1, options, matrix, alignment, alignmentInfo, debug);
         return;
     case 4:
-        align5<4>(markers0, markers1, options, alignment, alignmentInfo, debug);
+        align5<4>(markers0, markers1, options, matrix, alignment, alignmentInfo, debug);
         return;
     default:
         SHASTA_ASSERT(0);
@@ -44,12 +45,13 @@ template<uint64_t m> void shasta::align5(
     const span<const CompressedMarker>& markers0,
     const span<const CompressedMarker>& markers1,
     const Options& options,
+    MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>& matrix, // Used as work area.
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug)
 {
     Align5::Aligner<m> graph(markers0, markers1,
-        options, alignment, alignmentInfo,
+        options, matrix, alignment, alignmentInfo,
         debug);
 }
 
@@ -59,18 +61,25 @@ template<uint64_t m> shasta::Align5::Aligner<m>::Aligner(
     const MarkerSequence& markerSequence0,
     const MarkerSequence& markerSequence1,
     const Options& options,
+    MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>& matrix, // Used as work area.
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) :
     nx(uint32_t(markerSequence0.size())),
     ny(uint32_t(markerSequence1.size())),
     deltaX(int32_t(options.deltaX)),
-    deltaY(int32_t(options.deltaY))
+    deltaY(int32_t(options.deltaY)),
+    matrix(matrix)
 {
     if(debug) {
         cout << timestamp << "Align5 begins." << endl;
         cout << timestamp << "Input sequences have " <<
             nx << " and " << ny << " markers." << endl;
+    }
+
+    // Clear the matrix.
+    if(debug) {
+        cout << timestamp << "Clearing the matrix." << endl;
     }
 
     // Check that we are in the templated version consistent with
@@ -90,7 +99,7 @@ template<uint64_t m> shasta::Align5::Aligner<m>::Aligner(
     }
     createCells();
 
-    if(debug) {
+    if(false) {
         cout << timestamp << "Writing alignment matrix in feature space." << endl;
         writeAlignmentMatrixInFeatureSpace("Align5-AlignmentMatrixInFeatureSpace.png");
     }
@@ -382,9 +391,25 @@ template<uint64_t m> shasta::Align5::Coordinates
 
 template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
 {
+    // Clear everything, just in case.
+    matrix.clear();
     cells.clear();
 
+    // In pass 1 we just count the number of entries in each cell.
+    cout << timestamp << endl;
+    createCellsPass(1);
+    cout << timestamp << endl;
+
+
+    // createCellsPass(2);
+}
+
+
+
+template<uint64_t m> void shasta::Align5::Aligner<m>::createCellsPass(uint64_t pass)
+{
     // Joint loop over the sorted features, looking for common features.
+    uint64_t n  = 0;
     auto begin0 = sortedFeatures0.begin();
     auto begin1 = sortedFeatures1.begin();
     auto end0 = sortedFeatures0.end();
@@ -422,7 +447,12 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
                     const uint32_t x = jt0->second;
                     const uint32_t y = jt1->second;
                     const Coordinates iXY = getCellIndexesFromxy(Coordinates(x, y));
-                    cells[iXY].matrixEntries.push_back(MatrixEntry(Coordinates(x, y)));
+                    if(pass == 1) {
+                        // cells[iXY].matrixEntriesCount++;
+                        n++;
+                    } else {
+                        SHASTA_ASSERT(0);
+                    }
                 }
             }
 
@@ -432,6 +462,7 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
         }
 
     }
+    cout << n << " " << cells.size() << " " << cells.bucket_count() << " " << cells.load_factor() << endl;
 
 }
 
