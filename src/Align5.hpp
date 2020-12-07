@@ -209,20 +209,29 @@ private:
     void writeAlignmentMatrixInFeatureSpace(const string& fileName) const;
     void writeCheckerboard(PngImage&) const;
 
+    // The alignment matrix entries of each cell.
+    // For each iY, store pairs(iX, xy) sorted by iX.
+    vector< vector< pair<uint32_t, Coordinates> > > cellTable;
+    void createCellTable();
+    void writeCellTable(const string& fileName) const;
 
-
-    // Cells in (X,Y) space.
-    class Cell {
+    // Cells in (X,Y) space, each with its bounding box in (X,Y) space.
+    // The box size is stored at reduced precision to reduce
+    // memory usage and increase the chance that all cells fit in cache.
+    // Stored similarly to cellTable above: for each iY,
+    // we store pairs (iX, Cell) sorted by iX.
+    class CellBoundingBox {
     public:
-        uint64_t matrixEntriesCount = 0;
-
-        // matrix[cellId] will contain the matrix entries in this cell.
-        uint64_t cellId;
+        uint32_t minX;
+        uint32_t minY;
+        uint16_t sizeX;
+        uint16_t sizeY;
+        uint32_t maxX() const {return minX + uint32_t(sizeX);}
+        uint32_t maxY() const {return minY + uint32_t(sizeY);}
     };
-    std::unordered_map<Coordinates, Cell, HashTuple<Coordinates> > cells;
-    MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>& matrix;
-    void createCells();
-    void createCellsPass(uint64_t pass);
+    vector< vector< pair<uint32_t, CellBoundingBox> > > cellBoundingBoxes;
+    void computeCellBoundingBoxes();
+    void writeCellBoundingBoxes(const string& fileName) const;
 
 
 

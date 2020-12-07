@@ -6,6 +6,7 @@
 using namespace shasta;
 using namespace Align5;
 
+#include "fstream.hpp"
 #include "tuple.hpp"
 
 
@@ -61,15 +62,14 @@ template<uint64_t m> shasta::Align5::Aligner<m>::Aligner(
     const MarkerSequence& markerSequence0,
     const MarkerSequence& markerSequence1,
     const Options& options,
-    MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>& matrix, // Used as work area.
+    MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>&, // Currently unused
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) :
     nx(uint32_t(markerSequence0.size())),
     ny(uint32_t(markerSequence1.size())),
     deltaX(int32_t(options.deltaX)),
-    deltaY(int32_t(options.deltaY)),
-    matrix(matrix)
+    deltaY(int32_t(options.deltaY))
 {
     if(debug) {
         cout << timestamp << "Align5 begins." << endl;
@@ -93,11 +93,25 @@ template<uint64_t m> shasta::Align5::Aligner<m>::Aligner(
     sortFeatures(markerSequence0, sortedFeatures0);
     sortFeatures(markerSequence1, sortedFeatures1);
 
-    // Create cells.
+    // Create the cell table.
     if(debug) {
-        cout << timestamp << "Creating cells." << endl;
+        cout << timestamp << "Creating the cell table." << endl;
     }
-    createCells();
+    createCellTable();
+    if(debug) {
+        cout << timestamp << "Writing the cell table." << endl;
+        writeCellTable("Align5-CellTable.csv");
+    }
+
+    // Compute cell bounding boxes.
+    if(debug) {
+        cout << timestamp << "Computing cell bounding boxes." << endl;
+    }
+    computeCellBoundingBoxes();
+    if(debug) {
+        cout << timestamp << "Writing cell bounding boxes." << endl;
+        writeCellBoundingBoxes("Align5-CellBoundingBoxes.csv");
+    }
 
     if(false) {
         cout << timestamp << "Writing alignment matrix in feature space." << endl;
@@ -389,27 +403,11 @@ template<uint64_t m> shasta::Align5::Coordinates
 
 
 
-template<uint64_t m> void shasta::Align5::Aligner<m>::createCells()
+template<uint64_t m> void shasta::Align5::Aligner<m>::createCellTable()
 {
-    // Clear everything, just in case.
-    matrix.clear();
-    cells.clear();
+    cellTable.clear();
 
-    // In pass 1 we just count the number of entries in each cell.
-    cout << timestamp << endl;
-    createCellsPass(1);
-    cout << timestamp << endl;
-
-
-    // createCellsPass(2);
-}
-
-
-
-template<uint64_t m> void shasta::Align5::Aligner<m>::createCellsPass(uint64_t pass)
-{
     // Joint loop over the sorted features, looking for common features.
-    uint64_t n  = 0;
     auto begin0 = sortedFeatures0.begin();
     auto begin1 = sortedFeatures1.begin();
     auto end0 = sortedFeatures0.end();
@@ -447,12 +445,12 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCellsPass(uint64_t p
                     const uint32_t x = jt0->second;
                     const uint32_t y = jt1->second;
                     const Coordinates iXY = getCellIndexesFromxy(Coordinates(x, y));
-                    if(pass == 1) {
-                        // cells[iXY].matrixEntriesCount++;
-                        n++;
-                    } else {
-                        SHASTA_ASSERT(0);
+                    const uint32_t iX = iXY.first;
+                    const uint32_t iY = iXY.second;
+                    if(cellTable.size() <= iY) {
+                        cellTable.resize(iY+1);
                     }
+                    cellTable[iY].push_back(make_pair(iX, Coordinates(x, y)));
                 }
             }
 
@@ -462,7 +460,125 @@ template<uint64_t m> void shasta::Align5::Aligner<m>::createCellsPass(uint64_t p
         }
 
     }
-    cout << n << " " << cells.size() << " " << cells.bucket_count() << " " << cells.load_factor() << endl;
 
+    for(auto& v: cellTable) {
+        sort(v.begin(), v.end(), OrderPairsByFirstOnly<uint32_t, Coordinates>());
+    }
+}
+
+
+
+template<uint64_t m> void shasta::Align5::Aligner<m>::writeCellTable(const string& fileName) const
+{
+    uint64_t entryCount = 0;
+    ofstream csv(fileName);
+    csv << "iX,iY,X,Y,x,y\n";
+    for(uint32_t iY=0; iY<cellTable.size(); iY++) {
+        for(const auto& v: cellTable[iY]) {
+            const uint32_t iX = v.first;
+            const Coordinates& xy = v.second;
+            const Coordinates XY = getXY(xy);
+            csv << iX << ",";
+            csv << iY << ",";
+            csv << XY.first << ",";
+            csv << XY.second << ",";
+            csv << xy.first << ",";
+            csv << xy.second << "\n";
+            SHASTA_ASSERT(Coordinates(iX, iY) == getCellIndexesFromxy(xy));
+            SHASTA_ASSERT(Coordinates(iX, iY) == getCellIndexesFromXY(XY));
+            ++entryCount;
+        }
+    }
+    cout << "The cell table contains " << entryCount << " alignment matrix entries." << endl;
+}
+
+
+
+template<uint64_t m> void shasta::Align5::Aligner<m>::computeCellBoundingBoxes()
+{
+    // Start with nothing.
+    cellBoundingBoxes.clear();
+    cellBoundingBoxes.resize(cellTable.size());
+
+    // Loop over iY values.
+    for(uint32_t iY=0; iY<cellTable.size(); iY++) {
+
+        // Access the vectors for this value of iY.
+        const vector< pair<uint32_t, Coordinates> >& iYCellTable = cellTable[iY];
+        vector< pair<uint32_t, CellBoundingBox> >& iYBoundingBoxes = cellBoundingBoxes[iY];
+
+        // The cell table is sorted by iX, so we can scan it,
+        // creating a new cell each time we encounter a new value of iX.
+        for(auto it=iYCellTable.begin(); it!=iYCellTable.end(); /* Increment later */) {
+
+            // When getting here, we are starting a new cell.
+            const auto& entry = *it;
+            const uint32_t iX = entry.first;
+            const Coordinates& xy = entry.second;
+            const Coordinates XY = getXY(xy);
+            const uint32_t X = XY.first;
+            const uint32_t Y = XY.second;
+
+            // Initialize the bounding box for this cell.
+            uint32_t minX = X;
+            uint32_t maxX = X;
+            uint32_t minY = Y;
+            uint32_t maxY = Y;
+
+            // Now scan the rest of the entries in this cell.
+            while(true) {
+                ++it;
+                if(it == iYCellTable.end()) {
+                    break;
+                }
+                if(it->first != iX) {
+                    break;
+                }
+                const Coordinates& xy = it->second;
+                const Coordinates XY = getXY(xy);
+                const uint32_t X = XY.first;
+                const uint32_t Y = XY.second;
+                minX = min(minX, X);
+                maxX = max(maxX, X);
+                minY = min(minY, Y);
+                maxY = max(maxY, Y);
+            }
+
+            // Store this cell and its bounding box.
+            CellBoundingBox box;
+            box.minX = minX;
+            box.minY = minY;
+            box.sizeX = uint16_t(maxX - minX);
+            box.sizeY = uint16_t(maxY - minY);
+            iYBoundingBoxes.push_back(make_pair(iX, box));
+        }
+
+    }
+}
+
+
+
+template<uint64_t m> void shasta::Align5::Aligner<m>::writeCellBoundingBoxes(
+    const string& fileName) const
+{
+    uint64_t cellCount = 0;
+    ofstream csv(fileName);
+    csv << "iX,iY,minX,maxX,minY,maxY,sizeX,sizeY\n";
+    for(uint32_t iY=0; iY<cellTable.size(); iY++) {
+        for(const auto& p: cellBoundingBoxes[iY]) {
+            const uint32_t iX = p.first;
+            const CellBoundingBox& box = p.second;
+            csv << iX << ",";
+            csv << iY << ",";
+            csv << box.minX << ",";
+            csv << box.maxX() << ",";
+            csv << box.minY << ",";
+            csv << box.maxY() << ",";
+            csv << box.sizeX << ",";
+            csv << box.sizeY << "\n";
+            ++cellCount;
+        }
+    }
+    cout << "There are " << cellCount << " occupied cells." << endl;
 }
 
