@@ -9,6 +9,7 @@
 #include "dset64Test.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
+#include "Map.hpp"
 #include "MultithreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
@@ -657,6 +658,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testAlignmentCompression",
         testAlignmentCompression
+        );
+    module.def("testMap",
+        testMap
         );
 }
 
