@@ -64,32 +64,10 @@ In (X,Y) coordinates the alignment matrix is a subset of
 the square of size nx + ny -1. The alignment matrix is
 rotated by 45 degrees relative to this square.
 
-Consider two successive points (x0,y0) and (x1, y1) in
-a hypothetical alignment in Feature space,
-and corresponding (X0,Y0) and (X1,Y1).
-For a good alignment, the "skip" along the diagonal, |X1-X0|,
-must be sufficiently small, and the "diagonal drift",
-|Y1-Y0| must also be sufficiently small.
-We require
-|X1-X0| <= deltaX
-|Y1-Y0| <= deltaY
-Note that deltaX is similar in spirit to Shasta maxSkip
-when working in marker space (as opposed to Feature space).
-Similarly, deltaY is similar to Shasta maxDrift.
-
-We construct a sparse representation of this sparse
-alignment matrix with a special structure that, given an
-alignment matrix entry at (x0,y0), allows efficient
-look up of entries (x1,y1) which satisfy the
-deltaX and deltaY criteria.
-
-To achieve this, we use rectangular cells in (X,Y) space of size
-(deltaX, deltaY). If (iX,iY) are the indices of a cell
-containing (x0,y0), all possible (x1,y1) must
-be in in the 6 cells
-(iX-1, iY  ) (iX,iY  ) (iX+1, iY  )
-(iX-1, iY+1) (iX,iY+1) (iX+1, iY+1)
-
+We use a sparse representation of the alignment matrix
+in which non-zero alignment matrix entries are stored
+organized by cell in a rectangular arrangement if cells
+of size (deltaX, deltaY) in (X,Y) space .
 
 *******************************************************************************/
 
@@ -209,29 +187,29 @@ private:
     void writeAlignmentMatrixInFeatureSpace(const string& fileName) const;
     void writeCheckerboard(PngImage&) const;
 
-    // The alignment matrix entries of each cell.
-    // For each iY, store pairs(iX, xy) sorted by iX.
-    vector< vector< pair<uint32_t, Coordinates> > > cellTable;
-    void createCellTable();
-    void writeCellTable(const string& fileName) const;
 
-    // Cells in (X,Y) space, each with its bounding box in (X,Y) space.
-    // The box size is stored at reduced precision to reduce
-    // memory usage and increase the chance that all cells fit in cache.
-    // Stored similarly to cellTable above: for each iY,
+
+    // The alignment matrix, in a sparse representation organized by
+    // cells in (X,Y) space.
+    // For each iY, we store pairs(iX, xy) sorted by iX.
+    // Even though this requires sorting, it is more efficient
+    // than using a hash table, due to the better memory access pattern.
+    vector< vector< pair<uint32_t, Coordinates> > > alignmentMatrix;
+    void createAlignmentMatrix();
+    void writeAlignmentMatrix(const string& fileName) const;
+
+
+
+    // Cells in (X,Y) space.
+    // Stored similarly to alignmentMatrix above: for each iY,
     // we store pairs (iX, Cell) sorted by iX.
-    class CellBoundingBox {
+    class Cell {
     public:
-        uint32_t minX;
-        uint32_t minY;
-        uint16_t sizeX;
-        uint16_t sizeY;
-        uint32_t maxX() const {return minX + uint32_t(sizeX);}
-        uint32_t maxY() const {return minY + uint32_t(sizeY);}
     };
-    vector< vector< pair<uint32_t, CellBoundingBox> > > cellBoundingBoxes;
-    void computeCellBoundingBoxes();
-    void writeCellBoundingBoxes(const string& fileName) const;
+    vector< vector< pair<uint32_t, Cell> > > cells;
+    void createCells(uint32_t minEntryCountPerCell);
+    void writeCellsCsv(const string& fileName) const;
+    void writeCellsPng(const string& fileName) const;
 
 
 

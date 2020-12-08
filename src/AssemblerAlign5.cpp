@@ -33,7 +33,7 @@ void Assembler::alignOrientedReads5(
     const bool debug = true;
 
     // Compute the alignment.
-    for(uint64_t i=0; i<3; i++) {
+    for(uint64_t i=0; i<1; i++) {
         cout << "Start computing alignment, attempt " << i << endl;
         alignOrientedReads5(
             OrientedReadId(readId0, strand0),

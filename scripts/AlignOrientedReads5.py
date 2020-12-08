@@ -33,8 +33,8 @@ a.alignOrientedReads5(
     readId0 = arguments.readId0, strand0 = arguments.strand0,
     readId1 = arguments.readId1, strand1 = arguments.strand1,
     m = 1,
-    deltaX = 100,
-    deltaY = 30,
+    deltaX = 200,
+    deltaY = 10,
     matchScore = int(config['Align']['matchScore']),
     mismatchScore = int(config['Align']['mismatchScore']),
     gapScore = int(config['Align']['gapScore']))
