@@ -41,6 +41,10 @@ In (X,Y) coordinates the alignment matrix is a subset of
 the square of size nx + ny -1. The alignment matrix is
 rotated by 45 degrees relative to this square.
 
+The inverse transformation is
+x = (X - Y + nx - 1) / 2
+y = (X + Y - nx + 1) / 2
+
 We use a sparse representation of the alignment matrix
 in which non-zero alignment matrix entries are stored
 organized by cell in a rectangular arrangement if cells
@@ -69,6 +73,10 @@ namespace shasta {
 
         // This is used to store (x,y), (X,Y), or (iX, iY).
         using Coordinates = pair<uint32_t, uint32_t>;
+
+        // When converting an arbitrary (X,Y) to (x,y)
+        // we can end up with negative values.
+        using SignedCoordinates = pair<uint32_t, uint32_t>;
     }
 
     void align5(
@@ -152,11 +160,35 @@ private:
     // we store pairs (iX, Cell) sorted by iX.
     class Cell {
     public:
+        uint8_t isNearLeftOrTop : 1;
+        uint8_t isNearRightOrBottom : 1;
     };
     vector< vector< pair<uint32_t, Cell> > > cells;
-    void createCells(uint32_t minEntryCountPerCell);
+    void createCells(
+        uint32_t minEntryCountPerCell,
+        uint32_t maxDistanceFromBoundary);
     void writeCellsCsv(const string& fileName) const;
     void writeCellsPng(const string& fileName) const;
+
+    // Return the distance of a cell from the left boundary
+    // of the alignment matrix, or 0 if the cell
+    // is partially or entirely to the left of that boundary.
+    uint32_t cellDistanceFromLeft(const Coordinates& iXY) const;
+
+    // Return the distance of a cell from the right boundary
+    // of the alignment matrix, or 0 if the cell
+    // is partially or entirely to the right of that boundary.
+    uint32_t cellDistanceFromRight(const Coordinates& iXY) const;
+
+    // Return the distance of a cell from the top boundary
+    // of the alignment matrix, or 0 if the cell
+    // is partially or entirely above that boundary.
+    uint32_t cellDistanceFromTop(const Coordinates& iXY) const;
+
+    // Return the distance of a cell from the bottom boundary
+    // of the alignment matrix, or 0 if the cell
+    // is partially or entirely below that boundary.
+    uint32_t cellDistanceFromBottom(const Coordinates& iXY) const;
 
 
 
@@ -170,6 +202,12 @@ private:
 
     // Return (iX,iY) given (xy).
     Coordinates getCellIndexesFromxy(Coordinates xy) const;
+
+    // Convert an arbitrary (X,Y) to (x,y).
+    // If the point is outside the alignment matrix,
+    // we can end up with negative values.
+    SignedCoordinates getxy(Coordinates XY) const;
+
 
 };
 

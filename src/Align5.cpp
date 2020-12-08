@@ -40,6 +40,7 @@ Aligner::Aligner(
 {
     // Parameters to expose when code stabilizes.
     const uint32_t minEntryCountPerCell = 10;
+    const uint32_t maxDistanceFromBoundary = deltaX / 2;
 
 
 
@@ -71,7 +72,7 @@ Aligner::Aligner(
     if(debug) {
         cout << timestamp << "Creating cells." << endl;
     }
-    createCells(minEntryCountPerCell);
+    createCells(minEntryCountPerCell, maxDistanceFromBoundary);
     if(debug) {
         cout << timestamp << "Writing cells." << endl;
         writeCellsPng("Align5-Cells.png");
@@ -125,6 +126,20 @@ Coordinates Aligner::getCellIndexesFromxy(Coordinates xy) const
 {
     const Coordinates XY = getXY(xy);
     return getCellIndexesFromXY(XY);
+}
+
+
+
+// Convert an arbitrary (X,Y) to (x,y).
+// If the point is outside the alignment matrix,
+// we can end up with negative values.
+SignedCoordinates Aligner::getxy(Coordinates XY) const
+{
+    const int32_t X = int32_t(XY.first);
+    const int32_t Y = int32_t(XY.second);
+    const int32_t x = (X - Y + int32_t(nx) - 1) / 2;
+    const int32_t y = (X + Y - int32_t(nx) + 1) / 2;
+    return SignedCoordinates(x, y);
 }
 
 
@@ -272,7 +287,8 @@ void Aligner::writeCheckerboard(PngImage& image) const
 
 
 void Aligner::createCells(
-    uint32_t minEntryCountPerCell)
+    uint32_t minEntryCountPerCell,
+    uint32_t maxDistanceFromBoundary)
 {
     // Start with nothing.
     cells.clear();
@@ -311,8 +327,18 @@ void Aligner::createCells(
                 continue;
             }
 
+            // Construct the cell.
+            const Coordinates iXY(iX, iY);
+            Cell cell;
+            cell.isNearLeftOrTop =
+                (cellDistanceFromLeft(iXY) < maxDistanceFromBoundary) or
+                (cellDistanceFromTop(iXY)  < maxDistanceFromBoundary);
+            cell.isNearRightOrBottom =
+                (cellDistanceFromRight(iXY)  < maxDistanceFromBoundary) or
+                (cellDistanceFromBottom(iXY) < maxDistanceFromBoundary);
+
             // Store this cell.
-            iYCells.push_back(make_pair(iX, Cell()));
+            iYCells.push_back(make_pair(iX, cell));
         }
 
     }
@@ -370,17 +396,30 @@ void Aligner::writeCellsPng(
     for(uint32_t iY=0; iY<cells.size(); iY++) {
         for(const auto& p: cells[iY]) {
             const uint32_t iX = p.first;
+            const Cell& cell = p.second;
             SHASTA_ASSERT(iX < sizeXY);
             SHASTA_ASSERT(iY < sizeXY);
             const uint32_t iMin = ( iX    * deltaX)  / markersPerPixel;
             const uint32_t iMax = ((iX+1) * deltaX)  / markersPerPixel;
             const uint32_t jMin = ( iY    * deltaY)  / markersPerPixel;
             const uint32_t jMax = ((iY+1) * deltaY)  / markersPerPixel;
+            int r = 255;
+            int g = 255;
+            int b = 255;
+            if(cell.isNearLeftOrTop and cell.isNearRightOrBottom) {
+                g = 0;  // Purple
+            } else if(cell.isNearLeftOrTop) {
+                r = 0;  // Green
+                b = 0;
+            } else if(cell.isNearRightOrBottom) {
+                g = 0;  // Red.
+                b = 0;
+            }
             for(uint32_t j=jMin; j<jMax; j++) {
                 for(uint32_t i=iMin; i<iMax; i++) {
                     SHASTA_ASSERT(i < imageSize);
                     SHASTA_ASSERT(j < imageSize);
-                    image.setPixel(i, j, 255, 255, 255);
+                    image.setPixel(i, j, r, g, b);
                 }
             }
          }
@@ -389,4 +428,110 @@ void Aligner::writeCellsPng(
     // Write the image.
     image.write(fileName);
 }
+
+
+
+// Return the distance of a cell from the left boundary
+// of the alignment matrix, or 0 if the cell
+// is partially or entirely to the left of that boundary.
+uint32_t Aligner::cellDistanceFromLeft(const Coordinates& iXY) const
+{
+    const uint32_t iX = iXY.first;
+    const uint32_t iY = iXY.second;
+
+    // The bottom left corner in (XY) space
+    // is closest to the left boundary of the alignment matrix.
+    const Coordinates XY = {iX * deltaX, (iY + 1) * deltaY};
+
+    // Convert to (xy).
+    const SignedCoordinates xy = getxy(XY);
+    const int32_t x = xy.first;
+
+    if(x < 0) {
+        return 0;
+    } else {
+        return uint32_t(x);
+    }
+
+}
+
+
+
+// Return the distance of a cell from the right boundary
+// of the alignment matrix, or 0 if the cell
+// is partially or entirely to the right of that boundary.
+uint32_t  Aligner::cellDistanceFromRight(const Coordinates& iXY) const
+{
+    const uint32_t iX = iXY.first;
+    const uint32_t iY = iXY.second;
+
+    // The top right corner in (XY) space
+    // is closest to the right boundary of the alignment matrix.
+    const Coordinates XY = {(iX + 1) * deltaX, iY * deltaY};
+
+    // Convert to (xy).
+    const SignedCoordinates xy = getxy(XY);
+    const int32_t x = xy.first;
+
+    if(x >= int32_t(nx) - 1) {
+        return 0;
+    } else {
+        return uint32_t(nx - 1 - uint32_t(x));
+    }
+}
+
+
+
+// Return the distance of a cell from the top boundary
+// of the alignment matrix, or 0 if the cell
+// is partially or entirely above that boundary.
+uint32_t Aligner::cellDistanceFromTop(const Coordinates& iXY) const
+{
+    const uint32_t iX = iXY.first;
+    const uint32_t iY = iXY.second;
+
+    // The top left corner in (XY) space
+    // is closest to the left boundary of the alignment matrix.
+    const Coordinates XY = {iX * deltaX, iY * deltaY};
+
+    // Convert to (xy).
+    const SignedCoordinates xy = getxy(XY);
+    const int32_t y = xy.second;
+
+    if(y < 0) {
+        return 0;
+    } else {
+        return uint32_t(y);
+    }
+
+}
+
+
+
+// Return the distance of a cell from the bottom boundary
+// of the alignment matrix, or 0 if the cell
+// is partially or entirely below that boundary.
+uint32_t Aligner::cellDistanceFromBottom(const Coordinates& iXY) const
+{
+    const uint32_t iX = iXY.first;
+    const uint32_t iY = iXY.second;
+
+    // The bottom right corner in (XY) space
+    // is closest to the left boundary of the alignment matrix.
+    const Coordinates XY = {(iX + 1) * deltaX, (iY + 1) * deltaY};
+
+    // Convert to (xy).
+    const SignedCoordinates xy = getxy(XY);
+    const int32_t y = xy.second;
+
+    if(y >= int32_t(ny) - 1) {
+        return 0;
+    } else {
+        return uint32_t(ny - 1 - uint32_t(y));
+    }
+
+}
+
+
+
 
