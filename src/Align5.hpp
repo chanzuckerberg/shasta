@@ -48,9 +48,7 @@ of size (deltaX, deltaY) in (X,Y) space.
 
 *******************************************************************************/
 
-#include "hashArray.hpp"
 #include "Marker.hpp"
-#include "MemoryMappedVectorOfVectors.hpp"
 #include "span.hpp"
 
 #include "array.hpp"
@@ -77,7 +75,6 @@ namespace shasta {
         const span<const CompressedMarker>&,
         const span<const CompressedMarker>&,
         const Align5::Options&,
-        MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>&, // Used as work area.
         Alignment&,
         AlignmentInfo&,
         bool debug);
@@ -115,7 +112,6 @@ public:
         const MarkerSequence&,
         const MarkerSequence&,
         const Options&,
-        MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>& matrix, // Used as work area.
         Alignment&,
         AlignmentInfo&,
         bool debug);

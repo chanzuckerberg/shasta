@@ -15,13 +15,12 @@ void shasta::align5(
     const span<const CompressedMarker>& markers0,
     const span<const CompressedMarker>& markers1,
     const Options& options,
-    MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>& matrix, // Used as work area.
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug)
 {
     Align5::Aligner graph(markers0, markers1,
-        options, matrix, alignment, alignmentInfo,
+        options, alignment, alignmentInfo,
         debug);
 }
 
@@ -31,7 +30,6 @@ Aligner::Aligner(
     const MarkerSequence& markerSequence0,
     const MarkerSequence& markerSequence1,
     const Options& options,
-    MemoryMapped::VectorOfVectors<MatrixEntry, uint64_t>&, // Currently unused
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) :

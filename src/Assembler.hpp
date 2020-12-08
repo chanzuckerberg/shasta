@@ -825,7 +825,6 @@ public:
         OrientedReadId,
         OrientedReadId,
         const Align5::Options&,
-        MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>& matrix,
         Alignment&,
         AlignmentInfo&,
         bool debug) const;

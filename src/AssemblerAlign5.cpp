@@ -21,10 +21,6 @@ void Assembler::alignOrientedReads5(
     options.mismatchScore = mismatchScore;
     options.gapScore = gapScore;
 
-    // Align5 work area.
-    MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t> matrix;
-    matrix.createNew(largeDataName("tmp-Align5Matrix"), largeDataPageSize);
-
     Alignment alignment;
     AlignmentInfo alignmentInfo;
 
@@ -34,9 +30,7 @@ void Assembler::alignOrientedReads5(
     alignOrientedReads5(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
-        options, matrix, alignment, alignmentInfo, debug);
-
-    matrix.remove();
+        options, alignment, alignmentInfo, debug);
 }
 
 
@@ -46,7 +40,6 @@ void Assembler::alignOrientedReads5(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     const Align5::Options& options,
-    MemoryMapped::VectorOfVectors<Align5::MatrixEntry, uint64_t>& matrix,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) const
@@ -55,7 +48,7 @@ void Assembler::alignOrientedReads5(
     const auto markers1 = markers[orientedReadId1.getValue()];
 
     align5(markers0, markers1,
-        options, matrix, alignment, alignmentInfo, debug);
+        options, alignment, alignmentInfo, debug);
 }
 
 
