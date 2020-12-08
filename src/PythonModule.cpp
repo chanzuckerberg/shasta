@@ -241,14 +241,13 @@ PYBIND11_MODULE(shasta, module)
         .def("alignOrientedReads5",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand, uint64_t, uint64_t, uint64_t, int64_t, int64_t, int64_t) const
+                (ReadId, Strand, ReadId, Strand, uint64_t, uint64_t, int64_t, int64_t, int64_t) const
             )
             &Assembler::alignOrientedReads5,
             arg("readId0"),
             arg("strand0"),
             arg("readId1"),
             arg("strand1"),
-            arg("m"),
             arg("deltaX"),
             arg("deltaY"),
             arg("matchScore"),

@@ -812,7 +812,6 @@ public:
     void alignOrientedReads5(
         ReadId, Strand,
         ReadId, Strand,
-        uint64_t m,
         uint64_t deltaX,
         uint64_t deltaY,
         int64_t matchScore,
