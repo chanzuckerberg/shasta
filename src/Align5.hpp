@@ -150,8 +150,12 @@ private:
     vector< vector< pair<uint32_t, Coordinates> > > alignmentMatrix;
     void createAlignmentMatrix();
     void writeAlignmentMatrixCsv(const string& fileName) const;
-    void writeAlignmentMatrixPng(const string& fileName) const;
-    void writeCheckerboard(PngImage&) const;
+    void writeAlignmentMatrixPng(
+        const string& fileName,
+        uint32_t maxDistanceFromBoundary) const;
+    void writeCheckerboard(
+        PngImage&,
+        uint32_t maxDistanceFromBoundary) const;
 
 
 
@@ -189,6 +193,10 @@ private:
     // of the alignment matrix, or 0 if the cell
     // is partially or entirely below that boundary.
     uint32_t cellDistanceFromBottom(const Coordinates& iXY) const;
+
+    // Find a cell with given (iX,iY).
+    Cell* findCell(const Coordinates& iXY);
+    const Cell* findCell(const Coordinates& iXY) const;
 
 
 

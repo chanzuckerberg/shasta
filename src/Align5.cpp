@@ -62,11 +62,6 @@ Aligner::Aligner(
         cout << timestamp << "Creating the alignment matrix." << endl;
     }
     createAlignmentMatrix();
-    if(debug) {
-        cout << timestamp << "Writing the alignment matrix." << endl;
-        writeAlignmentMatrixPng("Align5-AlignmentMatrix.png");
-        writeAlignmentMatrixCsv("Align5-AlignmentMatrix.csv");
-    }
 
     // Gather well populated cells.
     if(debug) {
@@ -77,6 +72,12 @@ Aligner::Aligner(
         cout << timestamp << "Writing cells." << endl;
         writeCellsPng("Align5-Cells.png");
         writeCellsCsv("Align5-Cells.csv");
+    }
+
+    if(debug) {
+        cout << timestamp << "Writing the alignment matrix." << endl;
+        writeAlignmentMatrixPng("Align5-AlignmentMatrix.png", maxDistanceFromBoundary);
+        writeAlignmentMatrixCsv("Align5-AlignmentMatrix.csv");
     }
 
     if(debug) {
@@ -235,11 +236,13 @@ void Aligner::writeAlignmentMatrixCsv(const string& fileName) const
 
 
 
-void Aligner::writeAlignmentMatrixPng(const string& fileName) const
+void Aligner::writeAlignmentMatrixPng(
+    const string& fileName,
+    uint32_t maxDistanceFromBoundary) const
 {
     PngImage image(nx, ny);
 
-    writeCheckerboard(image);
+    writeCheckerboard(image, maxDistanceFromBoundary);
 
     image.writeGrid(   10,  15,  15,  15);      // Grey
     image.writeGrid(   50,  30,  30,  30);      // Grey
@@ -264,7 +267,9 @@ void Aligner::writeAlignmentMatrixPng(const string& fileName) const
 
 
 
-void Aligner::writeCheckerboard(PngImage& image) const
+void Aligner::writeCheckerboard(
+    PngImage& image,
+    uint32_t maxDistanceFromBoundary) const
 {
     Coordinates xy;
     uint32_t& x = xy.first;
@@ -277,9 +282,33 @@ void Aligner::writeCheckerboard(PngImage& image) const
     for(y=0; y<ny; y++) {
         for(x=0; x<nx; x++) {
             iXY = getCellIndexesFromxy(xy);
-            if(((iX + iY) %2) == 0) {
-                image.setPixel(x, y, 0, 48, 0);
+            const bool isNearLeftOrTop =
+                (cellDistanceFromLeft(iXY) < maxDistanceFromBoundary) or
+                (cellDistanceFromTop(iXY)  < maxDistanceFromBoundary);
+            const bool isNearRightOrBottom =
+                (cellDistanceFromRight(iXY)  < maxDistanceFromBoundary) or
+                (cellDistanceFromBottom(iXY) < maxDistanceFromBoundary);
+            const bool isEvenCell = (((iX + iY) % 2) == 0);
+
+            int r = 0;
+            int g = 0;
+            int b = 0;
+            if(isEvenCell) {
+                g += 48;
             }
+            if(isNearLeftOrTop) {
+                r += 48;
+            }
+            if(isNearRightOrBottom) {
+                b += 48;
+            }
+            if(findCell(iXY)) {
+                r += 128;
+                g += 128;
+                b += 128;
+            }
+
+            image.setPixel(x, y, r, g, b);
         }
     }
 }
@@ -533,5 +562,53 @@ uint32_t Aligner::cellDistanceFromBottom(const Coordinates& iXY) const
 }
 
 
+
+// Find a cell with given (iX,iY).
+Aligner::Cell* Aligner::findCell(const Coordinates& iXY)
+{
+    const uint32_t iX = iXY.first;
+    const uint32_t iY = iXY.second;
+    if(iY >= cells.size()) {
+        return 0;
+    }
+    vector< pair<uint32_t, Cell> >& v = cells[iY];
+
+    // Look for a cell with this iX.
+    auto it = std::lower_bound(v.begin(), v.end(),
+        make_pair(iX, Cell()),
+        OrderPairsByFirstOnly<uint32_t, Cell>());
+    if(it == v.end()) {
+        return 0;
+    }
+    if(it->first != iX) {
+        return 0;
+    }
+    return &(it->second);
+}
+
+
+
+// const version of the above
+const Aligner::Cell* Aligner::findCell(const Coordinates& iXY) const
+{
+    const uint32_t iX = iXY.first;
+    const uint32_t iY = iXY.second;
+    if(iY >= cells.size()) {
+        return 0;
+    }
+    const vector< pair<uint32_t, Cell> >& v = cells[iY];
+
+    // Look for a cell with this iX.
+    auto it = std::lower_bound(v.begin(), v.end(),
+        make_pair(iX, Cell()),
+        OrderPairsByFirstOnly<uint32_t, Cell>());
+    if(it == v.end()) {
+        return 0;
+    }
+    if(it->first != iX) {
+        return 0;
+    }
+    return &(it->second);
+}
 
 
