@@ -7,6 +7,7 @@ using namespace shasta;
 using namespace Align5;
 
 #include "fstream.hpp"
+#include <stack>
 #include "tuple.hpp"
 
 
@@ -68,6 +69,18 @@ Aligner::Aligner(
         cout << timestamp << "Creating cells." << endl;
     }
     createCells(minEntryCountPerCell, maxDistanceFromBoundary);
+
+    // Forward search.
+    // Find cells that are forward accessible from the left/top.
+    if(debug) {
+        cout << timestamp << "Forward search begins." << endl;
+    }
+    forwardSearch();
+    if(debug) {
+        cout << timestamp << "Backward search begins." << endl;
+    }
+    backwardSearch();
+
     if(debug) {
         cout << timestamp << "Writing cells." << endl;
         writeCellsPng("Align5-Cells.png");
@@ -282,30 +295,32 @@ void Aligner::writeCheckerboard(
     for(y=0; y<ny; y++) {
         for(x=0; x<nx; x++) {
             iXY = getCellIndexesFromxy(xy);
+            /*
             const bool isNearLeftOrTop =
                 (cellDistanceFromLeft(iXY) < maxDistanceFromBoundary) or
                 (cellDistanceFromTop(iXY)  < maxDistanceFromBoundary);
             const bool isNearRightOrBottom =
                 (cellDistanceFromRight(iXY)  < maxDistanceFromBoundary) or
                 (cellDistanceFromBottom(iXY) < maxDistanceFromBoundary);
+            */
+            const Cell* cell = findCell(iXY);
             const bool isEvenCell = (((iX + iY) % 2) == 0);
 
             int r = 0;
             int g = 0;
             int b = 0;
-            if(isEvenCell) {
-                g += 48;
-            }
-            if(isNearLeftOrTop) {
-                r += 48;
-            }
-            if(isNearRightOrBottom) {
-                b += 48;
-            }
-            if(findCell(iXY)) {
-                r += 128;
-                g += 128;
-                b += 128;
+            if(cell) {
+                if(cell->isForwardAccessible and cell->isBackwardAccessible) {
+                    g = 255;
+                } else {
+                    r = 128;
+                    g = 128;
+                    b = 128;
+                }
+            } else {
+                if(isEvenCell) {
+                    r = 64;
+                }
             }
 
             image.setPixel(x, y, r, g, b);
@@ -432,18 +447,18 @@ void Aligner::writeCellsPng(
             const uint32_t iMax = ((iX+1) * deltaX)  / markersPerPixel;
             const uint32_t jMin = ( iY    * deltaY)  / markersPerPixel;
             const uint32_t jMax = ((iY+1) * deltaY)  / markersPerPixel;
-            int r = 255;
-            int g = 255;
-            int b = 255;
-            if(cell.isNearLeftOrTop and cell.isNearRightOrBottom) {
-                g = 0;  // Purple
-            } else if(cell.isNearLeftOrTop) {
-                r = 0;  // Green
-                b = 0;
-            } else if(cell.isNearRightOrBottom) {
-                g = 0;  // Red.
-                b = 0;
+
+            int r = 0;
+            int g = 0;
+            int b = 0;
+            if(cell.isForwardAccessible and cell.isBackwardAccessible) {
+                g = 255;
+            } else {
+                r = 128;
+                g = 128;
+                b = 128;
             }
+
             for(uint32_t j=jMin; j<jMax; j++) {
                 for(uint32_t i=iMin; i<iMax; i++) {
                     SHASTA_ASSERT(i < imageSize);
@@ -610,5 +625,118 @@ const Aligner::Cell* Aligner::findCell(const Coordinates& iXY) const
     }
     return &(it->second);
 }
+
+
+
+// DFS in cell space, starting from cells near the left/top.
+// We use DFS instead of BFS for better locality of memory access.
+void Aligner::forwardSearch()
+{
+    uint64_t n = 0;
+
+    // Initialize the stack of undiscovered iXY.
+    std::stack<Coordinates> s;
+    for(uint32_t iY=0; iY<cells.size(); iY++) {
+        vector< pair<uint32_t, Cell> >& v = cells[iY];
+        for(auto& p: v) {
+            Cell& cell = p.second;
+            if(cell.isNearLeftOrTop) {
+                cell.isForwardAccessible = 1;
+                ++n;
+                const uint32_t iX = p.first;
+                s.push(Coordinates(iX, iY));
+            }
+        }
+    }
+
+    // DFS.
+    vector<Coordinates> children;
+    while(not s.empty()) {
+        const Coordinates& iXY0 = s.top();
+        const uint32_t iX0 = iXY0.first;
+        const uint32_t iY0 = iXY0.second;
+        s.pop();
+
+        // Loop over possible children.
+        for(int32_t dY=-1; dY<=1; dY++) {
+            const int32_t iY1Signed = int32_t(iY0) + dY;
+            if(iY1Signed < 0) {
+                continue;
+            }
+            const uint32_t iY1 = uint32_t(iY1Signed);
+            for(uint32_t dX=0; dX<=1; dX++) {
+                const uint32_t iX1 = iX0 + dX;
+                const Coordinates iXY1(iX1, iY1);
+                Cell* cell1 = findCell(iXY1);
+                if(cell1 and not cell1->isForwardAccessible) {
+                    cell1->isForwardAccessible = 1;
+                    ++n;
+                    s.push(iXY1);
+                }
+            }
+        }
+    }
+    cout << "Forward search found " << n << " cells." << endl;
+}
+
+
+
+// Backward DFS in cell space, starting from cells near the
+// right/bottom that are also forward accessible from the left/top.
+// We use DFS instead of BFS for better locality of memory access.
+void Aligner::backwardSearch()
+{
+    uint64_t n = 0;
+
+    // Initialize the stack of undiscovered iXY.
+    std::stack<Coordinates> s;
+    for(uint32_t iY=0; iY<cells.size(); iY++) {
+        vector< pair<uint32_t, Cell> >& v = cells[iY];
+        for(auto& p: v) {
+            Cell& cell = p.second;
+            if(cell.isNearRightOrBottom and cell.isForwardAccessible) {
+                cell.isBackwardAccessible = 1;
+                ++n;
+                const uint32_t iX = p.first;
+                s.push(Coordinates(iX, iY));
+            }
+        }
+    }
+
+    // DFS.
+    vector<Coordinates> children;
+    while(not s.empty()) {
+        const Coordinates& iXY0 = s.top();
+        const uint32_t iX0 = iXY0.first;
+        const uint32_t iY0 = iXY0.second;
+        s.pop();
+
+        // Loop over possible parents.
+        for(int32_t dY=-1; dY<=1; dY++) {
+            const int32_t iY1Signed = int32_t(iY0) + dY;
+            if(iY1Signed < 0) {
+                continue;
+            }
+            const uint32_t iY1 = uint32_t(iY1Signed);
+            for(int32_t dX=-1; dX<=0; dX++) {
+                const int32_t iX1Signed = int32_t(iX0) + dX;
+                if(iX1Signed < 0) {
+                    continue;
+                }
+                const uint32_t iX1 = uint32_t(iX1Signed);
+                const Coordinates iXY1(iX1, iY1);
+                Cell* cell1 = findCell(iXY1);
+                if(cell1 and not cell1->isBackwardAccessible) {
+                    cell1->isBackwardAccessible = 1;
+                    ++n;
+                    s.push(iXY1);
+                }
+            }
+        }
+    }
+    cout << "Backward search found " << n << " cells." << endl;
+}
+
+
 
 

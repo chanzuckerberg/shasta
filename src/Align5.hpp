@@ -164,9 +164,16 @@ private:
     // we store pairs (iX, Cell) sorted by iX.
     class Cell {
     public:
-        uint8_t isNearLeftOrTop : 1;
-        uint8_t isNearRightOrBottom : 1;
+        uint8_t isNearLeftOrTop         : 1;
+        uint8_t isNearRightOrBottom     : 1;
+        uint8_t isForwardAccessible     : 1;
+        uint8_t isBackwardAccessible    : 1;
+        Cell()
+        {
+            *reinterpret_cast<uint8_t*>(this) = 0;
+        }
     };
+    static_assert(sizeof(Cell)==1, "Unexpected size of Align5::Aligner::Cell.");
     vector< vector< pair<uint32_t, Cell> > > cells;
     void createCells(
         uint32_t minEntryCountPerCell,
@@ -215,6 +222,10 @@ private:
     // If the point is outside the alignment matrix,
     // we can end up with negative values.
     SignedCoordinates getxy(Coordinates XY) const;
+
+    // Searches in cell space.
+    void forwardSearch();
+    void backwardSearch();
 
 
 };
