@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 #include "Align5.hpp"
+#include "MemoryMappedAllocator.hpp"
 #include "html.hpp"
 using namespace shasta;
 
@@ -21,6 +22,9 @@ void Assembler::alignOrientedReads5(
     options.mismatchScore = mismatchScore;
     options.gapScore = gapScore;
 
+    MemoryMapped::ByteAllocator byteAllocator(
+        largeDataName("tmp-ByteAllocator"), largeDataPageSize, 1024 * 1024 * 1024);
+
     Alignment alignment;
     AlignmentInfo alignmentInfo;
 
@@ -30,7 +34,7 @@ void Assembler::alignOrientedReads5(
     alignOrientedReads5(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
-        options, alignment, alignmentInfo, debug);
+        options, byteAllocator, alignment, alignmentInfo, debug);
 }
 
 
@@ -40,6 +44,7 @@ void Assembler::alignOrientedReads5(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
     const Align5::Options& options,
+    MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) const
@@ -48,7 +53,7 @@ void Assembler::alignOrientedReads5(
     const auto markers1 = markers[orientedReadId1.getValue()];
 
     align5(markers0, markers1,
-        options, alignment, alignmentInfo, debug);
+        options, byteAllocator, alignment, alignmentInfo, debug);
 }
 
 

@@ -53,6 +53,7 @@ of size (deltaX, deltaY) in (X,Y) space.
 *******************************************************************************/
 
 #include "Marker.hpp"
+#include "MemoryMappedAllocator.hpp"
 #include "span.hpp"
 
 #include "array.hpp"
@@ -79,10 +80,15 @@ namespace shasta {
         using SignedCoordinates = pair<uint32_t, uint32_t>;
     }
 
+    namespace MemoryMapped {
+        class ByteAllocator;
+    }
+
     void align5(
         const span<const CompressedMarker>&,
         const span<const CompressedMarker>&,
         const Align5::Options&,
+        MemoryMapped::ByteAllocator&,
         Alignment&,
         AlignmentInfo&,
         bool debug);
@@ -120,6 +126,7 @@ public:
         const MarkerSequence&,
         const MarkerSequence&,
         const Options&,
+        MemoryMapped::ByteAllocator&,
         Alignment&,
         AlignmentInfo&,
         bool debug);
@@ -147,7 +154,11 @@ private:
     // For each iY, we store pairs(iX, xy) sorted by iX.
     // Even though this requires sorting, it is more efficient
     // than using a hash table, due to the better memory access pattern.
-    vector< vector< pair<uint32_t, Coordinates> > > alignmentMatrix;
+    using AlignmentMatrixEntry = pair<uint32_t, Coordinates>; // (iX, xy)
+    using AlignmentMatrixAllocator = MemoryMapped::Allocator<AlignmentMatrixEntry>;
+    using AlignmentMatrixEntryVector = vector<AlignmentMatrixEntry, AlignmentMatrixAllocator>; // For one iY
+    using AlignmentMatrix = vector<AlignmentMatrixEntryVector>; // Indexed by iY.
+    AlignmentMatrix alignmentMatrix;
     void createAlignmentMatrix();
     void writeAlignmentMatrixCsv(const string& fileName) const;
     void writeAlignmentMatrixPng(
@@ -226,6 +237,8 @@ private:
     // Searches in cell space.
     void forwardSearch();
     void backwardSearch();
+
+    MemoryMapped::ByteAllocator& byteAllocator;
 
 
 };

@@ -16,12 +16,13 @@ void shasta::align5(
     const span<const CompressedMarker>& markers0,
     const span<const CompressedMarker>& markers1,
     const Options& options,
+    MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug)
 {
     Align5::Aligner graph(markers0, markers1,
-        options, alignment, alignmentInfo,
+        options, byteAllocator, alignment, alignmentInfo,
         debug);
 }
 
@@ -31,13 +32,15 @@ Aligner::Aligner(
     const MarkerSequence& markerSequence0,
     const MarkerSequence& markerSequence1,
     const Options& options,
+    MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) :
     nx(uint32_t(markerSequence0.size())),
     ny(uint32_t(markerSequence1.size())),
     deltaX(int32_t(options.deltaX)),
-    deltaY(int32_t(options.deltaY))
+    deltaY(int32_t(options.deltaY)),
+    byteAllocator(byteAllocator)
 {
     // Parameters to expose when code stabilizes.
     const uint32_t minEntryCountPerCell = 10;
@@ -203,7 +206,8 @@ void Aligner::createAlignmentMatrix()
                     const uint32_t iX = iXY.first;
                     const uint32_t iY = iXY.second;
                     if(alignmentMatrix.size() <= iY) {
-                        alignmentMatrix.resize(iY+1);
+                        alignmentMatrix.resize(iY+1,
+                            AlignmentMatrixEntryVector(0, AlignmentMatrixAllocator(byteAllocator)));
                     }
                     alignmentMatrix[iY].push_back(make_pair(iX, Coordinates(x, y)));
                 }
@@ -342,7 +346,7 @@ void Aligner::createCells(
     for(uint32_t iY=0; iY<alignmentMatrix.size(); iY++) {
 
         // Access the vectors for this value of iY.
-        const vector< pair<uint32_t, Coordinates> >& iYAlignmentMatrix = alignmentMatrix[iY];
+        const auto& iYAlignmentMatrix = alignmentMatrix[iY];
         vector< pair<uint32_t, Cell> >& iYCells = cells[iY];
 
         // Each vector in the alignment matrix is sorted by iX, so we can scan it,

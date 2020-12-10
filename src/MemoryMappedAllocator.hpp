@@ -46,6 +46,7 @@ public:
 
     ~ByteAllocator()
     {
+        // cout << "Byte allocator destroyed, allocated bytes " << allocatedByteCount << endl;
         SHASTA_ASSERT(allocatedBlockCount == 0);
         data.remove();
     }
@@ -76,8 +77,10 @@ public:
         char* p = data.begin() + allocatedByteCount;
         allocatedByteCount = newAllocatedByteCount;
         ++allocatedBlockCount;
-        /* cout << "Requested " << n * objectSize << ", allocated " << byteCount <<
-            ", total allocated " << allocatedByteCount << endl; */
+        /*
+        cout << "Requested " << n * objectSize << ", allocated " << byteCount <<
+            ", total allocated " << allocatedByteCount << endl;
+        */
         return p;
     }
 
@@ -104,9 +107,12 @@ public:
     // ByteAllocator.
     Allocator<T>(ByteAllocator& byteAllocator) :
         byteAllocator(byteAllocator) {}
+    Allocator<T>() = delete;
 
-    // The "extended" copy constructor is required.
+    // The copy constructor is required.
     // It creates an Allocator<T> that uses the same ByteAllocator.
+    // Note this is more general than a standard copy constructor
+    // because the type of the source Allocator can be different.
     template<typename U> friend class Allocator;
     template<class U> Allocator<T>(const Allocator<U>& that) :
         byteAllocator(that.byteAllocator) {}
@@ -152,7 +158,14 @@ public:
     template <class U> struct rebind {
         typedef Allocator<U> other;
     };
-
+    bool operator==(const Allocator<T>& that) const
+    {
+        return &byteAllocator == &that.byteAllocator;
+    }
+    bool operator!=(const Allocator<T>& that) const
+    {
+        return &byteAllocator != &that.byteAllocator;
+    }
 
 
 private:

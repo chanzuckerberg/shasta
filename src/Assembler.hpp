@@ -52,6 +52,10 @@ namespace shasta {
     class LocalMarkerGraph;
 #endif
 
+    namespace MemoryMapped {
+        class ByteAllocator;
+    }
+
     // Write an html form to select strand.
     void writeStrandSelection(
         ostream&,               // The html stream to write the form to.
@@ -825,6 +829,7 @@ public:
         OrientedReadId,
         OrientedReadId,
         const Align5::Options&,
+        MemoryMapped::ByteAllocator&,
         Alignment&,
         AlignmentInfo&,
         bool debug) const;
