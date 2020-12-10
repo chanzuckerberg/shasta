@@ -10,12 +10,13 @@
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
 #include "Map.hpp"
+#include "MedianConsensusCaller.hpp"
+#include "MemoryMappedAllocator.hpp"
 #include "MultithreadedObject.hpp"
 #include "ShortBaseSequence.hpp"
 #include "splitRange.hpp"
 #include "testSpoa.hpp"
 #include "SimpleBayesianConsensusCaller.hpp"
-#include "MedianConsensusCaller.hpp"
 using namespace shasta;
 
 // Pybind11
@@ -660,6 +661,9 @@ PYBIND11_MODULE(shasta, module)
         );
     module.def("testMap",
         testMap
+        );
+    module.def("testMemoryMappedAllocator",
+        MemoryMapped::testMemoryMappedAllocator
         );
 }
 
