@@ -224,10 +224,21 @@ private:
     Coordinates getXY(Coordinates xy) const;
 
     // Return (iX,iY) given (X,Y).
-    Coordinates getCellIndexesFromXY(Coordinates XY) const;
+    Coordinates getCellIndexesFromXY(Coordinates XY) const
+    {
+        return Coordinates(
+            XY.first  / deltaX,
+            XY.second / deltaY
+            );
+    }
 
-    // Return (iX,iY) given (xy).
-    Coordinates getCellIndexesFromxy(Coordinates xy) const;
+    // Return (iX,iY) given (x,y).
+    Coordinates getCellIndexesFromxy(Coordinates xy) const
+    {
+        const Coordinates XY = getXY(xy);
+        return getCellIndexesFromXY(XY);
+    }
+
 
     // Convert an arbitrary (X,Y) to (x,y).
     // If the point is outside the alignment matrix,

@@ -1,4 +1,5 @@
 #include "Align5.hpp"
+#include "countingSort.hpp"
 #include "orderPairs.hpp"
 #include "PngImage.hpp"
 #include "SHASTA_ASSERT.hpp"
@@ -6,6 +7,7 @@
 using namespace shasta;
 using namespace Align5;
 
+#include "chrono.hpp"
 #include "fstream.hpp"
 #include <stack>
 #include "tuple.hpp"
@@ -65,7 +67,14 @@ Aligner::Aligner(
     if(debug) {
         cout << timestamp << "Creating the alignment matrix." << endl;
     }
+    // const auto t0 = steady_clock::now();
     createAlignmentMatrix();
+    /*
+    const auto t1 = steady_clock::now();
+    if(debug) {
+        cout << "Computation of alignment matrix took " << seconds(t1-t0) << " s." << endl;
+    }
+    */
 
     // Gather well populated cells.
     if(debug) {
@@ -128,25 +137,6 @@ Coordinates Aligner::getXY(Coordinates xy) const
 
 
 
-// Return (iX,iY) given (X,Y).
-Coordinates Aligner::getCellIndexesFromXY(Coordinates XY) const
-{
-    return Coordinates(
-        XY.first  / deltaX,
-        XY.second / deltaY
-        );
-}
-
-
-// Return (iX,iY) given (x,y).
-Coordinates Aligner::getCellIndexesFromxy(Coordinates xy) const
-{
-    const Coordinates XY = getXY(xy);
-    return getCellIndexesFromXY(XY);
-}
-
-
-
 // Convert an arbitrary (X,Y) to (x,y).
 // If the point is outside the alignment matrix,
 // we can end up with negative values.
@@ -199,17 +189,18 @@ void Aligner::createAlignmentMatrix()
 
             // Loop over pairs in the streaks.
             for(auto jt0=it0Begin; jt0!=it0End; ++jt0) {
+                const uint32_t x = jt0->second;
                 for(auto jt1=it1Begin; jt1!=it1End; ++jt1) {
-                    const uint32_t x = jt0->second;
                     const uint32_t y = jt1->second;
-                    const Coordinates iXY = getCellIndexesFromxy(Coordinates(x, y));
-                    const uint32_t iX = iXY.first;
+                    const Coordinates xy(x, y);
+                    const Coordinates iXY = getCellIndexesFromxy(xy);
                     const uint32_t iY = iXY.second;
                     if(alignmentMatrix.size() <= iY) {
                         alignmentMatrix.resize(iY+1,
                             AlignmentMatrixEntryVector(0, AlignmentMatrixAllocator(byteAllocator)));
                     }
-                    alignmentMatrix[iY].push_back(make_pair(iX, Coordinates(x, y)));
+                    const uint32_t iX = iXY.first;
+                    alignmentMatrix[iY].push_back(make_pair(iX, xy));
                 }
             }
 
@@ -220,9 +211,18 @@ void Aligner::createAlignmentMatrix()
 
     }
 
+    // For each iY value, sort by iX.
+    // Except for short vectors, counting sort is faster.
+    vector<uint32_t> count;
+    AlignmentMatrixEntryVector w(byteAllocator);
     for(auto& v: alignmentMatrix) {
-        sort(v.begin(), v.end(), OrderPairsByFirstOnly<uint32_t, Coordinates>());
+        if(false /*v.size() < 5*/) {
+            sort(v.begin(), v.end(), OrderPairsByFirstOnly<uint32_t, Coordinates>());
+        } else {
+            countingSort(v, count, w);
+        }
     }
+
 }
 
 
