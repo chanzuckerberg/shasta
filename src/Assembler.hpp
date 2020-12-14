@@ -659,6 +659,13 @@ private:
     // They all have readId0<readId1.
     // They are interpreted with readId0 on strand 0.
     AlignmentCandidates alignmentCandidates;
+
+    // The alignment table stores the AlignmentData that each oriented read is involved in.
+    // Stores, for each OrientedReadId, a vector of indexes into the alignmentData vector.
+    // Indexed by OrientedReadId::getValue(),
+    MemoryMapped::VectorOfVectors<uint32_t, uint32_t> candidateTable;
+    void computeCandidateTable();
+
 public:
     void writeAlignmentCandidates() const;
 private:
@@ -706,7 +713,11 @@ private:
     MemoryMapped::Vector< array<uint64_t, 3> > readLowHashStatistics;
     void accessReadLowHashStatistics();
 
-
+    bool createLocalCandidateGraph(
+        OrientedReadId orientedReadIdStart,
+        uint32_t maxDistance,           // How far to go from starting oriented read.
+        double timeout,                 // Or 0 for no timeout.
+        LocalAlignmentGraph& graph);
 
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
