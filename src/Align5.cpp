@@ -316,6 +316,8 @@ void Aligner::writeCheckerboard(
             if(cell) {
                 if(cell->isForwardAccessible and cell->isBackwardAccessible) {
                     g = 255;
+                } else if(cell->isForwardAccessible) {
+                    b = 255;
                 } else {
                     r = 128;
                     g = 128;
@@ -457,7 +459,9 @@ void Aligner::writeCellsPng(
             int b = 0;
             if(cell.isForwardAccessible and cell.isBackwardAccessible) {
                 g = 255;
-            } else {
+            } else if(cell.isForwardAccessible) {
+                b = 255;
+           } else {
                 r = 128;
                 g = 128;
                 b = 128;
@@ -465,9 +469,9 @@ void Aligner::writeCellsPng(
 
             for(uint32_t j=jMin; j<jMax; j++) {
                 for(uint32_t i=iMin; i<iMax; i++) {
-                    SHASTA_ASSERT(i < imageSize);
-                    SHASTA_ASSERT(j < imageSize);
-                    image.setPixel(i, j, r, g, b);
+                    if((i < imageSize) and (j < imageSize)) {
+                        image.setPixel(i, j, r, g, b);
+                    }
                 }
             }
          }
