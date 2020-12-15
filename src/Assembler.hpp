@@ -659,6 +659,7 @@ private:
     // They all have readId0<readId1.
     // They are interpreted with readId0 on strand 0.
     AlignmentCandidates alignmentCandidates;
+
 public:
     void writeAlignmentCandidates() const;
 private:
@@ -706,7 +707,12 @@ private:
     MemoryMapped::Vector< array<uint64_t, 3> > readLowHashStatistics;
     void accessReadLowHashStatistics();
 
-
+    bool createLocalCandidateGraph(
+        vector<OrientedReadId>& starts,
+        uint32_t maxDistance,           // How far to go from starting oriented read.
+        bool allowChimericReads,
+        double timeout,                 // Or 0 for no timeout.
+        LocalAlignmentGraph& graph);
 
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
