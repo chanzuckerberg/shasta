@@ -1,5 +1,7 @@
+// Shasta
 #include "Align5.hpp"
 #include "countingSort.hpp"
+#include "hashArray.hpp"
 #include "orderPairs.hpp"
 #include "PngImage.hpp"
 #include "SHASTA_ASSERT.hpp"
@@ -7,10 +9,16 @@
 using namespace shasta;
 using namespace Align5;
 
+// Boost libraries.
+#include <boost/pending/disjoint_sets.hpp>
+
+// Standard library.
 #include "chrono.hpp"
 #include "fstream.hpp"
+#include <map>
 #include <stack>
 #include "tuple.hpp"
+#include <unordered_map>
 
 
 
@@ -88,10 +96,19 @@ Aligner::Aligner(
         cout << timestamp << "Forward search begins." << endl;
     }
     forwardSearch();
+
+    // Backward search.
     if(debug) {
         cout << timestamp << "Backward search begins." << endl;
     }
     backwardSearch();
+
+    // Group active cells by connected component.
+    if(debug) {
+        cout << timestamp << "Grouping active cells by connected component." << endl;
+    }
+    findActiveCellsConnectedComponents();
+
 
     if(debug) {
         cout << timestamp << "Writing cells." << endl;
@@ -314,7 +331,7 @@ void Aligner::writeCheckerboard(
             int g = 0;
             int b = 0;
             if(cell) {
-                if(cell->isForwardAccessible and cell->isBackwardAccessible) {
+                if(cell->isActive()) {
                     g = 255;
                 } else if(cell->isForwardAccessible) {
                     b = 255;
@@ -457,7 +474,7 @@ void Aligner::writeCellsPng(
             int r = 0;
             int g = 0;
             int b = 0;
-            if(cell.isForwardAccessible and cell.isBackwardAccessible) {
+            if(cell.isActive()) {
                 g = 255;
             } else if(cell.isForwardAccessible) {
                 b = 255;
@@ -746,5 +763,82 @@ void Aligner::backwardSearch()
 }
 
 
+
+// Group active cells in connected component.
+void Aligner::findActiveCellsConnectedComponents()
+{
+    // Gather all the active cells.
+    // Store a contiguously numbered id for each of them.
+    // The id will be used for the connected component computation below.
+    uint32_t nextCellId = 0;
+    std::unordered_map<Coordinates, uint32_t, HashTuple<Coordinates> > activeCells;
+    for(uint32_t iY=0; iY<cells.size(); iY++) {
+        const vector< pair<uint32_t, Cell> >& iYCells = cells[iY];
+        for(const pair<uint32_t, Cell>& p: iYCells) {
+            const Cell& cell = p.second;
+            if(cell.isActive()) {
+                const uint32_t iX = p.first;
+                activeCells.insert(make_pair(Coordinates(iX, iY), nextCellId++));
+            }
+        }
+    }
+    const uint32_t activeCellCount = nextCellId;
+
+
+
+    // Compute the connected components.
+    vector<uint32_t> rank(activeCellCount);
+    vector<uint32_t> parent(activeCellCount);
+    boost::disjoint_sets<uint32_t*, uint32_t*> disjointSets(&rank[0], &parent[0]);
+    for(uint32_t i=0; i<activeCellCount; i++) {
+        disjointSets.make_set(i);
+    }
+    for(const auto& p: activeCells) {
+        const Coordinates& iXY0 = p.first;
+        const uint32_t iX0 = iXY0.first;
+        const uint32_t iY0 = iXY0.second;
+        const uint32_t cellId0 = p.second;
+
+        // Loop over possible neighbors.
+        for(int32_t dY=-1; dY<=1; dY++) {
+            const int32_t iY1Signed = int32_t(iY0) + dY;
+            if(iY1Signed < 0) {
+                continue;
+            }
+            const uint32_t iY1 = uint32_t(iY1Signed);
+            for(int32_t dX=-1; dX<=1; dX++) {
+                if((dX == 0) and (dY == 0)) {
+                    continue;
+                }
+                const int32_t iX1Signed = int32_t(iX0) + dX;
+                if(iX1Signed < 0) {
+                    continue;
+                }
+                const uint32_t iX1 = uint32_t(iX1Signed);
+                const auto it = activeCells.find(Coordinates(iX1, iY1));
+                if(it == activeCells.end()) {
+                    continue;
+                }
+                const uint32_t cellId1 = it->second;
+                disjointSets.union_set(cellId0, cellId1);
+            }
+        }
+    }
+
+
+    // Gather the cells in each connected component.
+    std::map<uint32_t, vector<Coordinates> > connectedComponents;
+    for(const auto& p: activeCells) {
+        const Coordinates& iXY = p.first;
+        const uint32_t cellId = p.second;
+        const uint32_t componentId = disjointSets.find_set(cellId);
+        connectedComponents[componentId].push_back(iXY);
+    }
+    cout << "Found " << connectedComponents.size() << " connected components of sizes:";
+    for(const auto& p: connectedComponents) {
+        cout << " " << p.second.size();
+    }
+    cout << endl;
+}
 
 

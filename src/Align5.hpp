@@ -183,6 +183,10 @@ private:
         {
             *reinterpret_cast<uint8_t*>(this) = 0;
         }
+        bool isActive() const
+        {
+            return (isForwardAccessible == 1) and (isBackwardAccessible == 1);
+        }
     };
     static_assert(sizeof(Cell)==1, "Unexpected size of Align5::Aligner::Cell.");
     vector< vector< pair<uint32_t, Cell> > > cells;
@@ -248,6 +252,14 @@ private:
     // Searches in cell space.
     void forwardSearch();
     void backwardSearch();
+
+
+
+    // Group active cells in connected component.
+    vector< vector<Coordinates> > activeCellsConnectedComponents;
+    void findActiveCellsConnectedComponents();
+
+
 
     MemoryMapped::ByteAllocator& byteAllocator;
 
