@@ -54,7 +54,7 @@ bool Assembler::createLocalCandidateGraph(
         const uint32_t distance1 = distance0 + 1;
 
         // Loop over overlaps involving this vertex.
-        for(const uint64_t i: candidateTable[orientedReadId0.getValue()]) {
+        for(const uint64_t i: alignmentCandidates.candidateTable[orientedReadId0.getValue()]) {
             const OrientedReadPair& pair = alignmentCandidates.candidates[i];
 
             // Get the other oriented read involved in this overlap.
@@ -90,11 +90,11 @@ bool Assembler::createLocalCandidateGraph(
 
 // Compute candidateTable from alignmentCandidates.
 // This could be made multithreaded if it becomes a bottleneck.
-void Assembler::computeCandidateTable()
+void AlignmentCandidates::computeCandidateTable(ReadId readCount, string largeDataName, size_t largeDataPageSize)
 {
-    candidateTable.createNew(largeDataName("CandidateTable"), largeDataPageSize);
-    candidateTable.beginPass1(ReadId(2 * reads->readCount()));
-    for(const OrientedReadPair& pair: alignmentCandidates.candidates) {
+    candidateTable.createNew(largeDataName, largeDataPageSize);
+    candidateTable.beginPass1(ReadId(2 * readCount));
+    for(const OrientedReadPair& pair: candidates) {
         OrientedReadId orientedReadId0(pair.readIds[0], 0);
         OrientedReadId orientedReadId1(pair.readIds[1], pair.isSameStrand ? 0 : 1);
         candidateTable.incrementCount(orientedReadId0.getValue());
@@ -105,8 +105,8 @@ void Assembler::computeCandidateTable()
         candidateTable.incrementCount(orientedReadId1.getValue());
     }
     candidateTable.beginPass2();
-    for(uint32_t i=0; i<alignmentCandidates.candidates.size(); i++) {
-        const OrientedReadPair& pair = alignmentCandidates.candidates[i];
+    for(uint32_t i=0; i<candidates.size(); i++) {
+        const OrientedReadPair& pair = candidates[i];
         OrientedReadId orientedReadId0(pair.readIds[0], 0);
         OrientedReadId orientedReadId1(pair.readIds[1], pair.isSameStrand ? 0 : 1);
         candidateTable.store(orientedReadId0.getValue(), i);
@@ -122,7 +122,7 @@ void Assembler::computeCandidateTable()
 
     // Sort each section of the candidate table by OrientedReadId.
     vector< pair<OrientedReadId, uint32_t> > v;
-    for(ReadId readId0=0; readId0<reads->readCount(); readId0++) {
+    for(ReadId readId0=0; readId0<readCount; readId0++) {
         for(Strand strand0=0; strand0<2; strand0++) {
             const OrientedReadId orientedReadId0(readId0, strand0);
 
@@ -133,7 +133,7 @@ void Assembler::computeCandidateTable()
             // Store pairs(OrientedReadId, candidateIndex).
             v.clear();
             for(uint32_t candidateIndex: candidateTableSection) {
-                const OrientedReadPair& pair = alignmentCandidates.candidates[candidateIndex];
+                const OrientedReadPair& pair = candidates[candidateIndex];
                 const OrientedReadId orientedReadId1 = pair.getOther(orientedReadId0);
                 v.push_back(make_pair(orientedReadId1, candidateIndex));
             }
