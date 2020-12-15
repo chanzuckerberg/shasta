@@ -31,6 +31,15 @@ public:
     // and is indexed in the same way.
     MemoryMapped::VectorOfVectors< array<uint32_t, 2>, uint64_t> featureOrdinals;
 
+    // The candidate table stores the read pair that each oriented read is involved in.
+    // Stores, for each OrientedReadId, a vector of indexes into the alignmentCandidate vector.
+    // Indexed by OrientedReadId::getValue(),
+    MemoryMapped::VectorOfVectors<uint32_t, uint32_t> candidateTable;
+
+    // Method to perform the indexing that fills candidateTable. Allocation of the memory mapped vector requires
+    // knowing the number of reads participating in the candidate pairs, and a name + page size to initialize with.
+    void computeCandidateTable(ReadId readCount, string largeDataName, size_t largeDataPageSize);
+
     void unreserve() {
         candidates.unreserve();
         // featureOrdinals is not used by LowHash0

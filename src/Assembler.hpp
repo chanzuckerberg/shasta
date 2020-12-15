@@ -660,12 +660,6 @@ private:
     // They are interpreted with readId0 on strand 0.
     AlignmentCandidates alignmentCandidates;
 
-    // The alignment table stores the read pair that each oriented read is involved in.
-    // Stores, for each OrientedReadId, a vector of indexes into the alignmentCandidate vector.
-    // Indexed by OrientedReadId::getValue(),
-    MemoryMapped::VectorOfVectors<uint32_t, uint32_t> candidateTable;
-    void computeCandidateTable();
-
 public:
     void writeAlignmentCandidates() const;
 private:
