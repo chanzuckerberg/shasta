@@ -9,20 +9,29 @@ using namespace shasta;
 
 
 bool Assembler::createLocalCandidateGraph(
-        OrientedReadId orientedReadIdStart,
+        vector<OrientedReadId>& starts,
         uint32_t maxDistance,           // How far to go from starting oriented read.
+        bool allowChimericReads,
         double timeout,                 // Or 0 for no timeout.
         LocalAlignmentGraph& graph)
 {
     const auto startTime = steady_clock::now();
 
-    // Add the starting vertex.
-    graph.addVertex(orientedReadIdStart,
-                    uint32_t(reads->getRead(orientedReadIdStart.getReadId()).baseCount), 0);
-
     // Initialize a BFS starting at the start vertex.
     std::queue<OrientedReadId> q;
-    q.push(orientedReadIdStart);
+
+    for (auto& start: starts) {
+        // If the starting read is chimeric and we don't allow chimeric reads, do nothing.
+        if (!allowChimericReads && reads->getFlags(start.getReadId()).isChimeric) {
+            continue;
+        }
+
+        // Add the starting vertex.
+        graph.addVertex(start, uint32_t(reads->getRead(start.getReadId()).baseCount), 0);
+
+        // Add each starting vertex to the BFS queue
+        q.push(start);
+    }
 
     // Create an empty (default) AlignmentInfo object to place in all the edges of the graph
     AlignmentInfo info;
@@ -79,7 +88,7 @@ bool Assembler::createLocalCandidateGraph(
 }
 
 
-// Compute alignmentTable from alignmentData.
+// Compute candidateTable from alignmentCandidates.
 // This could be made multithreaded if it becomes a bottleneck.
 void Assembler::computeCandidateTable()
 {
