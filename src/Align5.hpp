@@ -256,7 +256,9 @@ private:
 
 
     // Group active cells in connected component.
+    // Each connected component also generates a diagonal range.
     vector< vector<Coordinates> > activeCellsConnectedComponents;
+    vector< pair<int32_t, int32_t > > diagonalRanges;
     void findActiveCellsConnectedComponents();
 
 

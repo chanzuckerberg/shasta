@@ -839,6 +839,37 @@ void Aligner::findActiveCellsConnectedComponents()
         cout << " " << p.second.size();
     }
     cout << endl;
+
+
+
+    // Compute the diagonal range for each connected component.
+    diagonalRanges.clear();
+    for(const auto& p: connectedComponents) {
+        const vector<Coordinates>& component = p.second;
+
+        // Compute the iY range.
+        uint32_t iYMin = std::numeric_limits<uint32_t>::max();
+        uint32_t iYMax = 0;
+        for(const Coordinates& iXY: component) {
+            const uint32_t iY = iXY.second;
+            iYMin = min(iYMin, iY);
+            iYMax = max(iYMax, iY);
+        }
+
+        // Compute the corresponding y range.
+        const uint32_t YMin = iYMin * deltaY;
+        const uint32_t YMax = (iYMax+1) * deltaY - 1;
+
+        // Compute the corresponding diagonal range.
+        const int32_t diagonalMin = int32_t(nx) -1 - int32_t(YMax);
+        const int32_t diagonalMax = int32_t(nx) -1 - int32_t(YMin);
+        diagonalRanges.push_back(make_pair(diagonalMin, diagonalMax));
+
+        cout << "Connected component with " << component.size() << " active cells." << endl;
+        cout << "iY range " << iYMin << " " << iYMax << endl;
+        cout << "Y range " << YMin << " " << YMax << endl;
+        cout << "Diagonal range " << diagonalMin << " " << diagonalMax << endl;
+    }
 }
 
 
