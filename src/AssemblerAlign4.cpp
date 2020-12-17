@@ -1,12 +1,12 @@
 #include "Assembler.hpp"
-#include "Align5.hpp"
+#include "Align4.hpp"
 #include "MemoryMappedAllocator.hpp"
 #include "html.hpp"
 using namespace shasta;
 
 
 // Python-callable version.
-void Assembler::alignOrientedReads5(
+void Assembler::alignOrientedReads4(
     ReadId readId0, Strand strand0,
     ReadId readId1, Strand strand1,
     uint64_t deltaX,
@@ -15,7 +15,7 @@ void Assembler::alignOrientedReads5(
     int64_t mismatchScore,
     int64_t gapScore) const
 {
-    Align5::Options options;
+    Align4::Options options;
     options.deltaX = deltaX;
     options.deltaY = deltaY;
     options.matchScore = matchScore;
@@ -31,7 +31,7 @@ void Assembler::alignOrientedReads5(
     const bool debug = true;
 
     // Compute the alignment.
-    alignOrientedReads5(
+    alignOrientedReads4(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
         options, byteAllocator, alignment, alignmentInfo, debug);
@@ -40,10 +40,10 @@ void Assembler::alignOrientedReads5(
 
 
 // Align two reads using alignment method 5.
-void Assembler::alignOrientedReads5(
+void Assembler::alignOrientedReads4(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    const Align5::Options& options,
+    const Align4::Options& options,
     MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
@@ -52,7 +52,7 @@ void Assembler::alignOrientedReads5(
     const auto markers0 = markers[orientedReadId0.getValue()];
     const auto markers1 = markers[orientedReadId1.getValue()];
 
-    align5(markers0, markers1,
+    align4(markers0, markers1,
         options, byteAllocator, alignment, alignmentInfo, debug);
 }
 

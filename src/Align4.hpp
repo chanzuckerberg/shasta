@@ -1,5 +1,5 @@
-#ifndef SHASTA_ALIGN5_HPP
-#define SHASTA_ALIGN5_HPP
+#ifndef SHASTA_ALIGN4_HPP
+#define SHASTA_ALIGN4_HPP
 
 /*******************************************************************************
 
@@ -67,7 +67,7 @@ namespace shasta {
     class AlignmentInfo;
     class PngImage;
 
-    namespace Align5 {
+    namespace Align4 {
         class Aligner;
         class MatrixEntry;
         class Options;
@@ -84,10 +84,10 @@ namespace shasta {
         class ByteAllocator;
     }
 
-    void align5(
+    void align4(
         const span<const CompressedMarker>&,
         const span<const CompressedMarker>&,
-        const Align5::Options&,
+        const Align4::Options&,
         MemoryMapped::ByteAllocator&,
         Alignment&,
         AlignmentInfo&,
@@ -96,7 +96,7 @@ namespace shasta {
 
 
 
-class shasta::Align5::Options {
+class shasta::Align4::Options {
 public:
     uint64_t deltaX;
     uint64_t deltaY;
@@ -107,7 +107,7 @@ public:
 
 
 
-class shasta::Align5::MatrixEntry {
+class shasta::Align4::MatrixEntry {
 public:
     Coordinates xy;
     MatrixEntry() {}
@@ -116,7 +116,7 @@ public:
 
 
 
-class shasta::Align5::Aligner {
+class shasta::Align4::Aligner {
 public:
 
     using MarkerSequence = span<const CompressedMarker>;

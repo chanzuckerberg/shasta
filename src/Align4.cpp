@@ -1,5 +1,5 @@
 // Shasta
-#include "Align5.hpp"
+#include "Align4.hpp"
 #include "Alignment.hpp"
 #include "countingSort.hpp"
 #include "hashArray.hpp"
@@ -8,7 +8,7 @@
 #include "SHASTA_ASSERT.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
-using namespace Align5;
+using namespace Align4;
 
 // Seqan.
 #include <seqan/align.h>
@@ -26,7 +26,7 @@ using namespace Align5;
 
 
 
-void shasta::align5(
+void shasta::align4(
     const span<const CompressedMarker>& markers0,
     const span<const CompressedMarker>& markers1,
     const Options& options,
@@ -35,7 +35,7 @@ void shasta::align5(
     AlignmentInfo& alignmentInfo,
     bool debug)
 {
-    Align5::Aligner graph(markers0, markers1,
+    Align4::Aligner graph(markers0, markers1,
         options, byteAllocator, alignment, alignmentInfo,
         debug);
 }

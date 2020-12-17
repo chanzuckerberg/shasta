@@ -62,7 +62,7 @@ namespace shasta {
         bool select0,           // Whether strand 0 is selected.
         bool select1);          // Whether strand 1 is selected.
 
-    namespace Align5 {
+    namespace Align4 {
         class MatrixEntry;
         class Options;
     }
@@ -785,11 +785,11 @@ private:
 
 
 
-    // Member functions that use alignment algorithm 5.
+    // Member functions that use alignment algorithm 4.
 public:
 
     // Python-callable version.
-    void alignOrientedReads5(
+    void alignOrientedReads4(
         ReadId, Strand,
         ReadId, Strand,
         uint64_t deltaX,
@@ -801,10 +801,10 @@ public:
     // Align two reads using alignment method 4.
     // If debug is true, detailed output to html is produced.
     // Otherwise, html is not used.
-    void alignOrientedReads5(
+    void alignOrientedReads4(
         OrientedReadId,
         OrientedReadId,
-        const Align5::Options&,
+        const Align4::Options&,
         MemoryMapped::ByteAllocator&,
         Alignment&,
         AlignmentInfo&,
