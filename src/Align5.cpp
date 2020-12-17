@@ -1,5 +1,6 @@
 // Shasta
 #include "Align5.hpp"
+#include "Alignment.hpp"
 #include "countingSort.hpp"
 #include "hashArray.hpp"
 #include "orderPairs.hpp"
@@ -8,6 +9,9 @@
 #include "timestamp.hpp"
 using namespace shasta;
 using namespace Align5;
+
+// Seqan.
+#include <seqan/align.h>
 
 // Boost libraries.
 #include <boost/pending/disjoint_sets.hpp>
@@ -68,8 +72,8 @@ Aligner::Aligner(
     if(debug) {
         cout << timestamp << "Creating sorted markers." << endl;
     }
-    sortMarkers(markerSequence0, sortedMarkers0);
-    sortMarkers(markerSequence1, sortedMarkers1);
+    storeMarkers(markerSequence0, markers[0], sortedMarkers[0]);
+    storeMarkers(markerSequence1, markers[1], sortedMarkers[1]);
 
     // Create the sparse representation of the alignment matrix.
     if(debug) {
@@ -109,6 +113,13 @@ Aligner::Aligner(
     }
     findActiveCellsConnectedComponents();
 
+    // Compute a banded alignment for each connected component of
+    // active cells.
+    if(debug) {
+        cout << timestamp << "Computing namded alignments." << endl;
+    }
+    computeBandedAlignments(debug);
+
 
     if(debug) {
         cout << timestamp << "Writing cells." << endl;
@@ -128,13 +139,17 @@ Aligner::Aligner(
 }
 
 
-
-void Aligner::sortMarkers(
+void Aligner::storeMarkers(
     const MarkerSequence& markerSequence,
+    vector<KmerId>& markers,
     vector< pair<KmerId, uint32_t> >& sortedMarkers)
 {
-    sortedMarkers.resize(markerSequence.size());
-    for(uint32_t i=0; i<markerSequence.size(); i++) {
+    const uint64_t n = markerSequence.size();
+    markers.resize(n);
+    sortedMarkers.resize(n);
+    for(uint32_t i=0; i<n; i++) {
+        const KmerId kmerId = markerSequence[i].kmerId;
+        markers[i] = kmerId;
         sortedMarkers[i] = make_pair(markerSequence[i].kmerId, i);
     }
     sort(sortedMarkers.begin(), sortedMarkers.end(),
@@ -173,10 +188,10 @@ void Aligner::createAlignmentMatrix()
     alignmentMatrix.clear();
 
     // Joint loop over the sorted markers, looking for common markers.
-    auto begin0 = sortedMarkers0.begin();
-    auto begin1 = sortedMarkers1.begin();
-    auto end0 = sortedMarkers0.end();
-    auto end1 = sortedMarkers1.end();
+    auto begin0 = sortedMarkers[0].begin();
+    auto begin1 = sortedMarkers[1].begin();
+    auto end0 = sortedMarkers[0].end();
+    auto end1 = sortedMarkers[1].end();
 
     auto it0 = begin0;
     auto it1 = begin1;
@@ -835,17 +850,27 @@ void Aligner::findActiveCellsConnectedComponents()
         connectedComponents[componentId].push_back(iXY);
     }
     cout << "Found " << connectedComponents.size() << " connected components of sizes:";
+    activeCellsConnectedComponents.clear();
     for(const auto& p: connectedComponents) {
         cout << " " << p.second.size();
+        activeCellsConnectedComponents.push_back(p.second);
     }
     cout << endl;
+}
 
 
 
-    // Compute the diagonal range for each connected component.
-    diagonalRanges.clear();
-    for(const auto& p: connectedComponents) {
-        const vector<Coordinates>& component = p.second;
+// Compute a banded alignment for each connected component of
+// active cells.
+void Aligner::computeBandedAlignments(bool debug) const
+{
+
+    // Loop over connected components of active cells.
+    vector< pair<bool, bool> > alignment;
+    for(const vector<Coordinates>& component: activeCellsConnectedComponents) {
+        if(debug) {
+            cout << "Connected component with " << component.size() << " active cells." << endl;
+        }
 
         // Compute the iY range.
         uint32_t iYMin = std::numeric_limits<uint32_t>::max();
@@ -855,21 +880,130 @@ void Aligner::findActiveCellsConnectedComponents()
             iYMin = min(iYMin, iY);
             iYMax = max(iYMax, iY);
         }
+        if(debug) {
+            cout << "iY range " << iYMin << " " << iYMax << endl;
+        }
 
         // Compute the corresponding y range.
         const uint32_t YMin = iYMin * deltaY;
         const uint32_t YMax = (iYMax+1) * deltaY - 1;
+        if(debug) {
+            cout << "Y range " << YMin << " " << YMax << endl;
+        }
 
-        // Compute the corresponding diagonal range.
-        const int32_t diagonalMin = int32_t(nx) -1 - int32_t(YMax);
-        const int32_t diagonalMax = int32_t(nx) -1 - int32_t(YMin);
-        diagonalRanges.push_back(make_pair(diagonalMin, diagonalMax));
+        // Compute the corresponding band.
+        const int32_t bandMin = int32_t(nx) -1 - int32_t(YMax);
+        const int32_t bandMax = int32_t(nx) -1 - int32_t(YMin);
+        const int32_t bandWidth = bandMax - bandMin + 1;
+        const int32_t bandCenter = (bandMin + bandMax) / 2;
+        const int32_t nominalAlignmentLength =
+            min(int32_t(nx), int32_t(ny) + bandCenter) -
+            max(0, bandCenter);
+        if(debug) {
+            cout << "Band " << bandMin << " " << bandMax << endl;
+            cout << "Band width " << bandWidth << endl;
+            cout << "Band center " << bandCenter << endl;
+            cout << "Alignment length at band center " << nominalAlignmentLength << endl;
+        }
 
-        cout << "Connected component with " << component.size() << " active cells." << endl;
-        cout << "iY range " << iYMin << " " << iYMax << endl;
-        cout << "Y range " << YMin << " " << YMax << endl;
-        cout << "Diagonal range " << diagonalMin << " " << diagonalMax << endl;
+        // Compute an alignment with this band.
+        computeBandedAlignment(bandMin, bandMax, debug);
     }
+
 }
 
+
+
+// Compute a banded alignment with a given band.
+bool Aligner::computeBandedAlignment(
+    int32_t bandMin,
+    int32_t bandMax,
+    bool debug) const
+{
+    // Some seqan types and constants we need.
+    using namespace seqan;
+    using TSequence = String<KmerId>;
+    using TStringSet = StringSet<TSequence>;
+    using TDepStringSet = StringSet< TSequence, Dependent<> >;
+    using TAlignGraph = Graph< seqan::Alignment<TDepStringSet> >;
+    const uint32_t seqanGapValue = 45;
+
+    if(debug) {
+        cout << timestamp << "Banded alignment computation begins." << endl;
+    }
+
+    // Fill in the seqan sequences.
+    // Add 100 to kMerIds to prevent collision from the seqan gap value.
+    array<TSequence, 2> sequences;
+    for(uint64_t i=0; i<2; i++) {
+        for(const KmerId kmerId: markers[i]) {
+            appendValue(sequences[i], kmerId + 100);
+        }
+    }
+
+    TStringSet sequencesSet;
+    appendValue(sequencesSet, sequences[0]);
+    appendValue(sequencesSet, sequences[1]);
+
+    // Compute the banded alignment.
+    TAlignGraph graph(sequencesSet);
+    const int score = globalAlignment(
+        graph,
+        Score<int, Simple>(matchScore, mismatchScore, gapScore),
+        AlignConfig<true, true, true, true>(),
+        bandMin, bandMax,
+        LinearGaps());
+    if(score == seqan::MinValue<int>::VALUE) {
+        cout << "SeqAn banded alignment computation failed." << endl;
+        return false;
+    } else if(debug) {
+        cout << "Alignment score is " << score << endl;
+    }
+
+    TSequence align;
+    convertAlignment(graph, align);
+    const int totalAlignmentLength = int(seqan::length(align));
+    SHASTA_ASSERT((totalAlignmentLength % 2) == 0);    // Because we are aligning two sequences.
+    const int alignmentLength = totalAlignmentLength / 2;
+    if(debug) {
+        cout << "Alignment length " << alignmentLength << endl;
+    }
+
+
+    // Fill in the marker alignment.
+    Alignment alignment;
+    uint32_t ordinal0 = 0;
+    uint32_t ordinal1 = 0;
+    for(int i=0;
+        i<alignmentLength and ordinal0<markers[0].size() and ordinal1<markers[1].size(); i++) {
+        if( align[i] != seqanGapValue and
+            align[i + alignmentLength] != seqanGapValue and
+            markers[0][ordinal0] == markers[1][ordinal1]) {
+            alignment.ordinals.push_back(array<uint32_t, 2>{ordinal0, ordinal1});
+        }
+        if(align[i] != seqanGapValue) {
+            ++ordinal0;
+        }
+        if(align[i + alignmentLength] != seqanGapValue) {
+            ++ordinal1;
+        }
+    }
+
+    // Create the AlignmentInfo.
+    const AlignmentInfo alignmentInfo(
+        alignment, uint32_t(markers[0].size()), uint32_t(markers[1].size()));
+    pair<uint32_t, uint32_t> trim = alignmentInfo.computeTrim();
+    cout << "Aligned marker count " << alignmentInfo.markerCount << endl;
+    cout << "Aligned marker fraction " <<
+        alignmentInfo.alignedFraction(0) << " " <<
+        alignmentInfo.alignedFraction(1) << endl;
+    cout << "maxSkip " << alignmentInfo.maxSkip << endl;
+    cout << "maxDrift " << alignmentInfo.maxDrift << endl;
+    cout << "Trim " << trim.first << " " << trim.second << endl;
+
+    if(debug) {
+        cout << timestamp << "Banded alignment computation ends." << endl;
+    }
+    return true;
+}
 

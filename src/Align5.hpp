@@ -141,12 +141,21 @@ private:
     uint32_t deltaX;
     uint32_t deltaY;
 
+    // Alignment scores.
+    int32_t matchScore = 6;
+    int32_t mismatchScore = -1;
+    int32_t gapScore = -1;
+
+
+    // Vector of markers for each sequence.
+    array<vector<KmerId>, 2> markers;
+
     // For each sequence, vectors of pairs (markerId, ordinal)
     // sorted by marker id.
-    vector< pair<KmerId, uint32_t> > sortedMarkers0;
-    vector< pair<KmerId, uint32_t> > sortedMarkers1;
-    static void sortMarkers(
+    array< vector< pair<KmerId, uint32_t> >, 2> sortedMarkers;
+    static void storeMarkers(
         const MarkerSequence&,
+        vector<KmerId>& markers,
         vector< pair<KmerId, uint32_t> >& sortedMarkers);
 
     // The alignment matrix, in a sparse representation organized by
@@ -256,12 +265,21 @@ private:
 
 
     // Group active cells in connected component.
-    // Each connected component also generates a diagonal range.
+    // Each connected component also generates a diagonal range
+    // that could be used as band to compute an alignment.
     vector< vector<Coordinates> > activeCellsConnectedComponents;
-    vector< pair<int32_t, int32_t > > diagonalRanges;
     void findActiveCellsConnectedComponents();
 
+    // Compute a banded alignment for each connected component of
+    // active cells.
+    void computeBandedAlignments(
+        bool debug) const;
 
+    // Compute a banded alignment with a given band.
+    bool computeBandedAlignment(
+        int32_t bandMin,
+        int32_t bandMax,
+        bool debug) const;
 
     MemoryMapped::ByteAllocator& byteAllocator;
 
