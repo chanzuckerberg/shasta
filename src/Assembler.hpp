@@ -44,6 +44,7 @@ namespace shasta {
     class CompressedAssemblyGraph;
     class ConsensusCaller;
     class LocalAssemblyGraph;
+    class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
     class Reads;
@@ -712,7 +713,7 @@ private:
         uint32_t maxDistance,           // How far to go from starting oriented read.
         bool allowChimericReads,
         double timeout,                 // Or 0 for no timeout.
-        LocalAlignmentGraph& graph);
+        LocalAlignmentCandidateGraph& graph);
 
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
@@ -1852,6 +1853,7 @@ public:
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
     void blastRead(const vector<string>&, ostream&);
+    void exploreCandidateGraph(const vector<string>&, ostream&);
     void exploreAlignments(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void alignSequencesInBaseRepresentation(const vector<string>&, ostream&);
@@ -1861,6 +1863,7 @@ public:
     void exploreUndirectedReadGraph(const vector<string>&, ostream&);
     void exploreDirectedReadGraph(const vector<string>&, ostream&);
     void exploreCompressedAssemblyGraph(const vector<string>&, ostream&);
+    static bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedReadId>& readIds, ostream& html);
     static void addScaleSvgButtons(ostream&);
     class HttpServerData {
     public:

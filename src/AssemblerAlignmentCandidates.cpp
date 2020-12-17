@@ -1,5 +1,5 @@
 #include "Assembler.hpp"
-#include "LocalAlignmentGraph.hpp"
+#include "LocalAlignmentCandidateGraph.hpp"
 using namespace shasta;
 
 #include "chrono.hpp"
@@ -13,7 +13,7 @@ bool Assembler::createLocalCandidateGraph(
         uint32_t maxDistance,           // How far to go from starting oriented read.
         bool allowChimericReads,
         double timeout,                 // Or 0 for no timeout.
-        LocalAlignmentGraph& graph)
+        LocalAlignmentCandidateGraph& graph)
 {
     const auto startTime = steady_clock::now();
 
@@ -32,9 +32,6 @@ bool Assembler::createLocalCandidateGraph(
         // Add each starting vertex to the BFS queue
         q.push(start);
     }
-
-    // Create an empty (default) AlignmentInfo object to place in all the edges of the graph
-    AlignmentInfo info;
 
     // Do the BFS.
     while(!q.empty()) {
@@ -60,6 +57,32 @@ bool Assembler::createLocalCandidateGraph(
             // Get the other oriented read involved in this overlap.
             const OrientedReadId orientedReadId1 = pair.getOther(orientedReadId0);
 
+            bool inAlignments = false;
+            bool inReadgraph = false;
+            bool inReferenceAlignments = false;
+
+            // Search the AlignmentTable to see if this pair exists
+            for(const ReadId alignmentIndex: alignmentTable[orientedReadId0.getValue()]) {
+                const AlignmentData& ad = alignmentData[alignmentIndex];
+
+                // Check if the pair matches the current candidate pair of interest
+                 if (ad.getOther(orientedReadId0) == orientedReadId1){
+                     inAlignments = true;
+                 }
+            }
+
+            // Search the ReadGraph to see if this pair exists
+            for(const ReadId readGraphIndex: readGraph.connectivity[orientedReadId0.getValue()]) {
+                const ReadGraphEdge& e = readGraph.edges[readGraphIndex];
+
+                // Check if the pair matches the current candidate pair of interest
+                if (e.getOther(orientedReadId0) == orientedReadId1){
+                    inReadgraph = true;
+                }
+            }
+
+            // TODO add reference alignment table and check for this edge's existence
+
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,
@@ -71,14 +94,11 @@ bool Assembler::createLocalCandidateGraph(
                     q.push(orientedReadId1);
                 }
 
-
-                graph.addEdge(orientedReadId0, orientedReadId1,
-                              info);
+                graph.addEdge(orientedReadId0, orientedReadId1, inAlignments, inReadgraph, inReferenceAlignments);
             } else {
                 SHASTA_ASSERT(distance0 == maxDistance);
                 if(graph.vertexExists(orientedReadId1)) {
-                    graph.addEdge(orientedReadId0, orientedReadId1,
-                                  info);
+                    graph.addEdge(orientedReadId0, orientedReadId1, inAlignments, inReadgraph, inReferenceAlignments);
                 }
             }
         }

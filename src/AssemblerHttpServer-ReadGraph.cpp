@@ -30,7 +30,7 @@ void Assembler::exploreReadGraph(
 }
 
 
-bool parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedReadId>& readIds, ostream& html){
+bool Assembler::parseCommaSeparatedReadIDs(string& commaSeparatedReadIds, vector<OrientedReadId>& readIds, ostream& html){
     readIds.clear();
     string token;
 
