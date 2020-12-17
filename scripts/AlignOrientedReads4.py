@@ -34,6 +34,8 @@ a.alignOrientedReads4(
     readId1 = arguments.readId1, strand1 = arguments.strand1,
     deltaX = 200,
     deltaY = 10,
+    minEntryCountPerCell = 10,
+    maxDistanceFromBoundary = 100,
     matchScore = int(config['Align']['matchScore']),
     mismatchScore = int(config['Align']['mismatchScore']),
     gapScore = int(config['Align']['gapScore']))

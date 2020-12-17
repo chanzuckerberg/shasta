@@ -56,12 +56,6 @@ Aligner::Aligner(
     deltaY(int32_t(options.deltaY)),
     byteAllocator(byteAllocator)
 {
-    // Parameters to expose when code stabilizes.
-    const uint32_t minEntryCountPerCell = 10;
-    const uint32_t maxDistanceFromBoundary = deltaX / 2;
-
-
-
     if(debug) {
         cout << timestamp << "Align5 begins." << endl;
         cout << timestamp << "Input sequences have " <<
@@ -92,7 +86,7 @@ Aligner::Aligner(
     if(debug) {
         cout << timestamp << "Creating cells." << endl;
     }
-    createCells(minEntryCountPerCell, maxDistanceFromBoundary);
+    createCells(options.minEntryCountPerCell, options.maxDistanceFromBoundary);
 
     // Forward search.
     // Find cells that are forward accessible from the left/top.
@@ -129,7 +123,7 @@ Aligner::Aligner(
 
     if(debug) {
         cout << timestamp << "Writing the alignment matrix." << endl;
-        writeAlignmentMatrixPng("Align5-AlignmentMatrix.png", maxDistanceFromBoundary);
+        writeAlignmentMatrixPng("Align5-AlignmentMatrix.png", options.maxDistanceFromBoundary);
         writeAlignmentMatrixCsv("Align5-AlignmentMatrix.csv");
     }
 
@@ -287,7 +281,7 @@ void Aligner::writeAlignmentMatrixCsv(const string& fileName) const
 
 void Aligner::writeAlignmentMatrixPng(
     const string& fileName,
-    uint32_t maxDistanceFromBoundary) const
+    uint64_t maxDistanceFromBoundary) const
 {
     PngImage image(nx, ny);
 
@@ -318,7 +312,7 @@ void Aligner::writeAlignmentMatrixPng(
 
 void Aligner::writeCheckerboard(
     PngImage& image,
-    uint32_t maxDistanceFromBoundary) const
+    uint64_t maxDistanceFromBoundary) const
 {
     Coordinates xy;
     uint32_t& x = xy.first;
@@ -369,8 +363,8 @@ void Aligner::writeCheckerboard(
 
 
 void Aligner::createCells(
-    uint32_t minEntryCountPerCell,
-    uint32_t maxDistanceFromBoundary)
+    uint64_t minEntryCountPerCell,
+    uint64_t maxDistanceFromBoundary)
 {
     // Start with nothing.
     cells.clear();
@@ -405,7 +399,7 @@ void Aligner::createCells(
             }
 
             // If too few entries in this cell, don't store it.
-            if(it - it0 < minEntryCountPerCell) {
+            if(it - it0 < int64_t(minEntryCountPerCell)) {
                 continue;
             }
 

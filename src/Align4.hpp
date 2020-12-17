@@ -101,6 +101,8 @@ public:
     uint64_t deltaX;
     uint64_t deltaY;
     int64_t matchScore;
+    uint64_t minEntryCountPerCell;
+    uint64_t maxDistanceFromBoundary;
     int64_t mismatchScore;
     int64_t gapScore;
 };
@@ -172,10 +174,10 @@ private:
     void writeAlignmentMatrixCsv(const string& fileName) const;
     void writeAlignmentMatrixPng(
         const string& fileName,
-        uint32_t maxDistanceFromBoundary) const;
+        uint64_t maxDistanceFromBoundary) const;
     void writeCheckerboard(
         PngImage&,
-        uint32_t maxDistanceFromBoundary) const;
+        uint64_t maxDistanceFromBoundary) const;
 
 
 
@@ -200,8 +202,8 @@ private:
     static_assert(sizeof(Cell)==1, "Unexpected size of Align5::Aligner::Cell.");
     vector< vector< pair<uint32_t, Cell> > > cells;
     void createCells(
-        uint32_t minEntryCountPerCell,
-        uint32_t maxDistanceFromBoundary);
+        uint64_t minEntryCountPerCell,
+        uint64_t maxDistanceFromBoundary);
     void writeCellsCsv(const string& fileName) const;
     void writeCellsPng(const string& fileName) const;
 

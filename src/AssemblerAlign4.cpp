@@ -11,6 +11,8 @@ void Assembler::alignOrientedReads4(
     ReadId readId1, Strand strand1,
     uint64_t deltaX,
     uint64_t deltaY,
+    uint64_t minEntryCountPerCell,
+    uint64_t maxDistanceFromBoundary,
     int64_t matchScore,
     int64_t mismatchScore,
     int64_t gapScore) const
@@ -18,6 +20,8 @@ void Assembler::alignOrientedReads4(
     Align4::Options options;
     options.deltaX = deltaX;
     options.deltaY = deltaY;
+    options.minEntryCountPerCell = minEntryCountPerCell;
+    options.maxDistanceFromBoundary = maxDistanceFromBoundary;
     options.matchScore = matchScore;
     options.mismatchScore = mismatchScore;
     options.gapScore = gapScore;
@@ -39,7 +43,7 @@ void Assembler::alignOrientedReads4(
 
 
 
-// Align two reads using alignment method 5.
+// Align two reads using alignment method 4.
 void Assembler::alignOrientedReads4(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,

@@ -794,6 +794,8 @@ public:
         ReadId, Strand,
         uint64_t deltaX,
         uint64_t deltaY,
+        uint64_t minEntryCountPerCell,
+        uint64_t maxDistanceFromBoundary,
         int64_t matchScore,
         int64_t mismatchScore,
         int64_t gapScore) const;

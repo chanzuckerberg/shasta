@@ -226,7 +226,9 @@ PYBIND11_MODULE(shasta, module)
         .def("alignOrientedReads4",
             (
                 void (Assembler::*)
-                (ReadId, Strand, ReadId, Strand, uint64_t, uint64_t, int64_t, int64_t, int64_t) const
+                (ReadId, Strand, ReadId, Strand,
+                    uint64_t, uint64_t, uint64_t, uint64_t,
+                    int64_t, int64_t, int64_t) const
             )
             &Assembler::alignOrientedReads4,
             arg("readId0"),
@@ -235,6 +237,8 @@ PYBIND11_MODULE(shasta, module)
             arg("strand1"),
             arg("deltaX"),
             arg("deltaY"),
+            arg("minEntryCountPerCell"),
+            arg("maxDistanceFromBoundary"),
             arg("matchScore"),
             arg("mismatchScore"),
             arg("gapScore"))
