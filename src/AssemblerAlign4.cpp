@@ -13,6 +13,11 @@ void Assembler::alignOrientedReads4(
     uint64_t deltaY,
     uint64_t minEntryCountPerCell,
     uint64_t maxDistanceFromBoundary,
+    uint64_t minAlignedMarkerCount,
+    double minAlignedFraction,
+    uint64_t maxSkip,
+    uint64_t maxDrift,
+    uint64_t maxTrim,
     int64_t matchScore,
     int64_t mismatchScore,
     int64_t gapScore) const
@@ -22,6 +27,11 @@ void Assembler::alignOrientedReads4(
     options.deltaY = deltaY;
     options.minEntryCountPerCell = minEntryCountPerCell;
     options.maxDistanceFromBoundary = maxDistanceFromBoundary;
+    options.minAlignedMarkerCount = minAlignedMarkerCount;
+    options.minAlignedFraction = minAlignedFraction;
+    options.maxSkip = maxSkip;
+    options.maxDrift = maxDrift;
+    options.maxTrim = maxTrim;
     options.matchScore = matchScore;
     options.mismatchScore = mismatchScore;
     options.gapScore = gapScore;

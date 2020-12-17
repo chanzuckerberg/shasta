@@ -100,9 +100,14 @@ class shasta::Align4::Options {
 public:
     uint64_t deltaX;
     uint64_t deltaY;
-    int64_t matchScore;
     uint64_t minEntryCountPerCell;
     uint64_t maxDistanceFromBoundary;
+    uint64_t minAlignedMarkerCount;
+    double minAlignedFraction;
+    uint64_t maxSkip;
+    uint64_t maxDrift;
+    uint64_t maxTrim;
+    int64_t matchScore;
     int64_t mismatchScore;
     int64_t gapScore;
 };

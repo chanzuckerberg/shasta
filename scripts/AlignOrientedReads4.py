@@ -36,6 +36,11 @@ a.alignOrientedReads4(
     deltaY = 10,
     minEntryCountPerCell = 10,
     maxDistanceFromBoundary = 100,
+    minAlignedMarkerCount = int(config['Align']['minAlignedMarkerCount']),
+    minAlignedFraction = float(config['Align']['minAlignedFraction']),
+    maxSkip = int(config['Align']['maxSkip']),
+    maxDrift = int(config['Align']['maxDrift']),
+    maxTrim = int(config['Align']['maxTrim']),
     matchScore = int(config['Align']['matchScore']),
     mismatchScore = int(config['Align']['mismatchScore']),
     gapScore = int(config['Align']['gapScore']))
