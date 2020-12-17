@@ -38,7 +38,6 @@ namespace shasta {
     class Alignment;
     class AlignmentGraph;
     class AlignmentInfo;
-    class Align4Options;
     class AssemblerOptions;
     class AssembledSegment;
     class CompressedAssemblyGraph;
@@ -783,35 +782,6 @@ private:
         int maxBand,
         Alignment&,
         AlignmentInfo&);
-
-
-
-    // Member functions that use alignment algorithm 4.
-public:
-
-    // Python-callable version.
-    void alignOrientedReads4(
-        ReadId, Strand,
-        ReadId, Strand,
-        uint64_t m,
-        uint64_t deltaX,
-        uint64_t deltaY,
-        int64_t matchScore,
-        int64_t mismatchScore,
-        int64_t gapScore) const;
-
-    // Align two reads using alignment method 4.
-    // If debug is true, detailed output to html is produced.
-    // Otherwise, html is not used.
-    void alignOrientedReads4(
-        OrientedReadId,
-        OrientedReadId,
-        const Align4Options&,
-        Alignment&,
-        AlignmentInfo&,
-        bool debug) const;
-
-private:
 
 
 
