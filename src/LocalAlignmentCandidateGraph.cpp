@@ -239,13 +239,13 @@ void LocalAlignmentCandidateGraph::writeSvg(
         attributes.thickness = edgeThicknessScalingFactor * 2.e-3;
 
         // Ratchet up the color towards green for each successive filter it passes (candidate -> alignment -> readgraph)
-        attributes.color = "#0E29BA";
+        attributes.color = "#450BBA";
 
         if (edge.inAlignments){
-            attributes.color = "#047FAD";
+            attributes.color = "#0954B4";
         }
         if (edge.inReadGraph){
-            attributes.color = "#00C349";
+            attributes.color = "#00C442";
         }
 
         attributes.tooltip =

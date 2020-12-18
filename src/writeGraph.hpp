@@ -228,7 +228,7 @@ template<class Graph> void shasta::WriteGraph::writeOrderedSvg(
             attributes = it->second;
         }
 
-        // Find an ordering using the passed-in function
+        // Find an ordering specified by the Edge class itself
         auto edge = graph[e];
         auto info = std::make_pair(e, attributes);
 
@@ -275,7 +275,7 @@ template<class Graph> void shasta::WriteGraph::writeOrderedSvg(
             attributes = it->second;
         }
 
-        // Find an ordering using the passed-in function
+        // Find an ordering specified by the Vertex class itself
         auto vertex = graph[v];
         auto info = std::make_pair(v, attributes);
 
