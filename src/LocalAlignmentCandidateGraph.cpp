@@ -1,5 +1,5 @@
 // Shasta.
-#include "LocalAlignmentGraph.hpp"
+#include "LocalAlignmentCandidateGraph.hpp"
 #include "writeGraph.hpp"
 using namespace shasta;
 
@@ -12,7 +12,7 @@ using namespace shasta;
 
 
 
-void LocalAlignmentGraph::addVertex(
+void LocalAlignmentCandidateGraph::addVertex(
     OrientedReadId orientedReadId,
     uint32_t baseCount,
     uint32_t distance)
@@ -21,7 +21,7 @@ void LocalAlignmentGraph::addVertex(
     SHASTA_ASSERT(vertexMap.find(orientedReadId) == vertexMap.end());
 
     // Create the vertex.
-    const vertex_descriptor v = add_vertex(LocalAlignmentGraphVertex(orientedReadId, baseCount, distance), *this);
+    const vertex_descriptor v = add_vertex(LocalAlignmentCandidateGraphVertex(orientedReadId, baseCount, distance), *this);
 
     // Store it in the vertex map.
     vertexMap.insert(make_pair(orientedReadId, v));
@@ -29,10 +29,12 @@ void LocalAlignmentGraph::addVertex(
 
 
 
-void LocalAlignmentGraph::addEdge(
+void LocalAlignmentCandidateGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
-    const AlignmentInfo& alignmentInfo)
+    bool inAlignments,
+    bool inReadgraph,
+    bool inReferenceAlignments)
 {
     // Find the vertices corresponding to these two OrientedReadId.
     const auto it0 = vertexMap.find(orientedReadId0);
@@ -43,12 +45,12 @@ void LocalAlignmentGraph::addEdge(
     const vertex_descriptor v1 = it1->second;
 
     // Add the edge.
-    add_edge(v0, v1, LocalAlignmentGraphEdge(alignmentInfo), *this);
+    add_edge(v0, v1, LocalAlignmentCandidateGraphEdge(inAlignments, inReadgraph, inReferenceAlignments), *this);
 }
 
 
 
-uint32_t LocalAlignmentGraph::getDistance(OrientedReadId orientedReadId) const
+uint32_t LocalAlignmentCandidateGraph::getDistance(OrientedReadId orientedReadId) const
 {
     const auto it = vertexMap.find(orientedReadId);
     SHASTA_ASSERT(it != vertexMap.end());
@@ -58,7 +60,7 @@ uint32_t LocalAlignmentGraph::getDistance(OrientedReadId orientedReadId) const
 
 
 
-bool LocalAlignmentGraph::vertexExists(OrientedReadId orientedReadId) const
+bool LocalAlignmentCandidateGraph::vertexExists(OrientedReadId orientedReadId) const
 {
    return vertexMap.find(orientedReadId) != vertexMap.end();
 }
@@ -66,7 +68,7 @@ bool LocalAlignmentGraph::vertexExists(OrientedReadId orientedReadId) const
 
 
 // Write the graph in Graphviz format.
-void LocalAlignmentGraph::write(const string& fileName, uint32_t maxDistance) const
+void LocalAlignmentCandidateGraph::write(const string& fileName, uint32_t maxDistance) const
 {
     ofstream outputFileStream(fileName);
     if(!outputFileStream) {
@@ -74,15 +76,18 @@ void LocalAlignmentGraph::write(const string& fileName, uint32_t maxDistance) co
     }
     write(outputFileStream, maxDistance);
 }
-void LocalAlignmentGraph::write(ostream& s, uint32_t maxDistance) const
+
+
+void LocalAlignmentCandidateGraph::write(ostream& s, uint32_t maxDistance) const
 {
     Writer writer(*this, maxDistance);
     boost::write_graphviz(s, *this, writer, writer, writer,
-        boost::get(&LocalAlignmentGraphVertex::orientedReadId, *this));
+        boost::get(&LocalAlignmentCandidateGraphVertex::orientedReadId, *this));
 }
 
-LocalAlignmentGraph::Writer::Writer(
-    const LocalAlignmentGraph& graph,
+
+LocalAlignmentCandidateGraph::Writer::Writer(
+    const LocalAlignmentCandidateGraph& graph,
     uint32_t maxDistance) :
     graph(graph),
     maxDistance(maxDistance)
@@ -91,7 +96,7 @@ LocalAlignmentGraph::Writer::Writer(
 
 
 
-void LocalAlignmentGraph::Writer::operator()(std::ostream& s) const
+void LocalAlignmentCandidateGraph::Writer::operator()(std::ostream& s) const
 {
     s << "layout=sfdp;\n";
     s << "ratio=expand;\n";
@@ -103,9 +108,9 @@ void LocalAlignmentGraph::Writer::operator()(std::ostream& s) const
 }
 
 
-void LocalAlignmentGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
+void LocalAlignmentCandidateGraph::Writer::operator()(std::ostream& s, vertex_descriptor v) const
 {
-    const LocalAlignmentGraphVertex& vertex = graph[v];
+    const LocalAlignmentCandidateGraphVertex& vertex = graph[v];
     const OrientedReadId orientedReadId(vertex.orientedReadId);
 
     s << "[";
@@ -123,18 +128,17 @@ void LocalAlignmentGraph::Writer::operator()(std::ostream& s, vertex_descriptor 
 
 
 
-void LocalAlignmentGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
+void LocalAlignmentCandidateGraph::Writer::operator()(std::ostream& s, edge_descriptor e) const
 {
-    const LocalAlignmentGraphEdge& edge = graph[e];
+//    const LocalAlignmentCandidateGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
-    const LocalAlignmentGraphVertex& vertex0 = graph[v0];
-    const LocalAlignmentGraphVertex& vertex1 = graph[v1];
+    const LocalAlignmentCandidateGraphVertex& vertex0 = graph[v0];
+    const LocalAlignmentCandidateGraphVertex& vertex1 = graph[v1];
 
     s << "[";
     s << "tooltip=\"" << OrientedReadId(vertex0.orientedReadId) << " ";
-    s << OrientedReadId(vertex1.orientedReadId) << " ";
-    s << edge.alignmentInfo.markerCount << "\"";
+    s << OrientedReadId(vertex1.orientedReadId) << "\"";
     s << "]";
 }
 
@@ -143,11 +147,11 @@ void LocalAlignmentGraph::Writer::operator()(std::ostream& s, edge_descriptor e)
 
 // Compute sfdp layout using graphviz and store the results
 // in the vertex positions.
-ComputeLayoutReturnCode LocalAlignmentGraph::computeLayout(
+ComputeLayoutReturnCode LocalAlignmentCandidateGraph::computeLayout(
     const string& layoutMethod,
     double timeout)
 {
-    LocalAlignmentGraph& graph = *this;
+    LocalAlignmentCandidateGraph& graph = *this;
 
     // Compute the layout.
     std::map<vertex_descriptor, array<double, 2> > positionMap;
@@ -158,7 +162,7 @@ ComputeLayoutReturnCode LocalAlignmentGraph::computeLayout(
     }
 
     // Store it in the vertices.
-    BGL_FORALL_VERTICES(v, graph, LocalAlignmentGraph) {
+    BGL_FORALL_VERTICES(v, graph, LocalAlignmentCandidateGraph) {
         const auto it = positionMap.find(v);
         SHASTA_ASSERT(it != positionMap.end());
         graph[v].position = it->second;
@@ -167,11 +171,20 @@ ComputeLayoutReturnCode LocalAlignmentGraph::computeLayout(
 }
 
 
+uint8_t LocalAlignmentCandidateGraphEdge::getSvgOrdering() const{
+    return  inAlignments + inReadGraph + inReferenceAlignments;
+}
+
+
+uint8_t LocalAlignmentCandidateGraphVertex::getSvgOrdering() const{
+    return 0;
+}
+
 
 // Write directly to svg, without using Graphviz rendering.
 // This assumes that the layout was already computed
 // and stored in the vertices.
-void LocalAlignmentGraph::writeSvg(
+void LocalAlignmentCandidateGraph::writeSvg(
     const string& svgId,
     uint64_t width,
     uint64_t height,
@@ -180,11 +193,10 @@ void LocalAlignmentGraph::writeSvg(
     uint64_t maxDistance,
     ostream& svg) const
 {
-    using Graph = LocalAlignmentGraph;
+    using Graph = LocalAlignmentCandidateGraph;
     using VertexAttributes = WriteGraph::VertexAttributes;
     using EdgeAttributes = WriteGraph::EdgeAttributes;
     const Graph& graph = *this;
-
 
 
     // Fill in vertex attributes.
@@ -213,11 +225,10 @@ void LocalAlignmentGraph::writeSvg(
     }
 
 
-
     // Fill in edge attributes.
     std::map<edge_descriptor, EdgeAttributes> edgeAttributes;
     BGL_FORALL_EDGES(e, graph, Graph) {
-        // const auto& edge = graph[e];
+        const auto& edge = graph[e];
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         const auto& vertex0 = graph[v0];
@@ -226,7 +237,16 @@ void LocalAlignmentGraph::writeSvg(
         EdgeAttributes attributes;
 
         attributes.thickness = edgeThicknessScalingFactor * 2.e-3;
-        attributes.color = "midnightblue";
+
+        // Ratchet up the color towards green for each successive filter it passes (candidate -> alignment -> readgraph)
+        attributes.color = "#450BBA";
+
+        if (edge.inAlignments){
+            attributes.color = "#0954B4";
+        }
+        if (edge.inReadGraph){
+            attributes.color = "#00C442";
+        }
 
         attributes.tooltip =
             OrientedReadId(vertex0.orientedReadId).getString() + " " +
@@ -236,6 +256,6 @@ void LocalAlignmentGraph::writeSvg(
     }
 
     // Write to svg.
-    WriteGraph::writeSvg(graph, svgId, width, height,
+    WriteGraph::writeOrderedSvg(graph, svgId, width, height,
         vertexAttributes, edgeAttributes, svg);
 }

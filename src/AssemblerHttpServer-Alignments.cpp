@@ -7,6 +7,7 @@
 #include "AlignmentGraph.hpp"
 #include "Histogram.hpp"
 #include "LocalAlignmentGraph.hpp"
+#include "LocalAlignmentCandidateGraph.hpp"
 #include "platformDependent.hpp"
 #include "PngImage.hpp"
 #include "ReadId.hpp"
@@ -24,6 +25,210 @@ using namespace shasta;
 #include "chrono.hpp"
 using std::random_device;
 using std::uniform_int_distribution;
+
+
+void Assembler::exploreAlignmentCandidateGraph(
+        const vector<string>& request,
+        ostream& html)
+{
+    // Get the parameters.
+    vector<OrientedReadId> readIds;
+    string readIdsString;
+    const bool readIdsArePresent = getParameterValue(request, "readId", readIdsString);
+    const bool readStringsAreValid = parseCommaSeparatedReadIDs(readIdsString, readIds, html);
+
+    uint32_t maxDistance = 2;
+    getParameterValue(request, "maxDistance", maxDistance);
+
+    string allowChimericReadsString;
+    const bool allowChimericReads = getParameterValue(request, "allowChimericReads", allowChimericReadsString);
+
+    string allowCrossStrandEdgesString;
+    const bool allowCrossStrandEdges = getParameterValue(request, "allowCrossStrandEdges", allowCrossStrandEdgesString);
+
+    string layoutMethod = "sfdp";
+    getParameterValue(request, "layoutMethod", layoutMethod);
+
+    uint32_t sizePixels = 600;
+    getParameterValue(request, "sizePixels", sizePixels);
+
+    double vertexScalingFactor = 1.;
+    getParameterValue(request, "vertexScalingFactor", vertexScalingFactor);
+
+    double edgeThicknessScalingFactor = 1.;
+    getParameterValue(request, "edgeThicknessScalingFactor", edgeThicknessScalingFactor);
+
+    double timeout = 30;
+    getParameterValue(request, "timeout", timeout);
+
+
+    // Write the form.
+    string readGraphHeading;
+    if (httpServerData.docsDirectory.empty()) {
+        readGraphHeading = "<h3>Display a local subgraph of the global alignment graph</h3>";
+    } else {
+        readGraphHeading =
+                "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>read graph</a></h3>";
+    }
+    html << readGraphHeading <<
+         "<form>"
+         "<div style='clear:both; display:table;'>"
+         "<div style='float:left;margin:10px;'>"
+         "<table>"
+
+         "<tr title='Read id between 0 and " << reads->readCount() - 1 << "'>"
+                                                                          "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
+                                                                          "Start vertex reads\n"
+                                                                          "The oriented read should be in the form <code>readId-strand</code>\n"
+                                                                          "where strand is 0 or 1. For example, <code>\"1345871-1</code>\".\n"
+                                                                          "To add multiple start points, use a comma separator."
+                                                                          "<td><input type=text required name=readId size=8 style='text-align:center'"
+         << (readIdsArePresent ? ("value='" + readIdsString + "'") : "") <<
+         ">";
+
+
+    html <<
+         "<tr title='Maximum distance from start vertex (number of edges)'>"
+         "<td>Maximum distance"
+         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+         " value='" << maxDistance <<
+         "'>"
+
+         "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
+         "<td>Allow chimeric reads"
+         "<td class=centered><input type=checkbox name=allowChimericReads" <<
+         (allowChimericReads ? " checked" : "") <<
+         ">"
+
+         "<tr title='Allow edges that skip across strands.'>"
+         "<td>Allow cross-strand edges"
+         "<td class=centered><input type=checkbox name=allowCrossStrandEdges" <<
+         (allowCrossStrandEdges ? " checked" : "") <<
+         ">"
+
+         "<tr>"
+         "<td>Layout method"
+         "<td class=centered>"
+         "<input type=radio required name=layoutMethod value='sfdp'" <<
+         (layoutMethod == "sfdp" ? " checked=on" : "") <<
+         ">sfdp"
+         "<br><input type=radio required name=layoutMethod value='fdp'" <<
+         (layoutMethod == "fdp" ? " checked=on" : "") <<
+         ">fdp"
+         "<br><input type=radio required name=layoutMethod value='neato'" <<
+         (layoutMethod == "neato" ? " checked=on" : "") <<
+         ">neato"
+
+         "<tr title='Graphics size in pixels. "
+         "Changing this works better than zooming. Make it larger if the graph is too crowded."
+         " Ok to make it much larger than screen size.'>"
+         "<td>Graphics size in pixels"
+         "<td><input type=text required name=sizePixels size=8 style='text-align:center'" <<
+         " value='" << sizePixels <<
+         "'>"
+
+         "<tr>"
+         "<td>Vertex scaling factor"
+         "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+         " value='" << vertexScalingFactor <<
+         "'>"
+
+         "<tr>"
+         "<td>Edge thickness scaling factor"
+         "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+         " value='" << edgeThicknessScalingFactor <<
+         "'>"
+
+         "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
+         "<td>Timeout (seconds) for graph layout"
+         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
+         " value='" << timeout <<
+         "'>"
+
+         "</table>"
+         "</div>"
+         "</div>"
+         "<br><input type=submit value='Display'>"
+         "</form>";
+
+
+    // If any necessary values are missing, stop here.
+    if (not readIdsArePresent) {
+        return;
+    }
+
+    // If there was a failure to parse comma separated readId-strand tokens, stop here
+    if (not readStringsAreValid) {
+        return;
+    }
+
+    // Validity checks.
+    for (auto &readId: readIds){
+        if (readId.getReadId() > reads->readCount()) {
+            html << "<p>Invalid read id " << readId;
+            html << ". Must be between 0 and " << reads->readCount() - 1 << ".";
+            return;
+        }
+    }
+
+    // As of yet the candidate table is not used during assembly, so it may need to be created
+    if (not alignmentCandidates.candidateTable.isOpen()){
+        alignmentCandidates.computeCandidateTable(
+                reads->readCount(),
+                largeDataName("CandidateTable"),
+                largeDataPageSize);
+    }
+
+    // Create the local read graph.
+    LocalAlignmentCandidateGraph graph;
+    if(!createLocalCandidateGraph(
+            readIds,
+            maxDistance,
+            allowChimericReads,
+            timeout,
+            graph
+    )) {
+        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+        return;
+    }
+    html << "<p>The local read graph has " << num_vertices(graph);
+    html << " vertices and " << num_edges(graph) << " edges.";
+
+
+    // Write a title.
+    html <<
+         "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>";
+
+
+    // Allow manually highlighting selected vertices.
+    html << R"stringDelimiter(
+        <script>
+        function highlight_vertex()
+        {
+            vertex = document.getElementById("highlight").value;
+            document.getElementById("highlight").value = "";
+            element = document.getElementById("Vertex-" + vertex);
+            element.setAttribute("fill", "#ff00ff");
+        }
+        </script>
+        <p>
+        <input id=highlight type=text onchange="highlight_vertex()" size=10>
+        Enter an oriented read to highlight, then press Enter. The oriented read should be
+        in the form <code>readId-strand</code> where strand is 0 or 1 (for example, <code>"1345871-1</code>").
+        To highlight multiple oriented reads, enter them one at a time in the same way.
+        <p>
+        )stringDelimiter";
+
+    // Buttons to resize the svg locally.
+    addScaleSvgButtons(html);
+
+    // Write the graph to svg directly, without using Graphviz rendering.
+    graph.computeLayout(layoutMethod, timeout);
+    graph.writeSvg("svg", sizePixels, sizePixels,
+                   vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, html);
+
+
+}
 
 
 
