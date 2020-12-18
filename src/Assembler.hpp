@@ -1853,7 +1853,7 @@ public:
     void exploreSummary(const vector<string>&, ostream&);
     void exploreRead(const vector<string>&, ostream&);
     void blastRead(const vector<string>&, ostream&);
-    void exploreCandidateGraph(const vector<string>&, ostream&);
+    void exploreAlignmentCandidateGraph(const vector<string>& request, ostream& html);
     void exploreAlignments(const vector<string>&, ostream&);
     void exploreAlignment(const vector<string>&, ostream&);
     void alignSequencesInBaseRepresentation(const vector<string>&, ostream&);

@@ -45,6 +45,14 @@ namespace shasta {
             const std::map<typename Graph::edge_descriptor, EdgeAttributes>&,
             ostream&);
 
+        // This method expands on the writeSvg method to allow the Graph Vertex/Edge classes to dictate a numeric
+        // ordering with a getSvgOrdering() member function. Since SVG uses the written order of objects to determine
+        // the render order of shapes, Edges/Vertexes with lower ordinals will end up underneath those with higher
+        // ordinals.
+        // Graph - expected to be a graph with edges and vertexes that are accessible by their descriptor objects
+        //         using the [] operator. e.g. the boost::adjacency_list
+        // svgId - labels the DOM object
+        // width and height - the size of the figure in pixels
         template<class Graph> void writeOrderedSvg(
                 const Graph& graph,
                 const string& svgId,
