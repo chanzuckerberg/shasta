@@ -171,6 +171,37 @@ ComputeLayoutReturnCode LocalAlignmentCandidateGraph::computeLayout(
 }
 
 
+string LocalAlignmentCandidateGraphEdge::getSvgClassName() const{
+    string className;
+
+    if (inReadGraph){
+        if (inReferenceAlignments){
+            className = "ReadGraphInRef";
+        }
+        else{
+            className = "ReadGraph";
+        }
+    }
+    else if (inAlignments){
+        if (inReferenceAlignments){
+            className = "AlignmentInRef";
+        }
+        else{
+            className = "Alignment";
+        }
+    }
+    else {
+        if (inReferenceAlignments){
+            className = "CandidateInRef";
+        }
+        else{
+            className = "Candidate";
+        }
+    }
+
+    return className;
+}
+
 uint8_t LocalAlignmentCandidateGraphEdge::getSvgOrdering() const{
     return  inAlignments + inReadGraph + inReferenceAlignments;
 }

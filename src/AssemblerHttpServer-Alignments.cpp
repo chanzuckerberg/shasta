@@ -27,6 +27,171 @@ using std::random_device;
 using std::uniform_int_distribution;
 
 
+/*
+ * COLORS:
+ *   Red        #FF2800
+ *   Orange     #FF9E00
+ *   Yellow     #FFDD00
+ *   Lime       #B8F400
+ *   Green      #00C442
+ *   Blue       #0954B4
+ *   Indigo     #450BBA
+ *   Violet     #C50094
+ */
+
+
+void writeColorPicker(ostream& html, string svgId){
+    // TODO: https://stackoverflow.com/questions/63372047/how-to-call-the-function-with-parameters-when-clicking-on-svg-circle-element
+
+    html << R"stringDelimiter(
+    <script>
+    function setEdgeColor(buttonId, edgeClassName)
+    {
+        color = document.getElementById("edgeColor").value;
+        opacity = document.getElementById("edgeOpacity").value;
+
+        button = document.getElementsById(buttonId);
+        button.setAttribute("fill-color", color);
+        button.setAttribute("fill-opacity", opacity*0.7);
+
+        edges = document.getElementsByClassName(edgeClassName);
+        for (var i = 0; i < edges.length; i++) {
+            edges.item(i).setAttribute("fill-color", color);
+            edges.item(i).setAttribute("fill-opacity", opacity);
+        }
+    }
+    </script>
+    )stringDelimiter";
+
+    html << R"stringDelimiter(
+        <p>
+        <select id="edgeColor" name="Color">
+            <option class="red"     value="#FF2800"> red </option>
+            <option class="orange"  value="#FF9E00"> orange </option>
+            <option class="yellow"  value="#FFDD00"> yellow </option>
+            <option class="lime"    value="#B8F400"> lime </option>
+            <option class="green"   value="#00C442"> green </option>
+            <option class="blue"    value="#0954B4"> blue </option>
+            <option class="indigo"  value="#450BBA"> indigo </option>
+            <option class="violet"  value="#C50094"> violet </option>
+        </select>
+        <p>
+        <label for="edgeOpacity">Opacity [0-1]:</label><br>
+        <input type="number" id="edgeOpacity" name="edgeOpacity" step="0.1" min="0" max="1" value="1.0">
+        <p>
+        )stringDelimiter";
+
+    html << "<p><svg id=" << svgId << " width=\"600\" height=\"450\" viewbox=\"0 0 1200 900\">\n";
+
+    // Alignment Candidates
+    html << R"stringDelimiter(
+
+        <path d="
+	        M 601 112
+	        A 350 350 0 1 0 601 688
+	        A 350 350 0 0 1 526 617
+            A 250 250 0 1 1 526 184
+            A 350 350 0 0 1 601 112
+	        Z
+	        " id="Venn-AlignmentCandidates"
+            " onclick="setEdgeColor("Venn-AlignmentCandidates", "Candidate")"
+            stroke="white" fill="#450BBA" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+        )stringDelimiter";
+
+    // Alignment Candidates in Reference
+    html << R"stringDelimiter(
+
+        <path d="
+	        M 601 112
+	        A 350 350 0 0 1 601 688
+	        A 350 350 0 0 1 526 617
+            A 250 250 0 0 0 526 184
+            A 350 350 0 0 1 601 112
+	        Z
+	        " id="Venn-AlignmentCandidatesInReference"
+            " onclick="setEdgeColor("Venn-AlignmentCandidatesInReference", "CandidateInRef")"
+	        " stroke="white" fill="#450BBA" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+        )stringDelimiter";
+
+    // Good Alignments
+    html << R"stringDelimiter(
+
+        <path d="
+	        M 526 184
+	        A 250 250 0 1 0 526 617
+            A 350 350 0 0 1 474 530
+            A 150 150 0 1 1 474 271
+            A 350 350 0 0 1 526 184
+	        Z
+	        " id="Venn-GoodAlignments"
+            " onclick="setEdgeColor("Venn-GoodAlignments", "Alignment")"
+	        " stroke="white" fill="#0954B4" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+        )stringDelimiter";
+
+    // Good Alignments in Reference
+    html << R"stringDelimiter(
+
+        <path d="
+	        M 526 184
+	        A 250 250 0 0 1 526 617
+	        A 350 350 0 0 1 474 530
+            A 150 150 0 0 0 474 271
+            A 350 350 0 0 1 526 184
+	        Z
+	        " id="Venn-GoodAlignmentsInReference"
+            " onclick="setEdgeColor("Venn-GoodAlignmentsInReference", "AlignmentInRef")"
+	        " stroke="white" fill="#0954B4" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+        )stringDelimiter";
+
+    // ReadGraph
+    html << R"stringDelimiter(
+        <path d="
+	        M 474 271
+	        A 150 150 0 1 0 474 530
+	        A 350 350 0 0 1 474 271
+	        Z
+	        " id="Venn-ReadGraph"
+            " onclick="setEdgeColor("Venn-ReadGraph", "ReadGraph")"
+	        " stroke="white" fill="#00C442" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+        )stringDelimiter";
+
+    // ReadGraph in Reference
+    html << R"stringDelimiter(
+        <path d="
+	        M 474 271
+	        A 150 150 0 0 1 474 530
+	        A 350 350 0 0 1 474 271
+	        Z
+	        " id="Venn-ReadGraphInReference"
+            " onclick="setEdgeColor("Venn-ReadGraphInReference", "ReadGraphInRef")"
+	        " stroke="white" fill="#00C442" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+        )stringDelimiter";
+
+    // Reference Only
+    html << R"stringDelimiter(
+
+        <path d="
+	        M 601 112
+	        A 350 350 0 0 1 601 688
+	        A 350 350 0 1 0 601 112
+	        Z
+	        " id="Venn-ReferenceOnly"
+            " onclick="setEdgeColor("Venn-ReferenceOnly", "ReferenceOnly")"
+	        " stroke="white" fill="red" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+        )stringDelimiter";
+
+    // Text labels
+    html << R"stringDelimiter(
+        <text x="290" y="100" font-size="26" font-weight="bold">Shasta Overlaps</text>
+        <text x="280" y="210" font-size="22">Alignment Candidates</text>
+        <text x="300" y="310" font-size="22">Good Alignments</text>
+        <text x="320" y="410" font-size="22">Read Graph</text>
+        <text x="680" y="100" font-size="26" font-weight="bold">Reference Overlaps</text>
+        </svg>
+        )stringDelimiter";
+}
+
+
 void Assembler::exploreAlignmentCandidateGraph(
         const vector<string>& request,
         ostream& html)
@@ -151,7 +316,6 @@ void Assembler::exploreAlignmentCandidateGraph(
          "<br><input type=submit value='Display'>"
          "</form>";
 
-
     // If any necessary values are missing, stop here.
     if (not readIdsArePresent) {
         return;
@@ -227,6 +391,7 @@ void Assembler::exploreAlignmentCandidateGraph(
     graph.writeSvg("svg", sizePixels, sizePixels,
                    vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, html);
 
+    writeColorPicker(html, "colorPicker");
 
 }
 
