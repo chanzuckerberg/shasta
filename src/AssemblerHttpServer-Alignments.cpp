@@ -98,7 +98,7 @@ void writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-AlignmentCandidates"
             onclick="setEdgeColor('Venn-AlignmentCandidates', 'Candidate')"
-            stroke="gray" fill="#450BBA" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+            stroke="gray" fill="#450BBA" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // Alignment Candidates in Reference
@@ -115,7 +115,7 @@ void writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-AlignmentCandidatesInReference"
             onclick="setEdgeColor('Venn-AlignmentCandidatesInReference', 'CandidateInRef')"
-	        stroke="gray" fill="#450BBA" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+	        stroke="gray" fill="#450BBA" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // Good Alignments
@@ -132,7 +132,7 @@ void writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-GoodAlignments"
             onclick="setEdgeColor('Venn-GoodAlignments', 'Alignment')"
-	        stroke="gray" fill="#0658C2" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+	        stroke="gray" fill="#0658C2" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // Good Alignments in Reference
@@ -149,7 +149,7 @@ void writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-GoodAlignmentsInReference"
             onclick="setEdgeColor('Venn-GoodAlignmentsInReference', 'AlignmentInRef')"
-	        stroke="gray" fill="#0658C2" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+	        stroke="gray" fill="#0658C2" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // ReadGraph
@@ -163,7 +163,7 @@ void writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-ReadGraph"
             onclick="setEdgeColor('Venn-ReadGraph', 'ReadGraph')"
-	        stroke="gray" fill="#00C442" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+	        stroke="gray" fill="#00C442" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // ReadGraph in Reference
@@ -177,7 +177,7 @@ void writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-ReadGraphInReference"
             onclick="setEdgeColor('Venn-ReadGraphInReference', 'ReadGraphInRef')"
-	        stroke="gray" fill="#00C442" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+	        stroke="gray" fill="#00C442" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // Reference Only
@@ -192,7 +192,7 @@ void writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-ReferenceOnly"
             onclick="setEdgeColor('Venn-ReferenceOnly', 'ReferenceOnly')"
-	        stroke="gray" fill="red" stroke-width="2" fill-opacity="0.7" transform="translate(0,100)"/>
+	        stroke="gray" fill="red" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // Text labels
