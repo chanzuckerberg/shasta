@@ -57,7 +57,7 @@ Aligner::Aligner(
     byteAllocator(byteAllocator)
 {
     if(debug) {
-        cout << timestamp << "Align5 begins." << endl;
+        cout << timestamp << "Align4 begins." << endl;
         cout << timestamp << "Input sequences have " <<
             nx << " and " << ny << " markers." << endl;
     }
@@ -108,27 +108,35 @@ Aligner::Aligner(
     findActiveCellsConnectedComponents();
 
     // Compute a banded alignment for each connected component of
-    // active cells.
+    // active cells. Return the ones that match requirements on
+    // minAlignedMarkerCount, minAlignedFraction, maxSkip, maxDrift, maxTrim.
     if(debug) {
-        cout << timestamp << "Computing namded alignments." << endl;
+        cout << timestamp << "Computing banded alignments." << endl;
     }
-    computeBandedAlignments(debug);
+    vector< pair<Alignment, AlignmentInfo> > alignments;
+    computeBandedAlignments(
+        options.minAlignedMarkerCount,
+        options.minAlignedFraction,
+        options.maxSkip,
+        options.maxDrift,
+        options.maxTrim,
+        alignments, debug);
 
 
     if(debug) {
         cout << timestamp << "Writing cells." << endl;
-        writeCellsPng("Align5-Cells.png");
-        writeCellsCsv("Align5-Cells.csv");
+        writeCellsPng("Align4-Cells.png");
+        writeCellsCsv("Align4-Cells.csv");
     }
 
     if(debug) {
         cout << timestamp << "Writing the alignment matrix." << endl;
-        writeAlignmentMatrixPng("Align5-AlignmentMatrix.png", options.maxDistanceFromBoundary);
-        writeAlignmentMatrixCsv("Align5-AlignmentMatrix.csv");
+        writeAlignmentMatrixPng("Align4-AlignmentMatrix.png", options.maxDistanceFromBoundary);
+        writeAlignmentMatrixCsv("Align4-AlignmentMatrix.csv");
     }
 
     if(debug) {
-        cout << timestamp << "Align5 ends." << endl;
+        cout << timestamp << "Align4 ends." << endl;
     }
 }
 
@@ -855,9 +863,18 @@ void Aligner::findActiveCellsConnectedComponents()
 
 
 // Compute a banded alignment for each connected component of
-// active cells.
-void Aligner::computeBandedAlignments(bool debug) const
+// active cells. Return the ones that match requirements on
+// minAlignedMarkerCount, minAlignedFraction, maxSkip, maxDrift, maxTrim.
+void Aligner::computeBandedAlignments(
+    uint64_t minAlignedMarkerCount,
+    double minAlignedFraction,
+    uint64_t maxSkip,
+    uint64_t maxDrift,
+    uint64_t maxTrim,
+    vector< pair<Alignment, AlignmentInfo> >& alignments,
+    bool debug) const
 {
+    alignments.clear();
 
     // Loop over connected components of active cells.
     vector< pair<bool, bool> > alignment;
@@ -901,7 +918,54 @@ void Aligner::computeBandedAlignments(bool debug) const
         }
 
         // Compute an alignment with this band.
-        computeBandedAlignment(bandMin, bandMax, debug);
+        Alignment alignment;
+        AlignmentInfo alignmentInfo;
+        computeBandedAlignment(bandMin, bandMax,
+            alignment, alignmentInfo, debug);
+
+        // Skip it, if it does not satisfy the requirements on
+        // minAlignedMarkerCount, minAlignedFraction, maxSkip, maxDrift, maxTrim.
+        if(alignmentInfo.markerCount < minAlignedMarkerCount) {
+            if(debug) {
+                cout << "Discarded due to markerCount." << endl;
+            }
+            continue;
+        }
+        if(alignmentInfo.minAlignedFraction() < minAlignedFraction) {
+            if(debug) {
+                cout << "Discarded due to aligned fraction." << endl;
+            }
+            continue;
+        }
+        if(alignmentInfo.maxSkip > maxSkip) {
+            if(debug) {
+                cout << "Discarded due to skip." << endl;
+            }
+            continue;
+        }
+        if(alignmentInfo.maxDrift > maxDrift) {
+            if(debug) {
+                cout << "Discarded due to drift." << endl;
+            }
+            continue;
+        }
+        pair<uint32_t, uint32_t> trimPair = alignmentInfo.computeTrim();
+        if(trimPair.first > maxTrim) {
+            if(debug) {
+                cout << "Discarded due to left trim." << endl;
+            }
+            continue;
+        }
+        if(trimPair.second > maxTrim) {
+            if(debug) {
+                cout << "Discarded due to right trim." << endl;
+            }
+            continue;
+        }
+
+        if(debug) {
+            cout << "This alignment was kept." << endl;
+        }
     }
 
 }
@@ -912,6 +976,8 @@ void Aligner::computeBandedAlignments(bool debug) const
 bool Aligner::computeBandedAlignment(
     int32_t bandMin,
     int32_t bandMax,
+    Alignment& alignment,
+    AlignmentInfo& alignmentInfo,
     bool debug) const
 {
     // Some seqan types and constants we need.
@@ -965,7 +1031,7 @@ bool Aligner::computeBandedAlignment(
 
 
     // Fill in the marker alignment.
-    Alignment alignment;
+    alignment.clear();
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
     for(int i=0;
@@ -984,8 +1050,9 @@ bool Aligner::computeBandedAlignment(
     }
 
     // Create the AlignmentInfo.
-    const AlignmentInfo alignmentInfo(
-        alignment, uint32_t(markers[0].size()), uint32_t(markers[1].size()));
+    alignmentInfo.create(
+        alignment,
+        uint32_t(markers[0].size()), uint32_t(markers[1].size()));
     pair<uint32_t, uint32_t> trim = alignmentInfo.computeTrim();
     cout << "Aligned marker count " << alignmentInfo.markerCount << endl;
     cout << "Aligned marker fraction " <<

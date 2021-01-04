@@ -278,14 +278,23 @@ private:
     void findActiveCellsConnectedComponents();
 
     // Compute a banded alignment for each connected component of
-    // active cells.
+    // active cells. Return the ones that match requirements on
+    // minAlignedMarkerCount, minAlignedFraction, maxSkip, maxDrift, maxTrim.
     void computeBandedAlignments(
+        uint64_t minAlignedMarkerCount,
+        double minAlignedFraction,
+        uint64_t maxSkip,
+        uint64_t maxDrift,
+        uint64_t maxTrim,
+        vector< pair<Alignment, AlignmentInfo> >&,
         bool debug) const;
 
     // Compute a banded alignment with a given band.
     bool computeBandedAlignment(
         int32_t bandMin,
         int32_t bandMax,
+        Alignment&,
+        AlignmentInfo&,
         bool debug) const;
 
     MemoryMapped::ByteAllocator& byteAllocator;
