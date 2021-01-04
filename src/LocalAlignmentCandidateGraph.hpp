@@ -85,6 +85,8 @@ public:
 
     uint8_t getSvgOrdering() const;
 
+    string getSvgClassName() const;
+
     LocalAlignmentCandidateGraphEdge(
         bool inAlignments,
         bool inReadgraph,

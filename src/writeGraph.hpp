@@ -255,7 +255,10 @@ template<class Graph> void shasta::WriteGraph::writeOrderedSvg(
         const auto& position1 = graph[v1].position;
         const auto& position2 = graph[v2].position;
 
-        svg << "<line x1='" << position1[0] << "' y1='" << position1[1] <<
+        auto edge = graph[e];
+        string svgClassName = edge.getSvgClassName();
+
+        svg << "<line class= '" << svgClassName << "'x1='" << position1[0] << "' y1='" << position1[1] <<
             "' x2='" << position2[0] << "' y2='" << position2[1];
 
         if(not attributes.id.empty()) {
