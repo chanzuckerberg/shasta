@@ -185,6 +185,10 @@ public:
         int maxBand;
         int sameChannelReadAlignmentSuppressDeltaThreshold;
         bool suppressContainments;
+        uint64_t align4DeltaX;
+        uint64_t align4DeltaY;
+        uint64_t align4MinEntryCountPerCell;
+        uint64_t align4MaxDistanceFromBoundary;
         void write(ostream&) const;
     };
     AlignOptions alignOptions;

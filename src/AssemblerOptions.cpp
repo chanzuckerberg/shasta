@@ -436,6 +436,26 @@ void AssemblerOptions::addConfigurableOptions()
         "one read is entirely contained in another read, "
         "except possibly for up to maxTrim markers at the beginning and end.")
 
+        ("Align.align4.deltaX",
+        value<uint64_t>(&alignOptions.align4DeltaX)->
+        default_value(200),
+        "Only used for alignment method 4 (experimental).")
+
+        ("Align.align4.deltaY",
+        value<uint64_t>(&alignOptions.align4DeltaY)->
+        default_value(10),
+        "Only used for alignment method 4 (experimental).")
+
+        ("Align.align4.minEntryCountPerCell",
+        value<uint64_t>(&alignOptions.align4MinEntryCountPerCell)->
+        default_value(10),
+        "Only used for alignment method 4 (experimental).")
+
+        ("Align.align4.maxDistanceFromBoundary",
+        value<uint64_t>(&alignOptions.align4MaxDistanceFromBoundary)->
+        default_value(100),
+        "Only used for alignment method 4 (experimental).")
+
         ("ReadGraph.creationMethod",
         value<int>(&readGraphOptions.creationMethod)->
         default_value(0),
@@ -783,6 +803,10 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
         sameChannelReadAlignmentSuppressDeltaThreshold << "\n";
     s << "suppressContainments = " <<
         convertBoolToPythonString(suppressContainments) << "\n";
+    s << "align4.deltaX = " << align4DeltaX << "\n";
+    s << "align4.deltaY = " << align4DeltaY << "\n";
+    s << "align4.minEntryCountPerCell = " << align4MinEntryCountPerCell << "\n";
+    s << "align4.maxDistanceFromBoundary = " << align4MaxDistanceFromBoundary << "\n";
 }
 
 
