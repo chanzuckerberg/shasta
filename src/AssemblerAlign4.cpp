@@ -49,6 +49,7 @@ void Assembler::alignOrientedReads4(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
         options, byteAllocator, alignment, alignmentInfo, debug);
+    cout << "The alignment has " << alignmentInfo.markerCount << " markers." << endl;
 }
 
 

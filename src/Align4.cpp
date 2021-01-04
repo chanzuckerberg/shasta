@@ -121,6 +121,36 @@ Aligner::Aligner(
         options.maxDrift,
         options.maxTrim,
         alignments, debug);
+    if(debug) {
+        cout << "Found " << alignments.size() <<
+            " alignments satisfying alignment criteria." << endl;
+    }
+
+
+    // Among the feasible alignments we found, return the one
+    // with the greatest number of aligned markers.
+    if(alignments.empty()) {
+        alignment.clear();
+        alignmentInfo.create(alignment,
+            uint32_t(markerSequence0.size()), uint32_t(markerSequence1.size()));
+    } else {
+        uint64_t bestAlignmentIndex = 0;
+        uint64_t bestMarkerCount = alignments[0].second.markerCount;
+        for(uint64_t i=1; i<alignments.size(); i++) {
+            const uint64_t thisMarkerCount = alignments[i].second.markerCount;
+            if(thisMarkerCount > bestMarkerCount) {
+                bestMarkerCount = thisMarkerCount;
+                bestAlignmentIndex = i;
+            }
+        }
+        if(debug) {
+            cout << "Best alignment: index "  << bestAlignmentIndex <<
+                ", " << bestMarkerCount << " markers." << endl;
+        }
+        alignment = alignments[bestAlignmentIndex].first;
+        alignmentInfo = alignments[bestAlignmentIndex].second;
+    }
+
 
 
     if(debug) {
@@ -139,6 +169,7 @@ Aligner::Aligner(
         cout << timestamp << "Align4 ends." << endl;
     }
 }
+
 
 
 void Aligner::storeMarkers(
@@ -966,6 +997,7 @@ void Aligner::computeBandedAlignments(
         if(debug) {
             cout << "This alignment was kept." << endl;
         }
+        alignments.push_back(make_pair(alignment, alignmentInfo));
     }
 
 }
