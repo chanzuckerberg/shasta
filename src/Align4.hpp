@@ -78,6 +78,9 @@ namespace shasta {
         // When converting an arbitrary (X,Y) to (x,y)
         // we can end up with negative values.
         using SignedCoordinates = pair<uint32_t, uint32_t>;
+
+        // The markers of an oriented read.
+        using MarkerSequence = span<const CompressedMarker>;
     }
 
     namespace MemoryMapped {
@@ -125,8 +128,6 @@ public:
 
 class shasta::Align4::Aligner {
 public:
-
-    using MarkerSequence = span<const CompressedMarker>;
 
     // The constructor does all the work.
     Aligner(

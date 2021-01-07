@@ -1,8 +1,12 @@
+// Shasta.
 #include "Assembler.hpp"
 #include "Align4.hpp"
 #include "MemoryMappedAllocator.hpp"
-#include "html.hpp"
+#include "orderPairs.hpp"
 using namespace shasta;
+
+// Standard library.
+#include "array.hpp"
 
 
 // Python-callable version.
@@ -22,6 +26,7 @@ void Assembler::alignOrientedReads4(
     int64_t mismatchScore,
     int64_t gapScore) const
 {
+    // Fill in the options.
     Align4::Options options;
     options.deltaX = deltaX;
     options.deltaY = deltaY;
@@ -36,15 +41,15 @@ void Assembler::alignOrientedReads4(
     options.mismatchScore = mismatchScore;
     options.gapScore = gapScore;
 
+    // Set up the memory allocator.
     MemoryMapped::ByteAllocator byteAllocator(
         largeDataName("tmp-ByteAllocator"), largeDataPageSize, 1024 * 1024 * 1024);
 
-    Alignment alignment;
-    AlignmentInfo alignmentInfo;
-
-    const bool debug = true;
 
     // Compute the alignment.
+    Alignment alignment;
+    AlignmentInfo alignmentInfo;
+    const bool debug = true;
     alignOrientedReads4(
         OrientedReadId(readId0, strand0),
         OrientedReadId(readId1, strand1),
@@ -64,10 +69,39 @@ void Assembler::alignOrientedReads4(
     AlignmentInfo& alignmentInfo,
     bool debug) const
 {
-    const auto markers0 = markers[orientedReadId0.getValue()];
-    const auto markers1 = markers[orientedReadId1.getValue()];
+    // Access the markers for the two oriented reads.
+    array<span<const CompressedMarker>, 2> orientedReadMarkers;
+    orientedReadMarkers[0] = markers[orientedReadId0.getValue()];
+    orientedReadMarkers[1] = markers[orientedReadId1.getValue()];
 
-    align4(markers0, markers1,
+
+
+    // Compute markers sorted by KmerId.
+    array<vector< pair<KmerId, uint32_t> >, 2> orientedReadSortedMarkers;
+    for(uint64_t i=0; i<2; i++) {
+
+        // Unsorted markers for this oriented read.
+        const span<const CompressedMarker>& um = orientedReadMarkers[i];
+
+        // Sorted markers for this oriented read.
+        vector<pair<KmerId, uint32_t> >& sm = orientedReadSortedMarkers[i];
+
+        // Copy the unsorted markers.
+        const uint64_t n = um.size();
+        sm.resize(n);
+        for(uint64_t ordinal=0; ordinal<n; ordinal++) {
+            const CompressedMarker& cm = um[ordinal];
+            sm[ordinal] = make_pair(cm.kmerId, uint32_t(ordinal));
+        }
+
+        // Sort them.
+        sort(sm.begin(), sm.end(), OrderPairsByFirstOnly<KmerId, uint32_t>());
+    }
+
+
+
+    // Compute the alignment.
+    align4(orientedReadMarkers[0], orientedReadMarkers[1],
         options, byteAllocator, alignment, alignmentInfo, debug);
 }
 
