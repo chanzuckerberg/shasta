@@ -97,11 +97,13 @@ void Assembler::alignOrientedReads4(
         // Sort them.
         sort(sm.begin(), sm.end(), OrderPairsByFirstOnly<KmerId, uint32_t>());
     }
+    array<span< pair<KmerId, uint32_t> >, 2> orientedReadSortedMarkersSpans =
+        {orientedReadSortedMarkers[0], orientedReadSortedMarkers[1]};
 
 
 
     // Compute the alignment.
-    Align4::align(orientedReadMarkers,
+    Align4::align(orientedReadMarkers, orientedReadSortedMarkersSpans,
         options, byteAllocator, alignment, alignmentInfo, debug);
 }
 

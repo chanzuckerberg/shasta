@@ -10,6 +10,7 @@
 #include "iterator.hpp"
 #include "stdexcept.hpp"
 #include "string.hpp"
+#include "vector.hpp"
 
 namespace shasta {
     template<class T> class span;
@@ -34,6 +35,12 @@ public:
     span(T* begin, T* end) :
         dataBegin(begin),
         dataEnd(end)
+    {
+    }
+
+    span(vector<T>& v) :
+        dataBegin(&v[0]),
+        dataEnd(dataBegin + v.size())
     {
     }
 

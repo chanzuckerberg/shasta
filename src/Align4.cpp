@@ -27,14 +27,15 @@ using namespace Align4;
 
 
 void shasta::Align4::align(
-    const array<MarkerSequence, 2>& markerSequences,
+    const array<CompressedMarkers, 2>& compressedMarkers,
+    const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
     const Options& options,
     MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug)
 {
-    Align4::Aligner graph(markerSequences,
+    Align4::Aligner graph(compressedMarkers, sortedMarkers,
         options, byteAllocator, alignment, alignmentInfo,
         debug);
 }
@@ -42,14 +43,15 @@ void shasta::Align4::align(
 
 
 Aligner::Aligner(
-    const array<MarkerSequence, 2>& markerSequences,
+    const array<CompressedMarkers, 2>& compressedMarkers,
+    const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
     const Options& options,
     MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) :
-    nx(uint32_t(markerSequences[0].size())),
-    ny(uint32_t(markerSequences[1].size())),
+    nx(uint32_t(compressedMarkers[0].size())),
+    ny(uint32_t(compressedMarkers[1].size())),
     deltaX(int32_t(options.deltaX)),
     deltaY(int32_t(options.deltaY)),
     byteAllocator(byteAllocator)
@@ -60,19 +62,12 @@ Aligner::Aligner(
             nx << " and " << ny << " markers." << endl;
     }
 
-    // Create markers sorted by KmerId.
-    if(debug) {
-        cout << timestamp << "Creating sorted markers." << endl;
-    }
-    storeMarkers(markerSequences[0], markers[0], sortedMarkers[0]);
-    storeMarkers(markerSequences[1], markers[1], sortedMarkers[1]);
-
     // Create the sparse representation of the alignment matrix.
     if(debug) {
         cout << timestamp << "Creating the alignment matrix." << endl;
     }
     // const auto t0 = steady_clock::now();
-    createAlignmentMatrix();
+    createAlignmentMatrix(sortedMarkers);
     /*
     const auto t1 = steady_clock::now();
     if(debug) {
@@ -113,6 +108,7 @@ Aligner::Aligner(
     }
     vector< pair<Alignment, AlignmentInfo> > alignments;
     computeBandedAlignments(
+        compressedMarkers,
         options.minAlignedMarkerCount,
         options.minAlignedFraction,
         options.maxSkip,
@@ -169,25 +165,6 @@ Aligner::Aligner(
 
 
 
-void Aligner::storeMarkers(
-    const MarkerSequence& markerSequence,
-    vector<KmerId>& markers,
-    vector< pair<KmerId, uint32_t> >& sortedMarkers)
-{
-    const uint64_t n = markerSequence.size();
-    markers.resize(n);
-    sortedMarkers.resize(n);
-    for(uint32_t i=0; i<n; i++) {
-        const KmerId kmerId = markerSequence[i].kmerId;
-        markers[i] = kmerId;
-        sortedMarkers[i] = make_pair(markerSequence[i].kmerId, i);
-    }
-    sort(sortedMarkers.begin(), sortedMarkers.end(),
-        OrderPairsByFirstOnly<KmerId, uint32_t>());
-}
-
-
-
 // Return (X,Y) given (x,y).
 Coordinates Aligner::getXY(Coordinates xy) const
 {
@@ -213,7 +190,7 @@ SignedCoordinates Aligner::getxy(Coordinates XY) const
 
 
 
-void Aligner::createAlignmentMatrix()
+void Aligner::createAlignmentMatrix(const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers)
 {
     alignmentMatrix.clear();
 
@@ -894,6 +871,7 @@ void Aligner::findActiveCellsConnectedComponents()
 // active cells. Return the ones that match requirements on
 // minAlignedMarkerCount, minAlignedFraction, maxSkip, maxDrift, maxTrim.
 void Aligner::computeBandedAlignments(
+    const array<CompressedMarkers, 2>& compressedMarkers,
     uint64_t minAlignedMarkerCount,
     double minAlignedFraction,
     uint64_t maxSkip,
@@ -948,7 +926,7 @@ void Aligner::computeBandedAlignments(
         // Compute an alignment with this band.
         Alignment alignment;
         AlignmentInfo alignmentInfo;
-        computeBandedAlignment(bandMin, bandMax,
+        computeBandedAlignment(compressedMarkers, bandMin, bandMax,
             alignment, alignmentInfo, debug);
 
         // Skip it, if it does not satisfy the requirements on
@@ -1003,6 +981,7 @@ void Aligner::computeBandedAlignments(
 
 // Compute a banded alignment with a given band.
 bool Aligner::computeBandedAlignment(
+    const array<CompressedMarkers, 2>& compressedMarkers,
     int32_t bandMin,
     int32_t bandMax,
     Alignment& alignment,
@@ -1025,8 +1004,8 @@ bool Aligner::computeBandedAlignment(
     // Add 100 to kMerIds to prevent collision from the seqan gap value.
     array<TSequence, 2> sequences;
     for(uint64_t i=0; i<2; i++) {
-        for(const KmerId kmerId: markers[i]) {
-            appendValue(sequences[i], kmerId + 100);
+        for(const CompressedMarker& marker: compressedMarkers[i]) {
+            appendValue(sequences[i], marker.kmerId + 100);
         }
     }
 
@@ -1064,10 +1043,10 @@ bool Aligner::computeBandedAlignment(
     uint32_t ordinal0 = 0;
     uint32_t ordinal1 = 0;
     for(int i=0;
-        i<alignmentLength and ordinal0<markers[0].size() and ordinal1<markers[1].size(); i++) {
+        i<alignmentLength and ordinal0<nx and ordinal1<ny; i++) {
         if( align[i] != seqanGapValue and
             align[i + alignmentLength] != seqanGapValue and
-            markers[0][ordinal0] == markers[1][ordinal1]) {
+            compressedMarkers[0][ordinal0].kmerId == compressedMarkers[1][ordinal1].kmerId) {
             alignment.ordinals.push_back(array<uint32_t, 2>{ordinal0, ordinal1});
         }
         if(align[i] != seqanGapValue) {
@@ -1079,9 +1058,7 @@ bool Aligner::computeBandedAlignment(
     }
 
     // Create the AlignmentInfo.
-    alignmentInfo.create(
-        alignment,
-        uint32_t(markers[0].size()), uint32_t(markers[1].size()));
+    alignmentInfo.create(alignment, nx, ny);
     pair<uint32_t, uint32_t> trim = alignmentInfo.computeTrim();
     cout << "Aligned marker count " << alignmentInfo.markerCount << endl;
     cout << "Aligned marker fraction " <<

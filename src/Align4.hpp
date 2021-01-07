@@ -80,10 +80,13 @@ namespace shasta {
         using SignedCoordinates = pair<uint32_t, uint32_t>;
 
         // The markers of an oriented read.
-        using MarkerSequence = span<const CompressedMarker>;
+        using CompressedMarkers = span<const CompressedMarker>;
 
+        // Compute the alginment.
+        // The sorted markers are pairs(KmerId, ordinal) sorted by KmnerId.
         void align(
-            const array<MarkerSequence, 2>&,
+            const array<CompressedMarkers, 2>&,
+            const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
             const Align4::Options&,
             MemoryMapped::ByteAllocator&,
             Alignment&,
@@ -130,8 +133,10 @@ class shasta::Align4::Aligner {
 public:
 
     // The constructor does all the work.
+    // The sorted markers are pairs(KmerId, ordinal) sorted by KmnerId.
     Aligner(
-        const array<MarkerSequence, 2>&,
+        const array<CompressedMarkers, 2>& compressedMarkers,
+        const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
         const Options&,
         MemoryMapped::ByteAllocator&,
         Alignment&,
@@ -155,15 +160,7 @@ private:
 
 
     // Vector of markers for each sequence.
-    array<vector<KmerId>, 2> markers;
-
-    // For each sequence, vectors of pairs (markerId, ordinal)
-    // sorted by marker id.
-    array< vector< pair<KmerId, uint32_t> >, 2> sortedMarkers;
-    static void storeMarkers(
-        const MarkerSequence&,
-        vector<KmerId>& markers,
-        vector< pair<KmerId, uint32_t> >& sortedMarkers);
+    // array<vector<KmerId>, 2> markers;
 
     // The alignment matrix, in a sparse representation organized by
     // cells in (X,Y) space.
@@ -175,7 +172,7 @@ private:
     using AlignmentMatrixEntryVector = vector<AlignmentMatrixEntry, AlignmentMatrixAllocator>; // For one iY
     using AlignmentMatrix = vector<AlignmentMatrixEntryVector>; // Indexed by iY.
     AlignmentMatrix alignmentMatrix;
-    void createAlignmentMatrix();
+    void createAlignmentMatrix(const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers);
     void writeAlignmentMatrixCsv(const string& fileName) const;
     void writeAlignmentMatrixPng(
         const string& fileName,
@@ -281,6 +278,7 @@ private:
     // active cells. Return the ones that match requirements on
     // minAlignedMarkerCount, minAlignedFraction, maxSkip, maxDrift, maxTrim.
     void computeBandedAlignments(
+        const array<CompressedMarkers, 2>& compressedMarkers,
         uint64_t minAlignedMarkerCount,
         double minAlignedFraction,
         uint64_t maxSkip,
@@ -291,6 +289,7 @@ private:
 
     // Compute a banded alignment with a given band.
     bool computeBandedAlignment(
+        const array<CompressedMarkers, 2>& compressedMarkers,
         int32_t bandMin,
         int32_t bandMax,
         Alignment&,
