@@ -26,16 +26,15 @@ using namespace Align4;
 
 
 
-void shasta::align4(
-    const span<const CompressedMarker>& markers0,
-    const span<const CompressedMarker>& markers1,
+void shasta::Align4::align(
+    const array<MarkerSequence, 2>& markerSequences,
     const Options& options,
     MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug)
 {
-    Align4::Aligner graph(markers0, markers1,
+    Align4::Aligner graph(markerSequences,
         options, byteAllocator, alignment, alignmentInfo,
         debug);
 }
@@ -43,15 +42,14 @@ void shasta::align4(
 
 
 Aligner::Aligner(
-    const MarkerSequence& markerSequence0,
-    const MarkerSequence& markerSequence1,
+    const array<MarkerSequence, 2>& markerSequences,
     const Options& options,
     MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
     AlignmentInfo& alignmentInfo,
     bool debug) :
-    nx(uint32_t(markerSequence0.size())),
-    ny(uint32_t(markerSequence1.size())),
+    nx(uint32_t(markerSequences[0].size())),
+    ny(uint32_t(markerSequences[1].size())),
     deltaX(int32_t(options.deltaX)),
     deltaY(int32_t(options.deltaY)),
     byteAllocator(byteAllocator)
@@ -66,8 +64,8 @@ Aligner::Aligner(
     if(debug) {
         cout << timestamp << "Creating sorted markers." << endl;
     }
-    storeMarkers(markerSequence0, markers[0], sortedMarkers[0]);
-    storeMarkers(markerSequence1, markers[1], sortedMarkers[1]);
+    storeMarkers(markerSequences[0], markers[0], sortedMarkers[0]);
+    storeMarkers(markerSequences[1], markers[1], sortedMarkers[1]);
 
     // Create the sparse representation of the alignment matrix.
     if(debug) {
@@ -131,8 +129,7 @@ Aligner::Aligner(
     // with the greatest number of aligned markers.
     if(alignments.empty()) {
         alignment.clear();
-        alignmentInfo.create(alignment,
-            uint32_t(markerSequence0.size()), uint32_t(markerSequence1.size()));
+        alignmentInfo.create(alignment, nx, ny);
     } else {
         uint64_t bestAlignmentIndex = 0;
         uint64_t bestMarkerCount = alignments[0].second.markerCount;

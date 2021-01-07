@@ -101,7 +101,7 @@ void Assembler::alignOrientedReads4(
 
 
     // Compute the alignment.
-    align4(orientedReadMarkers[0], orientedReadMarkers[1],
+    Align4::align(orientedReadMarkers,
         options, byteAllocator, alignment, alignmentInfo, debug);
 }
 

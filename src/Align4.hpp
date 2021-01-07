@@ -81,20 +81,20 @@ namespace shasta {
 
         // The markers of an oriented read.
         using MarkerSequence = span<const CompressedMarker>;
+
+        void align(
+            const array<MarkerSequence, 2>&,
+            const Align4::Options&,
+            MemoryMapped::ByteAllocator&,
+            Alignment&,
+            AlignmentInfo&,
+            bool debug);
     }
 
     namespace MemoryMapped {
         class ByteAllocator;
     }
 
-    void align4(
-        const span<const CompressedMarker>&,
-        const span<const CompressedMarker>&,
-        const Align4::Options&,
-        MemoryMapped::ByteAllocator&,
-        Alignment&,
-        AlignmentInfo&,
-        bool debug);
 }
 
 
@@ -131,8 +131,7 @@ public:
 
     // The constructor does all the work.
     Aligner(
-        const MarkerSequence&,
-        const MarkerSequence&,
+        const array<MarkerSequence, 2>&,
         const Options&,
         MemoryMapped::ByteAllocator&,
         Alignment&,
