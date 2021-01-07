@@ -40,7 +40,7 @@ using std::uniform_int_distribution;
  */
 
 
-void writeColorPicker(ostream& html, string svgId){
+void Assembler::writeColorPicker(ostream& html, string svgId){
     html << "<h4>Color configuration</h4>\n";
     html << "<p>Select a color configuration by setting the color and opacity, then click a region of "
             "the venn diagram to apply it to the graph edges.</p>\n";

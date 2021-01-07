@@ -1921,6 +1921,8 @@ public:
         int maxBand,
         ostream& html
     );
+    void writeColorPicker(ostream& html, string svgId);
+
 #endif
     void writeMakeAllTablesCopyable(ostream&) const;
 
