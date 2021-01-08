@@ -388,9 +388,22 @@ void Assembler::exploreUndirectedReadGraph(
     addScaleSvgButtons(html);
 
     // Write the graph to svg directly, without using Graphviz rendering.
-    graph.computeLayout(layoutMethod, timeout);
-    graph.writeSvg("svg", sizePixels, sizePixels,
-        vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, html);
+    ComputeLayoutReturnCode returnCode = graph.computeLayout(layoutMethod, timeout);
+    if(returnCode == ComputeLayoutReturnCode::Timeout){
+        html << "<p>Timeout exceeded for computing graph layout. Try longer timeout or different parameters.</p>";
+    }
+    else if (returnCode != ComputeLayoutReturnCode::Success){
+        html << "<p>ERROR: graph layout failed </p>";
+    }
+    else{
+        graph.writeSvg("svg",
+                       sizePixels,
+                       sizePixels,
+                       vertexScalingFactor,
+                       edgeThicknessScalingFactor,
+                       maxDistance,
+                       html);
+    }
 
 
 }

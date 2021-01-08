@@ -248,7 +248,7 @@ void Assembler::exploreAlignmentCandidateGraph(
         readGraphHeading = "<h3>Display a local subgraph of the global alignment graph</h3>";
     } else {
         readGraphHeading =
-                "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>read graph</a></h3>";
+                "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>Alignment candidate graph</a></h3>";
     }
     html << readGraphHeading <<
          "<form>"
@@ -274,7 +274,7 @@ void Assembler::exploreAlignmentCandidateGraph(
          " value='" << maxDistance <<
          "'>"
 
-         "<tr title='Allow reads marked as chimeric to be included in the local read graph.'>"
+         "<tr title='Allow reads marked as chimeric to be included in the local alignment candidate graph.'>"
          "<td>Allow chimeric reads"
          "<td class=centered><input type=checkbox name=allowChimericReads" <<
          (allowChimericReads ? " checked" : "") <<
@@ -358,7 +358,7 @@ void Assembler::exploreAlignmentCandidateGraph(
                 largeDataPageSize);
     }
 
-    // Create the local read graph.
+    // Create the local graph.
     LocalAlignmentCandidateGraph graph;
     if(!createLocalCandidateGraph(
             readIds,
@@ -370,13 +370,13 @@ void Assembler::exploreAlignmentCandidateGraph(
         html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
         return;
     }
-    html << "<p>The local read graph has " << num_vertices(graph);
+    html << "<p>The local alignment candidate graph has " << num_vertices(graph);
     html << " vertices and " << num_edges(graph) << " edges.";
 
 
     // Write a title.
     html <<
-         "<h1 style='line-height:10px'>Read graph near oriented read(s) " << readIdsString << "</h1>";
+         "<h1 style='line-height:10px'>Alignment candidate graph near oriented read(s) " << readIdsString << "</h1>";
 
 
     // Allow manually highlighting selected vertices.
@@ -402,11 +402,24 @@ void Assembler::exploreAlignmentCandidateGraph(
     addScaleSvgButtons(html);
 
     // Write the graph to svg directly, without using Graphviz rendering.
-    graph.computeLayout(layoutMethod, timeout);
-    graph.writeSvg("svg", sizePixels, sizePixels,
-                   vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, html);
+    ComputeLayoutReturnCode returnCode = graph.computeLayout(layoutMethod, timeout);
+    if(returnCode == ComputeLayoutReturnCode::Timeout){
+        html << "<p>Timeout exceeded for computing graph layout. Try longer timeout or different parameters.</p>";
+    }
+    else if (returnCode != ComputeLayoutReturnCode::Success){
+        html << "<p>ERROR: graph layout failed </p>";
+    }
+    else{
+        graph.writeSvg("svg",
+                       sizePixels,
+                       sizePixels,
+                       vertexScalingFactor,
+                       edgeThicknessScalingFactor,
+                       maxDistance,
+                       html);
 
-    writeColorPicker(html, "colorPicker");
+        writeColorPicker(html, "colorPicker");
+    }
 
 }
 
@@ -2519,11 +2532,25 @@ void Assembler::exploreAlignmentGraph(
     addScaleSvgButtons(html);
 
     // Write the graph to svg directly, without using Graphviz rendering.
-    graph.computeLayout("sfdp", timeout);
-    const double vertexScalingFactor = 1.;
-    const double edgeThicknessScalingFactor = 1.;
-    graph.writeSvg("svg", sizePixels, sizePixels,
-        vertexScalingFactor, edgeThicknessScalingFactor, maxDistance, html);
+    ComputeLayoutReturnCode returnCode = graph.computeLayout("sfdp", timeout);
+    if(returnCode == ComputeLayoutReturnCode::Timeout){
+        html << "<p>Timeout exceeded for computing graph layout. Try longer timeout or different parameters.</p>";
+    }
+    else if (returnCode != ComputeLayoutReturnCode::Success){
+        html << "<p>ERROR: graph layout failed </p>";
+    }
+    else{
+        const double vertexScalingFactor = 1.;
+        const double edgeThicknessScalingFactor = 1.;
+        graph.writeSvg("svg",
+                       sizePixels,
+                       sizePixels,
+                       vertexScalingFactor,
+                       edgeThicknessScalingFactor,
+                       maxDistance,
+                       html);
+    }
+
 
     // Write a histogram of the number of vertices by distance.
     vector<int> histogram(maxDistance+1, 0);
