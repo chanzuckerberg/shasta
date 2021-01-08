@@ -606,6 +606,20 @@ public:
     pair<OrientedReadId, uint32_t> findMarkerId(MarkerId) const;
 private:
 
+
+
+    // Pairs (KmerId, ordinal), sorted by KmerId, for each oriented read.
+    // Indexed by orientedReadId.getValue().
+    // Used by alignment method 4.
+    MemoryMapped::VectorOfVectors< pair<KmerId, uint32_t>, uint64_t> sortedMarkers;
+public:
+    void computeSortedMarkers(uint64_t threadCount);
+private:
+    void computeSortedMarkersThreadFunction1(size_t threadId);
+    void computeSortedMarkersThreadFunction2(size_t threadId);
+
+
+
     // Given a MarkerId, compute the MarkerId of the
     // reverse complemented marker.
     MarkerId findReverseComplement(MarkerId) const;
