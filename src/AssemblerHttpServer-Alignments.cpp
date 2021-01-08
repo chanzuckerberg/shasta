@@ -248,7 +248,7 @@ void Assembler::exploreAlignmentCandidateGraph(
         readGraphHeading = "<h3>Display a local subgraph of the global alignment graph</h3>";
     } else {
         readGraphHeading =
-                "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>Alignment candidate graph</a></h3>";
+                "<h3>Display a local subgraph of the <a href='docs/ComputationalMethods.html#ReadGraph'>alignment candidate graph</a></h3>";
     }
     html << readGraphHeading <<
          "<form>"
