@@ -29,14 +29,14 @@ echo $tmpDirectoryName
 cd $tmpDirectoryName
 
 # Get the code.
-curl -L https://github.com/rvaser/spoa/releases/download/3.4.0/spoa-v3.4.0.tar.gz \
-    -o spoa-v3.4.0.tar.gz
-tar -xvf spoa-v3.4.0.tar.gz
+curl -L https://github.com/rvaser/spoa/releases/download/4.0.6/spoa-v4.0.6.tar.gz \
+    -o spoa-v4.0.6.tar.gz
+tar -xvf spoa-v4.0.6.tar.gz
 
 # Build the static library.
 mkdir build-static
 cd build-static
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF
+cmake ../spoa-v4.0.6 -DBUILD_SHARED_LIBS=OFF
 make -j all
 make install
 cd 

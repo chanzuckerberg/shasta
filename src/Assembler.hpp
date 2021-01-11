@@ -1470,7 +1470,7 @@ private:
         MarkerGraph::EdgeId,
         uint32_t markerGraphEdgeLengthThresholdForConsensus,
         const std::unique_ptr<spoa::AlignmentEngine>& spoaAlignmentEngine,
-        const std::unique_ptr<spoa::Graph>& spoaAlignmentGraph,
+        spoa::Graph& spoaAlignmentGraph,
         vector<Base>& sequence,
         vector<uint32_t>& repeatCounts,
         uint8_t& overlappingBaseCount,

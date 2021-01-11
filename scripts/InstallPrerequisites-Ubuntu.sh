@@ -79,9 +79,9 @@ echo $tmpDirectoryName
 cd $tmpDirectoryName
 
 # Get the code.
-curl -L https://github.com/rvaser/spoa/releases/download/3.4.0/spoa-v3.4.0.tar.gz \
-    -o spoa-v3.4.0.tar.gz
-tar -xvf spoa-v3.4.0.tar.gz
+curl -L https://github.com/rvaser/spoa/releases/download/4.0.6/spoa-v4.0.6.tar.gz \
+    -o spoa-v4.0.6.tar.gz
+tar -xvf spoa-v4.0.6.tar.gz
 
 spoaBuildFlags="-Dspoa_generate_dispatch=ON"
 if [[ "$isArm" == true ]]; then
@@ -91,7 +91,7 @@ fi
 # Build the shared library.
 mkdir build
 cd build
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=ON $spoaBuildFlags
+cmake ../spoa-v4.0.6 -DBUILD_SHARED_LIBS=ON $spoaBuildFlags
 make -j all
 make install
 
@@ -99,7 +99,7 @@ make install
 cd ..
 mkdir build-static
 cd build-static
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF $spoaBuildFlags
+cmake ../spoa-v4.0.6 -DBUILD_SHARED_LIBS=OFF $spoaBuildFlags
 make -j all
 make install
 cd 

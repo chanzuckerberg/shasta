@@ -2013,8 +2013,8 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
-    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
-    auto spoaAlignmentGraph = spoa::createGraph();
+    auto spoaAlignmentEngine = spoa::AlignmentEngine::Create(alignmentType, match, mismatch, gap);
+    spoa::Graph spoaAlignmentGraph{};
     BGL_FORALL_EDGES(e, graph, LocalMarkerGraph) {
         LocalMarkerGraphEdge& edge = graph[e];
         ComputeMarkerGraphEdgeConsensusSequenceUsingSpoaDetail detail;
@@ -3182,7 +3182,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     MarkerGraph::EdgeId edgeId,
     uint32_t markerGraphEdgeLengthThresholdForConsensus,
     const std::unique_ptr<spoa::AlignmentEngine>& spoaAlignmentEngine,
-    const std::unique_ptr<spoa::Graph>& spoaAlignmentGraph,
+    spoa::Graph& spoaAlignmentGraph,
     vector<Base>& sequence,
     vector<uint32_t>& repeatCounts,
     uint8_t& overlappingBaseCount,
@@ -3518,7 +3518,7 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
 
     // We are now ready to compute the spoa alignment for the distinct sequences.
 
-    spoaAlignmentGraph->clear();
+    spoaAlignmentGraph.Clear();
     // Add the sequences to the alignment, in order of decreasing frequency.
     string sequenceString;
     for(const auto& p: distinctSequenceTable) {
@@ -3529,15 +3529,14 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         for(const Base base: distinctSequence) {
             sequenceString += base.character();
         }
-        auto alignment = spoaAlignmentEngine->align(sequenceString, spoaAlignmentGraph);
-        spoaAlignmentGraph->add_alignment(alignment, sequenceString);
+        auto alignment = spoaAlignmentEngine->Align(sequenceString, spoaAlignmentGraph);
+        spoaAlignmentGraph.AddAlignment(alignment, sequenceString);
     }
 
 
 
     // Use spoa to compute the multiple sequence alignment.
-    vector<string>& msa = detail.msa;
-    spoaAlignmentGraph->generate_multiple_sequence_alignment(msa);
+    auto msa = spoaAlignmentGraph.GenerateMultipleSequenceAlignment();
 
     // The length of the alignment.
     // This includes alignment gaps.
@@ -4791,8 +4790,8 @@ void Assembler::assembleMarkerGraphEdgesThreadFunction(size_t threadId)
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
-    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
-    auto spoaAlignmentGraph = spoa::createGraph();
+    auto spoaAlignmentEngine = spoa::AlignmentEngine::Create(alignmentType, match, mismatch, gap);
+    spoa::Graph spoaAlignmentGraph{};
     
     // Loop over batches assigned to this thread.
     uint64_t begin, end;

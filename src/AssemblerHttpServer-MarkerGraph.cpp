@@ -860,8 +860,8 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     const int8_t match = 1;
     const int8_t mismatch = -1;
     const int8_t gap = -1;
-    auto spoaAlignmentEngine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
-    auto spoaAlignmentGraph = spoa::createGraph();
+    auto spoaAlignmentEngine = spoa::AlignmentEngine::Create(alignmentType, match, mismatch, gap);
+    spoa::Graph spoaAlignmentGraph{};
     
     computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
         edgeId,
