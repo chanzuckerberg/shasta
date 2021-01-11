@@ -18,6 +18,8 @@ brew install libpng
 # Assume zlib is always available.
 # brew install zlib 
 
+brew install cereal
+
 # Install SeqAn 2.4.0
 brew install brewsci/bio/seqan@2
 
