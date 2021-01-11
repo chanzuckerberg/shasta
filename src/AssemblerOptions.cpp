@@ -325,12 +325,12 @@ void AssemblerOptions::addConfigurableOptions()
         ("MinHash.minBucketSize",
         value<int>(&minHashOptions.minBucketSize)->
         default_value(0),
-        "The minimum bucket size to be used by the LowHash algoritm.")
+        "The minimum bucket size to be used by the LowHash algorithm.")
 
         ("MinHash.maxBucketSize",
         value<int>(&minHashOptions.maxBucketSize)->
         default_value(10),
-        "The maximum bucket size to be used by the LowHash algoritm.")
+        "The maximum bucket size to be used by the LowHash algorithm.")
 
         ("MinHash.minFrequency",
         value<int>(&minHashOptions.minFrequency)->

@@ -40,7 +40,7 @@ as follows:
   subgraph - that is, the vertex with the greatest number of uncolored
   adjacent vertices.
 
-The DSatur algoritm is an approximate coloring algorithm, but it
+The DSatur algorithm is an approximate coloring algorithm, but it
 is exact for 2-colorable graphs.
 
 This function applies the above algorithm to a Boost undirected graph.
