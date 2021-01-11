@@ -28,6 +28,10 @@ config = GetConfig.getConfig()
 a = shasta.Assembler()
 a.accessMarkers()
 
+# This can fail if sorted markers are not avaialble, in which 
+# case alignOrientedReads4 computes sorted markers on the fly.
+a.accessSortedMarkers()
+
 # Compute the alignment.
 a.alignOrientedReads4(
     readId0 = arguments.readId0, strand0 = arguments.strand0,

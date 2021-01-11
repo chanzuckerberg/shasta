@@ -76,29 +76,51 @@ void Assembler::alignOrientedReads4(
 
 
 
-    // Compute markers sorted by KmerId.
+    // Align4 needs markers sorted by KmerId.
+    // Use the ones from sortedMarkers if available, or else compute them.
+    array<span< const pair<KmerId, uint32_t> >, 2> orientedReadSortedMarkersSpans;
     array<vector< pair<KmerId, uint32_t> >, 2> orientedReadSortedMarkers;
-    for(uint64_t i=0; i<2; i++) {
+    if(sortedMarkers.isOpen()) {
 
-        // Unsorted markers for this oriented read.
-        const span<const CompressedMarker>& um = orientedReadMarkers[i];
+        // Make the spans point to the stored sorted markers.
+        if(debug) {
+            cout << "Using stored sorted markers." << endl;
+        }
+        orientedReadSortedMarkersSpans[0] = sortedMarkers[orientedReadId0.getValue()];
+        orientedReadSortedMarkersSpans[1] = sortedMarkers[orientedReadId1.getValue()];
 
-        // Sorted markers for this oriented read.
-        vector<pair<KmerId, uint32_t> >& sm = orientedReadSortedMarkers[i];
+    } else {
 
-        // Copy the unsorted markers.
-        const uint64_t n = um.size();
-        sm.resize(n);
-        for(uint64_t ordinal=0; ordinal<n; ordinal++) {
-            const CompressedMarker& cm = um[ordinal];
-            sm[ordinal] = make_pair(cm.kmerId, uint32_t(ordinal));
+        // We don't have the sorted markers. we have to compute them here.
+        if(debug) {
+            cout << "Stored sorted markers are not available - computing them." << endl;
         }
 
-        // Sort them.
-        sort(sm.begin(), sm.end(), OrderPairsByFirstOnly<KmerId, uint32_t>());
+        for(uint64_t i=0; i<2; i++) {
+
+            // Unsorted markers for this oriented read.
+            const span<const CompressedMarker>& um = orientedReadMarkers[i];
+
+            // Sorted markers for this oriented read.
+            vector<pair<KmerId, uint32_t> >& sm = orientedReadSortedMarkers[i];
+
+            // Copy the unsorted markers.
+            const uint64_t n = um.size();
+            sm.resize(n);
+            for(uint64_t ordinal=0; ordinal<n; ordinal++) {
+                const CompressedMarker& cm = um[ordinal];
+                sm[ordinal] = make_pair(cm.kmerId, uint32_t(ordinal));
+            }
+
+            // Sort them.
+            sort(sm.begin(), sm.end(), OrderPairsByFirstOnly<KmerId, uint32_t>());
+
+            // Make the span point to the data in the vector.
+            const pair<KmerId, uint32_t> * const smBegin = &sm.front();
+            orientedReadSortedMarkersSpans[i] =
+                span< const pair<KmerId, uint32_t> >(smBegin, smBegin + n);
+        }
     }
-    array<span< pair<KmerId, uint32_t> >, 2> orientedReadSortedMarkersSpans =
-        {orientedReadSortedMarkers[0], orientedReadSortedMarkers[1]};
 
 
 
@@ -181,6 +203,17 @@ void Assembler::computeSortedMarkersThreadFunction2(size_t threadId)
         }
     }
 
+}
+
+
+bool Assembler::accessSortedMarkers()
+{
+    try {
+        sortedMarkers.accessExistingReadOnly(largeDataName("SortedMarkers"));
+        return true;
+    } catch(exception&) {
+        return false;
+    }
 }
 
 

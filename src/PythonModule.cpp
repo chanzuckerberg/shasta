@@ -151,8 +151,9 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::writeMarkerFrequency)
         .def("computeSortedMarkers",
             &Assembler::computeSortedMarkers,
-            "Find markers in reads.",
             arg("threadCount") = 0)
+        .def("accessSortedMarkers",
+            &Assembler::accessSortedMarkers)
 
 
         // Alignment candidates.

@@ -614,6 +614,7 @@ private:
     MemoryMapped::VectorOfVectors< pair<KmerId, uint32_t>, uint64_t> sortedMarkers;
 public:
     void computeSortedMarkers(uint64_t threadCount);
+    bool accessSortedMarkers();
 private:
     void computeSortedMarkersThreadFunction1(size_t threadId);
     void computeSortedMarkersThreadFunction2(size_t threadId);

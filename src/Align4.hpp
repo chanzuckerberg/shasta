@@ -86,7 +86,7 @@ namespace shasta {
         // The sorted markers are pairs(KmerId, ordinal) sorted by KmnerId.
         void align(
             const array<CompressedMarkers, 2>&,
-            const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
+            const array<span< const pair<KmerId, uint32_t> >, 2> sortedMarkers,
             const Align4::Options&,
             MemoryMapped::ByteAllocator&,
             Alignment&,
@@ -136,7 +136,7 @@ public:
     // The sorted markers are pairs(KmerId, ordinal) sorted by KmnerId.
     Aligner(
         const array<CompressedMarkers, 2>& compressedMarkers,
-        const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
+        const array<span< const pair<KmerId, uint32_t> >, 2> sortedMarkers,
         const Options&,
         MemoryMapped::ByteAllocator&,
         Alignment&,
@@ -172,7 +172,7 @@ private:
     using AlignmentMatrixEntryVector = vector<AlignmentMatrixEntry, AlignmentMatrixAllocator>; // For one iY
     using AlignmentMatrix = vector<AlignmentMatrixEntryVector>; // Indexed by iY.
     AlignmentMatrix alignmentMatrix;
-    void createAlignmentMatrix(const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers);
+    void createAlignmentMatrix(const array<span< const pair<KmerId, uint32_t> >, 2> sortedMarkers);
     void writeAlignmentMatrixCsv(const string& fileName) const;
     void writeAlignmentMatrixPng(
         const string& fileName,

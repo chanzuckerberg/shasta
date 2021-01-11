@@ -28,7 +28,7 @@ using namespace Align4;
 
 void shasta::Align4::align(
     const array<CompressedMarkers, 2>& compressedMarkers,
-    const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
+    const array<span< const pair<KmerId, uint32_t> >, 2> sortedMarkers,
     const Options& options,
     MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
@@ -44,7 +44,7 @@ void shasta::Align4::align(
 
 Aligner::Aligner(
     const array<CompressedMarkers, 2>& compressedMarkers,
-    const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers,
+    const array<span< const pair<KmerId, uint32_t> >, 2> sortedMarkers,
     const Options& options,
     MemoryMapped::ByteAllocator& byteAllocator,
     Alignment& alignment,
@@ -190,7 +190,7 @@ SignedCoordinates Aligner::getxy(Coordinates XY) const
 
 
 
-void Aligner::createAlignmentMatrix(const array<span< pair<KmerId, uint32_t> >, 2> sortedMarkers)
+void Aligner::createAlignmentMatrix(const array<span< const pair<KmerId, uint32_t> >, 2> sortedMarkers)
 {
     alignmentMatrix.clear();
 
