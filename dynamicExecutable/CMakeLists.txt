@@ -62,18 +62,10 @@ set_target_properties(shastaDynamicExecutable PROPERTIES OUTPUT_NAME "shastaDyna
 # library in the same directory.
 set_target_properties(shastaDynamicExecutable PROPERTIES INSTALL_RPATH "\$ORIGIN")
 
-# Libraries to link with.
-if(X86_64)
-    target_link_libraries(
-        shastaDynamicExecutable
-        shastaDynamicLibrary
-        atomic boost_system boost_program_options boost_chrono spoa cpu_features png z pthread)
-else(X86_64)
-    target_link_libraries(
-        shastaDynamicExecutable
-        shastaDynamicLibrary
-        atomic boost_system boost_program_options boost_chrono spoa png z pthread)
-endif(X86_64)
+target_link_libraries(
+    shastaDynamicExecutable
+    shastaDynamicLibrary
+    atomic boost_system boost_program_options boost_chrono spoa png z pthread)
 
 if(BUILD_DEBUG) 
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
