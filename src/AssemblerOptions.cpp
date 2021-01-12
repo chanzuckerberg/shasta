@@ -349,7 +349,7 @@ void AssemblerOptions::addConfigurableOptions()
         value<int>(&alignOptions.alignMethod)->
         default_value(3),
         "The alignment method to be used to create the read graph & the marker graph. "
-        "0 = old Shasta method, 1 = SeqAn (slow), 3 = banded SeqAn.")
+        "0 = old Shasta method, 1 = SeqAn (slow), 3 = banded SeqAn, 4 = new Shasta method (experimental).")
 
         ("Align.maxSkip",
         value<int>(&alignOptions.maxSkip)->

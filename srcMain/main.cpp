@@ -201,11 +201,11 @@ void shasta::main::assemble(
         }
     }
 
-    if(assemblerOptions.alignOptions.alignMethod != 0 &&
-        assemblerOptions.alignOptions.alignMethod != 1 &&
-        assemblerOptions.alignOptions.alignMethod != 3) {
+    if( assemblerOptions.alignOptions.alignMethod <  0 or
+        assemblerOptions.alignOptions.alignMethod == 2 or
+        assemblerOptions.alignOptions.alignMethod >  4) {
         throw runtime_error("Align method " + to_string(assemblerOptions.alignOptions.alignMethod) + 
-            " is not valid. Valid options are 0, 1 & 3.");
+            " is not valid. Valid options are 0, 1, 3, and 4.");
     }
 
     // Check assemblerOptions.assemblyOptions.detangleMethod.
