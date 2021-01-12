@@ -1132,17 +1132,6 @@ private:
 
         // Parameters.
         uint64_t minCoveragePerStrand;
-        int alignMethod;
-        size_t maxSkip;
-        size_t maxDrift;
-        int matchScore;
-        int mismatchScore;
-        int gapScore;
-        double downsamplingFactor;
-        int bandExtend;
-        int maxBand;
-        uint32_t maxMarkerFrequency;
-
 
         // The total number of oriented markers.
         uint64_t orientedMarkerCount;

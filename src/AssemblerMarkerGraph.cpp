@@ -98,20 +98,12 @@ void Assembler::createMarkerGraphVertices(
     checkKmersAreOpen();
     checkMarkersAreOpen();
     checkAlignmentDataAreOpen();
+    SHASTA_ASSERT(compressedAlignments.isOpen());
+
 
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
     data.minCoveragePerStrand = minCoveragePerStrand;
-    data.alignMethod = alignMethod;
-    data.maxSkip = maxSkip;
-    data.maxDrift = maxDrift;
-    data.maxMarkerFrequency = maxMarkerFrequency;
-    data.matchScore = matchScore;
-    data.mismatchScore = mismatchScore;
-    data.gapScore = gapScore;
-    data.downsamplingFactor = downsamplingFactor;
-    data.bandExtend = bandExtend;
-    data.maxBand = maxBand;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -499,19 +491,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
     Alignment alignment;
     AlignmentInfo alignmentInfo;
 
-    const bool debug = false;
     auto& data = createMarkerGraphVerticesData;
-    const int alignMethod = data.alignMethod;
-    const size_t maxSkip = data.maxSkip;
-    const size_t maxDrift = data.maxDrift;
-    const int matchScore = data.matchScore;
-    const int mismatchScore = data.mismatchScore;
-    const int gapScore = data.gapScore;
-    const double downsamplingFactor = data.downsamplingFactor;
-    const int bandExtend = data.bandExtend;
-    const int maxBand = data.maxBand;
-    const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
-
     const std::shared_ptr<DisjointSets> disjointSetsPointer = data.disjointSetsPointer;
 
     const auto& storedAlignments = compressedAlignments;
@@ -542,7 +522,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 SHASTA_ASSERT(nextEdgeOrientedReadIds == readGraphEdge.orientedReadIds);
             }
 
-            // If the edge is flagged as crossing strands, skipt it.
+            // If the edge is flagged as crossing strands, skip it.
             if(readGraphEdge.crossesStrands) {
                 continue;
             }
@@ -555,41 +535,9 @@ void Assembler::createMarkerGraphVerticesThreadFunction1(size_t threadId)
                 continue;
             }
 
-
-
-            // If we stored the alignments, decompress this alignment.
-            // Otherwise, compute it.
-            if(storedAlignments.isOpen()) {
-                // Reuse stored alignments if available.
-                span<const char> compressedAlignment = storedAlignments[alignmentId];
-                shasta::decompress(compressedAlignment, alignment);
-            } else {
-                // Compute the Alignment between these two oriented reads.
-                if(alignMethod == 0) {
-                    for(size_t j=0; j<2; j++) {
-                        getMarkersSortedByKmerId(orientedReadIds[j], markersSortedByKmerId[j]);
-                    }
-                    alignOrientedReads(
-                        markersSortedByKmerId,
-                        maxSkip, maxDrift, maxMarkerFrequency, debug, graph, alignment, alignmentInfo);
-                } else if(alignMethod == 1) {
-                    alignOrientedReads1(
-                        orientedReadIds[0], orientedReadIds[1],
-                        matchScore, mismatchScore, gapScore,
-                        alignment, alignmentInfo
-                    );
-                } else if(alignMethod == 3) {
-                    alignOrientedReads3(
-                        orientedReadIds[0], orientedReadIds[1],
-                        matchScore, mismatchScore, gapScore,
-                        downsamplingFactor, bandExtend, maxBand,
-                        alignment, alignmentInfo
-                    );
-                } else {
-                    SHASTA_ASSERT(0);   // Hopefully we checked on that earlier.
-                }
-            }
-
+            // Decompress this alignment.
+            span<const char> compressedAlignment = storedAlignments[alignmentId];
+            shasta::decompress(compressedAlignment, alignment);
 
 
             // In the global marker graph, merge pairs
