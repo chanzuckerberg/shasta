@@ -667,20 +667,7 @@ void shasta::main::assemble(
 
     // Compute alignments.
     assembler.computeAlignments(
-        assemblerOptions.alignOptions.alignMethod,
-        assemblerOptions.alignOptions.maxMarkerFrequency,
-        assemblerOptions.alignOptions.maxSkip,
-        assemblerOptions.alignOptions.maxDrift,
-        assemblerOptions.alignOptions.minAlignedMarkerCount,
-        assemblerOptions.alignOptions.minAlignedFraction,
-        assemblerOptions.alignOptions.maxTrim,
-        assemblerOptions.alignOptions.matchScore,
-        assemblerOptions.alignOptions.mismatchScore,
-        assemblerOptions.alignOptions.gapScore,
-        assemblerOptions.alignOptions.downsamplingFactor,
-        assemblerOptions.alignOptions.bandExtend,
-        assemblerOptions.alignOptions.maxBand,
-        assemblerOptions.alignOptions.suppressContainments,
+        assemblerOptions.alignOptions,
         threadCount);
 
 

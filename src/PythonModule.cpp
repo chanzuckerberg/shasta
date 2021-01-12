@@ -2,6 +2,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblerOptions.hpp"
 #include "Base.hpp"
 #include "CompactUndirectedGraph.hpp"
 #include "compressAlignment.hpp"
@@ -80,6 +81,35 @@ PYBIND11_MODULE(shasta, module)
             arg("strand"),
             arg("fileName"))
         ;
+
+
+
+    // Expose class AlignOptions to Python.
+    class_<AlignOptions>(module, "AlignOptions")
+        .def(pybind11::init<>())
+        .def_readwrite("alignMethod", &AlignOptions::alignMethod)
+        .def_readwrite("maxSkip", &AlignOptions::maxSkip)
+        .def_readwrite("maxDrift", &AlignOptions::maxDrift)
+        .def_readwrite("maxTrim", &AlignOptions::maxTrim)
+        .def_readwrite("maxMarkerFrequency", &AlignOptions::maxMarkerFrequency)
+        .def_readwrite("minAlignedMarkerCount", &AlignOptions::minAlignedMarkerCount)
+        .def_readwrite("minAlignedFraction", &AlignOptions::minAlignedFraction)
+        .def_readwrite("matchScore", &AlignOptions::matchScore)
+        .def_readwrite("mismatchScore", &AlignOptions::mismatchScore)
+        .def_readwrite("gapScore", &AlignOptions::gapScore)
+        .def_readwrite("downsamplingFactor", &AlignOptions::downsamplingFactor)
+        .def_readwrite("bandExtend", &AlignOptions::bandExtend)
+        .def_readwrite("maxBand", &AlignOptions::maxBand)
+        .def_readwrite("sameChannelReadAlignmentSuppressDeltaThreshold",
+            &AlignOptions::sameChannelReadAlignmentSuppressDeltaThreshold)
+        .def_readwrite("suppressContainments", &AlignOptions::suppressContainments)
+        .def_readwrite("align4DeltaX", &AlignOptions::align4DeltaX)
+        .def_readwrite("align4DeltaY", &AlignOptions::align4DeltaY)
+        .def_readwrite("align4MinEntryCountPerCell", &AlignOptions::align4MinEntryCountPerCell)
+        .def_readwrite("align4MaxDistanceFromBoundary", &AlignOptions::align4MaxDistanceFromBoundary)
+        ;
+
+
 
     // Expose class Assembler to Python.
     class_<Assembler>(module, "Assembler")
@@ -269,22 +299,7 @@ PYBIND11_MODULE(shasta, module)
 
         // Compute an alignment for each alignment candidate.
         .def("computeAlignments",
-            &Assembler::computeAlignments,
-            arg("alignmentMethod") = 0,
-            arg("maxMarkerFrequency"),
-            arg("maxSkip"),
-            arg("maxDrift"),
-            arg("minAlignedMarkerCount"),
-            arg("minAlignedFraction"),
-            arg("maxTrim"),
-            arg("matchScore"),
-            arg("mismatchScore"),
-            arg("gapScore"),
-            arg("downsamplingFactor"),
-            arg("bandExtend"),
-            arg("maxBand"),
-            arg("suppressContainments"),
-            arg("threadCount") = 0)
+            &Assembler::computeAlignments)
         .def("accessCompressedAlignments",
             &Assembler::accessCompressedAlignments)
         .def("accessAlignmentData",

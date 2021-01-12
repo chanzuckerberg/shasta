@@ -38,6 +38,7 @@ namespace shasta {
     class Alignment;
     class AlignmentGraph;
     class AlignmentInfo;
+    class AlignOptions;
     class AssemblerOptions;
     class AssembledSegment;
     class CompressedAssemblyGraph;
@@ -223,47 +224,7 @@ public:
     // Store summary information for the ones that are good enough,
     // without storing details of the alignment.
     void computeAlignments(
-
-        // Alignment method.
-        int alignmentMethod,
-
-        // Marker frequency threshold.
-        // When computing an alignment between two oriented reads,
-        // marker kmers that appear more than this number of times
-        // in either of the two oriented reads are discarded
-        // (in both oriented reads).
-        // Change to size_t when conversion completed.
-        uint32_t maxMarkerFrequency,
-
-        // The maximum ordinal skip to be tolerated between successive markers
-        // in the alignment.
-        size_t maxSkip,
-
-        // The maximum relative ordinal drift to be tolerated between successive markers
-        // in the alignment.
-        size_t maxDrift,
-
-        // Minimum number of alignment markers for an alignment to be used.
-        size_t minAlignedMarkerCount,
-
-        // The minimum fraction of aligned markers for an alignment to be used.
-        double minAlignedFraction,
-
-        // Maximum left/right trim (in bases) for an alignment to be used.
-        size_t maxTrim,
-
-        // Scores used to compute method 1 alignments.
-        int matchScore,
-        int mismatchScore,
-        int gapScore,
-
-        // Parameters for alignment method 3.
-        double downsamplingFactor,
-        int bandExtend,
-        int maxBand,
-
-        // If true, discard containment alignments.
-        bool suppressContainments,
+        const AlignOptions&,
 
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
@@ -902,21 +863,8 @@ private:
     class ComputeAlignmentsData {
     public:
 
-        // Parameters.
-        size_t alignmentMethod;
-        uint32_t maxMarkerFrequency;
-        size_t maxSkip;
-        size_t minAlignedMarkerCount;
-        double minAlignedFraction;
-        size_t maxTrim;
-        size_t maxDrift;
-        int matchScore;
-        int mismatchScore;
-        int gapScore;
-        double downsamplingFactor;
-        int bandExtend;
-        int maxBand;
-        bool suppressContainments;
+        // Not owned.
+        const AlignOptions* alignOptions = 0;
 
         // The AlignmentInfo found by each thread.
         vector< vector<AlignmentData> > threadAlignmentData;

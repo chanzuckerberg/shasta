@@ -4,6 +4,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "AssemblerOptions.hpp"
 #include "compressAlignment.hpp"
 #include "timestamp.hpp"
 using namespace shasta;
@@ -200,45 +201,7 @@ void Assembler::alignOverlappingOrientedReads(
 // Store the alignments the satisfy our criteria.
 void Assembler::computeAlignments(
 
-    // Alignment method.
-    int alignmentMethod,
-
-    // Marker frequency threshold.
-    // When computing an alignment between two oriented reads,
-    // marker kmers that appear more than this number of times
-    // in either of the two oriented reads are discarded
-    // (in both oriented reads).
-    uint32_t maxMarkerFrequency,
-
-    // The maximum ordinal skip to be tolerated between successive markers
-    // in the alignment.
-    size_t maxSkip,
-
-    // The maximum relative ordinal drift to be tolerated between successive markers
-    // in the alignment.
-    size_t maxDrift,
-
-    // Minimum number of alignment markers for an alignment to be used.
-    size_t minAlignedMarkerCount,
-
-    // The minimum fraction of aligned markers for an alignment to be used.
-    double minAlignedFraction,
-
-    // Maximum left/right trim (in bases) for an alignment to be used.
-    size_t maxTrim,
-
-    // Scores used to compute method 1 and 3 alignments.
-    int matchScore,
-    int mismatchScore,
-    int gapScore,
-
-    // Parameters for alignment method 3.
-    double downsamplingFactor,
-    int bandExtend,
-    int maxBand,
-
-    // If true, discard containment alignments.
-    bool suppressContainments,
+    const AlignOptions& alignOptions,
 
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
@@ -257,20 +220,7 @@ void Assembler::computeAlignments(
 
     // Store parameters so they are accessible to the threads.
     auto& data = computeAlignmentsData;
-    data.alignmentMethod = alignmentMethod;
-    data.maxMarkerFrequency = maxMarkerFrequency;
-    data.maxSkip = maxSkip;
-    data.maxDrift = maxDrift;
-    data.minAlignedMarkerCount = minAlignedMarkerCount;
-    data.minAlignedFraction = minAlignedFraction;
-    data.maxTrim = maxTrim;
-    data.matchScore = matchScore;
-    data.mismatchScore = mismatchScore;
-    data.gapScore = gapScore;
-    data.downsamplingFactor = downsamplingFactor;
-    data.bandExtend = bandExtend;
-    data.maxBand = maxBand;
-    data.suppressContainments = suppressContainments;
+    data.alignOptions = &alignOptions;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -350,20 +300,20 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
 
     const bool debug = false;
     auto& data = computeAlignmentsData;
-    const size_t alignmentMethod = data.alignmentMethod;
-    const uint32_t maxMarkerFrequency = data.maxMarkerFrequency;
-    const size_t maxSkip = data.maxSkip;
-    const size_t maxDrift = data.maxDrift;
-    const size_t minAlignedMarkerCount = data.minAlignedMarkerCount;
-    const double minAlignedFraction = data.minAlignedFraction;
-    const size_t maxTrim = data.maxTrim;
-    const int matchScore = data.matchScore;
-    const int mismatchScore = data.mismatchScore;
-    const int gapScore = data.gapScore;
-    const double downsamplingFactor = data.downsamplingFactor;
-    const int bandExtend = data.bandExtend;
-    const int maxBand = data.maxBand;
-    const bool suppressContainments = data.suppressContainments;
+    const size_t alignmentMethod = data.alignOptions->alignMethod;
+    const uint32_t maxMarkerFrequency = data.alignOptions->maxMarkerFrequency;
+    const size_t maxSkip = data.alignOptions->maxSkip;
+    const size_t maxDrift = data.alignOptions->maxDrift;
+    const size_t minAlignedMarkerCount = data.alignOptions->minAlignedMarkerCount;
+    const double minAlignedFraction = data.alignOptions->minAlignedFraction;
+    const size_t maxTrim = data.alignOptions->maxTrim;
+    const int matchScore = data.alignOptions->matchScore;
+    const int mismatchScore = data.alignOptions->mismatchScore;
+    const int gapScore = data.alignOptions->gapScore;
+    const double downsamplingFactor = data.alignOptions->downsamplingFactor;
+    const int bandExtend = data.alignOptions->bandExtend;
+    const int maxBand = data.alignOptions->maxBand;
+    const bool suppressContainments = data.alignOptions->suppressContainments;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
     
