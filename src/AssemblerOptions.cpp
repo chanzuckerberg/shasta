@@ -729,7 +729,7 @@ void AssemblerOptions::addConfigurableOptions()
 
 
 
-void AssemblerOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) const
+void ReadsOptions::PalindromicReadOptions::write(ostream& s) const
 {
     s << "palindromicReads.skipFlagging = " << convertBoolToPythonString(skipFlagging) << "\n";
     s << "palindromicReads.maxSkip = " << maxSkip << "\n";
@@ -742,7 +742,7 @@ void AssemblerOptions::ReadsOptions::PalindromicReadOptions::write(ostream& s) c
 
 
 
-void AssemblerOptions::ReadsOptions::write(ostream& s) const
+void ReadsOptions::write(ostream& s) const
 {
     s << "[Reads]\n";
     s << "minReadLength = " << minReadLength << "\n";
@@ -754,7 +754,7 @@ void AssemblerOptions::ReadsOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::KmersOptions::write(ostream& s) const
+void KmersOptions::write(ostream& s) const
 {
     s << "[Kmers]\n";
     s << "generationMethod = " << generationMethod << "\n";
@@ -766,7 +766,7 @@ void AssemblerOptions::KmersOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::MinHashOptions::write(ostream& s) const
+void MinHashOptions::write(ostream& s) const
 {
     s << "[MinHash]\n";
     s << "version = " << version << "\n";
@@ -783,7 +783,7 @@ void AssemblerOptions::MinHashOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::AlignOptions::write(ostream& s) const
+void AlignOptions::write(ostream& s) const
 {
     s << "[Align]\n";
     s << "alignMethod = " << alignMethod << "\n";
@@ -811,7 +811,7 @@ void AssemblerOptions::AlignOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
+void ReadGraphOptions::write(ostream& s) const
 {
     s << "[ReadGraph]\n";
     s << "creationMethod = " << creationMethod << "\n";
@@ -832,7 +832,7 @@ void AssemblerOptions::ReadGraphOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
+void MarkerGraphOptions::write(ostream& s) const
 {
     s << "[MarkerGraph]\n";
     s << "minCoverage = " << minCoverage << "\n";
@@ -854,7 +854,7 @@ void AssemblerOptions::MarkerGraphOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::AssemblyOptions::write(ostream& s) const
+void AssemblyOptions::write(ostream& s) const
 {
     s << "[Assembly]\n";
     s << "crossEdgeCoverageThreshold = " << crossEdgeCoverageThreshold << "\n";
@@ -907,7 +907,7 @@ void AssemblerOptions::write(ostream& s) const
 
 
 
-void AssemblerOptions::MarkerGraphOptions::parseSimplifyMaxLength()
+void MarkerGraphOptions::parseSimplifyMaxLength()
 {
     simplifyMaxLengthVector.clear();
 
@@ -930,7 +930,9 @@ void AssemblerOptions::MarkerGraphOptions::parseSimplifyMaxLength()
 
 }
 
-void AssemblerOptions::ReadsOptions::parseDesiredCoverageString() {
+
+
+void ReadsOptions::parseDesiredCoverageString() {
     size_t pos = 0;
     desiredCoverage = std::stoull(desiredCoverageString, &pos);
     
@@ -951,7 +953,7 @@ void AssemblerOptions::ReadsOptions::parseDesiredCoverageString() {
     }
 }
 
-void AssemblerOptions::AssemblyOptions::parseConsensusCallerString() {
+void AssemblyOptions::parseConsensusCallerString() {
     const size_t colonPos = consensusCallerString.find_first_of(':');
     if (string::npos == colonPos) {
         consensusCaller = consensusCallerString;
@@ -982,9 +984,11 @@ void AssemblerOptions::AssemblyOptions::parseConsensusCallerString() {
     return;
 }
 
+
+
 // Function to convert a bool to True or False for better
 // compatibility with Python scripts.
-string AssemblerOptions::convertBoolToPythonString(bool flag)
+string shasta::convertBoolToPythonString(bool flag)
 {
     return flag ? "True" : "False";
 }

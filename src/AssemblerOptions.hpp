@@ -70,220 +70,234 @@ or something to that effect.
 #include "vector.hpp"
 
 namespace shasta {
+    class AlignOptions;
     class AssemblerOptions;
+    class AssemblyOptions;
+    class CommandLineOnlyOptions;
+    class KmersOptions;
+    class MarkerGraphOptions;
+    class MinHashOptions;
+    class ReadsOptions;
+    class ReadGraphOptions;
+
+    // Function to convert a bool to True or False for better
+    // compatibility with Python scripts.
+    string convertBoolToPythonString(bool);
 }
 
 
 
-// Class AssemblyOptions contains one nested class
-// corresponding to each group of options.
+// Options only allowed on the command line and not in the configuration file.
+class shasta::CommandLineOnlyOptions {
+public:
+    string configFileName;
+    vector <string> inputFileNames;
+    string assemblyDirectory;
+    string command;
+    string memoryMode;
+    string memoryBacking;
+    uint32_t threadCount;
+#ifdef SHASTA_HTTP_SERVER
+    string exploreAccess;
+    uint16_t port;
+#endif
+};
+
+
+
+// Options in the [Reads] section of the configuration file.
+// Can also be entered on the command line with option names
+// beginning with "Reads.".
+class shasta::ReadsOptions {
+public:
+    int minReadLength;
+    bool noCache;
+    string desiredCoverageString;
+    uint64_t desiredCoverage;
+    class PalindromicReadOptions {
+    public:
+        bool skipFlagging;
+        int maxSkip;
+        int maxDrift;
+        int maxMarkerFrequency;
+        double alignedFractionThreshold;
+        double nearDiagonalFractionThreshold;
+        int deltaThreshold;
+        void write(ostream&) const;
+    };
+    PalindromicReadOptions palindromicReads;
+
+    void write(ostream&) const;
+
+    void parseDesiredCoverageString();
+};
+
+
+
+// Options in the [Kmers] section of the configuration file.
+// Can also be entered on the command line with option names
+// beginning with "Kmers.".
+class shasta::KmersOptions {
+public:
+    int generationMethod;
+    int k;
+    double probability;
+    double enrichmentThreshold;
+    string file;
+    void write(ostream&) const;
+};
+
+
+
+// Options in the [MinHash] section of the configuration file.
+// Can also be entered on the command line with option names
+// beginning with "MinHash.".
+class shasta::MinHashOptions {
+public:
+    int version;
+    int m;
+    double hashFraction;
+    int minHashIterationCount;
+    double alignmentCandidatesPerRead;
+    int minBucketSize;
+    int maxBucketSize;
+    int minFrequency;
+    bool allPairs;
+    void write(ostream&) const;
+};
+
+
+
+// Options in the [Align] section of the configuration file.
+// Can also be entered on the command line with option names
+// beginning with "Align.".
+class shasta::AlignOptions {
+public:
+    int alignMethod;
+    int maxSkip;
+    int maxDrift;
+    int maxTrim;
+    int maxMarkerFrequency;
+    int minAlignedMarkerCount;
+    double minAlignedFraction;
+    int matchScore;
+    int mismatchScore;
+    int gapScore;
+    double downsamplingFactor;
+    int bandExtend;
+    int maxBand;
+    int sameChannelReadAlignmentSuppressDeltaThreshold;
+    bool suppressContainments;
+    uint64_t align4DeltaX;
+    uint64_t align4DeltaY;
+    uint64_t align4MinEntryCountPerCell;
+    uint64_t align4MaxDistanceFromBoundary;
+    void write(ostream&) const;
+};
+
+
+
+// Options in the [ReadGraph] section of the configuration file.
+// Can also be entered on the command line with option names
+// beginning with "ReadGraph.".
+class shasta::ReadGraphOptions {
+public:
+    int creationMethod;
+    int maxAlignmentCount;
+    int minComponentSize;
+    int maxChimericReadDistance;
+    int crossStrandMaxDistance;
+    int containedNeighborCount;
+    int uncontainedNeighborCountPerDirection;
+    bool removeConflicts;
+    double markerCountPercentile;
+    double alignedFractionPercentile;
+    double maxSkipPercentile;
+    double maxDriftPercentile;
+    double maxTrimPercentile;
+    void write(ostream& ) const;
+};
+
+
+
+// Options in the [MarkerGraph] section of the configuration file.
+// Can also be entered on the command line with option names
+// beginning with "MarkerGraph.".
+class shasta::MarkerGraphOptions {
+public:
+    int minCoverage;
+    int maxCoverage;
+    int minCoveragePerStrand;
+    int lowCoverageThreshold;
+    int highCoverageThreshold;
+    int maxDistance;
+    int edgeMarkerSkipThreshold;
+    int pruneIterationCount;
+    string simplifyMaxLength;
+    double crossEdgeCoverageThreshold;
+    uint64_t refineThreshold;
+    vector<size_t> simplifyMaxLengthVector;
+    bool reverseTransitiveReduction;
+    double peakFinderMinAreaFraction;
+    uint64_t peakFinderAreaStartIndex;
+    void parseSimplifyMaxLength();
+    void write(ostream&) const;
+};
+
+
+
+// Options in the [Assembly] section of the configuration file.
+// Can also be entered on the command line with option names
+// beginning with "Assembly.".
+class shasta::AssemblyOptions {
+public:
+    int crossEdgeCoverageThreshold;
+    int markerGraphEdgeLengthThresholdForConsensus;
+    string consensusCallerString;
+    string consensusCaller;
+    bool storeCoverageData;
+    int storeCoverageDataCsvLengthThreshold;
+    bool writeReadsByAssembledSegment;
+    uint64_t pruneLength;
+
+    // Options that control detangling.
+    int detangleMethod;
+    uint64_t detangleDiagonalReadCountMin;
+    uint64_t detangleOffDiagonalReadCountMax;
+    double detangleOffDiagonalRatio;
+
+    // Options that control iterative assembly.
+    bool iterative;
+    uint64_t iterativeIterationCount;
+    int64_t iterativePseudoPathAlignMatchScore;
+    int64_t iterativePseudoPathAlignMismatchScore;
+    int64_t iterativePseudoPathAlignGapScore;
+    double iterativeMismatchSquareFactor;
+    double iterativeMinScore;
+    uint64_t iterativeMaxAlignmentCount;
+    uint64_t iterativeBridgeRemovalIterationCount;
+    uint64_t iterativeBridgeRemovalMaxDistance;
+
+    void write(ostream&) const;
+
+    // If a relative path is provided for a Bayesian consensus caller
+    // replace it with its absolute path.
+    void parseConsensusCallerString();
+};
+
+
+
 class shasta::AssemblerOptions {
 public:
 
-    // Options only allowed on the command line and not in the configuration file.
-    class CommandLineOnlyOptions {
-    public:
-        string configFileName;
-        vector <string> inputFileNames;
-        string assemblyDirectory;
-        string command;
-        string memoryMode;
-        string memoryBacking;
-        uint32_t threadCount;
-#ifdef SHASTA_HTTP_SERVER
-        string exploreAccess;
-        uint16_t port;
-#endif
-    };
+    // Object containing the options.
     CommandLineOnlyOptions commandLineOnlyOptions;
-
-
-
-    // Options in the [Reads] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "Reads.".
-    class ReadsOptions {
-    public:
-        int minReadLength;
-        bool noCache;
-        string desiredCoverageString;
-        uint64_t desiredCoverage;
-        class PalindromicReadOptions {
-        public:
-            bool skipFlagging;
-            int maxSkip;
-            int maxDrift;
-            int maxMarkerFrequency;
-            double alignedFractionThreshold;
-            double nearDiagonalFractionThreshold;
-            int deltaThreshold;
-            void write(ostream&) const;
-        };
-        PalindromicReadOptions palindromicReads;
-
-        void write(ostream&) const;
-
-        void parseDesiredCoverageString();
-    };
     ReadsOptions readsOptions;
-
-
-
-    // Options in the [Kmers] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "Kmers.".
-    class KmersOptions {
-    public:
-        int generationMethod;
-        int k;
-        double probability;
-        double enrichmentThreshold;
-        string file;
-        void write(ostream&) const;
-    };
     KmersOptions kmersOptions;
-
-
-
-    // Options in the [MinHash] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "MinHash.".
-    class MinHashOptions {
-    public:
-        int version;
-        int m;
-        double hashFraction;
-        int minHashIterationCount;
-        double alignmentCandidatesPerRead;
-        int minBucketSize;
-        int maxBucketSize;
-        int minFrequency;
-        bool allPairs;
-        void write(ostream&) const;
-    };
     MinHashOptions minHashOptions;
-
-
-
-    // Options in the [Align] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "Align.".
-    class AlignOptions {
-    public:
-        int alignMethod;
-        int maxSkip;
-        int maxDrift;
-        int maxTrim;
-        int maxMarkerFrequency;
-        int minAlignedMarkerCount;
-        double minAlignedFraction;
-        int matchScore;
-        int mismatchScore;
-        int gapScore;
-        double downsamplingFactor;
-        int bandExtend;
-        int maxBand;
-        int sameChannelReadAlignmentSuppressDeltaThreshold;
-        bool suppressContainments;
-        uint64_t align4DeltaX;
-        uint64_t align4DeltaY;
-        uint64_t align4MinEntryCountPerCell;
-        uint64_t align4MaxDistanceFromBoundary;
-        void write(ostream&) const;
-    };
     AlignOptions alignOptions;
-
-
-
-    // Options in the [ReadGraph] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "ReadGraph.".
-    class ReadGraphOptions {
-    public:
-        int creationMethod;
-        int maxAlignmentCount;
-        int minComponentSize;
-        int maxChimericReadDistance;
-        int crossStrandMaxDistance;
-        int containedNeighborCount;
-        int uncontainedNeighborCountPerDirection;
-        bool removeConflicts;
-        double markerCountPercentile;
-        double alignedFractionPercentile;
-        double maxSkipPercentile;
-        double maxDriftPercentile;
-        double maxTrimPercentile;
-        void write(ostream& ) const;
-    };
     ReadGraphOptions readGraphOptions;
-
-
-
-    // Options in the [MarkerGraph] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "MarkerGraph.".
-    class MarkerGraphOptions {
-    public:
-        int minCoverage;
-        int maxCoverage;
-        int minCoveragePerStrand;
-        int lowCoverageThreshold;
-        int highCoverageThreshold;
-        int maxDistance;
-        int edgeMarkerSkipThreshold;
-        int pruneIterationCount;
-        string simplifyMaxLength;
-        double crossEdgeCoverageThreshold;
-        uint64_t refineThreshold;
-        vector<size_t> simplifyMaxLengthVector;
-        bool reverseTransitiveReduction;
-        double peakFinderMinAreaFraction;
-        uint64_t peakFinderAreaStartIndex;
-        void parseSimplifyMaxLength();
-        void write(ostream&) const;
-    };
     MarkerGraphOptions markerGraphOptions;
-
-
-
-    // Options in the [Assembly] section of the configuration file.
-    // Can also be entered on the command line with option names
-    // beginning with "Assembly.".
-    class AssemblyOptions {
-    public:
-        int crossEdgeCoverageThreshold;
-        int markerGraphEdgeLengthThresholdForConsensus;
-        string consensusCallerString;
-        string consensusCaller;
-        bool storeCoverageData;
-        int storeCoverageDataCsvLengthThreshold;
-        bool writeReadsByAssembledSegment;
-        uint64_t pruneLength;
-
-        // Options that control detangling.
-        int detangleMethod;
-        uint64_t detangleDiagonalReadCountMin;
-        uint64_t detangleOffDiagonalReadCountMax;
-        double detangleOffDiagonalRatio;
-
-        // Options that control iterative assembly.
-        bool iterative;
-        uint64_t iterativeIterationCount;
-        int64_t iterativePseudoPathAlignMatchScore;
-        int64_t iterativePseudoPathAlignMismatchScore;
-        int64_t iterativePseudoPathAlignGapScore;
-        double iterativeMismatchSquareFactor;
-        double iterativeMinScore;
-        uint64_t iterativeMaxAlignmentCount;
-        uint64_t iterativeBridgeRemovalIterationCount;
-        uint64_t iterativeBridgeRemovalMaxDistance;
-
-        void write(ostream&) const;
-
-        // If a relative path is provided for a Bayesian consensus caller
-        // replace it with its absolute path.
-        void parseConsensusCallerString();
-    };
     AssemblyOptions assemblyOptions;
 
     // Constructor.
@@ -296,7 +310,6 @@ public:
     // Write the options as a config file.
     void write(ostream&) const;
 
-
     // Boost program_options library objects.
     boost::program_options::options_description commandLineOnlyOptionsDescription;
     boost::program_options::options_description configurableOptionsDescription;
@@ -306,10 +319,6 @@ public:
     // "--invalidOption" added to capture invalid positional options.
     vector<string> invalidPositionalOptions;
     boost::program_options::options_description allOptionsIncludingInvalidDescription;
-
-    // Function to convert a bool to True or False for better
-    // compatibility with Python scripts.
-    static string convertBoolToPythonString(bool);
 
 };
 
