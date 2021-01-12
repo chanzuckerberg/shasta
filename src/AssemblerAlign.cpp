@@ -197,8 +197,7 @@ void Assembler::alignOverlappingOrientedReads(
 
 
 // Compute an alignment for each alignment candidate.
-// Store summary information for the ones that are good enough,
-// without storing details of the alignment.
+// Store the alignments the satisfy our criteria.
 void Assembler::computeAlignments(
 
     // Alignment method.
@@ -241,9 +240,6 @@ void Assembler::computeAlignments(
     // If true, discard containment alignments.
     bool suppressContainments,
 
-    // If true, store good alignments in a compressed format.
-    bool storeAlignments,
-
     // Number of threads. If zero, a number of threads equal to
     // the number of virtual processors is used.
     size_t threadCount
@@ -275,7 +271,6 @@ void Assembler::computeAlignments(
     data.bandExtend = bandExtend;
     data.maxBand = maxBand;
     data.suppressContainments = suppressContainments;
-    data.storeAlignments = storeAlignments;
 
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
@@ -301,13 +296,10 @@ void Assembler::computeAlignments(
     runThreads(&Assembler::computeAlignmentsThreadFunction, threadCount);
     cout << timestamp << "Alignment computation completed." << endl;
 
-    // Store alignmentInfos found by each thread in the global alignmentInfos.
-    cout << timestamp << "Storing the alignment info objects." << endl;
+    // Store the alignments found by each thread.
+    cout << timestamp << "Storing the alignment found by each thread." << endl;
     alignmentData.createNew(largeDataName("AlignmentData"), largeDataPageSize);
-    
-    if (data.storeAlignments) {
-        compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
-    }
+    compressedAlignments.createNew(largeDataName("CompressedAlignments"), largeDataPageSize);
     
     for(size_t threadId=0; threadId<threadCount; threadId++) {
         const vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
@@ -315,19 +307,17 @@ void Assembler::computeAlignments(
             alignmentData.push_back(ad);
         }
 
-        if (data.storeAlignments) {
-            const auto threadCompressedAlignments = data.threadCompressedAlignments[threadId];
-            const auto size = threadCompressedAlignments->size();
-            for(size_t i=0; i<size; i++) {
-                compressedAlignments.appendVector(
-                    (*threadCompressedAlignments)[i].begin(),
-                    (*threadCompressedAlignments)[i].end()
-                );
-            }
-
-            // Clean up thread storage.
-            data.threadCompressedAlignments[threadId]->remove();
+        const auto threadCompressedAlignments = data.threadCompressedAlignments[threadId];
+        const auto size = threadCompressedAlignments->size();
+        for(size_t i=0; i<size; i++) {
+            compressedAlignments.appendVector(
+                (*threadCompressedAlignments)[i].begin(),
+                (*threadCompressedAlignments)[i].end()
+            );
         }
+
+        // Clean up thread storage.
+        data.threadCompressedAlignments[threadId]->remove();
     }
 
     // Release unused allocated memory.
@@ -344,11 +334,6 @@ void Assembler::computeAlignments(
     cout << "completed in " << tTotal << " s." << endl;
 
     cout << timestamp;
-    if (data.storeAlignments) {
-        cout << "Storing compressed alignments for potential reuse." << endl;
-    } else {
-        cout << "Not storing compressed alignments." << endl;
-    }
 }
 
 
@@ -379,7 +364,6 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const int bandExtend = data.bandExtend;
     const int maxBand = data.maxBand;
     const bool suppressContainments = data.suppressContainments;
-    const bool storeAlignments = data.storeAlignments;
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
     
@@ -387,12 +371,9 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
         make_shared< MemoryMapped::VectorOfVectors<char, uint64_t> >();
     data.threadCompressedAlignments[threadId] = thisThreadCompressedAlignmentsPointer;
     auto& thisThreadCompressedAlignments = *thisThreadCompressedAlignmentsPointer;
-
-    if (storeAlignments) {
-        thisThreadCompressedAlignments.createNew(
-            largeDataName("tmp-ThreadGlobalCompressedAlignments-" + to_string(threadId)),
-            largeDataPageSize);
-    }
+    thisThreadCompressedAlignments.createNew(
+        largeDataName("tmp-ThreadGlobalCompressedAlignments-" + to_string(threadId)),
+        largeDataPageSize);
 
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
@@ -497,15 +478,12 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
             // cout << orientedReadIds[0] << " " << orientedReadIds[1] << " good." << endl;
             threadAlignmentData.push_back(AlignmentData(candidate, alignmentInfo));
 
-            // Store the compressed alignment if so configured.
-            if (storeAlignments) {
-                shasta::compress(alignment, compressedAlignment);
-
-                thisThreadCompressedAlignments.appendVector(
-                    compressedAlignment.c_str(),
-                    compressedAlignment.c_str() + compressedAlignment.size()
-                );
-            }
+            // Store the alignment in compressed form.
+            shasta::compress(alignment, compressedAlignment);
+            thisThreadCompressedAlignments.appendVector(
+                compressedAlignment.c_str(),
+                compressedAlignment.c_str() + compressedAlignment.size()
+            );
         }
     }
 

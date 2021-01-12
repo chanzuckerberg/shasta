@@ -265,9 +265,6 @@ public:
         // If true, discard containment alignments.
         bool suppressContainments,
 
-        // If true, store good alignments in a compressed format.
-        bool storeAlignments,
-
         // Number of threads. If zero, a number of threads equal to
         // the number of virtual processors is used.
         size_t threadCount
@@ -945,7 +942,6 @@ private:
         int bandExtend;
         int maxBand;
         bool suppressContainments;
-        bool storeAlignments;
 
         // The AlignmentInfo found by each thread.
         vector< vector<AlignmentData> > threadAlignmentData;

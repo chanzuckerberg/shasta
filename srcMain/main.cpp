@@ -666,7 +666,7 @@ void shasta::main::assemble(
 
 
     // Compute alignments.
-	assembler.computeAlignments(
+    assembler.computeAlignments(
         assemblerOptions.alignOptions.alignMethod,
         assemblerOptions.alignOptions.maxMarkerFrequency,
         assemblerOptions.alignOptions.maxSkip,
@@ -681,7 +681,6 @@ void shasta::main::assemble(
         assemblerOptions.alignOptions.bandExtend,
         assemblerOptions.alignOptions.maxBand,
         assemblerOptions.alignOptions.suppressContainments,
-        true, // Store good alignments in a compressed format.
         threadCount);
 
 

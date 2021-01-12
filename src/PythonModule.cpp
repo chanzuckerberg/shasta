@@ -284,7 +284,6 @@ PYBIND11_MODULE(shasta, module)
             arg("bandExtend"),
             arg("maxBand"),
             arg("suppressContainments"),
-            arg("storeAlignments"),
             arg("threadCount") = 0)
         .def("accessCompressedAlignments",
             &Assembler::accessCompressedAlignments)
