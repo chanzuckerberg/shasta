@@ -34,31 +34,6 @@ using namespace shasta;
 // with more than one marker on the same oriented read.
 void Assembler::createMarkerGraphVertices(
 
-    // The method to be used to compute alignments.
-    int alignMethod,
-
-    // The maximum frequency of marker k-mers to be used in
-    // computing alignments.
-    uint32_t maxMarkerFrequency,
-
-    // The maximum ordinal skip to be tolerated between successive markers
-    // in the alignment.
-    size_t maxSkip,
-
-    // The maximum ordinal drift to be tolerated between successive markers
-    // in the alignment.
-    size_t maxDrift,
-
-    // Scores for method 1  and 3 alignments.
-    int matchScore,
-    int mismatchScore,
-    int gapScore,
-
-    // Parameters for method 3 alignments.
-    double downsamplingFactor,
-    int bandExtend,
-    int maxBand,
-
     // Minimum coverage (number of markers) for a vertex
     // of the marker graph to be kept.
     size_t minCoverage,

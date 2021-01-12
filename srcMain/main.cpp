@@ -962,16 +962,6 @@ void shasta::main::createMarkerGraphVertices(
 {
     // Create marker graph vertices: mainstream code.
     assembler.createMarkerGraphVertices(
-        assemblerOptions.alignOptions.alignMethod,
-        assemblerOptions.alignOptions.maxMarkerFrequency,
-        assemblerOptions.alignOptions.maxSkip,
-        assemblerOptions.alignOptions.maxDrift,
-        assemblerOptions.alignOptions.matchScore,
-        assemblerOptions.alignOptions.mismatchScore,
-        assemblerOptions.alignOptions.gapScore,
-        assemblerOptions.alignOptions.downsamplingFactor,
-        assemblerOptions.alignOptions.bandExtend,
-        assemblerOptions.alignOptions.maxBand,
         assemblerOptions.markerGraphOptions.minCoverage,
         assemblerOptions.markerGraphOptions.maxCoverage,
         assemblerOptions.markerGraphOptions.minCoveragePerStrand,
