@@ -4,6 +4,7 @@
 // Shasta.
 #include "Assembler.hpp"
 #include "AlignmentGraph.hpp"
+#include "Align4.hpp"
 #include "AssemblerOptions.hpp"
 #include "compressAlignment.hpp"
 #include "timestamp.hpp"
@@ -315,6 +316,28 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
     const int maxBand = data.alignOptions->maxBand;
     const bool suppressContainments = data.alignOptions->suppressContainments;
 
+
+    // Align4-specific items.
+    Align4::Options align4Options;
+    MemoryMapped::ByteAllocator byteAllocator;
+    if(alignmentMethod == 4) {
+        align4Options.deltaX = data.alignOptions->align4DeltaX;
+        align4Options.deltaY = data.alignOptions->align4DeltaY;
+        align4Options.minEntryCountPerCell = data.alignOptions->align4MinEntryCountPerCell;
+        align4Options.maxDistanceFromBoundary = data.alignOptions->align4MaxDistanceFromBoundary;
+        align4Options.minAlignedMarkerCount = minAlignedMarkerCount;
+        align4Options.minAlignedFraction = minAlignedFraction;
+        align4Options.maxSkip = maxSkip;
+        align4Options.maxDrift = maxDrift;
+        align4Options.maxTrim = maxTrim;
+        align4Options.matchScore = matchScore;
+        align4Options.mismatchScore = mismatchScore;
+        align4Options.gapScore = gapScore;
+        byteAllocator.createNew(
+            largeDataName("tmp-ByteAllocator-" + to_string(threadId)),
+            largeDataPageSize, 512 * 1024 * 1024);
+    }
+
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];
     
     shared_ptr< MemoryMapped::VectorOfVectors<char, uint64_t> > thisThreadCompressedAlignmentsPointer =
@@ -366,6 +389,13 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
                         matchScore, mismatchScore, gapScore,
                         downsamplingFactor, bandExtend, maxBand,
                         alignment, alignmentInfo);
+                } else if(alignmentMethod == 4) {
+                    alignOrientedReads4(orientedReadIds[0], orientedReadIds[1],
+                        align4Options,
+                        byteAllocator,
+                        alignment, alignmentInfo,
+                        false);
+                    SHASTA_ASSERT(byteAllocator.isEmpty());
                 } else {
                     SHASTA_ASSERT(0);
                 }

@@ -32,14 +32,23 @@ namespace shasta {
 class shasta::MemoryMapped::ByteAllocator {
 public:
 
+    ByteAllocator() :
+        allocatedByteCount(0),
+        allocatedBlockCount(0)
+    {}
+
     // Create a ByteAllocator with this number of bytes,
     // which will never be increased.
     // The allocator will throw BadAllocation if
     // this space is insufficient.
-    ByteAllocator(const string& name, uint64_t pageSize, uint64_t n) :
-        allocatedByteCount(0),
-        allocatedBlockCount(0)
+    ByteAllocator(const string& name, uint64_t pageSize, uint64_t n)
     {
+        createNew(name, pageSize, n);
+    }
+    void createNew(const string& name, uint64_t pageSize, uint64_t n)
+    {
+        allocatedByteCount = 0;
+        allocatedBlockCount = 0;
         data.createNew(name, pageSize);
         data.resize(n); // Never resize after this!
     }
@@ -47,8 +56,15 @@ public:
     ~ByteAllocator()
     {
         // cout << "Byte allocator destroyed, allocated bytes " << allocatedByteCount << endl;
-        SHASTA_ASSERT(allocatedBlockCount == 0);
-        data.remove();
+        SHASTA_ASSERT(isEmpty());
+        if(data.isOpen) {
+            data.remove();
+        }
+    }
+
+    bool isEmpty() const
+    {
+        return allocatedBlockCount == 0;
     }
 
 
@@ -85,11 +101,14 @@ public:
     }
 
 
-    // Memory only gets deallocated when the allocator is destroyed.
+    // Memory only gets deallocated when everything is freed.
     void deallocate()
     {
         // cout << "Deallocate" << endl;
         --allocatedBlockCount;
+        if(allocatedBlockCount == 0) {
+            allocatedByteCount = 0;
+        }
     }
 
 private:
