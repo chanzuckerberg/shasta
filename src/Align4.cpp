@@ -723,7 +723,7 @@ void Aligner::forwardSearch()
             }
         }
     }
-    cout << "Forward search found " << n << " cells." << endl;
+    // cout << "Forward search found " << n << " cells." << endl;
 }
 
 
@@ -781,7 +781,7 @@ void Aligner::backwardSearch()
             }
         }
     }
-    cout << "Backward search found " << n << " cells." << endl;
+    // cout << "Backward search found " << n << " cells." << endl;
 }
 
 
@@ -856,13 +856,13 @@ void Aligner::findActiveCellsConnectedComponents()
         const uint32_t componentId = disjointSets.find_set(cellId);
         connectedComponents[componentId].push_back(iXY);
     }
-    cout << "Found " << connectedComponents.size() << " connected components of sizes:";
+    // cout << "Found " << connectedComponents.size() << " connected components of sizes:";
     activeCellsConnectedComponents.clear();
     for(const auto& p: connectedComponents) {
-        cout << " " << p.second.size();
+        // cout << " " << p.second.size();
         activeCellsConnectedComponents.push_back(p.second);
     }
-    cout << endl;
+    // cout << endl;
 }
 
 
@@ -1060,13 +1060,15 @@ bool Aligner::computeBandedAlignment(
     // Create the AlignmentInfo.
     alignmentInfo.create(alignment, nx, ny);
     pair<uint32_t, uint32_t> trim = alignmentInfo.computeTrim();
-    cout << "Aligned marker count " << alignmentInfo.markerCount << endl;
-    cout << "Aligned marker fraction " <<
-        alignmentInfo.alignedFraction(0) << " " <<
-        alignmentInfo.alignedFraction(1) << endl;
-    cout << "maxSkip " << alignmentInfo.maxSkip << endl;
-    cout << "maxDrift " << alignmentInfo.maxDrift << endl;
-    cout << "Trim " << trim.first << " " << trim.second << endl;
+    if(debug) {
+        cout << "Aligned marker count " << alignmentInfo.markerCount << endl;
+        cout << "Aligned marker fraction " <<
+            alignmentInfo.alignedFraction(0) << " " <<
+            alignmentInfo.alignedFraction(1) << endl;
+        cout << "maxSkip " << alignmentInfo.maxSkip << endl;
+        cout << "maxDrift " << alignmentInfo.maxDrift << endl;
+        cout << "Trim " << trim.first << " " << trim.second << endl;
+    }
 
     if(debug) {
         cout << timestamp << "Banded alignment computation ends." << endl;
