@@ -114,6 +114,7 @@ Aligner::Aligner(
         options.maxSkip,
         options.maxDrift,
         options.maxTrim,
+        options.maxBand,
         alignments, debug);
     if(debug) {
         cout << "Found " << alignments.size() <<
@@ -877,6 +878,7 @@ void Aligner::computeBandedAlignments(
     uint64_t maxSkip,
     uint64_t maxDrift,
     uint64_t maxTrim,
+    uint64_t maxBand,
     vector< pair<Alignment, AlignmentInfo> >& alignments,
     bool debug) const
 {
@@ -921,6 +923,13 @@ void Aligner::computeBandedAlignments(
             cout << "Band width " << bandWidth << endl;
             cout << "Band center " << bandCenter << endl;
             cout << "Alignment length at band center " << nominalAlignmentLength << endl;
+        }
+
+        if(bandWidth > int64_t(maxBand)) {
+            if(debug) {
+                cout << "Discarded due to maxBand." << endl;
+            }
+            continue;
         }
 
         // Compute an alignment with this band.

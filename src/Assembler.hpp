@@ -750,6 +750,7 @@ public:
         uint64_t maxSkip,
         uint64_t maxDrift,
         uint64_t maxTrim,
+        uint64_t maxBand,
         int64_t matchScore,
         int64_t mismatchScore,
         int64_t gapScore) const;

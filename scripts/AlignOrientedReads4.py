@@ -45,6 +45,7 @@ a.alignOrientedReads4(
     maxSkip = int(config['Align']['maxSkip']),
     maxDrift = int(config['Align']['maxDrift']),
     maxTrim = int(config['Align']['maxTrim']),
+    maxBand = int(config['Align']['maxBand']),
     matchScore = int(config['Align']['matchScore']),
     mismatchScore = int(config['Align']['mismatchScore']),
     gapScore = int(config['Align']['gapScore']))

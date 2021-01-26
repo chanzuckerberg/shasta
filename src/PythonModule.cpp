@@ -262,7 +262,7 @@ PYBIND11_MODULE(shasta, module)
                 void (Assembler::*)
                 (ReadId, Strand, ReadId, Strand,
                     uint64_t, uint64_t, uint64_t, uint64_t,
-                    uint64_t, double, uint64_t, uint64_t, uint64_t,
+                    uint64_t, double, uint64_t, uint64_t, uint64_t, uint64_t,
                     int64_t, int64_t, int64_t) const
             )
             &Assembler::alignOrientedReads4,
@@ -279,6 +279,7 @@ PYBIND11_MODULE(shasta, module)
             arg("maxSkip"),
             arg("maxDrift"),
             arg("maxTrim"),
+            arg("maxBand"),
             arg("matchScore"),
             arg("mismatchScore"),
             arg("gapScore"))

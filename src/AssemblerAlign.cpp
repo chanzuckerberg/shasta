@@ -330,6 +330,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
         align4Options.maxSkip = maxSkip;
         align4Options.maxDrift = maxDrift;
         align4Options.maxTrim = maxTrim;
+        align4Options.maxBand = maxBand;
         align4Options.matchScore = matchScore;
         align4Options.mismatchScore = mismatchScore;
         align4Options.gapScore = gapScore;
