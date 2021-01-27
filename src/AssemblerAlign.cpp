@@ -229,7 +229,7 @@ void Assembler::computeAlignments(
     }
 
     // Pick the batch size for computing alignments.
-    size_t batchSize = 10000;
+    size_t batchSize = 10;
     if(batchSize > alignmentCandidates.candidates.size()/threadCount) {
         batchSize = alignmentCandidates.candidates.size()/threadCount;
     }
