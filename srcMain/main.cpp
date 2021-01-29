@@ -862,6 +862,17 @@ void shasta::main::assemble(
             assemblerOptions.assemblyOptions.detangleOffDiagonalRatio
             );
     }
+
+    // If any detangling was done, remove low-coverage cross-edges again.
+    if(assemblerOptions.assemblyOptions.detangleMethod != 0 and
+        assemblerOptions.markerGraphOptions.crossEdgeCoverageThreshold > 0.) {
+        assembler.removeLowCoverageCrossEdges(
+            uint32_t(assemblerOptions.markerGraphOptions.crossEdgeCoverageThreshold));
+        assembler.assemblyGraphPointer->remove();
+        assembler.createAssemblyGraphEdges();
+        assembler.createAssemblyGraphVertices();
+    }
+
     assembler.writeAssemblyGraph("AssemblyGraph-Final.dot");
 
     // Compute optimal repeat counts for each vertex of the marker graph.
