@@ -477,22 +477,28 @@ void Assembler::removeLowCoverageCrossEdges(uint32_t crossEdgeCoverageThreshold)
             const AssemblyGraph::VertexId v1 = edge.target;
 
             // If it is not a cross-edge, skip.
-            const size_t inDegree0 = assemblyGraph.edgesByTarget.size(v0);
+            /*
+            // Ok if more than one edge coming in.
+            const size_t inDegree0 = assemblyGraph.inDegree(v0);
             if(!(inDegree0 == 1)) {
                 continue;
             }
-            const size_t outDegree0 = assemblyGraph.edgesBySource.size(v0);
+            */
+            const size_t outDegree0 = assemblyGraph.outDegree(v0);
             if(!(outDegree0 > 1)) {
                 continue;
             }
-            const size_t inDegree1 = assemblyGraph.edgesByTarget.size(v1);
+            const size_t inDegree1 = assemblyGraph.inDegree(v1);
             if(!(inDegree1 > 1)) {
                 continue;
             }
-            const size_t outDegree1 = assemblyGraph.edgesBySource.size(v1);
+            /*
+            // Ok if more than one edge going out.
+            const size_t outDegree1 = assemblyGraph.outDegree(v1);
             if(!(outDegree1 == 1)) {
                 continue;
             }
+            */
 
             // Mark this edge.
             edge.removalReason = AssemblyGraph::Edge::RemovalReason::LowCoverageCrossEdge;
