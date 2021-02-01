@@ -124,6 +124,8 @@ public:
     // Find out if a vertex with a given OrientedId exists.
     bool vertexExists(OrientedReadId) const;
 
+    bool edgeExists(OrientedReadId a, OrientedReadId b) const;
+
     // Get the distance of an existing vertex from the start vertex.
     uint32_t getDistance(OrientedReadId) const;
 
@@ -151,6 +153,8 @@ public:
 
     uint8_t getEdgeOrdering(const LocalAlignmentCandidateGraphEdge& e);
     uint8_t getVertexOrdering(const LocalAlignmentCandidateGraphVertex& v);
+
+
 
 private:
 

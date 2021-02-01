@@ -5,6 +5,7 @@ using namespace shasta;
 
 // Boost libraries.
 #include <boost/graph/graphviz.hpp>
+using boost::edge;
 
 // Standard library.
 #include "fstream.hpp"
@@ -65,6 +66,19 @@ bool LocalAlignmentCandidateGraph::vertexExists(OrientedReadId orientedReadId) c
    return vertexMap.find(orientedReadId) != vertexMap.end();
 }
 
+
+bool LocalAlignmentCandidateGraph::edgeExists(OrientedReadId a, OrientedReadId b) const
+{
+    auto resultA = vertexMap.find(a);
+    auto resultB = vertexMap.find(b);
+
+    bool exists = false;
+    if (resultA != vertexMap.end() and resultB != vertexMap.end()){
+        exists = edge(resultA->second, resultB->second, *this).second;
+    }
+
+    return exists;
+}
 
 
 // Write the graph in Graphviz format.
