@@ -522,6 +522,7 @@ void shasta::main::assemble(
         SHASTA_ASSERT(newMinReadLength >= oldMinReadLength);
     }
     
+    assembler.computeReadIdsSortedByName();
     assembler.histogramReadLength("ReadLengthHistogram.csv");
 
     const auto t1 = steady_clock::now();

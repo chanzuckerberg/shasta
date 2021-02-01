@@ -88,6 +88,7 @@ public:
         const string& readMetaDataDataName,
         const string& readRepeatCountsDataName,
         const string& readFlagsDataName,
+        const string& readIdsSortedByNameDataName,
         uint64_t largeDataPageSize
     );
 
@@ -96,7 +97,8 @@ public:
         const string& readNamesDataName,
         const string& readMetaDataDataName,
         const string& readRepeatCountsDataName,
-        const string& readFlagsDataName
+        const string& readFlagsDataName,
+        const string& readIdsSortedByNameDataName
     );
 
     inline ReadId readCount() const {
@@ -114,6 +116,11 @@ public:
     inline span<const char> getReadName(ReadId readId) const {
         return readNames[readId];
     }
+
+    // Get a ReadId given a read name.
+    // This uses a binary search in readIdsSortedByName.
+    ReadId getReadId(const string& readName) const;
+    ReadId getReadId(const span<const char>& readName) const;
 
     inline span<const char> getReadMetaData(ReadId readId) const {
         return readMetaData[readId];
@@ -276,6 +283,38 @@ private:
     MemoryMapped::VectorOfVectors<char, uint64_t> readMetaData;
 
     MemoryMapped::Vector<ReadFlags> readFlags;
+
+
+
+    // The read ids, sorted by name.
+    // This is used to find the read id corresponding to a name.
+    MemoryMapped::Vector<ReadId> readIdsSortedByName;
+public:
+    void computeReadIdsSortedByName();
+private:
+
+    // Class used to sort ReadId's by name, and also to look up the
+    // ReadId corresponding to a given name.
+    class OrderReadsByName {
+    public:
+        OrderReadsByName(const MemoryMapped::VectorOfVectors<char, uint64_t>& readNames) :
+            readNames(readNames) {}
+
+        // This one is used by std::sort.
+        bool operator()(const ReadId& readId0, const ReadId& readId1) const {
+            const auto name0 = readNames[readId0];
+            const auto name1 = readNames[readId1];
+            return std::lexicographical_compare(name0.begin(), name0.end(), name1.begin(), name1.end());
+        }
+
+        // This one is used by std::lower_bound.
+        bool operator()(const ReadId& readId0, const span<const char>& name1) const {
+            const auto name0 = readNames[readId0];
+            return std::lexicographical_compare(name0.begin(), name0.end(), name1.begin(), name1.end());
+        }
+    private:
+        const MemoryMapped::VectorOfVectors<char, uint64_t>& readNames;
+    };
 
     
     // Read statistics.

@@ -80,6 +80,13 @@ PYBIND11_MODULE(shasta, module)
             arg("readId"),
             arg("strand"),
             arg("fileName"))
+        .def("getReadId",
+            (
+                ReadId (Reads::*)
+                (const string&) const
+            )
+            &Reads::getReadId,
+            "Find the ReadId corresponding to a given read name.")
         ;
 
 
