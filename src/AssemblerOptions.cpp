@@ -175,6 +175,13 @@ void AssemblerOptions::addCommandLineOnlyOptions()
         value<uint16_t>(&commandLineOnlyOptions.port)->
         default_value(17100),
         "Port to be used by the http server (command --explore).")
+
+        ("alignmentsPafFile",
+        value<string>(&commandLineOnlyOptions.alignmentsPafFile),
+        "The name of a PAF file containing alignments of reads to "
+        "a reference. Only used for --command explore, for display of the alignment "
+        "candidate graph. Experimental."
+        )
 #endif
         ;
 

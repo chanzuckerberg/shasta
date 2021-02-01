@@ -100,6 +100,7 @@ public:
 #ifdef SHASTA_HTTP_SERVER
     string exploreAccess;
     uint16_t port;
+    string alignmentsPafFile;
 #endif
 };
 

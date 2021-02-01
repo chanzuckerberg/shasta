@@ -288,14 +288,18 @@ Specifies the number of threads to be used, or 0
 to request one thread per virtual processor.
 
 <tr><td><code>--exploreAccess</code><td class=centered><code>user</code><td>
-Specifies access control for command <code>explore</code>.
+Specifies access control for <code>--command explore</code>.
 <a class=qm href='InspectingResults.html#AccessControl'/>
 
 <tr><td><code>--port</code><td class=centered><code>17100</code><td>
-The TCP port to be used by command <code>explore</code>.
+The TCP port to be used for <code>--command explore</code>.
 If the specified port is not available,
 Shasta will try again after incrementing the port number a few times.
 
+<tr><td><code>--alignmentsPafFile</code><td class=centered><code>""</code><td>
+The name of a PAF file containing alignments of reads to 
+a reference. Only used for <code>--command explore</code>, 
+for display of the alignment candidate graph. Experimental.
 </table>
 
 
