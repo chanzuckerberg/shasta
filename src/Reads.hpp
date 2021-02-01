@@ -117,6 +117,11 @@ public:
         return readNames[readId];
     }
 
+    // Get a ReadId given a read name.
+    // This uses a binary search in readIdsSortedByName.
+    ReadId getReadId(const string& readName) const;
+    ReadId getReadId(const span<const char>& readName) const;
+
     inline span<const char> getReadMetaData(ReadId readId) const {
         return readMetaData[readId];
     }
@@ -294,9 +299,17 @@ private:
     public:
         OrderReadsByName(const MemoryMapped::VectorOfVectors<char, uint64_t>& readNames) :
             readNames(readNames) {}
+
+        // This one is used by std::sort.
         bool operator()(const ReadId& readId0, const ReadId& readId1) const {
             const auto name0 = readNames[readId0];
             const auto name1 = readNames[readId1];
+            return std::lexicographical_compare(name0.begin(), name0.end(), name1.begin(), name1.end());
+        }
+
+        // This one is used by std::lower_bound.
+        bool operator()(const ReadId& readId0, const span<const char>& name1) const {
+            const auto name0 = readNames[readId0];
             return std::lexicographical_compare(name0.begin(), name0.end(), name1.begin(), name1.end());
         }
     private:

@@ -485,3 +485,31 @@ void Reads::computeReadIdsSortedByName()
     sort(readIdsSortedByName.begin(), readIdsSortedByName.end(),
         OrderReadsByName(readNames));
 }
+
+
+
+// Get a ReadId given a read name.
+// This uses a binary search in readIdsSortedByName.
+ReadId Reads::getReadId(const string& readName) const
+{
+    const auto begin = readName.data();
+    const auto end = begin + readName.size();
+    span<const char> s(begin, end);
+    return getReadId(s);
+}
+ReadId Reads::getReadId(const span<const char>& readName) const
+{
+    const auto begin = readIdsSortedByName.begin();
+    const auto end = readIdsSortedByName.end();
+    auto it = std::lower_bound(begin, end, readName, OrderReadsByName(readNames));
+    if(it == end) {
+        return invalidReadId;
+    }
+    const ReadId readId = *it;
+    if(readNames[readId] == readName) {
+        return readId;
+    } else {
+        return invalidReadId;
+    }
+}
+
