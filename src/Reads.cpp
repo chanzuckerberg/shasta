@@ -13,6 +13,7 @@ void Reads::createNew(
     const string& readMetaDataDataName,
     const string& readRepeatCountsDataName,
     const string& readFlagsDataName,
+    const string& readIdsSortedByNameDataName,
     uint64_t largeDataPageSize)
 {
     reads.createNew(readsDataName, largeDataPageSize);
@@ -20,6 +21,7 @@ void Reads::createNew(
     readMetaData.createNew(readMetaDataDataName, largeDataPageSize);
     readRepeatCounts.createNew(readRepeatCountsDataName, largeDataPageSize);
     readFlags.createNew(readFlagsDataName, largeDataPageSize);
+    readIdsSortedByName.createNew(readIdsSortedByNameDataName, largeDataPageSize);
 }
 
 void Reads::access(
@@ -27,13 +29,15 @@ void Reads::access(
     const string& readNamesDataName,
     const string& readMetaDataDataName,
     const string& readRepeatCountsDataName,
-    const string& readFlagsDataName)
+    const string& readFlagsDataName,
+    const string& readIdsSortedByNameDataName)
 {
     reads.accessExistingReadWrite(readsDataName);
     readNames.accessExistingReadWrite(readNamesDataName);
     readMetaData.accessExistingReadWrite(readMetaDataDataName);
     readRepeatCounts.accessExistingReadWrite(readRepeatCountsDataName);
     readFlags.accessExistingReadWrite(readFlagsDataName);
+    readIdsSortedByName.accessExistingReadWrite(readIdsSortedByNameDataName);
 }
 
 
@@ -465,4 +469,19 @@ void Reads::writeReadLengthHistogram(const string& fileName) {
 
     cout << "See " << fileName << " and Binned-" << fileName <<
         " for details of the read length distribution." << endl;
+}
+
+
+
+void Reads::computeReadIdsSortedByName()
+{
+    // Store ReadId's in numerical order.
+    readIdsSortedByName.resize(readCount());
+    for(ReadId readId=0; readId<readCount(); readId++) {
+        readIdsSortedByName[readId] = readId;
+    }
+
+    // Sort them by name.
+    sort(readIdsSortedByName.begin(), readIdsSortedByName.end(),
+        OrderReadsByName(readNames));
 }

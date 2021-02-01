@@ -236,6 +236,7 @@ uint64_t Assembler::adjustCoverageAndGetNewMinReadLength(uint64_t desiredCoverag
         largeDataName("ReadMetaData"),
         largeDataName("ReadRepeatCounts"),
         largeDataName("ReadFlags"),
+        largeDataName("ReadIdsSortedByName"),
         largeDataPageSize
     );
 

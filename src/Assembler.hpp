@@ -409,6 +409,11 @@ public:
 public:
     void writeReadsSummary();
 
+    void computeReadIdsSortedByName()
+    {
+        reads->computeReadIdsSortedByName();
+    }
+
 
 private:
 
