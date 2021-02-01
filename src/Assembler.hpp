@@ -1778,6 +1778,11 @@ public:
 
         const AssemblerOptions* assemblerOptions = 0;
 
+        // For the display of the alignment candidate graph, we can optionally
+        // specify a paf file containing alignments of reads to the reference.
+        // Add here any data structures to store this information.
+        void loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePath);
+
     };
     HttpServerData httpServerData;
 

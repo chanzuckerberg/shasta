@@ -1093,6 +1093,19 @@ void shasta::main::cleanupBinaryData(
 void shasta::main::explore(
     const AssemblerOptions& assemblerOptions)
 {
+    // If a paf file was specified, find its absolute path
+    // before we switch to the assembly directory.
+    string alignmentsPafFileAbsolutePath;
+    if(not assemblerOptions.commandLineOnlyOptions.alignmentsPafFile.empty()) {
+        if(!filesystem::exists(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
+            throw runtime_error(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile + " not found.");
+        }
+        if(!filesystem::isRegularFile(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile)) {
+            throw runtime_error(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile + " is not a regular file.");
+        }
+        alignmentsPafFileAbsolutePath = filesystem::getAbsolutePath(assemblerOptions.commandLineOnlyOptions.alignmentsPafFile);
+    }
+
     // Go to the assembly directory.
     filesystem::changeDirectory(assemblerOptions.commandLineOnlyOptions.assemblyDirectory);
     
@@ -1132,6 +1145,11 @@ void shasta::main::explore(
         assembler.httpServerData.docsDirectory = docsPath;
     } else {
         assembler.httpServerData.docsDirectory = "";
+    }
+
+    // Load the paf file, if one was specified.
+    if(not alignmentsPafFileAbsolutePath.empty()) {
+        assembler.httpServerData.loadAlignmentsPafFile(alignmentsPafFileAbsolutePath);
     }
 
     // Start the http server.

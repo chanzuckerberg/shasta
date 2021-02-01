@@ -425,6 +425,16 @@ void Assembler::exploreAlignmentCandidateGraph(
 
 
 
+// For the display of the alignment candidate graph, we can optionally
+// specify a paf file containing alignments of reads to the reference.
+// Add here any data structures to store this information.
+void Assembler::HttpServerData::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePath)
+{
+    throw runtime_error("PAF file functionality is not yet implemented.");
+}
+
+
+
 void Assembler::exploreAlignments(
     const vector<string>& request,
     ostream& html)
