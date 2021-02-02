@@ -336,7 +336,7 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
         align4Options.gapScore = gapScore;
         byteAllocator.createNew(
             largeDataName("tmp-ByteAllocator-" + to_string(threadId)),
-            largeDataPageSize, 512 * 1024 * 1024);
+            largeDataPageSize, 2ULL * 1024 * 1024 * 1024);
     }
 
     vector<AlignmentData>& threadAlignmentData = data.threadAlignmentData[threadId];

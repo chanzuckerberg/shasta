@@ -50,7 +50,7 @@ public:
         allocatedByteCount = 0;
         allocatedBlockCount = 0;
         data.createNew(name, pageSize);
-        data.resize(n); // Never resize after this!
+        data.reserveAndResize(n); // Never resize after this!
     }
 
     ~ByteAllocator()

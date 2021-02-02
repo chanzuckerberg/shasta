@@ -45,7 +45,7 @@ void Assembler::alignOrientedReads4(
 
     // Set up the memory allocator.
     MemoryMapped::ByteAllocator byteAllocator(
-        largeDataName("tmp-ByteAllocator"), largeDataPageSize, 1024 * 1024 * 1024);
+        largeDataName("tmp-ByteAllocator"), largeDataPageSize, 2ULL * 1024 * 1024 * 1024);
 
 
     // Compute the alignment.
