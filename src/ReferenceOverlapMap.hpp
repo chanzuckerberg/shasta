@@ -1,6 +1,8 @@
 #ifndef SHASTA_REFERENCEOVERLAPMAP_HPP
 #define SHASTA_REFERENCEOVERLAPMAP_HPP
 
+#include "ReadId.hpp"
+
 #include <boost/icl/split_interval_map.hpp>
 #include <boost/icl/interval_map.hpp>
 #include <boost/icl/interval.hpp>
@@ -10,9 +12,11 @@ using boost::icl::interval_map;
 using boost::icl::interval;
 
 #include <unordered_map>
+#include <string>
 #include <set>
 
 using std::unordered_map;
+using std::string;
 using std::set;
 
 

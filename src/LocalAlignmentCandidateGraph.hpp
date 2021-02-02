@@ -28,6 +28,7 @@ reference alignment of reads.
 // Standard libraries.
 #include <map>
 
+
 namespace shasta {
 
     class LocalAlignmentCandidateGraphVertex;
@@ -79,6 +80,7 @@ public:
 class shasta::LocalAlignmentCandidateGraphEdge {
 public:
 
+    bool inCandidates;
     bool inAlignments;
     bool inReadGraph;
     bool inReferenceAlignments;
@@ -88,15 +90,18 @@ public:
     string getSvgClassName() const;
 
     LocalAlignmentCandidateGraphEdge(
+        bool inCandidates,
         bool inAlignments,
         bool inReadgraph,
         bool inReferenceAlignments) :
+            inCandidates(inCandidates),
             inAlignments(inAlignments),
             inReadGraph(inReadgraph),
             inReferenceAlignments(inReferenceAlignments)
     {};
 
     LocalAlignmentCandidateGraphEdge():
+            inCandidates(false),
             inAlignments(false),
             inReadGraph(false),
             inReferenceAlignments(false)
@@ -117,6 +122,7 @@ public:
     void addEdge(
         OrientedReadId orientedReadId0,
         OrientedReadId orientedReadId1,
+        bool inCandidates,
         bool inAlignments,
         bool inReadgraph,
         bool inReferenceAlignments);
@@ -126,7 +132,9 @@ public:
 
     bool edgeExists(OrientedReadId a, OrientedReadId b) const;
 
-    // Get the distance of an existing vertex from the start vertex.
+    void getAdjacentReadIds(OrientedReadId id, vector<OrientedReadId>& adjacentReadIds);
+
+        // Get the distance of an existing vertex from the start vertex.
     uint32_t getDistance(OrientedReadId) const;
 
     // Compute sfdp layout using graphviz and store the results
@@ -150,10 +158,6 @@ public:
     // Write in Graphviz format.
     void write(ostream&, uint32_t maxDistance) const;
     void write(const string& fileName, uint32_t maxDistance) const;
-
-    uint8_t getEdgeOrdering(const LocalAlignmentCandidateGraphEdge& e);
-    uint8_t getVertexOrdering(const LocalAlignmentCandidateGraphVertex& v);
-
 
 
 private:

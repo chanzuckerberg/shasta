@@ -471,7 +471,7 @@ void Assembler::HttpServerData::createGraphEdgesFromOverlapMap(const ReferenceOv
         auto& prevReadSet = emptySet;
 
         for (auto i = begin(overlaps), e = end(overlaps); i!=e; ++i){
-            const auto& interval = i->first;
+//            const auto& interval = i->first;
             auto& readSet = i->second;
 
             for (const auto& id: readSet){
@@ -480,13 +480,13 @@ void Assembler::HttpServerData::createGraphEdgesFromOverlapMap(const ReferenceOv
                     for (const auto& otherId: readSet){
                         if (otherId != id){
                             // Won't duplicate edges if boost::adjacency_list is initialized with OutEdgesList as 'setS'
-                            referenceOverlapGraph.addEdge(id, otherId, false, false, true);
+                            referenceOverlapGraph.addEdge(id, otherId, false, false, false, false);
 
                             // Need to make the graph double stranded
                             auto idFlipped = OrientedReadId(id.getReadId(), 1 - id.getStrand());
                             auto otherIdFlipped = OrientedReadId(otherId.getReadId(), 1 - otherId.getStrand());
 
-                            referenceOverlapGraph.addEdge(idFlipped, otherIdFlipped, false, false, true);
+                            referenceOverlapGraph.addEdge(idFlipped, otherIdFlipped, false, false, false, false);
                         }
                     }
                 }
@@ -517,10 +517,10 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
     string token;
     string regionName;
     string readName;
-    bool isReverse;
     uint32_t start;
     uint32_t stop;
     uint32_t quality;
+    bool isReverse = false;
 
     uint64_t nDelimiters = 0;
     uint64_t nLines = 0;
@@ -555,6 +555,7 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
                     OrientedReadId reverseId(id, 1);
 
                     if (id != invalidReadId) {
+                        // Update the overlap map
                         if (isReverse){
                             overlapMap.insert(regionName, start, stop, reverseId);
                         }
@@ -562,6 +563,7 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
                             overlapMap.insert(regionName, start, stop, forwardId);
                         }
 
+                        // Create the forward and reverse sequence nodes
                         if(!httpServerData.referenceOverlapGraph.vertexExists(forwardId)){
                             httpServerData.referenceOverlapGraph.addVertex(forwardId, 0, 0);
                         }

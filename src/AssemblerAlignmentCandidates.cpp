@@ -7,7 +7,6 @@ using namespace shasta;
 
 
 
-
 bool Assembler::createLocalAlignmentCandidateGraph(
         vector<OrientedReadId>& starts,
         uint32_t maxDistance,           // How far to go from starting oriented read.
@@ -57,6 +56,7 @@ bool Assembler::createLocalAlignmentCandidateGraph(
             // Get the other oriented read involved in this overlap.
             const OrientedReadId orientedReadId1 = pair.getOther(orientedReadId0);
 
+            bool inCandidates = true;
             bool inAlignments = false;
             bool inReadgraph = false;
             bool inReferenceAlignments = false;
@@ -81,8 +81,10 @@ bool Assembler::createLocalAlignmentCandidateGraph(
                 }
             }
 
-            // TODO add reference alignment table and check for this edge's existence
-
+            // Search the referenceOverlapGraph to see if this pair exists
+            if (httpServerData.referenceOverlapGraph.edgeExists(orientedReadId0, orientedReadId1)){
+                inReferenceAlignments = true;
+            }
 
             // Update our BFS.
             // Note that we are pushing to the queue vertices at maxDistance,
@@ -94,11 +96,70 @@ bool Assembler::createLocalAlignmentCandidateGraph(
                     q.push(orientedReadId1);
                 }
 
-                graph.addEdge(orientedReadId0, orientedReadId1, inAlignments, inReadgraph, inReferenceAlignments);
+                graph.addEdge(orientedReadId0,
+                              orientedReadId1,
+                              inCandidates,
+                              inAlignments,
+                              inReadgraph,
+                              inReferenceAlignments);
             } else {
                 SHASTA_ASSERT(distance0 == maxDistance);
                 if(graph.vertexExists(orientedReadId1)) {
-                    graph.addEdge(orientedReadId0, orientedReadId1, inAlignments, inReadgraph, inReferenceAlignments);
+                    graph.addEdge(orientedReadId0,
+                                  orientedReadId1,
+                                  inCandidates,
+                                  inAlignments,
+                                  inReadgraph,
+                                  inReferenceAlignments);
+                }
+            }
+        }
+
+        // We effectively want to search through the union of the reference graph and the candidate graph.
+        // Since the reference graph is stored in a different data structure, a second loop is needed to iterate edges.
+        // This may lead to bridging of candidates that were not previously bridged, because the reference graph
+        // adds edges. This would effectively shorten the "distance" of nodes that may or may not have been reachable
+        // in the candidate graph alone for a given maxDistance.
+        vector<OrientedReadId> referenceNeighbors;
+        httpServerData.referenceOverlapGraph.getAdjacentReadIds(orientedReadId0, referenceNeighbors);
+
+        for (auto& orientedReadId1: referenceNeighbors){
+            // Only iterate edges that aren't already in the candidates.
+            if (graph.edgeExists(orientedReadId0, orientedReadId1)){
+                continue;
+            }
+
+            // No need to check if these edges are in any subgroup, because they would have already been added
+            bool inCandidates = false;
+            bool inAlignments = false;
+            bool inReadgraph = false;
+            bool inReferenceAlignments = true;
+
+            // Update our BFS.
+            // Note that we are pushing to the queue vertices at maxDistance,
+            // so we can find all of their edges to other vertices at maxDistance.
+            if(distance0 < maxDistance) {
+                if(!graph.vertexExists(orientedReadId1)) {
+                    graph.addVertex(orientedReadId1,
+                                    uint32_t(reads->getRead(orientedReadId1.getReadId()).baseCount), distance1);
+                    q.push(orientedReadId1);
+                }
+
+                graph.addEdge(orientedReadId0,
+                              orientedReadId1,
+                              inCandidates,
+                              inAlignments,
+                              inReadgraph,
+                              inReferenceAlignments);
+            } else {
+                SHASTA_ASSERT(distance0 == maxDistance);
+                if(graph.vertexExists(orientedReadId1)) {
+                    graph.addEdge(orientedReadId0,
+                                  orientedReadId1,
+                                  inCandidates,
+                                  inAlignments,
+                                  inReadgraph,
+                                  inReferenceAlignments);
                 }
             }
         }

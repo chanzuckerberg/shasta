@@ -4,13 +4,18 @@
 using namespace shasta;
 
 // Boost libraries.
+#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
+
+using boost::graph_traits;
+using boost::adjacent_vertices;
 using boost::edge;
 
 // Standard library.
-#include "fstream.hpp"
-#include "stdexcept.hpp"
+#include <fstream.hpp>
+#include <stdexcept.hpp>
 
+using std::tie;
 
 
 void LocalAlignmentCandidateGraph::addVertex(
@@ -33,6 +38,7 @@ void LocalAlignmentCandidateGraph::addVertex(
 void LocalAlignmentCandidateGraph::addEdge(
     OrientedReadId orientedReadId0,
     OrientedReadId orientedReadId1,
+    bool inCandidates,
     bool inAlignments,
     bool inReadgraph,
     bool inReferenceAlignments)
@@ -46,9 +52,35 @@ void LocalAlignmentCandidateGraph::addEdge(
     const vertex_descriptor v1 = it1->second;
 
     // Add the edge.
-    add_edge(v0, v1, LocalAlignmentCandidateGraphEdge(inAlignments, inReadgraph, inReferenceAlignments), *this);
+    add_edge(v0, v1, LocalAlignmentCandidateGraphEdge(inCandidates, inAlignments, inReadgraph, inReferenceAlignments), *this);
 }
 
+
+void LocalAlignmentCandidateGraph::getAdjacentReadIds(OrientedReadId id, vector<OrientedReadId>& adjacentReadIds){
+    LocalAlignmentCandidateGraph& graph = *this;
+
+    const auto it = vertexMap.find(id);
+
+    // This read may not exist in the ReferenceGraph at all (in which case, do nothing)
+    if (it != vertexMap.end()) {
+        const vertex_descriptor v = it->second;
+
+//        // The derived class LocalAlignmentCandidateGraph can specify the type of boost adjacency_list by inheritance
+//        graph_traits<LocalAlignmentCandidateGraph>::vertex_iterator iter;
+//        graph_traits<LocalAlignmentCandidateGraph>::vertex_iterator end;
+//
+//        for (tie(iter, end) = adjacent_vertices(v, *this); iter != end; ++iter) {
+//            OrientedReadId otherId(graph[*iter].orientedReadId);
+//            adjacentReadIds.push_back(otherId);
+//        }
+
+        BGL_FORALL_ADJ(v, v2, graph, LocalAlignmentCandidateGraph){
+            OrientedReadId otherId(graph[v2].orientedReadId);
+            adjacentReadIds.push_back(otherId);
+
+        };
+    }
+}
 
 
 uint32_t LocalAlignmentCandidateGraph::getDistance(OrientedReadId orientedReadId) const
@@ -58,7 +90,6 @@ uint32_t LocalAlignmentCandidateGraph::getDistance(OrientedReadId orientedReadId
     const vertex_descriptor v = it->second;
     return (*this)[v].distance;
 }
-
 
 
 bool LocalAlignmentCandidateGraph::vertexExists(OrientedReadId orientedReadId) const
@@ -204,12 +235,20 @@ string LocalAlignmentCandidateGraphEdge::getSvgClassName() const{
             className = "Alignment";
         }
     }
-    else {
+    else if(inCandidates){
         if (inReferenceAlignments){
             className = "CandidateInRef";
         }
         else{
             className = "Candidate";
+        }
+    }
+    else {
+        if (inReferenceAlignments){
+            className = "ReferenceOnly";
+        }
+        else{
+            throw runtime_error("ERROR: edge in candidate graph does not have any class label");
         }
     }
 
