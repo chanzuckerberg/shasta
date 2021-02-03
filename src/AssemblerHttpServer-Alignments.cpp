@@ -22,9 +22,18 @@ using namespace shasta;
 #include <seqan/align.h>
 
 // Standard library.
-#include "chrono.hpp"
+#include <chrono>
+#include <unordered_map>
+#include <ostream>
+#include <string>
+#include <set>
+
 using std::random_device;
 using std::uniform_int_distribution;
+using std::unordered_map;
+using std::ostream;
+using std::string;
+using std::set;
 
 
 /*
@@ -192,7 +201,7 @@ void Assembler::writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-ReferenceOnly"
             onclick="setEdgeColor('Venn-ReferenceOnly', 'ReferenceOnly')"
-	        stroke="gray" fill="red" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
+	        stroke="gray" fill="#FF2800" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // Text labels
@@ -240,6 +249,9 @@ void Assembler::exploreAlignmentCandidateGraph(
 
     double timeout = 30;
     getParameterValue(request, "timeout", timeout);
+
+    string referenceGraphOnlyString;
+    const bool referenceGraphOnly = getParameterValue(request, "referenceGraphOnly", referenceGraphOnlyString);
 
 
     // Write the form.
@@ -325,6 +337,12 @@ void Assembler::exploreAlignmentCandidateGraph(
          " value='" << timeout <<
          "'>"
 
+         "<tr title='Only use overlaps from reference graph'>"
+         "<td>Reference graph only"
+         "<td class=centered><input type=checkbox name=referenceGraphOnly" <<
+         (referenceGraphOnly ? " checked" : "") <<
+         ">"
+
          "</table>"
          "</div>"
          "</div>"
@@ -360,16 +378,31 @@ void Assembler::exploreAlignmentCandidateGraph(
 
     // Create the local graph.
     LocalAlignmentCandidateGraph graph;
-    if(!createLocalCandidateGraph(
-            readIds,
-            maxDistance,
-            allowChimericReads,
-            timeout,
-            graph
-    )) {
-        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-        return;
+    if (referenceGraphOnly){
+        if(!createLocalReferenceGraph(
+                readIds,
+                maxDistance,
+                allowChimericReads,
+                timeout,
+                graph
+        )) {
+            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            return;
+        }
     }
+    else {
+        if (!createLocalAlignmentCandidateGraph(
+                readIds,
+                maxDistance,
+                allowChimericReads,
+                timeout,
+                graph
+        )) {
+            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            return;
+        }
+    }
+
     html << "<p>The local alignment candidate graph has " << num_vertices(graph);
     html << " vertices and " << num_edges(graph) << " edges.";
 
@@ -424,13 +457,168 @@ void Assembler::exploreAlignmentCandidateGraph(
 }
 
 
+/// Given an overlap map with the structure: [interval_start, interval_stop) -> {read_id_0, read_id_1, ... },
+/// build the edges of a graph, one edge for each inferred overlap.
+/// Graph must have existing nodes, stored by the read ID in a vector.
+///
+/// Method:
+/// Iterate the interval:set pairs in order and add any edges that don't exist yet in the graph
+///
+/// Case 1:
+/// s1 = {a,b,c}
+/// s2 = {a,b,c,d}
+///
+/// s2 - s1 = {d}
+/// add all edges from (s2 - s1) -> s2
+///
+///
+/// Case 2:
+/// s1 = {a,b,c,d}
+/// s2 = {a,b,c}
+///
+/// s2 - s1 = {}
+/// Do nothing
+///
+///
+/// Case 3:
+/// s1 = {a,b,c}
+/// s2 = {a,b,d}
+///
+/// s2 - s1 = {d}
+/// add all edges from (s2 - s1) -> s2
+///
+void Assembler::HttpServerData::createGraphEdgesFromOverlapMap(const ReferenceOverlapMap& overlapMap){
+    set<OrientedReadId> emptySet = {};
+
+    for (auto& item: overlapMap.intervals){
+        const auto& overlaps = item.second;
+        auto& prevReadSet = emptySet;
+
+        for (auto i = begin(overlaps), e = end(overlaps); i!=e; ++i){
+//            const auto& interval = i->first;
+            auto& readSet = i->second;
+
+            for (const auto& id: readSet){
+                // If this read id is not in the previous set, it indicates that more edges need to be built
+                if (prevReadSet.count(id) == 0){
+                    for (const auto& otherId: readSet){
+                        if (otherId != id){
+                            // Won't duplicate edges if boost::adjacency_list is initialized with OutEdgesList as 'setS'
+                            referenceOverlapGraph.addEdge(id, otherId, false, false, false, false);
+
+                            // Need to make the graph double stranded
+                            auto idFlipped = OrientedReadId(id.getReadId(), 1 - id.getStrand());
+                            auto otherIdFlipped = OrientedReadId(otherId.getReadId(), 1 - otherId.getStrand());
+
+                            referenceOverlapGraph.addEdge(idFlipped, otherIdFlipped, false, false, false, false);
+                        }
+                    }
+                }
+            }
+            prevReadSet = readSet;
+        }
+    }
+}
+
 
 // For the display of the alignment candidate graph, we can optionally
 // specify a paf file containing alignments of reads to the reference.
-// Add here any data structures to store this information.
-void Assembler::HttpServerData::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePath)
+// Persistent data structures from loading the PAF are stored as
+// members of HttpServerData
+void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePath)
 {
-    throw runtime_error("PAF file functionality is not yet implemented.");
+    // TODO: parameterize this? add browser field?
+    uint32_t minQuality = 50;
+
+    ifstream pafFile(alignmentsPafFileAbsolutePath);
+
+    cerr << "Loading PAF file from " << alignmentsPafFileAbsolutePath << '\n';
+
+    if (not pafFile.good()){
+        throw runtime_error("ERROR: could not open input file: " + alignmentsPafFileAbsolutePath);
+    }
+
+    ReferenceOverlapMap overlapMap;
+
+    string token;
+    string regionName;
+    string readName;
+    uint32_t start = 0;
+    uint32_t stop = 0;
+    uint32_t quality = 0;
+    bool isReverse = false;
+
+    uint64_t nDelimiters = 0;
+    uint64_t nLines = 0;
+    char c;
+
+    while (pafFile.get(c)) {
+        if (c == '\t') {
+            if (nDelimiters == 0) {
+                readName = token;
+            }
+            else if (nDelimiters == 4) {
+                isReverse = (token == "-");
+            }
+            else if (nDelimiters == 5) {
+                regionName = token;
+            }
+            else if (nDelimiters == 7) {
+                start = stoi(token);
+            }
+            else if (nDelimiters == 8) {
+                stop = stoi(token);
+            }
+            else if (nDelimiters == 11) {
+                quality = stoi(token);
+
+                if (quality >= minQuality) {
+
+                    ReadId id = getReads().getReadId(readName);
+                    OrientedReadId forwardId(id, 0);
+                    OrientedReadId reverseId(id, 1);
+
+                    if (id != invalidReadId) {
+                        // Update the overlap map
+                        if (isReverse){
+                            overlapMap.insert(regionName, start, stop, reverseId);
+                        }
+                        else{
+                            overlapMap.insert(regionName, start, stop, forwardId);
+                        }
+
+                        // Create the forward and reverse sequence nodes
+                        if(!httpServerData.referenceOverlapGraph.vertexExists(forwardId)){
+                            httpServerData.referenceOverlapGraph.addVertex(forwardId, 0, 0);
+                        }
+                        if(!httpServerData.referenceOverlapGraph.vertexExists(reverseId)){
+                            httpServerData.referenceOverlapGraph.addVertex(reverseId, 0, 0);
+                        }
+                    }
+                    else{
+                        cerr << "WARNING: skipping read not used in shasta assembly: " << readName << '\n';
+                    }
+                }
+            }
+
+            token.resize(0);
+            nDelimiters++;
+        }
+        else if (c == '\n'){
+            if (nDelimiters < 11){
+                throw runtime_error("ERROR: file provided does not contain sufficient tab delimiters to be PAF");
+            }
+
+            token.resize(0);
+            nDelimiters = 0;
+            nLines++;
+        }
+        else {
+            token += c;
+        }
+    }
+
+    httpServerData.createGraphEdgesFromOverlapMap(overlapMap);
 }
 
 

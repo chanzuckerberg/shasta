@@ -12,6 +12,7 @@
 #include "HttpServer.hpp"
 #include "InducedAlignment.hpp"
 #include "Kmer.hpp"
+#include "LocalAlignmentCandidateGraph.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
 #include "MarkerGraph.hpp"
@@ -22,6 +23,7 @@
 #include "ReadFlags.hpp"
 #include "ReadId.hpp"
 #include "Reads.hpp"
+#include "ReferenceOverlapMap.hpp"
 
 // Standard library.
 #include "memory.hpp"
@@ -660,7 +662,17 @@ private:
     MemoryMapped::Vector< array<uint64_t, 3> > readLowHashStatistics;
     void accessReadLowHashStatistics();
 
-    bool createLocalCandidateGraph(
+    bool createLocalAlignmentCandidateGraph(
+        vector<OrientedReadId>& starts,
+        uint32_t maxDistance,           // How far to go from starting oriented read.
+        bool allowChimericReads,
+        double timeout,                 // Or 0 for no timeout.
+        LocalAlignmentCandidateGraph& graph);
+
+    // This method is used as an alternative to createLocalAlignmentCandidateGraph, in the case that the user
+    // wants to see only the edges that are inferred from the PAF, and none others. Coloring/labelling w.r.t.
+    // the different subgroups still applies (candidate, good alignment, read graph)
+    bool createLocalReferenceGraph(
         vector<OrientedReadId>& starts,
         uint32_t maxDistance,           // How far to go from starting oriented read.
         bool allowChimericReads,
@@ -1773,6 +1785,7 @@ public:
     static void addScaleSvgButtons(ostream&);
     class HttpServerData {
     public:
+        LocalAlignmentCandidateGraph referenceOverlapGraph;
 
         using ServerFunction = void (Assembler::*) (
             const vector<string>& request,
@@ -1783,13 +1796,16 @@ public:
 
         const AssemblerOptions* assemblerOptions = 0;
 
-        // For the display of the alignment candidate graph, we can optionally
-        // specify a paf file containing alignments of reads to the reference.
-        // Add here any data structures to store this information.
-        void loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePath);
+        void createGraphEdgesFromOverlapMap(const ReferenceOverlapMap& overlapMap);
 
     };
     HttpServerData httpServerData;
+
+    // For the display of the alignment candidate graph, we can optionally
+    // specify a PAF file containing alignments of reads to the reference.
+    // Persistent data structures from loading the PAF are stored as
+    // members of HttpServerData
+    void loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePath);
 
     // Display alignments in an html table.
     void displayAlignments(

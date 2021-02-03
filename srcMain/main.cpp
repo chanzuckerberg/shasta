@@ -1150,7 +1150,7 @@ void shasta::main::explore(
 
     // Load the paf file, if one was specified.
     if(not alignmentsPafFileAbsolutePath.empty()) {
-        assembler.httpServerData.loadAlignmentsPafFile(alignmentsPafFileAbsolutePath);
+        assembler.loadAlignmentsPafFile(alignmentsPafFileAbsolutePath);
     }
 
     // Start the http server.

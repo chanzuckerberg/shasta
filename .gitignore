@@ -6,3 +6,4 @@ docs/doxygen/latex
 .idea
 
 cmake-build-debug/
+build/
