@@ -669,6 +669,16 @@ private:
         double timeout,                 // Or 0 for no timeout.
         LocalAlignmentCandidateGraph& graph);
 
+    // This method is used as an alternative to createLocalAlignmentCandidateGraph, in the case that the user
+    // wants to see only the edges that are inferred from the PAF, and none others. Coloring/labelling w.r.t.
+    // the different subgroups still applies (candidate, good alignment, read graph)
+    bool createLocalReferenceGraph(
+        vector<OrientedReadId>& starts,
+        uint32_t maxDistance,           // How far to go from starting oriented read.
+        bool allowChimericReads,
+        double timeout,                 // Or 0 for no timeout.
+        LocalAlignmentCandidateGraph& graph);
+
     // Compute a marker alignment of two oriented reads.
     void alignOrientedReads(
         OrientedReadId,

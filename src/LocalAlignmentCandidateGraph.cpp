@@ -65,20 +65,11 @@ void LocalAlignmentCandidateGraph::getAdjacentReadIds(OrientedReadId id, vector<
     if (it != vertexMap.end()) {
         const vertex_descriptor v = it->second;
 
-//        // The derived class LocalAlignmentCandidateGraph can specify the type of boost adjacency_list by inheritance
-//        graph_traits<LocalAlignmentCandidateGraph>::vertex_iterator iter;
-//        graph_traits<LocalAlignmentCandidateGraph>::vertex_iterator end;
-//
-//        for (tie(iter, end) = adjacent_vertices(v, *this); iter != end; ++iter) {
-//            OrientedReadId otherId(graph[*iter].orientedReadId);
-//            adjacentReadIds.push_back(otherId);
-//        }
-
         BGL_FORALL_ADJ(v, v2, graph, LocalAlignmentCandidateGraph){
             OrientedReadId otherId(graph[v2].orientedReadId);
             adjacentReadIds.push_back(otherId);
 
-        };
+        }
     }
 }
 
@@ -330,6 +321,9 @@ void LocalAlignmentCandidateGraph::writeSvg(
         }
         if (edge.inReadGraph){
             attributes.color = "#00C442";
+        }
+        if (edge.inReferenceAlignments and not edge.inCandidates){
+            attributes.color = "#FF2800";
         }
 
         attributes.tooltip =

@@ -201,7 +201,7 @@ void Assembler::writeColorPicker(ostream& html, string svgId){
 	        "
             id="Venn-ReferenceOnly"
             onclick="setEdgeColor('Venn-ReferenceOnly', 'ReferenceOnly')"
-	        stroke="gray" fill="red" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
+	        stroke="gray" fill="#FF2800" stroke-width="2" fill-opacity="1" transform="translate(0,100)"/>
         )stringDelimiter";
 
     // Text labels
@@ -249,6 +249,9 @@ void Assembler::exploreAlignmentCandidateGraph(
 
     double timeout = 30;
     getParameterValue(request, "timeout", timeout);
+
+    string referenceGraphOnlyString;
+    const bool referenceGraphOnly = getParameterValue(request, "referenceGraphOnly", referenceGraphOnlyString);
 
 
     // Write the form.
@@ -334,6 +337,12 @@ void Assembler::exploreAlignmentCandidateGraph(
          " value='" << timeout <<
          "'>"
 
+         "<tr title='Only use overlaps from reference graph'>"
+         "<td>Reference graph only"
+         "<td class=centered><input type=checkbox name=referenceGraphOnly" <<
+         (referenceGraphOnly ? " checked" : "") <<
+         ">"
+
          "</table>"
          "</div>"
          "</div>"
@@ -369,16 +378,31 @@ void Assembler::exploreAlignmentCandidateGraph(
 
     // Create the local graph.
     LocalAlignmentCandidateGraph graph;
-    if(!createLocalAlignmentCandidateGraph(
-            readIds,
-            maxDistance,
-            allowChimericReads,
-            timeout,
-            graph
-    )) {
-        html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
-        return;
+    if (referenceGraphOnly){
+        if(!createLocalReferenceGraph(
+                readIds,
+                maxDistance,
+                allowChimericReads,
+                timeout,
+                graph
+        )) {
+            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            return;
+        }
     }
+    else {
+        if (!createLocalAlignmentCandidateGraph(
+                readIds,
+                maxDistance,
+                allowChimericReads,
+                timeout,
+                graph
+        )) {
+            html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
+            return;
+        }
+    }
+
     html << "<p>The local alignment candidate graph has " << num_vertices(graph);
     html << " vertices and " << num_edges(graph) << " edges.";
 
@@ -508,6 +532,8 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
 
     ifstream pafFile(alignmentsPafFileAbsolutePath);
 
+    cerr << "Loading PAF file from " << alignmentsPafFileAbsolutePath << '\n';
+
     if (not pafFile.good()){
         throw runtime_error("ERROR: could not open input file: " + alignmentsPafFileAbsolutePath);
     }
@@ -517,9 +543,9 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
     string token;
     string regionName;
     string readName;
-    uint32_t start;
-    uint32_t stop;
-    uint32_t quality;
+    uint32_t start = 0;
+    uint32_t stop = 0;
+    uint32_t quality = 0;
     bool isReverse = false;
 
     uint64_t nDelimiters = 0;
@@ -545,8 +571,6 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
             }
             else if (nDelimiters == 11) {
                 quality = stoi(token);
-
-                cerr << regionName << " " << start << " " << stop << '\n';
 
                 if (quality >= minQuality) {
 
@@ -581,6 +605,10 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
             nDelimiters++;
         }
         else if (c == '\n'){
+            if (nDelimiters < 11){
+                throw runtime_error("ERROR: file provided does not contain sufficient tab delimiters to be PAF");
+            }
+
             token.resize(0);
             nDelimiters = 0;
             nLines++;
@@ -591,7 +619,6 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
     }
 
     httpServerData.createGraphEdgesFromOverlapMap(overlapMap);
-
 }
 
 
