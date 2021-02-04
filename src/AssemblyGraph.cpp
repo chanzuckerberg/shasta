@@ -372,7 +372,7 @@ void AssemblyGraph::writeGfa1BothStrandsNoSequence(ostream& gfa) const
     gfa << "H\tVN:Z:1.0\n";
 
     // Write a segment record for each edge.
-    for(EdgeId edgeId=0; edgeId<sequences.size(); edgeId++) {
+    for(EdgeId edgeId=0; edgeId<edgeLists.size(); edgeId++) {
 
         // If this edge was removed, skip it.
         if(edges[edgeId].wasRemoved()) {

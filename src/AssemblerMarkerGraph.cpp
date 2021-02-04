@@ -3678,6 +3678,8 @@ void Assembler::simplifyMarkerGraphIterationPart1(
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    assemblyGraph.writeGfa1BothStrandsNoSequence(
+        "AssemblyGraph-BubbleRemoval-Iteration-" + to_string(iteration) + ".gfa");
     if(debug) {
         assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart1-" + to_string(iteration) + ".dot");
     }
@@ -3758,6 +3760,26 @@ void Assembler::simplifyMarkerGraphIterationPart1(
         }
     }
 
+
+
+    // Create a csv file that can be loaded in Bandage to display all removed edges in gray.
+    ofstream csv(
+        "AssemblyGraph-BubbleRemoval-Iteration-" + to_string(iteration) + ".csv");
+    csv << "EdgeId,Color,Source,Target\n";
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        csv << edgeId << ",";
+        if(keepAssemblyGraphEdge[edgeId]) {
+            csv << "green";
+        } else {
+            csv << "#D3D3D3";
+        }
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+        csv << "," << assemblyGraph.vertices[edge.source] << ",";
+        csv << assemblyGraph.vertices[edge.target] << "\n";
+    }
+
+
+
     // Remove the assembly graph we created at this iteration.
     assemblyGraph.remove();
 
@@ -3782,6 +3804,8 @@ void Assembler::simplifyMarkerGraphIterationPart2(
     createAssemblyGraphEdges();
     createAssemblyGraphVertices();
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
+    assemblyGraph.writeGfa1BothStrandsNoSequence(
+        "AssemblyGraph-SuperBubbleRemoval-Iteration-" + to_string(iteration) + ".gfa");
     if(debug) {
         assemblyGraph.writeGraphviz("AssemblyGraph-simplifyMarkerGraphIterationPart2-" + to_string(iteration) + ".dot");
     }
@@ -4310,6 +4334,34 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             markerGraph.edges[markerGraphEdgeId].isSuperBubbleEdge = 1;
         }
     }
+
+
+
+    // Create a csv file that can be loaded in Bandage to display all removed edges in gray.
+    // To do that:
+    // 1. Start Bandage.
+    // 2. File, Load Graph, select the gfa file with the same name as this csv file.
+    // 3. File, Load csv data, select this file.
+    // 4. Under "Graph display", select "Custom colors".
+    // 5. Under "Node labels", uncheck "Csv data".
+    // The file also contains the source and target marker graph vertex
+    // for each assembly graph edge,
+    ofstream csv(
+        "AssemblyGraph-SuperBubbleRemoval-Iteration-" + to_string(iteration) + ".csv");
+    csv << "EdgeId,Color,Source,Target\n";
+    for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
+        csv << edgeId << ",";
+        if(keepAssemblyGraphEdge[edgeId]) {
+            csv << "green";
+        } else {
+            csv << "#D3D3D3";
+        }
+        const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+        csv << "," << assemblyGraph.vertices[edge.source] << ",";
+        csv << assemblyGraph.vertices[edge.target] << "\n";
+    }
+
+
 
     // Remove the assembly graph we created at this iteration.
     assemblyGraph.remove();
