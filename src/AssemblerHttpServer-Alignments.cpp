@@ -273,7 +273,7 @@ void Assembler::exploreAlignmentCandidateGraph(
 
          "<tr title='Read id between 0 and " << reads->readCount() - 1 << "'>"
                                                                           "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
-                                                                          "Start vertex reads\n"
+                                                                          "Start vertex reads:\n"
                                                                           "The oriented read should be in the form <code>readId-strand</code>\n"
                                                                           "where strand is 0 or 1. For example, <code>\"1345871-1</code>\".\n"
                                                                           "To add multiple start points, use a comma separator."
@@ -341,8 +341,10 @@ void Assembler::exploreAlignmentCandidateGraph(
          "'>"
 
          "<tr>"
-         "<td>Subgroup\n"
-         "create a graph starting from one of the following groups"
+         "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
+         "Subgroup:\n"
+         "Create a graph using one of the following groups.\n"
+         "Each group is a superset of those below it."
          "<td class=centered>"
          "<input type=radio required name=subgroup value='candidates'" <<
                                (subgroup == "candidates" ? " checked=on" : "candidates") <<
@@ -355,7 +357,11 @@ void Assembler::exploreAlignmentCandidateGraph(
                                ">Alignments kept in the read graph"
 
          "<tr title='Create a graph only using overlaps from reference graph (overrides subgroup choice)'>"
-         "<td>Reference graph only"
+         "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
+         "Reference Graph Only:\n"
+         "This overrides the subgroup selection and renders\n"
+         "all/any edges inferred from the reference alignment\n"
+         "file, if one was provided upon starting the server\n"
          "<td class=centered><input type=checkbox name=referenceGraphOnly" <<
          (referenceGraphOnly ? " checked" : "") <<
          ">"
