@@ -1267,6 +1267,14 @@ void Assembler::writeGfa1BothStrands(const string& fileName)
 }
 
 
+
+void Assembler::writeGfa1BothStrandsNoSequence(const string& fileName)
+{
+    assemblyGraphPointer->writeGfa1BothStrandsNoSequence(fileName);
+}
+
+
+
 // Write assembled sequences in FASTA format.
 void Assembler::writeFasta(const string& fileName)
 {

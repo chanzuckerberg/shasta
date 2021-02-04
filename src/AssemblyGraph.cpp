@@ -352,6 +352,87 @@ void AssemblyGraph::findOutEdges(VertexId vertexId, vector<EdgeId>& edgeIds) con
 }
 
 
+
+// Write the AssemblyGraph to GFA without including sequence.
+// The sequence length of each edge is written as the number of
+// marker graph edges.
+// Equivalent functions including output of assembled sequence
+// are in class Assembler and should be moved here.
+// The GFA 1.0 format is described here:
+// https://github.com/GFA-spec/GFA-spec/blob/master/GFA1.md
+void AssemblyGraph::writeGfa1BothStrandsNoSequence(const string& fileName) const
+{
+    ofstream gfa(fileName);
+    writeGfa1BothStrandsNoSequence(gfa);
+}
+void AssemblyGraph::writeGfa1BothStrandsNoSequence(ostream& gfa) const
+{
+
+    // Write the header line.
+    gfa << "H\tVN:Z:1.0\n";
+
+    // Write a segment record for each edge.
+    for(EdgeId edgeId=0; edgeId<sequences.size(); edgeId++) {
+
+        // If this edge was removed, skip it.
+        if(edges[edgeId].wasRemoved()) {
+            continue;
+        }
+
+        // Record type.
+        gfa << "S\t";
+
+        // Name.
+        gfa << edgeId << "\t";
+
+        // Sequence.
+        gfa << "*\t";
+
+        // Sequence length is written out expressed in markers.
+        gfa << "LN:i:" << edgeLists.size(edgeId) << "\n";
+    }
+
+
+    // Write GFA links.
+    // For each vertex in the assembly graph there is a link for
+    // each combination of in-edges and out-edges.
+    // Therefore each assembly graph vertex generates a number of
+    // links equal to the product of its in-degree and out-degree.
+    for(VertexId vertexId=0; vertexId<vertices.size(); vertexId++) {
+
+        // In-edges.
+        const span<const EdgeId> edges0 = edgesByTarget[vertexId];
+
+        // Out-edges.
+        const span<const EdgeId> edges1 = edgesBySource[vertexId];
+
+        // Loop over in-edges.
+        for(const EdgeId edge0: edges0) {
+            if(edges[edge0].wasRemoved()) {
+                continue;
+            }
+
+            // Loop over out-edges.
+            for(const EdgeId edge1: edges1) {
+                if(edges[edge1].wasRemoved()) {
+                    continue;
+                }
+
+                // Write out the link record for this edge,
+                // with the CIGAR string left unspecified.
+                // Note all links are written with orientation ++.
+                gfa << "L\t" <<
+                    edge0 << "\t+\t" <<
+                    edge1 << "\t+\t*\n";
+            }
+        }
+    }
+
+
+}
+
+
+
 // Find bubbles in the assembly graph.
 // A bubble is a set of two vertices v0, v1,
 // such that the outgoing edges of v0 are the same

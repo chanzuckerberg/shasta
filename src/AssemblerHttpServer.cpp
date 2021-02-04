@@ -1107,6 +1107,10 @@ void Assembler::writeAssemblyIndex(ostream& html) const
     <td>Assembly in gfa format (both strands).
 
     <tr>
+    <td><a href='Assembly-BothStrands-NoSequence.gfa'>Assembly-BothStrandsNoSequence.gfa</a>
+    <td>Assembly in gfa format (compact output without sequence, both strands).
+
+    <tr>
     <td><a href='AssemblySummary.csv'>AssemblySummary.csv</a>
     <td>List of assembled segments in order of decreasing length.
 

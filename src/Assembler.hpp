@@ -1681,6 +1681,7 @@ private:
 public:
     void writeGfa1(const string& fileName);
     void writeGfa1BothStrands(const string& fileName);
+    void writeGfa1BothStrandsNoSequence(const string& fileName);
 private:
     // Construct the CIGAR string given two vectors of repeat counts.
     // Used by writeGfa1.

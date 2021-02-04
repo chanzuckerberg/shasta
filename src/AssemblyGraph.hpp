@@ -244,6 +244,14 @@ public:
         uint64_t minVertexCount,
         uint64_t minEdgeCount);
 
+    // Write the AssemblyGraph to GFA without including sequence.
+    // The sequence length of each edge is written as the number of
+    // marker graph edges.
+    // Equivalent functionbs including output of assembled sequence
+    // are in class Assembler and should be moved here.
+    void writeGfa1BothStrandsNoSequence(const string& fileName) const;
+    void writeGfa1BothStrandsNoSequence(ostream&) const;
+
 
 
     // Assembly graph forks.

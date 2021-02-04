@@ -901,6 +901,7 @@ void shasta::main::assemble(
     assembler.computeAssemblyStatistics();
     assembler.writeGfa1("Assembly.gfa");
     assembler.writeGfa1BothStrands("Assembly-BothStrands.gfa");
+    assembler.writeGfa1BothStrandsNoSequence("Assembly-BothStrands-NoSequence.gfa");
     assembler.writeFasta("Assembly.fasta");
 
     // Store elapsed time for assembly.
