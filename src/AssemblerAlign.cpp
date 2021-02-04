@@ -468,6 +468,13 @@ void Assembler::computeAlignmentsThreadFunction(size_t threadId)
         }
     }
 
+    if(alignmentMethod == 4) {
+        std::lock_guard<std::mutex> lock(mutex);
+        cout << "Thread " << threadId << " byte allocator: " <<
+            byteAllocator.getMaxAllocatedByteCount() << "/" <<
+            2ULL * 1024 * 1024 * 1024 << endl;
+    }
+
     thisThreadCompressedAlignments.unreserve();
 }
 

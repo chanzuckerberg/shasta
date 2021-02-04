@@ -9,6 +9,7 @@
 // if the MemoryMapped::Vector is on 2 MB pages.
 
 #include "MemoryMappedVector.hpp"
+#include "algorithm.hpp"
 
 namespace shasta {
     namespace MemoryMapped {
@@ -49,6 +50,7 @@ public:
     {
         allocatedByteCount = 0;
         allocatedBlockCount = 0;
+        maxAllocatedByteCount = 0;
         data.createNew(name, pageSize);
         data.reserveAndResize(n); // Never resize after this!
     }
@@ -93,6 +95,7 @@ public:
         char* p = data.begin() + allocatedByteCount;
         allocatedByteCount = newAllocatedByteCount;
         ++allocatedBlockCount;
+        maxAllocatedByteCount = max(maxAllocatedByteCount, allocatedByteCount);
         /*
         cout << "Requested " << n * objectSize << ", allocated " << byteCount <<
             ", total allocated " << allocatedByteCount << endl;
@@ -111,10 +114,16 @@ public:
         }
     }
 
+    uint64_t getMaxAllocatedByteCount() const
+    {
+        return maxAllocatedByteCount;
+    }
+
 private:
     Vector<char> data;
     uint64_t allocatedByteCount;
     uint64_t allocatedBlockCount;
+    uint64_t maxAllocatedByteCount;
 };
 
 
