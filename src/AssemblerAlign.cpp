@@ -228,6 +228,12 @@ void Assembler::computeAlignments(
         threadCount = std::thread::hardware_concurrency();
     }
 
+    // For alignment method 4, compute sorted markers.
+    if(alignOptions.alignMethod == 4) {
+        cout << timestamp << "Computing sorted markers." << endl;
+        computeSortedMarkers(threadCount);
+    }
+
     // Pick the batch size for computing alignments.
     size_t batchSize = 10;
     if(batchSize > alignmentCandidates.candidates.size()/threadCount) {
@@ -274,6 +280,11 @@ void Assembler::computeAlignments(
     // Release unused allocated memory.
     alignmentData.unreserve();
     compressedAlignments.unreserve();
+
+    // For alignment method 4, remove the sorted markers.
+    if(alignOptions.alignMethod == 4) {
+        sortedMarkers.remove();
+    }
 
     cout << "Found and stored " << alignmentData.size() << " good alignments." << endl;
     cout << timestamp << "Creating alignment table." << endl;
