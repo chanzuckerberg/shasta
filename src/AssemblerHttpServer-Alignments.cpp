@@ -404,17 +404,17 @@ void Assembler::exploreAlignmentCandidateGraph(
     bool inReadgraphRequired = false;
 
     if (subgroup == "candidates"){
-        cerr << "candidates required\n";
+        cout << "candidates required\n";
         inAlignmentsRequired = false;
         inReadgraphRequired = false;
     }
     else if (subgroup == "alignments"){
-        cerr << "alignments required\n";
+        cout << "alignments required\n";
         inAlignmentsRequired = true;
         inReadgraphRequired = false;
     }
     else if (subgroup == "readgraph"){
-        cerr << "readgraph required\n";
+        cout << "readgraph required\n";
         inAlignmentsRequired = true;
         inReadgraphRequired = true;
     }
@@ -576,7 +576,7 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
 
     ifstream pafFile(alignmentsPafFileAbsolutePath);
 
-    cerr << "Loading PAF file from " << alignmentsPafFileAbsolutePath << '\n';
+    cout << "Loading PAF file from " << alignmentsPafFileAbsolutePath << '\n';
 
     if (not pafFile.good()){
         throw runtime_error("ERROR: could not open input file: " + alignmentsPafFileAbsolutePath);
@@ -640,7 +640,7 @@ void Assembler::loadAlignmentsPafFile(const string& alignmentsPafFileAbsolutePat
                         }
                     }
                     else{
-                        cerr << "WARNING: skipping read not used in shasta assembly: " << readName << '\n';
+                        cout << "WARNING: skipping read not used in shasta assembly: " << readName << '\n';
                     }
                 }
             }
@@ -2004,7 +2004,7 @@ void Assembler::sampleReadsFromDeadEnds(
         // Get the Read ID
         const OrientedReadId r = findMarkerId(markerId).first;
 
-        cerr << "Sampling read " << r << " from marker vertex " <<  vertexId << " on edge " << edgeId << '\n';
+        cout << "Sampling read " << r << " from marker vertex " <<  vertexId << " on edge " << edgeId << '\n';
 
         sample.push_back(r);
         isLeftEnd.push_back(side);
@@ -2080,7 +2080,7 @@ void Assembler::sampleReadsFromDeadEnds(
         // Only update the sample of reads if this read passes the length criteria
         if(length >= minLength and length <= maxLength) {
             sample.push_back(r);
-            cerr << "Sampling read " << r << " from marker vertex " <<  vertexId << " on edge " << edgeId << '\n';
+            cout << "Sampling read " << r << " from marker vertex " <<  vertexId << " on edge " << edgeId << '\n';
 
             // Keep track of which end of the segment these reads came from
             isLeftEnd.push_back(side);

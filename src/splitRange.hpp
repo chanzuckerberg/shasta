@@ -63,7 +63,7 @@ inline std::pair<size_t, size_t> shasta::splitRange(
 inline void shasta::testSplitRange()
 {
     while(true) {
-        cerr << "Enter begin, end, m:" << endl;
+        cout << "Enter begin, end, m:" << endl;
         size_t begin;
         size_t end;
         size_t m;

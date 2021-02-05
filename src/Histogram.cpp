@@ -1,15 +1,14 @@
 #include "Histogram.hpp"
-#include <unordered_set>
-#include <stdexcept>
-#include <iostream>
-#include <iomanip>
+
 #include <cmath>
+#include "iostream.hpp"
+#include <iomanip>
+#include "stdexcept.hpp"
+#include "string.hpp"
+#include <unordered_set>
 
 using namespace shasta;
 using std::unordered_set;
-using std::runtime_error;
-using std::to_string;
-using std::string;
 
 
 shasta::Histogram2::Histogram2(
@@ -29,7 +28,7 @@ shasta::Histogram2::Histogram2(
         dynamicBounds(dynamicBounds)
 {
     if ((unboundedLeft and dynamicBounds) or (unboundedRight and dynamicBounds)){
-        std::cerr << "Warning: Histogram with dynamic bounds ignores the unboundedLeft and unboundedRight parameters\n";
+        cout << "Warning: Histogram with dynamic bounds ignores the unboundedLeft and unboundedRight parameters\n";
     }
 }
 
