@@ -130,6 +130,8 @@ bool Assembler::createLocalAlignmentCandidateGraph(
         uint32_t maxDistance,           // How far to go from starting oriented read.
         bool allowChimericReads,
         double timeout,                 // Or 0 for no timeout.
+        bool inGoodAlignmentsRequired,      // Only add an edge to the local graph if it's in the "good" alignments
+        bool inReadgraphRequired,       // Only add an edge to the local graph if it's in the ReadGraph
         LocalAlignmentCandidateGraph& graph)
 {
     const auto startTime = steady_clock::now();
@@ -202,6 +204,14 @@ bool Assembler::createLocalAlignmentCandidateGraph(
             // Search the referenceOverlapGraph to see if this pair exists
             if (httpServerData.referenceOverlapGraph.edgeExists(orientedReadId0, orientedReadId1)){
                 inReferenceAlignments = true;
+            }
+
+            // Don't add any nodes or edges if they don't meet the filter requirements
+            if (inGoodAlignmentsRequired and not inAlignments){
+                continue;
+            }
+            if (inReadgraphRequired and not inReadgraph){
+                continue;
             }
 
             // Update our BFS.

@@ -664,9 +664,11 @@ private:
 
     bool createLocalAlignmentCandidateGraph(
         vector<OrientedReadId>& starts,
-        uint32_t maxDistance,           // How far to go from starting oriented read.
+        uint32_t maxDistance,               // How far to go from starting oriented read.
         bool allowChimericReads,
-        double timeout,                 // Or 0 for no timeout.
+        double timeout,                     // Or 0 for no timeout.
+        bool inGoodAlignmentsRequired,      // Only add an edge to the local graph if it's in the "good" alignments
+        bool inReadgraphRequired,           // Only add an edge to the local graph if it's in the ReadGraph
         LocalAlignmentCandidateGraph& graph);
 
     // This method is used as an alternative to createLocalAlignmentCandidateGraph, in the case that the user

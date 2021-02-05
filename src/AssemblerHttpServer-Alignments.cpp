@@ -250,6 +250,9 @@ void Assembler::exploreAlignmentCandidateGraph(
     double timeout = 30;
     getParameterValue(request, "timeout", timeout);
 
+    string subgroup = "candidates";
+    getParameterValue(request, "subgroup", subgroup);
+
     string referenceGraphOnlyString;
     const bool referenceGraphOnly = getParameterValue(request, "referenceGraphOnly", referenceGraphOnlyString);
 
@@ -270,7 +273,7 @@ void Assembler::exploreAlignmentCandidateGraph(
 
          "<tr title='Read id between 0 and " << reads->readCount() - 1 << "'>"
                                                                           "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
-                                                                          "Start vertex reads\n"
+                                                                          "Start vertex reads:\n"
                                                                           "The oriented read should be in the form <code>readId-strand</code>\n"
                                                                           "where strand is 0 or 1. For example, <code>\"1345871-1</code>\".\n"
                                                                           "To add multiple start points, use a comma separator."
@@ -282,7 +285,7 @@ void Assembler::exploreAlignmentCandidateGraph(
     html <<
          "<tr title='Maximum distance from start vertex (number of edges)'>"
          "<td>Maximum distance"
-         "<td><input type=text required name=maxDistance size=8 style='text-align:center'"
+         "<td class=centered><input type=text required name=maxDistance size=8 style='text-align:center'"
          " value='" << maxDistance <<
          "'>"
 
@@ -315,30 +318,50 @@ void Assembler::exploreAlignmentCandidateGraph(
          "Changing this works better than zooming. Make it larger if the graph is too crowded."
          " Ok to make it much larger than screen size.'>"
          "<td>Graphics size in pixels"
-         "<td><input type=text required name=sizePixels size=8 style='text-align:center'" <<
+         "<td class=centered><input type=text required name=sizePixels size=8 style='text-align:center'" <<
          " value='" << sizePixels <<
          "'>"
 
          "<tr>"
          "<td>Vertex scaling factor"
-         "<td><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
+         "<td class=centered><input type=text required name=vertexScalingFactor size=8 style='text-align:center'" <<
          " value='" << vertexScalingFactor <<
          "'>"
 
          "<tr>"
          "<td>Edge thickness scaling factor"
-         "<td><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
+         "<td class=centered><input type=text required name=edgeThicknessScalingFactor size=8 style='text-align:center'" <<
          " value='" << edgeThicknessScalingFactor <<
          "'>"
 
          "<tr title='Maximum time (in seconds) allowed for graph creation and layout'>"
          "<td>Timeout (seconds) for graph layout"
-         "<td><input type=text required name=timeout size=8 style='text-align:center'" <<
+         "<td class=centered><input type=text required name=timeout size=8 style='text-align:center'" <<
          " value='" << timeout <<
          "'>"
 
-         "<tr title='Only use overlaps from reference graph'>"
-         "<td>Reference graph only"
+         "<tr>"
+         "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
+         "Subgroup:\n"
+         "Create a graph using one of the following groups.\n"
+         "Each group is a superset of those below it."
+         "<td class=centered>"
+         "<input type=radio required name=subgroup value='candidates'" <<
+                               (subgroup == "candidates" ? " checked=on" : "candidates") <<
+                               ">Alignment candidates"
+                               "<br><input type=radio required name=subgroup value='alignments'" <<
+                               (subgroup == "alignments" ? " checked=on" : "alignments") <<
+                               ">Good alignments"
+                               "<br><input type=radio required name=subgroup value='readgraph'" <<
+                               (subgroup == "readgraph" ? " checked=on" : "readgraph") <<
+                               ">Alignments kept in the read graph"
+
+         "<tr title='Create a graph only using overlaps from reference graph (overrides subgroup choice)'>"
+         "<td style=\"white-space:pre-wrap; word-wrap:break-word\">"
+         "Reference Graph Only:\n"
+         "This overrides the subgroup selection and renders\n"
+         "all/any edges inferred from the reference alignment\n"
+         "file, if one was provided upon starting the server\n"
          "<td class=centered><input type=checkbox name=referenceGraphOnly" <<
          (referenceGraphOnly ? " checked" : "") <<
          ">"
@@ -376,6 +399,27 @@ void Assembler::exploreAlignmentCandidateGraph(
                 largeDataPageSize);
     }
 
+
+    bool inAlignmentsRequired = false;
+    bool inReadgraphRequired = false;
+
+    if (subgroup == "candidates"){
+        cerr << "candidates required\n";
+        inAlignmentsRequired = false;
+        inReadgraphRequired = false;
+    }
+    else if (subgroup == "alignments"){
+        cerr << "alignments required\n";
+        inAlignmentsRequired = true;
+        inReadgraphRequired = false;
+    }
+    else if (subgroup == "readgraph"){
+        cerr << "readgraph required\n";
+        inAlignmentsRequired = true;
+        inReadgraphRequired = true;
+    }
+
+
     // Create the local graph.
     LocalAlignmentCandidateGraph graph;
     if (referenceGraphOnly){
@@ -384,8 +428,7 @@ void Assembler::exploreAlignmentCandidateGraph(
                 maxDistance,
                 allowChimericReads,
                 timeout,
-                graph
-        )) {
+                graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             return;
         }
@@ -396,8 +439,9 @@ void Assembler::exploreAlignmentCandidateGraph(
                 maxDistance,
                 allowChimericReads,
                 timeout,
-                graph
-        )) {
+                inAlignmentsRequired,
+                inReadgraphRequired,
+                graph)) {
             html << "<p>Timeout for graph creation exceeded. Increase the timeout or reduce the maximum distance from the start vertex.";
             return;
         }
