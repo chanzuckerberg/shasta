@@ -3837,7 +3837,7 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 
     // Mark as to be kept all assembly graph edges in between components
-    // or with length up to maxLength.
+    // or with length more than maxLength.
     vector<bool> keepAssemblyGraphEdge(assemblyGraph.edges.size(), false);
     for(AssemblyGraph::EdgeId edgeId=0; edgeId<assemblyGraph.edges.size(); edgeId++) {
         const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
@@ -3908,14 +3908,20 @@ void Assembler::simplifyMarkerGraphIterationPart2(
 
 
     // Find entries and exits.
-    // An entry is a vertex with an in-edge from another component.
-    // An exit is a vertex with an out-edge to another component.
+    // An entry is a vertex with an in-edge from another component,
+    // or an in-edge longer than maxLength.
+    // An exit is a vertex with an out-edge to another component,
+    // or an out-edge longer than maxLength.
     vector<bool> isEntry(n, false);
     vector<bool> isExit(n, false);
     for(AssemblyGraph::VertexId v0=0; v0<n; v0++) {
         const AssemblyGraph::VertexId componentId0 = disjointSets.find_set(v0);
         const span<AssemblyGraph::EdgeId> inEdges = assemblyGraph.edgesByTarget[v0];
         for(AssemblyGraph::EdgeId edgeId : inEdges) {
+            if(assemblyGraph.edgeLists.size(edgeId) > maxLength) {
+                isEntry[v0] = true;
+                break;
+            }
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
             SHASTA_ASSERT(edge.target == v0);
             const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.source);
@@ -3926,6 +3932,10 @@ void Assembler::simplifyMarkerGraphIterationPart2(
         }
         const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[v0];
         for(AssemblyGraph::EdgeId edgeId : outEdges) {
+            if(assemblyGraph.edgeLists.size(edgeId) > maxLength) {
+                isExit[v0] = true;
+                break;
+            }
             const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
             SHASTA_ASSERT(edge.source == v0);
             const AssemblyGraph::VertexId componentId1 = disjointSets.find_set(edge.target);
