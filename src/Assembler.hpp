@@ -1814,6 +1814,7 @@ public:
     void displayAlignments(
         OrientedReadId,
         const vector< pair<OrientedReadId, AlignmentInfo> >&,
+        bool showIsInReadGraphFlag,
         ostream&) const;
     void displayAlignment(
         OrientedReadId orientedReadId0,

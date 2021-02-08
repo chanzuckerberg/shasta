@@ -730,7 +730,7 @@ void Assembler::exploreAlignments(
         html << "<p>No alignments found.";
     } else {
         html << "<p>Found " << alignments.size() << " alignments.";
-        displayAlignments(orientedReadId0, alignments, html);
+        displayAlignments(orientedReadId0, alignments, true, html);
     }
 
 }
@@ -744,7 +744,7 @@ void Assembler::displayAlignment(
 {
     vector< pair<OrientedReadId, AlignmentInfo> > alignments;
     alignments.push_back(make_pair(orientedReadId1, alignment));
-    displayAlignments(orientedReadId0, alignments, html);
+    displayAlignments(orientedReadId0, alignments, false, html);
 }
 
 
@@ -753,6 +753,7 @@ void Assembler::displayAlignment(
 void Assembler::displayAlignments(
     OrientedReadId orientedReadId0,
     const vector< pair<OrientedReadId, AlignmentInfo> >& alignments,
+    bool showIsInReadGraphFlag,
     ostream& html) const
 {
     const ReadId readId0 = orientedReadId0.getReadId();
@@ -817,7 +818,11 @@ void Assembler::displayAlignments(
     html <<
         "<p><table>"
         "<tr>"
-        "<th rowspan=2>Index"
+        "<th rowspan=2>Index";
+    if(showIsInReadGraphFlag) {
+        html << "<th rowspan=2>In<br>read<br> graph";
+    }
+    html <<
         "<th rowspan=2>Other<br>oriented<br>read"
         "<th rowspan=2 title='The number of aligned markers. Click on a cell in this column to see more alignment details.'>Aligned<br>markers"
         "<th rowspan=2 title='The maximum amount of alignment skip (# of markers).'><br>Max skip"
@@ -867,7 +872,14 @@ void Assembler::displayAlignments(
         // Write a row in the table for this alignment.
         html <<
             "<tr>"
-            "<td class=centered>" << i <<
+            "<td class=centered>" << i;
+        if(showIsInReadGraphFlag) {
+            html << "<td class=centered>";
+            if(alignmentInfo.isInReadGraph) {
+                html << "&#10003;";
+            }
+        }
+        html <<
             "<td class=centered><a href='exploreRead?readId=" << readId1  << "&strand=" << strand1 <<
             "' title='Click to see this read'>" << orientedReadId1 << "</a>"
             "<td class=centered>"
@@ -1896,7 +1908,7 @@ void Assembler::computeAllAlignments(
     if(alignments.empty()) {
         html << "<p>No alignments found.";
     } else {
-        displayAlignments(orientedReadId0, alignments, html);
+        displayAlignments(orientedReadId0, alignments, false, html);
     }
 }
 
@@ -2412,7 +2424,7 @@ void Assembler::assessAlignments(
         // Print info about FOUND alignments
         if (showAlignmentResults) {
             if (not alignmentInfo.empty()) {
-                displayAlignments(orientedReadId, alignmentInfo, html);
+                displayAlignments(orientedReadId, alignmentInfo, false, html);
             }
             else{
                 html << "No alignments found";
