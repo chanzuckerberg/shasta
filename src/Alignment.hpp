@@ -190,6 +190,14 @@ public:
     // over the ordinals of the alignment.
     uint32_t maxDrift;
 
+    // Flag that is set if this alignment is used in the read graph.
+    uint8_t isInReadGraph : 1;
+
+    void clearFlags()
+    {
+        isInReadGraph = 0;
+    }
+
 
 
     // Constructors.
@@ -198,6 +206,7 @@ public:
         const array<uint32_t, 2>& markerCounts)
     {
         create(alignment, markerCounts);
+        clearFlags();
     }
     AlignmentInfo(
         const Alignment& alignment,
@@ -205,6 +214,7 @@ public:
         uint32_t markerCount1)
     {
         create(alignment, array<uint32_t, 2>({markerCount0, markerCount1}));
+        clearFlags();
     }
     void create(
         const Alignment&,
@@ -213,7 +223,10 @@ public:
         const Alignment&,
         uint32_t markerCount0,
         uint32_t markerCount1);
-    AlignmentInfo() : markerCount(0) {}
+    AlignmentInfo() : markerCount(0)
+    {
+        clearFlags();
+    }
 
 
 

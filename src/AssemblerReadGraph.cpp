@@ -109,10 +109,16 @@ void Assembler::createReadGraphUsingSelectedAlignments(vector<bool>& keepAlignme
     // Only the alignments we marked as "keep" generate edges in the read graph.
     readGraph.edges.createNew(largeDataName("ReadGraphEdges"), largeDataPageSize);
     for(size_t alignmentId=0; alignmentId<alignmentData.size(); alignmentId++) {
-        if(!keepAlignment[alignmentId]) {
+
+        // Record whether this alignment is used in the read graph.
+        const bool keepThisAlignment = keepAlignment[alignmentId];
+        AlignmentData& alignment = alignmentData[alignmentId];
+        alignment.info.isInReadGraph = uint8_t(keepThisAlignment);
+
+        // If this alignment is not used in the read graph, we are done.
+        if(not keepThisAlignment) {
             continue;
         }
-        const AlignmentData& alignment = alignmentData[alignmentId];
 
         // Create the edge corresponding to this alignment.
         ReadGraphEdge edge;
