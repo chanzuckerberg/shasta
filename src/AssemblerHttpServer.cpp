@@ -127,8 +127,10 @@ void Assembler::writeMakeAllTablesCopyable(ostream& html) const
     // Copy to the clipboard the table that generated the event.
     function copyToClipboard(event)
     {
-        // Turn off the standard context menu.
+        // Prevent default behavior.
         event.preventDefault();
+        event.stopPropagation();
+        event.returnValue = false;
         
         // Get the table element.
         var element = event.currentTarget;
@@ -144,16 +146,21 @@ void Assembler::writeMakeAllTablesCopyable(ostream& html) const
         
         // Copy it to the clipboard.
         document.execCommand("copy");
+
+        // Unselect it.
+        selection.removeAllRanges();
+
+        window.alert("The table was copied to the clipboard");
     }
 
-    // Make a table copyable by right click.
+    // Make a table copyable by double click.
     function makeCopyable(element)
     {
-        element.addEventListener('contextmenu', copyToClipboard);
-        element.title = 'Right click anywhere on the table to copy the entire table to the clipboard';
+        element.addEventListener('dblclick', copyToClipboard);
+        element.title = 'Double click anywhere on the table to copy the entire table to the clipboard';
     }
 
-    // Make all tables copyable by right click.
+    // Make all tables copyable by double click.
     function makeAllTablesCopyable()
     {
         var tables = document.getElementsByTagName('table');
