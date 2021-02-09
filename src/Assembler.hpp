@@ -786,6 +786,27 @@ public:
         AlignmentInfo&,
         bool debug) const;
 
+    // Intermediate level version used by the http server.
+    void alignOrientedReads4(
+        OrientedReadId,
+        OrientedReadId,
+        uint64_t deltaX,
+        uint64_t deltaY,
+        uint64_t minEntryCountPerCell,
+        uint64_t maxDistanceFromBoundary,
+        uint64_t minAlignedMarkerCount,
+        double minAlignedFraction,
+        uint64_t maxSkip,
+        uint64_t maxDrift,
+        uint64_t maxTrim,
+        uint64_t maxBand,
+        int64_t matchScore,
+        int64_t mismatchScore,
+        int64_t gapScore,
+        Alignment&,
+        AlignmentInfo&
+        ) const;
+
 private:
 
 
@@ -1873,6 +1894,10 @@ public:
         const double downsamplingFactor,
         int bandExtend,
         int maxBand,
+        uint64_t align4DeltaX,
+        uint64_t align4DeltaY,
+        uint64_t align4MinEntryCountPerCell,
+        uint64_t align4MaxDistanceFromBoundary,
         ostream& html
     );
     void writeColorPicker(ostream& html, string svgId);
@@ -1924,6 +1949,10 @@ public:
         double downsamplingFactor;
         int bandExtend;
         int maxBand;
+        uint64_t align4DeltaX;
+        uint64_t align4DeltaY;
+        uint64_t align4MinEntryCountPerCell;
+        uint64_t align4MaxDistanceFromBoundary;
         // The alignments found by each thread.
         vector< vector< pair<OrientedReadId, AlignmentInfo> > > threadAlignments;
     };

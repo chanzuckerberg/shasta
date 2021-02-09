@@ -5,6 +5,7 @@
 #include "Assembler.hpp"
 #include "AssemblerOptions.hpp"
 #include "AlignmentGraph.hpp"
+#include "Align4.hpp"
 #include "Histogram.hpp"
 #include "LocalAlignmentGraph.hpp"
 #include "LocalAlignmentCandidateGraph.hpp"
@@ -1001,6 +1002,17 @@ void Assembler::exploreAlignment(
     int maxBand = httpServerData.assemblerOptions->alignOptions.maxBand;
     getParameterValue(request, "maxBand", maxBand);
 
+    // Parameters for alignment method 4.
+    uint64_t align4DeltaX = httpServerData.assemblerOptions->alignOptions.align4DeltaX;
+    getParameterValue(request, "align4DeltaX", align4DeltaX);
+    uint64_t align4DeltaY = httpServerData.assemblerOptions->alignOptions.align4DeltaY;
+    getParameterValue(request, "align4DeltaY", align4DeltaY);
+    uint64_t align4MinEntryCountPerCell = httpServerData.assemblerOptions->alignOptions.align4MinEntryCountPerCell;
+    getParameterValue(request, "align4MinEntryCountPerCell", align4MinEntryCountPerCell);
+    uint64_t align4MaxDistanceFromBoundary = httpServerData.assemblerOptions->alignOptions.align4MaxDistanceFromBoundary;
+    getParameterValue(request, "align4MaxDistanceFromBoundary", align4MaxDistanceFromBoundary);
+
+
     string displayMatrixString;
     bool displayMatrix = getParameterValue(request, "displayMatrix", displayMatrixString);
     int64_t markersPerPixel = 1;
@@ -1042,6 +1054,10 @@ void Assembler::exploreAlignment(
         downsamplingFactor,
         bandExtend,
         maxBand,
+        align4DeltaX,
+        align4DeltaY,
+        align4MinEntryCountPerCell,
+        align4MaxDistanceFromBoundary,
         html
     );
 
@@ -1102,6 +1118,23 @@ void Assembler::exploreAlignment(
             orientedReadId0, orientedReadId1,
             matchScore, mismatchScore, gapScore,
             downsamplingFactor, bandExtend, maxBand,
+            alignment, alignmentInfo);
+    } else if(method == 4) {
+        alignOrientedReads4(
+            orientedReadId0, orientedReadId1,
+            align4DeltaX,
+            align4DeltaY,
+            align4MinEntryCountPerCell,
+            align4MaxDistanceFromBoundary,
+            minAlignedMarkerCount,
+            minAlignedFraction,
+            maxSkip,
+            maxDrift,
+            maxTrim,
+            maxBand,
+            matchScore,
+            mismatchScore,
+            gapScore,
             alignment, alignmentInfo);
     } else {
         SHASTA_ASSERT(0);
@@ -1632,6 +1665,10 @@ void Assembler::renderEditableAlignmentConfig(
     const double downsamplingFactor,
     int bandExtend,
     int maxBand,
+    uint64_t align4DeltaX,
+    uint64_t align4DeltaY,
+    uint64_t align4MinEntryCountPerCell,
+    uint64_t align4MaxDistanceFromBoundary,
     ostream& html
 ) {
     const auto& descriptions = httpServerData.assemblerOptions->allOptionsDescription;
@@ -1646,7 +1683,9 @@ void Assembler::renderEditableAlignmentConfig(
         "<input type=radio name=method value=1" <<
         (method==1 ? " checked=checked" : "") << "> 1 (SeqAn)<br>"
         "<input type=radio name=method value=3" <<
-        (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)"
+        (method==3 ? " checked=checked" : "") << "> 3 (SeqAn, banded)<br>"
+        "<input type=radio name=method value=4" <<
+        (method==4 ? " checked=checked" : "") << "> 4 (Experimental)"
         "<td class=smaller>" << descriptions.find("Align.alignMethod", false).description();
 
     html << "<tr><th class=left>maxSkip"
@@ -1720,6 +1759,30 @@ void Assembler::renderEditableAlignmentConfig(
             "<input type=text style='text-align:center;border:none' name=maxTrim size=16 value=" << maxTrim << ">"
         "<td class=smaller>" << descriptions.find("Align.maxTrim", false).description();
 
+    html << "<tr>"
+        "<th class=left>align4.deltaX"
+        "<td class=centered>"
+            "<input type=text style='text-align:center;border:none' name=align4DeltaX size=16 value=" << align4DeltaX << ">"
+        "<td class=smaller>" << descriptions.find("Align.align4.deltaX", false).description();
+
+    html << "<tr>"
+        "<th class=left>align4.deltaY"
+        "<td class=centered>"
+            "<input type=text style='text-align:center;border:none' name=align4DeltaY size=16 value=" << align4DeltaY << ">"
+        "<td class=smaller>" << descriptions.find("Align.align4.deltaY", false).description();
+
+    html << "<tr>"
+        "<th class=left>align4.minEntryCountPerCell"
+        "<td class=centered>"
+            "<input type=text style='text-align:center;border:none' name=align4MinEntryCountPerCell size=16 value=" << align4MinEntryCountPerCell << ">"
+        "<td class=smaller>" << descriptions.find("Align.align4.minEntryCountPerCell", false).description();
+
+    html << "<tr>"
+        "<th class=left>align4.maxDistanceFromBoundary"
+        "<td class=centered>"
+            "<input type=text style='text-align:center;border:none' name=align4MaxDistanceFromBoundary size=16 value=" << align4MaxDistanceFromBoundary << ">"
+        "<td class=smaller>" << descriptions.find("Align.align4.maxDistanceFromBoundary", false).description();
+
     html << "</table>";
 }
 
@@ -1765,6 +1828,16 @@ void Assembler::computeAllAlignments(
     computeAllAlignmentsData.maxBand = httpServerData.assemblerOptions->alignOptions.maxBand;
     getParameterValue(request, "maxBand", computeAllAlignmentsData.maxBand);
 
+    // Parameters for alignment method 4.
+    computeAllAlignmentsData.align4DeltaX = httpServerData.assemblerOptions->alignOptions.align4DeltaX;
+    getParameterValue(request, "align4DeltaX", computeAllAlignmentsData.align4DeltaX);
+    computeAllAlignmentsData.align4DeltaY = httpServerData.assemblerOptions->alignOptions.align4DeltaY;
+    getParameterValue(request, "align4DeltaY", computeAllAlignmentsData.align4DeltaY);
+    computeAllAlignmentsData.align4MinEntryCountPerCell = httpServerData.assemblerOptions->alignOptions.align4MinEntryCountPerCell;
+    getParameterValue(request, "align4MinEntryCountPerCell", computeAllAlignmentsData.align4MinEntryCountPerCell);
+    computeAllAlignmentsData.align4MaxDistanceFromBoundary = httpServerData.assemblerOptions->alignOptions.align4MaxDistanceFromBoundary;
+    getParameterValue(request, "align4MaxDistanceFromBoundary", computeAllAlignmentsData.align4MaxDistanceFromBoundary);
+
 
     // Write the form.
     html <<
@@ -1791,6 +1864,10 @@ void Assembler::computeAllAlignments(
         computeAllAlignmentsData.downsamplingFactor,
         computeAllAlignmentsData.bandExtend,
         computeAllAlignmentsData.maxBand,
+        computeAllAlignmentsData.align4DeltaX,
+        computeAllAlignmentsData.align4DeltaY,
+        computeAllAlignmentsData.align4MinEntryCountPerCell,
+        computeAllAlignmentsData.align4MaxDistanceFromBoundary,
         html
     );
 
@@ -2176,6 +2253,16 @@ void Assembler::assessAlignments(
     getParameterValue(request, "maxSkipBinCount", maxSkipBinCount);
     getParameterValue(request, "overhangLengthsBinCount", overhangLengthsBinCount);
 
+    // Parameters for alignment method 4.
+    uint64_t align4DeltaX = httpServerData.assemblerOptions->alignOptions.align4DeltaX;
+    getParameterValue(request, "align4DeltaX", align4DeltaX);
+    uint64_t align4DeltaY = httpServerData.assemblerOptions->alignOptions.align4DeltaY;
+    getParameterValue(request, "align4DeltaY", align4DeltaY);
+    uint64_t align4MinEntryCountPerCell = httpServerData.assemblerOptions->alignOptions.align4MinEntryCountPerCell;
+    getParameterValue(request, "align4MinEntryCountPerCell", align4MinEntryCountPerCell);
+    uint64_t align4MaxDistanceFromBoundary = httpServerData.assemblerOptions->alignOptions.align4MaxDistanceFromBoundary;
+    getParameterValue(request, "align4MaxDistanceFromBoundary", align4MaxDistanceFromBoundary);
+
     showAlignmentResults = getParameterValue(request, "showAlignmentResults", showAlignmentResultsString);
     useDeadEnds = getParameterValue(request, "useDeadEnds", useDeadEndsString);
 
@@ -2262,6 +2349,10 @@ void Assembler::assessAlignments(
             computeAllAlignmentsData.downsamplingFactor,
             computeAllAlignmentsData.bandExtend,
             computeAllAlignmentsData.maxBand,
+            computeAllAlignmentsData.align4DeltaX,
+            computeAllAlignmentsData.align4DeltaY,
+            computeAllAlignmentsData.align4MinEntryCountPerCell,
+            computeAllAlignmentsData.align4MaxDistanceFromBoundary,
             html
     );
 
@@ -2550,6 +2641,10 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     const double downsamplingFactor = computeAllAlignmentsData.downsamplingFactor;
     const int bandExtend = computeAllAlignmentsData.bandExtend;
     const int maxBand = computeAllAlignmentsData.maxBand;
+    const uint64_t align4DeltaX = computeAllAlignmentsData.align4DeltaX;
+    const uint64_t align4DeltaY = computeAllAlignmentsData.align4DeltaY;
+    const uint64_t align4MinEntryCountPerCell = computeAllAlignmentsData.align4MinEntryCountPerCell;
+    const uint64_t align4MaxDistanceFromBoundary = computeAllAlignmentsData.align4MaxDistanceFromBoundary;
 
     // Vector where this thread will store the alignments it finds.
     vector< pair<OrientedReadId, AlignmentInfo> >& alignments =
@@ -2559,6 +2654,28 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
     AlignmentGraph graph;
     Alignment alignment;
     AlignmentInfo alignmentInfo;
+
+    // Align4-specific items.
+    Align4::Options align4Options;
+    MemoryMapped::ByteAllocator byteAllocator;
+    if(method == 4) {
+        align4Options.deltaX = align4DeltaX;
+        align4Options.deltaY = align4DeltaY;
+        align4Options.minEntryCountPerCell = align4MinEntryCountPerCell;
+        align4Options.maxDistanceFromBoundary = align4MaxDistanceFromBoundary;
+        align4Options.minAlignedMarkerCount = minAlignedMarkerCount;
+        align4Options.minAlignedFraction = minAlignedFraction;
+        align4Options.maxSkip = maxSkip;
+        align4Options.maxDrift = maxDrift;
+        align4Options.maxTrim = maxTrim;
+        align4Options.maxBand = maxBand;
+        align4Options.matchScore = matchScore;
+        align4Options.mismatchScore = mismatchScore;
+        align4Options.gapScore = gapScore;
+        byteAllocator.createNew(
+            largeDataName("tmp-ByteAllocator-" + to_string(threadId)),
+            largeDataPageSize, 2ULL * 1024 * 1024 * 1024);
+    }
 
     // Vectors to contain markers sorted by kmerId.
     array<vector<MarkerWithOrdinal>, 2> markersSortedByKmerId;
@@ -2606,6 +2723,13 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                             matchScore, mismatchScore, gapScore,
                             downsamplingFactor, bandExtend, maxBand,
                             alignment, alignmentInfo);
+                    } else if(method == 4) {
+                        alignOrientedReads4(orientedReadId0, orientedReadId1,
+                            align4Options,
+                            byteAllocator,
+                            alignment, alignmentInfo,
+                            false);
+                        SHASTA_ASSERT(byteAllocator.isEmpty());
                     } else {
                         SHASTA_ASSERT(0);
                     }
@@ -2615,7 +2739,7 @@ void Assembler::computeAllAlignmentsThreadFunction(size_t threadId)
                 } catch (...) {
                     cout << "An error occurred while computing a marker alignment "
                         " of oriented reads " << orientedReadId0 << " and " << orientedReadId1 <<
-                        ". This alignment candidate will be skipped. " << endl;
+                        "." << endl;
                     continue;
                 }
 

@@ -57,6 +57,59 @@ void Assembler::alignOrientedReads4(
         OrientedReadId(readId1, strand1),
         options, byteAllocator, alignment, alignmentInfo, debug);
     cout << "The alignment has " << alignmentInfo.markerCount << " markers." << endl;
+
+}
+
+
+
+// Intermediate level version used by the http server.
+void Assembler::alignOrientedReads4(
+    OrientedReadId orientedReadId0,
+    OrientedReadId orientedReadId1,
+    uint64_t deltaX,
+    uint64_t deltaY,
+    uint64_t minEntryCountPerCell,
+    uint64_t maxDistanceFromBoundary,
+    uint64_t minAlignedMarkerCount,
+    double minAlignedFraction,
+    uint64_t maxSkip,
+    uint64_t maxDrift,
+    uint64_t maxTrim,
+    uint64_t maxBand,
+    int64_t matchScore,
+    int64_t mismatchScore,
+    int64_t gapScore,
+    Alignment& alignment,
+    AlignmentInfo& alignmentInfo
+    ) const
+{
+    // Fill in the options.
+    Align4::Options options;
+    options.deltaX = deltaX;
+    options.deltaY = deltaY;
+    options.minEntryCountPerCell = minEntryCountPerCell;
+    options.maxDistanceFromBoundary = maxDistanceFromBoundary;
+    options.minAlignedMarkerCount = minAlignedMarkerCount;
+    options.minAlignedFraction = minAlignedFraction;
+    options.maxSkip = maxSkip;
+    options.maxDrift = maxDrift;
+    options.maxTrim = maxTrim;
+    options.maxBand = maxBand;
+    options.matchScore = matchScore;
+    options.mismatchScore = mismatchScore;
+    options.gapScore = gapScore;
+
+    // Set up the memory allocator.
+    MemoryMapped::ByteAllocator byteAllocator(
+        largeDataName("tmp-ByteAllocator"), largeDataPageSize, 2ULL * 1024 * 1024 * 1024);
+
+
+    // Compute the alignment.
+    const bool debug = false;
+    alignOrientedReads4(
+        orientedReadId0, orientedReadId1,
+        options, byteAllocator, alignment, alignmentInfo, debug);
+
 }
 
 
