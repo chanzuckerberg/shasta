@@ -677,16 +677,23 @@ void Assembler::exploreAlignments(
     const bool readId0IsPresent = getParameterValue(request, "readId", readId0);
     Strand strand0 = 0;
     const bool strand0IsPresent = getParameterValue(request, "strand", strand0);
+    string whichAlignments = "AllAlignments";
+    getParameterValue(request, "whichAlignments", whichAlignments);
 
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Show alignments involving read'> "
+        "<input type=submit value='Show stored alignments involving read'> "
         "<input type=text name=readId required" <<
         (readId0IsPresent ? (" value=" + to_string(readId0)) : "") <<
         " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
         " on strand ";
     writeStrandSelection(html, "strand", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html << "<br><input type=radio name=whichAlignments value=AllAlignments" <<
+        (whichAlignments=="AllAlignments" ? " checked=checked" : "") << "> All alignments";
+    html << "<br><input type=radio name=whichAlignments value=ReadGraphAlignments" <<
+        (whichAlignments=="ReadGraphAlignments" ? " checked=checked" : "") <<
+        "> Only alignments used in the read graph.";
     html << "</form>";
 
     // If the readId or strand are missing, stop here.
@@ -726,7 +733,7 @@ void Assembler::exploreAlignments(
 
     // Loop over the alignments that this oriented read is involved in, with the proper orientation.
     const vector< pair<OrientedReadId, AlignmentInfo> > alignments =
-        findOrientedAlignments(orientedReadId0);
+        findOrientedAlignments(orientedReadId0, whichAlignments=="ReadGraphAlignments");
     if(alignments.empty()) {
         html << "<p>No alignments found.";
     } else {

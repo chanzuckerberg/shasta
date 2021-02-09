@@ -922,7 +922,7 @@ private:
     // orientation (this may involve a swap and/or reverse complement
     // of the AlignmentInfo stored in the alignmentTable).
     vector< pair<OrientedReadId, AlignmentInfo> >
-        findOrientedAlignments(OrientedReadId) const;
+        findOrientedAlignments(OrientedReadId, bool inReadGraphOnly) const;
 
 
 

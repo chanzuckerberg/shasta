@@ -589,7 +589,9 @@ void Assembler::checkAlignmentDataAreOpen() const
 // orientation (this may involve a swap and/or reverse complement
 // of the AlignmentInfo stored in the alignmentTable).
 vector< pair<OrientedReadId, shasta::AlignmentInfo> >
-    Assembler::findOrientedAlignments(OrientedReadId orientedReadId0Argument) const
+    Assembler::findOrientedAlignments(
+        OrientedReadId orientedReadId0Argument,
+        bool inReadGraphOnly) const
 {
     const ReadId readId0 = orientedReadId0Argument.getReadId();
     const ReadId strand0 = orientedReadId0Argument.getStrand();
@@ -606,6 +608,12 @@ vector< pair<OrientedReadId, shasta::AlignmentInfo> >
         OrientedReadId orientedReadId0(ad.readIds[0], 0);
         OrientedReadId orientedReadId1(ad.readIds[1], ad.isSameStrand ? 0 : 1);
         AlignmentInfo alignmentInfo = ad.info;
+
+        // Skip it if it is not in the read graph and only alignments
+        // in the read graph were requested.
+        if(inReadGraphOnly and (not alignmentInfo.isInReadGraph)) {
+            continue;
+        }
 
         // Swap oriented reads, if necessary.
         if(orientedReadId0.getReadId() != readId0) {
