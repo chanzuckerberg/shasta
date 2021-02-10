@@ -1880,6 +1880,7 @@ public:
     void exploreMarkerGraphEdge(const vector<string>&, ostream&);
     void exploreMarkerCoverage(const vector<string>&, ostream&);
     void exploreMarkerGraphInducedAlignment(const vector<string>&, ostream&);
+    void followReadInMarkerGraph(const vector<string>&, ostream&);
     void renderEditableAlignmentConfig(
         const int method,
         const uint64_t maxSkip,

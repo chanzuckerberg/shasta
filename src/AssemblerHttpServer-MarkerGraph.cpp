@@ -2,6 +2,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "compressAlignment.hpp"
 #include "ConsensusCaller.hpp"
 #include "InducedAlignment.hpp"
 #include "LocalMarkerGraph.hpp"
@@ -1361,6 +1362,246 @@ void Assembler::exploreMarkerCoverage(
     gnuplotCommands << "e\n";
     writeGnuPlotPngToHtml(html, width, height, gnuplotCommands.str());
 }
+
+
+
+// This shows a table that follows a reads and it alignments in the marker graph.
+void Assembler::followReadInMarkerGraph(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the ReadId and Strand from the request.
+    ReadId readId0 = 0;
+    const bool readId0IsPresent = getParameterValue(request, "readId", readId0);
+    Strand strand0 = 0;
+    const bool strand0IsPresent = getParameterValue(request, "strand", strand0);
+    string whichAlignments = "AllAlignments";
+    getParameterValue(request, "whichAlignments", whichAlignments);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Follow this oriented read and its alignments in the marker graph'> "
+        "<br>Read <input type=text name=readId required" <<
+        (readId0IsPresent ? (" value=" + to_string(readId0)) : "") <<
+        " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand", strand0IsPresent && strand0==0, strand0IsPresent && strand0==1);
+    html << "<br><input type=radio name=whichAlignments value=AllAlignments" <<
+        (whichAlignments=="AllAlignments" ? " checked=checked" : "") << "> All alignments";
+    html << "<br><input type=radio name=whichAlignments value=ReadGraphAlignments" <<
+        (whichAlignments=="ReadGraphAlignments" ? " checked=checked" : "") <<
+        "> Only alignments used in the read graph.";
+    html << "</form>";
+
+    // If the readId or strand are missing, stop here.
+    if(!readId0IsPresent || !strand0IsPresent) {
+        return;
+    }
+    const OrientedReadId orientedReadId0(readId0, strand0);
+    const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId0.getValue()));
+
+
+
+
+    // Loop over alignment involving this oriented read, as stored in the
+    // alignment table.
+    Alignment alignment;
+    vector<OrientedReadId> orientedReadIds1;
+    vector<bool> isInReadGraph;
+    vector< vector<uint32_t> > alignedOrdinals1Matrix; // alignedOrdinals1Matrix[i][ordinal0] = ordinal1;
+    const auto alignmentTable0 = alignmentTable[orientedReadId0.getValue()];
+    for(const auto alignmentId: alignmentTable0) {
+        const AlignmentData& ad = alignmentData[alignmentId];
+
+        // If this alignment is not in the read graph and only read graph alignments
+        // were requested, skip it.
+        if((whichAlignments=="ReadGraphAlignments") and (not ad.info.isInReadGraph)) {
+            continue;
+        }
+
+        // The alignment is stored with its first read on strand 0.
+        OrientedReadId alignmentOrientedReadId0(ad.readIds[0], 0);
+        OrientedReadId alignmentOrientedReadId1(ad.readIds[1],
+            ad.isSameStrand ? 0 : 1);
+
+        // Access the alignment and decompress it.
+        const span<char> compressedAlignment = compressedAlignments[alignmentId];
+        const span<const char> constCompressedAlignment(compressedAlignment.begin(), compressedAlignment.end());
+        decompress(constCompressedAlignment, alignment);
+        SHASTA_ASSERT(alignment.ordinals.size() == ad.info.markerCount);
+
+        // Swap the reads, if necessary.
+        bool swapReads = false;
+        if(alignmentOrientedReadId0.getReadId() != orientedReadId0.getReadId()) {
+            swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
+            swapReads = true;
+        }
+
+        // Reverse complement, if necessary.
+        bool reverseComplement = false;
+        if(alignmentOrientedReadId0 != orientedReadId0) {
+            alignmentOrientedReadId0.flipStrand();
+            alignmentOrientedReadId1.flipStrand();
+            reverseComplement = true;
+        }
+        SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId0);
+        const OrientedReadId orientedReadId1 = alignmentOrientedReadId1;
+        const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
+        orientedReadIds1.push_back(orientedReadId1);
+        isInReadGraph.push_back(ad.info.isInReadGraph);
+
+        // Store aligned ordinals of orientedReadId1.
+        alignedOrdinals1Matrix.resize(orientedReadIds1.size());
+        vector<uint32_t>& alignedOrdinals1 = alignedOrdinals1Matrix.back();
+        alignedOrdinals1.resize(markerCount0, std::numeric_limits<uint32_t>::max());
+        for(const auto& ordinals: alignment.ordinals) {
+            uint32_t ordinal0 = ordinals[0];
+            uint32_t ordinal1 = ordinals[1];
+            if(swapReads) {
+                swap(ordinal0, ordinal1);
+            }
+            if(reverseComplement) {
+                ordinal0 = markerCount0 - 1 - ordinal0;
+                ordinal1 = markerCount1 - 1 - ordinal1;
+            }
+            SHASTA_ASSERT(alignedOrdinals1[ordinal0] == std::numeric_limits<uint32_t>::max());
+            alignedOrdinals1[ordinal0] = ordinal1;
+        }
+
+
+    }
+
+
+
+    // Write the page header.
+    html << "<h1>Follow oriented read " << orientedReadId0 <<
+        " and its alignments in the marker graph</h1>"
+        "<p>This follows oriented read " << orientedReadId0 <<
+        " and its alignments in the marker graph.";
+    if(whichAlignments=="ReadGraphAlignments") {
+        html << " You selected to only display alignments that "
+            "correspond to a read graph edge.";
+    } else {
+        html << " Alignments that correspond to a read graph edge are displayed "
+            "with a light blue background.";
+    }
+
+
+    // Write the table header.
+    html << "<table><tr><th colspan=2 style='background-color:Beige'>" << orientedReadId0;
+    for(uint64_t i=0; i<orientedReadIds1.size(); i++) {
+        html << "<th";
+        if(isInReadGraph[i]) {
+            html << " style='background-color:LightCyan'";
+        }
+        html << " colspan=2>" << orientedReadIds1[i];
+    }
+    html << "<tr>"
+        "<th style='background-color:Beige'>Marker<br>ordinal"
+        "<th style='background-color:Beige'>Marker<br>graph<br>vertex";
+    for(uint64_t i=0; i<orientedReadIds1.size(); i++) {
+        html << "<th";
+        if(isInReadGraph[i]) {
+            html << " style='background-color:LightCyan'";
+        }
+        html << ">";
+        html << "Marker<br>ordinal<th";
+        if(isInReadGraph[i]) {
+            html << " style='background-color:LightCyan'";
+        }
+        html << ">Marker<br>graph<br>vertex";
+    }
+
+
+
+    // Write a table row for each marker in orientedReadId0.
+    for(uint32_t ordinal0=0; ordinal0<markerCount0; ordinal0++) {
+        const MarkerId markerId0 = getMarkerId(orientedReadId0, ordinal0);
+        const MarkerGraph::CompressedVertexId vertexId0 = markerGraph.vertexTable[markerId0];
+
+        // Write ordinal and marker graph vertex for orientedReadId0.
+        html << "<tr><td class=centered title='" << orientedReadId0 << " ordinal'"
+            " style='background-color:Beige'>" << ordinal0 <<
+            "<td class=centered title='" << orientedReadId0 << " marker graph vertex'";
+        if(vertexId0 == MarkerGraph::invalidCompressedVertexId) {
+            html << " style='background-color:Beige'>";
+        }
+        else {
+            html << " style='background-color:Aquamarine'>" <<
+                "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId0 << "'>" << vertexId0 << "</a>";
+        }
+
+
+        // Loop over aligned reads.
+        for(uint64_t i=0; i<orientedReadIds1.size(); i++) {
+            const OrientedReadId orientedReadId1 = orientedReadIds1[i];
+            const vector<uint32_t>& alignedOrdinals1 = alignedOrdinals1Matrix[i];
+
+            // Marker ordinal.
+            html << "<td class=centered title='" << orientedReadId1 << " ordinal'";
+            if(isInReadGraph[i]) {
+                html << " style='background-color:LightCyan'";
+            }
+            html << ">";
+            const uint32_t ordinal1 = alignedOrdinals1[ordinal0];
+            if(ordinal1 != std::numeric_limits<uint32_t>::max()) {
+                html << ordinal1;
+            }
+
+
+
+            // Marker graph vertex.
+            if(ordinal1 == std::numeric_limits<uint32_t>::max()) {
+
+                // There is no aligned ordinal.
+                html << "<td class=centered title='" << orientedReadId1 << " marker graph vertex'";
+                if(isInReadGraph[i]) {
+                    html << " style='background-color:LightCyan'";
+                }
+                html << ">";
+
+            } else {
+
+                // There is an aligned ordinal. Look for a marker graph vertex.
+                const MarkerId markerId1 = getMarkerId(orientedReadId1, ordinal1);
+                const MarkerGraph::CompressedVertexId vertexId1 = markerGraph.vertexTable[markerId1];
+                html << "<td class=centered title='" << orientedReadId1 << " marker graph vertex'";
+                if(vertexId1 == MarkerGraph::invalidCompressedVertexId) {
+
+                    // There is no marker graph vertex.
+                    if(isInReadGraph[i]) {
+                        html << " style='background-color:LightCyan'";
+                    }
+                    html << ">";
+
+                } else {
+
+                    // There is a marker graph vertex.
+                    if(vertexId0 != MarkerGraph::invalidCompressedVertexId) {
+                        // Color based on whether or not it is the same as vertexId0.
+                        if(vertexId1 == vertexId0) {
+                            html << "style='background-color:Aquamarine'";
+                        } else {
+                            html << "style='background-color:LightPink'";
+                        }
+                    } else {
+                        if(isInReadGraph[i]) {
+                            html << " style='background-color:LightCyan'";
+                        }
+                    }
+                    html << ">" <<
+                        "<a href='exploreMarkerGraphVertex?vertexId=" << vertexId1 << "'>" << vertexId1 << "</a>";
+                }
+            }
+        }
+    }
+
+    // Finish the table.
+    html << "</table>";
+
+}
+
 
 
 #endif
