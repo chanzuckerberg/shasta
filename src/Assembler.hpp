@@ -1091,6 +1091,7 @@ private:
     void createMarkerGraphVerticesThreadFunction45(int);
     void createMarkerGraphVerticesThreadFunction6(size_t threadId);
     void createMarkerGraphVerticesThreadFunction7(size_t threadId);
+    void createMarkerGraphVerticesDebug1(uint64_t stage);
     class CreateMarkerGraphVerticesData {
     public:
 

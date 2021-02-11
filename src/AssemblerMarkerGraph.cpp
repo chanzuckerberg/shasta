@@ -58,7 +58,7 @@ void Assembler::createMarkerGraphVertices(
 {
 
     // Flag to control debug output.
-    // Only turn on for a very small test run with just a few reads.
+    // Only turn on for a very small test run.
     const bool debug = false;
 
     // using VertexId = MarkerGraph::VertexId;
@@ -162,13 +162,10 @@ void Assembler::createMarkerGraphVertices(
     data.disjointSetsPointer = 0;
 
 
+
     // Debug output.
     if(debug) {
-        ofstream out("DisjointSetTable-initial.csv");
-        for(MarkerId markerId=0; markerId<data.orientedMarkerCount; markerId++) {
-            out << markerId << "," << data.disjointSetTable[markerId] << "\n";
-        }
-
+        createMarkerGraphVerticesDebug1(0);
     }
 
 
@@ -303,11 +300,9 @@ void Assembler::createMarkerGraphVertices(
 
     // Debug output.
     if(debug) {
-        ofstream out("DisjointSetTable-renumbered.csv");
-        for(MarkerId markerId=0; markerId<data.orientedMarkerCount; markerId++) {
-            out << markerId << "," << data.disjointSetTable[markerId] << "\n";
-        }
+        createMarkerGraphVerticesDebug1(1);
     }
+
 
 
     // At this point, data.disjointSetTable contains, for each oriented marker,
@@ -340,6 +335,28 @@ void Assembler::createMarkerGraphVertices(
     cout << timestamp << "Sorting the markers in each disjoint set." << endl;
     setupLoadBalancing(disjointSetCount, batchSize);
     runThreads(&Assembler::createMarkerGraphVerticesThreadFunction6, threadCount);
+
+
+
+    // Debug output.
+    if(debug) {
+        const uint64_t stage = 2;
+
+        vector<uint64_t> histogram;
+        for(uint64_t i=0; i<data.disjointSetMarkers.size(); i++) {
+            const uint64_t size = data.disjointSetMarkers.size(i);
+            if(histogram.size() <= size) {
+                histogram.resize(size+1, 0);
+            }
+            ++histogram[size];
+        }
+        ofstream csv("Debug-DisjointSets-Histogram-" + to_string(stage) + ".csv");
+        csv << "Size,Frequency\n";
+        for(uint64_t size=0; size<histogram.size(); size++) {
+            csv << size << "," << histogram[size] << "\n";
+        }
+
+    }
 
 
 
@@ -446,6 +463,42 @@ void Assembler::createMarkerGraphVertices(
     // This could be expensive. Remove when we know this code works.
     // cout << timestamp << "Checking marker graph vertices." << endl;
     // checkMarkerGraphVertices(minCoverage, maxCoverage);
+
+
+
+
+    // Debug output.
+    if(debug) {
+        const uint64_t stage = 3;
+        ofstream csv1("Debug-Vertices-" + to_string(stage) + ".csv");
+        for(uint64_t i=0 ;i<markerGraph.vertices().size(); i++) {
+            const auto v = markerGraph.vertices()[i];
+            csv1 << v.size() << ",";
+            for(const MarkerId markerId: v) {
+                OrientedReadId orientedReadId;
+                uint32_t ordinal;
+                tie(orientedReadId, ordinal) = findMarkerId(markerId);
+                csv1 << orientedReadId << "-" << ordinal << ",";
+            }
+            csv1 << "\n";
+        }
+
+        // Also create a histogram.
+        vector<uint64_t> histogram;
+        for(uint64_t i=0 ;i<markerGraph.vertices().size(); i++) {
+            const auto v = markerGraph.vertices()[i];
+            const uint64_t size = v.size();
+            if(histogram.size() <= size) {
+                histogram.resize(size+1, 0);
+            }
+            ++histogram[size];
+        }
+        ofstream csv3("Debug-Vertices-Histogram-" + to_string(stage) + ".csv");
+        csv3 << "Size,Frequency\n";
+        for(uint64_t size=0; size<histogram.size(); size++) {
+            csv3 << size << "," << histogram[size] << "\n";
+        }
+    }
 
 
 
@@ -693,6 +746,78 @@ void Assembler::createMarkerGraphVerticesThreadFunction45(int value)
             }
         }
    }
+}
+
+
+
+void Assembler::createMarkerGraphVerticesDebug1(uint64_t stage)
+{
+    const auto& data = createMarkerGraphVerticesData;
+
+    // Dump the disjoint sets table.
+    ofstream csv1("Debug-DisjointSets-Table-" + to_string(stage) + ".csv");
+    csv1 << "MarkerId,ReadId,Strand,Ordinal,DisjointSet\n";
+    MarkerId markerIdCheck = 0;
+    const ReadId readCount = getReads().readCount();
+    for(ReadId readId=0; readId<readCount; readId++) {
+        for(Strand strand=0; strand<2; strand++) {
+            const OrientedReadId orientedReadId(readId, strand);
+            const uint64_t thisOrientedReadMarkerCount = markers.size(orientedReadId.getValue());
+            for(uint32_t ordinal=0; ordinal<thisOrientedReadMarkerCount; ordinal++) {
+                const MarkerId markerId = getMarkerId(orientedReadId, ordinal);
+                SHASTA_ASSERT(markerId == markerIdCheck++);
+                csv1 <<
+                    markerId << "," <<
+                    readId << "," <<
+                    strand << "," <<
+                    ordinal << "," <<
+                    data.disjointSetTable[markerId] << "\n";
+            }
+        }
+    }
+
+    // Gather the markers in disjoint sets and sort them so
+    // the result is reproducible. This is expensive and can only be done like
+    // this in debug code.
+    std::map<MarkerId, vector<MarkerId> > m;
+    for(MarkerId markerId=0; markerId<data.orientedMarkerCount; markerId++) {
+        const auto disjointSetId = data.disjointSetTable[markerId];
+        if(disjointSetId != MarkerGraph::invalidVertexId) {
+            m[disjointSetId].push_back(markerId);
+        }
+    }
+    vector< vector<MarkerId> > v;
+    for(const auto& p: m) {
+        v.push_back(p.second);
+    }
+    sort(v.begin(), v.end());
+    ofstream csv2("Debug-DisjointSets" + to_string(stage) + ".csv");
+    for(const auto& s: v) {
+        csv2 << v.size() << ",";
+        for(const MarkerId markerId: s) {
+            OrientedReadId orientedReadId;
+            uint32_t ordinal;
+            tie(orientedReadId, ordinal) = findMarkerId(markerId);
+            csv2 << orientedReadId << "-" << ordinal << ",";
+        }
+        csv2 << "\n";
+    }
+
+    // Also create a histogram.
+    vector<uint64_t> histogram;
+    for(const auto& s: v) {
+        const uint64_t size = s.size();
+        if(histogram.size() <= size) {
+            histogram.resize(size+1, 0);
+        }
+        ++histogram[size];
+    }
+    ofstream csv3("Debug-DisjointSets-Histogram-" + to_string(stage) + ".csv");
+    csv3 << "Size,Frequency\n";
+    for(uint64_t size=0; size<histogram.size(); size++) {
+        csv3 << size << "," << histogram[size] << "\n";
+    }
+
 }
 
 
