@@ -21,6 +21,7 @@ using namespace shasta;
 // Standard library.
 #include "chrono.hpp"
 #include "iterator.hpp"
+#include <queue>
 
 
 
@@ -1604,5 +1605,187 @@ void Assembler::followReadInMarkerGraph(
 
 
 
+void Assembler::exploreMarkerConnectivity(
+    const vector<string>& request,
+    ostream& html)
+{
+    // Get the request parameters.
+    ReadId readId = 0;
+    const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+    Strand strand = 0;
+    const bool strandIsPresent = getParameterValue(request, "strand", strand);
+    uint32_t ordinal = 0;
+    const bool ordinalIsPresent = getParameterValue(request, "ordinal", ordinal);
+    string whichAlignments = "AllAlignments";
+    getParameterValue(request, "whichAlignments", whichAlignments);
+
+    // Write the form.
+    html <<
+        "<form>"
+        "<input type=submit value='Explore connectivity of this marker'> "
+        "<br>Read <input type=text name=readId required" <<
+        (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
+        " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
+        " on strand ";
+    writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
+    html <<
+        "<br>Marker ordinal <input type=text name=ordinal required";
+    if(ordinalIsPresent) {
+        html << " value=" << ordinal;
+    }
+    html <<
+        ">"
+        "<br><input type=radio name=whichAlignments value=AllAlignments" <<
+        (whichAlignments=="AllAlignments" ? " checked=checked" : "") << "> Use all alignments";
+    html << "<br><input type=radio name=whichAlignments value=ReadGraphAlignments" <<
+        (whichAlignments=="ReadGraphAlignments" ? " checked=checked" : "") <<
+        "> Only use alignments in the read graph.";
+    html << "</form>";
+    const bool useReadGraphAlignmentsOnly = (whichAlignments == "ReadGraphAlignments");
+
+    // If the required parameters are missing, stop here.
+    if(not(readIdIsPresent and strandIsPresent and ordinalIsPresent)) {
+        return;
+    }
+    const OrientedReadId orientedReadId(readId, strand);
+
+    // Check the ordinal.
+    const uint64_t markerCount = markers.size(orientedReadId.getValue());
+    if(ordinal >= markerCount) {
+        html << "<p>" << orientedReadId << " has " << markerCount << " markers.";
+        return;
+    }
+
+
+
+    // Create an undirected graph in which each vertex represents a marker
+    // and aligned markers are joined by an edge.
+    using MarkerPair = pair<OrientedReadId, uint32_t>;
+    using Graph = boost::adjacency_list<
+        boost::setS,
+        boost::vecS,
+        boost::undirectedS,
+        MarkerPair
+        >;
+    Graph graph;
+    using vertex_descriptor = Graph::vertex_descriptor;
+    std::map<MarkerPair, vertex_descriptor> vertexMap;
+
+    // Initialize a BFS in the space of aligned markers.
+    const vertex_descriptor v = add_vertex(MarkerPair(orientedReadId, ordinal), graph);
+    vertexMap[MarkerPair(orientedReadId, ordinal)] = v;
+    std::queue<vertex_descriptor> q;
+    q.push(v);
+
+
+
+    // BFS loop.
+    vector<MarkerPair> alignedMarkers;
+    while(not q.empty()) {
+
+        // Dequeue a vertex.
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+        const MarkerPair markerPair0 =graph[v0];
+        SHASTA_ASSERT(vertexMap[markerPair0] == v0);
+
+        // Find aligned markers for this vertex.
+        findAlignedMarkers(markerPair0.first, markerPair0.second,
+            useReadGraphAlignmentsOnly, alignedMarkers);
+
+        for(const MarkerPair& markerPair1: alignedMarkers) {
+
+            // If there is no vertex for markerPair1, add it and enqueue it.
+            auto it1 = vertexMap.find(markerPair1);
+            if(it1 == vertexMap.end()) {
+                const vertex_descriptor v1 = add_vertex(markerPair1, graph);
+                tie(it1, ignore) = vertexMap.insert(make_pair(markerPair1, v1));
+                q.push(v1);
+            }
+            const vertex_descriptor v1 = it1->second;
+
+            // If there is no edge between v0 and v1, create one.
+            bool edgeExists;
+            tie(ignore, edgeExists) = edge(v0, v1, graph);
+            if(not edgeExists) {
+                add_edge(v0, v1, graph);
+            }
+        }
+    }
+
+
+    // Write the graph out in graphviz format.
+    const string uuid = to_string(boost::uuids::random_generator()());
+    const string dotFileName = tmpDirectory() + uuid + ".dot";
+    ofstream dotFile(dotFileName);
+    dotFile << "graph MarkerConnectivity {\n";
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        const MarkerPair markerPair = graph[v];
+        dotFile << "\"" << markerPair.first << "-" << markerPair.second << "\""
+            " [label=\"" << markerPair.first << "\\n" << markerPair.second <<
+            "\"];\n";
+    }
+    BGL_FORALL_EDGES(e, graph, Graph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        const MarkerPair markerPair0 = graph[v0];
+        const MarkerPair markerPair1 = graph[v1];
+        dotFile
+            << "\"" << markerPair0.first << "-" << markerPair0.second << "\"--"
+            << "\"" << markerPair1.first << "-" << markerPair1.second << "\";\n";
+    }
+    dotFile << "}\n";
+    dotFile.close();
+
+
+
+    // Use graphviz to render it to svg.
+    const string command = timeoutCommand() + " 30 sfdp -O -T svg " + dotFileName +
+        " -Goverlap=false -Gsplines=true -Gsmoothing=triangle";
+    const int commandStatus = ::system(command.c_str());
+    if(WIFEXITED(commandStatus)) {
+        const int exitStatus = WEXITSTATUS(commandStatus);
+        if(exitStatus == 124) {
+            html << "<p>Timeout for graph layout exceeded.";
+            filesystem::remove(dotFileName);
+            return;
+        }
+        else if(exitStatus!=0) {
+            // filesystem::remove(dotFileName);
+            throw runtime_error("Error " + to_string(exitStatus) + " running graph layout command: " + command);
+        }
+    } else if(WIFSIGNALED(commandStatus)) {
+        const int signalNumber = WTERMSIG(commandStatus);
+        throw runtime_error("Signal " + to_string(signalNumber) + " while running graph layout command: " + command);
+    } else {
+        throw runtime_error("Abnormal status " + to_string(commandStatus) + " while running graph layout command: " + command);
+    }
+
+    // Remove the .dot file.
+    filesystem::remove(dotFileName);
+
+    // Buttons to resize the svg locally.
+    addScaleSvgButtons(html);
+
+    // Display the svg file.
+    const string svgFileName = dotFileName + ".svg";
+    ifstream svgFile(svgFileName);
+    html << "<div id=svgDiv style='display:none'>"; // Make it invisible until after we scale it.
+    html << svgFile.rdbuf();
+    svgFile.close();
+
+    // Scale to desired size, then make it visible.
+    const int sizePixels = 800;
+    html <<
+        "</div>"
+        "<script>"
+        "var svgElement = document.getElementsByTagName('svg')[0];"
+        "svgElement.setAttribute('width', " << sizePixels << ");"
+        "document.getElementById('svgDiv').setAttribute('style', 'display:block');"
+        "</script>";
+
+    // Remove the .svg file.
+    filesystem::remove(svgFileName);
+}
 #endif
 

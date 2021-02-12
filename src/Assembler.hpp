@@ -1340,6 +1340,13 @@ private:
         const InducedAlignmentCriteria&,
         vector<uint64_t>& work);
 
+    // Find the markers aligned to a given marker.
+    // This is slow and cannot be used during assembly.
+    void findAlignedMarkers(
+        OrientedReadId, uint32_t ordinal,
+        bool useReadGraphAlignmentsOnly,
+        vector< pair<OrientedReadId, uint32_t> >&) const;
+
 
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1882,6 +1889,7 @@ public:
     void exploreMarkerCoverage(const vector<string>&, ostream&);
     void exploreMarkerGraphInducedAlignment(const vector<string>&, ostream&);
     void followReadInMarkerGraph(const vector<string>&, ostream&);
+    void exploreMarkerConnectivity(const vector<string>&, ostream&);
     void renderEditableAlignmentConfig(
         const int method,
         const uint64_t maxSkip,

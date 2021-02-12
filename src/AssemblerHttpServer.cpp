@@ -43,6 +43,7 @@ void Assembler::fillServerFunctionTable()
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerCoverage);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerGraphInducedAlignment);
     SHASTA_ADD_TO_FUNCTION_TABLE(followReadInMarkerGraph);
+    SHASTA_ADD_TO_FUNCTION_TABLE(exploreMarkerConnectivity);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraph);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdge);
     SHASTA_ADD_TO_FUNCTION_TABLE(exploreAssemblyGraphEdgesSupport);
@@ -246,6 +247,7 @@ void Assembler::writeNavigation(ostream& html) const
         {"Marker coverage", "exploreMarkerCoverage"},
         {"Induced alignments", "exploreMarkerGraphInducedAlignment"},
         {"Follow a read in the marker graph", "followReadInMarkerGraph"},
+        {"Marker connectivity", "exploreMarkerConnectivity"},
         });
     writeNavigation(html, "Assembly graph", {
         {"Local assembly graph", "exploreAssemblyGraph"},

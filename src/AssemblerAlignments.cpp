@@ -343,3 +343,73 @@ void Assembler::getStoredAlignments(
     }
 }
 
+
+
+// Find the markers aligned to a given marker.
+// This is slow and cannot be used during assembly.
+void Assembler::findAlignedMarkers(
+    OrientedReadId orientedReadId, uint32_t ordinal,
+    bool useReadGraphAlignmentsOnly,
+    vector< pair<OrientedReadId, uint32_t> >& alignedMarkers) const
+{
+    alignedMarkers.clear();
+    const uint32_t markerCount0 = uint32_t(markers.size(orientedReadId.getValue()));
+
+
+    // Loop over alignment involving this oriented read, as stored in the
+    // alignment table.
+    Alignment alignment;
+    const auto alignmentTable = this->alignmentTable[orientedReadId.getValue()];
+    for(const auto alignmentId: alignmentTable) {
+        const AlignmentData& ad = alignmentData[alignmentId];
+
+        // If this alignment is not in the read graph and only read graph alignments
+        // were requested, skip it.
+        if(useReadGraphAlignmentsOnly and (not ad.info.isInReadGraph)) {
+            continue;
+        }
+
+        // The alignment is stored with its first read on strand 0.
+        OrientedReadId alignmentOrientedReadId0(ad.readIds[0], 0);
+        OrientedReadId alignmentOrientedReadId1(ad.readIds[1],
+            ad.isSameStrand ? 0 : 1);
+
+        // Access the alignment and decompress it.
+        const span<const char> compressedAlignment = compressedAlignments[alignmentId];
+        decompress(compressedAlignment, alignment);
+        SHASTA_ASSERT(alignment.ordinals.size() == ad.info.markerCount);
+
+        // Swap the reads, if necessary.
+        bool swapReads = false;
+        if(alignmentOrientedReadId0.getReadId() != orientedReadId.getReadId()) {
+            swap(alignmentOrientedReadId0, alignmentOrientedReadId1);
+            swapReads = true;
+        }
+
+        // Reverse complement, if necessary.
+        bool reverseComplement = false;
+        if(alignmentOrientedReadId0 != orientedReadId) {
+            alignmentOrientedReadId0.flipStrand();
+            alignmentOrientedReadId1.flipStrand();
+            reverseComplement = true;
+        }
+        SHASTA_ASSERT(alignmentOrientedReadId0 == orientedReadId);
+        const OrientedReadId orientedReadId1 = alignmentOrientedReadId1;
+        const uint32_t markerCount1 = uint32_t(markers.size(orientedReadId1.getValue()));
+
+        for(const auto& ordinals: alignment.ordinals) {
+            uint32_t ordinal0 = ordinals[0];
+            uint32_t ordinal1 = ordinals[1];
+            if(swapReads) {
+                swap(ordinal0, ordinal1);
+            }
+            if(reverseComplement) {
+                ordinal0 = markerCount0 - 1 - ordinal0;
+                ordinal1 = markerCount1 - 1 - ordinal1;
+            }
+            if(ordinal0 == ordinal) {
+                alignedMarkers.push_back(make_pair(orientedReadId1, ordinal1));
+            }
+        }
+    }
+}
