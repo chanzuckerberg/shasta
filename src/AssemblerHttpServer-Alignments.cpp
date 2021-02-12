@@ -2260,16 +2260,6 @@ void Assembler::assessAlignments(
     getParameterValue(request, "maxSkipBinCount", maxSkipBinCount);
     getParameterValue(request, "overhangLengthsBinCount", overhangLengthsBinCount);
 
-    // Parameters for alignment method 4.
-    uint64_t align4DeltaX = httpServerData.assemblerOptions->alignOptions.align4DeltaX;
-    getParameterValue(request, "align4DeltaX", align4DeltaX);
-    uint64_t align4DeltaY = httpServerData.assemblerOptions->alignOptions.align4DeltaY;
-    getParameterValue(request, "align4DeltaY", align4DeltaY);
-    uint64_t align4MinEntryCountPerCell = httpServerData.assemblerOptions->alignOptions.align4MinEntryCountPerCell;
-    getParameterValue(request, "align4MinEntryCountPerCell", align4MinEntryCountPerCell);
-    uint64_t align4MaxDistanceFromBoundary = httpServerData.assemblerOptions->alignOptions.align4MaxDistanceFromBoundary;
-    getParameterValue(request, "align4MaxDistanceFromBoundary", align4MaxDistanceFromBoundary);
-
     showAlignmentResults = getParameterValue(request, "showAlignmentResults", showAlignmentResultsString);
     useDeadEnds = getParameterValue(request, "useDeadEnds", useDeadEndsString);
 
@@ -2302,6 +2292,18 @@ void Assembler::assessAlignments(
     getParameterValue(request, "bandExtend", computeAllAlignmentsData.bandExtend);
     computeAllAlignmentsData.maxBand = httpServerData.assemblerOptions->alignOptions.maxBand;
     getParameterValue(request, "maxBand", computeAllAlignmentsData.maxBand);
+
+    // Parameters for alignment method 4.
+    computeAllAlignmentsData.align4DeltaX = httpServerData.assemblerOptions->alignOptions.align4DeltaX;
+    getParameterValue(request, "align4DeltaX", computeAllAlignmentsData.align4DeltaX);
+    computeAllAlignmentsData.align4DeltaY = httpServerData.assemblerOptions->alignOptions.align4DeltaY;
+    getParameterValue(request, "align4DeltaY", computeAllAlignmentsData.align4DeltaY);
+    computeAllAlignmentsData.align4MinEntryCountPerCell = httpServerData.assemblerOptions->alignOptions.align4MinEntryCountPerCell;
+    getParameterValue(request, "align4MinEntryCountPerCell", computeAllAlignmentsData.align4MinEntryCountPerCell);
+    computeAllAlignmentsData. align4MaxDistanceFromBoundary = httpServerData.assemblerOptions->alignOptions.align4MaxDistanceFromBoundary;
+    getParameterValue(request, "align4MaxDistanceFromBoundary", computeAllAlignmentsData.align4MaxDistanceFromBoundary);
+
+
 
     html << "<h1>Alignment statistics</h1>";
     html << "<p>This page enables sampling from the pool of reads and computing alignments for each read in the sample "
