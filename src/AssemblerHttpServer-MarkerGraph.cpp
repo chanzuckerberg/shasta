@@ -1616,7 +1616,7 @@ void Assembler::exploreMarkerConnectivity(
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
     uint32_t ordinal = 0;
     const bool ordinalIsPresent = getParameterValue(request, "ordinal", ordinal);
-    string whichAlignments = "AllAlignments";
+    string whichAlignments = "ReadGraphAlignments";
     getParameterValue(request, "whichAlignments", whichAlignments);
 
     // Write the form.
@@ -1714,6 +1714,17 @@ void Assembler::exploreMarkerConnectivity(
     }
 
 
+
+    // Count how many times each oriented read appears.
+    std::map<OrientedReadId, uint64_t> frequencyMap;
+    for(const auto& p: vertexMap) {
+        const MarkerPair& markerPair = p.first;
+        const OrientedReadId orientedReadId = markerPair.first;
+        ++frequencyMap[orientedReadId];
+    }
+
+
+
     // Write the graph out in graphviz format.
     const string uuid = to_string(boost::uuids::random_generator()());
     const string dotFileName = tmpDirectory() + uuid + ".dot";
@@ -1721,9 +1732,19 @@ void Assembler::exploreMarkerConnectivity(
     dotFile << "graph MarkerConnectivity {\n";
     BGL_FORALL_VERTICES(v, graph, Graph) {
         const MarkerPair markerPair = graph[v];
-        dotFile << "\"" << markerPair.first << "-" << markerPair.second << "\""
-            " [label=\"" << markerPair.first << "\\n" << markerPair.second <<
-            "\"];\n";
+        const OrientedReadId orientedReadId1 = markerPair.first;
+        const uint32_t ordinal1 = markerPair.second;
+        dotFile << "\"" << orientedReadId1 << "-" << ordinal1 << "\""
+            " [label=\"" << orientedReadId1 << "\\n" << ordinal1 <<
+            "\"";
+        if(frequencyMap[orientedReadId1] != 1) {
+            dotFile << " style=filled fillcolor=pink";
+        } else if(orientedReadId1==orientedReadId and ordinal1==ordinal) {
+            dotFile << " style=filled fillcolor=cyan";
+        } else {
+            dotFile << " style=filled fillcolor=cornsilk";
+        }
+        dotFile << "];\n";
     }
     BGL_FORALL_EDGES(e, graph, Graph) {
         const vertex_descriptor v0 = source(e, graph);
@@ -1766,6 +1787,7 @@ void Assembler::exploreMarkerConnectivity(
 
     // Buttons to resize the svg locally.
     addScaleSvgButtons(html);
+    html << "<br>Found " << vertexMap.size() << " markers.";
 
     // Display the svg file.
     const string svgFileName = dotFileName + ".svg";
