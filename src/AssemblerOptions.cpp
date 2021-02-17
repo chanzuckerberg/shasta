@@ -552,6 +552,12 @@ void AssemblerOptions::addConfigurableOptions()
         "Minimum coverage (number of supporting oriented reads) "
         "for each strand for a marker graph vertex.")
 
+        ("MarkerGraph.allowDuplicateMarkers",
+        bool_switch(&markerGraphOptions.allowDuplicateMarkers)->
+        default_value(false),
+        "Specifies whether to allow more than one marker on the "
+        "same oriented read on a single marker graph vertex. Experimental.")
+
         ("MarkerGraph.lowCoverageThreshold",
         value<int>(&markerGraphOptions.lowCoverageThreshold)->
         default_value(0),
@@ -845,6 +851,8 @@ void MarkerGraphOptions::write(ostream& s) const
     s << "minCoverage = " << minCoverage << "\n";
     s << "maxCoverage = " << maxCoverage << "\n";
     s << "minCoveragePerStrand = " << minCoveragePerStrand << "\n";
+    s << "allowDuplicateMarkers = " <<
+        convertBoolToPythonString(allowDuplicateMarkers) << "\n";
     s << "lowCoverageThreshold = " << lowCoverageThreshold << "\n";
     s << "highCoverageThreshold = " << highCoverageThreshold << "\n";
     s << "maxDistance = " << maxDistance << "\n";

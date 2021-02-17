@@ -255,6 +255,10 @@ public:
         // on each strand) for a vertex of the marker graph to be kept.
         uint64_t minCoveragePerStrand,
 
+        // Flag that specifies whether to allow more than one marker on the
+        // same oriented read id on a single marker graph vertex.
+        bool allowDuplicateMarkers,
+
         // These two are used by PeakFinder in the automatic selection
         // of minCoverage when minCoverage is set to 0.
         double peakFinderMinAreaFraction,
@@ -1097,6 +1101,7 @@ private:
 
         // Parameters.
         uint64_t minCoveragePerStrand;
+        bool allowDuplicateMarkers;
 
         // The total number of oriented markers.
         uint64_t orientedMarkerCount;

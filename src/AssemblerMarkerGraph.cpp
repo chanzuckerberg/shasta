@@ -46,6 +46,10 @@ void Assembler::createMarkerGraphVertices(
     // on each strand) for a vertex of the marker graph to be kept.
     uint64_t minCoveragePerStrand,
 
+    // Flag that specifies whether to allow more than one marker on the
+    // same oriented read id on a single marker graph vertex.
+    bool allowDuplicateMarkers,
+
     // These two are used by PeakFinder in the automatic selection
     // of minCoverage when minCoverage is set to 0.
     double peakFinderMinAreaFraction,
@@ -78,6 +82,7 @@ void Assembler::createMarkerGraphVertices(
 
     // Store parameters so they are accessible to the threads.
     auto& data = createMarkerGraphVerticesData;
+    data.allowDuplicateMarkers = allowDuplicateMarkers;
     data.minCoveragePerStrand = minCoveragePerStrand;
 
     // Adjust the numbers of threads, if necessary.
@@ -673,13 +678,15 @@ void Assembler::createMarkerGraphVerticesThreadFunction6(size_t threadId)
 // Flag "bad" disjoint sets for which we don't want to
 // create marker graph vertices. A disjoint set can be flagged
 // as bad for one of two reasons:
-// - It contains more than one marker on the same oriented read.
+// - It contains more than one marker on the same oriented read
+//   (But this check if suppressed if allowDuplicateMarkers is set).
 // - It does not contain at least minCoveragePerStrand supporting
 //   oriented reads on each strand.
 void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
 {
     const auto& disjointSetMarkers = createMarkerGraphVerticesData.disjointSetMarkers;
     auto& isBadDisjointSet = createMarkerGraphVerticesData.isBadDisjointSet;
+    const auto allowDuplicateMarkers = createMarkerGraphVerticesData.allowDuplicateMarkers;
     const auto minCoveragePerStrand = createMarkerGraphVerticesData.minCoveragePerStrand;
 
     uint64_t begin, end;
@@ -702,7 +709,7 @@ void Assembler::createMarkerGraphVerticesThreadFunction7(size_t threadId)
                 tie(orientedReadId, ignore) = findMarkerId(markerId);
                 ++countByStrand[orientedReadId.getStrand()];
 
-                if(j > 0) {
+                if((not allowDuplicateMarkers) and j > 0) {
                     const MarkerId& previousMarkerId = markers[j-1];
                     OrientedReadId previousOrientedReadId;
                     tie(previousOrientedReadId, ignore) = findMarkerId(previousMarkerId);
@@ -1308,47 +1315,35 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction1(size_t t
 {
     using VertexId = MarkerGraph::VertexId;
 
+    // Loop over batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
 
+        // Loop over vertices in this batch.
         for (VertexId vertexId=begin; vertexId!=end; vertexId++) {
 
             // Get the markers of this vertex.
-            const span<MarkerId> vertexMarkers =
-                markerGraph.getVertexMarkerIds(vertexId);
+            const span<MarkerId> vertexMarkers = markerGraph.getVertexMarkerIds(vertexId);
             SHASTA_ASSERT(vertexMarkers.size() > 0);
 
             // Get the first marker of this vertex.
             const MarkerId firstMarkerId = vertexMarkers[0];
 
             /// Find the reverse complemented marker.
-            const MarkerId firstMarkerIdReverseComplement = findReverseComplement(
-                firstMarkerId);
+            const MarkerId firstMarkerIdReverseComplement = findReverseComplement(firstMarkerId);
 
             // Find the corresponding vertex.
-            const VertexId vertexIdReverseComplement =
-                markerGraph.vertexTable[firstMarkerIdReverseComplement];
+            const VertexId vertexIdReverseComplement = markerGraph.vertexTable[firstMarkerIdReverseComplement];
             SHASTA_ASSERT(vertexIdReverseComplement != MarkerGraph::invalidCompressedVertexId);
 
-            // Get the markers of the reverse complemented vertex.
-            const span<MarkerId> vertexMarkersReverseComplement =
-                markerGraph.getVertexMarkerIds(vertexIdReverseComplement);
-
-            // Check that the markers are all consistent.
-            // This could become expensive.
-            // It can be taken out when we are confident that this code works.
-            SHASTA_ASSERT(vertexMarkers.size() == vertexMarkersReverseComplement.size());
-            for (size_t i=0; i<vertexMarkers.size(); i++) {
-                const MarkerId markerId = vertexMarkers[i];
-                const MarkerId markerIdReverseComplement =
-                    vertexMarkersReverseComplement[i];
-                SHASTA_ASSERT(
-                    markerIdReverseComplement == findReverseComplement(markerId));
+            // Now check that we get the same reverse complement vertex for all markers.
+            for(const MarkerId markerId: vertexMarkers) {
+                const MarkerId markerIdReverseComplement = findReverseComplement(markerId);
+                SHASTA_ASSERT(markerGraph.vertexTable[markerIdReverseComplement] == vertexIdReverseComplement);
             }
 
-            markerGraph.reverseComplementVertex[vertexId] =
-                vertexIdReverseComplement;
-
+            // Store the reverse complement vertex.
+            markerGraph.reverseComplementVertex[vertexId] = vertexIdReverseComplement;
         }
     }
 }
@@ -1537,24 +1532,35 @@ void Assembler::checkMarkerGraphIsStrandSymmetric(size_t threadCount)
 // Check the vertices.
 void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction1(size_t threadId)
 {
-    using VertexId = MarkerGraph::VertexId;
 
+    // Loop over all batches assigned to this thread.
     uint64_t begin, end;
     while(getNextBatch(begin, end)) {
-        for (VertexId v0=begin; v0!=end; v0++) {
-            const VertexId v1 = markerGraph.reverseComplementVertex[v0];
-            const VertexId v2 = markerGraph.reverseComplementVertex[v1];
-            SHASTA_ASSERT(v2 == v0);
-            SHASTA_ASSERT(v1 != v0);
 
+        // Loop over all marker graph vertices in this batch.
+        for (MarkerGraph::VertexId v0=begin; v0!=end; v0++) {
+
+            // Find v1, the reverse complement of v0
+            const MarkerGraph::VertexId v1 = markerGraph.reverseComplementVertex[v0];
+
+            // Check that v2, the reverse complement of v1, is v0.
+            const MarkerGraph::VertexId v2 = markerGraph.reverseComplementVertex[v1];
+            SHASTA_ASSERT(v2 == v0);
+
+            // This can happen in exceptional cases, so this check is commented out.
+            // SHASTA_ASSERT(v1 != v0);
+
+            // Check that v0 and v1 have the same number of markers.
             const span<MarkerId> markers0 = markerGraph.getVertexMarkerIds(v0);
             const span<MarkerId> markers1 = markerGraph.getVertexMarkerIds(v1);
             SHASTA_ASSERT(markers0.size() == markers1.size());
+
+            // Check all the markers of v0.
             for (size_t i = 0; i < markers0.size(); i++) {
                 const MarkerId markerId0 = markers0[i];
-                const MarkerId markerId1 = markers1[i];
-                SHASTA_ASSERT(markerId1 == findReverseComplement(markerId0));
-                SHASTA_ASSERT(markerId0 == findReverseComplement(markerId1));
+                const MarkerId markerId1 = findReverseComplement(markerId0);
+                SHASTA_ASSERT(markerGraph.vertexTable[markerId0] == v0);
+                SHASTA_ASSERT(markerGraph.vertexTable[markerId1] == v1);
             }
         }
     }

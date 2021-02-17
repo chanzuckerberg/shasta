@@ -965,6 +965,7 @@ void shasta::main::createMarkerGraphVertices(
         assemblerOptions.markerGraphOptions.minCoverage,
         assemblerOptions.markerGraphOptions.maxCoverage,
         assemblerOptions.markerGraphOptions.minCoveragePerStrand,
+        assemblerOptions.markerGraphOptions.allowDuplicateMarkers,
         assemblerOptions.markerGraphOptions.peakFinderMinAreaFraction,
         assemblerOptions.markerGraphOptions.peakFinderAreaStartIndex,
         threadCount);

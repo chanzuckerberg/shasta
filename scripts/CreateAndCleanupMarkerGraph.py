@@ -2,6 +2,7 @@
 
 import shasta
 import GetConfig
+import ast
 import sys
 
 # Read the config file.
@@ -19,6 +20,7 @@ a.createMarkerGraphVertices(
     minCoverage = int(config['MarkerGraph']['minCoverage']),
     maxCoverage = int(config['MarkerGraph']['maxCoverage']),
     minCoveragePerStrand = int(config['MarkerGraph']['minCoveragePerStrand']),
+    allowDuplicateMarkers = ast.literal_eval(config['MarkerGraph']['allowDuplicateMarkers']),
     peakFinderMinAreaFraction = float(config['MarkerGraph']['peakFinder.minAreaFraction']),
     peakFinderAreaStartIndex = int(config['MarkerGraph']['peakFinder.areaStartIndex']))
 a.findMarkerGraphReverseComplementVertices()
