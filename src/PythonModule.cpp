@@ -31,23 +31,6 @@ using namespace pybind11;
 PYBIND11_MODULE(shasta, module)
 {
 
-    {
-        // Class used by Assembler::getGlobalMarkerGraphEdgeInformation.
-        using Info = Assembler::GlobalMarkerGraphEdgeInformation;
-        class_<Info>(module, "GlobalMarkerGraphEdgeInformation")
-            .def_readwrite("readId", &Info::readId)
-            .def_readwrite("strand", &Info::strand)
-            .def_readwrite("ordinal0", &Info::ordinal0)
-            .def_readwrite("ordinal1", &Info::ordinal1)
-            .def_readwrite("position0", &Info::position0)
-            .def_readwrite("position1", &Info::position1)
-            .def_readwrite("overlappingBaseCount", &Info::overlappingBaseCount)
-            .def_readwrite("sequence", &Info::sequence)
-            ;
-    }
-
-
-
     // Expose class OrientedReadPair to Python.
     class_<OrientedReadPair>(module, "OrientedReadPair")
         .def_readonly("readIds", &OrientedReadPair::readIds)
@@ -405,24 +388,6 @@ PYBIND11_MODULE(shasta, module)
             )
             &Assembler::getGlobalMarkerGraphVertexMarkers,
             arg("vertexId"))
-        .def("getGlobalMarkerGraphVertexChildren",
-            (
-                vector<MarkerGraph::VertexId> (Assembler::*)
-                (MarkerGraph::VertexId) const
-            )
-            &Assembler::getGlobalMarkerGraphVertexChildren,
-            arg("vertexId"))
-        .def("getGlobalMarkerGraphVertexParents",
-            (
-                vector<MarkerGraph::VertexId> (Assembler::*)
-                (MarkerGraph::VertexId) const
-            )
-            &Assembler::getGlobalMarkerGraphVertexParents,
-            arg("vertexId"))
-        .def("getGlobalMarkerGraphEdgeInformation",
-                &Assembler::getGlobalMarkerGraphEdgeInformation,
-                arg("vertexId0"),
-                arg("vertexId1"))
         .def("findMarkerGraphReverseComplementVertices",
             &Assembler::findMarkerGraphReverseComplementVertices,
             arg("threadCount") = 0)

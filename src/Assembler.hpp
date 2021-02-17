@@ -288,45 +288,6 @@ public:
     vector< tuple<ReadId, Strand, uint32_t> >
         getGlobalMarkerGraphVertexMarkers(MarkerGraph::VertexId) const;
 
-    // Find the children or parents of a vertex of the global marker graph.
-    vector<MarkerGraph::VertexId>
-        getGlobalMarkerGraphVertexChildren(
-        MarkerGraph::VertexId) const;
-    vector<MarkerGraph::VertexId>
-        getGlobalMarkerGraphVertexParents(
-        MarkerGraph::VertexId) const;
-
-
-
-    // Python-callable function to get information about an edge of the
-    // global marker graph. Returns an empty vector if the specified
-    // edge does not exist.
-    class GlobalMarkerGraphEdgeInformation {
-    public:
-        ReadId readId;
-        Strand strand;
-        uint32_t ordinal0;
-        uint32_t ordinal1;
-        uint32_t position0;
-        uint32_t position1;
-        uint32_t overlappingBaseCount;
-        string sequence;
-    };
-    vector<GlobalMarkerGraphEdgeInformation> getGlobalMarkerGraphEdgeInformation(
-        MarkerGraph::VertexId,
-        MarkerGraph::VertexId
-        );
-
-private:
-    // Lower-level, more efficient version of the above
-    // (but it returns less information).
-    void getGlobalMarkerGraphEdgeInfo(
-        MarkerGraph::VertexId,
-        MarkerGraph::VertexId,
-        vector<MarkerInterval>&
-        );
-public:
-
 
 
     // Approximate transitive reduction of the marker graph.
@@ -1234,26 +1195,7 @@ private:
         MarkerGraph::VertexId,
         vector< pair<OrientedReadId, uint32_t> >&) const;
 
-    // Find the children or parents of a vertex of the global marker graph.
     void getGlobalMarkerGraphVertexChildren(
-        MarkerGraph::VertexId,
-        vector<MarkerGraph::VertexId>&,
-        bool append = false
-        ) const;
-    void getGlobalMarkerGraphVertexParents(
-        MarkerGraph::VertexId,
-        vector<MarkerGraph::VertexId>&,
-        bool append = false
-        ) const;
-
-    // This version also returns the oriented read ids and ordinals
-    // that caused a child to be marked as such.
-    void getGlobalMarkerGraphVertexChildren(
-        MarkerGraph::VertexId,
-        vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > >&,
-        vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
-        ) const;
-    void getGlobalMarkerGraphVertexParents(
         MarkerGraph::VertexId,
         vector< pair<MarkerGraph::VertexId, vector<MarkerInterval> > >&,
         vector< pair<MarkerGraph::VertexId, MarkerInterval> >& workArea
