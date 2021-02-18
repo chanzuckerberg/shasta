@@ -1404,6 +1404,9 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId
             const EdgeId e0rc = markerGraph.findEdgeId(v1rc, v0rc);
             SHASTA_ASSERT(e0rc == e1);
 
+#if 0
+            // This check does not work correctly when --MarkerGraph.allowDuplicateMarkers.
+            // An equivalent check was done in findMarkerGraphReverseComplementVertices.
             const span<MarkerInterval> markerIntervals0 =
                 markerGraph.edgeMarkerIntervals[e0];
             const span<MarkerInterval> markerIntervals1 =
@@ -1427,6 +1430,7 @@ void Assembler::checkMarkerGraphIsStrandSymmetricThreadFunction2(size_t threadId
                     markerInterval0.ordinals[1]
                     == markerCount - 1 - markerInterval1.ordinals[0]);
             }
+#endif
         }
     }
 }
