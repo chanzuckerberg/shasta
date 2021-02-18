@@ -863,7 +863,6 @@ void Assembler::checkMarkerGraphVertices(
 
     for(MarkerGraph::VertexId vertexId=0;
         vertexId!=markerGraph.vertexCount(); vertexId++) {
-        SHASTA_ASSERT(!isBadMarkerGraphVertex(vertexId));
         const auto markers = markerGraph.getVertexMarkerIds(vertexId);
         SHASTA_ASSERT(markers.size() >= minCoverage);
         SHASTA_ASSERT(markers.size() <= maxCoverage);
@@ -1020,10 +1019,6 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
     children.clear();
     workArea.clear();
 
-    if(isBadMarkerGraphVertex(vertexId)) {
-        return;
-    }
-
     // Loop over the markers of this vertex.
     for(const MarkerId markerId: markerGraph.getVertexMarkerIds(vertexId)) {
 
@@ -1041,8 +1036,7 @@ void Assembler::getGlobalMarkerGraphVertexChildren(
                 markerGraph.vertexTable[childMarkerId];
 
             // If this marker correspond to a vertex, add it to our list.
-            if( childVertexId!=MarkerGraph::invalidCompressedVertexId &&
-                !isBadMarkerGraphVertex(childVertexId)) {
+            if( childVertexId!=MarkerGraph::invalidCompressedVertexId) {
                 workArea.push_back(make_pair(childVertexId, info));
                 break;
             }
@@ -1556,7 +1550,6 @@ bool Assembler::extractLocalMarkerGraphUsingStoredConnectivity(
             const MarkerGraph::VertexId vertexId1 = edge.target;
             SHASTA_ASSERT(edge.source == vertexId0);
             SHASTA_ASSERT(vertexId1 < markerGraph.vertexCount());
-            SHASTA_ASSERT(!isBadMarkerGraphVertex(vertexId1));
 
             // Find the vertex corresponding to this child, creating it if necessary.
             bool vertexExists;
