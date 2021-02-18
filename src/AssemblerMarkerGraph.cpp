@@ -1234,7 +1234,11 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
             const EdgeId edgeIdRc = markerGraph.findEdgeId(v1rc, v0rc);
             markerGraph.reverseComplementEdge[edgeId] = edgeIdRc;
 
+#if 0
             // Check that marker intervals of the two are consistent.
+            // This check does not work correctly when --MarkerGraph.allowDuplicateMarkers.
+            // An equivalent check was done in findMarkerGraphReverseComplementVertices,
+            // so we can skip this.
             const span<MarkerInterval> markerIntervals =
                 markerGraph.edgeMarkerIntervals[edgeId];
             const span<MarkerInterval> markerIntervalsRc =
@@ -1258,6 +1262,7 @@ void Assembler::findMarkerGraphReverseComplementEdgesThreadFunction1(size_t thre
                     markerInterval.ordinals[1]
                         == markerCount - 1 - markerIntervalRc.ordinals[0]);
             }
+#endif
         }
     }
 }
