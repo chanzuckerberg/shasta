@@ -1376,7 +1376,7 @@ void Assembler::followReadInMarkerGraph(
     const bool readId0IsPresent = getParameterValue(request, "readId", readId0);
     Strand strand0 = 0;
     const bool strand0IsPresent = getParameterValue(request, "strand", strand0);
-    string whichAlignments = "AllAlignments";
+    string whichAlignments = "ReadGraphAlignments";
     getParameterValue(request, "whichAlignments", whichAlignments);
 
     // Write the form.
