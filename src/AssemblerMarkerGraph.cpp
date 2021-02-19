@@ -927,7 +927,7 @@ void Assembler::accessMarkerGraphVertices(bool readWriteAccess)
 
 
 
-void Assembler::checkMarkerGraphVerticesAreAvailable()
+void Assembler::checkMarkerGraphVerticesAreAvailable() const
 {
     if(!markerGraph.vertices().isOpen() || !markerGraph.vertexTable.isOpen) {
         throw runtime_error("Vertices of the marker graph are not accessible.");
@@ -1458,6 +1458,37 @@ bool Assembler::isBadMarkerGraphVertex(MarkerGraph::VertexId vertexId) const
         }
     }
     return false;
+}
+
+
+
+// Write a csv file with information on all marker graph vertices for which
+// isBadMarkerGraphVertex returns true.
+void Assembler::writeBadMarkerGraphVertices() const
+{
+    checkMarkerGraphVerticesAreAvailable();
+    ofstream csv("BadMarkerGraphVertices.csv");
+    csv << "VertexId,FirstOrientedReadId,FirstOrdinal\n";
+
+    uint64_t badVertexCount = 0;
+    for(MarkerGraph::VertexId vertexId=0; vertexId!=markerGraph.vertexCount(); vertexId++) {
+        if(not isBadMarkerGraphVertex(vertexId)) {
+            continue;
+        }
+        ++badVertexCount;
+
+        const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
+        SHASTA_ASSERT(markerIds.size() > 0);
+        const MarkerId firstMarkerId = markerIds[0];
+        OrientedReadId orientedReadId;
+        uint32_t ordinal;
+        tie(orientedReadId, ordinal) = findMarkerId(firstMarkerId);
+        csv << vertexId << ",";
+        csv << orientedReadId << ",";
+        csv << ordinal << "\n";
+    }
+
+    cout << "Found " << badVertexCount << " bad marker graph vertices." << endl;
 }
 
 

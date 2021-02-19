@@ -407,7 +407,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::refineMarkerGraph,
             arg("refineThreshold"),
             arg("threadCount") = 0)
-
+        .def("writeBadMarkerGraphVertices",
+            &Assembler::writeBadMarkerGraphVertices)
 
 
         // Edges of the global marker graph.

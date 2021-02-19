@@ -1089,7 +1089,7 @@ private:
 
 
 
-    void checkMarkerGraphVerticesAreAvailable();
+    void checkMarkerGraphVerticesAreAvailable() const;
 
     // Check for consistency of globalMarkerGraphVertex and globalMarkerGraphVertices.
     void checkMarkerGraphVertices(
@@ -1204,6 +1204,12 @@ private:
     // Return true if a vertex of the global marker graph has more than
     // one marker for at least one oriented read id.
     bool isBadMarkerGraphVertex(MarkerGraph::VertexId) const;
+
+    // Write a csv file with information on all marker graph vertices for which
+    // isBadMarkerGraphVertex returns true.
+public:
+    void writeBadMarkerGraphVertices() const;
+private:
 
     // Find out if a vertex is a forward or backward leaf of the pruned
     // strong subgraph of the marker graph.
