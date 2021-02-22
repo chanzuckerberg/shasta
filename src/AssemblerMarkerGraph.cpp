@@ -1468,7 +1468,7 @@ void Assembler::writeBadMarkerGraphVertices() const
 {
     checkMarkerGraphVerticesAreAvailable();
     ofstream csv("BadMarkerGraphVertices.csv");
-    csv << "VertexId,FirstOrientedReadId,FirstOrdinal\n";
+    csv << "VertexId,FirstOrientedReadId,FirstOrdinal,Coverage,DuplicateCoverage\n";
 
     uint64_t badVertexCount = 0;
     for(MarkerGraph::VertexId vertexId=0; vertexId!=markerGraph.vertexCount(); vertexId++) {
@@ -1477,15 +1477,37 @@ void Assembler::writeBadMarkerGraphVertices() const
         }
         ++badVertexCount;
 
+        // Get the markers.
         const span<const MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
         SHASTA_ASSERT(markerIds.size() > 0);
+
+        // Get information on the first marker, to output to the csv file.
         const MarkerId firstMarkerId = markerIds[0];
-        OrientedReadId orientedReadId;
-        uint32_t ordinal;
-        tie(orientedReadId, ordinal) = findMarkerId(firstMarkerId);
+        OrientedReadId firstOrientedReadId;
+        uint32_t firstOrdinal;
+        tie(firstOrientedReadId, firstOrdinal) = findMarkerId(firstMarkerId);
+
+        // Count the number of duplicate markers.
+        std::map<OrientedReadId, uint64_t> frequencyMap;
+        for(const MarkerId markerId: markerIds) {
+            OrientedReadId orientedReadId;
+            tie(orientedReadId, ignore) = findMarkerId(markerId);
+            ++frequencyMap[orientedReadId];
+        }
+        uint64_t duplicateCoverage = 0;
+        for(const auto& p: frequencyMap) {
+            const uint64_t frequency = p.second;
+            if(frequency > 1) {
+                duplicateCoverage += frequency;
+            }
+        }
+
+        // Write.
         csv << vertexId << ",";
-        csv << orientedReadId << ",";
-        csv << ordinal << "\n";
+        csv << firstOrientedReadId << ",";
+        csv << firstOrdinal << ",";
+        csv << markerIds.size() << ",";
+        csv << duplicateCoverage << "\n";
     }
 
     cout << "Found " << badVertexCount << " bad marker graph vertices." << endl;
