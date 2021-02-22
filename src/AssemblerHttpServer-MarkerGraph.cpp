@@ -1739,8 +1739,6 @@ void Assembler::exploreMarkerConnectivity(
             "\"";
         if(frequencyMap[orientedReadId1] != 1) {
             dotFile << " style=filled fillcolor=pink";
-        } else if(orientedReadId1==orientedReadId and ordinal1==ordinal) {
-            dotFile << " style=filled fillcolor=cyan";
         } else {
             dotFile << " style=filled fillcolor=cornsilk";
         }
