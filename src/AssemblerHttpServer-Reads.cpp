@@ -12,9 +12,11 @@ void Assembler::exploreRead(
     const vector<string>& request,
     ostream& html)
 {
-    // Get the ReadId and Strand from the request.
+    // Get the ReadId, read name, and Strand from the request.
     ReadId readId = 0;
     const bool readIdIsPresent = getParameterValue(request, "readId", readId);
+    string requestReadName;
+    getParameterValue(request, "readName", requestReadName);
     Strand strand = 0;
     const bool strandIsPresent = getParameterValue(request, "strand", strand);
 
@@ -51,12 +53,14 @@ void Assembler::exploreRead(
     // Write the form.
     html <<
         "<form>"
-        "<input type=submit value='Display'> " <<
-        "read &nbsp" <<
-        "<input type=text name=readId required" <<
+        "<input type=submit value='Show read'> " <<
+        "numeric read id " <<
+        "<input type=text name=readId" <<
         (readIdIsPresent ? (" value=" + to_string(readId)) : "") <<
         " size=8 title='Enter a read id between 0 and " << reads->readCount()-1 << "'>"
-        " on strand ";
+        " or read name <input type=text name=readName" <<
+        (requestReadName.empty() ? "" : " value='" + requestReadName + "'") <<
+        "> on strand ";
     writeStrandSelection(html, "strand", strandIsPresent && strand==0, strandIsPresent && strand==1);
     
     html << "<font color=grey style='font-size:smaller'>";
@@ -101,10 +105,29 @@ void Assembler::exploreRead(
         "> Marker frequency table."
         "</form>";
 
+    // Check that one and only one of readId and readName was entered.
+    if(readIdIsPresent and not requestReadName.empty()) {
+        html << "Specify either a numeric read id or a read name, but not both.";
+        return;
+    }
+    if(not readIdIsPresent and requestReadName.empty()) {
+        html << "Specify a numeric read id or a read name.";
+        return;
+    }
+
+    // If a read name was specified, get the read id.
+    if(not requestReadName.empty()) {
+        readId = getReads().getReadId(requestReadName);
+        if(readId == invalidReadId) {
+            html << "A read with that name was not found. See ReadSummary.csv.";
+            return;
+        }
+    }
 
 
-    // If the readId or strand are missing, stop here.
-    if(!readIdIsPresent || !strandIsPresent) {
+
+    // If the strand is missing, stop here.
+    if(not strandIsPresent) {
         return;
     }
 
