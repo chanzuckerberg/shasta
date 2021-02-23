@@ -129,10 +129,15 @@ void Assembler::writeMakeAllTablesCopyable(ostream& html) const
     // Copy to the clipboard the table that generated the event.
     function copyToClipboard(event)
     {
+        // If the CTRL key is not pressed, don't do anything.
+        if(!event.ctrlKey) {
+            return;
+        }
+
         // Prevent default behavior.
-        event.preventDefault();
-        event.stopPropagation();
-        event.returnValue = false;
+        // event.preventDefault();
+        // event.stopPropagation();
+        // event.returnValue = false;
         
         // Get the table element.
         var element = event.currentTarget;
@@ -155,14 +160,14 @@ void Assembler::writeMakeAllTablesCopyable(ostream& html) const
         window.alert("The table was copied to the clipboard");
     }
 
-    // Make a table copyable by double click.
+    // Make a table copyable by Ctrl-click.
     function makeCopyable(element)
     {
-        element.addEventListener('dblclick', copyToClipboard);
-        element.title = 'Double click anywhere on the table to copy the entire table to the clipboard';
+        element.addEventListener('click', copyToClipboard);
+        element.title = 'Ctrl-click anywhere on the table to copy the entire table to the clipboard';
     }
 
-    // Make all tables copyable by double click.
+    // Make all tables copyable by Ctrl-click.
     function makeAllTablesCopyable()
     {
         var tables = document.getElementsByTagName('table');
