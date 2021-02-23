@@ -1282,6 +1282,7 @@ void Assembler::exploreAlignment(
                 "<td class=centered style='background-color:AliceBlue'>"
                 "<a href=\"exploreRead?readId=" << orientedReadId0.getReadId() <<
                 "&amp;strand=" << orientedReadId0.getStrand() <<
+                "&amp;showMarkers=on"
                 "&amp;highlightMarker=" << ordinal0 <<
                 "#" << ordinal0 << "\">" << ordinal0 << "</a>"
 
@@ -1289,6 +1290,7 @@ void Assembler::exploreAlignment(
                 "<td class=centered style='background-color:AliceBlue'>"
                 "<a href=\"exploreRead?readId=" << orientedReadId1.getReadId() <<
                 "&amp;strand=" << orientedReadId1.getStrand() <<
+                "&amp;showMarkers=on"
                 "&amp;highlightMarker=" << ordinal1 <<
                 "#" << ordinal1 << "\">" << ordinal1 << "</a>"
 

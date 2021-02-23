@@ -659,6 +659,7 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
             "<a href='exploreRead"
             "?readId=" << readId <<
             "&strand=" << strand <<
+            "&amp;showMarkers=on"
             "&highlightMarker=" << ordinal <<
             "'>" <<
             ordinal << "</a>";
@@ -1022,6 +1023,7 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
                 "<a href='exploreRead"
                 "?readId=" << readId <<
                 "&strand=" << strand <<
+                "&amp;showMarkers=on"
                 "&highlightMarker=" << markerInterval.ordinals[m] <<
                 "'>" <<
                 markerInterval.ordinals[m] << "</a>";
