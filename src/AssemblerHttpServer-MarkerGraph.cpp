@@ -624,6 +624,10 @@ void Assembler::exploreMarkerGraphVertex(const vector<string>& request, ostream&
         }
         html << ">" << edgeId << "</a> ";
     }
+    const MarkerGraph::VertexId vertexIdRc = markerGraph.reverseComplementVertex[vertexId];
+    html << "<tr><th class=left>Reverse complement vertex<td class=centered>"
+        "<a href='exploreMarkerGraphVertex?vertexId=" << vertexIdRc << "'>" <<
+        vertexIdRc << "</a> ";
 
 
     html << "</table>";
@@ -941,6 +945,11 @@ void Assembler::exploreMarkerGraphEdge(const vector<string>& request, ostream& h
     } else {
         html << "<tr><th class=left>Assembled?<td class=centered>No";
     }
+
+    const MarkerGraph::EdgeId edgeIdRc = markerGraph.reverseComplementEdge[edgeId];
+    html << "<tr><th class=left>Reverse complement edge<td class=centered>"
+        "<a href='exploreMarkerGraphEdge?edgeId=" << edgeIdRc << "'>" <<
+        edgeIdRc << "</a> ";
 
     html << "</table>";
 

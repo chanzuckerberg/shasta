@@ -923,6 +923,9 @@ void Assembler::accessMarkerGraphVertices(bool readWriteAccess)
     markerGraph.constructVertices();
     markerGraph.vertices().accessExisting(
         largeDataName("MarkerGraphVertices"), readWriteAccess);
+
+    markerGraph.reverseComplementVertex.accessExisting(
+        largeDataName("MarkerGraphReverseComplementeVertex"), readWriteAccess);
 }
 
 
@@ -2039,11 +2042,15 @@ void Assembler::accessMarkerGraphEdges(bool accessEdgesReadWrite)
             largeDataName("GlobalMarkerGraphEdges"));
         markerGraph.edgeMarkerIntervals.accessExistingReadWrite(
             largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
+        markerGraph.reverseComplementEdge.accessExistingReadWrite(
+            largeDataName("MarkerGraphReverseComplementeEdge"));
     } else {
         markerGraph.edges.accessExistingReadOnly(
             largeDataName("GlobalMarkerGraphEdges"));
         markerGraph.edgeMarkerIntervals.accessExistingReadOnly(
             largeDataName("GlobalMarkerGraphEdgeMarkerIntervals"));
+        markerGraph.reverseComplementEdge.accessExistingReadOnly(
+            largeDataName("MarkerGraphReverseComplementeEdge"));
     }
     markerGraph.edgesBySource.accessExistingReadOnly(
         largeDataName("GlobalMarkerGraphEdgesBySource"));
