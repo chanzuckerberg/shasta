@@ -1,10 +1,12 @@
 #include "PalindromeQuality.hpp"
 #include <stdexcept>
 #include "span.hpp"
+#include <cmath>
 
 using std::runtime_error;
 using std::cout;
 using std::cerr;
+using std::pow;
 
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
@@ -14,11 +16,20 @@ using namespace boost::accumulators;
 typedef accumulator_set<float, features<tag::count, tag::mean, tag::variance>> stats_accumulator;
 
 
-bool shasta::classify_palindromic_q_scores(span<char> qualities){
-    bool is_palindromic = false;
+double qualityCharToErrorProbability(char q) {
+    return pow(10, double(q - 33) / -10.0);
+}
 
-    stats_accumulator left_stats;
-    stats_accumulator right_stats;
+
+bool shasta::classifyPalindromicQScores(span<char> qualities){
+    double relativeMeanDifference = 0.09;
+    double minimumMean = 0.15;
+    double minimumVariance = 0.025;
+
+    bool isPalindromic = false;
+
+    stats_accumulator leftStats;
+    stats_accumulator rightStats;
 
     auto length = qualities.size();
 
@@ -31,30 +42,30 @@ bool shasta::classify_palindromic_q_scores(span<char> qualities){
 
     for (size_t i=0; i<midpoint; i++){
         auto q = qualities[i];
-        auto p = quality_char_to_error_probability(q);
+        auto p = qualityCharToErrorProbability(q);
 
         left_stats(p);
     }
 
     for (size_t i=midpoint; i<length; i++){
         auto q = qualities[i];
-        auto p = quality_char_to_error_probability(q);
+        auto p = qualityCharToErrorProbability(q);
 
         right_stats(p);
     }
 
-    float left_mean = mean(left_stats);
-    float left_variance = variance(left_stats);
+    float leftMean = mean(left_stats);
+    float leftVariance = variance(left_stats);
 
-    float right_mean = mean(right_stats);
-    float right_variance = variance(right_stats);
+    float rightMean = mean(right_stats);
+    float rightVariance = variance(right_stats);
 
     // Compare the mean and variance using thresholds derived empirically from some palindromic reads
-    if (right_mean - left_mean > 0.09 and right_mean >= 0.15){
-        if (right_variance > left_variance and right_variance > 0.025){
-            is_palindromic = true;
+    if (rightMean - leftMean > relativeMeanDifference and rightMean >= minimumMean){
+        if (rightVariance > leftVariance and rightVariance > minimumVariance){
+            isPalindromic = true;
         }
     }
 
-    return is_palindromic;
+    return isPalindromic;
 }

@@ -3,7 +3,7 @@
 
 namespace shasta {
 
-bool classify_palindromic_q_scores(span<char> qualities);
+bool classifyPalindromicQScores(span<char> qualities);
 
 }
 
