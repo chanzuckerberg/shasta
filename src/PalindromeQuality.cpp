@@ -1,6 +1,4 @@
 #include "PalindromeQuality.hpp"
-
-#include <iostream>
 #include <stdexcept>
 #include "span.hpp"
 
@@ -47,7 +45,7 @@ bool shasta::classify_palindromic_q_scores(span<char> qualities){
     float right_mean = mean(right_stats);
     float right_variance = variance(right_stats);
 
-    // Compare the mean and variance using thresholds derived empirically from some palindormic reads
+    // Compare the mean and variance using thresholds derived empirically from some palindromic reads
     if (right_mean - left_mean > 0.09 and right_mean >= 0.15){
         if (right_variance > left_variance and right_variance > 0.025){
             is_palindromic = true;
