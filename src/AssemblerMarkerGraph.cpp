@@ -3023,9 +3023,20 @@ void Assembler::computeMarkerGraphEdgeConsensusSequenceUsingSpoa(
     detail.hasLongMarkerInterval = false;
     for(size_t i=0; i!=markerCount; i++) {
         const MarkerInterval& markerInterval = markerIntervals[i];
-        const auto length = markerInterval.ordinals[1] - markerInterval.ordinals[0]; // Number of markers.
-        if(length > markerGraphEdgeLengthThresholdForConsensus) {
+
+        // Check the number of markers.
+        const auto markerCount = markerInterval.ordinals[1] - markerInterval.ordinals[0];
+        if(markerCount > markerGraphEdgeLengthThresholdForConsensus) {
             detail.hasLongMarkerInterval = true;
+        }
+
+        // Check the number of RLE bases.
+        const span<CompressedMarker> orientedReadMarkers = markers[markerInterval.orientedReadId.getValue()];
+        const CompressedMarker& marker0 = orientedReadMarkers[markerInterval.ordinals[0]];
+        const CompressedMarker& marker1 = orientedReadMarkers[markerInterval.ordinals[1]];
+        const uint64_t rleBaseCount = marker1.position - marker0.position;
+        if(rleBaseCount > 1000) {       // *************** THIS SHOULD BE EXPOSED AS AN OPTION.
+           detail.hasLongMarkerInterval = true;
         }
     }
 
