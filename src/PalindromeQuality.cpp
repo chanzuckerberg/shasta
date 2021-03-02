@@ -44,21 +44,21 @@ bool shasta::classifyPalindromicQScores(span<char> qualities){
         auto q = qualities[i];
         auto p = qualityCharToErrorProbability(q);
 
-        left_stats(p);
+        leftStats(p);
     }
 
     for (size_t i=midpoint; i<length; i++){
         auto q = qualities[i];
         auto p = qualityCharToErrorProbability(q);
 
-        right_stats(p);
+        rightStats(p);
     }
 
-    float leftMean = mean(left_stats);
-    float leftVariance = variance(left_stats);
+    float leftMean = mean(leftStats);
+    float leftVariance = variance(leftStats);
 
-    float rightMean = mean(right_stats);
-    float rightVariance = variance(right_stats);
+    float rightMean = mean(rightStats);
+    float rightVariance = variance(rightStats);
 
     // Compare the mean and variance using thresholds derived empirically from some palindromic reads
     if (rightMean - leftMean > relativeMeanDifference and rightMean >= minimumMean){
