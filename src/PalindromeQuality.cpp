@@ -1,5 +1,16 @@
 #include "PalindromeQuality.hpp"
 
+#include <iostream>
+#include <stdexcept>
+#include "span.hpp"
+
+using std::runtime_error;
+using std::cout;
+using std::cerr;
+
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics.hpp>
+
 
 bool shasta::classify_palindromic_q_scores(span<char> qualities){
     bool is_palindromic = false;
