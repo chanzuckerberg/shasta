@@ -9,6 +9,10 @@ using std::cerr;
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
 
+using namespace boost::accumulators;
+
+typedef accumulator_set<float, features<tag::count, tag::mean, tag::variance>> stats_accumulator;
+
 
 bool shasta::classify_palindromic_q_scores(span<char> qualities){
     bool is_palindromic = false;
