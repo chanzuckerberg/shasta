@@ -409,6 +409,10 @@ PYBIND11_MODULE(shasta, module)
             arg("threadCount") = 0)
         .def("writeBadMarkerGraphVertices",
             &Assembler::writeBadMarkerGraphVertices)
+        .def("cleanupDuplicateMarkers",
+            &Assembler::cleanupDuplicateMarkers,
+            arg("threadCount") = 0,
+            arg("duplicateCoverageRatioThreshold"))
 
 
         // Edges of the global marker graph.

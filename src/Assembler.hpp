@@ -1109,6 +1109,23 @@ private:
 
 
 
+    // Clean up marker graph vertices that have duplicate markers
+    // (more than one marker on the same oriented reads).
+    // Such vertices are only generated when using --MarkerGraph.allowDuplicateMarkers.
+public:
+    void cleanupDuplicateMarkers(
+        uint64_t threadCount,
+        double duplicateCoverageRatioThreshold);
+private:
+    void cleanupDuplicateMarkersThreadFunction(size_t threadId);
+    class CleanupDuplicateMarkersData {
+    public:
+        double duplicateCoverageRatioThreshold;
+    };
+    CleanupDuplicateMarkersData cleanupDuplicateMarkersData;
+
+
+
     // Create marker graph edges.
 public:
     void createMarkerGraphEdges(size_t threadCount);
