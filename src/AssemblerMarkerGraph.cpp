@@ -4864,6 +4864,58 @@ void Assembler::removeMarkerGraphVertices()
 
 
 
+// Set marker graph edge flags to specified values for all marker graph edges.
+// Specify any value other than 0 or 1 leaves that flag unchanged.
+// Only useful for debugging.
+void Assembler::setMarkerGraphEdgeFlags(
+    uint8_t wasRemovedByTransitiveReduction,
+    uint8_t wasPruned,
+    uint8_t isSuperBubbleEdge,
+    uint8_t isLowCoverageCrossEdge,
+    uint8_t wasAssembled)
+{
+    SHASTA_ASSERT(markerGraph.edges.isOpen);
+
+    cout << timestamp << "Setting flags for all " <<
+        markerGraph.edges.size() << " marker graph edges (2=unchanged):" << endl;
+    cout << "wasRemovedByTransitiveReduction " << int(wasRemovedByTransitiveReduction) << endl;
+    cout << "wasPruned " << int(wasPruned) << endl;
+    cout << "isSuperBubbleEdge " << int(isSuperBubbleEdge) << endl;
+    cout << "isLowCoverageCrossEdge  " << int(isLowCoverageCrossEdge) << endl;
+    cout << "wasAssembled " << int(wasAssembled) << endl;
+
+    for(MarkerGraph::Edge& edge: markerGraph.edges) {
+        if(wasRemovedByTransitiveReduction == 0) {
+            edge.wasRemovedByTransitiveReduction = 0;
+        } else if(wasRemovedByTransitiveReduction == 1) {
+            edge.wasRemovedByTransitiveReduction = 1;
+        }
+        if(wasPruned == 0) {
+            edge.wasPruned = 0;
+        } else if(wasPruned == 1) {
+            edge.wasPruned = 1;
+        }
+        if(isSuperBubbleEdge == 0) {
+            edge.isSuperBubbleEdge = 0;
+        } else if(isSuperBubbleEdge == 1) {
+            edge.isSuperBubbleEdge = 1;
+        }
+        if(isLowCoverageCrossEdge == 0) {
+            edge.isLowCoverageCrossEdge = 0;
+        } else if(isLowCoverageCrossEdge == 1) {
+            edge.isLowCoverageCrossEdge = 1;
+        }
+        if(wasAssembled == 0) {
+            edge.wasAssembled = 0;
+        } else if(wasAssembled == 1) {
+            edge.wasAssembled = 1;
+        }
+    }
+    cout << timestamp << "Done." << endl;
+}
+
+
+
 // Each oriented read corresponds to a path in the marker graph.
 // This function computes a subset of that path
 // covering the specified range of marker ordinals for the given

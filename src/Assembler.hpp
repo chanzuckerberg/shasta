@@ -1128,6 +1128,17 @@ private:
     };
     CreateMarkerGraphEdgesData createMarkerGraphEdgesData;
 
+public:
+    // Set marker graph edge flags to specified values for all marker graph edges.
+    // Specify any value other than 0 or 1 leaves that flag unchanged.
+    // Only useful for debugging.
+    void setMarkerGraphEdgeFlags(
+        uint8_t wasRemovedByTransitiveReduction,
+        uint8_t wasPruned,
+        uint8_t isSuperBubbleEdge,
+        uint8_t isLowCoverageCrossEdge,
+        uint8_t wasAssembled);
+
 
 
     // Find the reverse complement of each marker graph edge.

@@ -453,7 +453,13 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::accessMarkerGraphConsensus)
         .def("accessMarkerGraphCoverageData",
             &Assembler::accessMarkerGraphCoverageData)
-
+        .def("setMarkerGraphEdgeFlags",
+            &Assembler::setMarkerGraphEdgeFlags,
+            arg("wasRemovedByTransitiveReduction"),
+            arg("wasPruned"),
+            arg("isSuperBubbleEdge"),
+            arg("isLowCoverageCrossEdge"),
+            arg("wasAssembled"))
 
 
         // Assembly graph.
