@@ -433,9 +433,23 @@ void Assembler::accessAllSoft()
     }
 
     try {
+        accessMarkerGraphReverseComplementVertex();
+    } catch(const exception& e) {
+        cout << "Marker graph reverse complement vertices are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
         accessMarkerGraphEdges(false);
     } catch(const exception& e) {
         cout << "Marker graph edges are not accessible." << endl;
+        allDataAreAvailable = false;
+    }
+
+    try {
+        accessMarkerGraphReverseComplementEdge();
+    } catch(const exception& e) {
+        cout << "Marker graph reverse complement edges are not accessible." << endl;
         allDataAreAvailable = false;
     }
 

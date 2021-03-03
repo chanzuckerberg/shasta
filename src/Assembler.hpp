@@ -271,10 +271,6 @@ public:
 
 
 
-    // Python-callable access functions for the global marker graph.
-    // See the private section for some more not callable from Python.
-    void accessMarkerGraphVertices(bool readWriteAccess = false);
-
     // Find the vertex of the global marker graph that contains a given marker.
     // The marker is specified by the ReadId and Strand of the oriented read
     // it belongs to, plus the ordinal of the marker in the oriented read.
@@ -1104,6 +1100,7 @@ public:
 
     // Find the reverse complement of each marker graph vertex.
     void findMarkerGraphReverseComplementVertices(size_t threadCount);
+    void accessMarkerGraphVertices(bool readWriteAccess = false);
     void accessMarkerGraphReverseComplementVertex();
     void removeMarkerGraphVertices();
 private:
