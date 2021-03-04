@@ -4178,6 +4178,9 @@ void Assembler::simplifyMarkerGraphIterationPart2(
                         if(vertexId1 != component[v1]) {
                             continue;
                         }
+                        if(assemblyGraph.edgeLists[edgeId].size() > maxLength) {
+                            continue;
+                        }
 
                         if(edge.averageEdgeCoverage > bestCoverage) {
                             bestCoverage = edge.averageEdgeCoverage;
