@@ -3990,9 +3990,17 @@ void Assembler::simplifyMarkerGraphIterationPart2(
             const span<AssemblyGraph::EdgeId> outEdges = assemblyGraph.edgesBySource[vertexId0];
             for(const AssemblyGraph::EdgeId edgeId: outEdges) {
                 const AssemblyGraph::Edge& edge = assemblyGraph.edges[edgeId];
+
+                // If the edge was removed, don't use it.
                 if(edge.wasRemoved()) {
                     continue;
                 }
+
+                // If the edge is long, it should not be considered internal to the component.
+                if(assemblyGraph.edgeLists[edgeId].size() > maxLength) {
+                    continue;
+                }
+
                 const AssemblyGraph::VertexId vertexId1 = edge.target;
 
                 // Look up vertexId1 in the component vector.
