@@ -1121,6 +1121,7 @@ private:
     class CleanupDuplicateMarkersData {
     public:
         double duplicateCoverageRatioThreshold;
+        uint64_t badVertexCount;    // Total number of vertices with duplicate markers.
     };
     CleanupDuplicateMarkersData cleanupDuplicateMarkersData;
 
