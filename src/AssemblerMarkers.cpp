@@ -107,6 +107,17 @@ MarkerId Assembler::getMarkerId(
         + ordinal;
 }
 
+MarkerId Assembler::getReverseComplementMarkerId(
+    OrientedReadId orientedReadId, uint32_t ordinal) const
+{
+    OrientedReadId orientedReadIdRc = orientedReadId;
+    orientedReadIdRc.flipStrand();
+
+    const uint32_t markerCount = uint32_t(markers.size(orientedReadId.getValue()));
+
+    return getMarkerId(orientedReadIdRc, markerCount - 1 - ordinal);
+
+}
 
 
 // Inverse of the above: given a global marker id,

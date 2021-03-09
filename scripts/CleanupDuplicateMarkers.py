@@ -6,4 +6,7 @@ import shasta
 a = shasta.Assembler()
 a.accessMarkers()
 a.accessMarkerGraphVertices(readWriteAccess = True)
-a.cleanupDuplicateMarkers(duplicateCoverageRatioThreshold = 0.5)
+a.accessMarkerGraphReverseComplementVertex()
+a.cleanupDuplicateMarkers(
+    duplicateCoverageRatioThreshold = 0.5,
+    pattern1CreateNewVertices = True)

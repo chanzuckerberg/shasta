@@ -497,6 +497,7 @@ private:
     // Given a marker by its OrientedReadId and ordinal,
     // return the corresponding global marker id.
     MarkerId getMarkerId(OrientedReadId, uint32_t ordinal) const;
+    MarkerId getReverseComplementMarkerId(OrientedReadId, uint32_t ordinal) const;
 
     // Inverse of the above: given a global marker id,
     // return its OrientedReadId and ordinal.
@@ -1115,13 +1116,24 @@ private:
 public:
     void cleanupDuplicateMarkers(
         uint64_t threadCount,
-        double duplicateCoverageRatioThreshold);
+        double duplicateCoverageRatioThreshold,
+        bool pattern1CreateNewVertices);
 private:
     void cleanupDuplicateMarkersThreadFunction(size_t threadId);
+    void cleanupDuplicateMarkersPattern1(
+        MarkerGraph::VertexId,
+        bool createNewVertices,
+        vector< pair<OrientedReadId, uint32_t> > &markerPairs,
+        vector<bool>& isDuplicateOrientedReadId,
+        bool debug,
+        ostream& out);
     class CleanupDuplicateMarkersData {
     public:
         double duplicateCoverageRatioThreshold;
+        bool pattern1CreateNewVertices;
         uint64_t badVertexCount;    // Total number of vertices with duplicate markers.
+        uint64_t pattern1Count;
+        MarkerGraph::VertexId nextVertexId;
     };
     CleanupDuplicateMarkersData cleanupDuplicateMarkersData;
 
