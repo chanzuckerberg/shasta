@@ -37,6 +37,7 @@ void Assembler::cleanupDuplicateMarkers(
 
     // Process each vertex in multithreaded code.
     // For each vertex, we possibly change the vertexTable for the markers in that vertex (only).
+    // Some vertices can disappear completely.
     const uint64_t batchSize = 100;
     setupLoadBalancing(vertexCount, batchSize);
     runThreads(&Assembler::cleanupDuplicateMarkersThreadFunction, threadCount);
@@ -46,7 +47,7 @@ void Assembler::cleanupDuplicateMarkers(
     cout << "Pattern 1 vertex count: " << cleanupDuplicateMarkersData.pattern1Count << endl;
 
     // Renumber the vertex table to make sure vertices are numbered contiguously starting at 0.
-    markerGraph.renumberVertexTable(threadCount);
+    markerGraph.renumberVertexTable(threadCount, cleanupDuplicateMarkersData.nextVertexId - 1);
 
 
     cout << timestamp << "Cleaning up duplicate markers completed." << endl;
