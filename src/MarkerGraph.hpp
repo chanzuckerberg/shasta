@@ -95,6 +95,36 @@ public:
 
 
 
+    // This renumbers the vertex table to make sure that
+    // vertices are numbered contiguously starting at 0.
+    // This must be called after the vertexTable is changed,
+    // as in Assembler::cleanupDuplicateMarkers.
+    // After this is called, all other data structures
+    // are inconsistent and need to be recreated.
+    void renumberVertexTable(size_t threadCount);
+private:
+    class RenumberVertexTableData {
+    public:
+        // Set to true for VertexId values represented in the starting vertexTable.
+        MemoryMapped::Vector<bool> isPresent;
+    };
+    RenumberVertexTableData renumberVertexTableData;
+
+
+
+    // Find the maximum valid VertexId in the vertex table.
+    VertexId findMaxVertexTableEntry(size_t threadCount);
+    void findMaxVertexTableEntryThreadFunction(size_t threadId);
+    class FindMaxVertexTableEntryData {
+    public:
+        // The maximum VertexId found by each thread.
+        vector<VertexId> threadMaxVertexId;
+    };
+    FindMaxVertexTableEntryData findMaxVertexTableEntryData;
+public:
+
+
+
     // Remove marker graph vertices and update vertices and vertexTable.
     // After this is called, the only
     // two MarkerGraph field filled in are vertices and vertexTable.

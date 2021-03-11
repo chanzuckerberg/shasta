@@ -44,6 +44,11 @@ void Assembler::cleanupDuplicateMarkers(
     cout << "Found " << cleanupDuplicateMarkersData.badVertexCount <<
         " vertices with duplicate markers." << endl;
     cout << "Pattern 1 vertex count: " << cleanupDuplicateMarkersData.pattern1Count << endl;
+
+    // Renumber the vertex table to make sure vertices are numbered contiguously starting at 0.
+    markerGraph.renumberVertexTable(threadCount);
+
+
     cout << timestamp << "Cleaning up duplicate markers completed." << endl;
 }
 

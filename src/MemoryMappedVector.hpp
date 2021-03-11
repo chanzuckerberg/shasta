@@ -151,6 +151,13 @@ public:
     // Rename the supporting memory mapped file, if any.
     void rename(const string& newFileName);
 
+    uint64_t getPageSize() const
+    {
+        SHASTA_ASSERT(isOpen);
+        SHASTA_ASSERT(header);
+        return header->pageSize;
+    }
+
 private:
 
 

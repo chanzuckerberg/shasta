@@ -249,3 +249,87 @@ void MarkerGraph::removeVerticesThreadFunction3(size_t threadId)
         }
     }
 }
+
+
+
+// This renumbers the vertex table to make sure that
+// vertices are numbered contiguously starting at 0.
+// This must be called after the vertexTable is changed,
+// as in Assembler::cleanupDuplicateMarkers.
+// After this is called, all other data structures
+// are inconsistent and need to be recreated.
+void MarkerGraph::renumberVertexTable(size_t threadCount)
+{
+    // Sanity check.
+    SHASTA_ASSERT(threadCount > 0);
+    SHASTA_ASSERT(vertexTable.isOpen);
+    SHASTA_ASSERT(vertexTable.size() > 0);
+
+    // Find the maximum vertex id.
+    const VertexId maxVertexId = findMaxVertexTableEntry(threadCount);
+
+    // Create a vector of bools that tells us which VertexId's are present.
+    const string vertexTableName = vertexTable.fileName;
+    renumberVertexTableData.isPresent.createNew(
+        vertexTableName.empty() ? "" : (vertexTableName + "-tmp-isPresent"),
+        vertexTable.getPageSize());
+    renumberVertexTableData.isPresent.resize(maxVertexId - 1);
+    fill(
+        renumberVertexTableData.isPresent.begin(),
+        renumberVertexTableData.isPresent.end(),
+        false);
+
+
+    // Clean up.
+    renumberVertexTableData.isPresent.remove();
+}
+
+
+
+MarkerGraph::VertexId MarkerGraph::findMaxVertexTableEntry(size_t threadCount)
+{
+    // Sanity checks.
+    SHASTA_ASSERT(threadCount > 0);
+    SHASTA_ASSERT(vertexTable.isOpen);
+
+    // Initialize the maximum VertexId found by each thread.
+    findMaxVertexTableEntryData.threadMaxVertexId.resize(threadCount);
+    fill(
+        findMaxVertexTableEntryData.threadMaxVertexId.begin(),
+        findMaxVertexTableEntryData.threadMaxVertexId.end(),
+        0);
+
+    // Each thread finds the maximum of a subset of the vertex table.
+    const uint64_t batchSize = 100000;
+    setupLoadBalancing(vertexTable.size(), batchSize);
+    runThreads(&MarkerGraph::findMaxVertexTableEntryThreadFunction, threadCount);
+
+    // Return the maximum value found by all threads.
+    return *std::max_element(
+        findMaxVertexTableEntryData.threadMaxVertexId.begin(),
+        findMaxVertexTableEntryData.threadMaxVertexId.end());
+}
+
+
+
+void MarkerGraph::findMaxVertexTableEntryThreadFunction(size_t threadId)
+{
+    VertexId maxVertexId = 0;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over vertex table entries in this batch.
+        for(uint64_t markerId=begin; markerId!=end; markerId++) {
+            const CompressedVertexId compressedVertexId = vertexTable[markerId];
+            if(compressedVertexId != invalidCompressedVertexId) {
+                maxVertexId = max(maxVertexId, VertexId(compressedVertexId));
+            }
+        }
+    }
+
+    findMaxVertexTableEntryData.threadMaxVertexId[threadId] = maxVertexId;
+}
+
+
