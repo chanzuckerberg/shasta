@@ -49,6 +49,13 @@ void Assembler::cleanupDuplicateMarkers(
     // Renumber the vertex table to make sure vertices are numbered contiguously starting at 0.
     markerGraph.renumberVertexTable(threadCount, cleanupDuplicateMarkersData.nextVertexId - 1);
 
+    // Now we can recreate the vertices in the marker graph.
+    markerGraph.createVerticesFromVertexTable(
+        threadCount, cleanupDuplicateMarkersData.nextVertexId - 1);
+
+    // Finally, recreate the reverse complement vertices.
+    findMarkerGraphReverseComplementVertices(threadCount);
+
 
     cout << timestamp << "Cleaning up duplicate markers completed." << endl;
 }

@@ -1090,9 +1090,11 @@ void Assembler::findMarkerGraphReverseComplementVertices(size_t threadCount)
 
     // Allocate the vector to hold the reverse complemented
     // vertex id for each vertex.
-    markerGraph.reverseComplementVertex.createNew(
-        largeDataName("MarkerGraphReverseComplementeVertex"),
-        largeDataPageSize);
+    if(not markerGraph.reverseComplementVertex.isOpen) {
+        markerGraph.reverseComplementVertex.createNew(
+            largeDataName("MarkerGraphReverseComplementeVertex"),
+            largeDataPageSize);
+    }
     markerGraph.reverseComplementVertex.resize(vertexCount);
 
     // Check each vertex.
@@ -1168,10 +1170,11 @@ void Assembler::findMarkerGraphReverseComplementVerticesThreadFunction2(size_t t
 
 
 
-void Assembler::accessMarkerGraphReverseComplementVertex()
+void Assembler::accessMarkerGraphReverseComplementVertex(bool readWriteAccess)
 {
-    markerGraph.reverseComplementVertex.accessExistingReadOnly(
-        largeDataName("MarkerGraphReverseComplementeVertex"));
+    markerGraph.reverseComplementVertex.accessExisting(
+        largeDataName("MarkerGraphReverseComplementeVertex"),
+        readWriteAccess);
 }
 
 

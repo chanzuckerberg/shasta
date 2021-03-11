@@ -1102,7 +1102,7 @@ public:
     // Find the reverse complement of each marker graph vertex.
     void findMarkerGraphReverseComplementVertices(size_t threadCount);
     void accessMarkerGraphVertices(bool readWriteAccess = false);
-    void accessMarkerGraphReverseComplementVertex();
+    void accessMarkerGraphReverseComplementVertex(bool readWriteAccess = false);
     void removeMarkerGraphVertices();
 private:
     void findMarkerGraphReverseComplementVerticesThreadFunction1(size_t threadId);

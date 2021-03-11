@@ -391,3 +391,132 @@ void MarkerGraph::findMaxVertexTableEntryThreadFunction(size_t threadId)
 }
 
 
+
+
+// Recreate the vertices from the vertexTable.
+// This assumes that valid VertexId's in the vertex table
+// are numbered contiguously starting at 0 (call renumberVertexTable to ensure that).
+void MarkerGraph::createVerticesFromVertexTable(size_t threadCount, VertexId maxVertexId)
+{
+    SHASTA_ASSERT(vertexTable.isOpen);
+    const string vertexTableName = vertexTable.fileName;
+
+    // Create our copy of the vertices.
+    createVerticesFromVertexTableData.vertices.createNew(
+        vertexTableName.empty() ? "" : (vertexTableName + "-tmp-isPresent"),
+        vertexTable.getPageSize());
+
+    // Pass 1: count the number of markers in each vertex.
+    createVerticesFromVertexTableData.vertices.beginPass1(maxVertexId+1);
+    uint64_t batchSize = 100000;
+    setupLoadBalancing(vertexTable.size(), batchSize);
+    runThreads(&MarkerGraph::createVerticesFromVertexTableThreadFunction1, threadCount);
+
+    // Pass 2: fill in the markers of each vertex.
+    createVerticesFromVertexTableData.vertices.beginPass2();
+    setupLoadBalancing(vertexTable.size(), batchSize);
+    runThreads(&MarkerGraph::createVerticesFromVertexTableThreadFunction2, threadCount);
+    createVerticesFromVertexTableData.vertices.endPass2(false);
+
+    // Pass 3: sort the markers of each vertex.
+    batchSize = 1000;
+    setupLoadBalancing(maxVertexId+1, batchSize);
+    runThreads(&MarkerGraph::createVerticesFromVertexTableThreadFunction3, threadCount);
+
+    // Finally, we copy to the main copy of the vertices.
+    vertices().clear();
+    const uint64_t vertexCount = createVerticesFromVertexTableData.vertices.size();
+    for(VertexId vertexId=0; vertexId<vertexCount; vertexId++) {
+        vertices().appendVector(createVerticesFromVertexTableData.vertices.size(vertexId));
+    }
+    setupLoadBalancing(vertexCount, batchSize);
+    runThreads(&MarkerGraph::createVerticesFromVertexTableThreadFunction4, threadCount);
+
+    // Cleanup.
+    createVerticesFromVertexTableData.vertices.remove();
+}
+
+
+
+void MarkerGraph::createVerticesFromVertexTableThreadFunction1(size_t threadId)
+{
+    auto& vertices = createVerticesFromVertexTableData.vertices;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over vertex table entries in this batch.
+        for(uint64_t markerId=begin; markerId!=end; markerId++) {
+            const CompressedVertexId compressedVertexId = vertexTable[markerId];
+
+            if(compressedVertexId != invalidCompressedVertexId) {
+                vertices.incrementCountMultithreaded(VertexId(compressedVertexId));
+            }
+        }
+    }
+
+}
+
+
+
+void MarkerGraph::createVerticesFromVertexTableThreadFunction2(size_t threadId)
+{
+    auto& vertices = createVerticesFromVertexTableData.vertices;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over vertex table entries in this batch.
+        for(uint64_t markerId=begin; markerId!=end; markerId++) {
+            const CompressedVertexId compressedVertexId = vertexTable[markerId];
+
+            if(compressedVertexId != invalidCompressedVertexId) {
+                vertices.storeMultithreaded(VertexId(compressedVertexId), markerId);
+            }
+        }
+    }
+
+}
+
+
+
+void MarkerGraph::createVerticesFromVertexTableThreadFunction3(size_t threadId)
+{
+    auto& vertices = createVerticesFromVertexTableData.vertices;
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over verteices in this batch.
+        for(VertexId vertexId=begin; vertexId!=end; vertexId++) {
+            auto vertexMarkers = vertices[vertexId];
+            sort(vertexMarkers.begin(), vertexMarkers.end());
+        }
+    }
+
+}
+
+
+
+void MarkerGraph::createVerticesFromVertexTableThreadFunction4(size_t threadId)
+{
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over vertices in this batch.
+        for(VertexId vertexId=begin; vertexId!=end; vertexId++) {
+
+            // Make the copy.
+            auto vertexMarkers = createVerticesFromVertexTableData.vertices[vertexId];
+            copy(vertexMarkers.begin(), vertexMarkers.end(), verticesPointer->begin(vertexId));
+        }
+    }
+
+}
+
+

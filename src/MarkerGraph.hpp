@@ -131,6 +131,26 @@ private:
 public:
 
 
+    // Recreate the vertices from the vertexTable.
+    // This assumes that valid VertexId's in the vertex table
+    // are numbered contiguously starting at 0 (call renumberVertexTable to ensure that).
+    void createVerticesFromVertexTable(size_t threadCount, VertexId maxVertexId);
+private:
+    void createVerticesFromVertexTableThreadFunction1(size_t threadId);
+    void createVerticesFromVertexTableThreadFunction2(size_t threadId);
+    void createVerticesFromVertexTableThreadFunction3(size_t threadId);
+    void createVerticesFromVertexTableThreadFunction4(size_t threadId);
+    class CreateVerticesFromVertexTableData {
+    public:
+        // Like the vertices, but the second template argument is VertexId
+        // instead of CompressedVertexId. This is necessariy to be able to
+        // work on it in multilthreaded code efficiently.
+        MemoryMapped::VectorOfVectors<MarkerId, VertexId> vertices;
+    };
+    CreateVerticesFromVertexTableData createVerticesFromVertexTableData;
+public:
+
+
 
     // Remove marker graph vertices and update vertices and vertexTable.
     // After this is called, the only
