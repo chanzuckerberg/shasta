@@ -2,6 +2,7 @@
 #define SHASTA_READ_LOADER_HPP
 
 // shasta
+#include "PalindromeQuality.hpp"
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultithreadedObject.hpp"

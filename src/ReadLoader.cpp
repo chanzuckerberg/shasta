@@ -467,6 +467,14 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
             continue;
         }
 
+        // Skip if the q scores have an obvious palindromic characteristic
+        span <char> scores(scoresBegin, scoresEnd);
+        if (isPalindromic(scores)){
+            __sync_fetch_and_add(&discardedShortReadReadCount, 1);
+            __sync_fetch_and_add(&discardedShortReadBaseCount, read.size());
+            continue;
+        }
+
         // Store the read.
         if(computeRunLengthRepresentation(read, runLengthRead, readRepeatCount)) {
             thisThreadReadNames.appendVector(readName.begin(), readName.end());

@@ -1,5 +1,4 @@
 #include "PalindromeQuality.hpp"
-#include <stdexcept>
 #include "span.hpp"
 #include <cmath>
 
@@ -12,6 +11,7 @@ using std::pow;
 #include <boost/accumulators/statistics.hpp>
 
 using namespace boost::accumulators;
+using namespace shasta;
 
 typedef accumulator_set<float, features<tag::count, tag::mean, tag::variance>> stats_accumulator;
 
@@ -21,7 +21,7 @@ double qualityCharToErrorProbability(char q) {
 }
 
 
-bool shasta::classifyPalindromicQScores(span<char> qualities){
+bool shasta::isPalindromic(span<char> qualities){
     double relativeMeanDifference = 0.09;
     double minimumMean = 0.15;
     double minimumVariance = 0.025;

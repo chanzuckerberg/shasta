@@ -5,7 +5,7 @@
 
 namespace shasta {
 
-bool classifyPalindromicQScores(span<char> qualities);
+bool isPalindromic(span<char> qualities);
 
 }
 
