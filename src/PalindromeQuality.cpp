@@ -26,10 +26,6 @@ bool shasta::isPalindromic(span<char> qualities,
                            double minimumMean,
                            double minimumVariance){
 
-//    double relativeMeanDifference = 0.09;
-//    double minimumMean = 0.15;
-//    double minimumVariance = 0.025;
-
     bool isPalindromic = false;
 
     stats_accumulator leftStats;
