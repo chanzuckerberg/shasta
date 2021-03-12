@@ -470,8 +470,9 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         // Skip if the q scores have an obvious palindromic characteristic
         span <char> scores(scoresBegin, scoresEnd);
         if (isPalindromic(scores)){
-            __sync_fetch_and_add(&discardedPalindromicReadReadCount, 1);
-            __sync_fetch_and_add(&discardedPalindromicReadBaseCount, read.size());
+            __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
+            __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
+            __sync_fetch_and_add(&discardedPalindromicBaseCount, read.size());
             continue;
         }
 

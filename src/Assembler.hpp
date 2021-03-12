@@ -110,6 +110,10 @@ public:
     uint64_t discardedBadRepeatCountReadCount = 0;
     uint64_t discardedBadRepeatCountBaseCount = 0;
 
+    // The number of reads and raw bases discarded because the read
+    // contained repeat counts greater than 255.
+    uint64_t discardedPalindromicReadCount = 0;
+    uint64_t discardedPalindromicBaseCount = 0;
 
 
     // Statistics for the reads kept in the assembly

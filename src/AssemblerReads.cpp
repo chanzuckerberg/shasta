@@ -41,6 +41,9 @@ void Assembler::addReads(
     cout << "    Discarded " << readLoader.discardedBadRepeatCountReadCount <<
         " reads containing repeat counts 256 or more" <<
         " for a total " << readLoader.discardedBadRepeatCountBaseCount << " bases." << endl;
+    cout << "    Discarded " << readLoader.discardedPalindromicReadCount <<
+         " reads with palindromic quality scores" <<
+         " for a total " << readLoader.discardedPalindromicBaseCount << " bases." << endl;
 
     // Increment the discarded reads statistics.
     assemblerInfo->discardedInvalidBaseReadCount += readLoader.discardedInvalidBaseReadCount;
@@ -49,6 +52,8 @@ void Assembler::addReads(
     assemblerInfo->discardedShortReadBaseCount += readLoader.discardedShortReadBaseCount;
     assemblerInfo->discardedBadRepeatCountReadCount += readLoader.discardedBadRepeatCountReadCount;
     assemblerInfo->discardedBadRepeatCountBaseCount += readLoader.discardedBadRepeatCountBaseCount;
+    assemblerInfo->discardedPalindromicReadCount += readLoader.discardedPalindromicReadCount;
+    assemblerInfo->discardedPalindromicBaseCount += readLoader.discardedPalindromicBaseCount;
     assemblerInfo->minReadLength = minReadLength;
 }
 

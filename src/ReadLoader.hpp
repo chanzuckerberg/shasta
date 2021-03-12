@@ -47,8 +47,8 @@ public:
 
     // The number of reads and raw bases discarded because the read had
     // a q score distribution that was indicative of a palindrome.
-    uint64_t discardedPalindromicReadReadCount = 0;
-    uint64_t discardedPalindromicReadBaseCount = 0;
+    uint64_t discardedPalindromicReadCount = 0;
+    uint64_t discardedPalindromicBaseCount = 0;
 
     // The number of reads and raw bases discarded because the read
     // contained repeat counts greater than 255.
