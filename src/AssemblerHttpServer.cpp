@@ -930,10 +930,12 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
     const uint64_t totalDiscardedReadCount =
         assemblerInfo->discardedInvalidBaseReadCount +
         assemblerInfo->discardedShortReadReadCount +
+        assemblerInfo->discardedPalindromicReadCount +
         assemblerInfo->discardedBadRepeatCountReadCount;
     const uint64_t totalDiscardedBaseCount =
         assemblerInfo->discardedInvalidBaseBaseCount +
         assemblerInfo->discardedShortReadBaseCount +
+        assemblerInfo->discardedPalindromicBaseCount +
         assemblerInfo->discardedBadRepeatCountBaseCount;
 
 
@@ -958,7 +960,8 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    \"Number of run-length encoded bases\": " << reads->getRepeatCountsTotalSize() << ",\n"
         "    \"Average length ratio of run-length encoded sequence over raw sequence\": " <<
         setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) << ",\n"
-        "    \"Number of reads flagged as palindromic\": " << assemblerInfo->palindromicReadCount << ",\n"
+        "    \"Number of reads flagged as palindromic by quality\": " << assemblerInfo->discardedPalindromicReadCount << ",\n"
+        "    \"Number of reads flagged as palindromic by self alignment\": " << assemblerInfo->palindromicReadCount << ",\n"
         "    \"Number of reads flagged as chimeric\": " << assemblerInfo->chimericReadCount << "\n"
         "  },\n"
 
@@ -980,6 +983,11 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    {\n"
         "      \"Reads\": " << assemblerInfo->discardedBadRepeatCountReadCount << ",\n"
         "      \"Bases\": " << assemblerInfo->discardedBadRepeatCountBaseCount << "\n"
+        "    },\n"
+        "    \"Reads discarded on input because they they had quality scores indicative of palindromic sequence\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->discardedPalindromicReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->discardedPalindromicBaseCount << "\n"
         "    },\n"
         "    \"Reads discarded on input, total\":\n"
         "    {\n"
