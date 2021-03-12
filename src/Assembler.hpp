@@ -1133,6 +1133,7 @@ private:
         bool pattern1CreateNewVertices;
         uint64_t badVertexCount;    // Total number of vertices with duplicate markers.
         uint64_t pattern1Count;
+        uint64_t removedCount;
         MarkerGraph::VertexId nextVertexId;
     };
     CleanupDuplicateMarkersData cleanupDuplicateMarkersData;

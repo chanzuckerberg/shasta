@@ -258,7 +258,7 @@ void MarkerGraph::removeVerticesThreadFunction3(size_t threadId)
 // as in Assembler::cleanupDuplicateMarkers.
 // After this is called, all other data structures
 // are inconsistent and need to be recreated.
-void MarkerGraph::renumberVertexTable(size_t threadCount)
+MarkerGraph::VertexId MarkerGraph::renumberVertexTable(size_t threadCount)
 {
     // Sanity check.
     SHASTA_ASSERT(threadCount > 0);
@@ -269,7 +269,7 @@ void MarkerGraph::renumberVertexTable(size_t threadCount)
     const VertexId maxVertexId = findMaxVertexTableEntry(threadCount);
 
     // Call the lower level version.
-    renumberVertexTable(threadCount, maxVertexId);
+    return renumberVertexTable(threadCount, maxVertexId);
 
 }
 
@@ -277,12 +277,22 @@ void MarkerGraph::renumberVertexTable(size_t threadCount)
 
 // This second version can be called if the maximum vertex id
 // present in the vertex table is already known, and is faster.
-void MarkerGraph::renumberVertexTable(size_t threadCount, VertexId maxVertexId)
+MarkerGraph::VertexId MarkerGraph::renumberVertexTable(size_t threadCount, VertexId maxVertexId)
 {
+    const bool debug = true;
+
     // Sanity check.
     SHASTA_ASSERT(threadCount > 0);
     SHASTA_ASSERT(vertexTable.isOpen);
     SHASTA_ASSERT(vertexTable.size() > 0);
+
+    if(debug) {
+        ofstream csv("VertexTable-Before.csv");
+        csv << "MarkerId,VertexId\n";
+        for(MarkerId markerId=0; markerId<vertexTable.size(); markerId++) {
+            csv << markerId << "," << vertexTable[markerId] << "\n";
+        }
+    }
 
     cout << timestamp << "Renumbering the marker graph vertex table." << endl;
 
@@ -316,11 +326,24 @@ void MarkerGraph::renumberVertexTable(size_t threadCount, VertexId maxVertexId)
         }
     }
 
+    // Now we can renumber the vertex table.
+    setupLoadBalancing(vertexTable.size(), batchSize);
+    runThreads(&MarkerGraph::renumberVertexTableThreadFunction2, threadCount);
+
     // Clean up.
     renumberVertexTableData.newVertexId.remove();
     renumberVertexTableData.isPresent.remove();
 
+    if(debug) {
+        ofstream csv("VertexTable-After.csv");
+        csv << "MarkerId,VertexId\n";
+        for(MarkerId markerId=0; markerId<vertexTable.size(); markerId++) {
+            csv << markerId << "," << vertexTable[markerId] << "\n";
+        }
+    }
+
     cout << timestamp << "Done renumbering the marker graph vertex table." << endl;
+    return newVertexId - 1;
 }
 
 
@@ -337,6 +360,27 @@ void MarkerGraph::renumberVertexTableThreadFunction1(size_t threadId)
             const CompressedVertexId compressedVertexId = vertexTable[markerId];
             if(compressedVertexId != invalidCompressedVertexId) {
                 renumberVertexTableData.isPresent[VertexId(compressedVertexId)] = true;
+            }
+        }
+    }
+}
+
+
+
+void MarkerGraph::renumberVertexTableThreadFunction2(size_t threadId)
+{
+
+    // Loop over all batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over vertex table entries in this batch.
+        for(uint64_t markerId=begin; markerId!=end; markerId++) {
+            const CompressedVertexId compressedVertexId = vertexTable[markerId];
+            if(compressedVertexId != invalidCompressedVertexId) {
+                const VertexId oldVertexId = VertexId(compressedVertexId);
+                const VertexId newVertexId = renumberVertexTableData.newVertexId[oldVertexId];
+                vertexTable[markerId] = CompressedVertexId(newVertexId);
             }
         }
     }

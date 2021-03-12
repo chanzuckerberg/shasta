@@ -10,6 +10,8 @@ void Assembler::cleanupDuplicateMarkers(
     double duplicateCoverageRatioThreshold,
     bool pattern1CreateNewVertices)
 {
+    const bool debug = false;
+
     // Check that we have what we need.
     SHASTA_ASSERT(markers.isOpen());
     using CompressedVertexId = MarkerGraph::CompressedVertexId;
@@ -33,6 +35,7 @@ void Assembler::cleanupDuplicateMarkers(
     cleanupDuplicateMarkersData.pattern1CreateNewVertices = pattern1CreateNewVertices;
     cleanupDuplicateMarkersData.badVertexCount = 0;
     cleanupDuplicateMarkersData.pattern1Count = 0;
+    cleanupDuplicateMarkersData.removedCount = 0;
     cleanupDuplicateMarkersData.nextVertexId = vertexCount;
 
     // Process each vertex in multithreaded code.
@@ -45,19 +48,45 @@ void Assembler::cleanupDuplicateMarkers(
     cout << "Found " << cleanupDuplicateMarkersData.badVertexCount <<
         " vertices with duplicate markers." << endl;
     cout << "Pattern 1 vertex count: " << cleanupDuplicateMarkersData.pattern1Count << endl;
+    cout << "Unprocessed (removed) vertex count: " << cleanupDuplicateMarkersData.removedCount << endl;
 
     // Renumber the vertex table to make sure vertices are numbered contiguously starting at 0.
-    markerGraph.renumberVertexTable(threadCount, cleanupDuplicateMarkersData.nextVertexId - 1);
+    if(debug) {
+        cout << "Maximum vertex id before renumbering of the vertex table " << cleanupDuplicateMarkersData.nextVertexId - 1 << endl;
+    }
+    const MarkerGraph::VertexId maxVertexId =
+        markerGraph.renumberVertexTable(threadCount, cleanupDuplicateMarkersData.nextVertexId - 1);
+    if(debug) {
+        cout << "Maximum vertex id after renumbering of the vertex table " << maxVertexId << endl;
+    }
 
     // Now we can recreate the vertices in the marker graph.
     markerGraph.createVerticesFromVertexTable(
-        threadCount, cleanupDuplicateMarkersData.nextVertexId - 1);
+        threadCount, maxVertexId);
+    if(debug) {
+        cout << "New number of vertices is " << markerGraph.vertices().size() << endl;
+    }
+
+
+
+    // Sanity check.
+    if(debug) {
+        for(MarkerGraph::VertexId vertexId=0; vertexId<markerGraph.vertices().size(); vertexId++) {
+            if(markerGraph.vertices().size(vertexId) == 0) {
+                cout << "Failing vertex id " << vertexId << endl;
+            }
+            SHASTA_ASSERT(markerGraph.vertices().size(vertexId) > 0);
+        }
+    }
+
+
 
     // Finally, recreate the reverse complement vertices.
     findMarkerGraphReverseComplementVertices(threadCount);
 
 
     cout << timestamp << "Cleaning up duplicate markers completed." << endl;
+    cout << "Number of marker graph vertices is now " << markerGraph.vertices().size() << endl;
 }
 
 
@@ -75,6 +104,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
 
     uint64_t badVertexCount = 0;
     uint64_t pattern1Count = 0;
+    uint64_t removedCount = 0;
 
     // The pairs (orientedReadId, marker ordinal) for the current vertex.
     using MarkerPair = pair<OrientedReadId, uint32_t>;
@@ -157,6 +187,9 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
             // Pattern 1: the number of duplicate markers is small.
             const double duplicateRatio = double(duplicateCount) / double(markerCount);
             if(duplicateRatio < duplicateCoverageRatioThreshold) {
+                if(debug) {
+                    out << "Vertex " << vertexId << " processed as pattern 1 vertex." << endl;
+                }
                 SHASTA_ASSERT(duplicateCount < markerCount);
                 if(vertexId == vertexIdRc) {
                     ++pattern1Count;   // Unusual/exceptional case.
@@ -168,16 +201,29 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
                 continue;
             }
 
-            if(debug) {
-                out << "This vertex has duplicate markers but was not processed." << endl;
-            }
 
+            // If we get here, for lack of a better solution, remove the vertex.
+            if(vertexId == vertexIdRc) {
+                ++removedCount;   // Unusual/exceptional case.
+            } else {
+                removedCount += 2;
+            }
+            if(debug) {
+                out << "Vertex " << vertexId << " not processed, removed instead." << endl;
+            }
+            for(const auto& p: markerPairs) {
+                const MarkerId markerId = getMarkerId(p.first, p.second);
+                const MarkerId markerIdRc = getReverseComplementMarkerId(p.first, p.second);
+                markerGraph.vertexTable[markerId] = MarkerGraph::invalidCompressedVertexId;
+                markerGraph.vertexTable[markerIdRc] = MarkerGraph::invalidCompressedVertexId;
+            }
         }
     }
 
     // Increment global counts.
     __sync_fetch_and_add(&cleanupDuplicateMarkersData.badVertexCount, badVertexCount);
     __sync_fetch_and_add(&cleanupDuplicateMarkersData.pattern1Count, pattern1Count);
+    __sync_fetch_and_add(&cleanupDuplicateMarkersData.removedCount, removedCount);
 }
 
 

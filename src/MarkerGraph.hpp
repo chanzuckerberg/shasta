@@ -103,10 +103,12 @@ public:
     // are inconsistent and need to be recreated.
     // The second version can be called if the maximum vertex id
     // present in the vertex table is already known, and is faster.
-    void renumberVertexTable(size_t threadCount);
-    void renumberVertexTable(size_t threadCount, VertexId maxVertexId);
+    // Returns the maximmum vertex id after renumbering.
+    VertexId renumberVertexTable(size_t threadCount);
+    VertexId renumberVertexTable(size_t threadCount, VertexId maxVertexId);
 private:
     void renumberVertexTableThreadFunction1(size_t threadId);
+    void renumberVertexTableThreadFunction2(size_t threadId);
     class RenumberVertexTableData {
     public:
         // Set to true for VertexId values represented in the starting vertexTable.
