@@ -2,6 +2,7 @@
 #define SHASTA_READ_LOADER_HPP
 
 // shasta
+#include "AssemblerOptions.hpp"
 #include "PalindromeQuality.hpp"
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
@@ -31,6 +32,7 @@ public:
         size_t threadCount,
         const string& dataNamePrefix,
         size_t pageSize,
+        const PalindromicReadOptions& palindromicReadOptions,
         Reads& reads);
 
     ~ReadLoader();
@@ -77,9 +79,14 @@ private:
     const string& dataNamePrefix;
     const size_t pageSize;
 
+    // This object is copied for convenience to specify the following:
+    //   - Boolean switch to use quality scores to skip reads that have an indication of palindromic sequence
+    //   - Each of the 3 thresholds necessary for calling isPalindromic()
+    PalindromicReadOptions palindromicReadOptions;
+
     // The data structure that the reads will be added to.
     Reads& reads;
-    
+
     // Create the name to be used for a MemoryMapped object.
     string dataName(
         const string& dataName) const;

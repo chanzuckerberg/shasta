@@ -17,6 +17,7 @@ ReadLoader::ReadLoader(
     size_t threadCount,
     const string& dataNamePrefix,
     size_t pageSize,
+    const PalindromicReadOptions& palindromicReadOptions,
     Reads& reads):
     
     MultithreadedObject(*this),
@@ -26,6 +27,7 @@ ReadLoader::ReadLoader(
     threadCount(threadCount),
     dataNamePrefix(dataNamePrefix),
     pageSize(pageSize),
+    palindromicReadOptions(palindromicReadOptions),
     reads(reads)
 {
     cout << timestamp << "Loading reads from " << fileName << endl;
@@ -366,7 +368,7 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         const auto thisReadLineEnds = lineEnds.begin() + i * 4;
 
         // Locate the header line for this read.
-        const auto headerBegin = fileBegin + ((i==0) ? 0 : (1 + *(thisReadLineEnds-1)));
+        const auto headerBegin = fileBegin + ((i == 0) ? 0 : (1 + *(thisReadLineEnds - 1)));
         const auto headerEnd = fileBegin + thisReadLineEnds[0];
         SHASTA_ASSERT(headerEnd > headerBegin);
 
@@ -386,14 +388,14 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         SHASTA_ASSERT(scoresEnd > scoresBegin);
 
         // Check the header line.
-        if(headerEnd == headerBegin) {
+        if (headerEnd == headerBegin) {
             throw runtime_error("Empty header line for read at offset " +
-                to_string(headerBegin-fileBegin) + ".");
+                                to_string(headerBegin - fileBegin) + ".");
         }
-        if(*headerBegin != '@') {
+        if (*headerBegin != '@') {
             throw runtime_error("Read at offset " +
-                to_string(headerBegin-fileBegin) +
-                " does not begin with \"@\".");
+                                to_string(headerBegin - fileBegin) +
+                                " does not begin with \"@\".");
         }
 
         // Extract the read name.
@@ -401,24 +403,24 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         // first white space.
         readName.clear();
         const auto nameBegin = headerBegin + 1;
-        for(auto it=nameBegin; it!=headerEnd; ++it) {
+        for (auto it = nameBegin; it != headerEnd; ++it) {
             const char c = *it;
-            if(std::isspace(c)) {
+            if (std::isspace(c)) {
                 break;
             }
             readName.push_back(c);
         }
-        if(readName.empty()) {
+        if (readName.empty()) {
             throw runtime_error("Empty name for read at offset " +
-                to_string(headerBegin-fileBegin) + ".");
+                                to_string(headerBegin - fileBegin) + ".");
         }
 
         // Extract the read meta data. It starts at the first non-space character
         // following the read name.
         readMetaData.clear();
-        for(auto it = nameBegin + readName.size(); it != headerEnd; ++it) {
+        for (auto it = nameBegin + readName.size(); it != headerEnd; ++it) {
             const char c = *it;
-            if(isspace(c) and readMetaData.empty()) {
+            if (isspace(c) and readMetaData.empty()) {
                 // Do nothing. Only start storing at the first non-space character.
             } else {
                 readMetaData.push_back(c);
@@ -427,53 +429,60 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
 
 
         // Check the line containing the plus.
-        if(plusEnd - plusBegin != 1) {
+        if (plusEnd - plusBegin != 1) {
             throw runtime_error("Extraneous characters on third line for read " +
-                readName + " at offset " + to_string(headerBegin-fileBegin) + ".");
+                                readName + " at offset " + to_string(headerBegin - fileBegin) + ".");
         }
-        if(*plusBegin != '+') {
+        if (*plusBegin != '+') {
             throw runtime_error("Third line does not contain \"+\" for read " +
-                readName + " at offset " + to_string(headerBegin-fileBegin) + ".");
+                                readName + " at offset " + to_string(headerBegin - fileBegin) + ".");
         }
 
         // Get the number of bases.
         const auto baseCount = sequenceEnd - sequenceBegin;
-        if(scoresEnd - scoresBegin != baseCount) {
+        if (scoresEnd - scoresBegin != baseCount) {
             throw runtime_error(
-                "Inconsistent numbers of bases and quality scores for read " +
-                readName + " at offset " +
-                to_string(headerBegin-fileBegin) + ": " +
-                to_string(baseCount) + " bases, " +
-                to_string(scoresEnd - scoresBegin) + " quality scores."
-                );
+                    "Inconsistent numbers of bases and quality scores for read " +
+                    readName + " at offset " +
+                    to_string(headerBegin - fileBegin) + ": " +
+                    to_string(baseCount) + " bases, " +
+                    to_string(scoresEnd - scoresBegin) + " quality scores."
+            );
         }
 
         // Get the bases.
         read.clear();
-        for(auto it=sequenceBegin; it!=sequenceEnd; ++it) {
+        for (auto it = sequenceBegin; it != sequenceEnd; ++it) {
             const char c = *it;
             const Base base = Base::fromCharacterNoException(c);
-            if(!base.isValid()) {
+            if (!base.isValid()) {
                 throw runtime_error("Invalid base " + string(1, c) + " for read " +
-                    readName + " at offset " + to_string(it-fileBegin) + ".");
+                                    readName + " at offset " + to_string(it - fileBegin) + ".");
             }
             read.push_back(base);
         }
 
         // If the read is too short, skip it.
-        if(read.size() < minReadLength) {
+        if (read.size() < minReadLength) {
             __sync_fetch_and_add(&discardedShortReadReadCount, 1);
             __sync_fetch_and_add(&discardedShortReadBaseCount, read.size());
             continue;
         }
 
         // Skip if the q scores have an obvious palindromic characteristic
-        span <char> scores(scoresBegin, scoresEnd);
-        if (isPalindromic(scores)){
-            __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
-            __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
-            __sync_fetch_and_add(&discardedPalindromicBaseCount, read.size());
-            continue;
+        if (palindromicReadOptions.detectOnFastqLoad){
+            span<char> scores(scoresBegin, scoresEnd);
+            bool isPalindrome = isPalindromic(
+                    scores,
+                    palindromicReadOptions.qScoreRelativeMeanDifference,
+                    palindromicReadOptions.qScoreMinimumMean,
+                    palindromicReadOptions.qScoreMinimumVariance);
+
+            if (isPalindrome) {
+                __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
+                __sync_fetch_and_add(&discardedPalindromicBaseCount, read.size());
+                continue;
+            }
         }
 
         // Store the read.

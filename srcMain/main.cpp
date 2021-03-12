@@ -486,6 +486,7 @@ void shasta::main::assemble(
             inputFileName,
             assemblerOptions.readsOptions.minReadLength,
             assemblerOptions.readsOptions.noCache,
+            assemblerOptions.readsOptions.palindromicReads,
             threadCount);
     }
 

@@ -13,7 +13,7 @@ using std::pow;
 using namespace boost::accumulators;
 using namespace shasta;
 
-typedef accumulator_set<float, features<tag::count, tag::mean, tag::variance>> stats_accumulator;
+using stats_accumulator = accumulator_set<float, features<tag::count, tag::mean, tag::variance>>;
 
 
 double qualityCharToErrorProbability(char q) {
@@ -21,10 +21,14 @@ double qualityCharToErrorProbability(char q) {
 }
 
 
-bool shasta::isPalindromic(span<char> qualities){
-    double relativeMeanDifference = 0.09;
-    double minimumMean = 0.15;
-    double minimumVariance = 0.025;
+bool shasta::isPalindromic(span<char> qualities,
+                           double relativeMeanDifference,
+                           double minimumMean,
+                           double minimumVariance){
+
+//    double relativeMeanDifference = 0.09;
+//    double minimumMean = 0.15;
+//    double minimumVariance = 0.025;
 
     bool isPalindromic = false;
 
@@ -41,14 +45,14 @@ bool shasta::isPalindromic(span<char> qualities){
     size_t midpoint = length/2;
 
     for (size_t i=0; i<midpoint; i++){
-        auto q = qualities[i];
+        const auto q = qualities[i];
         auto p = qualityCharToErrorProbability(q);
 
         leftStats(p);
     }
 
     for (size_t i=midpoint; i<length; i++){
-        auto q = qualities[i];
+        const auto q = qualities[i];
         auto p = qualityCharToErrorProbability(q);
 
         rightStats(p);

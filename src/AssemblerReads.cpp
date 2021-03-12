@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "AssemblerOptions.hpp"
 #include "ReadLoader.hpp"
 using namespace shasta;
 
@@ -14,6 +15,7 @@ void Assembler::addReads(
     const string& fileName,
     uint64_t minReadLength,
     bool noCache,
+    const PalindromicReadOptions& palindromicReadOptions,
     const size_t threadCount)
 {
     reads->checkReadsAreOpen();
@@ -26,6 +28,7 @@ void Assembler::addReads(
         threadCount,
         largeDataFileNamePrefix,
         largeDataPageSize,
+        palindromicReadOptions,
         *reads);
     
     reads->checkSanity();

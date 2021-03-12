@@ -5,7 +5,10 @@
 
 namespace shasta {
 
-bool isPalindromic(span<char> qualities);
+bool isPalindromic(span<char> qualities,
+                   double relativeMeanDifference,
+                   double minimumMean,
+                   double minimumVariance);
 
 }
 

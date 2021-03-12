@@ -4,6 +4,7 @@
 // Shasta.
 #include "Alignment.hpp"
 #include "AlignmentCandidates.hpp"
+#include "AssemblerOptions.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
@@ -187,6 +188,7 @@ public:
         const string& fileName,
         uint64_t minReadLength,
         bool noCache,
+        const PalindromicReadOptions& palindromicReadOptions,
         size_t threadCount);
 
     // Create a histogram of read lengths.
