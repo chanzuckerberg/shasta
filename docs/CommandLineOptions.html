@@ -379,8 +379,10 @@ Used for palindromic read detection.
 
 <tr id='Reads.palindromicReads.detectOnFastqLoad'>
 <td><code>--Reads.palindromicReads.detectOnFastqLoad</code><td class=centered><code>false</code><td>
-Filter reads that have exceptionally poor quality in the second half,
-which is a strong indication of palindromic sequence.
+This is a
+<a href="#BooleanSwitches">Boolean switch</a>
+that enables filtering palindromes from FASTQ files. This method will filter reads that have exceptionally
+poor quality in the second half, which is a strong indication of palindromic sequence.
 
 <tr id='Reads.palindromicReads.qScoreRelativeMeanDifference'>
 <td><code>--Reads.palindromicReads.qScoreRelativeMeanDifference</code><td class=centered><code>0.09</code><td>
