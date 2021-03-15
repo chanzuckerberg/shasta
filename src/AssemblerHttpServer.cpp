@@ -678,11 +678,13 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
     const uint64_t totalDiscardedReadCount =
         assemblerInfo->discardedInvalidBaseReadCount +
         assemblerInfo->discardedShortReadReadCount +
-        assemblerInfo->discardedBadRepeatCountReadCount;
+        assemblerInfo->discardedBadRepeatCountReadCount +
+        assemblerInfo->discardedPalindromicReadCount;
     const uint64_t totalDiscardedBaseCount =
         assemblerInfo->discardedInvalidBaseBaseCount +
         assemblerInfo->discardedShortReadBaseCount +
-        assemblerInfo->discardedBadRepeatCountBaseCount;
+        assemblerInfo->discardedBadRepeatCountBaseCount +
+        assemblerInfo->discardedPalindromicBaseCount;
 
 
     html <<
@@ -708,7 +710,9 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<td class=right>" << reads->getRepeatCountsTotalSize() <<
         "<tr><td>Average length ratio of run-length encoded sequence over raw sequence"
         "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) <<
-        "<tr><td>Number of reads flagged as palindromic"
+        "<tr><td>Number of reads flagged as palindromic by q score"
+        "<td class=right>" << assemblerInfo->discardedPalindromicReadCount <<
+        "<tr><td>Number of reads flagged as palindromic by self alignment"
         "<td class=right>" << assemblerInfo->palindromicReadCount <<
         "<tr><td>Number of reads flagged as chimeric"
         "<td class=right>" << assemblerInfo->chimericReadCount <<
@@ -734,6 +738,9 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "<tr><td>Reads discarded on input because they contained repeat counts greater than 255"
         "<td class=right>" << assemblerInfo->discardedBadRepeatCountReadCount <<
         "<td class=right>" << assemblerInfo->discardedBadRepeatCountBaseCount <<
+        "<tr><td>Reads discarded on input because they had quality scores indicative of palindromic sequence"
+        "<td class=right>" << assemblerInfo->discardedPalindromicReadCount <<
+        "<td class=right>" << assemblerInfo->discardedPalindromicBaseCount <<
         "<tr><td>Reads discarded on input, total"
         "<td class=right>" <<totalDiscardedReadCount <<
         "<td class=right>" <<totalDiscardedBaseCount <<
@@ -923,10 +930,12 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
     const uint64_t totalDiscardedReadCount =
         assemblerInfo->discardedInvalidBaseReadCount +
         assemblerInfo->discardedShortReadReadCount +
+        assemblerInfo->discardedPalindromicReadCount +
         assemblerInfo->discardedBadRepeatCountReadCount;
     const uint64_t totalDiscardedBaseCount =
         assemblerInfo->discardedInvalidBaseBaseCount +
         assemblerInfo->discardedShortReadBaseCount +
+        assemblerInfo->discardedPalindromicBaseCount +
         assemblerInfo->discardedBadRepeatCountBaseCount;
 
 
@@ -951,7 +960,8 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    \"Number of run-length encoded bases\": " << reads->getRepeatCountsTotalSize() << ",\n"
         "    \"Average length ratio of run-length encoded sequence over raw sequence\": " <<
         setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) << ",\n"
-        "    \"Number of reads flagged as palindromic\": " << assemblerInfo->palindromicReadCount << ",\n"
+        "    \"Number of reads flagged as palindromic by quality\": " << assemblerInfo->discardedPalindromicReadCount << ",\n"
+        "    \"Number of reads flagged as palindromic by self alignment\": " << assemblerInfo->palindromicReadCount << ",\n"
         "    \"Number of reads flagged as chimeric\": " << assemblerInfo->chimericReadCount << "\n"
         "  },\n"
 
@@ -973,6 +983,11 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         "    {\n"
         "      \"Reads\": " << assemblerInfo->discardedBadRepeatCountReadCount << ",\n"
         "      \"Bases\": " << assemblerInfo->discardedBadRepeatCountBaseCount << "\n"
+        "    },\n"
+        "    \"Reads discarded on input because they they had quality scores indicative of palindromic sequence\":\n"
+        "    {\n"
+        "      \"Reads\": " << assemblerInfo->discardedPalindromicReadCount << ",\n"
+        "      \"Bases\": " << assemblerInfo->discardedPalindromicBaseCount << "\n"
         "    },\n"
         "    \"Reads discarded on input, total\":\n"
         "    {\n"

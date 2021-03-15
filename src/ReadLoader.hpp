@@ -2,6 +2,7 @@
 #define SHASTA_READ_LOADER_HPP
 
 // shasta
+#include "PalindromeQuality.hpp"
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultithreadedObject.hpp"
@@ -30,6 +31,10 @@ public:
         size_t threadCount,
         const string& dataNamePrefix,
         size_t pageSize,
+        bool detectPalindromesOnFastqLoad,
+        double qScoreRelativeMeanDifference,
+        double qScoreMinimumMean,
+        double qScoreMinimumVariance,
         Reads& reads);
 
     ~ReadLoader();
@@ -43,6 +48,11 @@ public:
     // was less than minReadLength.
     uint64_t discardedShortReadReadCount = 0;
     uint64_t discardedShortReadBaseCount = 0;
+
+    // The number of reads and raw bases discarded because the read had
+    // a q score distribution that was indicative of a palindrome.
+    uint64_t discardedPalindromicReadCount = 0;
+    uint64_t discardedPalindromicBaseCount = 0;
 
     // The number of reads and raw bases discarded because the read
     // contained repeat counts greater than 255.
@@ -71,9 +81,17 @@ private:
     const string& dataNamePrefix;
     const size_t pageSize;
 
+    // Boolean switch to use quality scores to skip reads that have an indication of palindromic sequence
+    bool detectPalindromesOnFastqLoad;
+
+    // Each of the 3 thresholds necessary for calling isPalindromic()
+    double qScoreRelativeMeanDifference;
+    double qScoreMinimumMean;
+    double qScoreMinimumVariance;
+
     // The data structure that the reads will be added to.
     Reads& reads;
-    
+
     // Create the name to be used for a MemoryMapped object.
     string dataName(
         const string& dataName) const;

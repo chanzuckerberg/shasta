@@ -30,7 +30,7 @@ If the option is a Boolean switch, use True or False as the optionValue.
 ADDING A NEW CONFIGURABLE OPTION
 
 1. Add the option to the class corresponding to the desired section.
-2. Modify the write function to that class to also write the newly added option.3.
+2. Modify the write function to that class to also write the newly added option.
 3. Modify AssemblerOptions::addCommandLineOnlyOptions to reflect the new option,
    making sure to include a default value and at least a minimal help message.
 4. Add the option to shasta/conf/shasta.conf with a short comment
@@ -77,6 +77,7 @@ namespace shasta {
     class KmersOptions;
     class MarkerGraphOptions;
     class MinHashOptions;
+    class PalindromicReadOptions;
     class ReadsOptions;
     class ReadGraphOptions;
 
@@ -105,6 +106,22 @@ public:
 };
 
 
+class shasta::PalindromicReadOptions {
+public:
+    bool skipFlagging;
+    int maxSkip;
+    int maxDrift;
+    int maxMarkerFrequency;
+    double alignedFractionThreshold;
+    double nearDiagonalFractionThreshold;
+    int deltaThreshold;
+    bool detectOnFastqLoad;
+    double qScoreRelativeMeanDifference;
+    double qScoreMinimumMean;
+    double qScoreMinimumVariance;
+    void write(ostream&) const;
+};
+
 
 // Options in the [Reads] section of the configuration file.
 // Can also be entered on the command line with option names
@@ -115,17 +132,6 @@ public:
     bool noCache;
     string desiredCoverageString;
     uint64_t desiredCoverage;
-    class PalindromicReadOptions {
-    public:
-        bool skipFlagging;
-        int maxSkip;
-        int maxDrift;
-        int maxMarkerFrequency;
-        double alignedFractionThreshold;
-        double nearDiagonalFractionThreshold;
-        int deltaThreshold;
-        void write(ostream&) const;
-    };
     PalindromicReadOptions palindromicReads;
 
     void write(ostream&) const;

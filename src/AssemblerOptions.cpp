@@ -268,6 +268,30 @@ void AssemblerOptions::addConfigurableOptions()
          default_value(100),
          "Used for palindromic read detection.")
 
+        ("Reads.PalindromicReadOptions.detectOnFastqLoad",
+         bool_switch(&readsOptions.palindromicReads.detectOnFastqLoad)->
+         default_value(false),
+        "Filter reads that have exceptionally poor quality in the second half, "
+        "which is a strong indication of palindromic sequence.")
+
+        ("Reads.palindromicReads.qScoreRelativeMeanDifference",
+        value<double>(&readsOptions.palindromicReads.qScoreRelativeMeanDifference)->
+        default_value(0.09, "0.09"),
+        "When filtering palindrome quality, this parameter describes how much "
+        "worse should the right side average p(error) should be.")
+
+        ("Reads.palindromicReads.qScoreMinimumMean",
+        value<double>(&readsOptions.palindromicReads.qScoreMinimumMean)->
+        default_value(0.15, "0.15"),
+        "When filtering palindrome quality, this parameter describes the absolute "
+        "minimum average p(error) in the right half.")
+
+        ("Reads.palindromicReads.qScoreMinimumVariance",
+         value<double>(&readsOptions.palindromicReads.qScoreMinimumVariance)->
+         default_value(0.025, "0.025"),
+         "When filtering palindrome quality, this parameter describes the absolute "
+         "minimum variance in the right half.")
+
          ("Kmers.generationMethod",
          value<int>(&kmersOptions.generationMethod)->
          default_value(0),
@@ -754,7 +778,7 @@ void AssemblerOptions::addConfigurableOptions()
 
 
 
-void ReadsOptions::PalindromicReadOptions::write(ostream& s) const
+void PalindromicReadOptions::write(ostream& s) const
 {
     s << "palindromicReads.skipFlagging = " << convertBoolToPythonString(skipFlagging) << "\n";
     s << "palindromicReads.maxSkip = " << maxSkip << "\n";
@@ -763,6 +787,9 @@ void ReadsOptions::PalindromicReadOptions::write(ostream& s) const
     s << "palindromicReads.alignedFractionThreshold = " << alignedFractionThreshold << "\n";
     s << "palindromicReads.nearDiagonalFractionThreshold = " << nearDiagonalFractionThreshold << "\n";
     s << "palindromicReads.deltaThreshold = " << deltaThreshold << "\n";
+    s << "palindromicReads.qScoreRelativeMeanDifference = " << qScoreRelativeMeanDifference << "\n";
+    s << "palindromicReads.qScoreMinimumMean = " << qScoreMinimumMean << "\n";
+    s << "palindromicReads.qScoreMinimumVariance = " << qScoreMinimumVariance << "\n";
 }
 
 

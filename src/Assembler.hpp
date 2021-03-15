@@ -4,6 +4,7 @@
 // Shasta.
 #include "Alignment.hpp"
 #include "AlignmentCandidates.hpp"
+#include "AssemblerOptions.hpp"
 #include "AssembledSegment.hpp"
 #include "AssemblyGraph.hpp"
 #include "Coverage.hpp"
@@ -110,6 +111,10 @@ public:
     uint64_t discardedBadRepeatCountReadCount = 0;
     uint64_t discardedBadRepeatCountBaseCount = 0;
 
+    // The number of reads and raw bases discarded because the read
+    // contained repeat counts greater than 255.
+    uint64_t discardedPalindromicReadCount = 0;
+    uint64_t discardedPalindromicBaseCount = 0;
 
 
     // Statistics for the reads kept in the assembly
@@ -183,6 +188,10 @@ public:
         const string& fileName,
         uint64_t minReadLength,
         bool noCache,
+        bool detectPalindromesOnFastqLoad,
+        double qScoreRelativeMeanDifference,
+        double qScoreMinimumMean,
+        double qScoreMinimumVariance,
         size_t threadCount);
 
     // Create a histogram of read lengths.
