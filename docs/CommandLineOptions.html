@@ -377,6 +377,26 @@ Used for palindromic read detection.
 <td><code>--Reads.palindromicReads.deltaThreshold</code><td class=centered><code>100</code><td>
 Used for palindromic read detection.
 
+<tr id='Reads.palindromicReads.detectOnFastqLoad'>
+<td><code>--Reads.palindromicReads.detectOnFastqLoad</code><td class=centered><code>false</code><td>
+Filter reads that have exceptionally poor quality in the second half,
+which is a strong indication of palindromic sequence.
+
+<tr id='Reads.palindromicReads.qScoreRelativeMeanDifference'>
+<td><code>--Reads.palindromicReads.qScoreRelativeMeanDifference</code><td class=centered><code>0.09</code><td>
+When filtering palindrome quality, this parameter describes how much
+worse should the right side average p(error) should be.
+
+<tr id='Reads.palindromicReads.qScoreMinimumMean'>
+<td><code>--Reads.palindromicReads.qScoreMinimumMean</code><td class=centered><code>0.15</code><td>
+When filtering palindrome quality, this parameter describes the absolute
+minimum average p(error) in the right half.
+
+<tr id='Reads.palindromicReads.qScoreMinimumVariance'>
+<td><code>--Reads.palindromicReads.qScoreMinimumVariance</code><td class=centered><code>00.25</code><td>
+When filtering palindrome quality, this parameter describes the absolute
+minimum variance in the right half.
+
 <tr id='Kmers.generationMethod'>
 <td><code>--Kmers.generationMethod</code><td class=centered><code>0</code><td>
 Used to select how k-mers to be used as markers are generated.
