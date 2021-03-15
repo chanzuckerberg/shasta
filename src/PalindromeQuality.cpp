@@ -21,10 +21,12 @@ double qualityCharToErrorProbability(char q) {
 }
 
 
-bool shasta::isPalindromic(span<char> qualities,
-                           double relativeMeanDifference,
-                           double minimumMean,
-                           double minimumVariance){
+bool shasta::isPalindromic(
+        span<char> qualities,
+        double relativeMeanDifference,
+        double minimumMean,
+        double minimumVariance
+){
 
     bool isPalindromic = false;
 
