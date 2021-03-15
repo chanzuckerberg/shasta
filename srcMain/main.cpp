@@ -486,7 +486,10 @@ void shasta::main::assemble(
             inputFileName,
             assemblerOptions.readsOptions.minReadLength,
             assemblerOptions.readsOptions.noCache,
-            assemblerOptions.readsOptions.palindromicReads,
+            assemblerOptions.readsOptions.palindromicReads.detectOnFastqLoad,
+            assemblerOptions.readsOptions.palindromicReads.qScoreRelativeMeanDifference,
+            assemblerOptions.readsOptions.palindromicReads.qScoreMinimumMean,
+            assemblerOptions.readsOptions.palindromicReads.qScoreMinimumVariance,
             threadCount);
     }
 

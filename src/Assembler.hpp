@@ -188,7 +188,10 @@ public:
         const string& fileName,
         uint64_t minReadLength,
         bool noCache,
-        const PalindromicReadOptions& palindromicReadOptions,
+        bool detectPalindromesOnFastqLoad,
+        double qScoreRelativeMeanDifference,
+        double qScoreMinimumMean,
+        double qScoreMinimumVariance,
         size_t threadCount);
 
     // Create a histogram of read lengths.
