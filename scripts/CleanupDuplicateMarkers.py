@@ -1,6 +1,10 @@
 #!/usr/bin/python3
 
 import shasta
+import GetConfig
+
+# Read the config file.
+config = GetConfig.getConfig()
 
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
@@ -8,5 +12,5 @@ a.accessMarkers()
 a.accessMarkerGraphVertices(readWriteAccess = True)
 a.accessMarkerGraphReverseComplementVertex(readWriteAccess = True)
 a.cleanupDuplicateMarkers(
-    duplicateMarkersPattern1Threshold = 0.5,
+    duplicateMarkersPattern1Threshold = float(config['MarkerGraph']['duplicateMarkersPattern1Threshold']),
     pattern1CreateNewVertices = False)

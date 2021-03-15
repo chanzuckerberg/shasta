@@ -558,6 +558,18 @@ void AssemblerOptions::addConfigurableOptions()
         "Specifies whether to allow more than one marker on the "
         "same oriented read on a single marker graph vertex. Experimental.")
 
+        ("MarkerGraph.cleanupDuplicateMarkers",
+        bool_switch(&markerGraphOptions.cleanupDuplicateMarkers)->
+        default_value(false),
+        "Specifies whether to clean up marker graph vertices with more than one marker on the "
+        "same oriented read. Experimental.")
+
+        ("MarkerGraph.duplicateMarkersPattern1Threshold",
+        value<double>(&markerGraphOptions.duplicateMarkersPattern1Threshold)->
+        default_value(0.5),
+        "Used when cleaning up marker graph vertices with more than one marker on the "
+        "same oriented read. Experimental.")
+
         ("MarkerGraph.lowCoverageThreshold",
         value<int>(&markerGraphOptions.lowCoverageThreshold)->
         default_value(0),
@@ -853,6 +865,9 @@ void MarkerGraphOptions::write(ostream& s) const
     s << "minCoveragePerStrand = " << minCoveragePerStrand << "\n";
     s << "allowDuplicateMarkers = " <<
         convertBoolToPythonString(allowDuplicateMarkers) << "\n";
+    s << "cleanupDuplicateMarkers = " <<
+        convertBoolToPythonString(cleanupDuplicateMarkers) << "\n";
+    s << "duplicateMarkersPattern1Threshold = " << duplicateMarkersPattern1Threshold << "\n";
     s << "lowCoverageThreshold = " << lowCoverageThreshold << "\n";
     s << "highCoverageThreshold = " << highCoverageThreshold << "\n";
     s << "maxDistance = " << maxDistance << "\n";

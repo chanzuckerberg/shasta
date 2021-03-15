@@ -230,6 +230,8 @@ public:
     int maxCoverage;
     int minCoveragePerStrand;
     bool allowDuplicateMarkers;
+    bool cleanupDuplicateMarkers;
+    double duplicateMarkersPattern1Threshold;
     int lowCoverageThreshold;
     int highCoverageThreshold;
     int maxDistance;
