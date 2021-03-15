@@ -2,7 +2,6 @@
 #define SHASTA_READ_LOADER_HPP
 
 // shasta
-#include "AssemblerOptions.hpp"
 #include "PalindromeQuality.hpp"
 #include "LongBaseSequence.hpp"
 #include "MemoryMappedObject.hpp"
