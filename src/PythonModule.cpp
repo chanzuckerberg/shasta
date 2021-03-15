@@ -413,7 +413,7 @@ PYBIND11_MODULE(shasta, module)
         .def("cleanupDuplicateMarkers",
             &Assembler::cleanupDuplicateMarkers,
             arg("threadCount") = 0,
-            arg("duplicateCoverageRatioThreshold"),
+            arg("duplicateMarkersPattern1Threshold"),
             arg("pattern1CreateNewVertices"))
 
 

@@ -7,7 +7,7 @@ using namespace shasta;
 // Such vertices are only generated when using --MarkerGraph.allowDuplicateMarkers.
 void Assembler::cleanupDuplicateMarkers(
     uint64_t threadCount,
-    double duplicateCoverageRatioThreshold,
+    double pattern1Threshold,
     bool pattern1CreateNewVertices)
 {
     const bool debug = false;
@@ -31,7 +31,7 @@ void Assembler::cleanupDuplicateMarkers(
     }
 
     // Store information that needs to be visible to the threads.
-    cleanupDuplicateMarkersData.duplicateCoverageRatioThreshold = duplicateCoverageRatioThreshold;
+    cleanupDuplicateMarkersData.pattern1Threshold = pattern1Threshold;
     cleanupDuplicateMarkersData.pattern1CreateNewVertices = pattern1CreateNewVertices;
     cleanupDuplicateMarkersData.badVertexCount = 0;
     cleanupDuplicateMarkersData.pattern1Count = 0;
@@ -99,7 +99,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
         out.open("cleanupDuplicateMarkers-" + to_string(threadId) + ".threadLog");
     }
 
-    const double duplicateCoverageRatioThreshold = cleanupDuplicateMarkersData.duplicateCoverageRatioThreshold;
+    const double pattern1Threshold = cleanupDuplicateMarkersData.pattern1Threshold;
     const bool pattern1CreateNewVertices = cleanupDuplicateMarkersData.pattern1CreateNewVertices;
 
     uint64_t badVertexCount = 0;
@@ -186,7 +186,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
 
             // Pattern 1: the number of duplicate markers is small.
             const double duplicateRatio = double(duplicateCount) / double(markerCount);
-            if(duplicateRatio < duplicateCoverageRatioThreshold) {
+            if(duplicateRatio < pattern1Threshold) {
                 if(debug) {
                     out << "Vertex " << vertexId << " processed as pattern 1 vertex." << endl;
                 }

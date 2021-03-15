@@ -8,5 +8,5 @@ a.accessMarkers()
 a.accessMarkerGraphVertices(readWriteAccess = True)
 a.accessMarkerGraphReverseComplementVertex(readWriteAccess = True)
 a.cleanupDuplicateMarkers(
-    duplicateCoverageRatioThreshold = 0.5,
+    duplicateMarkersPattern1Threshold = 0.5,
     pattern1CreateNewVertices = False)

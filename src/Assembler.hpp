@@ -1116,7 +1116,7 @@ private:
 public:
     void cleanupDuplicateMarkers(
         uint64_t threadCount,
-        double duplicateCoverageRatioThreshold,
+        double pattern1Threshold,
         bool pattern1CreateNewVertices);
 private:
     void cleanupDuplicateMarkersThreadFunction(size_t threadId);
@@ -1129,7 +1129,7 @@ private:
         ostream& out);
     class CleanupDuplicateMarkersData {
     public:
-        double duplicateCoverageRatioThreshold;
+        double pattern1Threshold;
         bool pattern1CreateNewVertices;
         uint64_t badVertexCount;    // Total number of vertices with duplicate markers.
         uint64_t pattern1Count;
