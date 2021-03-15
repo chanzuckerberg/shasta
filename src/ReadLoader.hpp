@@ -32,7 +32,10 @@ public:
         size_t threadCount,
         const string& dataNamePrefix,
         size_t pageSize,
-        const PalindromicReadOptions& palindromicReadOptions,
+        bool detectPalindromesOnFastqLoad,
+        double qScoreRelativeMeanDifference,
+        double qScoreMinimumMean,
+        double qScoreMinimumVariance,
         Reads& reads);
 
     ~ReadLoader();
@@ -79,10 +82,13 @@ private:
     const string& dataNamePrefix;
     const size_t pageSize;
 
-    // This object is copied for convenience to specify the following:
-    //   - Boolean switch to use quality scores to skip reads that have an indication of palindromic sequence
-    //   - Each of the 3 thresholds necessary for calling isPalindromic()
-    PalindromicReadOptions palindromicReadOptions;
+    // Boolean switch to use quality scores to skip reads that have an indication of palindromic sequence
+    bool detectPalindromesOnFastqLoad;
+
+    // Each of the 3 thresholds necessary for calling isPalindromic()
+    double qScoreRelativeMeanDifference;
+    double qScoreMinimumMean;
+    double qScoreMinimumVariance;
 
     // The data structure that the reads will be added to.
     Reads& reads;

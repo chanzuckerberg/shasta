@@ -17,7 +17,10 @@ ReadLoader::ReadLoader(
     size_t threadCount,
     const string& dataNamePrefix,
     size_t pageSize,
-    const PalindromicReadOptions& palindromicReadOptions,
+    bool detectPalindromesOnFastqLoad,
+    double qScoreRelativeMeanDifference,
+    double qScoreMinimumMean,
+    double qScoreMinimumVariance,
     Reads& reads):
     
     MultithreadedObject(*this),
@@ -27,7 +30,10 @@ ReadLoader::ReadLoader(
     threadCount(threadCount),
     dataNamePrefix(dataNamePrefix),
     pageSize(pageSize),
-    palindromicReadOptions(palindromicReadOptions),
+    detectPalindromesOnFastqLoad(detectPalindromesOnFastqLoad),
+    qScoreRelativeMeanDifference(qScoreRelativeMeanDifference),
+    qScoreMinimumMean(qScoreMinimumMean),
+    qScoreMinimumVariance(qScoreMinimumVariance),
     reads(reads)
 {
     cout << timestamp << "Loading reads from " << fileName << endl;
@@ -390,12 +396,12 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         // Check the header line.
         if (headerEnd == headerBegin) {
             throw runtime_error("Empty header line for read at offset " +
-                                to_string(headerBegin - fileBegin) + ".");
+                to_string(headerBegin - fileBegin) + ".");
         }
         if (*headerBegin != '@') {
             throw runtime_error("Read at offset " +
-                                to_string(headerBegin - fileBegin) +
-                                " does not begin with \"@\".");
+                to_string(headerBegin - fileBegin) +
+                " does not begin with \"@\".");
         }
 
         // Extract the read name.
@@ -410,9 +416,9 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
             }
             readName.push_back(c);
         }
-        if (readName.empty()) {
+        if(readName.empty()) {
             throw runtime_error("Empty name for read at offset " +
-                                to_string(headerBegin - fileBegin) + ".");
+                to_string(headerBegin - fileBegin) + ".");
         }
 
         // Extract the read meta data. It starts at the first non-space character
@@ -470,13 +476,13 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
         }
 
         // Skip if the q scores have an obvious palindromic characteristic
-        if (palindromicReadOptions.detectOnFastqLoad){
+        if (detectPalindromesOnFastqLoad){
             span<char> scores(scoresBegin, scoresEnd);
             bool isPalindrome = isPalindromic(
                     scores,
-                    palindromicReadOptions.qScoreRelativeMeanDifference,
-                    palindromicReadOptions.qScoreMinimumMean,
-                    palindromicReadOptions.qScoreMinimumVariance);
+                    qScoreRelativeMeanDifference,
+                    qScoreMinimumMean,
+                    qScoreMinimumVariance);
 
             if (isPalindrome) {
                 __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
