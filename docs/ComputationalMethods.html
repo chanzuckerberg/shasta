@@ -15,7 +15,7 @@
 <h2 id=Reads>Long reads</h2>
 
 <p>
-The Shasta assembler can be used to assemble DNA sequence fromn long reads.
+The Shasta assembler can be used to assemble DNA sequence from long reads.
 It is optimized especially for 
 <a href="https://nanoporetech.com">Oxford Nanopore</a> reads,
 but can also be used to assemble other types of long reads
@@ -272,8 +272,12 @@ Each k-mer is randomly choosen to be used as a marker
 with probability determined by assembly parameter 
 <code><a href='CommandLineOptions.html#Kmers.probability'>--Kmers.probability</a></code>
 with a default value of 0.1.
+There are 4 possibilities for the first base in an RLE k-mer, but 
+only 3 for the remaining k-1 bases since RLE k-mers do not contain 
+consecutive bases. Thus, 4&times;3<sup>k-1</sup> is equal to the
+total number of RLE k-mers.
 With these default values, the total number of distinct
-markers is approximately 0.1&times;4<sup>10</sup>&times;3<sup>9</sup>&#8776;7900.
+markers is approximately 0.1&times;4&times;3<sup>9</sup>&#8776;7900.
 
 <p>
 Options are also provided to read from a file the RLE k-mers to
