@@ -148,7 +148,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
     // If getting here, the requested command is invalid.
     throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command +
-        ". Valid commands are: assemble, saveBinaryData, cleanupBinaryData, createBashCompletionScript.");
+        ". Valid commands are: assemble, saveBinaryData, cleanupBinaryData, createBashCompletionScript, filterReads.");
 
 }
 
@@ -1247,7 +1247,7 @@ void shasta::main::createBashCompletionScript(const AssemblerOptions& assemblerO
     }
 
     // Other keywords. This should be modified to only accept them after the appropriate option.
-    file << "assemble saveBinaryData cleanupBinaryData explore createBashCompletionScript \\\n";
+    file << "assemble saveBinaryData cleanupBinaryData explore createBashCompletionScript filterReads\\\n";
     file << "filesystem anonymous \\\n";
     file << "disk 4K 2M \\\n";
     file << "user local unrestricted \\\n";
