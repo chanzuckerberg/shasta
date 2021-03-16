@@ -124,7 +124,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
 
     // Execute the requested command.
-    if(assemblerOptions.commandLineOnlyOptions.command == "assemble") {
+    if(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
+        assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
         assemble(assemblerOptions);
         return;
     } else if(assemblerOptions.commandLineOnlyOptions.command == "cleanupBinaryData") {
@@ -147,7 +148,7 @@ void shasta::main::main(int argumentCount, const char** arguments)
 
     // If getting here, the requested command is invalid.
     throw runtime_error("Invalid command " + assemblerOptions.commandLineOnlyOptions.command +
-        ". Valid commands are: assemble, saveBinaryData, cleanupBinaryData, createBashCompletionScript.");
+        ". Valid commands are: assemble, saveBinaryData, cleanupBinaryData, createBashCompletionScript, filterReads.");
 
 }
 
@@ -157,7 +158,8 @@ void shasta::main::main(int argumentCount, const char** arguments)
 void shasta::main::assemble(
     const AssemblerOptions& assemblerOptions)
 {
-    SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble");
+    SHASTA_ASSERT(assemblerOptions.commandLineOnlyOptions.command == "assemble" or
+        assemblerOptions.commandLineOnlyOptions.command == "filterReads");
 
     const string startupMessage =
         "\nTo run an assembly, use the \"--input\" option to specify the input files. "
@@ -493,8 +495,20 @@ void shasta::main::assemble(
             threadCount);
     }
 
-    if (assembler.getReads().readCount() == 0) {
-        throw runtime_error("There are no input reads.");
+    if(assembler.getReads().readCount() == 0) {
+        // There could be no reads remaining at this point, but it does not constitute an error
+        // if running in filter mode
+        if(assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
+            // Write the assembly summary.
+            ofstream html("AssemblySummary.html");
+            assembler.writeAssemblySummary(html, true);
+            ofstream json("AssemblySummary.json");
+            assembler.writeAssemblySummaryJson(json, true);
+
+            return;
+        } else{
+            throw runtime_error("There are no input reads.");
+        }
     }
     
 
@@ -631,6 +645,25 @@ void shasta::main::assemble(
             threadCount);
     }
 
+
+    if(assemblerOptions.commandLineOnlyOptions.command == "filterReads") {
+        ofstream csv("PassingReads.csv");
+        csv << "ReadId,ReadName\n";
+
+        const auto& reads = assembler.getReads();
+
+        for (ReadId readId=0; readId<reads.readCount(); readId++) {
+            csv << readId << ',' << reads.getReadName(readId) << '\n';
+        }
+
+        // Write the assembly summary.
+        ofstream html("AssemblySummary.html");
+        assembler.writeAssemblySummary(html, true);
+        ofstream json("AssemblySummary.json");
+        assembler.writeAssemblySummaryJson(json, true);
+
+        return;
+    }
 
     // Find alignment candidates.
     if(assemblerOptions.minHashOptions.allPairs) {
@@ -1214,7 +1247,7 @@ void shasta::main::createBashCompletionScript(const AssemblerOptions& assemblerO
     }
 
     // Other keywords. This should be modified to only accept them after the appropriate option.
-    file << "assemble saveBinaryData cleanupBinaryData explore createBashCompletionScript \\\n";
+    file << "assemble saveBinaryData cleanupBinaryData explore createBashCompletionScript filterReads\\\n";
     file << "filesystem anonymous \\\n";
     file << "disk 4K 2M \\\n";
     file << "user local unrestricted \\\n";

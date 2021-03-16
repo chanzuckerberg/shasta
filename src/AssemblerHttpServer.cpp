@@ -650,14 +650,14 @@ void Assembler::writeHtmlEnd(ostream& html) const
 
 
 
-void Assembler::writeAssemblySummary(ostream& html)
+void Assembler::writeAssemblySummary(ostream& html, bool readsOnly)
 {
     writeHtmlBegin(html);
-    writeAssemblySummaryBody(html);
+    writeAssemblySummaryBody(html, readsOnly);
     writeHtmlEnd(html);
 }
 
-void Assembler::writeAssemblySummaryBody(ostream& html)
+void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
 {
     using std::setprecision;
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
@@ -756,9 +756,13 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
         "</table>"
         "<ul><li>Base counts in the above table are raw sequence bases."
         "<li>Here and elsewhere, &quot;raw&quot; refers to the original read sequence, "
-        "as opposed to run-length encoded sequence.</ul>"
+        "as opposed to run-length encoded sequence.</ul>";
 
+    if (readsOnly) {
+        return;
+    }
 
+    html <<
         "<h3>Marker <i>k</i>-mers</h3>"
         "<table>"
         "<tr><td>Length <i>k</i> of <i>k</i>-mers used as markers"
@@ -908,7 +912,7 @@ void Assembler::writeAssemblySummaryBody(ostream& html)
 
 
 
-void Assembler::writeAssemblySummaryJson(ostream& json)
+void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
 {
     AssemblyGraph& assemblyGraph = *assemblyGraphPointer;
     using std::setprecision;
@@ -1005,10 +1009,13 @@ void Assembler::writeAssemblySummaryJson(ostream& json)
         double(totalDiscardedBaseCount + assemblerInfo->baseCount)
         << "\n"
         "    }\n"
-        "  },\n"
+        "  },\n";
 
+    if (readsOnly) {
+        return;
+    }
 
-
+    json <<
         "  \"Marker k-mers\":\n"
         "  {\n"
         "    \"Length k of k-mers used as markers\": " << assemblerInfo->k << ",\n"
