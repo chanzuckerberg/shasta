@@ -435,10 +435,8 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
 
 
         // Check the line containing the plus.
-        if (plusEnd - plusBegin != 1) {
-            throw runtime_error("Extraneous characters on third line for read " +
-                                readName + " at offset " + to_string(headerBegin - fileBegin) + ".");
-        }
+        // It can contain arbitrary characters after the plus.
+        // We already checked above that it is at least 1 character long.
         if (*plusBegin != '+') {
             throw runtime_error("Third line does not contain \"+\" for read " +
                                 readName + " at offset " + to_string(headerBegin - fileBegin) + ".");
