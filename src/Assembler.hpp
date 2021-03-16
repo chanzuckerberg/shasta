@@ -1769,9 +1769,9 @@ public:
     // of processing requests.
     void writeHtmlBegin(ostream&) const;
     void writeHtmlEnd(ostream&) const;
-    void writeAssemblySummary(ostream&);
-    void writeAssemblySummaryBody(ostream&);
-    void writeAssemblySummaryJson(ostream&);
+    void writeAssemblySummary(ostream&, bool readsOnly=false);
+    void writeAssemblySummaryBody(ostream&, bool readsOnly=false);
+    void writeAssemblySummaryJson(ostream&, bool readsOnly=false);
     void writeAssemblyIndex(ostream&) const;
     static void writeStyle(ostream& html);
 
