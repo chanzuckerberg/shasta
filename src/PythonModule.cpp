@@ -216,6 +216,7 @@ PYBIND11_MODULE(shasta, module)
             arg("alignedFractionThreshold"),
             arg("nearDiagonalFractionThreshold"),
             arg("deltaThreshold"),
+            arg("writeTocsv") = false,
             arg("threadCount") = 0)
 
         // Alignments.

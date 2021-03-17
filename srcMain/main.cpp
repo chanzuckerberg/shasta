@@ -484,6 +484,11 @@ void shasta::main::assemble(
     cout << timestamp << "Begin loading reads from " << inputFileNames.size() << " files." << endl;
     const auto t0 = steady_clock::now();
     for(const string& inputFileName: inputFileNames) {
+        // Only dump the palindromes to a separate csv if running in filter mode.
+        // Otherwise ReadSummary.csv already contains the palindromic reads that were identified
+        // by self alignment (but not the palindromes identified by Q score)
+        bool writeToCsv = (assemblerOptions.commandLineOnlyOptions.command == "filterReads");
+
         assembler.addReads(
             inputFileName,
             assemblerOptions.readsOptions.minReadLength,
@@ -492,6 +497,7 @@ void shasta::main::assemble(
             assemblerOptions.readsOptions.palindromicReads.qScoreRelativeMeanDifference,
             assemblerOptions.readsOptions.palindromicReads.qScoreMinimumMean,
             assemblerOptions.readsOptions.palindromicReads.qScoreMinimumVariance,
+            writeToCsv,
             threadCount);
     }
 
@@ -633,6 +639,11 @@ void shasta::main::assemble(
     assembler.findMarkers(0);
 
     if(!assemblerOptions.readsOptions.palindromicReads.skipFlagging) {
+        // Only dump the palindromes to a separate csv if running in filter mode.
+        // Otherwise ReadSummary.csv already contains the palindromic reads that were identified
+        // by self alignment (but not the palindromes identified by Q score)
+        bool writeToCsv = (assemblerOptions.commandLineOnlyOptions.command == "filterReads");
+
         // Flag palindromic reads.
         // These will be excluded from further processing.
         assembler.flagPalindromicReads(
@@ -642,6 +653,7 @@ void shasta::main::assemble(
             assemblerOptions.readsOptions.palindromicReads.alignedFractionThreshold,
             assemblerOptions.readsOptions.palindromicReads.nearDiagonalFractionThreshold,
             assemblerOptions.readsOptions.palindromicReads.deltaThreshold,
+            writeToCsv,
             threadCount);
     }
 

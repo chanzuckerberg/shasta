@@ -21,6 +21,7 @@ ReadLoader::ReadLoader(
     double qScoreRelativeMeanDifference,
     double qScoreMinimumMean,
     double qScoreMinimumVariance,
+    bool writePalindromesToCsv,
     Reads& reads):
     
     MultithreadedObject(*this),
@@ -34,6 +35,7 @@ ReadLoader::ReadLoader(
     qScoreRelativeMeanDifference(qScoreRelativeMeanDifference),
     qScoreMinimumMean(qScoreMinimumMean),
     qScoreMinimumVariance(qScoreMinimumVariance),
+    writePalindromesToCsv(writePalindromesToCsv),
     reads(reads)
 {
     cout << timestamp << "Loading reads from " << fileName << endl;
@@ -332,6 +334,20 @@ void ReadLoader::processFastqFile()
         "Parse: " << seconds(t3-t2) << " s.\n"
         "Store: " << seconds(t4-t3) << " s.\n"
         "Total: " << seconds(t4-t0) << " s." << endl;
+
+
+    // Write a csv file with the list of palindromic reads
+    // if shasta is running in "filterReads" mode.
+    // This should not too big as the typical rate of
+    // palindromic reads is around 1e-4.
+    if(writePalindromesToCsv) {
+        ofstream csvOut("PalindromicReads.csv");
+        for (const auto& item: threadPalindromicReadNames) {
+            for (const auto& name: item) {
+                csvOut << name << "\n";
+            }
+        }
+    }
 }
 
 
@@ -347,6 +363,7 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
     LongBaseSequences& thisThreadReads = *threadReads[threadId];
     MemoryMapped::VectorOfVectors<uint8_t, uint64_t>& thisThreadReadRepeatCounts =
         *threadReadRepeatCounts[threadId];
+    vector<string>& thisThreadPalindromicReadNames = threadPalindromicReadNames[threadId];
 
     // Find the total number of reads in the file.
     SHASTA_ASSERT((lineEnds.size() % 4) == 0); // We already checked for that.
@@ -485,6 +502,10 @@ void ReadLoader::processFastqFileThreadFunction(size_t threadId)
             if (isPalindrome) {
                 __sync_fetch_and_add(&discardedPalindromicReadCount, 1);
                 __sync_fetch_and_add(&discardedPalindromicBaseCount, read.size());
+
+                // Update the running list of palindromic read names for this thread
+                thisThreadPalindromicReadNames.push_back(readName);
+
                 continue;
             }
         }
@@ -656,7 +677,10 @@ void ReadLoader::allocatePerThreadDataStructures()
     threadReadMetaData.resize(threadCount);
     threadReads.resize(threadCount);
     threadReadRepeatCounts.resize(threadCount);
+    threadPalindromicReadNames.resize(threadCount);
 }
+
+
 void ReadLoader::allocatePerThreadDataStructures(size_t threadId)
 {
     threadReadNames[threadId] = make_unique< MemoryMapped::VectorOfVectors<char, uint64_t> >();

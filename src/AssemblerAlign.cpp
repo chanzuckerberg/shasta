@@ -646,6 +646,7 @@ void Assembler::flagPalindromicReads(
     double alignedFractionThreshold,
     double nearDiagonalFractionThreshold,
     uint32_t deltaThreshold,
+    bool writeToCsv,
     size_t threadCount)
 {
     cout << timestamp << "Finding palindromic reads." << endl;
@@ -688,13 +689,18 @@ void Assembler::flagPalindromicReads(
         double(palindromicReadCount)/double(readCount) << endl;
 
 
-    // Write a csv file with the list of palindromic reads.
+    // Write a csv file with the list of palindromic reads
+    // if shasta is running in "filterReads" mode.
     // This should not too big as the typical rate of
     // palindromic reads is around 1e-4.
-    ofstream csvOut("PalindromicReads.csv");
-    for(ReadId readId=0; readId<readCount; readId++) {
-        if(reads->getFlags(readId).isPalindromic) {
-            csvOut << readId << "\n";
+    if(writeToCsv) {
+        // Open the file in "append" mode because it may already have
+        // been created during read loading
+        ofstream csvOut("PalindromicReads.csv", std::ofstream::app);
+        for(ReadId readId = 0; readId < readCount; readId++) {
+            if(reads->getFlags(readId).isPalindromic) {
+                csvOut << reads->getReadName(readId) << "\n";
+            }
         }
     }
 }
