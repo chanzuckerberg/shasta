@@ -20,13 +20,13 @@ void shasta::testSpoa()
     const int8_t match = 5;
     const int8_t mismatch = -4;
     const int8_t gap = -8;
-    auto alignment_engine = spoa::createAlignmentEngine(alignmentType, match, mismatch, gap);
+    auto alignment_engine = spoa::AlignmentEngine::Create(alignmentType, match, mismatch, gap);
 
-    auto graph = spoa::createGraph();
+    spoa::Graph graph{};
 
     for (const auto& it: sequences) {
-        auto alignment = alignment_engine->align(it, graph);
-        graph->add_alignment(alignment, it);
+        auto alignment = alignment_engine->Align(it, graph);
+        graph.AddAlignment(alignment, it);
     }
 
     /*
@@ -35,8 +35,7 @@ void shasta::testSpoa()
     fprintf(stderr, "%s\n", consensus.c_str());
     */
 
-    std::vector<std::string> msa;
-    graph->generate_multiple_sequence_alignment(msa);
+    auto msa = graph.GenerateMultipleSequenceAlignment();
 
     fprintf(stderr, "Multiple sequence alignment\n");
     for (const auto& it: msa) {

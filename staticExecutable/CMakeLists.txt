@@ -79,20 +79,11 @@ if(MACOS)
 else(MACOS)
     # For arcane reasons, statically linking with the pthread
     # library on Linux requires "--whole-archive".
-    if(X86_64)
-        target_link_libraries(
-            shastaStaticExecutable
-            shastaStaticLibrary
-            atomic boost_system boost_program_options boost_chrono spoa cpu_features png z
-            -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    else(X86_64)
-        target_link_libraries(
-            shastaStaticExecutable
-            shastaStaticLibrary
-            atomic boost_system boost_program_options boost_chrono spoa png z
-            -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
-    endif(X86_64) 
-    
+    target_link_libraries(
+        shastaStaticExecutable
+        shastaStaticLibrary
+        atomic boost_system boost_program_options boost_chrono spoa png z
+        -Wl,--whole-archive -lpthread -Wl,--no-whole-archive)
 endif(MACOS)
   
 # Also request the glibc library to be linked statically. 
