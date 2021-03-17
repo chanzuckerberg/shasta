@@ -35,6 +35,7 @@ public:
         double qScoreRelativeMeanDifference,
         double qScoreMinimumMean,
         double qScoreMinimumVariance,
+        bool writePalindromesToCsv,
         Reads& reads);
 
     ~ReadLoader();
@@ -89,6 +90,9 @@ private:
     double qScoreMinimumMean;
     double qScoreMinimumVariance;
 
+    // This is true if shasta was run with command "filterReads"
+    bool writePalindromesToCsv;
+
     // The data structure that the reads will be added to.
     Reads& reads;
 
@@ -110,6 +114,7 @@ private:
     vector< unique_ptr<MemoryMapped::VectorOfVectors<char, uint64_t> > > threadReadMetaData;
     vector< unique_ptr<LongBaseSequences> > threadReads;
     vector< unique_ptr<MemoryMapped::VectorOfVectors<uint8_t, uint64_t> > > threadReadRepeatCounts;
+    vector< vector<string> > threadPalindromicReadNames;
     void allocatePerThreadDataStructures();
     void allocatePerThreadDataStructures(size_t threadId);
 

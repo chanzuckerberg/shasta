@@ -18,6 +18,7 @@ void Assembler::addReads(
     double qScoreRelativeMeanDifference,
     double qScoreMinimumMean,
     double qScoreMinimumVariance,
+    bool writePalindromicReadsToCsv,
     const size_t threadCount)
 {
     reads->checkReadsAreOpen();
@@ -34,6 +35,7 @@ void Assembler::addReads(
         qScoreRelativeMeanDifference,
         qScoreMinimumMean,
         qScoreMinimumVariance,
+        writePalindromicReadsToCsv,
         *reads);
     
     reads->checkSanity();

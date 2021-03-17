@@ -192,6 +192,7 @@ public:
         double qScoreRelativeMeanDifference,
         double qScoreMinimumMean,
         double qScoreMinimumVariance,
+        bool writePalindromicReadsToCsv,
         size_t threadCount);
 
     // Create a histogram of read lengths.
@@ -546,6 +547,7 @@ public:
         double alignedFractionThreshold,
         double nearDiagonalFractionThreshold,
         uint32_t deltaThreshold,
+        bool writeToCsv,
         size_t threadCount);
 private:
     void flagPalindromicReadsThreadFunction(size_t threadId);
