@@ -93,7 +93,7 @@ jobs:
 
 
   macOS-11-0:
-    runs-on: macOS-11.0
+    runs-on: macos-11.0
     steps:
     - uses: actions/checkout@master
     - name: Install-prerequisites
