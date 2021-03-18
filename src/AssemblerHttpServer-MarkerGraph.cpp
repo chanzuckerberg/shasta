@@ -6,6 +6,7 @@
 #include "ConsensusCaller.hpp"
 #include "InducedAlignment.hpp"
 #include "LocalMarkerGraph.hpp"
+#include "MarkerConnectivityGraph.hpp"
 #include "platformDependent.hpp"
 using namespace shasta;
 
@@ -1671,15 +1672,8 @@ void Assembler::exploreMarkerConnectivity(
 
     // Create an undirected graph in which each vertex represents a marker
     // and aligned markers are joined by an edge.
-    using MarkerPair = pair<OrientedReadId, uint32_t>;
-    using Graph = boost::adjacency_list<
-        boost::setS,
-        boost::vecS,
-        boost::undirectedS,
-        MarkerPair
-        >;
-    Graph graph;
-    using vertex_descriptor = Graph::vertex_descriptor;
+    MarkerConnectivityGraph graph;
+    using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
     std::map<MarkerPair, vertex_descriptor> vertexMap;
 
     // Initialize a BFS in the space of aligned markers.
@@ -1741,7 +1735,7 @@ void Assembler::exploreMarkerConnectivity(
     const string dotFileName = tmpDirectory() + uuid + ".dot";
     ofstream dotFile(dotFileName);
     dotFile << "graph MarkerConnectivity {\n";
-    BGL_FORALL_VERTICES(v, graph, Graph) {
+    BGL_FORALL_VERTICES(v, graph, MarkerConnectivityGraph) {
         const MarkerPair markerPair = graph[v];
         const OrientedReadId orientedReadId1 = markerPair.first;
         const uint32_t ordinal1 = markerPair.second;
@@ -1755,7 +1749,7 @@ void Assembler::exploreMarkerConnectivity(
         }
         dotFile << "];\n";
     }
-    BGL_FORALL_EDGES(e, graph, Graph) {
+    BGL_FORALL_EDGES(e, graph, MarkerConnectivityGraph) {
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
         const MarkerPair markerPair0 = graph[v0];
