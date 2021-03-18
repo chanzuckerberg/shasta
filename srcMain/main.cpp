@@ -819,6 +819,15 @@ void shasta::main::assemble(
     // Find the reverse complement of each marker graph vertex.
     assembler.findMarkerGraphReverseComplementVertices(threadCount);
 
+    // Clean up of duplicate markers, if requested and necessary.
+    if(assemblerOptions.markerGraphOptions.allowDuplicateMarkers and
+        assemblerOptions.markerGraphOptions.cleanupDuplicateMarkers) {
+        assembler.cleanupDuplicateMarkers(
+            threadCount,
+            assemblerOptions.markerGraphOptions.duplicateMarkersPattern1Threshold,
+            false);
+    }
+
     // Create edges of the marker graph.
     assembler.createMarkerGraphEdges(threadCount);
     assembler.findMarkerGraphReverseComplementEdges(threadCount);
