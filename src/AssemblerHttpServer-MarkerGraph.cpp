@@ -1673,6 +1673,9 @@ void Assembler::exploreMarkerConnectivity(
     // Create an undirected graph in which each vertex represents a marker
     // and aligned markers are joined by an edge.
     MarkerConnectivityGraph graph;
+    createMarkerConnectivityGraph(orientedReadId, ordinal, useReadGraphAlignmentsOnly, graph);
+
+#if 0
     using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
     std::map<MarkerPair, vertex_descriptor> vertexMap;
 
@@ -1717,17 +1720,22 @@ void Assembler::exploreMarkerConnectivity(
             }
         }
     }
-
+#endif
 
 
     // Count how many times each oriented read appears.
     std::map<OrientedReadId, uint64_t> frequencyMap;
+    BGL_FORALL_VERTICES(v, graph, MarkerConnectivityGraph) {
+        const OrientedReadId orientedReadId = graph[v].first;
+        ++frequencyMap[orientedReadId];
+    }
+#if 0
     for(const auto& p: vertexMap) {
         const MarkerPair& markerPair = p.first;
         const OrientedReadId orientedReadId = markerPair.first;
         ++frequencyMap[orientedReadId];
     }
-
+#endif
 
 
     // Write the graph out in graphviz format.
@@ -1750,8 +1758,8 @@ void Assembler::exploreMarkerConnectivity(
         dotFile << "];\n";
     }
     BGL_FORALL_EDGES(e, graph, MarkerConnectivityGraph) {
-        const vertex_descriptor v0 = source(e, graph);
-        const vertex_descriptor v1 = target(e, graph);
+        const auto v0 = source(e, graph);
+        const auto v1 = target(e, graph);
         const MarkerPair markerPair0 = graph[v0];
         const MarkerPair markerPair1 = graph[v1];
         dotFile
@@ -1790,7 +1798,7 @@ void Assembler::exploreMarkerConnectivity(
 
     // Buttons to resize the svg locally.
     addScaleSvgButtons(html);
-    html << "<br>Found " << vertexMap.size() << " markers.";
+    html << "<br>Found " << num_vertices(graph) << " markers.";
 
     // Display the svg file.
     const string svgFileName = dotFileName + ".svg";

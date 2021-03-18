@@ -50,6 +50,7 @@ namespace shasta {
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
+    class MarkerConnectivityGraph;
     class Reads;
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1309,7 +1310,12 @@ private:
         vector< pair<uint32_t, uint32_t> >& pathOrdinals
         ) const;
 
-
+    // Create the marker connectivity graph starting with a given marker.
+    void createMarkerConnectivityGraph(
+        OrientedReadId,
+        uint32_t ordinal,
+        bool useReadGraphAlignmentsOnly,
+        MarkerConnectivityGraph&) const;
 
     // Compute an alignment between two oriented reads
     // induced by the marker graph. See InducedAlignment.hpp for more
