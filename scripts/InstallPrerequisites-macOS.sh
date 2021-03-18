@@ -36,7 +36,7 @@ tar -xvf spoa-v3.4.0.tar.gz
 # Build the static library.
 mkdir build-static
 cd build-static
-cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF
+cmake ../spoa-v3.4.0 -DBUILD_SHARED_LIBS=OFF -Dspoa_optimize_for_native=OFF
 make -j all
 make install
 cd 
