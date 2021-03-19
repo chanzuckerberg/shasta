@@ -710,8 +710,6 @@ void Assembler::writeAssemblySummaryBody(ostream& html, bool readsOnly)
         "<td class=right>" << reads->getRepeatCountsTotalSize() <<
         "<tr><td>Average length ratio of run-length encoded sequence over raw sequence"
         "<td class=right>" << setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) <<
-        "<tr><td>Number of reads flagged as palindromic by q score"
-        "<td class=right>" << assemblerInfo->discardedPalindromicReadCount <<
         "<tr><td>Number of reads flagged as palindromic by self alignment"
         "<td class=right>" << assemblerInfo->palindromicReadCount <<
         "<tr><td>Number of reads flagged as chimeric"
@@ -964,7 +962,6 @@ void Assembler::writeAssemblySummaryJson(ostream& json, bool readsOnly)
         "    \"Number of run-length encoded bases\": " << reads->getRepeatCountsTotalSize() << ",\n"
         "    \"Average length ratio of run-length encoded sequence over raw sequence\": " <<
         setprecision(4) << double(reads->getRepeatCountsTotalSize()) / double(assemblerInfo->baseCount) << ",\n"
-        "    \"Number of reads flagged as palindromic by quality\": " << assemblerInfo->discardedPalindromicReadCount << ",\n"
         "    \"Number of reads flagged as palindromic by self alignment\": " << assemblerInfo->palindromicReadCount << ",\n"
         "    \"Number of reads flagged as chimeric\": " << assemblerInfo->chimericReadCount << "\n"
         "  },\n"
