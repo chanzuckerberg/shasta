@@ -892,6 +892,8 @@ and when they occur they are of suspicious quality.
 above the specified number of bases.
 <li>K-mers to be used as markers are randomly selected.
 <li>Occurrences of those marker k-mers in all oriented reads are found.
+<li>Reads are aligned to their own reverse complement to determine if they are
+palindromic. Palindromes are flagged and ignored during assembly.
 <li>The LowHash algorithm finds candidate pairs of overlapping oriented reads.
 <li>A marker alignment is computed for each candidate pair of oriented reads.
 If the alignment <a href='#AlignmentMetrics'>metrics</a> are sufficiently good,
