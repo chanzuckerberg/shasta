@@ -367,23 +367,28 @@ Skip flagging palindromic reads. Oxford Nanopore reads should be flagged for bet
 
 <tr id='Reads.palindromicReads.maxSkip'>
 <td><code>--Reads.palindromicReads.maxSkip</code><td class=centered><code>100</code><td>
-Used for palindromic read detection.
+Same as Align.maxSkip but applied only to self reverse-complement alignments for the
+purpose of detecting palindromes.
 
 <tr id='Reads.palindromicReads.maxMarkerFrequency'>
 <td><code>--Reads.palindromicReads.maxMarkerFrequency</code><td class=centered><code>10</code><td>
-Used for palindromic read detection.
+Same as Align.maxMarkerFrequency but applied only to self reverse-complement alignments for the
+purpose of detecting palindromes.
 
 <tr id='Reads.palindromicReads.alignedFractionThreshold'>
 <td><code>--Reads.palindromicReads.alignedFractionThreshold</code><td class=centered><code>0.1</code><td>
-Used for palindromic read detection.
+Same as Align.maxMarkerFrequency but applied only to  self reverse-complement alignments for the
+purpose of detecting palindromes.
 
 <tr id='Reads.palindromicReads.nearDiagonalFractionThreshold'>
 <td><code>--Reads.palindromicReads.nearDiagonalFractionThreshold</code><td class=centered><code>0.1</code><td>
-Used for palindromic read detection.
+Count the fraction of markers within <code>deltaThreshold</code> (distance in markers)
+from the diagonal and only flag reads above this fraction as palindromic.
 
 <tr id='Reads.palindromicReads.deltaThreshold'>
 <td><code>--Reads.palindromicReads.deltaThreshold</code><td class=centered><code>100</code><td>
-Used for palindromic read detection.
+Used in combination with <code>nearDiagonalFraction</code>. This value defines how far from the diagonal
+markers must be to be counted towards the <code>nearDiagonalFraction</code>. Unit is in markers.
 
 <tr id='Reads.palindromicReads.detectOnFastqLoad'>
 <td><code>--Reads.palindromicReads.detectOnFastqLoad</code><td class=centered><code>false</code><td>
