@@ -13,4 +13,5 @@ a.accessMarkerGraphVertices(readWriteAccess = True)
 a.accessMarkerGraphReverseComplementVertex(readWriteAccess = True)
 a.cleanupDuplicateMarkers(
     duplicateMarkersPattern1Threshold = float(config['MarkerGraph']['duplicateMarkersPattern1Threshold']),
-    pattern1CreateNewVertices = False)
+    pattern1CreateNewVertices = False,
+    pattern2CreateNewVertices = False)

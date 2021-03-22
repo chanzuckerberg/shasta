@@ -415,7 +415,8 @@ PYBIND11_MODULE(shasta, module)
             &Assembler::cleanupDuplicateMarkers,
             arg("threadCount") = 0,
             arg("duplicateMarkersPattern1Threshold"),
-            arg("pattern1CreateNewVertices"))
+            arg("pattern1CreateNewVertices"),
+            arg("pattern2CreateNewVertices"))
 
 
         // Edges of the global marker graph.

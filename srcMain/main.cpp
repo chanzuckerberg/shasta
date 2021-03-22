@@ -825,7 +825,7 @@ void shasta::main::assemble(
         assembler.cleanupDuplicateMarkers(
             threadCount,
             assemblerOptions.markerGraphOptions.duplicateMarkersPattern1Threshold,
-            false);
+            false, false);
     }
 
     // Create edges of the marker graph.

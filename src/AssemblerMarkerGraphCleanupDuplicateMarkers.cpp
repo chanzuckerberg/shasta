@@ -8,7 +8,8 @@ using namespace shasta;
 void Assembler::cleanupDuplicateMarkers(
     uint64_t threadCount,
     double pattern1Threshold,
-    bool pattern1CreateNewVertices)
+    bool pattern1CreateNewVertices,
+    bool pattern2CreateNewVertices)
 {
     const bool debug = false;
 
@@ -33,6 +34,7 @@ void Assembler::cleanupDuplicateMarkers(
     // Store information that needs to be visible to the threads.
     cleanupDuplicateMarkersData.pattern1Threshold = pattern1Threshold;
     cleanupDuplicateMarkersData.pattern1CreateNewVertices = pattern1CreateNewVertices;
+    cleanupDuplicateMarkersData.pattern2CreateNewVertices = pattern2CreateNewVertices;
     cleanupDuplicateMarkersData.badVertexCount = 0;
     cleanupDuplicateMarkersData.pattern1Count = 0;
     cleanupDuplicateMarkersData.removedCount = 0;
@@ -101,6 +103,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
 
     const double pattern1Threshold = cleanupDuplicateMarkersData.pattern1Threshold;
     const bool pattern1CreateNewVertices = cleanupDuplicateMarkersData.pattern1CreateNewVertices;
+    const bool pattern2CreateNewVertices = cleanupDuplicateMarkersData.pattern2CreateNewVertices;
 
     uint64_t badVertexCount = 0;
     uint64_t pattern1Count = 0;
@@ -197,7 +200,17 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
                     pattern1Count += 2;
                 }
                 cleanupDuplicateMarkersPattern1(vertexId,
-                    pattern1CreateNewVertices, markerPairs, isDuplicateOrientedReadId, debug, out);
+                    pattern1CreateNewVertices, markerPairs, isDuplicateOrientedReadId,
+                    debug, out);
+                continue;
+            }
+
+
+            // Pattern 2: the duplicate vertices are in connected components,
+            // and there are no duplications within each connected component.
+            if(cleanupDuplicateMarkersPattern2(vertexId,
+                pattern2CreateNewVertices, markerPairs, isDuplicateOrientedReadId,
+                debug, out)) {
                 continue;
             }
 
@@ -270,4 +283,26 @@ void Assembler::cleanupDuplicateMarkersPattern1(
         }
     }
 }
+
+
+
+// Pattern 2: the duplicate vertices are in connected components,
+// and there are no duplications within each connected component.
+bool Assembler::cleanupDuplicateMarkersPattern2(
+    MarkerGraph::VertexId vertexId,
+    bool createNewVertices,
+    vector< pair<OrientedReadId, uint32_t> > &markerPairs,
+    vector<bool>& isDuplicateOrientedReadId,
+    bool debug,
+    ostream& out)
+{
+    if(debug) {
+        out << "Processing pattern 1 vertex " << vertexId << endl;
+    }
+    const uint64_t markerCount = markerPairs.size();
+    SHASTA_ASSERT(isDuplicateOrientedReadId.size() == markerCount);
+
+    return false;
+}
+
 
