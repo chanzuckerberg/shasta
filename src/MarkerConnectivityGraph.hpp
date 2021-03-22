@@ -5,7 +5,7 @@
 
 In the MarkerConnectivityGraph, each vertex represents a marker
 of an oriented read, identified by a pair(OrientedRead, marker ordinal)
-(a MarkerPair).
+(a MarkerDescriptor).
 
 Two vertices are joined by an undirected edge if there is an
 alignment in which the two markers corresponding to the two vertices
@@ -14,6 +14,7 @@ or just alignments that are in the ReadGraph.
 
 *******************************************************************************/
 
+#include "Marker.hpp"
 #include "ReadId.hpp"
 #include <boost/graph/adjacency_list.hpp>
 #include "utility.hpp"
@@ -21,12 +22,11 @@ or just alignments that are in the ReadGraph.
 namespace shasta {
     class MarkerConnectivityGraph;
 
-    using MarkerPair = pair<OrientedReadId, uint32_t>;
     using MarkerConnectivityGraphBaseClass = boost::adjacency_list<
         boost::setS,
         boost::listS,
         boost::undirectedS,
-        MarkerPair
+        MarkerDescriptor
         >;
 }
 

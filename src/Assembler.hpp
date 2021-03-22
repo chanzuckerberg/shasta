@@ -1136,14 +1136,14 @@ private:
     void cleanupDuplicateMarkersPattern1(
         MarkerGraph::VertexId,
         bool createNewVertices,
-        vector< pair<OrientedReadId, uint32_t> > &markerPairs,
+        vector<MarkerDescriptor>&,
         vector<bool>& isDuplicateOrientedReadId,
         bool debug,
         ostream& out);
     bool cleanupDuplicateMarkersPattern2(
         MarkerGraph::VertexId,
         bool createNewVertices,
-        vector< pair<OrientedReadId, uint32_t> > &markerPairs,
+        vector<MarkerDescriptor>&,
         vector<bool>& isDuplicateOrientedReadId,
         bool debug,
         ostream& out);
@@ -1330,7 +1330,7 @@ private:
         uint32_t ordinal,
         bool useReadGraphAlignmentsOnly,
         MarkerConnectivityGraph&,
-        std::map<MarkerPair, MarkerConnectivityGraph::vertex_descriptor>&) const;
+        std::map<MarkerDescriptor, MarkerConnectivityGraph::vertex_descriptor>&) const;
 
     // Compute an alignment between two oriented reads
     // induced by the marker graph. See InducedAlignment.hpp for more

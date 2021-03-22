@@ -111,10 +111,9 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
     uint64_t removedCount = 0;
 
     // The pairs (orientedReadId, marker ordinal) for the current vertex.
-    using MarkerPair = pair<OrientedReadId, uint32_t>;
-    vector<MarkerPair> markerPairs;
+    vector<MarkerDescriptor> markerDescriptors;
 
-    // Vector of flags that tells us which MarkerPair's are duplicate (duplicate in OrientedReadId only).
+    // Vector of flags that tells us which MarkerDescriptor are duplicate (duplicate in OrientedReadId only).
     vector<bool> isDuplicateOrientedReadId;
 
     // Loop over all batches assigned to this thread.
@@ -156,17 +155,17 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
             const span<MarkerId> markerIds = markerGraph.getVertexMarkerIds(vertexId);
             const uint64_t markerCount = markerIds.size();
             SHASTA_ASSERT(markerCount > 1);
-            markerPairs.clear();
+            markerDescriptors.clear();
             for(const MarkerId markerId: markerIds) {
-                markerPairs.push_back(findMarkerId(markerId));
+                markerDescriptors.push_back(findMarkerId(markerId));
             }
 
             // Find the ones that are duplicate.
-            // We take advantage of the fact that the pairs are sorted by OrientedReadId.
-            isDuplicateOrientedReadId.resize(markerPairs.size());
+            // We take advantage of the fact that the markerDescriptors are sorted by OrientedReadId.
+            isDuplicateOrientedReadId.resize(markerDescriptors.size());
             fill(isDuplicateOrientedReadId.begin(), isDuplicateOrientedReadId.end(), false);
             for(uint64_t i=1; i<markerCount; i++) {
-                if(markerPairs[i-1].first == markerPairs[i].first) {
+                if(markerDescriptors[i-1].first == markerDescriptors[i].first) {
                     isDuplicateOrientedReadId[i-1] = true;
                     isDuplicateOrientedReadId[i] = true;
                 }
@@ -176,7 +175,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
             if(debug) {
                 out << duplicateCount << " duplicate markers out of " << markerCount << endl;
                 for(uint64_t i=0; i<markerCount; i++) {
-                    const auto& p = markerPairs[i];
+                    const auto& p = markerDescriptors[i];
                     out << p.first << " " << p.second;
                     if(isDuplicateOrientedReadId[i]) {
                         out << " duplicate";
@@ -201,7 +200,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
                     pattern1Count += 2;
                 }
                 cleanupDuplicateMarkersPattern1(vertexId,
-                    pattern1CreateNewVertices, markerPairs, isDuplicateOrientedReadId,
+                    pattern1CreateNewVertices, markerDescriptors, isDuplicateOrientedReadId,
                     debug, out);
                 continue;
             }
@@ -210,7 +209,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
             // Pattern 2: the duplicate vertices are in connected components,
             // and there are no duplications within each connected component.
             if(cleanupDuplicateMarkersPattern2(vertexId,
-                pattern2CreateNewVertices, markerPairs, isDuplicateOrientedReadId,
+                pattern2CreateNewVertices, markerDescriptors, isDuplicateOrientedReadId,
                 debug, out)) {
                 continue;
             }
@@ -225,7 +224,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
             if(debug) {
                 out << "Vertex " << vertexId << " not processed, removed instead." << endl;
             }
-            for(const auto& p: markerPairs) {
+            for(const auto& p: markerDescriptors) {
                 const MarkerId markerId = getMarkerId(p.first, p.second);
                 const MarkerId markerIdRc = getReverseComplementMarkerId(p.first, p.second);
                 markerGraph.vertexTable[markerId] = MarkerGraph::invalidCompressedVertexId;
@@ -245,7 +244,7 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
 void Assembler::cleanupDuplicateMarkersPattern1(
     MarkerGraph::VertexId vertexId,
     bool createNewVertices,
-    vector< pair<OrientedReadId, uint32_t> > &markerPairs,
+    vector<MarkerDescriptor>& markerDescriptors,
     vector<bool>& isDuplicateOrientedReadId,
     bool debug,
     ostream& out)
@@ -253,7 +252,7 @@ void Assembler::cleanupDuplicateMarkersPattern1(
     if(debug) {
         out << "Processing pattern 1 vertex " << vertexId << endl;
     }
-    const uint64_t markerCount = markerPairs.size();
+    const uint64_t markerCount = markerDescriptors.size();
     SHASTA_ASSERT(isDuplicateOrientedReadId.size() == markerCount);
 
     // Loop over markers on this vertex.
@@ -264,7 +263,7 @@ void Assembler::cleanupDuplicateMarkersPattern1(
             continue;
         }
 
-        const pair<OrientedReadId, uint32_t>& p = markerPairs[i];
+        const pair<OrientedReadId, uint32_t>& p = markerDescriptors[i];
         const MarkerId markerId = getMarkerId(p.first, p.second);
         const MarkerId markerIdRc = getReverseComplementMarkerId(p.first, p.second);
 
@@ -292,7 +291,7 @@ void Assembler::cleanupDuplicateMarkersPattern1(
 bool Assembler::cleanupDuplicateMarkersPattern2(
     MarkerGraph::VertexId vertexId,
     bool createNewVertices,
-    vector< pair<OrientedReadId, uint32_t> > &markerPairs,
+    vector<MarkerDescriptor>& markerDescriptors,
     vector<bool>& isDuplicateOrientedReadId,
     bool debug,
     ostream& out)
@@ -300,16 +299,16 @@ bool Assembler::cleanupDuplicateMarkersPattern2(
     if(debug) {
         out << "Processing pattern 2 vertex " << vertexId << endl;
     }
-    const uint64_t markerCount = markerPairs.size();
+    const uint64_t markerCount = markerDescriptors.size();
     SHASTA_ASSERT(markerCount > 0);
     SHASTA_ASSERT(isDuplicateOrientedReadId.size() == markerCount);
 
     // Create the marker connectivity graph for this vertex.
     MarkerConnectivityGraph graph;
     using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
-    std::map<MarkerPair, vertex_descriptor> vertexMap;
+    std::map<MarkerDescriptor, vertex_descriptor> vertexMap;
     createMarkerConnectivityGraph(
-        markerPairs.front().first, markerPairs.front().second, true, graph, vertexMap);
+        markerDescriptors.front().first, markerDescriptors.front().second, true, graph, vertexMap);
 
     return false;
 }

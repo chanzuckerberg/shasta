@@ -19,7 +19,10 @@ kmerTable[i].isMarker == kmerTable[kmerTable[i].reverseComplementKmerId].isMarke
 *******************************************************************************/
 
 #include "Kmer.hpp"
+#include "ReadId.hpp"
 #include "Uint.hpp"
+
+#include "utility.hpp"
 
 namespace shasta {
 
@@ -28,6 +31,9 @@ namespace shasta {
     class CompressedMarker;
     class Marker;
     class MarkerWithOrdinal;
+
+    // A pair the identifies a marker by its OrientedRead and ordinal.
+    using MarkerDescriptor = pair<OrientedReadId, uint32_t>;
 }
 
 
