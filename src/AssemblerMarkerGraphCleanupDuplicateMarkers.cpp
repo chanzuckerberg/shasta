@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "MarkerConnectivityGraph.hpp"
 using namespace shasta;
 
 
@@ -297,10 +298,18 @@ bool Assembler::cleanupDuplicateMarkersPattern2(
     ostream& out)
 {
     if(debug) {
-        out << "Processing pattern 1 vertex " << vertexId << endl;
+        out << "Processing pattern 2 vertex " << vertexId << endl;
     }
     const uint64_t markerCount = markerPairs.size();
+    SHASTA_ASSERT(markerCount > 0);
     SHASTA_ASSERT(isDuplicateOrientedReadId.size() == markerCount);
+
+    // Create the marker connectivity graph for this vertex.
+    MarkerConnectivityGraph graph;
+    using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
+    std::map<MarkerPair, vertex_descriptor> vertexMap;
+    createMarkerConnectivityGraph(
+        markerPairs.front().first, markerPairs.front().second, true, graph, vertexMap);
 
     return false;
 }

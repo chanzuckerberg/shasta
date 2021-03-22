@@ -16,6 +16,7 @@
 #include "LocalAlignmentCandidateGraph.hpp"
 #include "LongBaseSequence.hpp"
 #include "Marker.hpp"
+#include "MarkerConnectivityGraph.hpp"
 #include "MarkerGraph.hpp"
 #include "MemoryMappedObject.hpp"
 #include "MultithreadedObject.hpp"
@@ -50,7 +51,6 @@ namespace shasta {
     class LocalAlignmentCandidateGraph;
     class LocalAlignmentGraph;
     class LocalReadGraph;
-    class MarkerConnectivityGraph;
     class Reads;
 
 #ifdef SHASTA_HTTP_SERVER
@@ -1325,6 +1325,12 @@ private:
         uint32_t ordinal,
         bool useReadGraphAlignmentsOnly,
         MarkerConnectivityGraph&) const;
+    void createMarkerConnectivityGraph(
+        OrientedReadId,
+        uint32_t ordinal,
+        bool useReadGraphAlignmentsOnly,
+        MarkerConnectivityGraph&,
+        std::map<MarkerPair, MarkerConnectivityGraph::vertex_descriptor>&) const;
 
     // Compute an alignment between two oriented reads
     // induced by the marker graph. See InducedAlignment.hpp for more

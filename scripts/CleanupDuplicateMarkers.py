@@ -9,6 +9,8 @@ config = GetConfig.getConfig()
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
 a.accessMarkers()
+a.accessAlignmentData()
+a.accessCompressedAlignments()
 a.accessMarkerGraphVertices(readWriteAccess = True)
 a.accessMarkerGraphReverseComplementVertex(readWriteAccess = True)
 a.cleanupDuplicateMarkers(

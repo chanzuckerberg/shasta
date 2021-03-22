@@ -24,7 +24,7 @@ namespace shasta {
     using MarkerPair = pair<OrientedReadId, uint32_t>;
     using MarkerConnectivityGraphBaseClass = boost::adjacency_list<
         boost::setS,
-        boost::vecS,
+        boost::listS,
         boost::undirectedS,
         MarkerPair
         >;

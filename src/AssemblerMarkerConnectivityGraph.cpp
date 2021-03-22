@@ -21,6 +21,24 @@ void Assembler::createMarkerConnectivityGraph(
 {
     using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
     std::map<MarkerPair, vertex_descriptor> vertexMap;
+    createMarkerConnectivityGraph(orientedReadId, ordinal, useReadGraphAlignmentsOnly,
+        graph, vertexMap);
+
+}
+
+
+
+void Assembler::createMarkerConnectivityGraph(
+    OrientedReadId orientedReadId,
+    uint32_t ordinal,
+    bool useReadGraphAlignmentsOnly,
+    MarkerConnectivityGraph& graph,
+    std::map<MarkerPair, MarkerConnectivityGraph::vertex_descriptor>& vertexMap) const
+{
+
+
+    using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
+    vertexMap.clear();
 
     // Initialize a BFS in the space of aligned markers.
     const vertex_descriptor v = add_vertex(MarkerPair(orientedReadId, ordinal), graph);
