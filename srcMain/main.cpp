@@ -824,6 +824,8 @@ void shasta::main::assemble(
         assemblerOptions.markerGraphOptions.cleanupDuplicateMarkers) {
         assembler.cleanupDuplicateMarkers(
             threadCount,
+            assemblerOptions.markerGraphOptions.minCoverage,
+            assemblerOptions.markerGraphOptions.minCoveragePerStrand,
             assemblerOptions.markerGraphOptions.duplicateMarkersPattern1Threshold,
             false, false);
     }

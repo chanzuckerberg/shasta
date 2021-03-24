@@ -2,12 +2,69 @@
 #include "MarkerConnectivityGraph.hpp"
 using namespace shasta;
 
+#include <boost/graph/connected_components.hpp>
 
-// Clean up marker graph vertices that have duplicate markers
-// (more than one marker on the same oriented reads).
-// Such vertices are only generated when using --MarkerGraph.allowDuplicateMarkers.
+
+
+/*******************************************************************************
+
+During creation of marker graph vertices via the disjoint sets procedure,
+it occasionally happens that a vertex has two or more markers from the same
+oriented read. This is caused by small errors in marker alignments,
+especially in the presence of multiple nearby copies of a marker.
+
+These vertices, sometimes referred to in Shasta code and documentation as
+"bad vertices", cause artifact in the marker graph which eventually lead
+to assembly errors. As a result, "bad vertices" are forbidden by default -
+they are simply not generated. Command line option --MarkerGraph.allowDuplicateMarkers
+can be used to allow generation of these vertices.
+
+However those missing vertices can cause other problems, especially
+in problematic regions such as centromeres. It may be preferable to
+"clean up" those bad vertices, rather than not generating them.
+If the following command line options are used, "bad vertices" are allowed
+to be generated during Assembler::createMarkerGraphVertices,
+but then the code in this file (Assembler::cleanupDuplicateMarkers) is called to
+"clean them up" in a couple of different ways:
+
+--MarkerGraph.allowDuplicateMarkers --MarkerGraph.cleanupDuplicateMarkers
+
+The clean up logic uses two common patterns that occur in "bad vertices".
+The two patterns are defined in terms of the number of "duplicate markers" -
+that is, markers for which another marker on the same oriented read
+also exists in the same vertex. Note that the term "duplicate markers"
+is misleading, as these markers are not really duplicate -
+it's only the OrientedReadId that appears more than once in the same vertex.
+
+- Pattern 1: If the number of duplicate markers is small (ratio of the
+number of duplicate markers over total markers in the vertex is less
+than pattern1Threshold), we simply remove the duplicate markers from the vertex.
+If pattern1CreateNewVertices is true, each of the removed duplicate markers
+is used to create a new vertex containing only that marker.
+Otherwise, no vertex remains assigned to the duplicate markers.
+
+- Pattern 2: If the vertex has too many duplicate markers for pattern 1,
+we make an attempt to process it via pattern 2. We compute
+connected components of the marker connectivity graph for the vertex,
+but considering only duplicate markers.
+It often happens that all of the large connected components
+obtained in this way have no duplicate markers within each component.
+If this happens, each connected component is used to generate a new vertex.
+The non-duplicate markers each generate a one-marker vertex
+if pattern2CreateNewVertices is true. Otherwise, they are
+assigned no vertex.
+
+In all cases, for both patterns, newly generated vertices must
+have a number of markers at least equal to minCoverage,
+and a number of markers on each strand at least equal to minCoveragePerStrand.
+If this is not the case, no vertex is assigned to those markers.
+
+*******************************************************************************/
+
 void Assembler::cleanupDuplicateMarkers(
     uint64_t threadCount,
+    uint64_t minCoverage,
+    uint64_t minCoveragePerStrand,
     double pattern1Threshold,
     bool pattern1CreateNewVertices,
     bool pattern2CreateNewVertices)
@@ -33,12 +90,14 @@ void Assembler::cleanupDuplicateMarkers(
     }
 
     // Store information that needs to be visible to the threads.
+    cleanupDuplicateMarkersData.minCoverage = minCoverage;
+    cleanupDuplicateMarkersData.minCoveragePerStrand = minCoveragePerStrand;
     cleanupDuplicateMarkersData.pattern1Threshold = pattern1Threshold;
     cleanupDuplicateMarkersData.pattern1CreateNewVertices = pattern1CreateNewVertices;
     cleanupDuplicateMarkersData.pattern2CreateNewVertices = pattern2CreateNewVertices;
     cleanupDuplicateMarkersData.badVertexCount = 0;
     cleanupDuplicateMarkersData.pattern1Count = 0;
-    cleanupDuplicateMarkersData.removedCount = 0;
+    cleanupDuplicateMarkersData.noPatternCount = 0;
     cleanupDuplicateMarkersData.nextVertexId = vertexCount;
 
     // Process each vertex in multithreaded code.
@@ -51,7 +110,8 @@ void Assembler::cleanupDuplicateMarkers(
     cout << "Found " << cleanupDuplicateMarkersData.badVertexCount <<
         " vertices with duplicate markers." << endl;
     cout << "Pattern 1 vertex count: " << cleanupDuplicateMarkersData.pattern1Count << endl;
-    cout << "Unprocessed (removed) vertex count: " << cleanupDuplicateMarkersData.removedCount << endl;
+    cout << "Pattern 2 vertex count: " << cleanupDuplicateMarkersData.pattern2Count << endl;
+    cout << "Unprocessed vertex count: " << cleanupDuplicateMarkersData.noPatternCount << endl;
 
     // Renumber the vertex table to make sure vertices are numbered contiguously starting at 0.
     if(debug) {
@@ -102,13 +162,16 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
         out.open("cleanupDuplicateMarkers-" + to_string(threadId) + ".threadLog");
     }
 
+    const uint64_t minCoverage = cleanupDuplicateMarkersData.minCoverage;
+    const uint64_t minCoveragePerStrand = cleanupDuplicateMarkersData.minCoveragePerStrand;
     const double pattern1Threshold = cleanupDuplicateMarkersData.pattern1Threshold;
     const bool pattern1CreateNewVertices = cleanupDuplicateMarkersData.pattern1CreateNewVertices;
     const bool pattern2CreateNewVertices = cleanupDuplicateMarkersData.pattern2CreateNewVertices;
 
     uint64_t badVertexCount = 0;
     uint64_t pattern1Count = 0;
-    uint64_t removedCount = 0;
+    uint64_t pattern2Count = 0;
+    uint64_t noPatternCount = 0;
 
     // The pairs (orientedReadId, marker ordinal) for the current vertex.
     vector<MarkerDescriptor> markerDescriptors;
@@ -200,26 +263,35 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
                     pattern1Count += 2;
                 }
                 cleanupDuplicateMarkersPattern1(vertexId,
+                    minCoverage, minCoveragePerStrand,
                     pattern1CreateNewVertices, markerDescriptors, isDuplicateOrientedReadId,
                     debug, out);
                 continue;
             }
 
 
+
             // Pattern 2: the duplicate vertices are in connected components,
             // and there are no duplications within each connected component.
             if(cleanupDuplicateMarkersPattern2(vertexId,
+                minCoverage, minCoveragePerStrand,
                 pattern2CreateNewVertices, markerDescriptors, isDuplicateOrientedReadId,
                 debug, out)) {
+                if(vertexId == vertexIdRc) {
+                    ++pattern2Count;   // Unusual/exceptional case.
+                } else {
+                    pattern2Count += 2;
+                }
                 continue;
             }
 
 
+
             // If we get here, for lack of a better solution, remove the vertex.
             if(vertexId == vertexIdRc) {
-                ++removedCount;   // Unusual/exceptional case.
+                ++noPatternCount;   // Unusual/exceptional case.
             } else {
-                removedCount += 2;
+                noPatternCount += 2;
             }
             if(debug) {
                 out << "Vertex " << vertexId << " not processed, removed instead." << endl;
@@ -236,13 +308,16 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
     // Increment global counts.
     __sync_fetch_and_add(&cleanupDuplicateMarkersData.badVertexCount, badVertexCount);
     __sync_fetch_and_add(&cleanupDuplicateMarkersData.pattern1Count, pattern1Count);
-    __sync_fetch_and_add(&cleanupDuplicateMarkersData.removedCount, removedCount);
+    __sync_fetch_and_add(&cleanupDuplicateMarkersData.pattern2Count, pattern2Count);
+    __sync_fetch_and_add(&cleanupDuplicateMarkersData.noPatternCount, noPatternCount);
 }
 
 
 
 void Assembler::cleanupDuplicateMarkersPattern1(
     MarkerGraph::VertexId vertexId,
+    uint64_t minCoverage,
+    uint64_t minCoveragePerStrand,
     bool createNewVertices,
     vector<MarkerDescriptor>& markerDescriptors,
     vector<bool>& isDuplicateOrientedReadId,
@@ -254,20 +329,23 @@ void Assembler::cleanupDuplicateMarkersPattern1(
     }
     const uint64_t markerCount = markerDescriptors.size();
     SHASTA_ASSERT(isDuplicateOrientedReadId.size() == markerCount);
+    array<uint64_t, 2> strandCoverage = {0, 0};
 
     // Loop over markers on this vertex.
     for(uint64_t i=0; i<markerCount; i++) {
+        const pair<OrientedReadId, uint32_t>& p = markerDescriptors[i];
 
-        // If not duplicate, don't do anything.
+        // If not duplicate, just count coverage.
         if(not isDuplicateOrientedReadId[i]) {
+            strandCoverage[p.first.getValue()]++;
             continue;
         }
 
-        const pair<OrientedReadId, uint32_t>& p = markerDescriptors[i];
+        // This is a duplicate marker.
         const MarkerId markerId = getMarkerId(p.first, p.second);
         const MarkerId markerIdRc = getReverseComplementMarkerId(p.first, p.second);
 
-        if(createNewVertices) {
+        if(createNewVertices and minCoverage<=1 and minCoveragePerStrand<=1) {
 
             // Assign it to a new vertex.
             markerGraph.vertexTable[markerId] =
@@ -282,6 +360,34 @@ void Assembler::cleanupDuplicateMarkersPattern1(
             markerGraph.vertexTable[markerIdRc] = MarkerGraph::invalidCompressedVertexId;
         }
     }
+
+
+    // Check if the remaining, non-duplicate vertices
+    // satisfy our coverage criteria.
+    if(
+        strandCoverage[0]>=minCoveragePerStrand and
+        strandCoverage[1]>=minCoveragePerStrand and
+        (strandCoverage[0] + strandCoverage[1]) >= minCoverage
+        ) {
+        // We have enough coverage. We are done.
+        return;
+    }
+
+    // If getting here, the vertex with the remaining non-duplicate markers
+    // does not have enough coverage.
+    // Assign all those markers to no vertex.
+    for(uint64_t i=0; i<markerCount; i++) {
+        if(isDuplicateOrientedReadId[i]) {
+            continue;
+        }
+
+        const pair<OrientedReadId, uint32_t>& p = markerDescriptors[i];
+        const MarkerId markerId = getMarkerId(p.first, p.second);
+        const MarkerId markerIdRc = getReverseComplementMarkerId(p.first, p.second);
+        markerGraph.vertexTable[markerId] = MarkerGraph::invalidCompressedVertexId;
+        markerGraph.vertexTable[markerIdRc] = MarkerGraph::invalidCompressedVertexId;
+    }
+
 }
 
 
@@ -290,12 +396,17 @@ void Assembler::cleanupDuplicateMarkersPattern1(
 // and there are no duplications within each connected component.
 bool Assembler::cleanupDuplicateMarkersPattern2(
     MarkerGraph::VertexId vertexId,
+    uint64_t minCoverage,
+    uint64_t minCoveragePerStrand,
     bool createNewVertices,
     vector<MarkerDescriptor>& markerDescriptors,
     vector<bool>& isDuplicateOrientedReadId,
     bool debug,
     ostream& out)
 {
+    using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
+    using edge_descriptor = MarkerConnectivityGraph::edge_descriptor;
+
     if(debug) {
         out << "Processing pattern 2 vertex " << vertexId << endl;
     }
@@ -305,10 +416,96 @@ bool Assembler::cleanupDuplicateMarkersPattern2(
 
     // Create the marker connectivity graph for this vertex.
     MarkerConnectivityGraph graph;
-    using vertex_descriptor = MarkerConnectivityGraph::vertex_descriptor;
     std::map<MarkerDescriptor, vertex_descriptor> vertexMap;
     createMarkerConnectivityGraph(
         markerDescriptors.front().first, markerDescriptors.front().second, true, graph, vertexMap);
+    SHASTA_ASSERT(num_vertices(graph) == markerCount);
+
+    if(debug) {
+        out << "The initial marker connectivity graph has " <<
+            num_vertices(graph) << " vertices and " <<
+            num_edges(graph) << " edges." << endl;
+    }
+
+    // Find the vertices that correspond to duplicate markers.
+    std::set<vertex_descriptor> duplicateMarkerVertices;
+    for(uint64_t i=0; i<markerCount; i++) {
+        if(isDuplicateOrientedReadId[i]) {
+            const MarkerDescriptor markerDescriptor = markerDescriptors[i];
+            const auto it = vertexMap.find(markerDescriptor);
+            SHASTA_ASSERT(it != vertexMap.end());
+            const vertex_descriptor v = it->second;
+            duplicateMarkerVertices.insert(v);
+        }
+    }
+
+    // Only keep edges between duplicate markers.
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, graph, MarkerConnectivityGraph) {
+        const vertex_descriptor v0 = source(e, graph);
+        const vertex_descriptor v1 = target(e, graph);
+        if(
+            (duplicateMarkerVertices.find(v0) == duplicateMarkerVertices.end()) or
+            (duplicateMarkerVertices.find(v1) == duplicateMarkerVertices.end())) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        remove_edge(e, graph);
+    }
+
+    if(debug) {
+        out << "After edges involving non-duplicate vertices, the  marker connectivity graph has " <<
+            num_vertices(graph) << " vertices and " <<
+            num_edges(graph) << " edges." << endl;
+    }
+
+    // Compute connected components of the graph with the remaining edges.
+    vector<uint64_t> component(markerCount);
+    boost::connected_components(graph, &component[0]);
+    std::map<uint64_t, vector<vertex_descriptor> > components;
+    BGL_FORALL_VERTICES(v, graph, MarkerConnectivityGraph) {
+        components[component[v]].push_back(v);
+    }
+
+
+
+    // Process the connected components one at a time.
+    for(auto& p: components) {
+        vector<vertex_descriptor>& component = p.second;
+
+        // Get marker descriptors for this connected component and sort them.
+        vector<MarkerDescriptor> componentDescriptors;
+        for(const vertex_descriptor v: component) {
+            componentDescriptors.push_back(graph[v]);
+        }
+        sort(componentDescriptors.begin(), componentDescriptors.end());
+
+        // See if this connected component contains markers that are duplicated
+        // in the original graph.
+        const bool isDuplicatedInOriginalGraph =
+            duplicateMarkerVertices.find(component.front()) != duplicateMarkerVertices.end();
+
+        // Check that the component consists of either originally duplicated or
+        // originally unduplicated vertices.
+        for(const vertex_descriptor v: component) {
+            SHASTA_ASSERT((duplicateMarkerVertices.find(v) != duplicateMarkerVertices.end()) == isDuplicatedInOriginalGraph);
+        }
+
+        if(debug) {
+            out << "Connected component with " << component.size();
+            if(isDuplicatedInOriginalGraph) {
+                out << " originally duplicated";
+            } else {
+                out << " originally unduplicated";
+            }
+            out << " vertices." << endl;
+            for(const MarkerDescriptor markerDescriptor: componentDescriptors) {
+                out << markerDescriptor.first << " " << markerDescriptor.second << endl;
+            }
+        }
+    }
+
 
     return false;
 }

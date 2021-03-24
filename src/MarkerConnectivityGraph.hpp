@@ -24,7 +24,7 @@ namespace shasta {
 
     using MarkerConnectivityGraphBaseClass = boost::adjacency_list<
         boost::setS,
-        boost::listS,
+        boost::vecS,
         boost::undirectedS,
         MarkerDescriptor
         >;

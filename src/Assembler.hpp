@@ -1128,6 +1128,8 @@ private:
 public:
     void cleanupDuplicateMarkers(
         uint64_t threadCount,
+        uint64_t minCoverage,
+        uint64_t minCoveragePerStrand,
         double pattern1Threshold,
         bool pattern1CreateNewVertices,
         bool pattern2CreateNewVertices);
@@ -1135,6 +1137,8 @@ private:
     void cleanupDuplicateMarkersThreadFunction(size_t threadId);
     void cleanupDuplicateMarkersPattern1(
         MarkerGraph::VertexId,
+        uint64_t minCoverage,
+        uint64_t minCoveragePerStrand,
         bool createNewVertices,
         vector<MarkerDescriptor>&,
         vector<bool>& isDuplicateOrientedReadId,
@@ -1142,6 +1146,8 @@ private:
         ostream& out);
     bool cleanupDuplicateMarkersPattern2(
         MarkerGraph::VertexId,
+        uint64_t minCoverage,
+        uint64_t minCoveragePerStrand,
         bool createNewVertices,
         vector<MarkerDescriptor>&,
         vector<bool>& isDuplicateOrientedReadId,
@@ -1149,12 +1155,15 @@ private:
         ostream& out);
     class CleanupDuplicateMarkersData {
     public:
+        uint64_t minCoverage;
+        uint64_t minCoveragePerStrand;
         double pattern1Threshold;
         bool pattern1CreateNewVertices;
         bool pattern2CreateNewVertices;
         uint64_t badVertexCount;    // Total number of vertices with duplicate markers.
         uint64_t pattern1Count;
-        uint64_t removedCount;
+        uint64_t pattern2Count;
+        uint64_t noPatternCount;
         MarkerGraph::VertexId nextVertexId;
     };
     CleanupDuplicateMarkersData cleanupDuplicateMarkersData;
