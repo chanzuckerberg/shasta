@@ -97,7 +97,7 @@ void Assembler::cleanupDuplicateMarkers(
     cleanupDuplicateMarkersData.pattern2CreateNewVertices = pattern2CreateNewVertices;
     cleanupDuplicateMarkersData.badVertexCount = 0;
     cleanupDuplicateMarkersData.pattern1Count = 0;
-    cleanupDuplicateMarkersData.noPatternCount = 0;
+    cleanupDuplicateMarkersData.pattern2Count = 0;
     cleanupDuplicateMarkersData.nextVertexId = vertexCount;
 
     // Process each vertex in multithreaded code.
@@ -111,7 +111,6 @@ void Assembler::cleanupDuplicateMarkers(
         " vertices with duplicate markers." << endl;
     cout << "Pattern 1 vertex count: " << cleanupDuplicateMarkersData.pattern1Count << endl;
     cout << "Pattern 2 vertex count: " << cleanupDuplicateMarkersData.pattern2Count << endl;
-    cout << "Unprocessed vertex count: " << cleanupDuplicateMarkersData.noPatternCount << endl;
 
     // Renumber the vertex table to make sure vertices are numbered contiguously starting at 0.
     if(debug) {
@@ -171,7 +170,6 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
     uint64_t badVertexCount = 0;
     uint64_t pattern1Count = 0;
     uint64_t pattern2Count = 0;
-    uint64_t noPatternCount = 0;
 
     // The pairs (orientedReadId, marker ordinal) for the current vertex.
     vector<MarkerDescriptor> markerDescriptors;
@@ -273,34 +271,14 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
 
             // Pattern 2: the duplicate vertices are in connected components,
             // and there are no duplications within each connected component.
-            if(cleanupDuplicateMarkersPattern2(vertexId,
+            cleanupDuplicateMarkersPattern2(vertexId,
                 minCoverage, minCoveragePerStrand,
                 pattern2CreateNewVertices, markerDescriptors, isDuplicateOrientedReadId,
-                debug, out)) {
-                if(vertexId == vertexIdRc) {
-                    ++pattern2Count;   // Unusual/exceptional case.
-                } else {
-                    pattern2Count += 2;
-                }
-                continue;
-            }
-
-
-
-            // If we get here, for lack of a better solution, remove the vertex.
+                debug, out);
             if(vertexId == vertexIdRc) {
-                ++noPatternCount;   // Unusual/exceptional case.
+                ++pattern2Count;   // Unusual/exceptional case.
             } else {
-                noPatternCount += 2;
-            }
-            if(debug) {
-                out << "Vertex " << vertexId << " not processed, removed instead." << endl;
-            }
-            for(const auto& p: markerDescriptors) {
-                const MarkerId markerId = getMarkerId(p.first, p.second);
-                const MarkerId markerIdRc = getReverseComplementMarkerId(p.first, p.second);
-                markerGraph.vertexTable[markerId] = MarkerGraph::invalidCompressedVertexId;
-                markerGraph.vertexTable[markerIdRc] = MarkerGraph::invalidCompressedVertexId;
+                pattern2Count += 2;
             }
         }
     }
@@ -309,7 +287,6 @@ void Assembler::cleanupDuplicateMarkersThreadFunction(size_t threadId)
     __sync_fetch_and_add(&cleanupDuplicateMarkersData.badVertexCount, badVertexCount);
     __sync_fetch_and_add(&cleanupDuplicateMarkersData.pattern1Count, pattern1Count);
     __sync_fetch_and_add(&cleanupDuplicateMarkersData.pattern2Count, pattern2Count);
-    __sync_fetch_and_add(&cleanupDuplicateMarkersData.noPatternCount, noPatternCount);
 }
 
 
@@ -337,7 +314,7 @@ void Assembler::cleanupDuplicateMarkersPattern1(
 
         // If not duplicate, just count coverage.
         if(not isDuplicateOrientedReadId[i]) {
-            strandCoverage[p.first.getValue()]++;
+            strandCoverage[p.first.getStrand()]++;
             continue;
         }
 
@@ -345,13 +322,15 @@ void Assembler::cleanupDuplicateMarkersPattern1(
         const MarkerId markerId = getMarkerId(p.first, p.second);
         const MarkerId markerIdRc = getReverseComplementMarkerId(p.first, p.second);
 
-        if(createNewVertices and minCoverage<=1 and minCoveragePerStrand<=1) {
+        if(createNewVertices and minCoverage<=1 and minCoveragePerStrand==0) {
 
             // Assign it to a new vertex.
             markerGraph.vertexTable[markerId] =
-                __sync_fetch_and_add(&cleanupDuplicateMarkersData.nextVertexId, 1);
-            markerGraph.vertexTable[markerIdRc] =
-                __sync_fetch_and_add(&cleanupDuplicateMarkersData.nextVertexId, 1);
+                cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
+            if(markerIdRc != markerId) {
+                markerGraph.vertexTable[markerIdRc] =
+                    cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
+            }
         } else {
 
             // Take this marker out of the current vertex, without
@@ -394,7 +373,7 @@ void Assembler::cleanupDuplicateMarkersPattern1(
 
 // Pattern 2: the duplicate vertices are in connected components,
 // and there are no duplications within each connected component.
-bool Assembler::cleanupDuplicateMarkersPattern2(
+void Assembler::cleanupDuplicateMarkersPattern2(
     MarkerGraph::VertexId vertexId,
     uint64_t minCoverage,
     uint64_t minCoveragePerStrand,
@@ -468,8 +447,6 @@ bool Assembler::cleanupDuplicateMarkersPattern2(
         components[component[v]].push_back(v);
     }
 
-
-
     // Process the connected components one at a time.
     for(auto& p: components) {
         vector<vertex_descriptor>& component = p.second;
@@ -481,33 +458,72 @@ bool Assembler::cleanupDuplicateMarkersPattern2(
         }
         sort(componentDescriptors.begin(), componentDescriptors.end());
 
-        // See if this connected component contains markers that are duplicated
-        // in the original graph.
-        const bool isDuplicatedInOriginalGraph =
-            duplicateMarkerVertices.find(component.front()) != duplicateMarkerVertices.end();
-
-        // Check that the component consists of either originally duplicated or
-        // originally unduplicated vertices.
-        for(const vertex_descriptor v: component) {
-            SHASTA_ASSERT((duplicateMarkerVertices.find(v) != duplicateMarkerVertices.end()) == isDuplicatedInOriginalGraph);
+        // See if there are any duplicate markers (duplicate OrientedReadId's)
+        // within this component.
+        bool duplicatesFoundInThisComponent = false;
+        for(uint64_t i=1; i<componentDescriptors.size(); i++) {
+            const OrientedReadId thisOrientedReadId = componentDescriptors[i].first;
+            const OrientedReadId previousOrientedReadId = componentDescriptors[i-1].first;
+            if(thisOrientedReadId == previousOrientedReadId) {
+                duplicatesFoundInThisComponent = true;
+                break;
+            }
         }
 
-        if(debug) {
-            out << "Connected component with " << component.size();
-            if(isDuplicatedInOriginalGraph) {
-                out << " originally duplicated";
-            } else {
-                out << " originally unduplicated";
+        // Compute coverage for each strand.
+        array<uint64_t, 2> strandCoverage = {0, 0};
+        for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+            const OrientedReadId orientedReadId = markerDescriptor.first;
+            strandCoverage[orientedReadId.getStrand()]++;
+        }
+
+
+
+        // If there are no duplicates and coverage is sufficient,
+        // create a new vertex with this component.
+        if((not duplicatesFoundInThisComponent) and
+            strandCoverage[0] >= minCoveragePerStrand and
+            strandCoverage[1] >= minCoveragePerStrand and
+            (strandCoverage[0] + strandCoverage[1]) >= minCoveragePerStrand) {
+            // Add here to create a new vertex for this component, plus a second
+            // one for the reverse complement.
+            const MarkerGraph::VertexId vertexId = cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
+            const MarkerGraph::VertexId vertexIdRc = cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
+            for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+                const MarkerId markerId = getMarkerId(markerDescriptor);
+                const MarkerId markerIdRc = getReverseComplementMarkerId(markerDescriptor);
+                markerGraph.vertexTable[markerId] = vertexId;
+                if(markerIdRc != markerId) {
+                    markerGraph.vertexTable[markerIdRc] = vertexIdRc;
+                }
             }
-            out << " vertices." << endl;
-            for(const MarkerDescriptor markerDescriptor: componentDescriptors) {
-                out << markerDescriptor.first << " " << markerDescriptor.second << endl;
+            continue;
+        }
+
+
+        // We could not make a new vertex out of this component.
+        // Each of this markers either becomes a new vertex on its own,
+        // or gets assigned to no vertex.
+        if(minCoverage<=1 and minCoveragePerStrand==0) {
+            for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+                const MarkerId markerId = getMarkerId(markerDescriptor);
+                const MarkerId markerIdRc = getReverseComplementMarkerId(markerDescriptor);
+                markerGraph.vertexTable[markerId] =
+                    cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
+                if(markerIdRc != markerId) {
+                    markerGraph.vertexTable[markerIdRc] =
+                        cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
+                }
+            }
+        } else {
+            for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+                const MarkerId markerId = getMarkerId(markerDescriptor);
+                const MarkerId markerIdRc = getReverseComplementMarkerId(markerDescriptor);
+                markerGraph.vertexTable[markerId] = MarkerGraph::invalidCompressedVertexId;
+                markerGraph.vertexTable[markerIdRc] = MarkerGraph::invalidCompressedVertexId;
             }
         }
     }
-
-
-    return false;
 }
 
 

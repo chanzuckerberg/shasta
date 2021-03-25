@@ -509,6 +509,14 @@ private:
     // return the corresponding global marker id.
     MarkerId getMarkerId(OrientedReadId, uint32_t ordinal) const;
     MarkerId getReverseComplementMarkerId(OrientedReadId, uint32_t ordinal) const;
+    MarkerId getMarkerId(const MarkerDescriptor& m) const
+    {
+        return getMarkerId(m.first, m.second);
+    }
+    MarkerId getReverseComplementMarkerId(const MarkerDescriptor& m) const
+    {
+        return getReverseComplementMarkerId(m.first, m.second);
+    }
 
     // Inverse of the above: given a global marker id,
     // return its OrientedReadId and ordinal.
@@ -1144,7 +1152,7 @@ private:
         vector<bool>& isDuplicateOrientedReadId,
         bool debug,
         ostream& out);
-    bool cleanupDuplicateMarkersPattern2(
+    void cleanupDuplicateMarkersPattern2(
         MarkerGraph::VertexId,
         uint64_t minCoverage,
         uint64_t minCoveragePerStrand,
@@ -1163,8 +1171,15 @@ private:
         uint64_t badVertexCount;    // Total number of vertices with duplicate markers.
         uint64_t pattern1Count;
         uint64_t pattern2Count;
-        uint64_t noPatternCount;
+
         MarkerGraph::VertexId nextVertexId;
+
+        // Get the next vertex id, then increment it in thread safe way.
+        MarkerGraph::VertexId getAndIncrementNextVertexId()
+        {
+            return __sync_fetch_and_add(&nextVertexId, 1);
+        }
+
     };
     CleanupDuplicateMarkersData cleanupDuplicateMarkersData;
 
