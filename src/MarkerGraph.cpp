@@ -279,7 +279,7 @@ MarkerGraph::VertexId MarkerGraph::renumberVertexTable(size_t threadCount)
 // present in the vertex table is already known, and is faster.
 MarkerGraph::VertexId MarkerGraph::renumberVertexTable(size_t threadCount, VertexId maxVertexId)
 {
-    const bool debug = true;
+    const bool debug = false;
 
     // Sanity check.
     SHASTA_ASSERT(threadCount > 0);
