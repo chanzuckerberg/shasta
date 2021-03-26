@@ -458,6 +458,13 @@ void Assembler::cleanupDuplicateMarkersPattern2(
         }
         sort(componentDescriptors.begin(), componentDescriptors.end());
 
+        if(debug) {
+            out << "Found a connected component with " << componentDescriptors.size() << " markers:" << endl;
+            for(const MarkerDescriptor markerDescriptor: componentDescriptors) {
+                out << markerDescriptor.first << " " << markerDescriptor.second << endl;
+            }
+        }
+
         // See if there are any duplicate markers (duplicate OrientedReadId's)
         // within this component.
         bool duplicatesFoundInThisComponent = false;
@@ -469,12 +476,19 @@ void Assembler::cleanupDuplicateMarkersPattern2(
                 break;
             }
         }
+        if(debug) {
+            out << "Duplicates found in this component: " << int(duplicatesFoundInThisComponent) << endl;
+        }
 
         // Compute coverage for each strand.
         array<uint64_t, 2> strandCoverage = {0, 0};
-        for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+        for(const MarkerDescriptor& markerDescriptor: componentDescriptors) {
             const OrientedReadId orientedReadId = markerDescriptor.first;
             strandCoverage[orientedReadId.getStrand()]++;
+        }
+        if(debug) {
+            out << "Strand coverage for this component:" <<
+                strandCoverage[0] << " " << strandCoverage[1] << endl;
         }
 
 
@@ -485,11 +499,12 @@ void Assembler::cleanupDuplicateMarkersPattern2(
             strandCoverage[0] >= minCoveragePerStrand and
             strandCoverage[1] >= minCoveragePerStrand and
             (strandCoverage[0] + strandCoverage[1]) >= minCoveragePerStrand) {
-            // Add here to create a new vertex for this component, plus a second
-            // one for the reverse complement.
+
+            // Create a new vertex for this component, plus a second one for the reverse complement.
             const MarkerGraph::VertexId vertexId = cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
             const MarkerGraph::VertexId vertexIdRc = cleanupDuplicateMarkersData.getAndIncrementNextVertexId();
-            for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+
+            for(const MarkerDescriptor& markerDescriptor: componentDescriptors) {
                 const MarkerId markerId = getMarkerId(markerDescriptor);
                 const MarkerId markerIdRc = getReverseComplementMarkerId(markerDescriptor);
                 markerGraph.vertexTable[markerId] = vertexId;
@@ -505,7 +520,7 @@ void Assembler::cleanupDuplicateMarkersPattern2(
         // Each of this markers either becomes a new vertex on its own,
         // or gets assigned to no vertex.
         if(minCoverage<=1 and minCoveragePerStrand==0) {
-            for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+            for(const MarkerDescriptor& markerDescriptor: componentDescriptors) {
                 const MarkerId markerId = getMarkerId(markerDescriptor);
                 const MarkerId markerIdRc = getReverseComplementMarkerId(markerDescriptor);
                 markerGraph.vertexTable[markerId] =
@@ -516,7 +531,7 @@ void Assembler::cleanupDuplicateMarkersPattern2(
                 }
             }
         } else {
-            for(const MarkerDescriptor& markerDescriptor: markerDescriptors) {
+            for(const MarkerDescriptor& markerDescriptor: componentDescriptors) {
                 const MarkerId markerId = getMarkerId(markerDescriptor);
                 const MarkerId markerIdRc = getReverseComplementMarkerId(markerDescriptor);
                 markerGraph.vertexTable[markerId] = MarkerGraph::invalidCompressedVertexId;
