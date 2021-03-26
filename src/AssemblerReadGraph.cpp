@@ -542,6 +542,11 @@ void Assembler::flagChimericReadsThreadFunction(size_t threadId)
                 } else {
                     if(uComponent != component) {
                         reads->setChimericFlag(startReadId, true);
+                        // Also flag all alignments involving this read as not in the read graph.
+                        const span<uint32_t> alignmentIds = alignmentTable[OrientedReadId(startReadId, 0).getValue()];
+                        for(const uint32_t alignmentId: alignmentIds) {
+                            alignmentData[alignmentId].info.isInReadGraph = 0;
+                        }
                         break;
                     }
                 }
