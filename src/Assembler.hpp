@@ -244,6 +244,7 @@ public:
         size_t threadCount
     );
     void accessAlignmentData();
+    void accessAlignmentDataReadWrite();
 
 
     // Loop over all alignments in the read graph

@@ -1013,7 +1013,11 @@ void Assembler::flagCrossStrandReadGraphEdges(int maxDistance, size_t threadCoun
                 // or (orientedReadId1, orientedReadId0rc)
                 // in the same component, mark it as a cross strand edge.
                 if(component0==component1rc || component1==component0rc) {
-                    readGraph.edges[edgeId].crossesStrands = 1;
+                    ReadGraphEdge& edge = readGraph.edges[edgeId];
+                    edge.crossesStrands = 1;
+                    // Also mark the corresponding alignment as not in the read graph.
+                    const uint64_t alignmentId = edge.alignmentId;
+                    alignmentData[alignmentId].info.isInReadGraph = 0;
                 } else {
                     disjointSets.union_set(i0, i1);
                     disjointSets.union_set(i0rc, i1rc);

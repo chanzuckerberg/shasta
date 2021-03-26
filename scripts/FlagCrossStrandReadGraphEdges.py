@@ -9,7 +9,7 @@ config = GetConfig.getConfig()
 
 # Initialize the assembler and access what we need.
 a = shasta.Assembler()
-a.accessAlignmentData()
+a.accessAlignmentDataReadWrite()
 a.accessReadGraphReadWrite()
 a.flagCrossStrandReadGraphEdges(
     maxDistance = int(config['ReadGraph']['crossStrandMaxDistance']))

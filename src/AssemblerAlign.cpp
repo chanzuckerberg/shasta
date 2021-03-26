@@ -572,6 +572,11 @@ void Assembler::accessAlignmentData()
     alignmentData.accessExistingReadOnly(largeDataName("AlignmentData"));
     alignmentTable.accessExistingReadOnly(largeDataName("AlignmentTable"));
 }
+void Assembler::accessAlignmentDataReadWrite()
+{
+    alignmentData.accessExistingReadWrite(largeDataName("AlignmentData"));
+    alignmentTable.accessExistingReadWrite(largeDataName("AlignmentTable"));
+}
 
 
 
