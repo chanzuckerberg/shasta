@@ -934,6 +934,7 @@ public:
     void removeReadGraphBridges(uint64_t maxDistance);
     void analyzeReadGraph();
     void readGraphClustering();
+    void writeReadGraphEdges() const;
 
 
 
