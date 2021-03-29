@@ -268,7 +268,7 @@ void AssemblerOptions::addConfigurableOptions()
          default_value(100),
          "Used for palindromic read detection.")
 
-        ("Reads.PalindromicReadOptions.detectOnFastqLoad",
+        ("Reads.palindromicReads.detectOnFastqLoad",
          bool_switch(&readsOptions.palindromicReads.detectOnFastqLoad)->
          default_value(false),
         "Filter reads that have exceptionally poor quality in the second half, "
